@@ -33,7 +33,7 @@ $ pip install click-extra
 
 Here is a graph of Python package dependencies:
 
-![click-extra dependency graph](https://github.com/kdeldycke/click-extra/dependencies.png)
+![click-extra dependency graph](https://github.com/kdeldycke/click-extra/blob/main/dependencies.png)
 
 ## Development
 
