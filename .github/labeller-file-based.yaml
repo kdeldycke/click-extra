@@ -1,0 +1,11 @@
+---
+"🔩 CI/CD":
+  - .github/**/*
+  - .gitignore
+  - pyproject.toml
+  - setup.cfg
+
+"📗 documentation":
+  - .mailmap
+  - LICENSE
+  - readme.md
