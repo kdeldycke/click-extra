@@ -2,7 +2,7 @@
 # Docs: https://python-poetry.org/docs/pyproject/
 name = "click-extra"
 version = "1.0.0"
-description = """Extra colorization and configuration file for Click."""
+description = "🌈 Extra colorization and configuration file for Click."
 license = 'GPL-2.0-or-later'
 authors = ["Kevin Deldycke <kevin@deldycke.com>"]
 readme = "readme.md"
