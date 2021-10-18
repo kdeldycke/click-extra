@@ -18,8 +18,18 @@
 # pylint: disable=redefined-outer-name
 
 import os
+from pathlib import Path
+from textwrap import dedent
 
 import pytest
+from boltons.iterutils import flatten, same
+from boltons.strutils import strip_ansi
+from boltons.tbutils import ExceptionInfo
+from click.testing import CliRunner
+
+from .. import config, reset_logger
+from ..platform import is_linux, is_macos, is_windows
+from ..run import print_cli_output
 
 """ Fixtures, configuration and helpers for tests. """
 
@@ -62,3 +72,47 @@ unless_macos = pytest.mark.skipif(not is_macos(), reason="macOS required")
 
 unless_windows = pytest.mark.skipif(not is_windows(), reason="Windows required")
 """ Pytest mark to skip a test unless it is run on a Windows system. """
+
+
+@pytest.fixture
+def runner():
+    runner = CliRunner(mix_stderr=False)
+    with runner.isolated_filesystem():
+        yield runner
+
+@pytest.fixture
+def invoke(runner):
+    """Executes Click's CLI, print output and return results."""
+
+    def _run(cli, *args, color=False):
+        # We allow for nested iterables and None values as args for
+        # convenience. We just need to flatten and filters them out.
+        args = list(filter(None.__ne__, flatten(args)))
+        if args:
+            assert same(map(type, args), str)
+
+        # Forces logger reset before each CLI invokation as it seems the
+        # @ctx.call_on_close decorator in cli.py is not enough to clean up some
+        # re-entrant calls in the test suite.
+        reset_logger()
+
+        # Force default_map reset between calls to prevent initial context to be polluted by previous tests.
+        result = runner.invoke(cli, args, color=color, default_map={})
+
+        # Strip colors out of results.
+        result.stdout_bytes = strip_ansi(result.stdout_bytes)
+        result.stderr_bytes = strip_ansi(result.stderr_bytes)
+
+        print_cli_output(
+            [runner.get_default_prog_name(cli)] + args,
+            result.output,
+            result.stderr,
+            result.exit_code,
+        )
+
+        if result.exception:
+            print(ExceptionInfo.from_exc_info(*result.exc_info).get_formatted())
+
+        return result
+
+    return _run

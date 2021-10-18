@@ -15,9 +15,11 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+import click
 from boltons.strutils import strip_ansi
+from cloup import Context, group, option, option_group
 
-from ..colorize import HelpExtraFormatter, theme
+from ..colorize import ExtraCommand, ExtraGroup, HelpExtraFormatter, theme
 
 
 def test_options_highlight():
@@ -70,3 +72,56 @@ def test_only_full_word_highlight():
     output = formatter.getvalue()
     # Make sure no highlighting occured
     assert strip_ansi(output) == output
+
+
+def test_keyword_collection(invoke):
+
+    # Create a dummy Click CLI.
+    Context.formatter_class = HelpExtraFormatter
+    CONTEXT_SETTINGS = Context.settings(show_default=True)
+
+    @group(cls=ExtraGroup, context_settings=CONTEXT_SETTINGS)
+    @option_group(
+        "Group 1",
+        option("-a", "--opt1"),
+        option("-b", "--opt2"),
+    )
+    @option_group(
+        "Group 2",
+        option("--opt3"),
+        option("--opt4"),
+    )
+    @option("--config")
+    @click.version_option()
+    @click.help_option("-h", "--help")
+    @click.pass_context
+    def my_cli(ctx, opt1, opt2, opt3, opt4, config):
+        pass
+
+    @click.command(cls=ExtraCommand)
+    @click.pass_context
+    def command1(ctx):
+        pass
+
+    @click.command(cls=ExtraCommand)
+    @click.pass_context
+    def command2(ctx):
+        pass
+
+    @click.command(cls=ExtraCommand)
+    @click.pass_context
+    def command3(ctx):
+        pass
+
+    @click.command(cls=ExtraCommand)
+    @click.pass_context
+    def command4(ctx):
+        pass
+
+    my_cli.section("Subcommand group #1", command1, command2)
+    my_cli.section("Extra commands", command3, command4)
+
+    result = invoke(my_cli, "--help")
+    result = invoke(my_cli, "-h")
+    result = invoke(my_cli, "command4", "--help")
+    result = invoke(command4, "--help")

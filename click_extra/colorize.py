@@ -23,9 +23,7 @@ from functools import partial
 
 import click
 from click_log.core import ColorFormatter
-from cloup import HelpFormatter, HelpTheme, Style
-
-from . import CLI_NAME, __version__
+from cloup import Command, Group, HelpFormatter, HelpTheme, OptionGroupMixin, Style
 
 # Extend the predefined theme named tuple with our extra styles.
 theme_params = {
@@ -84,6 +82,10 @@ class ExtraHelpColorsMixin:
         choices = set()
         metavars = set()
 
+        # Includes CLI base name and its commands.
+        # cli_name = ctx.find_root().info_name
+        cli_name = ctx.command_path
+
         # Add user defined help options.
         options.update(ctx.help_option_names)
 
@@ -106,7 +108,7 @@ class ExtraHelpColorsMixin:
             else:
                 short_options.add(option)
 
-        return long_options, short_options, choices, metavars
+        return cli_name, long_options, short_options, choices, metavars
 
     def get_help(self, ctx):
         """Imitates the original `click.core:BaseCommand.get_help()` method but initialize the formatter
@@ -114,6 +116,7 @@ class ExtraHelpColorsMixin:
         """
         formatter = ctx.make_formatter()
         (
+            formatter.cli_name,
             formatter.long_options,
             formatter.short_options,
             formatter.choices,
@@ -140,6 +143,7 @@ class HelpExtraFormatter(HelpFormatter):
         super().__init__(*args, **kwargs)
 
     # Lists of extra keywords to highlight.
+    cli_name = None
     long_options = set()
     short_options = set()
     choices = set()
@@ -171,9 +175,9 @@ class HelpExtraFormatter(HelpFormatter):
             help_text,
         )
 
-        # Highlight CLI name.
+        # Highlight CLI name and command.
         help_text = re.sub(
-            fr"(\s)(?P<colorize>{CLI_NAME})",
+            fr"(\s)(?P<colorize>{self.cli_name})",
             partial(colorize, style=self.theme.invoked_command),
             help_text,
         )
@@ -208,3 +212,20 @@ class HelpExtraFormatter(HelpFormatter):
         """Wrap original `Click.HelpFormatter.getvalue()` to force extra-colorization on rendering."""
         help_text = super().getvalue()
         return self.highlight_extra_keywords(help_text)
+
+
+class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, Group):
+    """Click's `group` with Cloup's `option_group` and extra help screen colorization.
+
+    Cloup does not support option groups on `Click.group`.
+
+    This is a workaround that is being discussed at https://github.com/janluke/cloup/issues/98
+    """
+
+    pass
+
+
+class ExtraCommand(ExtraHelpColorsMixin, Command):
+    """Cloup's `command` with extra help screen colorization."""
+
+    pass
