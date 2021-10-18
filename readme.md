@@ -19,9 +19,9 @@ It mainly consist of hacks, workarounds and other patches that have not reached 
 
 Install `click-extra` with `pip`:
 
-    ``` shell-session
-    $ pip install click-extra
-    ```
+``` shell-session
+$ pip install click-extra
+```
 
 ## Features
 
