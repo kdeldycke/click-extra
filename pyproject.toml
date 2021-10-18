@@ -1,7 +1,7 @@
 [tool.poetry]
 # Docs: https://python-poetry.org/docs/pyproject/
 name = "click-extra"
-version = "1.0.0"
+version = "0.0.1"
 description = "🌈 Extra colorization and configuration file for Click."
 license = 'GPL-2.0-or-later'
 authors = ["Kevin Deldycke <kevin@deldycke.com>"]
