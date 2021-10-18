@@ -24,13 +24,12 @@ $ pip install click-extra
 ## Features
 
 - Platform recognition utilities
-- `unless_linux`, `unless_macos`, `unless_windows` markers for `pytest`
-- `destructive` and `non_destructive` markers for `pytest`
-```
+- `@unless_linux`, `@unless_macos` and `@unless_windows` markers for `pytest`
+- `@destructive` and `@non_destructive` markers for `pytest`
 
 ### Colorization of help screen
 
-Extend [Cloup's theme]() to add colorization of:
+Extend [Cloup's own help formatter and theme](https://cloup.readthedocs.io/en/stable/pages/formatting.html#help-formatting-and-themes) to add colorization of:
 - Options
 - Choices
 - Metavars
