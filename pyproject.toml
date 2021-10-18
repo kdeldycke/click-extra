@@ -8,7 +8,7 @@ authors = ["Kevin Deldycke <kevin@deldycke.com>"]
 readme = "readme.md"
 homepage = 'https://github.com/kdeldycke/click-extra'
 repository = 'https://github.com/kdeldycke/click-extra'
-documentation = 'https://kdeldycke.github.io/click-extra#readme'
+documentation = 'https://github.com/kdeldycke/click-extra#readme'
 keywords = [
     'CLI',
     'color',
