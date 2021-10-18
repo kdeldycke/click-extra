@@ -26,6 +26,19 @@ $ pip install click-extra
 - Platform recognition utilities
 - `unless_linux`, `unless_macos`, `unless_windows` markers for `pytest`
 - `destructive` and `non_destructive` markers for `pytest`
+```
+
+### Colorization of help screen
+
+Extend [Cloup's theme]() to add colorization of:
+- Options
+- Choices
+- Metavars
+
+This has been discussed upstream at:
+- https://github.com/janluke/cloup/issues/97
+- https://github.com/click-contrib/click-help-colors/issues/17
+- https://github.com/janluke/cloup/issues/95
 
 ## Dependencies
 

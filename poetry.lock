@@ -159,6 +159,17 @@ colorama = {version = "*", markers = "platform_system == \"Windows\""}
 importlib-metadata = {version = "*", markers = "python_version < \"3.8\""}
 
 [[package]]
+name = "click-log"
+version = "0.3.2"
+description = "Logging integration for Click"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+click = "*"
+
+[[package]]
 name = "cloup"
 version = "0.12.1"
 description = "Adds features to Click: option groups, constraints, subcommand sections and help themes."
@@ -903,7 +914,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "b719c1da34988a4f3f2375be3de480f67a36be10a99eca772bde8ceebaa01b61"
+content-hash = "e4fd50f576c9c2805612c3459b49e49decc1e72611c640c2511ce0a23b0f18fd"
 
 [metadata.files]
 astroid = [
@@ -1005,6 +1016,10 @@ check-wheel-contents = [
 click = [
     {file = "click-8.0.3-py3-none-any.whl", hash = "sha256:353f466495adaeb40b6b5f592f9f91cb22372351c84caeb068132442a4518ef3"},
     {file = "click-8.0.3.tar.gz", hash = "sha256:410e932b050f5eed773c4cda94de75971c89cdb3155a72a0831139a79e5ecb5b"},
+]
+click-log = [
+    {file = "click-log-0.3.2.tar.gz", hash = "sha256:16fd1ca3fc6b16c98cea63acf1ab474ea8e676849dc669d86afafb0ed7003124"},
+    {file = "click_log-0.3.2-py2.py3-none-any.whl", hash = "sha256:eee14dc37cdf3072158570f00406572f9e03e414accdccfccd4c538df9ae322c"},
 ]
 cloup = [
     {file = "cloup-0.12.1-py2.py3-none-any.whl", hash = "sha256:a8c8fe0d7facd0c51c425ed4434b96038617435b9d6b2bcac2add13c66755b4f"},
