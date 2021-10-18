@@ -36,7 +36,7 @@ classifiers = [
 [tool.poetry.urls]
 "Funding" = "https://github.com/sponsors/kdeldycke"
 "Issues" = "https://github.com/kdeldycke/click-extra/issues"
-"Changelog" = "https://github.com/kdeldycke/click-extra/blob/develop/changelog.md"
+"Changelog" = "https://github.com/kdeldycke/click-extra/blob/main/changelog.md"
 
 [tool.poetry.dependencies]
 # List of python versions and their support status:

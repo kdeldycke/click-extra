@@ -5,11 +5,9 @@ release](https://img.shields.io/pypi/v/click-extra.svg)](https://pypi.python.org
 [![Python
 versions](https://img.shields.io/pypi/pyversions/click-extra.svg)](https://pypi.python.org/pypi/click-extra)
 [![Unittests
-status](https://github.com/kdeldycke/click-extra/actions/workflows/tests.yaml/badge.svg?branch=develop)](https://github.com/kdeldycke/click-extra/actions/workflows/tests.yaml?query=branch%3Adevelop)
-[![Documentation
-status](https://github.com/kdeldycke/click-extra/actions/workflows/docs.yaml/badge.svg?branch=develop)](https://github.com/kdeldycke/click-extra/actions/workflows/docs.yaml?query=branch%3Adevelop)
+status](https://github.com/kdeldycke/click-extra/actions/workflows/tests.yaml/badge.svg?branch=main)](https://github.com/kdeldycke/click-extra/actions/workflows/tests.yaml?query=branch%3Amain)
 [![Coverage
-status](https://codecov.io/gh/kdeldycke/click-extra/branch/develop/graph/badge.svg)](https://codecov.io/gh/kdeldycke/click-extra/branch/develop)
+status](https://codecov.io/gh/kdeldycke/click-extra/branch/main/graph/badge.svg)](https://codecov.io/gh/kdeldycke/click-extra/branch/main)
 
 **What is Click Extra?**
 
