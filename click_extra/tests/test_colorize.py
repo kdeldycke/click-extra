@@ -19,7 +19,14 @@ import click
 from boltons.strutils import strip_ansi
 from cloup import Context, group, option, option_group
 
-from ..colorize import ExtraCommand, ExtraGroup, HelpExtraFormatter, theme
+from .. import __version__
+from ..colorize import (
+    ExtraCommand,
+    ExtraGroup,
+    HelpExtraFormatter,
+    theme,
+    version_option,
+)
 
 
 def test_options_highlight():
@@ -92,7 +99,7 @@ def test_keyword_collection(invoke):
         option("--opt4"),
     )
     @option("--config")
-    @click.version_option()
+    @version_option()
     @click.help_option("-h", "--help")
     @click.pass_context
     def my_cli(ctx, opt1, opt2, opt3, opt4, config):
@@ -125,3 +132,29 @@ def test_keyword_collection(invoke):
     result = invoke(my_cli, "-h")
     result = invoke(my_cli, "command4", "--help")
     result = invoke(command4, "--help")
+
+
+def test_version_option(invoke):
+
+    # Create a dummy Click CLI.
+    Context.formatter_class = HelpExtraFormatter
+    CONTEXT_SETTINGS = Context.settings(show_default=True)
+
+    @group(cls=ExtraGroup, context_settings=CONTEXT_SETTINGS)
+    @version_option()
+    def mycli():
+        pass
+
+    # Test default colouring.
+    result = invoke(mycli, "--version", color=True)
+    assert result.exit_code == 0
+    assert (
+        result.stdout == f"\x1b[97mmycli\x1b[0m, version \x1b[32m{__version__}\x1b[0m\n"
+    )
+    assert not result.stderr
+
+    # Test command invoker color stripping
+    result = invoke(mycli, "--version", color=False)
+    assert result.exit_code == 0
+    assert result.stdout == f"mycli, version {__version__}\n"
+    assert not result.stderr

@@ -23,6 +23,7 @@ $ pip install click-extra
 
 ## Features
 
+- Colorization of ``--version`` option
 - Platform recognition utilities
 - `@unless_linux`, `@unless_macos` and `@unless_windows` markers for `pytest`
 - `@destructive` and `@non_destructive` markers for `pytest`

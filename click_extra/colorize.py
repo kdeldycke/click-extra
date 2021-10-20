@@ -22,6 +22,8 @@ from collections import namedtuple
 from functools import partial
 
 import click
+from boltons.ecoutils import get_profile
+from click import version_option as click_version_option
 from click_log.core import ColorFormatter
 from cloup import Command, Group, HelpFormatter, HelpTheme, OptionGroupMixin, Style
 
@@ -65,6 +67,51 @@ theme = HelpExtraTheme(
 # Pre-rendered UI-elements.
 OK = theme.success("✓")
 KO = theme.error("✘")
+
+
+def version_option(
+    version=None,
+    prog_name=None,
+    message="%(prog)s, version %(version)s",
+    print_env_info=False,
+    version_style=Style(fg="green"),
+    prog_name_style=theme.invoked_command,
+    message_style=None,
+    env_info_style=Style(fg="bright_black"),
+    **kwargs,
+):
+    """
+    :param print_env_info: adds environment info at the end of the message. Useful to gather user's details for troubleshooting.
+    :param version_style: style of the ``version``. Defaults to green.
+    :param prog_name_style: style of the ``prog_name``. Defaults to theme's invoked_command.
+    :param message_style: default style of the ``message``.
+    :param env_info_style: style of the environment info. Defaults to bright black.
+
+    For other params see Click's ``version_option`` decorator:
+    https://click.palletsprojects.com/en/8.0.x/api/#click.version_option
+    """
+    if print_env_info:
+        env_info = "\n" + str(get_profile(scrub=True))
+        if env_info_style:
+            env_info = env_info_style(env_info)
+        message += env_info
+
+    colorized_message = ""
+    for part in re.split(r"(%\(version\)s|%\(prog\)s)", message):
+        # Skip empty strings.
+        if not part:
+            continue
+        if part == "%(prog)s" and prog_name_style:
+            part = prog_name_style(part)
+        elif part == "%(version)s" and version_style:
+            part = version_style(part)
+        elif message_style:
+            part = message_style(part)
+        colorized_message += part
+
+    return click_version_option(
+        version=version, prog_name=prog_name, message=colorized_message, **kwargs
+    )
 
 
 class ExtraHelpColorsMixin:

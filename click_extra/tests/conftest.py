@@ -100,8 +100,9 @@ def invoke(runner):
         result = runner.invoke(cli, args, color=color, default_map={})
 
         # Strip colors out of results.
-        result.stdout_bytes = strip_ansi(result.stdout_bytes)
-        result.stderr_bytes = strip_ansi(result.stderr_bytes)
+        if not color:
+            result.stdout_bytes = strip_ansi(result.stdout_bytes)
+            result.stderr_bytes = strip_ansi(result.stderr_bytes)
 
         print_cli_output(
             [runner.get_default_prog_name(cli)] + args,
