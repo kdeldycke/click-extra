@@ -21,6 +21,8 @@ import sys
 
 from boltons.dictutils import FrozenDict
 
+from . import logger
+
 LINUX = "linux"
 """ Constant used to identify OSes of the Linux family. """
 
@@ -65,6 +67,9 @@ ALL_OS_LABELS = frozenset({label for label, _ in OS_DEFINITIONS.values()})
 def os_label(os_id):
     """Return platform label for user-friendly output."""
     return OS_DEFINITIONS[os_id][0]
+
+
+logger.debug(f"Raw platform ID: {sys.platform}.")
 
 
 def current_os():

@@ -17,6 +17,8 @@
 
 """ Expose package-wide elements. """
 
+import logging
+
 __version__ = "1.0.0"
 """ Examples of valid version strings according :pep:`440#version-scheme`:
 
@@ -29,3 +31,14 @@ __version__ = "1.0.0"
     __version__ = '1.2.3'        # Final Release
     __version__ = '1.2.3.post1'  # Post Release 1
 """
+
+
+# Initialize global logger.
+logger = logging.getLogger(__name__)
+
+
+def reset_logger():
+    """Forces the logger level to reset at the end of each CLI execution, as it
+    might pollute the logger state between multiple test calls.
+    """
+    logger.setLevel(logging.NOTSET)
