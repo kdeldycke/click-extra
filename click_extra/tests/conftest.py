@@ -27,7 +27,7 @@ from boltons.strutils import strip_ansi
 from boltons.tbutils import ExceptionInfo
 from click.testing import CliRunner
 
-from .. import reset_logger
+from ..logging import reset_logger
 from ..platform import is_linux, is_macos, is_windows
 from ..run import print_cli_output
 

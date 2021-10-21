@@ -15,17 +15,28 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-""" Expose package-wide elements. """
+import pytest
+from cloup import command
 
-__version__ = "1.0.0"
-""" Examples of valid version strings according :pep:`440#version-scheme`:
+from ..logging import verbosity_option
 
-.. code-block:: python
 
-    __version__ = '1.2.3.dev1'   # Development release 1
-    __version__ = '1.2.3a1'      # Alpha Release 1
-    __version__ = '1.2.3b1'      # Beta Release 1
-    __version__ = '1.2.3rc1'     # RC Release 1
-    __version__ = '1.2.3'        # Final Release
-    __version__ = '1.2.3.post1'  # Post Release 1
-"""
+# Create a dummy Click CLI.
+@command()
+@verbosity_option()
+def mycli():
+    print("It works!")
+
+
+def test_unrecognized_verbosity(invoke):
+    result = invoke(mycli, "--verbosity", "random")
+    assert result.exit_code == 2
+    assert not result.stdout
+    assert "Error: Invalid value for '--verbosity' / '-v'" in result.stderr
+
+
+@pytest.mark.parametrize("level", ("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"))
+def test_verbosity(invoke, level):
+    result = invoke(mycli, "--verbosity", level)
+    assert result.exit_code == 0
+    assert "It works!" in result.stdout

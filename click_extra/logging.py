@@ -15,17 +15,29 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-""" Expose package-wide elements. """
+""" Logging utilities. """
 
-__version__ = "1.0.0"
-""" Examples of valid version strings according :pep:`440#version-scheme`:
+import logging
 
-.. code-block:: python
+import click_log
+from click_log import simple_verbosity_option
 
-    __version__ = '1.2.3.dev1'   # Development release 1
-    __version__ = '1.2.3a1'      # Alpha Release 1
-    __version__ = '1.2.3b1'      # Beta Release 1
-    __version__ = '1.2.3rc1'     # RC Release 1
-    __version__ = '1.2.3'        # Final Release
-    __version__ = '1.2.3.post1'  # Post Release 1
-"""
+# Initialize global logger.
+logger = logging.getLogger(__name__)
+click_log.basic_config(logger)
+
+
+def reset_logger():
+    """Forces the logger level to reset at the end of each CLI execution, as it
+    might pollute the logger state between multiple test calls.
+    """
+    logger.setLevel(logging.NOTSET)
+
+
+def verbosity_option(*args, **kwargs):
+    return simple_verbosity_option(
+        logger,
+        default="INFO",
+        metavar="LEVEL",
+        help="Either CRITICAL, ERROR, WARNING, INFO or DEBUG.",
+    )

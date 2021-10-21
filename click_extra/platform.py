@@ -21,7 +21,7 @@ import sys
 
 from boltons.dictutils import FrozenDict
 
-from . import logger
+from .logging import logger
 
 LINUX = "linux"
 """ Constant used to identify OSes of the Linux family. """
