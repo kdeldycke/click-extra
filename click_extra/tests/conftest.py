@@ -84,7 +84,7 @@ def runner():
 def invoke(runner):
     """Executes Click's CLI, print output and return results."""
 
-    def _run(cli, *args, color=False):
+    def _run(cli, *args, env=None, color=False):
         # We allow for nested iterables and None values as args for
         # convenience. We just need to flatten and filters them out.
         args = list(filter(None.__ne__, flatten(args)))
@@ -97,7 +97,7 @@ def invoke(runner):
         reset_logger()
 
         # Force default_map reset between calls to prevent initial context to be polluted by previous tests.
-        result = runner.invoke(cli, args, color=color, default_map={})
+        result = runner.invoke(cli, args, env=env, color=color, default_map={})
 
         # Strip colors out of results.
         if not color:
