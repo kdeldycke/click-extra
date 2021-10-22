@@ -79,9 +79,7 @@ def test_only_full_word_highlight():
 def test_keyword_collection(invoke):
 
     # Create a dummy Click CLI.
-    CONTEXT_SETTINGS = Context.settings(show_default=True)
-
-    @group(context_settings=CONTEXT_SETTINGS)
+    @group()
     @option_group(
         "Group 1",
         option("-a", "--opt1"),
@@ -93,8 +91,6 @@ def test_keyword_collection(invoke):
         option("--opt4"),
     )
     @option("--config")
-    @version_option()
-    @click.help_option("-h", "--help")
     @click.pass_context
     def mycli(ctx, opt1, opt2, opt3, opt4, config):
         pass
@@ -131,9 +127,7 @@ def test_keyword_collection(invoke):
 def test_version_option(invoke):
 
     # Create a dummy Click CLI.
-    CONTEXT_SETTINGS = Context.settings(show_default=True)
-
-    @group(context_settings=CONTEXT_SETTINGS)
+    @group()
     @version_option()
     def mycli():
         pass

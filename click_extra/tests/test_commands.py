@@ -15,36 +15,37 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-import pytest
+import click
+from boltons.strutils import strip_ansi
+from cloup import option
 
-from ..commands import group
-from ..logging import LOG_LEVELS
+from .. import __version__
+from ..commands import command, group
 
 
 # Create a dummy Click CLI.
 @group()
-def mycli():
+@option("-a", "--opt1")
+@option("-b", "--opt2")
+@click.pass_context
+def mycli(ctx, opt1, opt2):
     print("It works!")
 
 
 @mycli.command()
-def command1():
+@click.pass_context
+def command1(ctx):
     print("Run command #1...")
 
 
-def test_unrecognized_verbosity(invoke):
-    result = invoke(mycli, "--verbosity", "random")
-    assert result.exit_code == 2
-    assert not result.stdout
-    assert "Error: Invalid value for '--verbosity' / '-v'" in result.stderr
+@mycli.command()
+@click.pass_context
+def command2(ctx):
+    print("Run command #2...")
 
 
-@pytest.mark.parametrize("level", LOG_LEVELS.keys())
-def test_verbosity(invoke, level):
-    result = invoke(mycli, "--verbosity", level, "command1")
-    assert result.exit_code == 0
-    assert "It works!" in result.stdout
-    if level == "DEBUG":
-        assert "debug: " in result.stderr
-    else:
-        assert "debug: " not in result.stderr
+def test_simple_call(invoke):
+    result = invoke(mycli, "command2", color=True)
+    assert "It works!" in result.output
+    assert "Run command #1..." not in result.output
+    assert "Run command #2..." in result.output

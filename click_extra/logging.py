@@ -27,6 +27,21 @@ logger = logging.getLogger(__name__)
 click_log.basic_config(logger)
 
 
+LOG_LEVELS = {
+    name: value
+    for value, name in sorted(logging._levelToName.items(), reverse=True)
+    if name != "NOTSET"
+}
+"""Index levels by their ID."""
+
+
+def print_level():
+    """Print current logger level as a debug message."""
+    level = logger.level
+    level_name = logging._levelToName.get(level, level)
+    logger.debug(f"Verbosity set to {level_name}.")
+
+
 def reset_logger():
     """Forces the logger level to reset at the end of each CLI execution, as it
     might pollute the logger state between multiple test calls.
@@ -34,10 +49,13 @@ def reset_logger():
     logger.setLevel(logging.NOTSET)
 
 
-def verbosity_option(*args, **kwargs):
-    return simple_verbosity_option(
-        logger,
-        default="INFO",
-        metavar="LEVEL",
-        help="Either CRITICAL, ERROR, WARNING, INFO or DEBUG.",
+def verbosity_option(default_logger=logger, *names, **kwargs):
+    # Overrides with our sensible defautls.
+    kwargs.update(
+        {
+            "default": "INFO",
+            "metavar": "LEVEL",
+            "help": f"Either {', '.join(LOG_LEVELS)}.",
+        }
     )
+    return simple_verbosity_option(logger=default_logger, *names, **kwargs)
