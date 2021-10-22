@@ -43,16 +43,8 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
 
 
 def group(name=None, cls=ExtraGroup, **kwargs):
-    import pdb
-
-    pdb.set_trace()
-
     return cloup_group(name=name, cls=cls, **kwargs)
 
 
 def command(name=None, aliases=None, cls=ExtraCommand, **kwargs):
-    import pdb
-
-    pdb.set_trace()
-
     return cloup_command(name=name, aliases=aliases, cls=cls, **kwargs)
