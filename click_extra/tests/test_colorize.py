@@ -102,7 +102,7 @@ def test_keyword_collection(invoke):
     @version_option()
     @click.help_option("-h", "--help")
     @click.pass_context
-    def my_cli(ctx, opt1, opt2, opt3, opt4, config):
+    def mycli(ctx, opt1, opt2, opt3, opt4, config):
         pass
 
     @click.command(cls=ExtraCommand)
@@ -125,13 +125,13 @@ def test_keyword_collection(invoke):
     def command4(ctx):
         pass
 
-    my_cli.section("Subcommand group #1", command1, command2)
-    my_cli.section("Extra commands", command3, command4)
+    mycli.section("Subcommand group #1", command1, command2)
+    mycli.section("Extra commands", command3, command4)
 
-    result = invoke(my_cli, "--help")
-    result = invoke(my_cli, "-h")
-    result = invoke(my_cli, "command4", "--help")
-    result = invoke(command4, "--help")
+    result = invoke(mycli, "--help", color=True)
+    result = invoke(mycli, "-h", color=True)
+    result = invoke(mycli, "command4", "--help", color=True)
+    result = invoke(command4, "--help", color=True)
 
 
 def test_version_option(invoke):
