@@ -17,16 +17,11 @@
 
 import click
 from boltons.strutils import strip_ansi
-from cloup import Context, group, option, option_group
+from cloup import Context, option, option_group
 
 from .. import __version__
-from ..colorize import (
-    ExtraCommand,
-    ExtraGroup,
-    HelpExtraFormatter,
-    theme,
-    version_option,
-)
+from ..colorize import HelpExtraFormatter, theme, version_option
+from ..commands import command, group
 
 
 def test_options_highlight():
@@ -84,10 +79,9 @@ def test_only_full_word_highlight():
 def test_keyword_collection(invoke):
 
     # Create a dummy Click CLI.
-    Context.formatter_class = HelpExtraFormatter
     CONTEXT_SETTINGS = Context.settings(show_default=True)
 
-    @group(cls=ExtraGroup, context_settings=CONTEXT_SETTINGS)
+    @group(context_settings=CONTEXT_SETTINGS)
     @option_group(
         "Group 1",
         option("-a", "--opt1"),
@@ -105,22 +99,22 @@ def test_keyword_collection(invoke):
     def mycli(ctx, opt1, opt2, opt3, opt4, config):
         pass
 
-    @click.command(cls=ExtraCommand)
+    @command()
     @click.pass_context
     def command1(ctx):
         pass
 
-    @click.command(cls=ExtraCommand)
+    @command()
     @click.pass_context
     def command2(ctx):
         pass
 
-    @click.command(cls=ExtraCommand)
+    @command()
     @click.pass_context
     def command3(ctx):
         pass
 
-    @click.command(cls=ExtraCommand)
+    @command()
     @click.pass_context
     def command4(ctx):
         pass
@@ -137,10 +131,9 @@ def test_keyword_collection(invoke):
 def test_version_option(invoke):
 
     # Create a dummy Click CLI.
-    Context.formatter_class = HelpExtraFormatter
     CONTEXT_SETTINGS = Context.settings(show_default=True)
 
-    @group(cls=ExtraGroup, context_settings=CONTEXT_SETTINGS)
+    @group(context_settings=CONTEXT_SETTINGS)
     @version_option()
     def mycli():
         pass

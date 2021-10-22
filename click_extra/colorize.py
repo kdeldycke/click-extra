@@ -25,7 +25,7 @@ import click
 from boltons.ecoutils import get_profile
 from click import version_option as click_version_option
 from click_log.core import ColorFormatter
-from cloup import Command, Group, HelpFormatter, HelpTheme, OptionGroupMixin, Style
+from cloup import Context, HelpFormatter, HelpTheme, Style
 
 # Extend the predefined theme named tuple with our extra styles.
 theme_params = {
@@ -261,18 +261,4 @@ class HelpExtraFormatter(HelpFormatter):
         return self.highlight_extra_keywords(help_text)
 
 
-class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, Group):
-    """Click's `group` with Cloup's `option_group` and extra help screen colorization.
-
-    Cloup does not support option groups on `Click.group`.
-
-    This is a workaround that is being discussed at https://github.com/janluke/cloup/issues/98
-    """
-
-    pass
-
-
-class ExtraCommand(ExtraHelpColorsMixin, Command):
-    """Cloup's `command` with extra help screen colorization."""
-
-    pass
+Context.formatter_class = HelpExtraFormatter
