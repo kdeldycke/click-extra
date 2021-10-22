@@ -71,10 +71,13 @@ KO = theme.error("✘")
 
 def version_option(
     version=None,
+    *param_decls,
+    package_name=None,
     prog_name=None,
     message="%(prog)s, version %(version)s",
     print_env_info=False,
     version_style=Style(fg="green"),
+    package_name_style=theme.invoked_command,
     prog_name_style=theme.invoked_command,
     message_style=None,
     env_info_style=Style(fg="bright_black"),
@@ -83,6 +86,7 @@ def version_option(
     """
     :param print_env_info: adds environment info at the end of the message. Useful to gather user's details for troubleshooting.
     :param version_style: style of the ``version``. Defaults to green.
+    :param package_name_style: style of the ``package_name``. Defaults to theme's invoked_command.
     :param prog_name_style: style of the ``prog_name``. Defaults to theme's invoked_command.
     :param message_style: default style of the ``message``.
     :param env_info_style: style of the environment info. Defaults to bright black.
@@ -97,11 +101,13 @@ def version_option(
         message += env_info
 
     colorized_message = ""
-    for part in re.split(r"(%\(version\)s|%\(prog\)s)", message):
+    for part in re.split(r"(%\(version\)s|%\(package\)s|%\(prog\)s)", message):
         # Skip empty strings.
         if not part:
             continue
-        if part == "%(prog)s" and prog_name_style:
+        if part == "%(package)s" and package_name_style:
+            part = package_name_style(part)
+        elif part == "%(prog)s" and prog_name_style:
             part = prog_name_style(part)
         elif part == "%(version)s" and version_style:
             part = version_style(part)
@@ -110,7 +116,12 @@ def version_option(
         colorized_message += part
 
     return click_version_option(
-        version=version, prog_name=prog_name, message=colorized_message, **kwargs
+        version=version,
+        *param_decls,
+        package_name=package_name,
+        prog_name=prog_name,
+        message=colorized_message,
+        **kwargs,
     )
 
 
