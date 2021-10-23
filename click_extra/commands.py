@@ -21,6 +21,8 @@ The collection of pre-defined decorators here present good and common defaults. 
 still mix'n'match the mixins below to build your own custom variants.
 """
 
+from time import perf_counter
+
 import click
 from cloup import Command, Group, OptionGroupMixin
 from cloup import command as cloup_command
@@ -28,6 +30,40 @@ from cloup import group as cloup_group
 
 from .colorize import ExtraHelpColorsMixin
 from .logging import print_level, verbosity_option
+
+
+def register_timer_on_close(ctx, param, value):
+    """Callback setting up all timer's machinery.
+
+    Computes and print the execution time at the end of the CLI, if option has been activated.
+    """
+    # Take timestamp snapshot.
+    timer_start_time = perf_counter()
+
+    def print_timer():
+        """Compute and print elapsed execution time."""
+        click.echo(f"Execution time: {perf_counter() - timer_start_time:0.3f} seconds.")
+
+    # Register printing at the end of execution.
+    if value:
+        ctx.call_on_close(print_timer)
+
+
+def timer_option(*names, **kwargs):
+    """A ready to use option decorator that is adding a ``--time/--no-time``
+    option flag to print elapsed time at the end of CLI execution."""
+    if not names:
+        names = ["--time/--no-time"]
+
+    updated_kwargs = {
+        "default": False,
+        "expose_value": False,
+        "callback": register_timer_on_close,
+        "help": "Measure and print elapsed execution time.",
+    }
+    updated_kwargs.update(kwargs)
+
+    return click.option(*names, **updated_kwargs)
 
 
 class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, Group):
@@ -51,6 +87,9 @@ class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, Group):
                 "show_subcommand_aliases": True,
             }
         )
+
+        # Add timer option flag.
+        timer_option()(self)
 
         # Add logger verbosity selector.
         verbosity_option()(self)

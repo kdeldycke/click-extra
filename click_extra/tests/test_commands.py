@@ -49,3 +49,15 @@ def test_simple_call(invoke):
     assert "It works!" in result.output
     assert "Run command #1..." not in result.output
     assert "Run command #2..." in result.output
+
+
+def test_timer(invoke):
+    result = invoke(mycli, "--time", "command2", color=True)
+    assert "It works!" in result.output
+    assert "Run command #2..." in result.output
+    assert "Execution time: " in result.output
+
+    result = invoke(mycli, "--no-time", "command2", color=True)
+    assert "It works!" in result.output
+    assert "Run command #2..." in result.output
+    assert "Execution time: " not in result.output
