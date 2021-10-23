@@ -91,7 +91,10 @@ def disable_colors(ctx, param, value):
             return original_click_secho(*args, **kwargs)
 
         def strip_style(text, **kwargs):
-            """Same as ``click.style()``, but ignore all styling parameters and strip all ANSI code."""
+            """Same as ``click.style()``, but ignore all styling parameters and strip all ANSI code.
+
+            ``click.style()`` is what click_log extension use internally to format log records.
+            """
             return strip_ansi(text)
 
         # Replace Click helpers by our color-cleaning functions.
