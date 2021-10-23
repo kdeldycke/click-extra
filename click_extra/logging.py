@@ -50,12 +50,11 @@ def reset_logger():
 
 
 def verbosity_option(default_logger=logger, *names, **kwargs):
-    # Overrides with our sensible defautls.
-    kwargs.update(
-        {
-            "default": "INFO",
-            "metavar": "LEVEL",
-            "help": f"Either {', '.join(LOG_LEVELS)}.",
-        }
-    )
-    return simple_verbosity_option(logger=default_logger, *names, **kwargs)
+    """Like click_log.simple_verbosity_option decorator, but with our sensible defaults."""
+    updated_kwargs = {
+        "default": "INFO",
+        "metavar": "LEVEL",
+        "help": f"Either {', '.join(LOG_LEVELS)}.",
+    }
+    updated_kwargs.update(kwargs)
+    return simple_verbosity_option(logger=default_logger, *names, **updated_kwargs)
