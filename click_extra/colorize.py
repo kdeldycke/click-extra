@@ -169,10 +169,12 @@ class ExtraHelpColorsMixin:
         return cli_name, long_options, short_options, choices, metavars
 
     def get_help(self, ctx):
-        """Imitates the original `click.core:BaseCommand.get_help()` method but initialize the formatter
-        with the list of extra keywords to highlights.
-        """
-        formatter = ctx.make_formatter()
+        """Replace default formatter by our own."""
+        ctx.formatter_class = HelpExtraFormatter
+        return super().get_help(ctx)
+
+    def format_help(self, ctx, formatter):
+        """Feed our custom formatter instance with the keywords to highlights."""
         (
             formatter.cli_name,
             formatter.long_options,
@@ -180,8 +182,7 @@ class ExtraHelpColorsMixin:
             formatter.choices,
             formatter.metavars,
         ) = self.collect_keywords(ctx)
-        self.format_help(ctx, formatter)
-        return formatter.getvalue().rstrip("\n")
+        return super().format_help(ctx, formatter)
 
 
 class HelpExtraFormatter(HelpFormatter):
@@ -270,6 +271,3 @@ class HelpExtraFormatter(HelpFormatter):
         """Wrap original `Click.HelpFormatter.getvalue()` to force extra-colorization on rendering."""
         help_text = super().getvalue()
         return self.highlight_extra_keywords(help_text)
-
-
-Context.formatter_class = HelpExtraFormatter

@@ -15,9 +15,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-import click
 from boltons.strutils import strip_ansi
-from cloup import Context, option, option_group
+from cloup import option, option_group
 
 from .. import __version__
 from ..colorize import HelpExtraFormatter, theme, version_option
@@ -91,37 +90,69 @@ def test_keyword_collection(invoke):
         option("--opt4"),
     )
     @option("--config")
-    @click.pass_context
-    def mycli(ctx, opt1, opt2, opt3, opt4, config):
-        pass
+    def mycli(opt1, opt2, opt3, opt4, config):
+        print("It works!")
 
     @command()
-    @click.pass_context
-    def command1(ctx):
-        pass
+    def command1():
+        print("Run command #1...")
 
     @command()
-    @click.pass_context
-    def command2(ctx):
-        pass
+    def command2():
+        print("Run command #2...")
 
     @command()
-    @click.pass_context
-    def command3(ctx):
-        pass
+    def command3():
+        print("Run command #3...")
 
     @command()
-    @click.pass_context
-    def command4(ctx):
-        pass
+    def command4():
+        print("Run command #4...")
 
     mycli.section("Subcommand group #1", command1, command2)
     mycli.section("Extra commands", command3, command4)
 
+    help_screen = (
+        "\x1b[94m\x1b[1m\x1b[94m\x1b[1mUsage\x1b[0m: "
+        "\x1b[0m\x1b[97mmycli\x1b[0m [OPTIONS] COMMAND [ARGS]...\n\n"
+        "\x1b[94m\x1b[1m\x1b[94m\x1b[1mGroup \x1b[35m1\x1b[0m\x1b[0m:\x1b[0m\n"
+        "  \x1b[36m-a, \x1b[36m--opt1\x1b[0m TEXT\x1b[0m\n"
+        "  \x1b[36m-b, \x1b[36m--opt2\x1b[0m TEXT\x1b[0m\n\n"
+        "\x1b[94m\x1b[1m\x1b[94m\x1b[1mGroup \x1b[35m2\x1b[0m\x1b[0m:\x1b[0m\n"
+        "  \x1b[36m--opt3 TEXT\x1b[0m\n"
+        "  \x1b[36m--opt4 TEXT\x1b[0m\n\n"
+        "\x1b[94m\x1b[1m\x1b[94m\x1b[1mOther options\x1b[0m:\x1b[0m\n"
+        "  \x1b[36m--config TEXT\x1b[0m\n\n"
+        "\x1b[94m\x1b[1m\x1b[94m\x1b[1mSubcommand group #1\x1b[0m:\x1b[0m\n"
+        "  \x1b[36mcommand1\x1b[0m\n"
+        "  \x1b[36mcommand2\x1b[0m\n\n"
+        "\x1b[94m\x1b[1m\x1b[94m\x1b[1mExtra commands\x1b[0m:\x1b[0m\n"
+        "  \x1b[36mcommand3\x1b[0m\n"
+        "  \x1b[36mcommand4\x1b[0m\n"
+    )
+
     result = invoke(mycli, "--help", color=True)
+    assert result.output == help_screen
+
     result = invoke(mycli, "-h", color=True)
+    assert result.output == help_screen
+
+    # CLI main group is invoked before sub-command.
     result = invoke(mycli, "command4", "--help", color=True)
+    assert result.output == (
+        "It works!\n"
+        "\x1b[94m\x1b[1m\x1b[94m\x1b[1mUsage\x1b[0m: \x1b[0m\x1b[97mmycli command4\x1b[0m [OPTIONS]\n\n"
+        "\x1b[94m\x1b[1m\x1b[94m\x1b[1mOptions\x1b[0m:\x1b[0m\n"
+        "  \x1b[36m--help\x1b[0m  Show this message and exit.  [default: False]\x1b[0m\n"
+    )
+
+    # Check CLI main group is skipped.
     result = invoke(command4, "--help", color=True)
+    assert result.output == (
+        "\x1b[94m\x1b[1m\x1b[94m\x1b[1mUsage\x1b[0m: \x1b[0m\x1b[97mcommand4\x1b[0m [OPTIONS]\n\n"
+        "\x1b[94m\x1b[1m\x1b[94m\x1b[1mOptions\x1b[0m:\x1b[0m\n"
+        "  \x1b[36m--help\x1b[0m  Show this message and exit.\x1b[0m\n"
+    )
 
 
 def test_version_option(invoke):
