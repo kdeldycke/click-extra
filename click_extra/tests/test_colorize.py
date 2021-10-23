@@ -73,7 +73,7 @@ def test_only_full_word_highlight():
     formatter.choices.add("snap")
 
     output = formatter.getvalue()
-    # Make sure no highlighting occured
+    # Make sure no highlighting occurred
     assert strip_ansi(output) == output
 
 
