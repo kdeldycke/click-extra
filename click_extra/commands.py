@@ -88,11 +88,11 @@ class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, Group):
             }
         )
 
-        # Add color stripping flag.
-        nocolor_option()(self)
-
         # Add timer option flag.
         timer_option()(self)
+
+        # Add color stripping flag.
+        nocolor_option()(self)
 
         # Add logger verbosity selector.
         verbosity_option()(self)
