@@ -15,6 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+import click
 import pytest
 
 from ..commands import group
@@ -24,12 +25,12 @@ from ..logging import LOG_LEVELS
 # Create a dummy Click CLI.
 @group()
 def mycli():
-    print("It works!")
+    click.echo("It works!")
 
 
 @mycli.command()
 def command1():
-    print("Run command #1...")
+    click.echo("Run command #1...")
 
 
 def test_unrecognized_verbosity(invoke):

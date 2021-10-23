@@ -16,11 +16,10 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 import click
-from boltons.strutils import strip_ansi
 from cloup import option
 
 from .. import __version__
-from ..commands import command, group
+from ..commands import group
 
 
 # Create a dummy Click CLI.
@@ -29,19 +28,19 @@ from ..commands import command, group
 @option("-b", "--opt2")
 @click.pass_context
 def mycli(ctx, opt1, opt2):
-    print("It works!")
+    click.echo("It works!")
 
 
 @mycli.command()
 @click.pass_context
 def command1(ctx):
-    print("Run command #1...")
+    click.echo("Run command #1...")
 
 
 @mycli.command()
 @click.pass_context
 def command2(ctx):
-    print("Run command #2...")
+    click.echo("Run command #2...")
 
 
 def test_simple_call(invoke):

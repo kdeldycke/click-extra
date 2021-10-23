@@ -28,7 +28,7 @@ from cloup import Command, Group, OptionGroupMixin
 from cloup import command as cloup_command
 from cloup import group as cloup_group
 
-from .colorize import ExtraHelpColorsMixin
+from .colorize import ExtraHelpColorsMixin, nocolor_option, version_option
 from .logging import print_level, reset_logger, verbosity_option
 
 
@@ -87,6 +87,9 @@ class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, Group):
                 "show_subcommand_aliases": True,
             }
         )
+
+        # Add color stripping flag.
+        nocolor_option()(self)
 
         # Add timer option flag.
         timer_option()(self)

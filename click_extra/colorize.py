@@ -23,9 +23,10 @@ from functools import partial
 
 import click
 from boltons.ecoutils import get_profile
+from boltons.strutils import strip_ansi
 from click import version_option as click_version_option
-from click_log.core import ColorFormatter
-from cloup import Context, HelpFormatter, HelpTheme, Style
+from click_log import ColorFormatter
+from cloup import HelpFormatter, HelpTheme, Style
 
 # Extend the predefined theme named tuple with our extra styles.
 theme_params = {
@@ -67,6 +68,62 @@ theme = HelpExtraTheme(
 # Pre-rendered UI-elements.
 OK = theme.success("✓")
 KO = theme.error("✘")
+
+
+# Save original helpers for later monkeypatching and restoration.
+original_click_echo = click.echo
+original_click_secho = click.secho
+original_click_style = click.style
+
+
+def disable_colors(ctx, param, value):
+    """Callback disabling all coloring utilities."""
+    if value:
+
+        def strip_echo(*args, **kwargs):
+            """Same as ``click.echo()``, but strip all ANSI codes."""
+            kwargs["color"] = False
+            return original_click_echo(*args, **kwargs)
+
+        def strip_secho(*args, **kwargs):
+            """Same as ``click.secho()``, but strip all ANSI codes."""
+            kwargs["color"] = False
+            return original_click_secho(*args, **kwargs)
+
+        def strip_style(text, **kwargs):
+            """Same as ``click.style()``, but ignore all styling parameters and strip all ANSI code."""
+            return strip_ansi(text)
+
+        # Replace Click helpers by our color-cleaning functions.
+        click.echo = strip_echo
+        click.secho = strip_secho
+        click.style = strip_style
+
+        # Restore original Click's helpers.
+        def restore_click_styling():
+            click.echo = original_click_echo
+            click.secho = original_click_secho
+            click.style = original_click_style
+
+        ctx.call_on_close(restore_click_styling)
+
+
+def nocolor_option(*names, **kwargs):
+    """A ready to use option decorator that is adding a ``--no-color`` (alias
+    ``--no-ansi``) option to strip colors and ANSI codes from CLI output."""
+    if not names:
+        names = ("--no-color", "--no-ansi")
+
+    updated_kwargs = {
+        "is_flag": True,
+        "default": False,
+        "expose_value": False,
+        "callback": disable_colors,
+        "help": "Strip out all colors and all ANSI codes from output.",
+    }
+    updated_kwargs.update(kwargs)
+
+    return click.option(*names, **updated_kwargs)
 
 
 def version_option(

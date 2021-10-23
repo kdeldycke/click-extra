@@ -15,8 +15,10 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+import click
+import pytest
 from boltons.strutils import strip_ansi
-from cloup import option, option_group
+from cloup import Style, option, option_group
 
 from .. import __version__
 from ..colorize import HelpExtraFormatter, theme, version_option
@@ -91,23 +93,23 @@ def test_keyword_collection(invoke):
     )
     @option("--config")
     def mycli(opt1, opt2, opt3, opt4, config):
-        print("It works!")
+        click.echo("It works!")
 
     @command()
     def command1():
-        print("Run command #1...")
+        click.echo("Run command #1...")
 
     @command()
     def command2():
-        print("Run command #2...")
+        click.echo("Run command #2...")
 
     @command()
     def command3():
-        print("Run command #3...")
+        click.echo("Run command #3...")
 
     @command()
     def command4():
-        print("Run command #4...")
+        click.echo("Run command #4...")
 
     mycli.section("Subcommand group #1", command1, command2)
     mycli.section("Extra commands", command3, command4)
@@ -176,3 +178,38 @@ def test_version_option(invoke):
     assert result.exit_code == 0
     assert result.stdout == f"mycli, version {__version__}\n"
     assert not result.stderr
+
+
+@pytest.mark.parametrize("param", ("--no-color", "--no-ansi", None))
+def test_nocolor_option(invoke, param):
+
+    # Create a dummy Click CLI.
+    @group()
+    def mycli():
+        click.echo(Style(fg="yellow")("It works!"))
+        click.echo("\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m")
+
+    @mycli.command()
+    def command1():
+        click.echo(click.style("Run command #1.", fg="magenta"))
+        click.echo(click.style("Processing...", fg="blue"))
+        click.secho("Done.", fg="green")
+
+    # Test default colouring.
+    result = invoke(mycli, "--verbosity", "DEBUG", param, "command1", color=True)
+
+    assert result.exit_code == 0
+    if not param:
+        assert result.output == (
+            "\x1b[33mIt works!\x1b[0m\n"
+            "\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m\n"
+            "\x1b[35mRun command #1.\x1b[0m\n"
+            "\x1b[34mProcessing...\x1b[0m\n"
+            "\x1b[32mDone.\x1b[0m\n"
+        )
+        assert result.stderr == "\x1b[34mdebug: \x1b[0mVerbosity set to DEBUG.\n"
+    else:
+        assert (
+            result.output == "It works!\nArt\nRun command #1.\nProcessing...\nDone.\n"
+        )
+        assert result.stderr == "debug: Verbosity set to DEBUG.\n"
