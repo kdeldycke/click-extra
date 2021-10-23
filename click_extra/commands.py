@@ -29,7 +29,7 @@ from cloup import command as cloup_command
 from cloup import group as cloup_group
 
 from .colorize import ExtraHelpColorsMixin
-from .logging import print_level, verbosity_option
+from .logging import print_level, reset_logger, verbosity_option
 
 
 def register_timer_on_close(ctx, param, value):
@@ -105,6 +105,10 @@ class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, Group):
         """Main execution of the command, just after the context has been instanciated."""
         # Always print log level beforehand.
         print_level()
+
+        # Forces logger level reset at the end of each CLI execution, as it pollutes the logger
+        # state between multiple test calls.
+        ctx.call_on_close(reset_logger)
 
         return super().invoke(ctx)
 
