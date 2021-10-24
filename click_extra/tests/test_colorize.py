@@ -134,49 +134,50 @@ def test_keyword_collection(invoke):
     )
 
     result = invoke(mycli, "--help", color=True)
+    assert result.exit_code == 0
     assert result.output == help_screen
+    assert not result.stderr
 
     result = invoke(mycli, "-h", color=True)
+    assert result.exit_code == 0
     assert result.output == help_screen
+    assert not result.stderr
 
     # CLI main group is invoked before sub-command.
     result = invoke(mycli, "command4", "--help", color=True)
+    assert result.exit_code == 0
     assert result.output == (
         "It works!\n"
         "\x1b[94m\x1b[1m\x1b[94m\x1b[1mUsage\x1b[0m: \x1b[0m\x1b[97mmycli command4\x1b[0m [OPTIONS]\n\n"
         "\x1b[94m\x1b[1m\x1b[94m\x1b[1mOptions\x1b[0m:\x1b[0m\n"
         "  \x1b[36m--help\x1b[0m  Show this message and exit.  [default: False]\x1b[0m\n"
     )
+    assert not result.stderr
 
     # Check CLI main group is skipped.
     result = invoke(command4, "--help", color=True)
+    assert result.exit_code == 0
     assert result.output == (
         "\x1b[94m\x1b[1m\x1b[94m\x1b[1mUsage\x1b[0m: \x1b[0m\x1b[97mcommand4\x1b[0m [OPTIONS]\n\n"
         "\x1b[94m\x1b[1m\x1b[94m\x1b[1mOptions\x1b[0m:\x1b[0m\n"
         "  \x1b[36m--help\x1b[0m  Show this message and exit.\x1b[0m\n"
     )
+    assert not result.stderr
 
 
 def test_version_option(invoke):
-
-    # Create a dummy Click CLI.
     @group()
-    @version_option()
-    def mycli():
-        pass
+    @version_option(print_env_info=True)
+    def dummy_cli():
+        click.echo("It works!")
 
     # Test default colouring.
-    result = invoke(mycli, "--version", color=True)
+    result = invoke(dummy_cli, "--version", color=True)
     assert result.exit_code == 0
-    assert (
-        result.stdout == f"\x1b[97mmycli\x1b[0m, version \x1b[32m{__version__}\x1b[0m\n"
+    assert result.stdout.startswith(
+        "\x1b[97mdummy-cli\x1b[0m, version \x1b[32m1.0.0\x1b[0m\x1b[90m\n{'"
     )
-    assert not result.stderr
-
-    # Test command invoker color stripping
-    result = invoke(mycli, "--version", color=False)
-    assert result.exit_code == 0
-    assert result.stdout == f"mycli, version {__version__}\n"
+    assert result.stdout.endswith("'}\x1b[0m\n")
     assert not result.stderr
 
 

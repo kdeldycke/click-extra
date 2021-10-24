@@ -15,9 +15,15 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+"""Test all runner utilities as well as all the test and pytest helpers."""
+
 from pathlib import Path
 
-from .. import __version__
+import click
+from cloup import Style
+
+from ..commands import command
+from ..logging import logger
 
 
 def test_real_fs():
@@ -30,3 +36,23 @@ def test_temporary_fs(runner):
     """Check the CLI runner fixture properly encapsulated the filesystem in
     temporary directory."""
     assert not str(Path(__file__)).startswith(str(Path.cwd()))
+
+
+def test_invoke_color_stripping(invoke):
+    @command()
+    def dummy_cli():
+        click.echo(Style(fg="green")("It works!"))
+        logger.warning("Is the logger colored?")
+        print(click.style("Indeed.", fg="blue"))
+
+    # Test colours are preserved while invoking.
+    result = invoke(dummy_cli, color=True)
+    assert result.exit_code == 0
+    assert result.stdout == "\x1b[32mIt works!\x1b[0m\n\x1b[34mIndeed.\x1b[0m\n"
+    assert result.stderr == "\x1b[33mwarning: \x1b[0mIs the logger colored?\n"
+
+    # Test invoker color stripping.
+    result = invoke(dummy_cli, color=False)
+    assert result.exit_code == 0
+    assert result.stdout == "It works!\nIndeed.\n"
+    assert result.stderr == "warning: Is the logger colored?\n"

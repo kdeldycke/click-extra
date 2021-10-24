@@ -44,19 +44,22 @@ def command2(ctx):
 
 
 def test_simple_call(invoke):
-    result = invoke(mycli, "command2", color=True)
+    result = invoke(mycli, "command2")
+    assert result.exit_code == 0
     assert "It works!" in result.output
     assert "Run command #1..." not in result.output
     assert "Run command #2..." in result.output
+    assert not result.stderr
 
 
 def test_timer(invoke):
-    result = invoke(mycli, "--time", "command2", color=True)
-    assert "It works!" in result.output
-    assert "Run command #2..." in result.output
-    assert "Execution time: " in result.output
+    result = invoke(mycli, "--time", "command2")
+    assert result.exit_code == 0
+    assert result.output.startswith("It works!\nRun command #2...\nExecution time: ")
+    assert result.output.endswith(" seconds.\n")
+    assert not result.stderr
 
-    result = invoke(mycli, "--no-time", "command2", color=True)
-    assert "It works!" in result.output
-    assert "Run command #2..." in result.output
-    assert "Execution time: " not in result.output
+    result = invoke(mycli, "--no-time", "command2")
+    assert result.exit_code == 0
+    assert result.output == "It works!\nRun command #2...\n"
+    assert not result.stderr
