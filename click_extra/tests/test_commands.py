@@ -16,50 +16,44 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 import click
-from cloup import option
 
-from .. import __version__
-from ..commands import group
+from ..commands import group, timer_option
 
 
-# Create a dummy Click CLI.
-@group()
-@option("-a", "--opt1")
-@option("-b", "--opt2")
-@click.pass_context
-def mycli(ctx, opt1, opt2):
-    click.echo("It works!")
+def test_standalone_timer_option(invoke):
+    @click.command()
+    @timer_option()
+    def dummy_cli():
+        click.echo("It works!")
 
-
-@mycli.command()
-@click.pass_context
-def command1(ctx):
-    click.echo("Run command #1...")
-
-
-@mycli.command()
-@click.pass_context
-def command2(ctx):
-    click.echo("Run command #2...")
-
-
-def test_simple_call(invoke):
-    result = invoke(mycli, "command2")
+    result = invoke(dummy_cli, "--time")
     assert result.exit_code == 0
-    assert "It works!" in result.output
-    assert "Run command #1..." not in result.output
-    assert "Run command #2..." in result.output
-    assert not result.stderr
-
-
-def test_timer(invoke):
-    result = invoke(mycli, "--time", "command2")
-    assert result.exit_code == 0
-    assert result.output.startswith("It works!\nRun command #2...\nExecution time: ")
+    assert result.output.startswith("It works!\nExecution time: ")
     assert result.output.endswith(" seconds.\n")
     assert not result.stderr
 
-    result = invoke(mycli, "--no-time", "command2")
+    result = invoke(dummy_cli, "--no-time")
     assert result.exit_code == 0
-    assert result.output == "It works!\nRun command #2...\n"
+    assert result.output == "It works!\n"
+    assert not result.stderr
+
+
+def test_integrated_timer_option(invoke):
+    @group()
+    def dummy_cli():
+        click.echo("It works!")
+
+    @dummy_cli.command()
+    def command1():
+        click.echo("Run command #1...")
+
+    result = invoke(dummy_cli, "--time", "command1")
+    assert result.exit_code == 0
+    assert result.output.startswith("It works!\nRun command #1...\nExecution time: ")
+    assert result.output.endswith(" seconds.\n")
+    assert not result.stderr
+
+    result = invoke(dummy_cli, "--no-time", "command1")
+    assert result.exit_code == 0
+    assert result.output == "It works!\nRun command #1...\n"
     assert not result.stderr

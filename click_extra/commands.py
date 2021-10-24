@@ -55,15 +55,16 @@ def timer_option(*names, **kwargs):
     if not names:
         names = ["--time/--no-time"]
 
-    updated_kwargs = {
+    # Merge defaults params with users'.
+    default_params = {
         "default": False,
         "expose_value": False,
         "callback": register_timer_on_close,
         "help": "Measure and print elapsed execution time.",
     }
-    updated_kwargs.update(kwargs)
+    default_params.update(kwargs)
 
-    return click.option(*names, **updated_kwargs)
+    return click.option(*names, **default_params)
 
 
 class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, Group):

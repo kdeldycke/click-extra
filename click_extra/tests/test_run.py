@@ -48,11 +48,11 @@ def test_invoke_color_stripping(invoke):
     # Test colours are preserved while invoking.
     result = invoke(dummy_cli, color=True)
     assert result.exit_code == 0
-    assert result.stdout == "\x1b[32mIt works!\x1b[0m\n\x1b[34mIndeed.\x1b[0m\n"
+    assert result.output == "\x1b[32mIt works!\x1b[0m\n\x1b[34mIndeed.\x1b[0m\n"
     assert result.stderr == "\x1b[33mwarning: \x1b[0mIs the logger colored?\n"
 
     # Test invoker color stripping.
     result = invoke(dummy_cli, color=False)
     assert result.exit_code == 0
-    assert result.stdout == "It works!\nIndeed.\n"
+    assert result.output == "It works!\nIndeed.\n"
     assert result.stderr == "warning: Is the logger colored?\n"

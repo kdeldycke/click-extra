@@ -116,16 +116,17 @@ def nocolor_option(*names, **kwargs):
     if not names:
         names = ("--no-color", "--no-ansi")
 
-    updated_kwargs = {
+    # Merge defaults params with users'.
+    default_params = {
         "is_flag": True,
         "default": False,
         "expose_value": False,
         "callback": disable_colors,
         "help": "Strip out all colors and all ANSI codes from output.",
     }
-    updated_kwargs.update(kwargs)
+    default_params.update(kwargs)
 
-    return click.option(*names, **updated_kwargs)
+    return click.option(*names, **default_params)
 
 
 def version_option(

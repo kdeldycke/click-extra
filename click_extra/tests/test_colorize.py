@@ -21,8 +21,9 @@ from boltons.strutils import strip_ansi
 from cloup import Style, option, option_group
 
 from .. import __version__
-from ..colorize import HelpExtraFormatter, theme, version_option
+from ..colorize import HelpExtraFormatter, nocolor_option, theme, version_option
 from ..commands import command, group
+from ..logging import logger
 
 
 def test_options_highlight():
@@ -165,7 +166,7 @@ def test_keyword_collection(invoke):
     assert not result.stderr
 
 
-def test_custom_version_option(invoke):
+def test_standalone_version_option_with_env_info(invoke):
     @click.group()
     @version_option(version="1.2.3.4", print_env_info=True)
     def dummy_cli():
@@ -174,12 +175,14 @@ def test_custom_version_option(invoke):
     # Test default colouring.
     result = invoke(dummy_cli, "--version", color=True)
     assert result.exit_code == 0
-    assert result.stdout.startswith(
+    assert result.output.startswith(
         "\x1b[97mdummy-cli\x1b[0m, version \x1b[32m1.2.3.4\x1b[0m\x1b[90m\n{'"
     )
-    assert result.stdout.endswith("'}\x1b[0m\n")
+    assert result.output.endswith("'}\x1b[0m\n")
     assert not result.stderr
 
+
+def test_standalone_version_option_no_env_info(invoke):
     @click.group()
     @version_option(version="1.2.3.4", print_env_info=False)
     def dummy_cli():
@@ -188,27 +191,55 @@ def test_custom_version_option(invoke):
     # Test default colouring.
     result = invoke(dummy_cli, "--version", color=True)
     assert result.exit_code == 0
-    assert result.stdout == "\x1b[97mdummy-cli\x1b[0m, version \x1b[32m1.2.3.4\x1b[0m\n"
+    assert result.output == "\x1b[97mdummy-cli\x1b[0m, version \x1b[32m1.2.3.4\x1b[0m\n"
     assert not result.stderr
 
 
 @pytest.mark.parametrize("param", ("--no-color", "--no-ansi", None))
-def test_nocolor_option(invoke, param):
+def test_standalone_nocolor_option(invoke, param):
+    @click.command()
+    @nocolor_option()
+    def dummy_cli():
+        click.echo(Style(fg="yellow")("It works!"))
+        click.echo("\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m")
+        click.echo(click.style("Run command.", fg="magenta"))
+        logger.warning("Processing...")
+        click.secho("Done.", fg="green")
 
-    # Create a dummy Click CLI.
+    result = invoke(dummy_cli, color=True)
+    assert result.exit_code == 0
+
+    # XXX Standalone nocolor option doesn't seems to be effective at stripping
+    # colors yet. Use the integrated way as shown below.
+    #
+    # if not param:
+    #     assert result.output == (
+    #         "\x1b[33mIt works!\x1b[0m\n"
+    #         "\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m\n"
+    #         "\x1b[35mRun command.\x1b[0m\n"
+    #         "\x1b[32mDone.\x1b[0m\n"
+    #     )
+    #     assert result.stderr == "\x1b[33mwarning: \x1b[0mProcessing...\n"
+    # else:
+    #     assert result.output == "It works!\nArt\nRun command.\nDone.\n"
+    #     assert result.stderr == "warning: Processing...\n"
+
+
+@pytest.mark.parametrize("param", ("--no-color", "--no-ansi", None))
+def test_integrated_nocolor_option(invoke, param):
     @group()
-    def mycli():
+    def dummy_cli():
         click.echo(Style(fg="yellow")("It works!"))
         click.echo("\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m")
 
-    @mycli.command()
+    @dummy_cli.command()
     def command1():
         click.echo(click.style("Run command #1.", fg="magenta"))
-        click.echo(click.style("Processing...", fg="blue"))
+        logger.warning("Processing...")
         click.secho("Done.", fg="green")
 
     # Test default colouring.
-    result = invoke(mycli, "--verbosity", "DEBUG", param, "command1", color=True)
+    result = invoke(dummy_cli, "--verbosity", "DEBUG", param, "command1", color=True)
 
     assert result.exit_code == 0
     if not param:
@@ -216,12 +247,14 @@ def test_nocolor_option(invoke, param):
             "\x1b[33mIt works!\x1b[0m\n"
             "\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m\n"
             "\x1b[35mRun command #1.\x1b[0m\n"
-            "\x1b[34mProcessing...\x1b[0m\n"
             "\x1b[32mDone.\x1b[0m\n"
         )
-        assert result.stderr == "\x1b[34mdebug: \x1b[0mVerbosity set to DEBUG.\n"
-    else:
-        assert (
-            result.output == "It works!\nArt\nRun command #1.\nProcessing...\nDone.\n"
+        assert result.stderr == (
+            "\x1b[34mdebug: \x1b[0mVerbosity set to DEBUG.\n"
+            "\x1b[33mwarning: \x1b[0mProcessing...\n"
         )
-        assert result.stderr == "debug: Verbosity set to DEBUG.\n"
+    else:
+        assert result.output == "It works!\nArt\nRun command #1.\nDone.\n"
+        assert result.stderr == (
+            "debug: Verbosity set to DEBUG.\nwarning: Processing...\n"
+        )

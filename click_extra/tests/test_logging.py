@@ -19,33 +19,68 @@ import click
 import pytest
 
 from ..commands import group
-from ..logging import LOG_LEVELS
-
-
-# Create a dummy Click CLI.
-@group()
-def mycli():
-    click.echo("It works!")
-
-
-@mycli.command()
-def command1():
-    click.echo("Run command #1...")
+from ..logging import LOG_LEVELS, logger, verbosity_option
 
 
 def test_unrecognized_verbosity(invoke):
-    result = invoke(mycli, "--verbosity", "random")
+    @click.command()
+    @verbosity_option()
+    def dummy_cli():
+        click.echo("It works!")
+
+    result = invoke(dummy_cli, "--verbosity", "random")
     assert result.exit_code == 2
-    assert not result.stdout
-    assert "Error: Invalid value for '--verbosity' / '-v'" in result.stderr
+    assert not result.output
+    assert result.stderr == (
+        "Usage: dummy-cli [OPTIONS]\n"
+        "Try 'dummy-cli --help' for help.\n\n"
+        "Error: Invalid value for '--verbosity' / '-v': "
+        "Must be CRITICAL, ERROR, WARNING, INFO or DEBUG, not {}\n"
+    )
 
 
 @pytest.mark.parametrize("level", LOG_LEVELS.keys())
-def test_verbosity(invoke, level):
-    result = invoke(mycli, "--verbosity", level, "command1")
+def test_standalone_verbosity_option(invoke, level):
+    @click.command()
+    @verbosity_option()
+    def dummy_cli():
+        click.echo("It works!")
+        logger.critical("my critical message.")
+        logger.error("my error message.")
+        logger.warning("my warning message.")
+        logger.info("my info message.")
+        logger.debug("my debug message.")
+
+    result = invoke(dummy_cli, "--verbosity", level, color=True)
     assert result.exit_code == 0
-    assert "It works!" in result.stdout
+    assert result.output == "It works!\n"
+
+    messages = [
+        "\x1b[31mcritical: \x1b[0mmy critical message.\n",
+        "\x1b[31merror: \x1b[0mmy error message.\n",
+        "\x1b[33mwarning: \x1b[0mmy warning message.\n",
+        "my info message.\n",
+        "\x1b[34mdebug: \x1b[0mmy debug message.\n",
+    ]
+    level_index = {index: level for level, index in enumerate(LOG_LEVELS)}[level]
+    log_records = "".join(messages[: level_index + 1])
+    assert result.stderr == log_records
+
+
+@pytest.mark.parametrize("level", LOG_LEVELS.keys())
+def test_integrated_verbosity_option(invoke, level):
+    @group()
+    def dummy_cli():
+        click.echo("It works!")
+
+    @dummy_cli.command()
+    def command1():
+        click.echo("Run command #1...")
+
+    result = invoke(dummy_cli, "--verbosity", level, "command1")
+    assert result.exit_code == 0
+    assert result.output == "It works!\nRun command #1...\n"
     if level == "DEBUG":
-        assert "debug: " in result.stderr
+        assert result.stderr == "debug: Verbosity set to DEBUG.\n"
     else:
-        assert "debug: " not in result.stderr
+        assert not result.stderr
