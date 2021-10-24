@@ -165,9 +165,9 @@ def test_keyword_collection(invoke):
     assert not result.stderr
 
 
-def test_version_option(invoke):
-    @group()
-    @version_option(print_env_info=True)
+def test_custom_version_option(invoke):
+    @click.group()
+    @version_option(version="1.2.3.4", print_env_info=True)
     def dummy_cli():
         click.echo("It works!")
 
@@ -175,9 +175,20 @@ def test_version_option(invoke):
     result = invoke(dummy_cli, "--version", color=True)
     assert result.exit_code == 0
     assert result.stdout.startswith(
-        "\x1b[97mdummy-cli\x1b[0m, version \x1b[32m1.0.0\x1b[0m\x1b[90m\n{'"
+        "\x1b[97mdummy-cli\x1b[0m, version \x1b[32m1.2.3.4\x1b[0m\x1b[90m\n{'"
     )
     assert result.stdout.endswith("'}\x1b[0m\n")
+    assert not result.stderr
+
+    @click.group()
+    @version_option(version="1.2.3.4", print_env_info=False)
+    def dummy_cli():
+        click.echo("It works!")
+
+    # Test default colouring.
+    result = invoke(dummy_cli, "--version", color=True)
+    assert result.exit_code == 0
+    assert result.stdout == "\x1b[97mdummy-cli\x1b[0m, version \x1b[32m1.2.3.4\x1b[0m\n"
     assert not result.stderr
 
 

@@ -24,7 +24,6 @@ from functools import partial
 import click
 from boltons.ecoutils import get_profile
 from boltons.strutils import strip_ansi
-from click import version_option as click_version_option
 from click_log import ColorFormatter
 from cloup import HelpFormatter, HelpTheme, Style
 
@@ -175,8 +174,8 @@ def version_option(
             part = message_style(part)
         colorized_message += part
 
-    return click_version_option(
-        version=version,
+    return click.version_option(
+        version,
         *param_decls,
         package_name=package_name,
         prog_name=prog_name,
