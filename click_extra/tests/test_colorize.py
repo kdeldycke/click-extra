@@ -217,6 +217,7 @@ def test_standalone_color_option(invoke, param, expecting_colors):
         click.echo("\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m")
         click.echo(click.style("Run command.", fg="magenta"))
         logger.warning("Processing...")
+        print(click.style("print() bypass Click.", fg="blue"))
         click.secho("Done.", fg="green")
 
     result = invoke(dummy_cli, param, "--verbosity", "DEBUG", color=True)
@@ -227,6 +228,7 @@ def test_standalone_color_option(invoke, param, expecting_colors):
             "\x1b[33mIt works!\x1b[0m\n"
             "\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m\n"
             "\x1b[35mRun command.\x1b[0m\n"
+            "\x1b[34mprint() bypass Click.\x1b[0m\n"
             "\x1b[32mDone.\x1b[0m\n"
         )
         assert result.stderr == (
@@ -234,7 +236,13 @@ def test_standalone_color_option(invoke, param, expecting_colors):
             "\x1b[33mwarning: \x1b[0mProcessing...\n"
         )
     else:
-        assert result.output == "It works!\nArt\nRun command.\nDone.\n"
+        assert result.output == (
+            "It works!\n"
+            "Art\n"
+            "Run command.\n"
+            "\x1b[34mprint() bypass Click.\x1b[0m\n"
+            "Done.\n"
+        )
         assert result.stderr == (
             "debug: Verbosity set to DEBUG.\nwarning: Processing...\n"
         )
@@ -285,6 +293,7 @@ def test_integrated_color_option(invoke, param, expecting_colors):
     def command1():
         click.echo(click.style("Run command #1.", fg="magenta"))
         logger.warning("Processing...")
+        print(click.style("print() bypass Click.", fg="blue"))
         click.secho("Done.", fg="green")
 
     result = invoke(dummy_cli, param, "--verbosity", "DEBUG", "command1", color=True)
@@ -295,6 +304,7 @@ def test_integrated_color_option(invoke, param, expecting_colors):
             "\x1b[33mIt works!\x1b[0m\n"
             "\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m\n"
             "\x1b[35mRun command #1.\x1b[0m\n"
+            "\x1b[34mprint() bypass Click.\x1b[0m\n"
             "\x1b[32mDone.\x1b[0m\n"
         )
         assert result.stderr == (
@@ -302,7 +312,13 @@ def test_integrated_color_option(invoke, param, expecting_colors):
             "\x1b[33mwarning: \x1b[0mProcessing...\n"
         )
     else:
-        assert result.output == "It works!\nArt\nRun command #1.\nDone.\n"
+        assert result.output == (
+            "It works!\n"
+            "Art\n"
+            "Run command #1.\n"
+            "\x1b[34mprint() bypass Click.\x1b[0m\n"
+            "Done.\n"
+        )
         assert result.stderr == (
             "debug: Verbosity set to DEBUG.\nwarning: Processing...\n"
         )

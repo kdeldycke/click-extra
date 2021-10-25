@@ -23,7 +23,6 @@ from textwrap import dedent
 
 import pytest
 from boltons.iterutils import flatten, same
-from boltons.strutils import strip_ansi
 from boltons.tbutils import ExceptionInfo
 from click.testing import CliRunner
 
@@ -98,11 +97,6 @@ def invoke(runner):
 
         # Force default_map reset between calls to prevent initial context to be polluted by previous tests.
         result = runner.invoke(cli, args, env=env, color=color, default_map={})
-
-        # Strip colors out of results.
-        if not color:
-            result.stdout_bytes = strip_ansi(result.stdout_bytes)
-            result.stderr_bytes = strip_ansi(result.stderr_bytes)
 
         print_cli_output(
             [runner.get_default_prog_name(cli)] + args,
