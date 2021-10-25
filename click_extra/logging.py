@@ -66,6 +66,9 @@ def verbosity_option(default_logger=None, *names, **kwargs):
         nonlocal default_logger
         default_logger.setLevel(LOG_LEVELS[value])
         logger.debug(f"Verbosity set to {value}.")
+        # Forces logger level reset at the end of each CLI execution, as it pollutes the logger
+        # state between multiple test calls.
+        ctx.call_on_close(reset_logger)
 
     default_params = {
         "default": "INFO",
