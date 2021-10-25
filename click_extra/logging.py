@@ -19,8 +19,8 @@
 
 import logging
 
+import click
 import click_log
-from click_log import simple_verbosity_option
 
 # Initialize global logger.
 logger = logging.getLogger(__name__)
@@ -32,14 +32,7 @@ LOG_LEVELS = {
     for value, name in sorted(logging._levelToName.items(), reverse=True)
     if name != "NOTSET"
 }
-"""Index levels by their ID."""
-
-
-def print_level():
-    """Print current logger level as a debug message."""
-    level = logger.level
-    level_name = logging._levelToName.get(level, level)
-    logger.debug(f"Verbosity set to {level_name}.")
+"""Index levels by their ID. Sorted from lowest to highest verbosity."""
 
 
 def reset_logger():
@@ -49,12 +42,40 @@ def reset_logger():
     logger.setLevel(logging.NOTSET)
 
 
-def verbosity_option(default_logger=logger, *names, **kwargs):
-    """Like click_log.simple_verbosity_option decorator, but with our sensible defaults."""
-    updated_kwargs = {
+def verbosity_option(default_logger=None, *names, **kwargs):
+    """Adds a ``--verbosity``, ``-v`` option.
+
+    A re-implementation of ``click_log.simple_verbosity_option`` decorator,
+    with sensible defaults and bug fixes (see:
+        https://github.com/click-contrib/click-log/issues/28
+        https://github.com/click-contrib/click-log/issues/29
+        https://github.com/click-contrib/click-log/pull/18
+        https://github.com/click-contrib/click-log/pull/24
+    ).
+    """
+    if not default_logger:
+        default_logger = logger
+    else:
+        assert isinstance(default_logger, logging.Logger)
+
+    if not names:
+        names = ("--verbosity", "-v")
+
+    def set_level(ctx, param, value):
+        """Set logger level and print its value as a debug message."""
+        nonlocal default_logger
+        default_logger.setLevel(LOG_LEVELS[value])
+        logger.debug(f"Verbosity set to {value}.")
+
+    default_params = {
         "default": "INFO",
         "metavar": "LEVEL",
+        "type": click.Choice(LOG_LEVELS, case_sensitive=False),
+        "expose_value": False,
         "help": f"Either {', '.join(LOG_LEVELS)}.",
+        "is_eager": True,
+        "callback": set_level,
     }
-    updated_kwargs.update(kwargs)
-    return simple_verbosity_option(logger=default_logger, *names, **updated_kwargs)
+    default_params.update(kwargs)
+
+    return click.option(*names, **default_params)

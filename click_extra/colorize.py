@@ -23,7 +23,6 @@ from functools import partial
 
 import click
 from boltons.ecoutils import get_profile
-from boltons.strutils import strip_ansi
 from click_log import ColorFormatter
 from cloup import HelpFormatter, HelpTheme, Style
 
@@ -69,57 +68,38 @@ OK = theme.success("✓")
 KO = theme.error("✘")
 
 
-# Save original helpers for later monkeypatching and restoration.
-original_click_echo = click.echo
-original_click_secho = click.secho
-original_click_style = click.style
-
-
 def disable_colors(ctx, param, value):
     """Callback disabling all coloring utilities."""
-    if value:
 
-        def strip_echo(*args, **kwargs):
-            """Same as ``click.echo()``, but strip all ANSI codes."""
-            kwargs["color"] = False
-            return original_click_echo(*args, **kwargs)
+    # There is an undocumented color flag in context:
+    # https://github.com/pallets/click/blob/65eceb08e392e74dcc761be2090e951274ccbe36/src/click/globals.py#L56-L69
+    ctx.color = value
 
-        def strip_secho(*args, **kwargs):
-            """Same as ``click.secho()``, but strip all ANSI codes."""
-            kwargs["color"] = False
-            return original_click_secho(*args, **kwargs)
+    if not value:
 
-        def strip_style(text, **kwargs):
-            """Same as ``click.style()``, but ignore all styling parameters and strip all ANSI code.
+        def restore_original_styling():
+            # Reset color flag in context.
+            ctx = click.get_current_context()
+            ctx.color = None
 
-            ``click.style()`` is what click_log extension use internally to format log records.
-            """
-            return strip_ansi(text)
-
-        # Replace Click helpers by our color-cleaning functions.
-        click.echo = strip_echo
-        click.secho = strip_secho
-        click.style = strip_style
-
-        # Restore original Click's helpers.
-        def restore_click_styling():
-            click.echo = original_click_echo
-            click.secho = original_click_secho
-            click.style = original_click_style
-
-        ctx.call_on_close(restore_click_styling)
+        ctx.call_on_close(restore_original_styling)
 
 
-def nocolor_option(*names, **kwargs):
-    """A ready to use option decorator that is adding a ``--no-color`` (alias
-    ``--no-ansi``) option to strip colors and ANSI codes from CLI output."""
+def color_option(*names, **kwargs):
+    """A ready to use option decorator that is adding a ``--color/--no-color`` (aliased by
+    ``--ansi/--no-ansi``) option to keep or strip colors and ANSI codes from CLI output.
+
+    This option is eager by defaults to allow for other eager options (like
+    ``--version``) to be rendered colorless.
+    """
     if not names:
-        names = ("--no-color", "--no-ansi")
+        names = ("--color/--no-color", "--ansi/--no-ansi")
 
     # Merge defaults params with users'.
     default_params = {
         "is_flag": True,
-        "default": False,
+        "default": True,
+        "is_eager": True,
         "expose_value": False,
         "callback": disable_colors,
         "help": "Strip out all colors and all ANSI codes from output.",

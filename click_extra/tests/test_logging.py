@@ -35,7 +35,7 @@ def test_unrecognized_verbosity(invoke):
         "Usage: dummy-cli [OPTIONS]\n"
         "Try 'dummy-cli --help' for help.\n\n"
         "Error: Invalid value for '--verbosity' / '-v': "
-        "Must be CRITICAL, ERROR, WARNING, INFO or DEBUG, not {}\n"
+        "'random' is not one of 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'.\n"
     )
 
 
@@ -45,25 +45,25 @@ def test_standalone_verbosity_option(invoke, level):
     @verbosity_option()
     def dummy_cli():
         click.echo("It works!")
-        logger.critical("my critical message.")
-        logger.error("my error message.")
-        logger.warning("my warning message.")
-        logger.info("my info message.")
         logger.debug("my debug message.")
+        logger.info("my info message.")
+        logger.warning("my warning message.")
+        logger.error("my error message.")
+        logger.critical("my critical message.")
 
     result = invoke(dummy_cli, "--verbosity", level, color=True)
     assert result.exit_code == 0
     assert result.output == "It works!\n"
 
-    messages = [
-        "\x1b[31mcritical: \x1b[0mmy critical message.\n",
-        "\x1b[31merror: \x1b[0mmy error message.\n",
-        "\x1b[33mwarning: \x1b[0mmy warning message.\n",
+    messages = (
+        "\x1b[34mdebug: \x1b[0mVerbosity set to DEBUG.\n\x1b[34mdebug: \x1b[0mmy debug message.\n",
         "my info message.\n",
-        "\x1b[34mdebug: \x1b[0mmy debug message.\n",
-    ]
+        "\x1b[33mwarning: \x1b[0mmy warning message.\n",
+        "\x1b[31merror: \x1b[0mmy error message.\n",
+        "\x1b[31mcritical: \x1b[0mmy critical message.\n",
+    )
     level_index = {index: level for level, index in enumerate(LOG_LEVELS)}[level]
-    log_records = "".join(messages[: level_index + 1])
+    log_records = "".join(messages[-level_index - 1 :])
     assert result.stderr == log_records
 
 

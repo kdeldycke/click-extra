@@ -21,9 +21,9 @@ from boltons.strutils import strip_ansi
 from cloup import Style, option, option_group
 
 from .. import __version__
-from ..colorize import HelpExtraFormatter, nocolor_option, theme, version_option
+from ..colorize import HelpExtraFormatter, color_option, theme, version_option
 from ..commands import command, group
-from ..logging import logger
+from ..logging import logger, verbosity_option
 
 
 def test_options_highlight():
@@ -195,10 +195,23 @@ def test_standalone_version_option_no_env_info(invoke):
     assert not result.stderr
 
 
-@pytest.mark.parametrize("param", ("--no-color", "--no-ansi", None))
-def test_standalone_nocolor_option(invoke, param):
+@pytest.mark.parametrize(
+    "param,expecting_colors",
+    (
+        ("--color", True),
+        ("--no-color", False),
+        ("--ansi", True),
+        ("--no-ansi", False),
+        (None, True),
+    ),
+)
+def test_standalone_color_option(invoke, param, expecting_colors):
+    """Check color option values, defaults and effects on all things colored,
+    including verbosity option."""
+
     @click.command()
-    @nocolor_option()
+    @verbosity_option()
+    @color_option()
     def dummy_cli():
         click.echo(Style(fg="yellow")("It works!"))
         click.echo("\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m")
@@ -206,27 +219,63 @@ def test_standalone_nocolor_option(invoke, param):
         logger.warning("Processing...")
         click.secho("Done.", fg="green")
 
-    result = invoke(dummy_cli, color=True)
+    result = invoke(dummy_cli, param, "--verbosity", "DEBUG", color=True)
     assert result.exit_code == 0
 
-    # XXX Standalone nocolor option doesn't seems to be effective at stripping
-    # colors yet. Use the integrated way as shown below.
-    #
-    # if not param:
-    #     assert result.output == (
-    #         "\x1b[33mIt works!\x1b[0m\n"
-    #         "\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m\n"
-    #         "\x1b[35mRun command.\x1b[0m\n"
-    #         "\x1b[32mDone.\x1b[0m\n"
-    #     )
-    #     assert result.stderr == "\x1b[33mwarning: \x1b[0mProcessing...\n"
-    # else:
-    #     assert result.output == "It works!\nArt\nRun command.\nDone.\n"
-    #     assert result.stderr == "warning: Processing...\n"
+    if expecting_colors:
+        assert result.output == (
+            "\x1b[33mIt works!\x1b[0m\n"
+            "\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m\n"
+            "\x1b[35mRun command.\x1b[0m\n"
+            "\x1b[32mDone.\x1b[0m\n"
+        )
+        assert result.stderr == (
+            "\x1b[34mdebug: \x1b[0mVerbosity set to DEBUG.\n"
+            "\x1b[33mwarning: \x1b[0mProcessing...\n"
+        )
+    else:
+        assert result.output == "It works!\nArt\nRun command.\nDone.\n"
+        assert result.stderr == (
+            "debug: Verbosity set to DEBUG.\nwarning: Processing...\n"
+        )
 
 
-@pytest.mark.parametrize("param", ("--no-color", "--no-ansi", None))
-def test_integrated_nocolor_option(invoke, param):
+def test_color_option_eagerness(invoke):
+    """--no-color has an effect on --version, if placed in the right order.
+
+    Eager parameters are evaluated in the order as they were provided on the command
+    line by the user as expleined in:
+    https://click.palletsprojects.com/en/8.0.x/advanced/#callback-evaluation-order
+    """
+
+    @click.command()
+    @color_option()
+    @version_option(version="2.1.9")
+    def dummy_cli():
+        click.echo(Style(fg="yellow")("It works!"))
+
+    result = invoke(dummy_cli, "--no-color", "--version", "command1", color=True)
+    assert result.exit_code == 0
+    assert result.output == "dummy-cli, version 2.1.9\n"
+    assert not result.stderr
+
+    result = invoke(dummy_cli, "--version", "--no-color", "command1", color=True)
+    assert result.exit_code == 0
+    assert result.output == "\x1b[97mdummy-cli\x1b[0m, version \x1b[32m2.1.9\x1b[0m\n"
+    assert not result.stderr
+
+
+@pytest.mark.parametrize(
+    "param,expecting_colors",
+    (
+        ("--color", True),
+        ("--no-color", False),
+        ("--ansi", True),
+        ("--no-ansi", False),
+        (None, True),
+    ),
+)
+def test_integrated_color_option(invoke, param, expecting_colors):
     @group()
     def dummy_cli():
         click.echo(Style(fg="yellow")("It works!"))
@@ -238,11 +287,10 @@ def test_integrated_nocolor_option(invoke, param):
         logger.warning("Processing...")
         click.secho("Done.", fg="green")
 
-    # Test default colouring.
-    result = invoke(dummy_cli, "--verbosity", "DEBUG", param, "command1", color=True)
+    result = invoke(dummy_cli, param, "--verbosity", "DEBUG", "command1", color=True)
 
     assert result.exit_code == 0
-    if not param:
+    if expecting_colors:
         assert result.output == (
             "\x1b[33mIt works!\x1b[0m\n"
             "\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m\n"

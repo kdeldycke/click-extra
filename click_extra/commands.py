@@ -28,8 +28,8 @@ from cloup import Command, Group, OptionGroupMixin
 from cloup import command as cloup_command
 from cloup import group as cloup_group
 
-from .colorize import ExtraHelpColorsMixin, nocolor_option, version_option
-from .logging import print_level, reset_logger, verbosity_option
+from .colorize import ExtraHelpColorsMixin, color_option, version_option
+from .logging import reset_logger, verbosity_option
 
 
 def register_timer_on_close(ctx, param, value):
@@ -93,7 +93,7 @@ class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, Group):
         timer_option()(self)
 
         # Add color stripping flag.
-        nocolor_option()(self)
+        color_option()(self)
 
         # Add logger verbosity selector.
         verbosity_option()(self)
@@ -102,13 +102,15 @@ class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, Group):
         click.help_option("-h", "--help")(self)
 
     def main(self, *args, **kwargs):
-        """Pre-invokation step that is instanciating the context."""
+        """Pre-invokation step that is instanciating the context, then call ``invoke()`` within it.
+
+        During context instanciation, each option's callbacks are called. Beware that these
+        might break the execution flow (like ``--version``).
+        """
         super().main(*args, **kwargs)
 
     def invoke(self, ctx):
-        """Main execution of the command, just after the context has been instanciated."""
-        # Always print log level beforehand.
-        print_level()
+        """Main execution of the command, just after the context has been instanciated in ``main()``."""
 
         # Forces logger level reset at the end of each CLI execution, as it pollutes the logger
         # state between multiple test calls.
