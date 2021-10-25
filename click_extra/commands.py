@@ -37,6 +37,10 @@ def register_timer_on_close(ctx, param, value):
 
     Computes and print the execution time at the end of the CLI, if option has been activated.
     """
+    # Skip time keeping if option is not active.
+    if not value:
+        return
+
     # Take timestamp snapshot.
     timer_start_time = perf_counter()
 
@@ -45,15 +49,14 @@ def register_timer_on_close(ctx, param, value):
         click.echo(f"Execution time: {perf_counter() - timer_start_time:0.3f} seconds.")
 
     # Register printing at the end of execution.
-    if value:
-        ctx.call_on_close(print_timer)
+    ctx.call_on_close(print_timer)
 
 
 def timer_option(*names, **kwargs):
     """A ready to use option decorator that is adding a ``--time/--no-time``
     option flag to print elapsed time at the end of CLI execution."""
     if not names:
-        names = ["--time/--no-time"]
+        names = ("--time/--no-time",)
 
     # Merge defaults params with users'.
     default_params = {
