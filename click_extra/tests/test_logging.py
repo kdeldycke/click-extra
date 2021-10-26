@@ -20,6 +20,7 @@ import pytest
 
 from ..commands import group
 from ..logging import LOG_LEVELS, logger, verbosity_option
+from .conftest import skip_windows_colors
 
 
 def test_unrecognized_verbosity(invoke):
@@ -39,6 +40,7 @@ def test_unrecognized_verbosity(invoke):
     )
 
 
+@skip_windows_colors
 @pytest.mark.parametrize("level", LOG_LEVELS.keys())
 def test_standalone_verbosity_option(invoke, level):
     @click.command()

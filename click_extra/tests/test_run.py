@@ -97,6 +97,7 @@ def check_default_uncolored_rendering(result):
     assert result.stderr == "warning: Is the logger colored?\n"
 
 
+@skip_windows_colors
 def test_invoke_optional_color(invoke):
     result = invoke(dummy_cli, color=None)
     check_default_uncolored_rendering(result)
@@ -105,6 +106,7 @@ def test_invoke_optional_color(invoke):
     )
 
 
+@skip_windows_colors
 def test_invoke_default_color(invoke):
     result = invoke(dummy_cli)
     check_default_uncolored_rendering(result)
@@ -113,6 +115,7 @@ def test_invoke_default_color(invoke):
     )
 
 
+@skip_windows_colors
 def test_invoke_color_stripping(invoke):
     result = invoke(dummy_cli, color=False)
     check_default_uncolored_rendering(result)
@@ -121,6 +124,7 @@ def test_invoke_color_stripping(invoke):
     )
 
 
+@skip_windows_colors
 def test_invoke_color_keep(invoke):
     """On windows Click ends up deciding it is not running un an interactive terminal
     and forces the stripping of all colors.

@@ -253,6 +253,7 @@ def test_standalone_color_option(invoke, param, expecting_colors):
         )
 
 
+@skip_windows_colors
 def test_color_option_eagerness(invoke):
     """--no-color has an effect on --version, if placed in the right order.
 
@@ -278,6 +279,7 @@ def test_color_option_eagerness(invoke):
     assert not result.stderr
 
 
+@skip_windows_colors
 @pytest.mark.parametrize(
     "param,expecting_colors",
     (
