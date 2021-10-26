@@ -50,7 +50,9 @@ def test_invoke_color_stripping(invoke):
         click.echo(Style(fg="green")("It works!"))
         logger.warning("Is the logger colored?")
         print(click.style("print() bypass Click.", fg="blue"))
+
         click.echo(f"Context.color = {ctx.color!r}")
+        click.echo(f"utils.should_strip_ansi = {click.utils.should_strip_ansi()!r}")
 
     def check_colored_rendering(result):
         assert result.exit_code == 0
@@ -69,13 +71,17 @@ def test_invoke_color_stripping(invoke):
     # Test invoker color stripping.
     result = invoke(dummy_cli, color=False)
     check_uncolored_rendering(result)
-    assert result.output.endswith("Context.color = None\n")
+    assert result.output.endswith(
+        "Context.color = None\nutils.should_strip_ansi = True\n"
+    )
 
     # Test colours are preserved while invoking, and forced to be rendered
     # on Windows.
     result = invoke(dummy_cli, color="forced")
     check_colored_rendering(result)
-    assert result.output.endswith("Context.color = True\n")
+    assert result.output.endswith(
+        "Context.color = True\nutils.should_strip_ansi = False\n"
+    )
 
     # Test colours are preserved while invoking, but not on Windows where
     # Click applies striping.
@@ -84,4 +90,6 @@ def test_invoke_color_stripping(invoke):
         check_uncolored_rendering(result)
     else:
         check_colored_rendering(result)
-    assert result.output.endswith("Context.color = None\n")
+    assert result.output.endswith(
+        "Context.color = None\nutils.should_strip_ansi = False\n"
+    )
