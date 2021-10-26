@@ -71,6 +71,12 @@ def test_invoke_color_stripping(invoke):
     check_uncolored_rendering(result)
     assert result.output.endswith("Context.color = None\n")
 
+    # Test colours are preserved while invoking, and forced to be rendered
+    # on Windows.
+    result = invoke(dummy_cli, color="forced")
+    check_colored_rendering(result)
+    assert result.output.endswith("Context.color = True\n")
+
     # Test colours are preserved while invoking, but not on Windows where
     # Click applies striping.
     result = invoke(dummy_cli, color=True)
@@ -79,9 +85,3 @@ def test_invoke_color_stripping(invoke):
     else:
         check_colored_rendering(result)
     assert result.output.endswith("Context.color = None\n")
-
-    # Test colours are preserved while invoking, and forced to be rendered
-    # on Windows.
-    result = invoke(dummy_cli, color="forced")
-    check_colored_rendering(result)
-    assert result.output.endswith("Context.color = True\n")

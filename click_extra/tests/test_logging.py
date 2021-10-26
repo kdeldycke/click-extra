@@ -51,7 +51,7 @@ def test_standalone_verbosity_option(invoke, level):
         logger.error("my error message.")
         logger.critical("my critical message.")
 
-    result = invoke(dummy_cli, "--verbosity", level, color="forced")
+    result = invoke(dummy_cli, "--verbosity", level, color=True)
     assert result.exit_code == 0
     assert result.output == "It works!\n"
 

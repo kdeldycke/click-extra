@@ -17,9 +17,12 @@
 
 # pylint: disable=redefined-outer-name
 
+import contextlib
 import os
+from functools import partial
 from pathlib import Path
 from textwrap import dedent
+from types import MethodType
 
 import pytest
 from boltons.iterutils import flatten, same
@@ -86,6 +89,19 @@ def runner():
     with runner.isolated_filesystem():
         yield runner
 
+@contextlib.contextmanager
+def monkeypatch_args(object, name, *extra_args, **extra_kwargs):
+    """ Temporarily forces a call to a method with provided args and kwargs. """
+    original_method = getattr(object, name)
+    assert isinstance(original_method, MethodType)
+
+    extend_args = partial(original_method, *extra_args, **extra_kwargs)
+
+    setattr(object, name, extend_args)
+    yield object
+    setattr(object, name, original_method)
+
+
 @pytest.fixture
 def invoke(runner):
     """Executes Click's CLI, print output and return results.
@@ -112,23 +128,12 @@ def invoke(runner):
 
         if color == "forced":
             color = True
+            extra["color"] = True
 
-            original_cli_main = cli.main
-
-            def force_context_color(*args, **kwargs):
-                """Monkeypatch the original command's ``main()`` call to pass
-                ``color=True`` extra parameter for Context initialization.
-
-                Because we cannot simply add ``color`` to ``**extra``.
-                """
-                nonlocal color
-                nonlocal original_cli_main
-                kwargs["color"] = True
-                return original_cli_main(*args, **kwargs)
-
-            cli.main = force_context_color
-
-        result = runner.invoke(cli, args, env=env, color=color, **extra)
+        # Monkeypatch the original command's ``main()`` call to pass extra parameter
+        # for Context initialization. Because we cannot simply add ``color`` to ``**extra``.
+        with monkeypatch_args(cli, "main", **extra):
+            result = runner.invoke(cli, args, env=env, color=color)
 
         print_cli_output(
             [runner.get_default_prog_name(cli)] + args,
