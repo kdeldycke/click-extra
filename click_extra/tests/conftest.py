@@ -88,7 +88,13 @@ def runner():
 
 @pytest.fixture
 def invoke(runner):
-    """Executes Click's CLI, print output and return results."""
+    """Executes Click's CLI, print output and return results.
+
+    Adds a special case in the form of ``color="forced"`` parameter, which allows
+    colored output to be kept, while forcing the initialization of ``Context.color = True``.
+    This is not allowed in current implementation of ``click.testing.CliRunner.invoke()``. See:
+    https://github.com/pallets/click/issues/2110
+    """
 
     def _run(cli, *args, env=None, color=False):
         # We allow for nested iterables and None values as args for
@@ -97,8 +103,32 @@ def invoke(runner):
         if args:
             assert same(map(type, args), str)
 
-        # Force default_map reset between calls to prevent initial context to be polluted by previous tests.
-        result = runner.invoke(cli, args, env=env, color=color, default_map={})
+        # Extra parameters passed to the invoked command's ``main()`` constructor.
+        extra = {
+            # Force ``default_map``` reset between calls to prevent initial
+            # context to be polluted by previous tests.
+            "default_map": {},
+        }
+
+        if color == "forced":
+            color = True
+
+            original_cli_main = cli.main
+
+            def force_context_color(*args, **kwargs):
+                """Monkeypatch the original command's ``main()`` call to pass
+                ``color=True`` extra parameter for Context initialization.
+
+                Because we cannot simply add ``color`` to ``**extra``.
+                """
+                nonlocal color
+                nonlocal original_cli_main
+                kwargs["color"] = True
+                return original_cli_main(*args, **kwargs)
+
+            cli.main = force_context_color
+
+        result = runner.invoke(cli, args, env=env, color=color, **extra)
 
         print_cli_output(
             [runner.get_default_prog_name(cli)] + args,

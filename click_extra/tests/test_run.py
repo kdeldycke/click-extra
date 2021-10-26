@@ -45,30 +45,43 @@ def test_invoke_color_stripping(invoke):
     """
 
     @command()
-    def dummy_cli():
+    @click.pass_context
+    def dummy_cli(ctx):
         click.echo(Style(fg="green")("It works!"))
         logger.warning("Is the logger colored?")
         print(click.style("print() bypass Click.", fg="blue"))
+        click.echo(f"Context.color = {ctx.color!r}")
 
     def check_colored_rendering(result):
         assert result.exit_code == 0
-        assert result.output == (
+        assert result.output.startswith(
             "\x1b[32mIt works!\x1b[0m\n\x1b[34mprint() bypass Click.\x1b[0m\n"
         )
         assert result.stderr == "\x1b[33mwarning: \x1b[0mIs the logger colored?\n"
 
     def check_uncolored_rendering(result):
         assert result.exit_code == 0
-        assert result.output == "It works!\n\x1b[34mprint() bypass Click.\x1b[0m\n"
+        assert result.output.startswith(
+            "It works!\n\x1b[34mprint() bypass Click.\x1b[0m\n"
+        )
         assert result.stderr == "warning: Is the logger colored?\n"
 
-    # Test colours are preserved while invoking.
+    # Test invoker color stripping.
+    result = invoke(dummy_cli, color=False)
+    check_uncolored_rendering(result)
+    assert result.output.endswith("Context.color = None\n")
+
+    # Test colours are preserved while invoking, but not on Windows where
+    # Click applies striping.
     result = invoke(dummy_cli, color=True)
     if is_windows():
         check_uncolored_rendering(result)
     else:
         check_colored_rendering(result)
+    assert result.output.endswith("Context.color = None\n")
 
-    # Test invoker color stripping.
-    result = invoke(dummy_cli, color=False)
-    check_uncolored_rendering(result)
+    # Test colours are preserved while invoking, and forced to be rendered
+    # on Windows.
+    result = invoke(dummy_cli, color="forced")
+    check_colored_rendering(result)
+    assert result.output.endswith("Context.color = True\n")

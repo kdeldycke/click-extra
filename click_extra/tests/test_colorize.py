@@ -134,18 +134,18 @@ def test_keyword_collection(invoke):
         "  \x1b[36mcommand4\x1b[0m\n"
     )
 
-    result = invoke(mycli, "--help", color=True)
+    result = invoke(mycli, "--help", color="forced")
     assert result.exit_code == 0
     assert result.output == help_screen
     assert not result.stderr
 
-    result = invoke(mycli, "-h", color=True)
+    result = invoke(mycli, "-h", color="forced")
     assert result.exit_code == 0
     assert result.output == help_screen
     assert not result.stderr
 
     # CLI main group is invoked before sub-command.
-    result = invoke(mycli, "command4", "--help", color=True)
+    result = invoke(mycli, "command4", "--help", color="forced")
     assert result.exit_code == 0
     assert result.output == (
         "It works!\n"
@@ -156,7 +156,7 @@ def test_keyword_collection(invoke):
     assert not result.stderr
 
     # Check CLI main group is skipped.
-    result = invoke(command4, "--help", color=True)
+    result = invoke(command4, "--help", color="forced")
     assert result.exit_code == 0
     assert result.output == (
         "\x1b[94m\x1b[1m\x1b[94m\x1b[1mUsage\x1b[0m: \x1b[0m\x1b[97mcommand4\x1b[0m [OPTIONS]\n\n"
@@ -173,7 +173,7 @@ def test_standalone_version_option_with_env_info(invoke):
         click.echo("It works!")
 
     # Test default colouring.
-    result = invoke(dummy_cli, "--version", color=True)
+    result = invoke(dummy_cli, "--version", color="forced")
     assert result.exit_code == 0
     assert result.output.startswith(
         "\x1b[97mdummy-cli\x1b[0m, version \x1b[32m1.2.3.4\x1b[0m\x1b[90m\n{'"
@@ -189,7 +189,7 @@ def test_standalone_version_option_no_env_info(invoke):
         click.echo("It works!")
 
     # Test default colouring.
-    result = invoke(dummy_cli, "--version", color=True)
+    result = invoke(dummy_cli, "--version", color="forced")
     assert result.exit_code == 0
     assert result.output == "\x1b[97mdummy-cli\x1b[0m, version \x1b[32m1.2.3.4\x1b[0m\n"
     assert not result.stderr
@@ -220,7 +220,7 @@ def test_standalone_color_option(invoke, param, expecting_colors):
         print(click.style("print() bypass Click.", fg="blue"))
         click.secho("Done.", fg="green")
 
-    result = invoke(dummy_cli, param, "--verbosity", "DEBUG", color=True)
+    result = invoke(dummy_cli, param, "--verbosity", "DEBUG", color="forced")
     assert result.exit_code == 0
 
     if expecting_colors:
@@ -262,12 +262,12 @@ def test_color_option_eagerness(invoke):
     def dummy_cli():
         click.echo(Style(fg="yellow")("It works!"))
 
-    result = invoke(dummy_cli, "--no-color", "--version", "command1", color=True)
+    result = invoke(dummy_cli, "--no-color", "--version", "command1", color="forced")
     assert result.exit_code == 0
     assert result.output == "dummy-cli, version 2.1.9\n"
     assert not result.stderr
 
-    result = invoke(dummy_cli, "--version", "--no-color", "command1", color=True)
+    result = invoke(dummy_cli, "--version", "--no-color", "command1", color="forced")
     assert result.exit_code == 0
     assert result.output == "\x1b[97mdummy-cli\x1b[0m, version \x1b[32m2.1.9\x1b[0m\n"
     assert not result.stderr
@@ -296,7 +296,9 @@ def test_integrated_color_option(invoke, param, expecting_colors):
         print(click.style("print() bypass Click.", fg="blue"))
         click.secho("Done.", fg="green")
 
-    result = invoke(dummy_cli, param, "--verbosity", "DEBUG", "command1", color=True)
+    result = invoke(
+        dummy_cli, param, "--verbosity", "DEBUG", "command1", color="forced"
+    )
 
     assert result.exit_code == 0
     if expecting_colors:
