@@ -60,13 +60,21 @@ non_destructive = pytest.mark.skipif(
 """
 
 
+skip_linux = pytest.mark.skipif(is_linux(), reason="Skip Linux")
+""" Pytest mark to skip a test if run on a Linux system. """
+
+skip_macos = pytest.mark.skipif(is_macos(), reason="Skip macOS")
+""" Pytest mark to skip a test if run on a macOS system. """
+
+skip_windows = pytest.mark.skipif(is_windows(), reason="Skip Windows")
+""" Pytest mark to skip a test if run on a Windows system. """
+
+
 unless_linux = pytest.mark.skipif(not is_linux(), reason="Linux required")
 """ Pytest mark to skip a test unless it is run on a Linux system. """
 
-
 unless_macos = pytest.mark.skipif(not is_macos(), reason="macOS required")
 """ Pytest mark to skip a test unless it is run on a macOS system. """
-
 
 unless_windows = pytest.mark.skipif(not is_windows(), reason="Windows required")
 """ Pytest mark to skip a test unless it is run on a Windows system. """

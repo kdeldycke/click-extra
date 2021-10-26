@@ -31,7 +31,14 @@ from ..platform import (
     is_windows,
     os_label,
 )
-from .conftest import unless_linux, unless_macos, unless_windows
+from .conftest import (
+    skip_linux,
+    skip_macos,
+    skip_windows,
+    unless_linux,
+    unless_macos,
+    unless_windows,
+)
 
 
 def test_mutual_exclusion():
@@ -100,6 +107,24 @@ def test_os_label():
 
 
 # Test unittest decorator helpers.
+
+
+@skip_linux
+def test_skip_linux():
+    assert not is_linux()
+    assert is_macos() or is_windows()
+
+
+@skip_macos
+def test_skip_macos():
+    assert not is_macos()
+    assert is_linux() or is_windows()
+
+
+@skip_windows
+def test_skip_windows():
+    assert not is_windows()
+    assert is_linux() or is_macos()
 
 
 @unless_linux
