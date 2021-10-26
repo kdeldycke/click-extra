@@ -83,6 +83,13 @@ unless_windows = pytest.mark.skipif(not is_windows(), reason="Windows required")
 """ Pytest mark to skip a test unless it is run on a Windows system. """
 
 
+skip_windows_colors = partial(skip_windows, reason="Click overstrip colors oon Windows")
+"""Skips color tests on Windows as click.testing.invoke overzealously strips colors.
+
+See: https://github.com/pallets/click/issues/2111 and https://github.com/pallets/click/issues/2110
+"""
+
+
 @pytest.fixture
 def runner():
     runner = CliRunner(mix_stderr=False)

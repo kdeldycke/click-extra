@@ -24,6 +24,7 @@ from .. import __version__
 from ..colorize import HelpExtraFormatter, color_option, theme, version_option
 from ..commands import command, group
 from ..logging import logger, verbosity_option
+from .conftest import skip_windows_colors
 
 
 def test_options_highlight():
@@ -78,6 +79,7 @@ def test_only_full_word_highlight():
     assert strip_ansi(output) == output
 
 
+@skip_windows_colors
 def test_keyword_collection(invoke):
 
     # Create a dummy Click CLI.
@@ -166,6 +168,7 @@ def test_keyword_collection(invoke):
     assert not result.stderr
 
 
+@skip_windows_colors
 def test_standalone_version_option_with_env_info(invoke):
     @click.group()
     @version_option(version="1.2.3.4", print_env_info=True)
@@ -182,6 +185,7 @@ def test_standalone_version_option_with_env_info(invoke):
     assert not result.stderr
 
 
+@skip_windows_colors
 def test_standalone_version_option_no_env_info(invoke):
     @click.group()
     @version_option(version="1.2.3.4", print_env_info=False)
@@ -195,6 +199,7 @@ def test_standalone_version_option_no_env_info(invoke):
     assert not result.stderr
 
 
+@skip_windows_colors
 @pytest.mark.parametrize(
     "param,expecting_colors",
     (

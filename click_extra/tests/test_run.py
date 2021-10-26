@@ -25,6 +25,7 @@ from cloup import Style
 from ..commands import command
 from ..logging import logger
 from ..platform import is_windows
+from .conftest import skip_windows_colors
 
 
 def test_real_fs():
@@ -134,6 +135,7 @@ def test_invoke_color_keep(invoke):
     )
 
 
+@skip_windows_colors
 def test_invoke_color_forced(invoke):
     # Test colours are preserved while invoking, and forced to be rendered
     # on Windows.
