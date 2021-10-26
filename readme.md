@@ -10,8 +10,13 @@
 `click-extra` is a collection of helpers and utilities for
 [Click](https://click.palletsprojects.com), the Python CLI framework.
 
-It mainly consist of hacks, workarounds and other patches that have not reached
-upstream yet. Or are unlikely to be accepted upstream.
+It provides boilerplate code and good defaults, as weel as some workarounds
+and patches that have not reached upstream yet (or are unlikely to).
+
+## Used in
+
+- [Meta Package Manager](https://github.com/kdeldycke/meta-package-manager#readme) - A unifying CLI for multiple package managers.
+- [Mail Deduplicate](https://github.com/kdeldycke/mail-deduplicate#readme) - A CLI to deduplicate similar emails.
 
 ## Installation
 
@@ -23,10 +28,16 @@ $ pip install click-extra
 
 ## Features
 
-- Colorization of ``--version`` option
+- Colorization of help screens
+- ``--color/--no-color`` option flag
+- Colored ``--version`` option
+- Colored ``--verbosity`` option and logs
+- ``--time/--no-time`` flag to measure duration of command execution
 - Platform recognition utilities
-- `@unless_linux`, `@unless_macos` and `@unless_windows` markers for `pytest`
-- `@destructive` and `@non_destructive` markers for `pytest`
+- New conditional markers for `pytest`:
+    - `@skip_linux`, `@skip_macos` and `@skip_windows`
+    - `@unless_linux`, `@unless_macos` and `@unless_windows`
+    - `@destructive` and `@non_destructive`
 
 ### Colorization of help screen
 
