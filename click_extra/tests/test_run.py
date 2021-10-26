@@ -24,6 +24,7 @@ from cloup import Style
 
 from ..commands import command
 from ..logging import logger
+from ..platform import is_windows
 
 
 def test_real_fs():
@@ -39,22 +40,35 @@ def test_temporary_fs(runner):
 
 
 def test_invoke_color_stripping(invoke):
+    """On windows Click ends up deciding it is not running un an interactive terminal
+    and forces the stripping of all colors.
+    """
+
     @command()
     def dummy_cli():
         click.echo(Style(fg="green")("It works!"))
         logger.warning("Is the logger colored?")
         print(click.style("print() bypass Click.", fg="blue"))
 
+    def check_colored_rendering(result):
+        assert result.exit_code == 0
+        assert result.output == (
+            "\x1b[32mIt works!\x1b[0m\n\x1b[34mprint() bypass Click.\x1b[0m\n"
+        )
+        assert result.stderr == "\x1b[33mwarning: \x1b[0mIs the logger colored?\n"
+
+    def check_uncolored_rendering(result):
+        assert result.exit_code == 0
+        assert result.output == "It works!\n\x1b[34mprint() bypass Click.\x1b[0m\n"
+        assert result.stderr == "warning: Is the logger colored?\n"
+
     # Test colours are preserved while invoking.
     result = invoke(dummy_cli, color=True)
-    assert result.exit_code == 0
-    assert result.output == (
-        "\x1b[32mIt works!\x1b[0m\n\x1b[34mprint() bypass Click.\x1b[0m\n"
-    )
-    assert result.stderr == "\x1b[33mwarning: \x1b[0mIs the logger colored?\n"
+    if is_windows():
+        check_uncolored_rendering(result)
+    else:
+        check_colored_rendering(result)
 
     # Test invoker color stripping.
     result = invoke(dummy_cli, color=False)
-    assert result.exit_code == 0
-    assert result.output == "It works!\n\x1b[34mprint() bypass Click.\x1b[0m\n"
-    assert result.stderr == "warning: Is the logger colored?\n"
+    check_uncolored_rendering(result)
