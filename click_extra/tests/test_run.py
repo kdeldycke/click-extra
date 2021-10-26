@@ -39,57 +39,106 @@ def test_temporary_fs(runner):
     assert not str(Path(__file__)).startswith(str(Path.cwd()))
 
 
-def test_invoke_color_stripping(invoke):
-    """On windows Click ends up deciding it is not running un an interactive terminal
-    and forces the stripping of all colors.
-    """
+@command()
+@click.pass_context
+def dummy_cli(ctx):
+    """https://github.com/pallets/click/issues/2111"""
 
-    @command()
-    @click.pass_context
-    def dummy_cli(ctx):
-        click.echo(Style(fg="green")("It works!"))
-        logger.warning("Is the logger colored?")
-        print(click.style("print() bypass Click.", fg="blue"))
+    click.echo(Style(fg="green")("echo()"))
+    click.echo(Style(fg="green")("echo(color=None)"), color=None)
+    click.echo(
+        Style(fg="red")("echo(color=True) bypass invoke.color = False"), color=True
+    )
+    click.echo(Style(fg="green")("echo(color=False)"), color=False)
 
-        click.echo(f"Context.color = {ctx.color!r}")
-        click.echo(f"utils.should_strip_ansi = {click.utils.should_strip_ansi()!r}")
+    click.secho("secho()", fg="green")
+    click.secho("secho(color=None)", fg="green", color=None)
+    click.secho("secho(color=True) bypass invoke.color = False", fg="red", color=True)
+    click.secho("secho(color=False)", fg="green", color=False)
 
-    def check_colored_rendering(result):
-        assert result.exit_code == 0
-        assert result.output.startswith(
-            "\x1b[32mIt works!\x1b[0m\n\x1b[34mprint() bypass Click.\x1b[0m\n"
-        )
-        assert result.stderr == "\x1b[33mwarning: \x1b[0mIs the logger colored?\n"
+    logger.warning("Is the logger colored?")
 
-    def check_uncolored_rendering(result):
-        assert result.exit_code == 0
-        assert result.output.startswith(
-            "It works!\n\x1b[34mprint() bypass Click.\x1b[0m\n"
-        )
-        assert result.stderr == "warning: Is the logger colored?\n"
+    print(click.style("print() bypass Click.", fg="blue"))
 
-    # Test invoker color stripping.
-    result = invoke(dummy_cli, color=False)
-    check_uncolored_rendering(result)
+    click.echo(f"Context.color = {ctx.color!r}")
+    click.echo(f"utils.should_strip_ansi = {click.utils.should_strip_ansi()!r}")
+
+
+def check_default_colored_rendering(result):
+    assert result.exit_code == 0
+    assert result.output.startswith(
+        "\x1b[32mecho()\x1b[0m\n"
+        "\x1b[32mecho(color=None)\x1b[0m\n"
+        "\x1b[31mecho(color=True) bypass invoke.color = False\x1b[0m\n"
+        "echo(color=False)\n"
+        "\x1b[32msecho()\x1b[0m\n"
+        "\x1b[32msecho(color=None)\x1b[0m\n"
+        "\x1b[31msecho(color=True) bypass invoke.color = False\x1b[0m\n"
+        "secho(color=False)\n"
+        "\x1b[34mprint() bypass Click.\x1b[0m\n"
+    )
+    assert result.stderr == "\x1b[33mwarning: \x1b[0mIs the logger colored?\n"
+
+
+def check_default_uncolored_rendering(result):
+    assert result.exit_code == 0
+    assert result.output.startswith(
+        "echo()\n"
+        "echo(color=None)\n"
+        "\x1b[31mecho(color=True) bypass invoke.color = False\x1b[0m\n"
+        "echo(color=False)\n"
+        "secho()\n"
+        "secho(color=None)\n"
+        "\x1b[31msecho(color=True) bypass invoke.color = False\x1b[0m\n"
+        "secho(color=False)\n"
+        "\x1b[34mprint() bypass Click.\x1b[0m\n"
+    )
+    assert result.stderr == "warning: Is the logger colored?\n"
+
+
+def test_invoke_optional_color(invoke):
+    result = invoke(dummy_cli, color=None)
+    check_default_uncolored_rendering(result)
     assert result.output.endswith(
         "Context.color = None\nutils.should_strip_ansi = True\n"
     )
 
+
+def test_invoke_default_color(invoke):
+    result = invoke(dummy_cli)
+    check_default_uncolored_rendering(result)
+    assert result.output.endswith(
+        "Context.color = None\nutils.should_strip_ansi = True\n"
+    )
+
+
+def test_invoke_color_stripping(invoke):
+    result = invoke(dummy_cli, color=False)
+    check_default_uncolored_rendering(result)
+    assert result.output.endswith(
+        "Context.color = None\nutils.should_strip_ansi = True\n"
+    )
+
+
+def test_invoke_color_keep(invoke):
+    """On windows Click ends up deciding it is not running un an interactive terminal
+    and forces the stripping of all colors.
+    """
+    result = invoke(dummy_cli, color=True)
+    if is_windows():
+        check_default_uncolored_rendering(result)
+    else:
+        check_default_colored_rendering(result)
+    assert result.output.endswith(
+        "Context.color = None\nutils.should_strip_ansi = False\n"
+    )
+
+
+def test_invoke_color_forced(invoke):
     # Test colours are preserved while invoking, and forced to be rendered
     # on Windows.
     result = invoke(dummy_cli, color="forced")
-    check_colored_rendering(result)
+    check_default_colored_rendering(result)
     assert result.output.endswith(
         "Context.color = True\nutils.should_strip_ansi = False\n"
-    )
-
-    # Test colours are preserved while invoking, but not on Windows where
-    # Click applies striping.
-    result = invoke(dummy_cli, color=True)
-    if is_windows():
-        check_uncolored_rendering(result)
-    else:
-        check_colored_rendering(result)
-    assert result.output.endswith(
-        "Context.color = None\nutils.should_strip_ansi = False\n"
     )
