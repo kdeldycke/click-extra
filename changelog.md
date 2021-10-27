@@ -1,10 +1,7 @@
 # Changelog
 
-## [1.0.0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v0.0.1...main)
 
-```{important}
-This version is not released yet and is under active development.
-```
+## [1.0.0 (2021-10-27)](https://github.com/kdeldycke/click-extra/compare/v0.0.1...v1.0.0)
 
 - Add colorization of options, choices and metavars in help screens.
 - Add ``--color/--no-color`` option flag (aliased to ``--ansi/--no-ansi``).
