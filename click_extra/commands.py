@@ -89,6 +89,7 @@ class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, Group):
                 "align_option_groups": False,
                 "show_constraints": True,
                 "show_subcommand_aliases": True,
+                "help_option_names": ("-h", "--help"),
             }
         )
 
@@ -100,6 +101,9 @@ class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, Group):
 
         # Add logger verbosity selector.
         verbosity_option()(self)
+
+        # Add colored version option.
+        version_option(print_env_info=True)(self)
 
         # Add help option.
         click.help_option("-h", "--help")(self)

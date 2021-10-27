@@ -15,6 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+
 import click
 import pytest
 
@@ -42,6 +43,18 @@ def test_group_help(invoke, param):
 # TODO: let subcommands inherits "-h" short parameter?
 def test_subcommand_help(invoke):
     result = invoke(default_group, "default-command", "--help")
+    assert result.exit_code == 0
+    assert "Usage: " in result.stdout
+    assert not result.stderr
+
+
+@pytest.mark.parametrize(
+    "params",
+    (("--version",), ("blah",), ("--verbosity", "DEBUG")),
+)
+def test_help_eagerness(invoke, params):
+    # See: https://click.palletsprojects.com/en/8.0.x/advanced/#callback-evaluation-order
+    result = invoke(default_group, "--help", params)
     assert result.exit_code == 0
     assert "Usage: " in result.stdout
     assert not result.stderr
