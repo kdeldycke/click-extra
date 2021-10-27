@@ -1,10 +1,7 @@
 # Changelog
 
-## [1.0.1 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v1.0.0...main)
 
-```{important}
-This version is not released yet and is under active development.
-```
+## [1.0.1 (2021-10-27)](https://github.com/kdeldycke/click-extra/compare/v1.0.0...v1.0.1)
 
 - Re-release previous version with fixed dependency.
 
