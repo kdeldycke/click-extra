@@ -31,9 +31,17 @@ def default_command():
     click.echo("Run command...")
 
 
-@pytest.mark.parametrize("param", (None, "--help", "-h"))
-def test_main_help(invoke, param):
+@pytest.mark.parametrize("param", (None, "-h", "--help"))
+def test_group_help(invoke, param):
     result = invoke(default_group, param)
+    assert result.exit_code == 0
+    assert "Usage: " in result.stdout
+    assert not result.stderr
+
+
+# TODO: let subcommands inherits "-h" short parameter?
+def test_subcommand_help(invoke):
+    result = invoke(default_group, "default-command", "--help")
     assert result.exit_code == 0
     assert "Usage: " in result.stdout
     assert not result.stderr
