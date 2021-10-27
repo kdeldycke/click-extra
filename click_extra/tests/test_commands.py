@@ -16,8 +16,48 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 import click
+import pytest
 
 from ..commands import group, timer_option
+
+
+@group()
+def default_group():
+    click.echo("It works!")
+
+
+@default_group.command()
+def default_command():
+    click.echo("Run command...")
+
+
+@pytest.mark.parametrize("param", (None, "--help", "-h"))
+def test_main_help(invoke, param):
+    result = invoke(default_group, param)
+    assert result.exit_code == 0
+    assert "Usage: " in result.stdout
+    assert not result.stderr
+
+
+def test_unknown_option(invoke):
+    result = invoke(default_group, "--blah")
+    assert result.exit_code == 2
+    assert not result.stdout
+    assert "Error: No such option: --blah" in result.stderr
+
+
+def test_unknown_command(invoke):
+    result = invoke(default_group, "blah")
+    assert result.exit_code == 2
+    assert not result.stdout
+    assert "Error: No such command 'blah'." in result.stderr
+
+
+def test_required_command(invoke):
+    result = invoke(default_group, "--verbosity", "DEBUG")
+    assert result.exit_code == 2
+    assert not result.stdout
+    assert "Error: Missing command." in result.stderr
 
 
 def test_standalone_timer_option(invoke):
@@ -39,21 +79,14 @@ def test_standalone_timer_option(invoke):
 
 
 def test_integrated_timer_option(invoke):
-    @group()
-    def dummy_cli():
-        click.echo("It works!")
 
-    @dummy_cli.command()
-    def command1():
-        click.echo("Run command #1...")
-
-    result = invoke(dummy_cli, "--time", "command1")
+    result = invoke(default_group, "--time", "default-command")
     assert result.exit_code == 0
-    assert result.output.startswith("It works!\nRun command #1...\nExecution time: ")
+    assert result.output.startswith("It works!\nRun command...\nExecution time: ")
     assert result.output.endswith(" seconds.\n")
     assert not result.stderr
 
-    result = invoke(dummy_cli, "--no-time", "command1")
+    result = invoke(default_group, "--no-time", "default-command")
     assert result.exit_code == 0
-    assert result.output == "It works!\nRun command #1...\n"
+    assert result.output == "It works!\nRun command...\n"
     assert not result.stderr
