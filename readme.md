@@ -28,6 +28,7 @@ $ pip install click-extra
 
 ## Features
 
+- TOML configuration file loader
 - Colorization of help screens
 - ``--color/--no-color`` option flag
 - Colored ``--version`` option
@@ -38,6 +39,23 @@ $ pip install click-extra
     - `@skip_linux`, `@skip_macos` and `@skip_windows`
     - `@unless_linux`, `@unless_macos` and `@unless_windows`
     - `@destructive` and `@non_destructive`
+
+### TOML configuration file
+
+Allows a CLI to read defaults options from a configuration file.
+
+Here is a sample:
+
+``` toml
+# My default configuration file.
+
+[my_cli]
+verbosity = "DEBUG"
+manager = ["brew", "cask"]
+
+[my_cli.search]
+exact = True
+```
 
 ### Colorization of help screen
 

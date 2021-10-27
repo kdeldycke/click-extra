@@ -69,6 +69,7 @@ def test_standalone_verbosity_option(invoke, level):
     assert result.stderr == log_records
 
 
+@skip_windows_colors
 @pytest.mark.parametrize("level", LOG_LEVELS.keys())
 def test_integrated_verbosity_option(invoke, level):
     @group()
@@ -79,10 +80,16 @@ def test_integrated_verbosity_option(invoke, level):
     def command1():
         click.echo("Run command #1...")
 
-    result = invoke(dummy_cli, "--verbosity", level, "command1")
+    result = invoke(dummy_cli, "--verbosity", level, "command1", color=True)
     assert result.exit_code == 0
     assert result.output == "It works!\nRun command #1...\n"
     if level == "DEBUG":
-        assert result.stderr == "debug: Verbosity set to DEBUG.\n"
+        assert result.stderr == (
+            "\x1b[34mdebug: \x1b[0mVerbosity set to DEBUG.\n"
+            "\x1b[34mdebug: \x1b[0mLoad configuration at /Users/kde/.dummy-cli/config.toml\n"
+            "\x1b[34mdebug: \x1b[0mConfiguration not found at /Users/kde/.dummy-cli/config.toml\n"
+            "\x1b[34mdebug: \x1b[0mIgnore configuration file.\n"
+            "\x1b[34mdebug: \x1b[0mLoaded configuration: {}\n"
+        )
     else:
         assert not result.stderr

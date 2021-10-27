@@ -201,8 +201,7 @@ def test_standalone_version_option_without_env_info(invoke):
 
 @skip_windows_colors
 @pytest.mark.parametrize(
-    "params",
-    (None, "--help", "blah")
+    "params", (None, "--help", "blah", ("--config", "random.toml"))
 )
 def test_integrated_version_option_eagerness(invoke, params):
     @group(version="1.2.3.4")

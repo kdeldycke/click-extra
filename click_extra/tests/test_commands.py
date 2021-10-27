@@ -17,6 +17,8 @@
 
 """Test defaults of our custom commands, as well as their customizations and attached options, and how they interact with each others."""
 
+from textwrap import dedent
+
 import click
 import pytest
 
@@ -31,6 +33,29 @@ def default_group():
 @default_group.command()
 def default_command():
     click.echo("Run command...")
+
+
+help_screen = dedent(
+    """\
+    Usage: default-group [OPTIONS] COMMAND [ARGS]...
+
+    Options:
+      --time / --no-time        Measure and print elapsed execution time.  [default:
+                                no-time]
+      --color, --ansi / --no-color, --no-ansi
+                                Strip out all colors and all ANSI codes from output.
+                                [default: color]
+      -C, --config CONFIG_PATH  Location of the configuration file.  [default:
+                                (dynamic)]
+      -v, --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.
+                                [default: INFO]
+      --version                 Show the version and exit.  [default: False]
+      -h, --help                Show this message and exit.  [default: False]
+
+    Commands:
+      default-command
+    """
+)
 
 
 def test_unknown_option(invoke):
@@ -56,30 +81,38 @@ def test_required_command(invoke):
 
 @pytest.mark.parametrize("param", (None, "-h", "--help"))
 def test_group_help(invoke, param):
-    result = invoke(default_group, param)
+    result = invoke(default_group, param, color=False)
     assert result.exit_code == 0
-    assert result.stdout.startswith("Usage: ")
+    assert result.stdout == help_screen
     assert "It works!" not in result.stdout
     assert not result.stderr
 
 
 # TODO: let subcommands inherits "-h" short parameter?
 def test_subcommand_help(invoke):
-    result = invoke(default_group, "default-command", "--help")
+    result = invoke(default_group, "default-command", "--help", color=False)
     assert result.exit_code == 0
-    assert result.stdout.startswith("It works!\nUsage: ")
+    assert result.stdout == dedent(
+        """\
+        It works!
+        Usage: default-group default-command [OPTIONS]
+
+        Options:
+          -h, --help  Show this message and exit.  [default: False]
+        """
+    )
     assert not result.stderr
 
 
 @pytest.mark.parametrize(
     "params",
-    ("--version", "blah", ("--verbosity", "DEBUG")),
+    ("--version", "blah", ("--verbosity", "DEBUG"), ("--config", "random.toml")),
 )
 def test_help_eagerness(invoke, params):
     # See: https://click.palletsprojects.com/en/8.0.x/advanced/#callback-evaluation-order
-    result = invoke(default_group, "--help", params)
+    result = invoke(default_group, "--help", params, color=False)
     assert result.exit_code == 0
-    assert result.stdout.startswith("Usage: ")
+    assert result.stdout == help_screen
     assert "It works!" not in result.stdout
     assert not result.stderr
 

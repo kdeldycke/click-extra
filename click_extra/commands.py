@@ -29,6 +29,7 @@ from cloup import command as cloup_command
 from cloup import group as cloup_group
 
 from .colorize import ExtraHelpColorsMixin, color_option, version_option
+from .config import config_option
 from .logging import verbosity_option
 
 
@@ -90,7 +91,7 @@ class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, Group):
                 "align_option_groups": False,
                 "show_constraints": True,
                 "show_subcommand_aliases": True,
-                "help_option_names": ("-h", "--help"),
+                "help_option_names": ("--help", "-h"),
             }
         )
 
@@ -100,6 +101,8 @@ class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, Group):
         # Add color stripping flag.
         color_option()(self)
 
+        config_option()(self)
+
         # Add logger verbosity selector.
         verbosity_option()(self)
 
@@ -107,7 +110,7 @@ class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, Group):
         version_option(version=version, print_env_info=True)(self)
 
         # Add help option.
-        click.help_option("-h", "--help")(self)
+        click.help_option(*self.context_settings["help_option_names"])(self)
 
     def main(self, *args, **kwargs):
         """Pre-invokation step that is instanciating the context, then call ``invoke()`` within it.
