@@ -15,6 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+"""Test defaults of our custom commands, as well as their customizations and attached options, and how they interact with each others."""
 
 import click
 import pytest
@@ -22,7 +23,7 @@ import pytest
 from ..commands import group, timer_option
 
 
-@group()
+@group(version="2021.10.08")
 def default_group():
     click.echo("It works!")
 
@@ -30,34 +31,6 @@ def default_group():
 @default_group.command()
 def default_command():
     click.echo("Run command...")
-
-
-@pytest.mark.parametrize("param", (None, "-h", "--help"))
-def test_group_help(invoke, param):
-    result = invoke(default_group, param)
-    assert result.exit_code == 0
-    assert "Usage: " in result.stdout
-    assert not result.stderr
-
-
-# TODO: let subcommands inherits "-h" short parameter?
-def test_subcommand_help(invoke):
-    result = invoke(default_group, "default-command", "--help")
-    assert result.exit_code == 0
-    assert "Usage: " in result.stdout
-    assert not result.stderr
-
-
-@pytest.mark.parametrize(
-    "params",
-    (("--version",), ("blah",), ("--verbosity", "DEBUG")),
-)
-def test_help_eagerness(invoke, params):
-    # See: https://click.palletsprojects.com/en/8.0.x/advanced/#callback-evaluation-order
-    result = invoke(default_group, "--help", params)
-    assert result.exit_code == 0
-    assert "Usage: " in result.stdout
-    assert not result.stderr
 
 
 def test_unknown_option(invoke):
@@ -79,6 +52,44 @@ def test_required_command(invoke):
     assert result.exit_code == 2
     assert not result.stdout
     assert "Error: Missing command." in result.stderr
+
+
+@pytest.mark.parametrize("param", (None, "-h", "--help"))
+def test_group_help(invoke, param):
+    result = invoke(default_group, param)
+    assert result.exit_code == 0
+    assert result.stdout.startswith("Usage: ")
+    assert "It works!" not in result.stdout
+    assert not result.stderr
+
+
+# TODO: let subcommands inherits "-h" short parameter?
+def test_subcommand_help(invoke):
+    result = invoke(default_group, "default-command", "--help")
+    assert result.exit_code == 0
+    assert result.stdout.startswith("It works!\nUsage: ")
+    assert not result.stderr
+
+
+@pytest.mark.parametrize(
+    "params",
+    ("--version", "blah", ("--verbosity", "DEBUG")),
+)
+def test_help_eagerness(invoke, params):
+    # See: https://click.palletsprojects.com/en/8.0.x/advanced/#callback-evaluation-order
+    result = invoke(default_group, "--help", params)
+    assert result.exit_code == 0
+    assert result.stdout.startswith("Usage: ")
+    assert "It works!" not in result.stdout
+    assert not result.stderr
+
+
+def test_integrated_version_value(invoke):
+    result = invoke(default_group, "--version", color=False)
+    assert result.exit_code == 0
+    assert result.output.startswith("default-group, version 2021.10.08\n{'")
+    assert result.output.endswith("'}\n")
+    assert not result.stderr
 
 
 def test_standalone_timer_option(invoke):

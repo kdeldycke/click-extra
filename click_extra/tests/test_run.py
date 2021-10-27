@@ -97,6 +97,22 @@ def check_default_uncolored_rendering(result):
     assert result.stderr == "warning: Is the logger colored?\n"
 
 
+def check_forced_uncolored_rendering(result):
+    assert result.exit_code == 0
+    assert result.output.startswith(
+        "echo()\n"
+        "echo(color=None)\n"
+        "echo(color=True) bypass invoke.color = False\n"
+        "echo(color=False)\n"
+        "secho()\n"
+        "secho(color=None)\n"
+        "secho(color=True) bypass invoke.color = False\n"
+        "secho(color=False)\n"
+        "print() bypass Click.\n"
+    )
+    assert result.stderr == "warning: Is the logger colored?\n"
+
+
 @skip_windows_colors
 def test_invoke_optional_color(invoke):
     result = invoke(dummy_cli, color=None)
@@ -116,9 +132,9 @@ def test_invoke_default_color(invoke):
 
 
 @skip_windows_colors
-def test_invoke_color_stripping(invoke):
+def test_invoke_forced_color_stripping(invoke):
     result = invoke(dummy_cli, color=False)
-    check_default_uncolored_rendering(result)
+    check_forced_uncolored_rendering(result)
     assert result.output.endswith(
         "Context.color = None\nutils.should_strip_ansi = True\n"
     )

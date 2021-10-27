@@ -77,8 +77,9 @@ class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, Group):
     being discussed at https://github.com/janluke/cloup/issues/98
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, version=None, **kwargs):
         """ Augment group with additional default options."""
+
         super().__init__(*args, **kwargs)
 
         self.context_settings.update(
@@ -103,7 +104,7 @@ class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, Group):
         verbosity_option()(self)
 
         # Add colored version option.
-        version_option(print_env_info=True)(self)
+        version_option(version=version, print_env_info=True)(self)
 
         # Add help option.
         click.help_option("-h", "--help")(self)

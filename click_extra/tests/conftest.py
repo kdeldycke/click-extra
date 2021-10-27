@@ -26,6 +26,7 @@ from types import MethodType
 
 import pytest
 from boltons.iterutils import flatten, same
+from boltons.strutils import strip_ansi
 from boltons.tbutils import ExceptionInfo
 from click.testing import CliRunner
 
@@ -113,13 +114,15 @@ def monkeypatch_args(object, name, *extra_args, **extra_kwargs):
 def invoke(runner):
     """Executes Click's CLI, print output and return results.
 
+    If ``color=False`` both ``<stdout>`` and ``<stderr>`` are stripped out of ANSI codes.
+
     Adds a special case in the form of ``color="forced"`` parameter, which allows
     colored output to be kept, while forcing the initialization of ``Context.color = True``.
     This is not allowed in current implementation of ``click.testing.CliRunner.invoke()``. See:
     https://github.com/pallets/click/issues/2110
     """
 
-    def _run(cli, *args, env=None, color=False):
+    def _run(cli, *args, env=None, color=None):
         # We allow for nested iterables and None values as args for
         # convenience. We just need to flatten and filters them out.
         args = list(filter(None.__ne__, flatten(args)))
@@ -134,13 +137,17 @@ def invoke(runner):
         }
 
         if color == "forced":
-            color = True
             extra["color"] = True
 
         # Monkeypatch the original command's ``main()`` call to pass extra parameter
         # for Context initialization. Because we cannot simply add ``color`` to ``**extra``.
         with monkeypatch_args(cli, "main", **extra):
-            result = runner.invoke(cli, args, env=env, color=color)
+                result = runner.invoke(cli, args, env=env, color=bool(color))
+
+        # Force stripping of all colors from results.
+        if color is False:
+            result.stdout_bytes = strip_ansi(result.stdout_bytes)
+            result.stderr_bytes = strip_ansi(result.stderr_bytes)
 
         print_cli_output(
             [runner.get_default_prog_name(cli)] + args,

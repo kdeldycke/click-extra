@@ -186,7 +186,7 @@ def test_standalone_version_option_with_env_info(invoke):
 
 
 @skip_windows_colors
-def test_standalone_version_option_no_env_info(invoke):
+def test_standalone_version_option_without_env_info(invoke):
     @click.group()
     @version_option(version="1.2.3.4", print_env_info=False)
     def dummy_cli():
@@ -194,6 +194,22 @@ def test_standalone_version_option_no_env_info(invoke):
 
     # Test default colouring.
     result = invoke(dummy_cli, "--version", color=True)
+    assert result.exit_code == 0
+    assert result.output == "\x1b[97mdummy-cli\x1b[0m, version \x1b[32m1.2.3.4\x1b[0m\n"
+    assert not result.stderr
+
+
+@skip_windows_colors
+@pytest.mark.parametrize(
+    "params",
+    (None, "--help", "blah")
+)
+def test_integrated_version_option_eagerness(invoke, params):
+    @group(version="1.2.3.4")
+    def dummy_cli():
+        click.echo("It works!")
+
+    result = invoke(dummy_cli, "--version", params, color=True)
     assert result.exit_code == 0
     assert result.output == "\x1b[97mdummy-cli\x1b[0m, version \x1b[32m1.2.3.4\x1b[0m\n"
     assert not result.stderr
