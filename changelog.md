@@ -1,11 +1,8 @@
 # Changelog
 
 
-## [1.1.0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v1.0.1...main)
 
-```{important}
-This version is not released yet and is under active development.
-```
+## [1.1.0 (2021-10-28)](https://github.com/kdeldycke/click-extra/compare/v1.0.1...v1.1.0)
 
 - Add a `--config`/`-C` option to load CLI configuration from a TOML file.
 
