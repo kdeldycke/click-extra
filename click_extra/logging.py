@@ -43,7 +43,7 @@ def reset_logger():
 
 
 def verbosity_option(default_logger=None, *names, **kwargs):
-    """Adds a ``--verbosity``, ``-v`` option.
+    """Adds a ``--verbosity``/``-v`` option.
 
     A re-implementation of ``click_log.simple_verbosity_option`` decorator,
     with sensible defaults and bug fixes (see:
