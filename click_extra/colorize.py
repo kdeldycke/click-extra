@@ -237,7 +237,7 @@ class HelpExtraFormatter(HelpFormatter):
     """
 
     def __init__(self, *args, **kwargs):
-        """ Forces our hard-coded theme as default if none provided. """
+        """Forces our hard-coded theme as default if none provided."""
         if "theme" not in kwargs:
             kwargs["theme"] = theme
         super().__init__(*args, **kwargs)
