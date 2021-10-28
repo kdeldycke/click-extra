@@ -17,6 +17,7 @@
 
 """Test defaults of our custom commands, as well as their customizations and attached options, and how they interact with each others."""
 
+import re
 from textwrap import dedent
 
 import click
@@ -120,8 +121,10 @@ def test_help_eagerness(invoke, params):
 def test_integrated_version_value(invoke):
     result = invoke(default_group, "--version", color=False)
     assert result.exit_code == 0
-    assert result.output.startswith("default-group, version 2021.10.08\n{'")
-    assert result.output.endswith("'}\n")
+    assert re.fullmatch(
+        r"default-group, version 2021.10.08\n{'.+'}\n",
+        result.output,
+    )
     assert not result.stderr
 
 
@@ -133,8 +136,10 @@ def test_standalone_timer_option(invoke):
 
     result = invoke(dummy_cli, "--time")
     assert result.exit_code == 0
-    assert result.output.startswith("It works!\nExecution time: ")
-    assert result.output.endswith(" seconds.\n")
+    assert re.fullmatch(
+        r"It works!\nExecution time: [0-9.]+ seconds.\n",
+        result.output,
+    )
     assert not result.stderr
 
     result = invoke(dummy_cli, "--no-time")
@@ -147,8 +152,10 @@ def test_integrated_timer_option(invoke):
 
     result = invoke(default_group, "--time", "default-command")
     assert result.exit_code == 0
-    assert result.output.startswith("It works!\nRun command...\nExecution time: ")
-    assert result.output.endswith(" seconds.\n")
+    assert re.fullmatch(
+        r"It works!\nRun command...\nExecution time: [0-9.]+ seconds.\n",
+        result.output,
+    )
     assert not result.stderr
 
     result = invoke(default_group, "--no-time", "default-command")

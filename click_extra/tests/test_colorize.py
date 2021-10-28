@@ -15,6 +15,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+import re
+
 import click
 import pytest
 from boltons.strutils import strip_ansi
@@ -153,7 +155,7 @@ def test_keyword_collection(invoke):
         "It works!\n"
         "\x1b[94m\x1b[1m\x1b[94m\x1b[1mUsage\x1b[0m: \x1b[0m\x1b[97mmycli command4\x1b[0m [OPTIONS]\n\n"
         "\x1b[94m\x1b[1m\x1b[94m\x1b[1mOptions\x1b[0m:\x1b[0m\n"
-        "  \x1b[36m--help\x1b[0m  Show this message and exit.  [default: False]\x1b[0m\n"
+        "  \x1b[36m-h, \x1b[36m--help\x1b[0m\x1b[0m  Show this message and exit.  [default: False]\x1b[0m\n"
     )
     assert not result.stderr
 
@@ -178,10 +180,11 @@ def test_standalone_version_option_with_env_info(invoke):
     # Test default colouring.
     result = invoke(dummy_cli, "--version", color=True)
     assert result.exit_code == 0
-    assert result.output.startswith(
-        "\x1b[97mdummy-cli\x1b[0m, version \x1b[32m1.2.3.4\x1b[0m\x1b[90m\n{'"
+    assert re.fullmatch(
+        r"\x1b\[97mdummy-cli\x1b\[0m, version \x1b\[32m1.2.3.4\x1b\[0m\x1b\[90m\n"
+        r"{'.+'}\x1b\[0m\n",
+        result.output,
     )
-    assert result.output.endswith("'}\x1b[0m\n")
     assert not result.stderr
 
 
@@ -210,7 +213,11 @@ def test_integrated_version_option_eagerness(invoke, params):
 
     result = invoke(dummy_cli, "--version", params, color=True)
     assert result.exit_code == 0
-    assert result.output == "\x1b[97mdummy-cli\x1b[0m, version \x1b[32m1.2.3.4\x1b[0m\n"
+    assert re.fullmatch(
+        r"\x1b\[97mdummy-cli\x1b\[0m, version \x1b\[32m1.2.3.4\x1b\[0m\x1b\[90m\n"
+        r"{'.+'}\x1b\[0m\n",
+        result.output,
+    )
     assert not result.stderr
 
 
@@ -329,10 +336,16 @@ def test_integrated_color_option(invoke, param, expecting_colors):
             "\x1b[34mprint() bypass Click.\x1b[0m\n"
             "\x1b[32mDone.\x1b[0m\n"
         )
-        assert result.stderr == (
-            "\x1b[34mdebug: \x1b[0mVerbosity set to DEBUG.\n"
-            "\x1b[33mwarning: \x1b[0mProcessing...\n"
+        assert re.fullmatch(
+            r"\x1b\[34mdebug: \x1b\[0mVerbosity set to DEBUG.\n"
+            r"\x1b\[34mdebug: \x1b\[0mLoad configuration at \S+config.toml\n"
+            r"\x1b\[34mdebug: \x1b\[0mConfiguration not found at \S+config.toml\n"
+            r"\x1b\[34mdebug: \x1b\[0mIgnore configuration file.\n"
+            r"\x1b\[34mdebug: \x1b\[0mLoaded configuration: {}\n"
+            r"\x1b\[33mwarning: \x1b\[0mProcessing...\n",
+            result.stderr,
         )
+
     else:
         assert result.output == (
             "It works!\n"
@@ -341,6 +354,12 @@ def test_integrated_color_option(invoke, param, expecting_colors):
             "\x1b[34mprint() bypass Click.\x1b[0m\n"
             "Done.\n"
         )
-        assert result.stderr == (
-            "debug: Verbosity set to DEBUG.\nwarning: Processing...\n"
+        assert re.fullmatch(
+            r"debug: Verbosity set to DEBUG.\n"
+            r"debug: Load configuration at \S+config.toml\n"
+            r"debug: Configuration not found at \S+config.toml\n"
+            r"debug: Ignore configuration file.\n"
+            r"debug: Loaded configuration: {}\n"
+            r"warning: Processing...\n",
+            result.stderr,
         )

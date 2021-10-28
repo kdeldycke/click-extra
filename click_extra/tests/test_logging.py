@@ -15,6 +15,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+import re
+
 import click
 import pytest
 
@@ -84,12 +86,13 @@ def test_integrated_verbosity_option(invoke, level):
     assert result.exit_code == 0
     assert result.output == "It works!\nRun command #1...\n"
     if level == "DEBUG":
-        assert result.stderr == (
-            "\x1b[34mdebug: \x1b[0mVerbosity set to DEBUG.\n"
-            "\x1b[34mdebug: \x1b[0mLoad configuration at /Users/kde/.dummy-cli/config.toml\n"
-            "\x1b[34mdebug: \x1b[0mConfiguration not found at /Users/kde/.dummy-cli/config.toml\n"
-            "\x1b[34mdebug: \x1b[0mIgnore configuration file.\n"
-            "\x1b[34mdebug: \x1b[0mLoaded configuration: {}\n"
+        assert re.fullmatch(
+            r"\x1b\[34mdebug: \x1b\[0mVerbosity set to DEBUG.\n"
+            r"\x1b\[34mdebug: \x1b\[0mLoad configuration at \S+config.toml\n"
+            r"\x1b\[34mdebug: \x1b\[0mConfiguration not found at \S+config.toml\n"
+            r"\x1b\[34mdebug: \x1b\[0mIgnore configuration file.\n"
+            r"\x1b\[34mdebug: \x1b\[0mLoaded configuration: {}\n",
+            result.stderr,
         )
     else:
         assert not result.stderr

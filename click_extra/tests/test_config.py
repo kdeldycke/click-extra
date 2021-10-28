@@ -15,6 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+import re
 from pathlib import Path
 
 import click
@@ -67,11 +68,14 @@ def test_unset_conf_debug_message(invoke):
     )
     assert result.exit_code == 0
     assert result.output == "dummy_flag = False\nint_parameter = 10\n"
-    assert "debug: Load configuration at " in result.stderr
-    assert "debug: Configuration not found at " in result.stderr
-    assert DEFAULT_CONF_NAME in result.stderr
-    assert "debug: Ignore configuration file." in result.stderr
-    assert "debug: Loaded configuration: {}" in result.stderr
+    assert re.fullmatch(
+        r"debug: Verbosity set to DEBUG.\n"
+        r"debug: Load configuration at \S+config.toml\n"
+        r"debug: Configuration not found at \S+config.toml\n"
+        r"debug: Ignore configuration file.\n"
+        r"debug: Loaded configuration: {}\n",
+        result.stderr,
+    )
 
 
 def test_conf_not_exist(invoke):
@@ -146,7 +150,7 @@ def test_conf_file_overrided_by_cli_param(invoke, create_toml):
     )
     assert result.exit_code == 0
     assert result.output == "dummy_flag = False\nint_parameter = 15\n"
-    assert "error: " not in result.stderr
-    assert "warning: " not in result.stderr
-    assert "info: " not in result.stderr
-    assert "debug: " not in result.stderr
+    assert re.fullmatch(
+        r"Load configuration at \S+configuration.extension\n",
+        result.stderr,
+    )
