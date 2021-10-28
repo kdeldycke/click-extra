@@ -33,6 +33,7 @@ DUMMY_CONF_FILE = """
     verbosity = "DEBUG"
     blahblah = 234
     dummy_flag = true
+    my_list = ["pip", "npm", "gem"]
 
     [garbage]
     # An empty random section that will be skipped
@@ -45,8 +46,10 @@ DUMMY_CONF_FILE = """
 
 @group()
 @click.option("--dummy-flag/--no-flag")
-def default_group(dummy_flag):
+@click.option("--my-list", multiple=True)
+def default_group(dummy_flag, my_list):
     click.echo(f"dummy_flag = {dummy_flag!r}")
+    click.echo(f"my_list = {my_list!r}")
 
 
 @default_group.command()
@@ -58,7 +61,7 @@ def default_command(int_param):
 def test_unset_conf_no_message(invoke):
     result = invoke(default_group, "default-command")
     assert result.exit_code == 0
-    assert result.output == "dummy_flag = False\nint_parameter = 10\n"
+    assert result.output == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
     assert not result.stderr
 
 
@@ -67,7 +70,7 @@ def test_unset_conf_debug_message(invoke):
         default_group, "--verbosity", "DEBUG", "default-command", color=False
     )
     assert result.exit_code == 0
-    assert result.output == "dummy_flag = False\nint_parameter = 10\n"
+    assert result.output == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
     assert re.fullmatch(
         r"debug: Verbosity set to DEBUG.\n"
         r"debug: Load configuration at \S+config.toml\n"
@@ -110,7 +113,9 @@ def test_conf_file_overrides_defaults(invoke, create_toml):
         default_group, "--config", str(conf_path), "default-command", color=False
     )
     assert result.exit_code == 0
-    assert result.output == "dummy_flag = True\nint_parameter = 3\n"
+    assert result.output == (
+        "dummy_flag = True\nmy_list = ('pip', 'npm', 'gem')\nint_parameter = 3\n"
+    )
     # Debug level has been activated by configuration file.
     assert result.stderr == (
         f"Load configuration at {conf_path.resolve()}\n"
@@ -127,7 +132,9 @@ def test_auto_env_var_conf(invoke, create_toml):
         env={"DEFAULT_GROUP_CONFIG": str(conf_path)},
     )
     assert result.exit_code == 0
-    assert result.output == "dummy_flag = True\nint_parameter = 3\n"
+    assert result.output == (
+        "dummy_flag = True\nmy_list = ('pip', 'npm', 'gem')\nint_parameter = 3\n"
+    )
     # Debug level has been activated by configuration file.
     assert result.stderr == (
         f"Load configuration at {conf_path.resolve()}\n"
@@ -139,17 +146,23 @@ def test_conf_file_overrided_by_cli_param(invoke, create_toml):
     conf_path = create_toml("configuration.extension", DUMMY_CONF_FILE)
     result = invoke(
         default_group,
+        "--my-list",
+        "super",
         "--config",
         str(conf_path),
         "--verbosity",
         "CRITICAL",
         "--no-flag",
+        "--my-list",
+        "wow",
         "default-command",
         "--int-param",
         "15",
     )
     assert result.exit_code == 0
-    assert result.output == "dummy_flag = False\nint_parameter = 15\n"
+    assert result.output == (
+        "dummy_flag = False\nmy_list = ('super', 'wow')\nint_parameter = 15\n"
+    )
     assert re.fullmatch(
         r"Load configuration at \S+configuration.extension\n",
         result.stderr,
