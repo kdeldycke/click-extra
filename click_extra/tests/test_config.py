@@ -114,6 +114,23 @@ def test_conf_file_overrides_defaults(invoke, create_toml):
     )
 
 
+def test_auto_env_var_conf(invoke, create_toml):
+    conf_path = create_toml("conf.ext", DUMMY_CONF_FILE)
+    result = invoke(
+        default_group,
+        "default-command",
+        color=False,
+        env={"DEFAULT_GROUP_CONFIG": str(conf_path)},
+    )
+    assert result.exit_code == 0
+    assert result.output == "dummy_flag = True\nint_parameter = 3\n"
+    # Debug level has been activated by configuration file.
+    assert result.stderr == (
+        f"Load configuration at {conf_path.resolve()}\n"
+        "debug: Verbosity set to DEBUG.\n"
+    )
+
+
 def test_conf_file_overrided_by_cli_param(invoke, create_toml):
     conf_path = create_toml("configuration.extension", DUMMY_CONF_FILE)
     result = invoke(
