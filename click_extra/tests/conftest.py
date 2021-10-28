@@ -17,12 +17,10 @@
 
 # pylint: disable=redefined-outer-name
 
-import contextlib
 import os
 from functools import partial
 from pathlib import Path
 from textwrap import dedent
-from types import MethodType
 
 import pytest
 from boltons.iterutils import flatten, same
@@ -97,21 +95,9 @@ def runner():
     with runner.isolated_filesystem():
         yield runner
 
-@contextlib.contextmanager
-def monkeypatch_args(object, name, *extra_args, **extra_kwargs):
-    """ Temporarily forces a call to a method with provided args and kwargs. """
-    original_method = getattr(object, name)
-    assert isinstance(original_method, MethodType)
-
-    extend_args = partial(original_method, *extra_args, **extra_kwargs)
-
-    setattr(object, name, extend_args)
-    yield object
-    setattr(object, name, original_method)
-
 
 @pytest.fixture
-def invoke(runner):
+def invoke(runner, monkeypatch):
     """Executes Click's CLI, print output and return results.
 
     If ``color=False`` both ``<stdout>`` and ``<stderr>`` are stripped out of ANSI codes.
@@ -139,10 +125,12 @@ def invoke(runner):
         if color == "forced":
             extra["color"] = True
 
-        # Monkeypatch the original command's ``main()`` call to pass extra parameter
-        # for Context initialization. Because we cannot simply add ``color`` to ``**extra``.
-        with monkeypatch_args(cli, "main", **extra):
-                result = runner.invoke(cli, args, env=env, color=bool(color))
+        with monkeypatch.context() as patch:
+            # Monkeypatch the original command's ``main()`` call to pass extra parameter
+            # for Context initialization. Because we cannot simply add ``color`` to ``**extra``.
+            patch.setattr(cli, "main", partial(cli.main, **extra))
+
+            result = runner.invoke(cli, args, env=env, color=bool(color))
 
         # Force stripping of all colors from results.
         if color is False:
