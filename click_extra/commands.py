@@ -79,7 +79,7 @@ class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, Group):
     """
 
     def __init__(self, *args, version=None, **kwargs):
-        """ Augment group with additional default options."""
+        """Augment group with additional default options."""
 
         super().__init__(*args, **kwargs)
 
