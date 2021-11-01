@@ -1,11 +1,8 @@
 # Changelog
 
 
-## [1.1.1 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v1.1.0...main)
 
-```{important}
-This version is not released yet and is under active development.
-```
+## [1.1.1 (2021-11-01)](https://github.com/kdeldycke/click-extra/compare/v1.1.0...v1.1.1)
 
 - Fix printing of additional non-grouped default options in help screen.
 
