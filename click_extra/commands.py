@@ -114,6 +114,11 @@ class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, Group):
             *self.context_settings["help_option_names"], cls=GroupedOption
         )(self)
 
+        # Forces re-identification of grouped and non-grouped options.
+        self.option_groups, self.ungrouped_options = self._option_groups_from_params(
+            self.params
+        )
+
     def main(self, *args, **kwargs):
         """Pre-invokation step that is instanciating the context, then call ``invoke()`` within it.
 

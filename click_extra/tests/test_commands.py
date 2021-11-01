@@ -22,6 +22,9 @@ from textwrap import dedent
 
 import click
 import pytest
+from click import option as click_option
+from cloup import option as cloup_option
+from cloup import option_group
 
 from ..commands import group, timer_option
 
@@ -161,4 +164,54 @@ def test_integrated_timer_option(invoke):
     result = invoke(default_group, "--no-time", "default-command")
     assert result.exit_code == 0
     assert result.output == "It works!\nRun command...\n"
+    assert not result.stderr
+
+
+def test_option_group_integration(invoke):
+    # Mix regular and grouped options
+    @group()
+    @option_group(
+        "Group 1",
+        click_option("-a", "--opt1"),
+        cloup_option("-b", "--opt2"),
+    )
+    @click_option("-c", "--opt3")
+    @cloup_option("-d", "--opt4")
+    def default_group(opt1, opt2, opt3, opt4):
+        click.echo("It works!")
+
+    @default_group.command()
+    def default_command():
+        click.echo("Run command...")
+
+    result = invoke(default_group, "--help", color=False)
+    assert result.exit_code == 0
+    assert result.stdout == dedent(
+        """\
+        Usage: default-group [OPTIONS] COMMAND [ARGS]...
+
+        Group 1:
+          -a, --opt1 TEXT
+          -b, --opt2 TEXT
+
+        Other options:
+          -c, --opt3 TEXT
+          -d, --opt4 TEXT
+          --time / --no-time        Measure and print elapsed execution time.  [default:
+                                    no-time]
+          --color, --ansi / --no-color, --no-ansi
+                                    Strip out all colors and all ANSI codes from output.
+                                    [default: color]
+          -C, --config CONFIG_PATH  Location of the configuration file.  [default:
+                                    (dynamic)]
+          -v, --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.
+                                    [default: INFO]
+          --version                 Show the version and exit.  [default: False]
+          -h, --help                Show this message and exit.  [default: False]
+
+        Commands:
+          default-command
+        """
+    )
+    assert "It works!" not in result.stdout
     assert not result.stderr
