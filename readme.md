@@ -40,6 +40,15 @@ $ pip install click-extra
     - `@unless_linux`, `@unless_macos` and `@unless_windows`
     - `@destructive` and `@non_destructive`
 
+### Issues addressed by `click-extra`
+
+Keep track of things to undo if they reach upstream.
+
+[`cloup`](https://github.com/janluke/cloup):
+  - [Add support for option groups on `cloup.Group` (#98)](https://github.com/janluke/cloup/issues/98)
+  - [Add loading of options from a TOML configuration file (#96)](https://github.com/janluke/cloup/issues/96)
+  - [Highlights options, choices and metavars (#95)](https://github.com/janluke/cloup/issues/95)
+
 ### TOML configuration file
 
 Allows a CLI to read defaults options from a configuration file.
