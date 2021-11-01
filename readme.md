@@ -44,10 +44,22 @@ $ pip install click-extra
 
 Keep track of things to undo if they reach upstream.
 
+[`click`](https://github.com/pallets/click):
+  - [`testing.CliRunner.invoke` cannot pass color for `Context` instantiation (#2110)](https://github.com/pallets/click/issues/2110)
+
+[`click-log`](https://github.com/click-contrib/click-log):
+  - [Add a `no-color` option, method or parameter to disable colouring globally (#30)](https://github.com/click-contrib/click-log/issues/30)
+  - [Log level is leaking between invokations: hack to force-reset it (#29)](https://github.com/click-contrib/click-log/issues/29)
+  - [Add missing string interpolation in error message (#24)](https://github.com/click-contrib/click-log/pull/24)
+  - [Add trailing dot to help text (#18)](https://github.com/click-contrib/click-log/pull/18)
+
+[`click-help-color`](https://github.com/click-contrib/click-help-colors):
+  - [Highlighting of options, choices and metavars (#17)](https://github.com/click-contrib/click-help-colors/issues/17)
+
 [`cloup`](https://github.com/janluke/cloup):
   - [Add support for option groups on `cloup.Group` (#98)](https://github.com/janluke/cloup/issues/98)
+  - [Styling metavars, default values, env var, choices (#97)](https://github.com/janluke/cloup/issues/97) & [Highlights options, choices and metavars (#95)](https://github.com/janluke/cloup/issues/95)
   - [Add loading of options from a TOML configuration file (#96)](https://github.com/janluke/cloup/issues/96)
-  - [Highlights options, choices and metavars (#95)](https://github.com/janluke/cloup/issues/95)
 
 ### TOML configuration file
 
@@ -72,11 +84,6 @@ Extend [Cloup's own help formatter and theme](https://cloup.readthedocs.io/en/st
 - Options
 - Choices
 - Metavars
-
-This has been discussed upstream at:
-- https://github.com/janluke/cloup/issues/97
-- https://github.com/click-contrib/click-help-colors/issues/17
-- https://github.com/janluke/cloup/issues/95
 
 ## Dependencies
 
