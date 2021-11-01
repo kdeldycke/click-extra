@@ -116,12 +116,7 @@ def invoke(runner, monkeypatch):
             assert same(map(type, args), str)
 
         # Extra parameters passed to the invoked command's ``main()`` constructor.
-        extra = {
-            # Force ``default_map``` reset between calls to prevent initial
-            # context to be polluted by previous tests.
-            "default_map": {},
-        }
-
+        extra = {}
         if color == "forced":
             extra["color"] = True
 
