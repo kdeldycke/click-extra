@@ -24,7 +24,7 @@ from functools import partial
 import click
 from boltons.ecoutils import get_profile
 from click_log import ColorFormatter
-from cloup import HelpFormatter, HelpTheme, Style
+from cloup import GroupedOption, HelpFormatter, HelpTheme, Style
 
 # Extend the predefined theme named tuple with our extra styles.
 theme_params = {
@@ -106,7 +106,7 @@ def color_option(*names, **kwargs):
     }
     default_params.update(kwargs)
 
-    return click.option(*names, **default_params)
+    return click.option(*names, cls=GroupedOption, **default_params)
 
 
 def version_option(
@@ -159,6 +159,7 @@ def version_option(
     return click.version_option(
         version,
         *param_decls,
+        cls=GroupedOption,
         package_name=package_name,
         prog_name=prog_name,
         message=colorized_message,

@@ -21,6 +21,7 @@ import logging
 
 import click
 import click_log
+from cloup import GroupedOption
 
 # Initialize global logger.
 logger = logging.getLogger(__name__)
@@ -81,4 +82,4 @@ def verbosity_option(default_logger=None, *names, **kwargs):
     }
     default_params.update(kwargs)
 
-    return click.option(*names, **default_params)
+    return click.option(*names, cls=GroupedOption, **default_params)

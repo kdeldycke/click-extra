@@ -24,7 +24,7 @@ still mix'n'match the mixins below to build your own custom variants.
 from time import perf_counter
 
 import click
-from cloup import Command, Group, OptionGroupMixin
+from cloup import Command, Group, GroupedOption, OptionGroupMixin
 from cloup import command as cloup_command
 from cloup import group as cloup_group
 
@@ -68,7 +68,7 @@ def timer_option(*names, **kwargs):
     }
     default_params.update(kwargs)
 
-    return click.option(*names, **default_params)
+    return click.option(*names, cls=GroupedOption, **default_params)
 
 
 class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, Group):
@@ -110,7 +110,9 @@ class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, Group):
         version_option(version=version, print_env_info=True)(self)
 
         # Add help option.
-        click.help_option(*self.context_settings["help_option_names"])(self)
+        click.help_option(
+            *self.context_settings["help_option_names"], cls=GroupedOption
+        )(self)
 
     def main(self, *args, **kwargs):
         """Pre-invokation step that is instanciating the context, then call ``invoke()`` within it.

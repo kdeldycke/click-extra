@@ -22,7 +22,8 @@ from pathlib import Path
 import click
 import tomli
 from boltons.iterutils import remap
-from click.core import Option, ParameterSource
+from click.core import ParameterSource
+from cloup import GroupedOption
 
 from .logging import logger
 
@@ -198,4 +199,4 @@ def config_option(*names, **kwargs):
     }
     default_params.update(kwargs)
 
-    return click.option(*names, **default_params)
+    return click.option(*names, cls=GroupedOption, **default_params)
