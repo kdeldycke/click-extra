@@ -54,7 +54,7 @@ verbosity = "DEBUG"
 manager = ["brew", "cask"]
 
 [my_cli.search]
-exact = True
+exact = true
 ```
 
 ### Colorization of help screen
