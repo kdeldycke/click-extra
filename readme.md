@@ -15,8 +15,8 @@ and patches that have not reached upstream yet (or are unlikely to).
 
 ## Used in
 
-- [Meta Package Manager](https://github.com/kdeldycke/meta-package-manager#readme) - A unifying CLI for multiple package managers.
 - [Mail Deduplicate](https://github.com/kdeldycke/mail-deduplicate#readme) - A CLI to deduplicate similar emails.
+- [Meta Package Manager](https://github.com/kdeldycke/meta-package-manager#readme) - A unifying CLI for multiple package managers.
 
 ## Installation
 
@@ -34,7 +34,7 @@ $ pip install click-extra
 - Colored ``--version`` option
 - Colored ``--verbosity`` option and logs
 - ``--time/--no-time`` flag to measure duration of command execution
-- Platform recognition utilities
+- Platform recognition utilities (macOS, Linux and Windows)
 - New conditional markers for `pytest`:
     - `@skip_linux`, `@skip_macos` and `@skip_windows`
     - `@unless_linux`, `@unless_macos` and `@unless_windows`
@@ -65,7 +65,7 @@ Keep track of things to undo if they reach upstream.
   - [Add loading of options from a TOML configuration file (#96)](https://github.com/janluke/cloup/issues/96)
 
 [`python-tabulate`](https://github.com/astanin/python-tabulate):
-  - [Add new `rounded`/`simple`/`double_grid`/`outline` formats (#151)](https://github.com/astanin/python-tabulate/pull/151)
+  - [Add new {`rounded`,`simple`,`double`}_(`grid`,`outline`} formats (#151)](https://github.com/astanin/python-tabulate/pull/151)
 
 ### TOML configuration file
 
