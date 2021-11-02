@@ -85,7 +85,17 @@ def disable_colors(ctx, param, value):
         ctx.call_on_close(restore_original_styling)
 
 
-def color_option(*names, **kwargs):
+def color_option(
+    *names,
+    is_flag=True,
+    default=True,
+    is_eager=True,
+    expose_value=False,
+    callback=disable_colors,
+    help="Strip out all colors and all ANSI codes from output.",
+    cls=GroupedOption,
+    **kwargs,
+):
     """A ready to use option decorator that is adding a ``--color/--no-color`` (aliased by
     ``--ansi/--no-ansi``) option to keep or strip colors and ANSI codes from CLI output.
 
@@ -94,26 +104,22 @@ def color_option(*names, **kwargs):
     """
     if not names:
         names = ("--color/--no-color", "--ansi/--no-ansi")
-
-    # Merge defaults params with users'.
-    default_params = {
-        "is_flag": True,
-        "default": True,
-        "is_eager": True,
-        "expose_value": False,
-        "callback": disable_colors,
-        "help": "Strip out all colors and all ANSI codes from output.",
-    }
-    default_params.update(kwargs)
-
-    return click.option(*names, cls=GroupedOption, **default_params)
+    return click.option(
+        *names,
+        is_flag=is_flag,
+        default=default,
+        is_eager=is_eager,
+        expose_value=expose_value,
+        callback=callback,
+        help=help,
+        cls=cls,
+        **kwargs,
+    )
 
 
 def version_option(
     version=None,
-    *param_decls,
-    package_name=None,
-    prog_name=None,
+    *names,
     message="%(prog)s, version %(version)s",
     print_env_info=False,
     version_style=Style(fg="green"),
@@ -121,6 +127,7 @@ def version_option(
     prog_name_style=theme.invoked_command,
     message_style=None,
     env_info_style=Style(fg="bright_black"),
+    cls=GroupedOption,
     **kwargs,
 ):
     """
@@ -134,6 +141,9 @@ def version_option(
     For other params see Click's ``version_option`` decorator:
     https://click.palletsprojects.com/en/8.0.x/api/#click.version_option
     """
+    if not message:
+        message = ""
+
     if print_env_info:
         env_info = "\n" + str(get_profile(scrub=True))
         if env_info_style:
@@ -154,14 +164,14 @@ def version_option(
         elif message_style:
             part = message_style(part)
         colorized_message += part
+    if not colorized_message:
+        colorized_message = message
 
     # XXX:fix to default to user's CLI, not click_extra.__version__).
     return click.version_option(
         version,
-        *param_decls,
-        cls=GroupedOption,
-        package_name=package_name,
-        prog_name=prog_name,
+        *names,
+        cls=cls,
         message=colorized_message,
         **kwargs,
     )
@@ -183,7 +193,6 @@ class ExtraHelpColorsMixin:
         metavars = set()
 
         # Includes CLI base name and its commands.
-        # cli_name = ctx.find_root().info_name
         cli_name = ctx.command_path
 
         # Add user defined help options.

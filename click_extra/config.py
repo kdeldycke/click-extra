@@ -180,23 +180,32 @@ def load_conf(ctx, param, config_file):
     return config_file
 
 
-def config_option(*names, **kwargs):
+def config_option(
+    *names,
+    metavar="CONFIG_PATH",
+    type=click.Path(path_type=Path, resolve_path=True),
+    default=default_conf_path,
+    help="Location of the configuration file.",
+    # Force eagerness so the config option's callback gets the oportunity to set the
+    # default_map values before the other options use them.
+    is_eager=True,
+    callback=load_conf,
+    expose_value=False,
+    cls=GroupedOption,
+    **kwargs,
+):
     """Adds a ``--config``/``-C`` option."""
-
     if not names:
         names = ("--config", "-C")
-
-    default_params = {
-        "metavar": "CONFIG_PATH",
-        "type": click.Path(path_type=Path, resolve_path=True),
-        "default": default_conf_path,
-        "help": "Location of the configuration file.",
-        # Force eagerness so the config option's callback gets the oportunity to set the
-        # default_map values before the other options use them.
-        "is_eager": True,
-        "callback": load_conf,
-        "expose_value": False,
-    }
-    default_params.update(kwargs)
-
-    return click.option(*names, cls=GroupedOption, **default_params)
+    return click.option(
+        *names,
+        metavar=metavar,
+        type=type,
+        default=default,
+        help=help,
+        is_eager=is_eager,
+        callback=callback,
+        expose_value=expose_value,
+        cls=cls,
+        **kwargs,
+    )

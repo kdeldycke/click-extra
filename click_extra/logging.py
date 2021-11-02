@@ -43,7 +43,18 @@ def reset_logger():
     logger.setLevel(logging.NOTSET)
 
 
-def verbosity_option(default_logger=None, *names, **kwargs):
+def verbosity_option(
+    default_logger=None,
+    *names,
+    default="INFO",
+    metavar="LEVEL",
+    type=click.Choice(LOG_LEVELS, case_sensitive=False),
+    expose_value=False,
+    help=f"Either {', '.join(LOG_LEVELS)}.",
+    is_eager=True,
+    cls=GroupedOption,
+    **kwargs,
+):
     """Adds a ``--verbosity``/``-v`` option.
 
     A re-implementation of ``click_log.simple_verbosity_option`` decorator,
@@ -71,15 +82,15 @@ def verbosity_option(default_logger=None, *names, **kwargs):
         # state between multiple test calls.
         ctx.call_on_close(reset_logger)
 
-    default_params = {
-        "default": "INFO",
-        "metavar": "LEVEL",
-        "type": click.Choice(LOG_LEVELS, case_sensitive=False),
-        "expose_value": False,
-        "help": f"Either {', '.join(LOG_LEVELS)}.",
-        "is_eager": True,
-        "callback": set_level,
-    }
-    default_params.update(kwargs)
-
-    return click.option(*names, cls=GroupedOption, **default_params)
+    return click.option(
+        *names,
+        default=default,
+        metavar=metavar,
+        type=type,
+        expose_value=expose_value,
+        help=help,
+        is_eager=is_eager,
+        callback=set_level,
+        cls=cls,
+        **kwargs,
+    )

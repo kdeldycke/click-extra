@@ -53,22 +53,28 @@ def register_timer_on_close(ctx, param, value):
     ctx.call_on_close(print_timer)
 
 
-def timer_option(*names, **kwargs):
+def timer_option(
+    *names,
+    default=False,
+    expose_value=False,
+    callback=register_timer_on_close,
+    help="Measure and print elapsed execution time.",
+    cls=GroupedOption,
+    **kwargs,
+):
     """A ready to use option decorator that is adding a ``--time/--no-time``
     option flag to print elapsed time at the end of CLI execution."""
     if not names:
         names = ("--time/--no-time",)
-
-    # Merge defaults params with users'.
-    default_params = {
-        "default": False,
-        "expose_value": False,
-        "callback": register_timer_on_close,
-        "help": "Measure and print elapsed execution time.",
-    }
-    default_params.update(kwargs)
-
-    return click.option(*names, cls=GroupedOption, **default_params)
+    return click.option(
+        *names,
+        default=default,
+        expose_value=expose_value,
+        callback=callback,
+        help=help,
+        cls=cls,
+        **kwargs,
+    )
 
 
 class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, Group):

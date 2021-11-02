@@ -116,38 +116,47 @@ for tabulate_format in new_formats:
 RENDERING_MODES = frozenset(TabularOutputFormatter._output_formats)
 
 
-def table_format_option(*names, **kwargs):
+def cleanup_formatter():
+    """Clean-up formatter attached to context."""
+    ctx = click.get_current_context()
+    del ctx.table_formatter
+
+
+def print_table(table_formatter, *args, **kwargs):
+    for line in table_formatter.format_output(*args, **kwargs):
+        if is_windows():
+            line = line.encode("utf-8")
+        click.echo(line)
+
+
+def init_formatter(ctx, param, value):
+    """Initialize the table formatter and attach it to the context."""
+    ctx.table_formatter = TabularOutputFormatter(format_name=value)
+    ctx.print_table = partial(print_table, ctx.table_formatter)
+    ctx.call_on_close(cleanup_formatter)
+
+
+def table_format_option(
+    *names,
+    type=click.Choice(sorted(RENDERING_MODES), case_sensitive=False),
+    default="psql_unicode",
+    expose_value=False,
+    callback=init_formatter,
+    help="Rendering mode of the output.",
+    cls=GroupedOption,
+    **kwargs,
+):
     """A ready to use option decorator that is adding a ``-t/--table-format``
     option flag to select the rendering style of a table."""
     if not names:
         names = ("-t", "--table-format")
-
-    def cleanup_formatter():
-        """Clean-up formatter attached to context."""
-        ctx = click.get_current_context()
-        del ctx.table_formatter
-
-    def print_table(table_formatter, *args, **kwargs):
-        for line in table_formatter.format_output(*args, **kwargs):
-            if is_windows():
-                line = line.encode("utf-8")
-            click.echo(line)
-
-    def init_formatter(ctx, param, value):
-        """Initialize the table formatter and attach it to the context."""
-        ctx.table_formatter = TabularOutputFormatter(format_name=value)
-        ctx.print_table = partial(print_table, ctx.table_formatter)
-        ctx.call_on_close(cleanup_formatter)
-
-    # Merge defaults params with users'.
-    default_params = {
-        "type": click.Choice(sorted(RENDERING_MODES), case_sensitive=False),
-        "default": "psql_unicode",
-        "expose_value": False,
-        "callback": init_formatter,
-        "help": "Rendering mode of the output.",
-        "cls": GroupedOption,
-    }
-    default_params.update(kwargs)
-
-    return click.option(*names, **default_params)
+    return click.option(
+        *names,
+        type=type,
+        default=default,
+        expose_value=expose_value,
+        callback=callback,
+        help=help,
+        cls=cls,
+        **kwargs,
+    )
