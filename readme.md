@@ -61,6 +61,9 @@ Keep track of things to undo if they reach upstream.
   - [Styling metavars, default values, env var, choices (#97)](https://github.com/janluke/cloup/issues/97) & [Highlights options, choices and metavars (#95)](https://github.com/janluke/cloup/issues/95)
   - [Add loading of options from a TOML configuration file (#96)](https://github.com/janluke/cloup/issues/96)
 
+[`python-tabulate`](https://github.com/astanin/python-tabulate):
+  - [Add new `rounded`/`simple`/`double_grid`/`outline` formats (#151)](https://github.com/astanin/python-tabulate/pull/151)
+
 ### TOML configuration file
 
 Allows a CLI to read defaults options from a configuration file.

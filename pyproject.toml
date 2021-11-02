@@ -45,7 +45,9 @@ python = "^3.7"
 boltons = "^21.0.0"
 click = "^8.0.2"
 click-log = "^0.3.2"
+cli-helpers = "^2.2.0"
 cloup = "^0.12.1"
+tabulate = { extras = ["widechars"], version = "^0.8.9" }
 tomli = "^1.2.1"
 
 [tool.poetry.dev-dependencies]
