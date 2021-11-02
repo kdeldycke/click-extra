@@ -56,6 +56,9 @@ Keep track of things to undo if they reach upstream.
 [`click-help-color`](https://github.com/click-contrib/click-help-colors):
   - [Highlighting of options, choices and metavars (#17)](https://github.com/click-contrib/click-help-colors/issues/17)
 
+[`cli-helper`](https://github.com/dbcli/cli_helpers):
+  - [Replace local tabulate formats with those available upstream (#79)](https://github.com/dbcli/cli_helpers/issues/79)
+
 [`cloup`](https://github.com/janluke/cloup):
   - [Add support for option groups on `cloup.Group` (#98)](https://github.com/janluke/cloup/issues/98)
   - [Styling metavars, default values, env var, choices (#97)](https://github.com/janluke/cloup/issues/97) & [Highlights options, choices and metavars (#95)](https://github.com/janluke/cloup/issues/95)

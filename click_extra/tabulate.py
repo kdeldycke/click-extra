@@ -101,6 +101,28 @@ new_formats = {
     ),
 }
 
+
+# Update tabulate with our new formats, some supporting multi-line rendering.
+tabulate._table_formats.update(new_formats)
+tabulate.multiline_formats.update(
+    {
+        "simple_grid": "simple_grid",
+        "rounded_grid": "rounded_grid",
+        "double_grid": "double_grid",
+    }
+)
+
+
+# Remove duplicate formats:
+#   * `ascii ` => `outline`
+#   * `double` => `double_outline`
+#   * `psql_unicode` => `simple_outline`
+# See: https://github.com/dbcli/cli_helpers/issues/79
+for tabulate_format in ("ascii", "double", "psql_unicode"):
+    del TabularOutputFormatter._output_formats[tabulate_format]
+
+
+# Register all our new formats to cli-helper.
 for tabulate_format in new_formats:
     TabularOutputFormatter.register_new_formatter(
         tabulate_format,
@@ -113,7 +135,9 @@ for tabulate_format in new_formats:
         },
     )
 
+
 RENDERING_MODES = frozenset(TabularOutputFormatter._output_formats)
+"""All rendering modes supported by the table formatter."""
 
 
 def cleanup_formatter():
@@ -139,7 +163,7 @@ def init_formatter(ctx, param, value):
 def table_format_option(
     *names,
     type=click.Choice(sorted(RENDERING_MODES), case_sensitive=False),
-    default="psql_unicode",
+    default="rounded_outline",
     expose_value=False,
     callback=init_formatter,
     help="Rendering mode of the output.",
