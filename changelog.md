@@ -12,6 +12,7 @@ This version is not released yet and is under active development.
   `double_outline`. Address [astanin/python-tabulate:#151)](https://github.com/astanin/python-tabulate/pull/151).
 - Add a new `--table-format`/`-t` option to select table format rendering mode.
 - Add new dependency on `cli-helper` and `tabulate`.
+- Automate post-release version bump.
 
 ## [1.1.1 (2021-11-01)](https://github.com/kdeldycke/click-extra/compare/v1.1.0...v1.1.1)
 
