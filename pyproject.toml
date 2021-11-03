@@ -86,6 +86,11 @@ include_trailing_comma = true
 # http://pylint.pycqa.org/en/latest/technical_reference/features.html
 output-format = "colorized"
 fail-under = "8"
+[tool.pylint."messages control"]
+# List messages with: $ pylint --list-msgs
+# C0114: missing-module-docstring
+# C0116: missing-function-docstring
+disable = "C0114, C0116"
 [tool.pylint.LOGGING]
 # The type of string formatting that logging methods do. `old` means using %
 # formatting, `new` is for `{}` formatting.
