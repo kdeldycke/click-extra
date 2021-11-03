@@ -166,7 +166,7 @@ def table_format_option(
     default="rounded_outline",
     expose_value=False,
     callback=init_formatter,
-    help="Rendering mode of the output.",
+    help="Rendering style of tables.",
     cls=GroupedOption,
     **kwargs,
 ):
