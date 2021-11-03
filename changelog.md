@@ -1,11 +1,6 @@
 # Changelog
 
-
-## [1.2.0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v1.1.1...main)
-
-```{important}
-This version is not released yet and is under active development.
-```
+## [1.2.0 (2021-11-04)](https://github.com/kdeldycke/click-extra/compare/v1.1.1...v1.2.0)
 
 - Extend `cli-helper.TabularOutputFormatter` with new formats: `simple_grid`,
   `rounded_grid`, `double_grid`, `outline`, `simple_outline`, `rounded_outline` and
