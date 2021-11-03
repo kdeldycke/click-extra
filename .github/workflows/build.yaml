@@ -44,7 +44,7 @@ jobs:
         # Only triggers on version tagging.
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          [ "$TAG_VERSION" = "$PACKAGE_VERSION" ]
+          [ "${{ steps.get_version.outputs.TAG_VERSION }}" = "${{ steps.get_version.outputs.PACKAGE_VERSION }}" ]
       - name: Create a release on GitHub
         # Only triggers on version tagging.
         if: startsWith(github.ref, 'refs/tags/v')
