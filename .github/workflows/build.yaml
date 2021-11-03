@@ -44,15 +44,8 @@ jobs:
           files: ./dist/*
           body: |
             [🐍 Available on PyPi
-            ](https://pypi.org/project/click-extra/${{
-            steps.get_version.outputs.TAG_VERSION }}/)
-
-            Highlights:
-
-              * <TODO>
-              * <TODO>
-              * <TODO>
-
+            ](https://pypi.org/project/meta-package-manager/${{
+            steps.get_version.outputs.TAG_VERSION }}/).
       - name: Push package to public PyPi repository
         # Only triggers on version tagging.
         if: startsWith(github.ref, 'refs/tags/v')
