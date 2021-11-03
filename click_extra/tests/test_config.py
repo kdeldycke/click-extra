@@ -22,7 +22,6 @@ import click
 
 from .. import __version__
 from ..commands import group
-from ..config import DEFAULT_CONF_NAME
 
 DUMMY_CONF_FILE = """
     # Comment

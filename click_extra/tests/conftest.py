@@ -15,7 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-# pylint: disable=redefined-outer-name
+""" Fixtures, configuration and helpers for tests. """
 
 import os
 from functools import partial
@@ -30,9 +30,6 @@ from click.testing import CliRunner
 
 from ..platform import is_linux, is_macos, is_windows
 from ..run import print_cli_output
-
-""" Fixtures, configuration and helpers for tests. """
-
 
 DESTRUCTIVE_MODE = bool(
     os.environ.get("DESTRUCTIVE_TESTS", False) not in {True, 1, "True", "true", "1"}

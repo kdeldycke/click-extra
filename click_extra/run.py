@@ -17,7 +17,6 @@
 
 """Utilities to execute external commands."""
 
-
 from subprocess import PIPE, Popen
 from textwrap import indent
 
