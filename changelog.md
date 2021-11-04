@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.3 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v1.2.2...main)
+
+```{{important}}
+This version is not released yet and is under active development.
+```
+
 ## [1.2.2 (2021-11-04)](https://github.com/kdeldycke/click-extra/compare/v1.2.1...v1.2.2)
 
 - Evaluate format option dynamiccaly at use to let third-party register new rendering formats.
