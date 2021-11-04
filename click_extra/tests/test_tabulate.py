@@ -18,7 +18,7 @@
 import click
 import pytest
 
-from ..tabulate import table_format_option
+from ..tabulate import TabularOutputFormatter, table_format_option
 
 
 def test_unrecognized_format(invoke):
