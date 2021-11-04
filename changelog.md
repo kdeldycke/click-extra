@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Evaluate format option dynamiccaly at use to let third-party register new rendering formats.
+
 ## [1.2.1 (2021-11-04)](https://github.com/kdeldycke/click-extra/compare/v1.2.0...v1.2.1)
 
 - Fix creation of post-release version bump PR on tagging.

@@ -18,7 +18,7 @@
 import click
 import pytest
 
-from ..tabulate import RENDERING_MODES, table_format_option
+from ..tabulate import table_format_option
 
 
 def test_unrecognized_format(invoke):
@@ -320,8 +320,8 @@ expected_renderings = {
 
 def test_recognized_modes():
     """Check all rendering modes proposed by the table module are
-    accounted for."""
-    assert RENDERING_MODES == set(expected_renderings.keys())
+    accounted for and there is no duplicates."""
+    assert TabularOutputFormatter._output_formats == set(expected_renderings.keys())
 
 
 @click.command()

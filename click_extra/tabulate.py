@@ -136,10 +136,6 @@ for tabulate_format in new_formats:
     )
 
 
-RENDERING_MODES = frozenset(TabularOutputFormatter._output_formats)
-"""All rendering modes supported by the table formatter."""
-
-
 def cleanup_formatter():
     """Clean-up formatter attached to context."""
     ctx = click.get_current_context()
@@ -162,7 +158,9 @@ def init_formatter(ctx, param, value):
 
 def table_format_option(
     *names,
-    type=click.Choice(sorted(RENDERING_MODES), case_sensitive=False),
+    type=click.Choice(
+        sorted(TabularOutputFormatter._output_formats), case_sensitive=False
+    ),
     default="rounded_outline",
     expose_value=False,
     callback=init_formatter,
