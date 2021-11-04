@@ -321,7 +321,12 @@ expected_renderings = {
 def test_recognized_modes():
     """Check all rendering modes proposed by the table module are
     accounted for and there is no duplicates."""
-    assert TabularOutputFormatter._output_formats == set(expected_renderings.keys())
+    assert len(TabularOutputFormatter._output_formats) == len(
+        set(expected_renderings.keys())
+    )
+    assert set(TabularOutputFormatter._output_formats) == set(
+        expected_renderings.keys()
+    )
 
 
 @click.command()
