@@ -76,4 +76,5 @@ jobs:
             }}/blob/${{ github.base_ref }}/.github/workflows/build.yaml).
           labels: "🔩 CI/CD, 📗 documentation"
           assignees: kdeldycke
+          base: main
           branch: version-bump
