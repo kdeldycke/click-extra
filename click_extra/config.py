@@ -91,8 +91,8 @@ def conf_structure(ctx):
 
 # Maps configuration formats, their file extension, and parsing function,
 CONFIGURATION_FORMATS = {
-    'TOML': (['.toml'], tomli.loads),
-    'YAML': (['.yaml', '.yml'], yaml.full_load),
+    "TOML": ([".toml"], tomli.loads),
+    "YAML": ([".yaml", ".yml"], yaml.full_load),
 }
 
 
