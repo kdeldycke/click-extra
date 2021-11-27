@@ -143,10 +143,13 @@ def test_conf_format_unknown(invoke, create_config):
     )
 
 
-@pytest.mark.parametrize("conf_name,conf_content", [
-    ("configuration.toml", DUMMY_TOML_FILE),
-    ("configuration.yaml", DUMMY_YAML_FILE),
-])
+@pytest.mark.parametrize(
+    "conf_name,conf_content",
+    [
+        ("configuration.toml", DUMMY_TOML_FILE),
+        ("configuration.yaml", DUMMY_YAML_FILE),
+    ],
+)
 def test_conf_file_overrides_defaults(invoke, create_config, conf_name, conf_content):
     conf_path = create_config(conf_name, conf_content)
     result = invoke(
@@ -163,10 +166,13 @@ def test_conf_file_overrides_defaults(invoke, create_config, conf_name, conf_con
     )
 
 
-@pytest.mark.parametrize("conf_name,conf_content", [
-    ("configuration.toml", DUMMY_TOML_FILE),
-    ("configuration.yaml", DUMMY_YAML_FILE),
-])
+@pytest.mark.parametrize(
+    "conf_name,conf_content",
+    [
+        ("configuration.toml", DUMMY_TOML_FILE),
+        ("configuration.yaml", DUMMY_YAML_FILE),
+    ],
+)
 def test_auto_env_var_conf(invoke, create_config, conf_name, conf_content):
     conf_path = create_config(conf_name, conf_content)
     result = invoke(
@@ -186,11 +192,16 @@ def test_auto_env_var_conf(invoke, create_config, conf_name, conf_content):
     )
 
 
-@pytest.mark.parametrize("conf_name,conf_content", [
-    ("configuration.toml", DUMMY_TOML_FILE),
-    ("configuration.yaml", DUMMY_YAML_FILE),
-])
-def test_conf_file_overrided_by_cli_param(invoke, create_config, conf_name, conf_content):
+@pytest.mark.parametrize(
+    "conf_name,conf_content",
+    [
+        ("configuration.toml", DUMMY_TOML_FILE),
+        ("configuration.yaml", DUMMY_YAML_FILE),
+    ],
+)
+def test_conf_file_overrided_by_cli_param(
+    invoke, create_config, conf_name, conf_content
+):
     conf_path = create_config(conf_name, conf_content)
     result = invoke(
         default_group,
