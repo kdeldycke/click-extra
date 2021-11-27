@@ -28,7 +28,7 @@ $ pip install click-extra
 
 ## Features
 
-- TOML configuration file loader
+- TOML and YAML configuration file loader
 - Colorization of help screens
 - ``--color/--no-color`` option flag
 - Colored ``--version`` option

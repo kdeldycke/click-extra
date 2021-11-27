@@ -19,14 +19,15 @@ import re
 from pathlib import Path
 
 import click
+import pytest
 
 from .. import __version__
 from ..commands import group
 
-DUMMY_CONF_FILE = """
+DUMMY_TOML_FILE = """
     # Comment
 
-    top_level_param = "to_ignore"
+    top_level_param             = "to_ignore"
 
     [default-group]
     verbosity = "DEBUG"
@@ -40,6 +41,29 @@ DUMMY_CONF_FILE = """
     [default-group.default-command]
     int_param = 3
     random_stuff = "will be ignored"
+    """
+
+
+DUMMY_YAML_FILE = """
+    # Comment
+
+    top_level_param: to_ignore
+
+    default-group:
+        verbosity : DEBUG
+        blahblah: 234
+        dummy_flag: True
+        my_list:
+          - pip
+          - "npm"
+          - gem
+        default-command:
+            int_param: 3
+            random_stuff : will be ignored
+
+    garbage:
+        # An empty random section that will be skipped
+
     """
 
 
@@ -106,8 +130,25 @@ def test_conf_not_file(invoke):
     )
 
 
-def test_conf_file_overrides_defaults(invoke, create_toml):
-    conf_path = create_toml("configuration.extension", DUMMY_CONF_FILE)
+def test_conf_format_unknown(invoke, create_config):
+    conf_path = create_config("file.unknown_extension", "")
+    result = invoke(
+        default_group, "--config", str(conf_path), "default-command", color=False
+    )
+    assert result.exit_code == 2
+    assert not result.output
+    assert result.stderr == (
+        f"Load configuration at {conf_path.resolve()}\n"
+        "critical: Configuration format not recognized.\n"
+    )
+
+
+@pytest.mark.parametrize("conf_name,conf_content", [
+    ("configuration.toml", DUMMY_TOML_FILE),
+    ("configuration.yaml", DUMMY_YAML_FILE),
+])
+def test_conf_file_overrides_defaults(invoke, create_config, conf_name, conf_content):
+    conf_path = create_config(conf_name, conf_content)
     result = invoke(
         default_group, "--config", str(conf_path), "default-command", color=False
     )
@@ -122,8 +163,12 @@ def test_conf_file_overrides_defaults(invoke, create_toml):
     )
 
 
-def test_auto_env_var_conf(invoke, create_toml):
-    conf_path = create_toml("conf.ext", DUMMY_CONF_FILE)
+@pytest.mark.parametrize("conf_name,conf_content", [
+    ("configuration.toml", DUMMY_TOML_FILE),
+    ("configuration.yaml", DUMMY_YAML_FILE),
+])
+def test_auto_env_var_conf(invoke, create_config, conf_name, conf_content):
+    conf_path = create_config(conf_name, conf_content)
     result = invoke(
         default_group,
         "default-command",
@@ -141,8 +186,12 @@ def test_auto_env_var_conf(invoke, create_toml):
     )
 
 
-def test_conf_file_overrided_by_cli_param(invoke, create_toml):
-    conf_path = create_toml("configuration.extension", DUMMY_CONF_FILE)
+@pytest.mark.parametrize("conf_name,conf_content", [
+    ("configuration.toml", DUMMY_TOML_FILE),
+    ("configuration.yaml", DUMMY_YAML_FILE),
+])
+def test_conf_file_overrided_by_cli_param(invoke, create_config, conf_name, conf_content):
+    conf_path = create_config(conf_name, conf_content)
     result = invoke(
         default_group,
         "--my-list",
@@ -162,7 +211,4 @@ def test_conf_file_overrided_by_cli_param(invoke, create_toml):
     assert result.output == (
         "dummy_flag = False\nmy_list = ('super', 'wow')\nint_parameter = 15\n"
     )
-    assert re.fullmatch(
-        r"Load configuration at \S+configuration.extension\n",
-        result.stderr,
-    )
+    assert result.stderr == f"Load configuration at {conf_path.resolve()}\n"

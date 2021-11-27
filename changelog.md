@@ -6,6 +6,10 @@
 This version is not released yet and is under active development.
 ```
 
+- Add support for YAML configuration file. Closes #13.
+- Auto-detect configuration file on loading.
+- Add `pyyaml` dependency.
+
 ## [1.2.2 (2021-11-04)](https://github.com/kdeldycke/click-extra/compare/v1.2.1...v1.2.2)
 
 - Evaluate format option dynamiccaly at use to let third-party register new rendering formats.

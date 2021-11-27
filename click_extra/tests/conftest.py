@@ -145,23 +145,23 @@ def invoke(runner, monkeypatch):
 
 
 @pytest.fixture
-def create_toml(tmp_path):
-    """A generic fixture to produce a temporary TOML file."""
+def create_config(tmp_path):
+    """A generic fixture to produce a temporary configuration file."""
 
-    def _create_toml(filename, content):
-        """Create a fake TOML file."""
+    def _create_config(filename, content):
+        """Create a fake configuration file."""
         assert isinstance(content, str)
 
         if isinstance(filename, str):
-            toml_path = tmp_path.joinpath(filename)
+            config_path = tmp_path.joinpath(filename)
         else:
             assert isinstance(filename, Path)
-            toml_path = filename.resolve()
+            config_path = filename.resolve()
 
         # Create the missing folder structure, like "mkdir -p" does.
-        toml_path.parent.mkdir(parents=True, exist_ok=True)
-        toml_path.write_text(dedent(content).strip())
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        config_path.write_text(dedent(content).strip())
 
-        return toml_path
+        return config_path
 
-    return _create_toml
+    return _create_config

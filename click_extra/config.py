@@ -21,6 +21,7 @@ from pathlib import Path
 
 import click
 import tomli
+import yaml
 from boltons.iterutils import remap
 from click.core import ParameterSource
 from cloup import GroupedOption
@@ -88,10 +89,17 @@ def conf_structure(ctx):
     return conf
 
 
-def read_conf(ctx, conf_filepath):
-    """Loads a configuration files and only returns recognized options and their values.
+# Maps configuration formats, their file extension, and parsing function,
+CONFIGURATION_FORMATS = {
+    'TOML': (['.toml'], tomli.loads),
+    'YAML': (['.yaml', '.yml'], yaml.full_load),
+}
 
-    Invalid parameters are ignored.
+
+def parse_config(ctx, conf_filepath):
+    """Detect configuration file's format, parse its content and only return a ``dict``.
+
+    Only options and parameters defined on the CLI will be kept. All others will be filtered out.
     """
     # Check conf file.
     if not conf_filepath.exists():
@@ -99,8 +107,16 @@ def read_conf(ctx, conf_filepath):
     if not conf_filepath.is_file():
         raise ConfigurationFileError(f"Configuration {conf_filepath} is not a file.")
 
-    # Parse TOML content.
-    user_conf = tomli.loads(conf_filepath.read_text())
+    # Auto-detect configuration format  and parse its content.
+    user_conf = None
+    for conf_format, (conf_exts, conf_parser) in CONFIGURATION_FORMATS.items():
+        logger.debug(f"Evaluate configuration as {conf_format}.")
+        if conf_filepath.suffix.lower() in conf_exts:
+            logger.debug(f"Configuration is {conf_format}")
+            user_conf = conf_parser(conf_filepath.read_text())
+            break
+    else:
+        raise ConfigurationFileError(f"Configuration format not recognized.")
 
     # Merge configuration file's content into the canonical reference structure, but
     # ignore all unrecognized options.
@@ -137,7 +153,7 @@ def read_conf(ctx, conf_filepath):
 
 def load_conf(ctx, param, config_file):
 
-    # Display a message for the user to make him aware he is using a non-default configuration file.
+    # Display a message when user is using a non-default configuration file.
     explicit_conf = ctx.get_parameter_source("config") in (
         ParameterSource.COMMANDLINE,
         ParameterSource.ENVIRONMENT,
@@ -156,7 +172,7 @@ def load_conf(ctx, param, config_file):
     conf = {}
     try:
         # Re-fetch config file location
-        conf = read_conf(ctx, config_file)
+        conf = parse_config(ctx, config_file)
     except ConfigurationFileError as excpt:
         # Exit the CLI if the user-provided config file is bad.
         if explicit_conf:
