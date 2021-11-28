@@ -45,27 +45,29 @@ $ pip install click-extra
 Keep track of things to undo if they reach upstream.
 
 [`click`](https://github.com/pallets/click):
-  - [`testing.CliRunner.invoke` cannot pass color for `Context` instantiation (#2110)](https://github.com/pallets/click/issues/2110)
+  - [`#2111` - `Context.color = False` doesn't overrides `echo(color=True)`](https://github.com/pallets/click/issues/2111)
+  - [`#2110` - `testing.CliRunner.invoke` cannot pass color for `Context` instantiation](https://github.com/pallets/click/issues/2110)
 
 [`click-log`](https://github.com/click-contrib/click-log):
-  - [Add a `no-color` option, method or parameter to disable colouring globally (#30)](https://github.com/click-contrib/click-log/issues/30)
-  - [Log level is leaking between invokations: hack to force-reset it (#29)](https://github.com/click-contrib/click-log/issues/29)
-  - [Add missing string interpolation in error message (#24)](https://github.com/click-contrib/click-log/pull/24)
-  - [Add trailing dot to help text (#18)](https://github.com/click-contrib/click-log/pull/18)
+  - [`#30` - Add a `no-color` option, method or parameter to disable colouring globally](https://github.com/click-contrib/click-log/issues/30)
+  - [`#29` - Log level is leaking between invokations: hack to force-reset it](https://github.com/click-contrib/click-log/issues/29)
+  - [`#24` - Add missing string interpolation in error message](https://github.com/click-contrib/click-log/pull/24)
+  - [`#18` - Add trailing dot to help text](https://github.com/click-contrib/click-log/pull/18)
 
 [`click-help-color`](https://github.com/click-contrib/click-help-colors):
-  - [Highlighting of options, choices and metavars (#17)](https://github.com/click-contrib/click-help-colors/issues/17)
+  - [`#17` - Highlighting of options, choices and metavars](https://github.com/click-contrib/click-help-colors/issues/17)
 
 [`cli-helper`](https://github.com/dbcli/cli_helpers):
-  - [Replace local tabulate formats with those available upstream (#79)](https://github.com/dbcli/cli_helpers/issues/79)
+  - [`#79` -Replace local tabulate formats with those available upstream](https://github.com/dbcli/cli_helpers/issues/79)
 
 [`cloup`](https://github.com/janluke/cloup):
-  - [Add support for option groups on `cloup.Group` (#98)](https://github.com/janluke/cloup/issues/98)
-  - [Styling metavars, default values, env var, choices (#97)](https://github.com/janluke/cloup/issues/97) & [Highlights options, choices and metavars (#95)](https://github.com/janluke/cloup/issues/95)
-  - [Add loading of options from a TOML configuration file (#96)](https://github.com/janluke/cloup/issues/96)
+  - [`#98` - Add support for option groups on `cloup.Group`](https://github.com/janluke/cloup/issues/98)
+  - [`#97` - Styling metavars, default values, env var, choices](https://github.com/janluke/cloup/issues/97)
+  - [`#95` - Highlights options, choices and metavars](https://github.com/janluke/cloup/issues/95)
+  - [`#96` - Add loading of options from a TOML configuration file](https://github.com/janluke/cloup/issues/96)
 
 [`python-tabulate`](https://github.com/astanin/python-tabulate):
-  - [Add new {`rounded`,`simple`,`double`}_(`grid`,`outline`} formats (#151)](https://github.com/astanin/python-tabulate/pull/151)
+  - [`#151` - Add new {`rounded`,`simple`,`double`}_(`grid`,`outline`} formats](https://github.com/astanin/python-tabulate/pull/151)
 
 ### TOML configuration file
 
