@@ -10,7 +10,7 @@
 `click-extra` is a collection of helpers and utilities for
 [Click](https://click.palletsprojects.com), the Python CLI framework.
 
-It provides boilerplate code and good defaults, as weel as some workarounds
+It provides boilerplate code and good defaults, as well as some workarounds
 and patches that have not reached upstream yet (or are unlikely to).
 
 ## Used in
