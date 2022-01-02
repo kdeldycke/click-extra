@@ -116,7 +116,7 @@ def parse_config(ctx, conf_filepath):
             user_conf = conf_parser(conf_filepath.read_text())
             break
     else:
-        raise ConfigurationFileError(f"Configuration format not recognized.")
+        raise ConfigurationFileError("Configuration format not recognized.")
 
     # Merge configuration file's content into the canonical reference structure, but
     # ignore all unrecognized options.
