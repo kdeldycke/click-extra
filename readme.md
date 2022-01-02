@@ -189,14 +189,14 @@ Keep track of things to undo if they reach upstream.
   - [`#2111` - `Context.color = False` doesn't overrides `echo(color=True)`](https://github.com/pallets/click/issues/2111)
   - [`#2110` - `testing.CliRunner.invoke` cannot pass color for `Context` instantiation](https://github.com/pallets/click/issues/2110)
 
+[`click-help-color`](https://github.com/click-contrib/click-help-colors):
+  - [`#17` - Highlighting of options, choices and metavars](https://github.com/click-contrib/click-help-colors/issues/17)
+
 [`click-log`](https://github.com/click-contrib/click-log):
   - [`#30` - Add a `no-color` option, method or parameter to disable colouring globally](https://github.com/click-contrib/click-log/issues/30)
   - [`#29` - Log level is leaking between invokations: hack to force-reset it](https://github.com/click-contrib/click-log/issues/29)
   - [`#24` - Add missing string interpolation in error message](https://github.com/click-contrib/click-log/pull/24)
   - [`#18` - Add trailing dot to help text](https://github.com/click-contrib/click-log/pull/18)
-
-[`click-help-color`](https://github.com/click-contrib/click-help-colors):
-  - [`#17` - Highlighting of options, choices and metavars](https://github.com/click-contrib/click-help-colors/issues/17)
 
 [`cli-helper`](https://github.com/dbcli/cli_helpers):
   - [`#79` -Replace local tabulate formats with those available upstream](https://github.com/dbcli/cli_helpers/issues/79)
