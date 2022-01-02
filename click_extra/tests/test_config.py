@@ -114,7 +114,7 @@ def test_conf_default_path(invoke):
     # OS-specific part of the path.
     folder = Path(".default-group")
     if is_windows():
-        folder = Path("AppData\Roaming\my_cli\default-group")
+        folder = Path("AppData\Roaming\default-group")
 
     default_path = Path.home() / folder / "config.toml"
     assert f"debug: Load configuration at {default_path.resolve()}\n" in result.stderr
