@@ -131,6 +131,40 @@ my_list is ('item 1', 'item #2', 'Very Last Item!')
 int_parameter is 3
 ```
 
+### YAML configuration
+
+Same example as above is working as-is with YAML.
+
+Just replace the TOML file by the following YAML configuration at `~/.my_cli.py/config.yaml`:
+
+```yaml
+---
+# My default configuration file.
+top_level_param: is_ignored
+
+my-cli:
+  extra_value: is ignored too
+  dummy_flag: True   # New boolean default.
+  my_list:
+    - point 1
+    - "point #2"
+    - "Very Last Point!"
+
+  subcommand:
+    int_param: 77
+    random_stuff: "will be ignored"
+
+garbage: >
+   An empty random section that will be skipped
+```
+
+```shell-session
+$ ./my_cli.py --config ~/.my_cli.py/config.yaml subcommand
+dummy_flag is True
+my_list is ('point 1', 'point #2', 'Very Last Point!')
+int_parameter is 77
+```
+
 ### Colorization of help screen
 
 Extend [Cloup's own help formatter and theme](https://cloup.readthedocs.io/en/stable/pages/formatting.html#help-formatting-and-themes) to add colorization of:
