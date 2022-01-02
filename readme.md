@@ -189,6 +189,9 @@ Keep track of things to undo if they reach upstream.
   - [`#2111` - `Context.color = False` doesn't overrides `echo(color=True)`](https://github.com/pallets/click/issues/2111)
   - [`#2110` - `testing.CliRunner.invoke` cannot pass color for `Context` instantiation](https://github.com/pallets/click/issues/2110)
 
+[`click-config-file`](https://github.com/phha/click_config_file):
+  - [`#9` - Additional configuration providers](https://github.com/phha/click_config_file/issues/9)
+
 [`click-help-color`](https://github.com/click-contrib/click-help-colors):
   - [`#17` - Highlighting of options, choices and metavars](https://github.com/click-contrib/click-help-colors/issues/17)
 
