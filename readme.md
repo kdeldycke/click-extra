@@ -52,8 +52,8 @@ from click_extra.config import config_option
 @click.option("--my-list", multiple=True)
 @config_option()
 def my_cli(dummy_flag, my_list):
-    click.echo(f"dummy_flag is {dummy_flag!r}")
-    click.echo(f"my_list is {my_list!r}")
+    click.echo(f"dummy_flag    is {dummy_flag!r}")
+    click.echo(f"my_list       is {my_list!r}")
 
 
 @my_cli.command()
@@ -83,21 +83,12 @@ Commands:
   subcommand
 ```
 
-```shell-session
-$ python ./my_cli.py subcommand --help
-Usage: my_cli.py subcommand [OPTIONS]
-
-Options:
-  --int-param INTEGER  [default: 10]
-  --help               Show this message and exit.  [default: False]
-```
-
-And a default call returns:
+And a bare call returns:
 
 ```shell-session
 $ ./my_cli.py subcommand
-dummy_flag is False
-my_list is ()
+dummy_flag    is False
+my_list       is ()
 int_parameter is 10
 ```
 
@@ -120,15 +111,28 @@ int_param = 3
 random_stuff = "will be ignored"
 ```
 
-Pay attention on how the name of the script (`my_cli.py`) is used for the configuration folder (`~/.my_cli.py/`), and the group ID (`def my_cli()`) is reused, with a twist, as the top-level config section (`[my-cli]`).
+In this example, pay attention to:
 
-Now we can verify the config file is read automatticaly and affect defaults:
+- the name of the script (`my_cli.py`) being used as the configuration folder (`~/.my_cli.py/`),
+- the group ID (`def my_cli()`) reused, with a twist, as the top-level config section (`[my-cli]`),
+- all the extra comments, sections and values being silently ignored.
+
+Now we can verify the config is read automatticaly and affect defaults:
 
 ```shell-session
 $ ./my_cli.py subcommand
-dummy_flag is True
-my_list is ('item 1', 'item #2', 'Very Last Item!')
+dummy_flag    is True
+my_list       is ('item 1', 'item #2', 'Very Last Item!')
 int_parameter is 3
+```
+
+Still, the inline parameters always takes precedence over configuration values:
+
+```shell-session
+$ ./my_cli.py subcommand --int-param 555
+dummy_flag    is True
+my_list       is ('item 1', 'item #2', 'Very Last Item!')
+int_parameter is 555
 ```
 
 ### YAML configuration
@@ -160,8 +164,8 @@ garbage: >
 
 ```shell-session
 $ ./my_cli.py --config ~/.my_cli.py/config.yaml subcommand
-dummy_flag is True
-my_list is ('point 1', 'point #2', 'Very Last Point!')
+dummy_flag    is True
+my_list       is ('point 1', 'point #2', 'Very Last Point!')
 int_parameter is 77
 ```
 
