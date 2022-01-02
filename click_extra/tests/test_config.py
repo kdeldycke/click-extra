@@ -23,6 +23,7 @@ import pytest
 
 from .. import __version__
 from ..commands import group
+from ..platform import is_windows
 
 DUMMY_TOML_FILE = """
     # Comment
@@ -102,6 +103,21 @@ def test_unset_conf_debug_message(invoke):
         r"debug: Loaded configuration: {}\n",
         result.stderr,
     )
+
+
+def test_conf_default_path(invoke):
+    result = invoke(
+        default_group, "--verbosity", "DEBUG", "default-command", color=False
+    )
+    assert result.exit_code == 0
+
+    # OS-specific part of the path.
+    folder = Path(".default-group")
+    if is_windows():
+        folder = Path("AppData\Roaming\my_cli\default-group")
+
+    default_path = Path.home() / folder / "config.toml"
+    assert f"debug: Load configuration at {default_path.resolve()}\n" in result.stderr
 
 
 def test_conf_not_exist(invoke):
