@@ -191,7 +191,7 @@ def load_conf(ctx, param, config_file):
     # over any parameters from the config file.
     if ctx.default_map is None:
         ctx.default_map = dict()
-    ctx.default_map.update(conf.get(ctx.find_root().info_name, {}))
+    ctx.default_map.update(conf.get(ctx.find_root().command.name, {}))
 
     return config_file
 
