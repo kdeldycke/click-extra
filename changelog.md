@@ -7,6 +7,7 @@ This version is not released yet and is under active development.
 ```
 
 - Fix inference of config file top-level section name.
+- Document usage of `click_extra.config.config_option`.
 
 ## [1.3.0 (2021-11-28)](https://github.com/kdeldycke/click-extra/compare/v1.2.2...v1.3.0)
 

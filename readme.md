@@ -13,19 +13,6 @@
 It provides boilerplate code and good defaults, as well as some workarounds
 and patches that have not reached upstream yet (or are unlikely to).
 
-## Used in
-
-- [Mail Deduplicate](https://github.com/kdeldycke/mail-deduplicate#readme) - A CLI to deduplicate similar emails.
-- [Meta Package Manager](https://github.com/kdeldycke/meta-package-manager#readme) - A unifying CLI for multiple package managers.
-
-## Installation
-
-Install `click-extra` with `pip`:
-
-```shell-session
-$ pip install click-extra
-```
-
 ## Features
 
 - TOML and YAML configuration file loader
@@ -40,7 +27,123 @@ $ pip install click-extra
     - `@unless_linux`, `@unless_macos` and `@unless_windows`
     - `@destructive` and `@non_destructive`
 
-### Issues addressed by `click-extra`
+## Basic usage
+
+### Installation
+
+Install `click-extra` with `pip`:
+
+```shell-session
+$ pip install click-extra
+```
+
+### TOML configuration
+
+Given this CLI in a `my_cli.py` file:
+
+```python
+import click
+
+from click_extra.config import config_option
+
+
+@click.group(context_settings={"show_default": True})
+@click.option("--dummy-flag/--no-flag")
+@click.option("--my-list", multiple=True)
+@config_option()
+def my_cli(dummy_flag, my_list):
+    click.echo(f"dummy_flag is {dummy_flag!r}")
+    click.echo(f"my_list is {my_list!r}")
+
+
+@my_cli.command()
+@click.option("--int-param", type=int, default=10)
+def subcommand(int_param):
+    click.echo(f"int_parameter is {int_param!r}")
+
+
+if __name__ == "__main__":
+    my_cli()
+```
+
+It produces the following help screens:
+
+```shell-session
+$ python ./my_cli.py
+Usage: my_cli.py [OPTIONS] COMMAND [ARGS]...
+
+Options:
+  --dummy-flag / --no-flag  [default: no-flag]
+  --my-list TEXT
+  -C, --config CONFIG_PATH  Location of the configuration file.  [default:
+                            (dynamic)]
+  --help                    Show this message and exit.  [default: False]
+
+Commands:
+  subcommand
+```
+
+```shell-session
+$ python ./my_cli.py subcommand --help
+Usage: my_cli.py subcommand [OPTIONS]
+
+Options:
+  --int-param INTEGER  [default: 10]
+  --help               Show this message and exit.  [default: False]
+```
+
+And a default call returns:
+
+```shell-session
+$ ./my_cli.py subcommand
+dummy_flag is False
+my_list is ()
+int_parameter is 10
+```
+
+Now if we create the following TOML file at `~/.my_cli.py/config.toml`:
+
+```toml
+# My default configuration file.
+top_level_param = "is_ignored"
+
+[my-cli]
+extra_value = "is ignored too"
+dummy_flag = true   # New boolean default.
+my_list = ["item 1", "item #2", "Very Last Item!"]
+
+[garbage]
+# An empty random section that will be skipped
+
+[my-cli.subcommand]
+int_param = 3
+random_stuff = "will be ignored"
+```
+
+Pay attention on how the name of the script (`my_cli.py`) is used for the configuration folder (`~/.my_cli.py/`), and the group ID (`def my_cli()`) is reused, with a twist, as the top-level config section (`[my-cli]`).
+
+Now we can verify the config file is read automatticaly and affect defaults:
+
+```shell-session
+$ ./my_cli.py subcommand
+dummy_flag is True
+my_list is ('item 1', 'item #2', 'Very Last Item!')
+int_parameter is 3
+```
+
+### Colorization of help screen
+
+Extend [Cloup's own help formatter and theme](https://cloup.readthedocs.io/en/stable/pages/formatting.html#help-formatting-and-themes) to add colorization of:
+- Options
+- Choices
+- Metavars
+
+## Used in
+
+- [Mail Deduplicate](https://github.com/kdeldycke/mail-deduplicate#readme) - A CLI to deduplicate similar emails.
+- [Meta Package Manager](https://github.com/kdeldycke/meta-package-manager#readme) - A unifying CLI for multiple package managers.
+
+## Issues addressed by `click-extra`
 
 Keep track of things to undo if they reach upstream.
 
@@ -68,30 +171,6 @@ Keep track of things to undo if they reach upstream.
 
 [`python-tabulate`](https://github.com/astanin/python-tabulate):
   - [`#151` - Add new {`rounded`,`simple`,`double`}_(`grid`,`outline`} formats](https://github.com/astanin/python-tabulate/pull/151)
-
-### TOML configuration file
-
-Allows a CLI to read defaults options from a configuration file.
-
-Here is a sample:
-
-``` toml
-# My default configuration file.
-
-[my_cli]
-verbosity = "DEBUG"
-manager = ["brew", "cask"]
-
-[my_cli.search]
-exact = true
-```
-
-### Colorization of help screen
-
-Extend [Cloup's own help formatter and theme](https://cloup.readthedocs.io/en/stable/pages/formatting.html#help-formatting-and-themes) to add colorization of:
-- Options
-- Choices
-- Metavars
 
 ## Dependencies
 
