@@ -63,7 +63,7 @@ tomli = "^1.2.2"
 [tool.poetry.dev-dependencies]
 black = "^21.12b0"
 bump2version = "^1.0.1"
-check-wheel-contents = "^0.3.3"
+check-wheel-contents = "^0.3.4"
 coverage = { extras = ["toml"], version = "^6.2" }
 isort = "^5.10.1"
 # https://mdformat.readthedocs.io/en/stable/users/plugins.html
