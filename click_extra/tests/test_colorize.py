@@ -135,8 +135,8 @@ def test_keyword_collection(invoke):
         "  \x1b[36m--color, \x1b[36m--ansi\x1b[0m / --no-color, --no-ansi\x1b[0m\n"
         "                            Strip out all colors and all ANSI codes from output.\x1b[0m\n"
         "                            [default: color]\x1b[0m\n"
-        "  \x1b[36m-C, \x1b[36m--config\x1b[0m \x1b[90mCONFIG_PATH\x1b[0m\x1b[0m  Location of the configuration file.  [default:\x1b[0m\n"
-        "                            (dynamic)]\x1b[0m\n"
+        "  \x1b[36m-C, \x1b[36m--config\x1b[0m \x1b[90mCONFIG_PATH\x1b[0m\x1b[0m  Location of the configuration file. Supports both\x1b[0m\n"
+        "                            local path and remote URL.  [default: (dynamic)]\x1b[0m\n"
         "  \x1b[36m-v, \x1b[36m--verbosity\x1b[0m \x1b[90mLEVEL\x1b[0m\x1b[0m     Either \x1b[35mCRITICAL\x1b[0m, \x1b[35mERROR\x1b[0m, \x1b[35mWARNING\x1b[0m, \x1b[35mINFO\x1b[0m, \x1b[35mDEBUG\x1b[0m.\x1b[0m\n"
         "                            [default: \x1b[35mINFO\x1b[0m]\x1b[0m\n"
         "  \x1b[36m--version\x1b[0m                 Show the version and exit.  [default: False]\x1b[0m\n"
@@ -349,7 +349,7 @@ def test_integrated_color_option(invoke, param, expecting_colors):
         )
         assert re.fullmatch(
             r"\x1b\[34mdebug: \x1b\[0mVerbosity set to DEBUG.\n"
-            r"\x1b\[34mdebug: \x1b\[0mLoad configuration at \S+config.toml\n"
+            r"\x1b\[34mdebug: \x1b\[0mLoad configuration from \S+config.toml\n"
             r"\x1b\[34mdebug: \x1b\[0mConfiguration not found at \S+config.toml\n"
             r"\x1b\[34mdebug: \x1b\[0mIgnore configuration file.\n"
             r"\x1b\[34mdebug: \x1b\[0mLoaded configuration: {}\n"
@@ -367,7 +367,7 @@ def test_integrated_color_option(invoke, param, expecting_colors):
         )
         assert re.fullmatch(
             r"debug: Verbosity set to DEBUG.\n"
-            r"debug: Load configuration at \S+config.toml\n"
+            r"debug: Load configuration from \S+config.toml\n"
             r"debug: Configuration not found at \S+config.toml\n"
             r"debug: Ignore configuration file.\n"
             r"debug: Loaded configuration: {}\n"

@@ -88,7 +88,7 @@ def test_integrated_verbosity_option(invoke, level):
     if level == "DEBUG":
         assert re.fullmatch(
             r"\x1b\[34mdebug: \x1b\[0mVerbosity set to DEBUG.\n"
-            r"\x1b\[34mdebug: \x1b\[0mLoad configuration at \S+config.toml\n"
+            r"\x1b\[34mdebug: \x1b\[0mLoad configuration from \S+config.toml\n"
             r"\x1b\[34mdebug: \x1b\[0mConfiguration not found at \S+config.toml\n"
             r"\x1b\[34mdebug: \x1b\[0mIgnore configuration file.\n"
             r"\x1b\[34mdebug: \x1b\[0mLoaded configuration: {}\n",

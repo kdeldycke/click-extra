@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Allow downloading of a remote config URL.
+- Add new dependency on `requests`.
 - Fix inference of config file top-level section name.
 - Document usage of `click_extra.config.config_option`.
 

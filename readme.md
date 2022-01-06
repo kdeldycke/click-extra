@@ -75,8 +75,8 @@ Usage: my_cli.py [OPTIONS] COMMAND [ARGS]...
 Options:
   --dummy-flag / --no-flag  [default: no-flag]
   --my-list TEXT
-  -C, --config CONFIG_PATH  Location of the configuration file.  [default:
-                            (dynamic)]
+  -C, --config CONFIG_PATH  Location of the configuration file. Supports both
+                            local path and remote URL.  [default: s(dynamic)]
   --help                    Show this message and exit.  [default: False]
 
 Commands:

@@ -97,7 +97,7 @@ def test_unset_conf_debug_message(invoke):
     assert result.output == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
     assert re.fullmatch(
         r"debug: Verbosity set to DEBUG.\n"
-        r"debug: Load configuration at \S+config.toml\n"
+        r"debug: Load configuration from \S+config.toml\n"
         r"debug: Configuration not found at \S+config.toml\n"
         r"debug: Ignore configuration file.\n"
         r"debug: Loaded configuration: {}\n",
@@ -117,7 +117,7 @@ def test_conf_default_path(invoke):
         folder = Path("AppData\Roaming\default-group")
 
     default_path = Path.home() / folder / "config.toml"
-    assert f"debug: Load configuration at {default_path.resolve()}\n" in result.stderr
+    assert f"debug: Load configuration from {default_path.resolve()}\n" in result.stderr
 
 
 def test_conf_not_exist(invoke):
@@ -128,7 +128,7 @@ def test_conf_not_exist(invoke):
     assert result.exit_code == 2
     assert not result.output
     assert result.stderr == (
-        f"Load configuration at {conf_path.resolve()}\n"
+        f"Load configuration from {conf_path}\n"
         f"critical: Configuration not found at {conf_path.resolve()}\n"
     )
 
@@ -141,7 +141,7 @@ def test_conf_not_file(invoke):
     assert result.exit_code == 2
     assert not result.output
     assert result.stderr == (
-        f"Load configuration at {conf_path.resolve()}\n"
+        f"Load configuration from {conf_path}\n"
         f"critical: Configuration {conf_path.resolve()} is not a file.\n"
     )
 
@@ -154,7 +154,7 @@ def test_conf_format_unknown(invoke, create_config):
     assert result.exit_code == 2
     assert not result.output
     assert result.stderr == (
-        f"Load configuration at {conf_path.resolve()}\n"
+        f"Load configuration from {conf_path.resolve()}\n"
         "critical: Configuration format not recognized.\n"
     )
 
@@ -177,7 +177,7 @@ def test_conf_file_overrides_defaults(invoke, create_config, conf_name, conf_con
     )
     # Debug level has been activated by configuration file.
     assert result.stderr == (
-        f"Load configuration at {conf_path.resolve()}\n"
+        f"Load configuration from {conf_path.resolve()}\n"
         "debug: Verbosity set to DEBUG.\n"
     )
 
@@ -203,7 +203,7 @@ def test_auto_env_var_conf(invoke, create_config, conf_name, conf_content):
     )
     # Debug level has been activated by configuration file.
     assert result.stderr == (
-        f"Load configuration at {conf_path.resolve()}\n"
+        f"Load configuration from {conf_path.resolve()}\n"
         "debug: Verbosity set to DEBUG.\n"
     )
 
@@ -238,4 +238,4 @@ def test_conf_file_overrided_by_cli_param(
     assert result.output == (
         "dummy_flag = False\nmy_list = ('super', 'wow')\nint_parameter = 15\n"
     )
-    assert result.stderr == f"Load configuration at {conf_path.resolve()}\n"
+    assert result.stderr == f"Load configuration from {conf_path.resolve()}\n"

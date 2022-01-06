@@ -20,9 +20,11 @@
 from pathlib import Path
 
 import click
+import requests
 import tomli
 import yaml
 from boltons.iterutils import remap
+from boltons.urlutils import URL
 from click.core import ParameterSource
 from cloup import GroupedOption
 
@@ -96,24 +98,18 @@ CONFIGURATION_FORMATS = {
 }
 
 
-def parse_config(ctx, conf_filepath):
-    """Detect configuration file's format, parse its content and only return a ``dict``.
+def parse_and_merge_conf(ctx, conf_content, conf_extension):
+    """Detect configuration file's format, parse its content and returns a ``dict``.
 
     Only options and parameters defined on the CLI will be kept. All others will be filtered out.
     """
-    # Check conf file.
-    if not conf_filepath.exists():
-        raise ConfigurationFileError(f"Configuration not found at {conf_filepath}")
-    if not conf_filepath.is_file():
-        raise ConfigurationFileError(f"Configuration {conf_filepath} is not a file.")
-
-    # Auto-detect configuration format  and parse its content.
+    # Auto-detect configuration format and parse its content.
     user_conf = None
     for conf_format, (conf_exts, conf_parser) in CONFIGURATION_FORMATS.items():
         logger.debug(f"Evaluate configuration as {conf_format}.")
-        if conf_filepath.suffix.lower() in conf_exts:
+        if conf_extension in conf_exts:
             logger.debug(f"Configuration is {conf_format}")
-            user_conf = conf_parser(conf_filepath.read_text())
+            user_conf = conf_parser(conf_content)
             break
     else:
         raise ConfigurationFileError("Configuration format not recognized.")
@@ -151,28 +147,50 @@ def parse_config(ctx, conf_filepath):
     return clean_conf
 
 
-def load_conf(ctx, param, config_file):
+def read_conf(conf_path):
+    """Read conf from remote URL or local file system."""
 
-    # Display a message when user is using a non-default configuration file.
+    # Check if the path is an URL.
+    location = URL(conf_path)
+    if location and location.scheme.lower() in ("http", "https"):
+        with requests.get(location) as response:
+            if not response.ok:
+                raise ConfigurationFileError(
+                    f"Can't download {location}: {response.reason}"
+                )
+            return response.text, "." + location.path.split(".")[-1]
+
+    # Load configuration from local file.
+    conf_path = Path(conf_path).resolve()
+    if not conf_path.exists():
+        raise ConfigurationFileError(f"Configuration not found at {conf_path}")
+    if not conf_path.is_file():
+        raise ConfigurationFileError(f"Configuration {conf_path} is not a file.")
+    return conf_path.read_text(), conf_path.suffix.lower()
+
+
+def load_conf(ctx, param, conf_path):
+
     explicit_conf = ctx.get_parameter_source("config") in (
         ParameterSource.COMMANDLINE,
         ParameterSource.ENVIRONMENT,
         ParameterSource.PROMPT,
     )
     # Always print a message if the user explicitly set the configuration location.
-    # We can't use logger.info yet because the default have not been loaded yet and the logger is stuck to its default WARNING level.
+    # We can't use logger.info because the default have not been loaded yet and the logger is stuck to its default WARNING level.
     if explicit_conf:
-        click.echo(f"Load configuration at {config_file}", err=True)
+        click.echo(f"Load configuration from {conf_path}", err=True)
+    # Fallback on default configuration file location.
     else:
-        if not config_file:
-            config_file = default_conf_path(ctx)
-        logger.debug(f"Load configuration at {config_file}")
+        if not conf_path:
+            conf_path = default_conf_path(ctx)
+        logger.debug(f"Load configuration from {conf_path}")
 
     # Fetch option from configuration file.
     conf = {}
     try:
-        # Re-fetch config file location
-        conf = parse_config(ctx, config_file)
+        conf_content, conf_extension = read_conf(conf_path)
+        conf = parse_and_merge_conf(ctx, conf_content, conf_extension)
     except ConfigurationFileError as excpt:
         # Exit the CLI if the user-provided config file is bad.
         if explicit_conf:
@@ -193,15 +211,15 @@ def load_conf(ctx, param, config_file):
         ctx.default_map = dict()
     ctx.default_map.update(conf.get(ctx.find_root().command.name, {}))
 
-    return config_file
+    return conf_path
 
 
 def config_option(
     *names,
     metavar="CONFIG_PATH",
-    type=click.Path(path_type=Path, resolve_path=True),
+    type=click.STRING,
     default=default_conf_path,
-    help="Location of the configuration file.",
+    help="Location of the configuration file. Supports both local path and remote URL.",
     # Force eagerness so the config option's callback gets the oportunity to set the
     # default_map values before the other options use them.
     is_eager=True,

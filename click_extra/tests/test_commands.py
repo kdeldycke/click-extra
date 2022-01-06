@@ -49,8 +49,8 @@ help_screen = dedent(
       --color, --ansi / --no-color, --no-ansi
                                 Strip out all colors and all ANSI codes from output.
                                 [default: color]
-      -C, --config CONFIG_PATH  Location of the configuration file.  [default:
-                                (dynamic)]
+      -C, --config CONFIG_PATH  Location of the configuration file. Supports both
+                                local path and remote URL.  [default: (dynamic)]
       -v, --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.
                                 [default: INFO]
       --version                 Show the version and exit.  [default: False]
@@ -202,8 +202,8 @@ def test_option_group_integration(invoke):
           --color, --ansi / --no-color, --no-ansi
                                     Strip out all colors and all ANSI codes from output.
                                     [default: color]
-          -C, --config CONFIG_PATH  Location of the configuration file.  [default:
-                                    (dynamic)]
+          -C, --config CONFIG_PATH  Location of the configuration file. Supports both
+                                    local path and remote URL.  [default: (dynamic)]
           -v, --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.
                                     [default: INFO]
           --version                 Show the version and exit.  [default: False]
