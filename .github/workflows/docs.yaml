@@ -5,84 +5,12 @@ name: Docs
     # Only targets main branch to avoid amplification effects of auto-fixing
     # the exact same stuff in multiple non-rebased branches.
     branches:
-      - 'main'
+      - main
 
 jobs:
 
-  typos:
-    name: Fix typos and create a PR
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v2.4.0
-      - uses: sobolevn/misspell-fixer-action@0.1.0
-      - uses: peter-evans/create-pull-request@v3.11.0
-        with:
-          author: "Kevin Deldycke <kevin@deldycke.com>"
-          commit-message: "[autofix] Typo"
-          title: "[autofix] Typo"
-          body: >
-            [Auto-generated on run
-            #${{ github.run_id }}](https://github.com/${{ github.repository
-            }}/actions/runs/${{ github.run_id }}) as defined by [workflow
-            action](https://github.com/${{ github.repository
-            }}/blob/${{ github.base_ref }}/.github/workflows/autofix.yaml).
-          labels: "🔩 CI/CD, 📗 documentation"
-          assignees: kdeldycke
-          branch: autofix-typo
-
-  images:
-    name: Optimize images
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v2.4.0
-      - uses: calibreapp/image-actions@1.1.0
-        id: image_actions
-        with:
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
-          compressOnly: true
-      - uses: peter-evans/create-pull-request@v3.11.0
-        with:
-          author: "Kevin Deldycke <kevin@deldycke.com>"
-          commit-message: "[autofix] Optimize images"
-          title: "[autofix] Optimize images"
-          body: >
-            [Auto-generated on run
-            #${{ github.run_id }}](https://github.com/${{ github.repository
-            }}/actions/runs/${{ github.run_id }}) as defined by [workflow
-            action](https://github.com/${{ github.repository
-            }}/blob/${{ github.base_ref }}/.github/workflows/autofix.yaml).
-            %0A
-            ${{ steps.image_actions.outputs.markdown }}
-          labels: "🔩 CI/CD, 📗 documentation"
-          assignees: kdeldycke
-          branch: optimize-images
-
-  mailmap:
-    name: Update .mailmap and create a PR
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v2.4.0
-        with:
-          # Fetch all history to extract all contributors.
-          fetch-depth: 0
-      - uses: actions/setup-python@v2.3.1
-      - name: Generate .mailmap
-        run: |
-          python ./.github/update_mailmap.py
-      - uses: peter-evans/create-pull-request@v3.11.0
-        with:
-          author: "Kevin Deldycke <kevin@deldycke.com>"
-          commit-message: "[autofix] Regenerate .mailmap"
-          title: "[autofix] Regenerate .mailmap"
-          body: >
-            [Auto-generated on run
-            #${{ github.run_id }}](https://github.com/${{ github.repository
-            }}/actions/runs/${{ github.run_id }}) as defined by [workflow
-            action](https://github.com/${{ github.repository
-            }}/blob/${{ github.base_ref }}/.github/workflows/autofix.yaml).
-          labels: "🔩 CI/CD, 📗 documentation"
-          assignees: kdeldycke
-          branch: update-mailmap
+  docs:
+    uses: kdeldycke/workflows/.github/workflows/docs.yaml@v0.5.5
 
   dependency-graph:
     name: Update dependency image and create a PR
@@ -100,19 +28,22 @@ jobs:
         run: >
           poetry run pipdeptree --packages click-extra
           --graph-output png > ./dependencies.png
-      - uses: peter-evans/create-pull-request@v3.11.0
+      - uses: peter-evans/create-pull-request@v3.12.0
         # Only triggers on version tagging.
         if: startsWith(github.ref, 'refs/tags/v')
         with:
-          author: "Kevin Deldycke <kevin@deldycke.com>"
+          assignees: ${{ github.actor }}
           commit-message: "[autofix] Regenerate dependency graph"
           title: "[autofix] Regenerate dependency graph"
           body: >
-            [Auto-generated on run
-            #${{ github.run_id }}](https://github.com/${{ github.repository
-            }}/actions/runs/${{ github.run_id }}) as defined by [workflow
-            action](https://github.com/${{ github.repository
-            }}/blob/${{ github.base_ref }}/.github/workflows/autofix.yaml).
-          labels: "🔩 CI/CD, 📗 documentation"
-          assignees: kdeldycke
+            <details><summary><code>Workflow metadata</code></summary>
+
+
+            > [Auto-generated on run `#${{ github.run_id }}`](${{ github.event.repository.html_url }}/actions/runs/${{
+            github.run_id }}) by `${{ github.job }}` job from [`docs.yaml`](${{ github.event.repository.html_url
+            }}/blob/${{ github.sha }}/.github/workflows/docs.yaml) workflow.
+
+
+            </details>
+          labels: "📦 dependencies, 📗 documentation"
           branch: update-deps-image
