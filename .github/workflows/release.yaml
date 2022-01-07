@@ -53,5 +53,5 @@ jobs:
           tag_name: v${{ needs.release.outputs.tagged_version }}
           files: ./dist/*
           body: |
-            [🐍 Available on PyPi](https://pypi.org/project/meta-package-manager/${{
+            [🐍 Available on PyPi](https://pypi.org/project/click-extra/${{
             needs.release.outputs.tagged_version }}/)
