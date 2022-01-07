@@ -166,20 +166,27 @@ def test_conf_format_unknown(invoke, create_config):
         ("configuration.yaml", DUMMY_YAML_FILE),
     ],
 )
-def test_conf_file_overrides_defaults(invoke, create_config, conf_name, conf_content):
-    conf_path = create_config(conf_name, conf_content)
-    result = invoke(
-        default_group, "--config", str(conf_path), "default-command", color=False
-    )
-    assert result.exit_code == 0
-    assert result.output == (
-        "dummy_flag = True\nmy_list = ('pip', 'npm', 'gem')\nint_parameter = 3\n"
-    )
-    # Debug level has been activated by configuration file.
-    assert result.stderr == (
-        f"Load configuration from {conf_path.resolve()}\n"
-        "debug: Verbosity set to DEBUG.\n"
-    )
+def test_conf_file_overrides_defaults(
+    invoke, create_config, httpserver, conf_name, conf_content
+):
+    # Create a local file and remote config.
+    conf_filepath = create_config(conf_name, conf_content)
+    httpserver.expect_request(f"/{conf_name}").respond_with_data(conf_content)
+    conf_url = httpserver.url_for(f"/{conf_name}")
+
+    for conf_path in conf_filepath, conf_url:
+
+        result = invoke(
+            default_group, "--config", str(conf_path), "default-command", color=False
+        )
+        assert result.exit_code == 0
+        assert result.output == (
+            "dummy_flag = True\nmy_list = ('pip', 'npm', 'gem')\nint_parameter = 3\n"
+        )
+        # Debug level has been activated by configuration file.
+        assert result.stderr == (
+            f"Load configuration from {conf_path}\n" "debug: Verbosity set to DEBUG.\n"
+        )
 
 
 @pytest.mark.parametrize(
@@ -189,23 +196,30 @@ def test_conf_file_overrides_defaults(invoke, create_config, conf_name, conf_con
         ("configuration.yaml", DUMMY_YAML_FILE),
     ],
 )
-def test_auto_env_var_conf(invoke, create_config, conf_name, conf_content):
-    conf_path = create_config(conf_name, conf_content)
-    result = invoke(
-        default_group,
-        "default-command",
-        color=False,
-        env={"DEFAULT_GROUP_CONFIG": str(conf_path)},
-    )
-    assert result.exit_code == 0
-    assert result.output == (
-        "dummy_flag = True\nmy_list = ('pip', 'npm', 'gem')\nint_parameter = 3\n"
-    )
-    # Debug level has been activated by configuration file.
-    assert result.stderr == (
-        f"Load configuration from {conf_path.resolve()}\n"
-        "debug: Verbosity set to DEBUG.\n"
-    )
+def test_auto_env_var_conf(invoke, create_config, httpserver, conf_name, conf_content):
+    # Create a local file and remote config.
+    conf_filepath = create_config(conf_name, conf_content)
+    httpserver.expect_request(f"/{conf_name}").respond_with_data(conf_content)
+    conf_url = httpserver.url_for(f"/{conf_name}")
+
+    for conf_path in conf_filepath, conf_url:
+
+        conf_path = create_config(conf_name, conf_content)
+        result = invoke(
+            default_group,
+            "default-command",
+            color=False,
+            env={"DEFAULT_GROUP_CONFIG": str(conf_path)},
+        )
+        assert result.exit_code == 0
+        assert result.output == (
+            "dummy_flag = True\nmy_list = ('pip', 'npm', 'gem')\nint_parameter = 3\n"
+        )
+        # Debug level has been activated by configuration file.
+        assert result.stderr == (
+            f"Load configuration from {conf_path.resolve()}\n"
+            "debug: Verbosity set to DEBUG.\n"
+        )
 
 
 @pytest.mark.parametrize(
@@ -216,26 +230,33 @@ def test_auto_env_var_conf(invoke, create_config, conf_name, conf_content):
     ],
 )
 def test_conf_file_overrided_by_cli_param(
-    invoke, create_config, conf_name, conf_content
+    invoke, create_config, httpserver, conf_name, conf_content
 ):
-    conf_path = create_config(conf_name, conf_content)
-    result = invoke(
-        default_group,
-        "--my-list",
-        "super",
-        "--config",
-        str(conf_path),
-        "--verbosity",
-        "CRITICAL",
-        "--no-flag",
-        "--my-list",
-        "wow",
-        "default-command",
-        "--int-param",
-        "15",
-    )
-    assert result.exit_code == 0
-    assert result.output == (
-        "dummy_flag = False\nmy_list = ('super', 'wow')\nint_parameter = 15\n"
-    )
-    assert result.stderr == f"Load configuration from {conf_path.resolve()}\n"
+    # Create a local file and remote config.
+    conf_filepath = create_config(conf_name, conf_content)
+    httpserver.expect_request(f"/{conf_name}").respond_with_data(conf_content)
+    conf_url = httpserver.url_for(f"/{conf_name}")
+
+    for conf_path in conf_filepath, conf_url:
+
+        conf_path = create_config(conf_name, conf_content)
+        result = invoke(
+            default_group,
+            "--my-list",
+            "super",
+            "--config",
+            str(conf_path),
+            "--verbosity",
+            "CRITICAL",
+            "--no-flag",
+            "--my-list",
+            "wow",
+            "default-command",
+            "--int-param",
+            "15",
+        )
+        assert result.exit_code == 0
+        assert result.output == (
+            "dummy_flag = False\nmy_list = ('super', 'wow')\nint_parameter = 15\n"
+        )
+        assert result.stderr == f"Load configuration from {conf_path.resolve()}\n"

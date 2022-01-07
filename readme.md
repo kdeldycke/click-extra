@@ -169,6 +169,17 @@ my_list       is ('point 1', 'point #2', 'Very Last Point!')
 int_parameter is 77
 ```
 
+### Remote configuration
+
+Remote URL can be passed directly to the `--config` option:
+
+```shell-session
+$ ./my_cli.py --config https://example.com/dummy/configuration.yaml subcommand
+dummy_flag    is True
+my_list       is ('point 1', 'point #2', 'Very Last Point!')
+int_parameter is 77
+```
+
 ### Colorization of help screen
 
 Extend [Cloup's own help formatter and theme](https://cloup.readthedocs.io/en/stable/pages/formatting.html#help-formatting-and-themes) to add colorization of:
