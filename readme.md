@@ -27,15 +27,15 @@ and patches that have not reached upstream yet (or are unlikely to).
     - `@unless_linux`, `@unless_macos` and `@unless_windows`
     - `@destructive` and `@non_destructive`
 
-## Basic usage
-
-### Installation
+## Installation
 
 Install `click-extra` with `pip`:
 
 ```shell-session
 $ pip install click-extra
 ```
+
+## Configuration loader usage
 
 ### TOML configuration
 
@@ -83,7 +83,7 @@ Commands:
   subcommand
 ```
 
-And a bare call returns:
+A bare call returns:
 
 ```shell-session
 $ ./my_cli.py subcommand
@@ -92,7 +92,7 @@ my_list       is ()
 int_parameter is 10
 ```
 
-Now if we create the following TOML file at `~/.my_cli.py/config.toml`:
+Now we will change the default CLI output by creating a TOML file at `~/.my_cli.py/config.toml` which contains:
 
 ```toml
 # My default configuration file.
@@ -111,13 +111,13 @@ int_param = 3
 random_stuff = "will be ignored"
 ```
 
-In this example, pay attention to:
+In the file above, pay attention to:
 
-- the name of the script (`my_cli.py`) being used as the configuration folder (`~/.my_cli.py/`),
-- the group ID (`def my_cli()`) reused, with a twist, as the top-level config section (`[my-cli]`),
-- all the extra comments, sections and values being silently ignored.
+- the configuration's folder (`~/.my_cli.py/`) which correspond to the script's name (`my_cli.py`);
+- the top-level config section (`[my-cli]`), that is derived from the CLI's group ID (`def my_cli()`);
+- all the extra comments, sections and values that will be silently ignored.
 
-Now we can verify the config is read automatticaly and affect defaults:
+Now we can verify the TOML file is read automatticaly and change the defaults:
 
 ```shell-session
 $ ./my_cli.py subcommand
@@ -126,7 +126,7 @@ my_list       is ('item 1', 'item #2', 'Very Last Item!')
 int_parameter is 3
 ```
 
-Still, the inline parameters always takes precedence over configuration values:
+Still, any inline parameter is allowedal to ovverides the configuration defaults:
 
 ```shell-session
 $ ./my_cli.py subcommand --int-param 555
@@ -139,7 +139,7 @@ int_parameter is 555
 
 Same example as above is working as-is with YAML.
 
-Just replace the TOML file by the following YAML configuration at `~/.my_cli.py/config.yaml`:
+Just replace the TOML file with the following configuration at `~/.my_cli.py/config.yaml`:
 
 ```yaml
 ---
@@ -180,7 +180,7 @@ my_list       is ('point 1', 'point #2', 'Very Last Point!')
 int_parameter is 77
 ```
 
-### Colorization of help screen
+## Colorization of help screen
 
 Extend [Cloup's own help formatter and theme](https://cloup.readthedocs.io/en/stable/pages/formatting.html#help-formatting-and-themes) to add colorization of:
 - Options
@@ -188,6 +188,8 @@ Extend [Cloup's own help formatter and theme](https://cloup.readthedocs.io/en/st
 - Metavars
 
 ## Used in
+
+Check these projects to get real-life example of `click-extra` usage:
 
 - [Mail Deduplicate](https://github.com/kdeldycke/mail-deduplicate#readme) - A CLI to deduplicate similar emails.
 - [Meta Package Manager](https://github.com/kdeldycke/meta-package-manager#readme) - A unifying CLI for multiple package managers.
