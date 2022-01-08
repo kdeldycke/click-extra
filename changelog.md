@@ -1,10 +1,6 @@
 # Changelog
 
-## [1.4.0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v1.3.0...main)
-
-```{{important}}
-This version is not released yet and is under active development.
-```
+## [1.4.0 (2022-01-08)](https://github.com/kdeldycke/click-extra/compare/v1.3.0...v1.4.0)
 
 - Allow downloading of a remote config URL.
 - Add new dependencies on `requests` and `pytest-httpserver`.
