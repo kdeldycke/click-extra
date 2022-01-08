@@ -21,7 +21,8 @@ This version is not released yet and is under active development.
 
 ## [1.2.2 (2021-11-04)](https://github.com/kdeldycke/click-extra/compare/v1.2.1...v1.2.2)
 
-- Evaluate format option dynamiccaly at use to let third-party register new rendering formats.
+- Evaluate format option dynamiccaly at use to let third-party register new
+  rendering formats.
 
 ## [1.2.1 (2021-11-04)](https://github.com/kdeldycke/click-extra/compare/v1.2.0...v1.2.1)
 
@@ -30,8 +31,9 @@ This version is not released yet and is under active development.
 ## [1.2.0 (2021-11-04)](https://github.com/kdeldycke/click-extra/compare/v1.1.1...v1.2.0)
 
 - Extend `cli-helper.TabularOutputFormatter` with new formats: `simple_grid`,
-  `rounded_grid`, `double_grid`, `outline`, `simple_outline`, `rounded_outline` and
-  `double_outline`. Address [astanin/python-tabulate:#151)](https://github.com/astanin/python-tabulate/pull/151).
+  `rounded_grid`, `double_grid`, `outline`, `simple_outline`, `rounded_outline`
+  and `double_outline`. Address
+  [astanin/python-tabulate:#151)](https://github.com/astanin/python-tabulate/pull/151).
 - Add a new `--table-format`/`-t` option to select table format rendering mode.
 - Add new dependency on `cli-helper` and `tabulate`.
 - Automate post-release version bump.
@@ -57,7 +59,8 @@ This version is not released yet and is under active development.
 - Add dependency on `click-log`.
 - `--time`/`--no-time` flag to measure duration of command execution.
 - Add platform recognition utilities.
-- Add new conditional markers for `pytest`: `@skip_{linux,macos,windows}`, `@unless_{linux,macos,windows}`, `@destructive` and `@non_destructive`.
+- Add new conditional markers for `pytest`: `@skip_{linux,macos,windows}`,
+  `@unless_{linux,macos,windows}`, `@destructive` and `@non_destructive`.
 
 ## [0.0.1 (2021-10-18)](https://github.com/kdeldycke/click-extra/compare/88b81e...v0.0.1)
 

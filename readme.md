@@ -10,22 +10,22 @@
 `click-extra` is a collection of helpers and utilities for
 [Click](https://click.palletsprojects.com), the Python CLI framework.
 
-It provides boilerplate code and good defaults, as well as some workarounds
-and patches that have not reached upstream yet (or are unlikely to).
+It provides boilerplate code and good defaults, as well as some workarounds and
+patches that have not reached upstream yet (or are unlikely to).
 
 ## Features
 
 - TOML and YAML configuration file loader
 - Colorization of help screens
-- ``--color/--no-color`` option flag
-- Colored ``--version`` option
-- Colored ``--verbosity`` option and logs
-- ``--time/--no-time`` flag to measure duration of command execution
+- `--color/--no-color` option flag
+- Colored `--version` option
+- Colored `--verbosity` option and logs
+- `--time/--no-time` flag to measure duration of command execution
 - Platform recognition utilities (macOS, Linux and Windows)
 - New conditional markers for `pytest`:
-    - `@skip_linux`, `@skip_macos` and `@skip_windows`
-    - `@unless_linux`, `@unless_macos` and `@unless_windows`
-    - `@destructive` and `@non_destructive`
+  - `@skip_linux`, `@skip_macos` and `@skip_windows`
+  - `@unless_linux`, `@unless_macos` and `@unless_windows`
+  - `@destructive` and `@non_destructive`
 
 ## Installation
 
@@ -92,7 +92,8 @@ my_list       is ()
 int_parameter is 10
 ```
 
-Now we will change the default CLI output by creating a TOML file at `~/.my_cli.py/config.toml` which contains:
+Now we will change the default CLI output by creating a TOML file at
+`~/.my_cli.py/config.toml` which contains:
 
 ```toml
 # My default configuration file.
@@ -113,8 +114,10 @@ random_stuff = "will be ignored"
 
 In the file above, pay attention to:
 
-- the configuration's folder (`~/.my_cli.py/`) which correspond to the script's name (`my_cli.py`);
-- the top-level config section (`[my-cli]`), that is derived from the CLI's group ID (`def my_cli()`);
+- the configuration's folder (`~/.my_cli.py/`) which correspond to the script's
+  name (`my_cli.py`);
+- the top-level config section (`[my-cli]`), that is derived from the CLI's
+  group ID (`def my_cli()`);
 - all the extra comments, sections and values that will be silently ignored.
 
 Now we can verify the TOML file is read automatticaly and change the defaults:
@@ -126,7 +129,8 @@ my_list       is ('item 1', 'item #2', 'Very Last Item!')
 int_parameter is 3
 ```
 
-Still, any inline parameter is allowedal to ovverides the configuration defaults:
+Still, any inline parameter is allowedal to ovverides the configuration
+defaults:
 
 ```shell-session
 $ ./my_cli.py subcommand --int-param 555
@@ -139,27 +143,27 @@ int_parameter is 555
 
 Same example as above is working as-is with YAML.
 
-Just replace the TOML file with the following configuration at `~/.my_cli.py/config.yaml`:
+Just replace the TOML file with the following configuration at
+`~/.my_cli.py/config.yaml`:
 
 ```yaml
----
 # My default configuration file.
 top_level_param: is_ignored
 
 my-cli:
   extra_value: is ignored too
-  dummy_flag: True   # New boolean default.
+  dummy_flag: true   # New boolean default.
   my_list:
     - point 1
-    - "point #2"
-    - "Very Last Point!"
+    - 'point #2'
+    - Very Last Point!
 
   subcommand:
     int_param: 77
-    random_stuff: "will be ignored"
+    random_stuff: will be ignored
 
 garbage: >
-   An empty random section that will be skipped
+  An empty random section that will be skipped
 ```
 
 ```shell-session
@@ -182,7 +186,10 @@ int_parameter is 77
 
 ## Colorization of help screen
 
-Extend [Cloup's own help formatter and theme](https://cloup.readthedocs.io/en/stable/pages/formatting.html#help-formatting-and-themes) to add colorization of:
+Extend
+[Cloup's own help formatter and theme](https://cloup.readthedocs.io/en/stable/pages/formatting.html#help-formatting-and-themes)
+to add colorization of:
+
 - Options
 - Choices
 - Metavars
@@ -191,40 +198,49 @@ Extend [Cloup's own help formatter and theme](https://cloup.readthedocs.io/en/st
 
 Check these projects to get real-life example of `click-extra` usage:
 
-- [Mail Deduplicate](https://github.com/kdeldycke/mail-deduplicate#readme) - A CLI to deduplicate similar emails.
-- [Meta Package Manager](https://github.com/kdeldycke/meta-package-manager#readme) - A unifying CLI for multiple package managers.
+- [Mail Deduplicate](https://github.com/kdeldycke/mail-deduplicate#readme) - A
+  CLI to deduplicate similar emails.
+- [Meta Package Manager](https://github.com/kdeldycke/meta-package-manager#readme)
+  \- A unifying CLI for multiple package managers.
 
 ## Issues addressed by `click-extra`
 
 Keep track of things to undo if they reach upstream.
 
 [`click`](https://github.com/pallets/click):
-  - [`#2111` - `Context.color = False` doesn't overrides `echo(color=True)`](https://github.com/pallets/click/issues/2111)
-  - [`#2110` - `testing.CliRunner.invoke` cannot pass color for `Context` instantiation](https://github.com/pallets/click/issues/2110)
+
+- [`#2111` - `Context.color = False` doesn't overrides `echo(color=True)`](https://github.com/pallets/click/issues/2111)
+- [`#2110` - `testing.CliRunner.invoke` cannot pass color for `Context` instantiation](https://github.com/pallets/click/issues/2110)
 
 [`click-config-file`](https://github.com/phha/click_config_file):
-  - [`#9` - Additional configuration providers](https://github.com/phha/click_config_file/issues/9)
+
+- [`#9` - Additional configuration providers](https://github.com/phha/click_config_file/issues/9)
 
 [`click-help-color`](https://github.com/click-contrib/click-help-colors):
-  - [`#17` - Highlighting of options, choices and metavars](https://github.com/click-contrib/click-help-colors/issues/17)
+
+- [`#17` - Highlighting of options, choices and metavars](https://github.com/click-contrib/click-help-colors/issues/17)
 
 [`click-log`](https://github.com/click-contrib/click-log):
-  - [`#30` - Add a `no-color` option, method or parameter to disable colouring globally](https://github.com/click-contrib/click-log/issues/30)
-  - [`#29` - Log level is leaking between invokations: hack to force-reset it](https://github.com/click-contrib/click-log/issues/29)
-  - [`#24` - Add missing string interpolation in error message](https://github.com/click-contrib/click-log/pull/24)
-  - [`#18` - Add trailing dot to help text](https://github.com/click-contrib/click-log/pull/18)
+
+- [`#30` - Add a `no-color` option, method or parameter to disable colouring globally](https://github.com/click-contrib/click-log/issues/30)
+- [`#29` - Log level is leaking between invokations: hack to force-reset it](https://github.com/click-contrib/click-log/issues/29)
+- [`#24` - Add missing string interpolation in error message](https://github.com/click-contrib/click-log/pull/24)
+- [`#18` - Add trailing dot to help text](https://github.com/click-contrib/click-log/pull/18)
 
 [`cli-helper`](https://github.com/dbcli/cli_helpers):
-  - [`#79` -Replace local tabulate formats with those available upstream](https://github.com/dbcli/cli_helpers/issues/79)
+
+- [`#79` -Replace local tabulate formats with those available upstream](https://github.com/dbcli/cli_helpers/issues/79)
 
 [`cloup`](https://github.com/janluke/cloup):
-  - [`#98` - Add support for option groups on `cloup.Group`](https://github.com/janluke/cloup/issues/98)
-  - [`#97` - Styling metavars, default values, env var, choices](https://github.com/janluke/cloup/issues/97)
-  - [`#95` - Highlights options, choices and metavars](https://github.com/janluke/cloup/issues/95)
-  - [`#96` - Add loading of options from a TOML configuration file](https://github.com/janluke/cloup/issues/96)
+
+- [`#98` - Add support for option groups on `cloup.Group`](https://github.com/janluke/cloup/issues/98)
+- [`#97` - Styling metavars, default values, env var, choices](https://github.com/janluke/cloup/issues/97)
+- [`#95` - Highlights options, choices and metavars](https://github.com/janluke/cloup/issues/95)
+- [`#96` - Add loading of options from a TOML configuration file](https://github.com/janluke/cloup/issues/96)
 
 [`python-tabulate`](https://github.com/astanin/python-tabulate):
-  - [`#151` - Add new {`rounded`,`simple`,`double`}_(`grid`,`outline`} formats](https://github.com/astanin/python-tabulate/pull/151)
+
+- [`#151` - Add new {`rounded`,`simple`,`double`}\_(`grid`,`outline`} formats](https://github.com/astanin/python-tabulate/pull/151)
 
 ## Dependencies
 
