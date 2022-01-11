@@ -71,7 +71,7 @@ pytest = "^6.2.5"
 # More pytest plugins at: https://docs.pytest.org/en/latest/reference/plugin_list.html
 pytest-cov = "^3.0.0"
 pytest-httpserver = "^1.0.3"
-pytest-randomly = "^3.10.2"
+pytest-randomly = "^3.11.0"
 twine = "^3.7.1"
 
 [tool.black]
