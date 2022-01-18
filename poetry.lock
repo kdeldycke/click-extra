@@ -106,7 +106,7 @@ wheel-filename = ">=1.1,<2.0"
 
 [[package]]
 name = "cli-helpers"
-version = "2.2.0"
+version = "2.2.1"
 description = "Helpers for building command-line apps"
 category = "main"
 optional = false
@@ -684,7 +684,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "a5c9b36a455a9adbe74b7c571fc585a3964e57f6825e5cd2c014810430ae708a"
+content-hash = "9a502beec419b947b2ec3aefcef7dcfaa4c52423cb05296c983d49fdb2371fc3"
 
 [metadata.files]
 atomicwrites = [
@@ -776,8 +776,8 @@ check-wheel-contents = [
     {file = "check_wheel_contents-0.3.4-py3-none-any.whl", hash = "sha256:bbd2ea64db5fb4700eca15f84dc3c0d620f5dbe48c6467f5a2ef010bda54a4cb"},
 ]
 cli-helpers = [
-    {file = "cli_helpers-2.2.0-py3-none-any.whl", hash = "sha256:3ed557793aa4ef5529c792e6a9c55f84ae798997d4a5107352219221023b4a81"},
-    {file = "cli_helpers-2.2.0.tar.gz", hash = "sha256:733f65d8c921e0cffa8f7ae4c8735bd7ecdffec383c5246f647ddd0fddb33448"},
+    {file = "cli_helpers-2.2.1-py3-none-any.whl", hash = "sha256:e1a67c6e2cd95857fe50f7640549c65af8df5c4d7666af4e6d8c8ee7dbb694b4"},
+    {file = "cli_helpers-2.2.1.tar.gz", hash = "sha256:0ccc1cfcda1ac64dc7ed83d7013055cf19e5979d29e56c21f3b692de01555aae"},
 ]
 click = [
     {file = "click-8.0.3-py3-none-any.whl", hash = "sha256:353f466495adaeb40b6b5f592f9f91cb22372351c84caeb068132442a4518ef3"},
