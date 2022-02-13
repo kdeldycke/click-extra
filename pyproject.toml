@@ -63,9 +63,6 @@ tomli = "^2.0.0"
 [tool.poetry.dev-dependencies]
 bump2version = "^1.0.1"
 coverage = { extras = ["toml"], version = "^6.2" }
-# Temporarily cap graphvix to address https://github.com/naiquevin/pipdeptree/issues/157
-graphviz = "<0.18.1"
-pipdeptree = { extras = ["graphviz"], version = "^2.2.0" }
 pytest = "^6.2.5"
 # More pytest plugins at: https://docs.pytest.org/en/latest/reference/plugin_list.html
 pytest-cov = "^3.0.0"
