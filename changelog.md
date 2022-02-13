@@ -1,10 +1,6 @@
 # Changelog
 
-## [1.4.1 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v1.4.0...main)
-
-```{{important}}
-This version is not released yet and is under active development.
-```
+## [1.4.1 (2022-02-13)](https://github.com/kdeldycke/click-extra/compare/v1.4.0...v1.4.1)
 
 - Add new external workflow to modernize Python code.
 - Use external workflow suite to manage changelog and build & publish packages
