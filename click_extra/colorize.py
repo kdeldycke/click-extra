@@ -287,7 +287,7 @@ class HelpExtraFormatter(HelpFormatter):
 
         # Highlight CLI name and command.
         help_text = re.sub(
-            fr"(\s)(?P<colorize>{self.cli_name})",
+            rf"(\s)(?P<colorize>{self.cli_name})",
             partial(colorize, style=self.theme.invoked_command),
             help_text,
         )
@@ -311,7 +311,7 @@ class HelpExtraFormatter(HelpFormatter):
                 # Accounts for text wrapping after a dash.
                 keyword = keyword.replace("-", "-\\s*")
                 help_text = re.sub(
-                    fr"([\s\[\|\(])(?P<colorize>{keyword})(\W)",
+                    rf"([\s\[\|\(])(?P<colorize>{keyword})(\W)",
                     partial(colorize, style=style),
                     help_text,
                 )
