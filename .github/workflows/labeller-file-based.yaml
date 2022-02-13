@@ -1,16 +1,9 @@
 ---
 name: Labeller (file-based)
 "on":
-  - pull_request_target
+  pull_request:
 
 jobs:
+
   labeller:
-    name: Issue & PR labeller based on changed files
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v2.4.0
-      - uses: actions/labeler@v3.0.2
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          configuration-path: ".github/labeller-file-based.yaml"
-          sync-labels: true
+    uses: kdeldycke/workflows/.github/workflows/labeller-file-based.yaml@v0.8.2
