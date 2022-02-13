@@ -9,6 +9,7 @@ This version is not released yet and is under active development.
 - Add new external workflow to modernize Python code.
 - Use external workflow suite to manage changelog and build & publish packages
   on PyPi on release.
+- Use external workflow to label sponsored issues and PRs.
 - Replace local workflow by external one to label issues and PRs.
 - Reuse externnal workflow to produce dependency graph.
 - Remove dev dependencies on `check-wheel-contents`, `graphviz`, `pipdeptree` and `twine`.
