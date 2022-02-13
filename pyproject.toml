@@ -62,7 +62,6 @@ tomli = "^2.0.0"
 
 [tool.poetry.dev-dependencies]
 bump2version = "^1.0.1"
-check-wheel-contents = "^0.3.3"
 coverage = { extras = ["toml"], version = "^6.2" }
 # Temporarily cap graphvix to address https://github.com/naiquevin/pipdeptree/issues/157
 graphviz = "<0.18.1"
@@ -72,7 +71,6 @@ pytest = "^6.2.5"
 pytest-cov = "^3.0.0"
 pytest-httpserver = "^1.0.3"
 pytest-randomly = "^3.10.2"
-twine = "^3.7.1"
 
 [tool.black]
 # "You should include all Python versions that you want your code to run under."

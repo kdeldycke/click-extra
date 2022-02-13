@@ -6,7 +6,10 @@
 This version is not released yet and is under active development.
 ```
 
+- Use external workflow suite to manage changelog and build & publish packages
+  on PyPi on release.
 - Replace local workflow by external one to label issues and PRs.
+- Remove dev dependencies on `check-wheel-contents` and `twine`.
 
 ## [1.4.0 (2022-01-08)](https://github.com/kdeldycke/click-extra/compare/v1.3.0...v1.4.0)
 
