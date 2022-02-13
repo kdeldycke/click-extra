@@ -12,7 +12,8 @@ This version is not released yet and is under active development.
 - Use external workflow to label sponsored issues and PRs.
 - Replace local workflow by external one to label issues and PRs.
 - Reuse externnal workflow to produce dependency graph.
-- Remove dev dependencies on `check-wheel-contents`, `graphviz`, `pipdeptree` and `twine`.
+- Remove dev dependencies on `check-wheel-contents`, `graphviz`, `pipdeptree`
+  and `twine`.
 
 ## [1.4.0 (2022-01-08)](https://github.com/kdeldycke/click-extra/compare/v1.3.0...v1.4.0)
 
