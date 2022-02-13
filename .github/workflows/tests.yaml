@@ -10,7 +10,7 @@ name: Tests
 jobs:
 
   tests:
-    name: Install package managers and run unittests
+    name: Run unittests
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -55,5 +55,6 @@ jobs:
         run: >
           poetry run
           pytest --cov-config=pyproject.toml --cov=./ --cov-report=xml
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2.1.0
