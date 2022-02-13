@@ -6,6 +6,7 @@
 This version is not released yet and is under active development.
 ```
 
+- Add new external workflow to modernize Python code.
 - Use external workflow suite to manage changelog and build & publish packages
   on PyPi on release.
 - Replace local workflow by external one to label issues and PRs.
