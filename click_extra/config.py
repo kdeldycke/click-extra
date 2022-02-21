@@ -17,6 +17,7 @@
 
 """ Utilities to load parameters and options from a configuration file. """
 
+import json
 from operator import itemgetter
 from pathlib import Path
 
@@ -41,9 +42,11 @@ IGNORED_OPTIONS = (
 
 
 # Maps configuration formats, their file extension, and parsing function,
+# The order encode the priority by which each format is searched for default configuration file.
 CONFIGURATION_FORMATS = {
     "TOML": ((".toml"), tomli.loads),
     "YAML": ((".yaml", ".yml"), yaml.full_load),
+    "JSON": ((".json", json.loads)),
 }
 # List of all supported configuration file extensions.
 ALL_EXTENSIONS = tuple(flatten(map(itemgetter(0), CONFIGURATION_FORMATS.values())))
@@ -61,9 +64,9 @@ class DefaultConfPath:
     Location depends on OS (see `Click documentation
     <https://click.palletsprojects.com/en/8.0.x/api/#click.get_app_dir>`_):
 
-        * macOS & Linux: ``~/.my_cli/config.{toml,yaml,yml}``
+        * macOS & Linux: ``~/.my_cli/config.{toml,yaml,yml,json}``
 
-        * Windows: ``C:\\Users\\<user>\\AppData\\Roaming\\my_cli\\config.{toml,yaml,yml}``
+        * Windows: ``C:\\Users\\<user>\\AppData\\Roaming\\my_cli\\config.{toml,yaml,yml,json}``
     """
 
     default_conf_name = "config"

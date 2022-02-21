@@ -6,6 +6,7 @@
 This version is not released yet and is under active development.
 ```
 
+- Add support for JSON configuration file.
 - Search all supported formats in default location if configuration file not
   provided.
 - Print configuration file default location in help screens.

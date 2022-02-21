@@ -15,7 +15,7 @@ patches that have not reached upstream yet (or are unlikely to).
 
 ## Features
 
-- TOML and YAML configuration file loader
+- TOML, YAML and JSON configuration file loader
 - Colorization of help screens
 - `--color/--no-color` option flag
 - Colored `--version` option
@@ -77,7 +77,7 @@ Options:
   --my-list TEXT
   -C, --config CONFIG_PATH  Location of the configuration file. Supports both
                             local path and remote URL.  [default:
-                            ~/.my_cli.py/config.{toml,yaml,yml}]
+                            ~/.my_cli.py/config.{toml,yaml,yml,json}]
   --help                    Show this message and exit.  [default: False]
 
 Commands:
@@ -172,6 +172,37 @@ $ ./my_cli.py --config ~/.my_cli.py/config.yaml subcommand
 dummy_flag    is True
 my_list       is ('point 1', 'point #2', 'Very Last Point!')
 int_parameter is 77
+```
+
+### JSON configuration
+
+Again, same for JSON:
+
+```json
+{
+  "top_level_param": "is_ignored",
+  "garbage": {},
+  "my-cli": {
+    "dummy_flag": true,
+    "extra_value": "is ignored too",
+    "my_list": [
+      "item 1",
+      "item #2",
+      "Very Last Item!"
+    ],
+    "subcommand": {
+      "int_param": 65,
+      "random_stuff": "will be ignored"
+    }
+  }
+}
+```
+
+```shell-session
+$ ./my_cli.py --config ~/.my_cli.py/config.json subcommand
+dummy_flag    is True
+my_list       is ('item 1', 'item #2', 'Very Last Item!')
+int_parameter is 65
 ```
 
 ### Remote configuration

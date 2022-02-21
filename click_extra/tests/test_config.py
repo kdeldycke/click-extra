@@ -44,7 +44,6 @@ DUMMY_TOML_FILE = """
     random_stuff = "will be ignored"
     """
 
-
 DUMMY_YAML_FILE = """
     # Comment
 
@@ -65,6 +64,27 @@ DUMMY_YAML_FILE = """
     garbage:
         # An empty random section that will be skipped
 
+    """
+
+DUMMY_JSON_FILE = """
+    {
+        "top_level_param": "to_ignore",
+        "default-group": {
+            "blahblah": 234,
+            "dummy_flag": true,
+            "my_list": [
+                "pip",
+                "npm",
+                "gem"
+            ],
+            "verbosity": "DEBUG",
+            "default-command": {
+                "int_param": 3,
+                "random_stuff": "will be ignored"
+            }
+        },
+        "garbage": {}
+    }
     """
 
 
@@ -114,7 +134,7 @@ def test_conf_default_path(invoke):
         folder = Path("AppData") / "Roaming" / "default-group"
         home = Path.home()
 
-    default_path = home / folder / "config.{toml,yaml,yml}"
+    default_path = home / folder / "config.{toml,yaml,yml,json}"
 
     # Make path string compatible with regexp.
     default_path = str(default_path).replace("-", "-\s*")
@@ -165,6 +185,7 @@ def test_conf_format_unknown(invoke, create_config):
     [
         ("configuration.toml", DUMMY_TOML_FILE),
         ("configuration.yaml", DUMMY_YAML_FILE),
+        ("configuration.json", DUMMY_JSON_FILE),
     ],
 )
 def test_conf_file_overrides_defaults(
@@ -195,6 +216,7 @@ def test_conf_file_overrides_defaults(
     [
         ("configuration.toml", DUMMY_TOML_FILE),
         ("configuration.yaml", DUMMY_YAML_FILE),
+        ("configuration.json", DUMMY_JSON_FILE),
     ],
 )
 def test_auto_env_var_conf(invoke, create_config, httpserver, conf_name, conf_content):
@@ -228,6 +250,7 @@ def test_auto_env_var_conf(invoke, create_config, httpserver, conf_name, conf_co
     [
         ("configuration.toml", DUMMY_TOML_FILE),
         ("configuration.yaml", DUMMY_YAML_FILE),
+        ("configuration.json", DUMMY_JSON_FILE),
     ],
 )
 def test_conf_file_overrided_by_cli_param(

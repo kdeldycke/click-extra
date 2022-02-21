@@ -18,6 +18,7 @@ keywords = [
     'colorization',
     'configuration',
     'console',
+    'json',
     'logging',
     'multiplatform',
     'pytest',
