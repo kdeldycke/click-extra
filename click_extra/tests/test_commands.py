@@ -39,26 +39,25 @@ def default_command():
     click.echo("Run command...")
 
 
-help_screen = dedent(
-    """\
-    Usage: default-group [OPTIONS] COMMAND [ARGS]...
-
-    Options:
-      --time / --no-time        Measure and print elapsed execution time.  [default:
-                                no-time]
-      --color, --ansi / --no-color, --no-ansi
-                                Strip out all colors and all ANSI codes from output.
-                                [default: color]
-      -C, --config CONFIG_PATH  Location of the configuration file. Supports both
-                                local path and remote URL.  [default: (dynamic)]
-      -v, --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.
-                                [default: INFO]
-      --version                 Show the version and exit.  [default: False]
-      -h, --help                Show this message and exit.  [default: False]
-
-    Commands:
-      default-command
-    """
+help_screen = (
+    r"Usage: default-group \[OPTIONS\] COMMAND \[ARGS\]...\n"
+    r"\n"
+    r"Options:\n"
+    r"  --time / --no-time        Measure and print elapsed execution time.  \[default:\n"
+    r"                            no-time\]\n"
+    r"  --color, --ansi / --no-color, --no-ansi\n"
+    r"                            Strip out all colors and all ANSI codes from output.\n"
+    r"                            \[default: color\]\n"
+    r"  -C, --config CONFIG_PATH  Location of the configuration file. Supports both\n"
+    r"                            local path and remote URL.  \[default:( \S+)?\n"
+    r"                            \S+config.{toml,yaml,yml}\]\n"
+    r"  -v, --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.\n"
+    r"                            \[default: INFO\]\n"
+    r"  --version                 Show the version and exit.  \[default: False\]\n"
+    r"  -h, --help                Show this message and exit.  \[default: False\]\n"
+    r"\n"
+    r"Commands:\n"
+    r"  default-command\n"
 )
 
 
@@ -87,7 +86,7 @@ def test_required_command(invoke):
 def test_group_help(invoke, param):
     result = invoke(default_group, param, color=False)
     assert result.exit_code == 0
-    assert result.stdout == help_screen
+    assert re.fullmatch(help_screen, result.stdout)
     assert "It works!" not in result.stdout
     assert not result.stderr
 
@@ -116,7 +115,7 @@ def test_help_eagerness(invoke, params):
     # See: https://click.palletsprojects.com/en/8.0.x/advanced/#callback-evaluation-order
     result = invoke(default_group, "--help", params, color=False)
     assert result.exit_code == 0
-    assert result.stdout == help_screen
+    assert re.fullmatch(help_screen, result.stdout)
     assert "It works!" not in result.stdout
     assert not result.stderr
 
@@ -186,32 +185,34 @@ def test_option_group_integration(invoke):
 
     result = invoke(default_group, "--help", color=False)
     assert result.exit_code == 0
-    assert result.stdout == dedent(
-        """\
-        Usage: default-group [OPTIONS] COMMAND [ARGS]...
-
-        Group 1:
-          -a, --opt1 TEXT
-          -b, --opt2 TEXT
-
-        Other options:
-          -c, --opt3 TEXT
-          -d, --opt4 TEXT
-          --time / --no-time        Measure and print elapsed execution time.  [default:
-                                    no-time]
-          --color, --ansi / --no-color, --no-ansi
-                                    Strip out all colors and all ANSI codes from output.
-                                    [default: color]
-          -C, --config CONFIG_PATH  Location of the configuration file. Supports both
-                                    local path and remote URL.  [default: (dynamic)]
-          -v, --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.
-                                    [default: INFO]
-          --version                 Show the version and exit.  [default: False]
-          -h, --help                Show this message and exit.  [default: False]
-
-        Commands:
-          default-command
-        """
+    assert re.fullmatch(
+        (
+            r"Usage: default-group \[OPTIONS\] COMMAND \[ARGS\]...\n"
+            r"\n"
+            r"Group 1:\n"
+            r"  -a, --opt1 TEXT\n"
+            r"  -b, --opt2 TEXT\n"
+            r"\n"
+            r"Other options:\n"
+            r"  -c, --opt3 TEXT\n"
+            r"  -d, --opt4 TEXT\n"
+            r"  --time / --no-time        Measure and print elapsed execution time.  \[default:\n"
+            r"                            no-time\]\n"
+            r"  --color, --ansi / --no-color, --no-ansi\n"
+            r"                            Strip out all colors and all ANSI codes from output.\n"
+            r"                            \[default: color\]\n"
+            r"  -C, --config CONFIG_PATH  Location of the configuration file. Supports both\n"
+            r"                            local path and remote URL.  \[default:( \S+)?\n"
+            r"                            \S+config.{toml,yaml,yml}\]\n"
+            r"  -v, --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.\n"
+            r"                            \[default: INFO\]\n"
+            r"  --version                 Show the version and exit.  \[default: False\]\n"
+            r"  -h, --help                Show this message and exit.  \[default: False\]\n"
+            r"\n"
+            r"Commands:\n"
+            r"  default-command\n"
+        ),
+        result.stdout,
     )
     assert "It works!" not in result.stdout
     assert not result.stderr

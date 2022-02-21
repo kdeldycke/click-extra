@@ -120,43 +120,44 @@ def test_keyword_collection(invoke):
     mycli.section("Extra commands", command3, command4)
 
     help_screen = (
-        "\x1b[94m\x1b[1m\x1b[94m\x1b[1mUsage\x1b[0m: "
-        "\x1b[0m\x1b[97mmycli\x1b[0m [OPTIONS] COMMAND [ARGS]...\n\n"
-        "\x1b[94m\x1b[1m\x1b[94m\x1b[1mGroup \x1b[35m1\x1b[0m\x1b[0m:\x1b[0m\n"
-        "  \x1b[36m-a, \x1b[36m--opt1\x1b[0m TEXT\x1b[0m\n"
-        "  \x1b[36m-b, \x1b[36m--opt2\x1b[0m TEXT\x1b[0m\n\n"
-        "\x1b[94m\x1b[1m\x1b[94m\x1b[1mGroup \x1b[35m2\x1b[0m\x1b[0m:\x1b[0m\n"
-        "  \x1b[36m--opt3 TEXT\x1b[0m\n"
-        "  \x1b[36m--opt4 TEXT\x1b[0m\n\n"
-        "\x1b[94m\x1b[1m\x1b[94m\x1b[1mOther options\x1b[0m:\x1b[0m\n"
-        "  \x1b[36m--config TEXT\x1b[0m\n"
-        "  \x1b[36m--time / --no-time\x1b[0m        Measure and print elapsed execution time.  [default:\x1b[0m\n"
-        "                            no-time]\x1b[0m\n"
-        "  \x1b[36m--color, \x1b[36m--ansi\x1b[0m / --no-color, --no-ansi\x1b[0m\n"
-        "                            Strip out all colors and all ANSI codes from output.\x1b[0m\n"
-        "                            [default: color]\x1b[0m\n"
-        "  \x1b[36m-C, \x1b[36m--config\x1b[0m \x1b[90mCONFIG_PATH\x1b[0m\x1b[0m  Location of the configuration file. Supports both\x1b[0m\n"
-        "                            local path and remote URL.  [default: (dynamic)]\x1b[0m\n"
-        "  \x1b[36m-v, \x1b[36m--verbosity\x1b[0m \x1b[90mLEVEL\x1b[0m\x1b[0m     Either \x1b[35mCRITICAL\x1b[0m, \x1b[35mERROR\x1b[0m, \x1b[35mWARNING\x1b[0m, \x1b[35mINFO\x1b[0m, \x1b[35mDEBUG\x1b[0m.\x1b[0m\n"
-        "                            [default: \x1b[35mINFO\x1b[0m]\x1b[0m\n"
-        "  \x1b[36m--version\x1b[0m                 Show the version and exit.  [default: False]\x1b[0m\n"
-        "  \x1b[36m-h, \x1b[36m--help\x1b[0m\x1b[0m                Show this message and exit.  [default: False]\x1b[0m\n\n"
-        "\x1b[94m\x1b[1m\x1b[94m\x1b[1mSubcommand group #1\x1b[0m:\x1b[0m\n"
-        "  \x1b[36mcommand1\x1b[0m\n"
-        "  \x1b[36mcommand2\x1b[0m\n\n"
-        "\x1b[94m\x1b[1m\x1b[94m\x1b[1mExtra commands\x1b[0m:\x1b[0m\n"
-        "  \x1b[36mcommand3\x1b[0m\n"
-        "  \x1b[36mcommand4\x1b[0m\n"
+        r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mUsage\x1b\[0m: "
+        r"\x1b\[0m\x1b\[97mmycli\x1b\[0m \[OPTIONS\] COMMAND \[ARGS\]...\n\n"
+        r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mGroup \x1b\[35m1\x1b\[0m\x1b\[0m:\x1b\[0m\n"
+        r"  \x1b\[36m-a, \x1b\[36m--opt1\x1b\[0m TEXT\x1b\[0m\n"
+        r"  \x1b\[36m-b, \x1b\[36m--opt2\x1b\[0m TEXT\x1b\[0m\n\n"
+        r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mGroup \x1b\[35m2\x1b\[0m\x1b\[0m:\x1b\[0m\n"
+        r"  \x1b\[36m--opt3 TEXT\x1b\[0m\n"
+        r"  \x1b\[36m--opt4 TEXT\x1b\[0m\n\n"
+        r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mOther options\x1b\[0m:\x1b\[0m\n"
+        r"  \x1b\[36m--config TEXT\x1b\[0m\n"
+        r"  \x1b\[36m--time / --no-time\x1b\[0m        Measure and print elapsed execution time.  \[default:\x1b\[0m\n"
+        r"                            no-time\]\x1b\[0m\n"
+        r"  \x1b\[36m--color, \x1b\[36m--ansi\x1b\[0m / --no-color, --no-ansi\x1b\[0m\n"
+        r"                            Strip out all colors and all ANSI codes from output.\x1b\[0m\n"
+        r"                            \[default: color\]\x1b\[0m\n"
+        r"  \x1b\[36m-C, \x1b\[36m--config\x1b\[0m \x1b\[90mCONFIG_PATH\x1b\[0m\x1b\[0m  Location of the configuration file. Supports both\x1b\[0m\n"
+        r"                            local path and remote URL.  \[default:\x1b\[0m\n"
+        r"                            \S+config.{toml,yaml,yml}\]\x1b\[0m\n"
+        r"  \x1b\[36m-v, \x1b\[36m--verbosity\x1b\[0m \x1b\[90mLEVEL\x1b\[0m\x1b\[0m     Either \x1b\[35mCRITICAL\x1b\[0m, \x1b\[35mERROR\x1b\[0m, \x1b\[35mWARNING\x1b\[0m, \x1b\[35mINFO\x1b\[0m, \x1b\[35mDEBUG\x1b\[0m.\x1b\[0m\n"
+        r"                            \[default: \x1b\[35mINFO\x1b\[0m\]\x1b\[0m\n"
+        r"  \x1b\[36m--version\x1b\[0m                 Show the version and exit.  \[default: False\]\x1b\[0m\n"
+        r"  \x1b\[36m-h, \x1b\[36m--help\x1b\[0m\x1b\[0m                Show this message and exit.  \[default: False\]\x1b\[0m\n\n"
+        r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mSubcommand group #1\x1b\[0m:\x1b\[0m\n"
+        r"  \x1b\[36mcommand1\x1b\[0m\n"
+        r"  \x1b\[36mcommand2\x1b\[0m\n\n"
+        r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mExtra commands\x1b\[0m:\x1b\[0m\n"
+        r"  \x1b\[36mcommand3\x1b\[0m\n"
+        r"  \x1b\[36mcommand4\x1b\[0m\n"
     )
 
     result = invoke(mycli, "--help", color=True)
     assert result.exit_code == 0
-    assert result.output == help_screen
+    assert re.fullmatch(help_screen, result.output)
     assert not result.stderr
 
     result = invoke(mycli, "-h", color=True)
     assert result.exit_code == 0
-    assert result.output == help_screen
+    assert re.fullmatch(help_screen, result.output)
     assert not result.stderr
 
     # CLI main group is invoked before sub-command.
@@ -347,14 +348,12 @@ def test_integrated_color_option(invoke, param, expecting_colors):
             "\x1b[34mprint() bypass Click.\x1b[0m\n"
             "\x1b[32mDone.\x1b[0m\n"
         )
-        assert re.fullmatch(
-            r"\x1b\[34mdebug: \x1b\[0mVerbosity set to DEBUG.\n"
-            r"\x1b\[34mdebug: \x1b\[0mLoad configuration from \S+config.toml\n"
-            r"\x1b\[34mdebug: \x1b\[0mConfiguration not found at \S+config.toml\n"
-            r"\x1b\[34mdebug: \x1b\[0mIgnore configuration file.\n"
-            r"\x1b\[34mdebug: \x1b\[0mLoaded configuration: {}\n"
-            r"\x1b\[33mwarning: \x1b\[0mProcessing...\n",
-            result.stderr,
+        assert result.stderr == (
+            "\x1b[34mdebug: \x1b[0mVerbosity set to DEBUG.\n"
+            "\x1b[34mdebug: \x1b[0mSearch for configuration in default location...\n"
+            "\x1b[34mdebug: \x1b[0mNo default configuration found.\n"
+            "\x1b[34mdebug: \x1b[0mNo configuration provided.\n"
+            "\x1b[33mwarning: \x1b[0mProcessing...\n"
         )
 
     else:
@@ -365,12 +364,10 @@ def test_integrated_color_option(invoke, param, expecting_colors):
             "\x1b[34mprint() bypass Click.\x1b[0m\n"
             "Done.\n"
         )
-        assert re.fullmatch(
-            r"debug: Verbosity set to DEBUG.\n"
-            r"debug: Load configuration from \S+config.toml\n"
-            r"debug: Configuration not found at \S+config.toml\n"
-            r"debug: Ignore configuration file.\n"
-            r"debug: Loaded configuration: {}\n"
-            r"warning: Processing...\n",
-            result.stderr,
+        assert result.stderr == (
+            "debug: Verbosity set to DEBUG.\n"
+            "debug: Search for configuration in default location...\n"
+            "debug: No default configuration found.\n"
+            "debug: No configuration provided.\n"
+            "warning: Processing...\n"
         )

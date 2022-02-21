@@ -95,29 +95,30 @@ def test_unset_conf_debug_message(invoke):
     )
     assert result.exit_code == 0
     assert result.output == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
-    assert re.fullmatch(
-        r"debug: Verbosity set to DEBUG.\n"
-        r"debug: Load configuration from \S+config.toml\n"
-        r"debug: Configuration not found at \S+config.toml\n"
-        r"debug: Ignore configuration file.\n"
-        r"debug: Loaded configuration: {}\n",
-        result.stderr,
+    assert result.stderr == (
+        "debug: Verbosity set to DEBUG.\n"
+        "debug: Search for configuration in default location...\n"
+        "debug: No default configuration found.\n"
+        "debug: No configuration provided.\n"
     )
 
 
 def test_conf_default_path(invoke):
-    result = invoke(
-        default_group, "--verbosity", "DEBUG", "default-command", color=False
-    )
+    result = invoke(default_group, "--help", color=False)
     assert result.exit_code == 0
 
     # OS-specific part of the path.
     folder = Path(".default-group")
+    home = "~"
     if is_windows():
         folder = Path("AppData") / "Roaming" / "default-group"
+        home = Path.home()
 
-    default_path = Path.home() / folder / "config.toml"
-    assert f"debug: Load configuration from {default_path.resolve()}\n" in result.stderr
+    default_path = home / folder / "config.{toml,yaml,yml}"
+
+    # Make path string compatible with regexp.
+    default_path = str(default_path).replace("-", "-\s*")
+    assert re.search(rf"\[default:\s+{default_path}\]", result.output)
 
 
 def test_conf_not_exist(invoke):

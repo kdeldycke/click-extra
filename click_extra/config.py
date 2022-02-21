@@ -17,29 +17,36 @@
 
 """ Utilities to load parameters and options from a configuration file. """
 
+from operator import itemgetter
 from pathlib import Path
 
 import click
 import requests
 import tomli
 import yaml
-from boltons.iterutils import remap
+from boltons.iterutils import flatten, remap
 from boltons.urlutils import URL
 from click.core import ParameterSource
 from cloup import GroupedOption
 
 from .logging import logger
 
-DEFAULT_CONF_NAME = "config.toml"
-
-
 # List of unsupported options we're going to ignore.
 IGNORED_OPTIONS = (
     # --version is not a configurable option.
     "version",
-    # -C/--config option cannot be used to link to another file.
+    # -C/--config option cannot be used to recursively load another file.
     "config",
 )
+
+
+# Maps configuration formats, their file extension, and parsing function,
+CONFIGURATION_FORMATS = {
+    "TOML": ((".toml"), tomli.loads),
+    "YAML": ((".yaml", ".yml"), yaml.full_load),
+}
+# List of all supported configuration file extensions.
+ALL_EXTENSIONS = tuple(flatten(map(itemgetter(0), CONFIGURATION_FORMATS.values())))
 
 
 class ConfigurationFileError(Exception):
@@ -48,21 +55,47 @@ class ConfigurationFileError(Exception):
     pass
 
 
-def default_conf_path():
+class DefaultConfPath:
     """Returns default location of the configuration file.
 
     Location depends on OS (see `Click documentation
     <https://click.palletsprojects.com/en/8.0.x/api/#click.get_app_dir>`_):
 
-        * macOS & Linux: ``~/.my_cli/config.toml``
+        * macOS & Linux: ``~/.my_cli/config.{toml,yaml,yml}``
 
-        * Windows: ``C:\\Users\\<user>\\AppData\\Roaming\\my_cli\\config.toml``
+        * Windows: ``C:\\Users\\<user>\\AppData\\Roaming\\my_cli\\config.{toml,yaml,yml}``
     """
-    ctx = click.get_current_context()
-    cli_name = ctx.find_root().info_name
-    return Path(
-        click.get_app_dir(cli_name, force_posix=True), DEFAULT_CONF_NAME
-    ).resolve()
+
+    default_conf_name = "config"
+
+    @property
+    def conf_path(self):
+        ctx = click.get_current_context()
+        cli_name = ctx.find_root().info_name
+        return Path(
+            click.get_app_dir(cli_name, force_posix=True), self.default_conf_name
+        ).resolve()
+
+    def __call__(self):
+        """Search for all recognized file extensions in default location."""
+        logger.debug("Search for configuration in default location...")
+        conf_path = self.conf_path
+        for conf_ext in ALL_EXTENSIONS:
+            conf_file = conf_path.with_suffix(conf_ext)
+            if conf_file.exists():
+                logger.debug(f"File found in default location {conf_file}.")
+                return conf_file
+        logger.debug("No default configuration found.")
+
+    def __str__(self):
+        """Default location represented with all supported extensions for help screens."""
+        # Reduce leading path with the `~` user's home construct for tersness.
+        conf_path = self.conf_path
+        try:
+            conf_path = "~" / conf_path.relative_to(Path.home())
+        except (RuntimeError, ValueError):
+            pass
+        return f"{conf_path}.{{{','.join(ext.lstrip('.') for ext in ALL_EXTENSIONS)}}}"
 
 
 def conf_structure(ctx):
@@ -91,24 +124,17 @@ def conf_structure(ctx):
     return conf
 
 
-# Maps configuration formats, their file extension, and parsing function,
-CONFIGURATION_FORMATS = {
-    "TOML": ([".toml"], tomli.loads),
-    "YAML": ([".yaml", ".yml"], yaml.full_load),
-}
-
-
 def parse_and_merge_conf(ctx, conf_content, conf_extension):
-    """Detect configuration file's format, parse its content and returns a ``dict``.
+    """Detect configuration format, parse its content and returns a ``dict``.
 
-    Only options and parameters defined on the CLI will be kept. All others will be filtered out.
+    The returned ``dict`` will only contain options and parameters defined on the CLI. All others will be filtered out.
     """
-    # Auto-detect configuration format and parse its content.
+    # Select configuration format based on extension and parse its content.
     user_conf = None
     for conf_format, (conf_exts, conf_parser) in CONFIGURATION_FORMATS.items():
-        logger.debug(f"Evaluate configuration as {conf_format}.")
+        logger.debug(f"Evaluate configuration as {conf_format}...")
         if conf_extension in conf_exts:
-            logger.debug(f"Configuration is {conf_format}")
+            logger.debug(f"Configuration format is {conf_format}.")
             user_conf = conf_parser(conf_content)
             break
     else:
@@ -170,6 +196,9 @@ def read_conf(conf_path):
 
 
 def load_conf(ctx, param, conf_path):
+    if not conf_path:
+        logger.debug(f"No configuration provided.")
+        return
 
     explicit_conf = ctx.get_parameter_source("config") in (
         ParameterSource.COMMANDLINE,
@@ -182,8 +211,6 @@ def load_conf(ctx, param, conf_path):
         click.echo(f"Load configuration from {conf_path}", err=True)
     # Fallback on default configuration file location.
     else:
-        if not conf_path:
-            conf_path = default_conf_path(ctx)
         logger.debug(f"Load configuration from {conf_path}")
 
     # Fetch option from configuration file.
@@ -218,7 +245,7 @@ def config_option(
     *names,
     metavar="CONFIG_PATH",
     type=click.STRING,
-    default=default_conf_path,
+    default=DefaultConfPath(),
     help="Location of the configuration file. Supports both local path and remote URL.",
     # Force eagerness so the config option's callback gets the oportunity to set the
     # default_map values before the other options use them.

@@ -76,7 +76,8 @@ Options:
   --dummy-flag / --no-flag  [default: no-flag]
   --my-list TEXT
   -C, --config CONFIG_PATH  Location of the configuration file. Supports both
-                            local path and remote URL.  [default: s(dynamic)]
+                            local path and remote URL.  [default:
+                            ~/.my_cli.py/config.{toml,yaml,yml}]
   --help                    Show this message and exit.  [default: False]
 
 Commands:
