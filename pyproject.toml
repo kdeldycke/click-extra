@@ -25,6 +25,7 @@ keywords = [
     'python',
     'python-tabulate',
     'terminal',
+    'toml',
     'yaml',
 ]
 classifiers = [
