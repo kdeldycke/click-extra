@@ -137,7 +137,7 @@ def test_conf_default_path(invoke):
     default_path = home / folder / "config.{toml,yaml,yml,json}"
 
     # Make path string compatible with regexp.
-    default_path = str(default_path).replace("-", "-\s*")
+    default_path = str(default_path).replace("-", r"-\s*")
     assert re.search(rf"\[default:\s+{default_path}\]", result.output)
 
 
