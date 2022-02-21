@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.5.1 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v1.5.0...main)
+
+```{{important}}
+This version is not released yet and is under active development.
+```
+
 ## [1.5.0 (2022-02-21)](https://github.com/kdeldycke/click-extra/compare/v1.4.1...v1.5.0)
 
 - Add support for JSON configuration file.
