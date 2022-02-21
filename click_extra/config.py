@@ -31,6 +31,7 @@ from click.core import ParameterSource
 from cloup import GroupedOption
 
 from .logging import logger
+from .platform import is_windows
 
 # List of unsupported options we're going to ignore.
 IGNORED_OPTIONS = (
@@ -94,10 +95,11 @@ class DefaultConfPath:
         """Default location represented with all supported extensions for help screens."""
         # Reduce leading path with the `~` user's home construct for tersness.
         conf_path = self.conf_path
-        try:
-            conf_path = "~" / conf_path.relative_to(Path.home())
-        except (RuntimeError, ValueError):
-            pass
+        if not is_windows():
+            try:
+                conf_path = "~" / conf_path.relative_to(Path.home())
+            except (RuntimeError, ValueError):
+                pass
         return f"{conf_path}.{{{','.join(ext.lstrip('.') for ext in ALL_EXTENSIONS)}}}"
 
 
