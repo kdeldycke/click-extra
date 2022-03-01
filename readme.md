@@ -10,8 +10,10 @@
 `click-extra` is a collection of helpers and utilities for
 [Click](https://click.palletsprojects.com), the Python CLI framework.
 
-It is a drop-in replacement with good defaults that saves you some boilerplate code. It also comes with some [workarounds and
-patches](#issues-addressed-by-click-extra) that have not reached upstream yet (or are unlikely to).
+It is a drop-in replacement with good defaults that saves you some boilerplate
+code. It also comes with some
+[workarounds and patches](#issues-addressed-by-click-extra) that have not
+reached upstream yet (or are unlikely to).
 
 <table><tr>
 <td>Simple <code>click</code> example</td>
@@ -62,7 +64,9 @@ if __name__ == "__main__":
 </tr>
 </table>
 
-This example demonstrate the all-in-one package with its default options. You are still free to pick-up some of these options one-by-one, as documented below.
+This example demonstrate the all-in-one package with its default options. You
+are still free to pick-up some of these options one-by-one, as documented
+below.
 
 ## Features
 

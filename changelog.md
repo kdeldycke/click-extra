@@ -7,8 +7,10 @@ This version is not released yet and is under active development.
 ```
 
 - Allow `click_extra` to be imported as a drop-in replacement for `click`.
-- Share the same set of default options between `click_extra.command` and `click_extra.group`.
-- Document default help screen comparison between simple `click` CLI and enhanced `click-extra` CLI.
+- Share the same set of default options between `click_extra.command` and
+  `click_extra.group`.
+- Document default help screen comparison between simple `click` CLI and
+  enhanced `click-extra` CLI.
 
 ## [1.5.0 (2022-02-21)](https://github.com/kdeldycke/click-extra/compare/v1.4.1...v1.5.0)
 
