@@ -10,8 +10,71 @@
 `click-extra` is a collection of helpers and utilities for
 [Click](https://click.palletsprojects.com), the Python CLI framework.
 
-It provides boilerplate code and good defaults, as well as some [workarounds and
+It is a drop-in replacement with good defaults that saves you some boilerplate code. It also comes with some [workarounds and
 patches](#issues-addressed-by-click-extra) that have not reached upstream yet (or are unlikely to).
+
+
+<table>
+<tr>
+<td> Simple <code>click</code> example </td> <td> Same with <code>click-extra</code> </td>
+</tr>
+<tr>
+<td>
+
+```python
+from click import command, echo, option
+
+
+@command()
+@option("--count", default=1, help="Number of greetings.")
+@option("--name", prompt="Your name", help="The person to greet.")
+def hello(count, name):
+    """Simple program that greets NAME for a total of COUNT times."""
+    for _ in range(count):
+        echo(f"Hello, {name}!")
+
+
+if __name__ == "__main__":
+    hello()
+```
+
+</td>
+<td>
+
+```python
+from click_extra import command, echo, option
+
+
+@command()
+@option("--count", default=1, help="Number of greetings.")
+@option("--name", prompt="Your name", help="The person to greet.")
+def hello(count, name):
+    """Simple program that greets NAME for a total of COUNT times."""
+    for _ in range(count):
+        echo(f"Hello, {name}!")
+
+
+if __name__ == "__main__":
+    hello()
+```
+
+</td>
+</tr>
+<tr>
+<td>
+
+![click CLI help screen](https://github.com/kdeldycke/click-extra/raw/main/click-help-screen.png)
+
+</td>
+<td>
+
+![click-extra CLI help screen](https://github.com/kdeldycke/click-extra/raw/main/click-extra-screen.png)
+
+</td>
+</tr>
+</table>
+
+This example demonstrate the all-in-one package with its default options. You are still free to pick-up some of these options one-by-one, as documented below.
 
 ## Features
 

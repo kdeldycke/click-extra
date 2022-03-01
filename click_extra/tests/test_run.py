@@ -40,7 +40,7 @@ def test_temporary_fs(runner):
     assert not str(Path(__file__)).startswith(str(Path.cwd()))
 
 
-@command()
+@click.command()
 @click.pass_context
 def dummy_cli(ctx):
     """https://github.com/pallets/click/issues/2111"""

@@ -23,9 +23,11 @@ from textwrap import dedent
 import click
 import pytest
 from click import option as click_option
+from cloup import command as cloup_command
 from cloup import option as cloup_option
 from cloup import option_group
 
+from ..commands import command as click_extra_command
 from ..commands import group, timer_option
 
 
@@ -35,14 +37,31 @@ def default_group():
 
 
 @default_group.command()
-def default_command():
-    click.echo("Run command...")
+def default_subcommand():
+    click.echo("Run default subcommand...")
 
 
-help_screen = (
-    r"Usage: default-group \[OPTIONS\] COMMAND \[ARGS\]...\n"
-    r"\n"
-    r"Options:\n"
+@click_extra_command()
+def click_extra_subcommand():
+    click.echo("Run click-extra subcommand...")
+
+
+@cloup_command()
+def cloup_subcommand():
+    click.echo("Run cloup subcommand...")
+
+
+@click.command()
+def click_subcommand():
+    click.echo("Run click subcommand...")
+
+
+default_group.section(
+    "Subcommand group", click_extra_subcommand, cloup_subcommand, click_subcommand
+)
+
+
+default_options_help_screen = (
     r"  --time / --no-time        Measure and print elapsed execution time.  \[default:\n"
     r"                            no-time\]\n"
     r"  --color, --ansi / --no-color, --no-ansi\n"
@@ -56,9 +75,21 @@ help_screen = (
     r"                            \[default: INFO\]\n"
     r"  --version                 Show the version and exit.  \[default: False\]\n"
     r"  -h, --help                Show this message and exit.  \[default: False\]\n"
+)
+
+help_screen = (
+    r"Usage: default-group \[OPTIONS\] COMMAND \[ARGS\]...\n"
     r"\n"
-    r"Commands:\n"
-    r"  default-command\n"
+    r"Options:\n"
+    rf"{default_options_help_screen}"
+    r"\n"
+    r"Subcommand group:\n"
+    r"  click-extra-subcommand\n"
+    r"  cloup-subcommand\n"
+    r"  click-subcommand\n"
+    r"\n"
+    r"Other commands:\n"
+    r"  default-subcommand\n"
 )
 
 
@@ -92,22 +123,6 @@ def test_group_help(invoke, param):
     assert not result.stderr
 
 
-# TODO: let subcommands inherits "-h" short parameter?
-def test_subcommand_help(invoke):
-    result = invoke(default_group, "default-command", "--help", color=False)
-    assert result.exit_code == 0
-    assert result.stdout == dedent(
-        """\
-        It works!
-        Usage: default-group default-command [OPTIONS]
-
-        Options:
-          -h, --help  Show this message and exit.  [default: False]
-        """
-    )
-    assert not result.stderr
-
-
 @pytest.mark.parametrize(
     "params",
     ("--version", "blah", ("--verbosity", "DEBUG"), ("--config", "random.toml")),
@@ -118,6 +133,56 @@ def test_help_eagerness(invoke, params):
     assert result.exit_code == 0
     assert re.fullmatch(help_screen, result.stdout)
     assert "It works!" not in result.stdout
+    assert not result.stderr
+
+
+# XXX default and click-extra should have the same results, i.e. includes extra options.
+# @pytest.mark.parametrize("cmd_id", ("default", "click-extra"))
+@pytest.mark.parametrize("cmd_id", ("click-extra",))
+@pytest.mark.parametrize("param", ("-h", "--help"))
+def test_click_extra_subcommand_help(invoke, cmd_id, param):
+    result = invoke(default_group, f"{cmd_id}-subcommand", param, color=False)
+    assert result.exit_code == 0
+    assert re.fullmatch(
+        (
+            r"It works!\n"
+            rf"Usage: default-group {cmd_id}-subcommand \[OPTIONS\]\n"
+            r"\n"
+            r"Options:\n"
+            rf"{default_options_help_screen}"
+        ),
+        result.stdout,
+    )
+    assert not result.stderr
+
+
+@pytest.mark.parametrize("cmd_id", ("default", "cloup", "click"))
+@pytest.mark.parametrize("param", ("-h", "--help"))
+def test_subcommand_help(invoke, cmd_id, param):
+    result = invoke(default_group, f"{cmd_id}-subcommand", param, color=False)
+    assert result.exit_code == 0
+    assert result.stdout == dedent(
+        f"""\
+        It works!
+        Usage: default-group {cmd_id}-subcommand [OPTIONS]
+
+        Options:
+          -h, --help  Show this message and exit.  [default: False]
+        """
+    )
+    assert not result.stderr
+
+
+@pytest.mark.parametrize("cmd_id", ("default", "click-extra", "cloup", "click"))
+def test_subcommand_execution(invoke, cmd_id):
+    result = invoke(default_group, f"{cmd_id}-subcommand", color=False)
+    assert result.exit_code == 0
+    assert result.stdout == dedent(
+        f"""\
+        It works!
+        Run {cmd_id} subcommand...
+        """
+    )
     assert not result.stderr
 
 
@@ -153,17 +218,17 @@ def test_standalone_timer_option(invoke):
 
 def test_integrated_timer_option(invoke):
 
-    result = invoke(default_group, "--time", "default-command")
+    result = invoke(default_group, "--time", "default-subcommand")
     assert result.exit_code == 0
     assert re.fullmatch(
-        r"It works!\nRun command...\nExecution time: [0-9.]+ seconds.\n",
+        r"It works!\nRun default subcommand...\nExecution time: [0-9.]+ seconds.\n",
         result.output,
     )
     assert not result.stderr
 
-    result = invoke(default_group, "--no-time", "default-command")
+    result = invoke(default_group, "--no-time", "default-subcommand")
     assert result.exit_code == 0
-    assert result.output == "It works!\nRun command...\n"
+    assert result.output == "It works!\nRun default subcommand...\n"
     assert not result.stderr
 
 

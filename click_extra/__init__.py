@@ -29,3 +29,11 @@ __version__ = "1.5.1"
     __version__ = '1.2.3'        # Final Release
     __version__ = '1.2.3.post1'  # Post Release 1
 """
+
+
+# Import all click's module-level content to allow for drop-in replacement.
+from click import *
+
+# Replace some of click defaults with click-extra variant.
+from .colorize import version_option
+from .commands import command, group

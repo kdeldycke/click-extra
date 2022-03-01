@@ -77,12 +77,8 @@ def timer_option(
     )
 
 
-class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, Group):
-    """Click's `group` with Cloup's `option_group` and extra colorization and options.
-
-    Cloup does not support option groups on `Click.group`. This is a workaround that is
-    being discussed at https://github.com/janluke/cloup/issues/98
-    """
+class ExtraOptionsMixin:
+    """A set of default extra options."""
 
     def __init__(self, *args, version=None, **kwargs):
         """Augment group with additional default options."""
@@ -138,15 +134,25 @@ class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, Group):
         return super().invoke(ctx)
 
 
-class ExtraCommand(ExtraHelpColorsMixin, Command):
-    """Cloup's `command` with extra help screen colorization."""
+class ExtraCommand(ExtraHelpColorsMixin, ExtraOptionsMixin, Command):
+    """Cloup default `command` with extra help screen colorization and default options."""
 
     pass
 
 
-def group(name=None, cls=ExtraGroup, **kwargs):
-    return cloup_group(name=name, cls=cls, **kwargs)
+class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, ExtraOptionsMixin, Group):
+    """Cloup default `group` with extra help screen colorization and default options.
+
+    Cloup does not support option groups on `Click.group`, hence the inherited `OptionGroupMixin`.
+    This is a workaround that is being discussed at https://github.com/janluke/cloup/issues/98
+    """
+
+    pass
 
 
 def command(name=None, aliases=None, cls=ExtraCommand, **kwargs):
     return cloup_command(name=name, aliases=aliases, cls=cls, **kwargs)
+
+
+def group(name=None, cls=ExtraGroup, **kwargs):
+    return cloup_group(name=name, cls=cls, **kwargs)

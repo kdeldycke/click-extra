@@ -16,11 +16,14 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 import re
+from textwrap import dedent
 
 import click
 import pytest
 from boltons.strutils import strip_ansi
-from cloup import Style, option, option_group
+from cloup import Style
+from cloup import command as cloup_command
+from cloup import option, option_group
 
 from .. import __version__
 from ..colorize import HelpExtraFormatter, color_option, theme, version_option
@@ -96,40 +99,30 @@ def test_keyword_collection(invoke):
         option("--opt3"),
         option("--opt4"),
     )
-    @option("--config")
-    def mycli(opt1, opt2, opt3, opt4, config):
+    @option("--test")
+    def mycli(opt1, opt2, opt3, opt4, test):
         click.echo("It works!")
 
     @command()
     def command1():
-        click.echo("Run command #1...")
+        click.echo("Run click-extra command #1...")
 
-    @command()
+    @cloup_command()
     def command2():
-        click.echo("Run command #2...")
+        click.echo("Run cloup command #2...")
 
-    @command()
+    @click.command()
     def command3():
-        click.echo("Run command #3...")
+        click.echo("Run click command #3...")
 
     @command()
     def command4():
-        click.echo("Run command #4...")
+        click.echo("Run click-extra command #4...")
 
-    mycli.section("Subcommand group #1", command1, command2)
+    mycli.section("Subcommand group 1", command1, command2)
     mycli.section("Extra commands", command3, command4)
 
-    help_screen = (
-        r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mUsage\x1b\[0m: "
-        r"\x1b\[0m\x1b\[97mmycli\x1b\[0m \[OPTIONS\] COMMAND \[ARGS\]...\n\n"
-        r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mGroup \x1b\[35m1\x1b\[0m\x1b\[0m:\x1b\[0m\n"
-        r"  \x1b\[36m-a, \x1b\[36m--opt1\x1b\[0m TEXT\x1b\[0m\n"
-        r"  \x1b\[36m-b, \x1b\[36m--opt2\x1b\[0m TEXT\x1b\[0m\n\n"
-        r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mGroup \x1b\[35m2\x1b\[0m\x1b\[0m:\x1b\[0m\n"
-        r"  \x1b\[36m--opt3 TEXT\x1b\[0m\n"
-        r"  \x1b\[36m--opt4 TEXT\x1b\[0m\n\n"
-        r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mOther options\x1b\[0m:\x1b\[0m\n"
-        r"  \x1b\[36m--config TEXT\x1b\[0m\n"
+    default_options_help_screen = (
         r"  \x1b\[36m--time / --no-time\x1b\[0m        Measure and print elapsed execution time.  \[default:\x1b\[0m\n"
         r"                            no-time\]\x1b\[0m\n"
         r"  \x1b\[36m--color, \x1b\[36m--ansi\x1b\[0m / --no-color, --no-ansi\x1b\[0m\n"
@@ -142,8 +135,23 @@ def test_keyword_collection(invoke):
         r"  \x1b\[36m-v, \x1b\[36m--verbosity\x1b\[0m \x1b\[90mLEVEL\x1b\[0m\x1b\[0m     Either \x1b\[35mCRITICAL\x1b\[0m, \x1b\[35mERROR\x1b\[0m, \x1b\[35mWARNING\x1b\[0m, \x1b\[35mINFO\x1b\[0m, \x1b\[35mDEBUG\x1b\[0m.\x1b\[0m\n"
         r"                            \[default: \x1b\[35mINFO\x1b\[0m\]\x1b\[0m\n"
         r"  \x1b\[36m--version\x1b\[0m                 Show the version and exit.  \[default: False\]\x1b\[0m\n"
-        r"  \x1b\[36m-h, \x1b\[36m--help\x1b\[0m\x1b\[0m                Show this message and exit.  \[default: False\]\x1b\[0m\n\n"
-        r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mSubcommand group #1\x1b\[0m:\x1b\[0m\n"
+        r"  \x1b\[36m-h, \x1b\[36m--help\x1b\[0m\x1b\[0m                Show this message and exit.  \[default: False\]\x1b\[0m\n"
+    )
+
+    help_screen = (
+        r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mUsage\x1b\[0m: "
+        r"\x1b\[0m\x1b\[97mmycli\x1b\[0m \[OPTIONS\] COMMAND \[ARGS\]...\n\n"
+        r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mGroup \x1b\[35m1\x1b\[0m\x1b\[0m:\x1b\[0m\n"
+        r"  \x1b\[36m-a, \x1b\[36m--opt1\x1b\[0m TEXT\x1b\[0m\n"
+        r"  \x1b\[36m-b, \x1b\[36m--opt2\x1b\[0m TEXT\x1b\[0m\n\n"
+        r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mGroup \x1b\[35m2\x1b\[0m\x1b\[0m:\x1b\[0m\n"
+        r"  \x1b\[36m--opt3 TEXT\x1b\[0m\n"
+        r"  \x1b\[36m--opt4 TEXT\x1b\[0m\n\n"
+        r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mOther options\x1b\[0m:\x1b\[0m\n"
+        r"  \x1b\[36m--test TEXT\x1b\[0m\n"
+        rf"{default_options_help_screen}"
+        r"\n"
+        r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mSubcommand group \x1b\[35m1\x1b\[0m\x1b\[0m:\x1b\[0m\n"
         r"  \x1b\[36mcommand1\x1b\[0m\n"
         r"  \x1b\[36mcommand2\x1b\[0m\n\n"
         r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mExtra commands\x1b\[0m:\x1b\[0m\n"
@@ -162,25 +170,46 @@ def test_keyword_collection(invoke):
     assert not result.stderr
 
     # CLI main group is invoked before sub-command.
-    result = invoke(mycli, "command4", "--help", color=True)
+    result = invoke(mycli, "command1", "--help", color=True)
     assert result.exit_code == 0
-    assert result.output == (
-        "It works!\n"
-        "\x1b[94m\x1b[1m\x1b[94m\x1b[1mUsage\x1b[0m: \x1b[0m\x1b[97mmycli command4\x1b[0m [OPTIONS]\n\n"
-        "\x1b[94m\x1b[1m\x1b[94m\x1b[1mOptions\x1b[0m:\x1b[0m\n"
-        "  \x1b[36m-h, \x1b[36m--help\x1b[0m\x1b[0m  Show this message and exit.  [default: False]\x1b[0m\n"
+    assert re.fullmatch(
+        (
+            r"It works!\n"
+            r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mUsage\x1b\[0m: \x1b\[0m\x1b\[97mmycli command1\x1b\[0m \[OPTIONS\]\n\n"
+            r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mOptions\x1b\[0m:\x1b\[0m\n"
+            rf"{default_options_help_screen}"
+        ),
+        result.output,
     )
     assert not result.stderr
 
-    # Check CLI main group is skipped.
-    result = invoke(command4, "--help", color=True)
+    # Standalone call to command: CLI main group is skipped.
+    result = invoke(command1, "--help", color=True)
     assert result.exit_code == 0
-    assert result.output == (
-        "\x1b[94m\x1b[1m\x1b[94m\x1b[1mUsage\x1b[0m: \x1b[0m\x1b[97mcommand4\x1b[0m [OPTIONS]\n\n"
-        "\x1b[94m\x1b[1m\x1b[94m\x1b[1mOptions\x1b[0m:\x1b[0m\n"
-        "  \x1b[36m--help\x1b[0m  Show this message and exit.\x1b[0m\n"
+    assert re.fullmatch(
+        (
+            r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mUsage\x1b\[0m: \x1b\[0m\x1b\[97mcommand1\x1b\[0m \[OPTIONS\]\n\n"
+            r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mOptions\x1b\[0m:\x1b\[0m\n"
+            rf"{default_options_help_screen}"
+        ),
+        result.output,
     )
     assert not result.stderr
+
+    # Non-click-extra commands are not colorized nor have extra options.
+    for cmd_id in ("command2", "command3"):
+        result = invoke(mycli, cmd_id, "--help", color=True)
+        assert result.exit_code == 0
+        assert result.stdout == dedent(
+            f"""\
+            It works!
+            Usage: mycli {cmd_id} [OPTIONS]
+
+            Options:
+              -h, --help  Show this message and exit.  [default: False]
+            """
+        )
+        assert not result.stderr
 
 
 @skip_windows_colors
