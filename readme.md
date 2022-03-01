@@ -13,12 +13,10 @@
 It is a drop-in replacement with good defaults that saves you some boilerplate code. It also comes with some [workarounds and
 patches](#issues-addressed-by-click-extra) that have not reached upstream yet (or are unlikely to).
 
-
-<table>
-<tr>
-<td> Simple <code>click</code> example </td> <td> Same with <code>click-extra</code> </td>
-</tr>
-<tr>
+<table><tr>
+<td>Simple <code>click</code> example</td>
+<td>Same with <code>click-extra</code></td>
+</tr><tr>
 <td>
 
 ```python
@@ -38,8 +36,7 @@ if __name__ == "__main__":
     hello()
 ```
 
-</td>
-<td>
+</td><td>
 
 ```python
 from click_extra import command, echo, option
@@ -58,19 +55,10 @@ if __name__ == "__main__":
     hello()
 ```
 
-</td>
-</tr>
+</td></tr>
 <tr>
-<td>
-
-![click CLI help screen](https://github.com/kdeldycke/click-extra/raw/main/click-help-screen.png)
-
-</td>
-<td>
-
-![click-extra CLI help screen](https://github.com/kdeldycke/click-extra/raw/main/click-extra-screen.png)
-
-</td>
+<td><img alt="click CLI help screen" width="70%" src="https://github.com/kdeldycke/click-extra/raw/main/click-help-screen.png"/></td>
+<td><img alt="click-extra CLI help screen" width="70%" src="https://github.com/kdeldycke/click-extra/raw/main/click-extra-screen.png"/></td>
 </tr>
 </table>
 
