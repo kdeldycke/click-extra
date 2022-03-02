@@ -34,6 +34,9 @@ __version__ = "1.6.1"
 # Import all click's module-level content to allow for drop-in replacement.
 from click import *
 
+# Overrides some of click helpers with cloup's.
+from cloup import argument, option, option_group
+
 # Replace some of click defaults with click-extra variant.
 from .colorize import version_option
 from .commands import command, group
