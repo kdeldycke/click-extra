@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.6.1 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v1.6.0...main)
+
+```{{important}}
+This version is not released yet and is under active development.
+```
+
 ## [1.6.0 (2022-03-02)](https://github.com/kdeldycke/click-extra/compare/v1.5.0...v1.6.0)
 
 - Allow `click_extra` to be imported as a drop-in replacement for `click`.
