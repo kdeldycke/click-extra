@@ -6,7 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
-- Expose some `cloup` versions of `click` utilities at the root of `click_extra`.
+- Expose some `cloup` versions of `click` utilities at the root of
+  `click_extra`.
 
 ## [1.6.0 (2022-03-02)](https://github.com/kdeldycke/click-extra/compare/v1.5.0...v1.6.0)
 
