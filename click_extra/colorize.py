@@ -148,6 +148,7 @@ def version_option(
     # https://github.com/mahmoud/boltons/issues/294 to be released upstream.
     if print_env_info and sys.version_info[:2] < (3, 10):
         from boltons.ecoutils import get_profile
+
         env_info = "\n" + str(get_profile(scrub=True))
         if env_info_style:
             env_info = env_info_style(env_info)
