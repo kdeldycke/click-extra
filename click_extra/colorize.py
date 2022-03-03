@@ -18,6 +18,7 @@
 """ Helpers and utilities to apply ANSI coloring to terminal content. """
 
 import re
+import sys
 from collections import namedtuple
 from functools import partial
 
@@ -144,7 +145,9 @@ def version_option(
     if not message:
         message = ""
 
-    if print_env_info:
+    # XXX Temporarily skip displaying environment details for Python >= 3.10 while we wait for
+    # https://github.com/mahmoud/boltons/issues/294 to be released upstream.
+    if print_env_info and sys.version_info[:2] < (3, 10):
         env_info = "\n" + str(get_profile(scrub=True))
         if env_info_style:
             env_info = env_info_style(env_info)

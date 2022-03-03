@@ -6,6 +6,10 @@
 This version is not released yet and is under active development.
 ```
 
+- Temporarily skip displaying environment details in `--version` option results
+  for `python >= 3.10`.
+- Reactivate all tests on Python 3.10.
+
 ## [1.6.1 (2022-03-02)](https://github.com/kdeldycke/click-extra/compare/v1.6.0...v1.6.1)
 
 - Expose some `cloup` versions of `click` utilities at the root of
