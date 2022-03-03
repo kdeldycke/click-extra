@@ -228,7 +228,7 @@ def test_standalone_version_option_with_env_info(invoke):
     # XXX Temporarily skip displaying environment details for Python >= 3.10 while we wait for
     # https://github.com/mahmoud/boltons/issues/294 to be released upstream.
     if sys.version_info[:2] < (3, 10):
-          regex_output += r"\x1b\[0m\x1b\[90m\n{'.+'}"
+        regex_output += r"\x1b\[0m\x1b\[90m\n{'.+'}"
     regex_output += r"\x1b\[0m\n"
     assert re.fullmatch(regex_output, result.output)
 
