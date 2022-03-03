@@ -18,6 +18,7 @@
 """Test defaults of our custom commands, as well as their customizations and attached options, and how they interact with each others."""
 
 import re
+import sys
 from textwrap import dedent
 
 import click
@@ -189,10 +190,14 @@ def test_subcommand_execution(invoke, cmd_id):
 def test_integrated_version_value(invoke):
     result = invoke(default_group, "--version", color=False)
     assert result.exit_code == 0
-    assert re.fullmatch(
-        r"default-group, version 2021.10.08\n{'.+'}\n",
-        result.output,
-    )
+
+    regex_output = r"default-group, version 2021.10.08\n"
+    # XXX Temporarily skip displaying environment details for Python >= 3.10 while we wait for
+    # https://github.com/mahmoud/boltons/issues/294 to be released upstream.
+    if sys.version_info[:2] < (3, 10):
+        regex_output += r"{'.+'}\n"
+    assert re.fullmatch(regex_output, result.output)
+
     assert not result.stderr
 
 
