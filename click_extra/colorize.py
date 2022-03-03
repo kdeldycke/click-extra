@@ -23,7 +23,6 @@ from collections import namedtuple
 from functools import partial
 
 import click
-from boltons.ecoutils import get_profile
 from click_log import ColorFormatter
 from cloup import GroupedOption, HelpFormatter, HelpTheme, Style
 
@@ -148,6 +147,7 @@ def version_option(
     # XXX Temporarily skip displaying environment details for Python >= 3.10 while we wait for
     # https://github.com/mahmoud/boltons/issues/294 to be released upstream.
     if print_env_info and sys.version_info[:2] < (3, 10):
+        from boltons.ecoutils import get_profile
         env_info = "\n" + str(get_profile(scrub=True))
         if env_info_style:
             env_info = env_info_style(env_info)
