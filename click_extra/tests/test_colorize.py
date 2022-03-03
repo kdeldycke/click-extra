@@ -224,11 +224,12 @@ def test_standalone_version_option_with_env_info(invoke):
     result = invoke(dummy_cli, "--version", color=True)
     assert result.exit_code == 0
 
-    regex_output = r"\x1b\[97mdummy-cli\x1b\[0m, version \x1b\[32m1.2.3.4\x1b\[0m\x1b\[90m\n"
+    regex_output = r"\x1b\[97mdummy-cli\x1b\[0m, version \x1b\[32m1.2.3.4"
     # XXX Temporarily skip displaying environment details for Python >= 3.10 while we wait for
     # https://github.com/mahmoud/boltons/issues/294 to be released upstream.
     if sys.version_info[:2] < (3, 10):
-          regex_output += r"{'.+'}\x1b\[0m\n"
+          regex_output += r"\x1b\[0m\x1b\[90m\n{'.+'}"
+    regex_output += r"\x1b\[0m\n"
     assert re.fullmatch(regex_output, result.output)
 
     assert not result.stderr
@@ -260,12 +261,14 @@ def test_integrated_version_option_eagerness(invoke, params):
     result = invoke(dummy_cli, "--version", params, color=True)
     assert result.exit_code == 0
 
-    regex_output = r"\x1b\[97mdummy-cli\x1b\[0m, version \x1b\[32m1.2.3.4\x1b\[0m\x1b\[90m\n"
+    regex_output = r"\x1b\[97mdummy-cli\x1b\[0m, version \x1b\[32m1.2.3.4"
     # XXX Temporarily skip displaying environment details for Python >= 3.10 while we wait for
     # https://github.com/mahmoud/boltons/issues/294 to be released upstream.
     if sys.version_info[:2] < (3, 10):
-          regex_output += r"{'.+'}\x1b\[0m\n"
+        regex_output += r"\x1b\[0m\x1b\[90m\n{'.+'}"
+    regex_output += r"\x1b\[0m\n"
     assert re.fullmatch(regex_output, result.output)
+
     assert not result.stderr
 
 
