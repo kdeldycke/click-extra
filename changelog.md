@@ -1,10 +1,6 @@
 # Changelog
 
-## [1.6.2 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v1.6.1...main)
-
-```{{important}}
-This version is not released yet and is under active development.
-```
+## [1.6.2 (2022-03-03)](https://github.com/kdeldycke/click-extra/compare/v1.6.1...v1.6.2)
 
 - Temporarily skip displaying environment details in `--version` option results
   for `python >= 3.10`.
