@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Add support for environment variables to run utilities.
+
 ## [1.6.2 (2022-03-03)](https://github.com/kdeldycke/click-extra/compare/v1.6.1...v1.6.2)
 
 - Temporarily skip displaying environment details in `--version` option results

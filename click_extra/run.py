@@ -27,11 +27,11 @@ PROMPT = "► "
 INDENT = " " * len(PROMPT)
 
 
-def run(*args):
+def run(*args, env=None):
     """Run a shell command, return error code, output and error message."""
     assert isinstance(args, tuple)
     try:
-        process = Popen(args, stdout=PIPE, stderr=PIPE)
+        process = Popen(args, stdout=PIPE, stderr=PIPE, env=env)
     except OSError:
         return None, None, f"`{args[0]}` executable not found."
     output, error = process.communicate()
@@ -42,11 +42,18 @@ def run(*args):
     )
 
 
-def print_cli_output(cmd, output=None, error=None, error_code=None):
+def print_cli_output(cmd, output=None, error=None, error_code=None, env=None):
     """Simulate CLI's terminal output.
 
     Mostly used to print debug traces to user or in test results."""
-    print("\n{}{}".format(PROMPT, theme.invoked_command(" ".join(cmd))))
+    env_string = ""
+    if env:
+        env_string = "".join("{}={} ".format(k, v) for k, v in env.items())
+    print("\n{}{}{}".format(
+        PROMPT,
+        env_string,
+        theme.invoked_command(" ".join(cmd))
+    ))
     if output:
         print(indent(output, INDENT))
     if error:
@@ -55,8 +62,8 @@ def print_cli_output(cmd, output=None, error=None, error_code=None):
         print(theme.error(f"{INDENT}Return code: {error_code}"))
 
 
-def run_cmd(*args):
+def run_cmd(*args, env=None):
     """Run a system command, print output and return results."""
-    code, output, error = run(*args)
-    print_cli_output(args, output, error, code)
+    code, output, error = run(*args, env=env)
+    print_cli_output(args, output, error, code, env=env)
     return code, output, error
