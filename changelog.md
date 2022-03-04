@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Fix extension of default environment variables.
+
 ## [1.6.3 (2022-03-04)](https://github.com/kdeldycke/click-extra/compare/v1.6.2...v1.6.3)
 
 - Add support for environment variables to run utilities.

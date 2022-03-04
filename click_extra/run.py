@@ -17,6 +17,7 @@
 
 """Utilities to execute external commands."""
 
+import os
 from subprocess import PIPE, Popen
 from textwrap import indent
 
@@ -27,9 +28,18 @@ PROMPT = "► "
 INDENT = " " * len(PROMPT)
 
 
-def run(*args, env=None):
+def run(*args, extra_env=None):
     """Run a shell command, return error code, output and error message."""
     assert isinstance(args, tuple)
+    assert extra_env is None or isinstance(extra_env, dict)
+
+    # Extend default environment with our extra variables, to mimick Python's original implementation. See;
+    # https://github.com/python/cpython/blob/7b5b429adab4fe0fe81858fe3831f06adc2e2141/Lib/subprocess.py#L1648-L1649
+    env = None
+    if extra_env:
+        env = os.environ
+        env.update(extra_env)
+
     try:
         process = Popen(args, stdout=PIPE, stderr=PIPE, env=env)
     except OSError:
@@ -42,14 +52,14 @@ def run(*args, env=None):
     )
 
 
-def print_cli_output(cmd, output=None, error=None, error_code=None, env=None):
+def print_cli_output(cmd, output=None, error=None, error_code=None, extra_env=None):
     """Simulate CLI's terminal output.
 
     Mostly used to print debug traces to user or in test results."""
-    env_string = ""
-    if env:
-        env_string = "".join(f"{k}={v} " for k, v in env.items())
-    print("\n{}{}{}".format(PROMPT, env_string, theme.invoked_command(" ".join(cmd))))
+    extra_env_string = ""
+    if extra_env:
+        extra_env_string = "".join(f"{k}={v} " for k, v in extra_env.items())
+    print("\n{}{}{}".format(PROMPT, extra_env_string, theme.invoked_command(" ".join(cmd))))
     if output:
         print(indent(output, INDENT))
     if error:
@@ -58,8 +68,8 @@ def print_cli_output(cmd, output=None, error=None, error_code=None, env=None):
         print(theme.error(f"{INDENT}Return code: {error_code}"))
 
 
-def run_cmd(*args, env=None):
+def run_cmd(*args, extra_env=None):
     """Run a system command, print output and return results."""
-    code, output, error = run(*args, env=env)
-    print_cli_output(args, output, error, code, env=env)
+    code, output, error = run(*args, extra_env=extra_env)
+    print_cli_output(args, output, error, code, extra_env=extra_env)
     return code, output, error
