@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.6.5 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v1.6.4...main)
+
+```{{important}}
+This version is not released yet and is under active development.
+```
+
 ## [1.6.4 (2022-03-04)](https://github.com/kdeldycke/click-extra/compare/v1.6.3...v1.6.4)
 
 - Fix extension of default environment variables.
