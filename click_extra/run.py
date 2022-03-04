@@ -48,7 +48,7 @@ def print_cli_output(cmd, output=None, error=None, error_code=None, env=None):
     Mostly used to print debug traces to user or in test results."""
     env_string = ""
     if env:
-        env_string = "".join("{}={} ".format(k, v) for k, v in env.items())
+        env_string = "".join(f"{k}={v} " for k, v in env.items())
     print("\n{}{}{}".format(
         PROMPT,
         env_string,
