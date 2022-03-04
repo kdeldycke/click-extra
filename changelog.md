@@ -1,10 +1,6 @@
 # Changelog
 
-## [1.6.3 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v1.6.2...main)
-
-```{{important}}
-This version is not released yet and is under active development.
-```
+## [1.6.3 (2022-03-04)](https://github.com/kdeldycke/click-extra/compare/v1.6.2...v1.6.3)
 
 - Add support for environment variables to run utilities.
 
