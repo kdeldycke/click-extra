@@ -59,7 +59,11 @@ def print_cli_output(cmd, output=None, error=None, error_code=None, extra_env=No
     extra_env_string = ""
     if extra_env:
         extra_env_string = "".join(f"{k}={v} " for k, v in extra_env.items())
-    print("\n{}{}{}".format(PROMPT, extra_env_string, theme.invoked_command(" ".join(cmd))))
+    print(
+        "\n{}{}{}".format(
+            PROMPT, extra_env_string, theme.invoked_command(" ".join(cmd))
+        )
+    )
     if output:
         print(indent(output, INDENT))
     if error:
