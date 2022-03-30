@@ -60,7 +60,7 @@ cloup = "^0.13.0"
 pyyaml = "^6.0.0"
 requests = "^2.27.1"
 tabulate = { extras = ["widechars"], version = "^0.8.9" }
-tomli = "^2.0.0"
+tomli = { version = "^2.0.0", python = "< 3.11" }
 
 [tool.poetry.dev-dependencies]
 bump2version = "^1.0.1"

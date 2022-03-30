@@ -18,17 +18,22 @@
 """ Utilities to load parameters and options from a configuration file. """
 
 import json
+import sys
 from operator import itemgetter
 from pathlib import Path
 
 import click
 import requests
-import tomli
 import yaml
 from boltons.iterutils import flatten, remap
 from boltons.urlutils import URL
 from click.core import ParameterSource
 from cloup import GroupedOption
+
+if sys.version_info >= (3, 11):
+     import tomllib
+ else:
+     import tomli as tomllib
 
 from .logging import logger
 from .platform import is_windows
@@ -45,7 +50,7 @@ IGNORED_OPTIONS = (
 # Maps configuration formats, their file extension, and parsing function,
 # The order encode the priority by which each format is searched for default configuration file.
 CONFIGURATION_FORMATS = {
-    "TOML": ((".toml"), tomli.loads),
+    "TOML": ((".toml"), tomllib.loads),
     "YAML": ((".yaml", ".yml"), yaml.full_load),
     "JSON": ((".json", json.loads)),
 }
