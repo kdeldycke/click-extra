@@ -31,9 +31,9 @@ from click.core import ParameterSource
 from cloup import GroupedOption
 
 if sys.version_info >= (3, 11):
-     import tomllib
- else:
-     import tomli as tomllib
+    import tomllib
+else:
+    import tomli as tomllib
 
 from .logging import logger
 from .platform import is_windows
