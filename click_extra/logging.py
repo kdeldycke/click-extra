@@ -36,7 +36,7 @@ class WrappedLogger:
     wrapped_logger = None
 
     def initialize_logger(self):
-        """ Generate a default logger. """
+        """Generate a default logger."""
         logger = logging.getLogger(__name__)
         click_log.basic_config(logger)
         return logger
@@ -50,8 +50,7 @@ class WrappedLogger:
         assert isinstance(self.wrapped_logger, logging.Logger)
 
     def __getattr__(self, name):
-        """ Passthrought attribute calls to our wrapped logger.
-        """
+        """Passthrought attribute calls to our wrapped logger."""
         return getattr(self.wrapped_logger, name)
 
     def reset(self):
