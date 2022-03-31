@@ -1,10 +1,6 @@
 # Changelog
 
-## [1.7.0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v1.6.4...main)
-
-```{{important}}
-This version is not released yet and is under active development.
-```
+## [1.7.0 (2022-03-31)](https://github.com/kdeldycke/click-extra/compare/v1.6.4...v1.7.0)
 
 - Refactor global logging management.
 - Remove `click_extra.run.run` and rebase all run utilities around `subprocess.run`.
