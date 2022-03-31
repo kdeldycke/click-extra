@@ -54,7 +54,7 @@ classifiers = [
 python = "^3.7"
 boltons = "^21.0.0"
 click = "^8.1.1"
-click-log = "^0.3.2"
+click-log = ">=0.3.2,<0.5.0"
 cli-helpers = "^2.2.0"
 cloup = "^0.13.0"
 pyyaml = "^6.0.0"
