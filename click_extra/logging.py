@@ -23,11 +23,6 @@ import click
 import click_log
 from cloup import GroupedOption
 
-# Initialize global logger.
-logger = logging.getLogger(__name__)
-click_log.basic_config(logger)
-
-
 LOG_LEVELS = {
     name: value
     for value, name in sorted(logging._levelToName.items(), reverse=True)
@@ -36,11 +31,38 @@ LOG_LEVELS = {
 """Index levels by their ID. Sorted from lowest to highest verbosity."""
 
 
-def reset_logger():
-    """Forces the logger level to reset at the end of each CLI execution, as it
-    might pollute the logger state between multiple test calls.
-    """
-    logger.setLevel(logging.NOTSET)
+class WrappedLogger:
+
+    wrapped_logger = None
+
+    def initialize_logger(self):
+        """ Generate a default logger. """
+        logger = logging.getLogger(__name__)
+        click_log.basic_config(logger)
+        return logger
+
+    def set_logger(self, default_logger=None):
+        if not default_logger:
+            self.wrapped_logger = self.initialize_logger()
+        else:
+            self.wrapped_logger = default_logger
+        # Double-check we're not fed junk.
+        assert isinstance(self.wrapped_logger, logging.Logger)
+
+    def __getattr__(self, name):
+        """ Passthrought attribute calls to our wrapped logger.
+        """
+        return getattr(self.wrapped_logger, name)
+
+    def reset(self):
+        """Forces the logger level to reset at the end of each CLI execution, as it
+        might pollute the logger state between multiple test calls.
+        """
+        self.wrapped_logger.setLevel(logging.NOTSET)
+
+
+# Global application logger.
+logger = WrappedLogger()
 
 
 def verbosity_option(
@@ -65,22 +87,18 @@ def verbosity_option(
         https://github.com/click-contrib/click-log/pull/24
     ).
     """
-    if not default_logger:
-        default_logger = logger
-    else:
-        assert isinstance(default_logger, logging.Logger)
-
     if not names:
         names = ("--verbosity", "-v")
 
+    logger.set_logger(default_logger)
+
     def set_level(ctx, param, value):
         """Set logger level and print its value as a debug message."""
-        nonlocal default_logger
-        default_logger.setLevel(LOG_LEVELS[value])
+        logger.setLevel(LOG_LEVELS[value])
         logger.debug(f"Verbosity set to {value}.")
         # Forces logger level reset at the end of each CLI execution, as it pollutes the logger
         # state between multiple test calls.
-        ctx.call_on_close(reset_logger)
+        ctx.call_on_close(logger.reset)
 
     return click.option(
         *names,
