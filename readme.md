@@ -133,7 +133,7 @@ Options:
   -C, --config CONFIG_PATH  Location of the configuration file. Supports both
                             local path and remote URL.  [default:
                             ~/.my_cli.py/config.{toml,yaml,yml,json}]
-  --help                    Show this message and exit.  [default: False]
+  --help                    Show this message and exit.
 
 Commands:
   subcommand

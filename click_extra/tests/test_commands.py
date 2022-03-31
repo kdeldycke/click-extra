@@ -74,8 +74,8 @@ default_options_help_screen = (
     r"                            \S+config.{toml,yaml,yml,json}\]\n"
     r"  -v, --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.\n"
     r"                            \[default: INFO\]\n"
-    r"  --version                 Show the version and exit.  \[default: False\]\n"
-    r"  -h, --help                Show this message and exit.  \[default: False\]\n"
+    r"  --version                 Show the version and exit.\n"
+    r"  -h, --help                Show this message and exit.\n"
 )
 
 help_screen = (
@@ -168,7 +168,7 @@ def test_subcommand_help(invoke, cmd_id, param):
         Usage: default-group {cmd_id}-subcommand [OPTIONS]
 
         Options:
-          -h, --help  Show this message and exit.  [default: False]
+          -h, --help  Show this message and exit.
         """
     )
     assert not result.stderr
@@ -278,8 +278,8 @@ def test_option_group_integration(invoke):
             r"                            \S+config.{toml,yaml,yml,json}\]\n"
             r"  -v, --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.\n"
             r"                            \[default: INFO\]\n"
-            r"  --version                 Show the version and exit.  \[default: False\]\n"
-            r"  -h, --help                Show this message and exit.  \[default: False\]\n"
+            r"  --version                 Show the version and exit.\n"
+            r"  -h, --help                Show this message and exit.\n"
             r"\n"
             r"Commands:\n"
             r"  default-command\n"

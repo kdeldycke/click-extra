@@ -135,8 +135,8 @@ def test_keyword_collection(invoke):
         r"                            \S+config.{toml,yaml,yml,json}\]\x1b\[0m\n"
         r"  \x1b\[36m-v, \x1b\[36m--verbosity\x1b\[0m \x1b\[90mLEVEL\x1b\[0m\x1b\[0m     Either \x1b\[35mCRITICAL\x1b\[0m, \x1b\[35mERROR\x1b\[0m, \x1b\[35mWARNING\x1b\[0m, \x1b\[35mINFO\x1b\[0m, \x1b\[35mDEBUG\x1b\[0m.\x1b\[0m\n"
         r"                            \[default: \x1b\[35mINFO\x1b\[0m\]\x1b\[0m\n"
-        r"  \x1b\[36m--version\x1b\[0m                 Show the version and exit.  \[default: False\]\x1b\[0m\n"
-        r"  \x1b\[36m-h, \x1b\[36m--help\x1b\[0m\x1b\[0m                Show this message and exit.  \[default: False\]\x1b\[0m\n"
+        r"  \x1b\[36m--version\x1b\[0m                 Show the version and exit.\x1b\[0m\n"
+        r"  \x1b\[36m-h, \x1b\[36m--help\x1b\[0m\x1b\[0m                Show this message and exit.\x1b\[0m\n"
     )
 
     help_screen = (
@@ -207,7 +207,7 @@ def test_keyword_collection(invoke):
             Usage: mycli {cmd_id} [OPTIONS]
 
             Options:
-              -h, --help  Show this message and exit.  [default: False]
+              -h, --help  Show this message and exit.
             """
         )
         assert not result.stderr
