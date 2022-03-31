@@ -51,6 +51,8 @@ class WrappedLogger:
 
     def __getattr__(self, name):
         """Passthrought attribute calls to our wrapped logger."""
+        if not self.wrapped_logger:
+            self.set_logger()
         return getattr(self.wrapped_logger, name)
 
     def reset(self):
