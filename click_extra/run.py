@@ -65,9 +65,17 @@ def extend_env(extra_env=None):
 def run_cmd(*args, extra_env=None, print_output=True):
     """Run a system command, print output and return results."""
     assert isinstance(args, tuple)
-    process = subprocess.run(args, capture_output=True, encoding="utf-8", env=extend_env(extra_env))
+    process = subprocess.run(
+        args, capture_output=True, encoding="utf-8", env=extend_env(extra_env)
+    )
 
     if print_output:
-        print_cli_output(args, process.stdout, process.stderr, process.returncode, extra_env=extra_env)
+        print_cli_output(
+            args,
+            process.stdout,
+            process.stderr,
+            process.returncode,
+            extra_env=extra_env,
+        )
 
     return process.returncode, process.stdout, process.stderr
