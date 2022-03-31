@@ -10,6 +10,6 @@ name: Docs
 jobs:
 
   docs:
-    uses: kdeldycke/workflows/.github/workflows/docs.yaml@v1.0.1
+    uses: kdeldycke/workflows/.github/workflows/docs.yaml@v1.1.0
     with:
       dependency-graph-output: ./dependencies.png
