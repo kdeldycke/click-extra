@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Split the `print_cli_output` method to expose the simpler `format_cli` utility.
+
 ## [1.7.0 (2022-03-31)](https://github.com/kdeldycke/click-extra/compare/v1.6.4...v1.7.0)
 
 - Refactor global logging management.

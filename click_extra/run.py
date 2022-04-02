@@ -28,18 +28,23 @@ PROMPT = "► "
 INDENT = " " * len(PROMPT)
 
 
-def print_cli_output(cmd, output=None, error=None, error_code=None, extra_env=None):
-    """Simulate CLI's terminal output.
+def format_cli(cmd, extra_env=None):
+    """Simulate CLI rendering in terminal."""
+    assert cmd
+    cmd_str = theme.invoked_command(" ".join(cmd))
 
-    Mostly used to print debug traces to user or in test results."""
     extra_env_string = ""
     if extra_env:
         extra_env_string = "".join(f"{k}={v} " for k, v in extra_env.items())
-    print(
-        "\n{}{}{}".format(
-            PROMPT, extra_env_string, theme.invoked_command(" ".join(cmd))
-        )
-    )
+
+    return f"{PROMPT}{extra_env_string}{cmd_str}"
+
+
+def print_cli_output(cmd, output=None, error=None, error_code=None, extra_env=None):
+    """Same has above put print the full similation of CLI execution, including output.
+
+    Mostly used to print debug traces to user or in test results."""
+    print(f"\n{format_cli(cmd, extra_env)}")
     if output:
         print(indent(output, INDENT))
     if error:
