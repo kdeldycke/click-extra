@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Fix identification of TOML and JSON configuration files.
+
 ## [1.8.0 (2022-04-03)](https://github.com/kdeldycke/click-extra/compare/v1.7.0...v1.8.0)
 
 - Split the `print_cli_output` method to expose the simpler `format_cli` utility.

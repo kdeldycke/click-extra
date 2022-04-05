@@ -47,12 +47,16 @@ IGNORED_OPTIONS = (
 )
 
 
+# TODO: add XML?
+
+ini_config = configparser.ConfigParser()
+
 # Maps configuration formats, their file extension, and parsing function,
 # The order encode the priority by which each format is searched for default configuration file.
 CONFIGURATION_FORMATS = {
-    "TOML": ((".toml"), tomllib.loads),
+    "TOML": ((".toml",), tomllib.loads),
     "YAML": ((".yaml", ".yml"), yaml.full_load),
-    "JSON": ((".json", json.loads)),
+    "JSON": ((".json",), json.loads),
 }
 # List of all supported configuration file extensions.
 ALL_EXTENSIONS = tuple(flatten(map(itemgetter(0), CONFIGURATION_FORMATS.values())))
