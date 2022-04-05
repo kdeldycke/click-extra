@@ -70,7 +70,7 @@ below.
 
 ## Features
 
-- TOML, YAML and JSON configuration file loader
+- TOML, YAML, JSON and INI configuration file loader
 - Respect of `CLI > Configuration > Environment > Defaults` precedence
 - Colorization of help screens
 - `--color/--no-color` option flag
@@ -140,7 +140,7 @@ Options:
   --my-list TEXT
   -C, --config CONFIG_PATH  Location of the configuration file. Supports both
                             local path and remote URL.  [default:
-                            ~/.my_cli.py/config.{toml,yaml,yml,json}]
+                            ~/.my_cli.py/config.{toml,yaml,yml,json,ini,config,conf}]
   --help                    Show this message and exit.
 
 Commands:
