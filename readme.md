@@ -71,6 +71,7 @@ below.
 ## Features
 
 - TOML, YAML and JSON configuration file loader
+- Respect of `CLI > Configuration > Environment > Defaults` precedence
 - Colorization of help screens
 - `--color/--no-color` option flag
 - Colored `--version` option
@@ -94,6 +95,10 @@ $ pip install click-extra
 
 The configuration loader source values according the following precedence:
 `CLI parameters > Configuration file > Environment variables > Defaults`.
+
+The structure of the configuration file is automaticcaly derived from the
+parameters of the CLI. There is no need to manually produce a configuration
+data structure to mirror the CLI.
 
 ### TOML configuration
 
@@ -309,6 +314,7 @@ Keep track of things to undo if they reach upstream.
 [`click-configfile`](https://github.com/click-contrib/click-configfile):
 
 - [`#9` - Inquiry on Repo Status](https://github.com/click-contrib/click-configfile/issues/9)
+- [`#8` - Exclude some options from config file](https://github.com/click-contrib/click-configfile/issues/8)
 - [`#2` - Order of configuration file and environment variable value](https://github.com/click-contrib/click-configfile/issues/2)
 
 [`click-help-color`](https://github.com/click-contrib/click-help-colors):
