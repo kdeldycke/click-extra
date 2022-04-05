@@ -133,6 +133,8 @@ def conf_structure(ctx):
             p.name: None for p in cmd.params if p.name not in IGNORED_OPTIONS
         }
         if cmd_options:
+            if cmd_id in conf[cli.name]:
+                raise ValueError(f"{cli.name}.{cmd_id} subcommand conflicts with {cli.name}.{cmd_id} top-level parameter")
             conf[cli.name][cmd_id] = cmd_options
 
     return conf
