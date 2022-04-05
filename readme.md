@@ -92,6 +92,9 @@ $ pip install click-extra
 
 ## Configuration loader usage
 
+The configuration loader source values according the following precedence:
+`CLI parameters > Configuration file > Environment variables > Defaults`.
+
 ### TOML configuration
 
 Given this CLI in a `my_cli.py` file:
@@ -302,6 +305,11 @@ Keep track of things to undo if they reach upstream.
 [`click-config-file`](https://github.com/phha/click_config_file):
 
 - [`#9` - Additional configuration providers](https://github.com/phha/click_config_file/issues/9)
+
+[`click-configfile`](https://github.com/click-contrib/click-configfile):
+
+- [`#9` - Inquiry on Repo Status](https://github.com/click-contrib/click-configfile/issues/9)
+- [`#2` - Order of configuration file and environment variable value](https://github.com/click-contrib/click-configfile/issues/2)
 
 [`click-help-color`](https://github.com/click-contrib/click-help-colors):
 
