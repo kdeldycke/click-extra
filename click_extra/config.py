@@ -212,6 +212,15 @@ def read_conf(conf_path):
 
 
 def load_conf(ctx, param, conf_path):
+    """Fetch parameters values from configuration file and merge them to the defaults.
+
+    User configuration is merged to the context ``default_map``, as in:
+    https://click.palletsprojects.com/en/8.0.x/commands/#context-defaults
+
+    This allow user's config to only overrides defaults. Values sets from direct
+    command line parameters, environment variables or interactive prompts takes precedence
+    over any values from the config file.
+    """
     if not conf_path:
         logger.debug(f"No configuration provided.")
         return
@@ -229,7 +238,7 @@ def load_conf(ctx, param, conf_path):
     else:
         logger.debug(f"Load configuration from {conf_path}")
 
-    # Fetch option from configuration file.
+    # Read configuration file.
     conf = {}
     try:
         conf_content, conf_extension = read_conf(conf_path)
@@ -245,11 +254,7 @@ def load_conf(ctx, param, conf_path):
 
     logger.debug(f"Loaded configuration: {conf}")
 
-    # Merge user config to the context default_map. See:
-    # https://click.palletsprojects.com/en/8.0.x/commands/#context-defaults
-    # This allow user's config to only overrides defaults. Values sets from direct
-    # command line calls, environment variables or interactive prompts takes precedence
-    # over any parameters from the config file.
+    # Merge config to the default_map.
     if ctx.default_map is None:
         ctx.default_map = dict()
     ctx.default_map.update(conf.get(ctx.find_root().command.name, {}))
