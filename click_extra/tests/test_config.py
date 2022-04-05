@@ -87,6 +87,15 @@ DUMMY_JSON_FILE = """
     }
     """
 
+all_config_formats = pytest.mark.parametrize(
+    "conf_name,conf_content",
+    (pytest.param(f"configuration.{ext}", content, id=ext) for ext, content in     [
+        ("configuration.toml", DUMMY_TOML_FILE),
+        ("configuration.yaml", DUMMY_YAML_FILE),
+        ("configuration.json", DUMMY_JSON_FILE),
+    ]),
+)
+
 
 @group()
 @click.option("--dummy-flag/--no-flag")
@@ -180,14 +189,7 @@ def test_conf_format_unknown(invoke, create_config):
     )
 
 
-@pytest.mark.parametrize(
-    "conf_name,conf_content",
-    [
-        ("configuration.toml", DUMMY_TOML_FILE),
-        ("configuration.yaml", DUMMY_YAML_FILE),
-        ("configuration.json", DUMMY_JSON_FILE),
-    ],
-)
+@all_config_formats
 def test_conf_file_overrides_defaults(
     invoke, create_config, httpserver, conf_name, conf_content
 ):
@@ -211,14 +213,7 @@ def test_conf_file_overrides_defaults(
         )
 
 
-@pytest.mark.parametrize(
-    "conf_name,conf_content",
-    [
-        ("configuration.toml", DUMMY_TOML_FILE),
-        ("configuration.yaml", DUMMY_YAML_FILE),
-        ("configuration.json", DUMMY_JSON_FILE),
-    ],
-)
+@all_config_formats
 def test_auto_env_var_conf(invoke, create_config, httpserver, conf_name, conf_content):
     # Create a local file and remote config.
     conf_filepath = create_config(conf_name, conf_content)
@@ -245,14 +240,7 @@ def test_auto_env_var_conf(invoke, create_config, httpserver, conf_name, conf_co
         )
 
 
-@pytest.mark.parametrize(
-    "conf_name,conf_content",
-    [
-        ("configuration.toml", DUMMY_TOML_FILE),
-        ("configuration.yaml", DUMMY_YAML_FILE),
-        ("configuration.json", DUMMY_JSON_FILE),
-    ],
-)
+@all_config_formats
 def test_conf_file_overrided_by_cli_param(
     invoke, create_config, httpserver, conf_name, conf_content
 ):
