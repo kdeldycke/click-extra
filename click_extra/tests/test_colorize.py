@@ -30,7 +30,7 @@ from .. import __version__
 from ..colorize import HelpExtraFormatter, color_option, theme, version_option
 from ..commands import command, group
 from ..logging import logger, verbosity_option
-from .conftest import skip_windows_colors
+from .conftest import default_options_colored_help, skip_windows_colors
 
 
 def test_options_highlight():
@@ -123,22 +123,6 @@ def test_keyword_collection(invoke):
     mycli.section("Subcommand group 1", command1, command2)
     mycli.section("Extra commands", command3, command4)
 
-    default_options_help_screen = (
-        r"  \x1b\[36m--time / --no-time\x1b\[0m        Measure and print elapsed execution time.  \[default:\x1b\[0m\n"
-        r"                            no-time\]\x1b\[0m\n"
-        r"  \x1b\[36m--color, \x1b\[36m--ansi\x1b\[0m / --no-color, --no-ansi\x1b\[0m\n"
-        r"                            Strip out all colors and all ANSI codes from output.\x1b\[0m\n"
-        r"                            \[default: color\]\x1b\[0m\n"
-        r"  \x1b\[36m-C, \x1b\[36m--config\x1b\[0m \x1b\[90mCONFIG_PATH\x1b\[0m\x1b\[0m  Location of the configuration file. Supports both\x1b\[0m\n"
-        r"                            local path and remote URL.  \[default:( \S+)?\x1b\[0m\n"
-        r"(                            \S+\n)*"
-        r"                            \S+.{toml,yaml,yml,json,ini,config,conf}\]\x1b\[0m\n"
-        r"  \x1b\[36m-v, \x1b\[36m--verbosity\x1b\[0m \x1b\[90mLEVEL\x1b\[0m\x1b\[0m     Either \x1b\[35mCRITICAL\x1b\[0m, \x1b\[35mERROR\x1b\[0m, \x1b\[35mWARNING\x1b\[0m, \x1b\[35mINFO\x1b\[0m, \x1b\[35mDEBUG\x1b\[0m.\x1b\[0m\n"
-        r"                            \[default: \x1b\[35mINFO\x1b\[0m\]\x1b\[0m\n"
-        r"  \x1b\[36m--version\x1b\[0m                 Show the version and exit.\x1b\[0m\n"
-        r"  \x1b\[36m-h, \x1b\[36m--help\x1b\[0m\x1b\[0m                Show this message and exit.\x1b\[0m\n"
-    )
-
     help_screen = (
         r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mUsage\x1b\[0m: "
         r"\x1b\[0m\x1b\[97mmycli\x1b\[0m \[OPTIONS\] COMMAND \[ARGS\]...\n\n"
@@ -150,7 +134,7 @@ def test_keyword_collection(invoke):
         r"  \x1b\[36m--opt4 TEXT\x1b\[0m\n\n"
         r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mOther options\x1b\[0m:\x1b\[0m\n"
         r"  \x1b\[36m--test TEXT\x1b\[0m\n"
-        rf"{default_options_help_screen}"
+        rf"{default_options_colored_help}"
         r"\n"
         r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mSubcommand group \x1b\[35m1\x1b\[0m\x1b\[0m:\x1b\[0m\n"
         r"  \x1b\[36mcommand1\x1b\[0m\n"
@@ -178,7 +162,7 @@ def test_keyword_collection(invoke):
             r"It works!\n"
             r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mUsage\x1b\[0m: \x1b\[0m\x1b\[97mmycli command1\x1b\[0m \[OPTIONS\]\n\n"
             r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mOptions\x1b\[0m:\x1b\[0m\n"
-            rf"{default_options_help_screen}"
+            rf"{default_options_colored_help}"
         ),
         result.output,
     )
@@ -191,7 +175,7 @@ def test_keyword_collection(invoke):
         (
             r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mUsage\x1b\[0m: \x1b\[0m\x1b\[97mcommand1\x1b\[0m \[OPTIONS\]\n\n"
             r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mOptions\x1b\[0m:\x1b\[0m\n"
-            rf"{default_options_help_screen}"
+            rf"{default_options_colored_help}"
         ),
         result.output,
     )

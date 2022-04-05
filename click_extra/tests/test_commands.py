@@ -30,6 +30,7 @@ from cloup import option_group
 
 from ..commands import command as click_extra_command
 from ..commands import group, timer_option
+from .conftest import default_options_uncolored_help
 
 
 @group(version="2021.10.08")
@@ -62,27 +63,11 @@ default_group.section(
 )
 
 
-default_options_help_screen = (
-    r"  --time / --no-time        Measure and print elapsed execution time.  \[default:\n"
-    r"                            no-time\]\n"
-    r"  --color, --ansi / --no-color, --no-ansi\n"
-    r"                            Strip out all colors and all ANSI codes from output.\n"
-    r"                            \[default: color\]\n"
-    r"  -C, --config CONFIG_PATH  Location of the configuration file. Supports both\n"
-    r"                            local path and remote URL.  \[default:( \S+)?\n"
-    r"(                            \S+\n)*"
-    r"                            \S+.{toml,yaml,yml,json,ini,config,conf}\]\n"
-    r"  -v, --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.\n"
-    r"                            \[default: INFO\]\n"
-    r"  --version                 Show the version and exit.\n"
-    r"  -h, --help                Show this message and exit.\n"
-)
-
 help_screen = (
     r"Usage: default-group \[OPTIONS\] COMMAND \[ARGS\]...\n"
     r"\n"
     r"Options:\n"
-    rf"{default_options_help_screen}"
+    rf"{default_options_uncolored_help}"
     r"\n"
     r"Subcommand group:\n"
     r"  click-extra-subcommand\n"
@@ -150,7 +135,7 @@ def test_click_extra_subcommand_help(invoke, cmd_id, param):
             rf"Usage: default-group {cmd_id}-subcommand \[OPTIONS\]\n"
             r"\n"
             r"Options:\n"
-            rf"{default_options_help_screen}"
+            rf"{default_options_uncolored_help}"
         ),
         result.stdout,
     )
@@ -267,19 +252,7 @@ def test_option_group_integration(invoke):
             r"Other options:\n"
             r"  -c, --opt3 TEXT\n"
             r"  -d, --opt4 TEXT\n"
-            r"  --time / --no-time        Measure and print elapsed execution time.  \[default:\n"
-            r"                            no-time\]\n"
-            r"  --color, --ansi / --no-color, --no-ansi\n"
-            r"                            Strip out all colors and all ANSI codes from output.\n"
-            r"                            \[default: color\]\n"
-            r"  -C, --config CONFIG_PATH  Location of the configuration file. Supports both\n"
-            r"                            local path and remote URL.  \[default:( \S+)?\n"
-            r"(                            \S+\n)*"
-            r"                            \S+.{toml,yaml,yml,json,ini,config,conf}\]\n"
-            r"  -v, --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.\n"
-            r"                            \[default: INFO\]\n"
-            r"  --version                 Show the version and exit.\n"
-            r"  -h, --help                Show this message and exit.\n"
+            rf"{default_options_uncolored_help}"
             r"\n"
             r"Commands:\n"
             r"  default-command\n"
