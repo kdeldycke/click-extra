@@ -134,7 +134,7 @@ def test_conf_default_path(invoke):
         folder = Path("AppData") / "Roaming" / "default-group"
         home = Path.home()
 
-    default_path = home / folder / "config.{toml,yaml,yml,json}"
+    default_path = home / folder / "config.{toml,yaml,yml,json,ini,config,conf}"
 
     # Make path string compatible with regexp.
     default_path = str(default_path).replace("\\", "\\\\").replace("-", r"-\s*")

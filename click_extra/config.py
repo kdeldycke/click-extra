@@ -17,6 +17,7 @@
 
 """ Utilities to load parameters and options from a configuration file. """
 
+import configparser
 import json
 import sys
 from operator import itemgetter
@@ -46,17 +47,16 @@ IGNORED_OPTIONS = (
     "config",
 )
 
-
-# TODO: add XML?
-
 ini_config = configparser.ConfigParser()
 
 # Maps configuration formats, their file extension, and parsing function,
 # The order encode the priority by which each format is searched for default configuration file.
+# TODO: add XML?
 CONFIGURATION_FORMATS = {
     "TOML": ((".toml",), tomllib.loads),
     "YAML": ((".yaml", ".yml"), yaml.full_load),
     "JSON": ((".json",), json.loads),
+    "INI": ((".ini", ".config", ".conf"), ini_config.read),
 }
 # List of all supported configuration file extensions.
 ALL_EXTENSIONS = tuple(flatten(map(itemgetter(0), CONFIGURATION_FORMATS.values())))
