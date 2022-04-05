@@ -17,9 +17,9 @@
 
 """ Utilities to load parameters and options from a configuration file. """
 
-import configparser
 import json
 import sys
+from configparser import ConfigParser, ExtendedInterpolation
 from operator import itemgetter
 from pathlib import Path
 
@@ -47,7 +47,7 @@ IGNORED_OPTIONS = (
     "config",
 )
 
-ini_config = configparser.ConfigParser()
+ini_config = ConfigParser(interpolation=ExtendedInterpolation())
 
 # Maps configuration formats, their file extension, and parsing function,
 # The order encode the priority by which each format is searched for default configuration file.

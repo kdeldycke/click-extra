@@ -100,6 +100,8 @@ The structure of the configuration file is automaticcaly derived from the
 parameters of the CLI. There is no need to manually produce a configuration
 data structure to mirror the CLI.
 
+`INI` configuration files are allowed to use [`ExtendedInterpolation`](https://docs.python.org/3/library/configparser.html?highlight=configparser#configparser.ExtendedInterpolation) by default.
+
 ### TOML configuration
 
 Given this CLI in a `my_cli.py` file:
