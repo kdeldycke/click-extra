@@ -54,15 +54,22 @@ def print_cli_output(cmd, output=None, error=None, error_code=None, extra_env=No
 
 
 def extend_env(extra_env=None):
-    """Utility method to extend current environment variable.
+    """Returns a copy of the current environment variables and eventually extend it with ``extra_env``.
 
-    Mimicks Python's original implementation. See:
+    Mimicks Python's original implementation by returning ``None`` if no ``extra_env`` are added. See:
     https://github.com/python/cpython/blob/7b5b429adab4fe0fe81858fe3831f06adc2e2141/Lib/subprocess.py#L1648-L1649
     """
-    assert not extra_env or isinstance(extra_env, dict)
+    # Environment variables are supposed to be a dict of str:str.
+    if isinstance(extra_env, dict):
+        for k, v in extra_env.items():
+            assert isinstance(k, str)
+            assert isinstance(v, str)
+    else:
+        assert not extra_env
     env = None
     if extra_env:
-        env = os.environ
+        # By casting to dict we make a copy and prevent the modification of the global environment.
+        env = dict(os.environ)
         env.update(extra_env)
     return env
 

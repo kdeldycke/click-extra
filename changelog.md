@@ -8,6 +8,7 @@ This version is not released yet and is under active development.
 
 - Add supports for `.ini` configuration files.
 - Fix identification of TOML and JSON configuration files.
+- Fix leak of local environment variable update on `extend_env()` usage.
 
 ## [1.8.0 (2022-04-03)](https://github.com/kdeldycke/click-extra/compare/v1.7.0...v1.8.0)
 

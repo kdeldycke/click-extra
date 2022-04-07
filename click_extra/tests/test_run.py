@@ -17,14 +17,15 @@
 
 """Test all runner utilities as well as all the test and pytest helpers."""
 
+import os
 from pathlib import Path
 
 import click
 from cloup import Style
 
-from ..commands import command
 from ..logging import logger
 from ..platform import is_windows
+from ..run import extend_env
 from .conftest import skip_windows_colors
 
 
@@ -38,6 +39,19 @@ def test_temporary_fs(runner):
     """Check the CLI runner fixture properly encapsulated the filesystem in
     temporary directory."""
     assert not str(Path(__file__)).startswith(str(Path.cwd()))
+
+
+def test_env_copy():
+    env_var = 'MPM_DUMMY_ENV_VAR_93725'
+    assert env_var not in os.environ
+
+    env_copy = extend_env()
+    assert env_copy is None
+
+    extended_env = extend_env({env_var: "yo"})
+    assert env_var in extended_env
+    assert extended_env[env_var] == "yo"
+    assert env_var not in os.environ
 
 
 @click.command()
