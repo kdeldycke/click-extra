@@ -20,7 +20,8 @@
 import json
 import sys
 from configparser import ConfigParser, ExtendedInterpolation
-from operator import itemgetter
+from functools import reduce
+from operator import getitem
 from pathlib import Path
 
 import click
@@ -30,6 +31,7 @@ from boltons.iterutils import flatten, remap
 from boltons.urlutils import URL
 from click.core import ParameterSource
 from cloup import GroupedOption
+from mergedeep import merge
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -47,25 +49,23 @@ IGNORED_OPTIONS = (
     "config",
 )
 
-ini_config = ConfigParser(interpolation=ExtendedInterpolation())
 
 # Maps configuration formats, their file extension, and parsing function,
 # The order encode the priority by which each format is searched for default configuration file.
 # TODO: add XML?
 CONFIGURATION_FORMATS = {
-    "TOML": ((".toml",), tomllib.loads),
-    "YAML": ((".yaml", ".yml"), yaml.full_load),
-    "JSON": ((".json",), json.loads),
-    "INI": ((".ini", ".config", ".conf"), ini_config.read),
+    "TOML": (".toml",),
+    "YAML": (".yaml", ".yml"),
+    "JSON": (".json",),
+    "INI": (".ini", ".config", ".conf"),
 }
 # List of all supported configuration file extensions.
-ALL_EXTENSIONS = tuple(flatten(map(itemgetter(0), CONFIGURATION_FORMATS.values())))
+ALL_EXTENSIONS = tuple(flatten(CONFIGURATION_FORMATS.values()))
 
 
 class ConfigurationFileError(Exception):
     """Base class for all exceptions related to configuration file."""
-
-    pass
+    ...
 
 
 class DefaultConfPath:
@@ -112,32 +112,126 @@ class DefaultConfPath:
         return f"{conf_path}.{{{','.join(ext.lstrip('.') for ext in ALL_EXTENSIONS)}}}"
 
 
+
+def init_deep_dict(path, leaf=None):
+    """Utility method to recursively create a nested dict structure whose keys are provided by ``levels`` list
+    and at the end is populated by ``leaf``.
+    """
+
+    def dive(levels):
+        if levels:
+            return {levels[0]: dive(levels[1:])}
+        return leaf
+
+    # Use dot separator in section names as a separator between levels.
+    return dive(path.split('.'))
+
+
+def get_deep_value(deep_dict, path):
+        try:
+            return reduce(getitem, path.split('.'), deep_dict)
+        except KeyError:
+            return None
+
+
+def load_ini_config(content, conf_types):
+    """Utility method to parse INI configuration file.
+
+    Returns a ready-to-use data structure.
+    """
+    ini_config = ConfigParser(interpolation=ExtendedInterpolation())
+    ini_config.read_string(content)
+
+    conf = {}
+    for section_id in ini_config.sections():
+
+        # Extract all options of the section.
+        sub_conf = {}
+        for option_id in ini_config.options(section_id):
+
+            target_type = get_deep_value(conf_types, f"{section_id}.{option_id}")
+            if target_type in (None, str):
+                value = ini_config.get(section_id, option_id)
+
+            elif target_type == int:
+                value = ini_config.getint(section_id, option_id)
+
+            elif target_type == float:
+                value = ini_config.getfloat(section_id, option_id)
+
+            elif target_type == bool:
+                value = ini_config.getboolean(section_id, option_id)
+
+            # Types not natively supported by INI format are loaded as JSON-serialized strings.
+            elif target_type in (list, tuple, set, frozenset, dict):
+                value = json.loads(ini_config.get(section_id, option_id))
+
+            else:
+                raise ValueError(f"Conversion of {target_type} type for [{section_id}]:{option_id} INI config option.")
+
+            sub_conf[option_id] = value
+
+        # Place collected options at the right level of the dict tree.
+        merge(conf, init_deep_dict(section_id, leaf=sub_conf))
+
+    return conf
+
+
+def map_option_type(param):
+    """Translate Click parameter type to Python type."""
+
+    if param.multiple:
+        return list
+
+    if param.is_bool_flag:
+        return bool
+
+    if isinstance(param.type, click.Choice):
+        return str
+
+    direct_map = {
+        click.INT: int,
+        click.FLOAT: float,
+        click.BOOL:  bool,
+        click.STRING: str,
+    }
+
+    if param.type in direct_map:
+        return direct_map[param.type]
+
+    raise ValueError(f"Can't guess the target configuration data type of {param!r} prameter.")
+
+
 def conf_structure(ctx):
-    """Returns the supported configuration structure.
+    """Returns two data structures shadowing the CLI options and subcommands.
 
-    Derives TOML structure from CLI definition.
-
-    Sections are dicts. All options have their defaults value to None.
+    2 tree-like dictionnaries are returned:
+    - One with only keys, all values being set to None, to serve as a template for configuration
+    - A copy of the former, with values set to their expected type
     """
     cli = ctx.find_root().command
 
-    # Global, top-level options shared by all subcommands are placed under the
-    # cli name's section.
-    conf = {
-        cli.name: {p.name: None for p in cli.params if p.name not in IGNORED_OPTIONS}
-    }
+    # The whole config is placed under the cli name's section.
+    conf_template = {cli.name: {}}
+    conf_types = {cli.name: {}}
+
+    # Global, top-level options shared by all subcommands.
+    for p in cli.params:
+        if p.name not in IGNORED_OPTIONS:
+            conf_template[cli.name][p.name] = None
+            conf_types[cli.name][p.name] = map_option_type(p)
 
     # Subcommand-specific options.
     for cmd_id, cmd in cli.commands.items():
-        cmd_options = {
-            p.name: None for p in cmd.params if p.name not in IGNORED_OPTIONS
-        }
-        if cmd_options:
-            if cmd_id in conf[cli.name]:
-                raise ValueError(f"{cli.name}.{cmd_id} subcommand conflicts with {cli.name}.{cmd_id} top-level parameter")
-            conf[cli.name][cmd_id] = cmd_options
+        if cmd_id in conf_template[cli.name]:
+            raise ValueError(f"{cli.name}.{cmd_id} subcommand conflicts with {conf_template[cli.name]} top-level parameters")
 
-    return conf
+        for p in cmd.params:
+            if p.name not in IGNORED_OPTIONS:
+                conf_template[cli.name].setdefault(cmd_id, {})[p.name] = None
+                conf_types[cli.name].setdefault(cmd_id, {})[p.name] = map_option_type(p)
+
+    return conf_template, conf_types
 
 
 def parse_and_merge_conf(ctx, conf_content, conf_extension):
@@ -147,16 +241,15 @@ def parse_and_merge_conf(ctx, conf_content, conf_extension):
     """
     # Select configuration format based on extension and parse its content.
     user_conf = None
-    for conf_format, (conf_exts, conf_parser) in CONFIGURATION_FORMATS.items():
+    for conf_format, conf_exts in CONFIGURATION_FORMATS.items():
         logger.debug(f"Evaluate configuration as {conf_format}...")
         if conf_extension in conf_exts:
             logger.debug(f"Configuration format is {conf_format}.")
-            user_conf = conf_parser(conf_content)
             break
     else:
         raise ConfigurationFileError("Configuration format not recognized.")
 
-    # Merge configuration file's content into the canonical reference structure, but
+    # Merge configuration file's content into the template structure, but
     # ignore all unrecognized options.
 
     def recursive_update(a, b):
@@ -167,14 +260,28 @@ def parse_and_merge_conf(ctx, conf_content, conf_extension):
         for k, v in b.items():
             if isinstance(v, dict) and isinstance(a.get(k), dict):
                 a[k] = recursive_update(a[k], v)
-            # Ignore elements unregistered in the canonical structure.
+            # Ignore elements unregistered in the template structure.
             elif k in a:
                 a[k] = b[k]
         return a
 
-    valid_conf = recursive_update(conf_structure(ctx), user_conf)
+    conf_template, conf_types = conf_structure(ctx)
 
-    # Clean-up blank values left-over by the canonical reference structure.
+    if conf_format == 'TOML':
+        user_conf = tomllib.loads(conf_content)
+
+    elif conf_format == "YAML":
+        user_conf = yaml.full_load(conf_content)
+
+    elif conf_format == "JSON":
+        user_conf = json.loads(conf_content)
+
+    elif conf_format == "INI":
+        user_conf = load_ini_config(conf_content, conf_types)
+
+    valid_conf = recursive_update(conf_template, user_conf)
+
+    # Clean-up blank values left-over by the template structure.
 
     def visit(path, key, value):
         """Skip None values and empty dicts."""

@@ -87,12 +87,40 @@ DUMMY_JSON_FILE = """
     }
     """
 
+DUMMY_INI_FILE = """
+    ; Comment
+    # Another king of comment
+
+    [to_ignore]
+    key=value
+    spaces in keys=allowed
+    spaces in values=allowed as well
+    spaces around the delimiter = obviously
+    you can also use : to delimit keys from values
+
+    [default-group.default-command]
+    int_param = 3
+    random_stuff = will be ignored
+
+    [garbage]
+    # An empty random section that will be skipped
+
+    [default-group]
+    verbosity : DEBUG
+    blahblah: 234
+    dummy_flag = true
+    my_list = ["pip", "npm", "gem"]
+
+    """
+
+
 all_config_formats = pytest.mark.parametrize(
     "conf_name,conf_content",
     (pytest.param(f"configuration.{ext}", content, id=ext) for ext, content in     [
-        ("configuration.toml", DUMMY_TOML_FILE),
-        ("configuration.yaml", DUMMY_YAML_FILE),
-        ("configuration.json", DUMMY_JSON_FILE),
+        ("toml", DUMMY_TOML_FILE),
+        ("yaml", DUMMY_YAML_FILE),
+        ("json", DUMMY_JSON_FILE),
+        ("ini", DUMMY_INI_FILE),
     ]),
 )
 

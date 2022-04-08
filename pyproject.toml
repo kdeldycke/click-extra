@@ -18,6 +18,7 @@ keywords = [
     'colorization',
     'configuration',
     'console',
+    'ini',
     'json',
     'logging',
     'multiplatform',
@@ -57,6 +58,7 @@ click = "^8.1.1"
 click-log = "^0.4.0"
 cli-helpers = "^2.2.0"
 cloup = "^0.13.0"
+mergedeep = "^1.3.4"
 pyyaml = "^6.0.0"
 requests = "^2.27.1"
 tabulate = { extras = ["widechars"], version = "^0.8.9" }
