@@ -42,7 +42,7 @@ def test_temporary_fs(runner):
 
 
 def test_env_copy():
-    env_var = 'MPM_DUMMY_ENV_VAR_93725'
+    env_var = "MPM_DUMMY_ENV_VAR_93725"
     assert env_var not in os.environ
 
     no_env = env_copy()

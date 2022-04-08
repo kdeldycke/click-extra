@@ -67,6 +67,7 @@ ALL_EXTENSIONS = tuple(flatten(CONFIGURATION_FORMATS.values()))
 
 class ConfigurationFileError(Exception):
     """Base class for all exceptions related to configuration file."""
+
     pass
 
 
@@ -114,7 +115,6 @@ class DefaultConfPath:
         return f"{conf_path}.{{{','.join(ext.lstrip('.') for ext in ALL_EXTENSIONS)}}}"
 
 
-
 def init_deep_dict(path, leaf=None):
     """Utility method to recursively create a nested dict structure whose keys are provided by ``levels`` list
     and at the end is populated by ``leaf``.
@@ -126,14 +126,14 @@ def init_deep_dict(path, leaf=None):
         return leaf
 
     # Use dot separator in section names as a separator between levels.
-    return dive(path.split('.'))
+    return dive(path.split("."))
 
 
 def get_deep_value(deep_dict, path):
-        try:
-            return reduce(getitem, path.split('.'), deep_dict)
-        except KeyError:
-            return None
+    try:
+        return reduce(getitem, path.split("."), deep_dict)
+    except KeyError:
+        return None
 
 
 def load_ini_config(content, conf_types):
@@ -169,7 +169,9 @@ def load_ini_config(content, conf_types):
                 value = json.loads(ini_config.get(section_id, option_id))
 
             else:
-                raise ValueError(f"Conversion of {target_type} type for [{section_id}]:{option_id} INI config option.")
+                raise ValueError(
+                    f"Conversion of {target_type} type for [{section_id}]:{option_id} INI config option."
+                )
 
             sub_conf[option_id] = value
 
@@ -194,14 +196,16 @@ def map_option_type(param):
     direct_map = {
         click.INT: int,
         click.FLOAT: float,
-        click.BOOL:  bool,
+        click.BOOL: bool,
         click.STRING: str,
     }
 
     if param.type in direct_map:
         return direct_map[param.type]
 
-    raise ValueError(f"Can't guess the target configuration data type of {param!r} prameter.")
+    raise ValueError(
+        f"Can't guess the target configuration data type of {param!r} prameter."
+    )
 
 
 def conf_structure(ctx):
@@ -226,7 +230,9 @@ def conf_structure(ctx):
     # Subcommand-specific options.
     for cmd_id, cmd in cli.commands.items():
         if cmd_id in conf_template[cli.name]:
-            raise ValueError(f"{cli.name}.{cmd_id} subcommand conflicts with {conf_template[cli.name]} top-level parameters")
+            raise ValueError(
+                f"{cli.name}.{cmd_id} subcommand conflicts with {conf_template[cli.name]} top-level parameters"
+            )
 
         for p in cmd.params:
             if p.name not in IGNORED_OPTIONS:
@@ -269,7 +275,7 @@ def parse_and_merge_conf(ctx, conf_content, conf_extension):
 
     conf_template, conf_types = conf_structure(ctx)
 
-    if conf_format == 'TOML':
+    if conf_format == "TOML":
         user_conf = tomllib.loads(conf_content)
 
     elif conf_format == "YAML":
