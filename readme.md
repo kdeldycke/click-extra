@@ -70,12 +70,13 @@ below.
 
 ## Features
 
-- configuration file loader for:
+- Configuration file loader for:
   - `TOML`
   - `YAML`
   - `JSON`, with inline and block comments (Python-style `#` and Javascript-style `//`)
   - `INI`, with extended interpolation, multi-level sections and non-native types (list, sets, …)
-- strict validation of configuration
+- Optional strict validation of configuration
+- Automatic search of configuration file from default user folder
 - Respect of `CLI > Configuration > Environment > Defaults` precedence
 - Colorization of help screens
 - `--color/--no-color` option flag
@@ -316,6 +317,7 @@ Keep track of things to undo if they reach upstream.
 
 [`click-config-file`](https://github.com/phha/click_config_file):
 
+- [`#26` - Don't require FILE for --config when implicit=False?](https://github.com/phha/click_config_file/issues/26)
 - [`#11` - warn when providing unsupported options in the config file?](https://github.com/phha/click_config_file/issues/11)
 - [`#9` - Additional configuration providers](https://github.com/phha/click_config_file/issues/9)
 
