@@ -7,6 +7,7 @@ This version is not released yet and is under active development.
 ```
 
 - Add supports for `.ini` configuration files.
+- Add supports for commented JSON configuration files.
 - Fix identification of TOML and JSON configuration files.
 - Fix leak of local environment variable update on `extend_env()` usage.
 - Ignore `help` boolean in configuration files.

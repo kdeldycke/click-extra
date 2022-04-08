@@ -73,8 +73,8 @@ below.
 - configuration file loader for:
   - `TOML`
   - `YAML`
-  - `JSON`
-  - `INI`, with extended interpolation
+  - `JSON`, with inline and block comments (Python-style `#` and Javascript-style `//`)
+  - `INI`, with extended interpolation, multi-level sections and non-native types (list, sets, …)
 - Respect of `CLI > Configuration > Environment > Defaults` precedence
 - Colorization of help screens
 - `--color/--no-color` option flag

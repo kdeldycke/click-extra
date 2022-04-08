@@ -77,12 +77,16 @@ DUMMY_JSON_FILE = """
                 "npm",
                 "gem"
             ],
-            "verbosity": "DEBUG",
+            "verbosity": "DEBUG",   // log level
+
+            # Subcommand config
             "default-command": {
                 "int_param": 3,
                 "random_stuff": "will be ignored"
             }
         },
+
+        // Section to ignore
         "garbage": {}
     }
     """

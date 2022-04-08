@@ -17,7 +17,6 @@
 
 """ Utilities to load parameters and options from a configuration file. """
 
-import json
 import sys
 from configparser import ConfigParser, ExtendedInterpolation
 from functools import reduce
@@ -25,6 +24,7 @@ from operator import getitem
 from pathlib import Path
 
 import click
+import commentjson as json
 import requests
 import yaml
 from boltons.iterutils import flatten, remap
