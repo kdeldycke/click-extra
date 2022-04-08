@@ -67,7 +67,7 @@ ALL_EXTENSIONS = tuple(flatten(CONFIGURATION_FORMATS.values()))
 
 class ConfigurationFileError(Exception):
     """Base class for all exceptions related to configuration file."""
-    ...
+    pass
 
 
 class DefaultConfPath:
