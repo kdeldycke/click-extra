@@ -255,11 +255,14 @@ def test_strict_conf(invoke, create_config):
 
     conf_path = create_config("messy.toml", conf_file)
 
-    result = invoke(my_cli, "--config", str(conf_path), "subcommand" , color=False)
+    result = invoke(my_cli, "--config", str(conf_path), "subcommand", color=False)
 
     assert result.exception
     assert type(result.exception) == ValueError
-    assert str(result.exception) == "Parameter 'random_stuff' is not allowed in configuration file."
+    assert (
+        str(result.exception)
+        == "Parameter 'random_stuff' is not allowed in configuration file."
+    )
 
     assert result.exit_code == 1
     assert result.stderr == f"Load configuration from {conf_path}\n"

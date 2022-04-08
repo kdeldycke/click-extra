@@ -272,7 +272,9 @@ def parse_and_merge_conf(ctx, conf_content, conf_extension, strict=False):
             elif k in a:
                 a[k] = b[k]
             elif strict:
-                raise ValueError(f"Parameter {k!r} is not allowed in configuration file.")
+                raise ValueError(
+                    f"Parameter {k!r} is not allowed in configuration file."
+                )
         return a
 
     conf_template, conf_types = conf_structure(ctx)
