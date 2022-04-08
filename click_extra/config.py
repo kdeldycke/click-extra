@@ -43,6 +43,8 @@ from .platform import is_windows
 
 # List of unsupported options we're going to ignore.
 IGNORED_OPTIONS = (
+    # --help is not a configurable option.
+    "help",
     # --version is not a configurable option.
     "version",
     # -C/--config option cannot be used to recursively load another file.
