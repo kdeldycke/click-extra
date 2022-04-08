@@ -70,7 +70,11 @@ below.
 
 ## Features
 
-- TOML, YAML, JSON and INI configuration file loader
+- configuration file loader for:
+  - `TOML`
+  - `YAML`
+  - `JSON`
+  - `INI`, with extended interpolation
 - Respect of `CLI > Configuration > Environment > Defaults` precedence
 - Colorization of help screens
 - `--color/--no-color` option flag
