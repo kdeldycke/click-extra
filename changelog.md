@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.9.1 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v1.9.0...main)
+
+```{{important}}
+This version is not released yet and is under active development.
+```
+
 ## [1.9.0 (2022-04-08)](https://github.com/kdeldycke/click-extra/compare/v1.8.0...v1.9.0)
 
 - Add supports for `.ini` configuration files.
