@@ -120,12 +120,15 @@ DUMMY_INI_FILE = """
 
 all_config_formats = pytest.mark.parametrize(
     "conf_name,conf_content",
-    (pytest.param(f"configuration.{ext}", content, id=ext) for ext, content in     [
-        ("toml", DUMMY_TOML_FILE),
-        ("yaml", DUMMY_YAML_FILE),
-        ("json", DUMMY_JSON_FILE),
-        ("ini", DUMMY_INI_FILE),
-    ]),
+    (
+        pytest.param(f"configuration.{ext}", content, id=ext)
+        for ext, content in [
+            ("toml", DUMMY_TOML_FILE),
+            ("yaml", DUMMY_YAML_FILE),
+            ("json", DUMMY_JSON_FILE),
+            ("ini", DUMMY_INI_FILE),
+        ]
+    ),
 )
 
 
