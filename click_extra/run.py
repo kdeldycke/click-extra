@@ -53,32 +53,32 @@ def print_cli_output(cmd, output=None, error=None, error_code=None, extra_env=No
         print(theme.error(f"{INDENT}Return code: {error_code}"))
 
 
-def extend_env(extra_env=None):
-    """Returns a copy of the current environment variables and eventually extend it with ``extra_env``.
+def env_copy(extend=None):
+    """Returns a copy of the current environment variables and eventually ``extend`` it.
 
-    Mimicks Python's original implementation by returning ``None`` if no ``extra_env`` are added. See:
+    Mimicks Python's original implementation by returning ``None`` if no ``extend`` ``dict`` are added. See:
     https://github.com/python/cpython/blob/7b5b429adab4fe0fe81858fe3831f06adc2e2141/Lib/subprocess.py#L1648-L1649
     """
     # Environment variables are supposed to be a dict of str:str.
-    if isinstance(extra_env, dict):
-        for k, v in extra_env.items():
+    if isinstance(extend, dict):
+        for k, v in extend.items():
             assert isinstance(k, str)
             assert isinstance(v, str)
     else:
-        assert not extra_env
-    env = None
-    if extra_env:
+        assert not extend
+    env_copy = None
+    if extend:
         # By casting to dict we make a copy and prevent the modification of the global environment.
-        env = dict(os.environ)
-        env.update(extra_env)
-    return env
+        env_copy = dict(os.environ)
+        env_copy.update(extend)
+    return env_copy
 
 
 def run_cmd(*args, extra_env=None, print_output=True):
     """Run a system command, print output and return results."""
     assert isinstance(args, tuple)
     process = subprocess.run(
-        args, capture_output=True, encoding="utf-8", env=extend_env(extra_env)
+        args, capture_output=True, encoding="utf-8", env=env_copy(extra_env)
     )
 
     if print_output:

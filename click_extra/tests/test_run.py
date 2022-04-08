@@ -25,7 +25,7 @@ from cloup import Style
 
 from ..logging import logger
 from ..platform import is_windows
-from ..run import extend_env
+from ..run import env_copy
 from .conftest import skip_windows_colors
 
 
@@ -45,10 +45,10 @@ def test_env_copy():
     env_var = 'MPM_DUMMY_ENV_VAR_93725'
     assert env_var not in os.environ
 
-    env_copy = extend_env()
-    assert env_copy is None
+    no_env = env_copy()
+    assert no_env is None
 
-    extended_env = extend_env({env_var: "yo"})
+    extended_env = env_copy({env_var: "yo"})
     assert env_var in extended_env
     assert extended_env[env_var] == "yo"
     assert env_var not in os.environ
