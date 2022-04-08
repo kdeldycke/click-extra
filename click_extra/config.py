@@ -59,7 +59,7 @@ CONFIGURATION_FORMATS = {
     "TOML": (".toml",),
     "YAML": (".yaml", ".yml"),
     "JSON": (".json",),
-    "INI": (".ini", ".config", ".conf"),
+    "INI": (".ini",),
 }
 # List of all supported configuration file extensions.
 ALL_EXTENSIONS = tuple(flatten(CONFIGURATION_FORMATS.values()))
@@ -76,9 +76,9 @@ class DefaultConfPath:
     Location depends on OS (see `Click documentation
     <https://click.palletsprojects.com/en/8.0.x/api/#click.get_app_dir>`_):
 
-        * macOS & Linux: ``~/.my_cli/config.{toml,yaml,yml,json,ini,config,conf}``
+        * macOS & Linux: ``~/.my_cli/config.{toml,yaml,yml,json,ini}``
 
-        * Windows: ``C:\\Users\\<user>\\AppData\\Roaming\\my_cli\\config.{toml,yaml,yml,json,ini,config,conf}``
+        * Windows: ``C:\\Users\\<user>\\AppData\\Roaming\\my_cli\\config.{toml,yaml,yml,json,ini}``
     """
 
     default_conf_name = "config"
