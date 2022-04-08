@@ -325,6 +325,7 @@ Keep track of things to undo if they reach upstream.
 
 - [`#9` - Inquiry on Repo Status](https://github.com/click-contrib/click-configfile/issues/9)
 - [`#8` - Exclude some options from config file](https://github.com/click-contrib/click-configfile/issues/8)
+- [`#5` - Interpolation](https://github.com/click-contrib/click-configfile/issues/5)
 - [`#2` - Order of configuration file and environment variable value](https://github.com/click-contrib/click-configfile/issues/2)
 
 [`click-help-color`](https://github.com/click-contrib/click-help-colors):
