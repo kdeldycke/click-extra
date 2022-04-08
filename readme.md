@@ -341,7 +341,7 @@ Keep track of things to undo if they reach upstream.
 
 [`cli-helper`](https://github.com/dbcli/cli_helpers):
 
-- [`#79` -Replace local tabulate formats with those available upstream](https://github.com/dbcli/cli_helpers/issues/79)
+- [`#79` - Replace local tabulate formats with those available upstream](https://github.com/dbcli/cli_helpers/issues/79)
 
 [`cloup`](https://github.com/janluke/cloup):
 
