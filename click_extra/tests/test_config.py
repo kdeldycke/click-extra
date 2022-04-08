@@ -23,6 +23,7 @@ import pytest
 
 from .. import __version__
 from ..commands import group
+from ..config import config_option
 from ..platform import is_windows
 
 DUMMY_TOML_FILE = """
@@ -222,6 +223,47 @@ def test_conf_format_unknown(invoke, create_config):
         f"Load configuration from {conf_path.resolve()}\n"
         "critical: Configuration format not recognized.\n"
     )
+
+
+def test_strict_conf(invoke, create_config):
+    """Same test as the one shown in the readme, but in strict validation mode."""
+
+    @click.group(context_settings={"show_default": True})
+    @click.option("--dummy-flag/--no-flag")
+    @click.option("--my-list", multiple=True)
+    @config_option(strict=True)
+    def my_cli(dummy_flag, my_list):
+        click.echo(f"dummy_flag    is {dummy_flag!r}")
+        click.echo(f"my_list       is {my_list!r}")
+
+    @my_cli.command
+    @click.option("--int-param", type=int, default=10)
+    def subcommand(int_param):
+        click.echo(f"int_parameter is {int_param!r}")
+
+    conf_file = """
+        # My default configuration file.
+
+        [my-cli]
+        dummy_flag = true   # New boolean default.
+        my_list = ["item 1", "item #2", "Very Last Item!"]
+
+        [my-cli.subcommand]
+        int_param = 3
+        random_stuff = "will be ignored"
+        """
+
+    conf_path = create_config("messy.toml", conf_file)
+
+    result = invoke(my_cli, "--config", str(conf_path), "subcommand" , color=False)
+
+    assert result.exception
+    assert type(result.exception) == ValueError
+    assert str(result.exception) == "Parameter 'random_stuff' is not allowed in configuration file."
+
+    assert result.exit_code == 1
+    assert result.stderr == f"Load configuration from {conf_path}\n"
+    assert not result.stdout
 
 
 @all_config_formats

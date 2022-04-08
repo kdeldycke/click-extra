@@ -19,7 +19,7 @@
 
 import sys
 from configparser import ConfigParser, ExtendedInterpolation
-from functools import reduce
+from functools import partial, reduce
 from operator import getitem
 from pathlib import Path
 
@@ -242,7 +242,7 @@ def conf_structure(ctx):
     return conf_template, conf_types
 
 
-def parse_and_merge_conf(ctx, conf_content, conf_extension):
+def parse_and_merge_conf(ctx, conf_content, conf_extension, strict=False):
     """Detect configuration format, parse its content and returns a ``dict``.
 
     The returned ``dict`` will only contain options and parameters defined on the CLI. All others will be filtered out.
@@ -260,17 +260,19 @@ def parse_and_merge_conf(ctx, conf_content, conf_extension):
     # Merge configuration file's content into the template structure, but
     # ignore all unrecognized options.
 
-    def recursive_update(a, b):
+    def recursive_update(a, b, strict=False):
         """Like standard ``dict.update()``, but recursive so sub-dict gets updated.
 
         Ignore elements present in ``b`` but not in ``a``.
         """
         for k, v in b.items():
             if isinstance(v, dict) and isinstance(a.get(k), dict):
-                a[k] = recursive_update(a[k], v)
+                a[k] = recursive_update(a[k], v, strict=strict)
             # Ignore elements unregistered in the template structure.
             elif k in a:
                 a[k] = b[k]
+            elif strict:
+                raise ValueError(f"Parameter {k!r} is not allowed in configuration file.")
         return a
 
     conf_template, conf_types = conf_structure(ctx)
@@ -287,7 +289,7 @@ def parse_and_merge_conf(ctx, conf_content, conf_extension):
     elif conf_format == "INI":
         user_conf = load_ini_config(conf_content, conf_types)
 
-    valid_conf = recursive_update(conf_template, user_conf)
+    valid_conf = recursive_update(conf_template, user_conf, strict=strict)
 
     # Clean-up blank values left-over by the template structure.
 
@@ -326,7 +328,7 @@ def read_conf(conf_path):
     return conf_path.read_text(), conf_path.suffix.lower()
 
 
-def load_conf(ctx, param, conf_path):
+def load_conf(ctx, param, conf_path, strict=False):
     """Fetch parameters values from configuration file and merge them to the defaults.
 
     User configuration is merged to the context ``default_map``, as in:
@@ -357,14 +359,14 @@ def load_conf(ctx, param, conf_path):
     conf = {}
     try:
         conf_content, conf_extension = read_conf(conf_path)
-        conf = parse_and_merge_conf(ctx, conf_content, conf_extension)
-    except ConfigurationFileError as excpt:
+        conf = parse_and_merge_conf(ctx, conf_content, conf_extension, strict=strict)
+    except ConfigurationFileError as ex:
         # Exit the CLI if the user-provided config file is bad.
         if explicit_conf:
-            logger.fatal(excpt)
+            logger.fatal(ex)
             ctx.exit(2)
         else:
-            logger.debug(excpt)
+            logger.debug(ex)
             logger.debug("Ignore configuration file.")
 
     logger.debug(f"Loaded configuration: {conf}")
@@ -386,14 +388,26 @@ def config_option(
     # Force eagerness so the config option's callback gets the oportunity to set the
     # default_map values before the other options use them.
     is_eager=True,
-    callback=load_conf,
+    callback=None,
     expose_value=False,
     cls=GroupedOption,
+    strict=False,
     **kwargs,
 ):
-    """Adds a ``--config``/``-C`` option."""
+    """Adds a ``--config``/``-C`` option.
+
+    :param strict: if ``True``, raise an error if the configuration file contain unrecognized options.
+    Silently ignore unsupported options if ``False``.
+
+    For other params see Click's ``version_option`` decorator:
+    https://click.palletsprojects.com/en/8.0.x/api/#click.version_option
+    """
     if not names:
         names = ("--config", "-C")
+
+    if not callback:
+        callback = partial(load_conf, strict=strict)
+
     return click.option(
         *names,
         metavar=metavar,

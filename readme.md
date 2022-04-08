@@ -75,6 +75,7 @@ below.
   - `YAML`
   - `JSON`, with inline and block comments (Python-style `#` and Javascript-style `//`)
   - `INI`, with extended interpolation, multi-level sections and non-native types (list, sets, …)
+- strict validation of configuration
 - Respect of `CLI > Configuration > Environment > Defaults` precedence
 - Colorization of help screens
 - `--color/--no-color` option flag
@@ -315,6 +316,7 @@ Keep track of things to undo if they reach upstream.
 
 [`click-config-file`](https://github.com/phha/click_config_file):
 
+- [`#11` - warn when providing unsupported options in the config file?](https://github.com/phha/click_config_file/issues/11)
 - [`#9` - Additional configuration providers](https://github.com/phha/click_config_file/issues/9)
 
 [`click-configfile`](https://github.com/click-contrib/click-configfile):
