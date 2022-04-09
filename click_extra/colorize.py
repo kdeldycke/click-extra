@@ -171,7 +171,6 @@ def version_option(
     if not colorized_message:
         colorized_message = message
 
-    # XXX:fix to default to user's CLI, not click_extra.__version__).
     return click.version_option(
         version,
         *names,
