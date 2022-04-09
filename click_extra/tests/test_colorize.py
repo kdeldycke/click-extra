@@ -30,7 +30,12 @@ from .. import __version__
 from ..colorize import HelpExtraFormatter, color_option, theme, version_option
 from ..commands import command, group
 from ..logging import logger, verbosity_option
-from .conftest import default_options_colored_help, skip_windows_colors
+from .conftest import (
+    default_debug_colored_log,
+    default_debug_uncolored_log,
+    default_options_colored_help,
+    skip_windows_colors,
+)
 
 
 def test_options_highlight():
@@ -371,12 +376,12 @@ def test_integrated_color_option(invoke, param, expecting_colors):
             "\x1b[34mprint() bypass Click.\x1b[0m\n"
             "\x1b[32mDone.\x1b[0m\n"
         )
-        assert result.stderr == (
-            "\x1b[34mdebug: \x1b[0mVerbosity set to DEBUG.\n"
-            "\x1b[34mdebug: \x1b[0mSearch for configuration in default location...\n"
-            "\x1b[34mdebug: \x1b[0mNo default configuration found.\n"
-            "\x1b[34mdebug: \x1b[0mNo configuration provided.\n"
-            "\x1b[33mwarning: \x1b[0mProcessing...\n"
+        assert re.fullmatch(
+            (
+                rf"{default_debug_colored_log}"
+                r"\x1b\[33mwarning: \x1b\[0mProcessing...\n"
+            ),
+            result.stderr
         )
 
     else:
@@ -387,10 +392,10 @@ def test_integrated_color_option(invoke, param, expecting_colors):
             "\x1b[34mprint() bypass Click.\x1b[0m\n"
             "Done.\n"
         )
-        assert result.stderr == (
-            "debug: Verbosity set to DEBUG.\n"
-            "debug: Search for configuration in default location...\n"
-            "debug: No default configuration found.\n"
-            "debug: No configuration provided.\n"
-            "warning: Processing...\n"
+        assert re.fullmatch(
+            (
+                rf"{default_debug_uncolored_log}"
+                r"warning: Processing...\n"
+            ),
+            result.stderr
         )

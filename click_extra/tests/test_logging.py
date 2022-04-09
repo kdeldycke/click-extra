@@ -15,12 +15,14 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+import re
+
 import click
 import pytest
 
 from ..commands import group
 from ..logging import LOG_LEVELS, logger, verbosity_option
-from .conftest import skip_windows_colors
+from .conftest import default_debug_colored_log, skip_windows_colors
 
 
 def test_unrecognized_verbosity(invoke):
@@ -84,11 +86,6 @@ def test_integrated_verbosity_option(invoke, level):
     assert result.exit_code == 0
     assert result.output == "It works!\nRun command #1...\n"
     if level == "DEBUG":
-        assert result.stderr == (
-            "\x1b[34mdebug: \x1b[0mVerbosity set to DEBUG.\n"
-            "\x1b[34mdebug: \x1b[0mSearch for configuration in default location...\n"
-            "\x1b[34mdebug: \x1b[0mNo default configuration found.\n"
-            "\x1b[34mdebug: \x1b[0mNo configuration provided.\n"
-        )
+        assert re.fullmatch(default_debug_colored_log, result.stderr)
     else:
         assert not result.stderr

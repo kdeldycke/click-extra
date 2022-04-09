@@ -21,16 +21,20 @@ The collection of pre-defined decorators here present good and common defaults. 
 still mix'n'match the mixins below to build your own custom variants.
 """
 
+import io
+from functools import partial
+from logging import getLevelName
 from time import perf_counter
+from unittest.mock import patch
 
 import click
 from cloup import Command, Group, GroupedOption, OptionGroupMixin
 from cloup import command as cloup_command
 from cloup import group as cloup_group
 
-from .colorize import ExtraHelpColorsMixin, color_option, version_option
+from .colorize import ExtraHelpColorsMixin, VersionOption, color_option, version_option
 from .config import config_option
-from .logging import verbosity_option
+from .logging import logger, verbosity_option
 
 
 def register_timer_on_close(ctx, param, value):
@@ -130,7 +134,32 @@ class ExtraOptionsMixin:
         super().main(*args, **kwargs)
 
     def invoke(self, ctx):
-        """Main execution of the command, just after the context has been instanciated in ``main()``."""
+        """Main execution of the command, just after the context has been instanciated in ``main()``.
+
+        Adds, to the normal execution flow, the output of the `--version` parameter in DEBUG logs. This
+        facilitates troubleshooting user's issues.
+        """
+        if getLevelName(logger.level) == 'DEBUG':
+
+            # Look for our custom version parameter.
+            for param in ctx.find_root().command.params:
+                if isinstance(param, VersionOption):
+                    # Call the --version parameter, but:
+                    #  - capture its output from stdout to redirect it to the DEBUG logger:
+                    #    https://github.com/pallets/click/blob/c1d0729bbb26e3f8b0a28440fb0ebca352535c25/src/click/decorators.py#L451-L455
+                    #    https://github.com/pallets/click/blob/14472ffcd80dd86d47ddc08341168152540ee6f2/src/click/utils.py#L205-L211
+                    capture = io.StringIO()
+                    capture_echo = partial(click.echo, file=capture)
+                    with patch.object(click.decorators, "echo", new=capture_echo):
+                        # Neutralize parameter call to `ctx.exit()`, as seen in:
+                        # https://github.com/pallets/click/blob/c1d0729bbb26e3f8b0a28440fb0ebca352535c25/src/click/decorators.py#L456
+
+                        with patch(f"{ctx.__class__.__module__}.{ctx.__class__.__name__}.exit"):
+                            param.callback(ctx, param, True)
+
+                    for line in capture.getvalue().splitlines():
+                        logger.debug(line)
+
         return super().invoke(ctx)
 
 

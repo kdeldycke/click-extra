@@ -25,6 +25,7 @@ from .. import __version__
 from ..commands import group
 from ..config import config_option
 from ..platform import is_windows
+from .conftest import default_debug_uncolored_log
 
 DUMMY_TOML_FILE = """
     # Comment
@@ -160,12 +161,7 @@ def test_unset_conf_debug_message(invoke):
     )
     assert result.exit_code == 0
     assert result.output == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
-    assert result.stderr == (
-        "debug: Verbosity set to DEBUG.\n"
-        "debug: Search for configuration in default location...\n"
-        "debug: No default configuration found.\n"
-        "debug: No configuration provided.\n"
-    )
+    assert re.fullmatch(default_debug_uncolored_log, result.stderr)
 
 
 def test_conf_default_path(invoke):
@@ -288,8 +284,14 @@ def test_conf_file_overrides_defaults(
             "dummy_flag = True\nmy_list = ('pip', 'npm', 'gem')\nint_parameter = 3\n"
         )
         # Debug level has been activated by configuration file.
-        assert result.stderr == (
-            f"Load configuration from {conf_path}\n" "debug: Verbosity set to DEBUG.\n"
+        assert re.fullmatch(
+            (
+                fr"Load configuration from {conf_path}\n"
+                r"debug: Verbosity set to DEBUG.\n"
+                r"debug: \S+, version \S+\n"
+                r"debug: {.*}\n"
+            ),
+            result.stderr
         )
 
 

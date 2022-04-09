@@ -117,6 +117,11 @@ def color_option(
     )
 
 
+class VersionOption(GroupedOption):
+    """No-op class wrapping ``GroupedOption`` to serve as a marker to identify parameters created with our own ``version_option`` below. """
+    pass
+
+
 def version_option(
     version=None,
     *names,
@@ -127,7 +132,7 @@ def version_option(
     prog_name_style=theme.invoked_command,
     message_style=None,
     env_info_style=Style(fg="bright_black"),
-    cls=GroupedOption,
+    cls=VersionOption,
     **kwargs,
 ):
     """
