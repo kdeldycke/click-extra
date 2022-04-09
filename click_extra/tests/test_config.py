@@ -285,6 +285,8 @@ def test_conf_file_overrides_defaults(
             "dummy_flag = True\nmy_list = ('pip', 'npm', 'gem')\nint_parameter = 3\n"
         )
 
+        # Make path string compatible with regexp on Windows.
+        conf_path = str(conf_path).replace("\\", "\\\\")
         # Debug level has been activated by configuration file.
         debug_log = (
             fr"Load configuration from {conf_path}\n"
@@ -295,8 +297,6 @@ def test_conf_file_overrides_defaults(
         # https://github.com/mahmoud/boltons/issues/294 to be released upstream.
         if sys.version_info[:2] < (3, 10):
             debug_log += r"debug: {.*}\n"
-        # Make path string compatible with regexp.
-        debug_log = str(debug_log).replace("\\", "\\\\")
         assert re.fullmatch(debug_log, result.stderr)
 
 
