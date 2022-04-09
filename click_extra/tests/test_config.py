@@ -295,6 +295,8 @@ def test_conf_file_overrides_defaults(
         # https://github.com/mahmoud/boltons/issues/294 to be released upstream.
         if sys.version_info[:2] < (3, 10):
             debug_log += r"debug: {.*}\n"
+        # Make path string compatible with regexp.
+        debug_log = str(debug_log).replace("\\", "\\\\")
         assert re.fullmatch(debug_log, result.stderr)
 
 
