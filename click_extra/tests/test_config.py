@@ -16,6 +16,7 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 import re
+import sys
 from pathlib import Path
 
 import click
@@ -283,16 +284,18 @@ def test_conf_file_overrides_defaults(
         assert result.output == (
             "dummy_flag = True\nmy_list = ('pip', 'npm', 'gem')\nint_parameter = 3\n"
         )
+
         # Debug level has been activated by configuration file.
-        assert re.fullmatch(
-            (
-                fr"Load configuration from {conf_path}\n"
-                r"debug: Verbosity set to DEBUG.\n"
-                r"debug: \S+, version \S+\n"
-                r"debug: {.*}\n"
-            ),
-            result.stderr
+        debug_log = (
+            fr"Load configuration from {conf_path}\n"
+            r"debug: Verbosity set to DEBUG.\n"
+            r"debug: \S+, version \S+\n"
         )
+        # XXX Temporarily expect extra-env info for Python < 3.10 while we wait for
+        # https://github.com/mahmoud/boltons/issues/294 to be released upstream.
+        if sys.version_info[:2] < (3, 10):
+            debug_log += r"debug: {.*}\n"
+        assert re.fullmatch(debug_log, result.stderr)
 
 
 @all_config_formats
