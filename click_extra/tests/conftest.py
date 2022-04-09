@@ -216,7 +216,7 @@ default_debug_colored_log = (
     r"\x1b\[34mdebug: \x1b\[0mSearch for configuration in default location...\n"
     r"\x1b\[34mdebug: \x1b\[0mNo default configuration found.\n"
     r"\x1b\[34mdebug: \x1b\[0mNo configuration provided.\n"
-    r"\x1b\[34mdebug: \x1b\[0m\x1b\[97m\S+\x1b\[0m, version \x1b\[32m\S+\x1b\[0m\x1b\[90m\n"
+    r"\x1b\[34mdebug: \x1b\[0m\x1b\[97m\S+\x1b\[0m, version \x1b\[32m\S+\x1b\[0m(\x1b\[90m)?\n"
 )
 
 
