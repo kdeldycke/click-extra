@@ -99,7 +99,7 @@ class DefaultConfPath:
         for conf_ext in ALL_EXTENSIONS:
             conf_file = conf_path.with_suffix(conf_ext)
             if conf_file.exists():
-                logger.debug(f"File found in default location {conf_file}.")
+                logger.debug(f"File found in default location {conf_file}")
                 return conf_file
         logger.debug("No default configuration found.")
 
@@ -377,6 +377,7 @@ def load_conf(ctx, param, conf_path, strict=False):
     if ctx.default_map is None:
         ctx.default_map = dict()
     ctx.default_map.update(conf.get(ctx.find_root().command.name, {}))
+    logger.debug(f"New defaults: {ctx.default_map}")
 
     return conf_path
 
