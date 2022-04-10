@@ -80,6 +80,7 @@ below.
   - `YAML`
   - `JSON`, with inline and block comments (Python-style `#` and Javascript-style `//`)
   - `INI`, with extended interpolation, multi-level sections and non-native types (list, sets, …)
+  - `XML`
 - Download configuration from remote URLs
 - Optional strict validation of configuration
 - Automatic search of configuration file from default user folder

@@ -26,6 +26,7 @@ from pathlib import Path
 import click
 import commentjson as json
 import requests
+import xmltodict
 import yaml
 from boltons.iterutils import flatten, remap
 from boltons.urlutils import URL
@@ -54,12 +55,12 @@ IGNORED_OPTIONS = (
 
 # Maps configuration formats, their file extension, and parsing function,
 # The order encode the priority by which each format is searched for default configuration file.
-# TODO: add XML?
 CONFIGURATION_FORMATS = {
     "TOML": (".toml",),
     "YAML": (".yaml", ".yml"),
     "JSON": (".json",),
     "INI": (".ini",),
+    "XML": (".xml",),
 }
 # List of all supported configuration file extensions.
 ALL_EXTENSIONS = tuple(flatten(CONFIGURATION_FORMATS.values()))
@@ -77,9 +78,9 @@ class DefaultConfPath:
     Location depends on OS (see `Click documentation
     <https://click.palletsprojects.com/en/8.0.x/api/#click.get_app_dir>`_):
 
-        * macOS & Linux: ``~/.my_cli/config.{toml,yaml,yml,json,ini}``
+        * macOS & Linux: ``~/.my_cli/config.{toml,yaml,yml,json,ini,xml}``
 
-        * Windows: ``C:\\Users\\<user>\\AppData\\Roaming\\my_cli\\config.{toml,yaml,yml,json,ini}``
+        * Windows: ``C:\\Users\\<user>\\AppData\\Roaming\\my_cli\\config.{toml,yaml,yml,json,ini,xml}``
     """
 
     default_conf_name = "config"
@@ -290,6 +291,9 @@ def parse_and_merge_conf(ctx, conf_content, conf_extension, strict=False):
 
     elif conf_format == "INI":
         user_conf = load_ini_config(conf_content, conf_types)
+
+    elif conf_format == "XML":
+        user_conf = xmltodict.parse(conf_content)
 
     valid_conf = recursive_update(conf_template, user_conf, strict=strict)
 

@@ -117,7 +117,43 @@ DUMMY_INI_FILE = """
     blahblah: 234
     dummy_flag = true
     my_list = ["pip", "npm", "gem"]
+    """
 
+DUMMY_XML_FILE = """
+    <!-- Comment -->
+
+    <default-group has="an attribute">
+
+        <to_ignore>
+            <key>value</key>
+            <spaces >    </spaces>
+            <text_as_value>
+                Ratione omnis sit rerum dolor.
+                Quas omnis dolores quod sint aspernatur.
+                Veniam deleniti est totam pariatur temporibus qui
+                        accusantium eaque.
+            </text_as_value>
+
+        </to_ignore>
+
+        <verbosity>debug</verbosity>
+        <blahblah>234</blahblah>
+        <dummy_flag>true</dummy_flag>
+
+        <my_list>pip</my_list>
+        <my_list>npm</my_list>
+        <my_list>gem</my_list>
+
+        <garbage>
+            <!-- An empty random section that will be skipped -->
+        </garbage>
+
+        <default-command>
+            <int_param>3</int_param>
+            <random_stuff>will be ignored</random_stuff>
+        </default-command>
+
+    </default-group>
     """
 
 
@@ -130,6 +166,7 @@ all_config_formats = pytest.mark.parametrize(
             ("yaml", DUMMY_YAML_FILE),
             ("json", DUMMY_JSON_FILE),
             ("ini", DUMMY_INI_FILE),
+            ("xml", DUMMY_XML_FILE),
         ]
     ),
 )
@@ -176,7 +213,7 @@ def test_conf_default_path(invoke):
         folder = Path("AppData") / "Roaming" / "default-group"
         home = Path.home()
 
-    default_path = home / folder / "config.{toml,yaml,yml,json,ini}"
+    default_path = home / folder / "config.{toml,yaml,yml,json,ini,xml}"
 
     # Make path string compatible with regexp.
     default_path = str(default_path).replace("\\", "\\\\").replace("-", r"-\s*")

@@ -49,7 +49,7 @@ Options:
   --my-list TEXT
   -C, --config CONFIG_PATH  Location of the configuration file. Supports both
                             local path and remote URL.  [default:
-                            ~/.my_cli.py/config.{toml,yaml,yml,json,ini,config,conf}]
+                            ~/.my_cli.py/config.{toml,yaml,yml,json,ini,xml}]
   --help                    Show this message and exit.
 
 Commands:
@@ -176,6 +176,10 @@ dummy_flag    is True
 my_list       is ('item 1', 'item #2', 'Very Last Item!')
 int_parameter is 65
 ```
+
+## INI configuration
+
+## XML configuration
 
 ## Remote configuration
 
