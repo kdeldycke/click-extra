@@ -64,8 +64,8 @@ if __name__ == "__main__":
 
 </td></tr>
 <tr>
-<td><img alt="click CLI help screen" width="70%" src="https://github.com/kdeldycke/click-extra/raw/main/click-help-screen.png"/></td>
-<td><img alt="click-extra CLI help screen" width="70%" src="https://github.com/kdeldycke/click-extra/raw/main/click-extra-screen.png"/></td>
+<td><img alt="click CLI help screen" width="70%" src="https://github.com/kdeldycke/click-extra/raw/main/docs/images/click-help-screen.png"/></td>
+<td><img alt="click-extra CLI help screen" width="70%" src="https://github.com/kdeldycke/click-extra/raw/main/docs/images/click-extra-screen.png"/></td>
 </tr>
 </table>
 
