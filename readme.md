@@ -1,4 +1,8 @@
-# Click Extra
+<p align="center">
+  <a href="https://github.com/kdeldycke/click-extra/">
+    <img src="https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/images/logo-banner.svg" alt="Click Extra">
+  </a>
+</p>
 
 [![Last release](https://img.shields.io/pypi/v/click-extra.svg)](https://pypi.python.org/pypi/click-extra)
 [![Python versions](https://img.shields.io/pypi/pyversions/click-extra.svg)](https://pypi.python.org/pypi/click-extra)
@@ -8,7 +12,7 @@
 
 **What is Click Extra?**
 
-`click-extra` is a collection of helpers and utilities for
+A collection of helpers and utilities for
 [Click](https://click.palletsprojects.com), the Python CLI framework.
 
 It is a drop-in replacement with good defaults that saves you some boilerplate
