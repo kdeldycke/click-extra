@@ -11,6 +11,13 @@ maxdepth: 2
 hidden:
 ---
 install
+config
+colorize
+logging
+tabulate
+platform
+run
+issues
 ```
 
 ```{toctree}
