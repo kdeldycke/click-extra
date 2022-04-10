@@ -3,6 +3,7 @@
 [![Last release](https://img.shields.io/pypi/v/click-extra.svg)](https://pypi.python.org/pypi/click-extra)
 [![Python versions](https://img.shields.io/pypi/pyversions/click-extra.svg)](https://pypi.python.org/pypi/click-extra)
 [![Unittests status](https://github.com/kdeldycke/click-extra/actions/workflows/tests.yaml/badge.svg?branch=main)](https://github.com/kdeldycke/click-extra/actions/workflows/tests.yaml?query=branch%3Amain)
+[![Documentation status](https://github.com/kdeldycke/click-extra/actions/workflows/docs.yaml/badge.svg?branch=main)](https://github.com/kdeldycke/click-extra/actions/workflows/docs.yaml?query=branch%3Amain)
 [![Coverage status](https://codecov.io/gh/kdeldycke/click-extra/branch/main/graph/badge.svg)](https://codecov.io/gh/kdeldycke/click-extra/branch/main)
 
 **What is Click Extra?**
@@ -353,12 +354,6 @@ Keep track of things to undo if they reach upstream.
 [`python-tabulate`](https://github.com/astanin/python-tabulate):
 
 - [`#151` - Add new {`rounded`,`simple`,`double`}\_(`grid`,`outline`} formats](https://github.com/astanin/python-tabulate/pull/151)
-
-## Dependencies
-
-Here is a graph of Python package dependencies:
-
-![click-extra dependency graph](https://github.com/kdeldycke/click-extra/raw/main/dependencies.png)
 
 ## Development
 

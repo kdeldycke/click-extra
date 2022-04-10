@@ -8,7 +8,7 @@ authors = ["Kevin Deldycke <kevin@deldycke.com>"]
 readme = "readme.md"
 homepage = 'https://github.com/kdeldycke/click-extra'
 repository = 'https://github.com/kdeldycke/click-extra'
-documentation = 'https://github.com/kdeldycke/click-extra#readme'
+documentation = 'https://kdeldycke.github.io/click-extra'
 keywords = [
     'cli',
     'cli-helper',
@@ -46,13 +46,14 @@ classifiers = [
     'Topic :: System :: Shells',
     'Topic :: System :: Software Distribution',
     'Topic :: Terminals',
+    'Topic :: Text Processing :: Markup :: XML',
     'Topic :: Utilities',
 ]
 
 [tool.poetry.urls]
 "Funding" = "https://github.com/sponsors/kdeldycke"
 "Issues" = "https://github.com/kdeldycke/click-extra/issues"
-"Changelog" = "https://github.com/kdeldycke/click-extra/blob/main/changelog.md#changelog"
+"Changelog" = "https://kdeldycke.github.io/click-extra/changelog.html"
 
 [tool.poetry.dependencies]
 # List of python versions and their support status:
@@ -73,11 +74,18 @@ tomli = { version = "^2.0.0", python = "< 3.11" }
 [tool.poetry.dev-dependencies]
 bump2version = "^1.0.1"
 coverage = { extras = ["toml"], version = "^6.3" }
+furo = "^2022.4.7"
+myst-parser = "^0.17.0"
 pytest = "^7.1.1"
 # More pytest plugins at: https://docs.pytest.org/en/latest/reference/plugin_list.html
 pytest-cov = "^3.0.0"
 pytest-httpserver = "^1.0.3"
 pytest-randomly = "^3.10.2"
+sphinx = "^4.5.0"
+sphinx-copybutton = "^0.5.0"
+sphinx-issues = "^3.0.1"
+sphinx_tabs = "^3.3.1"
+sphinxext-opengraph = "^0.6.3"
 
 [tool.black]
 # "You should include all Python versions that you want your code to run under."
