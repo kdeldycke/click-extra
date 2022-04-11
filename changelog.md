@@ -12,8 +12,11 @@ This version is not released yet and is under active development.
 - Add strict mode to fail on unrecognized configuration options.
 - Support the `NO_COLOR` environment variable convention from
   [`no-color.org`](https://no-color.org).
+- Recognize a subset of `(FORCE_)(CLI)(NO_)COLOR(S)(_FORCE)` variations as
+  color-sensitive environment variables.
 - Print version and environment details in logs at the `DEBUG` level.
 - Add Sphinx-based documentation.
+- Add a logo.
 - Outsource documentation publishing to external workflow.
 
 ## {gh}`1.9.0 (2022-04-08) <compare/v1.8.0...v1.9.0>`
