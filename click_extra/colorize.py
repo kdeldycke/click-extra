@@ -78,19 +78,19 @@ KO = theme.error("✘")
 
 color_env_vars = {
     # Colors.
-    'COLOR': True,
-    'COLORS': True,
-    'CLICOLOR': True,
-    'CLICOLORS': True,
-    'FORCE_COLOR': True,
-    'FORCE_COLORS': True,
-    'CLICOLOR_FORCE': True,
-    'CLICOLORS_FORCE': True,
+    "COLOR": True,
+    "COLORS": True,
+    "CLICOLOR": True,
+    "CLICOLORS": True,
+    "FORCE_COLOR": True,
+    "FORCE_COLORS": True,
+    "CLICOLOR_FORCE": True,
+    "CLICOLORS_FORCE": True,
     # No colors.
-    'NOCOLOR': False,
-    'NOCOLORS': False,
-    'NO_COLOR': False,
-    'NO_COLORS': False,
+    "NOCOLOR": False,
+    "NOCOLORS": False,
+    "NO_COLOR": False,
+    "NO_COLORS": False,
 }
 """List of environment variables recognized as flags to switch color rendering on or off.
 
@@ -111,7 +111,7 @@ def disable_colors(ctx, param, value):
         if var in os.environ:
             # Presence of the variable in the environment without a value encodes for an ativation,
             # hence the default to True.
-            var_value = os.environ.get(var, 'true')
+            var_value = os.environ.get(var, "true")
             # `os.environ` is a dict whose all values are strings. Here we normalize these string into
             # booleans. If we can't, we fallback to True, in the same spirit as above.
             var_boolean = RawConfigParser.BOOLEAN_STATES.get(var_value.lower(), True)
@@ -120,7 +120,9 @@ def disable_colors(ctx, param, value):
     # Re-interpret the provided value against the recognized environment variables.
     if colorize_from_env:
         # The environment can only override the provided value if it comes from the default value or the config file.
-        env_takes_precedence = ctx.get_parameter_source("color") == ParameterSource.DEFAULT
+        env_takes_precedence = (
+            ctx.get_parameter_source("color") == ParameterSource.DEFAULT
+        )
         if env_takes_precedence:
             # One env var is enough to activate colorization.
             value = True in colorize_from_env
