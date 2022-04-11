@@ -6,11 +6,14 @@ This is the list of issues and bugs from other projet that `click-extra` has add
 
 - [`#2111` - `Context.color = False` doesn't overrides `echo(color=True)`](https://github.com/pallets/click/issues/2111)
 - [`#2110` - `testing.CliRunner.invoke` cannot pass color for `Context` instantiation](https://github.com/pallets/click/issues/2110)
+- [`#1498` - Support for `NO_COLOR` proposal](https://github.com/pallets/click/issues/1498)
+- [`#1090` - Color output from CI jobs](https://github.com/pallets/click/issues/1090)
+- [`#558` - Support `FORCE_COLOR` in `click.echo`](https://github.com/pallets/click/issues/558)
 
 ## [`click-config-file`](https://github.com/phha/click_config_file)
 
-- [`#26` - Don't require FILE for --config when implicit=False?](https://github.com/phha/click_config_file/issues/26)
-- [`#11` - warn when providing unsupported options in the config file?](https://github.com/phha/click_config_file/issues/11)
+- [`#26` - Don't require `FILE` for `--config` when `implicit=False`?](https://github.com/phha/click_config_file/issues/26)
+- [`#11` - Warn when providing unsupported options in the config file?](https://github.com/phha/click_config_file/issues/11)
 - [`#9` - Additional configuration providers](https://github.com/phha/click_config_file/issues/9)
 
 ## [`click-configfile`](https://github.com/click-contrib/click-configfile)

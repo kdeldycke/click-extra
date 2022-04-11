@@ -77,12 +77,26 @@ KO = theme.error("✘")
 """Pre-rendered UI-elements."""
 
 color_env_vars = {
+    # Colors.
     'COLOR': True,
+    'COLORS': True,
+    'CLICOLOR': True,
+    'CLICOLORS': True,
+    'FORCE_COLOR': True,
+    'FORCE_COLORS': True,
+    'CLICOLOR_FORCE': True,
+    'CLICOLORS_FORCE': True,
+    # No colors.
+    'NOCOLOR': False,
+    'NOCOLORS': False,
     'NO_COLOR': False,
+    'NO_COLORS': False,
 }
 """List of environment variables recognized as flags to switch color rendering on or off.
 
 The key is the name of the variable and the boolean value the value to pass to ``--color`` option flag when encountered.
+
+Source: https://github.com/pallets/click/issues/558
 """
 
 
