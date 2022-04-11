@@ -144,6 +144,7 @@ class ExtraOptionsMixin:
             # Look for our custom version parameter.
             for param in ctx.find_root().command.params:
                 if isinstance(param, VersionOption):
+
                     # Call the --version parameter, but:
                     #  - capture its output from stdout to redirect it to the DEBUG logger:
                     #    https://github.com/pallets/click/blob/c1d0729bbb26e3f8b0a28440fb0ebca352535c25/src/click/decorators.py#L451-L455
@@ -151,9 +152,9 @@ class ExtraOptionsMixin:
                     capture = io.StringIO()
                     capture_echo = partial(click.echo, file=capture)
                     with patch.object(click.decorators, "echo", new=capture_echo):
+
                         # Neutralize parameter call to `ctx.exit()`, as seen in:
                         # https://github.com/pallets/click/blob/c1d0729bbb26e3f8b0a28440fb0ebca352535c25/src/click/decorators.py#L456
-
                         with patch(f"{ctx.__class__.__module__}.{ctx.__class__.__name__}.exit"):
                             param.callback(ctx, param, True)
 

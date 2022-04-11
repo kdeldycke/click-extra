@@ -95,10 +95,11 @@ below.
   - `@skip_linux`, `@skip_macos` and `@skip_windows`
   - `@unless_linux`, `@unless_macos` and `@unless_windows`
   - `@destructive` and `@non_destructive`
+- [Fixes 20+ bugs](https://kdeldycke.github.io/click-extra/issues.html) from other Click-related projects
 
 ## Used in
 
-Check these projects to get real-life example of `click-extra` usage:
+Check these projects to get real-life examples of `click-extra` usage:
 
 - [Mail Deduplicate](https://github.com/kdeldycke/mail-deduplicate#readme) - A
   CLI to deduplicate similar emails.

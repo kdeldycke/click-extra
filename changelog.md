@@ -103,8 +103,7 @@ This version is not released yet and is under active development.
 
 - Extend `cli-helper.TabularOutputFormatter` with new formats: `simple_grid`,
   `rounded_grid`, `double_grid`, `outline`, `simple_outline`, `rounded_outline`
-  and `double_outline`. Address
-  [astanin/python-tabulate:#151)](https://github.com/astanin/python-tabulate/pull/151).
+  and `double_outline`. Address {issue}`astanin/python-tabulate#151`.
 - Add a new `--table-format`/`-t` option to select table format rendering mode.
 - Add new dependency on `cli-helper` and `tabulate`.
 - Automate post-release version bump.

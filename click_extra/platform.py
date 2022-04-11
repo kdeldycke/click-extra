@@ -46,7 +46,6 @@ def is_windows():
     return sys.platform in ("win32", "cygwin")
 
 
-# Map OS IDs to evaluation function and OS labels.
 OS_DEFINITIONS = FrozenDict(
     {
         LINUX: ("Linux", is_linux()),
@@ -54,10 +53,11 @@ OS_DEFINITIONS = FrozenDict(
         WINDOWS: ("Windows", is_windows()),
     }
 )
+"""Map OS IDs to evaluation function and OS labels."""
 
 
-# Generare sets of recognized IDs and labels.
 ALL_OS_LABELS = frozenset({label for label, _ in OS_DEFINITIONS.values()})
+""" Sets of recognized IDs and labels. """
 
 
 def os_label(os_id):

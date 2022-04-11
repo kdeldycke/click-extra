@@ -101,6 +101,7 @@ def verbosity_option(
         # state between multiple test calls.
         ctx.call_on_close(logger.reset)
 
+
     return click.option(
         *names,
         default=default,

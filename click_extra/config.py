@@ -42,19 +42,19 @@ else:
 from .logging import logger
 from .platform import is_windows
 
-# List of unsupported options we're going to ignore.
 IGNORED_OPTIONS = (
-    # --help is not a configurable option.
     "help",
-    # --version is not a configurable option.
     "version",
-    # -C/--config option cannot be used to recursively load another file.
     "config",
 )
+"""List of unsupported options we're going to ignore.
+
+- `--help` is not a configurable option.
+- `--version` is not a configurable option.
+- `-C/--config` option cannot be used to recursively load another file.
+"""
 
 
-# Maps configuration formats, their file extension, and parsing function,
-# The order encode the priority by which each format is searched for default configuration file.
 CONFIGURATION_FORMATS = {
     "TOML": (".toml",),
     "YAML": (".yaml", ".yml"),
@@ -62,8 +62,14 @@ CONFIGURATION_FORMATS = {
     "INI": (".ini",),
     "XML": (".xml",),
 }
-# List of all supported configuration file extensions.
+"""
+Maps configuration formats, their file extension, and parsing function,
+The order encode the priority by which each format is searched for default configuration file.
+"""
+
+
 ALL_EXTENSIONS = tuple(flatten(CONFIGURATION_FORMATS.values()))
+"""List of all supported configuration file extensions."""
 
 
 class ConfigurationFileError(Exception):
@@ -105,8 +111,10 @@ class DefaultConfPath:
         logger.debug("No default configuration found.")
 
     def __str__(self):
-        """Default location represented with all supported extensions for help screens."""
-        # Reduce leading path with the `~` user's home construct for tersness.
+        """Default location represented with all supported extensions for help screens.
+
+        Reduce leading path with the `~` user's home construct for tersness.
+        """
         conf_path = self.conf_path
         if not is_windows():
             try:

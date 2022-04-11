@@ -20,10 +20,11 @@
 from functools import partial
 
 import click
-import tabulate
 from cli_helpers.tabular_output import TabularOutputFormatter, tabulate_adapter
 from cli_helpers.tabular_output.output_formatter import MAX_FIELD_WIDTH, MISSING_VALUE
 from cloup import GroupedOption
+
+import tabulate
 from tabulate import DataRow, Line, TableFormat
 
 from .platform import is_windows
