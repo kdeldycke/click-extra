@@ -139,7 +139,7 @@ class ExtraOptionsMixin:
         Adds, to the normal execution flow, the output of the `--version` parameter in DEBUG logs. This
         facilitates troubleshooting user's issues.
         """
-        if getLevelName(logger.level) == 'DEBUG':
+        if getLevelName(logger.level) == "DEBUG":
 
             # Look for our custom version parameter.
             for param in ctx.find_root().command.params:
@@ -155,7 +155,9 @@ class ExtraOptionsMixin:
 
                         # Neutralize parameter call to `ctx.exit()`, as seen in:
                         # https://github.com/pallets/click/blob/c1d0729bbb26e3f8b0a28440fb0ebca352535c25/src/click/decorators.py#L456
-                        with patch(f"{ctx.__class__.__module__}.{ctx.__class__.__name__}.exit"):
+                        with patch(
+                            f"{ctx.__class__.__module__}.{ctx.__class__.__name__}.exit"
+                        ):
                             param.callback(ctx, param, True)
 
                     for line in capture.getvalue().splitlines():
