@@ -242,7 +242,7 @@ def test_standalone_version_option_without_env_info(invoke):
 @pytest.mark.parametrize(
     "params", (None, "--help", "blah", ("--config", "random.toml"))
 )
-def test_integrated_version_option_eagerness(invoke, params):
+def test_integrated_version_option_precedence(invoke, params):
     @group(version="1.2.3.4")
     def dummy_cli():
         click.echo("It works!")
@@ -316,12 +316,17 @@ def test_standalone_color_option(invoke, param, expecting_colors):
 
 
 @skip_windows_colors
-def test_color_option_eagerness(invoke):
+def test_color_option_precedence(invoke):
     """--no-color has an effect on --version, if placed in the right order.
 
     Eager parameters are evaluated in the order as they were provided on the command
     line by the user as expleined in:
     https://click.palletsprojects.com/en/8.0.x/advanced/#callback-evaluation-order
+
+    ..todo:
+
+        Maybe have the possibility to tweak CLI callback evaluation order so we can
+        let the user to have the NO_COLOR env set to allow for color-less --version output.
     """
 
     @click.command()
@@ -341,6 +346,7 @@ def test_color_option_eagerness(invoke):
     assert not result.stderr
 
 
+@skip_windows_colors
 @pytest.mark.parametrize(
     "env,env_expect_colors",
     (
