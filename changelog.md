@@ -10,6 +10,7 @@ This version is not released yet and is under active development.
 - Add strict mode to fail on unrecognized configuration options.
 - Print version and environment details in logs at the `DEBUG` level.
 - Add Sphinx-based documentation.
+- Outsource documentation publishing to external workflow.
 
 ## {gh}`1.9.0 (2022-04-08) <compare/v1.8.0...v1.9.0>`
 
