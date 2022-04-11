@@ -350,12 +350,12 @@ def test_color_option_precedence(invoke):
 @pytest.mark.parametrize(
     "env,env_expect_colors",
     (
-        ({'COLOR': 'true'}, True),
-        ({'COLOR': ''}, True),
-        ({'COLOR': 'false'}, False),
-        ({'NO_COLOR': 'true'}, False),
-        ({'NO_COLOR': ''}, False),
-        ({'NO_COLOR': 'false'}, True),
+        ({"COLOR": "true"}, True),
+        ({"COLOR": ""}, True),
+        ({"COLOR": "false"}, False),
+        ({"NO_COLOR": "true"}, False),
+        ({"NO_COLOR": ""}, False),
+        ({"NO_COLOR": "false"}, True),
         (None, True),
     ),
 )
@@ -369,7 +369,9 @@ def test_color_option_precedence(invoke):
         (None, True),
     ),
 )
-def test_no_color_env_convention(invoke, env, env_expect_colors, param, param_expect_colors):
+def test_no_color_env_convention(
+    invoke, env, env_expect_colors, param, param_expect_colors
+):
     @click.command()
     @color_option()
     def dummy_cli():
