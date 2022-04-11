@@ -17,12 +17,15 @@
 
 """ Helpers and utilities to apply ANSI coloring to terminal content. """
 
+import os
 import re
 import sys
 from collections import namedtuple
+from configparser import RawConfigParser
 from functools import partial
 
 import click
+from click.core import ParameterSource
 from click_log import ColorFormatter
 from cloup import GroupedOption, HelpFormatter, HelpTheme, Style
 
@@ -63,13 +66,50 @@ theme = HelpExtraTheme(
 )
 
 
-# Pre-rendered UI-elements.
+# No color theme.
+nocolor_theme = HelpExtraTheme(
+    **{style_id: Style() for style_id in HelpExtraTheme._fields}
+)
+
+
 OK = theme.success("✓")
 KO = theme.error("✘")
+"""Pre-rendered UI-elements."""
+
+color_env_vars = {
+    'COLOR': True,
+    'NO_COLOR': False,
+}
+"""List of environment variables recognized as flags to switch color rendering on or off.
+
+The key is the name of the variable and the boolean value the value to pass to ``--color`` option flag when encountered.
+"""
 
 
 def disable_colors(ctx, param, value):
-    """Callback disabling all coloring utilities."""
+    """Callback disabling all coloring utilities.
+
+    Re-inspect the environment for existence of colorization flags to re-interpret the provided value.
+    """
+    # Collect all colorize flags in environment variables we recognize.
+    colorize_from_env = set()
+    for var, default in color_env_vars.items():
+        if var in os.environ:
+            # Presence of the variable in the environment without a value encodes for an ativation,
+            # hence the default to True.
+            var_value = os.environ.get(var, 'true')
+            # `os.environ` is a dict whose all values are strings. Here we normalize these string into
+            # booleans. If we can't, we fallback to True, in the same spirit as above.
+            var_boolean = RawConfigParser.BOOLEAN_STATES.get(var_value.lower(), True)
+            colorize_from_env.add(default ^ (not var_boolean))
+
+    # Re-interpret the provided value against the recognized environment variables.
+    if colorize_from_env:
+        # The environment can only override the provided value if it comes from the default value or the config file.
+        env_takes_precedence = ctx.get_parameter_source("color") == ParameterSource.DEFAULT
+        if env_takes_precedence:
+            # One env var is enough to activate colorization.
+            value = True in colorize_from_env
 
     # There is an undocumented color flag in context:
     # https://github.com/pallets/click/blob/65eceb08e392e74dcc761be2090e951274ccbe36/src/click/globals.py#L56-L69

@@ -341,6 +341,49 @@ def test_color_option_eagerness(invoke):
     assert not result.stderr
 
 
+@pytest.mark.parametrize(
+    "env,env_expect_colors",
+    (
+        ({'COLOR': 'true'}, True),
+        ({'COLOR': ''}, True),
+        ({'COLOR': 'false'}, False),
+        ({'NO_COLOR': 'true'}, False),
+        ({'NO_COLOR': ''}, False),
+        ({'NO_COLOR': 'false'}, True),
+        (None, True),
+    ),
+)
+@pytest.mark.parametrize(
+    "param,param_expect_colors",
+    (
+        ("--color", True),
+        ("--no-color", False),
+        ("--ansi", True),
+        ("--no-ansi", False),
+        (None, True),
+    ),
+)
+def test_no_color_env_convention(invoke, env, env_expect_colors, param, param_expect_colors):
+    @click.command()
+    @color_option()
+    def dummy_cli():
+        click.echo(Style(fg="yellow")("It works!"))
+
+    result = invoke(dummy_cli, param, color=True, env=env)
+    assert result.exit_code == 0
+    assert not result.stderr
+
+    # Params always overrides env's expectations.
+    expecting_colors = env_expect_colors
+    if param:
+        expecting_colors = param_expect_colors
+
+    if expecting_colors:
+        assert result.output == "\x1b[33mIt works!\x1b[0m\n"
+    else:
+        assert result.output == "It works!\n"
+
+
 @skip_windows_colors
 @pytest.mark.parametrize(
     "param,expecting_colors",

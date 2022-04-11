@@ -87,6 +87,7 @@ below.
 - Respect of `CLI > Configuration > Environment > Defaults` precedence
 - Colorization of help screens
 - `--color/--no-color` option flag
+- Recognize the `NO_COLOR` environment variable convention from [`no-color.org`](https://no-color.org)
 - Colored `--version` option
 - Colored `--verbosity` option and logs
 - `--time/--no-time` flag to measure duration of command execution

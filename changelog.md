@@ -8,6 +8,8 @@ This version is not released yet and is under active development.
 
 - Add support for XML configuration file. Closes {issue}`122`.
 - Add strict mode to fail on unrecognized configuration options.
+- Support the `NO_COLOR` environment variable convention from
+  [`no-color.org`](https://no-color.org).
 - Print version and environment details in logs at the `DEBUG` level.
 - Add Sphinx-based documentation.
 - Outsource documentation publishing to external workflow.
