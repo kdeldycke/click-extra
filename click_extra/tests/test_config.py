@@ -326,7 +326,7 @@ def test_conf_file_overrides_defaults(
         conf_path = str(conf_path).replace("\\", "\\\\")
         # Debug level has been activated by configuration file.
         debug_log = (
-            fr"Load configuration from {conf_path}\n"
+            rf"Load configuration from {conf_path}\n"
             r"debug: Verbosity set to DEBUG.\n"
             r"debug: \S+, version \S+\n"
         )

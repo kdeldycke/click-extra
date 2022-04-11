@@ -27,6 +27,7 @@ PROMPT = "► "
 INDENT = " " * len(PROMPT)
 """Some CLI printing constants."""
 
+
 def format_cli(cmd, extra_env=None):
     """Simulate CLI rendering in terminal."""
     assert cmd

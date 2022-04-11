@@ -381,7 +381,7 @@ def test_integrated_color_option(invoke, param, expecting_colors):
                 rf"{default_debug_colored_log}"
                 r"\x1b\[33mwarning: \x1b\[0mProcessing...\n"
             ),
-            result.stderr
+            result.stderr,
         )
 
     else:
@@ -393,9 +393,6 @@ def test_integrated_color_option(invoke, param, expecting_colors):
             "Done.\n"
         )
         assert re.fullmatch(
-            (
-                rf"{default_debug_uncolored_log}"
-                r"warning: Processing...\n"
-            ),
-            result.stderr
+            (rf"{default_debug_uncolored_log}" r"warning: Processing...\n"),
+            result.stderr,
         )
