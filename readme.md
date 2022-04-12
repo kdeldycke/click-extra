@@ -86,6 +86,7 @@ below.
 - Automatic search of configuration file from default user folder
 - Respect of `CLI > Configuration > Environment > Defaults` precedence
 - Colorization of help screens
+- `-h/--help` option names (see [rant on other inconsistencies](https://blog.craftyguy.net/cmdline-help/))
 - `--color/--no-color` option flag
 - Recognize the `NO_COLOR` environment variable convention from [`no-color.org`](https://no-color.org)
 - Colored `--version` option
