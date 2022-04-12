@@ -6,6 +6,9 @@
 This version is not released yet and is under active development.
 ```
 
+- Fix Sphinx documentation update and publishing.
+- Run tests on `pypy-3.7` and `pypy-3.8`.
+
 ## {gh}`2.0.0 (2022-04-11) <compare/v1.9.0...v2.0.0>`
 
 - Add support for XML configuration file. Closes {issue}`122`.
