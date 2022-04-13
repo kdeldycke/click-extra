@@ -36,8 +36,8 @@ def test_real_fs():
 
 
 def test_temporary_fs(runner):
-    """Check the CLI runner fixture properly encapsulated the filesystem in
-    temporary directory."""
+    """Check the CLI runner fixture properly encapsulated the filesystem in temporary
+    directory."""
     assert not str(Path(__file__)).startswith(str(Path.cwd()))
 
 
@@ -57,7 +57,7 @@ def test_env_copy():
 @click.command()
 @click.pass_context
 def dummy_cli(ctx):
-    """https://github.com/pallets/click/issues/2111"""
+    """https://github.com/pallets/click/issues/2111."""
 
     click.echo(Style(fg="green")("echo()"))
     click.echo(Style(fg="green")("echo(color=None)"), color=None)
@@ -157,8 +157,7 @@ def test_invoke_forced_color_stripping(invoke):
 @skip_windows_colors
 def test_invoke_color_keep(invoke):
     """On windows Click ends up deciding it is not running un an interactive terminal
-    and forces the stripping of all colors.
-    """
+    and forces the stripping of all colors."""
     result = invoke(dummy_cli, color=True)
     if is_windows():
         check_default_uncolored_rendering(result)

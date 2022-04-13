@@ -15,7 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-""" Utilities to load parameters and options from a configuration file. """
+"""Utilities to load parameters and options from a configuration file."""
 
 import sys
 from configparser import ConfigParser, ExtendedInterpolation
@@ -125,9 +125,8 @@ class DefaultConfPath:
 
 
 def init_deep_dict(path, leaf=None):
-    """Utility method to recursively create a nested dict structure whose keys are provided by ``levels`` list
-    and at the end is populated by ``leaf``.
-    """
+    """Utility method to recursively create a nested dict structure whose keys are
+    provided by ``levels`` list and at the end is populated by ``leaf``."""
 
     def dive(levels):
         if levels:
@@ -256,7 +255,8 @@ def conf_structure(ctx):
 def parse_and_merge_conf(ctx, conf_content, conf_extension, strict=False):
     """Detect configuration format, parse its content and returns a ``dict``.
 
-    The returned ``dict`` will only contain options and parameters defined on the CLI. All others will be filtered out.
+    The returned ``dict`` will only contain options and parameters defined on the CLI.
+    All others will be filtered out.
     """
     # Select configuration format based on extension and parse its content.
     user_conf = None

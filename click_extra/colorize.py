@@ -15,7 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-""" Helpers and utilities to apply ANSI coloring to terminal content. """
+"""Helpers and utilities to apply ANSI coloring to terminal content."""
 
 import os
 import re
@@ -103,7 +103,8 @@ Source: https://github.com/pallets/click/issues/558
 def disable_colors(ctx, param, value):
     """Callback disabling all coloring utilities.
 
-    Re-inspect the environment for existence of colorization flags to re-interpret the provided value.
+    Re-inspect the environment for existence of colorization flags to re-interpret the
+    provided value.
     """
     # Collect all colorize flags in environment variables we recognize.
     colorize_from_env = set()
@@ -152,8 +153,9 @@ def color_option(
     cls=GroupedOption,
     **kwargs,
 ):
-    """A ready to use option decorator that is adding a ``--color/--no-color`` (aliased by
-    ``--ansi/--no-ansi``) option to keep or strip colors and ANSI codes from CLI output.
+    """A ready to use option decorator that is adding a ``--color/--no-color`` (aliased
+    by ``--ansi/--no-ansi``) option to keep or strip colors and ANSI codes from CLI
+    output.
 
     This option is eager by defaults to allow for other eager options (like
     ``--version``) to be rendered colorless.
@@ -174,7 +176,8 @@ def color_option(
 
 
 class VersionOption(GroupedOption):
-    """No-op class wrapping ``GroupedOption`` to serve as a marker to identify parameters created with our own ``version_option`` below."""
+    """No-op class wrapping ``GroupedOption`` to serve as a marker to identify
+    parameters created with our own ``version_option`` below."""
 
     pass
 
@@ -302,8 +305,8 @@ class ExtraHelpColorsMixin:
 
 
 class HelpExtraFormatter(HelpFormatter):
-    """Extends Cloup's custom HelpFormatter to highlights options, choices,
-    metavars and default values.
+    """Extends Cloup's custom HelpFormatter to highlights options, choices, metavars and
+    default values.
 
     This is being discussed for upstream integration at:
     * https://github.com/janluke/cloup/issues/97
@@ -327,14 +330,14 @@ class HelpExtraFormatter(HelpFormatter):
     def highlight_extra_keywords(self, help_text):
         """Highlight extra keywoards in help screens based on the theme.
 
-        It is based on regular expressions. While this is not a bullet-proof method, it is good
-        enough. After all, help screens are not consumed by machine but are designed for human.
+        It is based on regular expressions. While this is not a bullet-proof method, it
+        is good enough. After all, help screens are not consumed by machine but are
+        designed for human.
         """
 
         def colorize(match, style):
             """Re-create the matching string by concatenating all groups, but only
-            colorize named groups.
-            """
+            colorize named groups."""
             txt = ""
             for group in match.groups():
                 if group in match.groupdict().values():
@@ -384,6 +387,7 @@ class HelpExtraFormatter(HelpFormatter):
         return help_text
 
     def getvalue(self):
-        """Wrap original `Click.HelpFormatter.getvalue()` to force extra-colorization on rendering."""
+        """Wrap original `Click.HelpFormatter.getvalue()` to force extra-colorization on
+        rendering."""
         help_text = super().getvalue()
         return self.highlight_extra_keywords(help_text)

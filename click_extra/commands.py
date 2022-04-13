@@ -15,7 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-""" Wrap-up all click-extra extensions into click-like commands.
+"""Wrap-up all click-extra extensions into click-like commands.
 
 The collection of pre-defined decorators here present good and common defaults. You can
 still mix'n'match the mixins below to build your own custom variants.
@@ -40,7 +40,8 @@ from .logging import logger, verbosity_option
 def register_timer_on_close(ctx, param, value):
     """Callback setting up all timer's machinery.
 
-    Computes and print the execution time at the end of the CLI, if option has been activated.
+    Computes and print the execution time at the end of the CLI, if option has been
+    activated.
     """
     # Skip time keeping if option is not active.
     if not value:
@@ -66,8 +67,8 @@ def timer_option(
     cls=GroupedOption,
     **kwargs,
 ):
-    """A ready to use option decorator that is adding a ``--time/--no-time``
-    option flag to print elapsed time at the end of CLI execution."""
+    """A ready to use option decorator that is adding a ``--time/--no-time`` option flag
+    to print elapsed time at the end of CLI execution."""
     if not names:
         names = ("--time/--no-time",)
     return click.option(
@@ -126,18 +127,20 @@ class ExtraOptionsMixin:
         )
 
     def main(self, *args, **kwargs):
-        """Pre-invokation step that is instanciating the context, then call ``invoke()`` within it.
+        """Pre-invokation step that is instanciating the context, then call ``invoke()``
+        within it.
 
-        During context instanciation, each option's callbacks are called. Beware that these
-        might break the execution flow (like ``--version``).
+        During context instanciation, each option's callbacks are called. Beware that
+        these might break the execution flow (like ``--version``).
         """
         super().main(*args, **kwargs)
 
     def invoke(self, ctx):
-        """Main execution of the command, just after the context has been instanciated in ``main()``.
+        """Main execution of the command, just after the context has been instanciated
+        in ``main()``.
 
-        Adds, to the normal execution flow, the output of the `--version` parameter in DEBUG logs. This
-        facilitates troubleshooting user's issues.
+        Adds, to the normal execution flow, the output of the `--version` parameter in
+        DEBUG logs. This facilitates troubleshooting user's issues.
         """
         if getLevelName(logger.level) == "DEBUG":
 
@@ -167,7 +170,8 @@ class ExtraOptionsMixin:
 
 
 class ExtraCommand(ExtraHelpColorsMixin, ExtraOptionsMixin, Command):
-    """Cloup default `command` with extra help screen colorization and default options."""
+    """Cloup default `command` with extra help screen colorization and default
+    options."""
 
     pass
 
@@ -175,8 +179,9 @@ class ExtraCommand(ExtraHelpColorsMixin, ExtraOptionsMixin, Command):
 class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, ExtraOptionsMixin, Group):
     """Cloup default `group` with extra help screen colorization and default options.
 
-    Cloup does not support option groups on `Click.group`, hence the inherited `OptionGroupMixin`.
-    This is a workaround that is being discussed at https://github.com/janluke/cloup/issues/98
+    Cloup does not support option groups on `Click.group`, hence the inherited
+    `OptionGroupMixin`. This is a workaround that is being discussed at
+    https://github.com/janluke/cloup/issues/98
     """
 
     pass

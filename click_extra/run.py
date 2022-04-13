@@ -43,7 +43,8 @@ def format_cli(cmd, extra_env=None):
 def print_cli_output(cmd, output=None, error=None, error_code=None, extra_env=None):
     """Same has above put print the full similation of CLI execution, including output.
 
-    Mostly used to print debug traces to user or in test results."""
+    Mostly used to print debug traces to user or in test results.
+    """
     print(f"\n{format_cli(cmd, extra_env)}")
     if output:
         print(indent(output, INDENT))

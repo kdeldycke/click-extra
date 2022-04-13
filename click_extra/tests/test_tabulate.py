@@ -319,8 +319,8 @@ expected_renderings = {
 
 
 def test_recognized_modes():
-    """Check all rendering modes proposed by the table module are
-    accounted for and there is no duplicates."""
+    """Check all rendering modes proposed by the table module are accounted for and
+    there is no duplicates."""
     assert len(TabularOutputFormatter._output_formats) == len(
         set(expected_renderings.keys())
     )
@@ -354,8 +354,9 @@ def test_default_rendering(invoke):
     (pytest.param(k, v, id=k) for k, v in expected_renderings.items()),
 )
 def test_all_table_rendering(invoke, format_name, expected):
-    """Check that from all rendering modes, only the selected one appears
-    in <stdout> and only there. Any other mode are not expected neither in
+    """Check that from all rendering modes, only the selected one appears in <stdout>
+    and only there. Any other mode are not expected neither in.
+
     <stdout> or <stderr>.
     """
     result = invoke(dummy_cli, "--table-format", format_name)

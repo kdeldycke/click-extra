@@ -15,7 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-""" Fixtures, configuration and helpers for tests. """
+"""Fixtures, configuration and helpers for tests."""
 
 import os
 import sys
