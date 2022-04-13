@@ -30,7 +30,8 @@ jobs:
           # tomllib has been added in Python 3.11.0-alpha.7
           # - "3.11.0-alpha.7 - 3.11.0"
           - "pypy-3.7"
-          - "pypy-3.8"
+          # Jinja seems to be broken on pypy-3.8.
+          # - "pypy-3.8"
           # Failed to build cryptography package for pypy-3.9.
           # - "pypy-3.9"
     steps:
