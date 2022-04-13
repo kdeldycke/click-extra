@@ -196,7 +196,7 @@ def map_option_type(param):
     if param.multiple:
         return list
 
-    if param.is_bool_flag:
+    if getattr(param, "is_bool_flag", None):
         return bool
 
     if isinstance(param.type, click.Choice):
@@ -207,10 +207,12 @@ def map_option_type(param):
         click.FLOAT: float,
         click.BOOL: bool,
         click.STRING: str,
+        click.File: str,
     }
 
-    if param.type in direct_map:
-        return direct_map[param.type]
+    for click_type, py_type in direct_map.items():
+        if param.type == click_type or isinstance(param.type, click_type):
+            return py_type
 
     raise ValueError(
         f"Can't guess the target configuration data type of {param!r} prameter."

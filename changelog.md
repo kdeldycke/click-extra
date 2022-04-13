@@ -6,6 +6,7 @@
 This version is not released yet and is under active development.
 ```
 
+- Fix mapping of file arguments in configuration files.
 - Fix Sphinx documentation update and publishing.
 - Run tests on `pypy-3.7` and `pypy-3.8`.
 
