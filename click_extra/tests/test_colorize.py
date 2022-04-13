@@ -273,8 +273,8 @@ def test_integrated_version_option_precedence(invoke, params):
     ),
 )
 def test_standalone_color_option(invoke, param, expecting_colors):
-    """Check color option values, defaults and effects on all things colored,
-    including verbosity option."""
+    """Check color option values, defaults and effects on all things colored, including
+    verbosity option."""
 
     @click.command()
     @verbosity_option()

@@ -15,7 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-""" Logging utilities. """
+"""Logging utilities."""
 
 import logging
 
@@ -57,8 +57,7 @@ class WrappedLogger:
 
     def reset(self):
         """Forces the logger level to reset at the end of each CLI execution, as it
-        might pollute the logger state between multiple test calls.
-        """
+        might pollute the logger state between multiple test calls."""
         self.wrapped_logger.setLevel(logging.NOTSET)
 
 

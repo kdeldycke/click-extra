@@ -168,8 +168,8 @@ def table_format_option(
     cls=GroupedOption,
     **kwargs,
 ):
-    """A ready to use option decorator that is adding a ``-t/--table-format``
-    option flag to select the rendering style of a table."""
+    """A ready to use option decorator that is adding a ``-t/--table-format`` option
+    flag to select the rendering style of a table."""
     if not names:
         names = ("-t", "--table-format")
     return click.option(
