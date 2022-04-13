@@ -1,5 +1,11 @@
 # Changelog
 
+## {gh}`2.0.2 (unreleased) <compare/v2.0.1...main>`
+
+```{{important}}
+This version is not released yet and is under active development.
+```
+
 ## {gh}`2.0.1 (2022-04-13) <compare/v2.0.0...v2.0.1>`
 
 - Fix mapping of file arguments in configuration files.

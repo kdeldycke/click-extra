@@ -1,7 +1,7 @@
 [tool.poetry]
 # Docs: https://python-poetry.org/docs/pyproject/
 name = "click-extra"
-version = "2.0.1"
+version = "2.0.2"
 description = "🌈 Extra colorization and configuration loading for Click."
 license = 'GPL-2.0-or-later'
 authors = ["Kevin Deldycke <kevin@deldycke.com>"]
@@ -71,7 +71,7 @@ mergedeep = "^1.3.4"
 pyyaml = "^6.0.0"
 requests = "^2.27.1"
 tabulate = { extras = ["widechars"], version = "^0.8.9" }
-tomli = { version = "^2.0.1", python = "< 3.11" }
+tomli = { version = "^2.0.2", python = "< 3.11" }
 xmltodict = "^0.12.0"
 
 [tool.poetry.dev-dependencies]
