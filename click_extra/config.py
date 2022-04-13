@@ -193,7 +193,7 @@ def load_ini_config(content, conf_types):
 def map_option_type(param):
     """Translate Click parameter type to Python type."""
 
-    if param.multiple:
+    if param.multiple or param.nargs != 1:
         return list
 
     if getattr(param, "is_bool_flag", None):
