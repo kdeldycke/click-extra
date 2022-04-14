@@ -266,39 +266,39 @@ def test_conf_auto_types(invoke, monkeypatch, create_config):
     def patched_conf_structure(ctx):
         conf_template, conf_types = conf_structure(ctx)
         assert conf_template == {
-            'my-cli': {
-                'flag1': None,
-                'flag2': None,
-                'int_param1': None,
-                'int_param2': None,
-                'float_param1': None,
-                'float_param2': None,
-                'bool_param1': None,
-                'bool_param2': None,
-                'str_param1': None,
-                'str_param2': None,
-                'choice_param': None,
-                'list1': None,
-                'file_arg1': None,
-                'file_arg2': None
+            "my-cli": {
+                "flag1": None,
+                "flag2": None,
+                "int_param1": None,
+                "int_param2": None,
+                "float_param1": None,
+                "float_param2": None,
+                "bool_param1": None,
+                "bool_param2": None,
+                "str_param1": None,
+                "str_param2": None,
+                "choice_param": None,
+                "list1": None,
+                "file_arg1": None,
+                "file_arg2": None,
             }
         }
         assert conf_types == {
-            'my-cli': {
-                'flag1': bool,
-                'flag2': bool,
-                'int_param1': int,
-                'int_param2': int,
-                'float_param1': float,
-                'float_param2': float,
-                'bool_param1': bool,
-                'bool_param2': bool,
-                'str_param1': str,
-                'str_param2': str,
-                'choice_param': str,
-                'list1': list,
-                'file_arg1': str,
-                'file_arg2': list
+            "my-cli": {
+                "flag1": bool,
+                "flag2": bool,
+                "int_param1": int,
+                "int_param2": int,
+                "float_param1": float,
+                "float_param2": float,
+                "bool_param1": bool,
+                "bool_param2": bool,
+                "str_param1": str,
+                "str_param2": str,
+                "choice_param": str,
+                "list1": list,
+                "file_arg1": str,
+                "file_arg2": list,
             }
         }
         return conf_template, conf_types
@@ -316,16 +316,33 @@ def test_conf_auto_types(invoke, monkeypatch, create_config):
     @option("--bool-param2", type=click.BOOL)
     @option("--str-param1", type=str)
     @option("--str-param2", type=click.STRING)
-    @option("--choice-param", type=click.Choice(('a', 'b', 'c')))
+    @option("--choice-param", type=click.Choice(("a", "b", "c")))
     @option("--list1", multiple=True)
     @argument("file_arg1", type=click.File("w"))
     @argument("file_arg2", type=click.File("w"), nargs=-1)
     @config_option()
-    def my_cli(flag1, flag2, int_param1, int_param2, float_param1, float_param2, bool_param1, bool_param2, str_param1, str_param2, choice_param, list1, file_arg1, file_arg2):
+    def my_cli(
+        flag1,
+        flag2,
+        int_param1,
+        int_param2,
+        float_param1,
+        float_param2,
+        bool_param1,
+        bool_param2,
+        str_param1,
+        str_param2,
+        choice_param,
+        list1,
+        file_arg1,
+        file_arg2,
+    ):
         echo("Works!")
 
     conf_path = create_config("dummy.toml", DUMMY_TOML_FILE)
-    result = invoke(my_cli, "--config", str(conf_path), "random_file1", "random_file2", color=False)
+    result = invoke(
+        my_cli, "--config", str(conf_path), "random_file1", "random_file2", color=False
+    )
 
     assert result.exit_code == 0
     assert result.output == "Works!\n"

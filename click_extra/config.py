@@ -245,7 +245,7 @@ def conf_structure(ctx):
             conf_types[cli.name][p.name] = map_option_type(p)
 
     # Subcommand-specific options.
-    if hasattr(cli, 'commands'):
+    if hasattr(cli, "commands"):
         for cmd_id, cmd in cli.commands.items():
             if cmd_id in conf_template[cli.name]:
                 raise ValueError(
@@ -255,7 +255,9 @@ def conf_structure(ctx):
             for p in cmd.params:
                 if p.name not in IGNORED_OPTIONS:
                     conf_template[cli.name].setdefault(cmd_id, {})[p.name] = None
-                    conf_types[cli.name].setdefault(cmd_id, {})[p.name] = map_option_type(p)
+                    conf_types[cli.name].setdefault(cmd_id, {})[
+                        p.name
+                    ] = map_option_type(p)
 
     return conf_template, conf_types
 
