@@ -1,5 +1,11 @@
 # Changelog
 
+## {gh}`2.0.3 (unreleased) <compare/v2.0.2...main>`
+
+```{{important}}
+This version is not released yet and is under active development.
+```
+
 ## {gh}`2.0.2 (2022-04-14) <compare/v2.0.1...v2.0.2>`
 
 - Fix and unittest derivation of configuration template and types from CLI
