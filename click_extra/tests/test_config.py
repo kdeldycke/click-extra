@@ -22,9 +22,9 @@ from pathlib import Path
 import click
 import pytest
 
-from .. import __version__, argument, command
+from .. import __version__, argument
 from .. import config as config_module
-from .. import group, option
+from .. import echo, group, option
 from ..config import conf_structure, config_option
 from ..platform import is_windows
 from .conftest import default_debug_uncolored_log
@@ -177,14 +177,14 @@ all_config_formats = pytest.mark.parametrize(
 @option("--dummy-flag/--no-flag")
 @option("--my-list", multiple=True)
 def default_group(dummy_flag, my_list):
-    click.echo(f"dummy_flag = {dummy_flag!r}")
-    click.echo(f"my_list = {my_list!r}")
+    echo(f"dummy_flag = {dummy_flag!r}")
+    echo(f"my_list = {my_list!r}")
 
 
 @default_group.command()
 @option("--int-param", type=int, default=10)
 def default_command(int_param):
-    click.echo(f"int_parameter = {int_param!r}")
+    echo(f"int_parameter = {int_param!r}")
 
 
 def test_unset_conf_no_message(invoke):
@@ -322,7 +322,7 @@ def test_conf_auto_types(invoke, monkeypatch, create_config):
     @argument("file_arg2", type=click.File("w"), nargs=-1)
     @config_option()
     def my_cli(flag1, flag2, int_param1, int_param2, float_param1, float_param2, bool_param1, bool_param2, str_param1, str_param2, choice_param, list1, file_arg1, file_arg2):
-        click.echo("Works!")
+        echo("Works!")
 
     conf_path = create_config("dummy.toml", DUMMY_TOML_FILE)
     result = invoke(my_cli, "--config", str(conf_path), "random_file1", "random_file2", color=False)
@@ -339,13 +339,13 @@ def test_strict_conf(invoke, create_config):
     @option("--my-list", multiple=True)
     @config_option(strict=True)
     def my_cli(dummy_flag, my_list):
-        click.echo(f"dummy_flag    is {dummy_flag!r}")
-        click.echo(f"my_list       is {my_list!r}")
+        echo(f"dummy_flag    is {dummy_flag!r}")
+        echo(f"my_list       is {my_list!r}")
 
     @my_cli.command
     @option("--int-param", type=int, default=10)
     def subcommand(int_param):
-        click.echo(f"int_parameter is {int_param!r}")
+        echo(f"int_parameter is {int_param!r}")
 
     conf_file = """
         # My default configuration file.
