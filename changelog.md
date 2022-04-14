@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Fix and unittest derivation of configuration template and types from CLI
+  options.
 - Fix dependency requirements induced by overzealous automatic post-release
   version bump workflow.
 

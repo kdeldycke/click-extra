@@ -195,7 +195,7 @@ def map_option_type(param):
     if param.multiple or param.nargs != 1:
         return list
 
-    if getattr(param, "is_bool_flag", None):
+    if hasattr(param, "is_bool_flag") and getattr(param, "is_bool_flag"):
         return bool
 
     if isinstance(param.type, click.Choice):
@@ -206,11 +206,18 @@ def map_option_type(param):
         click.FLOAT: float,
         click.BOOL: bool,
         click.STRING: str,
-        click.File: str,
     }
 
     for click_type, py_type in direct_map.items():
-        if param.type == click_type or isinstance(param.type, click_type):
+        if param.type == click_type:
+            return py_type
+
+    instance_map = {
+        click.File: str,
+    }
+
+    for click_type, py_type in instance_map.items():
+        if isinstance(param.type, click_type):
             return py_type
 
     raise ValueError(
@@ -238,16 +245,17 @@ def conf_structure(ctx):
             conf_types[cli.name][p.name] = map_option_type(p)
 
     # Subcommand-specific options.
-    for cmd_id, cmd in cli.commands.items():
-        if cmd_id in conf_template[cli.name]:
-            raise ValueError(
-                f"{cli.name}.{cmd_id} subcommand conflicts with {conf_template[cli.name]} top-level parameters"
-            )
+    if hasattr(cli, 'commands'):
+        for cmd_id, cmd in cli.commands.items():
+            if cmd_id in conf_template[cli.name]:
+                raise ValueError(
+                    f"{cli.name}.{cmd_id} subcommand conflicts with {conf_template[cli.name]} top-level parameters"
+                )
 
-        for p in cmd.params:
-            if p.name not in IGNORED_OPTIONS:
-                conf_template[cli.name].setdefault(cmd_id, {})[p.name] = None
-                conf_types[cli.name].setdefault(cmd_id, {})[p.name] = map_option_type(p)
+            for p in cmd.params:
+                if p.name not in IGNORED_OPTIONS:
+                    conf_template[cli.name].setdefault(cmd_id, {})[p.name] = None
+                    conf_types[cli.name].setdefault(cmd_id, {})[p.name] = map_option_type(p)
 
     return conf_template, conf_types
 
