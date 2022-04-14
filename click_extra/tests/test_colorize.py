@@ -24,11 +24,9 @@ import pytest
 from boltons.strutils import strip_ansi
 from cloup import Style
 from cloup import command as cloup_command
-from cloup import option, option_group
 
-from .. import __version__
+from .. import __version__, command, echo, group, option, option_group
 from ..colorize import HelpExtraFormatter, color_option, theme, version_option
-from ..commands import command, group
 from ..logging import logger, verbosity_option
 from .conftest import (
     default_debug_colored_log,
@@ -107,23 +105,23 @@ def test_keyword_collection(invoke):
     )
     @option("--test")
     def mycli(opt1, opt2, opt3, opt4, test):
-        click.echo("It works!")
+        echo("It works!")
 
     @command()
     def command1():
-        click.echo("Run click-extra command #1...")
+        echo("Run click-extra command #1...")
 
     @cloup_command()
     def command2():
-        click.echo("Run cloup command #2...")
+        echo("Run cloup command #2...")
 
     @click.command()
     def command3():
-        click.echo("Run click command #3...")
+        echo("Run click command #3...")
 
     @command()
     def command4():
-        click.echo("Run click-extra command #4...")
+        echo("Run click-extra command #4...")
 
     mycli.section("Subcommand group 1", command1, command2)
     mycli.section("Extra commands", command3, command4)
@@ -207,7 +205,7 @@ def test_standalone_version_option_with_env_info(invoke):
     @click.group()
     @version_option(version="1.2.3.4", print_env_info=True)
     def dummy_cli():
-        click.echo("It works!")
+        echo("It works!")
 
     # Test default colouring.
     result = invoke(dummy_cli, "--version", color=True)
@@ -229,7 +227,7 @@ def test_standalone_version_option_without_env_info(invoke):
     @click.group()
     @version_option(version="1.2.3.4", print_env_info=False)
     def dummy_cli():
-        click.echo("It works!")
+        echo("It works!")
 
     # Test default colouring.
     result = invoke(dummy_cli, "--version", color=True)
@@ -245,7 +243,7 @@ def test_standalone_version_option_without_env_info(invoke):
 def test_integrated_version_option_precedence(invoke, params):
     @group(version="1.2.3.4")
     def dummy_cli():
-        click.echo("It works!")
+        echo("It works!")
 
     result = invoke(dummy_cli, "--version", params, color=True)
     assert result.exit_code == 0
@@ -280,9 +278,9 @@ def test_standalone_color_option(invoke, param, expecting_colors):
     @verbosity_option()
     @color_option()
     def dummy_cli():
-        click.echo(Style(fg="yellow")("It works!"))
-        click.echo("\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m")
-        click.echo(click.style("Run command.", fg="magenta"))
+        echo(Style(fg="yellow")("It works!"))
+        echo("\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m")
+        echo(click.style("Run command.", fg="magenta"))
         logger.warning("Processing...")
         print(click.style("print() bypass Click.", fg="blue"))
         click.secho("Done.", fg="green")
@@ -333,7 +331,7 @@ def test_color_option_precedence(invoke):
     @color_option()
     @version_option(version="2.1.9")
     def dummy_cli():
-        click.echo(Style(fg="yellow")("It works!"))
+        echo(Style(fg="yellow")("It works!"))
 
     result = invoke(dummy_cli, "--no-color", "--version", "command1", color=True)
     assert result.exit_code == 0
@@ -375,7 +373,7 @@ def test_no_color_env_convention(
     @click.command()
     @color_option()
     def dummy_cli():
-        click.echo(Style(fg="yellow")("It works!"))
+        echo(Style(fg="yellow")("It works!"))
 
     result = invoke(dummy_cli, param, color=True, env=env)
     assert result.exit_code == 0
@@ -406,12 +404,12 @@ def test_no_color_env_convention(
 def test_integrated_color_option(invoke, param, expecting_colors):
     @group()
     def dummy_cli():
-        click.echo(Style(fg="yellow")("It works!"))
-        click.echo("\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m")
+        echo(Style(fg="yellow")("It works!"))
+        echo("\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m")
 
     @dummy_cli.command()
     def command1():
-        click.echo(click.style("Run command #1.", fg="magenta"))
+        echo(click.style("Run command #1.", fg="magenta"))
         logger.warning("Processing...")
         print(click.style("print() bypass Click.", fg="blue"))
         click.secho("Done.", fg="green")

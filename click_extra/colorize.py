@@ -24,7 +24,8 @@ from collections import namedtuple
 from configparser import RawConfigParser
 from functools import partial
 
-import click
+from click import Choice, get_current_context, option
+from click import version_option as click_version_option
 from click.core import ParameterSource
 from click_log import ColorFormatter
 from cloup import GroupedOption, HelpFormatter, HelpTheme, Style
@@ -136,7 +137,7 @@ def disable_colors(ctx, param, value):
 
         def restore_original_styling():
             # Reset color flag in context.
-            ctx = click.get_current_context()
+            ctx = get_current_context()
             ctx.color = None
 
         ctx.call_on_close(restore_original_styling)
@@ -162,7 +163,7 @@ def color_option(
     """
     if not names:
         names = ("--color/--no-color", "--ansi/--no-ansi")
-    return click.option(
+    return option(
         *names,
         is_flag=is_flag,
         default=default,
@@ -236,7 +237,7 @@ def version_option(
     if not colorized_message:
         colorized_message = message
 
-    return click.version_option(
+    return click_version_option(
         version,
         *names,
         cls=cls,
@@ -270,7 +271,7 @@ class ExtraHelpColorsMixin:
         for param in ctx.command.params:
             options.update(param.opts)
 
-            if isinstance(param.type, click.Choice):
+            if isinstance(param.type, Choice):
                 choices.update(param.type.choices)
 
             if param.metavar:
