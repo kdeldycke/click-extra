@@ -121,7 +121,8 @@ def disable_colors(ctx, param, value):
 
     # Re-interpret the provided value against the recognized environment variables.
     if colorize_from_env:
-        # The environment can only override the provided value if it comes from the default value or the config file.
+        # The environment can only override the provided value if it comes from
+        # the default value or the config file.
         env_takes_precedence = (
             ctx.get_parameter_source("color") == ParameterSource.DEFAULT
         )

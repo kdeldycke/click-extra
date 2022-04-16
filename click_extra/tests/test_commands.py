@@ -115,7 +115,8 @@ def test_group_help(invoke, param):
     ("--version", "blah", ("--verbosity", "DEBUG"), ("--config", "random.toml")),
 )
 def test_help_eagerness(invoke, params):
-    # See: https://click.palletsprojects.com/en/8.0.x/advanced/#callback-evaluation-order
+    # See:
+    # https://click.palletsprojects.com/en/8.0.x/advanced/#callback-evaluation-order
     result = invoke(default_group, "--help", params, color=False)
     assert result.exit_code == 0
     assert re.fullmatch(help_screen, result.stdout)

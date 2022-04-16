@@ -120,7 +120,8 @@ def invoke(runner, monkeypatch):
 
         with monkeypatch.context() as patch:
             # Monkeypatch the original command's ``main()`` call to pass extra parameter
-            # for Context initialization. Because we cannot simply add ``color`` to ``**extra``.
+            # for Context initialization. Because we cannot simply add ``color`` to
+            # ``**extra``.
             patch.setattr(cli, "main", partial(cli.main, **extra))
 
             result = runner.invoke(cli, args, env=env, color=bool(color))

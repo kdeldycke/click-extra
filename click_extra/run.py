@@ -70,7 +70,8 @@ def env_copy(extend=None):
         assert not extend
     env_copy = None
     if extend:
-        # By casting to dict we make a copy and prevent the modification of the global environment.
+        # By casting to dict we make a copy and prevent the modification of the
+        # global environment.
         env_copy = dict(os.environ)
         env_copy.update(extend)
     return env_copy
