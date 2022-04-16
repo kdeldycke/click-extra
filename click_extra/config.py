@@ -172,7 +172,8 @@ def load_ini_config(content, conf_types):
             elif target_type == bool:
                 value = ini_config.getboolean(section_id, option_id)
 
-            # Types not natively supported by INI format are loaded as JSON-serialized strings.
+            # Types not natively supported by INI format are loaded as JSON-serialized
+            # strings.
             elif target_type in (list, tuple, set, frozenset, dict):
                 value = json.loads(ini_config.get(section_id, option_id))
 
@@ -374,7 +375,8 @@ def load_conf(ctx, param, conf_path, strict=False):
         ParameterSource.PROMPT,
     )
     # Always print a message if the user explicitly set the configuration location.
-    # We can't use logger.info because the default have not been loaded yet and the logger is stuck to its default WARNING level.
+    # We can't use logger.info because the default have not been loaded yet
+    # and the logger is stuck to its default WARNING level.
     if explicit_conf:
         click.echo(f"Load configuration from {conf_path}", err=True)
     # Fallback on default configuration file location.
