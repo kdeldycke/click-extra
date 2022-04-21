@@ -2,6 +2,12 @@
 
 This is the list of issues and bugs from other projet that `click-extra` has addressed.
 
+## [`configmanager`](https://github.com/jbasko/configmanager)
+
+- [`#164` - Should be used?](https://github.com/jbasko/configmanager/issues/164)
+- [`#152` - XML format](https://github.com/jbasko/configmanager/issues/152)
+- [`#139` - TOML format](https://github.com/jbasko/configmanager/issues/139)
+
 ## [`click`](https://github.com/pallets/click)
 
 - [`#2111` - `Context.color = False` doesn't overrides `echo(color=True)`](https://github.com/pallets/click/issues/2111)
