@@ -12,6 +12,7 @@ This version is not released yet and is under active development.
   options.
 - Fix dependency requirements induced by overzealous automatic post-release
   version bump workflow.
+- Add edit link to documentation pages.
 
 ## {gh}`2.0.1 (2022-04-13) <compare/v2.0.0...v2.0.1>`
 
