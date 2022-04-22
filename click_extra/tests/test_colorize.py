@@ -26,7 +26,13 @@ from cloup import Style
 from cloup import command as cloup_command
 
 from .. import __version__, command, echo, group, option, option_group
-from ..colorize import HelpExtraFormatter, color_option, theme, version_option
+from ..colorize import (
+    HelpExtraFormatter,
+    color_option,
+    highlight,
+    theme,
+    version_option,
+)
 from ..logging import logger, verbosity_option
 from .conftest import (
     default_debug_colored_log,
@@ -445,3 +451,34 @@ def test_integrated_color_option(invoke, param, expecting_colors):
             (rf"{default_debug_uncolored_log}" r"warning: Processing...\n"),
             result.stderr,
         )
+
+
+@pytest.mark.parametrize(
+    "substrings,expected,ignore_case",
+    (
+        # Function input types.
+        (["hey"], "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m", False),
+        (("hey",), "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m", False),
+        ({"hey"}, "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m", False),
+        ("hey", "H\x1b[32mey\x1b[0m-xx-xxx-\x1b[32mhe\x1b[0mY-xXxXxxxxx-\x1b[32mhey\x1b[0m", False),
+        # Duplicate substrings.
+        (["hey", "hey"], "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m", False),
+        (("hey", "hey"), "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m", False),
+        ({"hey", "hey"}, "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m", False),
+        ("heyhey", "H\x1b[32mey\x1b[0m-xx-xxx-\x1b[32mhe\x1b[0mY-xXxXxxxxx-\x1b[32mhey\x1b[0m", False),
+        # Case-sensivity and multiple matches.
+        (["hey"], "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m", False),
+        (["Hey"], '\x1b[32mHey\x1b[0m-xx-xxx-\x1b[32mheY\x1b[0m-xXxXxxxxx-\x1b[32mhey\x1b[0m', True),
+        ("x", "Hey-\x1b[32mxx\x1b[0m-\x1b[32mxxx\x1b[0m-heY-\x1b[32mx\x1b[0mX\x1b[32mx\x1b[0mX\x1b[32mxxxxx\x1b[0m-hey", False),
+        ("x", "Hey-\x1b[32mxx\x1b[0m-\x1b[32mxxx\x1b[0m-heY-\x1b[32mxXxXxxxxx\x1b[0m-hey", True),
+        # Overlaps.
+        (["xx"], "Hey-\x1b[32mxx\x1b[0m-\x1b[32mxxx\x1b[0m-heY-\x1b[32mxXxXxxxxx\x1b[0m-hey", True),
+        (["xx"], "Hey-\x1b[32mxx\x1b[0m-\x1b[32mxxx\x1b[0m-heY-xXxX\x1b[32mxxxxx\x1b[0m-hey", False),
+        # No match.
+        ("z", "Hey-xx-xxx-heY-xXxXxxxxx-hey", False),
+        (["XX"], "Hey-xx-xxx-heY-xXxXxxxxx-hey", False),
+    ),
+)
+def test_substring_highlighting(substrings, expected, ignore_case):
+    result = highlight("Hey-xx-xxx-heY-xXxXxxxxx-hey", substrings, styling_method=theme.success, ignore_case=ignore_case)
+    assert result == expected

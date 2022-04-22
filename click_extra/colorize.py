@@ -23,7 +23,10 @@ import sys
 from collections import namedtuple
 from configparser import RawConfigParser
 from functools import partial
+from operator import getitem
 
+import regex as re3
+from boltons.strutils import complement_int_list, int_ranges_from_int_list
 from click import Choice, get_current_context, option
 from click import version_option as click_version_option
 from click.core import ParameterSource
@@ -393,3 +396,37 @@ class HelpExtraFormatter(HelpFormatter):
         rendering."""
         help_text = super().getvalue()
         return self.highlight_extra_keywords(help_text)
+
+
+def highlight(string, substrings, styling_method, ignore_case=False):
+    """Highlights parts of the ``string`` that matches ``substrings``.
+
+    Takes care of overlapping parts within the ``string``.
+    """
+    # Ranges of character indices flagged for highlighting.
+    ranges = set()
+
+    for part in set(substrings):
+        # Search for occurrences of query parts in original string.
+        flags = re3.IGNORECASE if ignore_case else 0
+        ranges |= {
+            "{}-{}".format(match.start(), match.end() - 1)
+            for match in re3.finditer(part, string, flags=flags, overlapped=True)
+        }
+
+    # Reduce ranges, compute complement ranges, transform them to list of integers.
+    ranges = ",".join(ranges)
+    highlight_ranges = int_ranges_from_int_list(ranges)
+    untouched_ranges = int_ranges_from_int_list(
+        complement_int_list(ranges, range_end=len(string))
+    )
+
+    # Apply style to range of characters flagged as matching.
+    styled_str = ""
+    for i, j in sorted(highlight_ranges + untouched_ranges):
+        segment = getitem(string, slice(i, j + 1))
+        if (i, j) in highlight_ranges:
+            segment = styling_method(segment)
+        styled_str += segment
+
+    return styled_str
