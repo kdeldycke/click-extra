@@ -6,16 +6,17 @@
 This version is not released yet and is under active development.
 ```
 
+- Add a `highlight` utility to style substrings.
+- Add `regex` dependency.
+
 ## {gh}`2.0.2 (2022-04-14) <compare/v2.0.1...v2.0.2>`
 
-- Add a `highlight` utility to style substrings.
 - Fix and unittest derivation of configuration template and types from CLI
   options.
 - Fix dependency requirements induced by overzealous automatic post-release
   version bump workflow.
 - Replace `sphinx_tabs` by `sphinx-design`.
 - Add edit link to documentation pages.
-- Add `regex` dependency.
 
 ## {gh}`2.0.1 (2022-04-13) <compare/v2.0.0...v2.0.1>`
 
