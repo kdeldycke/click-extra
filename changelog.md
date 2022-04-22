@@ -1,10 +1,6 @@
 # Changelog
 
-## {gh}`2.1.0 (unreleased) <compare/v2.0.2...main>`
-
-```{{important}}
-This version is not released yet and is under active development.
-```
+## {gh}`2.1.0 (2022-04-22) <compare/v2.0.2...v2.1.0>`
 
 - Add a `highlight` utility to style substrings.
 - Add `regex` dependency.
