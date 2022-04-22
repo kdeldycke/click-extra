@@ -410,7 +410,7 @@ def highlight(string, substrings, styling_method, ignore_case=False):
         # Search for occurrences of query parts in original string.
         flags = re3.IGNORECASE if ignore_case else 0
         ranges |= {
-            "{}-{}".format(match.start(), match.end() - 1)
+            f"{match.start()}-{match.end() - 1}"
             for match in re3.finditer(part, string, flags=flags, overlapped=True)
         }
 
