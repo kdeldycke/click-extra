@@ -17,7 +17,7 @@ A collection of helpers and utilities for
 
 It is a drop-in replacement with good defaults that saves you some boilerplate
 code. It also comes with some
-[workarounds and patches](#issues-addressed-by-click-extra) that have not
+[workarounds and patches](https://kdeldycke.github.io/click-extra/issues.html) that have not
 reached upstream yet (or are unlikely to).
 
 <table><tr>
