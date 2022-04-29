@@ -10,6 +10,7 @@ This is the list of issues and bugs from other projet that `click-extra` has add
 
 ## [`click`](https://github.com/pallets/click)
 
+- [`#2207` - Support NO_COLOR environment variable](https://github.com/pallets/click/issues/2207)
 - [`#2111` - `Context.color = False` doesn't overrides `echo(color=True)`](https://github.com/pallets/click/issues/2111)
 - [`#2110` - `testing.CliRunner.invoke` cannot pass color for `Context` instantiation](https://github.com/pallets/click/issues/2110)
 - [`#1498` - Support for `NO_COLOR` proposal](https://github.com/pallets/click/issues/1498)
