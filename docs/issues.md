@@ -1,6 +1,6 @@
 # Fixed issues
 
-This is the list of issues and bugs from other projet that `click-extra` has addressed.
+This is the list of issues and bugs from other projects that `click-extra` has addressed.
 
 ## [`configmanager`](https://github.com/jbasko/configmanager)
 
