@@ -129,7 +129,7 @@ click = "*"
 
 [[package]]
 name = "cloup"
-version = "0.13.0"
+version = "0.14.0"
 description = "Adds features to Click: option groups, constraints, subcommand sections and help themes."
 category = "main"
 optional = false
@@ -786,7 +786,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "b4eec15373a70c952e4d44b27d29b00a8aa6f555e5dc696e1d18cb5062064450"
+content-hash = "1598defaf7e63c29b7a3bf1fb0d1e88a2c3f23fc523b1daff9071ae37970bcdc"
 
 [metadata.files]
 alabaster = [
@@ -838,8 +838,8 @@ click-log = [
     {file = "click_log-0.4.0-py2.py3-none-any.whl", hash = "sha256:a43e394b528d52112af599f2fc9e4b7cf3c15f94e53581f74fa6867e68c91756"},
 ]
 cloup = [
-    {file = "cloup-0.13.0-py2.py3-none-any.whl", hash = "sha256:2b389c85f26e910a27c491ffa8ebc41a79431a320b8f1a49b1614fdd2f2b43cf"},
-    {file = "cloup-0.13.0.tar.gz", hash = "sha256:b9f1925d087dcf52d731797b27885d6d8c80d67d85d4e8e40cdc2c085948b921"},
+    {file = "cloup-0.14.0-py2.py3-none-any.whl", hash = "sha256:ce996ab614225046c1a1f739dda504ac0d823117f30dc5d1696021f70f7e91ff"},
+    {file = "cloup-0.14.0.tar.gz", hash = "sha256:4dec7e43905b7771884cda4f13ab8b7537bceaee467a92655e7660797ab08c47"},
 ]
 colorama = [
     {file = "colorama-0.4.4-py2.py3-none-any.whl", hash = "sha256:9f47eda37229f68eee03b24b9748937c7dc3868f906e8ba69fbcbdd3bc5dc3e2"},
