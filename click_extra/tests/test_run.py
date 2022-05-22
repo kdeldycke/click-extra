@@ -22,7 +22,7 @@ from pathlib import Path
 
 import click
 
-from .. import Style
+from .. import Style, echo, pass_context, secho, style
 from ..logging import logger
 from ..platform import is_windows
 from ..run import env_copy
@@ -55,28 +55,28 @@ def test_env_copy():
 
 
 @click.command
-@click.pass_context
+@pass_context
 def dummy_cli(ctx):
     """https://github.com/pallets/click/issues/2111."""
 
-    click.echo(Style(fg="green")("echo()"))
-    click.echo(Style(fg="green")("echo(color=None)"), color=None)
-    click.echo(
+    echo(Style(fg="green")("echo()"))
+    echo(Style(fg="green")("echo(color=None)"), color=None)
+    echo(
         Style(fg="red")("echo(color=True) bypass invoke.color = False"), color=True
     )
-    click.echo(Style(fg="green")("echo(color=False)"), color=False)
+    echo(Style(fg="green")("echo(color=False)"), color=False)
 
-    click.secho("secho()", fg="green")
-    click.secho("secho(color=None)", fg="green", color=None)
-    click.secho("secho(color=True) bypass invoke.color = False", fg="red", color=True)
-    click.secho("secho(color=False)", fg="green", color=False)
+    secho("secho()", fg="green")
+    secho("secho(color=None)", fg="green", color=None)
+    secho("secho(color=True) bypass invoke.color = False", fg="red", color=True)
+    secho("secho(color=False)", fg="green", color=False)
 
     logger.warning("Is the logger colored?")
 
-    print(click.style("print() bypass Click.", fg="blue"))
+    print(style("print() bypass Click.", fg="blue"))
 
-    click.echo(f"Context.color = {ctx.color!r}")
-    click.echo(f"utils.should_strip_ansi = {click.utils.should_strip_ansi()!r}")
+    echo(f"Context.color = {ctx.color!r}")
+    echo(f"utils.should_strip_ansi = {click.utils.should_strip_ansi()!r}")
 
 
 def check_default_colored_rendering(result):

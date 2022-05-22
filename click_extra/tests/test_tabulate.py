@@ -18,14 +18,15 @@
 import click
 import pytest
 
-from ..tabulate import TabularOutputFormatter, table_format_option
+from .. import echo, pass_context, table_format_option
+from ..tabulate import TabularOutputFormatter
 
 
 def test_unrecognized_format(invoke):
     @click.command
     @table_format_option()
     def dummy_cli():
-        click.echo("It works!")
+        echo("It works!")
 
     result = invoke(dummy_cli, "--table-format", "random")
     assert result.exit_code == 2
@@ -331,9 +332,9 @@ def test_recognized_modes():
 
 @click.command
 @table_format_option()
-@click.pass_context
+@pass_context
 def dummy_cli(ctx):
-    click.echo(f"ctx.table_formatter.format_name = {ctx.table_formatter.format_name}")
+    echo(f"ctx.table_formatter.format_name = {ctx.table_formatter.format_name}")
     data = ((1, 87), (2, 80), (3, 79))
     headers = ("day", "temperature")
     ctx.print_table(data, headers)

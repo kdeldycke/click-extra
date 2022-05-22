@@ -30,10 +30,19 @@ from unittest.mock import patch
 import click
 import cloup
 
-from . import Command, Group, Option, echo, help_option
-from .colorize import ExtraHelpColorsMixin, VersionOption, color_option, version_option
-from .config import config_option
-from .logging import logger, verbosity_option
+from . import (
+    Command,
+    Group,
+    Option,
+    color_option,
+    config_option,
+    echo,
+    help_option,
+    verbosity_option,
+    version_option,
+)
+from .colorize import ExtraHelpColorsMixin, VersionOption
+from .logging import logger
 
 
 def register_timer_on_close(ctx, param, value):

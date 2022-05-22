@@ -24,8 +24,8 @@ import pytest
 
 from .. import BOOL, FLOAT, INT, STRING, Choice, File, __version__, argument
 from .. import config as config_module
-from .. import echo, group, option
-from ..config import conf_structure, config_option
+from .. import config_option, echo, group, option
+from ..config import conf_structure
 from ..platform import is_windows
 from .conftest import default_debug_uncolored_log
 

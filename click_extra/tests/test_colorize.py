@@ -24,7 +24,18 @@ import cloup
 import pytest
 from boltons.strutils import strip_ansi
 
-from .. import Style, __version__, command, echo, group, option, option_group
+from .. import (
+    Style,
+    __version__,
+    command,
+    echo,
+    group,
+    option,
+    option_group,
+    secho,
+    style,
+    verbosity_option,
+)
 from ..colorize import (
     HelpExtraFormatter,
     color_option,
@@ -32,7 +43,7 @@ from ..colorize import (
     theme,
     version_option,
 )
-from ..logging import logger, verbosity_option
+from ..logging import logger
 from .conftest import (
     default_debug_colored_log,
     default_debug_uncolored_log,
@@ -285,10 +296,10 @@ def test_standalone_color_option(invoke, param, expecting_colors):
     def dummy_cli():
         echo(Style(fg="yellow")("It works!"))
         echo("\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m")
-        echo(click.style("Run command.", fg="magenta"))
+        echo(style("Run command.", fg="magenta"))
         logger.warning("Processing...")
-        print(click.style("print() bypass Click.", fg="blue"))
-        click.secho("Done.", fg="green")
+        print(style("print() bypass Click.", fg="blue"))
+        secho("Done.", fg="green")
 
     result = invoke(dummy_cli, param, "--verbosity", "DEBUG", color=True)
     assert result.exit_code == 0
@@ -414,10 +425,10 @@ def test_integrated_color_option(invoke, param, expecting_colors):
 
     @dummy_cli.command()
     def command1():
-        echo(click.style("Run command #1.", fg="magenta"))
+        echo(style("Run command #1.", fg="magenta"))
         logger.warning("Processing...")
-        print(click.style("print() bypass Click.", fg="blue"))
-        click.secho("Done.", fg="green")
+        print(style("print() bypass Click.", fg="blue"))
+        secho("Done.", fg="green")
 
     result = invoke(dummy_cli, param, "--verbosity", "DEBUG", "command1", color=True)
 

@@ -49,5 +49,10 @@ from cloup import (
 )
 
 # Replace some of click defaults with click-extra variant.
-from .colorize import version_option
-from .commands import command, group, timer_option
+from .colorize import color_option, version_option
+from .config import config_option
+from .logging import verbosity_option
+from .tabulate import table_format_option
+
+# Import last to avoid circular dependencies.
+from .commands import command, group, timer_option  # isort:skip

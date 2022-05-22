@@ -20,8 +20,8 @@ import re
 import click
 import pytest
 
-from ..commands import group
-from ..logging import LOG_LEVELS, logger, verbosity_option
+from .. import echo, group, verbosity_option
+from ..logging import LOG_LEVELS, logger
 from .conftest import default_debug_colored_log, skip_windows_colors
 
 
@@ -29,7 +29,7 @@ def test_unrecognized_verbosity(invoke):
     @click.command
     @verbosity_option()
     def dummy_cli():
-        click.echo("It works!")
+        echo("It works!")
 
     result = invoke(dummy_cli, "--verbosity", "random")
     assert result.exit_code == 2
@@ -48,7 +48,7 @@ def test_standalone_verbosity_option(invoke, level):
     @click.command
     @verbosity_option()
     def dummy_cli():
-        click.echo("It works!")
+        echo("It works!")
         logger.debug("my debug message.")
         logger.info("my info message.")
         logger.warning("my warning message.")
@@ -76,11 +76,11 @@ def test_standalone_verbosity_option(invoke, level):
 def test_integrated_verbosity_option(invoke, level):
     @group()
     def dummy_cli():
-        click.echo("It works!")
+        echo("It works!")
 
     @dummy_cli.command()
     def command1():
-        click.echo("Run command #1...")
+        echo("Run command #1...")
 
     result = invoke(dummy_cli, "--verbosity", level, "command1", color=True)
     assert result.exit_code == 0
