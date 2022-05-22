@@ -120,7 +120,9 @@ class ExtraOptionsMixin:
         click.help_option(*self.context_settings["help_option_names"], cls=Option)(self)
 
         # Forces re-identification of grouped and non-grouped options.
-        self.arguments, self.option_groups, self.ungrouped_options = self._group_params(self.params)
+        self.arguments, self.option_groups, self.ungrouped_options = self._group_params(
+            self.params
+        )
 
     def main(self, *args, **kwargs):
         """Pre-invokation step that is instanciating the context, then call ``invoke()``
