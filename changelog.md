@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Fix compatibility with `cloup >= 0.14.0`.
+
 ## {gh}`2.1.0 (2022-04-22) <compare/v2.0.2...v2.1.0>`
 
 - Add a `highlight` utility to style substrings.
