@@ -1,5 +1,11 @@
 # Changelog
 
+## {gh}`2.1.2 (unreleased) <compare/v2.1.1...main>`
+
+```{important}
+This version is not released yet and is under active development.
+```
+
 ## {gh}`2.1.1 (2022-05-22) <compare/v2.1.0...v2.1.1>`
 
 - Fix compatibility with `cloup >= 0.14.0`.
