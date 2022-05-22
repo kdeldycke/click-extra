@@ -28,7 +28,7 @@ from time import perf_counter
 from unittest.mock import patch
 
 import click
-from cloup import Command, Group, GroupedOption, OptionGroupMixin
+from cloup import Command, Group, Option
 from cloup import command as cloup_command
 from cloup import group as cloup_group
 
@@ -64,7 +64,7 @@ def timer_option(
     expose_value=False,
     callback=register_timer_on_close,
     help="Measure and print elapsed execution time.",
-    cls=GroupedOption,
+    cls=Option,
     **kwargs,
 ):
     """A ready to use option decorator that is adding a ``--time/--no-time`` option flag
@@ -117,14 +117,10 @@ class ExtraOptionsMixin:
         version_option(version=version, print_env_info=True)(self)
 
         # Add help option.
-        click.help_option(
-            *self.context_settings["help_option_names"], cls=GroupedOption
-        )(self)
+        click.help_option(*self.context_settings["help_option_names"], cls=Option)(self)
 
         # Forces re-identification of grouped and non-grouped options.
-        self.option_groups, self.ungrouped_options = self._option_groups_from_params(
-            self.params
-        )
+        self.arguments, self.option_groups, self.ungrouped_options = self._group_params(self.params)
 
     def main(self, *args, **kwargs):
         """Pre-invokation step that is instanciating the context, then call ``invoke()``

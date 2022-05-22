@@ -23,7 +23,7 @@ import click
 import tabulate
 from cli_helpers.tabular_output import TabularOutputFormatter, tabulate_adapter
 from cli_helpers.tabular_output.output_formatter import MAX_FIELD_WIDTH, MISSING_VALUE
-from cloup import GroupedOption
+from cloup import Option
 from tabulate import DataRow, Line, TableFormat
 
 from .platform import is_windows
@@ -165,7 +165,7 @@ def table_format_option(
     expose_value=False,
     callback=init_formatter,
     help="Rendering style of tables.",
-    cls=GroupedOption,
+    cls=Option,
     **kwargs,
 ):
     """A ready to use option decorator that is adding a ``-t/--table-format`` option

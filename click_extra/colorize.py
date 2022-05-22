@@ -31,7 +31,7 @@ from click import Choice, get_current_context, option
 from click import version_option as click_version_option
 from click.core import ParameterSource
 from click_log import ColorFormatter
-from cloup import GroupedOption, HelpFormatter, HelpTheme, Style
+from cloup import HelpFormatter, HelpTheme, Option, Style
 
 # Extend the predefined theme named tuple with our extra styles.
 theme_params = {
@@ -155,7 +155,7 @@ def color_option(
     expose_value=False,
     callback=disable_colors,
     help="Strip out all colors and all ANSI codes from output.",
-    cls=GroupedOption,
+    cls=Option,
     **kwargs,
 ):
     """A ready to use option decorator that is adding a ``--color/--no-color`` (aliased
@@ -180,8 +180,8 @@ def color_option(
     )
 
 
-class VersionOption(GroupedOption):
-    """No-op class wrapping ``GroupedOption`` to serve as a marker to identify
+class VersionOption(Option):
+    """No-op class wrapping ``Option`` to serve as a marker to identify
     parameters created with our own ``version_option`` below."""
 
     pass

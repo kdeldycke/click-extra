@@ -31,7 +31,7 @@ import yaml
 from boltons.iterutils import flatten, remap
 from boltons.urlutils import URL
 from click.core import ParameterSource
-from cloup import GroupedOption
+from cloup import Option
 from mergedeep import merge
 
 if sys.version_info >= (3, 11):
@@ -419,7 +419,7 @@ def config_option(
     is_eager=True,
     callback=None,
     expose_value=False,
-    cls=GroupedOption,
+    cls=Option,
     strict=False,
     **kwargs,
 ):

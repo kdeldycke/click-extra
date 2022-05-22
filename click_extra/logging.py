@@ -21,7 +21,7 @@ import logging
 
 import click
 import click_log
-from cloup import GroupedOption
+from cloup import Option
 
 LOG_LEVELS = {
     name: value
@@ -74,7 +74,7 @@ def verbosity_option(
     expose_value=False,
     help=f"Either {', '.join(LOG_LEVELS)}.",
     is_eager=True,
-    cls=GroupedOption,
+    cls=Option,
     **kwargs,
 ):
     """Adds a ``--verbosity``/``-v`` option.
