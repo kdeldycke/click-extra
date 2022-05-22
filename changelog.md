@@ -7,6 +7,8 @@ This version is not released yet and is under active development.
 ```
 
 - Fix compatibility with `cloup >= 0.14.0`.
+- Group workflow jobs so new commits cancels in-progress execution triggered by previous commits.
+- Run tests on early Python 3.11 releases.
 
 ## {gh}`2.1.0 (2022-04-22) <compare/v2.0.2...v2.1.0>`
 
