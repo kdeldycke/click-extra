@@ -176,14 +176,17 @@ class ExtraOptionsMixin:
 
 
 class ExtraCommand(ExtraHelpColorsMixin, ExtraOptionsMixin, Command):
-    """Same as ``cloup.command``, but with extra help screen colorization and options."""
+    """Same as ``cloup.command``, but with extra help screen colorization and
+    options."""
 
     pass
+
 
 class ExtraGroup(ExtraHelpColorsMixin, ExtraOptionsMixin, Group):
     """Same as ``cloup.group``, but with extra help screen colorization and options."""
 
     pass
+
 
 def command(*args, cls=ExtraCommand, **kwargs):
     return cloup.command(*args, cls=cls, **kwargs)
