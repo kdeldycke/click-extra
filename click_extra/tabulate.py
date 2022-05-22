@@ -158,9 +158,7 @@ def init_formatter(ctx, param, value):
 
 def table_format_option(
     *names,
-    type=Choice(
-        sorted(TabularOutputFormatter._output_formats), case_sensitive=False
-    ),
+    type=Choice(sorted(TabularOutputFormatter._output_formats), case_sensitive=False),
     default="rounded_outline",
     expose_value=False,
     callback=init_formatter,

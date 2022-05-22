@@ -61,9 +61,7 @@ def dummy_cli(ctx):
 
     echo(Style(fg="green")("echo()"))
     echo(Style(fg="green")("echo(color=None)"), color=None)
-    echo(
-        Style(fg="red")("echo(color=True) bypass invoke.color = False"), color=True
-    )
+    echo(Style(fg="red")("echo(color=True) bypass invoke.color = False"), color=True)
     echo(Style(fg="green")("echo(color=False)"), color=False)
 
     secho("secho()", fg="green")
