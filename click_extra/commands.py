@@ -28,10 +28,9 @@ from time import perf_counter
 from unittest.mock import patch
 
 import click
-from cloup import Command, Group, Option
-from cloup import command as cloup_command
-from cloup import group as cloup_group
+import cloup
 
+from . import Command, Group, Option, echo, help_option
 from .colorize import ExtraHelpColorsMixin, VersionOption, color_option, version_option
 from .config import config_option
 from .logging import logger, verbosity_option
@@ -52,7 +51,7 @@ def register_timer_on_close(ctx, param, value):
 
     def print_timer():
         """Compute and print elapsed execution time."""
-        click.echo(f"Execution time: {perf_counter() - timer_start_time:0.3f} seconds.")
+        echo(f"Execution time: {perf_counter() - timer_start_time:0.3f} seconds.")
 
     # Register printing at the end of execution.
     ctx.call_on_close(print_timer)
@@ -117,7 +116,7 @@ class ExtraOptionsMixin:
         version_option(version=version, print_env_info=True)(self)
 
         # Add help option.
-        click.help_option(*self.context_settings["help_option_names"], cls=Option)(self)
+        help_option(*self.context_settings["help_option_names"], cls=Option)(self)
 
         # Forces re-identification of grouped and non-grouped options.
         self.arguments, self.option_groups, self.ungrouped_options = self._group_params(
@@ -151,7 +150,7 @@ class ExtraOptionsMixin:
                     #    https://github.com/pallets/click/blob/c1d0729bbb26e3f8b0a28440fb0ebca352535c25/src/click/decorators.py#L451-L455
                     #    https://github.com/pallets/click/blob/14472ffcd80dd86d47ddc08341168152540ee6f2/src/click/utils.py#L205-L211
                     capture = io.StringIO()
-                    capture_echo = partial(click.echo, file=capture)
+                    capture_echo = partial(echo, file=capture)
                     with patch.object(click.decorators, "echo", new=capture_echo):
 
                         # Neutralize parameter call to `ctx.exit()`, as seen in:
@@ -168,26 +167,18 @@ class ExtraOptionsMixin:
 
 
 class ExtraCommand(ExtraHelpColorsMixin, ExtraOptionsMixin, Command):
-    """Cloup default `command` with extra help screen colorization and default
-    options."""
+    """Same as ``cloup.command``, but with extra help screen colorization and options."""
 
     pass
 
-
-class ExtraGroup(ExtraHelpColorsMixin, OptionGroupMixin, ExtraOptionsMixin, Group):
-    """Cloup default `group` with extra help screen colorization and default options.
-
-    Cloup does not support option groups on `Click.group`, hence the inherited
-    `OptionGroupMixin`. This is a workaround that is being discussed at
-    https://github.com/janluke/cloup/issues/98
-    """
+class ExtraGroup(ExtraHelpColorsMixin, ExtraOptionsMixin, Group):
+    """Same as ``cloup.group``, but with extra help screen colorization and options."""
 
     pass
 
+def command(*args, cls=ExtraCommand, **kwargs):
+    return cloup.command(*args, cls=cls, **kwargs)
 
-def command(name=None, aliases=None, cls=ExtraCommand, **kwargs):
-    return cloup_command(name=name, aliases=aliases, cls=cls, **kwargs)
 
-
-def group(name=None, cls=ExtraGroup, **kwargs):
-    return cloup_group(name=name, cls=cls, **kwargs)
+def group(*args, cls=ExtraGroup, **kwargs):
+    return cloup.group(*args, cls=cls, **kwargs)

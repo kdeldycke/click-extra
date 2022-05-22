@@ -25,13 +25,20 @@ from configparser import RawConfigParser
 from functools import partial
 from operator import getitem
 
+import click
 import regex as re3
 from boltons.strutils import complement_int_list, int_ranges_from_int_list
-from click import Choice, get_current_context, option
-from click import version_option as click_version_option
-from click.core import ParameterSource
 from click_log import ColorFormatter
-from cloup import HelpFormatter, HelpTheme, Option, Style
+
+from . import (
+    Choice,
+    HelpFormatter,
+    HelpTheme,
+    Option,
+    ParameterSource,
+    Style,
+    get_current_context,
+)
 
 # Extend the predefined theme named tuple with our extra styles.
 theme_params = {
@@ -167,7 +174,7 @@ def color_option(
     """
     if not names:
         names = ("--color/--no-color", "--ansi/--no-ansi")
-    return option(
+    return click.option(
         *names,
         is_flag=is_flag,
         default=default,
@@ -241,7 +248,7 @@ def version_option(
     if not colorized_message:
         colorized_message = message
 
-    return click_version_option(
+    return click.version_option(
         version,
         *names,
         cls=cls,

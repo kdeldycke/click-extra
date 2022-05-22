@@ -22,7 +22,7 @@ from pathlib import Path
 import click
 import pytest
 
-from .. import __version__, argument
+from .. import BOOL, FLOAT, INT, STRING, Choice, File, __version__, argument
 from .. import config as config_module
 from .. import echo, group, option
 from ..config import conf_structure, config_option
@@ -305,21 +305,21 @@ def test_conf_auto_types(invoke, monkeypatch, create_config):
 
     monkeypatch.setattr(config_module, "conf_structure", patched_conf_structure)
 
-    @click.command()
+    @click.command
     @option("--flag1/--no-flag1")
     @option("--flag2", is_flag=True)
     @option("--int-param1", type=int)
-    @option("--int-param2", type=click.INT)
+    @option("--int-param2", type=INT)
     @option("--float-param1", type=float)
-    @option("--float-param2", type=click.FLOAT)
+    @option("--float-param2", type=FLOAT)
     @option("--bool-param1", type=bool)
-    @option("--bool-param2", type=click.BOOL)
+    @option("--bool-param2", type=BOOL)
     @option("--str-param1", type=str)
-    @option("--str-param2", type=click.STRING)
-    @option("--choice-param", type=click.Choice(("a", "b", "c")))
+    @option("--str-param2", type=STRING)
+    @option("--choice-param", type=Choice(("a", "b", "c")))
     @option("--list1", multiple=True)
-    @argument("file_arg1", type=click.File("w"))
-    @argument("file_arg2", type=click.File("w"), nargs=-1)
+    @argument("file_arg1", type=File("w"))
+    @argument("file_arg2", type=File("w"), nargs=-1)
     @config_option()
     def my_cli(
         flag1,

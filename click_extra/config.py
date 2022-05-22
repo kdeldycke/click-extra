@@ -30,7 +30,6 @@ import xmltodict
 import yaml
 from boltons.iterutils import flatten, remap
 from boltons.urlutils import URL
-from click.core import ParameterSource
 from cloup import Option
 from mergedeep import merge
 
@@ -39,6 +38,18 @@ if sys.version_info >= (3, 11):
 else:
     import tomli as tomllib
 
+from . import (
+    BOOL,
+    FLOAT,
+    INT,
+    STRING,
+    Choice,
+    File,
+    ParameterSource,
+    echo,
+    get_app_dir,
+    get_current_context,
+)
 from .logging import logger
 from .platform import is_windows
 
@@ -93,10 +104,10 @@ class DefaultConfPath:
 
     @property
     def conf_path(self):
-        ctx = click.get_current_context()
+        ctx = get_current_context()
         cli_name = ctx.find_root().info_name
         return Path(
-            click.get_app_dir(cli_name, force_posix=True), self.default_conf_name
+            get_app_dir(cli_name, force_posix=True), self.default_conf_name
         ).resolve()
 
     def __call__(self):
@@ -199,14 +210,14 @@ def map_option_type(param):
     if hasattr(param, "is_bool_flag") and getattr(param, "is_bool_flag"):
         return bool
 
-    if isinstance(param.type, click.Choice):
+    if isinstance(param.type, Choice):
         return str
 
     direct_map = {
-        click.INT: int,
-        click.FLOAT: float,
-        click.BOOL: bool,
-        click.STRING: str,
+        INT: int,
+        FLOAT: float,
+        BOOL: bool,
+        STRING: str,
     }
 
     for click_type, py_type in direct_map.items():
@@ -214,7 +225,7 @@ def map_option_type(param):
             return py_type
 
     instance_map = {
-        click.File: str,
+        File: str,
     }
 
     for click_type, py_type in instance_map.items():
@@ -378,7 +389,7 @@ def load_conf(ctx, param, conf_path, strict=False):
     # We can't use logger.info because the default have not been loaded yet
     # and the logger is stuck to its default WARNING level.
     if explicit_conf:
-        click.echo(f"Load configuration from {conf_path}", err=True)
+        echo(f"Load configuration from {conf_path}", err=True)
     # Fallback on default configuration file location.
     else:
         logger.debug(f"Load configuration from {conf_path}")
@@ -411,7 +422,7 @@ def load_conf(ctx, param, conf_path, strict=False):
 def config_option(
     *names,
     metavar="CONFIG_PATH",
-    type=click.STRING,
+    type=STRING,
     default=DefaultConfPath(),
     help="Location of the configuration file. Supports both local path and remote URL.",
     # Force eagerness so the config option's callback gets the oportunity to set the

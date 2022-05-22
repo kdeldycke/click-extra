@@ -26,7 +26,7 @@ from .conftest import default_debug_colored_log, skip_windows_colors
 
 
 def test_unrecognized_verbosity(invoke):
-    @click.command()
+    @click.command
     @verbosity_option()
     def dummy_cli():
         click.echo("It works!")
@@ -45,7 +45,7 @@ def test_unrecognized_verbosity(invoke):
 @skip_windows_colors
 @pytest.mark.parametrize("level", LOG_LEVELS.keys())
 def test_standalone_verbosity_option(invoke, level):
-    @click.command()
+    @click.command
     @verbosity_option()
     def dummy_cli():
         click.echo("It works!")

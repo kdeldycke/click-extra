@@ -20,12 +20,11 @@ import sys
 from textwrap import dedent
 
 import click
+import cloup
 import pytest
 from boltons.strutils import strip_ansi
-from cloup import Style
-from cloup import command as cloup_command
 
-from .. import __version__, command, echo, group, option, option_group
+from .. import Style, __version__, command, echo, group, option, option_group
 from ..colorize import (
     HelpExtraFormatter,
     color_option,
@@ -104,7 +103,7 @@ def test_keyword_collection(invoke):
         option("-a", "--opt1"),
         option("-b", "--opt2"),
     )
-    @option_group(
+    @cloup.option_group(
         "Group 2",
         option("--opt3"),
         option("--opt4"),
@@ -117,11 +116,11 @@ def test_keyword_collection(invoke):
     def command1():
         echo("Run click-extra command #1...")
 
-    @cloup_command()
+    @cloup.command()
     def command2():
         echo("Run cloup command #2...")
 
-    @click.command()
+    @click.command
     def command3():
         echo("Run click command #3...")
 
@@ -208,7 +207,7 @@ def test_keyword_collection(invoke):
 
 @skip_windows_colors
 def test_standalone_version_option_with_env_info(invoke):
-    @click.group()
+    @click.group
     @version_option(version="1.2.3.4", print_env_info=True)
     def dummy_cli():
         echo("It works!")
@@ -230,7 +229,7 @@ def test_standalone_version_option_with_env_info(invoke):
 
 @skip_windows_colors
 def test_standalone_version_option_without_env_info(invoke):
-    @click.group()
+    @click.group
     @version_option(version="1.2.3.4", print_env_info=False)
     def dummy_cli():
         echo("It works!")
@@ -280,7 +279,7 @@ def test_standalone_color_option(invoke, param, expecting_colors):
     """Check color option values, defaults and effects on all things colored, including
     verbosity option."""
 
-    @click.command()
+    @click.command
     @verbosity_option()
     @color_option()
     def dummy_cli():
@@ -333,7 +332,7 @@ def test_color_option_precedence(invoke):
         let the user to have the NO_COLOR env set to allow for color-less --version output.
     """
 
-    @click.command()
+    @click.command
     @color_option()
     @version_option(version="2.1.9")
     def dummy_cli():
@@ -376,7 +375,7 @@ def test_color_option_precedence(invoke):
 def test_no_color_env_convention(
     invoke, env, env_expect_colors, param, param_expect_colors
 ):
-    @click.command()
+    @click.command
     @color_option()
     def dummy_cli():
         echo(Style(fg="yellow")("It works!"))

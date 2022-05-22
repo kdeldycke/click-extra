@@ -23,9 +23,9 @@ import click
 import tabulate
 from cli_helpers.tabular_output import TabularOutputFormatter, tabulate_adapter
 from cli_helpers.tabular_output.output_formatter import MAX_FIELD_WIDTH, MISSING_VALUE
-from cloup import Option
 from tabulate import DataRow, Line, TableFormat
 
+from . import Choice, Option, echo, get_current_context
 from .platform import is_windows
 
 new_formats = {
@@ -138,7 +138,7 @@ for tabulate_format in new_formats:
 
 def cleanup_formatter():
     """Clean-up formatter attached to context."""
-    ctx = click.get_current_context()
+    ctx = get_current_context()
     del ctx.table_formatter
 
 
@@ -146,7 +146,7 @@ def print_table(table_formatter, *args, **kwargs):
     for line in table_formatter.format_output(*args, **kwargs):
         if is_windows():
             line = line.encode("utf-8")
-        click.echo(line)
+        echo(line)
 
 
 def init_formatter(ctx, param, value):
@@ -158,7 +158,7 @@ def init_formatter(ctx, param, value):
 
 def table_format_option(
     *names,
-    type=click.Choice(
+    type=Choice(
         sorted(TabularOutputFormatter._output_formats), case_sensitive=False
     ),
     default="rounded_outline",

@@ -21,8 +21,8 @@ import os
 from pathlib import Path
 
 import click
-from cloup import Style
 
+from .. import Style
 from ..logging import logger
 from ..platform import is_windows
 from ..run import env_copy
@@ -54,7 +54,7 @@ def test_env_copy():
     assert env_var not in os.environ
 
 
-@click.command()
+@click.command
 @click.pass_context
 def dummy_cli(ctx):
     """https://github.com/pallets/click/issues/2111."""

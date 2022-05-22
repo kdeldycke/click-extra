@@ -21,7 +21,8 @@ import logging
 
 import click
 import click_log
-from cloup import Option
+
+from . import Choice, Option
 
 LOG_LEVELS = {
     name: value
@@ -70,7 +71,7 @@ def verbosity_option(
     *names,
     default="INFO",
     metavar="LEVEL",
-    type=click.Choice(LOG_LEVELS, case_sensitive=False),
+    type=Choice(LOG_LEVELS, case_sensitive=False),
     expose_value=False,
     help=f"Either {', '.join(LOG_LEVELS)}.",
     is_eager=True,

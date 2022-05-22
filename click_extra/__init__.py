@@ -33,10 +33,21 @@ __version__ = "2.1.1"
 
 # Import all click's module-level content to allow for drop-in replacement.
 from click import *
+from click.core import ParameterSource
 
 # Overrides some of click helpers with cloup's.
-from cloup import argument, option, option_group
+from cloup import (
+    Command,
+    Group,
+    HelpFormatter,
+    HelpTheme,
+    Option,
+    Style,
+    argument,
+    option,
+    option_group,
+)
 
 # Replace some of click defaults with click-extra variant.
 from .colorize import version_option
-from .commands import command, group
+from .commands import command, group, timer_option

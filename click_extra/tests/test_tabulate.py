@@ -22,7 +22,7 @@ from ..tabulate import TabularOutputFormatter, table_format_option
 
 
 def test_unrecognized_format(invoke):
-    @click.command()
+    @click.command
     @table_format_option()
     def dummy_cli():
         click.echo("It works!")
@@ -329,7 +329,7 @@ def test_recognized_modes():
     )
 
 
-@click.command()
+@click.command
 @table_format_option()
 @click.pass_context
 def dummy_cli(ctx):

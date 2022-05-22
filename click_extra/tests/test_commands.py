@@ -23,40 +23,36 @@ import sys
 from textwrap import dedent
 
 import click
+import cloup
 import pytest
-from click import option as click_option
-from cloup import command as cloup_command
-from cloup import option as cloup_option
-from cloup import option_group
 
-from ..commands import command as click_extra_command
-from ..commands import group, timer_option
+from .. import command, echo, group, option, option_group, timer_option
 from .conftest import default_options_uncolored_help
 
 
 @group(version="2021.10.08")
 def default_group():
-    click.echo("It works!")
+    echo("It works!")
 
 
 @default_group.command()
 def default_subcommand():
-    click.echo("Run default subcommand...")
+    echo("Run default subcommand...")
 
 
-@click_extra_command()
+@command()
 def click_extra_subcommand():
-    click.echo("Run click-extra subcommand...")
+    echo("Run click-extra subcommand...")
 
 
-@cloup_command()
+@cloup.command()
 def cloup_subcommand():
-    click.echo("Run cloup subcommand...")
+    echo("Run cloup subcommand...")
 
 
-@click.command()
+@click.command
 def click_subcommand():
-    click.echo("Run click subcommand...")
+    echo("Run click subcommand...")
 
 
 default_group.section(
@@ -189,10 +185,10 @@ def test_integrated_version_value(invoke):
 
 
 def test_standalone_timer_option(invoke):
-    @click.command()
+    @click.command
     @timer_option()
     def dummy_cli():
-        click.echo("It works!")
+        echo("It works!")
 
     result = invoke(dummy_cli, "--time")
     assert result.exit_code == 0
@@ -229,17 +225,17 @@ def test_option_group_integration(invoke):
     @group()
     @option_group(
         "Group 1",
-        click_option("-a", "--opt1"),
-        cloup_option("-b", "--opt2"),
+        click.option("-a", "--opt1"),
+        option("-b", "--opt2"),
     )
-    @click_option("-c", "--opt3")
-    @cloup_option("-d", "--opt4")
+    @click.option("-c", "--opt3")
+    @option("-d", "--opt4")
     def default_group(opt1, opt2, opt3, opt4):
-        click.echo("It works!")
+        echo("It works!")
 
     @default_group.command()
     def default_command():
-        click.echo("Run command...")
+        echo("Run command...")
 
     result = invoke(default_group, "--help", color=False)
     assert result.exit_code == 0
