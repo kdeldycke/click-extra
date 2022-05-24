@@ -41,7 +41,7 @@ def format_cli(cmd, extra_env=None):
 
 
 def print_cli_output(cmd, output=None, error=None, error_code=None, extra_env=None):
-    """Same has above put print the full similation of CLI execution, including output.
+    """Same as above but print the full simulation of CLI execution, including output.
 
     Mostly used to print debug traces to user or in test results.
     """
@@ -57,7 +57,7 @@ def print_cli_output(cmd, output=None, error=None, error_code=None, extra_env=No
 def env_copy(extend=None):
     """Returns a copy of the current environment variables and eventually ``extend`` it.
 
-    Mimicks Python's original implementation by returning ``None`` if no ``extend`` ``dict`` are added. See:
+    Mimics Python's original implementation by returning ``None`` if no ``extend`` ``dict`` are added. See:
     https://github.com/python/cpython/blob/7b5b429adab4fe0fe81858fe3831f06adc2e2141/Lib/subprocess.py#L1648-L1649
 
     Environment variables are expected to be a ``dict`` of `str:str`.
