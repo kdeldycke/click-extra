@@ -121,7 +121,7 @@ def disable_colors(ctx, param, value):
     colorize_from_env = set()
     for var, default in color_env_vars.items():
         if var in os.environ:
-            # Presence of the variable in the environment without a value encodes for an ativation,
+            # Presence of the variable in the environment without a value encodes for an activation,
             # hence the default to True.
             var_value = os.environ.get(var, "true")
             # `os.environ` is a dict whose all values are strings. Here we normalize these string into
@@ -169,7 +169,7 @@ def color_option(
     by ``--ansi/--no-ansi``) option to keep or strip colors and ANSI codes from CLI
     output.
 
-    This option is eager by defaults to allow for other eager options (like
+    This option is eager by default to allow for other eager options (like
     ``--version``) to be rendered colorless.
     """
     if not names:
@@ -216,7 +216,7 @@ def version_option(
     :param env_info_style: style of the environment info. Defaults to bright black.
 
     For other params see Click's ``version_option`` decorator:
-    https://click.palletsprojects.com/en/8.0.x/api/#click.version_option
+    https://click.palletsprojects.com/en/8.1.x/api/#click.version_option
     """
     if not message:
         message = ""
@@ -305,7 +305,7 @@ class ExtraHelpColorsMixin:
         return super().get_help(ctx)
 
     def format_help(self, ctx, formatter):
-        """Feed our custom formatter instance with the keywords to highlights."""
+        """Feed our custom formatter instance with the keywords to highlight."""
         (
             formatter.cli_name,
             formatter.long_options,
@@ -340,15 +340,15 @@ class HelpExtraFormatter(HelpFormatter):
     metavars = set()
 
     def highlight_extra_keywords(self, help_text):
-        """Highlight extra keywoards in help screens based on the theme.
+        """Highlight extra keywords in help screens based on the theme.
 
         It is based on regular expressions. While this is not a bullet-proof method, it
         is good enough. After all, help screens are not consumed by machine but are
-        designed for human.
+        designed for humans.
         """
 
         def colorize(match, style):
-            """Re-create the matching string by concatenating all groups, but only
+            """Recreate the matching string by concatenating all groups, but only
             colorize named groups."""
             txt = ""
             for group in match.groups():
