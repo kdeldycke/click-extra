@@ -143,6 +143,7 @@ def cleanup_formatter():
 
 
 def print_table(table_formatter, *args, **kwargs):
+    """Print table via echo."""
     for line in table_formatter.format_output(*args, **kwargs):
         if is_windows():
             line = line.encode("utf-8")
