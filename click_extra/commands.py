@@ -51,7 +51,7 @@ def register_timer_on_close(ctx, param, value):
     Computes and print the execution time at the end of the CLI, if option has been
     activated.
     """
-    # Skip time keeping if option is not active.
+    # Skip timekeeping if option is not active.
     if not value:
         return
 
@@ -133,16 +133,16 @@ class ExtraOptionsMixin:
         )
 
     def main(self, *args, **kwargs):
-        """Pre-invokation step that is instanciating the context, then call ``invoke()``
+        """Pre-invokation step that is instantiating the context, then call ``invoke()``
         within it.
 
-        During context instanciation, each option's callbacks are called. Beware that
+        During context instantiation, each option's callbacks are called. Beware that
         these might break the execution flow (like ``--version``).
         """
         super().main(*args, **kwargs)
 
     def invoke(self, ctx):
-        """Main execution of the command, just after the context has been instanciated
+        """Main execution of the command, just after the context has been instantiated
         in ``main()``.
 
         Adds, to the normal execution flow, the output of the `--version` parameter in
