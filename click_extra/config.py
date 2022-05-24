@@ -75,7 +75,7 @@ CONFIGURATION_FORMATS = {
 }
 """
 Maps configuration formats, their file extension, and parsing function,
-The order encode the priority by which each format is searched for default configuration file.
+The order lists the priority by which each format is searched for the default configuration file.
 """
 
 
@@ -84,7 +84,7 @@ ALL_EXTENSIONS = tuple(flatten(CONFIGURATION_FORMATS.values()))
 
 
 class ConfigurationFileError(Exception):
-    """Base class for all exceptions related to configuration file."""
+    """Base class for all exceptions related to a configuration file."""
 
     pass
 
@@ -111,7 +111,7 @@ class DefaultConfPath:
         ).resolve()
 
     def __call__(self):
-        """Search for all recognized file extensions in default location."""
+        """Search for all recognized file extensions in the default location."""
         logger.debug("Search for configuration in default location...")
         conf_path = self.conf_path
         for conf_ext in ALL_EXTENSIONS:
@@ -124,7 +124,7 @@ class DefaultConfPath:
     def __str__(self):
         """Default location represented with all supported extensions for help screens.
 
-        Reduce leading path with the `~` user's home construct for tersness.
+        Reduce leading path with the `~` user's home construct for terseness.
         """
         conf_path = self.conf_path
         if not is_windows():
@@ -233,7 +233,7 @@ def map_option_type(param):
             return py_type
 
     raise ValueError(
-        f"Can't guess the target configuration data type of {param!r} prameter."
+        f"Can't guess the target configuration data type of {param!r} parameter."
     )
 
 
@@ -367,13 +367,13 @@ def read_conf(conf_path):
 
 
 def load_conf(ctx, param, conf_path, strict=False):
-    """Fetch parameters values from configuration file and merge them to the defaults.
+    """Fetch parameters values from configuration file and merge them with the defaults.
 
     User configuration is merged to the context ``default_map``, as in:
-    https://click.palletsprojects.com/en/8.0.x/commands/#context-defaults
+    https://click.palletsprojects.com/en/8.1.x/commands/#context-defaults
 
     This allow user's config to only overrides defaults. Values sets from direct
-    command line parameters, environment variables or interactive prompts takes precedence
+    command line parameters, environment variables or interactive prompts, takes precedence
     over any values from the config file.
     """
     if not conf_path:
@@ -425,7 +425,7 @@ def config_option(
     type=STRING,
     default=DefaultConfPath(),
     help="Location of the configuration file. Supports both local path and remote URL.",
-    # Force eagerness so the config option's callback gets the oportunity to set the
+    # Force eagerness so the config option's callback gets the opportunity to set the
     # default_map values before the other options use them.
     is_eager=True,
     callback=None,
@@ -440,7 +440,7 @@ def config_option(
     Silently ignore unsupported options if ``False``.
 
     For other params see Click's ``version_option`` decorator:
-    https://click.palletsprojects.com/en/8.0.x/api/#click.version_option
+    https://click.palletsprojects.com/en/8.1.x/api/#click.version_option
     """
     if not names:
         names = ("--config", "-C")
