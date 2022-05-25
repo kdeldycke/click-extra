@@ -45,6 +45,7 @@ from . import (
     STRING,
     Choice,
     File,
+    IntRange,
     ParameterSource,
     echo,
     get_app_dir,
@@ -225,6 +226,7 @@ def map_option_type(param):
             return py_type
 
     instance_map = {
+        IntRange: int,
         File: str,
     }
 

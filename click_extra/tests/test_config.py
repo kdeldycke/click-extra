@@ -277,6 +277,7 @@ def test_conf_auto_types(invoke, monkeypatch, create_config):
                 "bool_param2": None,
                 "str_param1": None,
                 "str_param2": None,
+                "count_param": None,
                 "choice_param": None,
                 "list1": None,
                 "file_arg1": None,
@@ -295,6 +296,7 @@ def test_conf_auto_types(invoke, monkeypatch, create_config):
                 "bool_param2": bool,
                 "str_param1": str,
                 "str_param2": str,
+                "count_param": int,
                 "choice_param": str,
                 "list1": list,
                 "file_arg1": str,
@@ -316,6 +318,7 @@ def test_conf_auto_types(invoke, monkeypatch, create_config):
     @option("--bool-param2", type=BOOL)
     @option("--str-param1", type=str)
     @option("--str-param2", type=STRING)
+    @option("-c", "--count-param", count=True)  # See issue #170.
     @option("--choice-param", type=Choice(("a", "b", "c")))
     @option("--list1", multiple=True)
     @argument("file_arg1", type=File("w"))
@@ -332,6 +335,7 @@ def test_conf_auto_types(invoke, monkeypatch, create_config):
         bool_param2,
         str_param1,
         str_param2,
+        count_param,
         choice_param,
         list1,
         file_arg1,
