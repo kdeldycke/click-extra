@@ -22,7 +22,21 @@ from pathlib import Path
 import click
 import pytest
 
-from .. import BOOL, FLOAT, INT, STRING, Choice, File, __version__, argument
+from .. import (
+    BOOL,
+    FLOAT,
+    INT,
+    STRING,
+    UNPROCESSED,
+    UUID,
+    Choice,
+    DateTime,
+    File,
+    FloatRange,
+    IntRange,
+)
+from .. import Path as ClickPath
+from .. import Tuple, __version__, argument
 from .. import config as config_module
 from .. import config_option, echo, group, option
 from ..config import conf_structure
@@ -269,16 +283,24 @@ def test_conf_auto_types(invoke, monkeypatch, create_config):
             "my-cli": {
                 "flag1": None,
                 "flag2": None,
+                "str_param1": None,
+                "str_param2": None,
                 "int_param1": None,
                 "int_param2": None,
                 "float_param1": None,
                 "float_param2": None,
                 "bool_param1": None,
                 "bool_param2": None,
-                "str_param1": None,
-                "str_param2": None,
-                "count_param": None,
+                "uuid_param": None,
+                "unprocessed_param": None,
+                "file_param": None,
+                "path_param": None,
                 "choice_param": None,
+                "int_range_param": None,
+                "count_param": None,
+                "float_range_param": None,
+                "datetime_param": None,
+                "tuple1": None,
                 "list1": None,
                 "file_arg1": None,
                 "file_arg2": None,
@@ -288,16 +310,24 @@ def test_conf_auto_types(invoke, monkeypatch, create_config):
             "my-cli": {
                 "flag1": bool,
                 "flag2": bool,
+                "str_param1": str,
+                "str_param2": str,
                 "int_param1": int,
                 "int_param2": int,
                 "float_param1": float,
                 "float_param2": float,
                 "bool_param1": bool,
                 "bool_param2": bool,
-                "str_param1": str,
-                "str_param2": str,
-                "count_param": int,
+                "uuid_param": str,
+                "unprocessed_param": str,
+                "file_param": str,
+                "path_param": str,
                 "choice_param": str,
+                "int_range_param": int,
+                "count_param": int,
+                "float_range_param": float,
+                "datetime_param": str,
+                "tuple1": list,
                 "list1": list,
                 "file_arg1": str,
                 "file_arg2": list,
@@ -310,16 +340,24 @@ def test_conf_auto_types(invoke, monkeypatch, create_config):
     @click.command
     @option("--flag1/--no-flag1")
     @option("--flag2", is_flag=True)
+    @option("--str-param1", type=str)
+    @option("--str-param2", type=STRING)
     @option("--int-param1", type=int)
     @option("--int-param2", type=INT)
     @option("--float-param1", type=float)
     @option("--float-param2", type=FLOAT)
     @option("--bool-param1", type=bool)
     @option("--bool-param2", type=BOOL)
-    @option("--str-param1", type=str)
-    @option("--str-param2", type=STRING)
-    @option("-c", "--count-param", count=True)  # See issue #170.
+    @option("--uuid-param", type=UUID)
+    @option("--unprocessed-param", type=UNPROCESSED)
+    @option("--file-param", type=File())
+    @option("--path-param", type=ClickPath())
     @option("--choice-param", type=Choice(("a", "b", "c")))
+    @option("--int-range-param", type=IntRange())
+    @option("--count-param", count=True)  # See issue #170.
+    @option("--float-range-param", type=FloatRange())
+    @option("--datetime-param", type=DateTime())
+    @option("--tuple1", nargs=2, type=Tuple([str, int]))
     @option("--list1", multiple=True)
     @argument("file_arg1", type=File("w"))
     @argument("file_arg2", type=File("w"), nargs=-1)
@@ -327,16 +365,24 @@ def test_conf_auto_types(invoke, monkeypatch, create_config):
     def my_cli(
         flag1,
         flag2,
+        str_param1,
+        str_param2,
         int_param1,
         int_param2,
         float_param1,
         float_param2,
         bool_param1,
         bool_param2,
-        str_param1,
-        str_param2,
-        count_param,
+        uuid_param,
+        unprocessed_param,
+        file_param,
+        path_param,
         choice_param,
+        int_range_param,
+        count_param,
+        float_range_param,
+        datetime_param,
+        tuple1,
         list1,
         file_arg1,
         file_arg2,

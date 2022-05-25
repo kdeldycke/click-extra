@@ -43,14 +43,17 @@ from . import (
     FLOAT,
     INT,
     STRING,
+    UNPROCESSED,
+    UUID,
     Choice,
+    DateTime,
     File,
+    FloatRange,
     IntRange,
     ParameterSource,
-    echo,
-    get_app_dir,
-    get_current_context,
 )
+from . import Path as ClickPath
+from . import Tuple, echo, get_app_dir, get_current_context
 from .logging import logger
 from .platform import is_windows
 
@@ -203,7 +206,11 @@ def load_ini_config(content, conf_types):
 
 
 def map_option_type(param):
-    """Translate Click parameter type to Python type."""
+    """Translate Click parameter type to Python type.
+
+    See the list of `custom types provided by Click
+    <https://click.palletsprojects.com/en/8.1.x/api/?highlight=intrange#types>`_.
+    """
 
     if param.multiple or param.nargs != 1:
         return list
@@ -211,14 +218,13 @@ def map_option_type(param):
     if hasattr(param, "is_bool_flag") and getattr(param, "is_bool_flag"):
         return bool
 
-    if isinstance(param.type, Choice):
-        return str
-
     direct_map = {
+        STRING: str,
         INT: int,
         FLOAT: float,
         BOOL: bool,
-        STRING: str,
+        UUID: str,
+        UNPROCESSED: str,
     }
 
     for click_type, py_type in direct_map.items():
@@ -226,8 +232,13 @@ def map_option_type(param):
             return py_type
 
     instance_map = {
-        IntRange: int,
         File: str,
+        ClickPath: str,
+        Choice: str,
+        IntRange: int,
+        FloatRange: float,
+        DateTime: str,
+        Tuple: list,
     }
 
     for click_type, py_type in instance_map.items():

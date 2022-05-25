@@ -6,7 +6,7 @@
 This version is not released yet and is under active development.
 ```
 
-- Fix auto-mapping and recognition of `click.IntRange` options in config module. Closes {issue}`170`.
+- Fix in config module auto-mapping and recognition of all missing Click option types. Closes {issue}`170`.
 
 ## {gh}`2.1.1 (2022-05-22) <compare/v2.1.0...v2.1.1>`
 
