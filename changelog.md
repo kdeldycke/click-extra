@@ -1,5 +1,11 @@
 # Changelog
 
+## {gh}`2.1.3 (unreleased) <compare/v2.1.2...main>`
+
+```{important}
+This version is not released yet and is under active development.
+```
+
 ## {gh}`2.1.2 (2022-06-02) <compare/v2.1.1...v2.1.2>`
 
 - Fix auto-mapping and recognition of all missing Click option types in config module. Closes {issue}`170`.
