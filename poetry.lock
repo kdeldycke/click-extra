@@ -193,16 +193,17 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
 name = "furo"
-version = "2022.4.7"
+version = "2022.6.4.1"
 description = "A clean customisable Sphinx documentation theme."
 category = "dev"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.7"
 
 [package.dependencies]
 beautifulsoup4 = "*"
-pygments = ">=2.7,<3.0"
-sphinx = ">=4.0,<5.0"
+pygments = "*"
+sphinx = ">=4.0,<6.0"
+sphinx-basic-ng = "*"
 
 [[package]]
 name = "idna"
@@ -569,6 +570,20 @@ lint = ["flake8 (>=3.5.0)", "isort", "mypy (>=0.931)", "docutils-stubs", "types-
 test = ["pytest", "pytest-cov", "html5lib", "cython", "typed-ast"]
 
 [[package]]
+name = "sphinx-basic-ng"
+version = "0.0.1a11"
+description = "A modern skeleton for Sphinx themes."
+category = "dev"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+sphinx = ">=4.0,<6.0"
+
+[package.extras]
+docs = ["furo", "myst-parser", "sphinx-copybutton", "sphinx-inline-tabs", "ipython"]
+
+[[package]]
 name = "sphinx-copybutton"
 version = "0.5.0"
 description = "Add a copy button to each of your code cells."
@@ -786,7 +801,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "5a4234e9305f0cca7724a3370c8b66762c2e14e325eaad5b1c56ddbac8ff7a87"
+content-hash = "a2ed14d48fcec2d673b634157229759e0f5501dcf7067631577487daf11e0f90"
 
 [metadata.files]
 alabaster = [
@@ -899,8 +914,8 @@ docutils = [
     {file = "docutils-0.17.1.tar.gz", hash = "sha256:686577d2e4c32380bb50cbb22f575ed742d58168cee37e99117a854bcd88f125"},
 ]
 furo = [
-    {file = "furo-2022.4.7-py3-none-any.whl", hash = "sha256:7f3e3d2fb977483590f8ecb2c2cd511bd82661b79c18efb24de9558bc9cdf2d7"},
-    {file = "furo-2022.4.7.tar.gz", hash = "sha256:96204ab7cd047e4b6c523996e0279c4c629a8fc31f4f109b2efd470c17f49c80"},
+    {file = "furo-2022.6.4.1-py3-none-any.whl", hash = "sha256:79f2d3a61e3d971c0acd59f53d3202e7336789cd893f7bdc3cc7bc37d6ef252c"},
+    {file = "furo-2022.6.4.1.tar.gz", hash = "sha256:c927848edf3292030d0719ebdab9e16d56f1b91c68562b9be316aa5b843775ab"},
 ]
 idna = [
     {file = "idna-3.3-py3-none-any.whl", hash = "sha256:84d9dd047ffa80596e0f246e2eab0b391788b0503584e8945f2368256d2735ff"},
@@ -1157,6 +1172,10 @@ soupsieve = [
 sphinx = [
     {file = "Sphinx-4.5.0-py3-none-any.whl", hash = "sha256:ebf612653238bcc8f4359627a9b7ce44ede6fdd75d9d30f68255c7383d3a6226"},
     {file = "Sphinx-4.5.0.tar.gz", hash = "sha256:7bf8ca9637a4ee15af412d1a1d9689fec70523a68ca9bb9127c2f3eeb344e2e6"},
+]
+sphinx-basic-ng = [
+    {file = "sphinx_basic_ng-0.0.1a11-py3-none-any.whl", hash = "sha256:9aecb5345816998789ef76658a83e3c0a12aafa14b17d40e28cd4aaeb94d1517"},
+    {file = "sphinx_basic_ng-0.0.1a11.tar.gz", hash = "sha256:bf9a8fda0379c7d2ab51c9543f2b18e014b77fb295b49d64f3c1a910c863b34f"},
 ]
 sphinx-copybutton = [
     {file = "sphinx-copybutton-0.5.0.tar.gz", hash = "sha256:a0c059daadd03c27ba750da534a92a63e7a36a7736dcf684f26ee346199787f6"},
