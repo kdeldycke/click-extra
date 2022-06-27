@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Disable workflow grouping and concurrency management.
+
 ## {gh}`2.1.2 (2022-06-02) <compare/v2.1.1...v2.1.2>`
 
 - Fix auto-mapping and recognition of all missing Click option types in config module. Closes {issue}`170`.
