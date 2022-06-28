@@ -36,7 +36,7 @@ from .. import (
     IntRange,
 )
 from .. import Path as ClickPath
-from .. import Tuple, __version__, argument
+from .. import Tuple, argument
 from .. import config as config_module
 from .. import config_option, echo, group, option
 from ..config import conf_structure
