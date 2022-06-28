@@ -109,7 +109,7 @@ def invoke(runner, monkeypatch):
     def _run(cli, *args, env=None, color=None):
         # We allow for nested iterables and None values as args for
         # convenience. We just need to flatten and filters them out.
-        args = list(filter(None.__ne__, flatten(args)))
+        args = [arg for arg in flatten(args) if arg is not None]
         if args:
             assert same(map(type, args), str)
 
