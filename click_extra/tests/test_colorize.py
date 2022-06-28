@@ -26,7 +26,6 @@ from boltons.strutils import strip_ansi
 
 from .. import (
     Style,
-    __version__,
     command,
     echo,
     group,
