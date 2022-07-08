@@ -122,6 +122,13 @@ for tabulate_format in ("ascii", "double", "psql_unicode"):
     del TabularOutputFormatter._output_formats[tabulate_format]
 
 
+# Fix rendering of `None` values. We want an empty column instead of `<null>`.
+for format_id in TabularOutputFormatter._output_formats:
+    TabularOutputFormatter._output_formats[format_id].formatter_args[
+        "missing_value"
+    ] = ""
+
+
 # Register all our new formats to cli-helper.
 for tabulate_format in new_formats:
     TabularOutputFormatter.register_new_formatter(
@@ -130,7 +137,7 @@ for tabulate_format in new_formats:
         tabulate_adapter.get_preprocessors(tabulate_format),
         {
             "table_format": tabulate_format,
-            "missing_value": MISSING_VALUE,
+            "missing_value": "",
             "max_field_width": MAX_FIELD_WIDTH,
         },
     )
