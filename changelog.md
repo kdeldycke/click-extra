@@ -1,5 +1,11 @@
 # Changelog
 
+## {gh}`2.1.4 (unreleased) <compare/v2.1.3...main>`
+
+```{important}
+This version is not released yet and is under active development.
+```
+
 ## {gh}`2.1.3 (2022-07-08) <compare/v2.1.2...v2.1.3>`
 
 - Do not render `None` cells in tables with `<null>` string.
