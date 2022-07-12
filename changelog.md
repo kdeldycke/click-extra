@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Pre-compute test matrix to allow for a subset of jobs to fail because they're unstable.
+
 ## {gh}`2.1.3 (2022-07-08) <compare/v2.1.2...v2.1.3>`
 
 - Do not render `None` cells in tables with `<null>` string.
