@@ -76,6 +76,7 @@ jobs:
               # "Connection broken: PermissionError(13, 'The process cannot access the file because it is
               # being used by another process')"
               {"windows-2019", "pypy-3.7"},
+              {"windows-2022", "pypy-3.7"},
           ]
 
           jobs = []
