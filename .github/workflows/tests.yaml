@@ -73,6 +73,9 @@ jobs:
               {"pypy-3.8"},
               # Failed to build cryptography package for pypy-3.9.
               {"pypy-3.9"},
+              # "Connection broken: PermissionError(13, 'The process cannot access the file because it is
+              # being used by another process')"
+              {"windows-2019", "pypy-3.7"},
           ]
 
           jobs = []
