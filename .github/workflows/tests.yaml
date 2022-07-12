@@ -18,31 +18,91 @@ name: Tests
 
 jobs:
 
+  test-matrix:
+    # There is no way to selective flags collections of elements in a matrix, without having to flag all combinations.
+    # This will became unmaintainable and tedious so we use this job to pre-compute which jobs is going to get our
+    # "stable" flag.
+    name: "OS/Python/stable matrix pre-compute"
+    runs-on: ubuntu-20.04
+    outputs:
+      test_matrix: ${{ steps.create_matrix.outputs.matrix }}
+    steps:
+      - name: Create JSON matrix
+        id: create_matrix
+        shell: python
+        run: |
+          import json
+          from itertools import product
+
+          # See what each os came pre-installed with at:
+          # https://help.github.com/en/actions/reference/software-installed-on-github-hosted-runners
+          os_list = {
+              "ubuntu-20.04",
+              "ubuntu-18.04",
+              "macos-11.0",
+              "macos-10.15",
+              "windows-2022",
+              "windows-2019",
+          }
+          python_list = {
+              "3.7",
+              "3.8",
+              "3.9",
+              "3.10",
+              "3.11.0-alpha.7 - 3.11.0",
+              "pypy-3.7",
+              "pypy-3.8",
+              "pypy-3.9",
+          }
+          # Safety check to ensure there is no overlap between the 2 sets.
+          assert not os_list.intersection(python_list)
+
+          # List of unstable creiterions.
+          unstable = [
+              # tomllib has been added in Python 3.11.0-alpha.7,
+              # but Python 3.11 has not been released yet, hence the range.
+              # Python 3.11 runs ends with this error:
+              # File ".../python3.11/site-packages/pip/_vendor/packaging/utils.py", line 34, in canonicalize_name
+              #       value = _canonicalize_regex.sub("-", name).lower()
+              #               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              #   TypeError: expected string or bytes-like object, got 'NoneType'
+              {"3.11.0-alpha.7 - 3.11.0"},
+              # Jinja seems to be broken on pypy-3.8.
+              {"pypy-3.8"},
+              # Failed to build cryptography package for pypy-3.9.
+              {"pypy-3.9"},
+          ]
+
+          jobs = []
+          for os_id, python_version in product(os_list, python_list):
+              job = {
+                  "os": os_id,
+                  "python-version": python_version,
+                  "state": "stable",
+              }
+              for criterion in unstable:
+                  if criterion.issubset(job.values()):
+                      job["state"] = "unstable"
+                      break
+              jobs.append(job)
+          matrix = json.dumps({"include": jobs})
+
+          print(f"::set-output name=matrix::{matrix}")
+
+      - name: Print JSON matrix
+        run: |
+          echo '${{ steps.create_matrix.outputs.matrix }}'
+          jq -aR <<< echo '${{ steps.create_matrix.outputs.matrix }}'
+
   tests:
-    runs-on: ${{ matrix.os }}
+    needs:
+      - test-matrix
     strategy:
-      matrix:
-        # See what each os came pre-installed with at:
-        # https://help.github.com/en/actions/reference/software-installed-on-github-hosted-runners
-        os:
-          - ubuntu-20.04
-          - ubuntu-18.04
-          - macos-11.0
-          - macos-10.15
-          - windows-2022
-          - windows-2019
-        python-version:
-          - "3.7"
-          - "3.8"
-          - "3.9"
-          - "3.10"
-          # tomllib has been added in Python 3.11.0-alpha.7
-          - "3.11.0-alpha.7 - 3.11.0"
-          - "pypy-3.7"
-          # Jinja seems to be broken on pypy-3.8.
-          # - "pypy-3.8"
-          # Failed to build cryptography package for pypy-3.9.
-          # - "pypy-3.9"
+      fail-fast: false
+      matrix: ${{ fromJson(needs.test-matrix.outputs.test_matrix) }}
+    runs-on: ${{ matrix.os }}
+    # We keep going when a job flagged as not stable fails.
+    continue-on-error: ${{ matrix.state == 'unstable' }}
     steps:
       - uses: actions/checkout@v3.0.2
 
@@ -65,9 +125,8 @@ jobs:
         # https://github.com/nedbat/coveragepy/issues/512#issuecomment-399707938
         # https://github.com/pytest-dev/pytest-cov/issues/168#issuecomment-327533847
         # https://github.com/pytest-dev/pytest-cov/issues/243
-        run: >
-          poetry run
-          pytest --cov-config=pyproject.toml --cov=./ --cov-report=xml
+        run: |
+          poetry run pytest --cov-config=pyproject.toml --cov=./ --cov-report=xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3.1.0
