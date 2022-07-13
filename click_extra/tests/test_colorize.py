@@ -50,6 +50,28 @@ from .conftest import (
     skip_windows_colors,
 )
 
+all_command_decorators = pytest.mark.parametrize(
+    "command_decorator",
+    (
+        pytest.param(dec, id=label)
+        for dec, label in (
+            (click.group, "click.group"),
+            (click.group(), "click.group()"),
+            (click.command, "click.command"),
+            (click.command(), "click.command()"),
+            # (cloup.group, "cloup.group"),
+            # (cloup.group(), "cloup.group()"),
+            # (cloup.command, "cloup.command"),
+            # (cloup.command(), "cloup.command()"),
+            # (group, "click_extra.group"),
+            (group(), "click_extra.group()"),
+            # (command, "click_extra.command"),
+            (command(), "click_extra.command()"),
+        )
+    ),
+)
+"""A pytest parametrizer to test all forms of click/cloup/click-extra command decorators."""
+
 
 def test_options_highlight():
     formatter = HelpExtraFormatter()
@@ -237,9 +259,13 @@ def test_standalone_version_option_with_env_info(invoke):
     assert not result.stderr
 
 
+@pytest.mark.xfail(
+    strict=False, reason="version_option always displays click-extra version. See #176."
+)
 @skip_windows_colors
-def test_standalone_version_option_without_env_info(invoke):
-    @click.group
+@all_command_decorators
+def test_standalone_version_option_without_env_info(invoke, command_decorator):
+    @command_decorator
     @version_option(version="1.2.3.4", print_env_info=False)
     def dummy_cli():
         echo("It works!")
