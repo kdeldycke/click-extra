@@ -129,14 +129,14 @@ click = "*"
 
 [[package]]
 name = "cloup"
-version = "0.15.1"
+version = "1.0.0"
 description = "Adds features to Click: option groups, constraints, subcommand sections and help themes."
 category = "main"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.7"
 
 [package.dependencies]
-click = ">=7.1,<9.0"
+click = ">=8.0,<9.0"
 typing-extensions = {version = "*", markers = "python_version <= \"3.8\""}
 
 [[package]]
@@ -801,7 +801,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "b47d0fa7d7553cac4431728404033fdd886261445970cf0a39e2fd85f2f2ef9c"
+content-hash = "969a7c78f954a81d8a40e8b293776598a4e392e9063da0189ec062c2ea97b7e0"
 
 [metadata.files]
 alabaster = [
@@ -852,8 +852,8 @@ click-log = [
     {file = "click_log-0.4.0-py2.py3-none-any.whl", hash = "sha256:a43e394b528d52112af599f2fc9e4b7cf3c15f94e53581f74fa6867e68c91756"},
 ]
 cloup = [
-    {file = "cloup-0.15.1-py2.py3-none-any.whl", hash = "sha256:9358fd1f4949ef88355d37e733d93d65045f4090b52b8de8d4c34cca9a1e7a08"},
-    {file = "cloup-0.15.1.tar.gz", hash = "sha256:8008b480a77d8a112c78702f64675adbdf59fadc39e391f3ba8bcac9c4d4cd86"},
+    {file = "cloup-1.0.0-py2.py3-none-any.whl", hash = "sha256:1f434beea1c0435a0c043970170c00be5455a13ee397b3c4a29077d8406d87f7"},
+    {file = "cloup-1.0.0.tar.gz", hash = "sha256:fc34777af44ad5decacfd742a784737800f9a29b183d9174a31d07a91f6eef5d"},
 ]
 colorama = [
     {file = "colorama-0.4.5-py2.py3-none-any.whl", hash = "sha256:854bf444933e37f5824ae7bfc1e98d5bce2ebe4160d46b5edf346a89358e99da"},
@@ -1229,7 +1229,10 @@ typing-extensions = [
     {file = "typing_extensions-4.3.0-py3-none-any.whl", hash = "sha256:25642c956049920a5aa49edcdd6ab1e06d7e5d467fc00e0506c44ac86fbfca02"},
     {file = "typing_extensions-4.3.0.tar.gz", hash = "sha256:e6d2677a32f47fc7eb2795db1dd15c1f34eff616bcaf2cfb5e997f854fa1c4a6"},
 ]
-urllib3 = []
+urllib3 = [
+    {file = "urllib3-1.26.10-py2.py3-none-any.whl", hash = "sha256:8298d6d56d39be0e3bc13c1c97d133f9b45d797169a0e11cdd0e0489d786f7ec"},
+    {file = "urllib3-1.26.10.tar.gz", hash = "sha256:879ba4d1e89654d9769ce13121e0f94310ea32e8d2f8cf587b77c08bbcdb30d6"},
+]
 wcwidth = [
     {file = "wcwidth-0.2.5-py2.py3-none-any.whl", hash = "sha256:beb4802a9cebb9144e99086eff703a642a13d6a0052920003a230f3294bbe784"},
     {file = "wcwidth-0.2.5.tar.gz", hash = "sha256:c4d647b99872929fdb7bdcaa4fbe7f01413ed3d98077df798530e5b04f116c83"},
