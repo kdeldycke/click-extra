@@ -146,7 +146,7 @@ jobs:
 
       - name: Install click-extra and its dependencies
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade setuptools pip
           python -m pip install --upgrade poetry
           poetry install --no-interaction --no-ansi
 
