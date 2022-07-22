@@ -10,68 +10,27 @@
 [![Documentation status](https://github.com/kdeldycke/click-extra/actions/workflows/docs.yaml/badge.svg?branch=main)](https://github.com/kdeldycke/click-extra/actions/workflows/docs.yaml?query=branch%3Amain)
 [![Coverage status](https://codecov.io/gh/kdeldycke/click-extra/branch/main/graph/badge.svg)](https://codecov.io/gh/kdeldycke/click-extra/branch/main)
 
-**What is Click Extra?**
+## What is Click Extra?
 
 A collection of helpers and utilities for
 [Click](https://click.palletsprojects.com), the Python CLI framework.
 
 It is a drop-in replacement with good defaults that saves you some boilerplate
-code. It also comes with some
+code. It also comes with
 [workarounds and patches](https://kdeldycke.github.io/click-extra/issues.html) that have not
 reached upstream yet (or are unlikely to).
 
-<table><tr>
-<td>Simple <code>click</code> example</td>
-<td>Same with <code>click-extra</code></td>
-</tr><tr>
-<td>
+## Example
 
-```python
-from click import command, echo, option
+It can transform the [canonical `click` example](https://github.com/pallets/click#a-simple-example):
 
+![click CLI help screen](https://github.com/kdeldycke/click-extra/raw/main/docs/images/click-help-screen.png)
 
-@command()
-@option("--count", default=1, help="Number of greetings.")
-@option("--name", prompt="Your name", help="The person to greet.")
-def hello(count, name):
-    """Simple program that greets NAME for a total of COUNT times."""
-    for _ in range(count):
-        echo(f"Hello, {name}!")
+Into this:
 
+![click-extra CLI help screen](https://github.com/kdeldycke/click-extra/raw/main/docs/images/click-extra-screen.png)
 
-if __name__ == "__main__":
-    hello()
-```
-
-</td><td>
-
-```python
-from click_extra import command, echo, option
-
-
-@command()
-@option("--count", default=1, help="Number of greetings.")
-@option("--name", prompt="Your name", help="The person to greet.")
-def hello(count, name):
-    """Simple program that greets NAME for a total of COUNT times."""
-    for _ in range(count):
-        echo(f"Hello, {name}!")
-
-
-if __name__ == "__main__":
-    hello()
-```
-
-</td></tr>
-<tr>
-<td><img alt="click CLI help screen" width="70%" src="https://github.com/kdeldycke/click-extra/raw/main/docs/images/click-help-screen.png"/></td>
-<td><img alt="click-extra CLI help screen" width="70%" src="https://github.com/kdeldycke/click-extra/raw/main/docs/images/click-extra-screen.png"/></td>
-</tr>
-</table>
-
-This example demonstrate the all-in-one package with its default options. You
-are still free to pick-up some of these options one-by-one, as documented
-below.
+To undestrand how we ended up with the result above, go [read the quick tutorial](https://kdeldycke.github.io/click-extra/tutorial.html).
 
 ## Features
 

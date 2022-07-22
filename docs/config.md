@@ -1,4 +1,4 @@
-# Configuration loader usage
+# Configuration loader
 
 The configuration loader source values according the following precedence:
 `CLI parameters > Configuration file > Environment variables > Defaults`.
@@ -179,7 +179,15 @@ int_parameter is 65
 
 ## INI configuration
 
+```{todo}
+Write example and tutorial.
+```
+
 ## XML configuration
+
+```{todo}
+Write example and tutorial.
+```
 
 ## Remote configuration
 
@@ -190,4 +198,13 @@ $ ./my_cli.py --config https://example.com/dummy/configuration.yaml subcommand
 dummy_flag    is True
 my_list       is ('point 1', 'point #2', 'Very Last Point!')
 int_parameter is 77
+```
+
+## `click_extra.config` API
+
+```{eval-rst}
+.. automodule:: click_extra.config
+   :members:
+   :undoc-members:
+   :show-inheritance:
 ```
