@@ -72,7 +72,9 @@ jobs:
 
               # • Installing py (1.11.0)
               # ChunkedEncodingError
-              # ("Connection broken: PermissionError(13, 'The process cannot access the file because it is being used by another process')", PermissionError(13, 'The process cannot access the file because it is being used by another process'))
+              # ("Connection broken: PermissionError(13, 'The process cannot access the file because it is being used
+              # by another process')", PermissionError(13, 'The process cannot access the file because it is being used
+              # by another process'))
               # at C:\hostedtoolcache\windows\PyPy\3.8.12\x86\lib\site-packages\requests\models.py:818 in generate
               #      814│ if hasattr(self.raw, "stream"):
               #      815│     try:
@@ -89,7 +91,9 @@ jobs:
 
               # • Installing mdit-py-plugins (0.3.0)
               # ChunkedEncodingError
-              # ("Connection broken: PermissionError(13, 'The process cannot access the file because it is being used by another process')", PermissionError(13, 'The process cannot access the file because it is being used by another process'))
+              # ("Connection broken: PermissionError(13, 'The process cannot access the file because it is being used
+              # by another process')", PermissionError(13, 'The process cannot access the file because it is being used
+              # by another process'))
               # at C:\hostedtoolcache\windows\PyPy\3.9.10\x86\lib\site-packages\requests\models.py:818 in generate
               #      814│ if hasattr(self.raw, "stream"):
               #      815│     try:
