@@ -20,7 +20,7 @@ import re
 import click
 import pytest
 
-from .. import echo, group, verbosity_option
+from .. import echo, extra_group, verbosity_option
 from ..logging import LOG_LEVELS, logger
 from .conftest import default_debug_colored_log, skip_windows_colors
 
@@ -74,7 +74,7 @@ def test_standalone_verbosity_option(invoke, level):
 @skip_windows_colors
 @pytest.mark.parametrize("level", LOG_LEVELS.keys())
 def test_integrated_verbosity_option(invoke, level):
-    @group()
+    @extra_group()
     def dummy_cli():
         echo("It works!")
 

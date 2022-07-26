@@ -19,10 +19,10 @@
 
 import logging
 
-import click
 import click_log
+import cloup
 
-from . import Choice, Option
+from . import Choice, ExtraOption
 
 LOG_LEVELS = {
     name: value
@@ -66,18 +66,7 @@ class WrappedLogger:
 logger = WrappedLogger()
 
 
-def verbosity_option(
-    default_logger=None,
-    *names,
-    default="INFO",
-    metavar="LEVEL",
-    type=Choice(LOG_LEVELS, case_sensitive=False),
-    expose_value=False,
-    help=f"Either {', '.join(LOG_LEVELS)}.",
-    is_eager=True,
-    cls=Option,
-    **kwargs,
-):
+class VerbosityOption(cloup.Option, ExtraOption):
     """Adds a ``--verbosity``/``-v`` option.
 
     A re-implementation of ``click_log.simple_verbosity_option`` decorator,
@@ -88,28 +77,46 @@ def verbosity_option(
         https://github.com/click-contrib/click-log/pull/24
     ).
     """
-    if not names:
-        names = ("--verbosity", "-v")
 
-    logger.set_logger(default_logger)
-
-    def set_level(ctx, param, value):
-        """Set logger level and print its value as a debug message."""
-        logger.setLevel(LOG_LEVELS[value])
-        logger.debug(f"Verbosity set to {value}.")
-        # Forces logger level reset at the end of each CLI execution, as it pollutes the logger
-        # state between multiple test calls.
-        ctx.call_on_close(logger.reset)
-
-    return click.option(
-        *names,
-        default=default,
-        metavar=metavar,
-        type=type,
-        expose_value=expose_value,
-        help=help,
-        is_eager=is_eager,
-        callback=set_level,
-        cls=cls,
+    def __init__(
+        self,
+        default_logger=None,
+        param_decls=None,
+        default="INFO",
+        metavar="LEVEL",
+        type=Choice(LOG_LEVELS, case_sensitive=False),
+        expose_value=False,
+        help=f"Either {', '.join(LOG_LEVELS)}.",
+        is_eager=True,
         **kwargs,
-    )
+    ):
+        if not param_decls:
+            param_decls = ("--verbosity", "-v")
+
+        logger.set_logger(default_logger)
+
+        def set_level(ctx, param, value):
+            # import pdb; pdb.set_trace()
+            """Set logger level and print its value as a debug message."""
+            logger.setLevel(LOG_LEVELS[value])
+            logger.debug(f"Verbosity set to {value}.")
+            # Forces logger level reset at the end of each CLI execution, as it pollutes the logger
+            # state between multiple test calls.
+            ctx.call_on_close(logger.reset)
+
+        super().__init__(
+            param_decls=param_decls,
+            default=default,
+            metavar=metavar,
+            type=type,
+            expose_value=expose_value,
+            help=help,
+            is_eager=is_eager,
+            callback=set_level,
+            **kwargs,
+        )
+
+
+def verbosity_option(*param_decls: str, cls=VerbosityOption, **kwargs):
+    """Decorator for ``VerbosityOption``."""
+    return cloup.option(*param_decls, cls=cls, **kwargs)

@@ -17,26 +17,32 @@
 
 """Helpers and utilities to apply ANSI coloring to terminal content."""
 
+import inspect
 import os
 import re
 import sys
+import types
+import typing as t
 from collections import namedtuple
 from configparser import RawConfigParser
 from functools import partial
+from gettext import gettext as _
 from operator import getitem
 
 import click
+import cloup
 import regex as re3
 from boltons.strutils import complement_int_list, int_ranges_from_int_list
 from click_log import ColorFormatter
 
 from . import (
     Choice,
+    ExtraOption,
     HelpFormatter,
     HelpTheme,
-    Option,
     ParameterSource,
     Style,
+    echo,
     get_current_context,
 )
 
@@ -111,102 +117,92 @@ Source: https://github.com/pallets/click/issues/558
 """
 
 
-def disable_colors(ctx, param, value):
-    """Callback disabling all coloring utilities.
-
-    Re-inspect the environment for existence of colorization flags to re-interpret the
-    provided value.
-    """
-    # Collect all colorize flags in environment variables we recognize.
-    colorize_from_env = set()
-    for var, default in color_env_vars.items():
-        if var in os.environ:
-            # Presence of the variable in the environment without a value encodes for an activation,
-            # hence the default to True.
-            var_value = os.environ.get(var, "true")
-            # `os.environ` is a dict whose all values are strings. Here we normalize these string into
-            # booleans. If we can't, we fallback to True, in the same spirit as above.
-            var_boolean = RawConfigParser.BOOLEAN_STATES.get(var_value.lower(), True)
-            colorize_from_env.add(default ^ (not var_boolean))
-
-    # Re-interpret the provided value against the recognized environment variables.
-    if colorize_from_env:
-        # The environment can only override the provided value if it comes from
-        # the default value or the config file.
-        env_takes_precedence = (
-            ctx.get_parameter_source("color") == ParameterSource.DEFAULT
-        )
-        if env_takes_precedence:
-            # One env var is enough to activate colorization.
-            value = True in colorize_from_env
-
-    # There is an undocumented color flag in context:
-    # https://github.com/pallets/click/blob/65eceb08e392e74dcc761be2090e951274ccbe36/src/click/globals.py#L56-L69
-    ctx.color = value
-
-    if not value:
-
-        def restore_original_styling():
-            # Reset color flag in context.
-            ctx = get_current_context()
-            ctx.color = None
-
-        ctx.call_on_close(restore_original_styling)
-
-
-def color_option(
-    *names,
-    is_flag=True,
-    default=True,
-    is_eager=True,
-    expose_value=False,
-    callback=disable_colors,
-    help="Strip out all colors and all ANSI codes from output.",
-    cls=Option,
-    **kwargs,
-):
-    """A ready to use option decorator that is adding a ``--color/--no-color`` (aliased
+class ColorOption(cloup.Option, ExtraOption):
+    """A pre-configured option that is adding a ``--color/--no-color`` (aliased
     by ``--ansi/--no-ansi``) option to keep or strip colors and ANSI codes from CLI
     output.
 
     This option is eager by default to allow for other eager options (like
     ``--version``) to be rendered colorless.
     """
-    if not names:
-        names = ("--color/--no-color", "--ansi/--no-ansi")
-    return click.option(
-        *names,
-        is_flag=is_flag,
-        default=default,
-        is_eager=is_eager,
-        expose_value=expose_value,
-        callback=callback,
-        help=help,
-        cls=cls,
+
+    @staticmethod
+    def _disable_colors(ctx, param, value):
+        """Callback disabling all coloring utilities.
+
+        Re-inspect the environment for existence of colorization flags to re-interpret the
+        provided value.
+        """
+        # Collect all colorize flags in environment variables we recognize.
+        colorize_from_env = set()
+        for var, default in color_env_vars.items():
+            if var in os.environ:
+                # Presence of the variable in the environment without a value encodes for an activation,
+                # hence the default to True.
+                var_value = os.environ.get(var, "true")
+                # `os.environ` is a dict whose all values are strings. Here we normalize these string into
+                # booleans. If we can't, we fallback to True, in the same spirit as above.
+                var_boolean = RawConfigParser.BOOLEAN_STATES.get(
+                    var_value.lower(), True
+                )
+                colorize_from_env.add(default ^ (not var_boolean))
+
+        # Re-interpret the provided value against the recognized environment variables.
+        if colorize_from_env:
+            # The environment can only override the provided value if it comes from
+            # the default value or the config file.
+            env_takes_precedence = (
+                ctx.get_parameter_source("color") == ParameterSource.DEFAULT
+            )
+            if env_takes_precedence:
+                # One env var is enough to activate colorization.
+                value = True in colorize_from_env
+
+        # There is an undocumented color flag in context:
+        # https://github.com/pallets/click/blob/65eceb08e392e74dcc761be2090e951274ccbe36/src/click/globals.py#L56-L69
+        ctx.color = value
+
+        if not value:
+
+            def restore_original_styling():
+                # Reset color flag in context.
+                ctx = get_current_context()
+                ctx.color = None
+
+            ctx.call_on_close(restore_original_styling)
+
+    def __init__(
+        self,
+        param_decls=None,
+        is_flag=True,
+        default=True,
+        is_eager=True,
+        expose_value=False,
+        callback=_disable_colors,
+        help="Strip out all colors and all ANSI codes from output.",
         **kwargs,
-    )
+    ):
+        if not param_decls:
+            param_decls = ("--color/--no-color", "--ansi/--no-ansi")
+
+        super().__init__(
+            param_decls=param_decls,
+            is_flag=is_flag,
+            default=default,
+            is_eager=is_eager,
+            expose_value=expose_value,
+            callback=callback,
+            help=help,
+            **kwargs,
+        )
 
 
-class VersionOption(Option):
-    """No-op class wrapping ``Option`` to serve as a marker to identify parameters
-    created with our own ``version_option`` below."""
-
-    pass
+def color_option(*param_decls: str, cls=ColorOption, **kwargs):
+    """Decorator for ``ColorOption``."""
+    return cloup.option(*param_decls, cls=cls, **kwargs)
 
 
-def version_option(
-    version=None,
-    *names,
-    message="%(prog)s, version %(version)s",
-    print_env_info=False,
-    version_style=Style(fg="green"),
-    package_name_style=theme.invoked_command,
-    prog_name_style=theme.invoked_command,
-    message_style=None,
-    env_info_style=Style(fg="bright_black"),
-    cls=VersionOption,
-    **kwargs,
-):
+class VersionOption(cloup.Option, ExtraOption):
     """
     :param print_env_info: adds environment info at the end of the message. Useful to gather user's details for troubleshooting.
     :param version_style: style of the ``version``. Defaults to green.
@@ -218,43 +214,176 @@ def version_option(
     For other params see Click's ``version_option`` decorator:
     https://click.palletsprojects.com/en/8.1.x/api/#click.version_option
     """
-    if not message:
-        message = ""
 
-    # XXX Temporarily skip displaying environment details for Python >= 3.10 while we wait for
-    # https://github.com/mahmoud/boltons/issues/294 to be released upstream.
-    if print_env_info and sys.version_info[:2] < (3, 10):
-        from boltons.ecoutils import get_profile
+    def guess_package_name(self):
+        package_name = None
 
-        env_info = "\n" + str(get_profile(scrub=True))
-        if env_info_style:
-            env_info = env_info_style(env_info)
-        message += env_info
+        frame = inspect.currentframe()
+        f_back = frame.f_back if frame is not None else None
+        f_globals = f_back.f_globals if f_back is not None else None
+        # break reference cycle
+        # https://docs.python.org/3/library/inspect.html#the-interpreter-stack
+        del frame
 
-    colorized_message = ""
-    for part in re.split(r"(%\(version\)s|%\(package\)s|%\(prog\)s)", message):
-        # Skip empty strings.
-        if not part:
-            continue
-        if part == "%(package)s" and package_name_style:
-            part = package_name_style(part)
-        elif part == "%(prog)s" and prog_name_style:
-            part = prog_name_style(part)
-        elif part == "%(version)s" and version_style:
-            part = version_style(part)
-        elif message_style:
-            part = message_style(part)
-        colorized_message += part
-    if not colorized_message:
-        colorized_message = message
+        if f_globals is not None:
+            package_name = f_globals.get("__name__")
 
-    return click.version_option(
-        version,
-        *names,
-        cls=cls,
-        message=colorized_message,
+            if package_name == "__main__":
+                package_name = f_globals.get("__package__")
+
+            if package_name:
+                package_name = package_name.partition(".")[0]
+
+        return package_name
+
+    def callback(
+        self,
+        ctx: click.Context,
+        param: click.Parameter,
+        value: bool,
+        capture_output: bool = False,
+    ) -> None:
+        if not value or ctx.resilient_parsing:
+            return
+
+        if self.prog_name is None:
+            self.prog_name = ctx.find_root().info_name
+
+        if self.version is None and self.package_name is not None:
+            metadata: t.Optional[types.ModuleType]
+
+            try:
+                from importlib import metadata  # type: ignore
+            except ImportError:
+                # Python < 3.8
+                import importlib_metadata as metadata  # type: ignore
+
+            try:
+                self.version = metadata.version(self.package_name)  # type: ignore
+            except metadata.PackageNotFoundError:  # type: ignore
+                raise RuntimeError(
+                    f"{self.package_name!r} is not installed. Try passing"
+                    " 'package_name' instead."
+                ) from None
+
+        if self.version is None:
+            raise RuntimeError(
+                f"Could not determine the version for {self.package_name!r} automatically."
+            )
+
+        output = t.cast(str, self.message) % {
+            "prog": self.prog_name,
+            "package": self.package_name,
+            "version": self.version,
+        }
+
+        if capture_output:
+            return output
+
+        echo(output, color=ctx.color)
+        ctx.exit()
+
+    def __init__(
+        self,
+        param_decls=None,
+        version=None,
+        package_name: t.Optional[str] = None,
+        prog_name: t.Optional[str] = None,
+        message: str = "%(prog)s, version %(version)s",
+        print_env_info=False,
+        version_style=Style(fg="green"),
+        package_name_style=theme.invoked_command,
+        prog_name_style=theme.invoked_command,
+        message_style=None,
+        env_info_style=Style(fg="bright_black"),
+        is_flag=True,
+        expose_value=False,
+        is_eager=True,
+        help="Show the version and exit.",
         **kwargs,
-    )
+    ):
+        if not param_decls:
+            param_decls = ("--version",)
+
+        self.version = version
+        self.package_name = package_name
+        self.prog_name = prog_name
+        self.message = message
+
+        if self.version is None and self.package_name is None:
+            self.package_name = self.guess_package_name()
+
+        # XXX Temporarily skip displaying environment details for Python >= 3.10 while we wait for
+        # https://github.com/mahmoud/boltons/issues/294 to be released upstream.
+        if print_env_info and sys.version_info[:2] < (3, 10):
+            from boltons.ecoutils import get_profile
+
+            env_info = "\n" + str(get_profile(scrub=True))
+            if env_info_style:
+                env_info = env_info_style(env_info)
+            self.message += env_info
+
+        colorized_message = ""
+        for part in re.split(r"(%\(version\)s|%\(package\)s|%\(prog\)s)", self.message):
+            # Skip empty strings.
+            if not part:
+                continue
+            if part == "%(package)s" and package_name_style:
+                part = package_name_style(part)
+            elif part == "%(prog)s" and prog_name_style:
+                part = prog_name_style(part)
+            elif part == "%(version)s" and version_style:
+                part = version_style(part)
+            elif message_style:
+                part = message_style(part)
+            colorized_message += part
+        if colorized_message:
+            self.message = colorized_message
+
+        kwargs["callback"] = self.callback
+        super().__init__(
+            param_decls=param_decls,
+            is_flag=is_flag,
+            expose_value=expose_value,
+            is_eager=is_eager,
+            help="Show the version and exit.",
+            **kwargs,
+        )
+
+
+def version_option(*param_decls: str, cls=VersionOption, **kwargs):
+    """Decorator for ``VersionOption``."""
+    return cloup.option(*param_decls, cls=cls, **kwargs)
+
+
+class HelpOption(cloup.Option, ExtraOption):
+    def __init__(
+        self,
+        param_decls=None,
+        **kwargs,
+    ):
+        if not param_decls:
+            param_decls = ("--help", "-h")
+
+        def callback(ctx: click.Context, param: click.Parameter, value: bool) -> None:
+            if not value or ctx.resilient_parsing:
+                return
+
+            echo(ctx.get_help(), color=ctx.color)
+            ctx.exit()
+
+        kwargs.setdefault("is_flag", True)
+        kwargs.setdefault("expose_value", False)
+        kwargs.setdefault("is_eager", True)
+        kwargs.setdefault("help", _("Show this message and exit."))
+        kwargs["callback"] = callback
+
+        super().__init__(param_decls=param_decls, **kwargs)
+
+
+def help_option(*param_decls: str, cls=HelpOption, **kwargs):
+    """Decorator for ``HelpOption``."""
+    return cloup.option(*param_decls, cls=cls, **kwargs)
 
 
 class ExtraHelpColorsMixin:

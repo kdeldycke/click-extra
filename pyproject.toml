@@ -80,6 +80,7 @@ bump2version = "^1.0.1"
 coverage = { extras = ["toml"], version = "^6.4" }
 furo = "^2022.6.21"
 myst-parser = "^0.18.0"
+Pallets-Sphinx-Themes = "^2.0.2"
 pytest = "^7.1.2"
 # More pytest plugins at: https://docs.pytest.org/en/latest/reference/plugin_list.html
 pytest-cov = "^3.0.0"

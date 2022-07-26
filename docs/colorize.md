@@ -8,6 +8,23 @@ to add colorization of:
 - Choices
 - Metavars
 
+```{todo}
+Write example and tutorial.
+```
+
+## `color_option`
+
+```{todo}
+Write example and tutorial.
+```
+
+## `help_option`
+
+```{todo}
+Write example and tutorial.
+```
+
+## `version_option`
 
 ```{todo}
 Write example and tutorial.

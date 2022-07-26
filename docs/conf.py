@@ -94,3 +94,13 @@ html_last_updated_fmt = "%Y-%m-%d"
 copyright = f"{author} and contributors"
 html_show_copyright = True
 html_show_sphinx = False
+
+
+# Add support for ".. click:example::" and ".. click:run::" directives.
+import click
+
+# Compat until pallets-sphinx-themes is updated.
+# Because of: https://github.com/pallets/pallets-sphinx-themes/blob/7b69241f1fde3cc3849f513a9dd83fa8a2f36603/src/pallets_sphinx_themes/themes/click/domain.py#L9
+# Source: https://github.com/pallets/click/blob/dc918b48fb9006be683a684b42cc7496ad649b83/docs/conf.py#L6-L7
+click._compat.text_type = str
+extensions.append("pallets_sphinx_themes.themes.click.domain")

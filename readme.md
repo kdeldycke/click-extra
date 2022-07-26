@@ -22,7 +22,7 @@ reached upstream yet (or are unlikely to).
 
 ## Example
 
-It can transform the [canonical `click` example](https://github.com/pallets/click#a-simple-example):
+It can transform this vanilla `click` CLI:
 
 ![click CLI help screen](https://github.com/kdeldycke/click-extra/raw/main/docs/images/click-help-screen.png)
 
@@ -30,7 +30,7 @@ Into this:
 
 ![click-extra CLI help screen](https://github.com/kdeldycke/click-extra/raw/main/docs/images/click-extra-screen.png)
 
-To undestrand how we ended up with the result above, go [read the quick tutorial](https://kdeldycke.github.io/click-extra/tutorial.html).
+To undestrand how we ended up with the result above, go [read the tutorial](https://kdeldycke.github.io/click-extra/tutorial.html).
 
 ## Features
 

@@ -6,6 +6,19 @@
 This version is not released yet and is under active development.
 ```
 
+- Make default extra features optional, so `click_extra` can act as a drop-in replacement for `click` and `cloup` (closes {issue}`173`):
+  - Rename `click_extra.group` to `click_extra.extra_group`.
+  - Rename `click_extra.command` to `click_extra.extra_command`.
+  - Alias `click_extra.group` to `cloup.group`.
+  - Alias `click_extra.command` to `cloup.group`.
+- Use declarative `params=` argument to set defaults options on `extra_command` and `extra_group`.
+- Rewrite all options as classes instead of decorators only.
+- Duplicate `click.version_option` code to allow for more flexibility,
+- Make all custom options inherits from `ExtraOption` class.
+- New `extra_option_at_end` to `extra_command` to move all extra options to the end by default.
+- Add a tutorial in documentation.
+- Add support for `.. click:example::` and `.. click:run::` directives in documentation.
+- Add `pallets_sphinx_themes` dependency.
 - Pre-compute test matrix to allow for a subset of jobs to fail because they're unstable.
 - Run tests on `ubuntu-22.04` and `macos-12`.
 - Remove tests on `macos-10.15`, its been deprecated by GitHub.

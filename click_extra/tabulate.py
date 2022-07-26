@@ -22,7 +22,7 @@ from functools import partial
 import click
 import tabulate
 from cli_helpers.tabular_output import TabularOutputFormatter, tabulate_adapter
-from cli_helpers.tabular_output.output_formatter import MAX_FIELD_WIDTH, MISSING_VALUE
+from cli_helpers.tabular_output.output_formatter import MAX_FIELD_WIDTH
 from tabulate import DataRow, Line, TableFormat
 
 from . import Choice, Option, echo, get_current_context
@@ -165,7 +165,7 @@ def init_formatter(ctx, param, value):
 
 
 def table_format_option(
-    *names,
+    *param_decls,
     type=Choice(sorted(TabularOutputFormatter._output_formats), case_sensitive=False),
     default="rounded_outline",
     expose_value=False,
@@ -176,10 +176,11 @@ def table_format_option(
 ):
     """A ready to use option decorator that is adding a ``-t/--table-format`` option
     flag to select the rendering style of a table."""
-    if not names:
-        names = ("-t", "--table-format")
+    if not param_decls:
+        # XXX rename defaults to --table-style?
+        param_decls = ("-t", "--table-format")
     return click.option(
-        *names,
+        *param_decls,
         type=type,
         default=default,
         expose_value=expose_value,

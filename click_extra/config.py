@@ -23,14 +23,13 @@ from functools import partial, reduce
 from operator import getitem
 from pathlib import Path
 
-import click
+import cloup
 import commentjson as json
 import requests
 import xmltodict
 import yaml
 from boltons.iterutils import flatten, remap
 from boltons.urlutils import URL
-from cloup import Option
 from mergedeep import merge
 
 if sys.version_info >= (3, 11):
@@ -47,6 +46,7 @@ from . import (
     UUID,
     Choice,
     DateTime,
+    ExtraOption,
     File,
     FloatRange,
     IntRange,
@@ -432,21 +432,7 @@ def load_conf(ctx, param, conf_path, strict=False):
     return conf_path
 
 
-def config_option(
-    *names,
-    metavar="CONFIG_PATH",
-    type=STRING,
-    default=DefaultConfPath(),
-    help="Location of the configuration file. Supports both local path and remote URL.",
-    # Force eagerness so the config option's callback gets the opportunity to set the
-    # default_map values before the other options use them.
-    is_eager=True,
-    callback=None,
-    expose_value=False,
-    cls=Option,
-    strict=False,
-    **kwargs,
-):
+class ConfigOption(cloup.Option, ExtraOption):
     """Adds a ``--config``/``-C`` option.
 
     :param strict: if ``True``, raise an error if the configuration file contain unrecognized options.
@@ -455,21 +441,56 @@ def config_option(
     For other params see Click's ``version_option`` decorator:
     https://click.palletsprojects.com/en/8.1.x/api/#click.version_option
     """
-    if not names:
-        names = ("--config", "-C")
 
-    if not callback:
-        callback = partial(load_conf, strict=strict)
-
-    return click.option(
-        *names,
-        metavar=metavar,
-        type=type,
-        default=default,
-        help=help,
-        is_eager=is_eager,
-        callback=callback,
-        expose_value=expose_value,
-        cls=cls,
+    def __init__(
+        self,
+        param_decls=None,
+        metavar="CONFIG_PATH",
+        type=STRING,
+        default=DefaultConfPath(),
+        help="Location of the configuration file. Supports both local path and remote URL.",
+        # Force eagerness so the config option's callback gets the opportunity to set the
+        # default_map values before the other options use them.
+        is_eager=True,
+        callback=None,
+        expose_value=False,
+        strict=False,
         **kwargs,
-    )
+    ):
+        if not param_decls:
+            param_decls = ("--config", "-C")
+
+        if not callback:
+            callback = partial(load_conf, strict=strict)
+
+        super().__init__(
+            param_decls=param_decls,
+            metavar=metavar,
+            type=type,
+            default=default,
+            help=help,
+            is_eager=is_eager,
+            callback=callback,
+            expose_value=expose_value,
+            **kwargs,
+        )
+
+
+def config_option(*param_decls: str, cls=ConfigOption, **kwargs):
+    """Decorator for ``ConfigOption``."""
+    return cloup.option(*param_decls, cls=cls, **kwargs)
+
+
+"""
+    --show-config
+            --config-reference                Show config reference
+
+
+    --dump-config
+
+    --generate-rcfile   Generate a sample configuration file according to the
+                        current configuration. You can put other options
+                        before this one to get them in the generated
+                        configuration.
+
+"""

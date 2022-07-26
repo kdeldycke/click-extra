@@ -21,80 +21,80 @@ The collection of pre-defined decorators here present good and common defaults. 
 still mix'n'match the mixins below to build your own custom variants.
 """
 
-import io
-from functools import partial
 from logging import getLevelName
 from time import perf_counter
-from unittest.mock import patch
 
 import click
 import cloup
 
 from . import (
-    Command,
-    Group,
-    Option,
-    color_option,
-    config_option,
+    ColorOption,
+    ConfigOption,
+    ExtraOption,
+    HelpOption,
+    VerbosityOption,
+    VersionOption,
     echo,
-    help_option,
-    verbosity_option,
-    version_option,
 )
 from .colorize import ExtraHelpColorsMixin, VersionOption
 from .logging import logger
 
 
-def register_timer_on_close(ctx, param, value):
-    """Callback setting up all timer's machinery.
-
-    Computes and print the execution time at the end of the CLI, if option has been
-    activated.
-    """
-    # Skip timekeeping if option is not active.
-    if not value:
-        return
-
-    # Take timestamp snapshot.
-    timer_start_time = perf_counter()
-
-    def print_timer():
-        """Compute and print elapsed execution time."""
-        echo(f"Execution time: {perf_counter() - timer_start_time:0.3f} seconds.")
-
-    # Register printing at the end of execution.
-    ctx.call_on_close(print_timer)
-
-
-def timer_option(
-    *names,
-    default=False,
-    expose_value=False,
-    callback=register_timer_on_close,
-    help="Measure and print elapsed execution time.",
-    cls=Option,
-    **kwargs,
-):
-    """A ready to use option decorator that is adding a ``--time/--no-time`` option flag
+class TimerOption(cloup.Option, ExtraOption):
+    """A pre-configured option that is adding a ``--time/--no-time`` flag
     to print elapsed time at the end of CLI execution."""
-    if not names:
-        names = ("--time/--no-time",)
-    return click.option(
-        *names,
-        default=default,
-        expose_value=expose_value,
-        callback=callback,
-        help=help,
-        cls=cls,
+
+    @staticmethod
+    def _register_timer_on_close(ctx, param, value):
+        """Callback setting up all timer's machinery.
+
+        Computes and print the execution time at the end of the CLI, if option has been
+        activated.
+        """
+        # Skip timekeeping if option is not active.
+        if not value:
+            return
+
+        # Take timestamp snapshot.
+        timer_start_time = perf_counter()
+
+        def print_timer():
+            """Compute and print elapsed execution time."""
+            echo(f"Execution time: {perf_counter() - timer_start_time:0.3f} seconds.")
+
+        # Register printing at the end of execution.
+        ctx.call_on_close(print_timer)
+
+    def __init__(
+        self,
+        param_decls=None,
+        default=False,
+        expose_value=False,
+        callback=_register_timer_on_close,
+        help="Measure and print elapsed execution time.",
         **kwargs,
-    )
+    ):
+        if not param_decls:
+            param_decls = ("--time/--no-time",)
+        super().__init__(
+            param_decls=param_decls,
+            default=default,
+            expose_value=expose_value,
+            callback=callback,
+            help=help,
+            **kwargs,
+        )
 
 
-class ExtraOptionsMixin:
-    """A set of default extra options."""
+def timer_option(*param_decls: str, cls=TimerOption, **kwargs):
+    """Decorator for ``TimerOption``."""
+    return click.option(*param_decls, cls=cls, **kwargs)
 
-    def __init__(self, *args, version=None, **kwargs):
-        """Augment group with additional default options."""
+
+class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):
+    """Same as ``cloup.command``, but with sane defaults and extra help screen colorization."""
+
+    def __init__(self, *args, version=None, extra_option_at_end=True, **kwargs):
 
         super().__init__(*args, **kwargs)
 
@@ -110,22 +110,17 @@ class ExtraOptionsMixin:
             }
         )
 
-        # Add timer option flag.
-        timer_option()(self)
+        # Update version number with the one provided on the command.
+        if version:
+            version_params = [p for p in self.params if isinstance(p, VersionOption)]
+            if version_params:
+                assert len(version_params) == 1
+                version_param = version_params.pop()
+                version_param.version = version
 
-        # Add color stripping flag.
-        color_option()(self)
-
-        config_option()(self)
-
-        # Add logger verbosity selector.
-        verbosity_option()(self)
-
-        # Add colored version option.
-        version_option(version=version, print_env_info=True)(self)
-
-        # Add help option.
-        help_option(*self.context_settings["help_option_names"], cls=Option)(self)
+        # Move extra options to the end while keeping the original natural order.
+        if extra_option_at_end:
+            self.params.sort(key=lambda p: isinstance(p, ExtraOption))
 
         # Forces re-identification of grouped and non-grouped options.
         self.arguments, self.option_groups, self.ungrouped_options = self._group_params(
@@ -141,56 +136,66 @@ class ExtraOptionsMixin:
         """
         super().main(*args, **kwargs)
 
+    @staticmethod
+    def _get_param(ctx, klass):
+        """Search for the unique instance of a parameter that has been setup on the command and return it."""
+        params = [p for p in ctx.find_root().command.params if isinstance(p, klass)]
+        if params:
+            assert len(params) == 1
+            return params.pop()
+
     def invoke(self, ctx):
         """Main execution of the command, just after the context has been instantiated
         in ``main()``.
 
-        Adds, to the normal execution flow, the output of the `--version` parameter in
-        DEBUG logs. This facilitates troubleshooting user's issues.
+        If an instance of ``VersionOption`` has been setup on the command, adds to the normal execution flow
+        the output of `--version` in DEBUG logs. This facilitates troubleshooting of user's issues.
         """
         if getLevelName(logger.level) == "DEBUG":
 
             # Look for our custom version parameter.
-            for param in ctx.find_root().command.params:
-                if isinstance(param, VersionOption):
-
-                    # Call the --version parameter, but:
-                    #  - capture its output from stdout to redirect it to the DEBUG logger:
-                    #    https://github.com/pallets/click/blob/c1d0729bbb26e3f8b0a28440fb0ebca352535c25/src/click/decorators.py#L451-L455
-                    #    https://github.com/pallets/click/blob/14472ffcd80dd86d47ddc08341168152540ee6f2/src/click/utils.py#L205-L211
-                    capture = io.StringIO()
-                    capture_echo = partial(echo, file=capture)
-                    with patch.object(click.decorators, "echo", new=capture_echo):
-
-                        # Neutralize parameter call to `ctx.exit()`, as seen in:
-                        # https://github.com/pallets/click/blob/c1d0729bbb26e3f8b0a28440fb0ebca352535c25/src/click/decorators.py#L456
-                        with patch(
-                            f"{ctx.__class__.__module__}.{ctx.__class__.__name__}.exit"
-                        ):
-                            param.callback(ctx, param, True)
-
-                    for line in capture.getvalue().splitlines():
-                        logger.debug(line)
+            version_param = self._get_param(ctx, VersionOption)
+            if version_param:
+                version_message = version_param.callback(
+                    ctx, version_param, True, capture_output=True
+                )
+                for line in version_message.splitlines():
+                    # TODO: pretty print JSON output (easier to read in bug reports).
+                    logger.debug(line)
 
         return super().invoke(ctx)
 
 
-class ExtraCommand(ExtraHelpColorsMixin, ExtraOptionsMixin, Command):
-    """Same as ``cloup.command``, but with extra help screen colorization and
-    options."""
+class ExtraGroup(ExtraCommand, cloup.Group):
+    """Same as ``cloup.group``, but with sane defaults and extra help screen colorization."""
 
     pass
 
 
-class ExtraGroup(ExtraHelpColorsMixin, ExtraOptionsMixin, Group):
-    """Same as ``cloup.group``, but with extra help screen colorization and options."""
+extra_params = [
+    # Add timer option flag.
+    TimerOption(),
+    # Add color stripping flag.
+    ColorOption(),
+    ConfigOption(),
+    # Add logger verbosity selector.
+    VerbosityOption(),
+    # Add colored version option.
+    VersionOption(),
+    # Add help option.
+    HelpOption(),
+]
+"""Default additional options added to ``extra_command`` and ``extra_group``.
 
-    pass
+Order is important so that options at the top of the list can have influence on options below.
+"""
 
 
-def command(*args, cls=ExtraCommand, **kwargs):
-    return cloup.command(*args, cls=cls, **kwargs)
+def extra_command(*args, cls=ExtraCommand, params=extra_params, **kwargs):
+    """Augment default ``cloup.command`` with additional options."""
+    return cloup.command(*args, cls=cls, params=params, **kwargs)
 
 
-def group(*args, cls=ExtraGroup, **kwargs):
-    return cloup.group(*args, cls=cls, **kwargs)
+def extra_group(*args, cls=ExtraGroup, params=extra_params, **kwargs):
+    """Augment default ``cloup.group`` with additional options."""
+    return cloup.group(*args, cls=cls, params=params, **kwargs)

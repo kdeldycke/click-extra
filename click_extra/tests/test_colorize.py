@@ -28,6 +28,8 @@ from .. import (
     Style,
     command,
     echo,
+    extra_command,
+    extra_group,
     group,
     option,
     option_group,
@@ -129,22 +131,22 @@ def test_only_full_word_highlight():
 def test_keyword_collection(invoke):
 
     # Create a dummy Click CLI.
-    @group()
+    @extra_group()
     @option_group(
         "Group 1",
-        option("-a", "--opt1"),
-        option("-b", "--opt2"),
+        option("-a", "--o1"),
+        option("-b", "--o2"),
     )
     @cloup.option_group(
         "Group 2",
-        option("--opt3"),
-        option("--opt4"),
+        option("--o3"),
+        option("--o4"),
     )
     @option("--test")
-    def mycli(opt1, opt2, opt3, opt4, test):
+    def mycli(o1, o2, o3, o4, test):
         echo("It works!")
 
-    @command()
+    @extra_command(params=None)
     def command1():
         echo("Run click-extra command #1...")
 
@@ -167,11 +169,11 @@ def test_keyword_collection(invoke):
         r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mUsage\x1b\[0m: "
         r"\x1b\[0m\x1b\[97mmycli\x1b\[0m \[OPTIONS\] COMMAND \[ARGS\]...\n\n"
         r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mGroup \x1b\[35m1\x1b\[0m\x1b\[0m:\x1b\[0m\n"
-        r"  \x1b\[36m-a, \x1b\[36m--opt1\x1b\[0m TEXT\x1b\[0m\n"
-        r"  \x1b\[36m-b, \x1b\[36m--opt2\x1b\[0m TEXT\x1b\[0m\n\n"
+        r"  \x1b\[36m-a, \x1b\[36m--o1\x1b\[0m TEXT\x1b\[0m\n"
+        r"  \x1b\[36m-b, \x1b\[36m--o2\x1b\[0m TEXT\x1b\[0m\n\n"
         r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mGroup \x1b\[35m2\x1b\[0m\x1b\[0m:\x1b\[0m\n"
-        r"  \x1b\[36m--opt3 TEXT\x1b\[0m\n"
-        r"  \x1b\[36m--opt4 TEXT\x1b\[0m\n\n"
+        r"  \x1b\[36m--o3 TEXT\x1b\[0m\n"
+        r"  \x1b\[36m--o4 TEXT\x1b\[0m\n\n"
         r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mOther options\x1b\[0m:\x1b\[0m\n"
         r"  \x1b\[36m--test TEXT\x1b\[0m\n"
         rf"{default_options_colored_help}"
@@ -197,27 +199,27 @@ def test_keyword_collection(invoke):
     # CLI main group is invoked before sub-command.
     result = invoke(mycli, "command1", "--help", color=True)
     assert result.exit_code == 0
-    assert re.fullmatch(
-        (
-            r"It works!\n"
-            r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mUsage\x1b\[0m: \x1b\[0m\x1b\[97mmycli command1\x1b\[0m \[OPTIONS\]\n\n"
-            r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mOptions\x1b\[0m:\x1b\[0m\n"
-            rf"{default_options_colored_help}"
-        ),
-        result.output,
+    assert result.output == dedent(
+        f"""\
+        It works!
+        \x1b[94m\x1b[1m\x1b[94m\x1b[1mUsage\x1b[0m: \x1b[0m\x1b[97mmycli command1\x1b[0m [OPTIONS]
+
+        \x1b[94m\x1b[1m\x1b[94m\x1b[1mOptions\x1b[0m:\x1b[0m
+          \x1b[36m-h, \x1b[36m--help\x1b[0m\x1b[0m  Show this message and exit.\x1b[0m
+        """
     )
     assert not result.stderr
 
     # Standalone call to command: CLI main group is skipped.
     result = invoke(command1, "--help", color=True)
     assert result.exit_code == 0
-    assert re.fullmatch(
-        (
-            r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mUsage\x1b\[0m: \x1b\[0m\x1b\[97mcommand1\x1b\[0m \[OPTIONS\]\n\n"
-            r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mOptions\x1b\[0m:\x1b\[0m\n"
-            rf"{default_options_colored_help}"
-        ),
-        result.output,
+    assert result.output == dedent(
+        f"""\
+        \x1b[94m\x1b[1m\x1b[94m\x1b[1mUsage\x1b[0m: \x1b[0m\x1b[97mcommand1\x1b[0m [OPTIONS]
+
+        \x1b[94m\x1b[1m\x1b[94m\x1b[1mOptions\x1b[0m:\x1b[0m
+          \x1b[36m-h, \x1b[36m--help\x1b[0m\x1b[0m  Show this message and exit.\x1b[0m
+        """
     )
     assert not result.stderr
 
@@ -282,7 +284,7 @@ def test_standalone_version_option_without_env_info(invoke, command_decorator):
     "params", (None, "--help", "blah", ("--config", "random.toml"))
 )
 def test_integrated_version_option_precedence(invoke, params):
-    @group(version="1.2.3.4")
+    @extra_group(version="1.2.3.4")
     def dummy_cli():
         echo("It works!")
 
@@ -443,7 +445,7 @@ def test_no_color_env_convention(
     ),
 )
 def test_integrated_color_option(invoke, param, expecting_colors):
-    @group()
+    @extra_group()
     def dummy_cli():
         echo(Style(fg="yellow")("It works!"))
         echo("\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m")
