@@ -479,18 +479,3 @@ class ConfigOption(cloup.Option, ExtraOption):
 def config_option(*param_decls: str, cls=ConfigOption, **kwargs):
     """Decorator for ``ConfigOption``."""
     return cloup.option(*param_decls, cls=cls, **kwargs)
-
-
-"""
-    --show-config
-            --config-reference                Show config reference
-
-
-    --dump-config
-
-    --generate-rcfile   Generate a sample configuration file according to the
-                        current configuration. You can put other options
-                        before this one to get them in the generated
-                        configuration.
-
-"""

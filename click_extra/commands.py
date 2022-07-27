@@ -173,16 +173,11 @@ class ExtraGroup(ExtraCommand, cloup.Group):
 
 
 extra_params = [
-    # Add timer option flag.
     TimerOption(),
-    # Add color stripping flag.
     ColorOption(),
     ConfigOption(),
-    # Add logger verbosity selector.
     VerbosityOption(),
-    # Add colored version option.
     VersionOption(),
-    # Add help option.
     HelpOption(),
 ]
 """Default additional options added to ``extra_command`` and ``extra_group``.

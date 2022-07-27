@@ -96,7 +96,6 @@ class VerbosityOption(cloup.Option, ExtraOption):
         logger.set_logger(default_logger)
 
         def set_level(ctx, param, value):
-            # import pdb; pdb.set_trace()
             """Set logger level and print its value as a debug message."""
             logger.setLevel(LOG_LEVELS[value])
             logger.debug(f"Verbosity set to {value}.")
