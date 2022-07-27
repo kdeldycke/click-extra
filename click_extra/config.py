@@ -432,7 +432,7 @@ def load_conf(ctx, param, conf_path, strict=False):
     return conf_path
 
 
-class ConfigOption(cloup.Option, ExtraOption):
+class ConfigOption(ExtraOption):
     """Adds a ``--config``/``-C`` option.
 
     :param strict: if ``True``, raise an error if the configuration file contain unrecognized options.

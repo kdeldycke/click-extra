@@ -15,8 +15,10 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+import cloup
 
-class ExtraOption:
+
+class ExtraOption(cloup.Option):
     """All new options implemented by ``click-extra`` derives from this class.
 
     Does nothing in particular for now but provides a way to identify click-extra's own options with

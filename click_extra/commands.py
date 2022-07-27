@@ -40,7 +40,7 @@ from .colorize import ExtraHelpColorsMixin, VersionOption
 from .logging import logger
 
 
-class TimerOption(cloup.Option, ExtraOption):
+class TimerOption(ExtraOption):
     """A pre-configured option that is adding a ``--time/--no-time`` flag
     to print elapsed time at the end of CLI execution."""
 

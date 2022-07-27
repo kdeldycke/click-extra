@@ -66,7 +66,7 @@ class WrappedLogger:
 logger = WrappedLogger()
 
 
-class VerbosityOption(cloup.Option, ExtraOption):
+class VerbosityOption(ExtraOption):
     """Adds a ``--verbosity``/``-v`` option.
 
     A re-implementation of ``click_log.simple_verbosity_option`` decorator,

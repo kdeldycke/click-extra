@@ -117,7 +117,7 @@ Source: https://github.com/pallets/click/issues/558
 """
 
 
-class ColorOption(cloup.Option, ExtraOption):
+class ColorOption(ExtraOption):
     """A pre-configured option that is adding a ``--color/--no-color`` (aliased
     by ``--ansi/--no-ansi``) option to keep or strip colors and ANSI codes from CLI
     output.
@@ -202,7 +202,7 @@ def color_option(*param_decls: str, cls=ColorOption, **kwargs):
     return cloup.option(*param_decls, cls=cls, **kwargs)
 
 
-class VersionOption(cloup.Option, ExtraOption):
+class VersionOption(ExtraOption):
     """
     :param print_env_info: adds environment info at the end of the message. Useful to gather user's details for troubleshooting.
     :param version_style: style of the ``version``. Defaults to green.
