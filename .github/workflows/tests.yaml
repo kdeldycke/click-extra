@@ -161,8 +161,14 @@ jobs:
         # https://github.com/nedbat/coveragepy/issues/512#issuecomment-399707938
         # https://github.com/pytest-dev/pytest-cov/issues/168#issuecomment-327533847
         # https://github.com/pytest-dev/pytest-cov/issues/243
-        run: |
-          poetry run pytest --cov-config=pyproject.toml --cov=./ --cov-report=xml
 
+        # XXX Call each test suite one by one instead of letting pytest do the job. That way we bypass a bug in Click
+        # 8.1.x in which our @extra_group() and @extra_command() decorators fails in tests if they're used more than
+        # once. See:
+        #  https://github.com/pallets/click/issues/2294
+        #  https://github.com/pallets/click/pull/2312
+        run: >
+          find ./click_extra/tests -type f -iname "test_*.py" -exec
+          poetry run pytest --cov-config=pyproject.toml --cov=./ --cov-report=xml "{}" \;
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3.1.0
