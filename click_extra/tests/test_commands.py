@@ -97,24 +97,26 @@ class TestSubcommands:
         result = invoke(self.cli_group, "--verbosity", "DEBUG", color=False)
         assert result.exit_code == 2
         # In debug mode, the version is always printed.
-        assert not result.stdout == dedent(
-            f"""\
-            Usage: cli-group [OPTIONS] COMMAND [ARGS]...
+        assert not result.stdout
 
-            Error: Missing command.
-            """
-        )
-        assert result.stderr == dedent(
-            f"""\
-            debug: Verbosity set to DEBUG.
-            debug: Search for configuration in default location...
-            debug: No default configuration found.
-            debug: No configuration provided.
-            debug: cli-group, version 2021.10.08
-            Usage: cli-group [OPTIONS] COMMAND [ARGS]...
-
-            Error: Missing command.
-            """
+        # XXX Temporarily skip displaying environment details for Python >= 3.10 while we wait for
+        # https://github.com/mahmoud/boltons/issues/294 to be released upstream.
+        system_details_regex = ""
+        if sys.version_info[:2] < (3, 10):
+            system_details_regex = r"debug: {'.+'}\n"
+        assert re.fullmatch(
+            (
+                r"debug: Verbosity set to DEBUG.\n"
+                r"debug: Search for configuration in default location...\n"
+                r"debug: No default configuration found.\n"
+                r"debug: No configuration provided.\n"
+                r"debug: cli-group, version 2021.10.08\n"
+                rf"{system_details_regex}"
+                r"Usage: cli-group \[OPTIONS\] COMMAND \[ARGS\]...\n"
+                r"\n"
+                r"Error: Missing command.\n"
+            ),
+            result.stderr,
         )
 
     @pytest.mark.parametrize("param", (None, "-h", "--help"))
