@@ -26,7 +26,7 @@ from cli_helpers.tabular_output import TabularOutputFormatter, tabulate_adapter
 from cli_helpers.tabular_output.output_formatter import MAX_FIELD_WIDTH
 from tabulate import DataRow, Line, TableFormat
 
-from . import Choice, ExtraOption, Option, echo, get_current_context
+from . import Choice, ExtraOption, echo, get_current_context
 from .platform import is_windows
 
 new_formats = {
@@ -145,8 +145,8 @@ for tabulate_format in new_formats:
 
 
 class TableFormatOption(ExtraOption):
-    """A pre-configured option that is adding a ``-t/--table-format`` flag
-    to select the rendering style of a table."""
+    """A pre-configured option that is adding a ``-t/--table-format`` flag to select the
+    rendering style of a table."""
 
     def cleanup_formatter(self):
         """Clean-up formatter attached to context."""
