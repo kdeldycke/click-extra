@@ -18,6 +18,7 @@
 """Logging utilities."""
 
 import logging
+from gettext import gettext as _
 
 import click_log
 import cloup
@@ -95,7 +96,7 @@ class VerbosityOption(ExtraOption):
         metavar="LEVEL",
         type=Choice(LOG_LEVELS, case_sensitive=False),
         expose_value=False,
-        help=f"Either {', '.join(LOG_LEVELS)}.",
+        help=_("Either {log_levels}.").format(log_levels=", ".join(LOG_LEVELS)),
         is_eager=True,
         callback=set_level.__func__,
         **kwargs,

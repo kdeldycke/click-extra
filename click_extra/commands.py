@@ -21,7 +21,7 @@ The collection of pre-defined decorators here present good and common defaults. 
 still mix'n'match the mixins below to build your own custom variants.
 """
 
-from functools import partial
+from gettext import gettext as _
 from logging import getLevelName
 from time import perf_counter
 
@@ -70,7 +70,7 @@ class TimerOption(ExtraOption):
         param_decls=None,
         default=False,
         expose_value=False,
-        help="Measure and print elapsed execution time.",
+        help=_("Measure and print elapsed execution time."),
         **kwargs,
     ):
         if not param_decls:

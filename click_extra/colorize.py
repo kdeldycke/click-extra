@@ -179,7 +179,7 @@ class ColorOption(ExtraOption):
         is_eager=True,
         expose_value=False,
         callback=_disable_colors.__func__,
-        help="Strip out all colors and all ANSI codes from output.",
+        help=_("Strip out all colors and all ANSI codes from output."),
         **kwargs,
     ):
         if not param_decls:
@@ -285,7 +285,7 @@ class VersionOption(ExtraOption):
         version=None,
         package_name: t.Optional[str] = None,
         prog_name: t.Optional[str] = None,
-        message: str = "%(prog)s, version %(version)s",
+        message: str = _("%(prog)s, version %(version)s"),
         print_env_info=False,
         version_style=Style(fg="green"),
         package_name_style=theme.invoked_command,
@@ -295,7 +295,7 @@ class VersionOption(ExtraOption):
         is_flag=True,
         expose_value=False,
         is_eager=True,
-        help="Show the version and exit.",
+        help=_("Show the version and exit."),
         **kwargs,
     ):
         """

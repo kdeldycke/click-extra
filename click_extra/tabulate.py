@@ -18,6 +18,7 @@
 """Extend cli_helpers.tabulate utilities with new formats."""
 
 from functools import partial
+from gettext import gettext as _
 
 import click
 import tabulate
@@ -170,7 +171,7 @@ def table_format_option(
     default="rounded_outline",
     expose_value=False,
     callback=init_formatter,
-    help="Rendering style of tables.",
+    help=_("Rendering style of tables."),
     cls=Option,
     **kwargs,
 ):

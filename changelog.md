@@ -19,6 +19,7 @@ This version is not released yet and is under active development.
 - Add a tutorial in documentation.
 - Add support for `.. click:example::` and `.. click:run::` directives in documentation.
 - Add `pallets_sphinx_themes` dependency.
+- Allow translation of short help in extra options.
 - Pre-compute test matrix to allow for a subset of jobs to fail because they're unstable.
 - Run tests on `ubuntu-22.04` and `macos-12`.
 - Remove tests on `macos-10.15`, its been deprecated by GitHub.

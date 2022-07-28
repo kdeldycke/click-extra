@@ -20,6 +20,7 @@
 import sys
 from configparser import ConfigParser, ExtendedInterpolation
 from functools import partial, reduce
+from gettext import gettext as _
 from operator import getitem
 from pathlib import Path
 
@@ -448,7 +449,9 @@ class ConfigOption(ExtraOption):
         metavar="CONFIG_PATH",
         type=STRING,
         default=DefaultConfPath(),
-        help="Location of the configuration file. Supports both local path and remote URL.",
+        help=_(
+            "Location of the configuration file. Supports both local path and remote URL."
+        ),
         # Force eagerness so the config option's callback gets the opportunity to set the
         # default_map values before the other options use them.
         is_eager=True,
