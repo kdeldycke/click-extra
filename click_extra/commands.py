@@ -41,8 +41,8 @@ from .logging import logger
 
 
 class TimerOption(ExtraOption):
-    """A pre-configured option that is adding a ``--time/--no-time`` flag
-    to print elapsed time at the end of CLI execution."""
+    """A pre-configured option that is adding a ``--time/--no-time`` flag to print
+    elapsed time at the end of CLI execution."""
 
     def print_timer(self):
         """Compute and print elapsed execution time."""
@@ -92,7 +92,8 @@ def timer_option(*param_decls: str, cls=TimerOption, **kwargs):
 
 
 class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):
-    """Same as ``cloup.command``, but with sane defaults and extra help screen colorization."""
+    """Same as ``cloup.command``, but with sane defaults and extra help screen
+    colorization."""
 
     def __init__(self, *args, version=None, extra_option_at_end=True, **kwargs):
 
@@ -138,7 +139,8 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):
 
     @staticmethod
     def _get_param(ctx, klass):
-        """Search for the unique instance of a parameter that has been setup on the command and return it."""
+        """Search for the unique instance of a parameter that has been setup on the
+        command and return it."""
         params = [p for p in ctx.find_root().command.params if isinstance(p, klass)]
         if params:
             assert len(params) == 1
@@ -148,8 +150,9 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):
         """Main execution of the command, just after the context has been instantiated
         in ``main()``.
 
-        If an instance of ``VersionOption`` has been setup on the command, adds to the normal execution flow
-        the output of `--version` in DEBUG logs. This facilitates troubleshooting of user's issues.
+        If an instance of ``VersionOption`` has been setup on the command, adds to the
+        normal execution flow the output of `--version` in DEBUG logs. This facilitates
+        troubleshooting of user's issues.
         """
         if getLevelName(logger.level) == "DEBUG":
 
@@ -167,7 +170,8 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):
 
 
 class ExtraGroup(ExtraCommand, cloup.Group):
-    """Same as ``cloup.group``, but with sane defaults and extra help screen colorization."""
+    """Same as ``cloup.group``, but with sane defaults and extra help screen
+    colorization."""
 
     pass
 

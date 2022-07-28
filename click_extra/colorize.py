@@ -118,9 +118,8 @@ Source: https://github.com/pallets/click/issues/558
 
 
 class ColorOption(ExtraOption):
-    """A pre-configured option that is adding a ``--color/--no-color`` (aliased
-    by ``--ansi/--no-ansi``) option to keep or strip colors and ANSI codes from CLI
-    output.
+    """A pre-configured option that is adding a ``--color/--no-color`` (aliased by
+    ``--ansi/--no-ansi``) option to keep or strip colors and ANSI codes from CLI output.
 
     This option is eager by default to allow for other eager options (like
     ``--version``) to be rendered colorless.
@@ -130,8 +129,8 @@ class ColorOption(ExtraOption):
     def _disable_colors(ctx, param, value):
         """Callback disabling all coloring utilities.
 
-        Re-inspect the environment for existence of colorization flags to re-interpret the
-        provided value.
+        Re-inspect the environment for existence of colorization flags to re-interpret
+        the provided value.
         """
         # Collect all colorize flags in environment variables we recognize.
         colorize_from_env = set()
@@ -141,7 +140,8 @@ class ColorOption(ExtraOption):
                 # hence the default to True.
                 var_value = os.environ.get(var, "true")
                 # `os.environ` is a dict whose all values are strings. Here we normalize these string into
-                # booleans. If we can't, we fallback to True, in the same spirit as above.
+                # booleans. If we can't, we fallback to True, in the same spirit as
+                # above.
                 var_boolean = RawConfigParser.BOOLEAN_STATES.get(
                     var_value.lower(), True
                 )
@@ -238,7 +238,8 @@ class VersionOption(ExtraOption):
         value: bool,
         capture_output: bool = False,
     ) -> None:
-        """Standard callback with an extra ``capture_output`` parameter which returns the output string instead of printing the (colored) version to the console."""
+        """Standard callback with an extra ``capture_output`` parameter which returns
+        the output string instead of printing the (colored) version to the console."""
         if not value or ctx.resilient_parsing:
             return
 
@@ -298,9 +299,8 @@ class VersionOption(ExtraOption):
         help=_("Show the version and exit."),
         **kwargs,
     ):
-        """
-        For other params see Click's ``version_option`` decorator:
-        https://click.palletsprojects.com/en/8.1.x/api/#click.version_option
+        """For other params see Click's ``version_option`` decorator:
+        https://click.palletsprojects.com/en/8.1.x/api/#click.version_option.
 
         :param param_decls: _description_, defaults to None
         :type param_decls: _type_, optional
