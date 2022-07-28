@@ -178,7 +178,7 @@ extra_params = [
     ColorOption(),
     ConfigOption(),
     VerbosityOption(),
-    VersionOption(),
+    VersionOption(print_env_info=True),
     HelpOption(),
 ]
 """Default additional options added to ``extra_command`` and ``extra_group``.
