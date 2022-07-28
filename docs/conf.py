@@ -98,9 +98,35 @@ html_show_sphinx = False
 
 # Add support for ".. click:example::" and ".. click:run::" directives.
 import click
+from pallets_sphinx_themes.themes.click import domain
 
 # Compat until pallets-sphinx-themes is updated.
 # Because of: https://github.com/pallets/pallets-sphinx-themes/blob/7b69241f1fde3cc3849f513a9dd83fa8a2f36603/src/pallets_sphinx_themes/themes/click/domain.py#L9
 # Source: https://github.com/pallets/click/blob/dc918b48fb9006be683a684b42cc7496ad649b83/docs/conf.py#L6-L7
 click._compat.text_type = str
+
+
+# Patch ".. click:run::" code blocks to use the "shell-session" lexer.
+# Fixes: https://github.com/pallets/pallets-sphinx-themes/pull/62
+
+append_orig = domain.ViewList.append
+
+
+def patched_append(*args, **kwargs):
+    """
+    Replace the ``doc.append(".. sourcecode:: text", "")`` code to ``doc.append(".. code-block:: shell-session", "")``. Source:
+    https://github.com/pallets/pallets-sphinx-themes/blob/7b69241f1fde3cc3849f513a9dd83fa8a2f36603/src/pallets_sphinx_themes/themes/click/domain.py#L245
+    """
+    default_run_block = ".. sourcecode:: text"
+    if default_run_block in args:
+        args = list(args)
+        index = args.index(default_run_block)
+        args[index] = ".. code-block:: shell-session"
+
+    return append_orig(*args, **kwargs)
+
+
+domain.ViewList.append = patched_append
+
+# Register new click directives.
 extensions.append("pallets_sphinx_themes.themes.click.domain")

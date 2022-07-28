@@ -53,6 +53,10 @@ This is the list of issues and bugs from other projects that `click-extra` has a
 - [`#95` - Highlights options, choices and metavars](https://github.com/janluke/cloup/issues/95)
 - [`#96` - Add loading of options from a TOML configuration file](https://github.com/janluke/cloup/issues/96)
 
+## [`pallets-sphinx-themes`](https://github.com/pallets/pallets-sphinx-themes)
+
+- [`#62` - Render `.. click:run::` code blocks with `shell-session` lexer](https://github.com/pallets/pallets-sphinx-themes/pull/62)
+
 ## [`python-tabulate`](https://github.com/astanin/python-tabulate)
 
 - [`#151` - Add new {`rounded`,`simple`,`double`}\_(`grid`,`outline`} formats](https://github.com/astanin/python-tabulate/pull/151)
