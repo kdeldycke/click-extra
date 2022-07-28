@@ -44,6 +44,14 @@ click\_extra.logging module
    :undoc-members:
    :show-inheritance:
 
+click\_extra.parameters module
+------------------------------
+
+.. automodule:: click_extra.parameters
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 click\_extra.platform module
 ----------------------------
 
