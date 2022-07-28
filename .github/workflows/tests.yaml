@@ -174,9 +174,9 @@ jobs:
         env:
           DESTRUCTIVE_TESTS: true
         run: |
-          for SUITE in "${{ steps.glob.outputs.paths }}"
+          for suite in ${{ steps.glob.outputs.paths }}
           do
-            poetry run pytest --cov-config=pyproject.toml --cov=./ --cov-report=xml "$SUITE"
+            poetry run pytest --cov-config=pyproject.toml --cov=./ --cov-report=xml "$suite"
           done
       - name: Tests - Windows
         if: runner.os == 'Windows'
