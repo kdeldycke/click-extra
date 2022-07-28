@@ -1,0 +1,687 @@
+<!doctype html>
+<html class="no-js" lang="en">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+<meta property="og:title" content="Configuration loader" />
+  
+<meta property="og:type" content="website" />
+  
+<meta property="og:url" content="config.html" />
+  
+<meta property="og:description" content="The configuration loader source values according the following precedence: CLI parameters > Configuration file > Environment variables > Defaults. The structure of the configuration file is automat..." />
+  <link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Colorization of help" href="colorize.html" /><link rel="prev" title="Tutorial" href="tutorial.html" />
+
+    <meta name="generator" content="sphinx-5.1.0, furo 2022.06.21"/>
+        <title>Configuration loader - Click Extra</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?digest=40978830699223671f4072448e654b5958f38b89" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="_static/design-style.b7bb847fb20b106c3d81b95245e65545.min.css" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">Click Extra</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand centered" href="index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="_static/logo-square.svg" alt="Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder=Search name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Configuration loader</a></li>
+<li class="toctree-l1"><a class="reference internal" href="colorize.html">Colorization of help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logging.html">Logging facilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tabulate.html">Table rendering</a></li>
+<li class="toctree-l1"><a class="reference internal" href="platform.html">Platform utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="run.html">Run utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="issues.html">Fixed issues</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="click_extra.html">API</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="click_extra.tests.html">click_extra.tests package</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="todolist.html">Todo-list</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="code-of-conduct.html">Code of conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/kdeldycke/click-extra">GitHub Repository</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/sponsors/kdeldycke">Funding</a></li>
+</ul>
+
+</div>
+
+<div
+  id="furo-sidebar-ad-placement"
+  class="flat"
+  data-ea-publisher="readthedocs"
+  data-ea-type="readthedocs-sidebar"
+  data-ea-manual="true"
+></div>
+</div>
+
+<div id="furo-readthedocs-versions" class="rst-versions" data-toggle="rst-versions" role="note" aria-label="Versions" tabindex="0">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book">&nbsp;</span>
+    v: 
+  </span>
+  <div class="rst-other-versions">
+    <dl>
+      <dt>Versions</dt>
+      
+    </dl>
+    <dl>
+      <dt>Downloads</dt>
+      
+    </dl>
+    <dl>
+      
+      <dt>On Read the Docs</dt>
+        <dd>
+          <a href="///projects//?fromdocs=">Project Home</a>
+        </dd>
+        <dd>
+          <a href="///builds//?fromdocs=">Builds</a>
+        </dd>
+    </dl>
+  </div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          
+  
+  <div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/kdeldycke/click-extra/edit/main/docs/config.md" title="Edit this page">
+    <svg aria-hidden="true" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <path d="M4 20h4l10.5 -10.5a1.5 1.5 0 0 0 -4 -4l-10.5 10.5v4" />
+      <line x1="13.5" y1="6.5" x2="17.5" y2="10.5" />
+    </svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <section id="configuration-loader">
+<h1>Configuration loader<a class="headerlink" href="#configuration-loader" title="Permalink to this heading">#</a></h1>
+<p>The configuration loader source values according the following precedence:
+<code class="docutils literal notranslate"><span class="pre">CLI</span> <span class="pre">parameters</span> <span class="pre">&gt;</span> <span class="pre">Configuration</span> <span class="pre">file</span> <span class="pre">&gt;</span> <span class="pre">Environment</span> <span class="pre">variables</span> <span class="pre">&gt;</span> <span class="pre">Defaults</span></code>.</p>
+<p>The structure of the configuration file is automaticcaly derived from the
+parameters of the CLI. There is no need to manually produce a configuration
+data structure to mirror the CLI.</p>
+<p><code class="docutils literal notranslate"><span class="pre">INI</span></code> configuration files are allowed to use <a class="reference external" href="https://docs.python.org/3/library/configparser.html?highlight=configparser#configparser.ExtendedInterpolation"><code class="docutils literal notranslate"><span class="pre">ExtendedInterpolation</span></code></a> by default.</p>
+<section id="toml-configuration">
+<h2>TOML configuration<a class="headerlink" href="#toml-configuration" title="Permalink to this heading">#</a></h2>
+<p>Given this CLI in a <code class="docutils literal notranslate"><span class="pre">my_cli.py</span></code> file:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">click</span>
+
+<span class="kn">from</span> <span class="nn">click_extra.config</span> <span class="kn">import</span> <span class="n">config_option</span>
+
+
+<span class="nd">@click</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">context_settings</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;show_default&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;--dummy-flag/--no-flag&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;--my-list&quot;</span><span class="p">,</span> <span class="n">multiple</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="nd">@config_option</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">my_cli</span><span class="p">(</span><span class="n">dummy_flag</span><span class="p">,</span> <span class="n">my_list</span><span class="p">):</span>
+    <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;dummy_flag    is </span><span class="si">{</span><span class="n">dummy_flag</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;my_list       is </span><span class="si">{</span><span class="n">my_list</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<span class="nd">@my_cli</span><span class="o">.</span><span class="n">command</span><span class="p">()</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;--int-param&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">subcommand</span><span class="p">(</span><span class="n">int_param</span><span class="p">):</span>
+    <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;int_parameter is </span><span class="si">{</span><span class="n">int_param</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">my_cli</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>It produces the following help screens:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>python ./my_cli.py
+<span class="go">Usage: my_cli.py [OPTIONS] COMMAND [ARGS]...</span>
+
+<span class="go">Options:</span>
+<span class="go">  --dummy-flag / --no-flag  [default: no-flag]</span>
+<span class="go">  --my-list TEXT</span>
+<span class="go">  -C, --config CONFIG_PATH  Location of the configuration file. Supports both</span>
+<span class="go">                            local path and remote URL.  [default:</span>
+<span class="go">                            ~/.my_cli.py/config.{toml,yaml,yml,json,ini,xml}]</span>
+<span class="go">  --help                    Show this message and exit.</span>
+
+<span class="go">Commands:</span>
+<span class="go">  subcommand</span>
+</pre></div>
+</div>
+<p>A bare call returns:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>./my_cli.py subcommand
+<span class="go">dummy_flag    is False</span>
+<span class="go">my_list       is ()</span>
+<span class="go">int_parameter is 10</span>
+</pre></div>
+</div>
+<p>Now we will change the default CLI output by creating a TOML file at
+<code class="docutils literal notranslate"><span class="pre">~/.my_cli.py/config.toml</span></code> which contains:</p>
+<div class="highlight-toml notranslate"><div class="highlight"><pre><span></span><span class="c1"># My default configuration file.</span><span class="w"></span>
+<span class="n">top_level_param</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;is_ignored&quot;</span><span class="w"></span>
+
+<span class="k">[my-cli]</span><span class="w"></span>
+<span class="n">extra_value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;is ignored too&quot;</span><span class="w"></span>
+<span class="n">dummy_flag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">true</span><span class="w">   </span><span class="c1"># New boolean default.</span><span class="w"></span>
+<span class="n">my_list</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s">&quot;item 1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;item #2&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Very Last Item!&quot;</span><span class="p">]</span><span class="w"></span>
+
+<span class="k">[garbage]</span><span class="w"></span>
+<span class="c1"># An empty random section that will be skipped</span><span class="w"></span>
+
+<span class="k">[my-cli.subcommand]</span><span class="w"></span>
+<span class="n">int_param</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="w"></span>
+<span class="n">random_stuff</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;will be ignored&quot;</span><span class="w"></span>
+</pre></div>
+</div>
+<p>In the file above, pay attention to:</p>
+<ul class="simple">
+<li><p>the configuration’s folder (<code class="docutils literal notranslate"><span class="pre">~/.my_cli.py/</span></code>) which correspond to the script’s
+name (<code class="docutils literal notranslate"><span class="pre">my_cli.py</span></code>);</p></li>
+<li><p>the top-level config section (<code class="docutils literal notranslate"><span class="pre">[my-cli]</span></code>), that is derived from the CLI’s
+group ID (<code class="docutils literal notranslate"><span class="pre">def</span> <span class="pre">my_cli()</span></code>);</p></li>
+<li><p>all the extra comments, sections and values that will be silently ignored.</p></li>
+</ul>
+<p>Now we can verify the TOML file is read automatticaly and change the defaults:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>./my_cli.py subcommand
+<span class="go">dummy_flag    is True</span>
+<span class="go">my_list       is (&#39;item 1&#39;, &#39;item #2&#39;, &#39;Very Last Item!&#39;)</span>
+<span class="go">int_parameter is 3</span>
+</pre></div>
+</div>
+<p>Still, any inline parameter is allowedal to ovverides the configuration
+defaults:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>./my_cli.py subcommand --int-param <span class="m">555</span>
+<span class="go">dummy_flag    is True</span>
+<span class="go">my_list       is (&#39;item 1&#39;, &#39;item #2&#39;, &#39;Very Last Item!&#39;)</span>
+<span class="go">int_parameter is 555</span>
+</pre></div>
+</div>
+</section>
+<section id="yaml-configuration">
+<h2>YAML configuration<a class="headerlink" href="#yaml-configuration" title="Permalink to this heading">#</a></h2>
+<p>Same example as above is working as-is with YAML.</p>
+<p>Just replace the TOML file with the following configuration at
+<code class="docutils literal notranslate"><span class="pre">~/.my_cli.py/config.yaml</span></code>:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># My default configuration file.</span><span class="w"></span>
+<span class="nt">top_level_param</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">is_ignored</span><span class="w"></span>
+
+<span class="nt">my-cli</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">extra_value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">is ignored too</span><span class="w"></span>
+<span class="w">  </span><span class="nt">dummy_flag</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">   </span><span class="c1"># New boolean default.</span><span class="w"></span>
+<span class="w">  </span><span class="nt">my_list</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">point 1</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&#39;point</span><span class="nv"> </span><span class="s">#2&#39;</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Very Last Point!</span><span class="w"></span>
+
+<span class="w">  </span><span class="nt">subcommand</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">int_param</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">77</span><span class="w"></span>
+<span class="w">    </span><span class="nt">random_stuff</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">will be ignored</span><span class="w"></span>
+
+<span class="nt">garbage</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="no">An empty random section that will be skipped</span><span class="w"></span>
+</pre></div>
+</div>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>./my_cli.py --config ~/.my_cli.py/config.yaml subcommand
+<span class="go">dummy_flag    is True</span>
+<span class="go">my_list       is (&#39;point 1&#39;, &#39;point #2&#39;, &#39;Very Last Point!&#39;)</span>
+<span class="go">int_parameter is 77</span>
+</pre></div>
+</div>
+</section>
+<section id="json-configuration">
+<h2>JSON configuration<a class="headerlink" href="#json-configuration" title="Permalink to this heading">#</a></h2>
+<p>Again, same for JSON:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;top_level_param&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;is_ignored&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;garbage&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{},</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;my-cli&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;dummy_flag&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;extra_value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;is ignored too&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;my_list&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;item 1&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;item #2&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;Very Last Item!&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="p">],</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;subcommand&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="nt">&quot;int_param&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">65</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="nt">&quot;random_stuff&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;will be ignored&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">  </span><span class="p">}</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>./my_cli.py --config ~/.my_cli.py/config.json subcommand
+<span class="go">dummy_flag    is True</span>
+<span class="go">my_list       is (&#39;item 1&#39;, &#39;item #2&#39;, &#39;Very Last Item!&#39;)</span>
+<span class="go">int_parameter is 65</span>
+</pre></div>
+</div>
+</section>
+<section id="ini-configuration">
+<h2>INI configuration<a class="headerlink" href="#ini-configuration" title="Permalink to this heading">#</a></h2>
+<div class="admonition-todo admonition" id="id1">
+<p class="admonition-title">Todo</p>
+<p>Write example and tutorial.</p>
+</div>
+</section>
+<section id="xml-configuration">
+<h2>XML configuration<a class="headerlink" href="#xml-configuration" title="Permalink to this heading">#</a></h2>
+<div class="admonition-todo admonition" id="id2">
+<p class="admonition-title">Todo</p>
+<p>Write example and tutorial.</p>
+</div>
+</section>
+<section id="remote-configuration">
+<h2>Remote configuration<a class="headerlink" href="#remote-configuration" title="Permalink to this heading">#</a></h2>
+<p>Remote URL can be passed directly to the <code class="docutils literal notranslate"><span class="pre">--config</span></code> option:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>./my_cli.py --config https://example.com/dummy/configuration.yaml subcommand
+<span class="go">dummy_flag    is True</span>
+<span class="go">my_list       is (&#39;point 1&#39;, &#39;point #2&#39;, &#39;Very Last Point!&#39;)</span>
+<span class="go">int_parameter is 77</span>
+</pre></div>
+</div>
+</section>
+<section id="module-click_extra.config">
+<span id="click-extra-config-api"></span><h2><code class="docutils literal notranslate"><span class="pre">click_extra.config</span></code> API<a class="headerlink" href="#module-click_extra.config" title="Permalink to this heading">#</a></h2>
+<p>Utilities to load parameters and options from a configuration file.</p>
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.config.IGNORED_OPTIONS">
+<span class="sig-prename descclassname"><span class="pre">click_extra.config.</span></span><span class="sig-name descname"><span class="pre">IGNORED_OPTIONS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('help',</span> <span class="pre">'version',</span> <span class="pre">'config')</span></em><a class="headerlink" href="#click_extra.config.IGNORED_OPTIONS" title="Permalink to this definition">#</a></dt>
+<dd><p>List of unsupported options we’re going to ignore.</p>
+<ul class="simple">
+<li><p><cite>–help</cite> is not a configurable option.</p></li>
+<li><p><cite>–version</cite> is not a configurable option.</p></li>
+<li><p><cite>-C/–config</cite> option cannot be used to recursively load another file.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.config.CONFIGURATION_FORMATS">
+<span class="sig-prename descclassname"><span class="pre">click_extra.config.</span></span><span class="sig-name descname"><span class="pre">CONFIGURATION_FORMATS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'INI':</span> <span class="pre">('.ini',),</span> <span class="pre">'JSON':</span> <span class="pre">('.json',),</span> <span class="pre">'TOML':</span> <span class="pre">('.toml',),</span> <span class="pre">'XML':</span> <span class="pre">('.xml',),</span> <span class="pre">'YAML':</span> <span class="pre">('.yaml',</span> <span class="pre">'.yml')}</span></em><a class="headerlink" href="#click_extra.config.CONFIGURATION_FORMATS" title="Permalink to this definition">#</a></dt>
+<dd><p>Maps configuration formats, their file extension, and parsing function,
+The order lists the priority by which each format is searched for the default configuration file.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.config.ALL_EXTENSIONS">
+<span class="sig-prename descclassname"><span class="pre">click_extra.config.</span></span><span class="sig-name descname"><span class="pre">ALL_EXTENSIONS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('.toml',</span> <span class="pre">'.yaml',</span> <span class="pre">'.yml',</span> <span class="pre">'.json',</span> <span class="pre">'.ini',</span> <span class="pre">'.xml')</span></em><a class="headerlink" href="#click_extra.config.ALL_EXTENSIONS" title="Permalink to this definition">#</a></dt>
+<dd><p>List of all supported configuration file extensions.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="click_extra.config.ConfigurationFileError">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">click_extra.config.</span></span><span class="sig-name descname"><span class="pre">ConfigurationFileError</span></span><a class="reference internal" href="_modules/click_extra/config.html#ConfigurationFileError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.config.ConfigurationFileError" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+<p>Base class for all exceptions related to a configuration file.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="click_extra.config.DefaultConfPath">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">click_extra.config.</span></span><span class="sig-name descname"><span class="pre">DefaultConfPath</span></span><a class="reference internal" href="_modules/click_extra/config.html#DefaultConfPath"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.config.DefaultConfPath" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Returns default location of the configuration file.</p>
+<p>Location depends on OS (see <a class="reference external" href="https://click.palletsprojects.com/en/8.0.x/api/#click.get_app_dir">Click documentation</a>):</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>macOS &amp; Linux: <code class="docutils literal notranslate"><span class="pre">~/.my_cli/config.{toml,yaml,yml,json,ini,xml}</span></code></p></li>
+<li><p>Windows: <code class="docutils literal notranslate"><span class="pre">C:\Users\&lt;user&gt;\AppData\Roaming\my_cli\config.{toml,yaml,yml,json,ini,xml}</span></code></p></li>
+</ul>
+</div></blockquote>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.config.DefaultConfPath.default_conf_name">
+<span class="sig-name descname"><span class="pre">default_conf_name</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'config'</span></em><a class="headerlink" href="#click_extra.config.DefaultConfPath.default_conf_name" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="click_extra.config.DefaultConfPath.conf_path">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">conf_path</span></span><a class="headerlink" href="#click_extra.config.DefaultConfPath.conf_path" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.config.init_deep_dict">
+<span class="sig-prename descclassname"><span class="pre">click_extra.config.</span></span><span class="sig-name descname"><span class="pre">init_deep_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">leaf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/config.html#init_deep_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.config.init_deep_dict" title="Permalink to this definition">#</a></dt>
+<dd><p>Utility method to recursively create a nested dict structure whose keys are
+provided by <code class="docutils literal notranslate"><span class="pre">levels</span></code> list and at the end is populated by <code class="docutils literal notranslate"><span class="pre">leaf</span></code>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.config.get_deep_value">
+<span class="sig-prename descclassname"><span class="pre">click_extra.config.</span></span><span class="sig-name descname"><span class="pre">get_deep_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">deep_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/config.html#get_deep_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.config.get_deep_value" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.config.load_ini_config">
+<span class="sig-prename descclassname"><span class="pre">click_extra.config.</span></span><span class="sig-name descname"><span class="pre">load_ini_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conf_types</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/config.html#load_ini_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.config.load_ini_config" title="Permalink to this definition">#</a></dt>
+<dd><p>Utility method to parse INI configuration file.</p>
+<p>Returns a ready-to-use data structure.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.config.map_option_type">
+<span class="sig-prename descclassname"><span class="pre">click_extra.config.</span></span><span class="sig-name descname"><span class="pre">map_option_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/config.html#map_option_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.config.map_option_type" title="Permalink to this definition">#</a></dt>
+<dd><p>Translate Click parameter type to Python type.</p>
+<p>See the list of <a class="reference external" href="https://click.palletsprojects.com/en/8.1.x/api/?highlight=intrange#types">custom types provided by Click</a>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.config.conf_structure">
+<span class="sig-prename descclassname"><span class="pre">click_extra.config.</span></span><span class="sig-name descname"><span class="pre">conf_structure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/config.html#conf_structure"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.config.conf_structure" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns two data structures shadowing the CLI options and subcommands.</p>
+<p>2 tree-like dictionnaries are returned:
+- One with only keys, all values being set to None, to serve as a template for configuration
+- A copy of the former, with values set to their expected type</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.config.parse_and_merge_conf">
+<span class="sig-prename descclassname"><span class="pre">click_extra.config.</span></span><span class="sig-name descname"><span class="pre">parse_and_merge_conf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conf_content</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conf_extension</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/config.html#parse_and_merge_conf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.config.parse_and_merge_conf" title="Permalink to this definition">#</a></dt>
+<dd><p>Detect configuration format, parse its content and returns a <code class="docutils literal notranslate"><span class="pre">dict</span></code>.</p>
+<p>The returned <code class="docutils literal notranslate"><span class="pre">dict</span></code> will only contain options and parameters defined on the CLI.
+All others will be filtered out.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.config.read_conf">
+<span class="sig-prename descclassname"><span class="pre">click_extra.config.</span></span><span class="sig-name descname"><span class="pre">read_conf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conf_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/config.html#read_conf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.config.read_conf" title="Permalink to this definition">#</a></dt>
+<dd><p>Read conf from remote URL or local file system.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.config.load_conf">
+<span class="sig-prename descclassname"><span class="pre">click_extra.config.</span></span><span class="sig-name descname"><span class="pre">load_conf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conf_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/config.html#load_conf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.config.load_conf" title="Permalink to this definition">#</a></dt>
+<dd><p>Fetch parameters values from configuration file and merge them with the defaults.</p>
+<p>User configuration is merged to the context <code class="docutils literal notranslate"><span class="pre">default_map</span></code>, as in:
+<a class="reference external" href="https://click.palletsprojects.com/en/8.1.x/commands/#context-defaults">https://click.palletsprojects.com/en/8.1.x/commands/#context-defaults</a></p>
+<p>This allow user’s config to only overrides defaults. Values sets from direct
+command line parameters, environment variables or interactive prompts, takes precedence
+over any values from the config file.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="click_extra.config.ConfigOption">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">click_extra.config.</span></span><span class="sig-name descname"><span class="pre">ConfigOption</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_decls=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metavar='CONFIG_PATH'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type=STRING</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default=&lt;click_extra.config.DefaultConfPath</span> <span class="pre">object&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">help='Location</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">configuration</span> <span class="pre">file.</span> <span class="pre">Supports</span> <span class="pre">both</span> <span class="pre">local</span> <span class="pre">path</span> <span class="pre">and</span> <span class="pre">remote</span> <span class="pre">URL.'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_eager=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expose_value=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">**kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/config.html#ConfigOption"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.config.ConfigOption" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="click_extra.html#click_extra.parameters.ExtraOption" title="click_extra.parameters.ExtraOption"><code class="xref py py-class docutils literal notranslate"><span class="pre">ExtraOption</span></code></a></p>
+<p>Adds a <code class="docutils literal notranslate"><span class="pre">--config</span></code>/<code class="docutils literal notranslate"><span class="pre">-C</span></code> option.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>strict</strong> – if <code class="docutils literal notranslate"><span class="pre">True</span></code>, raise an error if the configuration file contain unrecognized options.</p>
+</dd>
+</dl>
+<p>Silently ignore unsupported options if <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+<p>For other params see Click’s <code class="docutils literal notranslate"><span class="pre">version_option</span></code> decorator:
+<a class="reference external" href="https://click.palletsprojects.com/en/8.1.x/api/#click.version_option">https://click.palletsprojects.com/en/8.1.x/api/#click.version_option</a></p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.config.config_option">
+<span class="sig-prename descclassname"><span class="pre">click_extra.config.</span></span><span class="sig-name descname"><span class="pre">config_option</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">*param_decls:</span> <span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cls=&lt;class</span> <span class="pre">'click_extra.config.ConfigOption'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">**kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/config.html#config_option"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.config.config_option" title="Permalink to this definition">#</a></dt>
+<dd><p>Decorator for <code class="docutils literal notranslate"><span class="pre">ConfigOption</span></code>.</p>
+</dd></dl>
+
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="colorize.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Colorization of help</div>
+              </div>
+              <svg><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="tutorial.html">
+              <svg><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Tutorial</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; Kevin Deldycke and contributors
+            </div>
+            Made with 
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            <div class="last-updated">
+              Last updated on 2022-07-28</div>
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link" href="https://github.com/kdeldycke/click-extra" aria-label="On GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                  <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            Contents
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Configuration loader</a><ul>
+<li><a class="reference internal" href="#toml-configuration">TOML configuration</a></li>
+<li><a class="reference internal" href="#yaml-configuration">YAML configuration</a></li>
+<li><a class="reference internal" href="#json-configuration">JSON configuration</a></li>
+<li><a class="reference internal" href="#ini-configuration">INI configuration</a></li>
+<li><a class="reference internal" href="#xml-configuration">XML configuration</a></li>
+<li><a class="reference internal" href="#remote-configuration">Remote configuration</a></li>
+<li><a class="reference internal" href="#module-click_extra.config"><code class="docutils literal notranslate"><span class="pre">click_extra.config</span></code> API</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/scripts/furo.js"></script>
+    <script src="_static/clipboard.min.js"></script>
+    <script src="_static/copybutton.js"></script>
+    <script src="_static/design-tabs.js"></script>
+    </body>
+</html>

@@ -1,0 +1,839 @@
+<!doctype html>
+<html class="no-js" lang="en">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
+
+    <meta name="generator" content="sphinx-5.1.0, furo 2022.06.21"/>
+        <title>click_extra.tests.test_config - Click Extra</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?digest=40978830699223671f4072448e654b5958f38b89" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/design-style.b7bb847fb20b106c3d81b95245e65545.min.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../index.html"><div class="brand">Click Extra</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand centered" href="../../../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../_static/logo-square.svg" alt="Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
+  <input class="sidebar-search" placeholder=Search name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../config.html">Configuration loader</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../colorize.html">Colorization of help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../logging.html">Logging facilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tabulate.html">Table rendering</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../platform.html">Platform utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../run.html">Run utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../issues.html">Fixed issues</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../click_extra.html">API</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../click_extra.tests.html">click_extra.tests package</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../todolist.html">Todo-list</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../code-of-conduct.html">Code of conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/kdeldycke/click-extra">GitHub Repository</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/sponsors/kdeldycke">Funding</a></li>
+</ul>
+
+</div>
+
+<div
+  id="furo-sidebar-ad-placement"
+  class="flat"
+  data-ea-publisher="readthedocs"
+  data-ea-type="readthedocs-sidebar"
+  data-ea-manual="true"
+></div>
+</div>
+
+<div id="furo-readthedocs-versions" class="rst-versions" data-toggle="rst-versions" role="note" aria-label="Versions" tabindex="0">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book">&nbsp;</span>
+    v: 
+  </span>
+  <div class="rst-other-versions">
+    <dl>
+      <dt>Versions</dt>
+      
+    </dl>
+    <dl>
+      <dt>Downloads</dt>
+      
+    </dl>
+    <dl>
+      
+      <dt>On Read the Docs</dt>
+        <dd>
+          <a href="///projects//?fromdocs=">Project Home</a>
+        </dd>
+        <dd>
+          <a href="///builds//?fromdocs=">Builds</a>
+        </dd>
+    </dl>
+  </div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <h1>Source code for click_extra.tests.test_config</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright Kevin Deldycke &lt;kevin@deldycke.com&gt; and contributors.</span>
+<span class="c1"># All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is Free Software; you can redistribute it and/or</span>
+<span class="c1"># modify it under the terms of the GNU General Public License</span>
+<span class="c1"># as published by the Free Software Foundation; either version 2</span>
+<span class="c1"># of the License, or (at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU General Public License</span>
+<span class="c1"># along with this program; if not, write to the Free Software</span>
+<span class="c1"># Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.</span>
+
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span> <span class="nn">click</span>
+<span class="kn">import</span> <span class="nn">pytest</span>
+
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BOOL</span><span class="p">,</span>
+    <span class="n">FLOAT</span><span class="p">,</span>
+    <span class="n">INT</span><span class="p">,</span>
+    <span class="n">STRING</span><span class="p">,</span>
+    <span class="n">UNPROCESSED</span><span class="p">,</span>
+    <span class="n">UUID</span><span class="p">,</span>
+    <span class="n">Choice</span><span class="p">,</span>
+    <span class="n">DateTime</span><span class="p">,</span>
+    <span class="n">File</span><span class="p">,</span>
+    <span class="n">FloatRange</span><span class="p">,</span>
+    <span class="n">IntRange</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">Path</span> <span class="k">as</span> <span class="n">ClickPath</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">argument</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">config</span> <span class="k">as</span> <span class="n">config_module</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">config_option</span><span class="p">,</span> <span class="n">echo</span><span class="p">,</span> <span class="n">extra_group</span><span class="p">,</span> <span class="n">option</span>
+<span class="kn">from</span> <span class="nn">..config</span> <span class="kn">import</span> <span class="n">conf_structure</span>
+<span class="kn">from</span> <span class="nn">..platform</span> <span class="kn">import</span> <span class="n">is_windows</span>
+<span class="kn">from</span> <span class="nn">.conftest</span> <span class="kn">import</span> <span class="n">default_debug_uncolored_log</span>
+
+<span class="n">DUMMY_TOML_FILE</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    # Comment</span>
+
+<span class="s2">    top_level_param             = &quot;to_ignore&quot;</span>
+
+<span class="s2">    [config-test-cli]</span>
+<span class="s2">    verbosity = &quot;DEBUG&quot;</span>
+<span class="s2">    blahblah = 234</span>
+<span class="s2">    dummy_flag = true</span>
+<span class="s2">    my_list = [&quot;pip&quot;, &quot;npm&quot;, &quot;gem&quot;]</span>
+
+<span class="s2">    [garbage]</span>
+<span class="s2">    # An empty random section that will be skipped</span>
+
+<span class="s2">    [config-test-cli.default-command]</span>
+<span class="s2">    int_param = 3</span>
+<span class="s2">    random_stuff = &quot;will be ignored&quot;</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+
+<span class="n">DUMMY_YAML_FILE</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    # Comment</span>
+
+<span class="s2">    top_level_param: to_ignore</span>
+
+<span class="s2">    config-test-cli:</span>
+<span class="s2">        verbosity : DEBUG</span>
+<span class="s2">        blahblah: 234</span>
+<span class="s2">        dummy_flag: True</span>
+<span class="s2">        my_list:</span>
+<span class="s2">          - pip</span>
+<span class="s2">          - &quot;npm&quot;</span>
+<span class="s2">          - gem</span>
+<span class="s2">        default-command:</span>
+<span class="s2">            int_param: 3</span>
+<span class="s2">            random_stuff : will be ignored</span>
+
+<span class="s2">    garbage:</span>
+<span class="s2">        # An empty random section that will be skipped</span>
+
+<span class="s2">    &quot;&quot;&quot;</span>
+
+<span class="n">DUMMY_JSON_FILE</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    {</span>
+<span class="s2">        &quot;top_level_param&quot;: &quot;to_ignore&quot;,</span>
+<span class="s2">        &quot;config-test-cli&quot;: {</span>
+<span class="s2">            &quot;blahblah&quot;: 234,</span>
+<span class="s2">            &quot;dummy_flag&quot;: true,</span>
+<span class="s2">            &quot;my_list&quot;: [</span>
+<span class="s2">                &quot;pip&quot;,</span>
+<span class="s2">                &quot;npm&quot;,</span>
+<span class="s2">                &quot;gem&quot;</span>
+<span class="s2">            ],</span>
+<span class="s2">            &quot;verbosity&quot;: &quot;DEBUG&quot;,   // log level</span>
+
+<span class="s2">            # Subcommand config</span>
+<span class="s2">            &quot;default-command&quot;: {</span>
+<span class="s2">                &quot;int_param&quot;: 3,</span>
+<span class="s2">                &quot;random_stuff&quot;: &quot;will be ignored&quot;</span>
+<span class="s2">            }</span>
+<span class="s2">        },</span>
+
+<span class="s2">        // Section to ignore</span>
+<span class="s2">        &quot;garbage&quot;: </span><span class="si">{}</span><span class="s2"></span>
+<span class="s2">    }</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+
+<span class="n">DUMMY_INI_FILE</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    ; Comment</span>
+<span class="s2">    # Another king of comment</span>
+
+<span class="s2">    [to_ignore]</span>
+<span class="s2">    key=value</span>
+<span class="s2">    spaces in keys=allowed</span>
+<span class="s2">    spaces in values=allowed as well</span>
+<span class="s2">    spaces around the delimiter = obviously</span>
+<span class="s2">    you can also use : to delimit keys from values</span>
+
+<span class="s2">    [config-test-cli.default-command]</span>
+<span class="s2">    int_param = 3</span>
+<span class="s2">    random_stuff = will be ignored</span>
+
+<span class="s2">    [garbage]</span>
+<span class="s2">    # An empty random section that will be skipped</span>
+
+<span class="s2">    [config-test-cli]</span>
+<span class="s2">    verbosity : DEBUG</span>
+<span class="s2">    blahblah: 234</span>
+<span class="s2">    dummy_flag = true</span>
+<span class="s2">    my_list = [&quot;pip&quot;, &quot;npm&quot;, &quot;gem&quot;]</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+
+<span class="n">DUMMY_XML_FILE</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    &lt;!-- Comment --&gt;</span>
+
+<span class="s2">    &lt;config-test-cli has=&quot;an attribute&quot;&gt;</span>
+
+<span class="s2">        &lt;to_ignore&gt;</span>
+<span class="s2">            &lt;key&gt;value&lt;/key&gt;</span>
+<span class="s2">            &lt;spaces &gt;    &lt;/spaces&gt;</span>
+<span class="s2">            &lt;text_as_value&gt;</span>
+<span class="s2">                Ratione omnis sit rerum dolor.</span>
+<span class="s2">                Quas omnis dolores quod sint aspernatur.</span>
+<span class="s2">                Veniam deleniti est totam pariatur temporibus qui</span>
+<span class="s2">                        accusantium eaque.</span>
+<span class="s2">            &lt;/text_as_value&gt;</span>
+
+<span class="s2">        &lt;/to_ignore&gt;</span>
+
+<span class="s2">        &lt;verbosity&gt;debug&lt;/verbosity&gt;</span>
+<span class="s2">        &lt;blahblah&gt;234&lt;/blahblah&gt;</span>
+<span class="s2">        &lt;dummy_flag&gt;true&lt;/dummy_flag&gt;</span>
+
+<span class="s2">        &lt;my_list&gt;pip&lt;/my_list&gt;</span>
+<span class="s2">        &lt;my_list&gt;npm&lt;/my_list&gt;</span>
+<span class="s2">        &lt;my_list&gt;gem&lt;/my_list&gt;</span>
+
+<span class="s2">        &lt;garbage&gt;</span>
+<span class="s2">            &lt;!-- An empty random section that will be skipped --&gt;</span>
+<span class="s2">        &lt;/garbage&gt;</span>
+
+<span class="s2">        &lt;default-command&gt;</span>
+<span class="s2">            &lt;int_param&gt;3&lt;/int_param&gt;</span>
+<span class="s2">            &lt;random_stuff&gt;will be ignored&lt;/random_stuff&gt;</span>
+<span class="s2">        &lt;/default-command&gt;</span>
+
+<span class="s2">    &lt;/config-test-cli&gt;</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+
+
+<span class="n">all_config_formats</span> <span class="o">=</span> <span class="n">pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span>
+    <span class="s2">&quot;conf_name,conf_content&quot;</span><span class="p">,</span>
+    <span class="p">(</span>
+        <span class="n">pytest</span><span class="o">.</span><span class="n">param</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;configuration.</span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">content</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="n">ext</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ext</span><span class="p">,</span> <span class="n">content</span> <span class="ow">in</span> <span class="p">(</span>
+            <span class="p">(</span><span class="s2">&quot;toml&quot;</span><span class="p">,</span> <span class="n">DUMMY_TOML_FILE</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;yaml&quot;</span><span class="p">,</span> <span class="n">DUMMY_YAML_FILE</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;json&quot;</span><span class="p">,</span> <span class="n">DUMMY_JSON_FILE</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;ini&quot;</span><span class="p">,</span> <span class="n">DUMMY_INI_FILE</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;xml&quot;</span><span class="p">,</span> <span class="n">DUMMY_XML_FILE</span><span class="p">),</span>
+        <span class="p">)</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+
+
+<span class="nd">@extra_group</span><span class="p">()</span>
+<span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--dummy-flag/--no-flag&quot;</span><span class="p">)</span>
+<span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--my-list&quot;</span><span class="p">,</span> <span class="n">multiple</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">config_test_cli</span><span class="p">(</span><span class="n">dummy_flag</span><span class="p">,</span> <span class="n">my_list</span><span class="p">):</span>
+    <span class="n">echo</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;dummy_flag = </span><span class="si">{</span><span class="n">dummy_flag</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">echo</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;my_list = </span><span class="si">{</span><span class="n">my_list</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<span class="nd">@config_test_cli</span><span class="o">.</span><span class="n">command</span><span class="p">()</span>
+<span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--int-param&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">default_command</span><span class="p">(</span><span class="n">int_param</span><span class="p">):</span>
+    <span class="n">echo</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;int_parameter = </span><span class="si">{</span><span class="n">int_param</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="test_unset_conf_no_message"><a class="viewcode-back" href="../../../click_extra.tests.html#click_extra.tests.test_config.test_unset_conf_no_message">[docs]</a><span class="k">def</span> <span class="nf">test_unset_conf_no_message</span><span class="p">(</span><span class="n">invoke</span><span class="p">):</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">invoke</span><span class="p">(</span><span class="n">config_test_cli</span><span class="p">,</span> <span class="s2">&quot;default-command&quot;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">exit_code</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">output</span> <span class="o">==</span> <span class="s2">&quot;dummy_flag = False</span><span class="se">\n</span><span class="s2">my_list = ()</span><span class="se">\n</span><span class="s2">int_parameter = 10</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">result</span><span class="o">.</span><span class="n">stderr</span></div>
+
+
+<div class="viewcode-block" id="test_unset_conf_debug_message"><a class="viewcode-back" href="../../../click_extra.tests.html#click_extra.tests.test_config.test_unset_conf_debug_message">[docs]</a><span class="k">def</span> <span class="nf">test_unset_conf_debug_message</span><span class="p">(</span><span class="n">invoke</span><span class="p">):</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">invoke</span><span class="p">(</span>
+        <span class="n">config_test_cli</span><span class="p">,</span> <span class="s2">&quot;--verbosity&quot;</span><span class="p">,</span> <span class="s2">&quot;DEBUG&quot;</span><span class="p">,</span> <span class="s2">&quot;default-command&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+    <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">exit_code</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">output</span> <span class="o">==</span> <span class="s2">&quot;dummy_flag = False</span><span class="se">\n</span><span class="s2">my_list = ()</span><span class="se">\n</span><span class="s2">int_parameter = 10</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="k">assert</span> <span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">default_debug_uncolored_log</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="test_conf_default_path"><a class="viewcode-back" href="../../../click_extra.tests.html#click_extra.tests.test_config.test_conf_default_path">[docs]</a><span class="k">def</span> <span class="nf">test_conf_default_path</span><span class="p">(</span><span class="n">invoke</span><span class="p">):</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">invoke</span><span class="p">(</span><span class="n">config_test_cli</span><span class="p">,</span> <span class="s2">&quot;--help&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">exit_code</span> <span class="o">==</span> <span class="mi">0</span>
+
+    <span class="c1"># OS-specific part of the path.</span>
+    <span class="n">folder</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;.config-test-cli&quot;</span><span class="p">)</span>
+    <span class="n">home</span> <span class="o">=</span> <span class="s2">&quot;~&quot;</span>
+    <span class="k">if</span> <span class="n">is_windows</span><span class="p">():</span>
+        <span class="n">folder</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;AppData&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="s2">&quot;Roaming&quot;</span> <span class="o">/</span> <span class="s2">&quot;config-test-cli&quot;</span>
+        <span class="n">home</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span>
+
+    <span class="n">default_path</span> <span class="o">=</span> <span class="n">home</span> <span class="o">/</span> <span class="n">folder</span> <span class="o">/</span> <span class="s2">&quot;config.{toml,yaml,yml,json,ini,xml}&quot;</span>
+
+    <span class="c1"># Make path string compatible with regexp.</span>
+    <span class="n">default_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">default_path</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\\\</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;-\s*&quot;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">rf</span><span class="s2">&quot;\[default:\s+</span><span class="si">{</span><span class="n">default_path</span><span class="si">}</span><span class="s2">\]&quot;</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">output</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="test_conf_not_exist"><a class="viewcode-back" href="../../../click_extra.tests.html#click_extra.tests.test_config.test_conf_not_exist">[docs]</a><span class="k">def</span> <span class="nf">test_conf_not_exist</span><span class="p">(</span><span class="n">invoke</span><span class="p">):</span>
+    <span class="n">conf_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;dummy.toml&quot;</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">invoke</span><span class="p">(</span>
+        <span class="n">config_test_cli</span><span class="p">,</span> <span class="s2">&quot;--config&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">conf_path</span><span class="p">),</span> <span class="s2">&quot;default-command&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+    <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">exit_code</span> <span class="o">==</span> <span class="mi">2</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">result</span><span class="o">.</span><span class="n">output</span>
+    <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">stderr</span> <span class="o">==</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;Load configuration from </span><span class="si">{</span><span class="n">conf_path</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;critical: Configuration not found at </span><span class="si">{</span><span class="n">conf_path</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="test_conf_not_file"><a class="viewcode-back" href="../../../click_extra.tests.html#click_extra.tests.test_config.test_conf_not_file">[docs]</a><span class="k">def</span> <span class="nf">test_conf_not_file</span><span class="p">(</span><span class="n">invoke</span><span class="p">):</span>
+    <span class="n">conf_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">invoke</span><span class="p">(</span>
+        <span class="n">config_test_cli</span><span class="p">,</span> <span class="s2">&quot;--config&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">conf_path</span><span class="p">),</span> <span class="s2">&quot;default-command&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+    <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">exit_code</span> <span class="o">==</span> <span class="mi">2</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">result</span><span class="o">.</span><span class="n">output</span>
+    <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">stderr</span> <span class="o">==</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;Load configuration from </span><span class="si">{</span><span class="n">conf_path</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;critical: Configuration </span><span class="si">{</span><span class="n">conf_path</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="si">}</span><span class="s2"> is not a file.</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="test_conf_format_unknown"><a class="viewcode-back" href="../../../click_extra.tests.html#click_extra.tests.test_config.test_conf_format_unknown">[docs]</a><span class="k">def</span> <span class="nf">test_conf_format_unknown</span><span class="p">(</span><span class="n">invoke</span><span class="p">,</span> <span class="n">create_config</span><span class="p">):</span>
+    <span class="n">conf_path</span> <span class="o">=</span> <span class="n">create_config</span><span class="p">(</span><span class="s2">&quot;file.unknown_extension&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">invoke</span><span class="p">(</span>
+        <span class="n">config_test_cli</span><span class="p">,</span> <span class="s2">&quot;--config&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">conf_path</span><span class="p">),</span> <span class="s2">&quot;default-command&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+    <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">exit_code</span> <span class="o">==</span> <span class="mi">2</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">result</span><span class="o">.</span><span class="n">output</span>
+    <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">stderr</span> <span class="o">==</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;Load configuration from </span><span class="si">{</span><span class="n">conf_path</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;critical: Configuration format not recognized.</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="test_conf_auto_types"><a class="viewcode-back" href="../../../click_extra.tests.html#click_extra.tests.test_config.test_conf_auto_types">[docs]</a><span class="k">def</span> <span class="nf">test_conf_auto_types</span><span class="p">(</span><span class="n">invoke</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">,</span> <span class="n">create_config</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Check the conf type and structure is properly derived from CLI options.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">patched_conf_structure</span><span class="p">(</span><span class="n">ctx</span><span class="p">):</span>
+        <span class="n">conf_template</span><span class="p">,</span> <span class="n">conf_types</span> <span class="o">=</span> <span class="n">conf_structure</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">conf_template</span> <span class="o">==</span> <span class="p">{</span>
+            <span class="s2">&quot;my-cli&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;flag1&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;flag2&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;str_param1&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;str_param2&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;int_param1&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;int_param2&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;float_param1&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;float_param2&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;bool_param1&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;bool_param2&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;uuid_param&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;unprocessed_param&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;file_param&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;path_param&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;choice_param&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;int_range_param&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;count_param&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;float_range_param&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;datetime_param&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;tuple1&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;list1&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;file_arg1&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;file_arg2&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+        <span class="k">assert</span> <span class="n">conf_types</span> <span class="o">==</span> <span class="p">{</span>
+            <span class="s2">&quot;my-cli&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;flag1&quot;</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+                <span class="s2">&quot;flag2&quot;</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+                <span class="s2">&quot;str_param1&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                <span class="s2">&quot;str_param2&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                <span class="s2">&quot;int_param1&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                <span class="s2">&quot;int_param2&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                <span class="s2">&quot;float_param1&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+                <span class="s2">&quot;float_param2&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+                <span class="s2">&quot;bool_param1&quot;</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+                <span class="s2">&quot;bool_param2&quot;</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+                <span class="s2">&quot;uuid_param&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                <span class="s2">&quot;unprocessed_param&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                <span class="s2">&quot;file_param&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                <span class="s2">&quot;path_param&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                <span class="s2">&quot;choice_param&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                <span class="s2">&quot;int_range_param&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                <span class="s2">&quot;count_param&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                <span class="s2">&quot;float_range_param&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+                <span class="s2">&quot;datetime_param&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                <span class="s2">&quot;tuple1&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+                <span class="s2">&quot;list1&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+                <span class="s2">&quot;file_arg1&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                <span class="s2">&quot;file_arg2&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">conf_template</span><span class="p">,</span> <span class="n">conf_types</span>
+
+    <span class="n">monkeypatch</span><span class="o">.</span><span class="n">setattr</span><span class="p">(</span><span class="n">config_module</span><span class="p">,</span> <span class="s2">&quot;conf_structure&quot;</span><span class="p">,</span> <span class="n">patched_conf_structure</span><span class="p">)</span>
+
+    <span class="nd">@click</span><span class="o">.</span><span class="n">command</span>
+    <span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--flag1/--no-flag1&quot;</span><span class="p">)</span>
+    <span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--flag2&quot;</span><span class="p">,</span> <span class="n">is_flag</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--str-param1&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+    <span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--str-param2&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">STRING</span><span class="p">)</span>
+    <span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--int-param1&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+    <span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--int-param2&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">INT</span><span class="p">)</span>
+    <span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--float-param1&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--float-param2&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">FLOAT</span><span class="p">)</span>
+    <span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--bool-param1&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--bool-param2&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">BOOL</span><span class="p">)</span>
+    <span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--uuid-param&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">UUID</span><span class="p">)</span>
+    <span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--unprocessed-param&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">UNPROCESSED</span><span class="p">)</span>
+    <span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--file-param&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">File</span><span class="p">())</span>
+    <span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--path-param&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">ClickPath</span><span class="p">())</span>
+    <span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--choice-param&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">Choice</span><span class="p">((</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">)))</span>
+    <span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--int-range-param&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">IntRange</span><span class="p">())</span>
+    <span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--count-param&quot;</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># See issue #170.</span>
+    <span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--float-range-param&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">FloatRange</span><span class="p">())</span>
+    <span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--datetime-param&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">DateTime</span><span class="p">())</span>
+    <span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--tuple1&quot;</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">Tuple</span><span class="p">([</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]))</span>
+    <span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--list1&quot;</span><span class="p">,</span> <span class="n">multiple</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="nd">@argument</span><span class="p">(</span><span class="s2">&quot;file_arg1&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;w&quot;</span><span class="p">))</span>
+    <span class="nd">@argument</span><span class="p">(</span><span class="s2">&quot;file_arg2&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;w&quot;</span><span class="p">),</span> <span class="n">nargs</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="nd">@config_option</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">my_cli</span><span class="p">(</span>
+        <span class="n">flag1</span><span class="p">,</span>
+        <span class="n">flag2</span><span class="p">,</span>
+        <span class="n">str_param1</span><span class="p">,</span>
+        <span class="n">str_param2</span><span class="p">,</span>
+        <span class="n">int_param1</span><span class="p">,</span>
+        <span class="n">int_param2</span><span class="p">,</span>
+        <span class="n">float_param1</span><span class="p">,</span>
+        <span class="n">float_param2</span><span class="p">,</span>
+        <span class="n">bool_param1</span><span class="p">,</span>
+        <span class="n">bool_param2</span><span class="p">,</span>
+        <span class="n">uuid_param</span><span class="p">,</span>
+        <span class="n">unprocessed_param</span><span class="p">,</span>
+        <span class="n">file_param</span><span class="p">,</span>
+        <span class="n">path_param</span><span class="p">,</span>
+        <span class="n">choice_param</span><span class="p">,</span>
+        <span class="n">int_range_param</span><span class="p">,</span>
+        <span class="n">count_param</span><span class="p">,</span>
+        <span class="n">float_range_param</span><span class="p">,</span>
+        <span class="n">datetime_param</span><span class="p">,</span>
+        <span class="n">tuple1</span><span class="p">,</span>
+        <span class="n">list1</span><span class="p">,</span>
+        <span class="n">file_arg1</span><span class="p">,</span>
+        <span class="n">file_arg2</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Works!&quot;</span><span class="p">)</span>
+
+    <span class="n">conf_path</span> <span class="o">=</span> <span class="n">create_config</span><span class="p">(</span><span class="s2">&quot;dummy.toml&quot;</span><span class="p">,</span> <span class="n">DUMMY_TOML_FILE</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">invoke</span><span class="p">(</span>
+        <span class="n">my_cli</span><span class="p">,</span> <span class="s2">&quot;--config&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">conf_path</span><span class="p">),</span> <span class="s2">&quot;random_file1&quot;</span><span class="p">,</span> <span class="s2">&quot;random_file2&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+
+    <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">exit_code</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">output</span> <span class="o">==</span> <span class="s2">&quot;Works!</span><span class="se">\n</span><span class="s2">&quot;</span></div>
+
+
+<div class="viewcode-block" id="test_strict_conf"><a class="viewcode-back" href="../../../click_extra.tests.html#click_extra.tests.test_config.test_strict_conf">[docs]</a><span class="k">def</span> <span class="nf">test_strict_conf</span><span class="p">(</span><span class="n">invoke</span><span class="p">,</span> <span class="n">create_config</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Same test as the one shown in the readme, but in strict validation mode.&quot;&quot;&quot;</span>
+
+    <span class="nd">@click</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">context_settings</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;show_default&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+    <span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--dummy-flag/--no-flag&quot;</span><span class="p">)</span>
+    <span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--my-list&quot;</span><span class="p">,</span> <span class="n">multiple</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="nd">@config_option</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">my_cli</span><span class="p">(</span><span class="n">dummy_flag</span><span class="p">,</span> <span class="n">my_list</span><span class="p">):</span>
+        <span class="n">echo</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;dummy_flag    is </span><span class="si">{</span><span class="n">dummy_flag</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">echo</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;my_list       is </span><span class="si">{</span><span class="n">my_list</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="nd">@my_cli</span><span class="o">.</span><span class="n">command</span>
+    <span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--int-param&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">subcommand</span><span class="p">(</span><span class="n">int_param</span><span class="p">):</span>
+        <span class="n">echo</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;int_parameter is </span><span class="si">{</span><span class="n">int_param</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">conf_file</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        # My default configuration file.</span>
+
+<span class="s2">        [my-cli]</span>
+<span class="s2">        dummy_flag = true   # New boolean default.</span>
+<span class="s2">        my_list = [&quot;item 1&quot;, &quot;item #2&quot;, &quot;Very Last Item!&quot;]</span>
+
+<span class="s2">        [my-cli.subcommand]</span>
+<span class="s2">        int_param = 3</span>
+<span class="s2">        random_stuff = &quot;will be ignored&quot;</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+
+    <span class="n">conf_path</span> <span class="o">=</span> <span class="n">create_config</span><span class="p">(</span><span class="s2">&quot;messy.toml&quot;</span><span class="p">,</span> <span class="n">conf_file</span><span class="p">)</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="n">invoke</span><span class="p">(</span><span class="n">my_cli</span><span class="p">,</span> <span class="s2">&quot;--config&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">conf_path</span><span class="p">),</span> <span class="s2">&quot;subcommand&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">exception</span>
+    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">exception</span><span class="p">)</span> <span class="o">==</span> <span class="ne">ValueError</span>
+    <span class="k">assert</span> <span class="p">(</span>
+        <span class="nb">str</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">exception</span><span class="p">)</span>
+        <span class="o">==</span> <span class="s2">&quot;Parameter &#39;random_stuff&#39; is not allowed in configuration file.&quot;</span>
+    <span class="p">)</span>
+
+    <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">exit_code</span> <span class="o">==</span> <span class="mi">1</span>
+    <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">stderr</span> <span class="o">==</span> <span class="sa">f</span><span class="s2">&quot;Load configuration from </span><span class="si">{</span><span class="n">conf_path</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">result</span><span class="o">.</span><span class="n">stdout</span></div>
+
+
+<div class="viewcode-block" id="test_conf_file_overrides_defaults"><a class="viewcode-back" href="../../../click_extra.tests.html#click_extra.tests.test_config.test_conf_file_overrides_defaults">[docs]</a><span class="nd">@all_config_formats</span>
+<span class="k">def</span> <span class="nf">test_conf_file_overrides_defaults</span><span class="p">(</span>
+    <span class="n">invoke</span><span class="p">,</span> <span class="n">create_config</span><span class="p">,</span> <span class="n">httpserver</span><span class="p">,</span> <span class="n">conf_name</span><span class="p">,</span> <span class="n">conf_content</span>
+<span class="p">):</span>
+    <span class="c1"># Create a local file and remote config.</span>
+    <span class="n">conf_filepath</span> <span class="o">=</span> <span class="n">create_config</span><span class="p">(</span><span class="n">conf_name</span><span class="p">,</span> <span class="n">conf_content</span><span class="p">)</span>
+    <span class="n">httpserver</span><span class="o">.</span><span class="n">expect_request</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;/</span><span class="si">{</span><span class="n">conf_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">respond_with_data</span><span class="p">(</span><span class="n">conf_content</span><span class="p">)</span>
+    <span class="n">conf_url</span> <span class="o">=</span> <span class="n">httpserver</span><span class="o">.</span><span class="n">url_for</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;/</span><span class="si">{</span><span class="n">conf_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">conf_path</span> <span class="ow">in</span> <span class="n">conf_filepath</span><span class="p">,</span> <span class="n">conf_url</span><span class="p">:</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">invoke</span><span class="p">(</span>
+            <span class="n">config_test_cli</span><span class="p">,</span> <span class="s2">&quot;--config&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">conf_path</span><span class="p">),</span> <span class="s2">&quot;default-command&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">exit_code</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">stdout</span> <span class="o">==</span> <span class="p">(</span>
+            <span class="s2">&quot;dummy_flag = True</span><span class="se">\n</span><span class="s2">my_list = (&#39;pip&#39;, &#39;npm&#39;, &#39;gem&#39;)</span><span class="se">\n</span><span class="s2">int_parameter = 3</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Make path string compatible with regexp on Windows.</span>
+        <span class="n">conf_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">conf_path</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\\\</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># Debug level has been activated by configuration file.</span>
+        <span class="n">debug_log</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">rf</span><span class="s2">&quot;Load configuration from </span><span class="si">{</span><span class="n">conf_path</span><span class="si">}</span><span class="s2">\n&quot;</span>
+            <span class="sa">r</span><span class="s2">&quot;debug: Verbosity set to DEBUG.\n&quot;</span>
+            <span class="sa">r</span><span class="s2">&quot;debug: \S+, version \S+\n&quot;</span>
+        <span class="p">)</span>
+        <span class="c1"># XXX Temporarily expect extra-env info for Python &lt; 3.10 while we wait for</span>
+        <span class="c1"># https://github.com/mahmoud/boltons/issues/294 to be released upstream.</span>
+        <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">10</span><span class="p">):</span>
+            <span class="n">debug_log</span> <span class="o">+=</span> <span class="sa">r</span><span class="s2">&quot;debug: {.*}\n&quot;</span>
+        <span class="k">assert</span> <span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">debug_log</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="test_auto_env_var_conf"><a class="viewcode-back" href="../../../click_extra.tests.html#click_extra.tests.test_config.test_auto_env_var_conf">[docs]</a><span class="nd">@all_config_formats</span>
+<span class="k">def</span> <span class="nf">test_auto_env_var_conf</span><span class="p">(</span><span class="n">invoke</span><span class="p">,</span> <span class="n">create_config</span><span class="p">,</span> <span class="n">httpserver</span><span class="p">,</span> <span class="n">conf_name</span><span class="p">,</span> <span class="n">conf_content</span><span class="p">):</span>
+    <span class="c1"># Create a local config.</span>
+    <span class="n">conf_filepath</span> <span class="o">=</span> <span class="n">create_config</span><span class="p">(</span><span class="n">conf_name</span><span class="p">,</span> <span class="n">conf_content</span><span class="p">)</span>
+
+    <span class="c1"># Create a remote config.</span>
+    <span class="n">httpserver</span><span class="o">.</span><span class="n">expect_request</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;/</span><span class="si">{</span><span class="n">conf_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">respond_with_data</span><span class="p">(</span><span class="n">conf_content</span><span class="p">)</span>
+    <span class="n">conf_url</span> <span class="o">=</span> <span class="n">httpserver</span><span class="o">.</span><span class="n">url_for</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;/</span><span class="si">{</span><span class="n">conf_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">conf_path</span> <span class="ow">in</span> <span class="n">conf_filepath</span><span class="p">,</span> <span class="n">conf_url</span><span class="p">:</span>
+
+        <span class="n">conf_path</span> <span class="o">=</span> <span class="n">create_config</span><span class="p">(</span><span class="n">conf_name</span><span class="p">,</span> <span class="n">conf_content</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">invoke</span><span class="p">(</span>
+            <span class="n">config_test_cli</span><span class="p">,</span>
+            <span class="s2">&quot;default-command&quot;</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">env</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;CONFIG_TEST_CLI_CONFIG&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">conf_path</span><span class="p">)},</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">exit_code</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">output</span> <span class="o">==</span> <span class="p">(</span>
+            <span class="s2">&quot;dummy_flag = True</span><span class="se">\n</span><span class="s2">my_list = (&#39;pip&#39;, &#39;npm&#39;, &#39;gem&#39;)</span><span class="se">\n</span><span class="s2">int_parameter = 3</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="c1"># Debug level has been activated by configuration file.</span>
+        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">stderr</span> <span class="o">==</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Load configuration from </span><span class="si">{</span><span class="n">conf_path</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;debug: Verbosity set to DEBUG.</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="test_conf_file_overrided_by_cli_param"><a class="viewcode-back" href="../../../click_extra.tests.html#click_extra.tests.test_config.test_conf_file_overrided_by_cli_param">[docs]</a><span class="nd">@all_config_formats</span>
+<span class="k">def</span> <span class="nf">test_conf_file_overrided_by_cli_param</span><span class="p">(</span>
+    <span class="n">invoke</span><span class="p">,</span> <span class="n">create_config</span><span class="p">,</span> <span class="n">httpserver</span><span class="p">,</span> <span class="n">conf_name</span><span class="p">,</span> <span class="n">conf_content</span>
+<span class="p">):</span>
+    <span class="c1"># Create a local file and remote config.</span>
+    <span class="n">conf_filepath</span> <span class="o">=</span> <span class="n">create_config</span><span class="p">(</span><span class="n">conf_name</span><span class="p">,</span> <span class="n">conf_content</span><span class="p">)</span>
+    <span class="n">httpserver</span><span class="o">.</span><span class="n">expect_request</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;/</span><span class="si">{</span><span class="n">conf_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">respond_with_data</span><span class="p">(</span><span class="n">conf_content</span><span class="p">)</span>
+    <span class="n">conf_url</span> <span class="o">=</span> <span class="n">httpserver</span><span class="o">.</span><span class="n">url_for</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;/</span><span class="si">{</span><span class="n">conf_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">conf_path</span> <span class="ow">in</span> <span class="n">conf_filepath</span><span class="p">,</span> <span class="n">conf_url</span><span class="p">:</span>
+
+        <span class="n">conf_path</span> <span class="o">=</span> <span class="n">create_config</span><span class="p">(</span><span class="n">conf_name</span><span class="p">,</span> <span class="n">conf_content</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">invoke</span><span class="p">(</span>
+            <span class="n">config_test_cli</span><span class="p">,</span>
+            <span class="s2">&quot;--my-list&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;super&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;--config&quot;</span><span class="p">,</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">conf_path</span><span class="p">),</span>
+            <span class="s2">&quot;--verbosity&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;CRITICAL&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;--no-flag&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;--my-list&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;wow&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;default-command&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;--int-param&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;15&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">exit_code</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">output</span> <span class="o">==</span> <span class="p">(</span>
+            <span class="s2">&quot;dummy_flag = False</span><span class="se">\n</span><span class="s2">my_list = (&#39;super&#39;, &#39;wow&#39;)</span><span class="se">\n</span><span class="s2">int_parameter = 15</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">stderr</span> <span class="o">==</span> <span class="sa">f</span><span class="s2">&quot;Load configuration from </span><span class="si">{</span><span class="n">conf_path</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span></div>
+</pre></div>
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; Kevin Deldycke and contributors
+            </div>
+            Made with 
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            <div class="last-updated">
+              Last updated on 2022-07-28</div>
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link" href="https://github.com/kdeldycke/click-extra" aria-label="On GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                  <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/scripts/furo.js"></script>
+    <script src="../../../_static/clipboard.min.js"></script>
+    <script src="../../../_static/copybutton.js"></script>
+    <script src="../../../_static/design-tabs.js"></script>
+    </body>
+</html>

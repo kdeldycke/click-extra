@@ -1,0 +1,879 @@
+<!doctype html>
+<html class="no-js" lang="en">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+<meta property="og:title" content="click_extra.tests package" />
+  
+<meta property="og:type" content="website" />
+  
+<meta property="og:url" content="click_extra.tests.html" />
+  
+<meta property="og:description" content="Submodules: click_extra.tests.conftest module: Fixtures, configuration and helpers for tests. click_extra.tests.test_colorize module: click_extra.tests.test_commands module: Test defaults of our cu..." />
+  <link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Todo-list" href="todolist.html" /><link rel="prev" title="click_extra package" href="click_extra.html" />
+
+    <meta name="generator" content="sphinx-5.1.0, furo 2022.06.21"/>
+        <title>click_extra.tests package - Click Extra</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?digest=40978830699223671f4072448e654b5958f38b89" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="_static/design-style.b7bb847fb20b106c3d81b95245e65545.min.css" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">Click Extra</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand centered" href="index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="_static/logo-square.svg" alt="Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder=Search name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="config.html">Configuration loader</a></li>
+<li class="toctree-l1"><a class="reference internal" href="colorize.html">Colorization of help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logging.html">Logging facilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tabulate.html">Table rendering</a></li>
+<li class="toctree-l1"><a class="reference internal" href="platform.html">Platform utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="run.html">Run utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="issues.html">Fixed issues</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul class="current">
+<li class="toctree-l1 current has-children"><a class="reference internal" href="click_extra.html">API</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">click_extra.tests package</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="todolist.html">Todo-list</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="code-of-conduct.html">Code of conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/kdeldycke/click-extra">GitHub Repository</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/sponsors/kdeldycke">Funding</a></li>
+</ul>
+
+</div>
+
+<div
+  id="furo-sidebar-ad-placement"
+  class="flat"
+  data-ea-publisher="readthedocs"
+  data-ea-type="readthedocs-sidebar"
+  data-ea-manual="true"
+></div>
+</div>
+
+<div id="furo-readthedocs-versions" class="rst-versions" data-toggle="rst-versions" role="note" aria-label="Versions" tabindex="0">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book">&nbsp;</span>
+    v: 
+  </span>
+  <div class="rst-other-versions">
+    <dl>
+      <dt>Versions</dt>
+      
+    </dl>
+    <dl>
+      <dt>Downloads</dt>
+      
+    </dl>
+    <dl>
+      
+      <dt>On Read the Docs</dt>
+        <dd>
+          <a href="///projects//?fromdocs=">Project Home</a>
+        </dd>
+        <dd>
+          <a href="///builds//?fromdocs=">Builds</a>
+        </dd>
+    </dl>
+  </div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          
+  
+  <div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/kdeldycke/click-extra/edit/main/docs/click_extra.tests.rst" title="Edit this page">
+    <svg aria-hidden="true" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <path d="M4 20h4l10.5 -10.5a1.5 1.5 0 0 0 -4 -4l-10.5 10.5v4" />
+      <line x1="13.5" y1="6.5" x2="17.5" y2="10.5" />
+    </svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <section id="click-extra-tests-package">
+<h1>click_extra.tests package<a class="headerlink" href="#click-extra-tests-package" title="Permalink to this heading">#</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading">#</a></h2>
+</section>
+<section id="module-click_extra.tests.conftest">
+<span id="click-extra-tests-conftest-module"></span><h2>click_extra.tests.conftest module<a class="headerlink" href="#module-click_extra.tests.conftest" title="Permalink to this heading">#</a></h2>
+<p>Fixtures, configuration and helpers for tests.</p>
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.tests.conftest.DESTRUCTIVE_MODE">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.conftest.</span></span><span class="sig-name descname"><span class="pre">DESTRUCTIVE_MODE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#click_extra.tests.conftest.DESTRUCTIVE_MODE" title="Permalink to this definition">#</a></dt>
+<dd><p>Pre-computed boolean flag indicating if destructive mode is activated by
+the presence of a <code class="docutils literal notranslate"><span class="pre">DESTRUCTIVE_TESTS</span></code> environment variable set to <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.tests.conftest.destructive">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.conftest.</span></span><span class="sig-name descname"><span class="pre">destructive</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">MarkDecorator(mark=Mark(name='skipif',</span> <span class="pre">args=(True,),</span> <span class="pre">kwargs={'reason':</span> <span class="pre">'destructive</span> <span class="pre">test'}))</span></em><a class="headerlink" href="#click_extra.tests.conftest.destructive" title="Permalink to this definition">#</a></dt>
+<dd><p>Pytest mark to skip a test unless destructive mode is allowed.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.tests.conftest.non_destructive">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.conftest.</span></span><span class="sig-name descname"><span class="pre">non_destructive</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">MarkDecorator(mark=Mark(name='skipif',</span> <span class="pre">args=(False,),</span> <span class="pre">kwargs={'reason':</span> <span class="pre">'non-destructive</span> <span class="pre">test'}))</span></em><a class="headerlink" href="#click_extra.tests.conftest.non_destructive" title="Permalink to this definition">#</a></dt>
+<dd><p>Pytest mark to skip a test unless destructive mode is allowed.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.tests.conftest.skip_linux">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.conftest.</span></span><span class="sig-name descname"><span class="pre">skip_linux</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">MarkDecorator(mark=Mark(name='skipif',</span> <span class="pre">args=(True,),</span> <span class="pre">kwargs={'reason':</span> <span class="pre">'Skip</span> <span class="pre">Linux'}))</span></em><a class="headerlink" href="#click_extra.tests.conftest.skip_linux" title="Permalink to this definition">#</a></dt>
+<dd><p>Pytest mark to skip a test if run on a Linux system.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.tests.conftest.skip_macos">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.conftest.</span></span><span class="sig-name descname"><span class="pre">skip_macos</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">MarkDecorator(mark=Mark(name='skipif',</span> <span class="pre">args=(False,),</span> <span class="pre">kwargs={'reason':</span> <span class="pre">'Skip</span> <span class="pre">macOS'}))</span></em><a class="headerlink" href="#click_extra.tests.conftest.skip_macos" title="Permalink to this definition">#</a></dt>
+<dd><p>Pytest mark to skip a test if run on a macOS system.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.tests.conftest.skip_windows">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.conftest.</span></span><span class="sig-name descname"><span class="pre">skip_windows</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">MarkDecorator(mark=Mark(name='skipif',</span> <span class="pre">args=(False,),</span> <span class="pre">kwargs={'reason':</span> <span class="pre">'Skip</span> <span class="pre">Windows'}))</span></em><a class="headerlink" href="#click_extra.tests.conftest.skip_windows" title="Permalink to this definition">#</a></dt>
+<dd><p>Pytest mark to skip a test if run on a Windows system.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.tests.conftest.unless_linux">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.conftest.</span></span><span class="sig-name descname"><span class="pre">unless_linux</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">MarkDecorator(mark=Mark(name='skipif',</span> <span class="pre">args=(False,),</span> <span class="pre">kwargs={'reason':</span> <span class="pre">'Linux</span> <span class="pre">required'}))</span></em><a class="headerlink" href="#click_extra.tests.conftest.unless_linux" title="Permalink to this definition">#</a></dt>
+<dd><p>Pytest mark to skip a test unless it is run on a Linux system.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.tests.conftest.unless_macos">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.conftest.</span></span><span class="sig-name descname"><span class="pre">unless_macos</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">MarkDecorator(mark=Mark(name='skipif',</span> <span class="pre">args=(True,),</span> <span class="pre">kwargs={'reason':</span> <span class="pre">'macOS</span> <span class="pre">required'}))</span></em><a class="headerlink" href="#click_extra.tests.conftest.unless_macos" title="Permalink to this definition">#</a></dt>
+<dd><p>Pytest mark to skip a test unless it is run on a macOS system.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.tests.conftest.unless_windows">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.conftest.</span></span><span class="sig-name descname"><span class="pre">unless_windows</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">MarkDecorator(mark=Mark(name='skipif',</span> <span class="pre">args=(True,),</span> <span class="pre">kwargs={'reason':</span> <span class="pre">'Windows</span> <span class="pre">required'}))</span></em><a class="headerlink" href="#click_extra.tests.conftest.unless_windows" title="Permalink to this definition">#</a></dt>
+<dd><p>Pytest mark to skip a test unless it is run on a Windows system.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.tests.conftest.skip_windows_colors">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.conftest.</span></span><span class="sig-name descname"><span class="pre">skip_windows_colors</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">MarkDecorator(mark=Mark(name='skipif',</span> <span class="pre">args=(False,),</span> <span class="pre">kwargs={'reason':</span> <span class="pre">'Click</span> <span class="pre">overstrip</span> <span class="pre">colors</span> <span class="pre">on</span> <span class="pre">Windows'}))</span></em><a class="headerlink" href="#click_extra.tests.conftest.skip_windows_colors" title="Permalink to this definition">#</a></dt>
+<dd><p>Skips color tests on Windows as click.testing.invoke overzealously strips colors.</p>
+<p>See: <a class="reference external" href="https://github.com/pallets/click/issues/2111">https://github.com/pallets/click/issues/2111</a> and <a class="reference external" href="https://github.com/pallets/click/issues/2110">https://github.com/pallets/click/issues/2110</a></p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.conftest.runner">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.conftest.</span></span><span class="sig-name descname"><span class="pre">runner</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/conftest.html#runner"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.conftest.runner" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.conftest.invoke">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.conftest.</span></span><span class="sig-name descname"><span class="pre">invoke</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">runner</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">monkeypatch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/conftest.html#invoke"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.conftest.invoke" title="Permalink to this definition">#</a></dt>
+<dd><p>Executes Click’s CLI, print output and return results.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">color=False</span></code> both <code class="docutils literal notranslate"><span class="pre">&lt;stdout&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;stderr&gt;</span></code> are stripped out of ANSI codes.</p>
+<p>Adds a special case in the form of <code class="docutils literal notranslate"><span class="pre">color=&quot;forced&quot;</span></code> parameter, which allows
+colored output to be kept, while forcing the initialization of <code class="docutils literal notranslate"><span class="pre">Context.color</span> <span class="pre">=</span> <span class="pre">True</span></code>.
+This is not allowed in current implementation of <code class="docutils literal notranslate"><span class="pre">click.testing.CliRunner.invoke()</span></code>. See:
+<a class="reference external" href="https://github.com/pallets/click/issues/2110">https://github.com/pallets/click/issues/2110</a></p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.conftest.create_config">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.conftest.</span></span><span class="sig-name descname"><span class="pre">create_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tmp_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/conftest.html#create_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.conftest.create_config" title="Permalink to this definition">#</a></dt>
+<dd><p>A generic fixture to produce a temporary configuration file.</p>
+</dd></dl>
+
+</section>
+<section id="module-click_extra.tests.test_colorize">
+<span id="click-extra-tests-test-colorize-module"></span><h2>click_extra.tests.test_colorize module<a class="headerlink" href="#module-click_extra.tests.test_colorize" title="Permalink to this heading">#</a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.tests.test_colorize.all_command_decorators">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_colorize.</span></span><span class="sig-name descname"><span class="pre">all_command_decorators</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">MarkDecorator(mark=Mark(name='parametrize',</span> <span class="pre">args=('command_decorator',</span> <span class="pre">&lt;generator</span> <span class="pre">object</span> <span class="pre">&lt;genexpr&gt;&gt;),</span> <span class="pre">kwargs={}))</span></em><a class="headerlink" href="#click_extra.tests.test_colorize.all_command_decorators" title="Permalink to this definition">#</a></dt>
+<dd><p>A pytest parametrizer to test all forms of click/cloup/click-extra command decorators.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_colorize.test_options_highlight">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_colorize.</span></span><span class="sig-name descname"><span class="pre">test_options_highlight</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_colorize.html#test_options_highlight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_colorize.test_options_highlight" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_colorize.test_choices_highlight">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_colorize.</span></span><span class="sig-name descname"><span class="pre">test_choices_highlight</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_colorize.html#test_choices_highlight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_colorize.test_choices_highlight" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_colorize.test_metavars_highlight">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_colorize.</span></span><span class="sig-name descname"><span class="pre">test_metavars_highlight</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_colorize.html#test_metavars_highlight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_colorize.test_metavars_highlight" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_colorize.test_only_full_word_highlight">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_colorize.</span></span><span class="sig-name descname"><span class="pre">test_only_full_word_highlight</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_colorize.html#test_only_full_word_highlight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_colorize.test_only_full_word_highlight" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_colorize.test_keyword_collection">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_colorize.</span></span><span class="sig-name descname"><span class="pre">test_keyword_collection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_colorize.html#test_keyword_collection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_colorize.test_keyword_collection" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_colorize.test_standalone_version_option_with_env_info">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_colorize.</span></span><span class="sig-name descname"><span class="pre">test_standalone_version_option_with_env_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_colorize.html#test_standalone_version_option_with_env_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_colorize.test_standalone_version_option_with_env_info" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_colorize.test_standalone_version_option_without_env_info">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_colorize.</span></span><span class="sig-name descname"><span class="pre">test_standalone_version_option_without_env_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">command_decorator</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_colorize.html#test_standalone_version_option_without_env_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_colorize.test_standalone_version_option_without_env_info" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_colorize.test_integrated_version_option_precedence">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_colorize.</span></span><span class="sig-name descname"><span class="pre">test_integrated_version_option_precedence</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_colorize.html#test_integrated_version_option_precedence"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_colorize.test_integrated_version_option_precedence" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_colorize.test_standalone_color_option">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_colorize.</span></span><span class="sig-name descname"><span class="pre">test_standalone_color_option</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expecting_colors</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_colorize.html#test_standalone_color_option"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_colorize.test_standalone_color_option" title="Permalink to this definition">#</a></dt>
+<dd><p>Check color option values, defaults and effects on all things colored, including
+verbosity option.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_colorize.test_color_option_precedence">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_colorize.</span></span><span class="sig-name descname"><span class="pre">test_color_option_precedence</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_colorize.html#test_color_option_precedence"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_colorize.test_color_option_precedence" title="Permalink to this definition">#</a></dt>
+<dd><p>–no-color has an effect on –version, if placed in the right order.</p>
+<p>Eager parameters are evaluated in the order as they were provided on the command
+line by the user as expleined in:
+<a class="reference external" href="https://click.palletsprojects.com/en/8.0.x/advanced/#callback-evaluation-order">https://click.palletsprojects.com/en/8.0.x/advanced/#callback-evaluation-order</a></p>
+<p>..todo:</p>
+<blockquote>
+<div><p>Maybe have the possibility to tweak CLI callback evaluation order so we can
+let the user to have the NO_COLOR env set to allow for color-less –version output.</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_colorize.test_no_color_env_convention">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_colorize.</span></span><span class="sig-name descname"><span class="pre">test_no_color_env_convention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_expect_colors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_expect_colors</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_colorize.html#test_no_color_env_convention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_colorize.test_no_color_env_convention" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_colorize.test_integrated_color_option">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_colorize.</span></span><span class="sig-name descname"><span class="pre">test_integrated_color_option</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expecting_colors</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_colorize.html#test_integrated_color_option"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_colorize.test_integrated_color_option" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_colorize.test_substring_highlighting">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_colorize.</span></span><span class="sig-name descname"><span class="pre">test_substring_highlighting</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">substrings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_case</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_colorize.html#test_substring_highlighting"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_colorize.test_substring_highlighting" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-click_extra.tests.test_commands">
+<span id="click-extra-tests-test-commands-module"></span><h2>click_extra.tests.test_commands module<a class="headerlink" href="#module-click_extra.tests.test_commands" title="Permalink to this heading">#</a></h2>
+<p>Test defaults of our custom commands, as well as their customizations and attached
+options, and how they interact with each others.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="click_extra.tests.test_commands.TestSubcommands">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_commands.</span></span><span class="sig-name descname"><span class="pre">TestSubcommands</span></span><a class="reference internal" href="_modules/click_extra/tests/test_commands.html#TestSubcommands"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_commands.TestSubcommands" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.tests.test_commands.TestSubcommands.cli_group">
+<span class="sig-name descname"><span class="pre">cli_group</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;ExtraGroup</span> <span class="pre">cli-group&gt;</span></em><a class="headerlink" href="#click_extra.tests.test_commands.TestSubcommands.cli_group" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.tests.test_commands.TestSubcommands.default_subcommand">
+<span class="sig-name descname"><span class="pre">default_subcommand</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;Command</span> <span class="pre">default-subcommand&gt;</span></em><a class="headerlink" href="#click_extra.tests.test_commands.TestSubcommands.default_subcommand" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.tests.test_commands.TestSubcommands.click_extra_subcommand">
+<span class="sig-name descname"><span class="pre">click_extra_subcommand</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;ExtraCommand</span> <span class="pre">click-extra-subcommand&gt;</span></em><a class="headerlink" href="#click_extra.tests.test_commands.TestSubcommands.click_extra_subcommand" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.tests.test_commands.TestSubcommands.cloup_subcommand">
+<span class="sig-name descname"><span class="pre">cloup_subcommand</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;Command</span> <span class="pre">cloup-subcommand&gt;</span></em><a class="headerlink" href="#click_extra.tests.test_commands.TestSubcommands.cloup_subcommand" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.tests.test_commands.TestSubcommands.click_subcommand">
+<span class="sig-name descname"><span class="pre">click_subcommand</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;Command</span> <span class="pre">click-subcommand&gt;</span></em><a class="headerlink" href="#click_extra.tests.test_commands.TestSubcommands.click_subcommand" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.tests.test_commands.TestSubcommands.help_screen">
+<span class="sig-name descname"><span class="pre">help_screen</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Usage:</span> <span class="pre">cli-group</span> <span class="pre">\\[OPTIONS\\]</span> <span class="pre">COMMAND</span> <span class="pre">\\[ARGS\\]...\\n\\nOptions:\\n</span>&#160; <span class="pre">--time</span> <span class="pre">/</span> <span class="pre">--no-time</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">Measure</span> <span class="pre">and</span> <span class="pre">print</span> <span class="pre">elapsed</span> <span class="pre">execution</span> <span class="pre">time.</span>&#160; <span class="pre">\\[default:\\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">no-time\\]\\n</span>&#160; <span class="pre">--color,</span> <span class="pre">--ansi</span> <span class="pre">/</span> <span class="pre">--no-color,</span> <span class="pre">--no-ansi\\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">Strip</span> <span class="pre">out</span> <span class="pre">all</span> <span class="pre">colors</span> <span class="pre">and</span> <span class="pre">all</span> <span class="pre">ANSI</span> <span class="pre">codes</span> <span class="pre">from</span> <span class="pre">output.\\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">\\[default:</span> <span class="pre">color\\]\\n</span>&#160; <span class="pre">-C,</span> <span class="pre">--config</span> <span class="pre">CONFIG_PATH</span>&#160; <span class="pre">Location</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">configuration</span> <span class="pre">file.</span> <span class="pre">Supports</span> <span class="pre">both\\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">local</span> <span class="pre">path</span> <span class="pre">and</span> <span class="pre">remote</span> <span class="pre">URL.</span>&#160; <span class="pre">\\[default:(</span> <span class="pre">\\S+)?\\n(</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">\\S+\\n)*</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">\\S+.{toml,yaml,yml,json,ini,xml}\\]\\n</span>&#160; <span class="pre">-v,</span> <span class="pre">--verbosity</span> <span class="pre">LEVEL</span>&#160;&#160;&#160;&#160; <span class="pre">Either</span> <span class="pre">CRITICAL,</span> <span class="pre">ERROR,</span> <span class="pre">WARNING,</span> <span class="pre">INFO,</span> <span class="pre">DEBUG.\\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">\\[default:</span> <span class="pre">INFO\\]\\n</span>&#160; <span class="pre">--version</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">Show</span> <span class="pre">the</span> <span class="pre">version</span> <span class="pre">and</span> <span class="pre">exit.\\n</span>&#160; <span class="pre">-h,</span> <span class="pre">--help</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">Show</span> <span class="pre">this</span> <span class="pre">message</span> <span class="pre">and</span> <span class="pre">exit.\\n\\nSubcommand</span> <span class="pre">group:\\n</span>&#160; <span class="pre">click-extra-subcommand\\n</span>&#160; <span class="pre">cloup-subcommand\\n</span>&#160; <span class="pre">click-subcommand\\n\\nOther</span> <span class="pre">commands:\\n</span>&#160; <span class="pre">default-subcommand\\n'</span></em><a class="headerlink" href="#click_extra.tests.test_commands.TestSubcommands.help_screen" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.tests.test_commands.TestSubcommands.test_unknown_option">
+<span class="sig-name descname"><span class="pre">test_unknown_option</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_commands.html#TestSubcommands.test_unknown_option"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_commands.TestSubcommands.test_unknown_option" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.tests.test_commands.TestSubcommands.test_unknown_command">
+<span class="sig-name descname"><span class="pre">test_unknown_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_commands.html#TestSubcommands.test_unknown_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_commands.TestSubcommands.test_unknown_command" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.tests.test_commands.TestSubcommands.test_required_command">
+<span class="sig-name descname"><span class="pre">test_required_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_commands.html#TestSubcommands.test_required_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_commands.TestSubcommands.test_required_command" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.tests.test_commands.TestSubcommands.test_group_help">
+<span class="sig-name descname"><span class="pre">test_group_help</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_commands.html#TestSubcommands.test_group_help"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_commands.TestSubcommands.test_group_help" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.tests.test_commands.TestSubcommands.test_help_eagerness">
+<span class="sig-name descname"><span class="pre">test_help_eagerness</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_commands.html#TestSubcommands.test_help_eagerness"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_commands.TestSubcommands.test_help_eagerness" title="Permalink to this definition">#</a></dt>
+<dd><p>See: <a class="reference external" href="https://click.palletsprojects.com/en/8.0.x/advanced/#callback-evaluation-order">https://click.palletsprojects.com/en/8.0.x/advanced/#callback-evaluation-order</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.tests.test_commands.TestSubcommands.test_click_extra_subcommand_help">
+<span class="sig-name descname"><span class="pre">test_click_extra_subcommand_help</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmd_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_commands.html#TestSubcommands.test_click_extra_subcommand_help"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_commands.TestSubcommands.test_click_extra_subcommand_help" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.tests.test_commands.TestSubcommands.test_subcommand_help">
+<span class="sig-name descname"><span class="pre">test_subcommand_help</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmd_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_commands.html#TestSubcommands.test_subcommand_help"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_commands.TestSubcommands.test_subcommand_help" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.tests.test_commands.TestSubcommands.test_subcommand_execution">
+<span class="sig-name descname"><span class="pre">test_subcommand_execution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmd_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_commands.html#TestSubcommands.test_subcommand_execution"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_commands.TestSubcommands.test_subcommand_execution" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.tests.test_commands.TestSubcommands.test_integrated_time_option">
+<span class="sig-name descname"><span class="pre">test_integrated_time_option</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_commands.html#TestSubcommands.test_integrated_time_option"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_commands.TestSubcommands.test_integrated_time_option" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.tests.test_commands.TestSubcommands.test_integrated_notime_option">
+<span class="sig-name descname"><span class="pre">test_integrated_notime_option</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_commands.html#TestSubcommands.test_integrated_notime_option"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_commands.TestSubcommands.test_integrated_notime_option" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.tests.test_commands.TestSubcommands.test_integrated_version_value">
+<span class="sig-name descname"><span class="pre">test_integrated_version_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_commands.html#TestSubcommands.test_integrated_version_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_commands.TestSubcommands.test_integrated_version_value" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_commands.test_standalone_time_option">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_commands.</span></span><span class="sig-name descname"><span class="pre">test_standalone_time_option</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_commands.html#test_standalone_time_option"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_commands.test_standalone_time_option" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_commands.test_option_group_integration">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_commands.</span></span><span class="sig-name descname"><span class="pre">test_option_group_integration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_commands.html#test_option_group_integration"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_commands.test_option_group_integration" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-click_extra.tests.test_config">
+<span id="click-extra-tests-test-config-module"></span><h2>click_extra.tests.test_config module<a class="headerlink" href="#module-click_extra.tests.test_config" title="Permalink to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_config.test_unset_conf_no_message">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_config.</span></span><span class="sig-name descname"><span class="pre">test_unset_conf_no_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_config.html#test_unset_conf_no_message"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_config.test_unset_conf_no_message" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_config.test_unset_conf_debug_message">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_config.</span></span><span class="sig-name descname"><span class="pre">test_unset_conf_debug_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_config.html#test_unset_conf_debug_message"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_config.test_unset_conf_debug_message" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_config.test_conf_default_path">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_config.</span></span><span class="sig-name descname"><span class="pre">test_conf_default_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_config.html#test_conf_default_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_config.test_conf_default_path" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_config.test_conf_not_exist">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_config.</span></span><span class="sig-name descname"><span class="pre">test_conf_not_exist</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_config.html#test_conf_not_exist"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_config.test_conf_not_exist" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_config.test_conf_not_file">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_config.</span></span><span class="sig-name descname"><span class="pre">test_conf_not_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_config.html#test_conf_not_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_config.test_conf_not_file" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_config.test_conf_format_unknown">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_config.</span></span><span class="sig-name descname"><span class="pre">test_conf_format_unknown</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create_config</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_config.html#test_conf_format_unknown"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_config.test_conf_format_unknown" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_config.test_conf_auto_types">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_config.</span></span><span class="sig-name descname"><span class="pre">test_conf_auto_types</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">monkeypatch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create_config</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_config.html#test_conf_auto_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_config.test_conf_auto_types" title="Permalink to this definition">#</a></dt>
+<dd><p>Check the conf type and structure is properly derived from CLI options.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_config.test_strict_conf">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_config.</span></span><span class="sig-name descname"><span class="pre">test_strict_conf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create_config</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_config.html#test_strict_conf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_config.test_strict_conf" title="Permalink to this definition">#</a></dt>
+<dd><p>Same test as the one shown in the readme, but in strict validation mode.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_config.test_conf_file_overrides_defaults">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_config.</span></span><span class="sig-name descname"><span class="pre">test_conf_file_overrides_defaults</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create_config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">httpserver</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conf_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conf_content</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_config.html#test_conf_file_overrides_defaults"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_config.test_conf_file_overrides_defaults" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_config.test_auto_env_var_conf">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_config.</span></span><span class="sig-name descname"><span class="pre">test_auto_env_var_conf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create_config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">httpserver</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conf_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conf_content</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_config.html#test_auto_env_var_conf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_config.test_auto_env_var_conf" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_config.test_conf_file_overrided_by_cli_param">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_config.</span></span><span class="sig-name descname"><span class="pre">test_conf_file_overrided_by_cli_param</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create_config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">httpserver</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conf_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conf_content</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_config.html#test_conf_file_overrided_by_cli_param"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_config.test_conf_file_overrided_by_cli_param" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-click_extra.tests.test_logging">
+<span id="click-extra-tests-test-logging-module"></span><h2>click_extra.tests.test_logging module<a class="headerlink" href="#module-click_extra.tests.test_logging" title="Permalink to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_logging.test_unrecognized_verbosity">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_logging.</span></span><span class="sig-name descname"><span class="pre">test_unrecognized_verbosity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_logging.html#test_unrecognized_verbosity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_logging.test_unrecognized_verbosity" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_logging.test_standalone_verbosity_option">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_logging.</span></span><span class="sig-name descname"><span class="pre">test_standalone_verbosity_option</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_logging.html#test_standalone_verbosity_option"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_logging.test_standalone_verbosity_option" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_logging.test_integrated_verbosity_option">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_logging.</span></span><span class="sig-name descname"><span class="pre">test_integrated_verbosity_option</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_logging.html#test_integrated_verbosity_option"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_logging.test_integrated_verbosity_option" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-click_extra.tests.test_platform">
+<span id="click-extra-tests-test-platform-module"></span><h2>click_extra.tests.test_platform module<a class="headerlink" href="#module-click_extra.tests.test_platform" title="Permalink to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_platform.test_mutual_exclusion">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_platform.</span></span><span class="sig-name descname"><span class="pre">test_mutual_exclusion</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_platform.html#test_mutual_exclusion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_platform.test_mutual_exclusion" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_platform.test_os_definitions">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_platform.</span></span><span class="sig-name descname"><span class="pre">test_os_definitions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_platform.html#test_os_definitions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_platform.test_os_definitions" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_platform.test_current_os_func">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_platform.</span></span><span class="sig-name descname"><span class="pre">test_current_os_func</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_platform.html#test_current_os_func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_platform.test_current_os_func" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_platform.test_os_label">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_platform.</span></span><span class="sig-name descname"><span class="pre">test_os_label</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_platform.html#test_os_label"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_platform.test_os_label" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_platform.test_skip_linux">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_platform.</span></span><span class="sig-name descname"><span class="pre">test_skip_linux</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_platform.html#test_skip_linux"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_platform.test_skip_linux" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_platform.test_skip_macos">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_platform.</span></span><span class="sig-name descname"><span class="pre">test_skip_macos</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_platform.html#test_skip_macos"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_platform.test_skip_macos" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_platform.test_skip_windows">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_platform.</span></span><span class="sig-name descname"><span class="pre">test_skip_windows</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_platform.html#test_skip_windows"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_platform.test_skip_windows" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_platform.test_unless_linux">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_platform.</span></span><span class="sig-name descname"><span class="pre">test_unless_linux</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_platform.html#test_unless_linux"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_platform.test_unless_linux" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_platform.test_unless_macos">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_platform.</span></span><span class="sig-name descname"><span class="pre">test_unless_macos</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_platform.html#test_unless_macos"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_platform.test_unless_macos" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_platform.test_unless_windows">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_platform.</span></span><span class="sig-name descname"><span class="pre">test_unless_windows</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_platform.html#test_unless_windows"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_platform.test_unless_windows" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-click_extra.tests.test_run">
+<span id="click-extra-tests-test-run-module"></span><h2>click_extra.tests.test_run module<a class="headerlink" href="#module-click_extra.tests.test_run" title="Permalink to this heading">#</a></h2>
+<p>Test all runner utilities as well as all the test and pytest helpers.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_run.test_real_fs">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_run.</span></span><span class="sig-name descname"><span class="pre">test_real_fs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_run.html#test_real_fs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_run.test_real_fs" title="Permalink to this definition">#</a></dt>
+<dd><p>Check a simple test is not caught into the CLI runner fixture which is
+encapsulating all filesystem access into temporary directory structure.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_run.test_temporary_fs">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_run.</span></span><span class="sig-name descname"><span class="pre">test_temporary_fs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">runner</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_run.html#test_temporary_fs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_run.test_temporary_fs" title="Permalink to this definition">#</a></dt>
+<dd><p>Check the CLI runner fixture properly encapsulated the filesystem in temporary
+directory.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_run.test_env_copy">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_run.</span></span><span class="sig-name descname"><span class="pre">test_env_copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_run.html#test_env_copy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_run.test_env_copy" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_run.check_default_colored_rendering">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_run.</span></span><span class="sig-name descname"><span class="pre">check_default_colored_rendering</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_run.html#check_default_colored_rendering"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_run.check_default_colored_rendering" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_run.check_default_uncolored_rendering">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_run.</span></span><span class="sig-name descname"><span class="pre">check_default_uncolored_rendering</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_run.html#check_default_uncolored_rendering"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_run.check_default_uncolored_rendering" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_run.check_forced_uncolored_rendering">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_run.</span></span><span class="sig-name descname"><span class="pre">check_forced_uncolored_rendering</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_run.html#check_forced_uncolored_rendering"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_run.check_forced_uncolored_rendering" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_run.test_invoke_optional_color">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_run.</span></span><span class="sig-name descname"><span class="pre">test_invoke_optional_color</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_run.html#test_invoke_optional_color"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_run.test_invoke_optional_color" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_run.test_invoke_default_color">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_run.</span></span><span class="sig-name descname"><span class="pre">test_invoke_default_color</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_run.html#test_invoke_default_color"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_run.test_invoke_default_color" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_run.test_invoke_forced_color_stripping">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_run.</span></span><span class="sig-name descname"><span class="pre">test_invoke_forced_color_stripping</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_run.html#test_invoke_forced_color_stripping"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_run.test_invoke_forced_color_stripping" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_run.test_invoke_color_keep">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_run.</span></span><span class="sig-name descname"><span class="pre">test_invoke_color_keep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_run.html#test_invoke_color_keep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_run.test_invoke_color_keep" title="Permalink to this definition">#</a></dt>
+<dd><p>On windows Click ends up deciding it is not running un an interactive terminal
+and forces the stripping of all colors.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_run.test_invoke_color_forced">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_run.</span></span><span class="sig-name descname"><span class="pre">test_invoke_color_forced</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_run.html#test_invoke_color_forced"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_run.test_invoke_color_forced" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-click_extra.tests.test_tabulate">
+<span id="click-extra-tests-test-tabulate-module"></span><h2>click_extra.tests.test_tabulate module<a class="headerlink" href="#module-click_extra.tests.test_tabulate" title="Permalink to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_tabulate.test_unrecognized_format">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_tabulate.</span></span><span class="sig-name descname"><span class="pre">test_unrecognized_format</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_tabulate.html#test_unrecognized_format"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_tabulate.test_unrecognized_format" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_tabulate.test_recognized_modes">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_tabulate.</span></span><span class="sig-name descname"><span class="pre">test_recognized_modes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_tabulate.html#test_recognized_modes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_tabulate.test_recognized_modes" title="Permalink to this definition">#</a></dt>
+<dd><p>Check all rendering modes proposed by the table module are accounted for and
+there is no duplicates.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_tabulate.test_default_rendering">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_tabulate.</span></span><span class="sig-name descname"><span class="pre">test_default_rendering</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_tabulate.html#test_default_rendering"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_tabulate.test_default_rendering" title="Permalink to this definition">#</a></dt>
+<dd><p>Check default rendering is rounded_outline.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.tests.test_tabulate.test_all_table_rendering">
+<span class="sig-prename descclassname"><span class="pre">click_extra.tests.test_tabulate.</span></span><span class="sig-name descname"><span class="pre">test_all_table_rendering</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invoke</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/tests/test_tabulate.html#test_all_table_rendering"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.tests.test_tabulate.test_all_table_rendering" title="Permalink to this definition">#</a></dt>
+<dd><p>Check that from all rendering modes, only the selected one appears in &lt;stdout&gt;
+and only there. Any other mode are not expected neither in.</p>
+<p>&lt;stdout&gt; or &lt;stderr&gt;.</p>
+</dd></dl>
+
+</section>
+<section id="module-click_extra.tests">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-click_extra.tests" title="Permalink to this heading">#</a></h2>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="todolist.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Todo-list</div>
+              </div>
+              <svg><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="click_extra.html">
+              <svg><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">click_extra package</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; Kevin Deldycke and contributors
+            </div>
+            Made with 
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            <div class="last-updated">
+              Last updated on 2022-07-28</div>
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link" href="https://github.com/kdeldycke/click-extra" aria-label="On GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                  <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            Contents
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">click_extra.tests package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-click_extra.tests.conftest">click_extra.tests.conftest module</a></li>
+<li><a class="reference internal" href="#module-click_extra.tests.test_colorize">click_extra.tests.test_colorize module</a></li>
+<li><a class="reference internal" href="#module-click_extra.tests.test_commands">click_extra.tests.test_commands module</a></li>
+<li><a class="reference internal" href="#module-click_extra.tests.test_config">click_extra.tests.test_config module</a></li>
+<li><a class="reference internal" href="#module-click_extra.tests.test_logging">click_extra.tests.test_logging module</a></li>
+<li><a class="reference internal" href="#module-click_extra.tests.test_platform">click_extra.tests.test_platform module</a></li>
+<li><a class="reference internal" href="#module-click_extra.tests.test_run">click_extra.tests.test_run module</a></li>
+<li><a class="reference internal" href="#module-click_extra.tests.test_tabulate">click_extra.tests.test_tabulate module</a></li>
+<li><a class="reference internal" href="#module-click_extra.tests">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/scripts/furo.js"></script>
+    <script src="_static/clipboard.min.js"></script>
+    <script src="_static/copybutton.js"></script>
+    <script src="_static/design-tabs.js"></script>
+    </body>
+</html>

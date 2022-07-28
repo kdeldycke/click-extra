@@ -1,0 +1,528 @@
+<!doctype html>
+<html class="no-js" lang="en">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
+
+    <meta name="generator" content="sphinx-5.1.0, furo 2022.06.21"/>
+        <title>click_extra.tests.conftest - Click Extra</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?digest=40978830699223671f4072448e654b5958f38b89" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/design-style.b7bb847fb20b106c3d81b95245e65545.min.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../index.html"><div class="brand">Click Extra</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand centered" href="../../../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../_static/logo-square.svg" alt="Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
+  <input class="sidebar-search" placeholder=Search name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../config.html">Configuration loader</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../colorize.html">Colorization of help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../logging.html">Logging facilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tabulate.html">Table rendering</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../platform.html">Platform utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../run.html">Run utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../issues.html">Fixed issues</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../click_extra.html">API</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../click_extra.tests.html">click_extra.tests package</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../todolist.html">Todo-list</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../code-of-conduct.html">Code of conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/kdeldycke/click-extra">GitHub Repository</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/sponsors/kdeldycke">Funding</a></li>
+</ul>
+
+</div>
+
+<div
+  id="furo-sidebar-ad-placement"
+  class="flat"
+  data-ea-publisher="readthedocs"
+  data-ea-type="readthedocs-sidebar"
+  data-ea-manual="true"
+></div>
+</div>
+
+<div id="furo-readthedocs-versions" class="rst-versions" data-toggle="rst-versions" role="note" aria-label="Versions" tabindex="0">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book">&nbsp;</span>
+    v: 
+  </span>
+  <div class="rst-other-versions">
+    <dl>
+      <dt>Versions</dt>
+      
+    </dl>
+    <dl>
+      <dt>Downloads</dt>
+      
+    </dl>
+    <dl>
+      
+      <dt>On Read the Docs</dt>
+        <dd>
+          <a href="///projects//?fromdocs=">Project Home</a>
+        </dd>
+        <dd>
+          <a href="///builds//?fromdocs=">Builds</a>
+        </dd>
+    </dl>
+  </div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <h1>Source code for click_extra.tests.conftest</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright Kevin Deldycke &lt;kevin@deldycke.com&gt; and contributors.</span>
+<span class="c1"># All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is Free Software; you can redistribute it and/or</span>
+<span class="c1"># modify it under the terms of the GNU General Public License</span>
+<span class="c1"># as published by the Free Software Foundation; either version 2</span>
+<span class="c1"># of the License, or (at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU General Public License</span>
+<span class="c1"># along with this program; if not, write to the Free Software</span>
+<span class="c1"># Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.</span>
+
+<span class="sd">&quot;&quot;&quot;Fixtures, configuration and helpers for tests.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">textwrap</span> <span class="kn">import</span> <span class="n">dedent</span>
+
+<span class="kn">import</span> <span class="nn">pytest</span>
+<span class="kn">from</span> <span class="nn">boltons.iterutils</span> <span class="kn">import</span> <span class="n">flatten</span><span class="p">,</span> <span class="n">same</span>
+<span class="kn">from</span> <span class="nn">boltons.strutils</span> <span class="kn">import</span> <span class="n">strip_ansi</span>
+<span class="kn">from</span> <span class="nn">boltons.tbutils</span> <span class="kn">import</span> <span class="n">ExceptionInfo</span>
+<span class="kn">from</span> <span class="nn">click.testing</span> <span class="kn">import</span> <span class="n">CliRunner</span>
+
+<span class="kn">from</span> <span class="nn">..platform</span> <span class="kn">import</span> <span class="n">is_linux</span><span class="p">,</span> <span class="n">is_macos</span><span class="p">,</span> <span class="n">is_windows</span>
+<span class="kn">from</span> <span class="nn">..run</span> <span class="kn">import</span> <span class="n">print_cli_output</span>
+
+<span class="n">DESTRUCTIVE_MODE</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;DESTRUCTIVE_TESTS&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="kc">True</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;True&quot;</span><span class="p">,</span> <span class="s2">&quot;true&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">}</span>
+<span class="p">)</span>
+<span class="sd">&quot;&quot;&quot; Pre-computed boolean flag indicating if destructive mode is activated by</span>
+<span class="sd">the presence of a ``DESTRUCTIVE_TESTS`` environment variable set to ``True``.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="n">destructive</span> <span class="o">=</span> <span class="n">pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">skipif</span><span class="p">(</span><span class="n">DESTRUCTIVE_MODE</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">&quot;destructive test&quot;</span><span class="p">)</span>
+<span class="sd">&quot;&quot;&quot; Pytest mark to skip a test unless destructive mode is allowed.</span>
+
+<span class="sd">.. todo:</span>
+
+<span class="sd">    Test destructive test assessment.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="n">non_destructive</span> <span class="o">=</span> <span class="n">pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">skipif</span><span class="p">(</span>
+    <span class="ow">not</span> <span class="n">DESTRUCTIVE_MODE</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">&quot;non-destructive test&quot;</span>
+<span class="p">)</span>
+<span class="sd">&quot;&quot;&quot; Pytest mark to skip a test unless destructive mode is allowed.</span>
+
+<span class="sd">.. todo:</span>
+
+<span class="sd">    Test destructive test assessment.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="n">skip_linux</span> <span class="o">=</span> <span class="n">pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">skipif</span><span class="p">(</span><span class="n">is_linux</span><span class="p">(),</span> <span class="n">reason</span><span class="o">=</span><span class="s2">&quot;Skip Linux&quot;</span><span class="p">)</span>
+<span class="sd">&quot;&quot;&quot; Pytest mark to skip a test if run on a Linux system. &quot;&quot;&quot;</span>
+
+<span class="n">skip_macos</span> <span class="o">=</span> <span class="n">pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">skipif</span><span class="p">(</span><span class="n">is_macos</span><span class="p">(),</span> <span class="n">reason</span><span class="o">=</span><span class="s2">&quot;Skip macOS&quot;</span><span class="p">)</span>
+<span class="sd">&quot;&quot;&quot; Pytest mark to skip a test if run on a macOS system. &quot;&quot;&quot;</span>
+
+<span class="n">skip_windows</span> <span class="o">=</span> <span class="n">pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">skipif</span><span class="p">(</span><span class="n">is_windows</span><span class="p">(),</span> <span class="n">reason</span><span class="o">=</span><span class="s2">&quot;Skip Windows&quot;</span><span class="p">)</span>
+<span class="sd">&quot;&quot;&quot; Pytest mark to skip a test if run on a Windows system. &quot;&quot;&quot;</span>
+
+
+<span class="n">unless_linux</span> <span class="o">=</span> <span class="n">pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">skipif</span><span class="p">(</span><span class="ow">not</span> <span class="n">is_linux</span><span class="p">(),</span> <span class="n">reason</span><span class="o">=</span><span class="s2">&quot;Linux required&quot;</span><span class="p">)</span>
+<span class="sd">&quot;&quot;&quot; Pytest mark to skip a test unless it is run on a Linux system. &quot;&quot;&quot;</span>
+
+<span class="n">unless_macos</span> <span class="o">=</span> <span class="n">pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">skipif</span><span class="p">(</span><span class="ow">not</span> <span class="n">is_macos</span><span class="p">(),</span> <span class="n">reason</span><span class="o">=</span><span class="s2">&quot;macOS required&quot;</span><span class="p">)</span>
+<span class="sd">&quot;&quot;&quot; Pytest mark to skip a test unless it is run on a macOS system. &quot;&quot;&quot;</span>
+
+<span class="n">unless_windows</span> <span class="o">=</span> <span class="n">pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">skipif</span><span class="p">(</span><span class="ow">not</span> <span class="n">is_windows</span><span class="p">(),</span> <span class="n">reason</span><span class="o">=</span><span class="s2">&quot;Windows required&quot;</span><span class="p">)</span>
+<span class="sd">&quot;&quot;&quot; Pytest mark to skip a test unless it is run on a Windows system. &quot;&quot;&quot;</span>
+
+
+<span class="n">skip_windows_colors</span> <span class="o">=</span> <span class="n">skip_windows</span><span class="p">(</span><span class="n">reason</span><span class="o">=</span><span class="s2">&quot;Click overstrip colors on Windows&quot;</span><span class="p">)</span>
+<span class="sd">&quot;&quot;&quot;Skips color tests on Windows as click.testing.invoke overzealously strips colors.</span>
+
+<span class="sd">See: https://github.com/pallets/click/issues/2111 and https://github.com/pallets/click/issues/2110</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="runner"><a class="viewcode-back" href="../../../click_extra.tests.html#click_extra.tests.conftest.runner">[docs]</a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span>
+<span class="k">def</span> <span class="nf">runner</span><span class="p">():</span>
+    <span class="n">runner</span> <span class="o">=</span> <span class="n">CliRunner</span><span class="p">(</span><span class="n">mix_stderr</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">runner</span><span class="o">.</span><span class="n">isolated_filesystem</span><span class="p">():</span>
+        <span class="k">yield</span> <span class="n">runner</span></div>
+
+
+<div class="viewcode-block" id="invoke"><a class="viewcode-back" href="../../../click_extra.tests.html#click_extra.tests.conftest.invoke">[docs]</a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span>
+<span class="k">def</span> <span class="nf">invoke</span><span class="p">(</span><span class="n">runner</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Executes Click&#39;s CLI, print output and return results.</span>
+
+<span class="sd">    If ``color=False`` both ``&lt;stdout&gt;`` and ``&lt;stderr&gt;`` are stripped out of ANSI codes.</span>
+
+<span class="sd">    Adds a special case in the form of ``color=&quot;forced&quot;`` parameter, which allows</span>
+<span class="sd">    colored output to be kept, while forcing the initialization of ``Context.color = True``.</span>
+<span class="sd">    This is not allowed in current implementation of ``click.testing.CliRunner.invoke()``. See:</span>
+<span class="sd">    https://github.com/pallets/click/issues/2110</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_run</span><span class="p">(</span><span class="n">cli</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># We allow for nested iterables and None values as args for</span>
+        <span class="c1"># convenience. We just need to flatten and filters them out.</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="n">arg</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">flatten</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="k">if</span> <span class="n">arg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">args</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">same</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">type</span><span class="p">,</span> <span class="n">args</span><span class="p">),</span> <span class="nb">str</span><span class="p">)</span>
+
+        <span class="c1"># Extra parameters passed to the invoked command&#39;s ``main()`` constructor.</span>
+        <span class="n">extra</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">color</span> <span class="o">==</span> <span class="s2">&quot;forced&quot;</span><span class="p">:</span>
+            <span class="n">extra</span><span class="p">[</span><span class="s2">&quot;color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">with</span> <span class="n">monkeypatch</span><span class="o">.</span><span class="n">context</span><span class="p">()</span> <span class="k">as</span> <span class="n">patch</span><span class="p">:</span>
+            <span class="c1"># Monkeypatch the original command&#39;s ``main()`` call to pass extra parameter</span>
+            <span class="c1"># for Context initialization. Because we cannot simply add ``color`` to</span>
+            <span class="c1"># ``**extra``.</span>
+            <span class="n">patch</span><span class="o">.</span><span class="n">setattr</span><span class="p">(</span><span class="n">cli</span><span class="p">,</span> <span class="s2">&quot;main&quot;</span><span class="p">,</span> <span class="n">partial</span><span class="p">(</span><span class="n">cli</span><span class="o">.</span><span class="n">main</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">))</span>
+
+            <span class="n">result</span> <span class="o">=</span> <span class="n">runner</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">cli</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="n">env</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">color</span><span class="p">))</span>
+
+        <span class="c1"># Force stripping of all colors from results.</span>
+        <span class="k">if</span> <span class="n">color</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">stdout_bytes</span> <span class="o">=</span> <span class="n">strip_ansi</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">stdout_bytes</span><span class="p">)</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">stderr_bytes</span> <span class="o">=</span> <span class="n">strip_ansi</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">stderr_bytes</span><span class="p">)</span>
+
+        <span class="n">print_cli_output</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">runner</span><span class="o">.</span><span class="n">get_default_prog_name</span><span class="p">(</span><span class="n">cli</span><span class="p">)]</span> <span class="o">+</span> <span class="n">args</span><span class="p">,</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">output</span><span class="p">,</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">exit_code</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">exception</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">ExceptionInfo</span><span class="o">.</span><span class="n">from_exc_info</span><span class="p">(</span><span class="o">*</span><span class="n">result</span><span class="o">.</span><span class="n">exc_info</span><span class="p">)</span><span class="o">.</span><span class="n">get_formatted</span><span class="p">())</span>
+
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">return</span> <span class="n">_run</span></div>
+
+
+<div class="viewcode-block" id="create_config"><a class="viewcode-back" href="../../../click_extra.tests.html#click_extra.tests.conftest.create_config">[docs]</a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span>
+<span class="k">def</span> <span class="nf">create_config</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A generic fixture to produce a temporary configuration file.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_create_config</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">content</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a fake configuration file.&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">config_path</span> <span class="o">=</span> <span class="n">tmp_path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">Path</span><span class="p">)</span>
+            <span class="n">config_path</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+
+        <span class="c1"># Create the missing folder structure, like &quot;mkdir -p&quot; does.</span>
+        <span class="n">config_path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">config_path</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">dedent</span><span class="p">(</span><span class="n">content</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+
+        <span class="k">return</span> <span class="n">config_path</span>
+
+    <span class="k">return</span> <span class="n">_create_config</span></div>
+
+
+<span class="n">default_options_uncolored_help</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="sa">r</span><span class="s2">&quot;  --time / --no-time        Measure and print elapsed execution time.  \[default:\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;                            no-time\]\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;  --color, --ansi / --no-color, --no-ansi\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;                            Strip out all colors and all ANSI codes from output.\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;                            \[default: color\]\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;  -C, --config CONFIG_PATH  Location of the configuration file. Supports both\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;                            local path and remote URL.  \[default:( \S+)?\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;(                            \S+\n)*&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;                            \S+.{toml,yaml,yml,json,ini,xml}\]\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;  -v, --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;                            \[default: INFO\]\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;  --version                 Show the version and exit.\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;  -h, --help                Show this message and exit.\n&quot;</span>
+<span class="p">)</span>
+
+
+<span class="n">default_options_colored_help</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="sa">r</span><span class="s2">&quot;  \x1b\[36m--time / --no-time\x1b\[0m        Measure and print elapsed execution time.  \[default:\x1b\[0m\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;                            no-time\]\x1b\[0m\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;  \x1b\[36m--color, \x1b\[36m--ansi\x1b\[0m / --no-color, --no-ansi\x1b\[0m\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;                            Strip out all colors and all ANSI codes from output.\x1b\[0m\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;                            \[default: color\]\x1b\[0m\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;  \x1b\[36m-C, \x1b\[36m--config\x1b\[0m \x1b\[90mCONFIG_PATH\x1b\[0m\x1b\[0m  Location of the configuration file. Supports both\x1b\[0m\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;                            local path and remote URL.  \[default:( \S+)?\x1b\[0m\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;(                            \S+\n)*&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;                            \S+.{toml,yaml,yml,json,ini,xml}\]\x1b\[0m\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;  \x1b\[36m-v, \x1b\[36m--verbosity\x1b\[0m \x1b\[90mLEVEL\x1b\[0m\x1b\[0m     Either \x1b\[35mCRITICAL\x1b\[0m, \x1b\[35mERROR\x1b\[0m, \x1b\[35mWARNING\x1b\[0m, \x1b\[35mINFO\x1b\[0m, \x1b\[35mDEBUG\x1b\[0m.\x1b\[0m\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;                            \[default: \x1b\[35mINFO\x1b\[0m\]\x1b\[0m\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;  \x1b\[36m--version\x1b\[0m                 Show the version and exit.\x1b\[0m\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;  \x1b\[36m-h, \x1b\[36m--help\x1b\[0m\x1b\[0m                Show this message and exit.\x1b\[0m\n&quot;</span>
+<span class="p">)</span>
+
+
+<span class="n">default_debug_uncolored_log</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="sa">r</span><span class="s2">&quot;debug: Verbosity set to DEBUG.\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;debug: Search for configuration in default location...\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;debug: No default configuration found.\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;debug: No configuration provided.\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;debug: \S+, version \S+\n&quot;</span>
+<span class="p">)</span>
+
+
+<span class="n">default_debug_colored_log</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="sa">r</span><span class="s2">&quot;\x1b\[34mdebug: \x1b\[0mVerbosity set to DEBUG.\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;\x1b\[34mdebug: \x1b\[0mSearch for configuration in default location...\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;\x1b\[34mdebug: \x1b\[0mNo default configuration found.\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;\x1b\[34mdebug: \x1b\[0mNo configuration provided.\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;\x1b\[34mdebug: \x1b\[0m\x1b\[97m\S+\x1b\[0m, version \x1b\[32m\S+\x1b\[0m(\x1b\[90m)?\n&quot;</span>
+<span class="p">)</span>
+
+
+<span class="c1"># XXX Temporarily expect extra-env info for Python &lt; 3.10 while we wait for</span>
+<span class="c1"># https://github.com/mahmoud/boltons/issues/294 to be released upstream.</span>
+<span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">10</span><span class="p">):</span>
+    <span class="n">default_debug_uncolored_log</span> <span class="o">+=</span> <span class="sa">r</span><span class="s2">&quot;debug: {.*}\n&quot;</span>
+    <span class="n">default_debug_colored_log</span> <span class="o">+=</span> <span class="sa">r</span><span class="s2">&quot;\x1b\[34mdebug: \x1b\[0m{.*}\x1b\[0m\n&quot;</span>
+</pre></div>
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; Kevin Deldycke and contributors
+            </div>
+            Made with 
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            <div class="last-updated">
+              Last updated on 2022-07-28</div>
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link" href="https://github.com/kdeldycke/click-extra" aria-label="On GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                  <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/scripts/furo.js"></script>
+    <script src="../../../_static/clipboard.min.js"></script>
+    <script src="../../../_static/copybutton.js"></script>
+    <script src="../../../_static/design-tabs.js"></script>
+    </body>
+</html>
