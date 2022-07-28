@@ -25,7 +25,6 @@ from gettext import gettext as _
 from logging import getLevelName
 from time import perf_counter
 
-import click
 import cloup
 
 from . import (
@@ -89,7 +88,7 @@ class TimerOption(ExtraOption):
 
 def timer_option(*param_decls: str, cls=TimerOption, **kwargs):
     """Decorator for ``TimerOption``."""
-    return click.option(*param_decls, cls=cls, **kwargs)
+    return cloup.option(*param_decls, cls=cls, **kwargs)
 
 
 class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):
