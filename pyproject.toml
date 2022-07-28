@@ -1,7 +1,7 @@
 [tool.poetry]
 # Docs: https://python-poetry.org/docs/pyproject/
 name = "click-extra"
-version = "3.0.0"
+version = "3.1.0"
 description = "🌈 Extra colorization and configuration loading for Click."
 license = 'GPL-2.0-or-later'
 authors = ["Kevin Deldycke <kevin@deldycke.com>"]
@@ -83,7 +83,7 @@ myst-parser = "^0.18.0"
 Pallets-Sphinx-Themes = "^2.0.2"
 pytest = "^7.1.2"
 # More pytest plugins at: https://docs.pytest.org/en/latest/reference/plugin_list.html
-pytest-cov = "^3.0.0"
+pytest-cov = "^3.1.0"
 pytest-httpserver = "^1.0.3"
 pytest-randomly = "^3.12.0"
 sphinx = "^5.0.2"
