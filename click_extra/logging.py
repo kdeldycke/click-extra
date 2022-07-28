@@ -78,6 +78,15 @@ class VerbosityOption(ExtraOption):
     ).
     """
 
+    @staticmethod
+    def set_level(ctx, param, value):
+        """Set logger level and print its value as a debug message."""
+        logger.setLevel(LOG_LEVELS[value])
+        logger.debug(f"Verbosity set to {value}.")
+        # Forces logger level reset at the end of each CLI execution, as it pollutes the logger
+        # state between multiple test calls.
+        ctx.call_on_close(logger.reset)
+
     def __init__(
         self,
         default_logger=None,
@@ -88,20 +97,13 @@ class VerbosityOption(ExtraOption):
         expose_value=False,
         help=f"Either {', '.join(LOG_LEVELS)}.",
         is_eager=True,
+        callback=set_level.__func__,
         **kwargs,
     ):
         if not param_decls:
             param_decls = ("--verbosity", "-v")
 
         logger.set_logger(default_logger)
-
-        def set_level(ctx, param, value):
-            """Set logger level and print its value as a debug message."""
-            logger.setLevel(LOG_LEVELS[value])
-            logger.debug(f"Verbosity set to {value}.")
-            # Forces logger level reset at the end of each CLI execution, as it pollutes the logger
-            # state between multiple test calls.
-            ctx.call_on_close(logger.reset)
 
         super().__init__(
             param_decls=param_decls,
@@ -111,7 +113,7 @@ class VerbosityOption(ExtraOption):
             expose_value=expose_value,
             help=help,
             is_eager=is_eager,
-            callback=set_level,
+            callback=callback,
             **kwargs,
         )
 

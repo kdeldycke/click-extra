@@ -452,7 +452,6 @@ class ConfigOption(ExtraOption):
         # Force eagerness so the config option's callback gets the opportunity to set the
         # default_map values before the other options use them.
         is_eager=True,
-        callback=None,
         expose_value=False,
         strict=False,
         **kwargs,
@@ -460,8 +459,7 @@ class ConfigOption(ExtraOption):
         if not param_decls:
             param_decls = ("--config", "-C")
 
-        if not callback:
-            callback = partial(load_conf, strict=strict)
+        kwargs.setdefault("callback", partial(load_conf, strict=strict))
 
         super().__init__(
             param_decls=param_decls,
@@ -470,7 +468,6 @@ class ConfigOption(ExtraOption):
             default=default,
             help=help,
             is_eager=is_eager,
-            callback=callback,
             expose_value=expose_value,
             **kwargs,
         )

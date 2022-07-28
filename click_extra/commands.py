@@ -21,6 +21,7 @@ The collection of pre-defined decorators here present good and common defaults. 
 still mix'n'match the mixins below to build your own custom variants.
 """
 
+from functools import partial
 from logging import getLevelName
 from time import perf_counter
 
@@ -36,7 +37,7 @@ from . import (
     VersionOption,
     echo,
 )
-from .colorize import ExtraHelpColorsMixin, VersionOption
+from .colorize import ExtraHelpColorsMixin
 from .logging import logger
 
 
@@ -44,8 +45,11 @@ class TimerOption(ExtraOption):
     """A pre-configured option that is adding a ``--time/--no-time`` flag
     to print elapsed time at the end of CLI execution."""
 
-    @staticmethod
-    def _register_timer_on_close(ctx, param, value):
+    def print_timer(self):
+        """Compute and print elapsed execution time."""
+        echo(f"Execution time: {perf_counter() - self.start_time:0.3f} seconds.")
+
+    def register_timer_on_close(self, ctx, param, value):
         """Callback setting up all timer's machinery.
 
         Computes and print the execution time at the end of the CLI, if option has been
@@ -56,31 +60,28 @@ class TimerOption(ExtraOption):
             return
 
         # Take timestamp snapshot.
-        timer_start_time = perf_counter()
-
-        def print_timer():
-            """Compute and print elapsed execution time."""
-            echo(f"Execution time: {perf_counter() - timer_start_time:0.3f} seconds.")
+        self.start_time = perf_counter()
 
         # Register printing at the end of execution.
-        ctx.call_on_close(print_timer)
+        ctx.call_on_close(self.print_timer)
 
     def __init__(
         self,
         param_decls=None,
         default=False,
         expose_value=False,
-        callback=_register_timer_on_close,
         help="Measure and print elapsed execution time.",
         **kwargs,
     ):
         if not param_decls:
             param_decls = ("--time/--no-time",)
+
+        kwargs.setdefault("callback", self.register_timer_on_close)
+
         super().__init__(
             param_decls=param_decls,
             default=default,
             expose_value=expose_value,
-            callback=callback,
             help=help,
             **kwargs,
         )

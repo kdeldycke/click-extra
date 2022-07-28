@@ -165,7 +165,7 @@ class ColorOption(ExtraOption):
         if not value:
 
             def restore_original_styling():
-                # Reset color flag in context.
+                """Reset color flag in context."""
                 ctx = get_current_context()
                 ctx.color = None
 
@@ -178,7 +178,7 @@ class ColorOption(ExtraOption):
         default=True,
         is_eager=True,
         expose_value=False,
-        callback=_disable_colors,
+        callback=_disable_colors.__func__,
         help="Strip out all colors and all ANSI codes from output.",
         **kwargs,
     ):
@@ -203,16 +203,11 @@ def color_option(*param_decls: str, cls=ColorOption, **kwargs):
 
 
 class VersionOption(ExtraOption):
-    """
-    :param print_env_info: adds environment info at the end of the message. Useful to gather user's details for troubleshooting.
-    :param version_style: style of the ``version``. Defaults to green.
-    :param package_name_style: style of the ``package_name``. Defaults to theme's invoked_command.
-    :param prog_name_style: style of the ``prog_name``. Defaults to theme's invoked_command.
-    :param message_style: default style of the ``message``.
-    :param env_info_style: style of the environment info. Defaults to bright black.
+    """Prints the colored version of the CLI.
 
-    For other params see Click's ``version_option`` decorator:
-    https://click.palletsprojects.com/en/8.1.x/api/#click.version_option
+    This is a [copy of the standard ``@click.version_option()`` decorator](https://github.com/pallets/click/blob/dc918b48fb9006be683a684b42cc7496ad649b83/src/click/decorators.py#L399-L466)
+    that has been made into a class to allow it to be used with declarative `params=` argument
+    (fixes [Click #2324 issue](https://github.com/pallets/click/issues/2324)).
     """
 
     def guess_package_name(self):
@@ -243,6 +238,7 @@ class VersionOption(ExtraOption):
         value: bool,
         capture_output: bool = False,
     ) -> None:
+        """Standard callback with an extra ``capture_output`` parameter which returns the output string instead of printing the (colored) version to the console."""
         if not value or ctx.resilient_parsing:
             return
 
@@ -302,8 +298,45 @@ class VersionOption(ExtraOption):
         help="Show the version and exit.",
         **kwargs,
     ):
+        """
+        For other params see Click's ``version_option`` decorator:
+        https://click.palletsprojects.com/en/8.1.x/api/#click.version_option
+
+        :param param_decls: _description_, defaults to None
+        :type param_decls: _type_, optional
+        :param version: _description_, defaults to None
+        :type version: _type_, optional
+        :param package_name: _description_, defaults to None
+        :type package_name: t.Optional[str], optional
+        :param prog_name: _description_, defaults to None
+        :type prog_name: t.Optional[str], optional
+        :param message: _description_, defaults to "%(prog)s, version %(version)s"
+        :type message: str, optional
+        :param print_env_info: _description_, defaults to False
+        :type print_env_info: bool, optional
+        :param version_style: adds environment info at the end of the message. Useful to gather user's details for troubleshooting. Defaults to ``Style(fg="green")``.
+        :type version_style: _type_, optional
+        :param package_name_style: style of the ``version``. Defaults to ``theme.invoked_command``.
+        :type package_name_style: _type_, optional
+        :param prog_name_style: style of the ``prog_name``. Defaults to ``theme.invoked_command``.
+        :type prog_name_style: _type_, optional
+        :param message_style: default style of the ``message`` parameter. Defaults to ``None``.
+        :type message_style: _type_, optional
+        :param env_info_style: style of the environment info. Defaults to ``Style(fg="bright_black")``.
+        :type env_info_style: _type_, optional
+        :param is_flag: _description_, defaults to True
+        :type is_flag: bool, optional
+        :param expose_value: _description_, defaults to False
+        :type expose_value: bool, optional
+        :param is_eager: _description_, defaults to True
+        :type is_eager: bool, optional
+        :param help: _description_, defaults to "Show the version and exit."
+        :type help: str, optional
+        """
         if not param_decls:
             param_decls = ("--version",)
+
+        kwargs.setdefault("callback", self.callback)
 
         self.version = version
         self.package_name = package_name
@@ -340,13 +373,12 @@ class VersionOption(ExtraOption):
         if colorized_message:
             self.message = colorized_message
 
-        kwargs["callback"] = self.callback
         super().__init__(
             param_decls=param_decls,
             is_flag=is_flag,
             expose_value=expose_value,
             is_eager=is_eager,
-            help="Show the version and exit.",
+            help=help,
             **kwargs,
         )
 
@@ -356,29 +388,37 @@ def version_option(*param_decls: str, cls=VersionOption, **kwargs):
     return cloup.option(*param_decls, cls=cls, **kwargs)
 
 
-class HelpOption(cloup.Option, ExtraOption):
+class HelpOption(ExtraOption):
+    @staticmethod
+    def callback(ctx: click.Context, param: click.Parameter, value: bool) -> None:
+        if not value or ctx.resilient_parsing:
+            return
+
+        echo(ctx.get_help(), color=ctx.color)
+        ctx.exit()
+
     def __init__(
         self,
         param_decls=None,
+        callback=callback.__func__,
+        is_flag=True,
+        expose_value=False,
+        is_eager=True,
+        help=_("Show this message and exit."),
         **kwargs,
     ):
         if not param_decls:
             param_decls = ("--help", "-h")
 
-        def callback(ctx: click.Context, param: click.Parameter, value: bool) -> None:
-            if not value or ctx.resilient_parsing:
-                return
-
-            echo(ctx.get_help(), color=ctx.color)
-            ctx.exit()
-
-        kwargs.setdefault("is_flag", True)
-        kwargs.setdefault("expose_value", False)
-        kwargs.setdefault("is_eager", True)
-        kwargs.setdefault("help", _("Show this message and exit."))
-        kwargs["callback"] = callback
-
-        super().__init__(param_decls=param_decls, **kwargs)
+        super().__init__(
+            param_decls=param_decls,
+            callback=callback,
+            is_flag=is_flag,
+            expose_value=expose_value,
+            is_eager=is_eager,
+            help=help,
+            **kwargs,
+        )
 
 
 def help_option(*param_decls: str, cls=HelpOption, **kwargs):
