@@ -20,13 +20,13 @@
 from functools import partial
 from gettext import gettext as _
 
-import click
+import cloup
 import tabulate
 from cli_helpers.tabular_output import TabularOutputFormatter, tabulate_adapter
 from cli_helpers.tabular_output.output_formatter import MAX_FIELD_WIDTH
 from tabulate import DataRow, Line, TableFormat
 
-from . import Choice, Option, echo, get_current_context
+from . import Choice, ExtraOption, Option, echo, get_current_context
 from .platform import is_windows
 
 new_formats = {
@@ -144,49 +144,54 @@ for tabulate_format in new_formats:
     )
 
 
-def cleanup_formatter():
-    """Clean-up formatter attached to context."""
-    ctx = get_current_context()
-    del ctx.table_formatter
+class TableFormatOption(ExtraOption):
+    """A pre-configured option that is adding a ``-t/--table-format`` flag
+    to select the rendering style of a table."""
 
+    def cleanup_formatter(self):
+        """Clean-up formatter attached to context."""
+        ctx = get_current_context()
+        del ctx.table_formatter
 
-def print_table(table_formatter, *args, **kwargs):
-    """Print table via echo."""
-    for line in table_formatter.format_output(*args, **kwargs):
-        if is_windows():
-            line = line.encode("utf-8")
-        echo(line)
+    def print_table(self, table_formatter, *args, **kwargs):
+        """Print table via echo."""
+        for line in table_formatter.format_output(*args, **kwargs):
+            if is_windows():
+                line = line.encode("utf-8")
+            echo(line)
 
+    def init_formatter(self, ctx, param, value):
+        """Initialize the table formatter and attach it to the context."""
+        ctx.table_formatter = TabularOutputFormatter(format_name=value)
+        ctx.print_table = partial(self.print_table, ctx.table_formatter)
+        ctx.call_on_close(self.cleanup_formatter)
 
-def init_formatter(ctx, param, value):
-    """Initialize the table formatter and attach it to the context."""
-    ctx.table_formatter = TabularOutputFormatter(format_name=value)
-    ctx.print_table = partial(print_table, ctx.table_formatter)
-    ctx.call_on_close(cleanup_formatter)
-
-
-def table_format_option(
-    *param_decls,
-    type=Choice(sorted(TabularOutputFormatter._output_formats), case_sensitive=False),
-    default="rounded_outline",
-    expose_value=False,
-    callback=init_formatter,
-    help=_("Rendering style of tables."),
-    cls=Option,
-    **kwargs,
-):
-    """A ready to use option decorator that is adding a ``-t/--table-format`` option
-    flag to select the rendering style of a table."""
-    if not param_decls:
-        # XXX rename defaults to --table-style?
-        param_decls = ("-t", "--table-format")
-    return click.option(
-        *param_decls,
-        type=type,
-        default=default,
-        expose_value=expose_value,
-        callback=callback,
-        help=help,
-        cls=cls,
+    def __init__(
+        self,
+        param_decls=None,
+        type=Choice(
+            sorted(TabularOutputFormatter._output_formats), case_sensitive=False
+        ),
+        default="rounded_outline",
+        expose_value=False,
+        help=_("Rendering style of tables."),
         **kwargs,
-    )
+    ):
+        if not param_decls:
+            param_decls = ("-t", "--table-format")
+
+        kwargs.setdefault("callback", self.init_formatter)
+
+        super().__init__(
+            param_decls=param_decls,
+            type=type,
+            default=default,
+            expose_value=expose_value,
+            help=help,
+            **kwargs,
+        )
+
+
+def table_format_option(*param_decls: str, cls=TableFormatOption, **kwargs):
+    """Decorator for ``TableFormatOption``."""
+    return cloup.option(*param_decls, cls=cls, **kwargs)
