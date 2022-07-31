@@ -56,7 +56,7 @@ To undestrand how we ended up with the result above, go [read the tutorial](http
   - `@skip_linux`, `@skip_macos` and `@skip_windows`
   - `@unless_linux`, `@unless_macos` and `@unless_windows`
   - `@destructive` and `@non_destructive`
-- [Fixes 20+ bugs](https://kdeldycke.github.io/click-extra/issues.html) from other Click-related projects
+- [Fixes 30+ bugs](https://kdeldycke.github.io/click-extra/issues.html) from other Click-related projects
 - Rely on [`cloup`](https://github.com/janluke/cloup) to add:
   - option groups
   - constraints
