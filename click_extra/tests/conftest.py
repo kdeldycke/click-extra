@@ -22,12 +22,16 @@ import sys
 from functools import partial
 from pathlib import Path
 from textwrap import dedent
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, Optional, Sequence, Union
+
+if TYPE_CHECKING:
+    from click.core import BaseCommand
 
 import pytest
-from boltons.iterutils import flatten, same
+from boltons.iterutils import flatten
 from boltons.strutils import strip_ansi
 from boltons.tbutils import ExceptionInfo
-from click.testing import CliRunner
+from click.testing import CliRunner, Result
 
 from ..platform import is_linux, is_macos, is_windows
 from ..run import print_cli_output
@@ -87,9 +91,53 @@ See: https://github.com/pallets/click/issues/2111 and https://github.com/pallets
 """
 
 
+# XXX Recursive types are not supported by mypy yet: https://github.com/python/mypy/issues/731
+# _NestedArgs = Iterable[Union[str, Path, None, Iterable["_NestedArgs"]]]
+_Arg = Union[str, Path, None]
+_Args = Iterable[_Arg]
+_NestedArgs = Iterable[
+    Union[
+        _Arg, Iterable[Union[_Arg, Iterable[Union[_Arg, Iterable[Union[_Arg, _Args]]]]]]
+    ]
+]
+
+
+class ExtraCliRunner(CliRunner):
+
+    force_color = False
+    """Add a ``force_color`` boolean flag on the class to allow for overriding of the ``color`` parameter in ``invoke``.
+
+    This is only used to initialize the CliRunner in the context of Sphinx documentation.
+    """
+
+    @classmethod
+    def _args_cleanup(cls, *args: _Arg | _NestedArgs) -> tuple[str, ...]:
+        """Flatten recursive iterables, remove all ``None``, and cast each element to
+        strings.
+
+        Helps serialize :py:class:`pathlib.Path` and other objects.
+
+        It also allows for nested iterables and ``None`` values as CLI arguments for
+        convenience. We just need to flatten and filters them out.
+        """
+        return tuple(str(arg) for arg in flatten(args) if arg is not None)
+
+    def invoke(
+        self,
+        cli: "BaseCommand",
+        args: Optional[Union[str, Sequence[str]]] = None,
+        env: Optional[Mapping[str, Optional[str]]] = None,
+        color: bool = False,
+        **extra: Any,
+    ) -> Result:
+        if self.force_color:
+            color = True
+        return super().invoke(cli=cli, args=args, env=env, color=color, **extra)
+
+
 @pytest.fixture
 def runner():
-    runner = CliRunner(mix_stderr=False)
+    runner = ExtraCliRunner(mix_stderr=False)
     with runner.isolated_filesystem():
         yield runner
 
@@ -109,9 +157,7 @@ def invoke(runner, monkeypatch):
     def _run(cli, *args, env=None, color=None):
         # We allow for nested iterables and None values as args for
         # convenience. We just need to flatten and filters them out.
-        args = [arg for arg in flatten(args) if arg is not None]
-        if args:
-            assert same(map(type, args), str)
+        args = ExtraCliRunner._args_cleanup(args)
 
         # Extra parameters passed to the invoked command's ``main()`` constructor.
         extra = {}
@@ -124,7 +170,7 @@ def invoke(runner, monkeypatch):
             # ``**extra``.
             patch.setattr(cli, "main", partial(cli.main, **extra))
 
-            result = runner.invoke(cli, args, env=env, color=bool(color))
+            result = runner.invoke(cli=cli, args=args, env=env, color=bool(color))
 
         # Force stripping of all colors from results.
         if color is False:

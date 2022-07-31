@@ -56,7 +56,12 @@ This is the list of issues and bugs from other projects that `click-extra` has a
 ## [`pallets-sphinx-themes`](https://github.com/pallets/pallets-sphinx-themes)
 
 - [`#62` - Render `.. click:run::` code blocks with `shell-session` lexer](https://github.com/pallets/pallets-sphinx-themes/pull/62)
+- [`#61` - Move `.. click:example::` and `.. click:run::` implementation to `sphinx-click`](https://github.com/pallets/pallets-sphinx-themes/issues/61)
 
 ## [`python-tabulate`](https://github.com/astanin/python-tabulate)
 
 - [`#151` - Add new {`rounded`,`simple`,`double`}\_(`grid`,`outline`} formats](https://github.com/astanin/python-tabulate/pull/151)
+
+## [`sphinx-click`](https://github.com/click-contrib/sphinx-click)
+
+- [`#110` - Supports `.. click:example::` and `.. click:run::` directives](https://github.com/click-contrib/sphinx-click/issues/110)

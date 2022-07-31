@@ -96,37 +96,66 @@ html_show_copyright = True
 html_show_sphinx = False
 
 
-# Add support for ".. click:example::" and ".. click:run::" directives.
-import click
-from pallets_sphinx_themes.themes.click import domain
+pygments_style = "click-extra-ansi-furo"
 
-# Compat until pallets-sphinx-themes is updated.
-# Because of: https://github.com/pallets/pallets-sphinx-themes/blob/7b69241f1fde3cc3849f513a9dd83fa8a2f36603/src/pallets_sphinx_themes/themes/click/domain.py#L9
+
+####################################
+#  pallets_sphinx_themes Patch #1  #
+####################################
+
+# XXX Compatibility workaround because of https://github.com/pallets/pallets-sphinx-themes/blob/7b69241f1fde3cc3849f513a9dd83fa8a2f36603/src/pallets_sphinx_themes/themes/click/domain.py#L9
 # Source: https://github.com/pallets/click/blob/dc918b48fb9006be683a684b42cc7496ad649b83/docs/conf.py#L6-L7
+import click
+
 click._compat.text_type = str
 
-
-# Patch ".. click:run::" code blocks to use the "shell-session" lexer.
-# Fixes: https://github.com/pallets/pallets-sphinx-themes/pull/62
+# Add support for ".. click:example::" and ".. click:run::" directives.
+from pallets_sphinx_themes.themes.click import domain
 
 append_orig = domain.ViewList.append
 
 
 def patched_append(*args, **kwargs):
+    """Replace the code block produced by ``.. click:run::`` directive with an ANSI Shell Session (``.. code-block:: ansi-shell-session``).
+
+    Targets:
+    - [``.. sourcecode:: text`` for `Pallets-Sphinx-Themes <= 2.0.2`](https://github.com/pallets/pallets-sphinx-themes/blob/7b69241f1fde3cc3849f513a9dd83fa8a2f36603/src/pallets_sphinx_themes/themes/click/domain.py#L245)
+    - [``.. sourcecode:: shell-session`` for `Pallets-Sphinx-Themes > 2.0.2`](https://github.com/pallets/pallets-sphinx-themes/pull/62)
     """
-    Replace the ``doc.append(".. sourcecode:: text", "")`` code to ``doc.append(".. code-block:: shell-session", "")``. Source:
-    https://github.com/pallets/pallets-sphinx-themes/blob/7b69241f1fde3cc3849f513a9dd83fa8a2f36603/src/pallets_sphinx_themes/themes/click/domain.py#L245
-    """
-    default_run_block = ".. sourcecode:: text"
-    if default_run_block in args:
-        args = list(args)
-        index = args.index(default_run_block)
-        args[index] = ".. code-block:: shell-session"
+    default_run_blocks = (
+        ".. sourcecode:: text",
+        ".. sourcecode:: shell-session",
+    )
+    for run_block in default_run_blocks:
+        if run_block in args:
+            args = list(args)
+            index = args.index(run_block)
+            args[index] = ".. code-block:: ansi-shell-session"
 
     return append_orig(*args, **kwargs)
 
 
 domain.ViewList.append = patched_append
 
-# Register new click directives.
+
+####################################
+#  pallets_sphinx_themes Patch #2  #
+####################################
+
+# Replace the call to default ``CliRunner.invoke`` with a call to click_extra own version which is sensible to contextual color settings
+# and output unfiltered ANSI codes.
+# Fixes: <insert upstream bug report here>
+from click_extra.tests.conftest import ExtraCliRunner
+
+# Force color rendering in ``invoke`` calls.
+ExtraCliRunner.force_color = True
+
+# Brutal, but effective.
+# Alternative patching methods: https://stackoverflow.com/a/38928265
+domain.ExampleRunner.__bases__ = (ExtraCliRunner,)
+
+
+####################################
+#  Register new click directives   #
+####################################
 extensions.append("pallets_sphinx_themes.themes.click.domain")
