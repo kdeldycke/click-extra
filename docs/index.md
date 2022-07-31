@@ -18,6 +18,7 @@ logging
 tabulate
 platform
 run
+pygments
 issues
 ```
 

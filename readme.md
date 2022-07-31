@@ -56,6 +56,12 @@ To undestrand how we ended up with the result above, go [read the tutorial](http
   - `@skip_linux`, `@skip_macos` and `@skip_windows`
   - `@unless_linux`, `@unless_macos` and `@unless_windows`
   - `@destructive` and `@non_destructive`
+- ANSI shell session lexers for Pygments, i.e. command lines, including a prompt, interspersed with output:
+  - Bash: `ansi-console`, `ansi-shell-session`
+  - MS DOS: `ansi-doscon`
+  - PowerShell: `ansi-pwsh-session`, `ansi-ps1con`
+  - Tcsh: `ansi-tcshcon`
+- Pygments styles and filters for ANSI token rendering.
 - [Fixes 30+ bugs](https://kdeldycke.github.io/click-extra/issues.html) from other Click-related projects
 - Rely on [`cloup`](https://github.com/janluke/cloup) to add:
   - option groups
