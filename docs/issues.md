@@ -58,6 +58,10 @@ This is the list of issues and bugs from other projects that `click-extra` has a
 - [`#62` - Render `.. click:run::` code blocks with `shell-session` lexer](https://github.com/pallets/pallets-sphinx-themes/pull/62)
 - [`#61` - Move `.. click:example::` and `.. click:run::` implementation to `sphinx-click`](https://github.com/pallets/pallets-sphinx-themes/issues/61)
 
+## [`pygments`](https://github.com/pygments/pygments)
+
+- [`#1148` - Can't format console/shell-session output that includes ANSI colors](https://github.com/pygments/pygments/issues/1148)
+
 ## [`python-tabulate`](https://github.com/astanin/python-tabulate)
 
 - [`#151` - Add new {`rounded`,`simple`,`double`}\_(`grid`,`outline`} formats](https://github.com/astanin/python-tabulate/pull/151)
