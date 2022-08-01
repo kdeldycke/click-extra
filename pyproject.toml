@@ -97,9 +97,12 @@ sphinxext-opengraph = "^0.6.3"
 # The name of the entrypoint values doesn’t really matter, Pygments extracts required metadata from the class definition.
 # Source: https://pygments.org/docs/plugins/#defining-plugins-through-entrypoints
 click-extra-ansi-bash = "click_extra.pygments:ANSIBashSessionLexer"
-click-extra-ansi-tcsh = "click_extra.pygments:ANSITcshSessionLexer"
 click-extra-ansi-msdos = "click_extra.pygments:ANSIMSDOSSessionLexer"
 click-extra-ansi-power-shell = "click_extra.pygments:ANSIPowerShellSessionLexer"
+click-extra-ansi-tcsh = "click_extra.pygments:ANSITcshSessionLexer"
+
+[tool.poetry.plugins."pygments.formatters"]
+ansihtmlformatter = "click_extra.pygments:ANSIHtmlFormatter"
 
 [tool.poetry.plugins."pygments.styles"]
 click-extra-ansi-furo = "click_extra.pygments:ClickExtraANSIFuroStyle"

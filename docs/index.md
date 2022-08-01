@@ -19,6 +19,7 @@ tabulate
 platform
 run
 pygments
+sphinx
 issues
 ```
 

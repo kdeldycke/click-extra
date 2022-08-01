@@ -99,6 +99,13 @@ html_show_sphinx = False
 pygments_style = "click-extra-ansi-furo"
 
 
+from sphinx.highlighting import PygmentsBridge
+
+from click_extra.pygments import ANSIHtmlFormatter
+
+PygmentsBridge.html_formatter = ANSIHtmlFormatter
+
+
 ####################################
 #  pallets_sphinx_themes Patch #1  #
 ####################################

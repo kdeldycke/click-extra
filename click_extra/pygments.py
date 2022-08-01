@@ -22,17 +22,21 @@ from configparser import ConfigParser
 import furo
 from pygments.filter import Filter
 from pygments.filters import TokenMergeFilter
+from pygments.formatters import HtmlFormatter
 from pygments.lexer import LexerMeta
 from pygments.lexers.shell import (
     BashSessionLexer,
     MSDOSSessionLexer,
     PowerShellSessionLexer,
-    ShellSessionBaseLexer,
     TcshSessionLexer,
 )
 from pygments.styles import get_style_by_name
 from pygments.token import Generic, string_to_tokentype
-from pygments_ansi_color import AnsiColorLexer, color_tokens
+from pygments_ansi_color import (
+    AnsiColorLexer,
+    ExtendedColorHtmlFormatterMixin,
+    color_tokens,
+)
 
 # Note: You can use different background colors for improved readability.
 fg_colors = bg_colors = {
@@ -61,7 +65,7 @@ style_base = get_style_by_name(furo_style_name)
 
 class ClickExtraANSIFuroStyle(style_base):
     styles = dict(style_base.styles)
-    styles.update(color_tokens(fg_colors, bg_colors))
+    styles.update(color_tokens(fg_colors, bg_colors, enable_256color=True))
 
 
 class ANSIFilter(Filter):
@@ -129,12 +133,6 @@ class ANSIBashSessionLexer(
     pass
 
 
-class ANSITcshSessionLexer(
-    ANSILexerFiltersMixin, TcshSessionLexer, metaclass=ANSISessionLexer
-):
-    pass
-
-
 class ANSIMSDOSSessionLexer(
     ANSILexerFiltersMixin, MSDOSSessionLexer, metaclass=ANSISessionLexer
 ):
@@ -145,3 +143,18 @@ class ANSIPowerShellSessionLexer(
     ANSILexerFiltersMixin, PowerShellSessionLexer, metaclass=ANSISessionLexer
 ):
     pass
+
+
+class ANSITcshSessionLexer(
+    ANSILexerFiltersMixin, TcshSessionLexer, metaclass=ANSISessionLexer
+):
+    pass
+
+
+class ANSIHtmlFormatter(ExtendedColorHtmlFormatterMixin, HtmlFormatter):
+    """
+    Extend standard Pygments' ``HtmlFormatter`` to [add support for ANSI 256 colors](https://github.com/chriskuehl/pygments-ansi-color#optional-enable-256-color-support).
+    """
+
+    name = "ANSI HTML"
+    aliases = ["ansi-html"]
