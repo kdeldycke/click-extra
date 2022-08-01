@@ -24,12 +24,22 @@ from pygments.filter import Filter
 from pygments.filters import TokenMergeFilter
 from pygments.formatters import HtmlFormatter
 from pygments.lexer import LexerMeta
+from pygments.lexers.dylan import DylanConsoleLexer
+from pygments.lexers.erlang import ElixirConsoleLexer, ErlangShellLexer
+from pygments.lexers.julia import JuliaConsoleLexer
+from pygments.lexers.matlab import MatlabSessionLexer
+from pygments.lexers.php import PsyshConsoleLexer
+from pygments.lexers.python import PythonConsoleLexer
+from pygments.lexers.r import RConsoleLexer
+from pygments.lexers.ruby import RubyConsoleLexer
 from pygments.lexers.shell import (
     BashSessionLexer,
     MSDOSSessionLexer,
     PowerShellSessionLexer,
     TcshSessionLexer,
 )
+from pygments.lexers.special import OutputLexer
+from pygments.lexers.sql import PostgresConsoleLexer, SqliteConsoleLexer
 from pygments.styles import get_style_by_name
 from pygments.token import Generic, string_to_tokentype
 from pygments_ansi_color import (
@@ -112,9 +122,9 @@ class AnsiLexerFiltersMixin:
     def __init__(self, *args, **kwargs) -> None:
         """Adds a ``TokenMergeFilter`` and ``AnsiOutputFilter`` to the list of filters.
 
-        The shell-session lexers we inherits from are parsing the code block line by line.
-        Each output line ends up encapsulated into a ``Generic.Output`` token. We forces the use of ``TokenMergeFilter`` to
-        have all the output blocks wrap by a single token.
+        The session lexers we inherits from are parsing the code block line by line so they can differentiate inputs and outputs.
+        Each output line ends up encapsulated into a ``Generic.Output`` token. We call on ``TokenMergeFilter`` to
+        have each contiguous output lines part of the same single token.
 
         Then we apply our custom ``AnsiOutputFilter`` to transform the
         ``Generic.Output`` monoblock into ANSI tokens.
@@ -126,29 +136,28 @@ class AnsiLexerFiltersMixin:
 
 # TODO: fetch all lexers which are a subclass of ShellSessionBaseLexer and use auto-class generation to replace the repeating code below.
 
-
-class AnsiBashSessionLexer(
-    AnsiLexerFiltersMixin, BashSessionLexer, metaclass=AnsiSessionLexer
-):
-    pass
-
-
-class AnsiMSDOSSessionLexer(
-    AnsiLexerFiltersMixin, MSDOSSessionLexer, metaclass=AnsiSessionLexer
-):
-    pass
-
-
-class AnsiPowerShellSessionLexer(
-    AnsiLexerFiltersMixin, PowerShellSessionLexer, metaclass=AnsiSessionLexer
-):
-    pass
-
-
-class AnsiTcshSessionLexer(
-    AnsiLexerFiltersMixin, TcshSessionLexer, metaclass=AnsiSessionLexer
-):
-    pass
+shell_lexers = [
+    BashSessionLexer,
+    DylanConsoleLexer,
+    ElixirConsoleLexer,
+    ErlangShellLexer,
+    JuliaConsoleLexer,
+    MSDOSSessionLexer,
+    MatlabSessionLexer,
+    OutputLexer,
+    PostgresConsoleLexer,
+    PowerShellSessionLexer,
+    PsyshConsoleLexer,
+    PythonConsoleLexer,
+    RConsoleLexer,
+    RubyConsoleLexer,
+    SqliteConsoleLexer,
+    TcshSessionLexer,
+]
+for original_lexer in shell_lexers:
+    new_name = f"Ansi{original_lexer.__name__}"
+    new_lexer = AnsiSessionLexer(new_name, (AnsiLexerFiltersMixin, original_lexer), {})
+    locals()[new_name] = new_lexer
 
 
 class AnsiHtmlFormatter(ExtendedColorHtmlFormatterMixin, HtmlFormatter):

@@ -18,7 +18,7 @@ This version is not released yet and is under active development.
 - New `extra_option_at_end` to `extra_command` to move all extra options to the end by default.
 - Add a tutorial in documentation.
 - Add support for `.. click:example::` and `.. click:run::` directives in documentation.
-- Add ANSI shell sesssion lexers for pygments.
+- Add ANSI sesssion and console lexers for pygments.
 - Add `ansi-filter`, a Pygments filter to transform some tokens into ANSI tokens.
 - Add custom `click-extra-ansi-furo` Pygment style to render ANSI tokens in `furo` theme.
 - Add `pallets_sphinx_themes` and `pygments-ansi-color` dependency.

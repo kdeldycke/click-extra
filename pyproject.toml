@@ -96,10 +96,20 @@ sphinxext-opengraph = "^0.6.3"
 [tool.poetry.plugins."pygments.lexers"]
 # The name of the entrypoint values doesn’t really matter, Pygments extracts required metadata from the class definition.
 # Source: https://pygments.org/docs/plugins/#defining-plugins-through-entrypoints
-click-extra-ansi-bash = "click_extra.pygments:AnsiBashSessionLexer"
-click-extra-ansi-msdos = "click_extra.pygments:AnsiMSDOSSessionLexer"
-click-extra-ansi-power-shell = "click_extra.pygments:AnsiPowerShellSessionLexer"
-click-extra-ansi-tcsh = "click_extra.pygments:AnsiTcshSessionLexer"
+ansi-bash-session = "click_extra.pygments:AnsiBashSessionLexer"
+ansi-dylan-console = "click_extra.pygments:AnsiDylanConsoleLexer"
+ansi-erlang-shell = "click_extra.pygments:AnsiErlangShellLexer"
+ansi-matlab-session = "click_extra.pygments:AnsiMatlabSessionLexer"
+ansi-msdos-session = "click_extra.pygments:AnsiMSDOSSessionLexer"
+ansi-output = "click_extra.pygments:AnsiOutputLexer"
+ansi-postgres-console = "click_extra.pygments:AnsiPostgresConsoleLexer"
+ansi-power-shell = "click_extra.pygments:AnsiPowerShellSessionLexer"
+ansi-psysh-console = "click_extra.pygments:AnsiPsyshConsoleLexer"
+ansi-python-console = "click_extra.pygments:AnsiPythonConsoleLexer"
+ansi-r-console = "click_extra.pygments:AnsiRConsoleLexer"
+ansi-ruby-console = "click_extra.pygments:AnsiRubyConsoleLexer"
+ansi-sqlite-console = "click_extra.pygments:AnsiSqliteConsoleLexer"
+ansi-tcsh-session = "click_extra.pygments:AnsiTcshSessionLexer"
 
 [tool.poetry.plugins."pygments.formatters"]
 ansihtmlformatter = "click_extra.pygments:AnsiHtmlFormatter"

@@ -101,3 +101,7 @@ $ for i in {0..255}; do \
 ```
 
 ## Click directives
+
+```{todo}
+Write example and tutorial.
+```
