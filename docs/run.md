@@ -1,4 +1,4 @@
-# Run utilities
+# Command execution
 
 ```{todo}
 Write example and tutorial.

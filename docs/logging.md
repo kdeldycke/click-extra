@@ -1,4 +1,4 @@
-# Logging facilities
+# Logging
 
 ```{todo}
 Write example and tutorial.

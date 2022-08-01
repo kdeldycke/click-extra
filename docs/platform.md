@@ -1,4 +1,4 @@
-# Platform utilities
+# Platform detection
 
 ```{todo}
 Write example and tutorial.
