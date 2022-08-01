@@ -96,19 +96,19 @@ sphinxext-opengraph = "^0.6.3"
 [tool.poetry.plugins."pygments.lexers"]
 # The name of the entrypoint values doesn’t really matter, Pygments extracts required metadata from the class definition.
 # Source: https://pygments.org/docs/plugins/#defining-plugins-through-entrypoints
-click-extra-ansi-bash = "click_extra.pygments:ANSIBashSessionLexer"
-click-extra-ansi-msdos = "click_extra.pygments:ANSIMSDOSSessionLexer"
-click-extra-ansi-power-shell = "click_extra.pygments:ANSIPowerShellSessionLexer"
-click-extra-ansi-tcsh = "click_extra.pygments:ANSITcshSessionLexer"
+click-extra-ansi-bash = "click_extra.pygments:AnsiBashSessionLexer"
+click-extra-ansi-msdos = "click_extra.pygments:AnsiMSDOSSessionLexer"
+click-extra-ansi-power-shell = "click_extra.pygments:AnsiPowerShellSessionLexer"
+click-extra-ansi-tcsh = "click_extra.pygments:AnsiTcshSessionLexer"
 
 [tool.poetry.plugins."pygments.formatters"]
-ansihtmlformatter = "click_extra.pygments:ANSIHtmlFormatter"
+ansihtmlformatter = "click_extra.pygments:AnsiHtmlFormatter"
 
 [tool.poetry.plugins."pygments.styles"]
-click-extra-ansi-furo = "click_extra.pygments:ClickExtraANSIFuroStyle"
+click-extra-ansi-furo = "click_extra.pygments:ClickExtraAnsiFuroStyle"
 
 [tool.poetry.plugins."pygments.filters"]
-ansi-filter = "click_extra.pygments:ANSIFilter"
+ansi-filter = "click_extra.pygments:AnsiFilter"
 
 [tool.black]
 # "You should include all Python versions that you want your code to run under."

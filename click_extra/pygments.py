@@ -63,12 +63,12 @@ furo_style_name = ini_config.get("theme", "pygments_style")
 style_base = get_style_by_name(furo_style_name)
 
 
-class ClickExtraANSIFuroStyle(style_base):
+class ClickExtraAnsiFuroStyle(style_base):
     styles = dict(style_base.styles)
     styles.update(color_tokens(fg_colors, bg_colors, enable_256color=True))
 
 
-class ANSIFilter(Filter):
+class AnsiFilter(Filter):
     """Custom filter transforming a particular kind of token (``Generic.Output`` by defaults) into ANSI tokens."""
 
     def __init__(self, **options) -> None:
@@ -87,7 +87,7 @@ class ANSIFilter(Filter):
                 yield ttype, value
 
 
-class ANSISessionLexer(LexerMeta):
+class AnsiSessionLexer(LexerMeta):
     """Custom metaclass used as a class factory to derive an ANSI variant of default shell session lexers."""
 
     def __new__(cls, name, bases, dct):
@@ -108,50 +108,50 @@ class ANSISessionLexer(LexerMeta):
         return new_cls
 
 
-class ANSILexerFiltersMixin:
+class AnsiLexerFiltersMixin:
     def __init__(self, *args, **kwargs) -> None:
-        """Adds a ``TokenMergeFilter`` and ``ANSIOutputFilter`` to the list of filters.
+        """Adds a ``TokenMergeFilter`` and ``AnsiOutputFilter`` to the list of filters.
 
         The shell-session lexers we inherits from are parsing the code block line by line.
         Each output line ends up encapsulated into a ``Generic.Output`` token. We forces the use of ``TokenMergeFilter`` to
         have all the output blocks wrap by a single token.
 
-        Then we apply our custom ``ANSIOutputFilter`` to transform the
+        Then we apply our custom ``AnsiOutputFilter`` to transform the
         ``Generic.Output`` monoblock into ANSI tokens.
         """
         super().__init__(*args, **kwargs)
         self.filters.append(TokenMergeFilter())
-        self.filters.append(ANSIFilter())
+        self.filters.append(AnsiFilter())
 
 
 # TODO: fetch all lexers which are a subclass of ShellSessionBaseLexer and use auto-class generation to replace the repeating code below.
 
 
-class ANSIBashSessionLexer(
-    ANSILexerFiltersMixin, BashSessionLexer, metaclass=ANSISessionLexer
+class AnsiBashSessionLexer(
+    AnsiLexerFiltersMixin, BashSessionLexer, metaclass=AnsiSessionLexer
 ):
     pass
 
 
-class ANSIMSDOSSessionLexer(
-    ANSILexerFiltersMixin, MSDOSSessionLexer, metaclass=ANSISessionLexer
+class AnsiMSDOSSessionLexer(
+    AnsiLexerFiltersMixin, MSDOSSessionLexer, metaclass=AnsiSessionLexer
 ):
     pass
 
 
-class ANSIPowerShellSessionLexer(
-    ANSILexerFiltersMixin, PowerShellSessionLexer, metaclass=ANSISessionLexer
+class AnsiPowerShellSessionLexer(
+    AnsiLexerFiltersMixin, PowerShellSessionLexer, metaclass=AnsiSessionLexer
 ):
     pass
 
 
-class ANSITcshSessionLexer(
-    ANSILexerFiltersMixin, TcshSessionLexer, metaclass=ANSISessionLexer
+class AnsiTcshSessionLexer(
+    AnsiLexerFiltersMixin, TcshSessionLexer, metaclass=AnsiSessionLexer
 ):
     pass
 
 
-class ANSIHtmlFormatter(ExtendedColorHtmlFormatterMixin, HtmlFormatter):
+class AnsiHtmlFormatter(ExtendedColorHtmlFormatterMixin, HtmlFormatter):
     """
     Extend standard Pygments' ``HtmlFormatter`` to [add support for ANSI 256 colors](https://github.com/chriskuehl/pygments-ansi-color#optional-enable-256-color-support).
     """

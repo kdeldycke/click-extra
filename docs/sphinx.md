@@ -9,11 +9,11 @@ To your [Sphinx's `conf.py` file](https://www.sphinx-doc.org/en/master/usage/con
 ```python
 from sphinx.highlighting import PygmentsBridge
 
-from click_extra.pygments import ANSIHtmlFormatter
+from click_extra.pygments import AnsiHtmlFormatter
 
 pygments_style = "click-extra-ansi-furo"
 
-PygmentsBridge.html_formatter = ANSIHtmlFormatter
+PygmentsBridge.html_formatter = AnsiHtmlFormatter
 ```
 
 Now you can render colored shell sessions with code blocks:

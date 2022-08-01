@@ -101,9 +101,9 @@ pygments_style = "click-extra-ansi-furo"
 
 from sphinx.highlighting import PygmentsBridge
 
-from click_extra.pygments import ANSIHtmlFormatter
+from click_extra.pygments import AnsiHtmlFormatter
 
-PygmentsBridge.html_formatter = ANSIHtmlFormatter
+PygmentsBridge.html_formatter = AnsiHtmlFormatter
 
 
 ####################################
