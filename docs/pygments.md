@@ -56,13 +56,19 @@ We can now see how the new lexers transforms a raw strings into ANSI tokens:
 ((Token.Color.Magenta, '║'), (Token.Text, ''), (Token.Color.Cyan, '▌'), (Token.Text, ''), (Token.Color.Red, '█'), (Token.Text, ''), (Token.Color.Green, '║'), (Token.Text, ''), (Token.Color.Yellow, ' '), (Token.Text, ''), (Token.Color.Blue, 'A'), (Token.Text, ''), (Token.Color.Magenta, 'N'), (Token.Text, ''), (Token.Color.Cyan, 'S'), (Token.Text, ''), (Token.Color.Red, 'I'), (Token.Text, ''), (Token.Color.Green, ' '), (Token.Text, ''), (Token.Color.Yellow, 'A'), (Token.Text, ''), (Token.Color.Blue, 'r'), (Token.Text, ''), (Token.Color.Magenta, 't'), (Token.Text, ''), (Token.Color.Cyan, ' '), (Token.Text, ''), (Token.Color.Red, '▌'), (Token.Text, ''), (Token.Color.Green, '│'), (Token.Text, ''), (Token.Color.Yellow, '║'), (Token.Text, ''), (Token.Color.Blue, '▌'), (Token.Text, '\n'))
 ```
 
-## Styles
+## Filters
 
 ```{todo}
 Write example and tutorial.
 ```
 
-## Filters
+## Formatters
+
+```{todo}
+Write example and tutorial.
+```
+
+## Styles
 
 ```{todo}
 Write example and tutorial.
