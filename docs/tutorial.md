@@ -146,7 +146,7 @@ See how the configuration option is grouped with others:
    invoke(hello, args=["--help"])
 ```
 
-```{see}
+```{seealso}
 All in all Click Extra provides these additional options:
 
 - [`color_option`](colorize.md#color-option)
