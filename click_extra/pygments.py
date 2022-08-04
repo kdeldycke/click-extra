@@ -70,7 +70,7 @@ furo_style_name = ini_config.get("theme", "pygments_style")
 style_base: Style = get_style_by_name(furo_style_name)
 
 
-class ClickExtraAnsiFuroStyle(style_base):
+class AnsiClickExtraFuroStyle(style_base):
     styles = dict(style_base.styles)
     styles.update(color_tokens(fg_colors, bg_colors, enable_256color=True))
 

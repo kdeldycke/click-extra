@@ -119,10 +119,10 @@ ansi-tcsh-session = "click_extra.pygments:AnsiTcshSessionLexer"
 ansi-filter = "click_extra.pygments:AnsiFilter"
 
 [tool.poetry.plugins."pygments.formatters"]
-ansihtmlformatter = "click_extra.pygments:AnsiHtmlFormatter"
+ansi-html-formatter = "click_extra.pygments:AnsiHtmlFormatter"
 
 [tool.poetry.plugins."pygments.styles"]
-click-extra-ansi-furo = "click_extra.pygments:ClickExtraAnsiFuroStyle"
+ansi-click-extra-furo-style = "click_extra.pygments:AnsiClickExtraFuroStyle"
 
 [tool.black]
 # "You should include all Python versions that you want your code to run under."

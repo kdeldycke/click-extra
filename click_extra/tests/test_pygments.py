@@ -20,6 +20,10 @@ from operator import itemgetter
 from pathlib import Path
 
 from boltons.strutils import camel2under
+from boltons.typeutils import issubclass
+from pygments.filter import Filter
+from pygments.formatter import Formatter
+from pygments.style import Style
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -32,7 +36,22 @@ from ..pygments import collect_session_lexers
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 
 
-def test_registered_ansi_lexers():
+def get_pyproject_section(*section_path: str) -> dict[str:str]:
+    toml_path = PROJECT_ROOT.joinpath("pyproject.toml").resolve()
+    toml_config = tomllib.loads(toml_path.read_text(encoding="utf-8"))
+    section = toml_config
+    for section_id in section_path:
+        section = section[section_id]
+    return section
+
+
+def check_entry_points(entry_points: dict[str:str], *section_path: str) -> None:
+    entry_points = dict(sorted(entry_points.items(), key=itemgetter(0)))
+    project_entry_points = get_pyproject_section(*section_path)
+    assert project_entry_points == entry_points
+
+
+def test_registered_lexers():
     entry_points = {}
     for lexer in collect_session_lexers():
 
@@ -46,15 +65,44 @@ def test_registered_ansi_lexers():
         )
 
         # Generate the lexer entry point.
-        lexer_path = f"click_extra.pygments:{ansi_lexer_id}"
-        entry_points[entry_id] = lexer_path
+        class_path = f"click_extra.pygments:{ansi_lexer_id}"
+        entry_points[entry_id] = class_path
 
-    entry_points = dict(sorted(entry_points.items(), key=itemgetter(0)))
+    check_entry_points(entry_points, "tool", "poetry", "plugins", "pygments.lexers")
 
-    toml_path = PROJECT_ROOT.joinpath("pyproject.toml").resolve()
-    toml_config = tomllib.loads(toml_path.read_text(encoding="utf-8"))
-    toml_entry_points = toml_config["tool"]["poetry"]["plugins"]["pygments.lexers"]
-    assert toml_entry_points == entry_points
+
+def collect_class_names(klass, prefix="Ansi"):
+    """Returns the name of all classes defined in ``click_extra.pygments`` that are a subclass of ``klass``, and whose name starts with the provided ``prefix``."""
+    for name, var in extra_pygments.__dict__.items():
+        if issubclass(var, klass) and name.startswith(prefix):
+            yield name
+
+
+def test_registered_filters():
+    entry_points = {}
+    for name in collect_class_names(Filter):
+        entry_id = camel2under(name).replace("_", "-")
+        entry_points[entry_id] = f"click_extra.pygments:{name}"
+
+    check_entry_points(entry_points, "tool", "poetry", "plugins", "pygments.filters")
+
+
+def test_registered_formatters():
+    entry_points = {}
+    for name in collect_class_names(Formatter):
+        entry_id = camel2under(name).replace("_", "-")
+        entry_points[entry_id] = f"click_extra.pygments:{name}"
+
+    check_entry_points(entry_points, "tool", "poetry", "plugins", "pygments.formatters")
+
+
+def test_registered_styles():
+    entry_points = {}
+    for name in collect_class_names(Style):
+        entry_id = camel2under(name).replace("_", "-")
+        entry_points[entry_id] = f"click_extra.pygments:{name}"
+
+    check_entry_points(entry_points, "tool", "poetry", "plugins", "pygments.styles")
 
 
 def test_ansi_lexers_doc():
