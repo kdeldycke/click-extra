@@ -20,6 +20,7 @@
 from configparser import ConfigParser
 
 import furo
+from pygments import lexers
 from pygments.filter import Filter
 from pygments.filters import TokenMergeFilter
 from pygments.formatters import HtmlFormatter
@@ -32,14 +33,10 @@ from pygments.lexers.php import PsyshConsoleLexer
 from pygments.lexers.python import PythonConsoleLexer
 from pygments.lexers.r import RConsoleLexer
 from pygments.lexers.ruby import RubyConsoleLexer
-from pygments.lexers.shell import (
-    BashSessionLexer,
-    MSDOSSessionLexer,
-    PowerShellSessionLexer,
-    TcshSessionLexer,
-)
+from pygments.lexers.shell import ShellSessionBaseLexer
 from pygments.lexers.special import OutputLexer
 from pygments.lexers.sql import PostgresConsoleLexer, SqliteConsoleLexer
+from pygments.style import Style
 from pygments.styles import get_style_by_name
 from pygments.token import Generic, string_to_tokentype
 from pygments_ansi_color import (
@@ -70,7 +67,7 @@ furo_style_name = ini_config.get("theme", "pygments_style")
 
 
 # Base our new custom style in furo's.
-style_base = get_style_by_name(furo_style_name)
+style_base: Style = get_style_by_name(furo_style_name)
 
 
 class ClickExtraAnsiFuroStyle(style_base):
@@ -134,27 +131,33 @@ class AnsiLexerFiltersMixin(Lexer):
         self.filters.append(AnsiFilter())
 
 
-# TODO: fetch all lexers which are a subclass of ShellSessionBaseLexer and use auto-class generation to replace the repeating code below.
+def collect_session_lexers():
+    """Retrieve from default Pygments lexers the list of those producing shell-like sessions."""
 
-shell_lexers = [
-    BashSessionLexer,
-    DylanConsoleLexer,
-    ElixirConsoleLexer,
-    ErlangShellLexer,
-    JuliaConsoleLexer,
-    MSDOSSessionLexer,
-    MatlabSessionLexer,
-    OutputLexer,
-    PostgresConsoleLexer,
-    PowerShellSessionLexer,
-    PsyshConsoleLexer,
-    PythonConsoleLexer,
-    RConsoleLexer,
-    RubyConsoleLexer,
-    SqliteConsoleLexer,
-    TcshSessionLexer,
-]
-for original_lexer in shell_lexers:
+    # Manually maintained list of shell-like session lexers.
+    yield from [
+        DylanConsoleLexer,
+        ElixirConsoleLexer,
+        ErlangShellLexer,
+        JuliaConsoleLexer,
+        MatlabSessionLexer,
+        OutputLexer,
+        PostgresConsoleLexer,
+        PsyshConsoleLexer,
+        PythonConsoleLexer,
+        RConsoleLexer,
+        RubyConsoleLexer,
+        SqliteConsoleLexer,
+    ]
+
+    # Automaticcaly retrieve all proper shell session lexers.
+    for lexer in lexers._iter_lexerclasses():
+        if ShellSessionBaseLexer in lexer.__bases__:
+            yield lexer
+
+
+# Auto-generate the ANSI variant of all lexers we collected.
+for original_lexer in collect_session_lexers():
     new_name = f"Ansi{original_lexer.__name__}"
     new_lexer = AnsiSessionLexer(new_name, (AnsiLexerFiltersMixin, original_lexer), {})
     locals()[new_name] = new_lexer

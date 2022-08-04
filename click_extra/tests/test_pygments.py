@@ -19,15 +19,7 @@ import sys
 from operator import itemgetter
 from pathlib import Path
 
-import pygments
 from boltons.strutils import camel2under
-from pygments.lexers.shell import (
-    BashSessionLexer,
-    MSDOSSessionLexer,
-    PowerShellSessionLexer,
-    ShellSessionBaseLexer,
-    TcshSessionLexer,
-)
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -35,32 +27,16 @@ else:
     import tomli as tomllib
 
 from .. import pygments as extra_pygments
-from ..pygments import shell_lexers
+from ..pygments import collect_session_lexers
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 
 
-all_shell_session_lexers = (
-    lexer
-    for lexer in pygments.lexers._iter_lexerclasses()
-    if ShellSessionBaseLexer in lexer.__bases__
-)
-
-
-def test_all_shell_session_lexers_have_ansi_variant():
-    assert set(all_shell_session_lexers) == {
-        BashSessionLexer,
-        MSDOSSessionLexer,
-        PowerShellSessionLexer,
-        TcshSessionLexer,
-    }
-
-
-def test_registered_lexers():
+def test_registered_ansi_lexers():
     entry_points = {}
-    for lexer in shell_lexers:
+    for lexer in collect_session_lexers():
 
-        # Check an ANSI lexer variant is available in Click Extra.
+        # Check an ANSI lexer variant is available for import from Click Extra.
         ansi_lexer_id = f"Ansi{lexer.__name__}"
         assert ansi_lexer_id in extra_pygments.__dict__
 
@@ -79,3 +55,9 @@ def test_registered_lexers():
     toml_config = tomllib.loads(toml_path.read_text(encoding="utf-8"))
     toml_entry_points = toml_config["tool"]["poetry"]["plugins"]["pygments.lexers"]
     assert toml_entry_points == entry_points
+
+
+def test_ansi_lexers_doc():
+    doc_content = PROJECT_ROOT.joinpath("docs/pygments.md").read_text()
+    for lexer in collect_session_lexers():
+        assert lexer.__name__ in doc_content
