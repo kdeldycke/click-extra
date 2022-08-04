@@ -192,6 +192,41 @@ def invoke(runner, monkeypatch):
     return _run
 
 
+# TODO: Report upstream to cloup.
+no_naked_deco = pytest.mark.skip(reason="Naked decorator not supported yet.")
+
+
+all_commands_decorators = tuple(
+    pytest.param(deco, deco_type, id=label, marks=marks)
+    for deco, deco_type, label, marks in (
+        (click.command, {"click", "command"}, "click.command", ()),
+        (click.command(), {"click", "command"}, "click.command()", ()),
+        (cloup.command, {"cloup", "command"}, "cloup.command", no_naked_deco),
+        (cloup.command(), {"cloup", "command"}, "cloup.command()", ()),
+        (
+            extra_command,
+            {"extra", "command"},
+            "click_extra.extra_command",
+            no_naked_deco,
+        ),
+        (extra_command(), {"extra", "command"}, "click_extra.extra_command()", ()),
+    )
+)
+all_group_decorators = tuple(
+    pytest.param(deco, deco_type, id=label, marks=marks)
+    for deco, deco_type, label, marks in (
+        (click.group, {"click", "group"}, "click.group", ()),
+        (click.group(), {"click", "group"}, "click.group()", ()),
+        (cloup.group, {"cloup", "group"}, "cloup.group", no_naked_deco),
+        (cloup.group(), {"cloup", "group"}, "cloup.group()", ()),
+        (extra_group, {"extra", "group"}, "click_extra.extra_group", no_naked_deco),
+        (extra_group(), {"extra", "group"}, "click_extra.extra_group()", ()),
+    )
+)
+all_base_decorators = tuple((*all_commands_decorators, *all_group_decorators))
+"""Collections of Pytest parameters to test all forms of click/cloup/click-extra command-like decorators."""
+
+
 @pytest.fixture
 def create_config(tmp_path):
     """A generic fixture to produce a temporary configuration file."""

@@ -20,13 +20,14 @@
 from functools import partial
 from gettext import gettext as _
 
-import cloup
 import tabulate
 from cli_helpers.tabular_output import TabularOutputFormatter, tabulate_adapter
 from cli_helpers.tabular_output.output_formatter import MAX_FIELD_WIDTH
+from click import Choice, echo, get_current_context
+from cloup import option
 from tabulate import DataRow, Line, TableFormat
 
-from . import Choice, ExtraOption, Option, echo, get_current_context
+from .parameters import ExtraOption
 from .platform import is_windows
 
 new_formats = {
@@ -151,7 +152,8 @@ class TableFormatOption(ExtraOption):
     def cleanup_formatter(self):
         """Clean-up formatter attached to context."""
         ctx = get_current_context()
-        del ctx.table_formatter
+        if hasattr(ctx, "table_formatter"):
+            delattr(ctx, "table_formatter")
 
     def print_table(self, table_formatter, *args, **kwargs):
         """Print table via echo."""
@@ -194,4 +196,4 @@ class TableFormatOption(ExtraOption):
 
 def table_format_option(*param_decls: str, cls=TableFormatOption, **kwargs):
     """Decorator for ``TableFormatOption``."""
-    return cloup.option(*param_decls, cls=cls, **kwargs)
+    return option(*param_decls, cls=cls, **kwargs)

@@ -15,15 +15,19 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-import click
 import pytest
 
-from .. import echo, pass_context, table_format_option
-from ..tabulate import TabularOutputFormatter
+# We use vanilla click primitives here to demonstrate the full-compatibility.
+from click import echo, pass_context
+from pytest_cases import fixture, parametrize
+
+from ..tabulate import TabularOutputFormatter, table_format_option
+from .conftest import all_base_decorators, all_commands_decorators
 
 
-def test_unrecognized_format(invoke):
-    @click.command
+@pytest.mark.parametrize("cmd_decorator, cmd_type", all_base_decorators)
+def test_unrecognized_format(invoke, cmd_decorator, cmd_type):
+    @cmd_decorator
     @table_format_option()
     def dummy_cli():
         echo("It works!")
@@ -31,9 +35,14 @@ def test_unrecognized_format(invoke):
     result = invoke(dummy_cli, "--table-format", "random")
     assert result.exit_code == 2
     assert not result.output
+
+    group_help = " COMMAND [ARGS]..." if "group" in cmd_type else ""
+    extra_suggest = (
+        "Try 'dummy-cli --help' for help.\n" if "extra" not in cmd_type else ""
+    )
     assert result.stderr == (
-        "Usage: dummy-cli [OPTIONS]\n"
-        "Try 'dummy-cli --help' for help.\n\n"
+        f"Usage: dummy-cli [OPTIONS]{group_help}\n"
+        f"{extra_suggest}\n"
         "Error: Invalid value for '-t' / '--table-format': "
         "'random' is not one of 'csv', 'csv-tab', 'double_grid', 'double_outline', "
         "'fancy_grid', 'github', 'grid', 'html', 'jira', 'latex', 'latex_booktabs', "
@@ -49,12 +58,14 @@ day,temperature
 2,80
 3,79
 """
+
 csv_tab_table = """
 day	temperature
 1	87
 2	80
 3	79
 """
+
 double_grid_table = """
 ╔═════╦═════════════╗
 ║ day ║ temperature ║
@@ -66,6 +77,7 @@ double_grid_table = """
 ║   3 ║          79 ║
 ╚═════╩═════════════╝
 """
+
 double_outline_table = """
 ╔═════╦═════════════╗
 ║ day ║ temperature ║
@@ -75,6 +87,7 @@ double_outline_table = """
 ║   3 ║          79 ║
 ╚═════╩═════════════╝
 """
+
 fancy_grid_table = """
 ╒═════╤═════════════╕
 │ day │ temperature │
@@ -86,6 +99,7 @@ fancy_grid_table = """
 │   3 │          79 │
 ╘═════╧═════════════╛
 """
+
 github_table = """
 | day | temperature |
 |-----|-------------|
@@ -93,6 +107,7 @@ github_table = """
 |   2 |          80 |
 |   3 |          79 |
 """
+
 grid_table = """
 +-----+-------------+
 | day | temperature |
@@ -104,6 +119,7 @@ grid_table = """
 |   3 |          79 |
 +-----+-------------+
 """
+
 html_table = """
 <table>
 <thead>
@@ -116,12 +132,14 @@ html_table = """
 </tbody>
 </table>
 """
+
 jira_table = """
 || day || temperature ||
 | 1 | 87 |
 | 2 | 80 |
 | 3 | 79 |
 """
+
 latex_table = """
 \\begin{tabular}{ll}
 \\hline
@@ -133,6 +151,7 @@ latex_table = """
 \\hline
 \\end{tabular}
 """
+
 latex_booktabs_table = """
 \\begin{tabular}{ll}
 \\toprule
@@ -144,6 +163,7 @@ latex_booktabs_table = """
 \\bottomrule
 \\end{tabular}
 """
+
 mediawiki_table = """
 {| class="wikitable" style="text-align: left;"
 |+ <!-- caption -->
@@ -157,17 +177,20 @@ mediawiki_table = """
 | 3 || 79
 |}
 """
+
 minimal_table = """
 1  87
 2  80
 3  79
 """
+
 moinmoin_table = """
 || ''' day ''' || ''' temperature ''' ||
 ||  1  ||  87  ||
 ||  2  ||  80  ||
 ||  3  ||  79  ||
 """
+
 orgtbl_table = """
 | day | temperature |
 |-----+-------------|
@@ -175,6 +198,7 @@ orgtbl_table = """
 |   2 |          80 |
 |   3 |          79 |
 """
+
 outline_table = """
 +-----+-------------+
 | day | temperature |
@@ -184,6 +208,7 @@ outline_table = """
 |   3 |          79 |
 +-----+-------------+
 """
+
 pipe_table = """
 | day | temperature |
 |----:|------------:|
@@ -191,12 +216,14 @@ pipe_table = """
 |   2 |          80 |
 |   3 |          79 |
 """
+
 plain_table = """
 day  temperature
   1           87
   2           80
   3           79
 """
+
 psql_table = """
 +-----+-------------+
 | day | temperature |
@@ -206,6 +233,7 @@ psql_table = """
 |   3 |          79 |
 +-----+-------------+
 """
+
 rounded_grid_table = """
 ╭─────┬─────────────╮
 │ day │ temperature │
@@ -217,6 +245,7 @@ rounded_grid_table = """
 │   3 │          79 │
 ╰─────┴─────────────╯
 """
+
 rounded_outline_table = """
 ╭─────┬─────────────╮
 │ day │ temperature │
@@ -226,6 +255,7 @@ rounded_outline_table = """
 │   3 │          79 │
 ╰─────┴─────────────╯
 """
+
 rst_table = """
 ===  ===========
 day  temperature
@@ -235,6 +265,7 @@ day  temperature
   3           79
 ===  ===========
 """
+
 simple_grid_table = """
 ┌─────┬─────────────┐
 │ day │ temperature │
@@ -246,6 +277,7 @@ simple_grid_table = """
 │   3 │          79 │
 └─────┴─────────────┘
 """
+
 simple_table = """
 day  temperature
 ---  -----------
@@ -253,6 +285,7 @@ day  temperature
   2           80
   3           79
 """
+
 simple_outline_table = """
 ┌─────┬─────────────┐
 │ day │ temperature │
@@ -262,18 +295,21 @@ simple_outline_table = """
 │   3 │          79 │
 └─────┴─────────────┘
 """
+
 textile_table = """
 |_.  day |_. temperature |
 | 1  | 87 |
 | 2  | 80 |
 | 3  | 79 |
 """
+
 tsv_table = """
 day	temperature
 1	87
 2	80
 3	79
 """
+
 vertical_table = """
 ***************************[ 1. row ]***************************
 day         | 1
@@ -330,19 +366,24 @@ def test_recognized_modes():
     )
 
 
-@click.command
-@table_format_option()
-@pass_context
-def dummy_cli(ctx):
-    echo(f"ctx.table_formatter.format_name = {ctx.table_formatter.format_name}")
-    data = ((1, 87), (2, 80), (3, 79))
-    headers = ("day", "temperature")
-    ctx.print_table(data, headers)
+@fixture
+@parametrize("cmd_decorator, cmd_type", all_commands_decorators)
+def table_cli(cmd_decorator, cmd_type):
+    @cmd_decorator
+    @table_format_option()
+    @pass_context
+    def cli(ctx):
+        echo(f"ctx.table_formatter.format_name = {ctx.table_formatter.format_name}")
+        data = ((1, 87), (2, 80), (3, 79))
+        headers = ("day", "temperature")
+        ctx.print_table(data, headers)
+
+    return cli
 
 
-def test_default_rendering(invoke):
-    """Check default rendering is rounded_outline."""
-    result = invoke(dummy_cli)
+def test_default_rendering(invoke, table_cli):
+    """Check default rendering is ``rounded_outline``."""
+    result = invoke(table_cli)
     assert result.exit_code == 0
     assert result.output == (
         "ctx.table_formatter.format_name = rounded_outline" + rounded_outline_table
@@ -354,17 +395,10 @@ def test_default_rendering(invoke):
     "format_name,expected",
     (pytest.param(k, v, id=k) for k, v in expected_renderings.items()),
 )
-def test_all_table_rendering(invoke, format_name, expected):
-    """Check that from all rendering modes, only the selected one appears in <stdout>
-    and only there. Any other mode are not expected neither in.
-
-    <stdout> or <stderr>.
-    """
-    result = invoke(dummy_cli, "--table-format", format_name)
+def test_all_table_rendering(invoke, table_cli, format_name, expected):
+    result = invoke(table_cli, "--table-format", format_name)
     assert result.exit_code == 0
-
-    print(result.output)
-
-    assert f"ctx.table_formatter.format_name = {format_name}\n"
-    assert expected in result.stdout
+    assert result.stdout == (
+        f"ctx.table_formatter.format_name = {format_name}\n{expected.strip()}\n"
+    )
     assert not result.stderr
