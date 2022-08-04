@@ -23,7 +23,7 @@ import furo
 from pygments.filter import Filter
 from pygments.filters import TokenMergeFilter
 from pygments.formatters import HtmlFormatter
-from pygments.lexer import LexerMeta
+from pygments.lexer import Lexer, LexerMeta
 from pygments.lexers.dylan import DylanConsoleLexer
 from pygments.lexers.erlang import ElixirConsoleLexer, ErlangShellLexer
 from pygments.lexers.julia import JuliaConsoleLexer
@@ -118,7 +118,7 @@ class AnsiSessionLexer(LexerMeta):
         return new_cls
 
 
-class AnsiLexerFiltersMixin:
+class AnsiLexerFiltersMixin(Lexer):
     def __init__(self, *args, **kwargs) -> None:
         """Adds a ``TokenMergeFilter`` and ``AnsiOutputFilter`` to the list of filters.
 
