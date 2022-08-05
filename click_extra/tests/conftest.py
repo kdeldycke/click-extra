@@ -335,19 +335,19 @@ default_options_uncolored_help = (
 
 
 default_options_colored_help = (
-    r"  \x1b\[36m--time / --no-time\x1b\[0m        Measure and print elapsed execution time.  \[default:\x1b\[0m\n"
-    r"                            no-time\]\x1b\[0m\n"
+    r"  \x1b\[36m--time / --no-time\x1b\[0m        Measure and print elapsed execution time.  \[default:\n"
+    r"                            no-time\]\n"
     r"  \x1b\[36m--color, \x1b\[36m--ansi\x1b\[0m / --no-color, --no-ansi\x1b\[0m\n"
-    r"                            Strip out all colors and all ANSI codes from output.\x1b\[0m\n"
-    r"                            \[default: color\]\x1b\[0m\n"
-    r"  \x1b\[36m-C, \x1b\[36m--config\x1b\[0m \x1b\[90mCONFIG_PATH\x1b\[0m\x1b\[0m  Location of the configuration file. Supports both\x1b\[0m\n"
-    r"                            local path and remote URL.  \[default:( \S+)?\x1b\[0m\n"
+    r"                            Strip out all colors and all ANSI codes from output.\n"
+    r"                            \[default: color\]\n"
+    r"  \x1b\[36m-C, \x1b\[36m--config\x1b\[0m \x1b\[90mCONFIG_PATH\x1b\[0m\x1b\[0m  Location of the configuration file. Supports both\n"
+    r"                            local path and remote URL.  \[default:( \S+)?\n"
     r"(                            \S+\n)*"
-    r"                            \S+.{toml,yaml,yml,json,ini,xml}\]\x1b\[0m\n"
-    r"  \x1b\[36m-v, \x1b\[36m--verbosity\x1b\[0m \x1b\[90mLEVEL\x1b\[0m\x1b\[0m     Either \x1b\[35mCRITICAL\x1b\[0m, \x1b\[35mERROR\x1b\[0m, \x1b\[35mWARNING\x1b\[0m, \x1b\[35mINFO\x1b\[0m, \x1b\[35mDEBUG\x1b\[0m.\x1b\[0m\n"
-    r"                            \[default: \x1b\[35mINFO\x1b\[0m\]\x1b\[0m\n"
-    r"  \x1b\[36m--version\x1b\[0m                 Show the version and exit.\x1b\[0m\n"
-    r"  \x1b\[36m-h, \x1b\[36m--help\x1b\[0m\x1b\[0m                Show this message and exit.\x1b\[0m\n"
+    r"                            \S+.{toml,yaml,yml,json,ini,xml}\]\n"
+    r"  \x1b\[36m-v, \x1b\[36m--verbosity\x1b\[0m \x1b\[90mLEVEL\x1b\[0m\x1b\[0m     Either \x1b\[35mCRITICAL\x1b\[0m, \x1b\[35mERROR\x1b\[0m, \x1b\[35mWARNING\x1b\[0m, \x1b\[35mINFO\x1b\[0m, \x1b\[35mDEBUG\x1b\[0m.\n"
+    r"                            \[default: \x1b\[35mINFO\x1b\[0m\]\n"
+    r"  \x1b\[36m--version\x1b\[0m                 Show the version and exit.\n"
+    r"  \x1b\[36m-h, \x1b\[36m--help\x1b\[0m\x1b\[0m                Show this message and exit.\n"
 )
 
 

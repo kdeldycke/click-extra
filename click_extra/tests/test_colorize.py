@@ -24,18 +24,19 @@ import cloup
 import pytest
 from boltons.strutils import strip_ansi
 from click import echo, secho, style
-from cloup import Style, command, option, option_group
+from cloup import HelpTheme, Style, command, option, option_group
 from pytest_cases import fixture, parametrize
 
 from ..colorize import (
     HelpExtraFormatter,
+    HelpExtraTheme,
     color_option,
     highlight,
     theme,
     version_option,
 )
 from ..commands import extra_command, extra_group
-from ..logging import logger, verbosity_option
+from ..logging import LOG_LEVELS, logger, verbosity_option
 from .conftest import (
     command_decorators,
     default_debug_colored_log,
@@ -43,6 +44,15 @@ from .conftest import (
     default_options_colored_help,
     skip_windows_colors,
 )
+
+
+def test_theme_definition():
+    """Ensure we do not leave any property we would have inherited from cloup and logging primitives."""
+    assert set(HelpTheme._fields).issubset(HelpExtraTheme._fields)
+
+    log_levels = {l.lower() for l in LOG_LEVELS}
+    assert log_levels.issubset(HelpExtraTheme._fields)
+    assert log_levels.isdisjoint(HelpTheme._fields)
 
 
 def test_options_highlight():
@@ -175,7 +185,7 @@ def test_keyword_collection(invoke):
         \x1b[94m\x1b[1m\x1b[94m\x1b[1mUsage\x1b[0m: \x1b[0m\x1b[97mcolor-cli1 command1\x1b[0m [OPTIONS]
 
         \x1b[94m\x1b[1m\x1b[94m\x1b[1mOptions\x1b[0m:\x1b[0m
-          \x1b[36m-h, \x1b[36m--help\x1b[0m\x1b[0m  Show this message and exit.\x1b[0m
+          \x1b[36m-h, \x1b[36m--help\x1b[0m\x1b[0m  Show this message and exit.
         """
     )
     assert not result.stderr
@@ -188,7 +198,7 @@ def test_keyword_collection(invoke):
         \x1b[94m\x1b[1m\x1b[94m\x1b[1mUsage\x1b[0m: \x1b[0m\x1b[97mcommand1\x1b[0m [OPTIONS]
 
         \x1b[94m\x1b[1m\x1b[94m\x1b[1mOptions\x1b[0m:\x1b[0m
-          \x1b[36m-h, \x1b[36m--help\x1b[0m\x1b[0m  Show this message and exit.\x1b[0m
+          \x1b[36m-h, \x1b[36m--help\x1b[0m\x1b[0m  Show this message and exit.
         """
     )
     assert not result.stderr

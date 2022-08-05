@@ -50,6 +50,7 @@ classifiers = [
     'Topic :: Terminals',
     'Topic :: Text Processing :: Markup :: XML',
     'Topic :: Utilities',
+    'Typing :: Typed',
 ]
 
 [tool.poetry.urls]
@@ -91,10 +92,14 @@ pytest-cov = "^3.0.0"
 pytest-httpserver = "^1.0.3"
 pytest-randomly = "^3.12.0"
 sphinx = "^5.0.2"
+sphinx-autodoc-typehints = "^1.18.3"
 sphinx-copybutton = "^0.5.0"
 sphinx-design = "^0.2.0"
 sphinx-issues = "^3.0.1"
 sphinxext-opengraph = "^0.6.3"
+types-tabulate = "^0.8.11"
+types-xmltodict = "^0.13.0"
+typing-extensions = { version = "^4.3.0", python = "<= 3.7" }
 
 [tool.poetry.plugins."pygments.lexers"]
 # The name of the entrypoint values doesn’t really matter, Pygments extracts required metadata from the class definition.
@@ -138,6 +143,38 @@ target-version = ['py37', 'py38', 'py39', 'py310']
 # W0511: fixme
 # W1203: logging-fstring-interpolation
 disable = "C0114, W0511, W1203"
+
+[tool.mypy]
+warn_unused_configs = true
+#python_version = "3.7"
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+warn_unreachable = true
+pretty = true
+
+[[tool.mypy.overrides]]
+module = [
+    "boltons.*",
+    "cli_helpers.*",
+    "click.*",
+    "click_log",
+    "cloup.*",
+    "commentjson.*",
+    "furo.*",
+    "mergedeep.*",
+    "pygments.*",
+    "pygments_ansi_color.*",
+    "pytest.*",
+    "pytest_cases.*",
+    "regex.*",
+    "requests.*",
+    "tabulate.*",
+    "tomli_w.*",
+    "xmltodict.*",
+    "yaml.*",
+]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 # https://docs.pytest.org/en/latest/customize.html#pyproject-toml

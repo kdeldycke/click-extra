@@ -23,6 +23,7 @@ This version is not released yet and is under active development.
 - Add custom `click-extra-ansi-furo` Pygment style to render ANSI tokens in `furo` theme.
 - Add `pallets_sphinx_themes` and `pygments-ansi-color` dependency.
 - Allow translation of short help in extra options.
+- Add minimal type hints.
 - Pre-compute test matrix to allow for a subset of jobs to fail because they're unstable.
 - Run tests on `ubuntu-22.04` and `macos-12`.
 - Remove tests on `macos-10.15`, its been deprecated by GitHub.

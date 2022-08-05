@@ -21,23 +21,18 @@ The collection of pre-defined decorators here present good and common defaults. 
 still mix'n'match the mixins below to build your own custom variants.
 """
 
+from functools import partial
 from gettext import gettext as _
 from logging import getLevelName
 from time import perf_counter
 
-import cloup
+from click import echo
+from cloup import Command, Group, command, group, option
 
-from . import (
-    ColorOption,
-    ConfigOption,
-    ExtraOption,
-    HelpOption,
-    VerbosityOption,
-    VersionOption,
-    echo,
-)
-from .colorize import ExtraHelpColorsMixin
-from .logging import logger
+from .colorize import ColorOption, ExtraHelpColorsMixin, HelpOption, VersionOption
+from .config import ConfigOption
+from .logging import VerbosityOption, logger
+from .parameters import ExtraOption
 
 
 class TimerOption(ExtraOption):
@@ -86,12 +81,11 @@ class TimerOption(ExtraOption):
         )
 
 
-def timer_option(*param_decls: str, cls=TimerOption, **kwargs):
-    """Decorator for ``TimerOption``."""
-    return cloup.option(*param_decls, cls=cls, **kwargs)
+timer_option = partial(option, cls=TimerOption)
+"""Decorator for ``TimerOption``."""
 
 
-class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):
+class ExtraCommand(ExtraHelpColorsMixin, Command):
     """Same as ``cloup.command``, but with sane defaults and extra help screen colorization."""
 
     def __init__(self, *args, version=None, extra_option_at_end=True, **kwargs):
@@ -134,7 +128,7 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):
         During context instantiation, each option's callbacks are called. Beware that
         these might break the execution flow (like ``--version``).
         """
-        super().main(*args, **kwargs)
+        return super().main(*args, **kwargs)
 
     @staticmethod
     def _get_param(ctx, klass):
@@ -166,31 +160,31 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):
         return super().invoke(ctx)
 
 
-class ExtraGroup(ExtraCommand, cloup.Group):
+class ExtraGroup(ExtraCommand, Group):
     """Same as ``cloup.group``, but with sane defaults and extra help screen colorization."""
 
     pass
 
 
-extra_params = [
-    TimerOption(),
-    ColorOption(),
-    ConfigOption(),
-    VerbosityOption(),
-    VersionOption(print_env_info=True),
-    HelpOption(),
-]
-"""Default additional options added to ``extra_command`` and ``extra_group``.
+def default_extra_params():
+    """Default additional options added to ``extra_command`` and ``extra_group``.
 
-Order is important so that options at the top of the list can have influence on options below.
-"""
+    Order is important so that options at the top of the list can have influence on options below.
 
-
-def extra_command(*args, cls=ExtraCommand, params=extra_params, **kwargs):
-    """Augment default ``cloup.command`` with additional options."""
-    return cloup.command(*args, cls=cls, params=params, **kwargs)
+    This is a method to not have the option instances reused between commands (like in tests)."""
+    return [
+        TimerOption(),
+        ColorOption(),
+        ConfigOption(),
+        VerbosityOption(),
+        VersionOption(print_env_info=True),
+        HelpOption(),
+    ]
 
 
-def extra_group(*args, cls=ExtraGroup, params=extra_params, **kwargs):
-    """Augment default ``cloup.group`` with additional options."""
-    return cloup.group(*args, cls=cls, params=params, **kwargs)
+extra_command = partial(command, cls=ExtraCommand, params=default_extra_params())
+"""Augment default ``cloup.command`` with additional options."""
+
+
+extra_group = partial(group, cls=ExtraGroup, params=default_extra_params())
+"""Augment default ``cloup.group`` with additional options."""

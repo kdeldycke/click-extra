@@ -21,65 +21,120 @@ import inspect
 import os
 import re
 import sys
-import types
-import typing as t
-from collections import namedtuple
 from configparser import RawConfigParser
 from functools import partial
 from gettext import gettext as _
 from operator import getitem
+from types import ModuleType
+from typing import Iterable, NamedTuple, Optional, Set
 
-import click
-import cloup
 import regex as re3
 from boltons.strutils import complement_int_list, int_ranges_from_int_list
-from click_log import ColorFormatter
+from click import Parameter, echo, get_current_context
+from click.core import ParameterSource
+from cloup import Choice, Context, HelpFormatter, Style, option
+from cloup._util import identity
+from cloup.styling import IStyle
 
-from . import (
-    Choice,
-    ExtraOption,
-    HelpFormatter,
-    HelpTheme,
-    ParameterSource,
-    Style,
-    echo,
-    get_current_context,
-)
-
-# Extend the predefined theme named tuple with our extra styles.
-theme_params = {
-    field: Style()
-    for field in HelpTheme._fields
-    + ("subheading", "option", "choice", "metavar", "search", "success")
-}
-
-# Extend even more with logging styles.
-log_level_styles = {
-    "critical": Style(fg="red"),
-    "error": Style(fg="red"),
-    "warning": Style(fg="yellow"),
-    "info": Style(),
-    "debug": Style(fg="blue"),
-}
-# Check consistency.
-assert set(log_level_styles) == {l.lower() for l in LOG_LEVELS}
-assert set(theme_params).isdisjoint(log_level_styles)
-theme_params.update(log_level_styles)
-
-# Populate theme with all default styles.
-HelpExtraTheme = namedtuple(
-    "HelpExtraTheme", theme_params.keys(), defaults=theme_params.values()
-)
-"""Like ``cloup.HelpTheme`` but with Click Extra's specific themeable properties and click-log's."""
+from .parameters import ExtraOption
 
 
-# Set our CLI global theme.
+class HelpExtraTheme(NamedTuple):
+    """Extends ``cloup.HelpTheme`` with Click Extra's specific properties and ``logging.levels``.
+
+    We had to redefined all fields and couldn't extend ``cloup.HelpTheme`` as there is no way to cleanly do it because of mypy. See:
+    https://github.com/python/typing/issues/427
+    https://mypy.readthedocs.io/en/stable/runtime_troubles.html#future-annotations-import-pep-563
+    """
+
+    # Hard-copy from cloup.HelpTheme.
+    invoked_command: IStyle = identity
+    command_help: IStyle = identity
+    heading: IStyle = identity
+    constraint: IStyle = identity
+    section_help: IStyle = identity
+    col1: IStyle = identity
+    col2: IStyle = identity
+    epilog: IStyle = identity
+
+    # Log levels from Python's logging module.
+    critical: IStyle = identity
+    error: IStyle = identity
+    warning: IStyle = identity
+    info: IStyle = identity
+    debug: IStyle = identity
+
+    # Click Extra new coloring properties.
+    subheading: IStyle = identity
+    option: IStyle = identity
+    choice: IStyle = identity
+    metavar: IStyle = identity
+    search: IStyle = identity
+    success: IStyle = identity
+
+    def with_(
+        self,
+        invoked_command: Optional[IStyle] = None,
+        command_help: Optional[IStyle] = None,
+        heading: Optional[IStyle] = None,
+        constraint: Optional[IStyle] = None,
+        section_help: Optional[IStyle] = None,
+        col1: Optional[IStyle] = None,
+        col2: Optional[IStyle] = None,
+        epilog: Optional[IStyle] = None,
+        critical: Optional[IStyle] = None,
+        error: Optional[IStyle] = None,
+        warning: Optional[IStyle] = None,
+        info: Optional[IStyle] = None,
+        debug: Optional[IStyle] = None,
+        subheading: Optional[IStyle] = None,
+        option: Optional[IStyle] = None,
+        choice: Optional[IStyle] = None,
+        metavar: Optional[IStyle] = None,
+        search: Optional[IStyle] = None,
+        success: Optional[IStyle] = None,
+    ) -> "HelpExtraTheme":
+        """Copy of ``cloup.HelpTheme.with_``."""
+        kwargs = {key: val for key, val in locals().items() if val is not None}
+        kwargs.pop("self")
+        if kwargs:
+            return self._replace(**kwargs)
+        return self
+
+    @staticmethod
+    def dark() -> "HelpExtraTheme":
+        """A theme assuming a dark terminal background color.
+
+        .. todo:
+            Implement default dark theme.
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def light() -> "HelpExtraTheme":
+        """A theme assuming a light terminal background color.
+
+        .. todo:
+            Implement default light theme.
+        """
+        raise NotImplementedError
+
+
+# Populate our global theme with all default styles.
 theme = HelpExtraTheme(
+    # Cloup properties.
     invoked_command=Style(fg="bright_white"),
     heading=Style(fg="bright_blue", bold=True),
-    subheading=Style(fg="blue"),
     constraint=Style(fg="magenta"),
     col1=Style(fg="cyan"),
+    # Log levels.
+    critical=Style(fg="red"),
+    error=Style(fg="red"),
+    warning=Style(fg="yellow"),
+    info=Style(),
+    debug=Style(fg="blue"),
+    # Click Extra properties.
+    subheading=Style(fg="blue"),
     option=Style(fg="cyan"),
     choice=Style(fg="magenta"),
     metavar=Style(fg="bright_black"),
@@ -89,9 +144,7 @@ theme = HelpExtraTheme(
 
 
 # No color theme.
-nocolor_theme = HelpExtraTheme(
-    **{style_id: Style() for style_id in HelpExtraTheme._fields}
-)
+nocolor_theme = HelpExtraTheme()
 
 
 OK = theme.success("✓")
@@ -132,7 +185,7 @@ class ColorOption(ExtraOption):
     """
 
     @staticmethod
-    def _disable_colors(ctx, param, value):
+    def disable_colors(ctx, param, value):
         """Callback disabling all coloring utilities.
 
         Re-inspect the environment for existence of colorization flags to re-interpret the
@@ -183,12 +236,13 @@ class ColorOption(ExtraOption):
         default=True,
         is_eager=True,
         expose_value=False,
-        callback=_disable_colors.__func__,
         help=_("Strip out all colors and all ANSI codes from output."),
         **kwargs,
-    ):
+    ) -> None:
         if not param_decls:
             param_decls = ("--color/--no-color", "--ansi/--no-ansi")
+
+        kwargs.setdefault("callback", self.disable_colors)
 
         super().__init__(
             param_decls=param_decls,
@@ -196,15 +250,13 @@ class ColorOption(ExtraOption):
             default=default,
             is_eager=is_eager,
             expose_value=expose_value,
-            callback=callback,
             help=help,
             **kwargs,
         )
 
 
-def color_option(*param_decls: str, cls=ColorOption, **kwargs):
-    """Decorator for ``ColorOption``."""
-    return cloup.option(*param_decls, cls=cls, **kwargs)
+color_option = partial(option, cls=ColorOption)
+"""Decorator for ``ColorOption``."""
 
 
 class VersionOption(ExtraOption):
@@ -214,6 +266,11 @@ class VersionOption(ExtraOption):
     that has been made into a class to allow it to be used with declarative `params=` argument
     (fixes [Click #2324 issue](https://github.com/pallets/click/issues/2324)).
     """
+
+    version: Optional[str] = None
+    package_name: Optional[str] = None
+    prog_name: Optional[str] = None
+    message: str = _("%(prog)s, version %(version)s")
 
     def guess_package_name(self):
         package_name = None
@@ -238,20 +295,20 @@ class VersionOption(ExtraOption):
 
     def callback(
         self,
-        ctx: click.Context,
-        param: click.Parameter,
+        ctx: Context,
+        param: Parameter,
         value: bool,
         capture_output: bool = False,
-    ) -> None:
+    ) -> Optional[str]:
         """Standard callback with an extra ``capture_output`` parameter which returns the output string instead of printing the (colored) version to the console."""
         if not value or ctx.resilient_parsing:
-            return
+            return None
 
         if self.prog_name is None:
             self.prog_name = ctx.find_root().info_name
 
         if self.version is None and self.package_name is not None:
-            metadata: t.Optional[types.ModuleType]
+            metadata: Optional[ModuleType]
 
             try:
                 from importlib import metadata  # type: ignore
@@ -272,7 +329,7 @@ class VersionOption(ExtraOption):
                 f"Could not determine the version for {self.package_name!r} automatically."
             )
 
-        output = t.cast(str, self.message) % {
+        output = self.message % {
             "prog": self.prog_name,
             "package": self.package_name,
             "version": self.version,
@@ -283,15 +340,16 @@ class VersionOption(ExtraOption):
 
         echo(output, color=ctx.color)
         ctx.exit()
+        return None
 
     def __init__(
         self,
-        param_decls=None,
-        version=None,
-        package_name: t.Optional[str] = None,
-        prog_name: t.Optional[str] = None,
-        message: str = _("%(prog)s, version %(version)s"),
-        print_env_info=False,
+        param_decls: Optional[Iterable[str]] = None,
+        version: Optional[str] = None,
+        package_name: Optional[str] = None,
+        prog_name: Optional[str] = None,
+        message: Optional[str] = None,
+        print_env_info: bool = False,
         version_style=Style(fg="green"),
         package_name_style=theme.invoked_command,
         prog_name_style=theme.invoked_command,
@@ -302,7 +360,7 @@ class VersionOption(ExtraOption):
         is_eager=True,
         help=_("Show the version and exit."),
         **kwargs,
-    ):
+    ) -> None:
         """
         For other params see Click's ``version_option`` decorator:
         https://click.palletsprojects.com/en/8.1.x/api/#click.version_option
@@ -346,7 +404,8 @@ class VersionOption(ExtraOption):
         self.version = version
         self.package_name = package_name
         self.prog_name = prog_name
-        self.message = message
+        if message:
+            self.message = message
 
         if self.version is None and self.package_name is None:
             self.package_name = self.guess_package_name()
@@ -388,14 +447,13 @@ class VersionOption(ExtraOption):
         )
 
 
-def version_option(*param_decls: str, cls=VersionOption, **kwargs):
-    """Decorator for ``VersionOption``."""
-    return cloup.option(*param_decls, cls=cls, **kwargs)
+version_option = partial(option, cls=VersionOption)
+"""Decorator for ``VersionOption``."""
 
 
 class HelpOption(ExtraOption):
     @staticmethod
-    def callback(ctx: click.Context, param: click.Parameter, value: bool) -> None:
+    def callback(ctx: Context, param: Parameter, value: bool) -> None:
         if not value or ctx.resilient_parsing:
             return
 
@@ -405,7 +463,6 @@ class HelpOption(ExtraOption):
     def __init__(
         self,
         param_decls=None,
-        callback=callback.__func__,
         is_flag=True,
         expose_value=False,
         is_eager=True,
@@ -415,9 +472,10 @@ class HelpOption(ExtraOption):
         if not param_decls:
             param_decls = ("--help", "-h")
 
+        kwargs.setdefault("callback", self.callback)
+
         super().__init__(
             param_decls=param_decls,
-            callback=callback,
             is_flag=is_flag,
             expose_value=expose_value,
             is_eager=is_eager,
@@ -426,9 +484,8 @@ class HelpOption(ExtraOption):
         )
 
 
-def help_option(*param_decls: str, cls=HelpOption, **kwargs):
-    """Decorator for ``HelpOption``."""
-    return cloup.option(*param_decls, cls=cls, **kwargs)
+help_option = partial(option, cls=HelpOption)
+"""Decorator for ``HelpOption``."""
 
 
 class ExtraHelpColorsMixin:
@@ -442,9 +499,9 @@ class ExtraHelpColorsMixin:
 
     def collect_keywords(self, ctx):
         """Parse click context to collect option names, choices and metavar keywords."""
-        options = set()
-        choices = set()
-        metavars = set()
+        options: set[str] = set()
+        choices: set[str] = set()
+        metavars: set[str] = set()
 
         # Includes CLI base name and its commands.
         cli_name = ctx.command_path
@@ -463,8 +520,8 @@ class ExtraHelpColorsMixin:
                 metavars.add(param.metavar)
 
         # Split between shorts and long options
-        long_options = set()
-        short_options = set()
+        long_options: Set[str] = set()
+        short_options: Set[str] = set()
         for option in options:
             if option.startswith("--"):
                 long_options.add(option)
@@ -507,11 +564,15 @@ class HelpExtraFormatter(HelpFormatter):
         super().__init__(*args, **kwargs)
 
     # Lists of extra keywords to highlight.
-    cli_name = None
-    long_options = set()
-    short_options = set()
-    choices = set()
-    metavars = set()
+    cli_name: Optional[str] = None
+    long_options: Set[str] = set()
+    short_options: Set[str] = set()
+    choices: Set[str] = set()
+    metavars: Set[str] = set()
+    # TODO
+    default_values: Set[str] = set()
+
+    # Hihglight extra keywords <stdout> or <stderr>
 
     def highlight_extra_keywords(self, help_text):
         """Highlight extra keywords in help screens based on the theme.

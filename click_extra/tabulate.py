@@ -194,6 +194,5 @@ class TableFormatOption(ExtraOption):
         )
 
 
-def table_format_option(*param_decls: str, cls=TableFormatOption, **kwargs):
-    """Decorator for ``TableFormatOption``."""
-    return option(*param_decls, cls=cls, **kwargs)
+table_format_option = partial(option, cls=TableFormatOption)
+"""Decorator for ``TableFormatOption``."""

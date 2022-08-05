@@ -18,12 +18,14 @@
 """Logging utilities."""
 
 import logging
+from functools import partial
 from gettext import gettext as _
 
-import click_log
-import cloup
+from click import echo
+from click_log import basic_config
+from cloup import Choice, option
 
-from . import Choice, ExtraOption
+from .parameters import ExtraOption
 
 LOG_LEVELS = {
     name: value
@@ -40,7 +42,7 @@ class WrappedLogger:
     def initialize_logger(self):
         """Generate a default logger."""
         logger = logging.getLogger(__name__)
-        click_log.basic_config(logger)
+        basic_config(logger)
         return logger
 
     def set_logger(self, default_logger=None):
@@ -98,11 +100,12 @@ class VerbosityOption(ExtraOption):
         expose_value=False,
         help=_("Either {log_levels}.").format(log_levels=", ".join(LOG_LEVELS)),
         is_eager=True,
-        callback=set_level.__func__,
         **kwargs,
     ):
         if not param_decls:
             param_decls = ("--verbosity", "-v")
+
+        kwargs.setdefault("callback", self.set_level)
 
         logger.set_logger(default_logger)
 
@@ -114,11 +117,9 @@ class VerbosityOption(ExtraOption):
             expose_value=expose_value,
             help=help,
             is_eager=is_eager,
-            callback=callback,
             **kwargs,
         )
 
 
-def verbosity_option(*param_decls: str, cls=VerbosityOption, **kwargs):
-    """Decorator for ``VerbosityOption``."""
-    return cloup.option(*param_decls, cls=cls, **kwargs)
+verbosity_option = partial(option, cls=VerbosityOption)
+"""Decorator for ``VerbosityOption``."""

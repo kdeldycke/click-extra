@@ -24,7 +24,6 @@ from gettext import gettext as _
 from operator import getitem
 from pathlib import Path
 
-import cloup
 import commentjson as json
 import requests
 import xmltodict
@@ -38,24 +37,14 @@ if sys.version_info >= (3, 11):
 else:
     import tomli as tomllib
 
-from . import (
-    BOOL,
-    FLOAT,
-    INT,
-    STRING,
-    UNPROCESSED,
-    UUID,
-    Choice,
-    DateTime,
-    ExtraOption,
-    File,
-    FloatRange,
-    IntRange,
-    ParameterSource,
-)
-from . import Path as ClickPath
-from . import Tuple, echo, get_app_dir, get_current_context
+from click import BOOL, FLOAT, INT, STRING, UNPROCESSED, UUID
+from click import Path as ClickPath
+from click import echo, get_app_dir, get_current_context
+from click.core import ParameterSource
+from cloup import Choice, DateTime, File, FloatRange, IntRange, Tuple, option
+
 from .logging import logger
+from .parameters import ExtraOption
 from .platform import is_windows
 
 IGNORED_OPTIONS = (
@@ -476,6 +465,5 @@ class ConfigOption(ExtraOption):
         )
 
 
-def config_option(*param_decls: str, cls=ConfigOption, **kwargs):
-    """Decorator for ``ConfigOption``."""
-    return cloup.option(*param_decls, cls=cls, **kwargs)
+config_option = partial(option, cls=ConfigOption)
+"""Decorator for ``ConfigOption``."""
