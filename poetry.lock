@@ -187,7 +187,7 @@ toml = ["tomli"]
 name = "decopatch"
 version = "1.4.10"
 description = "Create decorators easily in python."
-category = "main"
+category = "dev"
 optional = false
 python-versions = "*"
 
@@ -283,7 +283,7 @@ python-versions = "*"
 name = "makefun"
 version = "1.14.0"
 description = "Small library to dynamically create python functions."
-category = "main"
+category = "dev"
 optional = false
 python-versions = "*"
 
@@ -475,7 +475,7 @@ testing = ["argcomplete", "hypothesis (>=3.56)", "mock", "nose", "pygments (>=2.
 name = "pytest-cases"
 version = "3.6.13"
 description = "Separate test code from test cases in pytest."
-category = "main"
+category = "dev"
 optional = false
 python-versions = "*"
 
@@ -890,7 +890,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "f8c2296c936d398912033676ba42f43902dec8a8ac74311ca985cdced3ea02d1"
+content-hash = "15eb9663d3af9446cbbe6454b7e4a42c058b5b4ecb69fee391d46f18d2964246"
 
 [metadata.files]
 alabaster = [
