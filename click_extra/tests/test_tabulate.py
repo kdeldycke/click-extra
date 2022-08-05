@@ -22,26 +22,26 @@ from click import echo, pass_context
 from pytest_cases import fixture, parametrize
 
 from ..tabulate import TabularOutputFormatter, table_format_option
-from .conftest import all_base_decorators, all_commands_decorators
+from .conftest import command_decorators
 
 
-@pytest.mark.parametrize("cmd_decorator, cmd_type", all_base_decorators)
+@pytest.mark.parametrize("cmd_decorator, cmd_type", command_decorators(with_types=True))
 def test_unrecognized_format(invoke, cmd_decorator, cmd_type):
     @cmd_decorator
     @table_format_option()
-    def dummy_cli():
+    def tabulate_cli1():
         echo("It works!")
 
-    result = invoke(dummy_cli, "--table-format", "random")
+    result = invoke(tabulate_cli1, "--table-format", "random")
     assert result.exit_code == 2
     assert not result.output
 
     group_help = " COMMAND [ARGS]..." if "group" in cmd_type else ""
     extra_suggest = (
-        "Try 'dummy-cli --help' for help.\n" if "extra" not in cmd_type else ""
+        "Try 'tabulate-cli1 --help' for help.\n" if "extra" not in cmd_type else ""
     )
     assert result.stderr == (
-        f"Usage: dummy-cli [OPTIONS]{group_help}\n"
+        f"Usage: tabulate-cli1 [OPTIONS]{group_help}\n"
         f"{extra_suggest}\n"
         "Error: Invalid value for '-t' / '--table-format': "
         "'random' is not one of 'csv', 'csv-tab', 'double_grid', 'double_outline', "
@@ -367,18 +367,18 @@ def test_recognized_modes():
 
 
 @fixture
-@parametrize("cmd_decorator, cmd_type", all_commands_decorators)
-def table_cli(cmd_decorator, cmd_type):
+@parametrize("cmd_decorator", command_decorators(no_groups=True))
+def table_cli(cmd_decorator):
     @cmd_decorator
     @table_format_option()
     @pass_context
-    def cli(ctx):
+    def tabulate_cli2(ctx):
         echo(f"ctx.table_formatter.format_name = {ctx.table_formatter.format_name}")
         data = ((1, 87), (2, 80), (3, 79))
         headers = ("day", "temperature")
         ctx.print_table(data, headers)
 
-    return cli
+    return tabulate_cli2
 
 
 def test_default_rendering(invoke, table_cli):

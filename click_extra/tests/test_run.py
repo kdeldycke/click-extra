@@ -21,12 +21,14 @@ import os
 from pathlib import Path
 
 import click
+from click import echo, pass_context, secho, style, utils
+from cloup import Style
+from pytest_cases import fixture, parametrize
 
-from .. import Style, echo, pass_context, secho, style
 from ..logging import logger
 from ..platform import is_windows
 from ..run import env_copy
-from .conftest import skip_windows_colors
+from .conftest import command_decorators, skip_windows_colors
 
 
 def test_real_fs():
@@ -56,7 +58,7 @@ def test_env_copy():
 
 @click.command
 @pass_context
-def dummy_cli(ctx):
+def run_cli1(ctx):
     """https://github.com/pallets/click/issues/2111."""
 
     echo(Style(fg="green")("echo()"))
@@ -74,7 +76,37 @@ def dummy_cli(ctx):
     print(style("print() bypass Click.", fg="blue"))
 
     echo(f"Context.color = {ctx.color!r}")
-    echo(f"utils.should_strip_ansi = {click.utils.should_strip_ansi()!r}")
+    echo(f"click.utils.should_strip_ansi = {utils.should_strip_ansi()!r}")
+
+
+@fixture
+@parametrize("cmd_decorator", command_decorators(no_groups=True))
+def color_cli(cmd_decorator):
+    @cmd_decorator
+    @pass_context
+    def run_cli2(ctx):
+        """https://github.com/pallets/click/issues/2111."""
+
+        echo(Style(fg="green")("echo()"))
+        echo(Style(fg="green")("echo(color=None)"), color=None)
+        echo(
+            Style(fg="red")("echo(color=True) bypass invoke.color = False"), color=True
+        )
+        echo(Style(fg="green")("echo(color=False)"), color=False)
+
+        secho("secho()", fg="green")
+        secho("secho(color=None)", fg="green", color=None)
+        secho("secho(color=True) bypass invoke.color = False", fg="red", color=True)
+        secho("secho(color=False)", fg="green", color=False)
+
+        logger.warning("Is the logger colored?")
+
+        print(style("print() bypass Click.", fg="blue"))
+
+        echo(f"Context.color = {ctx.color!r}")
+        echo(f"click.utils.should_strip_ansi = {utils.should_strip_ansi()!r}")
+
+    return run_cli2
 
 
 def check_default_colored_rendering(result):
@@ -127,42 +159,42 @@ def check_forced_uncolored_rendering(result):
 
 @skip_windows_colors
 def test_invoke_optional_color(invoke):
-    result = invoke(dummy_cli, color=None)
+    result = invoke(run_cli1, color=None)
     check_default_uncolored_rendering(result)
     assert result.output.endswith(
-        "Context.color = None\nutils.should_strip_ansi = True\n"
+        "Context.color = None\nclick.utils.should_strip_ansi = True\n"
     )
 
 
 @skip_windows_colors
 def test_invoke_default_color(invoke):
-    result = invoke(dummy_cli)
+    result = invoke(run_cli1)
     check_default_uncolored_rendering(result)
     assert result.output.endswith(
-        "Context.color = None\nutils.should_strip_ansi = True\n"
+        "Context.color = None\nclick.utils.should_strip_ansi = True\n"
     )
 
 
 @skip_windows_colors
 def test_invoke_forced_color_stripping(invoke):
-    result = invoke(dummy_cli, color=False)
+    result = invoke(run_cli1, color=False)
     check_forced_uncolored_rendering(result)
     assert result.output.endswith(
-        "Context.color = None\nutils.should_strip_ansi = True\n"
+        "Context.color = None\nclick.utils.should_strip_ansi = True\n"
     )
 
 
 @skip_windows_colors
 def test_invoke_color_keep(invoke):
-    """On windows Click ends up deciding it is not running un an interactive terminal
+    """On windows Click ends up deciding it is not running in an interactive terminal
     and forces the stripping of all colors."""
-    result = invoke(dummy_cli, color=True)
+    result = invoke(run_cli1, color=True)
     if is_windows():
         check_default_uncolored_rendering(result)
     else:
         check_default_colored_rendering(result)
     assert result.output.endswith(
-        "Context.color = None\nutils.should_strip_ansi = False\n"
+        "Context.color = None\nclick.utils.should_strip_ansi = False\n"
     )
 
 
@@ -170,8 +202,8 @@ def test_invoke_color_keep(invoke):
 def test_invoke_color_forced(invoke):
     # Test colours are preserved while invoking, and forced to be rendered
     # on Windows.
-    result = invoke(dummy_cli, color="forced")
+    result = invoke(run_cli1, color="forced")
     check_default_colored_rendering(result)
     assert result.output.endswith(
-        "Context.color = True\nutils.should_strip_ansi = False\n"
+        "Context.color = True\nclick.utils.should_strip_ansi = False\n"
     )

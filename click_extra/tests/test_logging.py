@@ -17,37 +17,48 @@
 
 import re
 
-import click
 import pytest
+from click import echo
 
-from .. import echo, extra_group, verbosity_option
-from ..logging import LOG_LEVELS, logger
-from .conftest import default_debug_colored_log, skip_windows_colors
+from ..commands import extra_command
+from ..logging import LOG_LEVELS, logger, verbosity_option
+from .conftest import command_decorators, default_debug_colored_log, skip_windows_colors
 
 
-def test_unrecognized_verbosity(invoke):
-    @click.command
+@pytest.mark.parametrize("cmd_decorator, cmd_type", command_decorators(with_types=True))
+def test_unrecognized_verbosity(invoke, cmd_decorator, cmd_type):
+    @cmd_decorator
     @verbosity_option()
-    def dummy_cli():
+    def logging_cli1():
         echo("It works!")
 
-    result = invoke(dummy_cli, "--verbosity", "random")
+    result = invoke(logging_cli1, "--verbosity", "random")
     assert result.exit_code == 2
     assert not result.output
+
+    group_help = " COMMAND [ARGS]..." if "group" in cmd_type else ""
+    extra_suggest = (
+        "Try 'logging-cli1 --help' for help.\n" if "extra" not in cmd_type else ""
+    )
     assert result.stderr == (
-        "Usage: dummy-cli [OPTIONS]\n"
-        "Try 'dummy-cli --help' for help.\n\n"
+        f"Usage: logging-cli1 [OPTIONS]{group_help}\n"
+        f"{extra_suggest}\n"
         "Error: Invalid value for '--verbosity' / '-v': "
         "'random' is not one of 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'.\n"
     )
 
 
 @skip_windows_colors
+@pytest.mark.parametrize(
+    # Skip click extra's commands, as verbosity option is already part of the default.
+    "cmd_decorator",
+    command_decorators(no_groups=True, no_extra=True),
+)
 @pytest.mark.parametrize("level", LOG_LEVELS.keys())
-def test_standalone_verbosity_option(invoke, level):
-    @click.command
+def test_standalone_verbosity_option(invoke, cmd_decorator, level):
+    @cmd_decorator
     @verbosity_option()
-    def dummy_cli():
+    def logging_cli2():
         echo("It works!")
         logger.debug("my debug message.")
         logger.info("my info message.")
@@ -55,7 +66,7 @@ def test_standalone_verbosity_option(invoke, level):
         logger.error("my error message.")
         logger.critical("my critical message.")
 
-    result = invoke(dummy_cli, "--verbosity", level, color=True)
+    result = invoke(logging_cli2, "--verbosity", level, color=True)
     assert result.exit_code == 0
     assert result.output == "It works!\n"
 
@@ -73,18 +84,15 @@ def test_standalone_verbosity_option(invoke, level):
 
 @skip_windows_colors
 @pytest.mark.parametrize("level", LOG_LEVELS.keys())
+# TODO: test extra_group
 def test_integrated_verbosity_option(invoke, level):
-    @extra_group()
-    def dummy_cli():
+    @extra_command()
+    def logging_cli3():
         echo("It works!")
 
-    @dummy_cli.command()
-    def command1():
-        echo("Run command #1...")
-
-    result = invoke(dummy_cli, "--verbosity", level, "command1", color=True)
+    result = invoke(logging_cli3, "--verbosity", level, color=True)
     assert result.exit_code == 0
-    assert result.output == "It works!\nRun command #1...\n"
+    assert result.output == "It works!\n"
     if level == "DEBUG":
         assert re.fullmatch(default_debug_colored_log, result.stderr)
     else:

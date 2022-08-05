@@ -153,39 +153,29 @@ jobs:
           python -m pip install --upgrade poetry
           poetry install --no-interaction --no-ansi
 
-      - name: Locate test suites
-        # XXX Look fpr each test suite so we call call them one by one in the next step, instead of letting pytest do
-        # the job. That way we bypass a bug in Click 8.1.x in which our @extra_group() and @extra_command() decorators
-        # fails in tests if they're used more than once. See:
+      - name: Tests
+        env:
+          DESTRUCTIVE_TESTS: true
+        # XXX Execute each test suite separately. That way we bypass a bug with our @extra_group() and @extra_command()
+        # decorators which I have not identified yet. Suspected issues are:
         #   https://github.com/pallets/click/issues/2294
         #   https://github.com/pallets/click/pull/2312
-        uses: tj-actions/glob@v9.2
-        id: glob
-        with:
-          files: |
-            ./click_extra/tests/test_*.py
-
-      # pyproject.toml config file is specified at CLI level instead of letting coverage find it because of this bug:
-      #   https://github.com/nedbat/coveragepy/issues/512#issuecomment-399707938
-      #   https://github.com/pytest-dev/pytest-cov/issues/168#issuecomment-327533847
-      #   https://github.com/pytest-dev/pytest-cov/issues/243
-      - name: Tests - Linux
-        if: runner.os != 'Windows'
-        env:
-          DESTRUCTIVE_TESTS: true
+        # XXX Hard-coding random seeds is the worse thing ever but at least it will catch regressions while we search
+        # for the root cause and leaking code.
+        # pyproject.toml config file is specified at CLI level instead of letting coverage find it because of this bug:
+        #   https://github.com/nedbat/coveragepy/issues/512#issuecomment-399707938
+        #   https://github.com/pytest-dev/pytest-cov/issues/168#issuecomment-327533847
+        #   https://github.com/pytest-dev/pytest-cov/issues/243
         run: |
-          for suite in ${{ steps.glob.outputs.paths }}
-          do
-            poetry run pytest --cov-config=pyproject.toml --cov=./ --cov-report=xml "$suite"
-          done
-      - name: Tests - Windows
-        if: runner.os == 'Windows'
-        env:
-          DESTRUCTIVE_TESTS: true
-        run: |
-          foreach ($suite in ("${{ steps.glob.outputs.paths }}" -split ' ')){
-            poetry run pytest --cov-config=pyproject.toml --cov=./ --cov-report=xml "$suite"
-          }
+          poetry run pytest --randomly-seed=2892842890 --cov-config=pyproject.toml --cov=./ --cov-report=xml click_extra/tests/test_colorize.py
+          poetry run pytest --randomly-seed=4214375483 --cov-config=pyproject.toml --cov=./ --cov-report=xml click_extra/tests/test_commands.py
+          poetry run pytest --randomly-seed=3568961045 --cov-config=pyproject.toml --cov=./ --cov-report=xml click_extra/tests/test_logging.py
+          poetry run pytest --cov-config=pyproject.toml --cov=./ --cov-report=xml \
+          click_extra/tests/test_config.py \
+          click_extra/tests/test_platform.py \
+          click_extra/tests/test_pygments.py \
+          click_extra/tests/test_run.py \
+          click_extra/tests/test_tabulate.py
 
       - name: Codecov upload
         uses: codecov/codecov-action@v3.1.0

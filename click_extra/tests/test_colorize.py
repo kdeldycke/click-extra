@@ -23,20 +23,10 @@ import click
 import cloup
 import pytest
 from boltons.strutils import strip_ansi
+from click import echo, secho, style
+from cloup import Style, command, option, option_group
+from pytest_cases import fixture, parametrize
 
-from .. import (
-    Style,
-    command,
-    echo,
-    extra_command,
-    extra_group,
-    group,
-    option,
-    option_group,
-    secho,
-    style,
-    verbosity_option,
-)
 from ..colorize import (
     HelpExtraFormatter,
     color_option,
@@ -44,35 +34,15 @@ from ..colorize import (
     theme,
     version_option,
 )
-from ..logging import logger
+from ..commands import extra_command, extra_group
+from ..logging import logger, verbosity_option
 from .conftest import (
+    command_decorators,
     default_debug_colored_log,
     default_debug_uncolored_log,
     default_options_colored_help,
     skip_windows_colors,
 )
-
-all_command_decorators = pytest.mark.parametrize(
-    "command_decorator",
-    (
-        pytest.param(dec, id=label)
-        for dec, label in (
-            (click.group, "click.group"),
-            (click.group(), "click.group()"),
-            (click.command, "click.command"),
-            (click.command(), "click.command()"),
-            # (cloup.group, "cloup.group"),
-            # (cloup.group(), "cloup.group()"),
-            # (cloup.command, "cloup.command"),
-            # (cloup.command(), "cloup.command()"),
-            # (group, "click_extra.group"),
-            (group(), "click_extra.group()"),
-            # (command, "click_extra.command"),
-            (command(), "click_extra.command()"),
-        )
-    ),
-)
-"""A pytest parametrizer to test all forms of click/cloup/click-extra command decorators."""
 
 
 def test_options_highlight():
@@ -143,7 +113,7 @@ def test_keyword_collection(invoke):
         option("--o4"),
     )
     @option("--test")
-    def mycli(o1, o2, o3, o4, test):
+    def color_cli1(o1, o2, o3, o4, test):
         echo("It works!")
 
     @extra_command(params=None)
@@ -162,12 +132,12 @@ def test_keyword_collection(invoke):
     def command4():
         echo("Run click-extra command #4...")
 
-    mycli.section("Subcommand group 1", command1, command2)
-    mycli.section("Extra commands", command3, command4)
+    color_cli1.section("Subcommand group 1", command1, command2)
+    color_cli1.section("Extra commands", command3, command4)
 
     help_screen = (
         r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mUsage\x1b\[0m: "
-        r"\x1b\[0m\x1b\[97mmycli\x1b\[0m \[OPTIONS\] COMMAND \[ARGS\]...\n\n"
+        r"\x1b\[0m\x1b\[97mcolor-cli1\x1b\[0m \[OPTIONS\] COMMAND \[ARGS\]...\n\n"
         r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mGroup \x1b\[35m1\x1b\[0m\x1b\[0m:\x1b\[0m\n"
         r"  \x1b\[36m-a, \x1b\[36m--o1\x1b\[0m TEXT\x1b\[0m\n"
         r"  \x1b\[36m-b, \x1b\[36m--o2\x1b\[0m TEXT\x1b\[0m\n\n"
@@ -186,23 +156,23 @@ def test_keyword_collection(invoke):
         r"  \x1b\[36mcommand4\x1b\[0m\n"
     )
 
-    result = invoke(mycli, "--help", color=True)
+    result = invoke(color_cli1, "--help", color=True)
     assert result.exit_code == 0
     assert re.fullmatch(help_screen, result.output)
     assert not result.stderr
 
-    result = invoke(mycli, "-h", color=True)
+    result = invoke(color_cli1, "-h", color=True)
     assert result.exit_code == 0
     assert re.fullmatch(help_screen, result.output)
     assert not result.stderr
 
     # CLI main group is invoked before sub-command.
-    result = invoke(mycli, "command1", "--help", color=True)
+    result = invoke(color_cli1, "command1", "--help", color=True)
     assert result.exit_code == 0
     assert result.output == dedent(
         f"""\
         It works!
-        \x1b[94m\x1b[1m\x1b[94m\x1b[1mUsage\x1b[0m: \x1b[0m\x1b[97mmycli command1\x1b[0m [OPTIONS]
+        \x1b[94m\x1b[1m\x1b[94m\x1b[1mUsage\x1b[0m: \x1b[0m\x1b[97mcolor-cli1 command1\x1b[0m [OPTIONS]
 
         \x1b[94m\x1b[1m\x1b[94m\x1b[1mOptions\x1b[0m:\x1b[0m
           \x1b[36m-h, \x1b[36m--help\x1b[0m\x1b[0m  Show this message and exit.\x1b[0m
@@ -225,12 +195,12 @@ def test_keyword_collection(invoke):
 
     # Non-click-extra commands are not colorized nor have extra options.
     for cmd_id in ("command2", "command3"):
-        result = invoke(mycli, cmd_id, "--help", color=True)
+        result = invoke(color_cli1, cmd_id, "--help", color=True)
         assert result.exit_code == 0
         assert result.stdout == dedent(
             f"""\
             It works!
-            Usage: mycli {cmd_id} [OPTIONS]
+            Usage: color-cli1 {cmd_id} [OPTIONS]
 
             Options:
               -h, --help  Show this message and exit.
@@ -243,14 +213,14 @@ def test_keyword_collection(invoke):
 def test_standalone_version_option_with_env_info(invoke):
     @click.group
     @version_option(version="1.2.3.4", print_env_info=True)
-    def dummy_cli():
+    def color_cli2():
         echo("It works!")
 
     # Test default colouring.
-    result = invoke(dummy_cli, "--version", color=True)
+    result = invoke(color_cli2, "--version", color=True)
     assert result.exit_code == 0
 
-    regex_output = r"\x1b\[97mdummy-cli\x1b\[0m, version \x1b\[32m1.2.3.4"
+    regex_output = r"\x1b\[97mcolor-cli2\x1b\[0m, version \x1b\[32m1.2.3.4"
     # XXX Temporarily skip displaying environment details for Python >= 3.10 while we wait for
     # https://github.com/mahmoud/boltons/issues/294 to be released upstream.
     if sys.version_info[:2] < (3, 10):
@@ -265,17 +235,19 @@ def test_standalone_version_option_with_env_info(invoke):
     strict=False, reason="version_option always displays click-extra version. See #176."
 )
 @skip_windows_colors
-@all_command_decorators
-def test_standalone_version_option_without_env_info(invoke, command_decorator):
-    @command_decorator
+@parametrize("cmd_decorator", command_decorators(no_groups=True))
+def test_standalone_version_option_without_env_info(invoke, cmd_decorator):
+    @cmd_decorator
     @version_option(version="1.2.3.4", print_env_info=False)
-    def dummy_cli():
+    def color_cli3():
         echo("It works!")
 
     # Test default colouring.
-    result = invoke(dummy_cli, "--version", color=True)
+    result = invoke(color_cli3, "--version", color=True)
     assert result.exit_code == 0
-    assert result.output == "\x1b[97mdummy-cli\x1b[0m, version \x1b[32m1.2.3.4\x1b[0m\n"
+    assert (
+        result.output == "\x1b[97mcolor-cli3\x1b[0m, version \x1b[32m1.2.3.4\x1b[0m\n"
+    )
     assert not result.stderr
 
 
@@ -285,13 +257,13 @@ def test_standalone_version_option_without_env_info(invoke, command_decorator):
 )
 def test_integrated_version_option_precedence(invoke, params):
     @extra_group(version="1.2.3.4")
-    def dummy_cli():
+    def color_cli4():
         echo("It works!")
 
-    result = invoke(dummy_cli, "--version", params, color=True)
+    result = invoke(color_cli4, "--version", params, color=True)
     assert result.exit_code == 0
 
-    regex_output = r"\x1b\[97mdummy-cli\x1b\[0m, version \x1b\[32m1.2.3.4"
+    regex_output = r"\x1b\[97mcolor-cli4\x1b\[0m, version \x1b\[32m1.2.3.4"
     # XXX Temporarily skip displaying environment details for Python >= 3.10 while we wait for
     # https://github.com/mahmoud/boltons/issues/294 to be released upstream.
     if sys.version_info[:2] < (3, 10):
@@ -320,7 +292,7 @@ def test_standalone_color_option(invoke, param, expecting_colors):
     @click.command
     @verbosity_option()
     @color_option()
-    def dummy_cli():
+    def color_cli5():
         echo(Style(fg="yellow")("It works!"))
         echo("\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m")
         echo(style("Run command.", fg="magenta"))
@@ -328,7 +300,7 @@ def test_standalone_color_option(invoke, param, expecting_colors):
         print(style("print() bypass Click.", fg="blue"))
         secho("Done.", fg="green")
 
-    result = invoke(dummy_cli, param, "--verbosity", "DEBUG", color=True)
+    result = invoke(color_cli5, param, "--verbosity", "DEBUG", color=True)
     assert result.exit_code == 0
 
     if expecting_colors:
@@ -373,17 +345,17 @@ def test_color_option_precedence(invoke):
     @click.command
     @color_option()
     @version_option(version="2.1.9")
-    def dummy_cli():
+    def color_cli6():
         echo(Style(fg="yellow")("It works!"))
 
-    result = invoke(dummy_cli, "--no-color", "--version", "command1", color=True)
+    result = invoke(color_cli6, "--no-color", "--version", "command1", color=True)
     assert result.exit_code == 0
-    assert result.output == "dummy-cli, version 2.1.9\n"
+    assert result.output == "color-cli6, version 2.1.9\n"
     assert not result.stderr
 
-    result = invoke(dummy_cli, "--version", "--no-color", "command1", color=True)
+    result = invoke(color_cli6, "--version", "--no-color", "command1", color=True)
     assert result.exit_code == 0
-    assert result.output == "\x1b[97mdummy-cli\x1b[0m, version \x1b[32m2.1.9\x1b[0m\n"
+    assert result.output == "\x1b[97mcolor-cli6\x1b[0m, version \x1b[32m2.1.9\x1b[0m\n"
     assert not result.stderr
 
 
@@ -415,10 +387,10 @@ def test_no_color_env_convention(
 ):
     @click.command
     @color_option()
-    def dummy_cli():
+    def color_cli7():
         echo(Style(fg="yellow")("It works!"))
 
-    result = invoke(dummy_cli, param, color=True, env=env)
+    result = invoke(color_cli7, param, color=True, env=env)
     assert result.exit_code == 0
     assert not result.stderr
 
@@ -446,18 +418,18 @@ def test_no_color_env_convention(
 )
 def test_integrated_color_option(invoke, param, expecting_colors):
     @extra_group()
-    def dummy_cli():
+    def color_cli8():
         echo(Style(fg="yellow")("It works!"))
         echo("\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m")
 
-    @dummy_cli.command()
+    @color_cli8.command()
     def command1():
         echo(style("Run command #1.", fg="magenta"))
         logger.warning("Processing...")
         print(style("print() bypass Click.", fg="blue"))
         secho("Done.", fg="green")
 
-    result = invoke(dummy_cli, param, "--verbosity", "DEBUG", "command1", color=True)
+    result = invoke(color_cli8, param, "--verbosity", "DEBUG", "command1", color=True)
 
     assert result.exit_code == 0
     if expecting_colors:

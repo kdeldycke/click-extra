@@ -25,25 +25,19 @@ from textwrap import dedent
 import click
 import cloup
 import pytest
+from click import echo
+from cloup import command, option, option_group
 
-from .. import (
-    command,
-    echo,
-    extra_command,
-    extra_group,
-    option,
-    option_group,
-    timer_option,
-)
+from ..commands import extra_command, extra_group, timer_option
 from .conftest import default_options_uncolored_help
 
 
 class TestSubcommands:
     @extra_group(version="2021.10.08")
-    def cli_group():
+    def command_cli1():
         echo("It works!")
 
-    @cli_group.command()
+    @command_cli1.command()
     def default_subcommand():
         echo("Run default subcommand...")
 
@@ -59,7 +53,7 @@ class TestSubcommands:
     def click_subcommand():
         echo("Run click subcommand...")
 
-    cli_group.section(
+    command_cli1.section(
         "Subcommand group",
         click_extra_subcommand,
         cloup_subcommand,
@@ -67,7 +61,7 @@ class TestSubcommands:
     )
 
     help_screen = (
-        r"Usage: cli-group \[OPTIONS\] COMMAND \[ARGS\]...\n"
+        r"Usage: command-cli1 \[OPTIONS\] COMMAND \[ARGS\]...\n"
         r"\n"
         r"Options:\n"
         rf"{default_options_uncolored_help}"
@@ -82,19 +76,19 @@ class TestSubcommands:
     )
 
     def test_unknown_option(self, invoke):
-        result = invoke(self.cli_group, "--blah")
+        result = invoke(self.command_cli1, "--blah")
         assert result.exit_code == 2
         assert not result.stdout
         assert "Error: No such option: --blah" in result.stderr
 
     def test_unknown_command(self, invoke):
-        result = invoke(self.cli_group, "blah")
+        result = invoke(self.command_cli1, "blah")
         assert result.exit_code == 2
         assert not result.stdout
         assert "Error: No such command 'blah'." in result.stderr
 
     def test_required_command(self, invoke):
-        result = invoke(self.cli_group, "--verbosity", "DEBUG", color=False)
+        result = invoke(self.command_cli1, "--verbosity", "DEBUG", color=False)
         assert result.exit_code == 2
         # In debug mode, the version is always printed.
         assert not result.stdout
@@ -110,9 +104,9 @@ class TestSubcommands:
                 r"debug: Search for configuration in default location...\n"
                 r"debug: No default configuration found.\n"
                 r"debug: No configuration provided.\n"
-                r"debug: cli-group, version 2021.10.08\n"
+                r"debug: command-cli1, version 2021.10.08\n"
                 rf"{system_details_regex}"
-                r"Usage: cli-group \[OPTIONS\] COMMAND \[ARGS\]...\n"
+                r"Usage: command-cli1 \[OPTIONS\] COMMAND \[ARGS\]...\n"
                 r"\n"
                 r"Error: Missing command.\n"
             ),
@@ -121,7 +115,7 @@ class TestSubcommands:
 
     @pytest.mark.parametrize("param", (None, "-h", "--help"))
     def test_group_help(self, invoke, param):
-        result = invoke(self.cli_group, param, color=False)
+        result = invoke(self.command_cli1, param, color=False)
         assert result.exit_code == 0
         assert re.fullmatch(self.help_screen, result.stdout)
         assert "It works!" not in result.stdout
@@ -135,7 +129,7 @@ class TestSubcommands:
         """
         See: https://click.palletsprojects.com/en/8.0.x/advanced/#callback-evaluation-order
         """
-        result = invoke(self.cli_group, "--help", params, color=False)
+        result = invoke(self.command_cli1, "--help", params, color=False)
         assert result.exit_code == 0
         assert re.fullmatch(self.help_screen, result.stdout)
         assert "It works!" not in result.stdout
@@ -146,12 +140,12 @@ class TestSubcommands:
     @pytest.mark.parametrize("cmd_id", ("click-extra",))
     @pytest.mark.parametrize("param", ("-h", "--help"))
     def test_click_extra_subcommand_help(self, invoke, cmd_id, param):
-        result = invoke(self.cli_group, f"{cmd_id}-subcommand", param, color=False)
+        result = invoke(self.command_cli1, f"{cmd_id}-subcommand", param, color=False)
         assert result.exit_code == 0
         assert re.fullmatch(
             (
                 r"It works!\n"
-                rf"Usage: cli-group {cmd_id}-subcommand \[OPTIONS\]\n"
+                rf"Usage: command-cli1 {cmd_id}-subcommand \[OPTIONS\]\n"
                 r"\n"
                 r"Options:\n"
                 rf"{default_options_uncolored_help}"
@@ -163,12 +157,12 @@ class TestSubcommands:
     @pytest.mark.parametrize("cmd_id", ("default", "cloup", "click"))
     @pytest.mark.parametrize("param", ("-h", "--help"))
     def test_subcommand_help(self, invoke, cmd_id, param):
-        result = invoke(self.cli_group, f"{cmd_id}-subcommand", param, color=False)
+        result = invoke(self.command_cli1, f"{cmd_id}-subcommand", param, color=False)
         assert result.exit_code == 0
         assert result.stdout == dedent(
             f"""\
             It works!
-            Usage: cli-group {cmd_id}-subcommand [OPTIONS]
+            Usage: command-cli1 {cmd_id}-subcommand [OPTIONS]
 
             Options:
               -h, --help  Show this message and exit.
@@ -178,7 +172,7 @@ class TestSubcommands:
 
     @pytest.mark.parametrize("cmd_id", ("default", "click-extra", "cloup", "click"))
     def test_subcommand_execution(self, invoke, cmd_id):
-        result = invoke(self.cli_group, f"{cmd_id}-subcommand", color=False)
+        result = invoke(self.command_cli1, f"{cmd_id}-subcommand", color=False)
         assert result.exit_code == 0
         assert result.stdout == dedent(
             f"""\
@@ -189,7 +183,7 @@ class TestSubcommands:
         assert not result.stderr
 
     def test_integrated_time_option(self, invoke):
-        result = invoke(self.cli_group, "--time", "default-subcommand")
+        result = invoke(self.command_cli1, "--time", "default-subcommand")
         assert result.exit_code == 0
         assert re.fullmatch(
             r"It works!\nRun default subcommand...\nExecution time: [0-9.]+ seconds.\n",
@@ -198,16 +192,16 @@ class TestSubcommands:
         assert not result.stderr
 
     def test_integrated_notime_option(self, invoke):
-        result = invoke(self.cli_group, "--no-time", "default-subcommand")
+        result = invoke(self.command_cli1, "--no-time", "default-subcommand")
         assert result.exit_code == 0
         assert result.output == "It works!\nRun default subcommand...\n"
         assert not result.stderr
 
     def test_integrated_version_value(self, invoke):
-        result = invoke(self.cli_group, "--version", color=False)
+        result = invoke(self.command_cli1, "--version", color=False)
         assert result.exit_code == 0
 
-        regex_output = r"cli-group, version 2021.10.08\n"
+        regex_output = r"command-cli1, version 2021.10.08\n"
         # XXX Temporarily skip displaying environment details for Python >= 3.10 while we wait for
         # https://github.com/mahmoud/boltons/issues/294 to be released upstream.
         if sys.version_info[:2] < (3, 10):
@@ -260,18 +254,18 @@ def test_option_group_integration(invoke):
     )
     @click.option("-c", "--opt3")
     @option("-d", "--opt4")
-    def default_group(opt1, opt2, opt3, opt4):
+    def command_cli2(opt1, opt2, opt3, opt4):
         echo("It works!")
 
-    @default_group.command()
+    @command_cli2.command()
     def default_command():
         echo("Run command...")
 
-    result = invoke(default_group, "--help", color=False)
+    result = invoke(command_cli2, "--help", color=False)
     assert result.exit_code == 0
     assert re.fullmatch(
         (
-            r"Usage: default-group \[OPTIONS\] COMMAND \[ARGS\]...\n"
+            r"Usage: command-cli2 \[OPTIONS\] COMMAND \[ARGS\]...\n"
             r"\n"
             r"Group 1:\n"
             r"  -a, --opt1 TEXT\n"

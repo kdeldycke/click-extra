@@ -24,6 +24,11 @@ from pathlib import Path
 from textwrap import dedent
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, Optional, Sequence, Union
 
+import click
+import cloup
+import pytest
+from boltons.strutils import strip_ansi
+
 if TYPE_CHECKING:
     from click.core import BaseCommand
 
@@ -33,6 +38,7 @@ from boltons.strutils import strip_ansi
 from boltons.tbutils import ExceptionInfo
 from click.testing import CliRunner, Result
 
+from ..commands import extra_command, extra_group
 from ..platform import is_linux, is_macos, is_windows
 from ..run import print_cli_output
 
@@ -193,38 +199,99 @@ def invoke(runner, monkeypatch):
 
 
 # TODO: Report upstream to cloup.
-no_naked_deco = pytest.mark.skip(reason="Naked decorator not supported yet.")
+skip_naked = pytest.mark.skip(reason="Naked decorator not supported yet.")
 
 
-all_commands_decorators = tuple(
-    pytest.param(deco, deco_type, id=label, marks=marks)
-    for deco, deco_type, label, marks in (
-        (click.command, {"click", "command"}, "click.command", ()),
-        (click.command(), {"click", "command"}, "click.command()", ()),
-        (cloup.command, {"cloup", "command"}, "cloup.command", no_naked_deco),
-        (cloup.command(), {"cloup", "command"}, "cloup.command()", ()),
-        (
-            extra_command,
-            {"extra", "command"},
-            "click_extra.extra_command",
-            no_naked_deco,
-        ),
-        (extra_command(), {"extra", "command"}, "click_extra.extra_command()", ()),
-    )
-)
-all_group_decorators = tuple(
-    pytest.param(deco, deco_type, id=label, marks=marks)
-    for deco, deco_type, label, marks in (
-        (click.group, {"click", "group"}, "click.group", ()),
-        (click.group(), {"click", "group"}, "click.group()", ()),
-        (cloup.group, {"cloup", "group"}, "cloup.group", no_naked_deco),
-        (cloup.group(), {"cloup", "group"}, "cloup.group()", ()),
-        (extra_group, {"extra", "group"}, "click_extra.extra_group", no_naked_deco),
-        (extra_group(), {"extra", "group"}, "click_extra.extra_group()", ()),
-    )
-)
-all_base_decorators = tuple((*all_commands_decorators, *all_group_decorators))
-"""Collections of Pytest parameters to test all forms of click/cloup/click-extra command-like decorators."""
+def command_decorators(
+    no_commands=False,
+    no_groups=False,
+    no_click=False,
+    no_cloup=False,
+    no_extra=False,
+    with_types=False,
+):
+    """Returns collection of Pytest parameters to test all forms of click/cloup/click-extra command-like decorators."""
+    params = []
+
+    if no_commands == False:
+
+        if not no_click:
+            params.extend(
+                [
+                    (click.command, {"click", "command"}, "click.command", ()),
+                    (click.command(), {"click", "command"}, "click.command()", ()),
+                ]
+            )
+
+        if not no_cloup:
+            params.extend(
+                [
+                    (cloup.command, {"cloup", "command"}, "cloup.command", skip_naked),
+                    (cloup.command(), {"cloup", "command"}, "cloup.command()", ()),
+                ]
+            )
+
+        if not no_extra:
+            params.extend(
+                [
+                    (
+                        extra_command,
+                        {"extra", "command"},
+                        "click_extra.extra_command",
+                        skip_naked,
+                    ),
+                    (
+                        extra_command(),
+                        {"extra", "command"},
+                        "click_extra.extra_command()",
+                        (),
+                    ),
+                ]
+            )
+
+    if not no_groups:
+        if not no_click:
+            params.extend(
+                [
+                    (click.group, {"click", "group"}, "click.group", ()),
+                    (click.group(), {"click", "group"}, "click.group()", ()),
+                ]
+            )
+
+        if not no_cloup:
+            params.extend(
+                [
+                    (cloup.group, {"cloup", "group"}, "cloup.group", skip_naked),
+                    (cloup.group(), {"cloup", "group"}, "cloup.group()", ()),
+                ]
+            )
+
+        if not no_extra:
+            params.extend(
+                [
+                    (
+                        extra_group,
+                        {"extra", "group"},
+                        "click_extra.extra_group",
+                        skip_naked,
+                    ),
+                    (
+                        extra_group(),
+                        {"extra", "group"},
+                        "click_extra.extra_group()",
+                        (),
+                    ),
+                ]
+            )
+
+    decorator_params = []
+    for deco, deco_type, label, marks in params:
+        args = [deco]
+        if with_types:
+            args.append(deco_type)
+        decorator_params.append(pytest.param(*args, id=label, marks=marks))
+
+    return tuple(decorator_params)
 
 
 @pytest.fixture

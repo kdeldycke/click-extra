@@ -21,8 +21,7 @@ from pathlib import Path
 
 import click
 import pytest
-
-from .. import (
+from click import (
     BOOL,
     FLOAT,
     INT,
@@ -35,11 +34,13 @@ from .. import (
     FloatRange,
     IntRange,
 )
-from .. import Path as ClickPath
-from .. import Tuple, argument
+from click import Path as ClickPath
+from click import Tuple, echo
+from cloup import argument, option
+
 from .. import config as config_module
-from .. import config_option, echo, extra_group, option
-from ..config import conf_structure
+from ..commands import extra_group
+from ..config import conf_structure, config_option
 from ..platform import is_windows
 from .conftest import default_debug_uncolored_log
 
@@ -48,7 +49,7 @@ DUMMY_TOML_FILE = """
 
     top_level_param             = "to_ignore"
 
-    [config-test-cli]
+    [config-cli1]
     verbosity = "DEBUG"
     blahblah = 234
     dummy_flag = true
@@ -57,7 +58,7 @@ DUMMY_TOML_FILE = """
     [garbage]
     # An empty random section that will be skipped
 
-    [config-test-cli.default-command]
+    [config-cli1.default-command]
     int_param = 3
     random_stuff = "will be ignored"
     """
@@ -67,7 +68,7 @@ DUMMY_YAML_FILE = """
 
     top_level_param: to_ignore
 
-    config-test-cli:
+    config-cli1:
         verbosity : DEBUG
         blahblah: 234
         dummy_flag: True
@@ -87,7 +88,7 @@ DUMMY_YAML_FILE = """
 DUMMY_JSON_FILE = """
     {
         "top_level_param": "to_ignore",
-        "config-test-cli": {
+        "config-cli1": {
             "blahblah": 234,
             "dummy_flag": true,
             "my_list": [
@@ -120,14 +121,14 @@ DUMMY_INI_FILE = """
     spaces around the delimiter = obviously
     you can also use : to delimit keys from values
 
-    [config-test-cli.default-command]
+    [config-cli1.default-command]
     int_param = 3
     random_stuff = will be ignored
 
     [garbage]
     # An empty random section that will be skipped
 
-    [config-test-cli]
+    [config-cli1]
     verbosity : DEBUG
     blahblah: 234
     dummy_flag = true
@@ -137,7 +138,7 @@ DUMMY_INI_FILE = """
 DUMMY_XML_FILE = """
     <!-- Comment -->
 
-    <config-test-cli has="an attribute">
+    <config-cli1 has="an attribute">
 
         <to_ignore>
             <key>value</key>
@@ -168,7 +169,7 @@ DUMMY_XML_FILE = """
             <random_stuff>will be ignored</random_stuff>
         </default-command>
 
-    </config-test-cli>
+    </config-cli1>
     """
 
 
@@ -190,42 +191,40 @@ all_config_formats = pytest.mark.parametrize(
 @extra_group()
 @option("--dummy-flag/--no-flag")
 @option("--my-list", multiple=True)
-def config_test_cli(dummy_flag, my_list):
+def config_cli1(dummy_flag, my_list):
     echo(f"dummy_flag = {dummy_flag!r}")
     echo(f"my_list = {my_list!r}")
 
 
-@config_test_cli.command()
+@config_cli1.command()
 @option("--int-param", type=int, default=10)
 def default_command(int_param):
     echo(f"int_parameter = {int_param!r}")
 
 
 def test_unset_conf_no_message(invoke):
-    result = invoke(config_test_cli, "default-command")
+    result = invoke(config_cli1, "default-command")
     assert result.exit_code == 0
     assert result.output == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
     assert not result.stderr
 
 
 def test_unset_conf_debug_message(invoke):
-    result = invoke(
-        config_test_cli, "--verbosity", "DEBUG", "default-command", color=False
-    )
+    result = invoke(config_cli1, "--verbosity", "DEBUG", "default-command", color=False)
     assert result.exit_code == 0
     assert result.output == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
     assert re.fullmatch(default_debug_uncolored_log, result.stderr)
 
 
 def test_conf_default_path(invoke):
-    result = invoke(config_test_cli, "--help", color=False)
+    result = invoke(config_cli1, "--help", color=False)
     assert result.exit_code == 0
 
     # OS-specific part of the path.
-    folder = Path(".config-test-cli")
+    folder = Path(".config-cli1")
     home = "~"
     if is_windows():
-        folder = Path("AppData") / "Roaming" / "config-test-cli"
+        folder = Path("AppData") / "Roaming" / "config-cli1"
         home = Path.home()
 
     default_path = home / folder / "config.{toml,yaml,yml,json,ini,xml}"
@@ -238,7 +237,7 @@ def test_conf_default_path(invoke):
 def test_conf_not_exist(invoke):
     conf_path = Path("dummy.toml")
     result = invoke(
-        config_test_cli, "--config", str(conf_path), "default-command", color=False
+        config_cli1, "--config", str(conf_path), "default-command", color=False
     )
     assert result.exit_code == 2
     assert not result.output
@@ -251,7 +250,7 @@ def test_conf_not_exist(invoke):
 def test_conf_not_file(invoke):
     conf_path = Path().parent
     result = invoke(
-        config_test_cli, "--config", str(conf_path), "default-command", color=False
+        config_cli1, "--config", str(conf_path), "default-command", color=False
     )
     assert result.exit_code == 2
     assert not result.output
@@ -264,7 +263,7 @@ def test_conf_not_file(invoke):
 def test_conf_format_unknown(invoke, create_config):
     conf_path = create_config("file.unknown_extension", "")
     result = invoke(
-        config_test_cli, "--config", str(conf_path), "default-command", color=False
+        config_cli1, "--config", str(conf_path), "default-command", color=False
     )
     assert result.exit_code == 2
     assert not result.output
@@ -280,7 +279,7 @@ def test_conf_auto_types(invoke, monkeypatch, create_config):
     def patched_conf_structure(ctx):
         conf_template, conf_types = conf_structure(ctx)
         assert conf_template == {
-            "my-cli": {
+            "config-cli2": {
                 "flag1": None,
                 "flag2": None,
                 "str_param1": None,
@@ -307,7 +306,7 @@ def test_conf_auto_types(invoke, monkeypatch, create_config):
             }
         }
         assert conf_types == {
-            "my-cli": {
+            "config-cli2": {
                 "flag1": bool,
                 "flag2": bool,
                 "str_param1": str,
@@ -362,7 +361,7 @@ def test_conf_auto_types(invoke, monkeypatch, create_config):
     @argument("file_arg1", type=File("w"))
     @argument("file_arg2", type=File("w"), nargs=-1)
     @config_option()
-    def my_cli(
+    def config_cli2(
         flag1,
         flag2,
         str_param1,
@@ -391,7 +390,12 @@ def test_conf_auto_types(invoke, monkeypatch, create_config):
 
     conf_path = create_config("dummy.toml", DUMMY_TOML_FILE)
     result = invoke(
-        my_cli, "--config", str(conf_path), "random_file1", "random_file2", color=False
+        config_cli2,
+        "--config",
+        str(conf_path),
+        "random_file1",
+        "random_file2",
+        color=False,
     )
 
     assert result.exit_code == 0
@@ -405,11 +409,11 @@ def test_strict_conf(invoke, create_config):
     @option("--dummy-flag/--no-flag")
     @option("--my-list", multiple=True)
     @config_option(strict=True)
-    def my_cli(dummy_flag, my_list):
+    def config_cli3(dummy_flag, my_list):
         echo(f"dummy_flag    is {dummy_flag!r}")
         echo(f"my_list       is {my_list!r}")
 
-    @my_cli.command
+    @config_cli3.command
     @option("--int-param", type=int, default=10)
     def subcommand(int_param):
         echo(f"int_parameter is {int_param!r}")
@@ -417,18 +421,18 @@ def test_strict_conf(invoke, create_config):
     conf_file = """
         # My default configuration file.
 
-        [my-cli]
+        [config-cli3]
         dummy_flag = true   # New boolean default.
         my_list = ["item 1", "item #2", "Very Last Item!"]
 
-        [my-cli.subcommand]
+        [config-cli3.subcommand]
         int_param = 3
         random_stuff = "will be ignored"
         """
 
     conf_path = create_config("messy.toml", conf_file)
 
-    result = invoke(my_cli, "--config", str(conf_path), "subcommand", color=False)
+    result = invoke(config_cli3, "--config", str(conf_path), "subcommand", color=False)
 
     assert result.exception
     assert type(result.exception) == ValueError
@@ -454,7 +458,7 @@ def test_conf_file_overrides_defaults(
     for conf_path in conf_filepath, conf_url:
 
         result = invoke(
-            config_test_cli, "--config", str(conf_path), "default-command", color=False
+            config_cli1, "--config", str(conf_path), "default-command", color=False
         )
         assert result.exit_code == 0
         assert result.stdout == (
@@ -489,7 +493,7 @@ def test_auto_env_var_conf(invoke, create_config, httpserver, conf_name, conf_co
 
         conf_path = create_config(conf_name, conf_content)
         result = invoke(
-            config_test_cli,
+            config_cli1,
             "default-command",
             color=False,
             env={"CONFIG_TEST_CLI_CONFIG": str(conf_path)},
@@ -518,7 +522,7 @@ def test_conf_file_overrided_by_cli_param(
 
         conf_path = create_config(conf_name, conf_content)
         result = invoke(
-            config_test_cli,
+            config_cli1,
             "--my-list",
             "super",
             "--config",
