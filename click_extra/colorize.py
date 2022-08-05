@@ -54,18 +54,23 @@ theme_params = {
 }
 
 # Extend even more with logging styles.
-assert set(theme_params).isdisjoint(ColorFormatter.colors)
-theme_params.update(
-    {
-        style_id: Style(**color_params)
-        for style_id, color_params in ColorFormatter.colors.items()
-    }
-)
+log_level_styles = {
+    "critical": Style(fg="red"),
+    "error": Style(fg="red"),
+    "warning": Style(fg="yellow"),
+    "info": Style(),
+    "debug": Style(fg="blue"),
+}
+# Check consistency.
+assert set(log_level_styles) == {l.lower() for l in LOG_LEVELS}
+assert set(theme_params).isdisjoint(log_level_styles)
+theme_params.update(log_level_styles)
 
 # Populate theme with all default styles.
 HelpExtraTheme = namedtuple(
     "HelpExtraTheme", theme_params.keys(), defaults=theme_params.values()
 )
+"""Like ``cloup.HelpTheme`` but with Click Extra's specific themeable properties and click-log's."""
 
 
 # Set our CLI global theme.
