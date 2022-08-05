@@ -96,7 +96,7 @@ html_show_copyright = True
 html_show_sphinx = False
 
 
-pygments_style = "click-extra-ansi-furo"
+pygments_style = "ansi-click-extra-furo-style"
 
 
 from sphinx.highlighting import PygmentsBridge
