@@ -114,7 +114,7 @@ PygmentsBridge.html_formatter = AnsiHtmlFormatter
 # Source: https://github.com/pallets/click/blob/dc918b48fb9006be683a684b42cc7496ad649b83/docs/conf.py#L6-L7
 import click
 
-click._compat.text_type = str
+setattr(click._compat, "text_type", str)
 
 # Add support for ".. click:example::" and ".. click:run::" directives.
 from pallets_sphinx_themes.themes.click import domain
