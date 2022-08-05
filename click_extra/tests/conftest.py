@@ -184,7 +184,7 @@ def invoke(runner, monkeypatch):
             result.stderr_bytes = strip_ansi(result.stderr_bytes)
 
         print_cli_output(
-            [runner.get_default_prog_name(cli)] + args,
+            [runner.get_default_prog_name(cli)] + list(args),
             result.output,
             result.stderr,
             result.exit_code,
