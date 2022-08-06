@@ -70,12 +70,11 @@ jobs:
               #   TypeError: expected string or bytes-like object, got 'NoneType'
               {"3.11.0-alpha.7 - 3.11.0"},
 
-              # • Installing py (1.11.0)
               # ChunkedEncodingError
               # ("Connection broken: PermissionError(13, 'The process cannot access the file because it is being used
               # by another process')", PermissionError(13, 'The process cannot access the file because it is being used
               # by another process'))
-              # at C:\hostedtoolcache\windows\PyPy\3.8.12\x86\lib\site-packages\requests\models.py:818 in generate
+              # at C:\hostedtoolcache\windows\PyPy\3.X.XX\x86\lib\site-packages\requests\models.py:818 in generate
               #      814│ if hasattr(self.raw, "stream"):
               #      815│     try:
               #      816│         yield from self.raw.stream(chunk_size, decode_content=True)
@@ -85,28 +84,11 @@ jobs:
               #      820│         raise ContentDecodingError(e)
               #      821│     except ReadTimeoutError as e:
               #      822│         raise ConnectionError(e)
-              # • Installing six (1.16.0)
-              {"windows-2022", "pypy-3.8"},
-              {"windows-2019", "pypy-3.8"},
-
-              # • Installing mdit-py-plugins (0.3.0)
-              # ChunkedEncodingError
-              # ("Connection broken: PermissionError(13, 'The process cannot access the file because it is being used
-              # by another process')", PermissionError(13, 'The process cannot access the file because it is being used
-              # by another process'))
-              # at C:\hostedtoolcache\windows\PyPy\3.9.10\x86\lib\site-packages\requests\models.py:818 in generate
-              #      814│ if hasattr(self.raw, "stream"):
-              #      815│     try:
-              #      816│         yield from self.raw.stream(chunk_size, decode_content=True)
-              #      817│     except ProtocolError as e:
-              #   →  818│         raise ChunkedEncodingError(e)
-              #      819│     except DecodeError as e:
-              #      820│         raise ContentDecodingError(e)
-              #      821│     except ReadTimeoutError as e:
-              #      822│         raise ConnectionError(e)
-              # • Installing pytest (7.1.2)
               {"windows-2022", "pypy-3.9"},
+              {"windows-2022", "pypy-3.8"},
               {"windows-2019", "pypy-3.9"},
+              {"windows-2019", "pypy-3.8"},
+              {"windows-2019", "pypy-3.7"},
           ]
 
           jobs = []
