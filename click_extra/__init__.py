@@ -34,7 +34,7 @@ __version__ = "3.0.0"
 # Import all click's module-level content to allow for drop-in replacement.
 # XXX Star import is really badly supported by mypy for now and leads to lots of
 # "Module 'XXX' has no attribute 'YYY'". See: https://github.com/python/mypy/issues/4930
-from click import *  # type: ignore
+from click import *
 from click.core import ParameterSource
 
 # Overrides some of click helpers with cloup's.
