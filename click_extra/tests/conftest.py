@@ -22,7 +22,16 @@ import sys
 from functools import partial
 from pathlib import Path
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, Optional, Sequence, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Iterable,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 import click
 import cloup
@@ -117,7 +126,7 @@ class ExtraCliRunner(CliRunner):
     """
 
     @classmethod
-    def _args_cleanup(cls, *args: _Arg | _NestedArgs) -> tuple[str, ...]:
+    def _args_cleanup(cls, *args: Union[_Arg, _NestedArgs]) -> Tuple[str, ...]:
         """Flatten recursive iterables, remove all ``None``, and cast each element to
         strings.
 
