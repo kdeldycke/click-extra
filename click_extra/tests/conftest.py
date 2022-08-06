@@ -137,7 +137,7 @@ class ExtraCliRunner(CliRunner):
         """
         return tuple(str(arg) for arg in flatten(args) if arg is not None)
 
-    def invoke(
+    def invoke(  # type: ignore
         self,
         cli: "BaseCommand",
         args: Optional[Union[str, Sequence[str]]] = None,
