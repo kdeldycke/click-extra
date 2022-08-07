@@ -84,12 +84,9 @@ jobs:
               #      820│         raise ContentDecodingError(e)
               #      821│     except ReadTimeoutError as e:
               #      822│         raise ConnectionError(e)
-              {"windows-2022", "pypy-3.9"},
-              {"windows-2022", "pypy-3.8"},
-              {"windows-2022", "pypy-3.7"},
-              {"windows-2019", "pypy-3.9"},
-              {"windows-2019", "pypy-3.8"},
-              {"windows-2019", "pypy-3.7"},
+              {"pypy-3.9"},
+              {"pypy-3.8"},
+              {"pypy-3.7"},
           ]
 
           jobs = []
