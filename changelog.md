@@ -1,5 +1,11 @@
 # Changelog
 
+## {gh}`3.0.1 (unreleased) <compare/v3.0.0...main>`
+
+```{important}
+This version is not released yet and is under active development.
+```
+
 ## {gh}`3.0.0 (2022-08-07) <compare/v2.1.3...v3.0.0>`
 
 - Make default extra features optional, so `click_extra` can act as a drop-in replacement for `click` and `cloup` (closes {issue}`173`):
