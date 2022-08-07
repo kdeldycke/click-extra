@@ -6,24 +6,24 @@ As soon as [`click-extra` is installed](install.md), all its additionnal lexers,
 
 Click-extra provides new lexers capable of parsing ANSI code in vrious shell-like sessions. I.e. command lines or code, including a prompt, interspersed with output.
 
-| Original Lexer | Original IDs | ANSI variants |
-| --- | --- | --- |
-| [`BashSessionLexer`](https://pygments.org/docs/lexers/#pygments.lexers.shell.BashSessionLexer) |`console`, `shell-session` |`ansi-console`, `ansi-shell-session` |
-| [`DylanConsoleLexer`](https://pygments.org/docs/lexers/#pygments.lexers.dylan.DylanConsoleLexer) |`dylan-console`, `dylan-repl` | `ansi-dylan-console`, `ansi-dylan-repl`|
-| [`ElixirConsoleLexer`](https://pygments.org/docs/lexers/#pygments.lexers.erlang.ElixirConsoleLexer) | `iex`| `ansi-iex`|
-| [`ErlangShellLexer`](https://pygments.org/docs/lexers/#pygments.lexers.erlang.ErlangShellLexer) | `erl`|`ansi-erl` |
-| [`JuliaConsoleLexer`](https://pygments.org/docs/lexers/#pygments.lexers.julia.JuliaConsoleLexer) |`jlcon`, `julia-repl` | `ansi-jlcon`, `ansi-julia-repl`|
-|    [`MSDOSSessionLexer`](https://pygments.org/docs/lexers/#pygments.lexers.shell.MSDOSSessionLexer) | `doscon` | `ansi-doscon`|
-| [`MatlabSessionLexer`](https://pygments.org/docs/lexers/#pygments.lexers.matlab.MatlabSessionLexer) | `matlabsession`| `ansi-matlabsession`|
-| [`OutputLexer`](https://pygments.org/docs/lexers/#pygments.lexers.special.OutputLexer) | `output`| `ansi-output`|
-| [`PostgresConsoleLexer`](https://pygments.org/docs/lexers/#pygments.lexers.sql.PostgresConsoleLexer) |`psql`, `postgresql-console`, `postgres-console` | `ansi-psql`, `ansi-postgresql-console`, `ansi-postgres-console`|
-|    [`PowerShellSessionLexer`](https://pygments.org/docs/lexers/#pygments.lexers.shell.PowerShellSessionLexer) | `pwsh-session`, `ps1con`  | `ansi-pwsh-session`, `ansi-ps1con` |
-| [`PsyshConsoleLexer`](https://pygments.org/docs/lexers/#pygments.lexers.php.PsyshConsoleLexer) |`psysh` | `ansi-psysh`|
-|    [`PythonConsoleLexer`](https://pygments.org/docs/lexers/#pygments.lexers.python.PythonConsoleLexer)|`pycon` | `ansi-pycon`|
-| [`RConsoleLexer`](https://pygments.org/docs/lexers/#pygments.lexers.r.RConsoleLexer) | `rconsole`, `rout`| `ansi-rconsole`, `ansi-rout`|
-| [`RubyConsoleLexer`](https://pygments.org/docs/lexers/#pygments.lexers.ruby.RubyConsoleLexer) |`rbcon`, `irb` |`ansi-rbcon`, `ansi-irb` |
-| [`SqliteConsoleLexer`](https://pygments.org/docs/lexers/#pygments.lexers.sql.SqliteConsoleLexer) | `sqlite3`| `ansi-sqlite3`|
-|    [`TcshSessionLexer`](https://pygments.org/docs/lexers/#pygments.lexers.shell.TcshSessionLexer)|`tcshcon` | `ansi-tcshcon`|
+| Original Lexer                                                                                             | Original IDs                                     | ANSI variants                                                   |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | --------------------------------------------------------------- |
+| [`BashSessionLexer`](https://pygments.org/docs/lexers/#pygments.lexers.shell.BashSessionLexer)             | `console`, `shell-session`                       | `ansi-console`, `ansi-shell-session`                            |
+| [`DylanConsoleLexer`](https://pygments.org/docs/lexers/#pygments.lexers.dylan.DylanConsoleLexer)           | `dylan-console`, `dylan-repl`                    | `ansi-dylan-console`, `ansi-dylan-repl`                         |
+| [`ElixirConsoleLexer`](https://pygments.org/docs/lexers/#pygments.lexers.erlang.ElixirConsoleLexer)        | `iex`                                            | `ansi-iex`                                                      |
+| [`ErlangShellLexer`](https://pygments.org/docs/lexers/#pygments.lexers.erlang.ErlangShellLexer)            | `erl`                                            | `ansi-erl`                                                      |
+| [`JuliaConsoleLexer`](https://pygments.org/docs/lexers/#pygments.lexers.julia.JuliaConsoleLexer)           | `jlcon`, `julia-repl`                            | `ansi-jlcon`, `ansi-julia-repl`                                 |
+| [`MSDOSSessionLexer`](https://pygments.org/docs/lexers/#pygments.lexers.shell.MSDOSSessionLexer)           | `doscon`                                         | `ansi-doscon`                                                   |
+| [`MatlabSessionLexer`](https://pygments.org/docs/lexers/#pygments.lexers.matlab.MatlabSessionLexer)        | `matlabsession`                                  | `ansi-matlabsession`                                            |
+| [`OutputLexer`](https://pygments.org/docs/lexers/#pygments.lexers.special.OutputLexer)                     | `output`                                         | `ansi-output`                                                   |
+| [`PostgresConsoleLexer`](https://pygments.org/docs/lexers/#pygments.lexers.sql.PostgresConsoleLexer)       | `psql`, `postgresql-console`, `postgres-console` | `ansi-psql`, `ansi-postgresql-console`, `ansi-postgres-console` |
+| [`PowerShellSessionLexer`](https://pygments.org/docs/lexers/#pygments.lexers.shell.PowerShellSessionLexer) | `pwsh-session`, `ps1con`                         | `ansi-pwsh-session`, `ansi-ps1con`                              |
+| [`PsyshConsoleLexer`](https://pygments.org/docs/lexers/#pygments.lexers.php.PsyshConsoleLexer)             | `psysh`                                          | `ansi-psysh`                                                    |
+| [`PythonConsoleLexer`](https://pygments.org/docs/lexers/#pygments.lexers.python.PythonConsoleLexer)        | `pycon`                                          | `ansi-pycon`                                                    |
+| [`RConsoleLexer`](https://pygments.org/docs/lexers/#pygments.lexers.r.RConsoleLexer)                       | `rconsole`, `rout`                               | `ansi-rconsole`, `ansi-rout`                                    |
+| [`RubyConsoleLexer`](https://pygments.org/docs/lexers/#pygments.lexers.ruby.RubyConsoleLexer)              | `rbcon`, `irb`                                   | `ansi-rbcon`, `ansi-irb`                                        |
+| [`SqliteConsoleLexer`](https://pygments.org/docs/lexers/#pygments.lexers.sql.SqliteConsoleLexer)           | `sqlite3`                                        | `ansi-sqlite3`                                                  |
+| [`TcshSessionLexer`](https://pygments.org/docs/lexers/#pygments.lexers.shell.TcshSessionLexer)             | `tcshcon`                                        | `ansi-tcshcon`                                                  |
 
 To check the new lexers are properly register by Pygments:
 
