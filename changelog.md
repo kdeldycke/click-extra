@@ -12,21 +12,22 @@ This version is not released yet and is under active development.
   - Alias `click_extra.group` to `cloup.group`.
   - Alias `click_extra.command` to `cloup.group`.
 - Use declarative `params=` argument to set defaults options on `extra_command` and `extra_group`.
-- Rewrite all options as classes instead of decorators only.
-- Duplicate `click.version_option` code to allow for more flexibility,
-- Make all custom options inherits from `ExtraOption` class.
-- New `extra_option_at_end` to `extra_command` to move all extra options to the end by default.
+- Move the implementation of options to classes.
+- Hard-copy `version_option` code from `click` to allow for more flexibility.
+- All custom options inherits from `ExtraOption` class.
+- New `extra_option_at_end` to `extra_command` to force position of all extra options (on by default).
+- Replace theme styles inherited from `click-log` by Python standard `logging` module. Adds `info` and removes `exception` styles.
 - Add a tutorial in documentation.
 - Add support for `.. click:example::` and `.. click:run::` directives in documentation.
-- Add ANSI sesssion and console lexers for pygments.
-- Add `ansi-filter`, a Pygments filter to transform some tokens into ANSI tokens.
-- Add custom `click-extra-ansi-furo` Pygment style to render ANSI tokens in `furo` theme.
-- Add `pallets_sphinx_themes` and `pygments-ansi-color` dependency.
+- Add ANSI sesssion and console lexers for Pygments.
+- Add a Pygments filter to transform tokens into ANSI tokens.
+- Add custom Pygment style to render ANSI tokens in `furo` theme.
+- Add dependency on `pygments`, `pygments-ansi-color` and `Pallets-Sphinx-Themes`.
 - Allow translation of short help in extra options.
 - Add minimal type hints.
-- Pre-compute test matrix to allow for a subset of jobs to fail because they're unstable.
+- Pre-compute test matrix to allow for a subset of jobs to fail if flagged as unstable.
 - Run tests on `ubuntu-22.04` and `macos-12`.
-- Remove tests on `macos-10.15`, its been deprecated by GitHub.
+- Remove tests on deprecated `macos-10.15`.
 
 ## {gh}`2.1.3 (2022-07-08) <compare/v2.1.2...v2.1.3>`
 
