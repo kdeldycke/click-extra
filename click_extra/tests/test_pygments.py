@@ -73,7 +73,8 @@ def test_registered_lexers():
 
 
 def collect_class_names(klass, prefix="Ansi"):
-    """Returns the name of all classes defined in ``click_extra.pygments`` that are a subclass of ``klass``, and whose name starts with the provided ``prefix``."""
+    """Returns the name of all classes defined in ``click_extra.pygments`` that are a
+    subclass of ``klass``, and whose name starts with the provided ``prefix``."""
     for name, var in extra_pygments.__dict__.items():
         if issubclass(var, klass) and name.startswith(prefix):
             yield name

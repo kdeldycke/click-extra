@@ -21,6 +21,7 @@ from cloup import Option
 class ExtraOption(Option):
     """All new options implemented by ``click-extra`` derives from this class.
 
-    Does nothing in particular for now but provides a way to identify click-extra's own options with
-    certainty. Might be used in the future to implement common behavior, fixes or hacks.
+    Does nothing in particular for now but provides a way to identify click-extra's own
+    options with certainty. Might be used in the future to implement common behavior,
+    fixes or hacks.
     """

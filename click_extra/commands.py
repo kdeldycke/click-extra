@@ -36,8 +36,8 @@ from .parameters import ExtraOption
 
 
 class TimerOption(ExtraOption):
-    """A pre-configured option that is adding a ``--time/--no-time`` flag
-    to print elapsed time at the end of CLI execution."""
+    """A pre-configured option that is adding a ``--time/--no-time`` flag to print
+    elapsed time at the end of CLI execution."""
 
     def print_timer(self):
         """Compute and print elapsed execution time."""
@@ -86,7 +86,8 @@ timer_option = partial(option, cls=TimerOption)
 
 
 class ExtraCommand(ExtraHelpColorsMixin, Command):
-    """Same as ``cloup.command``, but with sane defaults and extra help screen colorization."""
+    """Same as ``cloup.command``, but with sane defaults and extra help screen
+    colorization."""
 
     def __init__(self, *args, version=None, extra_option_at_end=True, **kwargs):
 
@@ -132,7 +133,8 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
 
     @staticmethod
     def _get_param(ctx, klass):
-        """Search for the unique instance of a parameter that has been setup on the command and return it."""
+        """Search for the unique instance of a parameter that has been setup on the
+        command and return it."""
         params = [p for p in ctx.find_root().command.params if isinstance(p, klass)]
         if params:
             assert len(params) == 1
@@ -142,8 +144,9 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         """Main execution of the command, just after the context has been instantiated
         in ``main()``.
 
-        If an instance of ``VersionOption`` has been setup on the command, adds to the normal execution flow
-        the output of `--version` in DEBUG logs. This facilitates troubleshooting of user's issues.
+        If an instance of ``VersionOption`` has been setup on the command, adds to the
+        normal execution flow the output of `--version` in DEBUG logs. This facilitates
+        troubleshooting of user's issues.
         """
         if getLevelName(logger.level) == "DEBUG":
 
@@ -161,7 +164,8 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
 
 
 class ExtraGroup(ExtraCommand, Group):
-    """Same as ``cloup.group``, but with sane defaults and extra help screen colorization."""
+    """Same as ``cloup.group``, but with sane defaults and extra help screen
+    colorization."""
 
     pass
 
@@ -171,7 +175,8 @@ def default_extra_params():
 
     Order is important so that options at the top of the list can have influence on options below.
 
-    This is a method to not have the option instances reused between commands (like in tests)."""
+    This is a method to not have the option instances reused between commands (like in tests).
+    """
     return [
         TimerOption(),
         ColorOption(),

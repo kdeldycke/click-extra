@@ -40,7 +40,8 @@ from .parameters import ExtraOption
 
 
 class HelpExtraTheme(NamedTuple):
-    """Extends ``cloup.HelpTheme`` with Click Extra's specific properties and ``logging.levels``.
+    """Extends ``cloup.HelpTheme`` with Click Extra's specific properties and
+    ``logging.levels``.
 
     We had to redefined all fields and couldn't extend ``cloup.HelpTheme`` as there is no way to cleanly do it because of mypy. See:
     https://github.com/python/typing/issues/427
@@ -105,8 +106,7 @@ class HelpExtraTheme(NamedTuple):
     def dark() -> "HelpExtraTheme":
         """A theme assuming a dark terminal background color.
 
-        .. todo:
-            Implement default dark theme.
+        .. todo:     Implement default dark theme.
         """
         raise NotImplementedError
 
@@ -114,8 +114,7 @@ class HelpExtraTheme(NamedTuple):
     def light() -> "HelpExtraTheme":
         """A theme assuming a light terminal background color.
 
-        .. todo:
-            Implement default light theme.
+        .. todo:     Implement default light theme.
         """
         raise NotImplementedError
 
@@ -176,9 +175,8 @@ Source: https://github.com/pallets/click/issues/558
 
 
 class ColorOption(ExtraOption):
-    """A pre-configured option that is adding a ``--color/--no-color`` (aliased
-    by ``--ansi/--no-ansi``) option to keep or strip colors and ANSI codes from CLI
-    output.
+    """A pre-configured option that is adding a ``--color/--no-color`` (aliased by
+    ``--ansi/--no-ansi``) option to keep or strip colors and ANSI codes from CLI output.
 
     This option is eager by default to allow for other eager options (like
     ``--version``) to be rendered colorless.
@@ -188,8 +186,8 @@ class ColorOption(ExtraOption):
     def disable_colors(ctx, param, value):
         """Callback disabling all coloring utilities.
 
-        Re-inspect the environment for existence of colorization flags to re-interpret the
-        provided value.
+        Re-inspect the environment for existence of colorization flags to re-interpret
+        the provided value.
         """
         # Collect all colorize flags in environment variables we recognize.
         colorize_from_env = set()
@@ -199,7 +197,8 @@ class ColorOption(ExtraOption):
                 # hence the default to True.
                 var_value = os.environ.get(var, "true")
                 # `os.environ` is a dict whose all values are strings. Here we normalize these string into
-                # booleans. If we can't, we fallback to True, in the same spirit as above.
+                # booleans. If we can't, we fallback to True, in the same spirit as
+                # above.
                 var_boolean = RawConfigParser.BOOLEAN_STATES.get(
                     var_value.lower(), True
                 )
@@ -300,7 +299,8 @@ class VersionOption(ExtraOption):
         value: bool,
         capture_output: bool = False,
     ) -> Optional[str]:
-        """Standard callback with an extra ``capture_output`` parameter which returns the output string instead of printing the (colored) version to the console."""
+        """Standard callback with an extra ``capture_output`` parameter which returns
+        the output string instead of printing the (colored) version to the console."""
         if not value or ctx.resilient_parsing:
             return None
 
@@ -361,9 +361,8 @@ class VersionOption(ExtraOption):
         help=_("Show the version and exit."),
         **kwargs,
     ) -> None:
-        """
-        For other params see Click's ``version_option`` decorator:
-        https://click.palletsprojects.com/en/8.1.x/api/#click.version_option
+        """For other params see Click's ``version_option`` decorator:
+        https://click.palletsprojects.com/en/8.1.x/api/#click.version_option.
 
         :param param_decls: _description_, defaults to None
         :type param_decls: _type_, optional
