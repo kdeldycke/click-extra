@@ -111,7 +111,8 @@ PygmentsBridge.html_formatter = AnsiHtmlFormatter
 ####################################
 
 # XXX Compatibility workaround because of https://github.com/pallets/pallets-sphinx-themes/blob/7b69241f1fde3cc3849f513a9dd83fa8a2f36603/src/pallets_sphinx_themes/themes/click/domain.py#L9
-# Source: https://github.com/pallets/click/blob/dc918b48fb9006be683a684b42cc7496ad649b83/docs/conf.py#L6-L7
+# Source:
+# https://github.com/pallets/click/blob/dc918b48fb9006be683a684b42cc7496ad649b83/docs/conf.py#L6-L7
 import click
 
 setattr(click._compat, "text_type", str)
@@ -123,7 +124,8 @@ append_orig = domain.ViewList.append
 
 
 def patched_append(*args, **kwargs):
-    """Replace the code block produced by ``.. click:run::`` directive with an ANSI Shell Session (``.. code-block:: ansi-shell-session``).
+    """Replace the code block produced by ``.. click:run::`` directive with an ANSI
+    Shell Session (``.. code-block:: ansi-shell-session``).
 
     Targets:
     - [``.. sourcecode:: text`` for `Pallets-Sphinx-Themes <= 2.0.2`](https://github.com/pallets/pallets-sphinx-themes/blob/7b69241f1fde3cc3849f513a9dd83fa8a2f36603/src/pallets_sphinx_themes/themes/click/domain.py#L245)

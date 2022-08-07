@@ -76,7 +76,8 @@ class AnsiClickExtraFuroStyle(style_base):
 
 
 class AnsiFilter(Filter):
-    """Custom filter transforming a particular kind of token (``Generic.Output`` by defaults) into ANSI tokens."""
+    """Custom filter transforming a particular kind of token (``Generic.Output`` by
+    defaults) into ANSI tokens."""
 
     def __init__(self, **options) -> None:
         """Initialize a ``AnsiColorLexer`` and get the ``token_type`` to transform."""
@@ -95,10 +96,11 @@ class AnsiFilter(Filter):
 
 
 class AnsiSessionLexer(LexerMeta):
-    """Custom metaclass used as a class factory to derive an ANSI variant of default shell session lexers."""
+    """Custom metaclass used as a class factory to derive an ANSI variant of default
+    shell session lexers."""
 
     def __new__(cls, name, bases, dct):
-        """Setup class properties defaults for new ANSI-capable lexers
+        """Setup class properties defaults for new ANSI-capable lexers.
 
         Add an ANSI prefix to its name.
 
@@ -132,7 +134,8 @@ class AnsiLexerFiltersMixin(Lexer):
 
 
 def collect_session_lexers():
-    """Retrieve from default Pygments lexers the list of those producing shell-like sessions."""
+    """Retrieve from default Pygments lexers the list of those producing shell-like
+    sessions."""
 
     # Manually maintained list of shell-like session lexers.
     yield from [
@@ -164,9 +167,9 @@ for original_lexer in collect_session_lexers():
 
 
 class AnsiHtmlFormatter(ExtendedColorHtmlFormatterMixin, HtmlFormatter):
-    """
-    Extend standard Pygments' ``HtmlFormatter`` to [add support for ANSI 256 colors](https://github.com/chriskuehl/pygments-ansi-color#optional-enable-256-color-support).
-    """
+    """Extend standard Pygments' ``HtmlFormatter`` to [add support for ANSI 256
+    colors](https://github.com/chriskuehl/pygments-ansi-color#optional-enable-256-color-
+    support)."""
 
     name = "ANSI HTML"
     aliases = ["ansi-html"]

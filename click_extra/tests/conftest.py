@@ -219,7 +219,8 @@ def command_decorators(
     no_extra=False,
     with_types=False,
 ):
-    """Returns collection of Pytest parameters to test all forms of click/cloup/click-extra command-like decorators."""
+    """Returns collection of Pytest parameters to test all forms of click/cloup/click-
+    extra command-like decorators."""
     params = []
 
     if no_commands == False:

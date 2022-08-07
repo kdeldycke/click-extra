@@ -47,7 +47,8 @@ from .conftest import (
 
 
 def test_theme_definition():
-    """Ensure we do not leave any property we would have inherited from cloup and logging primitives."""
+    """Ensure we do not leave any property we would have inherited from cloup and
+    logging primitives."""
     assert set(HelpTheme._fields).issubset(HelpExtraTheme._fields)
 
     log_levels = {l.lower() for l in LOG_LEVELS}
