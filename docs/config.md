@@ -1,9 +1,9 @@
 # Configuration loader
 
-The configuration loader source values according the following precedence:
+The configuration loader sources values according the following precedence:
 `CLI parameters > Configuration file > Environment variables > Defaults`.
 
-The structure of the configuration file is automaticcaly derived from the
+The structure of the configuration file is automatically derived from the
 parameters of the CLI. There is no need to manually produce a configuration
 data structure to mirror the CLI.
 
@@ -93,7 +93,7 @@ In the file above, pay attention to:
   group ID (`def my_cli()`);
 - all the extra comments, sections and values that will be silently ignored.
 
-Now we can verify the TOML file is read automatticaly and change the defaults:
+Now we can verify the TOML file is read automatically and change the defaults:
 
 ```shell-session
 $ ./my_cli.py subcommand
@@ -102,7 +102,7 @@ my_list       is ('item 1', 'item #2', 'Very Last Item!')
 int_parameter is 3
 ```
 
-Still, any inline parameter is allowedal to ovverides the configuration
+Still, any inline parameter is allowed to override the configuration
 defaults:
 
 ```shell-session
