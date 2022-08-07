@@ -60,6 +60,14 @@ click\_extra.platform module
    :undoc-members:
    :show-inheritance:
 
+click\_extra.pygments module
+----------------------------
+
+.. automodule:: click_extra.pygments
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 click\_extra.run module
 -----------------------
 

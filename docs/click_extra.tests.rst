@@ -52,6 +52,14 @@ click\_extra.tests.test\_platform module
    :undoc-members:
    :show-inheritance:
 
+click\_extra.tests.test\_pygments module
+----------------------------------------
+
+.. automodule:: click_extra.tests.test_pygments
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 click\_extra.tests.test\_run module
 -----------------------------------
 
