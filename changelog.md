@@ -1,5 +1,11 @@
 # Changelog
 
+## {gh}`3.0.2 (unreleased) <compare/v3.0.1...main>`
+
+```{important}
+This version is not released yet and is under active development.
+```
+
 ## {gh}`3.0.1 (2022-08-07) <compare/v3.0.0...v3.0.1>`
 
 - Fix wrong dependency bump on `pytest-cov` produced by major release.
