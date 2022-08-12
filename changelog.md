@@ -19,7 +19,7 @@ This version is not released yet and is under active development.
   - Alias `click_extra.command` to `cloup.group`.
 - Use declarative `params=` argument to set defaults options on `extra_command` and `extra_group`.
 - Move the implementation of options to classes.
-- Hard-copy `version_option` code from `click` to allow for more flexibility.
+- Hard-copy `version_option` code from `click` to allow for more flexibility. Addresses {issue}`176`.
 - All custom options inherits from `ExtraOption` class.
 - New `extra_option_at_end` to `extra_command` to force position of all extra options (on by default).
 - Replace theme styles inherited from `click-log` by Python standard `logging` module. Adds `info` and removes `exception` styles.
