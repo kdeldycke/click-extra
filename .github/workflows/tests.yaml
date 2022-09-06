@@ -39,7 +39,6 @@ jobs:
           os_list = {
               "ubuntu-22.04",
               "ubuntu-20.04",
-              "ubuntu-18.04",
               "macos-12",
               "macos-11.0",
               "windows-2022",

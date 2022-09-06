@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Remove tests on deprecated `ubuntu-18.04`.
+
 ## {gh}`3.0.1 (2022-08-07) <compare/v3.0.0...v3.0.1>`
 
 - Fix wrong dependency bump on `pytest-cov` produced by major release.
