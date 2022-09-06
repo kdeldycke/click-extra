@@ -53,6 +53,10 @@ This is the list of issues and bugs from other projects that `click-extra` has a
 - [`#95` - Highlights options, choices and metavars](https://github.com/janluke/cloup/issues/95)
 - [`#96` - Add loading of options from a TOML configuration file](https://github.com/janluke/cloup/issues/96)
 
+## [`kitty`](https://github.com/kovidgoyal/kitty)
+
+- [`#5482` - ANSI shell sessions in Sphinx documentation](https://github.com/kovidgoyal/kitty/discussions/5482)
+
 ## [`pallets-sphinx-themes`](https://github.com/pallets/pallets-sphinx-themes)
 
 - [`#62` - Render `.. click:run::` code blocks with `shell-session` lexer](https://github.com/pallets/pallets-sphinx-themes/pull/62)
