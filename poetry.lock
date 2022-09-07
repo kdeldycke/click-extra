@@ -314,7 +314,7 @@ compare = ["commonmark (>=0.9.1,<0.10.0)", "markdown (>=3.3.6,<3.4.0)", "mistlet
 linkify = ["linkify-it-py (>=1.0,<2.0)"]
 plugins = ["mdit-py-plugins"]
 profiling = ["gprof2dot"]
-rtd = ["attrs", "myst-parser", "pyyaml", "sphinx", "sphinx-book-theme", "sphinx-copybutton", "sphinx-design"]
+rtd = ["attrs", "myst-parser", "pyyaml", "sphinx", "sphinx-copybutton", "sphinx-design", "sphinx_book_theme"]
 testing = ["coverage", "pytest", "pytest-cov", "pytest-regressions"]
 
 [[package]]
@@ -378,7 +378,7 @@ typing-extensions = "*"
 code_style = ["pre-commit (>=2.12,<3.0)"]
 linkify = ["linkify-it-py (>=1.0,<2.0)"]
 rtd = ["ipython", "sphinx-book-theme", "sphinx-design", "sphinxcontrib.mermaid (>=0.7.1,<0.8.0)", "sphinxext-opengraph (>=0.6.3,<0.7.0)", "sphinxext-rediraffe (>=0.2.7,<0.3.0)"]
-testing = ["beautifulsoup4", "coverage", "pytest (>=6,<7)", "pytest-cov", "pytest-param-files (>=0.3.4,<0.4.0)", "pytest-regressions", "sphinx-pytest"]
+testing = ["beautifulsoup4", "coverage[toml]", "pytest (>=6,<7)", "pytest-cov", "pytest-param-files (>=0.3.4,<0.4.0)", "pytest-regressions", "sphinx-pytest"]
 
 [[package]]
 name = "packaging"
@@ -521,8 +521,8 @@ python-versions = ">=3.6,<4.0"
 Werkzeug = ">=2.0.0"
 
 [package.extras]
-dev = ["coverage", "ipdb", "mypy", "pytest", "pytest-cov", "reno", "requests", "sphinx", "sphinx-rtd-theme", "types-requests"]
-doc = ["sphinx", "sphinx-rtd-theme"]
+dev = ["coverage", "ipdb", "mypy", "pytest", "pytest-cov", "reno", "requests", "sphinx", "sphinx_rtd_theme", "types-requests"]
+doc = ["sphinx", "sphinx_rtd_theme"]
 test = ["coverage", "mypy", "pytest", "pytest-cov", "requests", "types-requests"]
 
 [[package]]
@@ -680,8 +680,8 @@ code_style = ["pre-commit (==2.12.1)"]
 rtd = ["ipython", "myst-nb", "sphinx", "sphinx-book-theme"]
 
 [[package]]
-name = "sphinx-design"
-version = "0.2.0"
+name = "sphinx_design"
+version = "0.3.0"
 description = "A sphinx extension for designing beautiful, view size responsive web components."
 category = "dev"
 optional = false
@@ -912,7 +912,7 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=6)", "pytest-black (>=
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "5c7a5ee0e71dbb4096d844c5c43fb326bc58fdbd63ac96384daa1e77e0d40dc6"
+content-hash = "dbed997b165b63b2bac08b1e053f474d43066f71b9382967ae17cffd65ad5f06"
 
 [metadata.files]
 alabaster = [
@@ -1328,9 +1328,9 @@ sphinx-copybutton = [
     {file = "sphinx-copybutton-0.5.0.tar.gz", hash = "sha256:a0c059daadd03c27ba750da534a92a63e7a36a7736dcf684f26ee346199787f6"},
     {file = "sphinx_copybutton-0.5.0-py3-none-any.whl", hash = "sha256:9684dec7434bd73f0eea58dda93f9bb879d24bff2d8b187b1f2ec08dfe7b5f48"},
 ]
-sphinx-design = [
-    {file = "sphinx_design-0.2.0-py3-none-any.whl", hash = "sha256:5c7117cb4b566bd769dcb4314a64d72257ae89724b4917a8f2ef55459e1d861b"},
-    {file = "sphinx_design-0.2.0.tar.gz", hash = "sha256:b148a5258061a46ee826d57ea0729260f29b4e9131d2a681545e0d4f3c0f19ee"},
+sphinx_design = [
+    {file = "sphinx_design-0.3.0-py3-none-any.whl", hash = "sha256:823c1dd74f31efb3285ec2f1254caefed29d762a40cd676f58413a1e4ed5cc96"},
+    {file = "sphinx_design-0.3.0.tar.gz", hash = "sha256:7183fa1fae55b37ef01bda5125a21ee841f5bbcbf59a35382be598180c4cefba"},
 ]
 sphinx-issues = [
     {file = "sphinx-issues-3.0.1.tar.gz", hash = "sha256:b7c1dc1f4808563c454d11c1112796f8c176cdecfee95f0fd2302ef98e21e3d6"},
