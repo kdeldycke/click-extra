@@ -25,7 +25,7 @@ from gettext import gettext as _
 from operator import getitem
 from os.path import sep
 from pathlib import Path
-from typing import Any, Iterable, Optional, Sequence, Union
+from typing import Any, Dict, Iterable, Optional, Sequence, Union
 from unittest.mock import patch
 
 if sys.version_info >= (3, 8):
@@ -93,8 +93,8 @@ class ConfigOption(ExtraOption):
 
     strict: bool
 
-    conf_template: dict[str, Any] = {}
-    conf_types: dict[str, Any] = {}
+    conf_template: Dict[str, Any] = {}
+    conf_types: Dict[str, Any] = {}
 
     def __init__(
         self,
