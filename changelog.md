@@ -6,6 +6,12 @@
 This version is not released yet and is under active development.
 ```
 
+- Add support for pattern matching to search for configuration file.
+- Add a new `formats` option to specify which dialects the configuration file is written in, regardless of its name or file extension. Closes {issue}`197`.
+- Set default configuration folder according each OS preffered location. Closes {issue}`211`.
+- Add `roaming` and `force_posix` option to influence default application directory of configuration file.
+- Add a `ignored_options` parameter to the configuration file instead of hard-coding them.
+- Add dependency on `wcmatch`.
 - Remove tests on deprecated `ubuntu-18.04`.
 
 ## {gh}`3.0.1 (2022-08-07) <compare/v3.0.0...v3.0.1>`

@@ -145,9 +145,16 @@ class ExtraCliRunner(CliRunner):
         color: bool = False,
         **extra: Any,
     ) -> Result:
+
         if self.force_color:
             color = True
-        return super().invoke(cli=cli, args=args, env=env, color=color, **extra)
+
+        result = super().invoke(cli=cli, args=args, env=env, color=color, **extra)
+
+        if result.exception:
+            print(ExceptionInfo.from_exc_info(*result.exc_info).get_formatted())
+
+        return result
 
 
 @pytest.fixture
@@ -333,10 +340,10 @@ default_options_uncolored_help = (
     r"  --color, --ansi / --no-color, --no-ansi\n"
     r"                            Strip out all colors and all ANSI codes from output.\n"
     r"                            \[default: color\]\n"
-    r"  -C, --config CONFIG_PATH  Location of the configuration file. Supports both\n"
-    r"                            local path and remote URL.  \[default:( \S+)?\n"
-    r"(                            \S+\n)*"
-    r"                            \S+.{toml,yaml,yml,json,ini,xml}\]\n"
+    r"  -C, --config CONFIG_PATH  Location of the configuration file. Supports glob\n"
+    r"                            pattern of local path and remote URL.  \[default:( \S+)?\n"
+    r"(                            .+\n)*"
+    r"                            \S+.{toml,yaml,json,ini,xml}\]\n"
     r"  -v, --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.\n"
     r"                            \[default: INFO\]\n"
     r"  --version                 Show the version and exit.\n"
@@ -350,10 +357,10 @@ default_options_colored_help = (
     r"  \x1b\[36m--color, \x1b\[36m--ansi\x1b\[0m / --no-color, --no-ansi\x1b\[0m\n"
     r"                            Strip out all colors and all ANSI codes from output.\n"
     r"                            \[default: color\]\n"
-    r"  \x1b\[36m-C, \x1b\[36m--config\x1b\[0m \x1b\[90mCONFIG_PATH\x1b\[0m\x1b\[0m  Location of the configuration file. Supports both\n"
-    r"                            local path and remote URL.  \[default:( \S+)?\n"
-    r"(                            \S+\n)*"
-    r"                            \S+.{toml,yaml,yml,json,ini,xml}\]\n"
+    r"  \x1b\[36m-C, \x1b\[36m--config\x1b\[0m \x1b\[90mCONFIG_PATH\x1b\[0m\x1b\[0m  Location of the configuration file. Supports glob\n"
+    r"                            pattern of local path and remote URL.  \[default:( \S+)?\n"
+    r"(                            .+\n)*"
+    r"                            \S+.{toml,yaml,json,ini,xml}\]\n"
     r"  \x1b\[36m-v, \x1b\[36m--verbosity\x1b\[0m \x1b\[90mLEVEL\x1b\[0m\x1b\[0m     Either \x1b\[35mCRITICAL\x1b\[0m, \x1b\[35mERROR\x1b\[0m, \x1b\[35mWARNING\x1b\[0m, \x1b\[35mINFO\x1b\[0m, \x1b\[35mDEBUG\x1b\[0m.\n"
     r"                            \[default: \x1b\[35mINFO\x1b\[0m\]\n"
     r"  \x1b\[36m--version\x1b\[0m                 Show the version and exit.\n"
@@ -363,18 +370,20 @@ default_options_colored_help = (
 
 default_debug_uncolored_log = (
     r"debug: Verbosity set to DEBUG.\n"
-    r"debug: Search for configuration in default location...\n"
-    r"debug: No default configuration found.\n"
-    r"debug: No configuration provided.\n"
+    r"debug: Load configuration matching .+\*\.{toml,yaml,json,ini,xml}\n"
+    r"debug: Pattern is not an URL.\n"
+    r"debug: Search local file system.\n"
+    r"debug: No configuration file found. Ignore it.\n"
     r"debug: \S+, version \S+\n"
 )
 
 
 default_debug_colored_log = (
     r"\x1b\[34mdebug: \x1b\[0mVerbosity set to DEBUG.\n"
-    r"\x1b\[34mdebug: \x1b\[0mSearch for configuration in default location...\n"
-    r"\x1b\[34mdebug: \x1b\[0mNo default configuration found.\n"
-    r"\x1b\[34mdebug: \x1b\[0mNo configuration provided.\n"
+    r"\x1b\[34mdebug: \x1b\[0mLoad configuration matching .+\*\.{toml,yaml,json,ini,xml}\n"
+    r"\x1b\[34mdebug: \x1b\[0mPattern is not an URL.\n"
+    r"\x1b\[34mdebug: \x1b\[0mSearch local file system.\n"
+    r"\x1b\[34mdebug: \x1b\[0mNo configuration file found. Ignore it.\n"
     r"\x1b\[34mdebug: \x1b\[0m\x1b\[97m\S+\x1b\[0m, version \x1b\[32m\S+\x1b\[0m(\x1b\[90m)?\n"
 )
 

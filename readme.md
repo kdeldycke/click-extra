@@ -42,7 +42,7 @@ To undestrand how we ended up with the result above, go [read the tutorial](http
   - `XML`
 - Download configuration from remote URLs
 - Optional strict validation of configuration
-- Automatic search of configuration file from default user folder
+- Search of configuration file from default user folder and glob patterns
 - Respect of `CLI > Configuration > Environment > Defaults` precedence
 - Colorization of help screens
 - `-h/--help` option names (see [rant on other inconsistencies](https://blog.craftyguy.net/cmdline-help/))

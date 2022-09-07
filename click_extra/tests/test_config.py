@@ -35,13 +35,11 @@ from click import (
     IntRange,
 )
 from click import Path as ClickPath
-from click import Tuple, echo
+from click import Tuple, echo, get_app_dir
 from cloup import argument, option
 
-from .. import config as config_module
 from ..commands import extra_group
-from ..config import conf_structure, config_option
-from ..platform import is_windows
+from ..config import ConfigOption, config_option
 from .conftest import default_debug_uncolored_log
 
 DUMMY_TOML_FILE = """
@@ -220,18 +218,16 @@ def test_conf_default_path(invoke):
     result = invoke(config_cli1, "--help", color=False)
     assert result.exit_code == 0
 
-    # OS-specific part of the path.
-    folder = Path(".config-cli1")
-    home = "~"
-    if is_windows():
-        folder = Path("AppData") / "Roaming" / "config-cli1"
-        home = Path.home()
-
-    default_path = home / folder / "config.{toml,yaml,yml,json,ini,xml}"
+    # OS-specific path.
+    default_path = ConfigOption.compress_path(
+        Path(get_app_dir("config-cli1")) / "*.{toml,yaml,json,ini,xml}"
+    )
 
     # Make path string compatible with regexp.
-    default_path = str(default_path).replace("\\", "\\\\").replace("-", r"-\s*")
-    assert re.search(rf"\[default:\s+{default_path}\]", result.output)
+    path_regexp = (
+        str(default_path).replace("\\", "\\\\").replace("*", "\*").replace("-", r"-\s*")
+    )
+    assert re.search(rf"\[default:\s+{path_regexp}\]", result.output)
 
 
 def test_conf_not_exist(invoke):
@@ -242,8 +238,8 @@ def test_conf_not_exist(invoke):
     assert result.exit_code == 2
     assert not result.output
     assert result.stderr == (
-        f"Load configuration from {conf_path}\n"
-        f"critical: Configuration not found at {conf_path.resolve()}\n"
+        f"Load configuration matching {conf_path}\n"
+        f"critical: No configuration file found.\n"
     )
 
 
@@ -255,86 +251,13 @@ def test_conf_not_file(invoke):
     assert result.exit_code == 2
     assert not result.output
     assert result.stderr == (
-        f"Load configuration from {conf_path}\n"
-        f"critical: Configuration {conf_path.resolve()} is not a file.\n"
+        f"Load configuration matching {conf_path}\n"
+        f"critical: No configuration file found.\n"
     )
 
 
-def test_conf_format_unknown(invoke, create_config):
-    conf_path = create_config("file.unknown_extension", "")
-    result = invoke(
-        config_cli1, "--config", str(conf_path), "default-command", color=False
-    )
-    assert result.exit_code == 2
-    assert not result.output
-    assert result.stderr == (
-        f"Load configuration from {conf_path.resolve()}\n"
-        "critical: Configuration format not recognized.\n"
-    )
-
-
-def test_conf_auto_types(invoke, monkeypatch, create_config):
+def test_conf_auto_types(invoke, create_config):
     """Check the conf type and structure is properly derived from CLI options."""
-
-    def patched_conf_structure(ctx):
-        conf_template, conf_types = conf_structure(ctx)
-        assert conf_template == {
-            "config-cli2": {
-                "flag1": None,
-                "flag2": None,
-                "str_param1": None,
-                "str_param2": None,
-                "int_param1": None,
-                "int_param2": None,
-                "float_param1": None,
-                "float_param2": None,
-                "bool_param1": None,
-                "bool_param2": None,
-                "uuid_param": None,
-                "unprocessed_param": None,
-                "file_param": None,
-                "path_param": None,
-                "choice_param": None,
-                "int_range_param": None,
-                "count_param": None,
-                "float_range_param": None,
-                "datetime_param": None,
-                "tuple1": None,
-                "list1": None,
-                "file_arg1": None,
-                "file_arg2": None,
-            }
-        }
-        assert conf_types == {
-            "config-cli2": {
-                "flag1": bool,
-                "flag2": bool,
-                "str_param1": str,
-                "str_param2": str,
-                "int_param1": int,
-                "int_param2": int,
-                "float_param1": float,
-                "float_param2": float,
-                "bool_param1": bool,
-                "bool_param2": bool,
-                "uuid_param": str,
-                "unprocessed_param": str,
-                "file_param": str,
-                "path_param": str,
-                "choice_param": str,
-                "int_range_param": int,
-                "count_param": int,
-                "float_range_param": float,
-                "datetime_param": str,
-                "tuple1": list,
-                "list1": list,
-                "file_arg1": str,
-                "file_arg2": list,
-            }
-        }
-        return conf_template, conf_types
-
-    monkeypatch.setattr(config_module, "conf_structure", patched_conf_structure)
 
     @click.command
     @option("--flag1/--no-flag1")
@@ -401,6 +324,64 @@ def test_conf_auto_types(invoke, monkeypatch, create_config):
     assert result.exit_code == 0
     assert result.output == "Works!\n"
 
+    cli_config_option = [
+        p for p in config_cli2.params if isinstance(p, ConfigOption)
+    ].pop()
+    assert cli_config_option.conf_template == {
+        "config-cli2": {
+            "flag1": None,
+            "flag2": None,
+            "str_param1": None,
+            "str_param2": None,
+            "int_param1": None,
+            "int_param2": None,
+            "float_param1": None,
+            "float_param2": None,
+            "bool_param1": None,
+            "bool_param2": None,
+            "uuid_param": None,
+            "unprocessed_param": None,
+            "file_param": None,
+            "path_param": None,
+            "choice_param": None,
+            "int_range_param": None,
+            "count_param": None,
+            "float_range_param": None,
+            "datetime_param": None,
+            "tuple1": None,
+            "list1": None,
+            "file_arg1": None,
+            "file_arg2": None,
+        }
+    }
+    assert cli_config_option.conf_types == {
+        "config-cli2": {
+            "flag1": bool,
+            "flag2": bool,
+            "str_param1": str,
+            "str_param2": str,
+            "int_param1": int,
+            "int_param2": int,
+            "float_param1": float,
+            "float_param2": float,
+            "bool_param1": bool,
+            "bool_param2": bool,
+            "uuid_param": str,
+            "unprocessed_param": str,
+            "file_param": str,
+            "path_param": str,
+            "choice_param": str,
+            "int_range_param": int,
+            "count_param": int,
+            "float_range_param": float,
+            "datetime_param": str,
+            "tuple1": list,
+            "list1": list,
+            "file_arg1": str,
+            "file_arg2": list,
+        }
+    }
+
 
 def test_strict_conf(invoke, create_config):
     """Same test as the one shown in the readme, but in strict validation mode."""
@@ -442,7 +423,7 @@ def test_strict_conf(invoke, create_config):
     )
 
     assert result.exit_code == 1
-    assert result.stderr == f"Load configuration from {conf_path}\n"
+    assert result.stderr == f"Load configuration matching {conf_path}\n"
     assert not result.stdout
 
 
@@ -469,7 +450,7 @@ def test_conf_file_overrides_defaults(
         conf_path = str(conf_path).replace("\\", "\\\\")
         # Debug level has been activated by configuration file.
         debug_log = (
-            rf"Load configuration from {conf_path}\n"
+            rf"Load configuration matching {conf_path}\n"
             r"debug: Verbosity set to DEBUG.\n"
             r"debug: \S+, version \S+\n"
         )
@@ -504,7 +485,7 @@ def test_auto_env_var_conf(invoke, create_config, httpserver, conf_name, conf_co
         )
         # Debug level has been activated by configuration file.
         assert result.stderr == (
-            f"Load configuration from {conf_path.resolve()}\n"
+            f"Load configuration matching {conf_path.resolve()}\n"
             "debug: Verbosity set to DEBUG.\n"
         )
 
@@ -540,4 +521,4 @@ def test_conf_file_overrided_by_cli_param(
         assert result.output == (
             "dummy_flag = False\nmy_list = ('super', 'wow')\nint_parameter = 15\n"
         )
-        assert result.stderr == f"Load configuration from {conf_path.resolve()}\n"
+        assert result.stderr == f"Load configuration matching {conf_path.resolve()}\n"

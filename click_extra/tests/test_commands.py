@@ -30,7 +30,7 @@ from cloup import command, option, option_group
 from pytest_cases import fixture, parametrize
 
 from ..commands import extra_command, extra_group, timer_option
-from .conftest import default_options_uncolored_help
+from .conftest import default_debug_uncolored_log, default_options_uncolored_help
 
 
 @fixture
@@ -108,11 +108,7 @@ def test_required_command(invoke, all_command_cli):
         system_details_regex = r"debug: {'.+'}\n"
     assert re.fullmatch(
         (
-            r"debug: Verbosity set to DEBUG.\n"
-            r"debug: Search for configuration in default location...\n"
-            r"debug: No default configuration found.\n"
-            r"debug: No configuration provided.\n"
-            r"debug: command-cli1, version 2021.10.08\n"
+            rf"{default_debug_uncolored_log}"
             rf"{system_details_regex}"
             r"Usage: command-cli1 \[OPTIONS\] COMMAND \[ARGS\]...\n"
             r"\n"
