@@ -178,6 +178,7 @@ module = [
     "sphinx.*",
     "tabulate.*",
     "tomli_w.*",
+    "wcmatch.*",
     "xmltodict.*",
     "yaml.*",
 ]
