@@ -100,16 +100,9 @@ def test_required_command(invoke, all_command_cli):
     assert result.exit_code == 2
     # In debug mode, the version is always printed.
     assert not result.stdout
-
-    # XXX Temporarily skip displaying environment details for Python >= 3.10 while we wait for
-    # https://github.com/mahmoud/boltons/issues/294 to be released upstream.
-    system_details_regex = ""
-    if sys.version_info[:2] < (3, 10):
-        system_details_regex = r"debug: {'.+'}\n"
     assert re.fullmatch(
         (
             rf"{default_debug_uncolored_log}"
-            rf"{system_details_regex}"
             r"Usage: command-cli1 \[OPTIONS\] COMMAND \[ARGS\]...\n"
             r"\n"
             r"Error: Missing command.\n"
