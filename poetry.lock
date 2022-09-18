@@ -502,19 +502,14 @@ testing = ["fields", "hunter", "process-tests", "pytest-xdist", "six", "virtuale
 
 [[package]]
 name = "pytest-httpserver"
-version = "1.0.5"
+version = "1.0.6"
 description = "pytest-httpserver is a httpserver for pytest"
 category = "dev"
 optional = false
-python-versions = ">=3.6,<4.0"
+python-versions = ">=3.7,<4.0"
 
 [package.dependencies]
 Werkzeug = ">=2.0.0"
-
-[package.extras]
-dev = ["coverage", "ipdb", "mypy", "pytest", "pytest-cov", "reno", "requests", "sphinx", "sphinx_rtd_theme", "types-requests"]
-doc = ["sphinx", "sphinx_rtd_theme"]
-test = ["coverage", "mypy", "pytest", "pytest-cov", "requests", "types-requests"]
 
 [[package]]
 name = "pytest-randomly"
@@ -903,7 +898,7 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=6)", "pytest-black (>=
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "e06e8c5e278d08781313b450145a345ed9e913a61636120d1ddf8d8d599248d5"
+content-hash = "567b68d59a00ad5dfcf7eabf2be580aac694cdd48bf79e3711014fc0335ac50b"
 
 [metadata.files]
 alabaster = [
@@ -1162,8 +1157,8 @@ pytest-cov = [
     {file = "pytest_cov-3.0.0-py3-none-any.whl", hash = "sha256:578d5d15ac4a25e5f961c938b85a05b09fdaae9deef3bb6de9a6e766622ca7a6"},
 ]
 pytest-httpserver = [
-    {file = "pytest_httpserver-1.0.5-py3-none-any.whl", hash = "sha256:9a4c5308da1482e0b2d792278518d400cf4043746e3da0fdb05747f56d6f80b2"},
-    {file = "pytest_httpserver-1.0.5.tar.gz", hash = "sha256:ae3296626d0a10e835a9f423c61b4540547d582422be054c3fcc08626baa1024"},
+    {file = "pytest_httpserver-1.0.6-py3-none-any.whl", hash = "sha256:ac2379acc91fe8bdbe2911c93af8dd130e33b5899fb9934d15669480739c6d32"},
+    {file = "pytest_httpserver-1.0.6.tar.gz", hash = "sha256:9040d07bf59ac45d8de3db1d4468fd2d1d607975e4da4c872ecc0402cdbf7b3e"},
 ]
 pytest-randomly = [
     {file = "pytest-randomly-3.12.0.tar.gz", hash = "sha256:d60c2db71ac319aee0fc6c4110a7597d611a8b94a5590918bfa8583f00caccb2"},
