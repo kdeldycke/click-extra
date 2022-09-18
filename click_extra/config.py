@@ -84,7 +84,7 @@ class Formats(Enum):
 class ConfigOption(ExtraOption):
     """A pre-configured option adding ``--config``/``-C`` option."""
 
-    formats: Union[Formats, Sequence[Formats]]
+    formats: Sequence[Formats]
 
     roaming: bool
     force_posix: bool
@@ -177,6 +177,8 @@ class ConfigOption(ExtraOption):
         """
         ctx = get_current_context()
         cli_name = ctx.find_root().info_name
+        if not cli_name:
+            raise ValueError
         app_dir = Path(
             get_app_dir(cli_name, roaming=self.roaming, force_posix=self.force_posix)
         ).resolve()
@@ -261,11 +263,14 @@ class ConfigOption(ExtraOption):
             else:
                 logger.debug(f"{conf_format.name} parsing failed.")
 
+        return None
+
     def read_and_parse_conf(self, pattern: str) -> Optional[dict]:
         for conf_content in self.search_and_read_conf(pattern):
             user_conf = self.parse_conf(conf_content)
             if user_conf is not None:
                 return user_conf
+        return None
 
     @staticmethod
     def init_deep_dict(path, leaf=None):
