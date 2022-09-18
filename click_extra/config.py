@@ -249,7 +249,7 @@ class ConfigOption(ExtraOption):
                     user_conf = json.loads(conf_content)
 
                 elif conf_format == Formats.INI:
-                    user_conf = self.load_ini_config(conf_content, self.conf_types)
+                    user_conf = self.load_ini_config(conf_content)
 
                 elif conf_format == Formats.XML:
                     user_conf = xmltodict.parse(conf_content)
@@ -292,7 +292,7 @@ class ConfigOption(ExtraOption):
         except KeyError:
             return None
 
-    def load_ini_config(self, content, conf_types):
+    def load_ini_config(self, content):
         """Utility method to parse INI configuration file.
 
         Returns a ready-to-use data structure.
@@ -306,10 +306,10 @@ class ConfigOption(ExtraOption):
             # Extract all options of the section.
             sub_conf = {}
             for option_id in ini_config.options(section_id):
-
                 target_type = self.get_deep_value(
-                    conf_types, f"{section_id}.{option_id}"
+                    self.conf_types, f"{section_id}.{option_id}"
                 )
+
                 if target_type in (None, str):
                     value = ini_config.get(section_id, option_id)
 
@@ -437,7 +437,7 @@ class ConfigOption(ExtraOption):
                 )
         return a
 
-    def merge_conf(self, ctx, user_conf):
+    def merge_conf(self, user_conf):
         """Try-out configuration formats againts file's content and returns a ``dict``.
 
         The returned ``dict`` will only contain options and parameters defined on the CLI.
@@ -445,7 +445,6 @@ class ConfigOption(ExtraOption):
         """
         # Merge configuration file's content into the template structure, but
         # ignore all unrecognized options.
-        self.build_conf_structure(ctx)
         valid_conf = self.recursive_update(self.conf_template, user_conf)
 
         # Clean-up blank values left-over by the template structure.
@@ -488,6 +487,7 @@ class ConfigOption(ExtraOption):
 
         # Read configuration file.
         conf = {}
+        self.build_conf_structure(ctx)
         user_conf = self.read_and_parse_conf(path_pattern)
         # Exit the CLI if the user-provided config file is bad.
         if user_conf is None:
@@ -499,7 +499,7 @@ class ConfigOption(ExtraOption):
                 logger.debug(f"{message} Ignore it.")
 
         else:
-            conf = self.merge_conf(ctx, user_conf)
+            conf = self.merge_conf(user_conf)
             logger.debug(f"Loaded configuration: {conf}")
 
             # Merge config to the default_map.
