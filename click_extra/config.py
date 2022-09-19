@@ -221,7 +221,8 @@ class ConfigOption(ExtraOption):
             logger.debug(f"Pattern is not an URL.")
 
         logger.debug(f"Search local file system.")
-        # XXX It seems wcmatch expect patterns to be written with unix-like syntax by default, even on Windows.
+        # XXX It seems wcmatch expect patterns to be written with unix-like syntax by default, even on Windows. See more details at:
+        # https://github.com/facelessuser/wcmatch/issues/194
         if is_windows():
             pattern = pattern.replace("\\", "/")
         for file in iglob(
