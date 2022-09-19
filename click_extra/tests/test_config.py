@@ -225,7 +225,7 @@ def test_conf_default_path(invoke):
 
     # Make path string compatible with regexp.
     path_regexp = (
-        str(default_path).replace("\\", "\\\\").replace("*", "\*").replace("-", r"-\s*")
+        str(default_path).replace("\\", "\\\\").replace("*", r"\*").replace("-", r"-\s*")
     )
     assert re.search(rf"\[default:\s+{path_regexp}\]", result.output)
 
