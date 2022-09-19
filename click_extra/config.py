@@ -221,12 +221,16 @@ class ConfigOption(ExtraOption):
             logger.debug(f"Pattern is not an URL.")
 
         logger.debug(f"Search local file system.")
+        # XXX It seems wcmatch expect patterns to be written with unix-like syntax by default, even on Windows.
+        if is_windows():
+            pattern = pattern.replace("\\", "/")
         for file in iglob(
             pattern,
             flags=NODIR | GLOBSTAR | DOTGLOB | GLOBTILDE | BRACE | FOLLOW | IGNORECASE,
         ):
-            logger.debug(f"Configuration file found at {file}")
-            yield Path(file).read_text()
+            file_path = Path(file)
+            logger.debug(f"Configuration file found at {file_path}")
+            yield file_path.read_text()
 
     def parse_conf(self, conf_content: str) -> Optional[dict]:
         """Try to parse the provided content with each format in the order provided by the user.
