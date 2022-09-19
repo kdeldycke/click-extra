@@ -1,13 +1,13 @@
-# CLI execution
+# Parameters
 
 ```{todo}
 Write example and tutorial.
 ```
 
-## `click_extra.run` API
+## `click_extra.parameters` API
 
 ```{eval-rst}
-.. automodule:: click_extra.run
+.. automodule:: click_extra.parameters
    :members:
    :undoc-members:
    :show-inheritance:

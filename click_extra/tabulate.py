@@ -146,7 +146,7 @@ for tabulate_format in new_formats:
 
 
 class TableFormatOption(ExtraOption):
-    """A pre-configured option that is adding a ``-t/--table-format`` flag to select the
+    """A pre-configured option that is adding a ``-t``/``--table-format`` flag to select the
     rendering style of a table."""
 
     def cleanup_formatter(self):

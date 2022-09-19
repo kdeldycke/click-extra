@@ -130,9 +130,9 @@ class ConfigOption(ExtraOption):
             folder.
 
         - ``ignored_options`` is a list of options to ignore by the configuration parser. Defaults to:
-            - `--help`, as it makes no sense to have the configurable file always forces a CLI to show the help and exit.
-            - `--version`, which is not a configurable option *per-se*.
-            - `-C`/`--config` option, which cannot be used to recursively load another configuration file (yet?).
+            - ``--help``, as it makes no sense to have the configurable file always forces a CLI to show the help and exit.
+            - ``--version``, which is not a configurable option *per-se*.
+            - ``-C``/``--config`` option, which cannot be used to recursively load another configuration file (yet?).
 
         - ``strict``
             - If ``True``, raise an error if the configuration file contain unrecognized content.
@@ -392,6 +392,7 @@ class ConfigOption(ExtraOption):
         """Returns two data structures shadowing the CLI options and subcommands.
 
         2 tree-like dictionnaries are returned:
+
         - One with only keys, all values being set to None, to serve as a template for configuration
         - A copy of the former, with values set to their expected type
         """

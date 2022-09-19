@@ -24,11 +24,13 @@ The [canonical `click` example](https://github.com/pallets/click#a-simple-exampl
         for _ in range(count):
             echo(f"Hello, {name}!")
 
+Whose help screen renders as:
+
 .. click:run::
    invoke(hello, args=["--help"])
 ```
 
-To augment the simple example above with all the bells and whistles `click-extra` has in store, all you need is to replace the base command decorator with its `extra_`-prfixed variants:
+To augment the simple example above with all the bells and whistles `click-extra` has in store, all you need is to replace the base command decorator with its `extra_`-prefixed variants:
 
 ```{eval-rst}
 .. click:example::
@@ -42,13 +44,15 @@ To augment the simple example above with all the bells and whistles `click-extra
         for _ in range(count):
             echo(f"Hello, {name}!")
 
+And now you get:
+
 .. click:run::
    invoke(hello, args=["--help"])
 ```
 
 That's it!
 
-Here is a visual difference of the only changes between the two versions:
+Here are the only changes between the two versions:
 
 ```diff
 -from click import command, echo, option
@@ -65,14 +69,14 @@ Here is a visual difference of the only changes between the two versions:
 ```
 
 ```{tip}
-As you can see abve, `click_extra` is wrapping the whole `click` namespace, so you can use the former as a [drop-in replacement](tutorial.md#drop-in-replacement) for the latter.
+As you can see above, `click_extra` is proxy-ing the whole `click` namespace, so you can use the former as a [drop-in replacement](tutorial.md#drop-in-replacement) for the latter.
 ```
 
 ## Standalone options
 
-If you do not like the opiniated way the `@extra_command()` decorator is setup with all its defaults options, you are still free to pick them up independently.
+If you do not like the opiniated way the `@extra_command()` decorator is built with all its defaults options, you are still free to pick them up independently.
 
-So for example, if you're only interested to use the `--config` option to your perfectly standard `click` CLI, nothing prevents you to use its standalone decorator as such:
+If, for example, you're only interested in using the `--config` option, nothing prevents you to use it with a standard `click` CLI:
 
 ```{eval-rst}
 .. click:example::
@@ -110,8 +114,6 @@ This option itself behave like any Click option and can be customized easely:
         for _ in range(count):
             echo(f"Hello, {name}!")
 
-Which now renders to:
-
 .. click:run::
    invoke(hello, args=["--help"])
 ```
@@ -147,7 +149,7 @@ See how the configuration option is grouped with others:
 ```
 
 ```{seealso}
-All in all Click Extra provides these additional options:
+Click Extra provides these additional options:
 
 - [`color_option`](colorize.md#color-option)
 - [`config_option`](config.md)
@@ -156,4 +158,24 @@ All in all Click Extra provides these additional options:
 - [`timer_option`](command.md)
 - [`verbosity_option`](logging.md)
 - [`version_option`](colorize.md#version-option)
+```
+
+## Drop-in replacement
+
+Click Extra aims to be a drop-in replacement for Click. So if you replace the namespace nothing is supposed to happend:
+
+```{eval-rst}
+.. click:example::
+    from click_extra import command, echo, option
+
+    @command()
+    @option("--count", default=1, help="Number of greetings.")
+    @option("--name", prompt="Your name", help="The person to greet.")
+    def hello(count, name):
+        """Simple program that greets NAME for a total of COUNT times."""
+        for _ in range(count):
+            echo(f"Hello, {name}!")
+
+.. click:run::
+   invoke(hello, args=["--help"])
 ```

@@ -17,7 +17,9 @@ colorize
 logging
 tabulate
 platform
+commands
 run
+parameters
 pygments
 sphinx
 issues

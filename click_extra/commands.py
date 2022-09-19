@@ -36,7 +36,7 @@ from .parameters import ExtraOption
 
 
 class TimerOption(ExtraOption):
-    """A pre-configured option that is adding a ``--time/--no-time`` flag to print
+    """A pre-configured option that is adding a ``--time``/``--no-time`` flag to print
     elapsed time at the end of CLI execution."""
 
     def print_timer(self):
@@ -145,7 +145,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         in ``main()``.
 
         If an instance of ``VersionOption`` has been setup on the command, adds to the
-        normal execution flow the output of `--version` in DEBUG logs. This facilitates
+        normal execution flow the output of ``--version`` in DEBUG logs. This facilitates
         troubleshooting of user's issues.
         """
         if getLevelName(logger.level) == "DEBUG":

@@ -175,8 +175,8 @@ Source: https://github.com/pallets/click/issues/558
 
 
 class ColorOption(ExtraOption):
-    """A pre-configured option that is adding a ``--color/--no-color`` (aliased by
-    ``--ansi/--no-ansi``) option to keep or strip colors and ANSI codes from CLI output.
+    """A pre-configured option that is adding a ``--color``/``--no-color`` (aliased by
+    ``--ansi``/``--no-ansi``) option to keep or strip colors and ANSI codes from CLI output.
 
     This option is eager by default to allow for other eager options (like
     ``--version``) to be rendered colorless.
@@ -551,9 +551,10 @@ class HelpExtraFormatter(HelpFormatter):
     default values.
 
     This is being discussed for upstream integration at:
-    * https://github.com/janluke/cloup/issues/97
-    * https://github.com/click-contrib/click-help-colors/issues/17
-    * https://github.com/janluke/cloup/issues/95
+
+    - https://github.com/janluke/cloup/issues/97
+    - https://github.com/click-contrib/click-help-colors/issues/17
+    - https://github.com/janluke/cloup/issues/95
     """
 
     def __init__(self, *args, **kwargs):

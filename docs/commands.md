@@ -1,13 +1,13 @@
-# CLI execution
+# Commands and groups
 
 ```{todo}
 Write example and tutorial.
 ```
 
-## `click_extra.run` API
+## `click_extra.commands` API
 
 ```{eval-rst}
-.. automodule:: click_extra.run
+.. automodule:: click_extra.commands
    :members:
    :undoc-members:
    :show-inheritance:
