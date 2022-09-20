@@ -42,7 +42,7 @@ import commentjson as json
 import requests
 import xmltodict
 import yaml
-from boltons.iterutils import remap
+from boltons.iterutils import flatten, remap
 from boltons.urlutils import URL
 from click import BOOL, FLOAT, INT, STRING, UNPROCESSED, UUID
 from click import Path as ClickPath
@@ -69,16 +69,16 @@ from .platform import is_windows
 
 
 class Formats(Enum):
-    """Supported configuration formats.
+    """Supported configuration formats and the list of their default extentions.
 
     The default order set the priority by which each format is searched for the default configuration file.
     """
 
-    TOML = auto()
-    YAML = auto()
-    JSON = auto()
-    INI = auto()
-    XML = auto()
+    TOML = ("toml",)
+    YAML = ("yaml", "yml")
+    JSON = ("json",)
+    INI = ("ini",)
+    XML = ("xml",)
 
 
 class ConfigOption(ExtraOption):
@@ -170,7 +170,7 @@ class ConfigOption(ExtraOption):
     def default_pattern(self) -> str:
         """Returns the default pattern used to search for the configuration file.
 
-        Defaults to ``/<app_dir>/*.{toml,yaml,json,ini,xml}``.
+        Defaults to ``/<app_dir>/*.{toml,yaml,yml,json,ini,xml}``.
 
         ``<app_dir>`` is produced by [`clickget_app_dir()` method](https://click.palletsprojects.com/en/8.1.x/api/#click.get_app_dir).
         The result depends on OS and is influenced by the ``roaming`` and ``force_posix`` properties of this instance.
@@ -187,9 +187,12 @@ class ConfigOption(ExtraOption):
             get_app_dir(cli_name, roaming=self.roaming, force_posix=self.force_posix)
         ).resolve()
         # Build the extension matching pattern.
-        ext_pattern = ",".join(f.name.lower() for f in self.formats)
-        if len(self.formats) > 1:
-            ext_pattern = f"{{{ext_pattern}}}"
+        extensions = flatten(f.value for f in self.formats)
+        if len(extensions) == 1:
+            ext_pattern = extensions[0]
+        else:
+            # Use brace notation for multiple extension matching.
+            ext_pattern = f"{{{','.join(extensions)}}}"
         return f"{app_dir}{sep}*.{ext_pattern}"
 
     @staticmethod

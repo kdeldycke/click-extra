@@ -343,7 +343,7 @@ default_options_uncolored_help = (
     r"  -C, --config CONFIG_PATH  Location of the configuration file. Supports glob\n"
     r"                            pattern of local path and remote URL.  \[default:( \S+)?\n"
     r"(                            .+\n)*"
-    r"                            \S+.{toml,yaml,json,ini,xml}\]\n"
+    r"                            \S+.{toml,yaml,yml,json,ini,xml}\]\n"
     r"  -v, --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.\n"
     r"                            \[default: INFO\]\n"
     r"  --version                 Show the version and exit.\n"
@@ -360,7 +360,7 @@ default_options_colored_help = (
     r"  \x1b\[36m-C, \x1b\[36m--config\x1b\[0m \x1b\[90mCONFIG_PATH\x1b\[0m\x1b\[0m  Location of the configuration file. Supports glob\n"
     r"                            pattern of local path and remote URL.  \[default:( \S+)?\n"
     r"(                            .+\n)*"
-    r"                            \S+.{toml,yaml,json,ini,xml}\]\n"
+    r"                            \S+.{toml,yaml,yml,json,ini,xml}\]\n"
     r"  \x1b\[36m-v, \x1b\[36m--verbosity\x1b\[0m \x1b\[90mLEVEL\x1b\[0m\x1b\[0m     Either \x1b\[35mCRITICAL\x1b\[0m, \x1b\[35mERROR\x1b\[0m, \x1b\[35mWARNING\x1b\[0m, \x1b\[35mINFO\x1b\[0m, \x1b\[35mDEBUG\x1b\[0m.\n"
     r"                            \[default: \x1b\[35mINFO\x1b\[0m\]\n"
     r"  \x1b\[36m--version\x1b\[0m                 Show the version and exit.\n"
@@ -370,7 +370,7 @@ default_options_colored_help = (
 
 default_debug_uncolored_log = (
     r"debug: Verbosity set to DEBUG.\n"
-    r"debug: Load configuration matching .+\*\.{toml,yaml,json,ini,xml}\n"
+    r"debug: Load configuration matching .+\*\.{toml,yaml,yml,json,ini,xml}\n"
     r"debug: Pattern is not an URL.\n"
     r"debug: Search local file system.\n"
     r"debug: No configuration file found. Ignore it.\n"
@@ -380,7 +380,7 @@ default_debug_uncolored_log = (
 
 default_debug_colored_log = (
     r"\x1b\[34mdebug: \x1b\[0mVerbosity set to DEBUG.\n"
-    r"\x1b\[34mdebug: \x1b\[0mLoad configuration matching .+\*\.{toml,yaml,json,ini,xml}\n"
+    r"\x1b\[34mdebug: \x1b\[0mLoad configuration matching .+\*\.{toml,yaml,yml,json,ini,xml}\n"
     r"\x1b\[34mdebug: \x1b\[0mPattern is not an URL.\n"
     r"\x1b\[34mdebug: \x1b\[0mSearch local file system.\n"
     r"\x1b\[34mdebug: \x1b\[0mNo configuration file found. Ignore it.\n"

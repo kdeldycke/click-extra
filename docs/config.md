@@ -1,9 +1,5 @@
 # Configuration loader
 
-The configuration loader fetch values according the following precedence:
-`CLI parameters > Configuration file > Environment variables > Defaults`.
-The parameter will take the first value set in that chain.
-
 The structure of the configuration file is automatically derived from the
 parameters of the CLI and their types. There is no need to manually produce a configuration
 data structure to mirror the CLI.
@@ -83,9 +79,23 @@ my_list       is ('item 1', 'item #2', 'Very Last Item!')
 int_parameter is 3
 ```
 
-Still, inline parameters takes priority on defaults:
+## Precedence
 
-```shell-session
+The configuration loader fetch values according the following precedence:
+
+- `CLI parameters`
+  - `Configuration file`
+    - `Environment variables`
+      - `Defaults`
+
+The parameter will take the first value set in that chain.
+
+See how inline parameters takes priority on defaults from the previous example:
+
+```{code-block} shell-session
+---
+emphasize-lines: 1, 4
+---
 $ my-cli subcommand --int-param 555
 dummy_flag    is True
 my_list       is ('item 1', 'item #2', 'Very Last Item!')
@@ -100,7 +110,10 @@ If for any reason you do not want to allow any garbage in configuration files pr
 
 Given this `cli.toml` file:
 
-```toml
+```{code-block} toml
+---
+emphasize-lines: 3
+---
 [cli]
 int_param = 3
 random_param = "forbidden"
@@ -108,7 +121,10 @@ random_param = "forbidden"
 
 The use of `strict=True` parameter in the CLI below:
 
-```python
+```{code-block} python
+---
+emphasize-lines: 7
+---
 from click import command, option, echo
 
 from click_extra import config_option
@@ -122,12 +138,24 @@ def cli(int_param):
 
 Will raise an error and stop the the CLI execution on unrecognized `random_param` value:
 
-```shell-session
+```{code-block} shell-session
+---
+emphasize-lines: 4
+---
 $ cli --config "cli.toml"
 Load configuration matching cli.toml
 (...)
 ValueError: Parameter 'random_param' is not allowed in configuration file.
 ```
+
+## Ignored options
+
+The {py:attr}`ignored_options <click_extra.config.ConfigOption.ignored_options>` argument will exclude some of your CLI options from the configuration machinery.
+
+It defaults to:
+- `--help`
+- `--version`
+- `-C`/`--config`
 
 ## Formats
 
@@ -249,10 +277,10 @@ Write example.
 
 The configuration file is searched from a wildcard-based pattern.
 
-By default, the pattern is `/<app_dir>/*.{toml,yaml,json,ini,xml}`, where:
+By default, the pattern is `/<app_dir>/*.{toml,yaml,yml,json,ini,xml}`, where:
 
 - `<app_dir>` is the [default application folder (see below)](#default-folder)
-- `*.{toml,yaml,json,ini,xml}` is any file in that folder with any of `.toml`, `.yaml`, `.json` , `.ini` or `.xml` extension.
+- `*.{toml,yaml,yml,json,ini,xml}` is any file in that folder with any of `.toml`, `.yaml`, `.yml`, `.json` , `.ini` or `.xml` extension.
 
 ### Default folder
 
@@ -282,7 +310,7 @@ Let's change the default base folder in the following example:
     def cli():
         pass
 
-See how the default to ``--config`` option has been changed to ``~/.cli/*.{toml,yaml,json,ini,xml}``:
+See how the default to ``--config`` option has been changed to ``~/.cli/*.{toml,yaml,yml,json,ini,xml}``:
 
 .. click:run::
     invoke(cli, args=["--help"])
@@ -290,9 +318,16 @@ See how the default to ``--config`` option has been changed to ``~/.cli/*.{toml,
 
 ### Default extensions
 
-```{todo}
-Write something.
-```
+The extensions that are used for each dialect to produce the default file pattern matching are encoded by
+the {py:class}`Formats <click_extra.config.Formats>` Enum:
+
+| Format | Extensions |
+| :---| :---|
+| `TOML` | `*.toml`|
+| `YAML` | `*.yaml`, `*.yml`|
+| `JSON` | `*.json`|
+| `INI` | `*.ini`|
+| `XML` | `*.xml`|
 
 ### Custom pattern
 

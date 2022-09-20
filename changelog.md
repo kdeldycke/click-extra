@@ -6,6 +6,9 @@
 This version is not released yet and is under active development.
 ```
 
+- Use the `Formats` enum to encode for default configuration file extensions.
+- Re-introduce `*.yml` as a possible extension for YAML files.
+
 ## {gh}`3.1.0 (2022-09-20) <compare/v3.0.1...v3.1.0>`
 
 - Add support for pattern matching to search for configuration file.

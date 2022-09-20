@@ -220,7 +220,7 @@ def test_conf_default_path(invoke):
 
     # OS-specific path.
     default_path = ConfigOption.compress_path(
-        Path(get_app_dir("config-cli1")) / "*.{toml,yaml,json,ini,xml}"
+        Path(get_app_dir("config-cli1")) / "*.{toml,yaml,yml,json,ini,xml}"
     )
 
     # Make path string compatible with regexp.
