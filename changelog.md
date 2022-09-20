@@ -1,10 +1,6 @@
 # Changelog
 
-## {gh}`3.1.0 (unreleased) <compare/v3.0.1...main>`
-
-```{important}
-This version is not released yet and is under active development.
-```
+## {gh}`3.1.0 (2022-09-20) <compare/v3.0.1...v3.1.0>`
 
 - Add support for pattern matching to search for configuration file.
 - Add a new `formats` option to specify which dialects the configuration file is written in, regardless of its name or file extension. Closes {issue}`197`.
