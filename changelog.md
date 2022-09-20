@@ -14,6 +14,7 @@ This version is not released yet and is under active development.
 - Add dependency on `wcmatch`.
 - Remove tests on deprecated `ubuntu-18.04`.
 - Document preset options ovveriding. Closes {issue}`232`.
+- Document configuration option pattern matching and default folder. Closes {issue}`197` and {issue}`211`.
 
 ## {gh}`3.0.1 (2022-08-07) <compare/v3.0.0...v3.0.1>`
 

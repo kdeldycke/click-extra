@@ -168,12 +168,16 @@ class ConfigOption(ExtraOption):
         )
 
     def default_pattern(self) -> str:
-        """Returns the default application directory.
+        """Returns the default pattern used to search for the configuration file.
 
-        The configuration base path depends on OS, as per [Click's default `get_app_dir()` method](https://click.palletsprojects.com/en/8.1.x/api/#click.get_app_dir).
-        The later begin fed with the ``self.roaming`` and ``self.force_posix`` from this instance.
+        Defaults to ``/<app_dir>/*.{toml,yaml,json,ini,xml}``.
 
-        In that folder, we're looking to any file matching the ``*.{toml,yaml,json,ini,xml}`` pattern.
+        ``<app_dir>`` is produced by [`clickget_app_dir()` method](https://click.palletsprojects.com/en/8.1.x/api/#click.get_app_dir).
+        The result depends on OS and is influenced by the ``roaming`` and ``force_posix`` properties of this instance.
+
+        In that folder, we're looking for any file matching the extensions derived from the ``self.formats`` property:
+        - a simple ``*.ext`` pattern if only one format is set
+        - an expanded ``*.{ext1,ext2,...}`` pattern if multiple formats are set
         """
         ctx = get_current_context()
         cli_name = ctx.find_root().info_name
@@ -182,7 +186,11 @@ class ConfigOption(ExtraOption):
         app_dir = Path(
             get_app_dir(cli_name, roaming=self.roaming, force_posix=self.force_posix)
         ).resolve()
-        return f"{app_dir}{sep}*.{{{','.join(f.name.lower() for f in Formats)}}}"
+        # Build the extension matching pattern.
+        ext_pattern = ",".join(f.name.lower() for f in self.formats)
+        if len(self.formats) > 1:
+            ext_pattern = f"{{{ext_pattern}}}"
+        return f"{app_dir}{sep}*.{ext_pattern}"
 
     @staticmethod
     def compress_path(path: Path) -> Path:

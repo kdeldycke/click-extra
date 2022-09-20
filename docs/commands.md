@@ -2,7 +2,7 @@
 
 ## Drop-in replacement
 
-Click Extra aims to be a drop-in replacement for Click, in which some elements are [proxy of either Click or Cloup](click-and-cloup-proxies):
+Click Extra aims to be a drop-in replacement for Click, in which some elements are proxy of either Click or Cloup:
 
 | [Original](https://click.palletsprojects.com/en/8.1.x/api/) | Proxy | Target |
 | --- | --- | --- |
@@ -55,7 +55,7 @@ Go to the [example in the tutorial](tutorial) to see how these `extra`-variants 
 
 ## Default options
 
-The `extra_command` and `extra_group` decorators are [pre-configured with a set of options](#click_extra.commands.default_extra_params).
+The `extra_command` and `extra_group` decorators are [pre-configured with a set of options](click_extra.commands.default_extra_params).
 
 Adding to these decorators the same options it defaults to will end up with duplicate entries (as seen in issue {issue}`232`):
 

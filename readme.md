@@ -38,7 +38,7 @@ To undestrand how we ended up with the result above, go [read the tutorial](http
   - `TOML`
   - `YAML`
   - `JSON`, with inline and block comments (Python-style `#` and Javascript-style `//`)
-  - `INI`, with extended interpolation, multi-level sections and non-native types (list, sets, …)
+  - `INI`, with extended interpolation, multi-level sections and non-native types (`list`, `set`, …)
   - `XML`
 - Download configuration from remote URLs
 - Optional strict validation of configuration

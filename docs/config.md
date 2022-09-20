@@ -8,33 +8,32 @@ The structure of the configuration file is automatically derived from the
 parameters of the CLI and their types. There is no need to manually produce a configuration
 data structure to mirror the CLI.
 
-The `@config_option()` decorator provided by Click Extra can be used with vanilla Click construction, as demonstrated below.
+## Standalone option
 
-## Tutorial
-
-Let's start with a vanilla Click CLI with the `@config_option()` decorator from Click Extra:
+The `@config_option()` decorator provided by Click Extra can be used as-is with vanilla Click:
 
 ```{eval-rst}
 .. click:example::
-    import click
+    from click import group, option, echo
 
-    from click_extra.config import config_option
+    from click_extra import config_option
 
-
-    @click.group(context_settings={"show_default": True})
-    @click.option("--dummy-flag/--no-flag")
-    @click.option("--my-list", multiple=True)
+    @group(context_settings={"show_default": True})
+    @option("--dummy-flag/--no-flag")
+    @option("--my-list", multiple=True)
     @config_option()
     def my_cli(dummy_flag, my_list):
-        click.echo(f"dummy_flag    is {dummy_flag!r}")
-        click.echo(f"my_list       is {my_list!r}")
+        echo(f"dummy_flag    is {dummy_flag!r}")
+        echo(f"my_list       is {my_list!r}")
 
     @my_cli.command()
-    @click.option("--int-param", type=int, default=10)
+    @option("--int-param", type=int, default=10)
     def subcommand(int_param):
-        click.echo(f"int_parameter is {int_param!r}")
+        echo(f"int_parameter is {int_param!r}")
 
-We will save it into a file named `my_cli.py`. It produces the following help screen:
+The code above is saved into a file named ``my_cli.py``.
+
+It produces the following help screen:
 
 .. click:run::
     invoke(my_cli, args=["--help"])
@@ -45,8 +44,9 @@ A bare call returns:
     invoke(my_cli, args=["subcommand"])
 ```
 
-Now we will change the CLI's default output with a TOML file where the CLI is expecting a configuration.
-Here is what `~/Library/Application Support/my-cli/config.toml` contains:
+With a simple TOML file in the application folder, we will change the CLI's default output.
+
+Here is what `~/.config/my-cli/config.toml` contains:
 
 ```toml
 # My default configuration file.
@@ -58,7 +58,7 @@ dummy_flag = true   # New boolean default.
 my_list = ["item 1", "item #2", "Very Last Item!"]
 
 [garbage]
-# An empty random section that will be skipped
+# An empty random section that will be skipped.
 
 [my-cli.subcommand]
 int_param = 3
@@ -67,14 +67,14 @@ random_stuff = "will be ignored"
 
 In the file above, pay attention to:
 
-- the default configuration base path (`~/Library/Application Support/`, here for Linux) which is [OS-dependant](https://click.palletsprojects.com/en/8.1.x/api/#click.get_app_dir);
-- the app's folder (`~/Library/Application Support/my-cli/`) which correspond to the script's
+- the [default configuration base path](#default-folder) (`~/.config/my-cli/` here on Linux) which is OS-dependant;
+- the app's folder (`/my-cli/`) which is built from the script's
   name (`my_cli.py`);
-- the top-level config section (`[my-cli]`), that is derived from the CLI's
+- the top-level config section (`[my-cli]`), based on the CLI's
   group ID (`def my_cli()`);
 - all the extra comments, sections and values that will be silently ignored.
 
-Now we can verify the configuration file is read automatically and change the defaults:
+Now we can verify the configuration file is properly read and change the defaults:
 
 ```shell-session
 $ my-cli subcommand
@@ -83,8 +83,7 @@ my_list       is ('item 1', 'item #2', 'Very Last Item!')
 int_parameter is 3
 ```
 
-Still, inline parameters are allowed to override the configuration
-defaults:
+Still, inline parameters takes priority on defaults:
 
 ```shell-session
 $ my-cli subcommand --int-param 555
@@ -93,12 +92,86 @@ my_list       is ('item 1', 'item #2', 'Very Last Item!')
 int_parameter is 555
 ```
 
-## YAML configuration
+## Strictness
+
+As you can see [in the example above](#standalone-option), all unrecognized content is ignored.
+
+If for any reason you do not want to allow any garbage in configuration files provided by the user, you can use the `strict` argument.
+
+Given this `cli.toml` file:
+
+```toml
+[cli]
+int_param = 3
+random_param = "forbidden"
+```
+
+The use of `strict=True` parameter in the CLI below:
+
+```python
+from click import command, option, echo
+
+from click_extra import config_option
+
+@command(context_settings={"show_default": True})
+@option("--int-param", type=int, default=10)
+@config_option(strict=True)
+def cli(int_param):
+    echo(f"int_parameter is {int_param!r}")
+```
+
+Will raise an error and stop the the CLI execution on unrecognized `random_param` value:
+
+```shell-session
+$ cli --config "cli.toml"
+Load configuration matching cli.toml
+(...)
+ValueError: Parameter 'random_param' is not allowed in configuration file.
+```
+
+## Formats
+
+Several dialects are supported:
+
+- `TOML`
+- `YAML`
+- `JSON`, with inline and block comments (Python-style `#` and Javascript-style `//`, thanks to [`commentjson`](https://github.com/vaidik/commentjson))
+- `INI`, with extended interpolation, multi-level sections and non-native types (`list`, `set`, …)
+- `XML`
+
+The default behavior consist in [searching for all files matching the pattern](#pattern-matching). And parse each of them with every supported format, in the order given above. As soon as a file is able to be parsed without error and returns a `dict`, the search stops and the file is used to feed the CLI's default values.
+
+If you know in advance the only format you'd like to support, you can use the `formats` argument on your decorator like so:
+
+```{eval-rst}
+.. click:example::
+    from click import command, option, echo
+
+    from click_extra import config_option
+    from click_extra.config import Formats
+
+    @command(context_settings={"show_default": True})
+    @option("--int-param", type=int, default=10)
+    @config_option(formats=Formats.YAML)
+    def cli(int_param):
+        echo(f"int_parameter is {int_param!r}")
+
+Notice how the default search pattern gets limited to files with a ``.yaml`` extension:
+
+.. click:run::
+    invoke(cli, args=["--help"])
+```
+
+### TOML
+
+See the [example in the top of this page](standalone-option).
+
+### YAML
 
 The example above was given for a TOML configuration file, but is working as-is with YAML.
 
 Just replace the TOML file with the following configuration at
-`~/Library/Application Support/my-cli/config.yaml`:
+`~/.config/my-cli/config.yaml`:
 
 ```yaml
 # My default configuration file.
@@ -121,13 +194,13 @@ garbage: >
 ```
 
 ```shell-session
-$ my-cli --config "~/Library/Application Support/my-cli/config.yaml" subcommand
+$ my-cli --config "~/.config/my-cli/config.yaml" subcommand
 dummy_flag    is True
 my_list       is ('point 1', 'point #2', 'Very Last Point!')
 int_parameter is 77
 ```
 
-## JSON configuration
+### JSON
 
 Again, same for JSON:
 
@@ -152,13 +225,13 @@ Again, same for JSON:
 ```
 
 ```shell-session
-$ my-cli --config "~/Library/Application Support/my-cli/config.json" subcommand
+$ my-cli --config "~/.config/my-cli/config.json" subcommand
 dummy_flag    is True
 my_list       is ('item 1', 'item #2', 'Very Last Item!')
 int_parameter is 65
 ```
 
-## INI configuration
+### INI
 
 `INI` configuration files are allowed to use [`ExtendedInterpolation`](https://docs.python.org/3/library/configparser.html?highlight=configparser#configparser.ExtendedInterpolation) by default.
 
@@ -166,18 +239,101 @@ int_parameter is 65
 Write example.
 ```
 
-## XML configuration
+### XML
 
 ```{todo}
 Write example.
 ```
 
-## Remote configuration
+## Pattern matching
+
+The configuration file is searched from a wildcard-based pattern.
+
+By default, the pattern is `/<app_dir>/*.{toml,yaml,json,ini,xml}`, where:
+
+- `<app_dir>` is the [default application folder (see below)](#default-folder)
+- `*.{toml,yaml,json,ini,xml}` is any file in that folder with any of `.toml`, `.yaml`, `.json` , `.ini` or `.xml` extension.
+
+### Default folder
+
+The configuration file is searched in the default application path, as defined by [`click.get_app_dir()`](https://click.palletsprojects.com/en/8.1.x/api/#click.get_app_dir).
+
+Like the latter, the `@config_option()` decorator and `ConfigOption` class accept a `roaming` and `force_posix` argument to alter the default path:
+
+| Platform | `roaming` | `force_posix` | Folder|
+| :---| :---| :---| :---|
+|macOS (default) | - | `False` | `~/Library/Application Support/Foo Bar` |
+|macOS | - | `True` | `~/.foo-bar` |
+|Unix (default) | - | `False` | `~/.config/foo-bar` |
+|Unix | - | `True` | `~/.foo-bar` |
+|Windows (default) | `True` | - | `C:\Users\<user>\AppData\Roaming\Foo Bar` |
+|Windows | `False` | - | `C:\Users\<user>\AppData\Local\Foo Bar` |
+
+Let's change the default base folder in the following example:
+
+```{eval-rst}
+.. click:example::
+    from click import command
+
+    from click_extra import config_option
+
+    @command(context_settings={"show_default": True})
+    @config_option(force_posix=True)
+    def cli():
+        pass
+
+See how the default to ``--config`` option has been changed to ``~/.cli/*.{toml,yaml,json,ini,xml}``:
+
+.. click:run::
+    invoke(cli, args=["--help"])
+```
+
+### Default extensions
+
+```{todo}
+Write something.
+```
+
+### Custom pattern
+
+If you'd like to customize the pattern, you can pass your own to the `default` parameter.
+
+Here is how to look for an extension-less YAML dotfile in the home directory, with a pre-defined `.commandrc` name:
+
+```{eval-rst}
+.. click:example::
+    from click import command
+
+    from click_extra import config_option
+    from click_extra.config import Formats
+
+    @command(context_settings={"show_default": True})
+    @config_option(default="~/.commandrc", formats=Formats.YAML)
+    def cli():
+        pass
+
+.. click:run::
+    invoke(cli, args=["--help"])
+```
+
+Matching patterns:
+- are [based on `wcmatch.glob` syntax](https://facelessuser.github.io/wcmatch/glob/#syntax)
+- should be written with Unix separators (`/`), even for Windows (the [pattern will be normalized to the local platform dialect](https://facelessuser.github.io/wcmatch/glob/#windows-separators))
+- are configured with the following default flags:
+  - [`IGNORECASE`](https://facelessuser.github.io/wcmatch/glob/#ignorecase): case-insensitive matching
+  - [`GLOBSTAR`](https://facelessuser.github.io/wcmatch/glob/#globstar): recursive directory search via `**`
+  - [`FOLLOW`](https://facelessuser.github.io/wcmatch/glob/#follow): traverse symlink directories
+  - [`DOTGLOB`](https://facelessuser.github.io/wcmatch/glob/#dotglob): allow match of file or directory starting with a dot (`.`)
+  - [`BRACE`](https://facelessuser.github.io/wcmatch/glob/#brace): allow brace expansion for greater expressiveness
+  - [`GLOBTILDE`](https://facelessuser.github.io/wcmatch/glob/#globtilde): allows for user path expansion via `~`
+  - [`NODIR`](https://facelessuser.github.io/wcmatch/glob/#nodir): restricts results to files
+
+## Remote URL
 
 Remote URL can be passed directly to the `--config` option:
 
 ```shell-session
-$ my-cli --config https://example.com/dummy/configuration.yaml subcommand
+$ my-cli --config "https://example.com/dummy/configuration.yaml" subcommand
 dummy_flag    is True
 my_list       is ('point 1', 'point #2', 'Very Last Point!')
 int_parameter is 77
