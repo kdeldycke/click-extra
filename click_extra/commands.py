@@ -145,7 +145,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         in ``main()``.
 
         If an instance of ``VersionOption`` has been setup on the command, adds to the
-        normal execution flow the output of ``--version`` in DEBUG logs. This facilitates
+        normal execution flow the output of ``--version`` in ``DEBUG`` logs. This facilitates
         troubleshooting of user's issues.
         """
         if getLevelName(logger.level) == "DEBUG":
@@ -171,11 +171,21 @@ class ExtraGroup(ExtraCommand, Group):
 
 
 def default_extra_params():
-    """Default additional options added to ``extra_command`` and ``extra_group``.
+    """Default additional options added to ``extra_command`` and ``extra_group``:
 
-    Order is important so that options at the top of the list can have influence on options below.
+    #. ``--time`` / ``--no-time``
+    #. ``--color``, ``--ansi`` / ``--no-color``, ``--no-ansi``
+    #. ``-C``, ``--config CONFIG_PATH``
+    #. ``-v``, ``--verbosity LEVEL``
+    #. ``--version``
+    #. ``-h``, ``--help``
 
-    This is a method to not have the option instances reused between commands (like in tests).
+    Order is important to let options at the top have influence on those below.
+
+    .. note::
+
+        This default set is a list wrapped in a method, as a workaround for unittests, in which option instances seems to be
+        reused in unrelated commands and mess with test isolation.
     """
     return [
         TimerOption(),

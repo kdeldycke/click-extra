@@ -12,12 +12,12 @@ hidden:
 ---
 install
 tutorial
+commands
 config
 colorize
 logging
 tabulate
 platform
-commands
 run
 parameters
 pygments

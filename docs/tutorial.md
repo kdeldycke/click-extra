@@ -30,7 +30,7 @@ Whose help screen renders as:
    invoke(hello, args=["--help"])
 ```
 
-To augment the simple example above with all the bells and whistles `click-extra` has in store, all you need is to replace the base command decorator with its `extra_`-prefixed variants:
+To augment the simple example above with [all the bells and whistles](index#features) `click-extra` has in store, you just need to replace the base command decorator with its `extra_`-prefixed variant:
 
 ```{eval-rst}
 .. click:example::
@@ -52,7 +52,7 @@ And now you get:
 
 That's it!
 
-Here are the only changes between the two versions:
+Here is a highlight of the only changes between the two versions:
 
 ```diff
 -from click import command, echo, option
@@ -69,7 +69,7 @@ Here are the only changes between the two versions:
 ```
 
 ```{tip}
-As you can see above, `click_extra` is proxy-ing the whole `click` namespace, so you can use the former as a [drop-in replacement](tutorial.md#drop-in-replacement) for the latter.
+As you can see above, `click_extra` is proxy-ing the whole `click` namespace, so you can use it as a [drop-in replacement](tutorial.md#drop-in-replacement).
 ```
 
 ## Standalone options
@@ -155,27 +155,7 @@ Click Extra provides these additional options:
 - [`config_option`](config.md)
 - [`help_option`](colorize.md#help-option)
 - [`table_format_option`](tabulate.md)
-- [`timer_option`](command.md)
+- [`timer_option`](commands.md#timer-option)
 - [`verbosity_option`](logging.md)
 - [`version_option`](colorize.md#version-option)
-```
-
-## Drop-in replacement
-
-Click Extra aims to be a drop-in replacement for Click. So if you replace the namespace nothing is supposed to happend:
-
-```{eval-rst}
-.. click:example::
-    from click_extra import command, echo, option
-
-    @command()
-    @option("--count", default=1, help="Number of greetings.")
-    @option("--name", prompt="Your name", help="The person to greet.")
-    def hello(count, name):
-        """Simple program that greets NAME for a total of COUNT times."""
-        for _ in range(count):
-            echo(f"Hello, {name}!")
-
-.. click:run::
-   invoke(hello, args=["--help"])
 ```
