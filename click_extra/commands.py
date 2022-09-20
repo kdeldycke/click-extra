@@ -198,8 +198,14 @@ def default_extra_params():
 
 
 extra_command = partial(command, cls=ExtraCommand, params=default_extra_params())
-"""Augment default ``cloup.command`` with additional options."""
+"""Augment default ``cloup.command`` with additional options.
+
+See :py:func:`click_extra.commands.default_extra_params` for the list of default options.
+"""
 
 
 extra_group = partial(group, cls=ExtraGroup, params=default_extra_params())
-"""Augment default ``cloup.group`` with additional options."""
+"""Augment default ``cloup.group`` with additional options.
+
+See :py:func:`click_extra.commands.default_extra_params` for the list of default options.
+"""
