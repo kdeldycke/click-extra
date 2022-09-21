@@ -214,7 +214,8 @@ def invoke(runner, monkeypatch):
     return _run
 
 
-# TODO: Report upstream to cloup.
+# XXX Support for decorator without parenthesis in Cloup has been reported upstream:
+# https://github.com/janluke/cloup/issues/127
 skip_naked = pytest.mark.skip(reason="Naked decorator not supported yet.")
 
 
