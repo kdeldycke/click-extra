@@ -45,12 +45,12 @@ To undestrand how we ended up with the result above, go [read the tutorial](http
 - Search of configuration file from default user folder and glob patterns
 - Respect of `CLI > Configuration > Environment > Defaults` precedence
 - Colorization of help screens
-- `-h/--help` option names (see [rant on other inconsistencies](https://blog.craftyguy.net/cmdline-help/))
-- `--color/--no-color` option flag
+- `-h`/`--help` option names (see [rant on other inconsistencies](https://blog.craftyguy.net/cmdline-help/))
+- `--color`/`--no-color` option flag
 - Recognize the `NO_COLOR` environment variable convention from [`no-color.org`](https://no-color.org)
 - Colored `--version` option
 - Colored `--verbosity` option and logs
-- `--time/--no-time` flag to measure duration of command execution
+- `--time`/`--no-time` flag to measure duration of command execution
 - Platform recognition utilities (macOS, Linux and Windows)
 - New conditional markers for `pytest`:
   - `@skip_linux`, `@skip_macos` and `@skip_windows`
