@@ -612,6 +612,16 @@ class ShowParamsOption(ExtraOption, ParamStructure):
     the CLI will be executed. This option print information about the parameters that will be fed to the CLI.
     """
 
+    TABLE_HEADERS = [
+        "Parameter",
+        "ID",
+        "Type",
+        "Env. var.",
+        "Default",
+        "Value",
+        "Source",
+    ]
+
     def __init__(
         self,
         param_decls=None,
@@ -694,15 +704,6 @@ class ShowParamsOption(ExtraOption, ParamStructure):
 
             get_param_value = vanilla_getter
 
-        headers = [
-            "Parameter",
-            "ID",
-            "Type",
-            "Env. var.",
-            "Default",
-            "Value",
-            "Source",
-        ]
         table = []
         for path, param_type in self.flatten_tree_dict(self.params_types).items():
             # Get the parameter instance.
@@ -731,7 +732,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
 
         output = tabulate(
             sorted(table, key=sort_by_depth),
-            headers=headers,
+            headers=self.TABLE_HEADERS,
             tablefmt="rounded_outline",
             disable_numparse=True,
         )

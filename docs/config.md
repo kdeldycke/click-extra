@@ -377,7 +377,22 @@ int_parameter is 77
 ## Show params option
 
 ```{todo}
-Write example and tutorial.
+Write explanation.
+```
+
+```{eval-rst}
+.. click:example::
+    from click_extra import *
+
+    @extra_command()
+    @option("--int-param1", type=int, default=10)
+    @option("--int-param2", type=int, default=555)
+    def cli(int_param1, int_param2):
+        echo(f"int_param1 is {int_param1!r}")
+        echo(f"int_param2 is {int_param2!r}")
+
+.. click:run::
+    invoke(cli, args=["--verbosity", "Debug", "--int-param1", "3", "--show-params"])
 ```
 
 ## `click_extra.config` API

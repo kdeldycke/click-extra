@@ -17,6 +17,7 @@
 
 import re
 import sys
+from os.path import sep
 from pathlib import Path
 
 import click
@@ -37,9 +38,10 @@ from click import (
 from click import Path as ClickPath
 from click import Tuple, echo, get_app_dir
 from cloup import argument, option
+from tabulate import tabulate
 
-from ..commands import extra_group
-from ..config import ConfigOption, config_option
+from ..commands import extra_command, extra_group
+from ..config import ConfigOption, ShowParamsOption, config_option
 from .conftest import default_debug_uncolored_log
 
 DUMMY_TOML_FILE = """
@@ -525,3 +527,129 @@ def test_conf_file_overrided_by_cli_param(
             "dummy_flag = False\nmy_list = ('super', 'wow')\nint_parameter = 15\n"
         )
         assert result.stderr == f"Load configuration matching {conf_path.resolve()}\n"
+
+
+def test_show_params_option(invoke, create_config):
+    @extra_command()
+    @option("--int-param1", type=int, default=10)
+    @option("--int-param2", type=int, default=555)
+    def show_params_cli(int_param1, int_param2):
+        echo(f"int_param1 is {int_param1!r}")
+        echo(f"int_param2 is {int_param2!r}")
+
+    conf_file = """
+        [show-params-cli]
+        int_param1 = 3
+        extra_value = "unallowed"
+        """
+    conf_path = create_config("show-params-cli.toml", conf_file)
+
+    raw_args = [
+        "--verbosity",
+        "DeBuG",
+        "--config",
+        str(conf_path),
+        "--int-param1",
+        "9999",
+        "--show-params",
+        "--help",
+    ]
+    result = invoke(show_params_cli, *raw_args, color=False)
+
+    assert result.exit_code == 0
+
+    cli_config_option = [
+        p for p in show_params_cli.params if isinstance(p, ConfigOption)
+    ].pop()
+    table = [
+        (
+            "<ColorOption color>",
+            "show-params-cli.color",
+            "bool",
+            "SHOW_PARAMS_CLI_COLOR",
+            True,
+            True,
+            "DEFAULT",
+        ),
+        (
+            "<ConfigOption config>",
+            "show-params-cli.config",
+            "str",
+            "SHOW_PARAMS_CLI_CONFIG",
+            f"{Path(get_app_dir('show-params-cli')).resolve()}{sep}*.{{toml,yaml,yml,json,ini,xml}}",
+            str(conf_path),
+            "COMMANDLINE",
+        ),
+        (
+            "<HelpOption help>",
+            "show-params-cli.help",
+            "bool",
+            "SHOW_PARAMS_CLI_HELP",
+            False,
+            True,
+            "COMMANDLINE",
+        ),
+        (
+            "<Option int_param1>",
+            "show-params-cli.int_param1",
+            "int",
+            "SHOW_PARAMS_CLI_INT_PARAM1",
+            3,
+            9999,
+            "COMMANDLINE",
+        ),
+        (
+            "<Option int_param2>",
+            "show-params-cli.int_param2",
+            "int",
+            "SHOW_PARAMS_CLI_INT_PARAM2",
+            555,
+            555,
+            "DEFAULT",
+        ),
+        (
+            "<ShowParamsOption show_params>",
+            "show-params-cli.show_params",
+            "bool",
+            "SHOW_PARAMS_CLI_SHOW_PARAMS",
+            False,
+            True,
+            "COMMANDLINE",
+        ),
+        (
+            "<TimerOption time>",
+            "show-params-cli.time",
+            "bool",
+            "SHOW_PARAMS_CLI_TIME",
+            False,
+            False,
+            "DEFAULT",
+        ),
+        (
+            "<VerbosityOption verbosity>",
+            "show-params-cli.verbosity",
+            "str",
+            "SHOW_PARAMS_CLI_VERBOSITY",
+            "INFO",
+            "DeBuG",
+            "COMMANDLINE",
+        ),
+        (
+            "<VersionOption version>",
+            "show-params-cli.version",
+            "bool",
+            "SHOW_PARAMS_CLI_VERSION",
+            False,
+            False,
+            "DEFAULT",
+        ),
+    ]
+    output = tabulate(
+        table,
+        headers=ShowParamsOption.TABLE_HEADERS,
+        tablefmt="rounded_outline",
+        disable_numparse=True,
+    )
+    assert result.output == f"{output}\n"
+
+    assert f"debug: click_extra.raw_args: {raw_args}" in result.stderr
