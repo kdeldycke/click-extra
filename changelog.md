@@ -6,6 +6,9 @@
 This version is not released yet and is under active development.
 ```
 
+- New `--show-params` option to debug parameters defaults, values, environment variables and provenance.
+- Rename `ignored_options` to `ignored_params` on `ConfigOption`.
+- New custom `ExtraContext` which allows populating `meta` at instanciation.
 - Use the `Formats` enum to encode for default configuration file extensions.
 - Re-introduce `*.yml` as a possible extension for YAML files.
 

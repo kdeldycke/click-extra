@@ -18,14 +18,15 @@
 """Utilities to load parameters and options from a configuration file."""
 
 import sys
+from collections.abc import MutableMapping
 from configparser import ConfigParser, ExtendedInterpolation
-from enum import Enum, auto
+from enum import Enum
 from functools import partial, reduce
 from gettext import gettext as _
-from operator import getitem
+from operator import getitem, methodcaller
 from os.path import sep
 from pathlib import Path
-from typing import Any, Dict, Iterable, Optional, Sequence, Union
+from typing import Any, Dict, Iterable, Optional, Sequence
 from unittest.mock import patch
 
 if sys.version_info >= (3, 8):
@@ -52,6 +53,7 @@ from cloup import Choice, DateTime, File, FloatRange, IntRange
 from cloup import Tuple as CloupTuple
 from cloup import option
 from mergedeep import merge
+from tabulate import tabulate
 from wcmatch.glob import (
     BRACE,
     DOTGLOB,
@@ -81,7 +83,184 @@ class Formats(Enum):
     XML = ("xml",)
 
 
-class ConfigOption(ExtraOption):
+class ParamStructure:
+    """Utilities to introspect CLI options and commands structure.
+
+    Structures are represented by a tree-like ``dict``.
+
+    Access to a node is available using a serialized path string composed of the keys to descend to that node,
+    separated by a dot ``.``.
+    """
+
+    ignored_params: Iterable[str] = tuple()
+
+    params_template: Dict[str, Any] = {}
+    params_types: Dict[str, Any] = {}
+    params_objects: Dict[str, Any] = {}
+
+    SEP: str = "."
+    """Use a dot ``.`` as a separator between levels of the tree-like parameter structure."""
+
+    def __init__(self, ignored_params: Optional[Iterable[str]] = None):
+        if ignored_params:
+            self.ignored_params = ignored_params
+
+    @staticmethod
+    def init_tree_dict(*path: str, leaf: Any = None):
+        """Utility method to recursively create a nested dict structure whose keys are
+        provided by ``path`` list and at the end is populated by a copy of ``leaf``."""
+
+        def dive(levels):
+            if levels:
+                return {levels[0]: dive(levels[1:])}
+            return leaf
+
+        return dive(path)
+
+    @staticmethod
+    def get_tree_value(tree_dict: Dict[str, Any], *path: str) -> Optional[Any]:
+        """Get in the ``tree_dict`` the value located at the ``path``."""
+        try:
+            return reduce(getitem, path, tree_dict)
+        except KeyError:
+            return None
+
+    def _flatten_tree_dict_gen(self, tree_dict, parent_key):
+        """
+        Source: https://www.freecodecamp.org/news/how-to-flatten-a-dictionary-in-python-in-4-different-ways/
+        """
+        for k, v in tree_dict.items():
+            new_key = f"{parent_key}{self.SEP}{k}" if parent_key else k
+            if isinstance(v, MutableMapping):
+                yield from self.flatten_tree_dict(v, new_key).items()
+            else:
+                yield new_key, v
+
+    def flatten_tree_dict(
+        self, tree_dict: MutableMapping, parent_key: Optional[str] = None
+    ):
+        """Recursively traverse the tree-like ``dict`` and produce a flat ``dict`` whose keys are path and values are the leaf's content."""
+        return dict(self._flatten_tree_dict_gen(tree_dict, parent_key))
+
+    def walk_params(self):
+        """Generator yielding all CLI parameters from top-level to subcommands.
+
+        Returns a 2-elements tuple:
+        - the first being a tuple of keys leading to the parameter
+        - the second being the parameter object itself
+        """
+        ctx = get_current_context()
+        cli = ctx.find_root().command
+
+        # Keep track of top-level CLI parameter IDs to check conflict with command IDs later.
+        top_level_params = set()
+
+        # Global, top-level options shared by all subcommands.
+        for p in cli.params:
+            if p.name not in self.ignored_params:
+                top_level_params.add(p.name)
+                yield (cli.name, p.name), p
+
+        # Subcommand-specific options.
+        if hasattr(cli, "commands"):
+            for cmd_id, cmd in cli.commands.items():
+                if cmd_id in top_level_params:
+                    raise ValueError(
+                        f"{cli.name}{self.SEP}{cmd_id} subcommand conflicts with "
+                        f"{top_level_params} top-level parameters"
+                    )
+
+                for p in cmd.params:
+                    if p.name not in self.ignored_params:
+                        yield (cli.name, cmd_id, p.name), p
+
+    def get_param_type(self, param):
+        """Get the Python type of a Click parameter.
+
+        See the list of `custom types provided by Click
+        <https://click.palletsprojects.com/en/8.1.x/api/?highlight=intrange#types>`_.
+        """
+        if param.multiple or param.nargs != 1:
+            return list
+
+        if hasattr(param, "is_bool_flag") and getattr(param, "is_bool_flag"):
+            return bool
+
+        direct_map = {
+            STRING: str,
+            INT: int,
+            FLOAT: float,
+            BOOL: bool,
+            UUID: str,
+            UNPROCESSED: str,
+        }
+
+        for click_type, py_type in direct_map.items():
+            if param.type == click_type:
+                return py_type
+
+        instance_map = {
+            File: str,
+            ClickPath: str,
+            Choice: str,
+            IntRange: int,
+            FloatRange: float,
+            DateTime: str,
+            CloupTuple: list,
+        }
+
+        for click_type, py_type in instance_map.items():
+            if isinstance(param.type, click_type):
+                return py_type
+
+        raise ValueError(
+            f"Can't guess the appropriate Python type of {param!r} parameter."
+        )
+
+    def build_param_trees(self):
+        """Build all parameters tree structure in one go and cache them."""
+        template = {}
+        types = {}
+        objects = {}
+
+        for keys, param in self.walk_params():
+            merge(template, self.init_tree_dict(*keys))
+            merge(types, self.init_tree_dict(*keys, leaf=self.get_param_type(param)))
+            merge(objects, self.init_tree_dict(*keys, leaf=param))
+
+        self.params_template = template
+        self.params_types = types
+        self.params_objects = objects
+
+    @cached_property
+    def params_template(self):
+        """Returns a tree-like dictionnary whose keys shadows the CLI options and subcommands and values are ``None``.
+
+        Perfect to serve as a template for configuration files.
+        """
+        self.build_param_trees()
+        return self.params_template
+
+    @cached_property
+    def params_types(self):
+        """Returns a tree-like dictionnary whose keys shadows the CLI options and subcommands and values are their expected Python type.
+
+        Perfect to parse configuration files and user-provided parameters.
+        """
+        self.build_param_trees()
+        return self.params_types
+
+    @cached_property
+    def params_objects(self):
+        """Returns a tree-like dictionnary whose keys shadows the CLI options and subcommands and values are parameter objects.
+
+        Perfect to parse configuration files and user-provided parameters.
+        """
+        self.build_param_trees()
+        return self.params_objects
+
+
+class ConfigOption(ExtraOption, ParamStructure):
     """A pre-configured option adding ``--config``/``-C`` option."""
 
     formats: Sequence[Formats]
@@ -89,12 +268,7 @@ class ConfigOption(ExtraOption):
     roaming: bool
     force_posix: bool
 
-    ignore_options: Iterable[str]
-
     strict: bool
-
-    conf_template: Dict[str, Any] = {}
-    conf_types: Dict[str, Any] = {}
 
     def __init__(
         self,
@@ -109,10 +283,11 @@ class ConfigOption(ExtraOption):
         formats=tuple(Formats),
         roaming=True,
         force_posix=False,
-        ignored_options=(
+        ignored_params=(
             "help",
             "version",
             "config",
+            "show_params",
         ),
         strict=False,
         **kwargs,
@@ -129,10 +304,11 @@ class ConfigOption(ExtraOption):
         - ``roaming`` and ``force_posix`` are [fed to ``click.get_app_dir()``](https://click.palletsprojects.com/en/8.1.x/api/#click.get_app_dir) to setup the default configuration
             folder.
 
-        - ``ignored_options`` is a list of options to ignore by the configuration parser. Defaults to:
+        - ``ignored_params`` is a list of options to ignore by the configuration parser. Defaults to:
             - ``--help``, as it makes no sense to have the configurable file always forces a CLI to show the help and exit.
             - ``--version``, which is not a configurable option *per-se*.
             - ``-C``/``--config`` option, which cannot be used to recursively load another configuration file (yet?).
+            - ``--show-params`` flag, which is like ``--help`` and stops the CLI execution.
 
         - ``strict``
             - If ``True``, raise an error if the configuration file contain unrecognized content.
@@ -151,7 +327,7 @@ class ConfigOption(ExtraOption):
         self.force_posix = force_posix
         kwargs.setdefault("default", self.default_pattern)
 
-        self.ignored_options = ignored_options
+        self.ignored_params = ignored_params
 
         self.strict = strict
 
@@ -289,28 +465,11 @@ class ConfigOption(ExtraOption):
                 return user_conf
         return None
 
-    @staticmethod
-    def init_deep_dict(path, leaf=None):
-        """Utility method to recursively create a nested dict structure whose keys are
-        provided by ``levels`` list and at the end is populated by ``leaf``."""
-
-        def dive(levels):
-            if levels:
-                return {levels[0]: dive(levels[1:])}
-            return leaf
-
-        # Use dot separator in section names as a separator between levels.
-        return dive(path.split("."))
-
-    @staticmethod
-    def get_deep_value(deep_dict, path):
-        try:
-            return reduce(getitem, path.split("."), deep_dict)
-        except KeyError:
-            return None
-
     def load_ini_config(self, content):
         """Utility method to parse INI configuration file.
+
+        Internal convention is to use a dot (``.``, as set by ``self.SEP``) in section IDs as a separator between levels. This is a workaround
+        the limitation of INI format which doesn't allow for sub-sections.
 
         Returns a ready-to-use data structure.
         """
@@ -323,8 +482,8 @@ class ConfigOption(ExtraOption):
             # Extract all options of the section.
             sub_conf = {}
             for option_id in ini_config.options(section_id):
-                target_type = self.get_deep_value(
-                    self.conf_types, f"{section_id}.{option_id}"
+                target_type = self.get_tree_value(
+                    self.params_types, section_id, option_id
                 )
 
                 if target_type in (None, str):
@@ -352,91 +511,9 @@ class ConfigOption(ExtraOption):
                 sub_conf[option_id] = value
 
             # Place collected options at the right level of the dict tree.
-            merge(conf, self.init_deep_dict(section_id, leaf=sub_conf))
+            merge(conf, self.init_tree_dict(*section_id.split(self.SEP), leaf=sub_conf))
 
         return conf
-
-    def map_option_type(self, param):
-        """Translate Click parameter type to Python type.
-
-        See the list of `custom types provided by Click
-        <https://click.palletsprojects.com/en/8.1.x/api/?highlight=intrange#types>`_.
-        """
-
-        if param.multiple or param.nargs != 1:
-            return list
-
-        if hasattr(param, "is_bool_flag") and getattr(param, "is_bool_flag"):
-            return bool
-
-        direct_map = {
-            STRING: str,
-            INT: int,
-            FLOAT: float,
-            BOOL: bool,
-            UUID: str,
-            UNPROCESSED: str,
-        }
-
-        for click_type, py_type in direct_map.items():
-            if param.type == click_type:
-                return py_type
-
-        instance_map = {
-            File: str,
-            ClickPath: str,
-            Choice: str,
-            IntRange: int,
-            FloatRange: float,
-            DateTime: str,
-            CloupTuple: list,
-        }
-
-        for click_type, py_type in instance_map.items():
-            if isinstance(param.type, click_type):
-                return py_type
-
-        raise ValueError(
-            f"Can't guess the target configuration data type of {param!r} parameter."
-        )
-
-    def build_conf_structure(self, ctx):
-        """Returns two data structures shadowing the CLI options and subcommands.
-
-        2 tree-like dictionnaries are returned:
-
-        - One with only keys, all values being set to None, to serve as a template for configuration
-        - A copy of the former, with values set to their expected type
-        """
-        cli = ctx.find_root().command
-
-        # The whole config is placed under the cli name's section.
-        conf_template = {cli.name: {}}
-        conf_types = {cli.name: {}}
-
-        # Global, top-level options shared by all subcommands.
-        for p in cli.params:
-            if p.name not in self.ignored_options:
-                conf_template[cli.name][p.name] = None
-                conf_types[cli.name][p.name] = self.map_option_type(p)
-
-        # Subcommand-specific options.
-        if hasattr(cli, "commands"):
-            for cmd_id, cmd in cli.commands.items():
-                if cmd_id in conf_template[cli.name]:
-                    raise ValueError(
-                        f"{cli.name}.{cmd_id} subcommand conflicts with {conf_template[cli.name]} top-level parameters"
-                    )
-
-                for p in cmd.params:
-                    if p.name not in self.ignored_options:
-                        conf_template[cli.name].setdefault(cmd_id, {})[p.name] = None
-                        conf_types[cli.name].setdefault(cmd_id, {})[
-                            p.name
-                        ] = self.map_option_type(p)
-
-        self.conf_template = conf_template
-        self.conf_types = conf_types
 
     def recursive_update(self, a, b):
         """Like standard ``dict.update()``, but recursive so sub-dict gets updated.
@@ -463,7 +540,7 @@ class ConfigOption(ExtraOption):
         """
         # Merge configuration file's content into the template structure, but
         # ignore all unrecognized options.
-        valid_conf = self.recursive_update(self.conf_template, user_conf)
+        valid_conf = self.recursive_update(self.params_template, user_conf)
 
         # Clean-up blank values left-over by the template structure.
 
@@ -505,7 +582,6 @@ class ConfigOption(ExtraOption):
 
         # Read configuration file.
         conf = {}
-        self.build_conf_structure(ctx)
         user_conf = self.read_and_parse_conf(path_pattern)
         # Exit the CLI if the user-provided config file is bad.
         if user_conf is None:
@@ -527,6 +603,144 @@ class ConfigOption(ExtraOption):
             logger.debug(f"New defaults: {ctx.default_map}")
 
         return path_pattern
+
+
+class ShowParamsOption(ExtraOption, ParamStructure):
+    """A pre-configured option adding a ``--show-params`` option.
+
+    Between configuration files, default values and environment variables, it might be hard to guess under which set of parameters
+    the CLI will be executed. This option print information about the parameters that will be fed to the CLI.
+    """
+
+    def __init__(
+        self,
+        param_decls=None,
+        is_flag=True,
+        expose_value=False,
+        is_eager=True,
+        help=_(
+            "Show all CLI parameters, their provenance, defaults, value, then exit."
+        ),
+        **kwargs,
+    ) -> None:
+        if not param_decls:
+            param_decls = ("--show-params",)
+
+        kwargs.setdefault("callback", self.print_params)
+
+        super().__init__(
+            param_decls=param_decls,
+            is_flag=is_flag,
+            expose_value=expose_value,
+            is_eager=is_eager,
+            help=help,
+            **kwargs,
+        )
+
+    @staticmethod
+    def get_envvar(ctx, param) -> Optional[str]:
+        """Emulates the retrieval or dynamic generation of a parameter's environment variable.
+
+        This code is a copy of what happens in ``click.core.Parameter.resolve_envvar_value()`` and
+        ``click.core.Option.resolve_envvar_value()`` as the logic is deeply embedded in Click's internals
+        and can't be independently used.
+
+        ..todo:: Contribute this as slight refactor to Click?
+        """
+        if param.envvar:
+            return param.envvar
+        else:
+            if (
+                param.allow_from_autoenv
+                and ctx.auto_envvar_prefix is not None
+                and param.name is not None
+            ):
+                return f"{ctx.auto_envvar_prefix}_{param.name.upper()}"
+        return None
+
+    def print_params(self, ctx, param, value):
+        """Introspects current CLI ans list its parameters and metadata."""
+        # Exit early if the callback was processed but the option wasn't set.
+        if not value:
+            return
+
+        # Click doen't keep a list of all parsed arguments and their origin. We need to emulate what's happening
+        # during CLI invokation. The problem is even the raw arguments are now available somewhere. Our workaround
+        # consist in leveraging our ExtraCommand/ExtraGroup for this.
+        if "click_extra.raw_args" in ctx.meta:
+            raw_args = ctx.meta.get("click_extra.raw_args", [])
+            logger.debug(f"click_extra.raw_args: {raw_args}")
+
+            # Mimics click.core.Command.parse_args() so we can produce the list of parsed options values.
+            parser = ctx.command.make_parser(ctx)
+            opts, _, _ = parser.parse_args(args=raw_args)
+
+            # We call directly consume_value() instead of handle_parse_result() to prevent an
+            # embeded call to process_value(), as the later triggers the callback (and might terminate CLI execution).
+            param_value, source = param.consume_value(ctx, opts)
+
+            get_param_value = methodcaller("consume_value", ctx, opts)
+
+        else:
+            logger.debug(f"click_extra.raw_args not in {ctx.meta}")
+            logger.warning(
+                f"Cannot extract parameters values: {ctx.command} does not inherits from ExtraCommand."
+            )
+
+            def vanilla_getter(param):
+                param_value = None
+                source = ctx.get_parameter_source(param.name)
+                return param_value, source
+
+            get_param_value = vanilla_getter
+
+        headers = [
+            "Parameter",
+            "ID",
+            "Type",
+            "Env. var.",
+            "Default",
+            "Value",
+            "Source",
+        ]
+        table = []
+        for path, param_type in self.flatten_tree_dict(self.params_types).items():
+            # Get the parameter instance.
+            tree_keys = path.split(self.SEP)
+            param = self.get_tree_value(self.params_objects, *tree_keys)
+            assert param.name == tree_keys[-1]
+
+            param_value, source = get_param_value(param)
+
+            line = (
+                self.get_tree_value(self.params_objects, *tree_keys),
+                path,
+                param_type.__name__,
+                self.get_envvar(ctx, param),
+                param.get_default(ctx),
+                param_value,
+                source._name_ if source else None,
+            )
+            table.append(line)
+
+        def sort_by_depth(line):
+            """Sort parameters by depth first, then IDs, so that top-level parameters are kept to the top."""
+            param_path = line[1]
+            tree_keys = param_path.split(self.SEP)
+            return len(tree_keys), param_path
+
+        output = tabulate(
+            sorted(table, key=sort_by_depth),
+            headers=headers,
+            tablefmt="rounded_outline",
+            disable_numparse=True,
+        )
+        echo(output, color=ctx.color)
+        ctx.exit()
+
+
+show_params_option = partial(option, cls=ShowParamsOption)
+"""Decorator for ``ShowParamsOption``."""
 
 
 config_option = partial(option, cls=ConfigOption)

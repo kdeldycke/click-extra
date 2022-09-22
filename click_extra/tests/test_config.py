@@ -110,7 +110,7 @@ DUMMY_JSON_FILE = """
 
 DUMMY_INI_FILE = """
     ; Comment
-    # Another king of comment
+    # Another kind of comment
 
     [to_ignore]
     key=value
@@ -225,7 +225,10 @@ def test_conf_default_path(invoke):
 
     # Make path string compatible with regexp.
     path_regexp = (
-        str(default_path).replace("\\", "\\\\").replace("*", r"\*").replace("-", r"-\s*")
+        str(default_path)
+        .replace("\\", "\\\\")
+        .replace("*", r"\*")
+        .replace("-", r"-\s*")
     )
     assert re.search(rf"\[default:\s+{path_regexp}\]", result.output)
 
@@ -327,7 +330,7 @@ def test_conf_auto_types(invoke, create_config):
     cli_config_option = [
         p for p in config_cli2.params if isinstance(p, ConfigOption)
     ].pop()
-    assert cli_config_option.conf_template == {
+    assert cli_config_option.params_template == {
         "config-cli2": {
             "flag1": None,
             "flag2": None,
@@ -354,7 +357,7 @@ def test_conf_auto_types(invoke, create_config):
             "file_arg2": None,
         }
     }
-    assert cli_config_option.conf_types == {
+    assert cli_config_option.params_types == {
         "config-cli2": {
             "flag1": bool,
             "flag2": bool,

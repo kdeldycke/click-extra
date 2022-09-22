@@ -148,9 +148,9 @@ Load configuration matching cli.toml
 ValueError: Parameter 'random_param' is not allowed in configuration file.
 ```
 
-## Ignored options
+## Ignoring parameters
 
-The {py:attr}`ignored_options <click_extra.config.ConfigOption.ignored_options>` argument will exclude some of your CLI options from the configuration machinery.
+The {py:attr}`ignored_params <click_extra.config.ConfigOption.ignored_params>` argument will exclude some of your CLI options from the configuration machinery.
 
 It defaults to:
 - `--help`
@@ -372,6 +372,12 @@ $ my-cli --config "https://example.com/dummy/configuration.yaml" subcommand
 dummy_flag    is True
 my_list       is ('point 1', 'point #2', 'Very Last Point!')
 int_parameter is 77
+```
+
+## Show params option
+
+```{todo}
+Write example and tutorial.
 ```
 
 ## `click_extra.config` API

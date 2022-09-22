@@ -25,12 +25,16 @@ from functools import partial
 from gettext import gettext as _
 from logging import getLevelName
 from time import perf_counter
+from typing import Any, Dict, List, Optional, Type
 
+from click import Context as ClickContext
 from click import echo
-from cloup import Command, Group, command, group, option
+from cloup import Command
+from cloup import Context as CloupContext
+from cloup import Group, command, group, option
 
 from .colorize import ColorOption, ExtraHelpColorsMixin, HelpOption, VersionOption
-from .config import ConfigOption
+from .config import ConfigOption, ShowParamsOption
 from .logging import VerbosityOption, logger
 from .parameters import ExtraOption
 
@@ -85,9 +89,31 @@ timer_option = partial(option, cls=TimerOption)
 """Decorator for ``TimerOption``."""
 
 
+class ExtraContext(CloupContext):
+    """Like ``cloup._context.Context``, but with the ability to populate the context's ``meta`` property at instanciation."""
+
+    _extra_meta: Dict[str, Any] = {}
+
+    def __init__(self, *args, meta: Optional[Dict[str, Any]] = None, **kwargs) -> None:
+        """Like parent's context but with an extra ``meta`` keyword-argument."""
+        self._extra_meta = meta
+        super().__init__(*args, **kwargs)
+
+    @property
+    def meta(self) -> Dict[str, Any]:
+        """Returns context meta augmented with our own."""
+        # Check the two set of meta keys does not intersect.
+        assert not set(self._meta).intersection(self._extra_meta)
+        meta = dict(self._meta)
+        meta.update(self._extra_meta)
+        return meta
+
+
 class ExtraCommand(ExtraHelpColorsMixin, Command):
     """Same as ``cloup.command``, but with sane defaults and extra help screen
     colorization."""
+
+    context_class: Type[ClickContext] = ExtraContext
 
     def __init__(self, *args, version=None, extra_option_at_end=True, **kwargs):
 
@@ -130,6 +156,24 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         these might break the execution flow (like ``--version``).
         """
         return super().main(*args, **kwargs)
+
+    def make_context(
+        self,
+        info_name: Optional[str],
+        args: List[str],
+        parent: Optional[ClickContext] = None,
+        **extra: Any,
+    ) -> ClickContext:
+        """Intercept the call to the original ``click.core.BaseCommand.make_context`` so we can keep a copy of the raw,
+        pre-parsed arguments provided to the CLI.
+
+        The result are passed to our own ``ExtraContext`` constructor which is able to initialize the context's ``meta`` property
+        under our own ``click_extra.raw_args`` variable. This will be used in ``ShowParamsOption`` to print the table of parameters fed to the CLI.
+        """
+        # args needs to be copied: its items are consummed by the parsing process.
+        extra.update({"meta": {"click_extra.raw_args": args.copy()}})
+        ctx = super().make_context(info_name, args, parent, **extra)
+        return ctx
 
     @staticmethod
     def _get_param(ctx, klass):
@@ -176,6 +220,7 @@ def default_extra_params():
     #. ``--time`` / ``--no-time``
     #. ``--color``, ``--ansi`` / ``--no-color``, ``--no-ansi``
     #. ``-C``, ``--config CONFIG_PATH``
+    #. ``--show-params``
     #. ``-v``, ``--verbosity LEVEL``
     #. ``--version``
     #. ``-h``, ``--help``
@@ -191,6 +236,7 @@ def default_extra_params():
         TimerOption(),
         ColorOption(),
         ConfigOption(),
+        ShowParamsOption(),
         VerbosityOption(),
         VersionOption(print_env_info=True),
         HelpOption(),

@@ -59,7 +59,12 @@ from .colorize import (  # isort:skip
     help_option,
     version_option,
 )
-from .config import ConfigOption, config_option  # isort:skip
+from .config import (  # isort:skip
+    ConfigOption,
+    ShowParamsOption,
+    config_option,
+    show_params_option,
+)
 from .logging import VerbosityOption, verbosity_option  # isort:skip
 from .tabulate import table_format_option  # isort:skip
 
