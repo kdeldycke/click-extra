@@ -1,6 +1,11 @@
 click\_extra.tests package
 ==========================
 
+.. automodule:: click_extra.tests
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Submodules
 ----------
 
@@ -72,14 +77,6 @@ click\_extra.tests.test\_tabulate module
 ----------------------------------------
 
 .. automodule:: click_extra.tests.test_tabulate
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: click_extra.tests
    :members:
    :undoc-members:
    :show-inheritance:
