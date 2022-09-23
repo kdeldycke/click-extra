@@ -71,7 +71,7 @@ from .platform import is_windows
 
 
 class Formats(Enum):
-    """Supported configuration formats and the list of their default extentions.
+    """Supported configuration formats and the list of their default extensions.
 
     The default order set the priority by which each format is searched for the default configuration file.
     """
@@ -684,7 +684,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             opts, _, _ = parser.parse_args(args=raw_args)
 
             # We call directly consume_value() instead of handle_parse_result() to prevent an
-            # embeded call to process_value(), as the later triggers the callback (and might terminate CLI execution).
+            # embedded call to process_value(), as the later triggers the callback (and might terminate CLI execution).
             param_value, source = param.consume_value(ctx, opts)
 
             get_param_value = methodcaller("consume_value", ctx, opts)
