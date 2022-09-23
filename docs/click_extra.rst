@@ -1,6 +1,11 @@
 click\_extra package
 ====================
 
+.. automodule:: click_extra
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Subpackages
 -----------
 
@@ -80,14 +85,6 @@ click\_extra.tabulate module
 ----------------------------
 
 .. automodule:: click_extra.tabulate
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: click_extra
    :members:
    :undoc-members:
    :show-inheritance:
