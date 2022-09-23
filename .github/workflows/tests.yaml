@@ -153,11 +153,13 @@ jobs:
           poetry run pytest --randomly-seed=1927446530 --cov-config=pyproject.toml --cov=./ --cov-report=xml \
           click_extra/tests/test_commands.py
 
+          poetry run pytest --randomly-seed=498379502 --cov-config=pyproject.toml --cov=./ --cov-report=xml \
+          click_extra/tests/test_config.py
+
           poetry run pytest --randomly-seed=3568961045 --cov-config=pyproject.toml --cov=./ --cov-report=xml \
           click_extra/tests/test_logging.py
 
           poetry run pytest --cov-config=pyproject.toml --cov=./ --cov-report=xml \
-          click_extra/tests/test_config.py \
           click_extra/tests/test_platform.py \
           click_extra/tests/test_pygments.py \
           click_extra/tests/test_run.py \
@@ -175,11 +177,13 @@ jobs:
           poetry run pytest --randomly-seed=1927446530 --cov-config=pyproject.toml --cov=./ --cov-report=xml `
           click_extra/tests/test_commands.py
 
+          poetry run pytest --randomly-seed=498379502 --cov-config=pyproject.toml --cov=./ --cov-report=xml `
+          click_extra/tests/test_config.py
+
           poetry run pytest --randomly-seed=3568961045 --cov-config=pyproject.toml --cov=./ --cov-report=xml `
           click_extra/tests/test_logging.py
 
           poetry run pytest --cov-config=pyproject.toml --cov=./ --cov-report=xml `
-          click_extra/tests/test_config.py `
           click_extra/tests/test_platform.py `
           click_extra/tests/test_pygments.py `
           click_extra/tests/test_run.py `
