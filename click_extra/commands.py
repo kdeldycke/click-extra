@@ -90,7 +90,8 @@ timer_option = partial(option, cls=TimerOption)
 
 
 class ExtraContext(CloupContext):
-    """Like ``cloup._context.Context``, but with the ability to populate the context's ``meta`` property at instanciation."""
+    """Like ``cloup._context.Context``, but with the ability to populate the context's
+    ``meta`` property at instanciation."""
 
     _extra_meta: Dict[str, Any] = {}
 
@@ -164,11 +165,13 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         parent: Optional[ClickContext] = None,
         **extra: Any,
     ) -> Any:
-        """Intercept the call to the original ``click.core.BaseCommand.make_context`` so we can keep a copy of the raw,
-        pre-parsed arguments provided to the CLI.
+        """Intercept the call to the original ``click.core.BaseCommand.make_context`` so
+        we can keep a copy of the raw, pre-parsed arguments provided to the CLI.
 
-        The result are passed to our own ``ExtraContext`` constructor which is able to initialize the context's ``meta`` property
-        under our own ``click_extra.raw_args`` variable. This will be used in ``ShowParamsOption`` to print the table of parameters fed to the CLI.
+        The result are passed to our own ``ExtraContext`` constructor which is able to
+        initialize the context's ``meta`` property under our own
+        ``click_extra.raw_args`` variable. This will be used in ``ShowParamsOption`` to
+        print the table of parameters fed to the CLI.
         """
         # args needs to be copied: its items are consummed by the parsing process.
         extra.update({"meta": {"click_extra.raw_args": args.copy()}})
@@ -189,8 +192,8 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         in ``main()``.
 
         If an instance of ``VersionOption`` has been setup on the command, adds to the
-        normal execution flow the output of ``--version`` in ``DEBUG`` logs. This facilitates
-        troubleshooting of user's issues.
+        normal execution flow the output of ``--version`` in ``DEBUG`` logs. This
+        facilitates troubleshooting of user's issues.
         """
         if getLevelName(logger.level) == "DEBUG":
 
