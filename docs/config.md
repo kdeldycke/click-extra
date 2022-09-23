@@ -153,6 +153,7 @@ ValueError: Parameter 'random_param' is not allowed in configuration file.
 The {py:attr}`ignored_params <click_extra.config.ConfigOption.ignored_params>` argument will exclude some of your CLI options from the configuration machinery.
 
 It defaults to:
+
 - `--help`
 - `--version`
 - `-C`/`--config`
@@ -288,14 +289,14 @@ The configuration file is searched in the default application path, as defined b
 
 Like the latter, the `@config_option()` decorator and `ConfigOption` class accept a `roaming` and `force_posix` argument to alter the default path:
 
-| Platform | `roaming` | `force_posix` | Folder|
-| :---| :---| :---| :---|
-|macOS (default) | - | `False` | `~/Library/Application Support/Foo Bar` |
-|macOS | - | `True` | `~/.foo-bar` |
-|Unix (default) | - | `False` | `~/.config/foo-bar` |
-|Unix | - | `True` | `~/.foo-bar` |
-|Windows (default) | `True` | - | `C:\Users\<user>\AppData\Roaming\Foo Bar` |
-|Windows | `False` | - | `C:\Users\<user>\AppData\Local\Foo Bar` |
+| Platform          | `roaming` | `force_posix` | Folder                                    |
+| :---------------- | :-------- | :------------ | :---------------------------------------- |
+| macOS (default)   | -         | `False`       | `~/Library/Application Support/Foo Bar`   |
+| macOS             | -         | `True`        | `~/.foo-bar`                              |
+| Unix (default)    | -         | `False`       | `~/.config/foo-bar`                       |
+| Unix              | -         | `True`        | `~/.foo-bar`                              |
+| Windows (default) | `True`    | -             | `C:\Users\<user>\AppData\Roaming\Foo Bar` |
+| Windows           | `False`   | -             | `C:\Users\<user>\AppData\Local\Foo Bar`   |
 
 Let's change the default base folder in the following example:
 
@@ -321,13 +322,13 @@ See how the default to ``--config`` option has been changed to ``~/.cli/*.{toml,
 The extensions that are used for each dialect to produce the default file pattern matching are encoded by
 the {py:class}`Formats <click_extra.config.Formats>` Enum:
 
-| Format | Extensions |
-| :---| :---|
-| `TOML` | `*.toml`|
-| `YAML` | `*.yaml`, `*.yml`|
-| `JSON` | `*.json`|
-| `INI` | `*.ini`|
-| `XML` | `*.xml`|
+| Format | Extensions        |
+| :----- | :---------------- |
+| `TOML` | `*.toml`          |
+| `YAML` | `*.yaml`, `*.yml` |
+| `JSON` | `*.json`          |
+| `INI`  | `*.ini`           |
+| `XML`  | `*.xml`           |
 
 ### Custom pattern
 
@@ -352,6 +353,7 @@ Here is how to look for an extension-less YAML dotfile in the home directory, wi
 ```
 
 Matching patterns:
+
 - are [based on `wcmatch.glob` syntax](https://facelessuser.github.io/wcmatch/glob/#syntax)
 - should be written with Unix separators (`/`), even for Windows (the [pattern will be normalized to the local platform dialect](https://facelessuser.github.io/wcmatch/glob/#windows-separators))
 - are configured with the following default flags:
