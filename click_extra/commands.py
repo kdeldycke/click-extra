@@ -163,7 +163,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         args: List[str],
         parent: Optional[ClickContext] = None,
         **extra: Any,
-    ) -> ClickContext:
+    ) -> Any:
         """Intercept the call to the original ``click.core.BaseCommand.make_context`` so we can keep a copy of the raw,
         pre-parsed arguments provided to the CLI.
 

@@ -45,7 +45,7 @@ import xmltodict
 import yaml
 from boltons.iterutils import flatten, remap
 from boltons.urlutils import URL
-from click import BOOL, FLOAT, INT, STRING, UNPROCESSED, UUID, Parameter
+from click import BOOL, FLOAT, INT, STRING, UNPROCESSED, UUID, Option, Parameter
 from click import Path as ClickPath
 from click import echo, get_app_dir, get_current_context
 from click.core import ParameterSource
@@ -646,7 +646,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         )
 
     @staticmethod
-    def get_envvar(ctx, param: Parameter):
+    def get_envvar(ctx, param: Union[Parameter, Option]):
         """Emulates the retrieval or dynamic generation of a parameter's environment variable.
 
         This code is a copy of what happens in ``click.core.Parameter.resolve_envvar_value()`` and
