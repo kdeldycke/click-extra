@@ -26,7 +26,7 @@ from gettext import gettext as _
 from operator import getitem, methodcaller
 from os.path import sep
 from pathlib import Path
-from typing import Any, Dict, Iterable, Optional, Sequence
+from typing import Any, Dict, Iterable, Optional, Sequence, Union
 from unittest.mock import patch
 
 if sys.version_info >= (3, 8):
@@ -45,7 +45,7 @@ import xmltodict
 import yaml
 from boltons.iterutils import flatten, remap
 from boltons.urlutils import URL
-from click import BOOL, FLOAT, INT, STRING, UNPROCESSED, UUID
+from click import BOOL, FLOAT, INT, STRING, UNPROCESSED, UUID, Parameter
 from click import Path as ClickPath
 from click import echo, get_app_dir, get_current_context
 from click.core import ParameterSource
@@ -94,16 +94,14 @@ class ParamStructure:
 
     ignored_params: Iterable[str] = tuple()
 
-    params_template: Dict[str, Any] = {}
-    params_types: Dict[str, Any] = {}
-    params_objects: Dict[str, Any] = {}
-
     SEP: str = "."
     """Use a dot ``.`` as a separator between levels of the tree-like parameter structure."""
 
-    def __init__(self, ignored_params: Optional[Iterable[str]] = None):
+    def __init__(self, *args, ignored_params: Optional[Iterable[str]] = None, **kwargs):
         if ignored_params:
             self.ignored_params = ignored_params
+
+        super().__init__(*args, **kwargs)
 
     @staticmethod
     def init_tree_dict(*path: str, leaf: Any = None):
@@ -217,11 +215,11 @@ class ParamStructure:
             f"Can't guess the appropriate Python type of {param!r} parameter."
         )
 
-    def build_param_trees(self):
+    def build_param_trees(self) -> None:
         """Build all parameters tree structure in one go and cache them."""
-        template = {}
-        types = {}
-        objects = {}
+        template: Dict[str, Any] = {}
+        types: Dict[str, Any] = {}
+        objects: Dict[str, Any] = {}
 
         for keys, param in self.walk_params():
             merge(template, self.init_tree_dict(*keys))
@@ -648,14 +646,14 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         )
 
     @staticmethod
-    def get_envvar(ctx, param) -> Optional[str]:
+    def get_envvar(ctx, param: Parameter):
         """Emulates the retrieval or dynamic generation of a parameter's environment variable.
 
         This code is a copy of what happens in ``click.core.Parameter.resolve_envvar_value()`` and
         ``click.core.Option.resolve_envvar_value()`` as the logic is deeply embedded in Click's internals
         and can't be independently used.
 
-        ..todo:: Contribute this as slight refactor to Click?
+        ..todo:: Contribute this to Click as slight refactor to DRY?
         """
         if param.envvar:
             return param.envvar

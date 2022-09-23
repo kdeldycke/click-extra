@@ -94,7 +94,7 @@ class ExtraContext(CloupContext):
 
     _extra_meta: Dict[str, Any] = {}
 
-    def __init__(self, *args, meta: Optional[Dict[str, Any]] = None, **kwargs) -> None:
+    def __init__(self, *args, meta: Dict[str, Any] = {}, **kwargs) -> None:
         """Like parent's context but with an extra ``meta`` keyword-argument."""
         self._extra_meta = meta
         super().__init__(*args, **kwargs)
