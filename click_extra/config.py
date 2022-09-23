@@ -73,7 +73,8 @@ from .platform import is_windows
 class Formats(Enum):
     """Supported configuration formats and the list of their default extensions.
 
-    The default order set the priority by which each format is searched for the default configuration file.
+    The default order set the priority by which each format is searched for the default
+    configuration file.
     """
 
     TOML = ("toml",)
@@ -137,7 +138,8 @@ class ParamStructure:
     def flatten_tree_dict(
         self, tree_dict: MutableMapping, parent_key: Optional[str] = None
     ):
-        """Recursively traverse the tree-like ``dict`` and produce a flat ``dict`` whose keys are path and values are the leaf's content."""
+        """Recursively traverse the tree-like ``dict`` and produce a flat ``dict`` whose
+        keys are path and values are the leaf's content."""
         return dict(self._flatten_tree_dict_gen(tree_dict, parent_key))
 
     def walk_params(self):
@@ -150,7 +152,8 @@ class ParamStructure:
         ctx = get_current_context()
         cli = ctx.find_root().command
 
-        # Keep track of top-level CLI parameter IDs to check conflict with command IDs later.
+        # Keep track of top-level CLI parameter IDs to check conflict with command
+        # IDs later.
         top_level_params = set()
 
         # Global, top-level options shared by all subcommands.
@@ -232,7 +235,8 @@ class ParamStructure:
 
     @cached_property
     def params_template(self):
-        """Returns a tree-like dictionnary whose keys shadows the CLI options and subcommands and values are ``None``.
+        """Returns a tree-like dictionnary whose keys shadows the CLI options and
+        subcommands and values are ``None``.
 
         Perfect to serve as a template for configuration files.
         """
@@ -241,7 +245,8 @@ class ParamStructure:
 
     @cached_property
     def params_types(self):
-        """Returns a tree-like dictionnary whose keys shadows the CLI options and subcommands and values are their expected Python type.
+        """Returns a tree-like dictionnary whose keys shadows the CLI options and
+        subcommands and values are their expected Python type.
 
         Perfect to parse configuration files and user-provided parameters.
         """
@@ -250,7 +255,8 @@ class ParamStructure:
 
     @cached_property
     def params_objects(self):
-        """Returns a tree-like dictionnary whose keys shadows the CLI options and subcommands and values are parameter objects.
+        """Returns a tree-like dictionnary whose keys shadows the CLI options and
+        subcommands and values are parameter objects.
 
         Perfect to parse configuration files and user-provided parameters.
         """
@@ -290,9 +296,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         strict=False,
         **kwargs,
     ):
-        """
-
-        A [``wcmatch.glob`` pattern](https://facelessuser.github.io/wcmatch/glob/#syntax).
+        """A [``wcmatch.glob``
+        pattern](https://facelessuser.github.io/wcmatch/glob/#syntax).
 
         - ``is_eager`` is active by default so the config option's ``callback`` gets the opportunity to set the
             ``default_map`` values before the other options use them.
@@ -371,7 +376,8 @@ class ConfigOption(ExtraOption, ParamStructure):
 
     @staticmethod
     def compress_path(path: Path) -> Path:
-        """Reduces a path length by prefixing it with the `~` user's home prefix if possible."""
+        """Reduces a path length by prefixing it with the `~` user's home prefix if
+        possible."""
         if not is_windows():
             try:
                 path = "~" / path.relative_to(Path.home())
@@ -380,7 +386,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         return path
 
     def get_help_record(self, ctx):
-        """Replaces the default value by the pretty version of the configuration matching pattern."""
+        """Replaces the default value by the pretty version of the configuration
+        matching pattern."""
         # Pre-compute pretty_path to bypass infinite recursive loop on get_default.
         default_path = Path(self.get_default(ctx))
         pretty_path = self.compress_path(default_path)
@@ -389,7 +396,8 @@ class ConfigOption(ExtraOption, ParamStructure):
             return super().get_help_record(ctx)
 
     def search_and_read_conf(self, pattern: str) -> Iterable[str]:
-        """Search on local file system or remote URL files matching the provided pattern.
+        """Search on local file system or remote URL files matching the provided
+        pattern.
 
         Returns an iterator of raw content for each file/URL matching the pattern.
         """
@@ -420,10 +428,12 @@ class ConfigOption(ExtraOption, ParamStructure):
             yield file_path.read_text()
 
     def parse_conf(self, conf_content: str) -> Optional[dict]:
-        """Try to parse the provided content with each format in the order provided by the user.
+        """Try to parse the provided content with each format in the order provided by
+        the user.
 
-        A successful parsing in any format is supposed to return a dict. Any other result, including any raised exception,
-        is considered a failure and the next format is tried.
+        A successful parsing in any format is supposed to return a dict. Any other
+        result, including any raised exception, is considered a failure and the next
+        format is tried.
         """
         user_conf = None
         for conf_format in self.formats:
@@ -533,8 +543,8 @@ class ConfigOption(ExtraOption, ParamStructure):
     def merge_conf(self, user_conf):
         """Try-out configuration formats againts file's content and returns a ``dict``.
 
-        The returned ``dict`` will only contain options and parameters defined on the CLI.
-        All others will be filtered out.
+        The returned ``dict`` will only contain options and parameters defined on the
+        CLI. All others will be filtered out.
         """
         # Merge configuration file's content into the template structure, but
         # ignore all unrecognized options.
@@ -554,7 +564,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         return clean_conf
 
     def load_conf(self, ctx, param, path_pattern):
-        """Fetch parameters values from configuration file and merge them with the defaults.
+        """Fetch parameters values from configuration file and merge them with the
+        defaults.
 
         User configuration is merged to the context ``default_map``, as in:
         https://click.palletsprojects.com/en/8.1.x/commands/#context-defaults
@@ -606,8 +617,9 @@ class ConfigOption(ExtraOption, ParamStructure):
 class ShowParamsOption(ExtraOption, ParamStructure):
     """A pre-configured option adding a ``--show-params`` option.
 
-    Between configuration files, default values and environment variables, it might be hard to guess under which set of parameters
-    the CLI will be executed. This option print information about the parameters that will be fed to the CLI.
+    Between configuration files, default values and environment variables, it might be
+    hard to guess under which set of parameters the CLI will be executed. This option
+    print information about the parameters that will be fed to the CLI.
     """
 
     TABLE_HEADERS = [
@@ -647,7 +659,8 @@ class ShowParamsOption(ExtraOption, ParamStructure):
 
     @staticmethod
     def get_envvar(ctx, param: Union[Parameter, Option]):
-        """Emulates the retrieval or dynamic generation of a parameter's environment variable.
+        """Emulates the retrieval or dynamic generation of a parameter's environment
+        variable.
 
         This code is a copy of what happens in ``click.core.Parameter.resolve_envvar_value()`` and
         ``click.core.Option.resolve_envvar_value()`` as the logic is deeply embedded in Click's internals
@@ -679,12 +692,14 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             raw_args = ctx.meta.get("click_extra.raw_args", [])
             logger.debug(f"click_extra.raw_args: {raw_args}")
 
-            # Mimics click.core.Command.parse_args() so we can produce the list of parsed options values.
+            # Mimics click.core.Command.parse_args() so we can produce the list of
+            # parsed options values.
             parser = ctx.command.make_parser(ctx)
             opts, _, _ = parser.parse_args(args=raw_args)
 
             # We call directly consume_value() instead of handle_parse_result() to prevent an
-            # embedded call to process_value(), as the later triggers the callback (and might terminate CLI execution).
+            # embedded call to process_value(), as the later triggers the callback
+            # (and might terminate CLI execution).
             param_value, source = param.consume_value(ctx, opts)
 
             get_param_value = methodcaller("consume_value", ctx, opts)
@@ -723,7 +738,8 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             table.append(line)
 
         def sort_by_depth(line):
-            """Sort parameters by depth first, then IDs, so that top-level parameters are kept to the top."""
+            """Sort parameters by depth first, then IDs, so that top-level parameters
+            are kept to the top."""
             param_path = line[1]
             tree_keys = param_path.split(self.SEP)
             return len(tree_keys), param_path
