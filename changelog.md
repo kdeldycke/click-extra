@@ -1,5 +1,11 @@
 # Changelog
 
+## {gh}`3.2.1 (unreleased) <compare/v3.2.0...main>`
+
+```{important}
+This version is not released yet and is under active development.
+```
+
 ## {gh}`3.2.0 (2022-09-24) <compare/v3.1.0...v3.2.0>`
 
 - New `--show-params` option to debug parameters defaults, values, environment variables and provenance.
