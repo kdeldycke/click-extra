@@ -757,7 +757,7 @@ class HelpExtraFormatter(HelpFormatter):
                 )
                 help_text = re.sub(
                     rf"""
-                    ([               # A keyword is preceeded with either:
+                    ([               # A keyword is preceded with either:
                         \s           # - a blank char
                         \[           # - an opening square bracket (like in choice strings)
                         \|           # - a pipe (again like in choice strings)
