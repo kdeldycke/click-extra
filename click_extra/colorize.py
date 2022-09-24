@@ -26,13 +26,13 @@ from functools import partial
 from gettext import gettext as _
 from operator import getitem
 from types import ModuleType
-from typing import Callable, Iterable, NamedTuple, Optional, Set
+from typing import Iterable, NamedTuple, Optional, Set
 
 import regex as re3
 from boltons.strutils import complement_int_list, int_ranges_from_int_list
 from click import Parameter, echo, get_current_context
 from click.core import ParameterSource
-from cloup import Choice, Command, Context, HelpFormatter, Style, option
+from cloup import Choice, Context, HelpFormatter, Style, option
 from cloup._util import identity
 from cloup.styling import IStyle
 
@@ -608,7 +608,7 @@ class HelpExtraFormatter(HelpFormatter):
 
     # TODO: Hihglight extra keywords <stdout> or <stderr>
 
-    def style_group(self, str_to_style: str, group_id: str) -> Callable:
+    def style_group(self, str_to_style: str, group_id: str):
         style_alias = {
             "default_start": self.theme.metavar,
             "default_end": self.theme.metavar,
