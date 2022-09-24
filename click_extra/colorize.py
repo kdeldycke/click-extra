@@ -748,7 +748,7 @@ class HelpExtraFormatter(HelpFormatter):
         ):
             for keyword in matching_keywords:
                 # Regexp is verbose, so we need to escape spaces.
-                keyword = keyword.replace(" ", "\ ")
+                keyword = keyword.replace(" ", r"\ ")
                 # Accounts for text wrapping of options after a dash.
                 keyword = keyword.replace("-", "-\\s*")
                 # Allow metavars to have square braquets "[]" and dots (like command's options_metavar).
