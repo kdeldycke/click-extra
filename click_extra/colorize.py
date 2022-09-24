@@ -512,7 +512,8 @@ class ExtraHelpColorsMixin:
         command = ctx.command
 
         # Will fetch command's metavar (i.e. the "[OPTIONS]" after the CLI name in "Usage:") and dig
-        # into subcommands to get subcommand_metavar: ("COMMAND1 [ARGS]... [COMMAND2 [ARGS]...]...").
+        # into subcommands to get subcommand_metavar: ("COMMAND1 [ARGS]...
+        # [COMMAND2 [ARGS]...]...").
         metavars.update(command.collect_usage_pieces(ctx))
 
         # Get subcommands and their aliases.
@@ -618,15 +619,16 @@ class HelpExtraFormatter(HelpFormatter):
             "long_option": self.theme.option,
             "short_option": self.theme.option,
         }
-        # Get the style directly named by the group ID. Else inspect the style_alias above.
+        # Get the style directly named by the group ID. Else inspect the
+        # style_alias above.
         group_style = getattr(self.theme, group_id, None)
         if not group_style:
             group_style = style_alias[group_id]
         return group_style(str_to_style)
 
     def colorize(self, match: re.Match) -> str:
-        """Recreate the matching string by concatenating all groups, but only
-        colorize named groups with using the function provided in ``style_map``."""
+        """Recreate the matching string by concatenating all groups, but only colorize
+        named groups with using the function provided in ``style_map``."""
         # Invert the group dictionnary to we can get the group ID of a match.
         match_group = {v: k for k, v in match.groupdict().items()}
         assert len(match_group) == len(match.groupdict())
@@ -751,7 +753,8 @@ class HelpExtraFormatter(HelpFormatter):
                 keyword = keyword.replace(" ", r"\ ")
                 # Accounts for text wrapping of options after a dash.
                 keyword = keyword.replace("-", "-\\s*")
-                # Allow metavars to have square braquets "[]" and dots (like command's options_metavar).
+                # Allow metavars to have square braquets "[]" and dots (like command's
+                # options_metavar).
                 keyword = (
                     keyword.replace("[", "\\[").replace("]", "\\]").replace(".", "\\.")
                 )
