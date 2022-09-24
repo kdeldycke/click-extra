@@ -26,13 +26,13 @@ from functools import partial
 from gettext import gettext as _
 from operator import getitem
 from types import ModuleType
-from typing import Iterable, NamedTuple, Optional, Set
+from typing import Callable, Iterable, NamedTuple, Optional, Set
 
 import regex as re3
 from boltons.strutils import complement_int_list, int_ranges_from_int_list
 from click import Parameter, echo, get_current_context
 from click.core import ParameterSource
-from cloup import Choice, Context, HelpFormatter, Style, option
+from cloup import Choice, Command, Context, HelpFormatter, Style, option
 from cloup._util import identity
 from cloup.styling import IStyle
 
@@ -125,12 +125,13 @@ theme = HelpExtraTheme(
     invoked_command=Style(fg="bright_white"),
     heading=Style(fg="bright_blue", bold=True),
     constraint=Style(fg="magenta"),
-    col1=Style(fg="cyan"),
+    # Neutralize Cloup's col1, as it interfers with our finer option styling.
+    col1=identity,
     # Log levels.
     critical=Style(fg="red"),
     error=Style(fg="red"),
     warning=Style(fg="yellow"),
-    info=Style(),
+    info=identity,
     debug=Style(fg="blue"),
     # Click Extra properties.
     subheading=Style(fg="blue"),
@@ -499,36 +500,64 @@ class ExtraHelpColorsMixin:
 
     def collect_keywords(self, ctx):
         """Parse click context to collect option names, choices and metavar keywords."""
+        cli_names: set[str] = set()
+        subcommands: set[str] = set()
+        command_aliases: set[str] = set()
         options: set[str] = set()
         choices: set[str] = set()
         metavars: set[str] = set()
 
         # Includes CLI base name and its commands.
-        cli_name = ctx.command_path
+        cli_names.add(ctx.command_path)
+        command = ctx.command
+
+        # Will fetch command's metavar (i.e. the "[OPTIONS]" after the CLI name in "Usage:") and dig
+        # into subcommands to get subcommand_metavar: ("COMMAND1 [ARGS]... [COMMAND2 [ARGS]...]...").
+        metavars.update(command.collect_usage_pieces(ctx))
+
+        # Get subcommands and their aliases.
+        if hasattr(command, "list_commands"):
+            subcommands.update(command.list_commands(ctx))
+            for sub_id in subcommands:
+                sub_cmd = command.get_command(ctx, sub_id)
+                command_aliases.update(getattr(sub_cmd, "aliases", []))
 
         # Add user defined help options.
         options.update(ctx.help_option_names)
 
         # Collect all option names and choice keywords.
-        for param in ctx.command.params:
+        for param in command.params:
             options.update(param.opts)
+            options.update(param.secondary_opts)
 
             if isinstance(param.type, Choice):
                 choices.update(param.type.choices)
 
-            if param.metavar:
-                metavars.add(param.metavar)
+            metavars.add(param.make_metavar())
 
         # Split between shorts and long options
         long_options: Set[str] = set()
         short_options: Set[str] = set()
         for option in options:
-            if option.startswith("--"):
-                long_options.add(option)
-            else:
+            # TODO: reuse ctx._opt_prefixes for finer match?
+            # Short options no longer than 2 characters
+            # (example: "-D", "/d", "/?", "+w", "-w", "f_", "_f", ...)
+            if len(option) <= 2:
                 short_options.add(option)
+            # Any other is considered a long options
+            # (example: "--debug", "--c", "-otest", "---debug", "-vvvv, "++foo", "/debug", "from_", "_from", ...)
+            else:
+                long_options.add(option)
 
-        return cli_name, long_options, short_options, choices, metavars
+        return (
+            cli_names,
+            subcommands,
+            command_aliases,
+            long_options,
+            short_options,
+            choices,
+            metavars,
+        )
 
     def get_help(self, ctx):
         """Replace default formatter by our own."""
@@ -538,7 +567,9 @@ class ExtraHelpColorsMixin:
     def format_help(self, ctx, formatter):
         """Feed our custom formatter instance with the keywords to highlight."""
         (
-            formatter.cli_name,
+            formatter.cli_names,
+            formatter.subcommands,
+            formatter.command_aliases,
             formatter.long_options,
             formatter.short_options,
             formatter.choices,
@@ -565,7 +596,9 @@ class HelpExtraFormatter(HelpFormatter):
         super().__init__(*args, **kwargs)
 
     # Lists of extra keywords to highlight.
-    cli_name: Optional[str] = None
+    cli_names: Set[str] = set()
+    subcommands: Set[str] = set()
+    command_aliases: Set[str] = set()
     long_options: Set[str] = set()
     short_options: Set[str] = set()
     choices: Set[str] = set()
@@ -573,7 +606,39 @@ class HelpExtraFormatter(HelpFormatter):
     # TODO
     default_values: Set[str] = set()
 
-    # Hihglight extra keywords <stdout> or <stderr>
+    # TODO: Hihglight extra keywords <stdout> or <stderr>
+
+    def style_group(self, str_to_style: str, group_id: str) -> Callable:
+        style_alias = {
+            "default_start": self.theme.metavar,
+            "default_end": self.theme.metavar,
+            "default_value": self.theme.choice,
+            "subcommand": self.theme.option,
+            "command_aliases": self.theme.option,
+            "long_option": self.theme.option,
+            "short_option": self.theme.option,
+        }
+        # Get the style directly named by the group ID. Else inspect the style_alias above.
+        group_style = getattr(self.theme, group_id, None)
+        if not group_style:
+            group_style = style_alias[group_id]
+        return group_style(str_to_style)
+
+    def colorize(self, match: re.Match) -> str:
+        """Recreate the matching string by concatenating all groups, but only
+        colorize named groups with using the function provided in ``style_map``."""
+        # Invert the group dictionnary to we can get the group ID of a match.
+        match_group = {v: k for k, v in match.groupdict().items()}
+        assert len(match_group) == len(match.groupdict())
+
+        txt = ""
+        for group in match.groups():
+            if group in match_group:
+                group_id = match_group[group]
+                txt += self.style_group(group, group_id)
+            else:
+                txt += group
+        return txt
 
     def highlight_extra_keywords(self, help_text):
         """Highlight extra keywords in help screens based on the theme.
@@ -582,54 +647,128 @@ class HelpExtraFormatter(HelpFormatter):
         is good enough. After all, help screens are not consumed by machine but are
         designed for humans.
         """
-
-        def colorize(match, style):
-            """Recreate the matching string by concatenating all groups, but only
-            colorize named groups."""
-            txt = ""
-            for group in match.groups():
-                if group in match.groupdict().values():
-                    txt += style(group)
-                else:
-                    txt += group
-            return txt
-
-        # Highligh numbers.
+        # Highlight "(Deprecated)" or "(DEPRECATED)" flag, as set by either:
+        # https://github.com/pallets/click/blob/ef11be6e49e19a055fe7e5a89f0f1f4062c68dba/tests/test_commands.py#L345
+        # https://github.com/janluke/cloup/blob/c29fa051ed405856ed8bc2dbd733f9df2c8e6418/cloup/formatting/_formatter.py#L188
         help_text = re.sub(
-            r"(\s)(?P<colorize>-?\d+)",
-            partial(colorize, style=self.theme.choice),
+            rf"""
+            (\s)                         # Any blank char.
+            (?P<warning>\(DEPRECATED\))  # The flag string.
+            (\s)                         # Any blank char.
+            """,
+            self.colorize,
             help_text,
+            flags=re.VERBOSE | re.IGNORECASE,
         )
 
-        # Highlight CLI name and command.
+        # Highligh subcommands' aliases.
+        for alias in self.command_aliases:
+            help_text = re.sub(
+                rf"""
+                (
+                    \ \                       # 2 spaces (i.e. section indention).
+                    \S+                       # Any subcommand.
+                    \                         # A space.
+                    \(                        # An opening parenthesis.
+                    .*                        # Any string.
+                )
+                (?P<command_aliases>{alias})  # The alias.
+                (
+                    .*                        # Any string.
+                    \)                        # A closing parenthesis.
+                )
+                """,
+                self.colorize,
+                help_text,
+                flags=re.VERBOSE,
+            )
+
+        # Highligh subcommands.
+        for subcommand in self.subcommands:
+            help_text = re.sub(
+                rf"""
+                (\ \ )                        # 2 spaces (i.e. section indention).
+                (?P<subcommand>{subcommand})
+                (\s)                          # Any blank char.
+                """,
+                self.colorize,
+                help_text,
+                flags=re.VERBOSE,
+            )
+
+        # Highligh defaults.
         help_text = re.sub(
-            rf"(\s)(?P<colorize>{self.cli_name})",
-            partial(colorize, style=self.theme.invoked_command),
+            r"""
+            (\ \ )                  # 2 spaces (column spacing or description spacing).
+            (?P<default_start>
+                \[                  # Square brackets opening.
+                default:            # Starting content within the brackets.
+                \s+                 # Any number of blank chars.
+            )
+            (?P<default_value>.+?)  # Greedy-matching of any string (including line returns).
+            (?P<default_end>\])     # Square brackets closing.
+            """,
+            self.colorize,
             help_text,
+            flags=re.VERBOSE | re.DOTALL,
         )
+
+        # Highlight CLI names and commands.
+        for cli_name in self.cli_names:
+            help_text = re.sub(
+                rf"""
+                (\s)                             # Any blank char.
+                (?P<invoked_command>{cli_name})  # The CLI name.
+                (\s)                             # Any blank char.
+                """,
+                self.colorize,
+                help_text,
+                flags=re.VERBOSE,
+            )
 
         # Highligh sections.
-        help_text = re.sub(
-            r"^(?P<colorize>\S[\S+ ]+)(:)",
-            partial(colorize, style=self.theme.heading),
-            help_text,
-            flags=re.MULTILINE,
-        )
+        # XXX Duplicates Cloup's job, with the only subtlety of not highlighting the trailing semicolon.
+        # help_text = re.sub(
+        #     r"""
+        #     ^                       # Beginning of a line preceded by a newline.
+        #     (?P<heading>\S[\S+ ]+)  # The section title.
+        #     (:)                     # A semicolon.
+        #     """,
+        #     self.colorize,
+        #     help_text,
+        #     flags=re.VERBOSE | re.MULTILINE,
+        # )
 
         # Highlight keywords.
-        for matching_keywords, style in (
-            (sorted(self.long_options, reverse=True), self.theme.option),
-            (sorted(self.short_options), self.theme.option),
-            (sorted(self.choices, reverse=True), self.theme.choice),
-            (sorted(self.metavars, reverse=True), self.theme.metavar),
+        for matching_keywords, style_group_id in (
+            (sorted(self.long_options, reverse=True), "long_option"),
+            (sorted(self.short_options), "short_option"),
+            (sorted(self.choices, reverse=True), "choice"),
+            (sorted(self.metavars, reverse=True), "metavar"),
         ):
             for keyword in matching_keywords:
-                # Accounts for text wrapping after a dash.
+                # Regexp is verbose, so we need to escape spaces.
+                keyword = keyword.replace(" ", "\ ")
+                # Accounts for text wrapping of options after a dash.
                 keyword = keyword.replace("-", "-\\s*")
+                # Allow metavars to have square braquets "[]" and dots (like command's options_metavar).
+                keyword = (
+                    keyword.replace("[", "\\[").replace("]", "\\]").replace(".", "\\.")
+                )
                 help_text = re.sub(
-                    rf"([\s\[\|\(])(?P<colorize>{keyword})(\W)",
-                    partial(colorize, style=style),
+                    rf"""
+                    ([               # A keyword is preceeded with either:
+                        \s           # - a blank char
+                        \[           # - an opening square bracket (like in choice strings)
+                        \|           # - a pipe (again like in choice strings)
+                        \(           # - an opening parenthesis
+                    ])
+                    (?P<{style_group_id}>{keyword})
+                    (\W)             # Any character which is not a word character.
+                    """,
+                    self.colorize,
                     help_text,
+                    flags=re.VERBOSE,
                 )
 
         return help_text

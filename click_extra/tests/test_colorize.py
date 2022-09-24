@@ -138,7 +138,7 @@ def test_keyword_collection(invoke):
     def command3():
         echo("Run click command #3...")
 
-    @command()
+    @command(deprecated=True)
     def command4():
         echo("Run click-extra command #4...")
 
@@ -146,24 +146,24 @@ def test_keyword_collection(invoke):
     color_cli1.section("Extra commands", command3, command4)
 
     help_screen = (
-        r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mUsage\x1b\[0m: "
-        r"\x1b\[0m\x1b\[97mcolor-cli1\x1b\[0m \[OPTIONS\] COMMAND \[ARGS\]...\n\n"
-        r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mGroup \x1b\[35m1\x1b\[0m\x1b\[0m:\x1b\[0m\n"
-        r"  \x1b\[36m-a, \x1b\[36m--o1\x1b\[0m TEXT\x1b\[0m\n"
-        r"  \x1b\[36m-b, \x1b\[36m--o2\x1b\[0m TEXT\x1b\[0m\n\n"
-        r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mGroup \x1b\[35m2\x1b\[0m\x1b\[0m:\x1b\[0m\n"
-        r"  \x1b\[36m--o3 TEXT\x1b\[0m\n"
-        r"  \x1b\[36m--o4 TEXT\x1b\[0m\n\n"
-        r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mOther options\x1b\[0m:\x1b\[0m\n"
-        r"  \x1b\[36m--test TEXT\x1b\[0m\n"
+        r"\x1b\[94m\x1b\[1mUsage: \x1b\[0m\x1b\[97mcolor-cli1\x1b\[0m "
+        r"\x1b\[90m\[OPTIONS\]\x1b\[0m \x1b\[90mCOMMAND \[ARGS\]...\x1b\[0m\n\n"
+        r"\x1b\[94m\x1b\[1mGroup 1:\x1b\[0m\n"
+        r"  \x1b\[36m-a\x1b\[0m, \x1b\[36m--o1\x1b\[0m \x1b\[90mTEXT\x1b\[0m\n"
+        r"  \x1b\[36m-b\x1b\[0m, \x1b\[36m--o2\x1b\[0m \x1b\[90mTEXT\x1b\[0m\n\n"
+        r"\x1b\[94m\x1b\[1mGroup 2:\x1b\[0m\n"
+        r"  \x1b\[36m--o3\x1b\[0m \x1b\[90mTEXT\x1b\[0m\n"
+        r"  \x1b\[36m--o4\x1b\[0m \x1b\[90mTEXT\x1b\[0m\n\n"
+        r"\x1b\[94m\x1b\[1mOther options:\x1b\[0m\n"
+        r"  \x1b\[36m--test\x1b\[0m \x1b\[90mTEXT\x1b\[0m\n"
         rf"{default_options_colored_help}"
         r"\n"
-        r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mSubcommand group \x1b\[35m1\x1b\[0m\x1b\[0m:\x1b\[0m\n"
+        r"\x1b\[94m\x1b\[1mSubcommand group 1:\x1b\[0m\n"
         r"  \x1b\[36mcommand1\x1b\[0m\n"
         r"  \x1b\[36mcommand2\x1b\[0m\n\n"
-        r"\x1b\[94m\x1b\[1m\x1b\[94m\x1b\[1mExtra commands\x1b\[0m:\x1b\[0m\n"
+        r"\x1b\[94m\x1b\[1mExtra commands:\x1b\[0m\n"
         r"  \x1b\[36mcommand3\x1b\[0m\n"
-        r"  \x1b\[36mcommand4\x1b\[0m\n"
+        r"  \x1b\[36mcommand4\x1b\[0m  \x1b\[33m\(Deprecated\)\x1b\[0m\n"
     )
 
     result = invoke(color_cli1, "--help", color=True)
@@ -182,10 +182,10 @@ def test_keyword_collection(invoke):
     assert result.output == dedent(
         f"""\
         It works!
-        \x1b[94m\x1b[1m\x1b[94m\x1b[1mUsage\x1b[0m: \x1b[0m\x1b[97mcolor-cli1 command1\x1b[0m [OPTIONS]
+        \x1b[94m\x1b[1mUsage: \x1b[0m\x1b[97mcolor-cli1 command1\x1b[0m \x1b[90m[OPTIONS]\x1b[0m
 
-        \x1b[94m\x1b[1m\x1b[94m\x1b[1mOptions\x1b[0m:\x1b[0m
-          \x1b[36m-h, \x1b[36m--help\x1b[0m\x1b[0m  Show this message and exit.
+        \x1b[94m\x1b[1mOptions:\x1b[0m
+          \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m  Show this message and exit.
         """
     )
     assert not result.stderr
@@ -195,10 +195,10 @@ def test_keyword_collection(invoke):
     assert result.exit_code == 0
     assert result.output == dedent(
         f"""\
-        \x1b[94m\x1b[1m\x1b[94m\x1b[1mUsage\x1b[0m: \x1b[0m\x1b[97mcommand1\x1b[0m [OPTIONS]
+        \x1b[94m\x1b[1mUsage: \x1b[0m\x1b[97mcommand1\x1b[0m \x1b[90m[OPTIONS]\x1b[0m
 
-        \x1b[94m\x1b[1m\x1b[94m\x1b[1mOptions\x1b[0m:\x1b[0m
-          \x1b[36m-h, \x1b[36m--help\x1b[0m\x1b[0m  Show this message and exit.
+        \x1b[94m\x1b[1mOptions:\x1b[0m
+          \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m  Show this message and exit.
         """
     )
     assert not result.stderr

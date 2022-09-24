@@ -344,7 +344,7 @@ default_options_uncolored_help = (
     r"  -C, --config CONFIG_PATH  Location of the configuration file. Supports glob\n"
     r"                            pattern of local path and remote URL.  \[default:( \S+)?\n"
     r"(                            .+\n)*"
-    r"                            \S+.{toml,yaml,yml,json,ini,xml}\]\n"
+    r"                            \S+\.{toml,yaml,yml,json,ini,xml}\]\n"
     r"  --show-params             Show all CLI parameters, their provenance, defaults,\n"
     r"                            value, then exit.\n"
     r"  -v, --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.\n"
@@ -355,21 +355,21 @@ default_options_uncolored_help = (
 
 
 default_options_colored_help = (
-    r"  \x1b\[36m--time / --no-time\x1b\[0m        Measure and print elapsed execution time.  \[default:\n"
-    r"                            no-time\]\n"
-    r"  \x1b\[36m--color, \x1b\[36m--ansi\x1b\[0m / --no-color, --no-ansi\x1b\[0m\n"
+    r"  \x1b\[36m--time\x1b\[0m / \x1b\[36m--no-time\x1b\[0m        Measure and print elapsed execution time.  \x1b\[90m\[default:\n"
+    r"                            \x1b\[0m\x1b\[35mno-time\x1b\[0m\x1b\[90m\]\x1b\[0m\n"
+    r"  \x1b\[36m--color\x1b\[0m, \x1b\[36m--ansi\x1b\[0m / \x1b\[36m--no-color\x1b\[0m, \x1b\[36m--no-ansi\x1b\[0m\n"
     r"                            Strip out all colors and all ANSI codes from output.\n"
-    r"                            \[default: color\]\n"
-    r"  \x1b\[36m-C, \x1b\[36m--config\x1b\[0m \x1b\[90mCONFIG_PATH\x1b\[0m\x1b\[0m  Location of the configuration file. Supports glob\n"
-    r"                            pattern of local path and remote URL.  \[default:( \S+)?\n"
+    r"                            \x1b\[90m\[default: \x1b\[0m\x1b\[35mcolor\x1b\[0m\x1b\[90m\]\x1b\[0m\n"
+    r"  \x1b\[36m-C\x1b\[0m, \x1b\[36m--config\x1b\[0m \x1b\[90mCONFIG_PATH\x1b\[0m  Location of the configuration file. Supports glob\n"
+    r"                            pattern of local path and remote URL.  \x1b\[90m\[default:( \S+)?\n"
     r"(                            .+\n)*"
-    r"                            \S+.{toml,yaml,yml,json,ini,xml}\]\n"
+    r"                            \S+\.{toml,yaml,yml,json,ini,xml}\x1b\[0m\x1b\[90m\]\x1b\[0m\n"
     r"  \x1b\[36m--show-params\x1b\[0m             Show all CLI parameters, their provenance, defaults,\n"
     r"                            value, then exit.\n"
-    r"  \x1b\[36m-v, \x1b\[36m--verbosity\x1b\[0m \x1b\[90mLEVEL\x1b\[0m\x1b\[0m     Either \x1b\[35mCRITICAL\x1b\[0m, \x1b\[35mERROR\x1b\[0m, \x1b\[35mWARNING\x1b\[0m, \x1b\[35mINFO\x1b\[0m, \x1b\[35mDEBUG\x1b\[0m.\n"
-    r"                            \[default: \x1b\[35mINFO\x1b\[0m\]\n"
+    r"  \x1b\[36m-v\x1b\[0m, \x1b\[36m--verbosity\x1b\[0m \x1b\[90mLEVEL\x1b\[0m     Either \x1b\[35mCRITICAL\x1b\[0m, \x1b\[35mERROR\x1b\[0m, \x1b\[35mWARNING\x1b\[0m, \x1b\[35mINFO\x1b\[0m, \x1b\[35mDEBUG\x1b\[0m.\n"
+    r"                            \x1b\[90m\[default: \x1b\[0m\x1b\[35mINFO\x1b\[0m\x1b\[90m\]\x1b\[0m\n"
     r"  \x1b\[36m--version\x1b\[0m                 Show the version and exit.\n"
-    r"  \x1b\[36m-h, \x1b\[36m--help\x1b\[0m\x1b\[0m                Show this message and exit.\n"
+    r"  \x1b\[36m-h\x1b\[0m, \x1b\[36m--help\x1b\[0m                Show this message and exit.\n"
 )
 
 
