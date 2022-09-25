@@ -32,6 +32,8 @@ maxdepth: 2
 hidden:
 ---
 API <click_extra>
+genindex
+modindex
 todolist
 changelog
 code-of-conduct
@@ -39,9 +41,3 @@ license
 GitHub Repository <https://github.com/kdeldycke/click-extra>
 Funding <https://github.com/sponsors/kdeldycke>
 ```
-
-## Indices and tables
-
-- {ref}`genindex`
-- {ref}`modindex`
-- {ref}`search`
