@@ -21,10 +21,7 @@ import os
 import subprocess
 from pathlib import Path
 from textwrap import indent
-from typing import TYPE_CHECKING, Iterable, Mapping, Optional, Tuple, Union, cast
-
-if TYPE_CHECKING:
-    from _typeshed.subprocess import _ENV
+from typing import Iterable, Mapping, Optional, Tuple, Union, cast
 
 from boltons.iterutils import flatten
 
@@ -116,7 +113,7 @@ def run_cmd(*args, extra_env: _EnvVars = None, print_output: bool = True):
     """Run a system command, print output and return results."""
     assert isinstance(args, tuple)
     process = subprocess.run(
-        args, capture_output=True, encoding="utf-8", env=cast(_ENV, env_copy(extra_env))
+        args, capture_output=True, encoding="utf-8", env=env_copy(extra_env)
     )
 
     if print_output:

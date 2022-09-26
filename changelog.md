@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Fix bad typing import.
+
 ## {gh}`3.2.1 (2022-09-26) <compare/v3.2.0...v3.2.1>`
 
 - Move some command utility from test machinery to `run` submodule.
