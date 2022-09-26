@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Move some command utility from test machinery to `run` submodule.
+
 ## {gh}`3.2.0 (2022-09-24) <compare/v3.1.0...v3.2.0>`
 
 - New `--show-params` option to debug parameters defaults, values, environment variables and provenance.

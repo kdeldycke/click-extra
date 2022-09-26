@@ -22,34 +22,23 @@ import sys
 from functools import partial
 from pathlib import Path
 from textwrap import dedent
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Iterable,
-    Mapping,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Optional, Sequence, Union
 
 import click
 import cloup
-import pytest
 from boltons.strutils import strip_ansi
 
 if TYPE_CHECKING:
     from click.core import BaseCommand
 
 import pytest
-from boltons.iterutils import flatten
 from boltons.strutils import strip_ansi
 from boltons.tbutils import ExceptionInfo
 from click.testing import CliRunner, Result
 
 from ..commands import extra_command, extra_group
 from ..platform import is_linux, is_macos, is_windows
-from ..run import print_cli_output
+from ..run import _EnvVars, args_cleanup, print_cli_output
 
 DESTRUCTIVE_MODE = bool(
     os.environ.get("DESTRUCTIVE_TESTS", False) not in {True, 1, "True", "true", "1"}
@@ -106,17 +95,6 @@ See: https://github.com/pallets/click/issues/2111 and https://github.com/pallets
 """
 
 
-# XXX Recursive types are not supported by mypy yet: https://github.com/python/mypy/issues/731
-# _NestedArgs = Iterable[Union[str, Path, None, Iterable["_NestedArgs"]]]
-_Arg = Union[str, Path, None]
-_Args = Iterable[_Arg]
-_NestedArgs = Iterable[
-    Union[
-        _Arg, Iterable[Union[_Arg, Iterable[Union[_Arg, Iterable[Union[_Arg, _Args]]]]]]
-    ]
-]
-
-
 class ExtraCliRunner(CliRunner):
 
     force_color = False
@@ -125,23 +103,11 @@ class ExtraCliRunner(CliRunner):
     This is only used to initialize the CliRunner in the context of Sphinx documentation.
     """
 
-    @classmethod
-    def _args_cleanup(cls, *args: Union[_Arg, _NestedArgs]) -> Tuple[str, ...]:
-        """Flatten recursive iterables, remove all ``None``, and cast each element to
-        strings.
-
-        Helps serialize :py:class:`pathlib.Path` and other objects.
-
-        It also allows for nested iterables and ``None`` values as CLI arguments for
-        convenience. We just need to flatten and filters them out.
-        """
-        return tuple(str(arg) for arg in flatten(args) if arg is not None)
-
-    def invoke(  # type: ignore
+    def invoke(
         self,
         cli: "BaseCommand",
         args: Optional[Union[str, Sequence[str]]] = None,
-        env: Optional[Mapping[str, Optional[str]]] = None,
+        env: _EnvVars = None,
         color: bool = False,
         **extra: Any,
     ) -> Result:
@@ -176,10 +142,10 @@ def invoke(runner, monkeypatch):
     https://github.com/pallets/click/issues/2110
     """
 
-    def _run(cli, *args, env=None, color=None):
+    def _run(cli, *args, env: _EnvVars = None, color=None):
         # We allow for nested iterables and None values as args for
         # convenience. We just need to flatten and filters them out.
-        args = ExtraCliRunner._args_cleanup(args)
+        args = args_cleanup(args)
 
         # Extra parameters passed to the invoked command's ``main()`` constructor.
         extra = {}
