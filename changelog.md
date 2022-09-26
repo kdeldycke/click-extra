@@ -1,10 +1,6 @@
 # Changelog
 
-## {gh}`3.2.2 (unreleased) <compare/v3.2.1...main>`
-
-```{important}
-This version is not released yet and is under active development.
-```
+## {gh}`3.2.2 (2022-09-26) <compare/v3.2.1...v3.2.2>`
 
 - Fix bad typing import.
 
