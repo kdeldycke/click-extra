@@ -36,7 +36,7 @@ from pygments.lexers.ruby import RubyConsoleLexer
 from pygments.lexers.shell import ShellSessionBaseLexer
 from pygments.lexers.special import OutputLexer
 from pygments.lexers.sql import PostgresConsoleLexer, SqliteConsoleLexer
-from pygments.style import Style
+from pygments.style import StyleMeta
 from pygments.styles import get_style_by_name
 from pygments.token import Generic, string_to_tokentype
 from pygments_ansi_color import (
@@ -67,10 +67,10 @@ furo_style_name = ini_config.get("theme", "pygments_style")
 
 
 # Base our new custom style in furo's.
-style_base: Style = get_style_by_name(furo_style_name)
+style_base: StyleMeta = get_style_by_name(furo_style_name)
 
 
-class AnsiClickExtraFuroStyle(style_base):
+class AnsiClickExtraFuroStyle(style_base):  # type: ignore
     styles = dict(style_base.styles)
     styles.update(color_tokens(fg_colors, bg_colors, enable_256color=True))
 

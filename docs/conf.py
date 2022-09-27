@@ -103,7 +103,7 @@ from sphinx.highlighting import PygmentsBridge
 
 from click_extra.pygments import AnsiHtmlFormatter
 
-PygmentsBridge.html_formatter = AnsiHtmlFormatter
+PygmentsBridge.html_formatter = AnsiHtmlFormatter  # type: ignore
 
 
 ####################################

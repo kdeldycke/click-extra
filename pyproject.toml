@@ -109,9 +109,12 @@ sphinx-copybutton = "^0.5.0"
 sphinx-design = "^0.3.0"
 sphinx-issues = "^3.0.1"
 sphinxext-opengraph = "^0.6.3"
+types-Pygments = "^2.13.1"
+types-PyYAML = "^6.0.12"
+types-regex = "^2022.9.13.0"
+types-requests = "^2.28.11"
 types-tabulate = "^0.8.11"
 types-xmltodict = "^0.13.0"
-typing-extensions = { version = "^4.3.0", python = "<= 3.7" }
 
 [tool.poetry.plugins."pygments.lexers"]
 # The name of the entrypoint values doesn’t really matter, Pygments extracts required metadata from the class definition.
@@ -163,24 +166,11 @@ pretty = true
 module = [
     "boltons.*",
     "cli_helpers.*",
-    "click.*",
     "click_log",
-    "cloup.*",
     "commentjson.*",
-    "furo.*",
+    "furo",
     "mergedeep.*",
     "pallets_sphinx_themes.*",
-    "pygments.*",
-    "pygments_ansi_color.*",
-    "pytest.*",
-    "pytest_cases.*",
-    "regex.*",
-    "requests.*",
-    "sphinx.*",
-    "tomli_w.*",
-    "wcmatch.*",
-    "xmltodict.*",
-    "yaml.*",
 ]
 ignore_missing_imports = true
 
