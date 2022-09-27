@@ -114,7 +114,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
     """Same as ``cloup.command``, but with sane defaults and extra help screen
     colorization."""
 
-    context_class: Type[ClickContext] = ExtraContext
+    context_class: Type[CloupContext] = ExtraContext
 
     def __init__(self, *args, version=None, extra_option_at_end=True, **kwargs):
 

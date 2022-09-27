@@ -31,8 +31,8 @@ from ..colorize import (
     HelpExtraFormatter,
     HelpExtraTheme,
     color_option,
+    default_theme,
     highlight,
-    theme,
     version_option,
 )
 from ..commands import extra_command, extra_group
@@ -63,8 +63,8 @@ def test_options_highlight():
     formatter.long_options = {"--manager", "--exclude"}
 
     output = formatter.getvalue()
-    assert theme.option("--manager") in output
-    assert theme.option("--exclude") in output
+    assert default_theme.option("--manager") in output
+    assert default_theme.option("--exclude") in output
 
 
 def test_choices_highlight():
@@ -81,10 +81,10 @@ def test_choices_highlight():
     formatter.choices = {"apm", "apt", "apt-mint", "brew"}
 
     output = formatter.getvalue()
-    assert theme.choice("apm") in output
-    assert theme.choice("apt") in output
-    assert theme.choice("apt-mint") in output
-    assert theme.choice("brew") in output
+    assert default_theme.choice("apm") in output
+    assert default_theme.choice("apt") in output
+    assert default_theme.choice("apt-mint") in output
+    assert default_theme.choice("brew") in output
 
 
 def test_metavars_highlight():
@@ -94,7 +94,7 @@ def test_metavars_highlight():
     formatter.metavars = {"LEVEL"}
 
     output = formatter.getvalue()
-    assert theme.metavar("LEVEL") in output
+    assert default_theme.metavar("LEVEL") in output
 
 
 def test_only_full_word_highlight():
@@ -530,7 +530,7 @@ def test_substring_highlighting(substrings, expected, ignore_case):
     result = highlight(
         "Hey-xx-xxx-heY-xXxXxxxxx-hey",
         substrings,
-        styling_method=theme.success,
+        styling_method=default_theme.success,
         ignore_case=ignore_case,
     )
     assert result == expected

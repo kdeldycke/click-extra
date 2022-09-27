@@ -105,7 +105,7 @@ new_formats = {
 
 
 # Update tabulate with our new formats, some supporting multi-line rendering.
-tabulate._table_formats.update(new_formats)
+tabulate._table_formats.update(new_formats)  # type: ignore
 tabulate.multiline_formats.update(
     {
         "simple_grid": "simple_grid",

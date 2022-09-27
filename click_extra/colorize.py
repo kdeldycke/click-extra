@@ -26,13 +26,13 @@ from functools import partial
 from gettext import gettext as _
 from operator import getitem
 from types import ModuleType
-from typing import Iterable, NamedTuple, Optional, Set
+from typing import Iterable, NamedTuple, Optional, Set, Union
 
 import regex as re3
 from boltons.strutils import complement_int_list, int_ranges_from_int_list
 from click import Parameter, echo, get_current_context
 from click.core import ParameterSource
-from cloup import Choice, Context, HelpFormatter, Style, option
+from cloup import Choice, Context, HelpFormatter, HelpTheme, Style, option
 from cloup._util import identity
 from cloup.styling import IStyle
 
@@ -120,17 +120,18 @@ class HelpExtraTheme(NamedTuple):
 
 
 # Populate our global theme with all default styles.
-theme = HelpExtraTheme(
+default_theme = HelpExtraTheme(
     # Cloup properties.
     invoked_command=Style(fg="bright_white"),
     heading=Style(fg="bright_blue", bold=True),
     constraint=Style(fg="magenta"),
-    # Neutralize Cloup's col1, as it interfers with our finer option styling.
+    # Neutralize Cloup's col1, as it interfers with our finer option styling which takes care of separators.
     col1=identity,
     # Log levels.
     critical=Style(fg="red"),
     error=Style(fg="red"),
     warning=Style(fg="yellow"),
+    # INFO log level is the default, so no style applied.
     info=identity,
     debug=Style(fg="blue"),
     # Click Extra properties.
@@ -147,8 +148,8 @@ theme = HelpExtraTheme(
 nocolor_theme = HelpExtraTheme()
 
 
-OK = theme.success("✓")
-KO = theme.error("✘")
+OK = default_theme.success("✓")
+KO = default_theme.error("✘")
 """Pre-rendered UI-elements."""
 
 color_env_vars = {
@@ -294,14 +295,16 @@ class VersionOption(ExtraOption):
 
         return package_name
 
-    def callback(
+    def print_version(
         self,
         ctx: Context,
         param: Parameter,
         value: bool,
         capture_output: bool = False,
     ) -> Optional[str]:
-        """Standard callback with an extra ``capture_output`` parameter which returns
+        """Prints version and exits.
+
+        Standard callback with an extra ``capture_output`` parameter which returns
         the output string instead of printing the (colored) version to the console."""
         if not value or ctx.resilient_parsing:
             return None
@@ -342,7 +345,6 @@ class VersionOption(ExtraOption):
 
         echo(output, color=ctx.color)
         ctx.exit()
-        return None
 
     def __init__(
         self,
@@ -353,8 +355,8 @@ class VersionOption(ExtraOption):
         message: Optional[str] = None,
         print_env_info: bool = False,
         version_style=Style(fg="green"),
-        package_name_style=theme.invoked_command,
-        prog_name_style=theme.invoked_command,
+        package_name_style=default_theme.invoked_command,
+        prog_name_style=default_theme.invoked_command,
         message_style=None,
         env_info_style=Style(fg="bright_black"),
         is_flag=True,
@@ -380,9 +382,9 @@ class VersionOption(ExtraOption):
         :type print_env_info: bool, optional
         :param version_style: adds environment info at the end of the message. Useful to gather user's details for troubleshooting. Defaults to ``Style(fg="green")``.
         :type version_style: _type_, optional
-        :param package_name_style: style of the ``version``. Defaults to ``theme.invoked_command``.
+        :param package_name_style: style of the ``version``. Defaults to ``default_theme.invoked_command``.
         :type package_name_style: _type_, optional
-        :param prog_name_style: style of the ``prog_name``. Defaults to ``theme.invoked_command``.
+        :param prog_name_style: style of the ``prog_name``. Defaults to ``default_theme.invoked_command``.
         :type prog_name_style: _type_, optional
         :param message_style: default style of the ``message`` parameter. Defaults to ``None``.
         :type message_style: _type_, optional
@@ -400,7 +402,7 @@ class VersionOption(ExtraOption):
         if not param_decls:
             param_decls = ("--version",)
 
-        kwargs.setdefault("callback", self.callback)
+        kwargs.setdefault("callback", self.print_version)
 
         self.version = version
         self.package_name = package_name
@@ -454,7 +456,8 @@ version_option = partial(option, cls=VersionOption)
 
 class HelpOption(ExtraOption):
     @staticmethod
-    def callback(ctx: Context, param: Parameter, value: bool) -> None:
+    def print_help(ctx: Context, param: Parameter, value: bool) -> None:
+        """Prints help text and exits."""
         if not value or ctx.resilient_parsing:
             return
 
@@ -473,7 +476,7 @@ class HelpOption(ExtraOption):
         if not param_decls:
             param_decls = ("--help", "-h")
 
-        kwargs.setdefault("callback", self.callback)
+        kwargs.setdefault("callback", self.print_help)
 
         super().__init__(
             param_decls=param_decls,
@@ -590,10 +593,17 @@ class HelpExtraFormatter(HelpFormatter):
     - https://github.com/janluke/cloup/issues/95
     """
 
+    theme: HelpExtraTheme  # type: ignore
+
     def __init__(self, *args, **kwargs):
-        """Forces our hard-coded theme as default if none provided."""
-        if "theme" not in kwargs:
-            kwargs["theme"] = theme
+        """Forces theme to our default.
+
+        Also transform Cloup's standard ``HelpTheme`` to our own ``HelpExtraTheme``.
+        """
+        theme = kwargs.get("theme", default_theme)
+        if not isinstance(theme, HelpExtraTheme):
+            theme = default_theme.with_(**theme._asdict())
+        kwargs["theme"] = theme
         super().__init__(*args, **kwargs)
 
     # Lists of extra keywords to highlight.

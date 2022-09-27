@@ -25,28 +25,26 @@ from typing import Iterable, Mapping, Optional, Tuple, Union, cast
 
 from boltons.iterutils import flatten
 
-from .colorize import theme
+from .colorize import default_theme
 
 PROMPT = "► "
 INDENT = " " * len(PROMPT)
 """Some CLI printing constants."""
 
 
-_EnvVars = Optional[Mapping[str, Optional[str]]]
+EnvVars = Mapping[str, Optional[str]]
 
 
 # XXX Recursive types are not supported by mypy yet: https://github.com/python/mypy/issues/731
 # _NestedArgs = Iterable[Union[str, Path, None, Iterable["_NestedArgs"]]]
-_Arg = Union[str, Path, None]
-_Args = Iterable[_Arg]
-_NestedArgs = Iterable[
-    Union[
-        _Arg, Iterable[Union[_Arg, Iterable[Union[_Arg, Iterable[Union[_Arg, _Args]]]]]]
-    ]
+Arg = Union[str, Path, None]
+Args = Iterable[Arg]
+NestedArgs = Iterable[
+    Union[Arg, Iterable[Union[Arg, Iterable[Union[Arg, Iterable[Union[Arg, Args]]]]]]]
 ]
 
 
-def args_cleanup(*args: Union[_Arg, _NestedArgs]) -> Tuple[str, ...]:
+def args_cleanup(*args: Union[Arg, NestedArgs]) -> Tuple[str, ...]:
     """Flatten recursive iterables, remove all ``None``, and cast each element to
     strings.
 
@@ -58,10 +56,10 @@ def args_cleanup(*args: Union[_Arg, _NestedArgs]) -> Tuple[str, ...]:
     return tuple(str(arg) for arg in flatten(args) if arg is not None)
 
 
-def format_cli(cmd, extra_env: _EnvVars = None) -> str:
+def format_cli(cmd, extra_env: Optional[EnvVars] = None) -> str:
     """Simulate CLI rendering in terminal."""
     assert cmd
-    cmd_str = theme.invoked_command(" ".join(cmd))
+    cmd_str = default_theme.invoked_command(" ".join(cmd))
 
     extra_env_string = ""
     if extra_env:
@@ -81,12 +79,12 @@ def print_cli_output(
     if output:
         print(indent(output, INDENT))
     if error:
-        print(indent(theme.error(error), INDENT))
+        print(indent(default_theme.error(error), INDENT))
     if error_code is not None:
-        print(theme.error(f"{INDENT}Return code: {error_code}"))
+        print(default_theme.error(f"{INDENT}Return code: {error_code}"))
 
 
-def env_copy(extend: _EnvVars = None) -> _EnvVars:
+def env_copy(extend: Optional[EnvVars] = None) -> Optional[EnvVars]:
     """Returns a copy of the current environment variables and eventually ``extend`` it.
 
     Mimics Python's original implementation by returning ``None`` if no ``extend`` ``dict`` are added. See:
@@ -100,7 +98,7 @@ def env_copy(extend: _EnvVars = None) -> _EnvVars:
             assert isinstance(v, str)
     else:
         assert not extend
-    env_copy: _EnvVars = None
+    env_copy: Optional[EnvVars] = None
     if extend:
         # By casting to dict we make a copy and prevent the modification of the
         # global environment.
@@ -109,11 +107,14 @@ def env_copy(extend: _EnvVars = None) -> _EnvVars:
     return env_copy
 
 
-def run_cmd(*args, extra_env: _EnvVars = None, print_output: bool = True):
+def run_cmd(*args, extra_env: Optional[EnvVars] = None, print_output: bool = True):
     """Run a system command, print output and return results."""
     assert isinstance(args, tuple)
     process = subprocess.run(
-        args, capture_output=True, encoding="utf-8", env=env_copy(extra_env)
+        args,
+        capture_output=True,
+        encoding="utf-8",
+        env=cast(subprocess._ENV, env_copy(extra_env)),
     )
 
     if print_output:

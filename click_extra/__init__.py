@@ -38,15 +38,20 @@ from click import *
 from click.core import ParameterSource
 
 # Overrides some of click helpers with cloup's.
-from cloup import Command  # type: ignore
-from cloup import Group  # type: ignore
-from cloup import HelpFormatter  # type: ignore
-from cloup import Option  # type: ignore
-from cloup import argument  # type: ignore
 from cloup import command  # type: ignore
 from cloup import group  # type: ignore
-from cloup import option  # type: ignore
-from cloup import HelpTheme, Style, option_group
+from cloup import (
+    Argument,
+    Command,
+    Group,
+    HelpFormatter,
+    HelpTheme,
+    Option,
+    Style,
+    argument,
+    option,
+    option_group,
+)
 
 from .parameters import ExtraOption  # isort:skip
 

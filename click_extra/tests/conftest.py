@@ -22,23 +22,19 @@ import sys
 from functools import partial
 from pathlib import Path
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any, Optional, Sequence, Union
+from typing import IO, Any, Optional, Sequence, Union
 
 import click
 import cloup
-from boltons.strutils import strip_ansi
-
-if TYPE_CHECKING:
-    from click.core import BaseCommand
-
 import pytest
 from boltons.strutils import strip_ansi
 from boltons.tbutils import ExceptionInfo
+from click.core import BaseCommand
 from click.testing import CliRunner, Result
 
 from ..commands import extra_command, extra_group
 from ..platform import is_linux, is_macos, is_windows
-from ..run import _EnvVars, args_cleanup, print_cli_output
+from ..run import EnvVars, args_cleanup, print_cli_output
 
 DESTRUCTIVE_MODE = bool(
     os.environ.get("DESTRUCTIVE_TESTS", False) not in {True, 1, "True", "true", "1"}
@@ -97,7 +93,7 @@ See: https://github.com/pallets/click/issues/2111 and https://github.com/pallets
 
 class ExtraCliRunner(CliRunner):
 
-    force_color = False
+    force_color: bool = False
     """Add a ``force_color`` boolean flag on the class to allow for overriding of the ``color`` parameter in ``invoke``.
 
     This is only used to initialize the CliRunner in the context of Sphinx documentation.
@@ -105,9 +101,11 @@ class ExtraCliRunner(CliRunner):
 
     def invoke(
         self,
-        cli: "BaseCommand",
+        cli: BaseCommand,
         args: Optional[Union[str, Sequence[str]]] = None,
-        env: _EnvVars = None,
+        input: Optional[Union[str, bytes, IO]] = None,
+        env: Optional[EnvVars] = None,
+        catch_exceptions: bool = True,
         color: bool = False,
         **extra: Any,
     ) -> Result:
@@ -115,7 +113,15 @@ class ExtraCliRunner(CliRunner):
         if self.force_color:
             color = True
 
-        result = super().invoke(cli=cli, args=args, env=env, color=color, **extra)
+        result = super().invoke(
+            cli=cli,
+            args=args,
+            input=input,
+            env=env,
+            catch_exceptions=catch_exceptions,
+            color=color,
+            **extra,
+        )
 
         if result.exception:
             print(ExceptionInfo.from_exc_info(*result.exc_info).get_formatted())
@@ -142,7 +148,7 @@ def invoke(runner, monkeypatch):
     https://github.com/pallets/click/issues/2110
     """
 
-    def _run(cli, *args, env: _EnvVars = None, color=None):
+    def _run(cli, *args, env: EnvVars = None, color=None):
         # We allow for nested iterables and None values as args for
         # convenience. We just need to flatten and filters them out.
         args = args_cleanup(args)
