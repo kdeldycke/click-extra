@@ -163,6 +163,7 @@ warn_unreachable = true
 pretty = true
 
 [[tool.mypy.overrides]]
+ignore_missing_imports = true
 module = [
     "boltons.*",
     "cli_helpers.*",
@@ -172,7 +173,6 @@ module = [
     "mergedeep.*",
     "pallets_sphinx_themes.*",
 ]
-ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 # https://docs.pytest.org/en/latest/customize.html#pyproject-toml
