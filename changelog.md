@@ -1,10 +1,6 @@
 # Changelog
 
-## {gh}`3.2.3 (unreleased) <compare/v3.2.2...main>`
-
-```{important}
-This version is not released yet and is under active development.
-```
+## {gh}`3.2.3 (2022-09-27) <compare/v3.2.2...v3.2.3>`
 
 - Increase type coverage.
 
