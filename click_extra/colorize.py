@@ -26,7 +26,7 @@ from functools import partial
 from gettext import gettext as _
 from operator import getitem
 from types import ModuleType
-from typing import Iterable, NamedTuple, Optional, Set, Union
+from typing import Iterable, NamedTuple, Optional, Set
 
 import regex as re3
 from boltons.strutils import complement_int_list, int_ranges_from_int_list
@@ -125,7 +125,8 @@ default_theme = HelpExtraTheme(
     invoked_command=Style(fg="bright_white"),
     heading=Style(fg="bright_blue", bold=True),
     constraint=Style(fg="magenta"),
-    # Neutralize Cloup's col1, as it interfers with our finer option styling which takes care of separators.
+    # Neutralize Cloup's col1, as it interfers with our finer option styling
+    # which takes care of separators.
     col1=identity,
     # Log levels.
     critical=Style(fg="red"),
@@ -304,8 +305,9 @@ class VersionOption(ExtraOption):
     ) -> Optional[str]:
         """Prints version and exits.
 
-        Standard callback with an extra ``capture_output`` parameter which returns
-        the output string instead of printing the (colored) version to the console."""
+        Standard callback with an extra ``capture_output`` parameter which returns the
+        output string instead of printing the (colored) version to the console.
+        """
         if not value or ctx.resilient_parsing:
             return None
 
