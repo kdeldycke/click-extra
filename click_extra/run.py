@@ -114,7 +114,7 @@ def run_cmd(*args, extra_env: Optional[EnvVars] = None, print_output: bool = Tru
         args,
         capture_output=True,
         encoding="utf-8",
-        env=cast(subprocess._ENV, env_copy(extra_env)),
+        env=cast("subprocess._ENV", env_copy(extra_env)),
     )
 
     if print_output:
