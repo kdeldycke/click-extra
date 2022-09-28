@@ -672,7 +672,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             return param.envvar
         else:
             if (
-                getattr(param, "allow_from_autoenv")
+                getattr(param, "allow_from_autoenv", None)
                 and ctx.auto_envvar_prefix is not None
                 and param.name is not None
             ):
