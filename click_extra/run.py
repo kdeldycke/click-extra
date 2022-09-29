@@ -23,7 +23,7 @@ import os
 import subprocess
 from pathlib import Path
 from textwrap import indent
-from typing import Iterable, Mapping, Optional, Tuple, Union, cast
+from typing import Iterable, Mapping, Optional, Union, cast
 
 from boltons.iterutils import flatten
 

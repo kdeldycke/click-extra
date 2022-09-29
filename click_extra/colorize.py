@@ -28,7 +28,7 @@ from functools import partial
 from gettext import gettext as _
 from operator import getitem
 from types import ModuleType
-from typing import Iterable, NamedTuple, Optional, Set
+from typing import Iterable, NamedTuple
 
 import regex as re3
 from boltons.strutils import complement_int_list, int_ranges_from_int_list

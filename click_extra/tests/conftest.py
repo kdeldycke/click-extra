@@ -24,7 +24,7 @@ import sys
 from functools import partial
 from pathlib import Path
 from textwrap import dedent
-from typing import IO, Any, Optional, Sequence, Union
+from typing import IO, Any, Sequence
 
 import click
 import cloup

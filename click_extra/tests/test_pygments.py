@@ -20,7 +20,6 @@ from __future__ import annotations
 import sys
 from operator import itemgetter
 from pathlib import Path
-from typing import Dict
 
 from boltons.strutils import camel2under
 from boltons.typeutils import issubclass
