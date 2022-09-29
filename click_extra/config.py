@@ -17,6 +17,8 @@
 
 """Utilities to load parameters and options from a configuration file."""
 
+from __future__ import annotations
+
 import sys
 from collections.abc import MutableMapping
 from configparser import ConfigParser, ExtendedInterpolation

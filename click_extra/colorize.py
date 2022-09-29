@@ -17,6 +17,8 @@
 
 """Helpers and utilities to apply ANSI coloring to terminal content."""
 
+from __future__ import annotations
+
 import inspect
 import os
 import re

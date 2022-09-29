@@ -17,6 +17,8 @@
 
 """Helpers and utilities to identify and handle platform idiosyncracies."""
 
+from __future__ import annotations
+
 import sys
 
 from boltons.dictutils import FrozenDict

@@ -18,6 +18,8 @@
 """Test defaults of our custom commands, as well as their customizations and attached
 options, and how they interact with each others."""
 
+from __future__ import annotations
+
 import re
 import sys
 from textwrap import dedent

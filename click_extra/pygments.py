@@ -17,6 +17,8 @@
 
 """Helpers and utilities to allow Pygments to parse and render ANSI codes."""
 
+from __future__ import annotations
+
 from configparser import ConfigParser
 
 import furo

@@ -21,6 +21,8 @@ The collection of pre-defined decorators here present good and common defaults. 
 still mix'n'match the mixins below to build your own custom variants.
 """
 
+from __future__ import annotations
+
 from functools import partial
 from gettext import gettext as _
 from logging import getLevelName

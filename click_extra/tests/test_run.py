@@ -17,6 +17,8 @@
 
 """Test all runner utilities as well as all the test and pytest helpers."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 

@@ -17,6 +17,8 @@
 
 """Extend cli_helpers.tabulate utilities with new formats."""
 
+from __future__ import annotations
+
 from functools import partial
 from gettext import gettext as _
 

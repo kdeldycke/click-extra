@@ -30,6 +30,7 @@ __version__ = "3.2.5"
     __version__ = '1.2.3.post1'  # Post Release 1
 """
 
+from __future__ import annotations
 
 # Import all click's module-level content to allow for drop-in replacement.
 # XXX Star import is really badly supported by mypy for now and leads to lots of
