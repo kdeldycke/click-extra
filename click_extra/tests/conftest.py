@@ -104,9 +104,9 @@ class ExtraCliRunner(CliRunner):
     def invoke(
         self,
         cli: BaseCommand,
-        args: Optional[Union[str, Sequence[str]]] = None,
-        input: Optional[Union[str, bytes, IO]] = None,
-        env: Optional[EnvVars] = None,
+        args: str | Sequence[str] | None = None,
+        input: str | bytes | IO | None = None,
+        env: EnvVars | None = None,
         catch_exceptions: bool = True,
         color: bool = False,
         **extra: Any,

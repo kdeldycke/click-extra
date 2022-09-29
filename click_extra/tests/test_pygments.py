@@ -39,7 +39,7 @@ from ..pygments import collect_session_lexers
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 
 
-def get_pyproject_section(*section_path: str) -> Dict[str, str]:
+def get_pyproject_section(*section_path: str) -> dict[str, str]:
     toml_path = PROJECT_ROOT.joinpath("pyproject.toml").resolve()
     toml_config = tomllib.loads(toml_path.read_text(encoding="utf-8"))
     section = toml_config
@@ -48,7 +48,7 @@ def get_pyproject_section(*section_path: str) -> Dict[str, str]:
     return section
 
 
-def check_entry_points(entry_points: Dict[str, str], *section_path: str) -> None:
+def check_entry_points(entry_points: dict[str, str], *section_path: str) -> None:
     entry_points = dict(sorted(entry_points.items(), key=itemgetter(0)))
     project_entry_points = get_pyproject_section(*section_path)
     assert project_entry_points == entry_points

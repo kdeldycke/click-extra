@@ -46,7 +46,7 @@ NestedArgs = Iterable[
 ]
 
 
-def args_cleanup(*args: Union[Arg, NestedArgs]) -> Tuple[str, ...]:
+def args_cleanup(*args: Arg | NestedArgs) -> tuple[str, ...]:
     """Flatten recursive iterables, remove all ``None``, and cast each element to
     strings.
 
@@ -58,7 +58,7 @@ def args_cleanup(*args: Union[Arg, NestedArgs]) -> Tuple[str, ...]:
     return tuple(str(arg) for arg in flatten(args) if arg is not None)
 
 
-def format_cli(cmd, extra_env: Optional[EnvVars] = None) -> str:
+def format_cli(cmd, extra_env: EnvVars | None = None) -> str:
     """Simulate CLI rendering in terminal."""
     assert cmd
     cmd_str = default_theme.invoked_command(" ".join(cmd))
@@ -86,7 +86,7 @@ def print_cli_output(
         print(default_theme.error(f"{INDENT}Return code: {error_code}"))
 
 
-def env_copy(extend: Optional[EnvVars] = None) -> Optional[EnvVars]:
+def env_copy(extend: EnvVars | None = None) -> EnvVars | None:
     """Returns a copy of the current environment variables and eventually ``extend`` it.
 
     Mimics Python's original implementation by returning ``None`` if no ``extend`` ``dict`` are added. See:
@@ -100,7 +100,7 @@ def env_copy(extend: Optional[EnvVars] = None) -> Optional[EnvVars]:
             assert isinstance(v, str)
     else:
         assert not extend
-    env_copy: Optional[EnvVars] = None
+    env_copy: EnvVars | None = None
     if extend:
         # By casting to dict we make a copy and prevent the modification of the
         # global environment.
@@ -109,7 +109,7 @@ def env_copy(extend: Optional[EnvVars] = None) -> Optional[EnvVars]:
     return env_copy
 
 
-def run_cmd(*args, extra_env: Optional[EnvVars] = None, print_output: bool = True):
+def run_cmd(*args, extra_env: EnvVars | None = None, print_output: bool = True):
     """Run a system command, print output and return results."""
     assert isinstance(args, tuple)
     process = subprocess.run(
