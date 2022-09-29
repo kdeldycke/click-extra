@@ -100,7 +100,7 @@ class ParamStructure:
     SEP: str = "."
     """Use a dot ``.`` as a separator between levels of the tree-like parameter structure."""
 
-    def __init__(self, *args, ignored_params: Optional[Iterable[str]] = None, **kwargs):
+    def __init__(self, *args, ignored_params: Iterable[str] | None = None, **kwargs):
         if ignored_params:
             self.ignored_params = ignored_params
 
@@ -119,7 +119,7 @@ class ParamStructure:
         return dive(path)
 
     @staticmethod
-    def get_tree_value(tree_dict: Dict[str, Any], *path: str) -> Optional[Any]:
+    def get_tree_value(tree_dict: dict[str, Any], *path: str) -> Any | None:
         """Get in the ``tree_dict`` the value located at the ``path``."""
         try:
             return reduce(getitem, path, tree_dict)
@@ -138,7 +138,7 @@ class ParamStructure:
                 yield new_key, v
 
     def flatten_tree_dict(
-        self, tree_dict: MutableMapping, parent_key: Optional[str] = None
+        self, tree_dict: MutableMapping, parent_key: str | None = None
     ):
         """Recursively traverse the tree-like ``dict`` and produce a flat ``dict`` whose
         keys are path and values are the leaf's content."""
@@ -222,9 +222,9 @@ class ParamStructure:
 
     def build_param_trees(self) -> None:
         """Build all parameters tree structure in one go and cache them."""
-        template: Dict[str, Any] = {}
-        types: Dict[str, Any] = {}
-        objects: Dict[str, Any] = {}
+        template: dict[str, Any] = {}
+        types: dict[str, Any] = {}
+        objects: dict[str, Any] = {}
 
         for keys, param in self.walk_params():
             merge(template, self.init_tree_dict(*keys))
@@ -429,7 +429,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             logger.debug(f"Configuration file found at {file_path}")
             yield file_path.read_text()
 
-    def parse_conf(self, conf_content: str) -> Optional[dict]:
+    def parse_conf(self, conf_content: str) -> dict | None:
         """Try to parse the provided content with each format in the order provided by
         the user.
 
@@ -468,7 +468,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         return None
 
-    def read_and_parse_conf(self, pattern: str) -> Optional[dict]:
+    def read_and_parse_conf(self, pattern: str) -> dict | None:
         for conf_content in self.search_and_read_conf(pattern):
             user_conf = self.parse_conf(conf_content)
             if user_conf is not None:
@@ -660,7 +660,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         )
 
     @staticmethod
-    def get_envvar(ctx, param: Union[Parameter, Option]):
+    def get_envvar(ctx, param: Parameter | Option):
         """Emulates the retrieval or dynamic generation of a parameter's environment
         variable.
 

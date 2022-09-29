@@ -77,26 +77,26 @@ class HelpExtraTheme(NamedTuple):
 
     def with_(
         self,
-        invoked_command: Optional[IStyle] = None,
-        command_help: Optional[IStyle] = None,
-        heading: Optional[IStyle] = None,
-        constraint: Optional[IStyle] = None,
-        section_help: Optional[IStyle] = None,
-        col1: Optional[IStyle] = None,
-        col2: Optional[IStyle] = None,
-        epilog: Optional[IStyle] = None,
-        critical: Optional[IStyle] = None,
-        error: Optional[IStyle] = None,
-        warning: Optional[IStyle] = None,
-        info: Optional[IStyle] = None,
-        debug: Optional[IStyle] = None,
-        subheading: Optional[IStyle] = None,
-        option: Optional[IStyle] = None,
-        choice: Optional[IStyle] = None,
-        metavar: Optional[IStyle] = None,
-        search: Optional[IStyle] = None,
-        success: Optional[IStyle] = None,
-    ) -> "HelpExtraTheme":
+        invoked_command: IStyle | None = None,
+        command_help: IStyle | None = None,
+        heading: IStyle | None = None,
+        constraint: IStyle | None = None,
+        section_help: IStyle | None = None,
+        col1: IStyle | None = None,
+        col2: IStyle | None = None,
+        epilog: IStyle | None = None,
+        critical: IStyle | None = None,
+        error: IStyle | None = None,
+        warning: IStyle | None = None,
+        info: IStyle | None = None,
+        debug: IStyle | None = None,
+        subheading: IStyle | None = None,
+        option: IStyle | None = None,
+        choice: IStyle | None = None,
+        metavar: IStyle | None = None,
+        search: IStyle | None = None,
+        success: IStyle | None = None,
+    ) -> HelpExtraTheme:
         """Copy of ``cloup.HelpTheme.with_``."""
         kwargs = {key: val for key, val in locals().items() if val is not None}
         kwargs.pop("self")
@@ -105,7 +105,7 @@ class HelpExtraTheme(NamedTuple):
         return self
 
     @staticmethod
-    def dark() -> "HelpExtraTheme":
+    def dark() -> HelpExtraTheme:
         """A theme assuming a dark terminal background color.
 
         .. todo:     Implement default dark theme.
@@ -113,7 +113,7 @@ class HelpExtraTheme(NamedTuple):
         raise NotImplementedError
 
     @staticmethod
-    def light() -> "HelpExtraTheme":
+    def light() -> HelpExtraTheme:
         """A theme assuming a light terminal background color.
 
         .. todo:     Implement default light theme.
@@ -272,9 +272,9 @@ class VersionOption(ExtraOption):
     (fixes [Click #2324 issue](https://github.com/pallets/click/issues/2324)).
     """
 
-    version: Optional[str] = None
-    package_name: Optional[str] = None
-    prog_name: Optional[str] = None
+    version: str | None = None
+    package_name: str | None = None
+    prog_name: str | None = None
     message: str = _("%(prog)s, version %(version)s")
 
     def guess_package_name(self):
@@ -304,7 +304,7 @@ class VersionOption(ExtraOption):
         param: Parameter,
         value: bool,
         capture_output: bool = False,
-    ) -> Optional[str]:
+    ) -> str | None:
         """Prints version and exits.
 
         Standard callback with an extra ``capture_output`` parameter which returns the
@@ -317,7 +317,7 @@ class VersionOption(ExtraOption):
             self.prog_name = ctx.find_root().info_name
 
         if self.version is None and self.package_name is not None:
-            metadata: Optional[ModuleType]
+            metadata: ModuleType | None
 
             try:
                 from importlib import metadata  # type: ignore
@@ -352,11 +352,11 @@ class VersionOption(ExtraOption):
 
     def __init__(
         self,
-        param_decls: Optional[Iterable[str]] = None,
-        version: Optional[str] = None,
-        package_name: Optional[str] = None,
-        prog_name: Optional[str] = None,
-        message: Optional[str] = None,
+        param_decls: Iterable[str] | None = None,
+        version: str | None = None,
+        package_name: str | None = None,
+        prog_name: str | None = None,
+        message: str | None = None,
         print_env_info: bool = False,
         version_style=Style(fg="green"),
         package_name_style=default_theme.invoked_command,
@@ -544,8 +544,8 @@ class ExtraHelpColorsMixin:
             metavars.add(param.make_metavar())
 
         # Split between shorts and long options
-        long_options: Set[str] = set()
-        short_options: Set[str] = set()
+        long_options: set[str] = set()
+        short_options: set[str] = set()
         for option in options:
             # TODO: reuse ctx._opt_prefixes for finer match?
             # Short options no longer than 2 characters
@@ -611,15 +611,15 @@ class HelpExtraFormatter(HelpFormatter):
         super().__init__(*args, **kwargs)
 
     # Lists of extra keywords to highlight.
-    cli_names: Set[str] = set()
-    subcommands: Set[str] = set()
-    command_aliases: Set[str] = set()
-    long_options: Set[str] = set()
-    short_options: Set[str] = set()
-    choices: Set[str] = set()
-    metavars: Set[str] = set()
+    cli_names: set[str] = set()
+    subcommands: set[str] = set()
+    command_aliases: set[str] = set()
+    long_options: set[str] = set()
+    short_options: set[str] = set()
+    choices: set[str] = set()
+    metavars: set[str] = set()
     # TODO
-    default_values: Set[str] = set()
+    default_values: set[str] = set()
 
     # TODO: Hihglight extra keywords <stdout> or <stderr>
 

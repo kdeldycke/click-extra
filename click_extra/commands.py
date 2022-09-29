@@ -95,15 +95,15 @@ class ExtraContext(CloupContext):
     """Like ``cloup._context.Context``, but with the ability to populate the context's
     ``meta`` property at instanciation."""
 
-    _extra_meta: Dict[str, Any] = {}
+    _extra_meta: dict[str, Any] = {}
 
-    def __init__(self, *args, meta: Dict[str, Any] = {}, **kwargs) -> None:
+    def __init__(self, *args, meta: dict[str, Any] = {}, **kwargs) -> None:
         """Like parent's context but with an extra ``meta`` keyword-argument."""
         self._extra_meta = meta
         super().__init__(*args, **kwargs)
 
     @property
-    def meta(self) -> Dict[str, Any]:
+    def meta(self) -> dict[str, Any]:
         """Returns context meta augmented with our own."""
         # Check the two set of meta keys does not intersect.
         assert not set(self._meta).intersection(self._extra_meta)
@@ -116,7 +116,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
     """Same as ``cloup.command``, but with sane defaults and extra help screen
     colorization."""
 
-    context_class: Type[CloupContext] = ExtraContext
+    context_class: type[CloupContext] = ExtraContext
 
     def __init__(self, *args, version=None, extra_option_at_end=True, **kwargs):
 
@@ -162,9 +162,9 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
 
     def make_context(
         self,
-        info_name: Optional[str],
-        args: List[str],
-        parent: Optional[ClickContext] = None,
+        info_name: str | None,
+        args: list[str],
+        parent: ClickContext | None = None,
         **extra: Any,
     ) -> Any:
         """Intercept the call to the original ``click.core.BaseCommand.make_context`` so
