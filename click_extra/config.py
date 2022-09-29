@@ -28,7 +28,7 @@ from gettext import gettext as _
 from operator import getitem, methodcaller
 from os.path import sep
 from pathlib import Path
-from typing import Any, Dict, Iterable, Optional, Sequence, Union
+from typing import Any, Iterable, Sequence
 from unittest.mock import patch
 
 if sys.version_info >= (3, 8):
