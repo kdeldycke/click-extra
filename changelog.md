@@ -7,6 +7,7 @@ This version is not released yet and is under active development.
 ```
 
 - Fix argument's property getter in `--show-params`.
+- Remove GitHub edit link workaround in documentation.
 
 ## {gh}`3.2.4 (2022-09-27) <compare/v3.2.3...v3.2.4>`
 
