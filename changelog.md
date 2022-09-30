@@ -1,10 +1,6 @@
 # Changelog
 
-## {gh}`3.2.5 (unreleased) <compare/v3.2.4...main>`
-
-```{important}
-This version is not released yet and is under active development.
-```
+## {gh}`3.2.5 (2022-09-30) <compare/v3.2.4...v3.2.5>`
 
 - Fix argument's property getter in `--show-params`.
 - Remove GitHub edit link workaround in documentation.
