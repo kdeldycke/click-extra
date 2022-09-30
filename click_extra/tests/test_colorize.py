@@ -26,7 +26,7 @@ import cloup
 import pytest
 from boltons.strutils import strip_ansi
 from click import echo, secho, style
-from cloup import HelpTheme, Style, command, option, option_group
+from cloup import HelpTheme, Style, argument, command, option, option_group
 from pytest_cases import fixture, parametrize
 
 from ..colorize import (
@@ -121,7 +121,7 @@ def test_keyword_collection(invoke):
     )
     @cloup.option_group(
         "Group 2",
-        option("--o3"),
+        option("--o3", metavar="MY_VAR"),
         option("--o4"),
     )
     @option("--test")
@@ -129,7 +129,9 @@ def test_keyword_collection(invoke):
         echo("It works!")
 
     @extra_command(params=None)
-    def command1():
+    @argument("MY_ARG", nargs=-1, help="Argument supports help.")
+    def command1(my_arg):
+        """CLI description with extra MY_VAR reference."""
         echo("Run click-extra command #1...")
 
     @cloup.command()
@@ -154,14 +156,14 @@ def test_keyword_collection(invoke):
         r"  \x1b\[36m-a\x1b\[0m, \x1b\[36m--o1\x1b\[0m \x1b\[90mTEXT\x1b\[0m\n"
         r"  \x1b\[36m-b\x1b\[0m, \x1b\[36m--o2\x1b\[0m \x1b\[90mTEXT\x1b\[0m\n\n"
         r"\x1b\[94m\x1b\[1mGroup 2:\x1b\[0m\n"
-        r"  \x1b\[36m--o3\x1b\[0m \x1b\[90mTEXT\x1b\[0m\n"
+        r"  \x1b\[36m--o3\x1b\[0m \x1b\[90mMY_VAR\x1b\[0m\n"
         r"  \x1b\[36m--o4\x1b\[0m \x1b\[90mTEXT\x1b\[0m\n\n"
         r"\x1b\[94m\x1b\[1mOther options:\x1b\[0m\n"
         r"  \x1b\[36m--test\x1b\[0m \x1b\[90mTEXT\x1b\[0m\n"
         rf"{default_options_colored_help}"
         r"\n"
         r"\x1b\[94m\x1b\[1mSubcommand group 1:\x1b\[0m\n"
-        r"  \x1b\[36mcommand1\x1b\[0m\n"
+        r"  \x1b\[36mcommand1\x1b\[0m  CLI description with extra \x1b\[90mMY_VAR\x1b\[0m reference.\n"
         r"  \x1b\[36mcommand2\x1b\[0m\n\n"
         r"\x1b\[94m\x1b\[1mExtra commands:\x1b\[0m\n"
         r"  \x1b\[36mcommand3\x1b\[0m\n"
@@ -184,7 +186,12 @@ def test_keyword_collection(invoke):
     assert result.output == dedent(
         f"""\
         It works!
-        \x1b[94m\x1b[1mUsage: \x1b[0m\x1b[97mcolor-cli1 command1\x1b[0m \x1b[90m[OPTIONS]\x1b[0m
+        \x1b[94m\x1b[1mUsage: \x1b[0m\x1b[97mcolor-cli1 command1\x1b[0m \x1b[90m[OPTIONS]\x1b[0m [\x1b[36mMY_ARG\x1b[0m]...
+
+          CLI description with extra MY_VAR reference.
+
+        \x1b[94m\x1b[1mPositional arguments:\x1b[0m
+          [\x1b[36mMY_ARG\x1b[0m]...  Argument supports help.
 
         \x1b[94m\x1b[1mOptions:\x1b[0m
           \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m  Show this message and exit.
@@ -197,7 +204,12 @@ def test_keyword_collection(invoke):
     assert result.exit_code == 0
     assert result.output == dedent(
         f"""\
-        \x1b[94m\x1b[1mUsage: \x1b[0m\x1b[97mcommand1\x1b[0m \x1b[90m[OPTIONS]\x1b[0m
+        \x1b[94m\x1b[1mUsage: \x1b[0m\x1b[97mcommand1\x1b[0m \x1b[90m[OPTIONS]\x1b[0m [\x1b[36mMY_ARG\x1b[0m]...
+
+          CLI description with extra MY_VAR reference.
+
+        \x1b[94m\x1b[1mPositional arguments:\x1b[0m
+          [\x1b[36mMY_ARG\x1b[0m]...  Argument supports help.
 
         \x1b[94m\x1b[1mOptions:\x1b[0m
           \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m  Show this message and exit.
