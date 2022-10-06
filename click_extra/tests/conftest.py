@@ -352,7 +352,7 @@ default_debug_uncolored_log = (
     r"debug: Load configuration matching .+\*\.{toml,yaml,yml,json,ini,xml}\n"
     r"debug: Pattern is not an URL.\n"
     r"debug: Search local file system.\n"
-    r"debug: No configuration file found. Ignore it.\n"
+    r"debug: No configuration file found.\n"
     r"debug: \S+, version \S+\n"
 )
 
@@ -362,7 +362,7 @@ default_debug_colored_log = (
     r"\x1b\[34mdebug: \x1b\[0mLoad configuration matching .+\*\.{toml,yaml,yml,json,ini,xml}\n"
     r"\x1b\[34mdebug: \x1b\[0mPattern is not an URL.\n"
     r"\x1b\[34mdebug: \x1b\[0mSearch local file system.\n"
-    r"\x1b\[34mdebug: \x1b\[0mNo configuration file found. Ignore it.\n"
+    r"\x1b\[34mdebug: \x1b\[0mNo configuration file found.\n"
     r"\x1b\[34mdebug: \x1b\[0m\x1b\[97m\S+\x1b\[0m, version \x1b\[32m\S+\x1b\[0m(\x1b\[90m)?\n"
 )
 

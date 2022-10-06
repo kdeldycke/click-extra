@@ -601,7 +601,7 @@ class ConfigOption(ExtraOption, ParamStructure):
                 logger.fatal(message)
                 ctx.exit(2)
             else:
-                logger.debug(f"{message} Ignore it.")
+                logger.debug(message)
 
         else:
             conf = self.merge_conf(user_conf)
