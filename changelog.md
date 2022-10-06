@@ -6,6 +6,13 @@
 This version is not released yet and is under active development.
 ```
 
+- Replace table rendering utilities from `cli-helpers` by `tabulate`.
+- Deactivate number alignment and extra-spacing in table rendering by default.
+- Remove dependency on `cli-helpers`.
+- Add new table rendering formats: `asciidoc`, `fancy_outline`, `heavy_grid`, `heavy_outline`, `latex_longtable`, `latex_raw`, `mixed_grid`, `mixed_outline`, `presto`, `pretty`, `unsafehtml` and `youtrack`.
+- Remove `minimal` table rendering formats, which was an alias of `plain`.
+- XXX Temporary remove `csv`, `csv-tab` and `vertical` table rendering formats.
+
 ## {gh}`3.2.5 (2022-09-30) <compare/v3.2.4...v3.2.5>`
 
 - Fix argument's property getter in `--show-params`.

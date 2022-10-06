@@ -22,8 +22,9 @@ import pytest
 # We use vanilla click primitives here to demonstrate the full-compatibility.
 from click import echo, pass_context
 from pytest_cases import fixture, parametrize
+from tabulate import _table_formats, tabulate
 
-from ..tabulate import TabularOutputFormatter, table_format_option
+from ..tabulate import table_format_option
 from .conftest import command_decorators
 
 
@@ -45,14 +46,26 @@ def test_unrecognized_format(invoke, cmd_decorator, cmd_type):
     assert result.stderr == (
         f"Usage: tabulate-cli1 [OPTIONS]{group_help}\n"
         f"{extra_suggest}\n"
-        "Error: Invalid value for '-t' / '--table-format': "
-        "'random' is not one of 'csv', 'csv-tab', 'double_grid', 'double_outline', "
-        "'fancy_grid', 'github', 'grid', 'html', 'jira', 'latex', 'latex_booktabs', "
-        "'mediawiki', 'minimal', 'moinmoin', 'orgtbl', 'outline', 'pipe', 'plain', "
-        "'psql', 'rounded_grid', 'rounded_outline', 'rst', 'simple', 'simple_grid', "
-        "'simple_outline', 'textile', 'tsv', 'vertical'.\n"
+        "Error: Invalid value for '-t' / '--table-format': 'random' is not one of "
+        "'asciidoc', 'double_grid', 'double_outline', 'fancy_grid', 'fancy_outline', "
+        "'github', 'grid', 'heavy_grid', 'heavy_outline', 'html', 'jira', 'latex', "
+        "'latex_booktabs', 'latex_longtable', 'latex_raw', 'mediawiki', 'mixed_grid', "
+        "'mixed_outline', 'moinmoin', 'orgtbl', 'outline', 'pipe', 'plain', 'presto', "
+        "'pretty', 'psql', 'rounded_grid', 'rounded_outline', 'rst', 'simple', "
+        "'simple_grid', 'simple_outline', 'textile', 'tsv', 'unsafehtml', "
+        "'youtrack'.\n"
     )
 
+
+asciidoc_table = (
+    '[cols="5<,13<",options="header"]\n'
+    "|====\n"
+    "| day | temperature \n"
+    "| 1   | 87          \n"
+    "| 2   | 80          \n"
+    "| 3   | 79          \n"
+    "|====\n"
+)
 
 csv_table = """
 day,temperature
@@ -72,11 +85,11 @@ double_grid_table = """
 ╔═════╦═════════════╗
 ║ day ║ temperature ║
 ╠═════╬═════════════╣
-║   1 ║          87 ║
+║ 1   ║ 87          ║
 ╠═════╬═════════════╣
-║   2 ║          80 ║
+║ 2   ║ 80          ║
 ╠═════╬═════════════╣
-║   3 ║          79 ║
+║ 3   ║ 79          ║
 ╚═════╩═════════════╝
 """
 
@@ -84,9 +97,9 @@ double_outline_table = """
 ╔═════╦═════════════╗
 ║ day ║ temperature ║
 ╠═════╬═════════════╣
-║   1 ║          87 ║
-║   2 ║          80 ║
-║   3 ║          79 ║
+║ 1   ║ 87          ║
+║ 2   ║ 80          ║
+║ 3   ║ 79          ║
 ╚═════╩═════════════╝
 """
 
@@ -94,32 +107,64 @@ fancy_grid_table = """
 ╒═════╤═════════════╕
 │ day │ temperature │
 ╞═════╪═════════════╡
-│   1 │          87 │
+│ 1   │ 87          │
 ├─────┼─────────────┤
-│   2 │          80 │
+│ 2   │ 80          │
 ├─────┼─────────────┤
-│   3 │          79 │
+│ 3   │ 79          │
+╘═════╧═════════════╛
+"""
+
+fancy_outline_table = """
+╒═════╤═════════════╕
+│ day │ temperature │
+╞═════╪═════════════╡
+│ 1   │ 87          │
+│ 2   │ 80          │
+│ 3   │ 79          │
 ╘═════╧═════════════╛
 """
 
 github_table = """
 | day | temperature |
 |-----|-------------|
-|   1 |          87 |
-|   2 |          80 |
-|   3 |          79 |
+| 1   | 87          |
+| 2   | 80          |
+| 3   | 79          |
 """
 
 grid_table = """
 +-----+-------------+
 | day | temperature |
 +=====+=============+
-|   1 |          87 |
+| 1   | 87          |
 +-----+-------------+
-|   2 |          80 |
+| 2   | 80          |
 +-----+-------------+
-|   3 |          79 |
+| 3   | 79          |
 +-----+-------------+
+"""
+
+heavy_grid_table = """
+┏━━━━━┳━━━━━━━━━━━━━┓
+┃ day ┃ temperature ┃
+┣━━━━━╋━━━━━━━━━━━━━┫
+┃ 1   ┃ 87          ┃
+┣━━━━━╋━━━━━━━━━━━━━┫
+┃ 2   ┃ 80          ┃
+┣━━━━━╋━━━━━━━━━━━━━┫
+┃ 3   ┃ 79          ┃
+┗━━━━━┻━━━━━━━━━━━━━┛
+"""
+
+heavy_outline_table = """
+┏━━━━━┳━━━━━━━━━━━━━┓
+┃ day ┃ temperature ┃
+┣━━━━━╋━━━━━━━━━━━━━┫
+┃ 1   ┃ 87          ┃
+┃ 2   ┃ 80          ┃
+┃ 3   ┃ 79          ┃
+┗━━━━━┻━━━━━━━━━━━━━┛
 """
 
 html_table = """
@@ -128,18 +173,18 @@ html_table = """
 <tr><th>day</th><th>temperature</th></tr>
 </thead>
 <tbody>
-<tr><td>1</td><td>87</td></tr>
-<tr><td>2</td><td>80</td></tr>
-<tr><td>3</td><td>79</td></tr>
+<tr><td>1  </td><td>87         </td></tr>
+<tr><td>2  </td><td>80         </td></tr>
+<tr><td>3  </td><td>79         </td></tr>
 </tbody>
 </table>
 """
 
 jira_table = """
 || day || temperature ||
-| 1 | 87 |
-| 2 | 80 |
-| 3 | 79 |
+| 1   | 87          |
+| 2   | 80          |
+| 3   | 79          |
 """
 
 latex_table = """
@@ -147,9 +192,9 @@ latex_table = """
 \\hline
  day & temperature \\\\
 \\hline
- 1 & 87 \\\\
- 2 & 80 \\\\
- 3 & 79 \\\\
+ 1   & 87          \\\\
+ 2   & 80          \\\\
+ 3   & 79          \\\\
 \\hline
 \\end{tabular}
 """
@@ -159,10 +204,35 @@ latex_booktabs_table = """
 \\toprule
  day & temperature \\\\
 \\midrule
- 1 & 87 \\\\
- 2 & 80 \\\\
- 3 & 79 \\\\
+ 1   & 87          \\\\
+ 2   & 80          \\\\
+ 3   & 79          \\\\
 \\bottomrule
+\\end{tabular}
+"""
+
+latex_longtable_table = """
+\\begin{longtable}{ll}
+\\hline
+ day & temperature \\\\
+\\hline
+\\endhead
+ 1   & 87          \\\\
+ 2   & 80          \\\\
+ 3   & 79          \\\\
+\\hline
+\\end{longtable}
+"""
+
+latex_raw_table = """
+\\begin{tabular}{ll}
+\\hline
+ day & temperature \\\\
+\\hline
+ 1   & 87          \\\\
+ 2   & 80          \\\\
+ 3   & 79          \\\\
+\\hline
 \\end{tabular}
 """
 
@@ -172,67 +242,101 @@ mediawiki_table = """
 |-
 ! day !! temperature
 |-
-| 1 || 87
+| 1   || 87
 |-
-| 2 || 80
+| 2   || 80
 |-
-| 3 || 79
+| 3   || 79
 |}
 """
 
-minimal_table = """
-1  87
-2  80
-3  79
+mixed_grid_table = """
+┍━━━━━┯━━━━━━━━━━━━━┑
+│ day │ temperature │
+┝━━━━━┿━━━━━━━━━━━━━┥
+│ 1   │ 87          │
+├─────┼─────────────┤
+│ 2   │ 80          │
+├─────┼─────────────┤
+│ 3   │ 79          │
+┕━━━━━┷━━━━━━━━━━━━━┙
+"""
+
+mixed_outline_table = """
+┍━━━━━┯━━━━━━━━━━━━━┑
+│ day │ temperature │
+┝━━━━━┿━━━━━━━━━━━━━┥
+│ 1   │ 87          │
+│ 2   │ 80          │
+│ 3   │ 79          │
+┕━━━━━┷━━━━━━━━━━━━━┙
 """
 
 moinmoin_table = """
 || ''' day ''' || ''' temperature ''' ||
-||  1  ||  87  ||
-||  2  ||  80  ||
-||  3  ||  79  ||
+||  1    ||  87           ||
+||  2    ||  80           ||
+||  3    ||  79           ||
 """
 
 orgtbl_table = """
 | day | temperature |
 |-----+-------------|
-|   1 |          87 |
-|   2 |          80 |
-|   3 |          79 |
+| 1   | 87          |
+| 2   | 80          |
+| 3   | 79          |
 """
 
 outline_table = """
 +-----+-------------+
 | day | temperature |
 +=====+=============+
-|   1 |          87 |
-|   2 |          80 |
-|   3 |          79 |
+| 1   | 87          |
+| 2   | 80          |
+| 3   | 79          |
 +-----+-------------+
 """
 
 pipe_table = """
 | day | temperature |
-|----:|------------:|
-|   1 |          87 |
-|   2 |          80 |
-|   3 |          79 |
+|:----|:------------|
+| 1   | 87          |
+| 2   | 80          |
+| 3   | 79          |
 """
 
 plain_table = """
 day  temperature
-  1           87
-  2           80
-  3           79
+1    87
+2    80
+3    79
+"""
+
+presto_table = """
+ day | temperature
+-----+-------------
+ 1   | 87
+ 2   | 80
+ 3   | 79
+"""
+
+pretty_table = """
++-----+-------------+
+| day | temperature |
++-----+-------------+
+|  1  |     87      |
+|  2  |     80      |
+|  3  |     79      |
++-----+-------------+
 """
 
 psql_table = """
 +-----+-------------+
 | day | temperature |
 |-----+-------------|
-|   1 |          87 |
-|   2 |          80 |
-|   3 |          79 |
+| 1   | 87          |
+| 2   | 80          |
+| 3   | 79          |
 +-----+-------------+
 """
 
@@ -240,11 +344,11 @@ rounded_grid_table = """
 ╭─────┬─────────────╮
 │ day │ temperature │
 ├─────┼─────────────┤
-│   1 │          87 │
+│ 1   │ 87          │
 ├─────┼─────────────┤
-│   2 │          80 │
+│ 2   │ 80          │
 ├─────┼─────────────┤
-│   3 │          79 │
+│ 3   │ 79          │
 ╰─────┴─────────────╯
 """
 
@@ -252,9 +356,9 @@ rounded_outline_table = """
 ╭─────┬─────────────╮
 │ day │ temperature │
 ├─────┼─────────────┤
-│   1 │          87 │
-│   2 │          80 │
-│   3 │          79 │
+│ 1   │ 87          │
+│ 2   │ 80          │
+│ 3   │ 79          │
 ╰─────┴─────────────╯
 """
 
@@ -262,54 +366,74 @@ rst_table = """
 ===  ===========
 day  temperature
 ===  ===========
-  1           87
-  2           80
-  3           79
+1    87
+2    80
+3    79
 ===  ===========
+"""
+
+simple_table = """
+day  temperature
+---  -----------
+1    87
+2    80
+3    79
 """
 
 simple_grid_table = """
 ┌─────┬─────────────┐
 │ day │ temperature │
 ├─────┼─────────────┤
-│   1 │          87 │
+│ 1   │ 87          │
 ├─────┼─────────────┤
-│   2 │          80 │
+│ 2   │ 80          │
 ├─────┼─────────────┤
-│   3 │          79 │
+│ 3   │ 79          │
 └─────┴─────────────┘
-"""
-
-simple_table = """
-day  temperature
----  -----------
-  1           87
-  2           80
-  3           79
 """
 
 simple_outline_table = """
 ┌─────┬─────────────┐
 │ day │ temperature │
 ├─────┼─────────────┤
-│   1 │          87 │
-│   2 │          80 │
-│   3 │          79 │
+│ 1   │ 87          │
+│ 2   │ 80          │
+│ 3   │ 79          │
 └─────┴─────────────┘
 """
 
 textile_table = """
 |_.  day |_. temperature |
-| 1  | 87 |
-| 2  | 80 |
-| 3  | 79 |
+|<. 1    |<. 87          |
+|<. 2    |<. 80          |
+|<. 3    |<. 79          |
 """
 
 tsv_table = """
-day	temperature
-1	87
-2	80
-3	79
+day\ttemperature
+1  \t87
+2  \t80
+3  \t79
+"""
+
+unsafehtml_table = """
+<table>
+<thead>
+<tr><th>day</th><th>temperature</th></tr>
+</thead>
+<tbody>
+<tr><td>1  </td><td>87         </td></tr>
+<tr><td>2  </td><td>80         </td></tr>
+<tr><td>3  </td><td>79         </td></tr>
+</tbody>
+</table>
+"""
+
+youtrack_table = """
+||  day  ||  temperature  ||
+|  1    |  87           |
+|  2    |  80           |
+|  3    |  79           |
 """
 
 vertical_table = """
@@ -326,46 +450,53 @@ temperature | 79
 
 
 expected_renderings = {
-    "csv": csv_table,
-    "csv-tab": csv_tab_table,
+    "asciidoc": asciidoc_table,
+    # "csv": csv_table,
+    # "csv-tab": csv_tab_table,
     "double_grid": double_grid_table,
     "double_outline": double_outline_table,
     "fancy_grid": fancy_grid_table,
+    "fancy_outline": fancy_outline_table,
     "github": github_table,
     "grid": grid_table,
+    "heavy_grid": heavy_grid_table,
+    "heavy_outline": heavy_outline_table,
     "html": html_table,
     "jira": jira_table,
     "latex": latex_table,
     "latex_booktabs": latex_booktabs_table,
+    "latex_longtable": latex_longtable_table,
+    "latex_raw": latex_raw_table,
     "mediawiki": mediawiki_table,
-    "minimal": minimal_table,
+    "mixed_grid": mixed_grid_table,
+    "mixed_outline": mixed_outline_table,
     "moinmoin": moinmoin_table,
     "orgtbl": orgtbl_table,
     "outline": outline_table,
     "pipe": pipe_table,
     "plain": plain_table,
+    "presto": presto_table,
+    "pretty": pretty_table,
     "psql": psql_table,
     "rounded_grid": rounded_grid_table,
     "rounded_outline": rounded_outline_table,
     "rst": rst_table,
-    "simple_grid": simple_grid_table,
     "simple": simple_table,
+    "simple_grid": simple_grid_table,
     "simple_outline": simple_outline_table,
     "textile": textile_table,
     "tsv": tsv_table,
-    "vertical": vertical_table,
+    "unsafehtml": unsafehtml_table,
+    "youtrack": youtrack_table,
+    # "vertical": vertical_table,
 }
 
 
 def test_recognized_modes():
     """Check all rendering modes proposed by the table module are accounted for and
     there is no duplicates."""
-    assert len(TabularOutputFormatter._output_formats) == len(
-        set(expected_renderings.keys())
-    )
-    assert set(TabularOutputFormatter._output_formats) == set(
-        expected_renderings.keys()
-    )
+    assert len(_table_formats) == len(set(expected_renderings.keys()))
+    assert set(_table_formats) == set(expected_renderings.keys())
 
 
 @fixture
@@ -375,22 +506,11 @@ def table_cli(cmd_decorator):
     @table_format_option()
     @pass_context
     def tabulate_cli2(ctx):
-        echo(f"ctx.table_formatter.format_name = {ctx.table_formatter.format_name}")
         data = ((1, 87), (2, 80), (3, 79))
         headers = ("day", "temperature")
         ctx.print_table(data, headers)
 
     return tabulate_cli2
-
-
-def test_default_rendering(invoke, table_cli):
-    """Check default rendering is ``rounded_outline``."""
-    result = invoke(table_cli)
-    assert result.exit_code == 0
-    assert result.output == (
-        "ctx.table_formatter.format_name = rounded_outline" + rounded_outline_table
-    )
-    assert not result.stderr
 
 
 @pytest.mark.parametrize(
@@ -400,7 +520,6 @@ def test_default_rendering(invoke, table_cli):
 def test_all_table_rendering(invoke, table_cli, format_name, expected):
     result = invoke(table_cli, "--table-format", format_name)
     assert result.exit_code == 0
-    assert result.stdout == (
-        f"ctx.table_formatter.format_name = {format_name}\n{expected.strip()}\n"
-    )
+    expected = expected.strip("\n")
+    assert result.stdout == f"{expected}\n"
     assert not result.stderr

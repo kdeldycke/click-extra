@@ -75,7 +75,6 @@ python = "^3.7"
 boltons = "^21.0.0"
 click = "^8.1.1"
 click-log = "^0.4.0"
-cli-helpers = "^2.2.0"
 cloup = "^1.0.0"
 commentjson = "^0.9.0"
 mergedeep = "^1.3.4"
@@ -85,7 +84,7 @@ pygments-ansi-color = ">=0.0.6,<0.1.1"
 pyyaml = "^6.0.0"
 regex = "^2022.3.15"
 requests = "^2.27.1"
-tabulate = { extras = ["widechars"], version = "^0.8.9" }
+tabulate = { extras = ["widechars"], git = "https://github.com/astanin/python-tabulate.git", rev = "fd0a34ccf34f96820005b24c51d91d9887ec4047" }
 tomli = { version = "^2.0.1", python = "< 3.11" }
 wcmatch = "^8.4"
 xmltodict = ">=0.12,<0.14"
