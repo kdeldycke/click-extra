@@ -18,11 +18,11 @@
 from __future__ import annotations
 
 import pytest
+import tabulate
 
 # We use vanilla click primitives here to demonstrate the full-compatibility.
 from click import echo, pass_context
 from pytest_cases import fixture, parametrize
-from tabulate import _table_formats, tabulate
 
 from ..tabulate import table_format_option
 from .conftest import command_decorators
@@ -495,8 +495,8 @@ expected_renderings = {
 def test_recognized_modes():
     """Check all rendering modes proposed by the table module are accounted for and
     there is no duplicates."""
-    assert len(_table_formats) == len(set(expected_renderings.keys()))
-    assert set(_table_formats) == set(expected_renderings.keys())
+    assert len(tabulate._table_formats) == len(set(expected_renderings.keys()))
+    assert set(tabulate._table_formats) == set(expected_renderings.keys())
 
 
 @fixture
