@@ -779,24 +779,17 @@ sphinx = ">=2.0"
 
 [[package]]
 name = "tabulate"
-version = "0.8.11.dev71+gfd0a34c.d20221006"
+version = "0.9.0"
 description = "Pretty-print tabular data"
 category = "main"
 optional = false
 python-versions = ">=3.7"
-develop = false
 
 [package.dependencies]
 wcwidth = {version = "*", optional = true, markers = "extra == \"widechars\""}
 
 [package.extras]
 widechars = ["wcwidth"]
-
-[package.source]
-type = "git"
-url = "https://github.com/astanin/python-tabulate.git"
-reference = "fd0a34ccf34f96820005b24c51d91d9887ec4047"
-resolved_reference = "fd0a34ccf34f96820005b24c51d91d9887ec4047"
 
 [[package]]
 name = "tomli"
@@ -852,7 +845,7 @@ python-versions = "*"
 
 [[package]]
 name = "types-requests"
-version = "2.28.11.1"
+version = "2.28.11.2"
 description = "Typing stubs for requests"
 category = "dev"
 optional = false
@@ -895,7 +888,7 @@ python-versions = "*"
 
 [[package]]
 name = "typing-extensions"
-version = "4.3.0"
+version = "4.4.0"
 description = "Backported and Experimental Type Hints for Python 3.7+"
 category = "main"
 optional = false
@@ -970,7 +963,7 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=6)", "pytest-black (>=
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "815f8649945f90e61442633f5918da7f1096be553543f974e09b6ec939130412"
+content-hash = "bccac0b2fdf16298383728ad3736135c56d4bc19d16363efe22ae16363f2a71b"
 
 [metadata.files]
 alabaster = [
@@ -1459,7 +1452,10 @@ sphinxext-opengraph = [
     {file = "sphinxext-opengraph-0.6.3.tar.gz", hash = "sha256:cd89e13cc7a44739f81b64ee57c1c20ef0c05dda5d1d8201d31ec2f34e4c29db"},
     {file = "sphinxext_opengraph-0.6.3-py3-none-any.whl", hash = "sha256:bf76017c105856b07edea6caf4942b6ae9bb168585dccfd6dbdb6e4161f6b03a"},
 ]
-tabulate = []
+tabulate = [
+    {file = "tabulate-0.9.0-py3-none-any.whl", hash = "sha256:024ca478df22e9340661486f85298cff5f6dcdba14f3813e8830015b9ed1948f"},
+    {file = "tabulate-0.9.0.tar.gz", hash = "sha256:0095b12bf5966de529c0feb1fa08671671b3368eec77d7ef7ab114be2c068b3c"},
+]
 tomli = [
     {file = "tomli-2.0.1-py3-none-any.whl", hash = "sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc"},
     {file = "tomli-2.0.1.tar.gz", hash = "sha256:de526c12914f0c550d15924c62d72abc48d6fe7364aa87328337a31007fe8a4f"},
@@ -1507,8 +1503,8 @@ types-regex = [
     {file = "types_regex-2022.9.13.0-py3-none-any.whl", hash = "sha256:2ee7deaece82cfe49bc5506ef184d29052aea3542d13b7047caf9b88bcf632f3"},
 ]
 types-requests = [
-    {file = "types-requests-2.28.11.1.tar.gz", hash = "sha256:02b1806c5b9904edcd87fa29236164aea0e6cdc4d93ea020cd615ef65cb43d65"},
-    {file = "types_requests-2.28.11.1-py3-none-any.whl", hash = "sha256:1ff2c1301f6fe58b5d1c66cdf631ca19734cb3b1a4bbadc878d75557d183291a"},
+    {file = "types-requests-2.28.11.2.tar.gz", hash = "sha256:fdcd7bd148139fb8eef72cf4a41ac7273872cad9e6ada14b11ff5dfdeee60ed3"},
+    {file = "types_requests-2.28.11.2-py3-none-any.whl", hash = "sha256:14941f8023a80b16441b3b46caffcbfce5265fd14555844d6029697824b5a2ef"},
 ]
 types-setuptools = [
     {file = "types-setuptools-65.4.0.0.tar.gz", hash = "sha256:d9021d6a70690b34e7bd2947e7ab10167c646fbf062508cb56581be2e2a1615e"},
@@ -1527,8 +1523,8 @@ types-xmltodict = [
     {file = "types_xmltodict-0.13.0-py3-none-any.whl", hash = "sha256:770a6653995421d863d54f1ec00ab59df2835efa42e676f64e82783e66a3afaf"},
 ]
 typing-extensions = [
-    {file = "typing_extensions-4.3.0-py3-none-any.whl", hash = "sha256:25642c956049920a5aa49edcdd6ab1e06d7e5d467fc00e0506c44ac86fbfca02"},
-    {file = "typing_extensions-4.3.0.tar.gz", hash = "sha256:e6d2677a32f47fc7eb2795db1dd15c1f34eff616bcaf2cfb5e997f854fa1c4a6"},
+    {file = "typing_extensions-4.4.0-py3-none-any.whl", hash = "sha256:16fa4864408f655d35ec496218b85f79b3437c829e93320c7c9215ccfd92489e"},
+    {file = "typing_extensions-4.4.0.tar.gz", hash = "sha256:1511434bb92bf8dd198c12b1cc812e800d4181cfcb867674e0f8279cc93087aa"},
 ]
 urllib3 = [
     {file = "urllib3-1.26.12-py2.py3-none-any.whl", hash = "sha256:b930dd878d5a8afb066a637fbb35144fe7901e3b209d1cd4f524bd0e9deee997"},
