@@ -832,7 +832,7 @@ types-setuptools = "*"
 
 [[package]]
 name = "types-pyyaml"
-version = "6.0.12"
+version = "6.0.12.1"
 description = "Typing stubs for PyYAML"
 category = "dev"
 optional = false
@@ -1498,8 +1498,8 @@ types-pygments = [
     {file = "types_Pygments-2.13.1.1-py3-none-any.whl", hash = "sha256:9c789be357e21f611d215af3ae9dfcc24469dc4be96e96ea9b4e5e0c783afba5"},
 ]
 types-pyyaml = [
-    {file = "types-PyYAML-6.0.12.tar.gz", hash = "sha256:f6f350418125872f3f0409d96a62a5a5ceb45231af5cc07ee0034ec48a3c82fa"},
-    {file = "types_PyYAML-6.0.12-py3-none-any.whl", hash = "sha256:29228db9f82df4f1b7febee06bbfb601677882e98a3da98132e31c6874163e15"},
+    {file = "types-PyYAML-6.0.12.1.tar.gz", hash = "sha256:70ccaafcf3fb404d57bffc1529fdd86a13e8b4f2cf9fc3ee81a6408ce0ad59d2"},
+    {file = "types_PyYAML-6.0.12.1-py3-none-any.whl", hash = "sha256:aaf5e51444c13bd34104695a89ad9c48412599a4f615d65a60e649109714f608"},
 ]
 types-regex = [
     {file = "types-regex-2022.9.13.1.tar.gz", hash = "sha256:62da5a0c65c0ae2c2c19f40b756ddc4bf32599f1ceb10e0c303a2a5858e69dd9"},
