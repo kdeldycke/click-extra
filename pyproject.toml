@@ -47,7 +47,6 @@ classifiers = [
     'Operating System :: Microsoft :: Windows',
     'Operating System :: POSIX :: Linux',
     'Programming Language :: Python :: Implementation :: CPython',
-    'Programming Language :: Python :: Implementation :: PyPy',
     'Topic :: Documentation :: Sphinx',
     'Topic :: Software Development :: Libraries :: Python Modules',
     'Topic :: Software Development :: User Interfaces',

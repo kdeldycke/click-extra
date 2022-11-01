@@ -50,16 +50,12 @@ jobs:
               "3.9",
               "3.10",
               "3.11.0-alpha.7 - 3.11.0",
-              "pypy-3.7",
-              "pypy-3.8",
-              "pypy-3.9",
           }
           # Safety check to ensure there is no overlap between the 2 sets.
           assert not os_list.intersection(python_list)
 
           # List of unstable creiterions.
           unstable = [
-
               # tomllib has been added in Python 3.11.0-alpha.7,
               # but Python 3.11 has not been released yet, hence the range.
               # Python 3.11 runs ends with this error:
@@ -68,24 +64,6 @@ jobs:
               #               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
               #   TypeError: expected string or bytes-like object, got 'NoneType'
               {"3.11.0-alpha.7 - 3.11.0"},
-
-              # ChunkedEncodingError
-              # ("Connection broken: PermissionError(13, 'The process cannot access the file because it is being used
-              # by another process')", PermissionError(13, 'The process cannot access the file because it is being used
-              # by another process'))
-              # at C:\hostedtoolcache\windows\PyPy\3.X.XX\x86\lib\site-packages\requests\models.py:818 in generate
-              #      814│ if hasattr(self.raw, "stream"):
-              #      815│     try:
-              #      816│         yield from self.raw.stream(chunk_size, decode_content=True)
-              #      817│     except ProtocolError as e:
-              #   →  818│         raise ChunkedEncodingError(e)
-              #      819│     except DecodeError as e:
-              #      820│         raise ContentDecodingError(e)
-              #      821│     except ReadTimeoutError as e:
-              #      822│         raise ConnectionError(e)
-              {"pypy-3.9"},
-              {"pypy-3.8"},
-              {"pypy-3.7"},
           ]
 
           jobs = []
