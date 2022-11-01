@@ -55,16 +55,7 @@ jobs:
           assert not os_list.intersection(python_list)
 
           # List of unstable creiterions.
-          unstable = [
-              # tomllib has been added in Python 3.11.0-alpha.7,
-              # but Python 3.11 has not been released yet, hence the range.
-              # Python 3.11 runs ends with this error:
-              # File ".../python3.11/site-packages/pip/_vendor/packaging/utils.py", line 34, in canonicalize_name
-              #       value = _canonicalize_regex.sub("-", name).lower()
-              #               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-              #   TypeError: expected string or bytes-like object, got 'NoneType'
-              {"3.11.0-alpha.7 - 3.11.0"},
-          ]
+          unstable = []
 
           jobs = []
           for os_id, python_version in product(os_list, python_list):
