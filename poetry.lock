@@ -114,7 +114,7 @@ click = "*"
 
 [[package]]
 name = "cloup"
-version = "1.0.1"
+version = "1.0.2"
 description = "Adds features to Click: option groups, constraints, subcommand sections and help themes."
 category = "main"
 optional = false
@@ -1015,8 +1015,8 @@ click-log = [
     {file = "click_log-0.4.0-py2.py3-none-any.whl", hash = "sha256:a43e394b528d52112af599f2fc9e4b7cf3c15f94e53581f74fa6867e68c91756"},
 ]
 cloup = [
-    {file = "cloup-1.0.1-py2.py3-none-any.whl", hash = "sha256:1cd7764b9fd7976f209b4113383230f3db7156b43527967df1109f0b2f3e8b3a"},
-    {file = "cloup-1.0.1.tar.gz", hash = "sha256:8907e9cf6ae5ed8dcf2481b668ef82bb5921c7683af177cec21911a0436ab138"},
+    {file = "cloup-1.0.2-py2.py3-none-any.whl", hash = "sha256:0a3894c643ba35098803fdd69255d536d1243bb66183f92994f26924a10932d1"},
+    {file = "cloup-1.0.2.tar.gz", hash = "sha256:e1082b03450c201cf7cdd47115eb4509d3b7fe6bd5aebca1e0845f67fec4ae73"},
 ]
 colorama = [
     {file = "colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"},
