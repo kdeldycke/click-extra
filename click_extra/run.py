@@ -37,13 +37,9 @@ INDENT = " " * len(PROMPT)
 EnvVars = Mapping[str, Optional[str]]
 
 
-# XXX Recursive types are not supported by mypy yet: https://github.com/python/mypy/issues/731
-# _NestedArgs = Iterable[Union[str, Path, None, Iterable["_NestedArgs"]]]
+NestedArgs = Iterable[Union[str, Path, None, Iterable["NestedArgs"]]]
 Arg = Union[str, Path, None]
 Args = Iterable[Arg]
-NestedArgs = Iterable[
-    Union[Arg, Iterable[Union[Arg, Iterable[Union[Arg, Iterable[Union[Arg, Args]]]]]]]
-]
 
 
 def args_cleanup(*args: Arg | NestedArgs) -> tuple[str, ...]:

@@ -150,7 +150,7 @@ def invoke(runner, monkeypatch):
     https://github.com/pallets/click/issues/2110
     """
 
-    def _run(cli, *args, env: EnvVars = None, color=None):
+    def _run(cli, *args, env: EnvVars | None = None, color=None):
         # We allow for nested iterables and None values as args for
         # convenience. We just need to flatten and filters them out.
         args = args_cleanup(args)

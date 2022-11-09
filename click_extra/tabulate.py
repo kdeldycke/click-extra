@@ -36,7 +36,7 @@ tabulate.MIN_PADDING = 0
 
 output_formats = sorted(
     # Formats from tabulate.
-    list(tabulate._table_formats)
+    list(tabulate._table_formats)  # type: ignore[attr-defined]
     # Formats inherited from previous legacy cli-helpers dependency.
     + ["csv", "vertical"]
     # Formats derived from CSV dialects.
