@@ -6,9 +6,9 @@
 This version is not released yet and is under active development.
 ```
 
-- Replace table rendering utilities from `cli-helpers` by `tabulate`.
-- Deactivate number alignment and extra-spacing in table rendering by default.
+- Replace with `tabulate` all the table rendering utilities from `cli-helpers`.
 - Remove dependency on `cli-helpers`.
+- Deactivate number alignment and extra-spacing in table rendering by default.
 - Add new table rendering formats: `asciidoc`, `fancy_outline`, `heavy_grid`, `heavy_outline`, `latex_longtable`, `latex_raw`, `mixed_grid`, `mixed_outline`, `presto`, `pretty`, `unsafehtml` and `youtrack`.
 - Remove `minimal` table rendering formats, which was an alias of `plain`.
 - XXX Temporary remove `csv`, `csv-tab` and `vertical` table rendering formats.
