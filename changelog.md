@@ -6,12 +6,15 @@
 This version is not released yet and is under active development.
 ```
 
-- Replace with `tabulate` all the table rendering utilities from `cli-helpers`.
+- Use `tabulate` dependency instead of `cli-helpers` for all the table rendering utilities.
 - Remove dependency on `cli-helpers`.
-- Deactivate number alignment and extra-spacing in table rendering by default.
+- Re-implement locally the `vertical` table rendering format from `cli-helpers`.
 - Add new table rendering formats: `asciidoc`, `fancy_outline`, `heavy_grid`, `heavy_outline`, `latex_longtable`, `latex_raw`, `mixed_grid`, `mixed_outline`, `presto`, `pretty`, `unsafehtml` and `youtrack`.
 - Remove `minimal` table rendering formats, which was an alias of `plain`.
-- XXX Temporary remove `csv`, `csv-tab` and `vertical` table rendering formats.
+- Add new `csv-excel`, `csv-excel-tab` and `csv-unix` formats based on Python defaults dialects.
+- Remove `csv-tab` rendering format.
+- Make `csv` format an alias of `csv-excel`.
+- Deactivate number alignment and extra-spacing in table rendering by default.
 - Remove tests on Pypy. Nobody asked for it and I need to speed up tests.
 
 ## {gh}`3.2.5 (2022-09-30) <compare/v3.2.4...v3.2.5>`

@@ -24,7 +24,7 @@ import tabulate
 from click import echo, pass_context
 from pytest_cases import fixture, parametrize
 
-from ..tabulate import table_format_option
+from ..tabulate import output_formats, table_format_option
 from .conftest import command_decorators
 
 
@@ -47,13 +47,13 @@ def test_unrecognized_format(invoke, cmd_decorator, cmd_type):
         f"Usage: tabulate-cli1 [OPTIONS]{group_help}\n"
         f"{extra_suggest}\n"
         "Error: Invalid value for '-t' / '--table-format': 'random' is not one of "
-        "'asciidoc', 'double_grid', 'double_outline', 'fancy_grid', 'fancy_outline', "
-        "'github', 'grid', 'heavy_grid', 'heavy_outline', 'html', 'jira', 'latex', "
-        "'latex_booktabs', 'latex_longtable', 'latex_raw', 'mediawiki', 'mixed_grid', "
-        "'mixed_outline', 'moinmoin', 'orgtbl', 'outline', 'pipe', 'plain', 'presto', "
-        "'pretty', 'psql', 'rounded_grid', 'rounded_outline', 'rst', 'simple', "
-        "'simple_grid', 'simple_outline', 'textile', 'tsv', 'unsafehtml', "
-        "'youtrack'.\n"
+        "'asciidoc', 'csv', 'csv-excel', 'csv-excel-tab', 'csv-unix', 'double_grid', "
+        "'double_outline', 'fancy_grid', 'fancy_outline', 'github', 'grid', "
+        "'heavy_grid', 'heavy_outline', 'html', 'jira', 'latex', 'latex_booktabs', "
+        "'latex_longtable', 'latex_raw', 'mediawiki', 'mixed_grid', 'mixed_outline', "
+        "'moinmoin', 'orgtbl', 'outline', 'pipe', 'plain', 'presto', 'pretty', "
+        "'psql', 'rounded_grid', 'rounded_outline', 'rst', 'simple', 'simple_grid', "
+        "'simple_outline', 'textile', 'tsv', 'unsafehtml', 'vertical', 'youtrack'.\n"
     )
 
 
@@ -74,11 +74,25 @@ day,temperature
 3,79
 """
 
-csv_tab_table = """
-day	temperature
-1	87
-2	80
-3	79
+csv_excel_table = """
+day,temperature
+1,87
+2,80
+3,79
+"""
+
+csv_excel_tab_table = """
+day\ttemperature
+1\t87
+2\t80
+3\t79
+"""
+
+csv_unix_table = """
+"day","temperature"
+"1","87"
+"2","80"
+"3","79"
 """
 
 double_grid_table = """
@@ -451,8 +465,10 @@ temperature | 79
 
 expected_renderings = {
     "asciidoc": asciidoc_table,
-    # "csv": csv_table,
-    # "csv-tab": csv_tab_table,
+    "csv": csv_table,
+    "csv-excel": csv_excel_table,
+    "csv-excel-tab": csv_excel_tab_table,
+    "csv-unix": csv_unix_table,
     "double_grid": double_grid_table,
     "double_outline": double_outline_table,
     "fancy_grid": fancy_grid_table,
@@ -488,15 +504,18 @@ expected_renderings = {
     "tsv": tsv_table,
     "unsafehtml": unsafehtml_table,
     "youtrack": youtrack_table,
-    # "vertical": vertical_table,
+    "vertical": vertical_table,
 }
 
 
 def test_recognized_modes():
     """Check all rendering modes proposed by the table module are accounted for and
     there is no duplicates."""
-    assert len(tabulate._table_formats) == len(set(expected_renderings.keys()))
-    assert set(tabulate._table_formats) == set(expected_renderings.keys())
+    assert set(tabulate._table_formats).issubset(expected_renderings.keys())
+    assert set(tabulate._table_formats).issubset(output_formats)
+
+    assert len(output_formats) == len(expected_renderings.keys())
+    assert set(output_formats) == set(expected_renderings.keys())
 
 
 @fixture
