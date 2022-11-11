@@ -99,10 +99,11 @@ class TableFormatOption(ExtraOption):
     the rendering style of a table."""
 
     def init_formatter(self, ctx, param, value):
-        """Save table format ID in the context, and attach ``print_table()`` method to it.
+        """Save table format ID in the context, and attach ``print_table()`` method to
+        it.
 
-        ``print_table(tabular_data, headers)`` is a ready-to-use method that takes a 2-dimentional
-        ``tabular_data`` iterable of iterables and a list of headers.
+        ``print_table(tabular_data, headers)`` is a ready-to-use method that takes a
+        2-dimentional ``tabular_data`` iterable of iterables and a list of headers.
         """
         ctx.table_format = value
 
