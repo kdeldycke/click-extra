@@ -72,10 +72,12 @@ To undestrand how we ended up with the result above, go [read the tutorial](http
 
 Check these projects to get real-life examples of `click-extra` usage:
 
-- [Mail Deduplicate](https://github.com/kdeldycke/mail-deduplicate#readme) - A
-  CLI to deduplicate similar emails.
 - [Meta Package Manager](https://github.com/kdeldycke/meta-package-manager#readme)
   \- A unifying CLI for multiple package managers.
+- [Mail Deduplicate](https://github.com/kdeldycke/mail-deduplicate#readme) - A
+  CLI to deduplicate similar emails.
+- [badger-proxy](https://github.com/hugolundin/badger#readme) - An mDNS-based reverse
+  proxy for naming services on a local network.
 
 ## Development
 
