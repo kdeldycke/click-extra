@@ -23,6 +23,7 @@ import csv
 from functools import partial
 from gettext import gettext as _
 from io import StringIO
+from typing import Iterable
 
 import tabulate
 from click import Choice, echo
@@ -34,7 +35,7 @@ tabulate.MIN_PADDING = 0
 """Neutralize spurious double-spacing in table rendering."""
 
 
-output_formats = sorted(
+output_formats: Iterable[str] = sorted(
     # Formats from tabulate.
     list(tabulate._table_formats)  # type: ignore[attr-defined]
     # Formats inherited from previous legacy cli-helpers dependency.
