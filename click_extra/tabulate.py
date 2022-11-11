@@ -99,8 +99,13 @@ class TableFormatOption(ExtraOption):
     the rendering style of a table."""
 
     def init_formatter(self, ctx, param, value):
-        """Attach a ready-to-use ``print_table(tabular_data, headers)`` method to the
-        context."""
+        """Save table format ID in the context, and attach ``print_table()`` method to it.
+
+        ``print_table(tabular_data, headers)`` is a ready-to-use method that takes a 2-dimentional
+        ``tabular_data`` iterable of iterables and a list of headers.
+        """
+        ctx.table_format = value
+
         render_func = None
         if value.startswith("csv"):
             render_func = partial(render_csv, dialect=get_csv_dialect(value))

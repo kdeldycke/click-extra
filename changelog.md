@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Keep a copy of the table format ID in the context when set.
+
 ## {gh}`3.3.0 (2022-11-09) <compare/v3.2.5...v3.3.0>`
 
 - Use `tabulate` dependency instead of `cli-helpers` for all the table rendering utilities.
