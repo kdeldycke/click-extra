@@ -62,7 +62,8 @@ def render_csv(tabular_data, headers=(), **kwargs):
         writer = csv.writer(output, **kwargs)
         writer.writerow(headers)
         writer.writerows(tabular_data)
-        # Use print instead of echo to conserve CSV dialect's line termination, avoid extra line returns and ANSI coloring.
+        # Use print instead of echo to conserve CSV dialect's line termination,
+        # avoid extra line returns and ANSI coloring.
         print(output.getvalue(), end="")
 
 
