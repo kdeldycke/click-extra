@@ -1,10 +1,6 @@
 # Changelog
 
-## {gh}`3.3.1 (unreleased) <compare/v3.3.0...main>`
-
-```{important}
-This version is not released yet and is under active development.
-```
+## {gh}`3.3.1 (2022-11-11) <compare/v3.3.0...v3.3.1>`
 
 - Keep a copy of the table format ID in the context when set.
 
