@@ -69,18 +69,13 @@ asciidoc_table = (
 )
 
 csv_table = """\
-day,temperature
-1,87
-2,80
-3,79
-"""
-
-csv_excel_table = """\
 day,temperature\r
 1,87\r
 2,80\r
 3,79\r
 """
+
+csv_excel_table = csv_table
 
 csv_excel_tab_table = """\
 day\ttemperature\r
