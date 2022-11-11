@@ -24,6 +24,7 @@ import tabulate
 from click import echo, pass_context
 from pytest_cases import fixture, parametrize
 
+from ..platform import is_windows
 from ..tabulate import output_formats, table_format_option
 from .conftest import command_decorators
 
@@ -67,35 +68,35 @@ asciidoc_table = (
     "|====\n"
 )
 
-csv_table = """
+csv_table = """\
 day,temperature
 1,87
 2,80
 3,79
 """
 
-csv_excel_table = """
-day,temperature
-1,87
-2,80
-3,79
+csv_excel_table = """\
+day,temperature\r
+1,87\r
+2,80\r
+3,79\r
 """
 
-csv_excel_tab_table = """
-day\ttemperature
-1\t87
-2\t80
-3\t79
+csv_excel_tab_table = """\
+day\ttemperature\r
+1\t87\r
+2\t80\r
+3\t79\r
 """
 
-csv_unix_table = """
+csv_unix_table = """\
 "day","temperature"
 "1","87"
 "2","80"
 "3","79"
 """
 
-double_grid_table = """
+double_grid_table = """\
 ╔═════╦═════════════╗
 ║ day ║ temperature ║
 ╠═════╬═════════════╣
@@ -107,7 +108,7 @@ double_grid_table = """
 ╚═════╩═════════════╝
 """
 
-double_outline_table = """
+double_outline_table = """\
 ╔═════╦═════════════╗
 ║ day ║ temperature ║
 ╠═════╬═════════════╣
@@ -117,7 +118,7 @@ double_outline_table = """
 ╚═════╩═════════════╝
 """
 
-fancy_grid_table = """
+fancy_grid_table = """\
 ╒═════╤═════════════╕
 │ day │ temperature │
 ╞═════╪═════════════╡
@@ -129,7 +130,7 @@ fancy_grid_table = """
 ╘═════╧═════════════╛
 """
 
-fancy_outline_table = """
+fancy_outline_table = """\
 ╒═════╤═════════════╕
 │ day │ temperature │
 ╞═════╪═════════════╡
@@ -139,7 +140,7 @@ fancy_outline_table = """
 ╘═════╧═════════════╛
 """
 
-github_table = """
+github_table = """\
 | day | temperature |
 |-----|-------------|
 | 1   | 87          |
@@ -147,7 +148,7 @@ github_table = """
 | 3   | 79          |
 """
 
-grid_table = """
+grid_table = """\
 +-----+-------------+
 | day | temperature |
 +=====+=============+
@@ -159,7 +160,7 @@ grid_table = """
 +-----+-------------+
 """
 
-heavy_grid_table = """
+heavy_grid_table = """\
 ┏━━━━━┳━━━━━━━━━━━━━┓
 ┃ day ┃ temperature ┃
 ┣━━━━━╋━━━━━━━━━━━━━┫
@@ -171,7 +172,7 @@ heavy_grid_table = """
 ┗━━━━━┻━━━━━━━━━━━━━┛
 """
 
-heavy_outline_table = """
+heavy_outline_table = """\
 ┏━━━━━┳━━━━━━━━━━━━━┓
 ┃ day ┃ temperature ┃
 ┣━━━━━╋━━━━━━━━━━━━━┫
@@ -181,7 +182,7 @@ heavy_outline_table = """
 ┗━━━━━┻━━━━━━━━━━━━━┛
 """
 
-html_table = """
+html_table = """\
 <table>
 <thead>
 <tr><th>day</th><th>temperature</th></tr>
@@ -194,14 +195,14 @@ html_table = """
 </table>
 """
 
-jira_table = """
+jira_table = """\
 || day || temperature ||
 | 1   | 87          |
 | 2   | 80          |
 | 3   | 79          |
 """
 
-latex_table = """
+latex_table = """\
 \\begin{tabular}{ll}
 \\hline
  day & temperature \\\\
@@ -213,7 +214,7 @@ latex_table = """
 \\end{tabular}
 """
 
-latex_booktabs_table = """
+latex_booktabs_table = """\
 \\begin{tabular}{ll}
 \\toprule
  day & temperature \\\\
@@ -225,7 +226,7 @@ latex_booktabs_table = """
 \\end{tabular}
 """
 
-latex_longtable_table = """
+latex_longtable_table = """\
 \\begin{longtable}{ll}
 \\hline
  day & temperature \\\\
@@ -238,7 +239,7 @@ latex_longtable_table = """
 \\end{longtable}
 """
 
-latex_raw_table = """
+latex_raw_table = """\
 \\begin{tabular}{ll}
 \\hline
  day & temperature \\\\
@@ -250,7 +251,7 @@ latex_raw_table = """
 \\end{tabular}
 """
 
-mediawiki_table = """
+mediawiki_table = """\
 {| class="wikitable" style="text-align: left;"
 |+ <!-- caption -->
 |-
@@ -264,7 +265,7 @@ mediawiki_table = """
 |}
 """
 
-mixed_grid_table = """
+mixed_grid_table = """\
 ┍━━━━━┯━━━━━━━━━━━━━┑
 │ day │ temperature │
 ┝━━━━━┿━━━━━━━━━━━━━┥
@@ -276,7 +277,7 @@ mixed_grid_table = """
 ┕━━━━━┷━━━━━━━━━━━━━┙
 """
 
-mixed_outline_table = """
+mixed_outline_table = """\
 ┍━━━━━┯━━━━━━━━━━━━━┑
 │ day │ temperature │
 ┝━━━━━┿━━━━━━━━━━━━━┥
@@ -286,14 +287,14 @@ mixed_outline_table = """
 ┕━━━━━┷━━━━━━━━━━━━━┙
 """
 
-moinmoin_table = """
+moinmoin_table = """\
 || ''' day ''' || ''' temperature ''' ||
 ||  1    ||  87           ||
 ||  2    ||  80           ||
 ||  3    ||  79           ||
 """
 
-orgtbl_table = """
+orgtbl_table = """\
 | day | temperature |
 |-----+-------------|
 | 1   | 87          |
@@ -301,7 +302,7 @@ orgtbl_table = """
 | 3   | 79          |
 """
 
-outline_table = """
+outline_table = """\
 +-----+-------------+
 | day | temperature |
 +=====+=============+
@@ -311,7 +312,7 @@ outline_table = """
 +-----+-------------+
 """
 
-pipe_table = """
+pipe_table = """\
 | day | temperature |
 |:----|:------------|
 | 1   | 87          |
@@ -319,14 +320,14 @@ pipe_table = """
 | 3   | 79          |
 """
 
-plain_table = """
+plain_table = """\
 day  temperature
 1    87
 2    80
 3    79
 """
 
-presto_table = """
+presto_table = """\
  day | temperature
 -----+-------------
  1   | 87
@@ -334,7 +335,7 @@ presto_table = """
  3   | 79
 """
 
-pretty_table = """
+pretty_table = """\
 +-----+-------------+
 | day | temperature |
 +-----+-------------+
@@ -344,7 +345,7 @@ pretty_table = """
 +-----+-------------+
 """
 
-psql_table = """
+psql_table = """\
 +-----+-------------+
 | day | temperature |
 |-----+-------------|
@@ -354,7 +355,7 @@ psql_table = """
 +-----+-------------+
 """
 
-rounded_grid_table = """
+rounded_grid_table = """\
 ╭─────┬─────────────╮
 │ day │ temperature │
 ├─────┼─────────────┤
@@ -366,7 +367,7 @@ rounded_grid_table = """
 ╰─────┴─────────────╯
 """
 
-rounded_outline_table = """
+rounded_outline_table = """\
 ╭─────┬─────────────╮
 │ day │ temperature │
 ├─────┼─────────────┤
@@ -376,7 +377,7 @@ rounded_outline_table = """
 ╰─────┴─────────────╯
 """
 
-rst_table = """
+rst_table = """\
 ===  ===========
 day  temperature
 ===  ===========
@@ -386,7 +387,7 @@ day  temperature
 ===  ===========
 """
 
-simple_table = """
+simple_table = """\
 day  temperature
 ---  -----------
 1    87
@@ -394,7 +395,7 @@ day  temperature
 3    79
 """
 
-simple_grid_table = """
+simple_grid_table = """\
 ┌─────┬─────────────┐
 │ day │ temperature │
 ├─────┼─────────────┤
@@ -406,7 +407,7 @@ simple_grid_table = """
 └─────┴─────────────┘
 """
 
-simple_outline_table = """
+simple_outline_table = """\
 ┌─────┬─────────────┐
 │ day │ temperature │
 ├─────┼─────────────┤
@@ -416,21 +417,21 @@ simple_outline_table = """
 └─────┴─────────────┘
 """
 
-textile_table = """
+textile_table = """\
 |_.  day |_. temperature |
 |<. 1    |<. 87          |
 |<. 2    |<. 80          |
 |<. 3    |<. 79          |
 """
 
-tsv_table = """
+tsv_table = """\
 day\ttemperature
 1  \t87
 2  \t80
 3  \t79
 """
 
-unsafehtml_table = """
+unsafehtml_table = """\
 <table>
 <thead>
 <tr><th>day</th><th>temperature</th></tr>
@@ -443,14 +444,14 @@ unsafehtml_table = """
 </table>
 """
 
-youtrack_table = """
+youtrack_table = """\
 ||  day  ||  temperature  ||
 |  1    |  87           |
 |  2    |  80           |
 |  3    |  79           |
 """
 
-vertical_table = """
+vertical_table = """\
 ***************************[ 1. row ]***************************
 day         | 1
 temperature | 87
@@ -539,6 +540,7 @@ def table_cli(cmd_decorator):
 def test_all_table_rendering(invoke, table_cli, format_name, expected):
     result = invoke(table_cli, "--table-format", format_name)
     assert result.exit_code == 0
-    expected = expected.strip("\n")
-    assert result.stdout == f"{expected}\n"
+    if not is_windows():
+        expected = expected.replace("\r\n", "\n")
+    assert result.stdout == expected
     assert not result.stderr
