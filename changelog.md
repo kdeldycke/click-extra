@@ -1,10 +1,6 @@
 # Changelog
 
-## {gh}`3.3.4 (unreleased) <compare/v3.3.3...main>`
-
-```{important}
-This version is not released yet and is under active development.
-```
+## {gh}`3.3.4 (2022-11-14) <compare/v3.3.3...v3.3.4>`
 
 - Fix some types.
 
