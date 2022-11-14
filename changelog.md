@@ -1,10 +1,6 @@
 # Changelog
 
-## {gh}`3.3.2 (unreleased) <compare/v3.3.1...main>`
-
-```{important}
-This version is not released yet and is under active development.
-```
+## {gh}`3.3.2 (2022-11-14) <compare/v3.3.1...v3.3.2>`
 
 - Remove use of deprecated `::set-output` directives and replace them by environment files.
 
