@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Remove use of deprecated `::set-output` directives and replace them by environment files.
+
 ## {gh}`3.3.1 (2022-11-11) <compare/v3.3.0...v3.3.1>`
 
 - Keep a copy of the table format ID in the context when set.
