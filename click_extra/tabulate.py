@@ -35,7 +35,7 @@ tabulate.MIN_PADDING = 0
 """Neutralize spurious double-spacing in table rendering."""
 
 
-output_formats: Iterable[str] = sorted(
+output_formats: list[str] = sorted(
     # Formats from tabulate.
     list(tabulate._table_formats)  # type: ignore[attr-defined]
     # Formats inherited from previous legacy cli-helpers dependency.

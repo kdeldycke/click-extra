@@ -37,9 +37,9 @@ INDENT = " " * len(PROMPT)
 EnvVars = Mapping[str, Optional[str]]
 
 
-NestedArgs = Iterable[Union[str, Path, None, Iterable["NestedArgs"]]]
 Arg = Union[str, Path, None]
 Args = Iterable[Arg]
+NestedArgs = Iterable[Union[Arg, Iterable["NestedArgs"]]]
 
 
 def args_cleanup(*args: Arg | NestedArgs) -> tuple[str, ...]:
