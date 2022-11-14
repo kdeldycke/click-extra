@@ -23,7 +23,6 @@ import csv
 from functools import partial
 from gettext import gettext as _
 from io import StringIO
-from typing import Iterable
 
 import tabulate
 from click import Choice, echo
