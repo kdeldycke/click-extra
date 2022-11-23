@@ -92,7 +92,7 @@ xmltodict = ">=0.12,<0.14"
 bump2version = "^1.0.1"
 coverage = { extras = ["toml"], version = "^6.4" }
 furo = "^2022.9.15"
-mypy = "^0.990"
+mypy = "^0.991"
 myst-parser = "^0.18.0"
 Pallets-Sphinx-Themes = "^2.0.2"
 pytest = "^7.2.0"
