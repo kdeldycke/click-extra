@@ -16,8 +16,8 @@
 A collection of helpers and utilities for
 [Click](https://click.palletsprojects.com), the Python CLI framework.
 
-It is a drop-in replacement with good defaults that saves you some boilerplate
-code. It also comes with
+It is a drop-in replacement with good defaults that saves lots of boilerplate code and frustration.
+It also comes with
 [workarounds and patches](https://kdeldycke.github.io/click-extra/issues.html) that have not
 reached upstream yet (or are unlikely to).
 
