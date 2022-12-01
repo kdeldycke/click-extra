@@ -15,16 +15,18 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-"""Helpers and utilities for Sphinx rendering of CLI based on click-extra."""
+"""Helpers and utilities for Sphinx rendering of CLI based on Click Extra."""
 
 from __future__ import annotations
 
 from unittest.mock import patch
 
 import click
+from docutils.statemachine import ViewList
 from sphinx.highlighting import PygmentsBridge
 
 from .pygments import AnsiHtmlFormatter
+from .tests.conftest import ExtraCliRunner
 
 click_compat_hack = patch.object(
     click._compat, "text_type", create=True, return_value=str
@@ -50,55 +52,52 @@ def setup_ansi_pygment_styles(app):
     PygmentsBridge.html_formatter = AnsiHtmlFormatter
 
 
+class PatchedViewList(ViewList):
+    """Replace the code block produced by ``.. click:run::`` directive with an ANSI
+    Shell Session (``.. code-block:: ansi-shell-session``).
+
+    Targets:
+        - ``.. sourcecode:: text`` `for Pallets-Sphinx-Themes <= 2.0.2 <https://github.com/pallets/pallets-sphinx-themes/blob/7b69241f1fde3cc3849f513a9dd83fa8a2f36603/src/pallets_sphinx_themes/themes/click/domain.py#L245>`_
+        - ``.. sourcecode:: shell-session`` `for Pallets-Sphinx-Themes > 2.0.2 <https://github.com/pallets/pallets-sphinx-themes/pull/62>`_
+    """
+
+    def append(self, *args, **kwargs):
+        default_run_blocks = (
+            ".. sourcecode:: text",
+            ".. sourcecode:: shell-session",
+        )
+        for run_block in default_run_blocks:
+            if run_block in args:
+                args = list(args)
+                index = args.index(run_block)
+                args[index] = ".. code-block:: ansi-shell-session"
+
+        return super().append(*args, **kwargs)
+
+
 def setup(app):
     """Register ``.. click:example::`` and ``.. click:run::`` directives, augmented with ANSI coloring."""
     setup_ansi_pygment_styles(app)
 
     with click_compat_hack:
+
         from pallets_sphinx_themes.themes.click import domain
 
-        ####################################
-        #  pallets_sphinx_themes Patch #1  #
-        ####################################
-        append_orig = domain.ViewList.append
-
-        def patched_append(*args, **kwargs):
-            """Replace the code block produced by ``.. click:run::`` directive with an ANSI
-            Shell Session (``.. code-block:: ansi-shell-session``).
-
-            Targets:
-            - [``.. sourcecode:: text`` for `Pallets-Sphinx-Themes <= 2.0.2`](https://github.com/pallets/pallets-sphinx-themes/blob/7b69241f1fde3cc3849f513a9dd83fa8a2f36603/src/pallets_sphinx_themes/themes/click/domain.py#L245)
-            - [``.. sourcecode:: shell-session`` for `Pallets-Sphinx-Themes > 2.0.2`](https://github.com/pallets/pallets-sphinx-themes/pull/62)
-            """
-            default_run_blocks = (
-                ".. sourcecode:: text",
-                ".. sourcecode:: shell-session",
-            )
-            for run_block in default_run_blocks:
-                if run_block in args:
-                    args = list(args)
-                    index = args.index(run_block)
-                    args[index] = ".. code-block:: ansi-shell-session"
-
-            return append_orig(*args, **kwargs)
-
-        domain.ViewList.append = patched_append
+        domain.ViewList = PatchedViewList
 
         ####################################
         #  pallets_sphinx_themes Patch #2  #
         ####################################
-
         # Replace the call to default ``CliRunner.invoke`` with a call to click_extra own version which is sensible to contextual color settings
         # and output unfiltered ANSI codes.
         # Fixes: <insert upstream bug report here>
-        from click_extra.tests.conftest import ExtraCliRunner
-
-        # Force color rendering in ``invoke`` calls.
-        ExtraCliRunner.force_color = True
 
         # Brutal, but effective.
         # Alternative patching methods: https://stackoverflow.com/a/38928265
         domain.ExampleRunner.__bases__ = (ExtraCliRunner,)
+
+        # Force color rendering in ``invoke`` calls.
+        domain.ExampleRunner.force_color = True
 
         # Register directives to Sphinx.
         domain.setup(app)
