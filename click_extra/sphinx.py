@@ -113,9 +113,8 @@ class PatchedViewList(ViewList):
 
 
 def setup(app):
-    """Register ``..
-
-    click:example::`` and ``.. click:run::`` directives, augmented with ANSI coloring.
+    """Register ``..click:example::`` and ``.. click:run::`` directives,
+    augmented with ANSI coloring.
     """
     setup_ansi_pygment_styles(app)
 
