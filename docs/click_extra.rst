@@ -81,6 +81,14 @@ click\_extra.run module
    :undoc-members:
    :show-inheritance:
 
+click\_extra.sphinx module
+--------------------------
+
+.. automodule:: click_extra.sphinx
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 click\_extra.tabulate module
 ----------------------------
 
