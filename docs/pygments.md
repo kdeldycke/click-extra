@@ -1,10 +1,14 @@
-# Pygments ANSI extensions
+# Pygments extensions
+
+Click Extra extends Pygments to allow for the rendering of ANSI codes in terminal outputs.
+
+## Setup
 
 As soon as [`click-extra` is installed](install.md), all its additionnal lexers, styles and filters will be automaticcaly registered to Pygments.
 
 ## Lexers
 
-Click-extra provides new lexers capable of parsing ANSI code in vrious shell-like sessions. I.e. command lines or code, including a prompt, interspersed with output.
+Click Extra adds new lexers capable of parsing ANSI code in various shell-like sessions. I.e. command lines or code, including a prompt, interspersed with output.
 
 | Original Lexer                                                                                             | Original IDs                                     | ANSI variants                                                   |
 | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | --------------------------------------------------------------- |
@@ -54,6 +58,10 @@ We can now see how the new lexers transforms a raw strings into ANSI tokens:
 >>> tokens = ansi_lexer.get_tokens(art)
 >>> tuple(tokens)
 ((Token.Color.Magenta, '║'), (Token.Text, ''), (Token.Color.Cyan, '▌'), (Token.Text, ''), (Token.Color.Red, '█'), (Token.Text, ''), (Token.Color.Green, '║'), (Token.Text, ''), (Token.Color.Yellow, ' '), (Token.Text, ''), (Token.Color.Blue, 'A'), (Token.Text, ''), (Token.Color.Magenta, 'N'), (Token.Text, ''), (Token.Color.Cyan, 'S'), (Token.Text, ''), (Token.Color.Red, 'I'), (Token.Text, ''), (Token.Color.Green, ' '), (Token.Text, ''), (Token.Color.Yellow, 'A'), (Token.Text, ''), (Token.Color.Blue, 'r'), (Token.Text, ''), (Token.Color.Magenta, 't'), (Token.Text, ''), (Token.Color.Cyan, ' '), (Token.Text, ''), (Token.Color.Red, '▌'), (Token.Text, ''), (Token.Color.Green, '│'), (Token.Text, ''), (Token.Color.Yellow, '║'), (Token.Text, ''), (Token.Color.Blue, '▌'), (Token.Text, '\n'))
+```
+
+```{seealso}
+These new lexers [can also be used in Sphinx with a bit of configuration](https://kdeldycke.github.io/click-extra/sphinx.md#ansi-shell-sessions).
 ```
 
 ## Filters

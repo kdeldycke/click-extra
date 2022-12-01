@@ -1,22 +1,97 @@
-# Sphinx
+# Sphinx extensions
+
+[Sphinx](https://www.sphinx-doc.org) is the best way to document your Python CLI. Click Extra provides several utilities to improve the quality of life of maintainers.
+
+## Setup
+
+Once [Click Extra is installed](install.md), you can enable its [extensions](https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-extensions) in your Sphinx's `conf.py`:
+
+```python
+extensions = [
+    "click_extra.sphinx",
+    ...
+]
+```
+
+## Click directives
+
+Click Extra implements two new directives to document your CLI:
+  - `.. click:example::`
+  - `.. click:run::`
+
+These directives allows you to display any Click-based Python code blocks in Sphinx (with `.. click:example::`), then render the results of their invokation (via `.. click:run::`).
+
+Thanks to these, you can directly demonstrate the usage of you CLI in your documentation, as well as the effects of its options and parameters. You'll no longer have to maintain screenshots of you CLIs. Or copy and paste their outputs to keep them in sync with the latest revision. Let Click Extra does that job for you!
+
+```{hint}
+These directives are [based on the official `Pallets-Sphinx-Themes`](https://github.com/pallets/pallets-sphinx-themes/blob/main/src/pallets_sphinx_themes/themes/click/domain.py) from Click's authors, but augmented with support for ANSI colouring. That way you can show off your user-friendly CLI in all its glory! 🌈
+```
+
+### Usage
+
+Here is how to define a simple Click-based CLI with the `.. click:example::` directive:
+
+```rst
+.. click:example::
+    from click_extra import echo, extra_command, option, style
+
+    @extra_command()
+    @option("--name", prompt="Your name", help="The person to greet.")
+    def hello_world(name):
+        """Simple program that greets NAME."""
+        echo(f"Hello, {style(name, fg='red')}!")
+```
+
+Thanks to the `.. click:run::` directive, we can invoke this CLI with its `--help` option:
+
+```rst
+.. click:run::
+    invoke(hello_world, args=["--help"])
+```
+
+Placed in your Sphinx documentation, the two blocks above renders to:
+
+```{eval-rst}
+.. click:example::
+    from click_extra import echo, extra_command, option, style
+
+    @extra_command()
+    @option("--name", prompt="Your name", help="The person to greet.")
+    def hello_world(name):
+        """Simple program that greets NAME."""
+        echo(f"Hello, {style(name, fg='red')}!")
+
+.. click:run::
+    invoke(hello_world, args=["--help"])
+
+This is perfect for documentation, as it shows both the source code of the CLI and its results.
+
+See for instance how the CLI code is properly rendered as a Python code block with syntax highlighting. And how the invokation of that CLI renders into a terminal session with ANSI coloring of output.
+
+You can then invoke that CLI again with its ``--name`` option:
+
+.. code-block:: rst
+
+    .. click:run::
+        invoke(hello_world, args=["--name", "Joe"])
+
+Which renders in Sphinx into a full execution trace in a terminal block:
+
+.. click:run::
+    invoke(hello_world, args=["--name", "Joe"])
+```
+
+```{tip}
+`.. click:example::` and `.. click:run::` directives works well with standard vanilla `click`-based CLIs.
+
+In the example above, we choose to import our CLI primitives from the `click-extra` module instead, to demonstrate the colouring of terminal session outputs, as `click-extra` provides [fancy colouring of help screens](colorize.md) by default.
+```
 
 ## ANSI shell sessions
 
-Sphinx automaticcaly picks up the new [ANSI-capable lexers](pygments.md#lexers). But you still need to configure it.
+Sphinx extensions from Click Extra automaticcaly integrates the [new ANSI-capable lexers for Pygments](https://kdeldycke.github.io/click-extra/pygments.html#lexers).
 
-To your [Sphinx's `conf.py` file](https://www.sphinx-doc.org/en/master/usage/configuration.html), add:
-
-```python
-from sphinx.highlighting import PygmentsBridge
-
-from click_extra.pygments import AnsiHtmlFormatter
-
-pygments_style = "ansi-click-extra-furo-style"
-
-PygmentsBridge.html_formatter = AnsiHtmlFormatter
-```
-
-Now you can render colored shell sessions with code blocks:
+This allows you to render colored shell sessions in code blocks by referring to the `ansi-` prefixed lexers:
 
 ``````{tab-set}
 
@@ -75,7 +150,7 @@ $ for i in {0..255}; do \
 `````
 ``````
 
-The snippet above will be rendered into:
+In Sphinx, the snippet above will be rendered into:
 
 ```ansi-shell-session
 $ # Print ANSI foreground colors.
@@ -100,8 +175,11 @@ $ for i in {0..255}; do \
 [38;5;250m250 [38;5;251m251 [38;5;252m252 [38;5;253m253 [38;5;254m254 [38;5;255m255
 ```
 
-## Click directives
+## `click_extra.sphinx` API
 
-```{todo}
-Write example and tutorial.
+```{eval-rst}
+.. automodule:: click_extra.sphinx
+   :members:
+   :undoc-members:
+   :show-inheritance:
 ```
