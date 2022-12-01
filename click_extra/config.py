@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from collections.abc import MutableMapping
 from configparser import ConfigParser, ExtendedInterpolation
@@ -26,7 +27,6 @@ from enum import Enum
 from functools import partial, reduce
 from gettext import gettext as _
 from operator import getitem, methodcaller
-from os.path import sep
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 from unittest.mock import patch
@@ -374,7 +374,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         else:
             # Use brace notation for multiple extension matching.
             ext_pattern = f"{{{','.join(extensions)}}}"
-        return f"{app_dir}{sep}*.{ext_pattern}"
+        return f"{app_dir}{os.path.sep}*.{ext_pattern}"
 
     @staticmethod
     def compress_path(path: Path) -> Path:
