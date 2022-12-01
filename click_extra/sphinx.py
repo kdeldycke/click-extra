@@ -52,7 +52,6 @@
     Fix the need to have both ``.. click:example::`` and ``.. click:run::`` directives
     in the same ``{eval-rst}`` block in MyST. This is required to have both directives
     shares states and context.
-
 """
 
 from __future__ import annotations
@@ -114,7 +113,10 @@ class PatchedViewList(ViewList):
 
 
 def setup(app):
-    """Register ``.. click:example::`` and ``.. click:run::`` directives, augmented with ANSI coloring."""
+    """Register ``..
+
+    click:example::`` and ``.. click:run::`` directives, augmented with ANSI coloring.
+    """
     setup_ansi_pygment_styles(app)
 
     with click_compat_hack:
