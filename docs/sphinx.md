@@ -7,17 +7,15 @@
 Once [Click Extra is installed](install.md), you can enable its [extensions](https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-extensions) in your Sphinx's `conf.py`:
 
 ```python
-extensions = [
-    "click_extra.sphinx",
-    ...
-]
+extensions = ["click_extra.sphinx", ...]
 ```
 
 ## Click directives
 
 Click Extra implements two new directives to document your CLI:
-  - `.. click:example::`
-  - `.. click:run::`
+
+- `.. click:example::`
+- `.. click:run::`
 
 These directives allows you to display any Click-based Python code blocks in Sphinx (with `.. click:example::`), then render the results of their invokation (via `.. click:run::`).
 
@@ -136,7 +134,6 @@ Click Extra's own documentation extensively use `.. click:example::` and `.. cli
 in its Markdown source files](https://github.com/kdeldycke/click-extra/tree/main/docs) for real-life examples and
 inspiration.
 ```
-
 
 ## ANSI shell sessions
 
