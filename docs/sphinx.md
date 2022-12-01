@@ -31,6 +31,48 @@ These directives are [based on the official `Pallets-Sphinx-Themes`](https://git
 
 Here is how to define a simple Click-based CLI with the `.. click:example::` directive:
 
+``````{tab-set}
+`````{tab-item} Markdown (MyST)
+
+```{attention}
+As you can see in the example below, these Click directives are not recognized as-is by the MyST parser, so you need to wrap them in `{eval-rst}` blocks.
+```
+
+````markdown
+```{eval-rst}
+.. click:example::
+    from click_extra import echo, extra_command, option, style
+
+    @extra_command()
+    @option("--name", prompt="Your name", help="The person to greet.")
+    def hello_world(name):
+        """Simple program that greets NAME."""
+        echo(f"Hello, {style(name, fg='red')}!")
+```
+````
+
+Thanks to the `.. click:run::` directive, we can invoke this CLI with its `--help` option:
+
+````markdown
+```{eval-rst}
+.. click:run::
+    invoke(hello_world, args=["--help"])
+```
+````
+
+````{warning}
+CLI states and references are lost as soon as an `{eval-rst}` block ends. If you need to run a `.. click:example::` definition multiple times, all its `.. click:run::` calls must happens within the same rST block.
+
+A symptom of that issue is the execution failing with tracebacks such as:
+```pytb
+Exception occurred:
+  File "<docs>", line 1, in <module>
+NameError: name 'hello_world' is not defined
+```
+````
+`````
+
+`````{tab-item} reStructuredText
 ```rst
 .. click:example::
     from click_extra import echo, extra_command, option, style
@@ -48,6 +90,8 @@ Thanks to the `.. click:run::` directive, we can invoke this CLI with its `--hel
 .. click:run::
     invoke(hello_world, args=["--help"])
 ```
+`````
+``````
 
 Placed in your Sphinx documentation, the two blocks above renders to:
 
@@ -93,6 +137,7 @@ in its Markdown source files](https://github.com/kdeldycke/click-extra/tree/main
 inspiration.
 ```
 
+
 ## ANSI shell sessions
 
 Sphinx extensions from Click Extra automaticcaly integrates the [new ANSI-capable lexers for Pygments](https://kdeldycke.github.io/click-extra/pygments.html#lexers).
@@ -102,7 +147,7 @@ This allows you to render colored shell sessions in code blocks by referring to 
 ``````{tab-set}
 
 `````{tab-item} Markdown (MyST)
-````md
+````markdown
 ```ansi-shell-session
 $ # Print ANSI foreground colors.
 $ for i in {0..255}; do \

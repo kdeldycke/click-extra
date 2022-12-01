@@ -15,7 +15,45 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-"""Helpers and utilities for Sphinx rendering of CLI based on Click Extra."""
+"""Helpers and utilities for Sphinx rendering of CLI based on Click Extra.
+
+.. danger::
+    This module is quite janky and does the job, but would benefits from a total clean rewrite. This
+    would require a better understanding of Sphinx, Click and MyST internals.
+
+    I'll probably start by porting the whole ``pallets_sphinx_themes.themes.click.domain`` here,
+    merge it with the local collection of monkey-patches from here, then clean the whole code
+    to make it more readable and maintainable. This will also eliminate the dependency on
+    ``pallets_sphinx_themes``.
+
+.. todo::
+    Add support for plain MyST directives to remove the need of wrapping rST into an
+    ``{eval-rst}`` block. Ideally, this would allow for the following simpler syntax in MyST:
+
+    .. code-block:: markdown
+
+        ```{click-example}
+        from click_extra import echo, extra_command, option, style
+
+        @extra_command()
+        @option("--name", prompt="Your name", help="The person to greet.")
+        def hello_world(name):
+            "Simple program that greets NAME."
+            echo(f"Hello, {style(name, fg='red')}!")
+        ```
+
+    .. code-block:: markdown
+
+        ```{click-run}
+        invoke(hello_world, args=["--help"])
+        ```
+
+.. todo::
+    Fix the need to have both ``.. click:example::`` and ``.. click:run::`` directives
+    in the same ``{eval-rst}`` block in MyST. This is required to have both directives
+    shares states and context.
+
+"""
 
 from __future__ import annotations
 
