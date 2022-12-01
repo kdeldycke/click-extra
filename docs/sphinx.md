@@ -87,6 +87,12 @@ Which renders in Sphinx into a full execution trace in a terminal block:
 In the example above, we choose to import our CLI primitives from the `click-extra` module instead, to demonstrate the colouring of terminal session outputs, as `click-extra` provides [fancy colouring of help screens](colorize.md) by default.
 ```
 
+```{seealso}
+Click Extra's own documentation extensively use `.. click:example::` and `.. click:run::` directives. [Look around
+in its Markdown source files](https://github.com/kdeldycke/click-extra/tree/main/docs) for real-life examples and
+inspiration.
+```
+
 ## ANSI shell sessions
 
 Sphinx extensions from Click Extra automaticcaly integrates the [new ANSI-capable lexers for Pygments](https://kdeldycke.github.io/click-extra/pygments.html#lexers).
