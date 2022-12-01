@@ -19,71 +19,86 @@
 
 from __future__ import annotations
 
-# XXX Compatibility workaround because of https://github.com/pallets/pallets-sphinx-themes/blob/7b69241f1fde3cc3849f513a9dd83fa8a2f36603/src/pallets_sphinx_themes/themes/click/domain.py#L9
-# Source:
-# https://github.com/pallets/click/blob/dc918b48fb9006be683a684b42cc7496ad649b83/docs/conf.py#L6-L7
+from unittest.mock import patch
+
 import click
-
-setattr(click._compat, "text_type", str)
-
-from pallets_sphinx_themes.themes.click import domain
 from sphinx.highlighting import PygmentsBridge
 
 from .pygments import AnsiHtmlFormatter
+
+click_compat_hack = patch.object(
+    click._compat, "text_type", create=True, return_value=str
+)
+""" Workaround for ``pallets-sphinx-themes``'s outdated reference to old ``click``'s Python 2 compatibility hack.
+
+Emulates:
+    .. code-block:: python
+
+        import click._compat
+
+        click._compat.text_type = str
+
+See:
+    - `similar hack in click 8.x's docs/conf.py <https://github.com/pallets/click/commit/00883dd3d0a29f68f375cab5e21cef0669941aba#diff-85933aa74a2d66c3e4dcdf7a9ad8397f5a7971080d34ef1108296a7c6b69e7e3>`_
+    - `incriminating import in pallets_sphinx_themes <https://github.com/pallets/pallets-sphinx-themes/blob/7b69241f1fde3cc3849f513a9dd83fa8a2f36603/src/pallets_sphinx_themes/themes/click/domain.py#L9>`_
+"""
 
 
 def setup_ansi_pygment_styles(app):
     """Add support for ANSI Shell Session syntax highlighting."""
     app.config.pygments_style = "ansi-click-extra-furo-style"
-    PygmentsBridge.html_formatter = AnsiHtmlFormatter  # type: ignore
+    PygmentsBridge.html_formatter = AnsiHtmlFormatter
 
 
 def setup(app):
-    """Add support for ``.. click:example::`` and ``.. click:run::`` directives."""
+    """Register ``.. click:example::`` and ``.. click:run::`` directives, augmented with ANSI coloring."""
     setup_ansi_pygment_styles(app)
 
-    ####################################
-    #  pallets_sphinx_themes Patch #1  #
-    ####################################
-    append_orig = domain.ViewList.append
+    with click_compat_hack:
+        from pallets_sphinx_themes.themes.click import domain
 
-    def patched_append(*args, **kwargs):
-        """Replace the code block produced by ``.. click:run::`` directive with an ANSI
-        Shell Session (``.. code-block:: ansi-shell-session``).
+        ####################################
+        #  pallets_sphinx_themes Patch #1  #
+        ####################################
+        append_orig = domain.ViewList.append
 
-        Targets:
-        - [``.. sourcecode:: text`` for `Pallets-Sphinx-Themes <= 2.0.2`](https://github.com/pallets/pallets-sphinx-themes/blob/7b69241f1fde3cc3849f513a9dd83fa8a2f36603/src/pallets_sphinx_themes/themes/click/domain.py#L245)
-        - [``.. sourcecode:: shell-session`` for `Pallets-Sphinx-Themes > 2.0.2`](https://github.com/pallets/pallets-sphinx-themes/pull/62)
-        """
-        default_run_blocks = (
-            ".. sourcecode:: text",
-            ".. sourcecode:: shell-session",
-        )
-        for run_block in default_run_blocks:
-            if run_block in args:
-                args = list(args)
-                index = args.index(run_block)
-                args[index] = ".. code-block:: ansi-shell-session"
+        def patched_append(*args, **kwargs):
+            """Replace the code block produced by ``.. click:run::`` directive with an ANSI
+            Shell Session (``.. code-block:: ansi-shell-session``).
 
-        return append_orig(*args, **kwargs)
+            Targets:
+            - [``.. sourcecode:: text`` for `Pallets-Sphinx-Themes <= 2.0.2`](https://github.com/pallets/pallets-sphinx-themes/blob/7b69241f1fde3cc3849f513a9dd83fa8a2f36603/src/pallets_sphinx_themes/themes/click/domain.py#L245)
+            - [``.. sourcecode:: shell-session`` for `Pallets-Sphinx-Themes > 2.0.2`](https://github.com/pallets/pallets-sphinx-themes/pull/62)
+            """
+            default_run_blocks = (
+                ".. sourcecode:: text",
+                ".. sourcecode:: shell-session",
+            )
+            for run_block in default_run_blocks:
+                if run_block in args:
+                    args = list(args)
+                    index = args.index(run_block)
+                    args[index] = ".. code-block:: ansi-shell-session"
 
-    domain.ViewList.append = patched_append
+            return append_orig(*args, **kwargs)
 
-    ####################################
-    #  pallets_sphinx_themes Patch #2  #
-    ####################################
+        domain.ViewList.append = patched_append
 
-    # Replace the call to default ``CliRunner.invoke`` with a call to click_extra own version which is sensible to contextual color settings
-    # and output unfiltered ANSI codes.
-    # Fixes: <insert upstream bug report here>
-    from click_extra.tests.conftest import ExtraCliRunner
+        ####################################
+        #  pallets_sphinx_themes Patch #2  #
+        ####################################
 
-    # Force color rendering in ``invoke`` calls.
-    ExtraCliRunner.force_color = True
+        # Replace the call to default ``CliRunner.invoke`` with a call to click_extra own version which is sensible to contextual color settings
+        # and output unfiltered ANSI codes.
+        # Fixes: <insert upstream bug report here>
+        from click_extra.tests.conftest import ExtraCliRunner
 
-    # Brutal, but effective.
-    # Alternative patching methods: https://stackoverflow.com/a/38928265
-    domain.ExampleRunner.__bases__ = (ExtraCliRunner,)
+        # Force color rendering in ``invoke`` calls.
+        ExtraCliRunner.force_color = True
 
-    # Register directives to Sphinx.
-    domain.setup(app)
+        # Brutal, but effective.
+        # Alternative patching methods: https://stackoverflow.com/a/38928265
+        domain.ExampleRunner.__bases__ = (ExtraCliRunner,)
+
+        # Register directives to Sphinx.
+        domain.setup(app)
