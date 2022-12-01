@@ -1,10 +1,6 @@
 # Changelog
 
-## {gh}`3.4.0 (unreleased) <compare/v3.3.4...main>`
-
-```{important}
-This version is not released yet and is under active development.
-```
+## {gh}`3.4.0 (2022-12-01) <compare/v3.3.4...v3.4.0>`
 
 - Streamline setup of Sphinx extensions.
 - Document `.. click:example::` and `.. click:run::` Sphinx extensions.
