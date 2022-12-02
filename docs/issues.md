@@ -50,8 +50,9 @@ This is the list of issues and bugs from other projects that `click-extra` has a
 
 - [`#98` - Add support for option groups on `cloup.Group`](https://github.com/janluke/cloup/issues/98)
 - [`#97` - Styling metavars, default values, env var, choices](https://github.com/janluke/cloup/issues/97)
-- [`#95` - Highlights options, choices and metavars](https://github.com/janluke/cloup/issues/95)
 - [`#96` - Add loading of options from a TOML configuration file](https://github.com/janluke/cloup/issues/96)
+- [`#95` - Highlights options, choices and metavars](https://github.com/janluke/cloup/issues/95)
+- [`#92` - Use sphinx directive to generate output of full examples in the docs](https://github.com/janluke/cloup/issues/92)
 
 ## [`kitty`](https://github.com/kovidgoyal/kitty)
 
@@ -72,4 +73,5 @@ This is the list of issues and bugs from other projects that `click-extra` has a
 
 ## [`sphinx-click`](https://github.com/click-contrib/sphinx-click)
 
+- [`#117` - Add reference to complementary Click CLI documentation helpers](https://github.com/click-contrib/sphinx-click/pull/117)
 - [`#110` - Supports `.. click:example::` and `.. click:run::` directives](https://github.com/click-contrib/sphinx-click/issues/110)
