@@ -78,7 +78,7 @@ See how options are duplicated at the end:
 
 This is an expected behavior: it allows you to add your own options to the preset of `extra_command` and `extra_group`.
 
-To ovveride this, you can directly provide the base decorator with options via the `params=` argument:
+To override this, you can directly provide the base decorator with options via the `params=` argument:
 
 ```{eval-rst}
 .. click:example::
