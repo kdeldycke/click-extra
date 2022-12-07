@@ -8,6 +8,7 @@ This version is not released yet and is under active development.
 
 - Fix highlighting of `+`-prefixed options in help screens. Closes {issue}`316`.
 - Fix highlighting of hard-coded deprecated labels in option help.
+- Document parameter introspection. Closes {issue}`319`.
 
 ## {gh}`3.4.0 (2022-12-01) <compare/v3.3.4...v3.4.0>`
 
