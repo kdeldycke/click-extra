@@ -678,14 +678,13 @@ class HelpExtraFormatter(HelpFormatter):
         is good enough. After all, help screens are not consumed by machine but are
         designed for humans.
         """
-        # Highlight "(Deprecated)" or "(DEPRECATED)" flag, as set by either:
+        # Highlight " (Deprecated)" or " (DEPRECATED)" flag, as set by either:
         # https://github.com/pallets/click/blob/ef11be6e49e19a055fe7e5a89f0f1f4062c68dba/tests/test_commands.py#L345
         # https://github.com/janluke/cloup/blob/c29fa051ed405856ed8bc2dbd733f9df2c8e6418/cloup/formatting/_formatter.py#L188
         help_text = re.sub(
             rf"""
             (\s)                         # Any blank char.
             (?P<warning>\(DEPRECATED\))  # The flag string.
-            (\s)                         # Any blank char.
             """,
             self.colorize,
             help_text,
