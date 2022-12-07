@@ -30,7 +30,7 @@ from pygments.style import Style
 if sys.version_info >= (3, 11):
     import tomllib
 else:
-    import tomli as tomllib
+    import tomli as tomllib  # type: ignore[import]
 
 from .. import pygments as extra_pygments
 from ..pygments import collect_session_lexers
@@ -39,9 +39,10 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent
 
 
 def get_pyproject_section(*section_path: str) -> dict[str, str]:
+    """Descends into the TOML tree of ``pyproject.toml`` to reach the value specified by ``section_path``.
+    """
     toml_path = PROJECT_ROOT.joinpath("pyproject.toml").resolve()
-    toml_config = tomllib.loads(toml_path.read_text(encoding="utf-8"))
-    section = toml_config
+    section: dict = tomllib.loads(toml_path.read_text(encoding="utf-8"))
     for section_id in section_path:
         section = section[section_id]
     return section
