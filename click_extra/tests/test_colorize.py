@@ -127,9 +127,9 @@ def test_keyword_collection(invoke):
     @option("--test")
     # Windows-style parameters.
     @option("--boolean/--no-boolean", "-b/+B", is_flag=True)
-    @option('/debug;/no-debug')
+    @option("/debug;/no-debug")
     # First option without an alias.
-    @option('--shout/--no-shout', ' /-S', default=False)
+    @option("--shout/--no-shout", " /-S", default=False)
     def color_cli1(o1, o2, o3, o4, test, boolean, debug, shout):
         echo("It works!")
 
