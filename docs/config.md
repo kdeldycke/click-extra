@@ -6,7 +6,7 @@ data structure to mirror the CLI.
 
 ## Standalone option
 
-The `@config_option()` decorator provided by Click Extra can be used as-is with vanilla Click:
+The `@config_option` decorator provided by Click Extra can be used as-is with vanilla Click:
 
 ```{eval-rst}
 .. click:example::
@@ -22,7 +22,7 @@ The `@config_option()` decorator provided by Click Extra can be used as-is with 
         echo(f"dummy_flag    is {dummy_flag!r}")
         echo(f"my_list       is {my_list!r}")
 
-    @my_cli.command()
+    @my_cli.command
     @option("--int-param", type=int, default=10)
     def subcommand(int_param):
         echo(f"int_parameter is {int_param!r}")
@@ -129,7 +129,7 @@ from click import command, option, echo
 
 from click_extra import config_option
 
-@command(context_settings={"show_default": True})
+@command
 @option("--int-param", type=int, default=10)
 @config_option(strict=True)
 def cli(int_param):
@@ -168,7 +168,7 @@ from click import command, option, echo
 
 from click_extra import config_option
 
-@command()
+@command
 @option("--int-param", type=int, default=10)
 @config_option(ignored_params=["non_configurable_option", "really_dangerous_param"])
 def cli(int_param):
@@ -338,7 +338,7 @@ This also works with a subset of formats:
 
 The configuration file is searched in the default application path, as defined by [`click.get_app_dir()`](https://click.palletsprojects.com/en/8.1.x/api/#click.get_app_dir).
 
-Like the latter, the `@config_option()` decorator and `ConfigOption` class accept a `roaming` and `force_posix` argument to alter the default path:
+Like the latter, the `@config_option` decorator and `ConfigOption` class accept a `roaming` and `force_posix` argument to alter the default path:
 
 | Platform          | `roaming` | `force_posix` | Folder                                    |
 | :---------------- | :-------- | :------------ | :---------------------------------------- |
@@ -422,7 +422,7 @@ Click Extra provides a ready-to-use `--show-params` option, which is enabled by 
 
 It produces a comprehensive table of your CLI parameters, normalized IDs, types and corresponding environment variables. And because it dynamiccaly print their default value, actual value and its source, it is a pratical tool for users to introspect and debug the paramters of a CLI.
 
-See how the default `@extra_command()` decorator come with the default `--show-params` option and the result of its use:
+See how the default `@extra_command` decorator come with the default `--show-params` option and the result of its use:
 
 ```{eval-rst}
 .. click:example::
