@@ -39,8 +39,8 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent
 
 
 def get_pyproject_section(*section_path: str) -> dict[str, str]:
-    """Descends into the TOML tree of ``pyproject.toml`` to reach the value specified by ``section_path``.
-    """
+    """Descends into the TOML tree of ``pyproject.toml`` to reach the value specified by
+    ``section_path``."""
     toml_path = PROJECT_ROOT.joinpath("pyproject.toml").resolve()
     section: dict = tomllib.loads(toml_path.read_text(encoding="utf-8"))
     for section_id in section_path:
