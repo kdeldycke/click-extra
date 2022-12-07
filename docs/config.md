@@ -153,10 +153,11 @@ ValueError: Parameter 'random_param' is not allowed in configuration file.
 The {py:attr}`ignored_params <click_extra.config.ConfigOption.ignored_params>` argument will exclude some of your CLI options from the configuration machinery. This will prevent your CLI users to set these parameters in their configuration files.
 
 It defaults to:
-  - `--help`, as it makes no sense to have the configurable file always forces a CLI to show the help and exit.
-  - `--version`, which is not a configurable option *per-se*.
-  - `-C`/`--config` option, which cannot be used to recursively load another configuration file (yet?).
-  - `--show-params` flag, which is like `--help` and stops the CLI execution.
+
+- `--help`, as it makes no sense to have the configurable file always forces a CLI to show the help and exit.
+- `--version`, which is not a configurable option *per-se*.
+- `-C`/`--config` option, which cannot be used to recursively load another configuration file (yet?).
+- `--show-params` flag, which is like `--help` and stops the CLI execution.
 
 You can set your own list of option to ignore with the `ignored_params` argument:
 
@@ -440,7 +441,7 @@ See how the default `@extra_command` decorator come with the default `--show-par
 ```
 
 .. note::
-    Notice how `--show-params` is ignoring the ignored parameters provided to `ignored_params`. I.e. you can still see `--help`, `--version`, `-C`/`--config` and `--show-params` in the table.
+Notice how `--show-params` is ignoring the ignored parameters provided to `ignored_params`. I.e. you can still see `--help`, `--version`, `-C`/`--config` and `--show-params` in the table.
 
 ## `click_extra.config` API
 

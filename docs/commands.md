@@ -4,18 +4,18 @@
 
 Click Extra aims to be a drop-in replacement for Click, in which some elements are proxy of either Click or Cloup:
 
-| [Original](https://click.palletsprojects.com/en/8.1.x/api/) | Proxy                        | Target                       |
-| ----------------------------------------------------------- | ---------------------------- | ---------------------------- |
-| `@click.command`                                             | `@click_extra.command`        | `@cloup.command`              |
-| `@click.group`                                               | `@click_extra.group`          | `@cloup.group`                |
-| `@click.argument`                                            | `@click_extra.argument`       | `@cloup.argument`             |
-| `@click.option`                                              | `@click_extra.option`         | `@cloup.option`               |
-| `@click.version_option`                                      | `@click_extra.version_option` | itself                       |
-| `@click.help_option`                                         | `@click_extra.help_option`    | itself                       |
-| `click.Command`                                             | `click_extra.Command`        | `cloup.Command`              |
-| `click.Group`                                               | `click_extra.Group`          | `cloup.Group`                |
-| `click.Option`                                              | `click_extra.Option`         | `cloup.Option`               |
-| `click.HelpFormatter`                                       | `click_extra.HelpFormatter`  | `cloup.HelpFormatter`        |
+| [Original](https://click.palletsprojects.com/en/8.1.x/api/) | Proxy                         | Target                |
+| ----------------------------------------------------------- | ----------------------------- | --------------------- |
+| `@click.command`                                            | `@click_extra.command`        | `@cloup.command`      |
+| `@click.group`                                              | `@click_extra.group`          | `@cloup.group`        |
+| `@click.argument`                                           | `@click_extra.argument`       | `@cloup.argument`     |
+| `@click.option`                                             | `@click_extra.option`         | `@cloup.option`       |
+| `@click.version_option`                                     | `@click_extra.version_option` | itself                |
+| `@click.help_option`                                        | `@click_extra.help_option`    | itself                |
+| `click.Command`                                             | `click_extra.Command`         | `cloup.Command`       |
+| `click.Group`                                               | `click_extra.Group`           | `cloup.Group`         |
+| `click.Option`                                              | `click_extra.Option`          | `cloup.Option`        |
+| `click.HelpFormatter`                                       | `click_extra.HelpFormatter`   | `cloup.HelpFormatter` |
 
 All others not in the table above are direct imports from `click.*`. You can inspect how this is implemented in [`click_extra.__init__`](https://github.com/kdeldycke/click-extra/blob/main/click_extra/__init__.py). That way, if you replace the namespace, nothing is supposed to happens.
 
@@ -43,13 +43,13 @@ As you can see the result does not deviates from the original `click`-based outp
 
 Now if you want to benefits from all the [wonderful features of Click Extra](index#features), you have to use the `extra`-prefixed variants:
 
-| [Original](https://click.palletsprojects.com/en/8.1.x/api/) | Extra variant               |
-| ----------------------------------------------------------- | --------------------------- |
-| `@click.command`                                             | `@click_extra.extra_command` |
-| `@click.group`                                               | `@click_extra.extra_group`   |
-| `click.Command`                                             | `click_extra.ExtraCommand`  |
-| `click.Group`                                               | `click_extra.ExtraGroup`    |
-| `click.Option`                                              | `click_extra.ExtraOption`   |
+| [Original](https://click.palletsprojects.com/en/8.1.x/api/) | Extra variant                |
+| ----------------------------------------------------------- | ---------------------------- |
+| `@click.command`                                            | `@click_extra.extra_command` |
+| `@click.group`                                              | `@click_extra.extra_group`   |
+| `click.Command`                                             | `click_extra.ExtraCommand`   |
+| `click.Group`                                               | `click_extra.ExtraGroup`     |
+| `click.Option`                                              | `click_extra.ExtraOption`    |
 
 Go to the [example in the tutorial](tutorial) to see how these `extra`-variants are used in place of their originals.
 
@@ -147,7 +147,7 @@ Now if we feed the following `~/configuration.toml` configuration file:
 [my-cli]
 verbosity = "DEBUG"
 dummy_flag = true
-my_list = ["item 1", "item #2", "Very Last Item!"]
+my_list = [ "item 1", "item #2", "Very Last Item!",]
 
 [my-cli.subcommand]
 int_param = 3
