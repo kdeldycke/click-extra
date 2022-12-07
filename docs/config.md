@@ -420,7 +420,7 @@ int_parameter is 77
 
 Click Extra provides a ready-to-use `--show-params` option, which is enabled by default.
 
-It produces a comprehensive table of your CLI parameters, normalized IDs, types and corresponding environment variables. And because it dynamiccaly print their default value, actual value and its source, it is a pratical tool for users to introspect and debug the paramters of a CLI.
+It produces a comprehensive table of your CLI parameters, normalized IDs, types and corresponding environment variables. And because it dynamiccaly print their default value, actual value and its source, it is a pratical tool for users to introspect and debug the parameters of a CLI.
 
 See how the default `@extra_command` decorator come with the default `--show-params` option and the result of its use:
 
