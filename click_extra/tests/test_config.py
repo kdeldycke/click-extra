@@ -45,6 +45,7 @@ from tabulate import tabulate
 from ..commands import extra_command, extra_group
 from ..config import ConfigOption, ShowParamsOption, config_option
 from .conftest import default_debug_uncolored_log
+from ..colorize import HelpExtraFormatter
 
 DUMMY_TOML_FILE = """
     # Comment
@@ -228,13 +229,7 @@ def test_conf_default_path(invoke):
     )
 
     # Make path string compatible with regexp.
-    path_regexp = (
-        str(default_path)
-        .replace("\\", "\\\\")
-        .replace("*", r"\*")
-        .replace("-", r"-\s*")
-    )
-    assert re.search(rf"\[default:\s+{path_regexp}\]", result.output)
+    assert re.search(rf"\[default:\s+{HelpExtraFormatter.escape_for_regex(str(default_path))}\]", result.output)
 
 
 def test_conf_not_exist(invoke):

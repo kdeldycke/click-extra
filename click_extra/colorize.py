@@ -34,7 +34,7 @@ import regex as re3
 from boltons.strutils import complement_int_list, int_ranges_from_int_list
 from click import Parameter, echo, get_current_context
 from click.core import ParameterSource
-from cloup import Choice, Context, HelpFormatter, HelpTheme, Style, option
+from cloup import Choice, Context, HelpFormatter, Style, option
 from cloup._util import identity
 from cloup.styling import IStyle
 
@@ -659,17 +659,9 @@ class HelpExtraFormatter(HelpFormatter):
     @staticmethod
     def escape_for_regex(keyword: str) -> str:
         """Escape a keyword to be used in highlighting regex."""
-        # Regexp is verbose, so we need to escape spaces.
-        keyword = keyword.replace(" ", r"\ ")
+        keyword = re.escape(keyword)
         # Accounts for text wrapping of options after a dash.
-        keyword = keyword.replace("-", "-\\s*")
-        # Allow metavars to have square braquets "[]" and dots (like command's
-        # options_metavar).
-        keyword = keyword.replace("[", "\\[").replace("]", "\\]")
-        keyword = keyword.replace(".", "\\.")
-        # Options can be prefixed with a plus, Windows-style.
-        keyword = keyword.replace("+", "\\+")
-        return keyword
+        return keyword.replace("-", "-\\s*")
 
     def highlight_extra_keywords(self, help_text):
         """Highlight extra keywords in help screens based on the theme.
@@ -678,13 +670,13 @@ class HelpExtraFormatter(HelpFormatter):
         is good enough. After all, help screens are not consumed by machine but are
         designed for humans.
         """
-        # Highlight " (Deprecated)" or " (DEPRECATED)" flag, as set by either:
+        # Highlight " (Deprecated)" or " (DEPRECATED)" labels, as set by either:
         # https://github.com/pallets/click/blob/ef11be6e49e19a055fe7e5a89f0f1f4062c68dba/tests/test_commands.py#L345
         # https://github.com/janluke/cloup/blob/c29fa051ed405856ed8bc2dbd733f9df2c8e6418/cloup/formatting/_formatter.py#L188
         help_text = re.sub(
             rf"""
-            (\s)                         # Any blank char.
-            (?P<warning>\(DEPRECATED\))  # The flag string.
+            (\s)                                      # Any blank char.
+            (?P<warning>{re.escape("(DEPRECATED)")})  # The flag string.
             """,
             self.colorize,
             help_text,
@@ -702,7 +694,7 @@ class HelpExtraFormatter(HelpFormatter):
                     \(                        # An opening parenthesis.
                     .*                        # Any string.
                 )
-                (?P<command_aliases>{alias})  # The alias.
+                (?P<command_aliases>{re.escape(alias)})  # The alias.
                 (
                     .*                        # Any string.
                     \)                        # A closing parenthesis.
@@ -718,7 +710,7 @@ class HelpExtraFormatter(HelpFormatter):
             help_text = re.sub(
                 rf"""
                 (\ \ )                        # 2 spaces (i.e. section indention).
-                (?P<subcommand>{subcommand})
+                (?P<subcommand>{re.escape(subcommand)})
                 (\s)                          # Any blank char.
                 """,
                 self.colorize,
@@ -747,9 +739,9 @@ class HelpExtraFormatter(HelpFormatter):
         for cli_name in self.cli_names:
             help_text = re.sub(
                 rf"""
-                (\s)                             # Any blank char.
-                (?P<invoked_command>{cli_name})  # The CLI name.
-                (\s)                             # Any blank char.
+                (\s)                                        # Any blank char.
+                (?P<invoked_command>{re.escape(cli_name)})  # The CLI name.
+                (\s)                                        # Any blank char.
                 """,
                 self.colorize,
                 help_text,
