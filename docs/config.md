@@ -150,46 +150,40 @@ ValueError: Parameter 'random_param' is not allowed in configuration file.
 
 ## Ignoring parameters
 
-The {py:attr}`ignored_params <click_extra.config.ConfigOption.ignored_params>` argument will exclude some of your CLI options from the configuration machinery.
+The {py:attr}`ignored_params <click_extra.config.ConfigOption.ignored_params>` argument will exclude some of your CLI options from the configuration machinery. This will prevent your CLI users to set these parameters in their configuration files.
 
 It defaults to:
+  - `--help`, as it makes no sense to have the configurable file always forces a CLI to show the help and exit.
+  - `--version`, which is not a configurable option *per-se*.
+  - `-C`/`--config` option, which cannot be used to recursively load another configuration file (yet?).
+  - `--show-params` flag, which is like `--help` and stops the CLI execution.
 
-- `--help`
-- `--version`
-- `-C`/`--config`
+You can set your own list of option to ignore with the `ignored_params` argument:
+
+```{code-block} python
+---
+emphasize-lines: 7
+---
+from click import command, option, echo
+
+from click_extra import config_option
+
+@command()
+@option("--int-param", type=int, default=10)
+@config_option(ignored_params=["non_configurable_option", "really_dangerous_param"])
+def cli(int_param):
+    echo(f"int_parameter is {int_param!r}")
+```
 
 ## Formats
 
 Several dialects are supported:
 
-- `TOML`
-- `YAML`
-- `JSON`, with inline and block comments (Python-style `#` and Javascript-style `//`, thanks to [`commentjson`](https://github.com/vaidik/commentjson))
-- `INI`, with extended interpolation, multi-level sections and non-native types (`list`, `set`, …)
-- `XML`
-
-The default behavior consist in [searching for all files matching the pattern](#pattern-matching). And parse each of them with every supported format, in the order given above. As soon as a file is able to be parsed without error and returns a `dict`, the search stops and the file is used to feed the CLI's default values.
-
-If you know in advance the only format you'd like to support, you can use the `formats` argument on your decorator like so:
-
-```{eval-rst}
-.. click:example::
-    from click import command, option, echo
-
-    from click_extra import config_option
-    from click_extra.config import Formats
-
-    @command(context_settings={"show_default": True})
-    @option("--int-param", type=int, default=10)
-    @config_option(formats=Formats.YAML)
-    def cli(int_param):
-        echo(f"int_parameter is {int_param!r}")
-
-Notice how the default search pattern gets limited to files with a ``.yaml`` extension:
-
-.. click:run::
-    invoke(cli, args=["--help"])
-```
+- [`TOML`](#toml)
+- [`YAML`](#yaml)
+- [`JSON`](#json), with inline and block comments (Python-style `#` and Javascript-style `//`, thanks to [`commentjson`](https://github.com/vaidik/commentjson))
+- [`INI`](#ini), with extended interpolation, multi-level sections and non-native types (`list`, `set`, …)
+- [`XML`](#xml)
 
 ### TOML
 
@@ -197,7 +191,7 @@ See the [example in the top of this page](standalone-option).
 
 ### YAML
 
-The example above was given for a TOML configuration file, but is working as-is with YAML.
+The example above, given for a TOML configuration file, is working as-is with YAML.
 
 Just replace the TOML file with the following configuration at
 `~/.config/my-cli/config.yaml`:
@@ -276,12 +270,69 @@ Write example.
 
 ## Pattern matching
 
-The configuration file is searched from a wildcard-based pattern.
+The configuration file is searched based on a wildcard-based pattern.
 
 By default, the pattern is `/<app_dir>/*.{toml,yaml,yml,json,ini,xml}`, where:
 
 - `<app_dir>` is the [default application folder (see below)](#default-folder)
 - `*.{toml,yaml,yml,json,ini,xml}` is any file in that folder with any of `.toml`, `.yaml`, `.yml`, `.json` , `.ini` or `.xml` extension.
+
+### Default extensions
+
+The extensions that are used for each dialect to produce the default file pattern matching are encoded by
+the {py:class}`Formats <click_extra.config.Formats>` Enum:
+
+| Format | Extensions        |
+| :----- | :---------------- |
+| `TOML` | `*.toml`          |
+| `YAML` | `*.yaml`, `*.yml` |
+| `JSON` | `*.json`          |
+| `INI`  | `*.ini`           |
+| `XML`  | `*.xml`           |
+
+The default behavior consist in searching for all files matching the default `*.{toml,yaml,yml,json,ini,xml}` pattern. And parse each of the matchin file with every supported format, in the priority order of the table above. As soon as a file is able to be parsed without error and returns a `dict`, the search stops and the file is used to feed the CLI's default values.
+
+### Forcing formats
+
+If you know in advance the only format you'd like to support, you can use the `formats` argument on your decorator like so:
+
+```{eval-rst}
+.. click:example::
+    from click import command, option, echo
+
+    from click_extra import config_option
+    from click_extra.config import Formats
+
+    @command(context_settings={"show_default": True})
+    @option("--int-param", type=int, default=10)
+    @config_option(formats=Formats.JSON)
+    def cli(int_param):
+        echo(f"int_parameter is {int_param!r}")
+
+Notice how the default search pattern gets limited to files with a ``.json`` extension:
+
+.. click:run::
+    invoke(cli, args=["--help"])
+```
+
+This also works with a subset of formats:
+
+```{eval-rst}
+.. click:example::
+    from click import command, option, echo
+
+    from click_extra import config_option
+    from click_extra.config import Formats
+
+    @command(context_settings={"show_default": True})
+    @option("--int-param", type=int, default=10)
+    @config_option(formats=[Formats.INI, Formats.YAML])
+    def cli(int_param):
+        echo(f"int_parameter is {int_param!r}")
+
+.. click:run::
+    invoke(cli, args=["--help"])
+```
 
 ### Default folder
 
@@ -317,19 +368,6 @@ See how the default to ``--config`` option has been changed to ``~/.cli/*.{toml,
     invoke(cli, args=["--help"])
 ```
 
-### Default extensions
-
-The extensions that are used for each dialect to produce the default file pattern matching are encoded by
-the {py:class}`Formats <click_extra.config.Formats>` Enum:
-
-| Format | Extensions        |
-| :----- | :---------------- |
-| `TOML` | `*.toml`          |
-| `YAML` | `*.yaml`, `*.yml` |
-| `JSON` | `*.json`          |
-| `INI`  | `*.ini`           |
-| `XML`  | `*.xml`           |
-
 ### Custom pattern
 
 If you'd like to customize the pattern, you can pass your own to the `default` parameter.
@@ -352,7 +390,9 @@ Here is how to look for an extension-less YAML dotfile in the home directory, wi
     invoke(cli, args=["--help"])
 ```
 
-Matching patterns:
+### Pattern specifications
+
+Patterns provided to `@config_option`:
 
 - are [based on `wcmatch.glob` syntax](https://facelessuser.github.io/wcmatch/glob/#syntax)
 - should be written with Unix separators (`/`), even for Windows (the [pattern will be normalized to the local platform dialect](https://facelessuser.github.io/wcmatch/glob/#windows-separators))
@@ -365,7 +405,7 @@ Matching patterns:
   - [`GLOBTILDE`](https://facelessuser.github.io/wcmatch/glob/#globtilde): allows for user path expansion via `~`
   - [`NODIR`](https://facelessuser.github.io/wcmatch/glob/#nodir): restricts results to files
 
-## Remote URL
+### Remote URL
 
 Remote URL can be passed directly to the `--config` option:
 
@@ -398,6 +438,9 @@ See how the default `@extra_command()` decorator come with the default `--show-p
 .. click:run::
     invoke(cli, args=["--verbosity", "Debug", "--int-param1", "3", "--show-params"])
 ```
+
+.. note::
+    Notice how `--show-params` is ignoring the ignored parameters provided to `ignored_params`. I.e. you can still see `--help`, `--version`, `-C`/`--config` and `--show-params` in the table.
 
 ## `click_extra.config` API
 

@@ -6,12 +6,12 @@ Click Extra aims to be a drop-in replacement for Click, in which some elements a
 
 | [Original](https://click.palletsprojects.com/en/8.1.x/api/) | Proxy                        | Target                       |
 | ----------------------------------------------------------- | ---------------------------- | ---------------------------- |
-| `click.command`                                             | `click_extra.command`        | `cloup.command`              |
-| `click.group`                                               | `click_extra.group`          | `cloup.group`                |
-| `click.argument`                                            | `click_extra.argument`       | `cloup.argument`             |
-| `click.option`                                              | `click_extra.option`         | `cloup.option`               |
-| `click.version_option`                                      | `click_extra.version_option` | `click_extra.version_option` |
-| `click.help_option`                                         | `click_extra.help_option`    | `click_extra.help_option`    |
+| `@click.command`                                             | `@click_extra.command`        | `@cloup.command`              |
+| `@click.group`                                               | `@click_extra.group`          | `@cloup.group`                |
+| `@click.argument`                                            | `@click_extra.argument`       | `@cloup.argument`             |
+| `@click.option`                                              | `@click_extra.option`         | `@cloup.option`               |
+| `@click.version_option`                                      | `@click_extra.version_option` | itself                       |
+| `@click.help_option`                                         | `@click_extra.help_option`    | itself                       |
 | `click.Command`                                             | `click_extra.Command`        | `cloup.Command`              |
 | `click.Group`                                               | `click_extra.Group`          | `cloup.Group`                |
 | `click.Option`                                              | `click_extra.Option`         | `cloup.Option`               |
@@ -41,23 +41,23 @@ As you can see the result does not deviates from the original `click`-based outp
 
 ## Extra variants
 
-Now if you want to benefits from the [features of Click Extra](index#features), you have to use the `extra`-prefixed variants:
+Now if you want to benefits from all the [wonderful features of Click Extra](index#features), you have to use the `extra`-prefixed variants:
 
 | [Original](https://click.palletsprojects.com/en/8.1.x/api/) | Extra variant               |
 | ----------------------------------------------------------- | --------------------------- |
-| `click.command`                                             | `click_extra.extra_command` |
-| `click.group`                                               | `click_extra.extra_group`   |
+| `@click.command`                                             | `@click_extra.extra_command` |
+| `@click.group`                                               | `@click_extra.extra_group`   |
 | `click.Command`                                             | `click_extra.ExtraCommand`  |
 | `click.Group`                                               | `click_extra.ExtraGroup`    |
 | `click.Option`                                              | `click_extra.ExtraOption`   |
 
 Go to the [example in the tutorial](tutorial) to see how these `extra`-variants are used in place of their originals.
 
-## Default options
+## Change default options
 
-The `extra_command` and `extra_group` decorators are [pre-configured with a set of options](click_extra.commands.default_extra_params).
+The `@extra_command` and `@extra_group` decorators are [pre-configured with a set of default options](click_extra.commands.default_extra_params).
 
-Adding to these decorators the same options it defaults to will end up with duplicate entries (as seen in issue {issue}`232`):
+If you try to add again options it already has by default, you will end up with duplicate entries (as seen in issue {issue}`232`):
 
 ```{eval-rst}
 .. click:example::
@@ -76,9 +76,9 @@ See how options are duplicated at the end:
    invoke(cli, args=["--help"])
 ```
 
-This is an expected behavior: it allows you to add your own options to the preset of `extra_command` and `extra_group`.
+This is an expected behavior: it allows you to add your own options to the preset of `@extra_command` and `@extra_group`.
 
-To override this, you can directly provide the base decorator with options via the `params=` argument:
+To override this, you can directly provide the base decorator with options via the `params=` argument. But this time we use classes instead of decorators:
 
 ```{eval-rst}
 .. click:example::

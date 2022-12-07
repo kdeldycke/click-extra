@@ -401,6 +401,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         """Search on local file system or remote URL files matching the provided
         pattern.
 
+        ``pattern`` is considered as an URL only if it is parseable as such and starts with ``http://`` or ``https://``.
+
         Returns an iterator of raw content for each file/URL matching the pattern.
         """
         # Check if the pattern is an URL.
