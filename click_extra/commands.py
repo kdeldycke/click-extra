@@ -172,10 +172,13 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
 
         The result are passed to our own ``ExtraContext`` constructor which is able to
         initialize the context's ``meta`` property under our own
-        ``click_extra.raw_args`` variable. This will be used in ``ShowParamsOption`` to
-        print the table of parameters fed to the CLI.
+        ``click_extra.raw_args`` entry. This will be used in
+        ``ShowParamsOption.print_params()`` to print the table of parameters fed to the CLI.
+
+        .. todo::
+            Propose this patch upstream to ``click``.
         """
-        # args needs to be copied: its items are consummed by the parsing process.
+        # ``args`` needs to be copied: its items are consummed by the parsing process.
         extra.update({"meta": {"click_extra.raw_args": args.copy()}})
         ctx = super().make_context(info_name, args, parent, **extra)
         return ctx

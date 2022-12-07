@@ -682,14 +682,22 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         return None
 
     def print_params(self, ctx, param, value):
-        """Introspects current CLI ans list its parameters and metadata."""
+        """Introspects current CLI and list its parameters and metadata.
+
+        .. important::
+            Click doesn't keep a list of all parsed arguments and their origin.
+            So we need to emulate here what's happening during CLI invokation.
+            But can't even to that because the raw, pre-parsed arguments are
+            not available anywhere.
+
+            Our workaround consist in leveraging our custom
+            ``ExtraCommand``/``ExtraGroup`` classes, in which we are attaching
+            a ``click_extra.raw_args`` metadata entry to the context.
+        """
         # Exit early if the callback was processed but the option wasn't set.
         if not value:
             return
 
-        # Click doen't keep a list of all parsed arguments and their origin. We need to emulate what's happening
-        # during CLI invokation. The problem is even the raw arguments are now available somewhere. Our workaround
-        # consist in leveraging our ExtraCommand/ExtraGroup for this.
         if "click_extra.raw_args" in ctx.meta:
             raw_args = ctx.meta.get("click_extra.raw_args", [])
             logger.debug(f"click_extra.raw_args: {raw_args}")
