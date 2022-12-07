@@ -1,5 +1,11 @@
 # Changelog
 
+## {gh}`3.4.2 (unreleased) <compare/v3.4.1...main>`
+
+```{important}
+This version is not released yet and is under active development.
+```
+
 ## {gh}`3.4.1 (2022-12-07) <compare/v3.4.0...v3.4.1>`
 
 - Fix highlighting of `+`-prefixed options in help screens. Closes {issue}`316`.
