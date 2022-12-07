@@ -27,7 +27,7 @@ import pytest
 from boltons.strutils import strip_ansi
 from click import echo, secho, style
 from cloup import HelpTheme, Style, argument, command, option, option_group
-from pytest_cases import fixture, parametrize
+from pytest_cases import parametrize
 
 from ..colorize import (
     HelpExtraFormatter,
@@ -125,7 +125,12 @@ def test_keyword_collection(invoke):
         option("--o4"),
     )
     @option("--test")
-    def color_cli1(o1, o2, o3, o4, test):
+    # Windows-style parameters.
+    @option("--boolean/--no-boolean", "-b/+B", is_flag=True)
+    @option('/debug;/no-debug')
+    # First option without an alias.
+    @option('--shout/--no-shout', ' /-S', default=False)
+    def color_cli1(o1, o2, o3, o4, test, boolean, debug, shout):
         echo("It works!")
 
     @extra_command(params=None)
@@ -160,6 +165,10 @@ def test_keyword_collection(invoke):
         r"  \x1b\[36m--o4\x1b\[0m \x1b\[90mTEXT\x1b\[0m\n\n"
         r"\x1b\[94m\x1b\[1mOther options:\x1b\[0m\n"
         r"  \x1b\[36m--test\x1b\[0m \x1b\[90mTEXT\x1b\[0m\n"
+        r"  \x1b\[36m-b\x1b\[0m, \x1b\[36m--boolean\x1b\[0m / \x1b\[36m\+B\x1b\[0m, \x1b\[36m--no-boolean\x1b\[0m\n"
+        r"                            \x1b\[90m\[default: \x1b\[0m\x1b\[35mno-boolean\x1b\[0m\x1b\[90m\]\x1b\[0m\n"
+        r"  \x1b\[36m/debug\x1b\[0m; \x1b\[36m/no-debug\x1b\[0m         \x1b\[90m\[default: \x1b\[0m\x1b\[35mno-debug\x1b\[0m\x1b\[90m\]\x1b\[0m\n"
+        r"  \x1b\[36m--shout\x1b\[0m / \x1b\[36m-S\x1b\[0m, \x1b\[36m--no-shout\x1b\[0m  \x1b\[90m\[default: \x1b\[0m\x1b\[35mno-shout\x1b\[0m\x1b\[90m\]\x1b\[0m\n"
         rf"{default_options_colored_help}"
         r"\n"
         r"\x1b\[94m\x1b\[1mSubcommand group 1:\x1b\[0m\n"

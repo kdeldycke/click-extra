@@ -656,6 +656,21 @@ class HelpExtraFormatter(HelpFormatter):
                 txt += group
         return txt
 
+    @staticmethod
+    def escape_for_regex(keyword: str) -> str:
+        """Escape a keyword to be used in highlighting regex."""
+        # Regexp is verbose, so we need to escape spaces.
+        keyword = keyword.replace(" ", r"\ ")
+        # Accounts for text wrapping of options after a dash.
+        keyword = keyword.replace("-", "-\\s*")
+        # Allow metavars to have square braquets "[]" and dots (like command's
+        # options_metavar).
+        keyword = keyword.replace("[", "\\[").replace("]", "\\]")
+        keyword = keyword.replace(".", "\\.")
+        # Options can be prefixed with a plus, Windows-style.
+        keyword = keyword.replace("+", "\\+")
+        return keyword
+
     def highlight_extra_keywords(self, help_text):
         """Highlight extra keywords in help screens based on the theme.
 
@@ -763,15 +778,6 @@ class HelpExtraFormatter(HelpFormatter):
             (sorted(self.metavars, reverse=True), "metavar"),
         ):
             for keyword in matching_keywords:
-                # Regexp is verbose, so we need to escape spaces.
-                keyword = keyword.replace(" ", r"\ ")
-                # Accounts for text wrapping of options after a dash.
-                keyword = keyword.replace("-", "-\\s*")
-                # Allow metavars to have square braquets "[]" and dots (like command's
-                # options_metavar).
-                keyword = (
-                    keyword.replace("[", "\\[").replace("]", "\\]").replace(".", "\\.")
-                )
                 help_text = re.sub(
                     rf"""
                     ([               # A keyword is preceded with either:
@@ -780,7 +786,7 @@ class HelpExtraFormatter(HelpFormatter):
                         \|           # - a pipe (again like in choice strings)
                         \(           # - an opening parenthesis
                     ])
-                    (?P<{style_group_id}>{keyword})
+                    (?P<{style_group_id}>{self.escape_for_regex(keyword)})
                     (\W)             # Any character which is not a word character.
                     """,
                     self.colorize,
