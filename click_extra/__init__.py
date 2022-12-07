@@ -76,6 +76,7 @@ from .tabulate import table_format_option  # isort:skip
 
 # Import last to avoid circular dependencies.
 from .commands import (  # isort:skip
+    TimerOption,
     extra_command,
     extra_group,
     timer_option,
