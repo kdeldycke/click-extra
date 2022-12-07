@@ -388,7 +388,7 @@ def test_conf_auto_types(invoke, create_config):
 def test_strict_conf(invoke, create_config):
     """Same test as the one shown in the readme, but in strict validation mode."""
 
-    @click.group(context_settings={"show_default": True})
+    @click.group
     @option("--dummy-flag/--no-flag")
     @option("--my-list", multiple=True)
     @config_option(strict=True)
@@ -448,11 +448,9 @@ def test_conf_file_overrides_defaults(
             "dummy_flag = True\nmy_list = ('pip', 'npm', 'gem')\nint_parameter = 3\n"
         )
 
-        # Make path string compatible with regexp on Windows.
-        conf_path = str(conf_path).replace("\\", "\\\\")
         # Debug level has been activated by configuration file.
         debug_log = (
-            rf"Load configuration matching {conf_path}\n"
+            rf"Load configuration matching {re.escape(str(conf_path))}\n"
             r"debug: Verbosity set to DEBUG.\n"
             r"debug: \S+, version \S+\n"
         )
@@ -554,10 +552,8 @@ def test_show_params_option(invoke, create_config):
     result = invoke(show_params_cli, *raw_args, color=False)
 
     assert result.exit_code == 0
+    assert f"debug: click_extra.raw_args: {raw_args!r}\n" in result.stderr
 
-    cli_config_option = [
-        p for p in show_params_cli.params if isinstance(p, ConfigOption)
-    ].pop()
     table = [
         (
             "<ColorOption color>",
