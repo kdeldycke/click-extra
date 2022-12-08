@@ -42,7 +42,7 @@ from click import Tuple, echo, get_app_dir
 from cloup import argument, option
 from tabulate import tabulate
 
-from ..colorize import HelpExtraFormatter
+from ..colorize import escape_for_help_sceen
 from ..commands import extra_command, extra_group
 from ..config import ConfigOption, ShowParamsOption, config_option
 from .conftest import default_debug_uncolored_log
@@ -230,7 +230,7 @@ def test_conf_default_path(invoke):
 
     # Make path string compatible with regexp.
     assert re.search(
-        rf"\[default:\s+{HelpExtraFormatter.escape_for_regex(str(default_path))}\]",
+        rf"\[default:\s+{escape_for_help_sceen(str(default_path))}\]",
         result.output,
     )
 
