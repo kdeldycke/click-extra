@@ -51,10 +51,9 @@ from click import BOOL, FLOAT, INT, STRING, UNPROCESSED, UUID, Option, Parameter
 from click import Path as ClickPath
 from click import echo, get_app_dir, get_current_context
 from click.core import ParameterSource
-from cloup import Choice, DateTime, File, FloatRange, IntRange
+from cloup import Choice, DateTime, File, FloatRange, IntRange, Style
 from cloup import Tuple as CloupTuple
 from cloup import option
-from cloup import Style
 from mergedeep import merge
 from tabulate import tabulate
 from wcmatch.glob import (
@@ -68,10 +67,10 @@ from wcmatch.glob import (
     iglob,
 )
 
+from .colorize import KO, OK, default_theme
 from .logging import logger
 from .parameters import ExtraOption
 from .platform import is_windows
-from .colorize import KO, OK, default_theme
 
 
 class Formats(Enum):
@@ -117,8 +116,9 @@ class ParamStructure:
     """
 
     def __init__(self, *args, exclude_params: Iterable[str] | None = None, **kwargs):
-        """Force the blocklist with paramerers provided by the user. Else, let
-        the cached ``self.exclude_params`` property compute it.
+        """Force the blocklist with paramerers provided by the user.
+
+        Else, let the cached ``self.exclude_params`` property compute it.
         """
         if exclude_params is not None:
             self.exclude_params = exclude_params
@@ -256,8 +256,8 @@ class ParamStructure:
     def build_param_trees(self) -> None:
         """Build all parameters tree structure in one go and cache them.
 
-        This removes parameters whose fully-qualified IDs are in the
-        ``exclude_params`` blocklist.
+        This removes parameters whose fully-qualified IDs are in the ``exclude_params``
+        blocklist.
         """
         template: dict[str, Any] = {}
         types: dict[str, Any] = {}
@@ -333,7 +333,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         strict=False,
         **kwargs,
     ):
-        """ Takes as input either a `wcmatch.glob local-file pattern
+        """Takes as input either a `wcmatch.glob local-file pattern.
+
         <https://facelessuser.github.io/wcmatch/glob/#syntax>`_ or an URL.
 
         - ``is_eager`` is active by default so the config option's ``callback``
@@ -387,8 +388,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         )
 
     def default_pattern(self) -> str:
-        """Returns the default pattern used to search for the configuration
-        file.
+        """Returns the default pattern used to search for the configuration file.
 
         Defaults to ``/<app_dir>/*.{toml,yaml,yml,json,ini,xml}``. Where
         ``<app_dir>`` is produced by the `clickget_app_dir() method
@@ -420,8 +420,8 @@ class ConfigOption(ExtraOption, ParamStructure):
 
     @staticmethod
     def compress_path(path: Path) -> Path:
-        """Reduces a path length by prefixing it with the ``~`` user's home
-        prefix if possible."""
+        """Reduces a path length by prefixing it with the ``~`` user's home prefix if
+        possible."""
         if not is_windows():
             try:
                 path = "~" / path.relative_to(Path.home())
@@ -440,8 +440,8 @@ class ConfigOption(ExtraOption, ParamStructure):
             return super().get_help_record(ctx)
 
     def search_and_read_conf(self, pattern: str) -> Iterable[str]:
-        """Search on local file system or remote URL files matching the
-        provided pattern.
+        """Search on local file system or remote URL files matching the provided
+        pattern.
 
         ``pattern`` is considered as an URL only if it is parseable as such
         and starts with ``http://`` or ``https://``.
