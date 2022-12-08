@@ -54,6 +54,7 @@ from click.core import ParameterSource
 from cloup import Choice, DateTime, File, FloatRange, IntRange
 from cloup import Tuple as CloupTuple
 from cloup import option
+from cloup import Style
 from mergedeep import merge
 from tabulate import tabulate
 from wcmatch.glob import (
@@ -70,6 +71,7 @@ from wcmatch.glob import (
 from .logging import logger
 from .parameters import ExtraOption
 from .platform import is_windows
+from .colorize import KO, OK, default_theme
 
 
 class Formats(Enum):
@@ -95,14 +97,38 @@ class ParamStructure:
     separated by a dot ``.``.
     """
 
-    ignored_params: Iterable[str] = tuple()
-
     SEP: str = "."
     """Use a dot ``.`` as a separator between levels of the tree-like parameter structure."""
 
-    def __init__(self, *args, ignored_params: Iterable[str] | None = None, **kwargs):
-        if ignored_params:
-            self.ignored_params = ignored_params
+    exclude_params: Iterable[str] = tuple()
+    """List of parameter IDs to exclude from the parameter structure.
+
+    Elements of this list are expected to be the fully-qualified ID of the
+    parameter, i.e. the dot-separated ID that is prefixed by the CLI name.
+    """
+
+    DEFAULT_EXCLUDE_PARAMS: Iterable[str] = (
+        "config",
+        "help",
+        "show_params",
+        "version",
+    )
+    """List of root parameters to exclude from configuration by default:
+
+    - ``-C``/``--config`` option, which cannot be used to recursively load another
+      configuration file.
+    - ``--help``, as it makes no sense to have the configurable file always
+      forces a CLI to show the help and exit.
+    - ``--show-params`` flag, which is like ``--help`` and stops the CLI execution.
+    - ``--version``, which is not a configurable option *per-se*.
+    """
+
+    def __init__(self, *args, exclude_params: Iterable[str] | None = None, **kwargs):
+        """Force the blocklist with paramerers provided by the user. Else, let
+        the cached ``self.exclude_params`` property compute it.
+        """
+        if exclude_params is not None:
+            self.exclude_params = exclude_params
 
         super().__init__(*args, **kwargs)
 
@@ -145,11 +171,13 @@ class ParamStructure:
         return dict(self._flatten_tree_dict_gen(tree_dict, parent_key))
 
     def walk_params(self):
-        """Generator yielding all CLI parameters from top-level to subcommands.
+        """Generates an unfiltered list of all CLI parameters.
+
+        Everything is included, from top-level to subcommands, from options to arguments.
 
         Returns a 2-elements tuple:
-        - the first being a tuple of keys leading to the parameter
-        - the second being the parameter object itself
+            - the first being a tuple of keys leading to the parameter
+            - the second being the parameter object itself
         """
         ctx = get_current_context()
         cli = ctx.find_root().command
@@ -160,9 +188,8 @@ class ParamStructure:
 
         # Global, top-level options shared by all subcommands.
         for p in cli.params:
-            if p.name not in self.ignored_params:
-                top_level_params.add(p.name)
-                yield (cli.name, p.name), p
+            top_level_params.add(p.name)
+            yield (cli.name, p.name), p
 
         # Subcommand-specific options.
         if hasattr(cli, "commands"):
@@ -174,8 +201,7 @@ class ParamStructure:
                     )
 
                 for p in cmd.params:
-                    if p.name not in self.ignored_params:
-                        yield (cli.name, cmd_id, p.name), p
+                    yield (cli.name, cmd_id, p.name), p
 
     def get_param_type(self, param):
         """Get the Python type of a Click parameter.
@@ -220,13 +246,31 @@ class ParamStructure:
             f"Can't guess the appropriate Python type of {param!r} parameter."
         )
 
+    @cached_property
+    def exclude_params(self):
+        """Returns the default list of parameters to exclude from configuration
+        if not already set by the user.
+
+        It's been made into a property to allow for a last-minute call to the
+        current context to fetch the CLI name.
+        """
+        ctx = get_current_context()
+        cli = ctx.find_root().command
+        return [f"{cli.name}{self.SEP}{p}" for p in self.DEFAULT_EXCLUDE_PARAMS]
+
     def build_param_trees(self) -> None:
-        """Build all parameters tree structure in one go and cache them."""
+        """Build all parameters tree structure in one go and cache them.
+
+        This removes parameters whose fully-qualified IDs are in the
+        ``exclude_params`` blocklist.
+        """
         template: dict[str, Any] = {}
         types: dict[str, Any] = {}
         objects: dict[str, Any] = {}
 
         for keys, param in self.walk_params():
+            if self.SEP.join(keys) in self.exclude_params:
+                continue
             merge(template, self.init_tree_dict(*keys))
             merge(types, self.init_tree_dict(*keys, leaf=self.get_param_type(param)))
             merge(objects, self.init_tree_dict(*keys, leaf=param))
@@ -282,41 +326,39 @@ class ConfigOption(ExtraOption, ParamStructure):
         metavar="CONFIG_PATH",
         type=STRING,
         help=_(
-            "Location of the configuration file. Supports glob pattern of local path and remote URL."
+            "Location of the configuration file. Supports glob pattern of local "
+            "path and remote URL."
         ),
         is_eager=True,
         expose_value=False,
         formats=tuple(Formats),
         roaming=True,
         force_posix=False,
-        ignored_params=(
-            "help",
-            "version",
-            "config",
-            "show_params",
-        ),
+        exclude_params=None,
         strict=False,
         **kwargs,
     ):
-        """A [``wcmatch.glob``
-        pattern](https://facelessuser.github.io/wcmatch/glob/#syntax).
+        """ Takes as input either a `wcmatch.glob local-file pattern
+        <https://facelessuser.github.io/wcmatch/glob/#syntax>`_ or an URL.
 
-        - ``is_eager`` is active by default so the config option's ``callback`` gets the opportunity to set the
-            ``default_map`` values before the other options use them.
+        - ``is_eager`` is active by default so the config option's ``callback``
+          gets the opportunity to set the ``default_map`` values before the
+          other options use them.
 
-        - ``formats`` is the ordered list of formats that the configuration file will be tried to be read with. Can be a single one.
+        - ``formats`` is the ordered list of formats that the configuration
+          file will be tried to be read with. Can be a single one.
 
-        - ``roaming`` and ``force_posix`` are [fed to ``click.get_app_dir()``](https://click.palletsprojects.com/en/8.1.x/api/#click.get_app_dir) to setup the default configuration
-            folder.
+        - ``roaming`` and ``force_posix`` are `fed to click.get_app_dir()
+          <https://click.palletsprojects.com/en/8.1.x/api/#click.get_app_dir>`_
+          to setup the default configuration folder.
 
-        - ``ignored_params`` is a list of options to ignore by the configuration parser. Defaults to:
-            - ``--help``, as it makes no sense to have the configurable file always forces a CLI to show the help and exit.
-            - ``--version``, which is not a configurable option *per-se*.
-            - ``-C``/``--config`` option, which cannot be used to recursively load another configuration file (yet?).
-            - ``--show-params`` flag, which is like ``--help`` and stops the CLI execution.
+        - ``exclude_params`` is a list of options to ignore by the
+          configuration parser. Defaults to
+          ``ParamStructure.DEFAULT_EXCLUDE_PARAMS``.
 
         - ``strict``
-            - If ``True``, raise an error if the configuration file contain unrecognized content.
+            - If ``True``, raise an error if the configuration file contain
+              unrecognized content.
             - If ``False``, silently ignore unsupported configuration option.
         """
         if not param_decls:
@@ -332,7 +374,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         self.force_posix = force_posix
         kwargs.setdefault("default", self.default_pattern)
 
-        self.ignored_params = ignored_params
+        if exclude_params is not None:
+            self.exclude_params = exclude_params
 
         self.strict = strict
 
@@ -349,14 +392,18 @@ class ConfigOption(ExtraOption, ParamStructure):
         )
 
     def default_pattern(self) -> str:
-        """Returns the default pattern used to search for the configuration file.
+        """Returns the default pattern used to search for the configuration
+        file.
 
-        Defaults to ``/<app_dir>/*.{toml,yaml,yml,json,ini,xml}``.
+        Defaults to ``/<app_dir>/*.{toml,yaml,yml,json,ini,xml}``. Where
+        ``<app_dir>`` is produced by the `clickget_app_dir() method
+        <https://click.palletsprojects.com/en/8.1.x/api/#click.get_app_dir>`_.
+        The result depends on OS and is influenced by the ``roaming`` and
+        ``force_posix`` properties of this instance.
 
-        ``<app_dir>`` is produced by [`clickget_app_dir()` method](https://click.palletsprojects.com/en/8.1.x/api/#click.get_app_dir).
-        The result depends on OS and is influenced by the ``roaming`` and ``force_posix`` properties of this instance.
+        In that folder, we're looking for any file matching the extensions
+        derived from the ``self.formats`` property:
 
-        In that folder, we're looking for any file matching the extensions derived from the ``self.formats`` property:
         - a simple ``*.ext`` pattern if only one format is set
         - an expanded ``*.{ext1,ext2,...}`` pattern if multiple formats are set
         """
@@ -378,8 +425,8 @@ class ConfigOption(ExtraOption, ParamStructure):
 
     @staticmethod
     def compress_path(path: Path) -> Path:
-        """Reduces a path length by prefixing it with the `~` user's home prefix if
-        possible."""
+        """Reduces a path length by prefixing it with the ``~`` user's home
+        prefix if possible."""
         if not is_windows():
             try:
                 path = "~" / path.relative_to(Path.home())
@@ -398,12 +445,14 @@ class ConfigOption(ExtraOption, ParamStructure):
             return super().get_help_record(ctx)
 
     def search_and_read_conf(self, pattern: str) -> Iterable[str]:
-        """Search on local file system or remote URL files matching the provided
+        """Search on local file system or remote URL files matching the
+        provided pattern.
+
+        ``pattern`` is considered as an URL only if it is parseable as such
+        and starts with ``http://`` or ``https://``.
+
+        Returns an iterator of raw content for each file/URL matching the
         pattern.
-
-        ``pattern`` is considered as an URL only if it is parseable as such and starts with ``http://`` or ``https://``.
-
-        Returns an iterator of raw content for each file/URL matching the pattern.
         """
         # Check if the pattern is an URL.
         location = URL(pattern)
@@ -435,7 +484,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         """Try to parse the provided content with each format in the order provided by
         the user.
 
-        A successful parsing in any format is supposed to return a dict. Any other
+        A successful parsing in any format is supposed to return a ``dict``. Any other
         result, including any raised exception, is considered a failure and the next
         format is tried.
         """
@@ -480,8 +529,9 @@ class ConfigOption(ExtraOption, ParamStructure):
     def load_ini_config(self, content):
         """Utility method to parse INI configuration file.
 
-        Internal convention is to use a dot (``.``, as set by ``self.SEP``) in section IDs as a separator between levels. This is a workaround
-        the limitation of INI format which doesn't allow for sub-sections.
+        Internal convention is to use a dot (``.``, as set by ``self.SEP``) in
+        section IDs as a separator between levels. This is a workaround
+        the limitation of ``INI`` format which doesn't allow for sub-sections.
 
         Returns a ready-to-use data structure.
         """
@@ -571,12 +621,12 @@ class ConfigOption(ExtraOption, ParamStructure):
         """Fetch parameters values from configuration file and merge them with the
         defaults.
 
-        User configuration is merged to the context ``default_map``, as in:
-        https://click.palletsprojects.com/en/8.1.x/commands/#context-defaults
+        User configuration is `merged to the context default_map as Click does
+        <https://click.palletsprojects.com/en/8.1.x/commands/#context-defaults>`_.
 
         This allow user's config to only overrides defaults. Values sets from direct
-        command line parameters, environment variables or interactive prompts, takes precedence
-        over any values from the config file.
+        command line parameters, environment variables or interactive prompts, takes
+        precedence over any values from the config file.
         """
         explicit_conf = ctx.get_parameter_source("config") in (
             ParameterSource.COMMANDLINE,
@@ -626,15 +676,19 @@ class ShowParamsOption(ExtraOption, ParamStructure):
     print information about the parameters that will be fed to the CLI.
     """
 
-    TABLE_HEADERS = [
-        "Parameter",
+    TABLE_HEADERS = (
         "ID",
+        "Class",
+        "Spec.",
         "Type",
+        "Allowed in conf?",
+        "Exposed",
         "Env. var.",
         "Default",
         "Value",
         "Source",
-    ]
+    )
+    """Hard-coded list of table headers."""
 
     def __init__(
         self,
@@ -643,7 +697,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         expose_value=False,
         is_eager=True,
         help=_(
-            "Show all CLI parameters, their provenance, defaults, value, then exit."
+            "Show all CLI parameters, their provenance, defaults and value, then exit."
         ),
         **kwargs,
     ) -> None:
@@ -651,6 +705,9 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             param_decls = ("--show-params",)
 
         kwargs.setdefault("callback", self.print_params)
+
+        # Deactivate blocking of any parameter.
+        self.exclude_params = ()
 
         super().__init__(
             param_decls=param_decls,
@@ -663,14 +720,17 @@ class ShowParamsOption(ExtraOption, ParamStructure):
 
     @staticmethod
     def get_envvar(ctx, param: Parameter | Option):
-        """Emulates the retrieval or dynamic generation of a parameter's environment
+        """Emulates the retrieval and dynamic generation of a parameter's environment
         variable.
 
-        This code is a copy of what happens in ``click.core.Parameter.resolve_envvar_value()`` and
-        ``click.core.Option.resolve_envvar_value()`` as the logic is deeply embedded in Click's internals
-        and can't be independently used.
+        .. important::
+            This code is a copy of what happens in
+            ``click.core.Parameter.resolve_envvar_value()`` and
+            ``click.core.Option.resolve_envvar_value()`` as the logic is deeply
+            embedded in Click's internals and can't be independently used.
 
-        ..todo:: Contribute this to Click as slight refactor to DRY?
+        .. todo::
+            Contribute this to Click as slight refactor to DRY?
         """
         if param.envvar:
             return param.envvar
@@ -737,11 +797,16 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             assert param.name == tree_keys[-1]
 
             param_value, source = get_param_value(param)
+            param_class = self.get_tree_value(self.params_objects, *tree_keys).__class__
+            param_spec = param.get_help_record(ctx)[0]
 
             line = (
-                self.get_tree_value(self.params_objects, *tree_keys),
-                path,
+                default_theme.invoked_command(path),
+                f"{param_class.__module__}.{param_class.__qualname__}",
+                param_spec,
                 param_type.__name__,
+                None,  # XXX TODO
+                OK if param.expose_value is True else KO,
                 self.get_envvar(ctx, param),
                 param.get_default(ctx),
                 param_value,
@@ -752,13 +817,16 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         def sort_by_depth(line):
             """Sort parameters by depth first, then IDs, so that top-level parameters
             are kept to the top."""
-            param_path = line[1]
+            param_path = line[0]
             tree_keys = param_path.split(self.SEP)
             return len(tree_keys), param_path
 
+        header_style = Style(bold=True)
+        header_labels = map(header_style, self.TABLE_HEADERS)
+
         output = tabulate(
             sorted(table, key=sort_by_depth),
-            headers=self.TABLE_HEADERS,
+            headers=header_labels,
             tablefmt="rounded_outline",
             disable_numparse=True,
         )

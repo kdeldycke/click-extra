@@ -148,18 +148,13 @@ Load configuration matching cli.toml
 ValueError: Parameter 'random_param' is not allowed in configuration file.
 ```
 
-## Ignoring parameters
+## Excluding parameters
 
-The {py:attr}`ignored_params <click_extra.config.ConfigOption.ignored_params>` argument will exclude some of your CLI options from the configuration machinery. This will prevent your CLI users to set these parameters in their configuration files.
+The {py:attr}`exclude_params <click_extra.config.ConfigOption.exclude_params>` argument allows you to block some of your CLI options to be loaded from configuration. By setting this argument, you will prevent your CLI users to set these parameters in their configuration file.
 
-It defaults to:
+It {py:attr}`defaults to the value of ParamStructure.DEFAULT_EXCLUDE_PARAMS <click_extra.config.ParamStructure.DEFAULT_EXCLUDE_PARAMS>`.
 
-- `--help`, as it makes no sense to have the configurable file always forces a CLI to show the help and exit.
-- `--version`, which is not a configurable option *per-se*.
-- `-C`/`--config` option, which cannot be used to recursively load another configuration file (yet?).
-- `--show-params` flag, which is like `--help` and stops the CLI execution.
-
-You can set your own list of option to ignore with the `ignored_params` argument:
+You can set your own list of option to ignore with the `exclude_params` argument:
 
 ```{code-block} python
 ---
@@ -171,9 +166,15 @@ from click_extra import config_option
 
 @command
 @option("--int-param", type=int, default=10)
-@config_option(ignored_params=["non_configurable_option", "really_dangerous_param"])
-def cli(int_param):
+@config_option(exclude_params=["my-cli.non_configurable_option", "my-cli.dangerous_param"])
+def my_cli(int_param):
     echo(f"int_parameter is {int_param!r}")
+```
+
+```{attention}
+You need to provide the fully-qualified ID of the option you're looking to block. I.e. the dot-separated ID that is prefixed by the CLI name. That way you can specify an option to ignore at any level, including subcommands.
+
+If you have difficulties identifying your options and their IDs, run your CLI with the [`--show-params` option](#show-params-option) for introspection.
 ```
 
 ## Formats
@@ -440,8 +441,9 @@ See how the default `@extra_command` decorator come with the default `--show-par
     invoke(cli, args=["--verbosity", "Debug", "--int-param1", "3", "--show-params"])
 ```
 
-.. note::
-Notice how `--show-params` is ignoring the ignored parameters provided to `ignored_params`. I.e. you can still see `--help`, `--version`, `-C`/`--config` and `--show-params` in the table.
+```{note}
+Notice how `--show-params` is showing all parameters, even those provided to the `exclude_params` argument. You can still see the `--help`, `--version`, `-C`/`--config` and `--show-params` options in the table.
+```
 
 ## `click_extra.config` API
 
