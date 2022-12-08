@@ -73,14 +73,14 @@ To undestrand how we ended up with the result above, go [read the tutorial](http
 
 Check these projects to get real-life examples of `click-extra` usage:
 
-- ![GitHub stars](https://img.shields.io/github/stars/kdeldycke/meta-package-manager?label=⭐&style=flat-square) [Meta Package Manager](https://github.com/kdeldycke/meta-package-manager#readme)
+- ![GitHub stars](https://img.shields.io/github/stars/kdeldycke/meta-package-manager?label=%E2%AD%90&style=flat-square) [Meta Package Manager](https://github.com/kdeldycke/meta-package-manager#readme)
   \- A unifying CLI for multiple package managers.
-- ![GitHub stars](https://img.shields.io/github/stars/kdeldycke/mail-deduplicate?label=⭐&style=flat-square) [Mail Deduplicate](https://github.com/kdeldycke/mail-deduplicate#readme) - A
+- ![GitHub stars](https://img.shields.io/github/stars/kdeldycke/mail-deduplicate?label=%E2%AD%90&style=flat-square) [Mail Deduplicate](https://github.com/kdeldycke/mail-deduplicate#readme) - A
   CLI to deduplicate similar emails.
-- ![GitHub stars](https://img.shields.io/github/stars/Sprocket-Security/fireproxng?label=⭐&style=flat-square) [fireproxng](https://github.com/Sprocket-Security/fireproxng#readme) - A rewrite of the fireprox tool.
-- ![GitHub stars](https://img.shields.io/github/stars/hugolundin/badger?label=⭐&style=flat-square) [badger-proxy](https://github.com/hugolundin/badger#readme) - An mDNS-based reverse
+- ![GitHub stars](https://img.shields.io/github/stars/Sprocket-Security/fireproxng?label=%E2%AD%90&style=flat-square) [fireproxng](https://github.com/Sprocket-Security/fireproxng#readme) - A rewrite of the fireprox tool.
+- ![GitHub stars](https://img.shields.io/github/stars/hugolundin/badger?label=%E2%AD%90&style=flat-square) [badger-proxy](https://github.com/hugolundin/badger#readme) - An mDNS-based reverse
   proxy for naming services on a local network.
-- ![GitHub stars](https://img.shields.io/github/stars/tclick/mdstab?label=⭐&style=flat-square) [Molecular Dynamics Trajectory Analysis](https://github.com/tclick/mdstab#readme)
+- ![GitHub stars](https://img.shields.io/github/stars/tclick/mdstab?label=%E2%AD%90&style=flat-square) [Molecular Dynamics Trajectory Analysis](https://github.com/tclick/mdstab#readme)
 
 ## Development
 
