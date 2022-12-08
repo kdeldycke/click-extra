@@ -589,8 +589,9 @@ class ExtraHelpColorsMixin:
 def escape_for_help_sceen(text: str) -> str:
     """Escape a text to be used in a regural expression to match help screen.
 
-    Like ``re.escape``, but allows any number of optional blank characters (line returns, spaces, tabs)
-    after a dash, to accounts for text wrapping rules and columnar layout.
+    Like ``re.escape``, but allows any number of optional blank characters (line
+    returns, spaces, tabs) after a dash, to accounts for text wrapping rules and
+    columnar layout.
     """
     return re.escape(text).replace("-", "-\\s*")
 
