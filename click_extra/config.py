@@ -100,13 +100,6 @@ class ParamStructure:
     SEP: str = "."
     """Use a dot ``.`` as a separator between levels of the tree-like parameter structure."""
 
-    exclude_params: Iterable[str] = tuple()
-    """List of parameter IDs to exclude from the parameter structure.
-
-    Elements of this list are expected to be the fully-qualified ID of the
-    parameter, i.e. the dot-separated ID that is prefixed by the CLI name.
-    """
-
     DEFAULT_EXCLUDE_PARAMS: Iterable[str] = (
         "config",
         "help",
@@ -247,9 +240,11 @@ class ParamStructure:
         )
 
     @cached_property
-    def exclude_params(self):
-        """Returns the default list of parameters to exclude from configuration
-        if not already set by the user.
+    def exclude_params(self) -> Iterable[str]:
+        """List of parameter IDs to exclude from the parameter structure.
+
+        Elements of this list are expected to be the fully-qualified ID of the
+        parameter, i.e. the dot-separated ID that is prefixed by the CLI name.
 
         It's been made into a property to allow for a last-minute call to the
         current context to fetch the CLI name.
