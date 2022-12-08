@@ -80,6 +80,7 @@ Check these projects to get real-life examples of `click-extra` usage:
 - [badger-proxy](https://github.com/hugolundin/badger#readme) - An mDNS-based reverse
   proxy for naming services on a local network.
 - [Molecular Dynamics Trajectory Analysis](https://github.com/tclick/mdstab)
+- [fireproxng](https://github.com/Sprocket-Security/fireproxng) - A rewrite of the fireprox tool.
 
 ## Development
 
