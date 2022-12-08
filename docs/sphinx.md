@@ -31,7 +31,7 @@ Here is how to define a simple Click-based CLI with the `.. click:example::` dir
 
 ``````{tab-set}
 `````{tab-item} Markdown (MyST)
-
+:sync: myst
 ```{attention}
 As you can see in the example below, these Click directives are not recognized as-is by the MyST parser, so you need to wrap them in `{eval-rst}` blocks.
 ```
@@ -71,6 +71,8 @@ NameError: name 'hello_world' is not defined
 `````
 
 `````{tab-item} reStructuredText
+:sync: rst
+
 ```rst
 .. click:example::
     from click_extra import echo, extra_command, option, style
@@ -144,6 +146,8 @@ This allows you to render colored shell sessions in code blocks by referring to 
 ``````{tab-set}
 
 `````{tab-item} Markdown (MyST)
+:sync: myst
+
 ````markdown
 ```ansi-shell-session
 $ # Print ANSI foreground colors.
@@ -171,6 +175,7 @@ $ for i in {0..255}; do \
 `````
 
 `````{tab-item} reStructuredText
+:sync: rst
 ```rst
 .. code-block:: ansi-shell-session
 
