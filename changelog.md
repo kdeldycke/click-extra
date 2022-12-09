@@ -6,8 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
-- Print fully qualified class of options in `--show=params` output.
-- Add new columns in `--show=params` table to show option specifications, configuration exclusion and exposed attribute.
+- Print fully qualified class of options in `--show-params` output.
+- Add new columns in `--show-params` table to show option specifications, configuration exclusion and exposed attribute.
 - Rename `ignored_params` argument to `exclude_params` on the `ConfigOption` class.
 - Blocking parameters from configuration files now requires the fully-qualified ID. Which adds support for selectively blocking parameters at any subcommand level.
 
