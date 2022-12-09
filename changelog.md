@@ -1,5 +1,11 @@
 # Changelog
 
+## {gh}`3.5.1 (unreleased) <compare/v3.5.0...main>`
+
+```{important}
+This version is not released yet and is under active development.
+```
+
 ## {gh}`3.5.0 (2022-12-09) <compare/v3.4.1...v3.5.0>`
 
 - Print fully qualified class of options in `--show-params` output.
