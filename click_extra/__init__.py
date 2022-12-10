@@ -81,3 +81,24 @@ from .commands import (  # isort:skip
     extra_group,
     timer_option,
 )
+
+__all__ = [
+    "color_option",
+	"ColorOption",
+	"config_option",
+	"ConfigOption",
+	"extra_command",
+	"extra_group",
+	"ExtraOption",
+	"help_option",
+	"HelpOption",
+	"show_params_option",
+	"ShowParamsOption",
+	"table_format_option",
+	"timer_option",
+	"TimerOption",
+	"verbosity_option",
+	"VerbosityOption",
+	"version_option",
+	"VersionOption",
+]
