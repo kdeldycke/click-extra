@@ -835,7 +835,7 @@ python-versions = "*"
 
 [[package]]
 name = "types-requests"
-version = "2.28.11.6"
+version = "2.28.11.7"
 description = "Typing stubs for requests"
 category = "dev"
 optional = false
@@ -1496,8 +1496,8 @@ types-regex = [
     {file = "types_regex-2022.10.31.3-py3-none-any.whl", hash = "sha256:d72701e8f3ed1cddbd29e3a957798565c694bd40f2e878fd22a4da1f6ec63c16"},
 ]
 types-requests = [
-    {file = "types-requests-2.28.11.6.tar.gz", hash = "sha256:8c1b1e6a0b19522b4738063e772dcee82cee1c3646536ccc4eb96f655af2b6c6"},
-    {file = "types_requests-2.28.11.6-py3-none-any.whl", hash = "sha256:48b7c06e3dffc1b6359e1888084a2b97f41b6b63f208c571ddb02ddbc6a892e4"},
+    {file = "types-requests-2.28.11.7.tar.gz", hash = "sha256:0ae38633734990d019b80f5463dfa164ebd3581998ac8435f526da6fe4d598c3"},
+    {file = "types_requests-2.28.11.7-py3-none-any.whl", hash = "sha256:b6a2fca8109f4fdba33052f11ed86102bddb2338519e1827387137fefc66a98b"},
 ]
 types-setuptools = [
     {file = "types-setuptools-65.6.0.2.tar.gz", hash = "sha256:ad60ccf01d626de9762224448f36c13e0660e863afd6dc11d979b3739a6c7d24"},
