@@ -279,6 +279,11 @@ By default, the pattern is `/<app_dir>/*.{toml,yaml,yml,json,ini,xml}`, where:
 - `<app_dir>` is the [default application folder (see below)](#default-folder)
 - `*.{toml,yaml,yml,json,ini,xml}` is any file in that folder with any of `.toml`, `.yaml`, `.yml`, `.json` , `.ini` or `.xml` extension.
 
+```{note}
+Oldest reference on the Unix tradition of default path is from the [*Where Configurations Live* chapter](http://www.catb.org/~esr/writings/taoup/html/ch10s02.html)
+of [The Art of Unix Programming](http://www.catb.org/~esr/writings/taoup/html/ch10s02.html) by Eric S. Raymond.
+```
+
 ### Default extensions
 
 The extensions that are used for each dialect to produce the default file pattern matching are encoded by
