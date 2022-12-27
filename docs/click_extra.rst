@@ -96,3 +96,11 @@ click\_extra.tabulate module
    :members:
    :undoc-members:
    :show-inheritance:
+
+click\_extra.version module
+---------------------------
+
+.. automodule:: click_extra.version
+   :members:
+   :undoc-members:
+   :show-inheritance:
