@@ -93,7 +93,7 @@ def is_linux():
 
 def is_macos():
     """Return `True` only if current platform is of the macOS family."""
-    return platform.platform(terse=True).startswith(("macOS", "darwin"))
+    return platform.platform(terse=True).startswith(("macOS", "Darwin"))
 
 
 def is_netbsd():
