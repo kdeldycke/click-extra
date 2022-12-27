@@ -110,6 +110,7 @@ def is_solaris():
     """Return `True` only if current platform is of the Solaris family."""
     return platform.platform(aliased=True, terse=True).startswith("Solaris")
 
+
 def is_sunos():
     """Return `True` only if current platform is of the SunOS family."""
     return platform.platform(aliased=True, terse=True).startswith("SunOS")
@@ -214,7 +215,9 @@ def current_os():
     for os_id, (os_name, os_flag) in OS_DEFINITIONS.items():
         if os_flag is True:
             return os_id, os_name
-    raise SystemError(f"Unrecognized {sys.platform} / {platform.platform(aliased=True, terse=True)} platform.")
+    raise SystemError(
+        f"Unrecognized {sys.platform} / {platform.platform(aliased=True, terse=True)} platform."
+    )
 
 
 CURRENT_OS_ID, CURRENT_OS_LABEL = current_os()
