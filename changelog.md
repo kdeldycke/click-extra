@@ -6,6 +6,9 @@
 This version is not released yet and is under active development.
 ```
 
+- Add new constants to group platforms by family.
+- Add heuristics to recognize new platforms: AIX, IBM AIX, Cygwin, FreeBSD, GNU/Hurd, NetBSD, OpenBSD, Oracle Solaris and SunOS.
+
 ## {gh}`3.5.0 (2022-12-09) <compare/v3.4.1...v3.5.0>`
 
 - Print fully qualified class of options in `--show-params` output.

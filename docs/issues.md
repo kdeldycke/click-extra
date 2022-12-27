@@ -54,6 +54,10 @@ This is the list of issues and bugs from other projects that `click-extra` has a
 - [`#95` - Highlights options, choices and metavars](https://github.com/janluke/cloup/issues/95)
 - [`#92` - Use sphinx directive to generate output of full examples in the docs](https://github.com/janluke/cloup/issues/92)
 
+## [`distro`](https://github.com/python-distro/distro)
+
+- [`#177` - Support for Windows and Mac OS](https://github.com/python-distro/distro/issues/177)
+
 ## [`kitty`](https://github.com/kovidgoyal/kitty)
 
 - [`#5482` - ANSI shell sessions in Sphinx documentation](https://github.com/kovidgoyal/kitty/discussions/5482)

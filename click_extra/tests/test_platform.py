@@ -21,6 +21,12 @@ from types import FunctionType
 
 from ..platform import (
     ALL_OS_LABELS,
+    ANY_BSD,
+    ANY_LINUX,
+    ANY_OTHER_UNIX,
+    ANY_UNIX,
+    ANY_UNIX_COMPATIBILITY_LAYER,
+    ANY_UNIX_SYSTEM_V,
     CURRENT_OS_ID,
     CURRENT_OS_LABEL,
     LINUX,
@@ -28,8 +34,16 @@ from ..platform import (
     OS_DEFINITIONS,
     WINDOWS,
     current_os,
+    is_aix,
+    is_cygwin,
+    is_freebsd,
+    is_hurd,
     is_linux,
     is_macos,
+    is_netbsd,
+    is_openbsd,
+    is_solaris,
+    is_sunos,
     is_windows,
     os_label,
 )
@@ -61,6 +75,31 @@ def test_mutual_exclusion():
         assert CURRENT_OS_LABEL == os_label(WINDOWS)
 
 
+def test_unix_family_content():
+    for family in (
+        ANY_BSD,
+        ANY_LINUX,
+        ANY_UNIX_SYSTEM_V,
+        ANY_UNIX_COMPATIBILITY_LAYER,
+        ANY_OTHER_UNIX,
+        ANY_UNIX,
+    ):
+        assert isinstance(family, frozenset)
+        assert len(family) > 0
+        assert all(os_id in OS_DEFINITIONS for os_id in family)
+
+
+def test_unix_family_subsets():
+    assert (
+        ANY_BSD
+        | ANY_LINUX
+        | ANY_UNIX_SYSTEM_V
+        | ANY_UNIX_COMPATIBILITY_LAYER
+        | ANY_OTHER_UNIX
+        == ANY_UNIX
+    )
+
+
 def test_os_definitions():
     assert isinstance(OS_DEFINITIONS, dict)
     # Each OS definition must be unique.
@@ -81,7 +120,7 @@ def test_os_definitions():
         assert label
         assert isinstance(label, str)
         assert label.isascii()
-        assert label.isalpha()
+        assert label.isprintable()
         assert label in ALL_OS_LABELS
         # OS identification function.
         assert isinstance(os_flag, bool)
