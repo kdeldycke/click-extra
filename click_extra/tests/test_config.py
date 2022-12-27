@@ -656,7 +656,7 @@ def test_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.version",
-            "click_extra.colorize.VersionOption",
+            "click_extra.version.VersionOption",
             "--version",
             "bool",
             "",

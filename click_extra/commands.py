@@ -35,10 +35,11 @@ from cloup import Command
 from cloup import Context as CloupContext
 from cloup import Group, command, group, option
 
-from .colorize import ColorOption, ExtraHelpColorsMixin, HelpOption, VersionOption
+from .colorize import ColorOption, ExtraHelpColorsMixin, HelpOption
 from .config import ConfigOption, ShowParamsOption
 from .logging import VerbosityOption, logger
 from .parameters import ExtraOption
+from .version import VersionOption
 
 
 class TimerOption(ExtraOption):

@@ -24,12 +24,6 @@ Write example and tutorial.
 Write example and tutorial.
 ```
 
-## `version_option`
-
-```{todo}
-Write example and tutorial.
-```
-
 ## `click_extra.colorize` API
 
 ```{eval-rst}

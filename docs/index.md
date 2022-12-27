@@ -17,6 +17,7 @@ config
 colorize
 logging
 tabulate
+version
 platform
 run
 parameters

@@ -60,10 +60,8 @@ from .parameters import ExtraOption  # isort:skip
 from .colorize import (  # isort:skip
     ColorOption,
     HelpOption,
-    VersionOption,
     color_option,
     help_option,
-    version_option,
 )
 from .config import (  # isort:skip
     ConfigOption,
@@ -73,6 +71,7 @@ from .config import (  # isort:skip
 )
 from .logging import VerbosityOption, verbosity_option  # isort:skip
 from .tabulate import table_format_option  # isort:skip
+from .version import VersionOption, version_option  # isort:skip
 
 # Import last to avoid circular dependencies.
 from .commands import (  # isort:skip
