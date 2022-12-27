@@ -37,9 +37,13 @@ from .parameters import ExtraOption
 class VersionOption(ExtraOption):
     """Prints the colored version of the CLI.
 
-    This is a [copy of the standard ``@click.version_option()`` decorator](https://github.com/pallets/click/blob/dc918b48fb9006be683a684b42cc7496ad649b83/src/click/decorators.py#L399-L466)
-    that has been made into a class to allow it to be used with declarative `params=` argument
-    (fixes [Click #2324 issue](https://github.com/pallets/click/issues/2324)).
+    .. caution::
+        This is a `copy of the standard @click.version_option() decorator
+        <https://github.com/pallets/click/blob/dc918b48fb9006be683a684b42cc7496ad649b83/src/click/decorators.py#L399-L466>`_.
+
+        It has been made into a class here, to allow its use with the declarative
+        ``params=`` argument. Which `fixes Click #2324 issue
+        <https://github.com/pallets/click/issues/2324>`_.
     """
 
     version: str | None = None
@@ -139,8 +143,8 @@ class VersionOption(ExtraOption):
         help=_("Show the version and exit."),
         **kwargs,
     ) -> None:
-        """For other params see Click's ``version_option`` decorator:
-        https://click.palletsprojects.com/en/8.1.x/api/#click.version_option.
+        """For other params `see Click's version_option decorator
+        <https://click.palletsprojects.com/en/8.1.x/api/#click.version_option>`_.
 
         :param param_decls: _description_, defaults to None
         :type param_decls: _type_, optional
