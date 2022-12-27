@@ -41,13 +41,12 @@ from ..run import EnvVars, args_cleanup, print_cli_output
 DESTRUCTIVE_MODE = bool(
     os.environ.get("DESTRUCTIVE_TESTS", False) not in {True, 1, "True", "true", "1"}
 )
-""" Pre-computed boolean flag indicating if destructive mode is activated by
-the presence of a ``DESTRUCTIVE_TESTS`` environment variable set to ``True``.
-"""
+"""Pre-computed boolean flag indicating if destructive mode is activated by the presence
+of a ``DESTRUCTIVE_TESTS`` environment variable set to ``True``."""
 
 
 destructive = pytest.mark.skipif(DESTRUCTIVE_MODE, reason="destructive test")
-""" Pytest mark to skip a test unless destructive mode is allowed.
+"""Pytest mark to skip a test unless destructive mode is allowed.
 
 .. todo:
 
@@ -58,7 +57,7 @@ destructive = pytest.mark.skipif(DESTRUCTIVE_MODE, reason="destructive test")
 non_destructive = pytest.mark.skipif(
     not DESTRUCTIVE_MODE, reason="non-destructive test"
 )
-""" Pytest mark to skip a test unless destructive mode is allowed.
+"""Pytest mark to skip a test unless destructive mode is allowed.
 
 .. todo:
 
@@ -67,23 +66,23 @@ non_destructive = pytest.mark.skipif(
 
 
 skip_linux = pytest.mark.skipif(is_linux(), reason="Skip Linux")
-""" Pytest mark to skip a test if run on a Linux system. """
+"""Pytest mark to skip a test if run on a Linux system."""
 
 skip_macos = pytest.mark.skipif(is_macos(), reason="Skip macOS")
-""" Pytest mark to skip a test if run on a macOS system. """
+"""Pytest mark to skip a test if run on a macOS system."""
 
 skip_windows = pytest.mark.skipif(is_windows(), reason="Skip Windows")
-""" Pytest mark to skip a test if run on a Windows system. """
+"""Pytest mark to skip a test if run on a Windows system."""
 
 
 unless_linux = pytest.mark.skipif(not is_linux(), reason="Linux required")
-""" Pytest mark to skip a test unless it is run on a Linux system. """
+"""Pytest mark to skip a test unless it is run on a Linux system."""
 
 unless_macos = pytest.mark.skipif(not is_macos(), reason="macOS required")
-""" Pytest mark to skip a test unless it is run on a macOS system. """
+"""Pytest mark to skip a test unless it is run on a macOS system."""
 
 unless_windows = pytest.mark.skipif(not is_windows(), reason="Windows required")
-""" Pytest mark to skip a test unless it is run on a Windows system. """
+"""Pytest mark to skip a test unless it is run on a Windows system."""
 
 
 skip_windows_colors = skip_windows(reason="Click overstrip colors on Windows")
@@ -94,11 +93,12 @@ See: https://github.com/pallets/click/issues/2111 and https://github.com/pallets
 
 
 class ExtraCliRunner(CliRunner):
-
     force_color: bool = False
-    """Add a ``force_color`` boolean flag on the class to allow for overriding of the ``color`` parameter in ``invoke``.
+    """Add a ``force_color`` boolean flag on the class to allow for overriding of the
+    ``color`` parameter in ``invoke``.
 
-    This is only used to initialize the CliRunner in the context of Sphinx documentation.
+    This is only used to initialize the CliRunner in the context of Sphinx
+    documentation.
     """
 
     def invoke(

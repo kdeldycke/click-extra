@@ -119,7 +119,6 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
     context_class: type[CloupContext] = ExtraContext
 
     def __init__(self, *args, version=None, extra_option_at_end=True, **kwargs):
-
         super().__init__(*args, **kwargs)
 
         self.context_settings.update(

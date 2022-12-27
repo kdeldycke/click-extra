@@ -23,7 +23,6 @@ import logging
 from functools import partial
 from gettext import gettext as _
 
-from click import echo
 from click_log import basic_config
 from cloup import Choice, option
 
@@ -34,11 +33,13 @@ LOG_LEVELS = {
     for value, name in sorted(logging._levelToName.items(), reverse=True)
     if name != "NOTSET"
 }
-"""Index levels by their ID. Sorted from lowest to highest verbosity."""
+"""Index levels by their ID.
+
+Sorted from lowest to highest verbosity.
+"""
 
 
 class WrappedLogger:
-
     wrapped_logger = None
 
     def initialize_logger(self):
@@ -74,22 +75,25 @@ logger = WrappedLogger()
 class VerbosityOption(ExtraOption):
     """Adds a ``--verbosity``/``-v`` option.
 
-    A re-implementation of ``click_log.simple_verbosity_option`` decorator,
-    with sensible defaults and bug fixes (see:
-        https://github.com/click-contrib/click-log/issues/28
-        https://github.com/click-contrib/click-log/issues/29
-        https://github.com/click-contrib/click-log/pull/18
-        https://github.com/click-contrib/click-log/pull/24
-    ).
+    A re-implementation of ``click_log.simple_verbosity_option`` decorator, with
+    sensible defaults and bug fixes.
+
+    .. seealso::
+        - https://github.com/click-contrib/click-log/issues/28
+        - https://github.com/click-contrib/click-log/issues/29
+        - https://github.com/click-contrib/click-log/pull/18
+        - https://github.com/click-contrib/click-log/pull/24
     """
 
     @staticmethod
     def set_level(ctx, param, value):
-        """Set logger level and print its value as a debug message."""
+        """Set logger level and print its value as a debug message.
+
+        Also forces logger level reset at the end of each CLI execution, as it pollutes
+        the logger state between multiple test calls.
+        """
         logger.setLevel(LOG_LEVELS[value])
         logger.debug(f"Verbosity set to {value}.")
-        # Forces logger level reset at the end of each CLI execution, as it pollutes the logger
-        # state between multiple test calls.
         ctx.call_on_close(logger.reset)
 
     def __init__(
