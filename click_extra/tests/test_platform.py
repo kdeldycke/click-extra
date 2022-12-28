@@ -58,19 +58,44 @@ from .conftest import (
 
 
 def test_mutual_exclusion():
+    # Only test the OSes on which the test suite is running via GitHub actions.
     if is_linux():
+        assert not is_aix()
+        assert not is_cygwin()
+        assert not is_freebsd()
+        assert not is_hurd()
         assert not is_macos()
+        assert not is_netbsd()
+        assert not is_openbsd()
+        assert not is_solaris()
+        assert not is_sunos()
         assert not is_windows()
         assert CURRENT_OS_ID == LINUX
         assert CURRENT_OS_LABEL == os_label(LINUX)
     if is_macos():
+        assert not is_aix()
+        assert not is_cygwin()
+        assert not is_freebsd()
+        assert not is_hurd()
         assert not is_linux()
+        assert not is_netbsd()
+        assert not is_openbsd()
+        assert not is_solaris()
+        assert not is_sunos()
         assert not is_windows()
         assert CURRENT_OS_ID == MACOS
         assert CURRENT_OS_LABEL == os_label(MACOS)
     if is_windows():
+        assert not is_aix()
+        assert not is_cygwin()
+        assert not is_freebsd()
+        assert not is_hurd()
         assert not is_linux()
         assert not is_macos()
+        assert not is_netbsd()
+        assert not is_openbsd()
+        assert not is_solaris()
+        assert not is_sunos()
         assert CURRENT_OS_ID == WINDOWS
         assert CURRENT_OS_LABEL == os_label(WINDOWS)
 
