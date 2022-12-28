@@ -32,7 +32,6 @@ import sys
 
 from boltons.dictutils import FrozenDict
 
-
 AIX = "aix"
 """ Constant used to identify distributions of the AIX family. """
 
