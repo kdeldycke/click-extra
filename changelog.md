@@ -1,10 +1,6 @@
 # Changelog
 
-## {gh}`3.6.0 (unreleased) <compare/v3.5.0...main>`
-
-```{important}
-This version is not released yet and is under active development.
-```
+## {gh}`3.6.0 (2022-12-28) <compare/v3.5.0...v3.6.0>`
 
 - Add new constants to group platforms by family.
 - Add heuristics to recognize new platforms: IBM AIX, Cygwin, FreeBSD, GNU/Hurd, NetBSD, OpenBSD, Oracle Solaris, SunOS, Windows Subsystem for Linux v1 and v2.
