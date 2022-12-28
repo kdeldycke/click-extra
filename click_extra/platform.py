@@ -135,12 +135,16 @@ def is_wsl1():
         version <https://github.com/andweeb/presence.nvim/pull/64#issue-1174430662>`_:
 
         - WSL 1:
-            .. code-block:: shell-session
+
+          .. code-block:: shell-session
+
                 $ uname -r
                 4.4.0-22572-Microsoft
 
         - WSL 2:
-            .. code-block:: shell-session
+
+          .. code-block:: shell-session
+
                 $ uname -r
                 5.10.102.1-microsoft-standard-WSL2
     """
