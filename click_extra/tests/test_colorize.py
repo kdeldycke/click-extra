@@ -35,8 +35,8 @@ from ..colorize import (
     color_option,
     default_theme,
     highlight,
-    version_option,
 )
+from ..version import version_option
 from ..commands import extra_command, extra_group
 from ..logging import LOG_LEVELS, logger, verbosity_option
 from .conftest import (
