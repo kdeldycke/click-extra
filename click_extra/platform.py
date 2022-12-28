@@ -188,38 +188,70 @@ ANY_BSD = frozenset({FREEBSD, MACOS, NETBSD, OPENBSD, SUNOS})
 """ IDs of all BSD platforms.
 
 .. note::
-    `386BSD` (`FreeBSD`, `NetBSD`, `OpenBSD`, `DragonFly BSD`), `NeXTSTEP`, `Darwin`
-    (`macOS`, `iOS`, `audioOS`, `iPadOS`, `tvOS`, `watchOS`, `bridgeOS`), `SunOS` and
-    `Ultrix` are considered of this family
-    `according Wikipedia <https://en.wikipedia.org/wiki/Template:Unix>`_.
+    Are considered of this family (`according Wikipedia
+    <https://en.wikipedia.org/wiki/Template:Unix>`_):
+
+    - `386BSD` (`FreeBSD`, `NetBSD`, `OpenBSD`, `DragonFly BSD`)
+    - `NeXTSTEP`
+    - `Darwin` (`macOS`, `iOS`, `audioOS`, `iPadOS`, `tvOS`, `watchOS`, `bridgeOS`)
+    - `SunOS`
+    - `Ultrix`
 """
 
 ANY_LINUX = frozenset({LINUX})
 """ IDs of all Unix platforms based on a Linux kernel.
 
 .. note::
-    `Android`, `ChromeOS` and any other distribution are considered of this family
-    `according Wikipedia <https://en.wikipedia.org/wiki/Template:Unix>`_.
+    Are considered of this family (`according Wikipedia
+    <https://en.wikipedia.org/wiki/Template:Unix>`_):
+
+    - `Android`
+    - `ChromeOS`
+    - any other distribution
 """
 
 ANY_UNIX_SYSTEM_V = frozenset({AIX, SOLARIS})
 """ IDs of all Unix platforms derived from AT&T System Five.
 
 .. note::
-    `A/UX`, `AIX`, `HP-UX`, `IRIX`, `OpenServer`, `Solaris`, `OpenSolaris`,
-    `Illumos`, `Tru64`, `UNIX`, `UnixWare` are considered of this family
-    `according Wikipedia <https://en.wikipedia.org/wiki/Template:Unix>`_.
+    Are considered of this family (`according Wikipedia
+    <https://en.wikipedia.org/wiki/Template:Unix>`_):
+
+    - `A/UX`
+    - `AIX`
+    - `HP-UX`
+    - `IRIX`
+    - `OpenServer`
+    - `Solaris`
+    - `OpenSolaris`
+    - `Illumos`
+    - `Tru64`
+    - `UNIX`
+    - `UnixWare`
 """
 
 ANY_UNIX_COMPATIBILITY_LAYER = frozenset({CYGWIN, WSL1, WSL2})
 """ IDs of interfaces that allows UNIX binaries to run on a different host system.
 
 .. note::
-    `Cygwin`, `Darling`, `Eunice`, `GNV`, `Interix`, `MachTen`, `Microsoft POSIX
-    subsystem`, `MKS Toolkit`, `PASE`, `P.I.P.S.`, `PWS/VSE-AF`, `UNIX System
-    Services`, `UserLAnd Technologies`, `Windows Services for UNIX` and `Windows
-    Subsystem for Linux` are considered of this family
-    `according Wikipedia <https://en.wikipedia.org/wiki/Template:Unix>`_.
+    Are considered of this family (`according Wikipedia
+    <https://en.wikipedia.org/wiki/Template:Unix>`_):
+
+    - `Cygwin`
+    - `Darling`
+    - `Eunice`
+    - `GNV`
+    - `Interix`
+    - `MachTen`
+    - `Microsoft POSIX subsystem`
+    - `MKS Toolkit`
+    - `PASE`
+    - `P.I.P.S.`
+    - `PWS/VSE-AF`
+    - `UNIX System Services`
+    - `UserLAnd Technologies`
+    - `Windows Services for UNIX`
+    - `Windows Subsystem for Linux`
 """
 
 
@@ -229,9 +261,21 @@ ANY_OTHER_UNIX = (
 """ IDs of all other Unix platforms.
 
 .. note::
-    `Coherent`, `GNU/Hurd`, `HarmonyOS`, `LiteOS`, `LynxOS`, `Minix`, `MOS`, `OSF/1`,
-    `QNX`, `BlackBerry 10`, `Research Unix` and `SerenityOS` are considered of this
-    family `according Wikipedia <https://en.wikipedia.org/wiki/Template:Unix>`_.
+    Are considered of this family (`according Wikipedia
+    <https://en.wikipedia.org/wiki/Template:Unix>`_):
+
+    - `Coherent`
+    - `GNU/Hurd`
+    - `HarmonyOS`
+    - `LiteOS`
+    - `LynxOS`
+    - `Minix`
+    - `MOS`
+    - `OSF/1`
+    - `QNX`
+    - `BlackBerry 10`
+    - `Research Unix`
+    - `SerenityOS`
 """
 
 
