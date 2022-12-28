@@ -121,7 +121,8 @@ jobs:
           DESTRUCTIVE_TESTS: true
         run: |
           poetry run pytest --randomly-seed=2892842890 --cov-config=pyproject.toml --cov=./ --cov-report=xml \
-          click_extra/tests/test_colorize.py
+          click_extra/tests/test_colorize.py \
+          click_extra/tests/test_version.py
 
           poetry run pytest --randomly-seed=1927446530 --cov-config=pyproject.toml --cov=./ --cov-report=xml \
           click_extra/tests/test_commands.py
@@ -145,7 +146,8 @@ jobs:
           DESTRUCTIVE_TESTS: true
         run: |
           poetry run pytest --randomly-seed=2892842890 --cov-config=pyproject.toml --cov=./ --cov-report=xml `
-          click_extra/tests/test_colorize.py
+          click_extra/tests/test_colorize.py `
+          click_extra/tests/test_version.py
 
           poetry run pytest --randomly-seed=1927446530 --cov-config=pyproject.toml --cov=./ --cov-report=xml `
           click_extra/tests/test_commands.py
