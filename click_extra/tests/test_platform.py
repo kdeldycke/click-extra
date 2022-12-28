@@ -46,6 +46,8 @@ from ..platform import (
     is_solaris,
     is_sunos,
     is_windows,
+    is_wsl1,
+    is_wsl2,
     os_label,
 )
 from .conftest import (
@@ -71,6 +73,8 @@ def test_mutual_exclusion():
         assert not is_solaris()
         assert not is_sunos()
         assert not is_windows()
+        assert not is_wsl1()
+        assert not is_wsl2()
         assert CURRENT_OS_ID == LINUX
         assert CURRENT_OS_LABEL == os_label(LINUX)
     if is_macos():
@@ -84,6 +88,8 @@ def test_mutual_exclusion():
         assert not is_solaris()
         assert not is_sunos()
         assert not is_windows()
+        assert not is_wsl1()
+        assert not is_wsl2()
         assert CURRENT_OS_ID == MACOS
         assert CURRENT_OS_LABEL == os_label(MACOS)
     if is_windows():
@@ -97,6 +103,8 @@ def test_mutual_exclusion():
         assert not is_openbsd()
         assert not is_solaris()
         assert not is_sunos()
+        assert not is_wsl1()
+        assert not is_wsl2()
         assert CURRENT_OS_ID == WINDOWS
         assert CURRENT_OS_LABEL == os_label(WINDOWS)
 
@@ -137,7 +145,7 @@ def test_os_definitions():
         assert isinstance(os_id, str)
         assert os_id
         assert os_id.isascii()
-        assert os_id.isalpha()
+        assert os_id.isalnum()
         assert os_id.islower()
         # Metadata.
         assert isinstance(data, tuple)

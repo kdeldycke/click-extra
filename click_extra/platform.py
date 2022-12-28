@@ -32,6 +32,7 @@ import sys
 
 from boltons.dictutils import FrozenDict
 
+
 AIX = "aix"
 """ Constant used to identify distributions of the AIX family. """
 
@@ -64,6 +65,12 @@ SUNOS = "sunos"
 
 WINDOWS = "windows"
 """ Constant used to identify distributions of the Windows family. """
+
+WSL1 = "wsl1"
+""" Constant used to identify Windows Subsystem for Linux v1. """
+
+WSL2 = "wsl2"
+""" Constant used to identify Windows Subsystem for Linux v2. """
 
 
 def is_aix():
@@ -121,6 +128,31 @@ def is_windows():
     return sys.platform.startswith("win32")
 
 
+def is_wsl1():
+    """Return `True` only if current platform is Windows Subsystem for Linux v1.
+
+    .. caution::
+        The only difference between WSL1 and WSL2 is `the case of the kernel release
+        version <https://github.com/andweeb/presence.nvim/pull/64#issue-1174430662>`_:
+
+        - WSL 1:
+            .. code-block:: shell-session
+                $ uname -r
+                4.4.0-22572-Microsoft
+
+        - WSL 2:
+            .. code-block:: shell-session
+                $ uname -r
+                5.10.102.1-microsoft-standard-WSL2
+    """
+    return "Microsoft" in platform.release()
+
+
+def is_wsl2():
+    """Return `True` only if current platform is Windows Subsystem for Linux v2."""
+    return "microsoft" in platform.release()
+
+
 OS_DEFINITIONS = FrozenDict(
     {
         AIX: ("IBM AIX", is_aix()),
@@ -134,6 +166,8 @@ OS_DEFINITIONS = FrozenDict(
         SOLARIS: ("Oracle Solaris", is_solaris()),
         SUNOS: ("SunOS", is_sunos()),
         WINDOWS: ("Windows", is_windows()),
+        WSL1: ("Windows Subsystem for Linux v1", is_wsl1()),
+        WSL2: ("Windows Subsystem for Linux v2", is_wsl2()),
     }
 )
 """Map OS IDs to evaluation function and OS labels."""
@@ -177,7 +211,7 @@ ANY_UNIX_SYSTEM_V = frozenset({AIX, SOLARIS})
     `according Wikipedia <https://en.wikipedia.org/wiki/Template:Unix>`_.
 """
 
-ANY_UNIX_COMPATIBILITY_LAYER = frozenset({CYGWIN})
+ANY_UNIX_COMPATIBILITY_LAYER = frozenset({CYGWIN, WSL1, WSL2})
 """ IDs of interfaces that allows UNIX binaries to run on a different host system.
 
 .. note::
