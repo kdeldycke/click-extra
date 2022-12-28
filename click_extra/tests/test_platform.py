@@ -24,6 +24,7 @@ from ..platform import (
     ANY_BSD,
     ANY_LINUX,
     ANY_OTHER_UNIX,
+    ANY_PLATFORM,
     ANY_UNIX,
     ANY_UNIX_COMPATIBILITY_LAYER,
     ANY_UNIX_SYSTEM_V,
@@ -115,6 +116,7 @@ def test_unix_family_content():
 
 
 def test_unix_family_subsets():
+    assert {WINDOWS} | ANY_UNIX == ANY_PLATFORM
     assert (
         ANY_BSD
         | ANY_LINUX

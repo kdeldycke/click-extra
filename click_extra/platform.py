@@ -138,6 +138,8 @@ OS_DEFINITIONS = FrozenDict(
 )
 """Map OS IDs to evaluation function and OS labels."""
 
+ANY_PLATFORM = frozenset(OS_DEFINITIONS)
+""" IDs of all platforms."""
 
 ANY_UNIX = frozenset(set(OS_DEFINITIONS) - {WINDOWS})
 """ IDs of all Unix-like operating systems and compatibility layers."""
