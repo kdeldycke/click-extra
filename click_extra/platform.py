@@ -27,8 +27,8 @@
 
 from __future__ import annotations
 
-import sys
 import platform
+import sys
 
 from boltons.dictutils import FrozenDict
 

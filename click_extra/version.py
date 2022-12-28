@@ -143,7 +143,8 @@ class VersionOption(ExtraOption):
         help=_("Show the version and exit."),
         **kwargs,
     ) -> None:
-        """For other params `see Click's version_option decorator
+        """For other params `see Click's version_option decorator.
+
         <https://click.palletsprojects.com/en/8.1.x/api/#click.version_option>`_.
 
         :param param_decls: _description_, defaults to None
