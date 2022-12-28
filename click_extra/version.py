@@ -15,7 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-"""Extraction of CLI's version and its printing helpers."""
+"""Extraction of CLI's version and its printing."""
 
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ from .parameters import ExtraOption
 class VersionOption(ExtraOption):
     """Prints the colored version of the CLI.
 
-    .. caution::
+    .. warning::
         This is a `copy of the standard @click.version_option() decorator
         <https://github.com/pallets/click/blob/dc918b48fb9006be683a684b42cc7496ad649b83/src/click/decorators.py#L399-L466>`_.
 
