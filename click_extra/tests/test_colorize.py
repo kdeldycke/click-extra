@@ -237,6 +237,7 @@ def test_keyword_collection(invoke):
         )
         assert not result.stderr
 
+
 @skip_windows_colors
 @pytest.mark.parametrize(
     "param,expecting_colors",
