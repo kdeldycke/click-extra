@@ -80,3 +80,11 @@ click\_extra.tests.test\_tabulate module
    :members:
    :undoc-members:
    :show-inheritance:
+
+click\_extra.tests.test\_version module
+---------------------------------------
+
+.. automodule:: click_extra.tests.test_version
+   :members:
+   :undoc-members:
+   :show-inheritance:
