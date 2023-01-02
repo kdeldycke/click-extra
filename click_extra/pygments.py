@@ -36,6 +36,7 @@ from pygments.filter import Filter
 from pygments.filters import TokenMergeFilter
 from pygments.formatters import HtmlFormatter
 from pygments.lexer import Lexer, LexerMeta
+from pygments.lexers.algebra import GAPConsoleLexer
 from pygments.lexers.dylan import DylanConsoleLexer
 from pygments.lexers.erlang import ElixirConsoleLexer, ErlangShellLexer
 from pygments.lexers.julia import JuliaConsoleLexer
@@ -178,6 +179,7 @@ def collect_session_lexers():
         DylanConsoleLexer,
         ElixirConsoleLexer,
         ErlangShellLexer,
+        GAPConsoleLexer,
         JuliaConsoleLexer,
         MatlabSessionLexer,
         OutputLexer,
