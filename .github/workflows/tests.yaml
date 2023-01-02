@@ -57,8 +57,29 @@ jobs:
           # Safety check to ensure there is no overlap between the 2 sets.
           assert not os_list.intersection(python_list)
 
-          # List of unstable creiterions.
-          unstable = []
+          # List of unstable criterions.
+          unstable = [
+              # XXX Pip with Python 3.12-dev on Windows has some issues:
+              #
+              #       def _handle_ns(packageName, path_item):
+              #           """Ensure that named package includes a subpath of path_item (if needed)"""
+              #
+              #           importer = get_importer(path_item)
+              #           if importer is None:
+              #               return None
+              #
+              #           # capture warnings due to #1111
+              #           with warnings.catch_warnings():
+              #               warnings.simplefilter("ignore")
+              #   >           loader = importer.find_module(packageName)
+              #
+              #   E           AttributeError: 'zipimporter' object has no attribute 'find_module'.
+              #               Did you mean: 'load_module'?
+              #
+              # This has been reported upstream at: https://github.com/pypa/pip/issues/11688
+              {"3.12-dev", "windows-2022"},
+              {"3.12-dev", "windows-2019"},
+          ]
 
           jobs = []
           for os_id, python_version in product(os_list, python_list):
