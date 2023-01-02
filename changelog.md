@@ -7,6 +7,7 @@ This version is not released yet and is under active development.
 ```
 
 - Add test to search in Pygments' test data for REPL/terminal-like lexers, as candidates for ANSI-coloring.
+- Depends on `importlib_metadata` for `Python < 3.9`.
 
 ## {gh}`3.6.0 (2022-12-28) <compare/v3.5.0...v3.6.0>`
 

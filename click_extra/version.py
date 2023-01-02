@@ -24,8 +24,12 @@ import re
 import sys
 from functools import partial
 from gettext import gettext as _
-from types import ModuleType
 from typing import Iterable
+
+if sys.version_info >= (3, 8):
+    from importlib import metadata
+else:
+    import importlib_metadata as metadata
 
 from click import Parameter, echo
 from cloup import Context, Style, option
@@ -91,14 +95,6 @@ class VersionOption(ExtraOption):
             self.prog_name = ctx.find_root().info_name
 
         if self.version is None and self.package_name is not None:
-            metadata: ModuleType | None
-
-            try:
-                from importlib import metadata  # type: ignore
-            except ImportError:
-                # Python < 3.8
-                import importlib_metadata as metadata  # type: ignore
-
             try:
                 self.version = metadata.version(self.package_name)  # type: ignore
             except metadata.PackageNotFoundError:  # type: ignore
