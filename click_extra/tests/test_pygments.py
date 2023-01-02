@@ -18,19 +18,19 @@
 from __future__ import annotations
 
 import sys
+import tarfile
 from operator import itemgetter
 from pathlib import Path
-import tarfile
 
 from boltons.strutils import camel2under
 from boltons.typeutils import issubclass
-from pygments.filter import Filter
-from pygments.formatter import Formatter
-from pygments.style import Style
-from pygments.lexers import find_lexer_class_by_name
+from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.commands.download import DownloadCommand
 from pip._internal.utils.temp_dir import global_tempdir_manager, tempdir_registry
-from pip._internal.cli.status_codes import SUCCESS
+from pygments.filter import Filter
+from pygments.formatter import Formatter
+from pygments.lexers import find_lexer_class_by_name
+from pygments.style import Style
 
 if sys.version_info >= (3, 8):
     from importlib import metadata
@@ -43,7 +43,7 @@ else:
     import tomli as tomllib  # type: ignore[import]
 
 from .. import pygments as extra_pygments
-from ..pygments import collect_session_lexers, DEFAULT_TOKEN_TYPE
+from ..pygments import DEFAULT_TOKEN_TYPE, collect_session_lexers
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 
@@ -71,7 +71,7 @@ def test_ansi_lexers_candidates(tmp_path):
     detect new candidates from Pygments new releases.
     """
     # Get the version of the Pygments package installed in the current environment.
-    version = metadata.version('pygments')
+    version = metadata.version("pygments")
 
     # Emulate CLI call to download Pygments' source distribution (which contains the full test suite and data) from PyPi via pip:
     #   $ pip download --no-binary=:all: --no-deps pygments==2.14.0
@@ -83,13 +83,15 @@ def test_ansi_lexers_candidates(tmp_path):
     with cmd.main_context():
         cmd.tempdir_registry = cmd.enter_context(tempdir_registry())
         cmd.enter_context(global_tempdir_manager())
-        options, args = cmd.parse_args([
-            "--no-binary=:all:",
-            "--no-deps",
-            "--dest",
-            f"{tmp_path}",
-            f"pygments=={version}",
-        ])
+        options, args = cmd.parse_args(
+            [
+                "--no-binary=:all:",
+                "--no-deps",
+                "--dest",
+                f"{tmp_path}",
+                f"pygments=={version}",
+            ]
+        )
         cmd.verbosity = options.verbose
         outcome = cmd.run(options, args)
         assert outcome == SUCCESS
@@ -105,7 +107,8 @@ def test_ansi_lexers_candidates(tmp_path):
         str(tmp_path / base_folder / "tests" / "snippets" / "*" / "*.txt"),
     }
 
-    # Browse the downloaded package to find the test suite, and inspect the traces of parsed tokens used as gold master for lexers tests.
+    # Browse the downloaded package to find the test suite, and inspect the
+    # traces of parsed tokens used as gold master for lexers tests.
     lexer_candidates = set()
     with tarfile.open(package_path, "r:gz") as tar:
         for member in tar.getmembers():
@@ -113,7 +116,8 @@ def test_ansi_lexers_candidates(tmp_path):
             if not member.isfile():
                 continue
 
-            # Double check we are not fed an archive exploiting relative ``..`` or ``.`` path attacks.
+            # Double check we are not fed an archive exploiting relative ``..`` or
+            # ``.`` path attacks.
             filename = tmp_path.joinpath(member.name).resolve()
             if sys.version_info >= (3, 9):
                 assert filename.is_relative_to(tmp_path)
@@ -144,7 +148,8 @@ def test_ansi_lexers_candidates(tmp_path):
             lexer_candidates.add(filename.parent.name)
 
     lexer_classes = {find_lexer_class_by_name(alias) for alias in lexer_candidates}
-    # We cannot test for strict equality yet, as some ANSI-ready lexers do not have any test artefacts producing ``Generic.Output`` tokens.
+    # We cannot test for strict equality yet, as some ANSI-ready lexers do not
+    # have any test artefacts producing ``Generic.Output`` tokens.
     assert lexer_classes.issubset(collect_session_lexers())
 
 

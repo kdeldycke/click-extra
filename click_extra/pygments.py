@@ -115,7 +115,9 @@ class AnsiFilter(Filter):
         """
         super().__init__(**options)
         self.ansi_lexer = AnsiColorLexer()
-        self.token_type = string_to_tokentype(options.get("token_type", DEFAULT_TOKEN_TYPE))
+        self.token_type = string_to_tokentype(
+            options.get("token_type", DEFAULT_TOKEN_TYPE)
+        )
 
     def filter(self, lexer, stream):
         """Transform each token of ``token_type`` type into a stream of ANSI tokens."""
@@ -204,7 +206,8 @@ for original_lexer in collect_session_lexers():
 
 
 class AnsiHtmlFormatter(ExtendedColorHtmlFormatterMixin, HtmlFormatter):
-    """Extend standard Pygments' ``HtmlFormatter`` to `add support for ANSI 256 colors
+    """Extend standard Pygments' ``HtmlFormatter`` to `add support for ANSI 256 colors.
+
     <https://github.com/chriskuehl/pygments-ansi-color#optional-enable-256-color-support>`_.
     """
 
