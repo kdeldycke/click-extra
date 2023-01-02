@@ -96,8 +96,8 @@ class VersionOption(ExtraOption):
 
         if self.version is None and self.package_name is not None:
             try:
-                self.version = metadata.version(self.package_name)  # type: ignore
-            except metadata.PackageNotFoundError:  # type: ignore
+                self.version = metadata.version(self.package_name)
+            except metadata.PackageNotFoundError:
                 raise RuntimeError(
                     f"{self.package_name!r} is not installed. Try passing"
                     " 'package_name' instead."
