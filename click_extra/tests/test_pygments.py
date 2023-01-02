@@ -35,7 +35,7 @@ from pip._internal.cli.status_codes import SUCCESS
 if sys.version_info >= (3, 8):
     from importlib import metadata
 else:
-    import importlib_metadata as metadata
+    import importlib_metadata as metadata  # type: ignore[import]
 
 if sys.version_info >= (3, 11):
     import tomllib

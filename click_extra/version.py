@@ -29,7 +29,7 @@ from typing import Iterable
 if sys.version_info >= (3, 8):
     from importlib import metadata
 else:
-    import importlib_metadata as metadata
+    import importlib_metadata as metadata  # type: ignore[import]
 
 from click import Parameter, echo
 from cloup import Context, Style, option
