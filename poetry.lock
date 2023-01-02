@@ -808,7 +808,7 @@ python-versions = "*"
 
 [[package]]
 name = "types-pygments"
-version = "2.13.1.1"
+version = "2.14.0.0"
 description = "Typing stubs for Pygments"
 category = "dev"
 optional = false
@@ -954,7 +954,7 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "674e94d6db9be173cdcaae36c2323e198572f94e5fe099cee7d80bb879f4840a"
+content-hash = "374eab6c21898239c292b60b38f7e96e1aed735c0745a41843a25ddb7567181e"
 
 [metadata.files]
 alabaster = [
@@ -1485,8 +1485,8 @@ types-docutils = [
     {file = "types_docutils-0.19.1.1-py3-none-any.whl", hash = "sha256:a024cada35f0c13cc45eb0b68a102719018a634013690b7fef723bcbfadbd1f1"},
 ]
 types-pygments = [
-    {file = "types-Pygments-2.13.1.1.tar.gz", hash = "sha256:bcc24601e698b1393744f77901376d55b7a9a6a23d4f4ba80c84347c1f7939b1"},
-    {file = "types_Pygments-2.13.1.1-py3-none-any.whl", hash = "sha256:9c789be357e21f611d215af3ae9dfcc24469dc4be96e96ea9b4e5e0c783afba5"},
+    {file = "types-Pygments-2.14.0.0.tar.gz", hash = "sha256:1b9477703dd57b2cc253a16b8a2ed6a692bfcc33bb39059d1008aa9cb03fc678"},
+    {file = "types_Pygments-2.14.0.0-py3-none-any.whl", hash = "sha256:c9a53117c98890a5d9d53b25300ead56a144e3ea5cd1a3d05e91cf649c8b3477"},
 ]
 types-pyyaml = [
     {file = "types-PyYAML-6.0.12.2.tar.gz", hash = "sha256:6840819871c92deebe6a2067fb800c11b8a063632eb4e3e755914e7ab3604e83"},
