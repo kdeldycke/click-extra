@@ -15,7 +15,16 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-"""Helpers and utilities to allow Pygments to parse and render ANSI codes."""
+"""Helpers and utilities to allow Pygments to parse and render ANSI codes.
+
+.. warning::
+
+    Styling has been hard-coded to match the default style of the `Furo Sphinx theme
+    <https://github.com/pradyunsg/furo>`_.
+
+    We will revisit this in the future to make it more flexible for new users with
+    different needs.
+"""
 
 from __future__ import annotations
 
@@ -47,7 +56,6 @@ from pygments_ansi_color import (
     color_tokens,
 )
 
-# Note: You can use different background colors for improved readability.
 fg_colors = bg_colors = {
     "Black": "#000000",
     "Red": "#EF2929",
@@ -58,6 +66,12 @@ fg_colors = bg_colors = {
     "Cyan": "#34E2E2",
     "White": "#ffffff",
 }
+"""Hard-coded default style for ANSI code rendering.
+
+.. todo::
+
+    Make this more configurable.
+"""
 
 
 # Extract the name of furo's default pygment style, as defined in:
@@ -77,21 +91,37 @@ class AnsiClickExtraFuroStyle(style_base):  # type: ignore
     styles.update(color_tokens(fg_colors, bg_colors, enable_256color=True))
 
 
+DEFAULT_TOKEN_TYPE = Generic.Output
+"""Default Pygments' token type to render with ANSI support.
+
+We defaults to ``Generic.Output`` tokens, as this is the token type used by all
+REPL-like and terminal lexers.
+"""
+
+
 class AnsiFilter(Filter):
     """Custom filter transforming a particular kind of token (``Generic.Output`` by
     defaults) into ANSI tokens."""
 
     def __init__(self, **options) -> None:
-        """Initialize a ``AnsiColorLexer`` and get the ``token_type`` to transform."""
+        """Initialize a ``AnsiColorLexer`` and configure the ``token_type`` to be
+        colorized.
+
+        .. todo::
+
+            Allow multiple ``token_type`` to be configured for colorization (if
+            traditions are changed on Pygments' side).
+        """
         super().__init__(**options)
         self.ansi_lexer = AnsiColorLexer()
-        self.token_type = string_to_tokentype(options.get("token_type", Generic.Output))
+        self.token_type = string_to_tokentype(options.get("token_type", DEFAULT_TOKEN_TYPE))
 
     def filter(self, lexer, stream):
-        """Transform each ``Generic.Output`` token into a stream of ANSI tokens."""
+        """Transform each token of ``token_type`` type into a stream of ANSI tokens."""
         for ttype, value in stream:
             if ttype == self.token_type:
-                # TODO: re-wrap the resulting list of token into Generic.Output?
+                # TODO: Shoul we re-wrap the resulting list of token into their
+                # original Generic.Output?
                 yield from self.ansi_lexer.get_tokens(value)
             else:
                 yield ttype, value
@@ -102,20 +132,15 @@ class AnsiSessionLexer(LexerMeta):
     shell session lexers."""
 
     def __new__(cls, name, bases, dct):
-        """Setup class properties defaults for new ANSI-capable lexers.
+        """Setup class properties' defaults for new ANSI-capable lexers:
 
-        Add an ANSI prefix to its name.
-
-        Replace all ``aliases`` IDs from the parent lexer with variants prefixed with ``ansi-``.
+        - Add an ``ANSI `` prefix to the lexer's name.
+        - Replace all ``aliases`` IDs from the parent lexer with variants prefixed with
+          ``ansi-``.
         """
         new_cls = super().__new__(cls, name, bases, dct)
-
-        # Prefix new lexer name.
         new_cls.name = f"ANSI {new_cls.name}"
-
-        # Update all lexer IDs with ansi prefix.
         new_cls.aliases = tuple(f"ansi-{alias}" for alias in new_cls.aliases)
-
         return new_cls
 
 
@@ -123,12 +148,14 @@ class AnsiLexerFiltersMixin(Lexer):
     def __init__(self, *args, **kwargs) -> None:
         """Adds a ``TokenMergeFilter`` and ``AnsiOutputFilter`` to the list of filters.
 
-        The session lexers we inherits from are parsing the code block line by line so they can differentiate inputs and outputs.
-        Each output line ends up encapsulated into a ``Generic.Output`` token. We call on ``TokenMergeFilter`` to
-        have each contiguous output lines part of the same single token.
+        The session lexers we inherits from are parsing the code block line by line so
+        they can differentiate inputs and outputs. Each output line ends up
+        encapsulated into a ``Generic.Output`` token. We apply the ``TokenMergeFilter``
+        filter to reduce noise and have each contiguous output lines part of the same
+        single token.
 
-        Then we apply our custom ``AnsiOutputFilter`` to transform the
-        ``Generic.Output`` monoblock into ANSI tokens.
+        Then we apply our custom ``AnsiOutputFilter`` to transform any
+        ``Generic.Output`` monoblocks into ANSI tokens.
         """
         super().__init__(*args, **kwargs)
         self.filters.append(TokenMergeFilter())
@@ -155,7 +182,6 @@ def collect_session_lexers():
         SqliteConsoleLexer,
     ]
 
-    # Automaticcaly retrieve all proper shell session lexers.
     for lexer in lexers._iter_lexerclasses():
         if ShellSessionBaseLexer in lexer.__bases__:
             yield lexer
@@ -169,9 +195,9 @@ for original_lexer in collect_session_lexers():
 
 
 class AnsiHtmlFormatter(ExtendedColorHtmlFormatterMixin, HtmlFormatter):
-    """Extend standard Pygments' ``HtmlFormatter`` to [add support for ANSI 256
-    colors](https://github.com/chriskuehl/pygments-ansi-color#optional-enable-256-color-
-    support)."""
+    """Extend standard Pygments' ``HtmlFormatter`` to `add support for ANSI 256 colors
+    <https://github.com/chriskuehl/pygments-ansi-color#optional-enable-256-color-support>`_.
+    """
 
     name = "ANSI HTML"
     aliases = ["ansi-html"]

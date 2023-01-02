@@ -20,12 +20,22 @@ from __future__ import annotations
 import sys
 from operator import itemgetter
 from pathlib import Path
+import tarfile
 
 from boltons.strutils import camel2under
 from boltons.typeutils import issubclass
 from pygments.filter import Filter
 from pygments.formatter import Formatter
 from pygments.style import Style
+from pygments.lexers import find_lexer_class_by_name
+from pip._internal.commands.download import DownloadCommand
+from pip._internal.utils.temp_dir import global_tempdir_manager, tempdir_registry
+from pip._internal.cli.status_codes import SUCCESS
+
+if sys.version_info >= (3, 8):
+    from importlib import metadata
+else:
+    import importlib_metadata as metadata
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -33,9 +43,93 @@ else:
     import tomli as tomllib  # type: ignore[import]
 
 from .. import pygments as extra_pygments
-from ..pygments import collect_session_lexers
+from ..pygments import collect_session_lexers, DEFAULT_TOKEN_TYPE
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
+
+
+def test_ansi_lexers_candidates(tmp_path):
+    """Look into Pygments test suite to find all ANSI lexers candidates.
+
+    Good candidates for ANSI colorization are lexers that are producing
+    ``Generic.Output`` tokens, which are often used by REPL-like and scripting
+    terminal to render text in a console.
+
+    The list is manually maintained in Click Extra code, and this test is here to
+    detect new candidates from Pygments new releases.
+    """
+    # Get the version of the Pygments package installed in the current environment.
+    version = metadata.version('pygments')
+
+    # Emulate CLI call to download Pygments' source distribution (which contains the full test suite and data) from PyPi via pip:
+    #   $ pip download --no-binary=:all: --no-deps pygments==2.14.0
+    # Source: https://stackoverflow.com/a/56773693
+    cmd = DownloadCommand(name="dummy_name", summary="dummy_summary")
+
+    # Inspired by pip._internal.cli.base_command.Command._main(). See:
+    # https://github.com/pypa/pip/blob/ba38c33b6b4fc3ee22dabb747a4b4ccff0a87d22/src/pip/_internal/cli/base_command.py#L105-L114
+    with cmd.main_context():
+        cmd.tempdir_registry = cmd.enter_context(tempdir_registry())
+        cmd.enter_context(global_tempdir_manager())
+        options, args = cmd.parse_args([
+            "--no-binary=:all:",
+            "--no-deps",
+            "--dest",
+            f"{tmp_path}",
+            f"pygments=={version}",
+        ])
+        cmd.verbosity = options.verbose
+        outcome = cmd.run(options, args)
+        assert outcome == SUCCESS
+
+    base_folder = f"Pygments-{version}"
+    package_path = tmp_path.joinpath(f"{base_folder}.tar.gz")
+    assert package_path.exists()
+    assert package_path.is_file()
+
+    # Locations of lexer artefacts in test suite.
+    parser_token_traces = {
+        str(tmp_path / base_folder / "tests" / "examplefiles" / "*" / "*.output"),
+        str(tmp_path / base_folder / "tests" / "snippets" / "*" / "*.txt"),
+    }
+
+    # Browse the downloaded package to find the test suite, and inspect the traces of parsed tokens used as gold master for lexers tests.
+    lexer_candidates = set()
+    with tarfile.open(package_path, "r:gz") as tar:
+        for member in tar.getmembers():
+            # Skip non-test files.
+            if not member.isfile():
+                continue
+
+            # Double check we are not fed an archive exploiting relative ``..`` or ``.`` path attacks.
+            filename = tmp_path.joinpath(member.name).resolve()
+            assert filename.is_relative_to(tmp_path)
+
+            # Skip files that are not part of the test suite data.
+            match = False
+            for pattern in parser_token_traces:
+                if filename.match(pattern):
+                    match = True
+                    break
+            if not match:
+                continue
+
+            file = tar.extractfile(member)
+            # Skip empty files.
+            if not file:
+                continue
+
+            content = file.read().decode("utf-8")
+
+            # Skip lexers that are rendering generic, terminal-like output tokens.
+            if f" {'.'.join(DEFAULT_TOKEN_TYPE)}\n" not in content:
+                continue
+
+            # Extarct lexer alias from the test file path.
+            lexer_candidates.add(filename.parent.name)
+
+    lexer_classes = {find_lexer_class_by_name(alias) for alias in lexer_candidates}
+    assert lexer_classes.issubset(collect_session_lexers())
 
 
 def get_pyproject_section(*section_path: str) -> dict[str, str]:

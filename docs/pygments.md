@@ -61,7 +61,7 @@ We can now see how the new lexers transforms a raw strings into ANSI tokens:
 ```
 
 ```{seealso}
-These new lexers [can also be used in Sphinx with a bit of configuration](https://kdeldycke.github.io/click-extra/sphinx.md#ansi-shell-sessions).
+All these new lexers [can be used in Sphinx](https://kdeldycke.github.io/click-extra/sphinx.html#ansi-shell-sessions) with [a bit of configuration](https://kdeldycke.github.io/click-extra/sphinx.html#setup).
 ```
 
 ## Filters
