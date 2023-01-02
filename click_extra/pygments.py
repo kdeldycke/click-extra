@@ -163,10 +163,17 @@ class AnsiLexerFiltersMixin(Lexer):
 
 
 def collect_session_lexers():
-    """Retrieve from default Pygments lexers the list of those producing shell-like
-    sessions."""
+    """Retrieve among default Pygments lexers those producing shell-like sessions.
 
-    # Manually maintained list of shell-like session lexers.
+    This function contain a anually-maintained list of lexers, to which we dynamiccaly
+    adds lexers inheriting from ``ShellSessionBaseLexer``.
+
+    .. hint::
+
+        To help maintain this list, there is `a test that will fail
+        <https://github.com/kdeldycke/click-extra/blob/main/click_extra/tests/test_pygments.py>`_
+        if a new REPL/terminal-like lexer is added to Pygments but not referenced here.
+    """
     yield from [
         DylanConsoleLexer,
         ElixirConsoleLexer,
