@@ -18,7 +18,7 @@ colorize
 logging
 tabulate
 version
-platform
+platforms
 run
 parameters
 pygments
