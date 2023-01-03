@@ -23,6 +23,7 @@ from ..platform import (
     ALL_OS_LABELS,
     ANY_BSD,
     ANY_LINUX,
+    ANY_LINUX_COMPATIBILITY_LAYER,
     ANY_OTHER_UNIX,
     ANY_PLATFORM,
     ANY_UNIX,
@@ -113,6 +114,7 @@ def test_unix_family_content():
     for family in (
         ANY_BSD,
         ANY_LINUX,
+        ANY_LINUX_COMPATIBILITY_LAYER,
         ANY_UNIX_SYSTEM_V,
         ANY_UNIX_COMPATIBILITY_LAYER,
         ANY_OTHER_UNIX,
@@ -128,6 +130,7 @@ def test_unix_family_subsets():
     assert (
         ANY_BSD
         | ANY_LINUX
+        | ANY_LINUX_COMPATIBILITY_LAYER
         | ANY_UNIX_SYSTEM_V
         | ANY_UNIX_COMPATIBILITY_LAYER
         | ANY_OTHER_UNIX

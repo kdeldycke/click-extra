@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Add new `ANY_LINUX_COMPATIBILITY_LAYER` group.
+
 ## {gh}`3.7.0 (2023-01-03) <compare/v3.6.0...v3.7.0>`
 
 - Add support for new ANSI-capable lexers: `ansi-gap-console` and `ansi-gap-repl`.

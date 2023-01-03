@@ -213,6 +213,16 @@ ANY_LINUX = frozenset({LINUX})
     - any other distribution
 """
 
+ANY_LINUX_COMPATIBILITY_LAYER = frozenset({WSL1, WSL2})
+""" IDs of interfaces that allows UNIX binaries to run on a different host system.
+
+.. note::
+    Are considered of this family (`according Wikipedia
+    <https://en.wikipedia.org/wiki/Template:Unix>`_):
+
+    - `Windows Subsystem for Linux`
+"""
+
 ANY_UNIX_SYSTEM_V = frozenset({AIX, SOLARIS})
 """ IDs of all Unix platforms derived from AT&T System Five.
 
@@ -233,7 +243,7 @@ ANY_UNIX_SYSTEM_V = frozenset({AIX, SOLARIS})
     - `UnixWare`
 """
 
-ANY_UNIX_COMPATIBILITY_LAYER = frozenset({CYGWIN, WSL1, WSL2})
+ANY_UNIX_COMPATIBILITY_LAYER = frozenset({CYGWIN})
 """ IDs of interfaces that allows UNIX binaries to run on a different host system.
 
 .. note::
@@ -254,12 +264,10 @@ ANY_UNIX_COMPATIBILITY_LAYER = frozenset({CYGWIN, WSL1, WSL2})
     - `UNIX System Services`
     - `UserLAnd Technologies`
     - `Windows Services for UNIX`
-    - `Windows Subsystem for Linux`
 """
 
-
 ANY_OTHER_UNIX = (
-    ANY_UNIX - ANY_BSD - ANY_LINUX - ANY_UNIX_SYSTEM_V - ANY_UNIX_COMPATIBILITY_LAYER
+    ANY_UNIX - ANY_BSD - ANY_LINUX - ANY_LINUX_COMPATIBILITY_LAYER - ANY_UNIX_SYSTEM_V - ANY_UNIX_COMPATIBILITY_LAYER
 )
 """ IDs of all other Unix platforms.
 
