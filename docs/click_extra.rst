@@ -41,6 +41,14 @@ click\_extra.config module
    :undoc-members:
    :show-inheritance:
 
+click\_extra.docs module
+------------------------
+
+.. automodule:: click_extra.docs
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 click\_extra.logging module
 ---------------------------
 
