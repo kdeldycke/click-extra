@@ -1,10 +1,6 @@
 # Changelog
 
-## {gh}`3.7.0 (unreleased) <compare/v3.6.0...main>`
-
-```{important}
-This version is not released yet and is under active development.
-```
+## {gh}`3.7.0 (2023-01-03) <compare/v3.6.0...v3.7.0>`
 
 - Add support for new ANSI-capable lexers: `ansi-gap-console` and `ansi-gap-repl`.
 - Auto-update table of supported lexers in documentation.
