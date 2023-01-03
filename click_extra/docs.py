@@ -27,16 +27,19 @@ from .pygments import lexer_map
 
 
 def generate_lexer_table():
-    """Generate a Markdown table mapping original lexers to their new ANSI variants.
-    """
+    """Generate a Markdown table mapping original lexers to their new ANSI variants."""
     table = []
-    for orig_lexer, ansi_lexer in sorted(lexer_map.items(), key=lambda i: i[0].__qualname__):
-        table.append([
-            f"[`{orig_lexer.__qualname__}`](https://pygments.org/docs/lexers/#"
-            f"{orig_lexer.__module__}.{orig_lexer.__qualname__})",
-            f"{', '.join(f'`{a}`' for a in sorted(orig_lexer.aliases))}",
-            f"{', '.join(f'`{a}`' for a in sorted(ansi_lexer.aliases))}",
-        ])
+    for orig_lexer, ansi_lexer in sorted(
+        lexer_map.items(), key=lambda i: i[0].__qualname__
+    ):
+        table.append(
+            [
+                f"[`{orig_lexer.__qualname__}`](https://pygments.org/docs/lexers/#"
+                f"{orig_lexer.__module__}.{orig_lexer.__qualname__})",
+                f"{', '.join(f'`{a}`' for a in sorted(orig_lexer.aliases))}",
+                f"{', '.join(f'`{a}`' for a in sorted(ansi_lexer.aliases))}",
+            ]
+        )
     output = tabulate(
         table,
         headers=[
