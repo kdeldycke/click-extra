@@ -29,6 +29,8 @@
 from __future__ import annotations
 
 from configparser import ConfigParser
+import re
+from pathlib import Path
 
 import furo
 from pygments import lexers
@@ -56,6 +58,7 @@ from pygments_ansi_color import (
     ExtendedColorHtmlFormatterMixin,
     color_tokens,
 )
+from tabulate import tabulate
 
 fg_colors = bg_colors = {
     "Black": "#000000",
@@ -198,11 +201,64 @@ def collect_session_lexers():
             yield lexer
 
 
+lexer_map = {}
+"""Map original lexer to their ANSI variant."""
+
+
 # Auto-generate the ANSI variant of all lexers we collected.
 for original_lexer in collect_session_lexers():
     new_name = f"Ansi{original_lexer.__name__}"
     new_lexer = AnsiSessionLexer(new_name, (AnsiLexerFiltersMixin, original_lexer), {})
     locals()[new_name] = new_lexer
+    lexer_map[original_lexer] = new_lexer
+
+
+def generate_lexer_table():
+    """Generate a Markdown table mapping original lexers to their new ANSI variants.
+    """
+    table = []
+    for orig_lexer, ansi_lexer in sorted(lexer_map.items(), key=lambda i: i[0].__qualname__):
+        table.append([
+            f"[`{orig_lexer.__qualname__}`](https://pygments.org/docs/lexers/#"
+            f"{orig_lexer.__module__}.{orig_lexer.__qualname__})",
+            f"{', '.join(f'`{a}`' for a in sorted(orig_lexer.aliases))}",
+            f"{', '.join(f'`{a}`' for a in sorted(ansi_lexer.aliases))}",
+        ])
+    output = tabulate(
+        table,
+        headers=[
+            "Original Lexer",
+            "Original IDs",
+            "ANSI variants",
+        ],
+        tablefmt="github",
+        colalign=["left", "left", "left"],
+        disable_numparse=True,
+    )
+    return output
+
+
+def update_lexer_table():
+    """Update the lexer table in the ``pygments.md`` documentation."""
+    file = Path(__file__).parent.parent.joinpath("docs/pygments.md").resolve()
+    content = file.read_text()
+
+    # HTML comment delimiting the lexer table to update.
+    start_tag = "<!-- lexer-table-start -->"
+    end_tag = "<!-- lexer-table-end -->"
+
+    # Extract pre- and post-content surrounding the table we're trying to update.
+    pre_table, table_start = content.split(start_tag, 1)
+    table_content, post_table = table_start.split(end_tag, 1)
+
+    # Reconstruct the content with our updated table.
+    file.write_text(
+        f"{pre_table}"
+        f"{start_tag}\n\n"
+        f"{generate_lexer_table()}"
+        f"\n\n{end_tag}"
+        f"{post_table}"
+    )
 
 
 class AnsiHtmlFormatter(ExtendedColorHtmlFormatterMixin, HtmlFormatter):

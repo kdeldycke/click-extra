@@ -6,7 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
-- Add support for new ANSI-capable lexer: `ansi-gap`.
+- Add support for new ANSI-capable lexers: `ansi-gap-console` and `ansi-gap-repl`.
+- Auto-update table of supported lexers in documentation.
 - Add test to search in Pygments' test data for REPL/terminal-like lexers, as candidates for ANSI-coloring.
 - Depends on `importlib_metadata` for `Python < 3.9`.
 

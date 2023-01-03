@@ -10,6 +10,8 @@ As soon as [`click-extra` is installed](install.md), all its additionnal lexers,
 
 Click Extra adds new lexers capable of parsing ANSI code in various shell-like sessions. I.e. command lines or code, including a prompt, interspersed with output.
 
+<!-- lexer-table-start -->
+
 | Original Lexer                                                                                             | Original IDs                                     | ANSI variants                                                   |
 | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | --------------------------------------------------------------- |
 | [`BashSessionLexer`](https://pygments.org/docs/lexers/#pygments.lexers.shell.BashSessionLexer)             | `console`, `shell-session`                       | `ansi-console`, `ansi-shell-session`                            |
@@ -29,6 +31,8 @@ Click Extra adds new lexers capable of parsing ANSI code in various shell-like s
 | [`RubyConsoleLexer`](https://pygments.org/docs/lexers/#pygments.lexers.ruby.RubyConsoleLexer)              | `rbcon`, `irb`                                   | `ansi-rbcon`, `ansi-irb`                                        |
 | [`SqliteConsoleLexer`](https://pygments.org/docs/lexers/#pygments.lexers.sql.SqliteConsoleLexer)           | `sqlite3`                                        | `ansi-sqlite3`                                                  |
 | [`TcshSessionLexer`](https://pygments.org/docs/lexers/#pygments.lexers.shell.TcshSessionLexer)             | `tcshcon`                                        | `ansi-tcshcon`                                                  |
+
+<!-- lexer-table-end -->
 
 To check the new lexers are properly register by Pygments:
 
