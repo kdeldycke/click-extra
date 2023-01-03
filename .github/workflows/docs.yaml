@@ -19,7 +19,7 @@ jobs:
   docs:
     uses: kdeldycke/workflows/.github/workflows/docs.yaml@v2.1.1
 
-  update-lexer-docs:
+  update-docs:
     needs: docs
     runs-on: ubuntu-22.04
     steps:
@@ -32,14 +32,14 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install --upgrade poetry
           poetry install --no-interaction --no-ansi
-      - name: Update lexer table
+      - name: Generate dynamic doc
         run: |
-          poetry run python -c "from click_extra.pygments import update_lexer_table; update_lexer_table()"
+          poetry run python -c "from click_extra.docs import update_docs; update_docs()"
       - uses: peter-evans/create-pull-request@v4.2.3
         with:
           assignees: ${{ github.actor }}
-          commit-message: "[autofix] Regenerate lexer table."
-          title: "[autofix] Regenerate lexer table"
+          commit-message: "[autofix] Regenerate documentation."
+          title: "[autofix] Regenerate documentation"
           body: >
             <details><summary><code>Workflow metadata</code></summary>
 
@@ -51,4 +51,4 @@ jobs:
 
             </details>
           labels: "📚 documentation"
-          branch: update-lexer-docs
+          branch: update-docs
