@@ -35,7 +35,7 @@ from click.core import BaseCommand
 from click.testing import CliRunner, Result
 
 from ..commands import extra_command, extra_group
-from ..platform import is_linux, is_macos, is_windows
+from ..platforms import is_linux, is_macos, is_windows
 from ..run import EnvVars, args_cleanup, print_cli_output
 
 DESTRUCTIVE_MODE = bool(

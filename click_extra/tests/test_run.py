@@ -28,7 +28,7 @@ from cloup import Style
 from pytest_cases import fixture, parametrize
 
 from ..logging import logger
-from ..platform import is_windows
+from ..platforms import is_windows
 from ..run import env_copy
 from .conftest import command_decorators, skip_windows_colors
 

@@ -70,7 +70,7 @@ from wcmatch.glob import (
 from .colorize import KO, OK, default_theme
 from .logging import logger
 from .parameters import ExtraOption
-from .platform import is_windows
+from .platforms import is_windows
 
 
 class Formats(Enum):

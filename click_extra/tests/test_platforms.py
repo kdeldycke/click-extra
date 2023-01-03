@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from types import FunctionType
 
-from ..platform import (
+from ..platforms import (
     ALL_OS_LABELS,
     ANY_BSD,
     ANY_LINUX,
