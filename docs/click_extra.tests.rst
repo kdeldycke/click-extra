@@ -49,10 +49,10 @@ click\_extra.tests.test\_logging module
    :undoc-members:
    :show-inheritance:
 
-click\_extra.tests.test\_platform module
-----------------------------------------
+click\_extra.tests.test\_platforms module
+-----------------------------------------
 
-.. automodule:: click_extra.tests.test_platform
+.. automodule:: click_extra.tests.test_platforms
    :members:
    :undoc-members:
    :show-inheritance:
