@@ -8,10 +8,10 @@ Write example and tutorial.
 Add a Venn diagram of families.
 ```
 
-## `click_extra.platform` API
+## `click_extra.platforms` API
 
 ```{eval-rst}
-.. automodule:: click_extra.platform
+.. automodule:: click_extra.platforms
    :members:
    :undoc-members:
    :show-inheritance:
