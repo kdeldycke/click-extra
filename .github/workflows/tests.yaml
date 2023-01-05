@@ -155,7 +155,7 @@ jobs:
           click_extra/tests/test_logging.py
 
           poetry run pytest --cov-config=pyproject.toml --cov=./ --cov-report=xml \
-          click_extra/tests/test_platform.py \
+          click_extra/tests/test_platforms.py \
           click_extra/tests/test_pygments.py \
           click_extra/tests/test_run.py \
           click_extra/tests/test_tabulate.py
@@ -180,7 +180,7 @@ jobs:
           click_extra/tests/test_logging.py
 
           poetry run pytest --cov-config=pyproject.toml --cov=./ --cov-report=xml `
-          click_extra/tests/test_platform.py `
+          click_extra/tests/test_platforms.py `
           click_extra/tests/test_pygments.py `
           click_extra/tests/test_run.py `
           click_extra/tests/test_tabulate.py
