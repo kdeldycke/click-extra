@@ -65,8 +65,16 @@ click\_extra.parameters module
    :undoc-members:
    :show-inheritance:
 
-click\_extra.platforms module
+click\_extra.platform module
 ----------------------------
+
+.. automodule:: click_extra.platform
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+click\_extra.platforms module
+-----------------------------
 
 .. automodule:: click_extra.platforms
    :members:
