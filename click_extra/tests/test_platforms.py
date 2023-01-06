@@ -17,10 +17,12 @@
 
 from __future__ import annotations
 
-from types import FunctionType
 from itertools import combinations
+from types import FunctionType
 
 from ..platforms import (
+    ALL_GROUPS,
+    ALL_OS_FAMILIES,
     ALL_OS_LABELS,
     ANY_BSD,
     ANY_LINUX,
@@ -30,14 +32,12 @@ from ..platforms import (
     ANY_UNIX,
     ANY_UNIX_COMPATIBILITY_LAYER,
     ANY_UNIX_SYSTEM_V,
+    ANY_WINDOWS,
     CURRENT_OS_ID,
     CURRENT_OS_LABEL,
     LINUX,
     MACOS,
     OS_DEFINITIONS,
-    ANY_WINDOWS,
-    ALL_OS_FAMILIES,
-    ALL_GROUPS,
     WINDOWS,
     current_os,
     is_aix,
