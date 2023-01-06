@@ -15,14 +15,15 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-"""
-.. warning::
+""".. warning::
 
-    Deprecated since version 3.8.0: this module has been moved to ``click_extra.platforms``.
+Deprecated since version 3.8.0: this module has been moved to ``click_extra.platforms``.
 """
 
 import warnings
 
 from .platforms import *
 
-warnings.warn("Use click_extra.platforms instead of click_extra.platform", DeprecationWarning)
+warnings.warn(
+    "Use click_extra.platforms instead of click_extra.platform", DeprecationWarning
+)
