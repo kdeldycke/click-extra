@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 from types import FunctionType
+from itertools import combinations
 
 from ..platforms import (
     ALL_OS_LABELS,
@@ -34,6 +35,9 @@ from ..platforms import (
     LINUX,
     MACOS,
     OS_DEFINITIONS,
+    ANY_WINDOWS,
+    ALL_OS_FAMILIES,
+    ALL_GROUPS,
     WINDOWS,
     current_os,
     is_aix,
@@ -111,22 +115,14 @@ def test_mutual_exclusion():
 
 
 def test_unix_family_content():
-    for family in (
-        ANY_BSD,
-        ANY_LINUX,
-        ANY_LINUX_COMPATIBILITY_LAYER,
-        ANY_UNIX_SYSTEM_V,
-        ANY_UNIX_COMPATIBILITY_LAYER,
-        ANY_OTHER_UNIX,
-        ANY_UNIX,
-    ):
+    for family in ALL_GROUPS:
         assert isinstance(family, frozenset)
         assert len(family) > 0
         assert all(os_id in OS_DEFINITIONS for os_id in family)
 
 
 def test_unix_family_subsets():
-    assert {WINDOWS} | ANY_UNIX == ANY_PLATFORM
+    assert ANY_WINDOWS | ANY_UNIX == ANY_PLATFORM
     assert (
         ANY_BSD
         | ANY_LINUX
@@ -136,6 +132,20 @@ def test_unix_family_subsets():
         | ANY_OTHER_UNIX
         == ANY_UNIX
     )
+
+
+def test_family_no_missing():
+    """Check all platform are attached to a family."""
+    all_platforms = []
+    for family in ALL_OS_FAMILIES:
+        all_platforms.extend(family)
+    assert sorted(all_platforms) == sorted(OS_DEFINITIONS.keys())
+
+
+def test_family_non_overlap():
+    """Check our platform groups are mutually exclusive."""
+    for combination in combinations(ALL_OS_FAMILIES, 2):
+        assert combination[0].isdisjoint(combination[1])
 
 
 def test_os_definitions():

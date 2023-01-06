@@ -175,17 +175,25 @@ OS_DEFINITIONS = FrozenDict(
 )
 """Map OS IDs to evaluation function and OS labels."""
 
+
 ANY_PLATFORM = frozenset(OS_DEFINITIONS)
 """ IDs of all platforms."""
 
-ANY_UNIX = frozenset(set(OS_DEFINITIONS) - {WINDOWS})
+
+ANY_WINDOWS = frozenset({WINDOWS})
+""" IDs of all Windows operating systems."""
+
+
+ANY_UNIX = frozenset(set(OS_DEFINITIONS) - ANY_WINDOWS)
 """ IDs of all Unix-like operating systems and compatibility layers."""
+
 
 ANY_UNIX_BUT_MACOS = frozenset(ANY_UNIX - {MACOS})
 """ IDs of all Unix platforms, without macOS.
 
 This is useful to avoid macOS-specific workarounds on Unix platforms.
 """
+
 
 ANY_BSD = frozenset({FREEBSD, MACOS, NETBSD, OPENBSD, SUNOS})
 """ IDs of all BSD platforms.
@@ -201,6 +209,7 @@ ANY_BSD = frozenset({FREEBSD, MACOS, NETBSD, OPENBSD, SUNOS})
     - `Ultrix`
 """
 
+
 ANY_LINUX = frozenset({LINUX})
 """ IDs of all Unix platforms based on a Linux kernel.
 
@@ -213,6 +222,7 @@ ANY_LINUX = frozenset({LINUX})
     - any other distribution
 """
 
+
 ANY_LINUX_COMPATIBILITY_LAYER = frozenset({WSL1, WSL2})
 """ IDs of interfaces that allows UNIX binaries to run on a different host system.
 
@@ -222,6 +232,7 @@ ANY_LINUX_COMPATIBILITY_LAYER = frozenset({WSL1, WSL2})
 
     - `Windows Subsystem for Linux`
 """
+
 
 ANY_UNIX_SYSTEM_V = frozenset({AIX, SOLARIS})
 """ IDs of all Unix platforms derived from AT&T System Five.
@@ -242,6 +253,7 @@ ANY_UNIX_SYSTEM_V = frozenset({AIX, SOLARIS})
     - `UNIX`
     - `UnixWare`
 """
+
 
 ANY_UNIX_COMPATIBILITY_LAYER = frozenset({CYGWIN})
 """ IDs of interfaces that allows UNIX binaries to run on a different host system.
@@ -266,7 +278,8 @@ ANY_UNIX_COMPATIBILITY_LAYER = frozenset({CYGWIN})
     - `Windows Services for UNIX`
 """
 
-ANY_OTHER_UNIX = (
+
+ANY_OTHER_UNIX = frozenset(
     ANY_UNIX - ANY_BSD - ANY_LINUX - ANY_LINUX_COMPATIBILITY_LAYER - ANY_UNIX_SYSTEM_V - ANY_UNIX_COMPATIBILITY_LAYER
 )
 """ IDs of all other Unix platforms.
@@ -290,10 +303,31 @@ ANY_OTHER_UNIX = (
 """
 
 
+ALL_OS_FAMILIES = frozenset({
+    ANY_WINDOWS,
+    ANY_BSD,
+    ANY_LINUX,
+    ANY_LINUX_COMPATIBILITY_LAYER,
+    ANY_UNIX_SYSTEM_V,
+    ANY_UNIX_COMPATIBILITY_LAYER,
+    ANY_OTHER_UNIX,
+})
+"""Non-overlapping sets of OS IDs."""
+
+
+EXTRA_GROUPS = frozenset({
+    ANY_UNIX,
+    ANY_UNIX_BUT_MACOS
+})
+
+
+ALL_GROUPS = frozenset(ALL_OS_FAMILIES | EXTRA_GROUPS)
+
+
 ALL_OS_LABELS: frozenset[str] = frozenset(
     {label for label, _ in OS_DEFINITIONS.values()}
 )
-""" Sets of recognized IDs and labels. """
+""" Sets of all recognized labels. """
 
 
 def os_label(os_id):
