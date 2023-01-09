@@ -8,6 +8,8 @@ This version is not released yet and is under active development.
 
 - Add new `ANY_LINUX_COMPATIBILITY_LAYER`, `ANY_WINDOWS`, `ALL_OS_FAMILIES`, `EXTRA_GROUPS` and `ALL_GROUPS` groups.
 - Rename `click_extra.platform` to `click_extra.platforms`.
+- Activate Graphiz extension in Sphinx.
+- Let Sphinx produde the dependency graph from Graphviz file.
 
 ## {gh}`3.7.0 (2023-01-03) <compare/v3.6.0...v3.7.0>`
 

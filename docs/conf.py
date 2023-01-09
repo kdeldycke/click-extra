@@ -40,6 +40,7 @@ extensions = [
     "sphinxext.opengraph",
     "myst_parser",
     "click_extra.sphinx",
+    "sphinx.ext.graphviz",
 ]
 
 myst_enable_extensions = [
