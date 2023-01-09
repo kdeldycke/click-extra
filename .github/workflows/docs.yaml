@@ -34,7 +34,7 @@ jobs:
           poetry install --no-interaction --no-ansi
       - name: Generate dynamic doc
         run: |
-          poetry run python -c "from click_extra.docs import update_docs; update_docs()"
+          poetry run python -m click_extra.docs_update
       - uses: peter-evans/create-pull-request@v4.2.3
         with:
           assignees: ${{ github.actor }}

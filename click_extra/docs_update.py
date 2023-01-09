@@ -15,11 +15,21 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-"""All we need to keep click-extra documentation up-to-date."""
+"""All we need to keep click-extra documentation up-to-date.
+
+.. tip::
+
+    When the module is called directly, it will update all documentation files:
+
+    .. code-block:: shell-session
+
+        $ run python -m click_extra.docs_update
+"""
 
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 
 from tabulate import tabulate
 
@@ -80,3 +90,7 @@ def update_lexer_table():
 def update_docs():
     """Update all documentation files with dynamic content."""
     update_lexer_table()
+
+
+if __name__ == "__main__":
+    sys.exit(update_docs())
