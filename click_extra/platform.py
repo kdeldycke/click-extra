@@ -15,9 +15,13 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-""".. warning::
+""" Old deprecated module.
 
-Deprecated since version 3.8.0: this module has been moved to ``click_extra.platforms``.
+.. warning::
+
+    ``click_extra.platform`` is deprecated since version 3.8.0.
+
+    Use ``click_extra.platforms`` (with a trailing ``s``) instead.
 """
 
 import warnings

@@ -16,3 +16,12 @@ Add a Venn diagram of families.
    :undoc-members:
    :show-inheritance:
 ```
+
+## Deprecated `click_extra.platform` API
+
+```{eval-rst}
+.. automodule:: click_extra.platform
+   :members:
+   :undoc-members:
+   :show-inheritance:
+```
