@@ -41,10 +41,10 @@ click\_extra.config module
    :undoc-members:
    :show-inheritance:
 
-click\_extra.docs module
-------------------------
+click\_extra.docs\_update module
+--------------------------------
 
-.. automodule:: click_extra.docs
+.. automodule:: click_extra.docs_update
    :members:
    :undoc-members:
    :show-inheritance:
