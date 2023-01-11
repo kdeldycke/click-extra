@@ -15,15 +15,18 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-"""All we need to keep click-extra documentation up-to-date.
+"""Automation to keep click-extra documentation up-to-date.
 
 .. tip::
 
-    When the module is called directly, it will update all documentation files:
+    When the module is called directly, it will update all documentation files in-place:
 
     .. code-block:: shell-session
 
         $ run python -m click_extra.docs_update
+
+    See how it is `used in .github/workflows/docs.yaml workflow
+    <https://github.com/kdeldycke/click-extra/blob/a978bd07bbc3f760e82fee17ce6281c5790065ae/.github/workflows/docs.yaml#L35-L37>`_.
 """
 
 from __future__ import annotations
