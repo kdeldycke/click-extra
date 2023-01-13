@@ -93,7 +93,7 @@ WSL1 = NEW_WSL1.id
 WSL2 = NEW_WSL2.id
 
 OS_DEFINITIONS = FrozenDict({p.id: (p.name, p.current) for p in ALL_PLATFORMS})
-ANY_PLATFORM = frozenset(p.id for p in ALL_PLATFORMS.platforms)
+ANY_PLATFORM = frozenset(p.id for p in ALL_PLATFORMS)
 ANY_UNIX = frozenset(p.id for p in ALL_UNIX.platforms)
 ANY_UNIX_BUT_MACOS = frozenset(p.id for p in ALL_UNIX_WITHOUT_MACOS.platforms)
 ANY_BSD = frozenset(p.id for p in ALL_BSD.platforms)

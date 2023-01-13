@@ -213,7 +213,7 @@ WSL2 = Platform("wsl2", "Windows Subsystem for Linux v2")
 """ Identify Windows Subsystem for Linux v2. """
 
 
-ALL_PLATFORMS: tuple[Platform] = (
+ALL_PLATFORMS: tuple[Platform, ...] = (
     AIX,
     CYGWIN,
     FREEBSD,
@@ -396,7 +396,7 @@ ALL_OTHER_UNIX = Group(
 """
 
 
-NON_OVERLAPPING_GROUPS: tuple[Group] = (
+NON_OVERLAPPING_GROUPS: tuple[Group, ...] = (
     ALL_WINDOWS,
     ALL_BSD,
     ALL_LINUX,
@@ -408,33 +408,34 @@ NON_OVERLAPPING_GROUPS: tuple[Group] = (
 """Non-overlapping groups."""
 
 
-EXTRA_GROUPS: tuple[Group] = (ALL_UNIX, ALL_UNIX_WITHOUT_MACOS)
+EXTRA_GROUPS: tuple[Group, ...] = (ALL_UNIX, ALL_UNIX_WITHOUT_MACOS)
 """Overlapping groups, defined for convenience."""
 
 
-ALL_GROUPS: tuple[Group] = NON_OVERLAPPING_GROUPS + EXTRA_GROUPS
+ALL_GROUPS: tuple[Group, ...] = NON_OVERLAPPING_GROUPS + EXTRA_GROUPS
 """All groups."""
 
 
-ALL_OS_LABELS: frozenset[str] = frozenset({platform.name for platform in ALL_PLATFORMS})
+ALL_OS_LABELS: frozenset[str] = frozenset({p.name for p in ALL_PLATFORMS})
 """ Sets of all recognized labels. """
 
 
 @cache
 def os_label(os_id: str) -> str | None:
     """Return platform label for user-friendly output."""
-    for platform in ALL_PLATFORMS:
-        if platform.id == os_id:
-            return platform.name
+    for p in ALL_PLATFORMS:
+        if p.id == os_id:
+            return p.name
+    return None
 
 
 @cache
 def current_os() -> Platform:
     """Return the current platform."""
     matching = []
-    for platform in ALL_PLATFORMS:
-        if platform.current:
-            matching.append(platform)
+    for p in ALL_PLATFORMS:
+        if p.current:
+            matching.append(p)
 
     if len(matching) > 1:
         raise RuntimeError(f"Multiple platforms match current OS: {matching}")
