@@ -17,6 +17,8 @@
 
 """Old deprecated module.
 
+Redefines all constants to keep backward compatibility.
+
 .. warning::
 
     ``click_extra.platform`` is deprecated since version 3.8.0.
@@ -26,8 +28,83 @@
 
 import warnings
 
-from .platforms import *
+from boltons.dictutils import FrozenDict
+
+from .platforms import AIX as NEW_AIX
+from .platforms import (
+    ALL_BSD,
+    ALL_LINUX,
+    ALL_OS_LABELS,
+    ALL_OTHER_UNIX,
+    ALL_PLATFORMS,
+    ALL_UNIX,
+    ALL_UNIX_COMPATIBILITY_LAYER,
+    ALL_UNIX_SYSTEM_V,
+    ALL_UNIX_WITHOUT_MACOS,
+    CURRENT_OS_ID,
+    CURRENT_OS_LABEL,
+)
+from .platforms import CYGWIN as NEW_CYGWIN
+from .platforms import FREEBSD as NEW_FREEBSD
+from .platforms import HURD as NEW_HURD
+from .platforms import LINUX as NEW_LINUX
+from .platforms import MACOS as NEW_MACOS
+from .platforms import NETBSD as NEW_NETBSD
+from .platforms import OPENBSD as NEW_OPENBSD
+from .platforms import SOLARIS as NEW_SOLARIS
+from .platforms import SUNOS as NEW_SUNOS
+from .platforms import WINDOWS as NEW_WINDOWS
+from .platforms import WSL1 as NEW_WSL1
+from .platforms import WSL2 as NEW_WSL2
+from .platforms import current_os as new_current_os
+from .platforms import (
+    is_aix,
+    is_cygwin,
+    is_freebsd,
+    is_hurd,
+    is_linux,
+    is_macos,
+    is_netbsd,
+    is_openbsd,
+    is_solaris,
+    is_sunos,
+    is_windows,
+    is_wsl1,
+    is_wsl2,
+    os_label,
+)
 
 warnings.warn(
     "Use click_extra.platforms instead of click_extra.platform", DeprecationWarning
 )
+
+AIX = NEW_AIX.id
+CYGWIN = NEW_CYGWIN.id
+FREEBSD = NEW_FREEBSD.id
+HURD = NEW_HURD.id
+LINUX = NEW_LINUX.id
+MACOS = NEW_MACOS.id
+NETBSD = NEW_NETBSD.id
+OPENBSD = NEW_OPENBSD.id
+SOLARIS = NEW_SOLARIS.id
+SUNOS = NEW_SUNOS.id
+WINDOWS = NEW_WINDOWS.id
+WSL1 = NEW_WSL1.id
+WSL2 = NEW_WSL2.id
+
+OS_DEFINITIONS = FrozenDict({p.id: (p.name, p.current) for p in ALL_PLATFORMS})
+ANY_PLATFORM = frozenset(p.id for p in ALL_PLATFORMS.platforms)
+ANY_UNIX = frozenset(p.id for p in ALL_UNIX.platforms)
+ANY_UNIX_BUT_MACOS = frozenset(p.id for p in ALL_UNIX_WITHOUT_MACOS.platforms)
+ANY_BSD = frozenset(p.id for p in ALL_BSD.platforms)
+ANY_LINUX = frozenset(p.id for p in ALL_LINUX.platforms)
+ANY_UNIX_SYSTEM_V = frozenset(p.id for p in ALL_UNIX_SYSTEM_V.platforms)
+ANY_UNIX_COMPATIBILITY_LAYER = frozenset(
+    p.id for p in ALL_UNIX_COMPATIBILITY_LAYER.platforms
+)
+ANY_OTHER_UNIX = frozenset(p.id for p in ALL_OTHER_UNIX.platforms)
+
+
+def current_os():
+    platform = new_current_os()
+    return platform.id, platform.name
