@@ -185,17 +185,17 @@ def test_non_overlapping_groups():
 
 def test_current_os_func():
     # Function.
-    curent_platform = current_os()
-    assert curent_platform in ALL_PLATFORMS
+    current_platform = current_os()
+    assert current_platform in ALL_PLATFORMS
     # Constants.
-    assert curent_platform.id == CURRENT_OS_ID
-    assert curent_platform.name == CURRENT_OS_LABEL
+    assert current_platform.id == CURRENT_OS_ID
+    assert current_platform.name == CURRENT_OS_LABEL
 
 
 def test_os_labels():
     assert len(ALL_OS_LABELS) == len(ALL_PLATFORMS)
-    curent_platform = current_os()
-    assert os_label(curent_platform.id) == curent_platform.name
+    current_platform = current_os()
+    assert os_label(current_platform.id) == current_platform.name
 
 
 @skip_linux
