@@ -36,7 +36,7 @@ if sys.version_info >= (3, 9):
 else:
     from functools import lru_cache
 
-    def cache(user_function, /):
+    def cache(user_function):
         """Simple lightweight unbounded cache. Sometimes called "memoize".
 
         .. important::
