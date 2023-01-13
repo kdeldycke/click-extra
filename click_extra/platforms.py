@@ -29,105 +29,101 @@ from __future__ import annotations
 
 import platform
 import sys
+from dataclasses import dataclass, field
 
-from boltons.dictutils import FrozenDict
+if sys.version_info >= (3, 9):
+    from functools import cache
+else:
+    from functools import lru_cache
 
-AIX = "aix"
-""" Constant used to identify distributions of the AIX family. """
+    def cache(user_function, /):
+        """Simple lightweight unbounded cache. Sometimes called "memoize".
 
-CYGWIN = "cygwin"
-""" Constant used to identify distributions of the Cygwin family. """
+        .. important::
 
-FREEBSD = "freebsd"
-""" Constant used to identify distributions of the FreeBSD family. """
-
-HURD = "hurd"
-""" Constant used to identify distributions of the GNU/Hurd family. """
-
-LINUX = "linux"
-""" Constant used to identify distributions of the Linux family. """
-
-MACOS = "macos"
-""" Constant used to identify distributions of the macOS family. """
-
-NETBSD = "netbsd"
-""" Constant used to identify distributions of the NetBSD family. """
-
-OPENBSD = "openbsd"
-""" Constant used to identify distributions of the OpenBSD family. """
-
-SOLARIS = "solaris"
-""" Constant used to identify distributions of the Solaris family. """
-
-SUNOS = "sunos"
-""" Constant used to identify distributions of the SunOS family. """
-
-WINDOWS = "windows"
-""" Constant used to identify distributions of the Windows family. """
-
-WSL1 = "wsl1"
-""" Constant used to identify Windows Subsystem for Linux v1. """
-
-WSL2 = "wsl2"
-""" Constant used to identify Windows Subsystem for Linux v2. """
+            This is a straight `copy of the functools.cache implementation
+            <https://github.com/python/cpython/blob/55a26de6ba938962dc23f2495723cf0f4f3ab7c6/Lib/functools.py#L647-L653>`_,
+            which is only `available in the standard library starting with Python v3.9
+            <https://docs.python.org/3/library/functools.html?highlight=caching#functools.cache>`.
+        """
+        return lru_cache(maxsize=None)(user_function)
 
 
-def is_aix():
+""" Below is the collection of heuristics used to identify each platform.
+
+All these heuristics can be hard-cached as the underlying system is not suppose to
+change between code execution.
+"""
+
+
+@cache
+def is_aix() -> bool:
     """Return `True` only if current platform is of the AIX family."""
     return sys.platform.startswith("aix")
 
 
-def is_cygwin():
+@cache
+def is_cygwin() -> bool:
     """Return `True` only if current platform is of the Cygwin family."""
     return sys.platform.startswith("cygwin")
 
 
-def is_freebsd():
+@cache
+def is_freebsd() -> bool:
     """Return `True` only if current platform is of the FreeBSD family."""
     return sys.platform.startswith(("freebsd", "midnightbsd"))
 
 
-def is_hurd():
+@cache
+def is_hurd() -> bool:
     """Return `True` only if current platform is of the GNU/Hurd family."""
     return sys.platform.startswith("GNU")
 
 
-def is_linux():
+@cache
+def is_linux() -> bool:
     """Return `True` only if current platform is of the Linux family."""
     return sys.platform.startswith("linux")
 
 
-def is_macos():
+@cache
+def is_macos() -> bool:
     """Return `True` only if current platform is of the macOS family."""
     return platform.platform(terse=True).startswith(("macOS", "Darwin"))
 
 
-def is_netbsd():
+@cache
+def is_netbsd() -> bool:
     """Return `True` only if current platform is of the NetBSD family."""
     return sys.platform.startswith("netbsd")
 
 
-def is_openbsd():
+@cache
+def is_openbsd() -> bool:
     """Return `True` only if current platform is of the OpenBSD family."""
     return sys.platform.startswith("openbsd")
 
 
-def is_solaris():
+@cache
+def is_solaris() -> bool:
     """Return `True` only if current platform is of the Solaris family."""
     return platform.platform(aliased=True, terse=True).startswith("Solaris")
 
 
-def is_sunos():
+@cache
+def is_sunos() -> bool:
     """Return `True` only if current platform is of the SunOS family."""
     return platform.platform(aliased=True, terse=True).startswith("SunOS")
 
 
-def is_windows():
+@cache
+def is_windows() -> bool:
     """Return `True` only if current platform is of the Windows family."""
     return sys.platform.startswith("win32")
 
 
-def is_wsl1():
+@cache
+def is_wsl1() -> bool:
     """Return `True` only if current platform is Windows Subsystem for Linux v1.
 
     .. caution::
@@ -151,52 +147,130 @@ def is_wsl1():
     return "Microsoft" in platform.release()
 
 
-def is_wsl2():
+@cache
+def is_wsl2() -> bool:
     """Return `True` only if current platform is Windows Subsystem for Linux v2."""
     return "microsoft" in platform.release()
 
 
-OS_DEFINITIONS = FrozenDict(
-    {
-        AIX: ("IBM AIX", is_aix()),
-        CYGWIN: ("Cygwin", is_cygwin()),
-        FREEBSD: ("FreeBSD", is_freebsd()),
-        HURD: ("GNU/Hurd", is_hurd()),
-        LINUX: ("Linux", is_linux()),
-        MACOS: ("macOS", is_macos()),
-        NETBSD: ("NetBSD", is_netbsd()),
-        OPENBSD: ("OpenBSD", is_openbsd()),
-        SOLARIS: ("Oracle Solaris", is_solaris()),
-        SUNOS: ("SunOS", is_sunos()),
-        WINDOWS: ("Windows", is_windows()),
-        WSL1: ("Windows Subsystem for Linux v1", is_wsl1()),
-        WSL2: ("Windows Subsystem for Linux v2", is_wsl2()),
-    }
+@dataclass()
+class Platform:
+    """A platform can identify multiple distributions or OSes with the same characteristics."""
+
+    id: str
+    """Unique ID of the platform."""
+
+    name: str
+    """User-friendly name of the platform."""
+
+    current: bool = field(init=False)
+    """`True` if current environment has been identified as being of this platform."""
+
+    def __post_init__(self):
+        """Set the ``current`` attribute to identifying the current platform."""
+        check_func_id = f"is_{self.id}"
+        assert check_func_id in globals()
+        self.current = globals()[check_func_id]()
+
+
+AIX = Platform("aix", "AIX")
+""" Identify distributions of the AIX family. """
+
+CYGWIN = Platform("cygwin", "Cygwin")
+""" Identify distributions of the Cygwin family. """
+
+FREEBSD = Platform("freebsd", "FreeBSD")
+""" Identify distributions of the FreeBSD family. """
+
+HURD = Platform("hurd", "GNU/Hurd")
+""" Identify distributions of the GNU/Hurd family. """
+
+LINUX = Platform("linux", "Linux")
+""" Identify distributions of the Linux family. """
+
+MACOS = Platform("macos", "macOS")
+""" Identify distributions of the macOS family. """
+
+NETBSD = Platform("netbsd", "NetBSD")
+""" Identify distributions of the NetBSD family. """
+
+OPENBSD = Platform("openbsd", "OpenBSD")
+""" Identify distributions of the OpenBSD family. """
+
+SOLARIS = Platform("solaris", "Solaris")
+""" Identify distributions of the Solaris family. """
+
+SUNOS = Platform("sunos", "SunOS")
+""" Identify distributions of the SunOS family. """
+
+WINDOWS = Platform("windows", "Windows")
+""" Identify distributions of the Windows family. """
+
+WSL1 = Platform("wsl1", "Windows Subsystem for Linux v1")
+""" Identify Windows Subsystem for Linux v1. """
+
+WSL2 = Platform("wsl2", "Windows Subsystem for Linux v2")
+""" Identify Windows Subsystem for Linux v2. """
+
+
+ALL_PLATFORMS: tuple[Platform] = (
+    AIX,
+    CYGWIN,
+    FREEBSD,
+    HURD,
+    LINUX,
+    MACOS,
+    NETBSD,
+    OPENBSD,
+    SOLARIS,
+    SUNOS,
+    WINDOWS,
+    WSL1,
+    WSL2,
 )
-"""Map OS IDs to evaluation function and OS labels."""
+"""All platforms."""
 
 
-ANY_PLATFORM = frozenset(OS_DEFINITIONS)
-""" IDs of all platforms."""
+@dataclass(frozen=True)
+class Group:
+    """A ``Group`` identify a family of ``Platform``."""
+
+    id: str
+    """Unique ID of the group."""
+
+    name: str
+    """User-friendly description of a group."""
+
+    platforms: list[Platform]
+
+    def __iter__(self):
+        """Iterate over the platforms of the group."""
+        yield from self.platforms
+
+    def __len__(self):
+        """Return the number of platforms in the group."""
+        return len(self.platforms)
 
 
-ANY_WINDOWS = frozenset({WINDOWS})
-""" IDs of all Windows operating systems."""
+ALL_WINDOWS = Group("all_windows", "All Windows", [WINDOWS])
+""" All Windows operating systems."""
 
 
-ANY_UNIX = frozenset(set(OS_DEFINITIONS) - ANY_WINDOWS)
-""" IDs of all Unix-like operating systems and compatibility layers."""
+ALL_UNIX = Group("unix", "All Unix", [p for p in ALL_PLATFORMS if p not in ALL_WINDOWS])
+""" All Unix-like operating systems and compatibility layers."""
 
 
-ANY_UNIX_BUT_MACOS = frozenset(ANY_UNIX - {MACOS})
-""" IDs of all Unix platforms, without macOS.
+ALL_UNIX_WITHOUT_MACOS = Group(
+    "unix_without_macos", "All Unix without macOS", [p for p in ALL_UNIX if p != MACOS]
+)
+""" All Unix platforms, without macOS.
 
 This is useful to avoid macOS-specific workarounds on Unix platforms.
 """
 
 
-ANY_BSD = frozenset({FREEBSD, MACOS, NETBSD, OPENBSD, SUNOS})
-""" IDs of all BSD platforms.
+ALL_BSD = Group("bsd", "All BSD", [FREEBSD, MACOS, NETBSD, OPENBSD, SUNOS])
+""" All BSD platforms.
 
 .. note::
     Are considered of this family (`according Wikipedia
@@ -210,8 +284,8 @@ ANY_BSD = frozenset({FREEBSD, MACOS, NETBSD, OPENBSD, SUNOS})
 """
 
 
-ANY_LINUX = frozenset({LINUX})
-""" IDs of all Unix platforms based on a Linux kernel.
+ALL_LINUX = Group("all_linux", "All Linux", [LINUX])
+""" All Unix platforms based on a Linux kernel.
 
 .. note::
     Are considered of this family (`according Wikipedia
@@ -223,8 +297,10 @@ ANY_LINUX = frozenset({LINUX})
 """
 
 
-ANY_LINUX_COMPATIBILITY_LAYER = frozenset({WSL1, WSL2})
-""" IDs of interfaces that allows UNIX binaries to run on a different host system.
+ALL_LINUX_COMPATIBILITY_LAYER = Group(
+    "all_linux_layers", "All Linux compatibility layers", [WSL1, WSL2]
+)
+""" Interfaces that allows Linux binaries to run on a different host system.
 
 .. note::
     Are considered of this family (`according Wikipedia
@@ -234,8 +310,10 @@ ANY_LINUX_COMPATIBILITY_LAYER = frozenset({WSL1, WSL2})
 """
 
 
-ANY_UNIX_SYSTEM_V = frozenset({AIX, SOLARIS})
-""" IDs of all Unix platforms derived from AT&T System Five.
+ALL_UNIX_SYSTEM_V = Group(
+    "all_system_v", "All Unix derived from AT&T System Five", [AIX, SOLARIS]
+)
+""" All Unix platforms derived from AT&T System Five.
 
 .. note::
     Are considered of this family (`according Wikipedia
@@ -255,8 +333,10 @@ ANY_UNIX_SYSTEM_V = frozenset({AIX, SOLARIS})
 """
 
 
-ANY_UNIX_COMPATIBILITY_LAYER = frozenset({CYGWIN})
-""" IDs of interfaces that allows UNIX binaries to run on a different host system.
+ALL_UNIX_COMPATIBILITY_LAYER = Group(
+    "all_unix_layers", "All Unix compatibility layers", [CYGWIN]
+)
+""" Interfaces that allows Unix binaries to run on a different host system.
 
 .. note::
     Are considered of this family (`according Wikipedia
@@ -279,15 +359,23 @@ ANY_UNIX_COMPATIBILITY_LAYER = frozenset({CYGWIN})
 """
 
 
-ANY_OTHER_UNIX = frozenset(
-    ANY_UNIX
-    - ANY_BSD
-    - ANY_LINUX
-    - ANY_LINUX_COMPATIBILITY_LAYER
-    - ANY_UNIX_SYSTEM_V
-    - ANY_UNIX_COMPATIBILITY_LAYER
+ALL_OTHER_UNIX = Group(
+    "all_other_unix",
+    "All other Unix",
+    [
+        p
+        for p in ALL_UNIX
+        if p
+        not in (
+            ALL_BSD.platforms
+            + ALL_LINUX.platforms
+            + ALL_LINUX_COMPATIBILITY_LAYER.platforms
+            + ALL_UNIX_SYSTEM_V.platforms
+            + ALL_UNIX_COMPATIBILITY_LAYER.platforms
+        )
+    ],
 )
-""" IDs of all other Unix platforms.
+""" All other Unix platforms.
 
 .. note::
     Are considered of this family (`according Wikipedia
@@ -308,45 +396,58 @@ ANY_OTHER_UNIX = frozenset(
 """
 
 
-ALL_OS_FAMILIES = frozenset(
-    {
-        ANY_WINDOWS,
-        ANY_BSD,
-        ANY_LINUX,
-        ANY_LINUX_COMPATIBILITY_LAYER,
-        ANY_UNIX_SYSTEM_V,
-        ANY_UNIX_COMPATIBILITY_LAYER,
-        ANY_OTHER_UNIX,
-    }
+NON_OVERLAPPING_GROUPS: tuple[Group] = (
+    ALL_WINDOWS,
+    ALL_BSD,
+    ALL_LINUX,
+    ALL_LINUX_COMPATIBILITY_LAYER,
+    ALL_UNIX_SYSTEM_V,
+    ALL_UNIX_COMPATIBILITY_LAYER,
+    ALL_OTHER_UNIX,
 )
-"""Non-overlapping sets of OS IDs."""
+"""Non-overlapping groups."""
 
 
-EXTRA_GROUPS = frozenset({ANY_UNIX, ANY_UNIX_BUT_MACOS})
+EXTRA_GROUPS: tuple[Group] = (ALL_UNIX, ALL_UNIX_WITHOUT_MACOS)
+"""Overlapping groups, defined for convenience."""
 
 
-ALL_GROUPS = frozenset(ALL_OS_FAMILIES | EXTRA_GROUPS)
+ALL_GROUPS: tuple[Group] = NON_OVERLAPPING_GROUPS + EXTRA_GROUPS
+"""All groups."""
 
 
-ALL_OS_LABELS: frozenset[str] = frozenset(
-    {label for label, _ in OS_DEFINITIONS.values()}
-)
+ALL_OS_LABELS: frozenset[str] = frozenset({platform.name for platform in ALL_PLATFORMS})
 """ Sets of all recognized labels. """
 
 
-def os_label(os_id):
+@cache
+def os_label(os_id: str) -> str | None:
     """Return platform label for user-friendly output."""
-    return OS_DEFINITIONS[os_id][0]
+    for platform in ALL_PLATFORMS:
+        if platform.id == os_id:
+            return platform.name
 
 
-def current_os():
-    """Return a 2-items `tuple` with ID and label of current OS."""
-    for os_id, (os_name, os_flag) in OS_DEFINITIONS.items():
-        if os_flag is True:
-            return os_id, os_name
-    raise SystemError(
-        f"Unrecognized {sys.platform} / {platform.platform(aliased=True, terse=True)} platform."
-    )
+@cache
+def current_os() -> Platform:
+    """Return the current platform."""
+    matching = []
+    for platform in ALL_PLATFORMS:
+        if platform.current:
+            matching.append(platform)
+
+    if len(matching) > 1:
+        raise RuntimeError(f"Multiple platforms match current OS: {matching}")
+
+    if not matching:
+        raise SystemError(
+            f"Unrecognized {sys.platform} / {platform.platform(aliased=True, terse=True)} platform."
+        )
+
+    assert len(matching) == 1
+    return matching.pop()
 
 
-CURRENT_OS_ID, CURRENT_OS_LABEL = current_os()
+CURRENT_OS_ID: str = current_os().id
+CURRENT_OS_LABEL: str = current_os().name
+"""Constants about the current platform."""

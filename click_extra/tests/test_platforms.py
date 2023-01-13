@@ -17,28 +17,29 @@
 
 from __future__ import annotations
 
+import functools
 from itertools import combinations
-from types import FunctionType
 
 from ..platforms import (
+    ALL_BSD,
     ALL_GROUPS,
-    ALL_OS_FAMILIES,
+    ALL_LINUX,
+    ALL_LINUX_COMPATIBILITY_LAYER,
     ALL_OS_LABELS,
-    ANY_BSD,
-    ANY_LINUX,
-    ANY_LINUX_COMPATIBILITY_LAYER,
-    ANY_OTHER_UNIX,
-    ANY_PLATFORM,
-    ANY_UNIX,
-    ANY_UNIX_COMPATIBILITY_LAYER,
-    ANY_UNIX_SYSTEM_V,
-    ANY_WINDOWS,
+    ALL_OTHER_UNIX,
+    ALL_PLATFORMS,
+    ALL_UNIX,
+    ALL_UNIX_COMPATIBILITY_LAYER,
+    ALL_UNIX_SYSTEM_V,
+    ALL_WINDOWS,
     CURRENT_OS_ID,
     CURRENT_OS_LABEL,
+    EXTRA_GROUPS,
     LINUX,
     MACOS,
-    OS_DEFINITIONS,
+    NON_OVERLAPPING_GROUPS,
     WINDOWS,
+    Group,
     current_os,
     is_aix,
     is_cygwin,
@@ -66,8 +67,10 @@ from .conftest import (
 
 
 def test_mutual_exclusion():
-    # Only test the OSes on which the test suite is running via GitHub actions.
+    """Only directly tests OSes on which the test suite is running via GitHub actions."""
     if is_linux():
+        assert CURRENT_OS_ID == LINUX.id
+        assert CURRENT_OS_LABEL == os_label(LINUX.id)
         assert not is_aix()
         assert not is_cygwin()
         assert not is_freebsd()
@@ -80,9 +83,9 @@ def test_mutual_exclusion():
         assert not is_windows()
         assert not is_wsl1()
         assert not is_wsl2()
-        assert CURRENT_OS_ID == LINUX
-        assert CURRENT_OS_LABEL == os_label(LINUX)
     if is_macos():
+        assert CURRENT_OS_ID == MACOS.id
+        assert CURRENT_OS_LABEL == os_label(MACOS.id)
         assert not is_aix()
         assert not is_cygwin()
         assert not is_freebsd()
@@ -95,9 +98,9 @@ def test_mutual_exclusion():
         assert not is_windows()
         assert not is_wsl1()
         assert not is_wsl2()
-        assert CURRENT_OS_ID == MACOS
-        assert CURRENT_OS_LABEL == os_label(MACOS)
     if is_windows():
+        assert CURRENT_OS_ID == WINDOWS.id
+        assert CURRENT_OS_LABEL == os_label(WINDOWS.id)
         assert not is_aix()
         assert not is_cygwin()
         assert not is_freebsd()
@@ -110,92 +113,89 @@ def test_mutual_exclusion():
         assert not is_sunos()
         assert not is_wsl1()
         assert not is_wsl2()
-        assert CURRENT_OS_ID == WINDOWS
-        assert CURRENT_OS_LABEL == os_label(WINDOWS)
 
 
-def test_unix_family_content():
-    for family in ALL_GROUPS:
-        assert isinstance(family, frozenset)
-        assert len(family) > 0
-        assert all(os_id in OS_DEFINITIONS for os_id in family)
+def test_platform_definitions():
+    # Platforms are expected to be sorted by ID.
+    all_platform_ids = [p.id for p in ALL_PLATFORMS]
+    assert all_platform_ids == sorted(all_platform_ids)
+
+    for plaform in ALL_PLATFORMS:
+        # ID.
+        assert plaform.id
+        assert plaform.id.isascii()
+        assert plaform.id.isalnum()
+        assert plaform.id.islower()
+        # Name.
+        assert plaform.name
+        assert plaform.name.isascii()
+        assert plaform.name.isprintable()
+        assert plaform.name in ALL_OS_LABELS
+        # Identification function.
+        check_func_id = f"is_{plaform.id}"
+        assert check_func_id in globals()
+        check_func = globals()[check_func_id]
+        assert isinstance(check_func, functools._lru_cache_wrapper)
+        assert isinstance(check_func(), bool)
+        assert check_func() == plaform.current
 
 
-def test_unix_family_subsets():
-    assert ANY_WINDOWS | ANY_UNIX == ANY_PLATFORM
-    assert (
-        ANY_BSD
-        | ANY_LINUX
-        | ANY_LINUX_COMPATIBILITY_LAYER
-        | ANY_UNIX_SYSTEM_V
-        | ANY_UNIX_COMPATIBILITY_LAYER
-        | ANY_OTHER_UNIX
-        == ANY_UNIX
+def test_groups_content():
+    for groups in (NON_OVERLAPPING_GROUPS, EXTRA_GROUPS, ALL_GROUPS):
+        assert isinstance(groups, tuple)
+        for group in groups:
+            assert isinstance(group, Group)
+            assert len(group) > 0
+            assert all(platform in ALL_PLATFORMS for platform in group.platforms)
+
+
+def test_group_subsets():
+    assert sorted(p.id for p in ALL_WINDOWS.platforms + ALL_UNIX.platforms) == sorted(
+        p.id for p in ALL_PLATFORMS
     )
+    assert sorted(
+        p.id
+        for p in (
+            ALL_BSD.platforms
+            + ALL_LINUX.platforms
+            + ALL_LINUX_COMPATIBILITY_LAYER.platforms
+            + ALL_UNIX_SYSTEM_V.platforms
+            + ALL_UNIX_COMPATIBILITY_LAYER.platforms
+            + ALL_OTHER_UNIX.platforms
+        )
+    ) == sorted(p.id for p in ALL_UNIX.platforms)
 
 
-def test_family_no_missing():
-    """Check all platform are attached to a family."""
-    all_platforms = []
-    for family in ALL_OS_FAMILIES:
-        all_platforms.extend(family)
-    assert sorted(all_platforms) == sorted(OS_DEFINITIONS.keys())
+def test_group_no_missing_platform():
+    """Check all platform are attached to a group at least."""
+    grouped_platforms = []
+    for group in ALL_GROUPS:
+        grouped_platforms.extend(group.platforms)
+    assert set((p.id for p in grouped_platforms)) == set((p.id for p in ALL_PLATFORMS))
 
 
-def test_family_non_overlap():
-    """Check our platform groups are mutually exclusive."""
-    for combination in combinations(ALL_OS_FAMILIES, 2):
-        assert combination[0].isdisjoint(combination[1])
-
-
-def test_os_definitions():
-    assert isinstance(OS_DEFINITIONS, dict)
-    # Each OS definition must be unique.
-    assert isinstance(ALL_OS_LABELS, frozenset)
-    assert len(OS_DEFINITIONS) == len(ALL_OS_LABELS)
-    for os_id, data in OS_DEFINITIONS.items():
-        # OS ID.
-        assert isinstance(os_id, str)
-        assert os_id
-        assert os_id.isascii()
-        assert os_id.isalnum()
-        assert os_id.islower()
-        # Metadata.
-        assert isinstance(data, tuple)
-        assert len(data) == 2
-        label, os_flag = data
-        # OS label.
-        assert label
-        assert isinstance(label, str)
-        assert label.isascii()
-        assert label.isprintable()
-        assert label in ALL_OS_LABELS
-        # OS identification function.
-        assert isinstance(os_flag, bool)
-        os_id_func_name = f"is_{os_id}"
-        assert os_id_func_name in globals()
-        os_id_func = globals()[os_id_func_name]
-        assert isinstance(os_id_func, FunctionType)
-        assert isinstance(os_id_func(), bool)
-        assert os_id_func() == os_flag
+def test_non_overlapping_groups():
+    """Check non-overlapping groups are mutually exclusive."""
+    for combination in combinations(NON_OVERLAPPING_GROUPS, 2):
+        group1, group2 = combination
+        assert set(p.id for p in group1.platforms).isdisjoint(
+            p.id for p in group2.platforms
+        )
 
 
 def test_current_os_func():
     # Function.
-    os_id, label = current_os()
-    assert os_id in OS_DEFINITIONS
-    assert label in [os[0] for os in OS_DEFINITIONS.values()]
+    curent_platform = current_os()
+    assert curent_platform in ALL_PLATFORMS
     # Constants.
-    assert os_id == CURRENT_OS_ID
-    assert label == CURRENT_OS_LABEL
+    assert curent_platform.id == CURRENT_OS_ID
+    assert curent_platform.name == CURRENT_OS_LABEL
 
 
-def test_os_label():
-    os_id, os_name = current_os()
-    assert os_label(os_id) == os_name
-
-
-# Test unittest decorator helpers.
+def test_os_labels():
+    assert len(ALL_OS_LABELS) == len(ALL_PLATFORMS)
+    curent_platform = current_os()
+    assert os_label(curent_platform.id) == curent_platform.name
 
 
 @skip_linux
