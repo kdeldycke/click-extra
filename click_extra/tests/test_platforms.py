@@ -171,14 +171,14 @@ def test_group_no_missing_platform():
     grouped_platforms = []
     for group in ALL_GROUPS:
         grouped_platforms.extend(group.platforms)
-    assert set((p.id for p in grouped_platforms)) == set((p.id for p in ALL_PLATFORMS))
+    assert {p.id for p in grouped_platforms} == {p.id for p in ALL_PLATFORMS}
 
 
 def test_non_overlapping_groups():
     """Check non-overlapping groups are mutually exclusive."""
     for combination in combinations(NON_OVERLAPPING_GROUPS, 2):
         group1, group2 = combination
-        assert set(p.id for p in group1.platforms).isdisjoint(
+        assert {p.id for p in group1.platforms}.isdisjoint(
             p.id for p in group2.platforms
         )
 
