@@ -10,6 +10,7 @@ This version is not released yet and is under active development.
 - Rename `click_extra.platform` to `click_extra.platforms`.
 - Activate Graphiz extension in Sphinx.
 - Let Sphinx produde the dependency graph from Graphviz file.
+- Produce platform graph dynamiccaly.
 - Rename `docs.py` to `docs_update.py` and allow this module to be called directly.
 
 ## {gh}`3.7.0 (2023-01-03) <compare/v3.6.0...v3.7.0>`
