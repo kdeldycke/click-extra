@@ -261,12 +261,12 @@ ALL_WINDOWS = Group("all_windows", "All Windows", [WINDOWS])
 """ All Windows operating systems."""
 
 
-ALL_UNIX = Group("unix", "All Unix", [p for p in ALL_PLATFORMS if p not in ALL_WINDOWS])
+UNIX = Group("unix", "All Unix", [p for p in ALL_PLATFORMS if p not in ALL_WINDOWS])
 """ All Unix-like operating systems and compatibility layers."""
 
 
-ALL_UNIX_WITHOUT_MACOS = Group(
-    "unix_without_macos", "All Unix without macOS", [p for p in ALL_UNIX if p != MACOS]
+UNIX_WITHOUT_MACOS = Group(
+    "unix_without_macos", "All Unix without macOS", [p for p in UNIX if p != MACOS]
 )
 """ All Unix platforms, without macOS.
 
@@ -274,7 +274,7 @@ This is useful to avoid macOS-specific workarounds on Unix platforms.
 """
 
 
-ALL_BSD = Group("bsd", "All BSD", [FREEBSD, MACOS, NETBSD, OPENBSD, SUNOS])
+BSD = Group("bsd", "All BSD", [FREEBSD, MACOS, NETBSD, OPENBSD, SUNOS])
 """ All BSD platforms.
 
 .. note::
@@ -302,8 +302,8 @@ ALL_LINUX = Group("all_linux", "All Linux", [LINUX])
 """
 
 
-ALL_LINUX_COMPATIBILITY_LAYER = Group(
-    "all_linux_layers", "All Linux compatibility layers", [WSL1, WSL2]
+LINUX_LAYERS = Group(
+    "linux_layers", "All Linux compatibility layers", [WSL1, WSL2]
 )
 """ Interfaces that allows Linux binaries to run on a different host system.
 
@@ -315,8 +315,8 @@ ALL_LINUX_COMPATIBILITY_LAYER = Group(
 """
 
 
-ALL_UNIX_SYSTEM_V = Group(
-    "all_system_v", "All Unix derived from AT&T System Five", [AIX, SOLARIS]
+SYSTEM_V = Group(
+    "system_v", "All Unix derived from AT&T System Five", [AIX, SOLARIS]
 )
 """ All Unix platforms derived from AT&T System Five.
 
@@ -338,8 +338,8 @@ ALL_UNIX_SYSTEM_V = Group(
 """
 
 
-ALL_UNIX_COMPATIBILITY_LAYER = Group(
-    "all_unix_layers", "All Unix compatibility layers", [CYGWIN]
+UNIX_LAYERS = Group(
+    "unix_layers", "All Unix compatibility layers", [CYGWIN]
 )
 """ Interfaces that allows Unix binaries to run on a different host system.
 
@@ -364,19 +364,19 @@ ALL_UNIX_COMPATIBILITY_LAYER = Group(
 """
 
 
-ALL_OTHER_UNIX = Group(
-    "all_other_unix",
+OTHER_UNIX = Group(
+    "other_unix",
     "All other Unix",
     [
         p
-        for p in ALL_UNIX
+        for p in UNIX
         if p
         not in (
-            ALL_BSD.platforms
+            BSD.platforms
             + ALL_LINUX.platforms
-            + ALL_LINUX_COMPATIBILITY_LAYER.platforms
-            + ALL_UNIX_SYSTEM_V.platforms
-            + ALL_UNIX_COMPATIBILITY_LAYER.platforms
+            + LINUX_LAYERS.platforms
+            + SYSTEM_V.platforms
+            + UNIX_LAYERS.platforms
         )
     ],
 )
@@ -403,17 +403,17 @@ ALL_OTHER_UNIX = Group(
 
 NON_OVERLAPPING_GROUPS: tuple[Group, ...] = (
     ALL_WINDOWS,
-    ALL_BSD,
+    BSD,
     ALL_LINUX,
-    ALL_LINUX_COMPATIBILITY_LAYER,
-    ALL_UNIX_SYSTEM_V,
-    ALL_UNIX_COMPATIBILITY_LAYER,
-    ALL_OTHER_UNIX,
+    LINUX_LAYERS,
+    SYSTEM_V,
+    UNIX_LAYERS,
+    OTHER_UNIX,
 )
 """Non-overlapping groups."""
 
 
-EXTRA_GROUPS: tuple[Group, ...] = (ALL_UNIX, ALL_UNIX_WITHOUT_MACOS)
+EXTRA_GROUPS: tuple[Group, ...] = (UNIX, UNIX_WITHOUT_MACOS)
 """Overlapping groups, defined for convenience."""
 
 

@@ -32,15 +32,15 @@ from boltons.dictutils import FrozenDict
 
 from .platforms import AIX as NEW_AIX
 from .platforms import (
-    ALL_BSD,
+    BSD,
     ALL_LINUX,
     ALL_OS_LABELS,
-    ALL_OTHER_UNIX,
+    OTHER_UNIX,
     ALL_PLATFORMS,
-    ALL_UNIX,
-    ALL_UNIX_COMPATIBILITY_LAYER,
-    ALL_UNIX_SYSTEM_V,
-    ALL_UNIX_WITHOUT_MACOS,
+    UNIX,
+    UNIX_LAYERS,
+    SYSTEM_V,
+    UNIX_WITHOUT_MACOS,
     CURRENT_OS_ID,
     CURRENT_OS_LABEL,
 )
@@ -94,15 +94,15 @@ WSL2 = NEW_WSL2.id
 
 OS_DEFINITIONS = FrozenDict({p.id: (p.name, p.current) for p in ALL_PLATFORMS})
 ANY_PLATFORM = frozenset(p.id for p in ALL_PLATFORMS)
-ANY_UNIX = frozenset(p.id for p in ALL_UNIX.platforms)
-ANY_UNIX_BUT_MACOS = frozenset(p.id for p in ALL_UNIX_WITHOUT_MACOS.platforms)
-ANY_BSD = frozenset(p.id for p in ALL_BSD.platforms)
+ANY_UNIX = frozenset(p.id for p in UNIX.platforms)
+ANY_UNIX_BUT_MACOS = frozenset(p.id for p in UNIX_WITHOUT_MACOS.platforms)
+ANY_BSD = frozenset(p.id for p in BSD.platforms)
 ANY_LINUX = frozenset(p.id for p in ALL_LINUX.platforms)
-ANY_UNIX_SYSTEM_V = frozenset(p.id for p in ALL_UNIX_SYSTEM_V.platforms)
+ANY_UNIX_SYSTEM_V = frozenset(p.id for p in SYSTEM_V.platforms)
 ANY_UNIX_COMPATIBILITY_LAYER = frozenset(
-    p.id for p in ALL_UNIX_COMPATIBILITY_LAYER.platforms
+    p.id for p in UNIX_LAYERS.platforms
 )
-ANY_OTHER_UNIX = frozenset(p.id for p in ALL_OTHER_UNIX.platforms)
+ANY_OTHER_UNIX = frozenset(p.id for p in OTHER_UNIX.platforms)
 
 
 def current_os():

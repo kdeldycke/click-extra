@@ -20,17 +20,18 @@ from __future__ import annotations
 import functools
 from itertools import combinations
 
+from .. import platforms as platforms_module
 from ..platforms import (
-    ALL_BSD,
+    BSD,
     ALL_GROUPS,
     ALL_LINUX,
-    ALL_LINUX_COMPATIBILITY_LAYER,
+    LINUX_LAYERS,
     ALL_OS_LABELS,
-    ALL_OTHER_UNIX,
+    OTHER_UNIX,
     ALL_PLATFORMS,
-    ALL_UNIX,
-    ALL_UNIX_COMPATIBILITY_LAYER,
-    ALL_UNIX_SYSTEM_V,
+    UNIX,
+    UNIX_LAYERS,
+    SYSTEM_V,
     ALL_WINDOWS,
     CURRENT_OS_ID,
     CURRENT_OS_LABEL,
@@ -152,6 +153,14 @@ def test_unique_ids():
     assert platform_ids.isdisjoint(group_ids)
 
 
+def test_group_constants():
+    """Group constants and IDs must be aligned."""
+    for group in ALL_GROUPS:
+        group_constant = group.id.upper()
+        assert group_constant in platforms_module.__dict__
+        assert getattr(platforms_module, group_constant) is group
+
+
 def test_groups_content():
     for groups in (NON_OVERLAPPING_GROUPS, EXTRA_GROUPS, ALL_GROUPS):
         assert isinstance(groups, tuple)
@@ -162,20 +171,20 @@ def test_groups_content():
 
 
 def test_group_subsets():
-    assert sorted(p.id for p in ALL_WINDOWS.platforms + ALL_UNIX.platforms) == [
+    assert sorted(p.id for p in ALL_WINDOWS.platforms + UNIX.platforms) == [
         p.id for p in ALL_PLATFORMS
     ]
     assert sorted(
         p.id
         for p in (
-            ALL_BSD.platforms
+            BSD.platforms
             + ALL_LINUX.platforms
-            + ALL_LINUX_COMPATIBILITY_LAYER.platforms
-            + ALL_UNIX_SYSTEM_V.platforms
-            + ALL_UNIX_COMPATIBILITY_LAYER.platforms
-            + ALL_OTHER_UNIX.platforms
+            + LINUX_LAYERS.platforms
+            + SYSTEM_V.platforms
+            + UNIX_LAYERS.platforms
+            + OTHER_UNIX.platforms
         )
-    ) == [p.id for p in ALL_UNIX.platforms]
+    ) == [p.id for p in UNIX.platforms]
 
 
 def test_group_no_missing_platform():

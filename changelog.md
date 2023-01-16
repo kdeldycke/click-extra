@@ -8,7 +8,7 @@ This version is not released yet and is under active development.
 
 - Rename `click_extra.platform` to `click_extra.platforms`.
 - Refactor platforms and their groups with dataclasses instead of string IDs.
-- Add new `ALL_LINUX_COMPATIBILITY_LAYER`, `ALL_WINDOWS`, `EXTRA_GROUPS` and `ALL_GROUPS` groups.
+- Add new `LINUX_LAYERS`, `ALL_WINDOWS`, `EXTRA_GROUPS` and `ALL_GROUPS` groups.
 - Add new dependency on `graphviz`.
 - Activate Graphviz extension in Sphinx.
 - Let Sphinx produce the dependency graph from Graphviz file.
