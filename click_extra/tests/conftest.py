@@ -111,7 +111,6 @@ class ExtraCliRunner(CliRunner):
         color: bool = False,
         **extra: Any,
     ) -> Result:
-
         if self.force_color:
             color = True
 
@@ -206,7 +205,6 @@ def command_decorators(
     params = []
 
     if no_commands == False:
-
         if not no_click:
             params.extend(
                 [

@@ -120,7 +120,6 @@ def setup(app):
     setup_ansi_pygment_styles(app)
 
     with click_compat_hack:
-
         from pallets_sphinx_themes.themes.click import domain
 
         domain.ViewList = PatchedViewList

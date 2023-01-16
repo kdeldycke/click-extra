@@ -535,7 +535,6 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         conf = {}
         for section_id in ini_config.sections():
-
             # Extract all options of the section.
             sub_conf = {}
             for option_id in ini_config.options(section_id):

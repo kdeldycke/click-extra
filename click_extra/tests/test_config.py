@@ -442,7 +442,6 @@ def test_conf_file_overrides_defaults(
     conf_url = httpserver.url_for(f"/{conf_name}")
 
     for conf_path in conf_filepath, conf_url:
-
         result = invoke(
             config_cli1, "--config", str(conf_path), "default-command", color=False
         )
@@ -474,7 +473,6 @@ def test_auto_env_var_conf(invoke, create_config, httpserver, conf_name, conf_co
     conf_url = httpserver.url_for(f"/{conf_name}")
 
     for conf_path in conf_filepath, conf_url:
-
         conf_path = create_config(conf_name, conf_content)
         result = invoke(
             config_cli1,
@@ -503,7 +501,6 @@ def test_conf_file_overrided_by_cli_param(
     conf_url = httpserver.url_for(f"/{conf_name}")
 
     for conf_path in conf_filepath, conf_url:
-
         conf_path = create_config(conf_name, conf_content)
         result = invoke(
             config_cli1,

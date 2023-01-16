@@ -201,7 +201,6 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         facilitates troubleshooting of user's issues.
         """
         if getLevelName(logger.level) == "DEBUG":
-
             # Look for our custom version parameter.
             version_param = self._get_param(ctx, VersionOption)
             if version_param:

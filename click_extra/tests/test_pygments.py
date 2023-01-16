@@ -172,7 +172,6 @@ def check_entry_points(entry_points: dict[str, str], *section_path: str) -> None
 def test_registered_lexers():
     entry_points = {}
     for lexer in collect_session_lexers():
-
         # Check an ANSI lexer variant is available for import from Click Extra.
         ansi_lexer_id = f"Ansi{lexer.__name__}"
         assert ansi_lexer_id in extra_pygments.__dict__
