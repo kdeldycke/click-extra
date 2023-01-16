@@ -155,7 +155,8 @@ def is_wsl2() -> bool:
 
 @dataclass()
 class Platform:
-    """A platform can identify multiple distributions or OSes with the same characteristics."""
+    """A platform can identify multiple distributions or OSes with the same
+    characteristics."""
 
     id: str
     """Unique ID of the platform."""

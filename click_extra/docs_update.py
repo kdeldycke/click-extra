@@ -38,9 +38,10 @@ from textwrap import indent
 import graphviz
 from tabulate import tabulate
 
-from .platforms import NON_OVERLAPPING_GROUPS, EXTRA_GROUPS, ALL_GROUPS, Group
-from .pygments import lexer_map
 from . import __version__
+from .platforms import ALL_GROUPS, EXTRA_GROUPS, NON_OVERLAPPING_GROUPS, Group
+from .pygments import lexer_map
+
 
 def replace_content(
     filepath: str, start_tag: str, end_tag: str, new_content: str
@@ -71,7 +72,8 @@ def replace_content(
 
 
 def generate_lexer_table():
-    """Generate a Markdown table mapping original Pygments' lexers to their new ANSI variants implemented by Click Extra."""
+    """Generate a Markdown table mapping original Pygments' lexers to their new ANSI
+    variants implemented by Click Extra."""
     table = []
     for orig_lexer, ansi_lexer in sorted(
         lexer_map.items(), key=lambda i: i[0].__qualname__
@@ -98,8 +100,11 @@ def generate_lexer_table():
     return output
 
 
-def generate_platforms_graph(graph_id: str, description: str, groups: tuple[Group, ...]):
-    """Generates an `Euler diagram <https://xkcd.com/2721/>`_ of platform and their grouping.
+def generate_platforms_graph(
+    graph_id: str, description: str, groups: tuple[Group, ...]
+):
+    """Generates an `Euler diagram <https://xkcd.com/2721/>`_ of platform and their
+    grouping.
 
     Returns a ready to use and properly indented MyST block.
     """
@@ -111,11 +116,11 @@ def generate_platforms_graph(graph_id: str, description: str, groups: tuple[Grou
         graph_attr={
             "fontname": "Helvetica,Arial,sans-serif",
             "fontsize": "36",
-                    "label": (
+            "label": (
                 "<<BR/><BR/>"
-                f"<FONT FACE=\"Courier New\"><B>click_extra.platforms.{graph_id}</B></FONT><BR/><BR/>"
+                f'<FONT FACE="Courier New"><B>click_extra.platforms.{graph_id}</B></FONT><BR/><BR/>'
                 f"<I>{description}</I><BR/><BR/>"
-                f"<FONT COLOR=\"gray\">Click Extra v{__version__}</FONT><BR/>"
+                f'<FONT COLOR="gray">Click Extra v{__version__}</FONT><BR/>'
                 ">"
             ),
         },
@@ -137,7 +142,10 @@ def generate_platforms_graph(graph_id: str, description: str, groups: tuple[Grou
             group_cluster.attr(label=f"{group.id} - {group.name}")
             for platform in group:
                 # Make the node ID unique for overlapping groups.
-                group_cluster.node(f"{group.id}_{platform.id}", label=f"{platform.id} - {platform.name}")
+                group_cluster.node(
+                    f"{group.id}_{platform.id}",
+                    label=f"{platform.id} - {platform.name}",
+                )
 
     # XXX Should we add an "unflatten()" call here for better readability?
 
@@ -163,7 +171,8 @@ def update_docs():
         generate_lexer_table(),
     )
 
-    # TODO: Replace this hard-coded dict by allowing Group dataclass to group other groups.
+    # TODO: Replace this hard-coded dict by allowing Group dataclass to group
+    # other groups.
     all_groups = (
         {
             "id": "NON_OVERLAPPING_GROUPS",

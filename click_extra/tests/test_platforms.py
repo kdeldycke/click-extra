@@ -67,7 +67,8 @@ from .conftest import (
 
 
 def test_mutual_exclusion():
-    """Only directly tests OSes on which the test suite is running via GitHub actions."""
+    """Only directly tests OSes on which the test suite is running via GitHub
+    actions."""
     if is_linux():
         assert CURRENT_OS_ID == LINUX.id
         assert CURRENT_OS_LABEL == os_label(LINUX.id)
