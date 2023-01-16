@@ -302,9 +302,7 @@ ALL_LINUX = Group("all_linux", "All Linux", [LINUX])
 """
 
 
-LINUX_LAYERS = Group(
-    "linux_layers", "All Linux compatibility layers", [WSL1, WSL2]
-)
+LINUX_LAYERS = Group("linux_layers", "All Linux compatibility layers", [WSL1, WSL2])
 """ Interfaces that allows Linux binaries to run on a different host system.
 
 .. note::
@@ -315,9 +313,7 @@ LINUX_LAYERS = Group(
 """
 
 
-SYSTEM_V = Group(
-    "system_v", "All Unix derived from AT&T System Five", [AIX, SOLARIS]
-)
+SYSTEM_V = Group("system_v", "All Unix derived from AT&T System Five", [AIX, SOLARIS])
 """ All Unix platforms derived from AT&T System Five.
 
 .. note::
@@ -338,9 +334,7 @@ SYSTEM_V = Group(
 """
 
 
-UNIX_LAYERS = Group(
-    "unix_layers", "All Unix compatibility layers", [CYGWIN]
-)
+UNIX_LAYERS = Group("unix_layers", "All Unix compatibility layers", [CYGWIN])
 """ Interfaces that allows Unix binaries to run on a different host system.
 
 .. note::

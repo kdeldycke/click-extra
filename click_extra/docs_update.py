@@ -31,10 +31,10 @@
 
 from __future__ import annotations
 
+import html
 import sys
 from pathlib import Path
 from textwrap import indent
-import html
 
 import graphviz
 from tabulate import tabulate
@@ -143,12 +143,14 @@ def generate_platforms_graph(
             body=[f"{INDENT}cluster=true;\n"],
         ) as group_cluster:
             group_cluster.attr(fontsize="16")
-            group_cluster.attr(label=(
-                "<"
-                f'<FONT FACE="Courier New"><B>click_extra.platforms.{html.escape(group.id.upper())}</B></FONT><BR/><BR/>'
-                f"<I>{html.escape(group.name)}.</I><BR/>"
-                ">"
-            ))
+            group_cluster.attr(
+                label=(
+                    "<"
+                    f'<FONT FACE="Courier New"><B>click_extra.platforms.{html.escape(group.id.upper())}</B></FONT><BR/><BR/>'
+                    f"<I>{html.escape(group.name)}.</I><BR/>"
+                    ">"
+                )
+            )
             for platform in group:
                 # Make the node ID unique for overlapping groups.
                 group_cluster.node(
