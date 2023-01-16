@@ -171,6 +171,7 @@ module = [
     "click_log",
     "commentjson.*",
     "furo",
+    "graphviz",
     "mergedeep.*",
     "pallets_sphinx_themes.*",
 ]
