@@ -6,10 +6,12 @@
 This version is not released yet and is under active development.
 ```
 
-- Add new `ANY_LINUX_COMPATIBILITY_LAYER`, `ANY_WINDOWS`, `ALL_OS_FAMILIES`, `EXTRA_GROUPS` and `ALL_GROUPS` groups.
 - Rename `click_extra.platform` to `click_extra.platforms`.
-- Activate Graphiz extension in Sphinx.
-- Let Sphinx produde the dependency graph from Graphviz file.
+- Refactor platforms and their groups with dataclasses instead of string IDs.
+- Add new `ALL_LINUX_COMPATIBILITY_LAYER`, `ALL_WINDOWS`, `EXTRA_GROUPS` and `ALL_GROUPS` groups.
+- Add new dependency on `graphviz`.
+- Activate Graphviz extension in Sphinx.
+- Let Sphinx produce the dependency graph from Graphviz file.
 - Produce platform graph dynamiccaly.
 - Rename `docs.py` to `docs_update.py` and allow this module to be called directly.
 
