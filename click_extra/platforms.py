@@ -231,7 +231,7 @@ ALL_PLATFORMS: tuple[Platform, ...] = (
 """All platforms."""
 
 
-@dataclass(frozen=True)
+@dataclass()
 class Group:
     """A ``Group`` identify a family of ``Platform``."""
 
@@ -242,6 +242,10 @@ class Group:
     """User-friendly description of a group."""
 
     platforms: list[Platform]
+
+    def __post_init__(self):
+        """Keep the platforms sorted by IDs."""
+        self.platforms.sort(key=lambda p: p.id)
 
     def __iter__(self):
         """Iterate over the platforms of the group."""

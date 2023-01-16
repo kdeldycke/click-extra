@@ -140,6 +140,17 @@ def test_platform_definitions():
         assert check_func() == plaform.current
 
 
+def test_unique_ids():
+    """Platform and group IDs must be unique."""
+    platform_ids = {p.id for p in ALL_PLATFORMS}
+    assert len(platform_ids) == len(ALL_PLATFORMS)
+
+    group_ids = {g.id for g in ALL_GROUPS}
+    assert len(group_ids) == len(ALL_GROUPS)
+
+    assert platform_ids.isdisjoint(group_ids)
+
+
 def test_groups_content():
     for groups in (NON_OVERLAPPING_GROUPS, EXTRA_GROUPS, ALL_GROUPS):
         assert isinstance(groups, tuple)
@@ -150,9 +161,9 @@ def test_groups_content():
 
 
 def test_group_subsets():
-    assert sorted(p.id for p in ALL_WINDOWS.platforms + ALL_UNIX.platforms) == sorted(
+    assert sorted(p.id for p in ALL_WINDOWS.platforms + ALL_UNIX.platforms) == [
         p.id for p in ALL_PLATFORMS
-    )
+    ]
     assert sorted(
         p.id
         for p in (
@@ -163,7 +174,7 @@ def test_group_subsets():
             + ALL_UNIX_COMPATIBILITY_LAYER.platforms
             + ALL_OTHER_UNIX.platforms
         )
-    ) == sorted(p.id for p in ALL_UNIX.platforms)
+    ) == [p.id for p in ALL_UNIX.platforms]
 
 
 def test_group_no_missing_platform():
