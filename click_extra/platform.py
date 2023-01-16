@@ -32,15 +32,10 @@ from boltons.dictutils import FrozenDict
 
 from .platforms import AIX as NEW_AIX
 from .platforms import (
-    BSD,
     ALL_LINUX,
     ALL_OS_LABELS,
-    OTHER_UNIX,
     ALL_PLATFORMS,
-    UNIX,
-    UNIX_LAYERS,
-    SYSTEM_V,
-    UNIX_WITHOUT_MACOS,
+    BSD,
     CURRENT_OS_ID,
     CURRENT_OS_LABEL,
 )
@@ -51,8 +46,10 @@ from .platforms import LINUX as NEW_LINUX
 from .platforms import MACOS as NEW_MACOS
 from .platforms import NETBSD as NEW_NETBSD
 from .platforms import OPENBSD as NEW_OPENBSD
+from .platforms import OTHER_UNIX
 from .platforms import SOLARIS as NEW_SOLARIS
 from .platforms import SUNOS as NEW_SUNOS
+from .platforms import SYSTEM_V, UNIX, UNIX_LAYERS, UNIX_WITHOUT_MACOS
 from .platforms import WINDOWS as NEW_WINDOWS
 from .platforms import WSL1 as NEW_WSL1
 from .platforms import WSL2 as NEW_WSL2
@@ -99,9 +96,7 @@ ANY_UNIX_BUT_MACOS = frozenset(p.id for p in UNIX_WITHOUT_MACOS.platforms)
 ANY_BSD = frozenset(p.id for p in BSD.platforms)
 ANY_LINUX = frozenset(p.id for p in ALL_LINUX.platforms)
 ANY_UNIX_SYSTEM_V = frozenset(p.id for p in SYSTEM_V.platforms)
-ANY_UNIX_COMPATIBILITY_LAYER = frozenset(
-    p.id for p in UNIX_LAYERS.platforms
-)
+ANY_UNIX_COMPATIBILITY_LAYER = frozenset(p.id for p in UNIX_LAYERS.platforms)
 ANY_OTHER_UNIX = frozenset(p.id for p in OTHER_UNIX.platforms)
 
 
