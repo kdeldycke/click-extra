@@ -5,6 +5,7 @@
 All platforms are grouped in sets of non-overlaping families:
 
 <!-- NON_OVERLAPPING_GROUPS-graph-start -->
+
 ```{eval-rst}
 .. graphviz::
 
@@ -56,6 +57,7 @@ All platforms are grouped in sets of non-overlaping families:
        }
    }
 ```
+
 <!-- NON_OVERLAPPING_GROUPS-graph-end -->
 
 ## Other groups
@@ -63,6 +65,7 @@ All platforms are grouped in sets of non-overlaping families:
 Other groups are available for convenience:
 
 <!-- EXTRA_GROUPS-graph-start -->
+
 ```{eval-rst}
 .. graphviz::
 
@@ -104,6 +107,7 @@ Other groups are available for convenience:
        }
    }
 ```
+
 <!-- EXTRA_GROUPS-graph-end -->
 
 ```{important}
