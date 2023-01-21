@@ -202,8 +202,8 @@ def update_docs():
     for top_groups in all_groups:
         replace_content(
             "docs/platforms.md",
-            f"<!-- {top_groups['id']}-graph-start -->\n",
-            f"\n<!-- {top_groups['id']}-graph-end -->",
+            f"<!-- {top_groups['id']}-graph-start -->\n\n",
+            f"\n\n<!-- {top_groups['id']}-graph-end -->",
             generate_platforms_graph(
                 top_groups["id"], top_groups["description"], top_groups["groups"]
             ),
