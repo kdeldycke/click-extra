@@ -289,6 +289,15 @@ BSD = Group("bsd", "All BSD", [FREEBSD, MACOS, NETBSD, OPENBSD, SUNOS])
 """
 
 
+BSD_WITHOUT_MACOS = Group(
+    "bsd_without_macos", "All BSD without macOS", [p for p in BSD if p != MACOS]
+)
+""" All BSD platforms, without macOS.
+
+This is useful to avoid macOS-specific workarounds on BSD platforms.
+"""
+
+
 ALL_LINUX = Group("all_linux", "All Linux", [LINUX])
 """ All Unix platforms based on a Linux kernel.
 
@@ -407,7 +416,7 @@ NON_OVERLAPPING_GROUPS: tuple[Group, ...] = (
 """Non-overlapping groups."""
 
 
-EXTRA_GROUPS: tuple[Group, ...] = (UNIX, UNIX_WITHOUT_MACOS)
+EXTRA_GROUPS: tuple[Group, ...] = (UNIX, UNIX_WITHOUT_MACOS, BSD_WITHOUT_MACOS)
 """Overlapping groups, defined for convenience."""
 
 
