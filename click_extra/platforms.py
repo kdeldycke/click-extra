@@ -30,6 +30,7 @@ from __future__ import annotations
 import platform
 import sys
 from dataclasses import dataclass, field
+from typing import Iterable
 
 if sys.version_info >= (3, 9):
     from functools import cache
@@ -244,9 +245,15 @@ class Group:
 
     platforms: list[Platform]
 
+    platform_ids: set[str] = field(default_factory=set)
+
+    icon: str = ""
+    """Optional icon of the group."""
+
     def __post_init__(self):
         """Keep the platforms sorted by IDs."""
         self.platforms.sort(key=lambda p: p.id)
+        self.platform_ids = {p.id for p in self.platforms}
 
     def __iter__(self):
         """Iterate over the platforms of the group."""
@@ -255,6 +262,14 @@ class Group:
     def __len__(self):
         """Return the number of platforms in the group."""
         return len(self.platforms)
+
+    def issubset(self, other: Group | Iterable[Platform]) -> bool:
+        """Return `True` if all platforms of the group are in ``other``."""
+        if isinstance(other, Group):
+            other_platform_ids = other.platform_ids
+        else:
+            other_platform_ids = {p.id for p in other}
+        return self.platform_ids.issubset(other_platform_ids)
 
 
 ALL_WINDOWS = Group("all_windows", "All Windows", [WINDOWS])

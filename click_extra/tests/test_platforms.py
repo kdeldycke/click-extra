@@ -28,6 +28,7 @@ from ..platforms import (
     ALL_PLATFORMS,
     ALL_WINDOWS,
     BSD,
+    BSD_WITHOUT_MACOS,
     CURRENT_OS_ID,
     CURRENT_OS_LABEL,
     EXTRA_GROUPS,
@@ -39,6 +40,7 @@ from ..platforms import (
     SYSTEM_V,
     UNIX,
     UNIX_LAYERS,
+    UNIX_WITHOUT_MACOS,
     WINDOWS,
     Group,
     current_os,
@@ -167,41 +169,47 @@ def test_groups_content():
         for group in groups:
             assert isinstance(group, Group)
             assert len(group) > 0
-            assert all(platform in ALL_PLATFORMS for platform in group.platforms)
+            assert len(group.platforms) == len(group.platform_ids)
+            assert group.platform_ids.issubset(p.id for p in ALL_PLATFORMS)
+
+def test_group_issubset():
+    assert UNIX.issubset(ALL_PLATFORMS)
+
+    for group in BSD, ALL_LINUX, LINUX_LAYERS, SYSTEM_V, UNIX_LAYERS, OTHER_UNIX:
+        assert group.issubset(UNIX)
+
+    assert UNIX_WITHOUT_MACOS.issubset(UNIX)
+    assert BSD_WITHOUT_MACOS.issubset(UNIX)
+    assert BSD_WITHOUT_MACOS.issubset(BSD)
 
 
 def test_group_subsets():
-    assert sorted(p.id for p in ALL_WINDOWS.platforms + UNIX.platforms) == [
+    assert sorted(ALL_WINDOWS.platform_ids | UNIX.platform_ids) == [
         p.id for p in ALL_PLATFORMS
     ]
     assert sorted(
-        p.id
-        for p in (
-            BSD.platforms
-            + ALL_LINUX.platforms
-            + LINUX_LAYERS.platforms
-            + SYSTEM_V.platforms
-            + UNIX_LAYERS.platforms
-            + OTHER_UNIX.platforms
-        )
-    ) == [p.id for p in UNIX.platforms]
+            BSD.platform_ids
+            | ALL_LINUX.platform_ids
+            | LINUX_LAYERS.platform_ids
+            | SYSTEM_V.platform_ids
+            | UNIX_LAYERS.platform_ids
+            | OTHER_UNIX.platform_ids
+    ) == sorted(UNIX.platform_ids)
 
 
 def test_group_no_missing_platform():
     """Check all platform are attached to a group at least."""
-    grouped_platforms = []
+    grouped_platforms = set()
     for group in ALL_GROUPS:
-        grouped_platforms.extend(group.platforms)
-    assert {p.id for p in grouped_platforms} == {p.id for p in ALL_PLATFORMS}
+        grouped_platforms |= group.platform_ids
+    assert grouped_platforms == {p.id for p in ALL_PLATFORMS}
 
 
 def test_non_overlapping_groups():
     """Check non-overlapping groups are mutually exclusive."""
     for combination in combinations(NON_OVERLAPPING_GROUPS, 2):
         group1, group2 = combination
-        assert {p.id for p in group1.platforms}.isdisjoint(
-            p.id for p in group2.platforms
-        )
+        assert group1.platform_ids.isdisjoint(group2.platform_ids)
 
 
 def test_current_os_func():
