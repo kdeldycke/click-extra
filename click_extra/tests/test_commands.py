@@ -29,7 +29,7 @@ import cloup
 import pytest
 from click import echo
 from cloup import command, option, option_group
-from pytest_cases import fixture, parametrize
+from pytest_cases import fixture
 
 from ..commands import extra_command, extra_group, timer_option
 from .conftest import default_debug_uncolored_log, default_options_uncolored_help
