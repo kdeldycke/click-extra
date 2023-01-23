@@ -154,10 +154,13 @@ def is_wsl2() -> bool:
     return "microsoft" in platform.release()
 
 
-@dataclass()
+@dataclass(frozen=True)
 class Platform:
     """A platform can identify multiple distributions or OSes with the same
-    characteristics."""
+    characteristics.
+
+    It has a unique ID, a human-readable name, and boolean to flag current platform.
+    """
 
     id: str
     """Unique ID of the platform."""
@@ -166,13 +169,13 @@ class Platform:
     """User-friendly name of the platform."""
 
     current: bool = field(init=False)
-    """`True` if current environment has been identified as being of this platform."""
+    """`True` if current environment runs on this platform."""
 
     def __post_init__(self):
         """Set the ``current`` attribute to identifying the current platform."""
         check_func_id = f"is_{self.id}"
         assert check_func_id in globals()
-        self.current = globals()[check_func_id]()
+        object.__setattr__(self, "current", globals()[check_func_id]())
 
 
 AIX = Platform("aix", "AIX")
@@ -215,27 +218,12 @@ WSL2 = Platform("wsl2", "Windows Subsystem for Linux v2")
 """ Identify Windows Subsystem for Linux v2. """
 
 
-ALL_PLATFORMS: tuple[Platform, ...] = (
-    AIX,
-    CYGWIN,
-    FREEBSD,
-    HURD,
-    LINUX,
-    MACOS,
-    NETBSD,
-    OPENBSD,
-    SOLARIS,
-    SUNOS,
-    WINDOWS,
-    WSL1,
-    WSL2,
-)
-"""All platforms."""
-
-
-@dataclass()
+@dataclass(frozen=True)
 class Group:
-    """A ``Group`` identify a family of ``Platform``."""
+    """A ``Group`` identify a collection of ``Platform``.
+
+    Used to group platforms of the same family.
+    """
 
     id: str
     """Unique ID of the group."""
@@ -243,17 +231,28 @@ class Group:
     name: str
     """User-friendly description of a group."""
 
-    platforms: list[Platform]
+    platforms: tuple[Platform]
+    """Sorted list of platforms that belong to this group."""
 
-    platform_ids: set[str] = field(default_factory=set)
+    platform_ids: frozenset[str] = field(default_factory=frozenset)
+    """Set of platform IDs that belong to this group.
+
+    Used to test platform overlaps between groups.
+    """
 
     icon: str = ""
     """Optional icon of the group."""
 
     def __post_init__(self):
         """Keep the platforms sorted by IDs."""
-        self.platforms.sort(key=lambda p: p.id)
-        self.platform_ids = {p.id for p in self.platforms}
+        object.__setattr__(
+            self, "platforms", tuple(sorted(self.platforms, key=lambda p: p.id))
+        )
+        object.__setattr__(
+            self, "platform_ids", frozenset({p.id for p in self.platforms})
+        )
+        # Double-check there is no duplicate platforms.
+        assert len(self.platforms) == len(self.platform_ids)
 
     def __iter__(self):
         """Iterate over the platforms of the group."""
@@ -272,16 +271,40 @@ class Group:
         return self.platform_ids.issubset(other_platform_ids)
 
 
+ALL_PLATFORMS: Group = Group(
+    "all_platforms",
+    "All platforms",
+    (
+        AIX,
+        CYGWIN,
+        FREEBSD,
+        HURD,
+        LINUX,
+        MACOS,
+        NETBSD,
+        OPENBSD,
+        SOLARIS,
+        SUNOS,
+        WINDOWS,
+        WSL1,
+        WSL2,
+    ),
+)
+"""All recognized platforms."""
+
+
 ALL_WINDOWS = Group("all_windows", "All Windows", [WINDOWS])
 """ All Windows operating systems."""
 
 
-UNIX = Group("unix", "All Unix", [p for p in ALL_PLATFORMS if p not in ALL_WINDOWS])
+UNIX = Group(
+    "unix", "All Unix", (p for p in ALL_PLATFORMS.platforms if p not in ALL_WINDOWS)
+)
 """ All Unix-like operating systems and compatibility layers."""
 
 
 UNIX_WITHOUT_MACOS = Group(
-    "unix_without_macos", "All Unix without macOS", [p for p in UNIX if p != MACOS]
+    "unix_without_macos", "All Unix without macOS", (p for p in UNIX if p is not MACOS)
 )
 """ All Unix platforms, without macOS.
 
@@ -289,7 +312,7 @@ This is useful to avoid macOS-specific workarounds on Unix platforms.
 """
 
 
-BSD = Group("bsd", "All BSD", [FREEBSD, MACOS, NETBSD, OPENBSD, SUNOS])
+BSD = Group("bsd", "All BSD", (FREEBSD, MACOS, NETBSD, OPENBSD, SUNOS))
 """ All BSD platforms.
 
 .. note::
@@ -305,7 +328,7 @@ BSD = Group("bsd", "All BSD", [FREEBSD, MACOS, NETBSD, OPENBSD, SUNOS])
 
 
 BSD_WITHOUT_MACOS = Group(
-    "bsd_without_macos", "All BSD without macOS", [p for p in BSD if p != MACOS]
+    "bsd_without_macos", "All BSD without macOS", (p for p in BSD if p is not MACOS)
 )
 """ All BSD platforms, without macOS.
 
@@ -326,7 +349,7 @@ ALL_LINUX = Group("all_linux", "All Linux", [LINUX])
 """
 
 
-LINUX_LAYERS = Group("linux_layers", "All Linux compatibility layers", [WSL1, WSL2])
+LINUX_LAYERS = Group("linux_layers", "All Linux compatibility layers", (WSL1, WSL2))
 """ Interfaces that allows Linux binaries to run on a different host system.
 
 .. note::
@@ -337,7 +360,7 @@ LINUX_LAYERS = Group("linux_layers", "All Linux compatibility layers", [WSL1, WS
 """
 
 
-SYSTEM_V = Group("system_v", "All Unix derived from AT&T System Five", [AIX, SOLARIS])
+SYSTEM_V = Group("system_v", "All Unix derived from AT&T System Five", (AIX, SOLARIS))
 """ All Unix platforms derived from AT&T System Five.
 
 .. note::
@@ -385,7 +408,7 @@ UNIX_LAYERS = Group("unix_layers", "All Unix compatibility layers", [CYGWIN])
 OTHER_UNIX = Group(
     "other_unix",
     "All other Unix",
-    [
+    (
         p
         for p in UNIX
         if p
@@ -396,7 +419,7 @@ OTHER_UNIX = Group(
             + SYSTEM_V.platforms
             + UNIX_LAYERS.platforms
         )
-    ],
+    ),
 )
 """ All other Unix platforms.
 
@@ -431,7 +454,12 @@ NON_OVERLAPPING_GROUPS: tuple[Group, ...] = (
 """Non-overlapping groups."""
 
 
-EXTRA_GROUPS: tuple[Group, ...] = (UNIX, UNIX_WITHOUT_MACOS, BSD_WITHOUT_MACOS)
+EXTRA_GROUPS: tuple[Group, ...] = (
+    ALL_PLATFORMS,
+    UNIX,
+    UNIX_WITHOUT_MACOS,
+    BSD_WITHOUT_MACOS,
+)
 """Overlapping groups, defined for convenience."""
 
 
@@ -439,14 +467,14 @@ ALL_GROUPS: tuple[Group, ...] = NON_OVERLAPPING_GROUPS + EXTRA_GROUPS
 """All groups."""
 
 
-ALL_OS_LABELS: frozenset[str] = frozenset({p.name for p in ALL_PLATFORMS})
+ALL_OS_LABELS: frozenset[str] = frozenset({p.name for p in ALL_PLATFORMS.platforms})
 """ Sets of all recognized labels. """
 
 
 @cache
 def os_label(os_id: str) -> str | None:
     """Return platform label for user-friendly output."""
-    for p in ALL_PLATFORMS:
+    for p in ALL_PLATFORMS.platforms:
         if p.id == os_id:
             return p.name
     return None
@@ -456,7 +484,7 @@ def os_label(os_id: str) -> str | None:
 def current_os() -> Platform:
     """Return the current platform."""
     matching = []
-    for p in ALL_PLATFORMS:
+    for p in ALL_PLATFORMS.platforms:
         if p.current:
             matching.append(p)
 

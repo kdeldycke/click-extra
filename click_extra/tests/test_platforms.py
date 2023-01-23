@@ -123,8 +123,9 @@ def test_platform_definitions():
     # Platforms are expected to be sorted by ID.
     all_platform_ids = [p.id for p in ALL_PLATFORMS]
     assert all_platform_ids == sorted(all_platform_ids)
+    assert set(all_platform_ids) == ALL_PLATFORMS.platform_ids
 
-    for plaform in ALL_PLATFORMS:
+    for plaform in ALL_PLATFORMS.platforms:
         # ID.
         assert plaform.id
         assert plaform.id.isascii()
@@ -146,13 +147,12 @@ def test_platform_definitions():
 
 def test_unique_ids():
     """Platform and group IDs must be unique."""
-    platform_ids = {p.id for p in ALL_PLATFORMS}
-    assert len(platform_ids) == len(ALL_PLATFORMS)
+    all_platform_ids = ALL_PLATFORMS.platform_ids
 
-    group_ids = {g.id for g in ALL_GROUPS}
-    assert len(group_ids) == len(ALL_GROUPS)
+    all_group_ids = {g.id for g in ALL_GROUPS}
+    assert len(all_group_ids) == len(ALL_GROUPS)
 
-    assert platform_ids.isdisjoint(group_ids)
+    assert all_platform_ids.isdisjoint(all_group_ids)
 
 
 def test_group_constants():
@@ -170,15 +170,18 @@ def test_groups_content():
             assert isinstance(group, Group)
             assert len(group) > 0
             assert len(group.platforms) == len(group.platform_ids)
-            assert group.platform_ids.issubset(p.id for p in ALL_PLATFORMS)
+            assert group.platform_ids.issubset(ALL_PLATFORMS.platform_ids)
+
 
 def test_group_issubset():
-    assert UNIX.issubset(ALL_PLATFORMS)
+    for group in ALL_GROUPS:
+        assert group.issubset(ALL_PLATFORMS)
 
     for group in BSD, ALL_LINUX, LINUX_LAYERS, SYSTEM_V, UNIX_LAYERS, OTHER_UNIX:
         assert group.issubset(UNIX)
 
     assert UNIX_WITHOUT_MACOS.issubset(UNIX)
+
     assert BSD_WITHOUT_MACOS.issubset(UNIX)
     assert BSD_WITHOUT_MACOS.issubset(BSD)
 
@@ -188,12 +191,12 @@ def test_group_subsets():
         p.id for p in ALL_PLATFORMS
     ]
     assert sorted(
-            BSD.platform_ids
-            | ALL_LINUX.platform_ids
-            | LINUX_LAYERS.platform_ids
-            | SYSTEM_V.platform_ids
-            | UNIX_LAYERS.platform_ids
-            | OTHER_UNIX.platform_ids
+        BSD.platform_ids
+        | ALL_LINUX.platform_ids
+        | LINUX_LAYERS.platform_ids
+        | SYSTEM_V.platform_ids
+        | UNIX_LAYERS.platform_ids
+        | OTHER_UNIX.platform_ids
     ) == sorted(UNIX.platform_ids)
 
 
@@ -202,7 +205,7 @@ def test_group_no_missing_platform():
     grouped_platforms = set()
     for group in ALL_GROUPS:
         grouped_platforms |= group.platform_ids
-    assert grouped_platforms == {p.id for p in ALL_PLATFORMS}
+    assert grouped_platforms == ALL_PLATFORMS.platform_ids
 
 
 def test_non_overlapping_groups():
@@ -215,7 +218,7 @@ def test_non_overlapping_groups():
 def test_current_os_func():
     # Function.
     current_platform = current_os()
-    assert current_platform in ALL_PLATFORMS
+    assert current_platform in ALL_PLATFORMS.platforms
     # Constants.
     assert current_platform.id == CURRENT_OS_ID
     assert current_platform.name == CURRENT_OS_LABEL
