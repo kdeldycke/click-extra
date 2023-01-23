@@ -165,7 +165,7 @@ def test_group_constants():
 
 def test_groups_content():
     for groups in (NON_OVERLAPPING_GROUPS, EXTRA_GROUPS, ALL_GROUPS):
-        assert isinstance(groups, tuple)
+        assert isinstance(groups, frozenset)
         for group in groups:
             assert isinstance(group, Group)
             assert len(group) > 0

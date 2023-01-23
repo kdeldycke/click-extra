@@ -445,28 +445,32 @@ OTHER_UNIX = Group(
 """
 
 
-NON_OVERLAPPING_GROUPS: tuple[Group, ...] = (
-    ALL_WINDOWS,
-    BSD,
-    ALL_LINUX,
-    LINUX_LAYERS,
-    SYSTEM_V,
-    UNIX_LAYERS,
-    OTHER_UNIX,
+NON_OVERLAPPING_GROUPS: frozenset[Group] = frozenset(
+    (
+        ALL_WINDOWS,
+        BSD,
+        ALL_LINUX,
+        LINUX_LAYERS,
+        SYSTEM_V,
+        UNIX_LAYERS,
+        OTHER_UNIX,
+    )
 )
 """Non-overlapping groups."""
 
 
-EXTRA_GROUPS: tuple[Group, ...] = (
-    ALL_PLATFORMS,
-    UNIX,
-    UNIX_WITHOUT_MACOS,
-    BSD_WITHOUT_MACOS,
+EXTRA_GROUPS: frozenset[Group] = frozenset(
+    (
+        ALL_PLATFORMS,
+        UNIX,
+        UNIX_WITHOUT_MACOS,
+        BSD_WITHOUT_MACOS,
+    )
 )
 """Overlapping groups, defined for convenience."""
 
 
-ALL_GROUPS: tuple[Group, ...] = NON_OVERLAPPING_GROUPS + EXTRA_GROUPS
+ALL_GROUPS: frozenset[Group] = frozenset(NON_OVERLAPPING_GROUPS | EXTRA_GROUPS)
 """All groups."""
 
 
