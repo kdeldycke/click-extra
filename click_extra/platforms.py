@@ -234,7 +234,7 @@ class Group:
     name: str
     """User-friendly description of a group."""
 
-    platforms: tuple[Platform] = field(repr=False, default_factory=tuple)
+    platforms: tuple[Platform, ...] = field(repr=False, default_factory=tuple)
     """Sorted list of platforms that belong to this group."""
 
     platform_ids: frozenset[str] = field(default_factory=frozenset)
@@ -243,7 +243,7 @@ class Group:
     Used to test platform overlaps between groups.
     """
 
-    icon: str = field(repr=False, default=None)
+    icon: str | None = field(repr=False, default=None)
     """Optional icon of the group."""
 
     def __post_init__(self):
@@ -270,7 +270,7 @@ class Group:
         if isinstance(other, Group):
             other_platform_ids = other.platform_ids
         else:
-            other_platform_ids = {p.id for p in other}
+            other_platform_ids = frozenset((p.id for p in other))
         return self.platform_ids.issubset(other_platform_ids)
 
 
@@ -296,18 +296,22 @@ ALL_PLATFORMS: Group = Group(
 """All recognized platforms."""
 
 
-ALL_WINDOWS = Group("all_windows", "All Windows", [WINDOWS])
+ALL_WINDOWS = Group("all_windows", "All Windows", (WINDOWS,))
 """ All Windows operating systems."""
 
 
 UNIX = Group(
-    "unix", "All Unix", (p for p in ALL_PLATFORMS.platforms if p not in ALL_WINDOWS)
+    "unix",
+    "All Unix",
+    tuple(p for p in ALL_PLATFORMS.platforms if p not in ALL_WINDOWS),
 )
 """ All Unix-like operating systems and compatibility layers."""
 
 
 UNIX_WITHOUT_MACOS = Group(
-    "unix_without_macos", "All Unix without macOS", (p for p in UNIX if p is not MACOS)
+    "unix_without_macos",
+    "All Unix without macOS",
+    tuple(p for p in UNIX if p is not MACOS),
 )
 """ All Unix platforms, without macOS.
 
@@ -331,7 +335,9 @@ BSD = Group("bsd", "All BSD", (FREEBSD, MACOS, NETBSD, OPENBSD, SUNOS))
 
 
 BSD_WITHOUT_MACOS = Group(
-    "bsd_without_macos", "All BSD without macOS", (p for p in BSD if p is not MACOS)
+    "bsd_without_macos",
+    "All BSD without macOS",
+    tuple(p for p in BSD if p is not MACOS),
 )
 """ All BSD platforms, without macOS.
 
@@ -339,7 +345,7 @@ This is useful to avoid macOS-specific workarounds on BSD platforms.
 """
 
 
-ALL_LINUX = Group("all_linux", "All Linux", [LINUX])
+ALL_LINUX = Group("all_linux", "All Linux", (LINUX,))
 """ All Unix platforms based on a Linux kernel.
 
 .. note::
@@ -384,7 +390,7 @@ SYSTEM_V = Group("system_v", "All Unix derived from AT&T System Five", (AIX, SOL
 """
 
 
-UNIX_LAYERS = Group("unix_layers", "All Unix compatibility layers", [CYGWIN])
+UNIX_LAYERS = Group("unix_layers", "All Unix compatibility layers", (CYGWIN,))
 """ Interfaces that allows Unix binaries to run on a different host system.
 
 .. note::
@@ -411,7 +417,7 @@ UNIX_LAYERS = Group("unix_layers", "All Unix compatibility layers", [CYGWIN])
 OTHER_UNIX = Group(
     "other_unix",
     "All other Unix",
-    (
+    tuple(
         p
         for p in UNIX
         if p
@@ -474,7 +480,7 @@ ALL_GROUPS: frozenset[Group] = frozenset(NON_OVERLAPPING_GROUPS | EXTRA_GROUPS)
 """All groups."""
 
 
-ALL_OS_LABELS: frozenset[str] = frozenset({p.name for p in ALL_PLATFORMS.platforms})
+ALL_OS_LABELS: frozenset[str] = frozenset((p.name for p in ALL_PLATFORMS.platforms))
 """ Sets of all recognized labels. """
 
 
@@ -500,7 +506,8 @@ def current_os() -> Platform:
 
     if not matching:
         raise SystemError(
-            f"Unrecognized {sys.platform} / {platform.platform(aliased=True, terse=True)} platform."
+            f"Unrecognized {sys.platform} / "
+            f"{platform.platform(aliased=True, terse=True)} platform."
         )
 
     assert len(matching) == 1
