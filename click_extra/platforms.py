@@ -17,6 +17,9 @@
 
 """Helpers and utilities to identify platforms.
 
+Everything here can be aggressively cached and frozen, as it's only compute
+platform-dependent values.
+
 .. seealso::
 
     A nice alternative would be to use the excellent `distro
@@ -231,7 +234,7 @@ class Group:
     name: str
     """User-friendly description of a group."""
 
-    platforms: tuple[Platform]
+    platforms: tuple[Platform] = field(repr=False, default_factory=tuple)
     """Sorted list of platforms that belong to this group."""
 
     platform_ids: frozenset[str] = field(default_factory=frozenset)
@@ -240,7 +243,7 @@ class Group:
     Used to test platform overlaps between groups.
     """
 
-    icon: str = ""
+    icon: str = field(repr=False, default=None)
     """Optional icon of the group."""
 
     def __post_init__(self):
