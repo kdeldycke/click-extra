@@ -45,21 +45,21 @@ from .pygments import lexer_map
 
 
 def replace_content(
-    filepath: str, start_tag: str, end_tag: str, new_content: str
+    filepath: Path, start_tag: str, end_tag: str, new_content: str
 ) -> None:
     """Replace in the provided file the content surrounded by the provided tags."""
-    file = Path(__file__).parent.parent.joinpath(filepath).resolve()
-    assert file.exists(), f"File {file} does not exist."
-    assert file.is_file(), f"File {file} is not a file."
+    filepath = filepath.resolve()
+    assert filepath.exists(), f"File {filepath} does not exist."
+    assert filepath.is_file(), f"File {filepath} is not a file."
 
-    orig_content = file.read_text()
+    orig_content = filepath.read_text()
 
     # Extract pre- and post-content surrounding the tags.
     pre_content, table_start = orig_content.split(start_tag, 1)
     _, post_content = table_start.split(end_tag, 1)
 
     # Reconstruct the content with our updated table.
-    file.write_text(
+    filepath.write_text(
         "".join(
             (
                 pre_content,
@@ -174,9 +174,11 @@ def generate_platforms_graph(
 
 def update_docs():
     """Update documentation with dynamic content."""
+    project_root = Path(__file__).parent.parent
+
     # Update the lexer table in Sphinx's documentation.
     replace_content(
-        "docs/pygments.md",
+        project_root.joinpath("docs/pygments.md"),
         "<!-- lexer-table-start -->\n\n",
         "\n\n<!-- lexer-table-end -->",
         generate_lexer_table(),
@@ -199,9 +201,10 @@ def update_docs():
     assert frozenset(g for groups in all_groups for g in groups["groups"]) == ALL_GROUPS
 
     # Update the platform diagram in Sphinx's documentation.
+    platform_doc = project_root.joinpath("docs/platforms.md")
     for top_groups in all_groups:
         replace_content(
-            "docs/platforms.md",
+            platform_doc,
             f"<!-- {top_groups['id']}-graph-start -->\n\n",
             f"\n\n<!-- {top_groups['id']}-graph-end -->",
             generate_platforms_graph(
