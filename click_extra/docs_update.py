@@ -102,7 +102,7 @@ def generate_lexer_table():
 
 
 def generate_platforms_graph(
-    graph_id: str, description: str, groups: tuple[Group, ...]
+    graph_id: str, description: str, groups: frozenset[Group]
 ):
     """Generates an `Euler diagram <https://xkcd.com/2721/>`_ of platform and their
     grouping.
@@ -137,7 +137,7 @@ def generate_platforms_graph(
         },
     )
 
-    for group in groups:
+    for group in sorted(groups, key=lambda g: g.id):
         with dot.subgraph(
             name=f"cluster_{group.id}",
             body=[f"{INDENT}cluster=true;\n"],
@@ -196,7 +196,7 @@ def update_docs():
             "groups": EXTRA_GROUPS,
         },
     )
-    assert tuple(g for groups in all_groups for g in groups["groups"]) == ALL_GROUPS
+    assert frozenset(g for groups in all_groups for g in groups["groups"]) == ALL_GROUPS
 
     # Update the platform diagram in Sphinx's documentation.
     for top_groups in all_groups:

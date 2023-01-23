@@ -14,6 +14,12 @@ All platforms are grouped in sets of non-overlaping families:
        graph [fontname="Helvetica,Arial,sans-serif" fontsize=36 label=<<BR/><BR/><FONT FACE="Courier New"><B>click_extra.platforms.NON_OVERLAPPING_GROUPS</B></FONT><BR/><BR/><I>Non-overlapping groups.</I><BR/><BR/><FONT COLOR="gray">Click Extra v3.8.0</FONT><BR/>> layout=osage]
        node [color=lightblue2 fontname="Helvetica,Arial,sans-serif" style=filled]
        edge [dir=none fontname="Helvetica,Arial,sans-serif"]
+       subgraph cluster_all_linux {
+           cluster=true;
+           fontsize=16
+           label=<<FONT FACE="Courier New"><B>click_extra.platforms.ALL_LINUX</B></FONT><BR/><BR/><I>All Linux.</I><BR/>>
+           all_linux_linux [label="linux - Linux"]
+       }
        subgraph cluster_all_windows {
            cluster=true;
            fontsize=16
@@ -30,18 +36,18 @@ All platforms are grouped in sets of non-overlaping families:
            bsd_openbsd [label="openbsd - OpenBSD"]
            bsd_sunos [label="sunos - SunOS"]
        }
-       subgraph cluster_all_linux {
-           cluster=true;
-           fontsize=16
-           label=<<FONT FACE="Courier New"><B>click_extra.platforms.ALL_LINUX</B></FONT><BR/><BR/><I>All Linux.</I><BR/>>
-           all_linux_linux [label="linux - Linux"]
-       }
        subgraph cluster_linux_layers {
            cluster=true;
            fontsize=16
            label=<<FONT FACE="Courier New"><B>click_extra.platforms.LINUX_LAYERS</B></FONT><BR/><BR/><I>All Linux compatibility layers.</I><BR/>>
            linux_layers_wsl1 [label="wsl1 - Windows Subsystem for Linux v1"]
            linux_layers_wsl2 [label="wsl2 - Windows Subsystem for Linux v2"]
+       }
+       subgraph cluster_other_unix {
+           cluster=true;
+           fontsize=16
+           label=<<FONT FACE="Courier New"><B>click_extra.platforms.OTHER_UNIX</B></FONT><BR/><BR/><I>All other Unix.</I><BR/>>
+           other_unix_hurd [label="hurd - GNU/Hurd"]
        }
        subgraph cluster_system_v {
            cluster=true;
@@ -55,12 +61,6 @@ All platforms are grouped in sets of non-overlaping families:
            fontsize=16
            label=<<FONT FACE="Courier New"><B>click_extra.platforms.UNIX_LAYERS</B></FONT><BR/><BR/><I>All Unix compatibility layers.</I><BR/>>
            unix_layers_cygwin [label="cygwin - Cygwin"]
-       }
-       subgraph cluster_other_unix {
-           cluster=true;
-           fontsize=16
-           label=<<FONT FACE="Courier New"><B>click_extra.platforms.OTHER_UNIX</B></FONT><BR/><BR/><I>All other Unix.</I><BR/>>
-           other_unix_hurd [label="hurd - GNU/Hurd"]
        }
    }
 ```
@@ -81,6 +81,33 @@ Other groups are available for convenience:
        graph [fontname="Helvetica,Arial,sans-serif" fontsize=36 label=<<BR/><BR/><FONT FACE="Courier New"><B>click_extra.platforms.EXTRA_GROUPS</B></FONT><BR/><BR/><I>Overlapping groups, defined for convenience.</I><BR/><BR/><FONT COLOR="gray">Click Extra v3.8.0</FONT><BR/>> layout=osage]
        node [color=lightblue2 fontname="Helvetica,Arial,sans-serif" style=filled]
        edge [dir=none fontname="Helvetica,Arial,sans-serif"]
+       subgraph cluster_all_platforms {
+           cluster=true;
+           fontsize=16
+           label=<<FONT FACE="Courier New"><B>click_extra.platforms.ALL_PLATFORMS</B></FONT><BR/><BR/><I>All platforms.</I><BR/>>
+           all_platforms_aix [label="aix - AIX"]
+           all_platforms_cygwin [label="cygwin - Cygwin"]
+           all_platforms_freebsd [label="freebsd - FreeBSD"]
+           all_platforms_hurd [label="hurd - GNU/Hurd"]
+           all_platforms_linux [label="linux - Linux"]
+           all_platforms_macos [label="macos - macOS"]
+           all_platforms_netbsd [label="netbsd - NetBSD"]
+           all_platforms_openbsd [label="openbsd - OpenBSD"]
+           all_platforms_solaris [label="solaris - Solaris"]
+           all_platforms_sunos [label="sunos - SunOS"]
+           all_platforms_windows [label="windows - Windows"]
+           all_platforms_wsl1 [label="wsl1 - Windows Subsystem for Linux v1"]
+           all_platforms_wsl2 [label="wsl2 - Windows Subsystem for Linux v2"]
+       }
+       subgraph cluster_bsd_without_macos {
+           cluster=true;
+           fontsize=16
+           label=<<FONT FACE="Courier New"><B>click_extra.platforms.BSD_WITHOUT_MACOS</B></FONT><BR/><BR/><I>All BSD without macOS.</I><BR/>>
+           bsd_without_macos_freebsd [label="freebsd - FreeBSD"]
+           bsd_without_macos_netbsd [label="netbsd - NetBSD"]
+           bsd_without_macos_openbsd [label="openbsd - OpenBSD"]
+           bsd_without_macos_sunos [label="sunos - SunOS"]
+       }
        subgraph cluster_unix {
            cluster=true;
            fontsize=16
