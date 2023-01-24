@@ -31,6 +31,7 @@ import warnings
 from boltons.dictutils import FrozenDict
 
 from .platforms import AIX as NEW_AIX
+from .platforms import OTHER_UNIX  # nopycln: import
 from .platforms import (  # nopycln: import
     ALL_LINUX,
     ALL_OS_LABELS,
@@ -46,7 +47,6 @@ from .platforms import LINUX as NEW_LINUX
 from .platforms import MACOS as NEW_MACOS
 from .platforms import NETBSD as NEW_NETBSD
 from .platforms import OPENBSD as NEW_OPENBSD
-from .platforms import OTHER_UNIX  # nopycln: import
 from .platforms import SOLARIS as NEW_SOLARIS
 from .platforms import SUNOS as NEW_SUNOS
 from .platforms import (  # nopycln: import
