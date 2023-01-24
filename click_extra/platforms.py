@@ -270,7 +270,7 @@ class Group:
         if isinstance(other, Group):
             other_platform_ids = other.platform_ids
         else:
-            other_platform_ids = frozenset((p.id for p in other))
+            other_platform_ids = frozenset(p.id for p in other)
         return self.platform_ids.issubset(other_platform_ids)
 
 
@@ -480,7 +480,7 @@ ALL_GROUPS: frozenset[Group] = frozenset(NON_OVERLAPPING_GROUPS | EXTRA_GROUPS)
 """All groups."""
 
 
-ALL_OS_LABELS: frozenset[str] = frozenset((p.name for p in ALL_PLATFORMS.platforms))
+ALL_OS_LABELS: frozenset[str] = frozenset(p.name for p in ALL_PLATFORMS.platforms)
 """ Sets of all recognized labels. """
 
 
