@@ -65,7 +65,7 @@ digraph {
     imagesize [label="imagesize\n1.4.1"]
     jinja2 -> markupsafe [label=">=2.0"]
     jinja2 [label="Jinja2\n3.1.2"]
-    markupsafe [label="MarkupSafe\n2.1.1"]
+    markupsafe [label="MarkupSafe\n2.1.2"]
     mergedeep [label="mergedeep\n1.3.4"]
     packaging [label="packaging\n23.0"]
     pygments [label="Pygments\n2.14.0"]
