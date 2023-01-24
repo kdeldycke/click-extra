@@ -46,10 +46,10 @@ from .platforms import LINUX as NEW_LINUX
 from .platforms import MACOS as NEW_MACOS
 from .platforms import NETBSD as NEW_NETBSD
 from .platforms import OPENBSD as NEW_OPENBSD
-from .platforms import OTHER_UNIX
+from .platforms import OTHER_UNIX  # nopycln: import
 from .platforms import SOLARIS as NEW_SOLARIS
 from .platforms import SUNOS as NEW_SUNOS
-from .platforms import (
+from .platforms import (  # nopycln: import
     SYSTEM_V,
     UNIX,
     UNIX_LAYERS,
