@@ -101,7 +101,7 @@ def test_ansi_lexers_candidates(tmp_path):
     assert package_path.exists()
     assert package_path.is_file()
 
-    # Locations of lexer artefacts in test suite.
+    # Locations of lexer artifacts in test suite.
     parser_token_traces = {
         str(tmp_path / base_folder / "tests" / "examplefiles" / "*" / "*.output"),
         str(tmp_path / base_folder / "tests" / "snippets" / "*" / "*.txt"),
@@ -149,7 +149,7 @@ def test_ansi_lexers_candidates(tmp_path):
 
     lexer_classes = {find_lexer_class_by_name(alias) for alias in lexer_candidates}
     # We cannot test for strict equality yet, as some ANSI-ready lexers do not
-    # have any test artefacts producing ``Generic.Output`` tokens.
+    # have any test artifacts producing ``Generic.Output`` tokens.
     assert lexer_classes.issubset(collect_session_lexers())
 
 
