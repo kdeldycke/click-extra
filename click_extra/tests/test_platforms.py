@@ -120,12 +120,6 @@ def test_mutual_exclusion():
 
 
 def test_platform_definitions():
-    # Platforms are expected to be sorted by ID.
-    all_platform_ids = [p.id for p in ALL_PLATFORMS]
-    assert all_platform_ids == sorted(all_platform_ids)
-    # There is no duplicates.
-    assert set(all_platform_ids) == ALL_PLATFORMS.platform_ids
-
     for plaform in ALL_PLATFORMS.platforms:
         # ID.
         assert plaform.id
@@ -148,12 +142,19 @@ def test_platform_definitions():
 
 def test_unique_ids():
     """Platform and group IDs must be unique."""
-    all_platform_ids = ALL_PLATFORMS.platform_ids
+    all_platform_ids = [p.id for p in ALL_PLATFORMS]
+
+    # Platforms are expected to be sorted by ID.
+    assert sorted(all_platform_ids) == all_platform_ids
+    assert len(set(all_platform_ids)) == len(all_platform_ids)
+
+    assert len(all_platform_ids) == len(ALL_PLATFORMS)
+    assert len(all_platform_ids) == len(ALL_PLATFORMS.platform_ids)
 
     all_group_ids = {g.id for g in ALL_GROUPS}
     assert len(all_group_ids) == len(ALL_GROUPS)
 
-    assert all_platform_ids.isdisjoint(all_group_ids)
+    assert all_group_ids.isdisjoint(all_platform_ids)
 
 
 def test_group_constants():
@@ -208,6 +209,9 @@ def test_groups_content():
 
             # A group cannot be disjoint from itself.
             assert not group.isdisjoint(group)
+            assert not group.isdisjoint(group.platforms)
+            assert group.fullyintersects(group)
+            assert group.fullyintersects(group.platforms)
 
 
 def test_logical_grouping():

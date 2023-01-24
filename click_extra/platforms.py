@@ -276,6 +276,14 @@ class Group:
         """Return `True` if the group has no platforms in common with ``other``."""
         return self.platform_ids.isdisjoint(self._extract_platform_ids(other))
 
+    def fullyintersects(self, other: Group | Iterable[Platform]) -> bool:
+        """Return `True` if the group has all platforms in common with ``other``.
+
+        We cannot just compare ``Groups`` with the ``==`` equality operator as the
+        latter takes all attributes into account, as per ``dataclass`` default behavior.
+        """
+        return self.platform_ids == self._extract_platform_ids(other)
+
     def issubset(self, other: Group | Iterable[Platform]) -> bool:
         return self.platform_ids.issubset(self._extract_platform_ids(other))
 
