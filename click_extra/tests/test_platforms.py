@@ -123,6 +123,7 @@ def test_platform_definitions():
     # Platforms are expected to be sorted by ID.
     all_platform_ids = [p.id for p in ALL_PLATFORMS]
     assert all_platform_ids == sorted(all_platform_ids)
+    # There is no duplicates.
     assert set(all_platform_ids) == ALL_PLATFORMS.platform_ids
 
     for plaform in ALL_PLATFORMS.platforms:
@@ -168,40 +169,77 @@ def test_groups_content():
         assert isinstance(groups, frozenset)
         for group in groups:
             assert isinstance(group, Group)
+
             assert len(group) > 0
             assert len(group.platforms) == len(group.platform_ids)
             assert group.platform_ids.issubset(ALL_PLATFORMS.platform_ids)
 
+            # Check general subset properties.
+            assert group.issubset(ALL_PLATFORMS)
+            assert ALL_PLATFORMS.issuperset(group)
 
-def test_group_issubset():
-    for group in ALL_GROUPS:
-        assert group.issubset(ALL_PLATFORMS)
+            # Each group is both a subset and a superset of itself.
+            assert group.issubset(group)
+            assert group.issuperset(group)
+            assert group.issubset(group.platforms)
+            assert group.issuperset(group.platforms)
 
+            # Test against empty iterables.
+            assert group.issuperset(tuple())
+            assert group.issuperset(list())
+            assert group.issuperset(dict())
+            assert group.issuperset(set())
+            assert group.issuperset(frozenset())
+            assert not group.issubset(tuple())
+            assert not group.issubset(list())
+            assert not group.issubset(dict())
+            assert not group.issubset(set())
+            assert not group.issubset(frozenset())
+
+            for platform in group.platforms:
+                assert platform in group
+                assert platform in ALL_PLATFORMS
+                assert platform.id in group.platform_ids
+                assert group.issuperset([platform])
+                if len(group) == 1:
+                    assert group.issubset([platform])
+                else:
+                    assert not group.issubset([platform])
+
+            # A group cannot be disjoint from itself.
+            assert not group.isdisjoint(group)
+
+
+def test_logical_grouping():
+    """Test logical grouping of platforms."""
     for group in BSD, ALL_LINUX, LINUX_LAYERS, SYSTEM_V, UNIX_LAYERS, OTHER_UNIX:
         assert group.issubset(UNIX)
+        assert UNIX.issuperset(group)
 
     assert UNIX_WITHOUT_MACOS.issubset(UNIX)
+    assert UNIX.issuperset(UNIX_WITHOUT_MACOS)
 
     assert BSD_WITHOUT_MACOS.issubset(UNIX)
     assert BSD_WITHOUT_MACOS.issubset(BSD)
+    assert UNIX.issuperset(BSD_WITHOUT_MACOS)
+    assert BSD.issuperset(BSD_WITHOUT_MACOS)
 
+    # All platforms are divided into Windows and Unix at the highest level.
+    assert {p.id for p in ALL_PLATFORMS} == ALL_WINDOWS.platform_ids | UNIX.platform_ids
 
-def test_group_subsets():
-    assert sorted(ALL_WINDOWS.platform_ids | UNIX.platform_ids) == [
-        p.id for p in ALL_PLATFORMS
-    ]
-    assert sorted(
+    # All UNIX platforms are divided into BSD, Linux, and Unix families.
+    assert UNIX.platform_ids == (
         BSD.platform_ids
         | ALL_LINUX.platform_ids
         | LINUX_LAYERS.platform_ids
         | SYSTEM_V.platform_ids
         | UNIX_LAYERS.platform_ids
         | OTHER_UNIX.platform_ids
-    ) == sorted(UNIX.platform_ids)
+    )
 
 
 def test_group_no_missing_platform():
-    """Check all platform are attached to a group at least."""
+    """Check all platform are attached to at least one group."""
     grouped_platforms = set()
     for group in ALL_GROUPS:
         grouped_platforms |= group.platform_ids
@@ -212,7 +250,19 @@ def test_non_overlapping_groups():
     """Check non-overlapping groups are mutually exclusive."""
     for combination in combinations(NON_OVERLAPPING_GROUPS, 2):
         group1, group2 = combination
-        assert group1.platform_ids.isdisjoint(group2.platform_ids)
+        assert group1.isdisjoint(group2)
+        assert group2.isdisjoint(group1)
+
+
+def test_overlapping_groups():
+    """Check all extra groups overlaps with at least one non-overlapping."""
+    for extra_group in EXTRA_GROUPS:
+        overlap = False
+        for group in NON_OVERLAPPING_GROUPS:
+            if not extra_group.isdisjoint(group):
+                overlap = True
+                break
+        assert overlap is True
 
 
 def test_current_os_func():

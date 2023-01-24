@@ -265,13 +265,22 @@ class Group:
         """Return the number of platforms in the group."""
         return len(self.platforms)
 
-    def issubset(self, other: Group | Iterable[Platform]) -> bool:
-        """Return `True` if all platforms of the group are in ``other``."""
+    @staticmethod
+    def _extract_platform_ids(other: Group | Iterable[Platform]) -> frozenset[str]:
+        """Extract the platform IDs from ``other``."""
         if isinstance(other, Group):
-            other_platform_ids = other.platform_ids
-        else:
-            other_platform_ids = frozenset(p.id for p in other)
-        return self.platform_ids.issubset(other_platform_ids)
+            return other.platform_ids
+        return frozenset(p.id for p in other)
+
+    def isdisjoint(self, other: Group | Iterable[Platform]) -> bool:
+        """Return `True` if the group has no platforms in common with ``other``."""
+        return self.platform_ids.isdisjoint(self._extract_platform_ids(other))
+
+    def issubset(self, other: Group | Iterable[Platform]) -> bool:
+        return self.platform_ids.issubset(self._extract_platform_ids(other))
+
+    def issuperset(self, other: Group | Iterable[Platform]) -> bool:
+        return self.platform_ids.issuperset(self._extract_platform_ids(other))
 
 
 ALL_PLATFORMS: Group = Group(
