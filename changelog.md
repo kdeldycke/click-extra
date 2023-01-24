@@ -1,5 +1,11 @@
 # Changelog
 
+## {gh}`3.8.1 (unreleased) <compare/v3.8.0...main>`
+
+```{important}
+This version is not released yet and is under active development.
+```
+
 ## {gh}`3.8.0 (2023-01-24) <compare/v3.7.0...v3.8.0>`
 
 - Rename `click_extra.platform` to `click_extra.platforms`.
