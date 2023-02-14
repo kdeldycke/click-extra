@@ -148,7 +148,7 @@ def generate_platforms_graph(graph_id: str, description: str, groups: frozenset[
                 label=(
                     "<"
                     '<FONT FACE="Courier New">'
-                    "<B>click_extra.platforms.{html.escape(group.id.upper())}</B>"
+                    f"<B>click_extra.platforms.{html.escape(group.id.upper())}</B>"
                     "</FONT><BR/><BR/>"
                     f"<I>{html.escape(group.name)}.</I><BR/>"
                     ">"
