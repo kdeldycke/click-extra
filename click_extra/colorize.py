@@ -41,7 +41,8 @@ class HelpExtraTheme(NamedTuple):
     """Extends ``cloup.HelpTheme`` with Click Extra's specific properties and
     ``logging.levels``.
 
-    We had to redefined all fields and couldn't extend ``cloup.HelpTheme`` as there is no way to cleanly do it because of mypy. See:
+    We had to redefined all fields and couldn't extend ``cloup.HelpTheme`` as there is
+    no way to cleanly do it because of mypy. See:
     https://github.com/python/typing/issues/427
     https://mypy.readthedocs.io/en/stable/runtime_troubles.html#future-annotations-import-pep-563
     """
@@ -167,7 +168,8 @@ color_env_vars = {
     "NO_COLOR": False,
     "NO_COLORS": False,
 }
-"""List of environment variables recognized as flags to switch color rendering on or off.
+"""List of environment variables recognized as flags to switch color rendering on or
+off.
 
 The key is the name of the variable and the boolean value the value to pass to ``--color`` option flag when encountered.
 

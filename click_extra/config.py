@@ -91,12 +91,14 @@ class ParamStructure:
 
     Structures are represented by a tree-like ``dict``.
 
-    Access to a node is available using a serialized path string composed of the keys to descend to that node,
+    Access to a node is available using a serialized path string composed of the keys to
+    descend to that node,
     separated by a dot ``.``.
     """
 
     SEP: str = "."
-    """Use a dot ``.`` as a separator between levels of the tree-like parameter structure."""
+    """Use a dot ``.`` as a separator between levels of the tree-like parameter
+    structure."""
 
     DEFAULT_EXCLUDE_PARAMS: Iterable[str] = (
         "config",
@@ -198,8 +200,8 @@ class ParamStructure:
     def get_param_type(self, param):
         """Get the Python type of a Click parameter.
 
-        See the list of `custom types provided by Click
-        <https://click.palletsprojects.com/en/8.1.x/api/?highlight=intrange#types>`_.
+        See the list of
+        `custom types provided by Click        <https://click.palletsprojects.com/en/8.1.x/api/?highlight=intrange#types>`_.
         """
         if param.multiple or param.nargs != 1:
             return list
@@ -451,16 +453,16 @@ class ConfigOption(ExtraOption, ParamStructure):
         # Check if the pattern is an URL.
         location = URL(pattern)
         if location and location.scheme.lower() in ("http", "https"):
-            logger.debug(f"Fetch configuration from remote URL.")
+            logger.debug("Fetch configuration from remote URL.")
             with requests.get(location) as response:
                 if response.ok:
                     yield from (response.text,)
                     return
                 logger.warning(f"Can't download {location}: {response.reason}")
         else:
-            logger.debug(f"Pattern is not an URL.")
+            logger.debug("Pattern is not an URL.")
 
-        logger.debug(f"Search local file system.")
+        logger.debug("Search local file system.")
         # wcmatch expect patterns to be written with unix-like syntax by default, even on Windows. See more details at:
         # https://facelessuser.github.io/wcmatch/glob/#windows-separators
         # https://github.com/facelessuser/wcmatch/issues/194
@@ -614,9 +616,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         """Fetch parameters values from configuration file and merge them with the
         defaults.
 
-        User configuration is `merged to the context default_map as Click does
-        <https://click.palletsprojects.com/en/8.1.x/commands/#context-defaults>`_.
-
+        User configuration is
+        `merged to the context default_map as Click does        <https://click.palletsprojects.com/en/8.1.x/commands/#context-defaults>`_.
         This allow user's config to only overrides defaults. Values sets from direct
         command line parameters, environment variables or interactive prompts, takes
         precedence over any values from the config file.

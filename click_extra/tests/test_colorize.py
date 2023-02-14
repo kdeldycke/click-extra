@@ -188,7 +188,7 @@ def test_keyword_collection(invoke):
     result = invoke(color_cli1, "command1", "--help", color=True)
     assert result.exit_code == 0
     assert result.output == dedent(
-        f"""\
+        """\
         It works!
         \x1b[94m\x1b[1mUsage: \x1b[0m\x1b[97mcolor-cli1 command1\x1b[0m \x1b[90m[OPTIONS]\x1b[0m [\x1b[36mMY_ARG\x1b[0m]...
 
@@ -207,7 +207,7 @@ def test_keyword_collection(invoke):
     result = invoke(command1, "--help", color=True)
     assert result.exit_code == 0
     assert result.output == dedent(
-        f"""\
+        """\
         \x1b[94m\x1b[1mUsage: \x1b[0m\x1b[97mcommand1\x1b[0m \x1b[90m[OPTIONS]\x1b[0m [\x1b[36mMY_ARG\x1b[0m]...
 
           CLI description with extra MY_VAR reference.
