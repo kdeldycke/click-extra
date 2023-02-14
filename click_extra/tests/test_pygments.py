@@ -72,7 +72,8 @@ def test_ansi_lexers_candidates(tmp_path):
     # Get the version of the Pygments package installed in the current environment.
     version = metadata.version("pygments")
 
-    # Emulate CLI call to download Pygments' source distribution (which contains the full test suite and data) from PyPi via pip:
+    # Emulate CLI call to download Pygments' source distribution (which contains the
+    # full test suite and data) from PyPi via pip:
     #   $ pip download --no-binary=:all: --no-deps pygments==2.14.0
     # Source: https://stackoverflow.com/a/56773693
     cmd = DownloadCommand(name="dummy_name", summary="dummy_summary")

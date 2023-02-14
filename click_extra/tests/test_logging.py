@@ -72,7 +72,8 @@ def test_standalone_verbosity_option(invoke, cmd_decorator, level):
     assert result.output == "It works!\n"
 
     messages = (
-        "\x1b[34mdebug: \x1b[0mVerbosity set to DEBUG.\n\x1b[34mdebug: \x1b[0mmy debug message.\n",
+        "\x1b[34mdebug: \x1b[0mVerbosity set to DEBUG.\n"
+        "\x1b[34mdebug: \x1b[0mmy debug message.\n",
         "my info message.\n",
         "\x1b[33mwarning: \x1b[0mmy warning message.\n",
         "\x1b[31merror: \x1b[0mmy error message.\n",

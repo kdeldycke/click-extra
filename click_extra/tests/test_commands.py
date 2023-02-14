@@ -208,8 +208,8 @@ def test_integrated_version_value(invoke, all_command_cli):
     assert result.exit_code == 0
 
     regex_output = r"command-cli1, version 2021.10.08\n"
-    # XXX Temporarily skip displaying environment details for Python >= 3.10 while we wait for
-    # https://github.com/mahmoud/boltons/issues/294 to be released upstream.
+    # XXX Temporarily skip displaying environment details for Python >= 3.10 while we
+    # wait for https://github.com/mahmoud/boltons/issues/294 to be released upstream.
     if sys.version_info[:2] < (3, 10):
         regex_output += r"{'.+'}\n"
     assert re.fullmatch(regex_output, result.output)
