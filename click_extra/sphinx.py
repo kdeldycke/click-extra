@@ -17,17 +17,20 @@
 """Helpers and utilities for Sphinx rendering of CLI based on Click Extra.
 
 .. danger::
-    This module is quite janky and does the job, but would benefits from a total clean rewrite. This
-    would require a better understanding of Sphinx, Click and MyST internals.
+    This module is quite janky and does the job, but would benefits from a total clean
+    rewrite. This would require a better understanding of Sphinx, Click and MyST
+    internals.
 
-    I'll probably start by porting the whole ``pallets_sphinx_themes.themes.click.domain`` here,
-    merge it with the local collection of monkey-patches from here, then clean the whole code
-    to make it more readable and maintainable. This will also eliminate the dependency on
+    I'll probably start by porting the whole
+    ``pallets_sphinx_themes.themes.click.domain`` here, merge it with the local
+    collection of monkey-patches from here, then clean the whole code to make it more
+    readable and maintainable. This will also eliminate the dependency on
     ``pallets_sphinx_themes``.
 
 .. todo::
     Add support for plain MyST directives to remove the need of wrapping rST into an
-    ``{eval-rst}`` block. Ideally, this would allow for the following simpler syntax in MyST:
+    ``{eval-rst}`` block. Ideally, this would allow for the following simpler syntax in
+    MyST:
 
     .. code-block:: markdown
 
@@ -78,8 +81,10 @@ Emulates:
         click._compat.text_type = str
 
 See:
-    - `similar hack in click 8.x's docs/conf.py <https://github.com/pallets/click/commit/00883dd3d0a29f68f375cab5e21cef0669941aba#diff-85933aa74a2d66c3e4dcdf7a9ad8397f5a7971080d34ef1108296a7c6b69e7e3>`_
-    - `incriminating import in pallets_sphinx_themes <https://github.com/pallets/pallets-sphinx-themes/blob/7b69241f1fde3cc3849f513a9dd83fa8a2f36603/src/pallets_sphinx_themes/themes/click/domain.py#L9>`_
+    - `similar hack in click 8.x's docs/conf.py
+      <https://github.com/pallets/click/commit/00883dd3d0a29f68f375cab5e21cef0669941aba#diff-85933aa74a2d66c3e4dcdf7a9ad8397f5a7971080d34ef1108296a7c6b69e7e3>`_
+    - `incriminating import in pallets_sphinx_themes
+      <https://github.com/pallets/pallets-sphinx-themes/blob/7b69241/src/pallets_sphinx_themes/themes/click/domain.py#L9>`_
 """
 
 
@@ -94,8 +99,10 @@ class PatchedViewList(ViewList):
     Shell Session (``.. code-block:: ansi-shell-session``).
 
     Targets:
-        - ``.. sourcecode:: text`` `for Pallets-Sphinx-Themes <= 2.0.2 <https://github.com/pallets/pallets-sphinx-themes/blob/7b69241f1fde3cc3849f513a9dd83fa8a2f36603/src/pallets_sphinx_themes/themes/click/domain.py#L245>`_
-        - ``.. sourcecode:: shell-session`` `for Pallets-Sphinx-Themes > 2.0.2 <https://github.com/pallets/pallets-sphinx-themes/pull/62>`_
+        - ``.. sourcecode:: text`` `for Pallets-Sphinx-Themes <= 2.0.2
+          <https://github.com/pallets/pallets-sphinx-themes/blob/7b69241/src/pallets_sphinx_themes/themes/click/domain.py#L245>`_
+        - ``.. sourcecode:: shell-session`` `for Pallets-Sphinx-Themes > 2.0.2
+          <https://github.com/pallets/pallets-sphinx-themes/pull/62>`_
     """
 
     def append(self, *args, **kwargs):
@@ -127,8 +134,9 @@ def setup(app):
         ####################################
         #  pallets_sphinx_themes Patch #2  #
         ####################################
-        # Replace the call to default ``CliRunner.invoke`` with a call to click_extra own version which is sensible to contextual color settings
-        # and output unfiltered ANSI codes.
+        # Replace the call to default ``CliRunner.invoke`` with a call to click_extra
+        # own version which is sensible to contextual color settings and output
+        # unfiltered ANSI codes.
         # Fixes: <insert upstream bug report here>
 
         # Brutal, but effective.

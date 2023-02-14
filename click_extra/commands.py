@@ -30,9 +30,8 @@ from typing import Any
 
 from click import Context as ClickContext
 from click import echo
-from cloup import Command
+from cloup import Command, Group, command, group, option
 from cloup import Context as CloupContext
-from cloup import Group, command, group, option
 
 from .colorize import ColorOption, ExtraHelpColorsMixin, HelpOption
 from .config import ConfigOption, ShowParamsOption
@@ -172,7 +171,8 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         The result are passed to our own ``ExtraContext`` constructor which is able to
         initialize the context's ``meta`` property under our own
         ``click_extra.raw_args`` entry. This will be used in
-        ``ShowParamsOption.print_params()`` to print the table of parameters fed to the CLI.
+        ``ShowParamsOption.print_params()`` to print the table of parameters fed to the
+        CLI.
 
         .. todo::
             Propose this patch upstream to ``click``.
@@ -235,8 +235,9 @@ def default_extra_params():
 
     .. note::
 
-        This default set is a list wrapped in a method, as a workaround for unittests, in which option instances seems to be
-        reused in unrelated commands and mess with test isolation.
+        This default set is a list wrapped in a method, as a workaround for unittests,
+        in which option instances seems to be reused in unrelated commands and mess with
+        test isolation.
     """
     return [
         TimerOption(),
@@ -252,12 +253,14 @@ def default_extra_params():
 extra_command = partial(command, cls=ExtraCommand, params=default_extra_params())
 """Augment default ``cloup.command`` with additional options.
 
-See :py:func:`click_extra.commands.default_extra_params` for the list of default options.
+See :py:func:`click_extra.commands.default_extra_params` for the list of default
+options.
 """
 
 
 extra_group = partial(group, cls=ExtraGroup, params=default_extra_params())
 """Augment default ``cloup.group`` with additional options.
 
-See :py:func:`click_extra.commands.default_extra_params` for the list of default options.
+See :py:func:`click_extra.commands.default_extra_params` for the list of default
+options.
 """

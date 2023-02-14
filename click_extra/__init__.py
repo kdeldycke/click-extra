@@ -34,13 +34,11 @@ __version__ = "3.8.1"
 # Import all click's module-level content to allow for drop-in replacement.
 # XXX Star import is really badly supported by mypy for now and leads to lots of
 # "Module 'XXX' has no attribute 'YYY'". See: https://github.com/python/mypy/issues/4930
-from click import *
-from click.core import ParameterSource
+from click import *  # noqa: E402, F403
+from click.core import ParameterSource  # noqa: E402
 
 # Overrides some of click helpers with cloup's.
-from cloup import command  # type: ignore
-from cloup import group  # type: ignore
-from cloup import (
+from cloup import (  # noqa: E402
     Argument,
     Command,
     Group,
@@ -49,36 +47,37 @@ from cloup import (
     Option,
     Style,
     argument,
+    command,  # type: ignore   # noqa: E402
+    group,  # type: ignore   # noqa: E402
     option,
     option_group,
 )
 
-from .parameters import ExtraOption  # noqa: I001
-
 # Replace some of click defaults with click-extra variant.
-from .colorize import (  # noqa: I001
+from .colorize import (  # noqa: I001, E402
     ColorOption,
     HelpOption,
     color_option,
     help_option,
 )
-from .config import (  # noqa: I001
-    ConfigOption,
-    ShowParamsOption,
-    config_option,
-    show_params_option,
-)
-from .logging import VerbosityOption, verbosity_option  # noqa: I001
-from .tabulate import table_format_option  # noqa: I001
-from .version import VersionOption, version_option  # noqa: I001
 
 # Import last to avoid circular dependencies.
-from .commands import (  # noqa: I001
+from .commands import (  # noqa: I001, E402
     TimerOption,
     extra_command,
     extra_group,
     timer_option,
 )
+from .config import (  # noqa: I001, E402
+    ConfigOption,
+    ShowParamsOption,
+    config_option,
+    show_params_option,
+)
+from .logging import VerbosityOption, verbosity_option  # noqa: I001, E402
+from .parameters import ExtraOption  # noqa: I001, E402
+from .tabulate import table_format_option  # noqa: I001, E402
+from .version import VersionOption, version_option  # noqa: I001, E402
 
 __all__ = [
     "Argument",

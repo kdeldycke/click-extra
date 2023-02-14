@@ -67,16 +67,17 @@ def render_csv(tabular_data, headers=(), **kwargs):
 
 
 def render_vertical(tabular_data, headers=(), **kwargs):
-    """Re-implements cli-helpers' vertical table layout.
+    """Re-implements ``cli-helpers``' vertical table layout.
 
-    Source: https://github.com/dbcli/cli_helpers/blob/v2.3.0/cli_helpers/tabular_output/vertical_table_adapter.py
+    `cli-helpers source for reference
+    <https://github.com/dbcli/cli_helpers/blob/v2.3.0/cli_helpers/tabular_output/vertical_table_adapter.py>`_.
     """
     header_len = max(len(h) for h in headers)
     padded_headers = [h.ljust(header_len) for h in headers]
 
     for index, row in enumerate(tabular_data):
         # 27 has been hardcoded in cli-helpers:
-        # https://github.com/dbcli/cli_helpers/blob/4e2c417f68bc07c72b508e107431569b0783c4ef/cli_helpers/tabular_output/vertical_table_adapter.py#L34
+        # https://github.com/dbcli/cli_helpers/blob/4e2c417/cli_helpers/tabular_output/vertical_table_adapter.py#L34
         echo(f"{'*' * 27}[ {index + 1}. row ]{'*' * 27}")
         for cell_label, cell_value in zip(padded_headers, row):
             echo(f"{cell_label} | {cell_value}")

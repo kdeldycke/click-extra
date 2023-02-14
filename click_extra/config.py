@@ -46,13 +46,23 @@ import xmltodict
 import yaml
 from boltons.iterutils import flatten, remap
 from boltons.urlutils import URL
-from click import BOOL, FLOAT, INT, STRING, UNPROCESSED, UUID, Option, Parameter
+from click import (
+    BOOL,
+    FLOAT,
+    INT,
+    STRING,
+    UNPROCESSED,
+    UUID,
+    Option,
+    Parameter,
+    echo,
+    get_app_dir,
+    get_current_context,
+)
 from click import Path as ClickPath
-from click import echo, get_app_dir, get_current_context
 from click.core import ParameterSource
-from cloup import Choice, DateTime, File, FloatRange, IntRange, Style
+from cloup import Choice, DateTime, File, FloatRange, IntRange, Style, option
 from cloup import Tuple as CloupTuple
-from cloup import option
 from mergedeep import merge
 from tabulate import tabulate
 from wcmatch.glob import (
@@ -92,8 +102,7 @@ class ParamStructure:
     Structures are represented by a tree-like ``dict``.
 
     Access to a node is available using a serialized path string composed of the keys to
-    descend to that node,
-    separated by a dot ``.``.
+    descend to that node, separated by a dot ``.``.
     """
 
     SEP: str = "."
@@ -148,7 +157,8 @@ class ParamStructure:
 
     def _flatten_tree_dict_gen(self, tree_dict, parent_key):
         """
-        Source: https://www.freecodecamp.org/news/how-to-flatten-a-dictionary-in-python-in-4-different-ways/
+        `Source of this snippet
+        <https://www.freecodecamp.org/news/how-to-flatten-a-dictionary-in-python-in-4-different-ways/>`_.
         """
         for k, v in tree_dict.items():
             new_key = f"{parent_key}{self.SEP}{k}" if parent_key else k
@@ -167,7 +177,8 @@ class ParamStructure:
     def walk_params(self):
         """Generates an unfiltered list of all CLI parameters.
 
-        Everything is included, from top-level to subcommands, from options to arguments.
+        Everything is included, from top-level to subcommands, from options to
+        arguments.
 
         Returns a 2-elements tuple:
             - the first being a tuple of keys leading to the parameter
@@ -200,8 +211,8 @@ class ParamStructure:
     def get_param_type(self, param):
         """Get the Python type of a Click parameter.
 
-        See the list of
-        `custom types provided by Click        <https://click.palletsprojects.com/en/8.1.x/api/?highlight=intrange#types>`_.
+        See the list of `custom types provided by Click
+        <https://click.palletsprojects.com/en/8.1.x/api/?highlight=intrange#types>`_.
         """
         if param.multiple or param.nargs != 1:
             return list
@@ -444,8 +455,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         """Search on local file system or remote URL files matching the provided
         pattern.
 
-        ``pattern`` is considered as an URL only if it is parseable as such
-        and starts with ``http://`` or ``https://``.
+        ``pattern`` is considered as an URL only if it is parseable as such and starts
+        with ``http://`` or ``https://``.
 
         Returns an iterator of raw content for each file/URL matching the
         pattern.
@@ -463,7 +474,8 @@ class ConfigOption(ExtraOption, ParamStructure):
             logger.debug("Pattern is not an URL.")
 
         logger.debug("Search local file system.")
-        # wcmatch expect patterns to be written with unix-like syntax by default, even on Windows. See more details at:
+        # wcmatch expect patterns to be written with Unix-like syntax by default, even
+        # on Windows. See more details at:
         # https://facelessuser.github.io/wcmatch/glob/#windows-separators
         # https://github.com/facelessuser/wcmatch/issues/194
         if is_windows():
@@ -555,14 +567,15 @@ class ConfigOption(ExtraOption, ParamStructure):
                 elif target_type == bool:
                     value = ini_config.getboolean(section_id, option_id)
 
-                # Types not natively supported by INI format are loaded as JSON-serialized
-                # strings.
+                # Types not natively supported by INI format are loaded as
+                # JSON-serialized strings.
                 elif target_type in (list, tuple, set, frozenset, dict):
                     value = json.loads(ini_config.get(section_id, option_id))
 
                 else:
                     raise ValueError(
-                        f"Conversion of {target_type} type for [{section_id}]:{option_id} INI config option."
+                        f"Conversion of {target_type} type for "
+                        f"[{section_id}]:{option_id} INI config option."
                     )
 
                 sub_conf[option_id] = value
@@ -616,8 +629,10 @@ class ConfigOption(ExtraOption, ParamStructure):
         """Fetch parameters values from configuration file and merge them with the
         defaults.
 
-        User configuration is
-        `merged to the context default_map as Click does        <https://click.palletsprojects.com/en/8.1.x/commands/#context-defaults>`_.
+        User configuration is `merged to the context default_map as Click does
+        <https://click.palletsprojects.com/en/8.1.x/commands/#context-defaults>`_.
+
+
         This allow user's config to only overrides defaults. Values sets from direct
         command line parameters, environment variables or interactive prompts, takes
         precedence over any values from the config file.
@@ -763,9 +778,9 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             parser = ctx.command.make_parser(ctx)
             opts, _, _ = parser.parse_args(args=raw_args)
 
-            # We call directly consume_value() instead of handle_parse_result() to prevent an
-            # embedded call to process_value(), as the later triggers the callback
-            # (and might terminate CLI execution).
+            # We call directly consume_value() instead of handle_parse_result() to
+            # prevent an embedded call to process_value(), as the later triggers the
+            # callback (and might terminate CLI execution).
             param_value, source = param.consume_value(ctx, opts)
 
             get_param_value = methodcaller("consume_value", ctx, opts)
@@ -773,7 +788,8 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         else:
             logger.debug(f"click_extra.raw_args not in {ctx.meta}")
             logger.warning(
-                f"Cannot extract parameters values: {ctx.command} does not inherits from ExtraCommand."
+                f"Cannot extract parameters values: "
+                f"{ctx.command} does not inherits from ExtraCommand."
             )
 
             def vanilla_getter(param):

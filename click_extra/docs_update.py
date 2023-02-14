@@ -25,7 +25,7 @@
         $ run python -m click_extra.docs_update
 
     See how it is `used in .github/workflows/docs.yaml workflow
-    <https://github.com/kdeldycke/click-extra/blob/a978bd07bbc3f760e82fee17ce6281c5790065ae/.github/workflows/docs.yaml#L35-L37>`_.
+    <https://github.com/kdeldycke/click-extra/blob/a978bd0/.github/workflows/docs.yaml#L35-L37>`_.
 """
 
 from __future__ import annotations
@@ -117,10 +117,14 @@ def generate_platforms_graph(graph_id: str, description: str, groups: frozenset[
             "fontsize": "36",
             "label": (
                 "<<BR/><BR/>"
-                f'<FONT FACE="Courier New"><B>click_extra.platforms.{html.escape(graph_id)}</B></FONT><BR/><BR/>'
-                f"<I>{html.escape(description)}</I><BR/><BR/>"
-                f'<FONT COLOR="gray">Click Extra v{html.escape(__version__)}</FONT><BR/>'
-                ">"
+                '<FONT FACE="Courier New">'
+                f"<B>click_extra.platforms.{html.escape(graph_id)}</B>"
+                "</FONT>"
+                "<BR/><BR/>"
+                f"<I>{html.escape(description)}</I>"
+                "<BR/><BR/>"
+                f'<FONT COLOR="gray">Click Extra v{html.escape(__version__)}</FONT>'
+                "<BR/>>"
             ),
         },
         node_attr={
@@ -143,7 +147,9 @@ def generate_platforms_graph(graph_id: str, description: str, groups: frozenset[
             group_cluster.attr(
                 label=(
                     "<"
-                    f'<FONT FACE="Courier New"><B>click_extra.platforms.{html.escape(group.id.upper())}</B></FONT><BR/><BR/>'
+                    '<FONT FACE="Courier New">'
+                    "<B>click_extra.platforms.{html.escape(group.id.upper())}</B>"
+                    "</FONT><BR/><BR/>"
                     f"<I>{html.escape(group.name)}.</I><BR/>"
                     ">"
                 )

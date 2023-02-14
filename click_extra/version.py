@@ -104,7 +104,8 @@ class VersionOption(ExtraOption):
 
         if self.version is None:
             raise RuntimeError(
-                f"Could not determine the version for {self.package_name!r} automatically."
+                f"Could not determine the version for "
+                f"{self.package_name!r} automatically."
             )
 
         output = self.message % {
@@ -154,15 +155,21 @@ class VersionOption(ExtraOption):
         :type message: str, optional
         :param print_env_info: _description_, defaults to False
         :type print_env_info: bool, optional
-        :param version_style: adds environment info at the end of the message. Useful to gather user's details for troubleshooting. Defaults to ``Style(fg="green")``.
+        :param version_style: adds environment info at the end of the message. Useful to
+            gather user's details for troubleshooting. Defaults to
+            ``Style(fg="green")``.
         :type version_style: _type_, optional
-        :param package_name_style: style of the ``version``. Defaults to ``default_theme.invoked_command``.
+        :param package_name_style: style of the ``version``. Defaults to
+            ``default_theme.invoked_command``.
         :type package_name_style: _type_, optional
-        :param prog_name_style: style of the ``prog_name``. Defaults to ``default_theme.invoked_command``.
+        :param prog_name_style: style of the ``prog_name``. Defaults to
+            ``default_theme.invoked_command``.
         :type prog_name_style: _type_, optional
-        :param message_style: default style of the ``message`` parameter. Defaults to ``None``.
+        :param message_style: default style of the ``message`` parameter. Defaults to
+            ``None``.
         :type message_style: _type_, optional
-        :param env_info_style: style of the environment info. Defaults to ``Style(fg="bright_black")``.
+        :param env_info_style: style of the environment info. Defaults to
+            ``Style(fg="bright_black")``.
         :type env_info_style: _type_, optional
         :param is_flag: _description_, defaults to True
         :type is_flag: bool, optional
@@ -187,8 +194,8 @@ class VersionOption(ExtraOption):
         if self.version is None and self.package_name is None:
             self.package_name = self.guess_package_name()
 
-        # XXX Temporarily skip displaying environment details for Python >= 3.10 while we wait for
-        # https://github.com/mahmoud/boltons/issues/294 to be released upstream.
+        # XXX Temporarily skip displaying environment details for Python >= 3.10 while
+        # we wait for https://github.com/mahmoud/boltons/issues/294 to reach upstream.
         if print_env_info and sys.version_info[:2] < (3, 10):
             from boltons.ecoutils import get_profile
 

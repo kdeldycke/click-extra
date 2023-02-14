@@ -85,9 +85,11 @@ unless_windows = pytest.mark.skipif(not is_windows(), reason="Windows required")
 
 
 skip_windows_colors = skip_windows(reason="Click overstrip colors on Windows")
-"""Skips color tests on Windows as click.testing.invoke overzealously strips colors.
+"""Skips color tests on Windows as ``click.testing.invoke`` overzealously strips colors.
 
-See: https://github.com/pallets/click/issues/2111 and https://github.com/pallets/click/issues/2110
+See:
+- https://github.com/pallets/click/issues/2111
+- https://github.com/pallets/click/issues/2110
 """
 
 
@@ -140,12 +142,14 @@ def runner():
 def invoke(runner, monkeypatch):
     """Executes Click's CLI, print output and return results.
 
-    If ``color=False`` both ``<stdout>`` and ``<stderr>`` are stripped out of ANSI codes.
+    If ``color=False`` both ``<stdout>`` and ``<stderr>`` are stripped out of ANSI
+    codes.
 
     Adds a special case in the form of ``color="forced"`` parameter, which allows
-    colored output to be kept, while forcing the initialization of ``Context.color = True``.
-    This is not allowed in current implementation of ``click.testing.CliRunner.invoke()``. See:
-    https://github.com/pallets/click/issues/2110
+    colored output to be kept, while forcing the initialization of
+    ``Context.color = True``. This is not `allowed in current implementation
+    <https://github.com/pallets/click/issues/2110>`_ of
+    ``click.testing.CliRunner.invoke()``.
     """
     def _run(cli, *args, env: EnvVars | None = None, color=None):
         # We allow for nested iterables and None values as args for
@@ -305,13 +309,16 @@ def create_config(tmp_path):
 
 
 default_options_uncolored_help = (
-    r"  --time / --no-time        Measure and print elapsed execution time.  \[default:\n"
+    r"  --time / --no-time        Measure and print elapsed execution time."
+    r"  \[default:\n"
     r"                            no-time\]\n"
     r"  --color, --ansi / --no-color, --no-ansi\n"
-    r"                            Strip out all colors and all ANSI codes from output.\n"
+    r"                            Strip out all colors and all ANSI codes from"
+    r" output.\n"
     r"                            \[default: color\]\n"
     r"  -C, --config CONFIG_PATH  Location of the configuration file. Supports glob\n"
-    r"                            pattern of local path and remote URL.  \[default:( \S+)?\n"
+    r"                            pattern of local path and remote URL."
+    r"  \[default:( \S+)?\n"
     r"(                            .+\n)*"
     r"                            \S+\.{toml,yaml,yml,json,ini,xml}\]\n"
     r"  --show-params             Show all CLI parameters, their provenance, defaults\n"
@@ -324,21 +331,33 @@ default_options_uncolored_help = (
 
 
 default_options_colored_help = (
-    r"  \x1b\[36m--time\x1b\[0m / \x1b\[36m--no-time\x1b\[0m        Measure and print elapsed execution time.  \x1b\[90m\[default:\n"
+    r"  \x1b\[36m--time\x1b\[0m / \x1b\[36m--no-time\x1b\[0m"
+    r"        Measure and print elapsed execution time.  \x1b\[90m\[default:\n"
     r"                            \x1b\[0m\x1b\[35mno-time\x1b\[0m\x1b\[90m\]\x1b\[0m\n"
-    r"  \x1b\[36m--color\x1b\[0m, \x1b\[36m--ansi\x1b\[0m / \x1b\[36m--no-color\x1b\[0m, \x1b\[36m--no-ansi\x1b\[0m\n"
-    r"                            Strip out all colors and all ANSI codes from output.\n"
-    r"                            \x1b\[90m\[default: \x1b\[0m\x1b\[35mcolor\x1b\[0m\x1b\[90m\]\x1b\[0m\n"
-    r"  \x1b\[36m-C\x1b\[0m, \x1b\[36m--config\x1b\[0m \x1b\[90mCONFIG_PATH\x1b\[0m  Location of the configuration file. Supports glob\n"
-    r"                            pattern of local path and remote URL.  \x1b\[90m\[default:( \S+)?\n"
+    r"  \x1b\[36m--color\x1b\[0m, \x1b\[36m--ansi\x1b\[0m /"
+    r" \x1b\[36m--no-color\x1b\[0m, \x1b\[36m--no-ansi\x1b\[0m\n"
+    r"                            Strip out all colors and all ANSI codes from"
+    r" output.\n"
+    r"                            \x1b\[90m\[default:"
+    r" \x1b\[0m\x1b\[35mcolor\x1b\[0m\x1b\[90m\]\x1b\[0m\n"
+    r"  \x1b\[36m-C\x1b\[0m, \x1b\[36m--config\x1b\[0m \x1b\[90mCONFIG_PATH\x1b\[0m"
+    r"  Location of the configuration file. Supports glob\n"
+    r"                            pattern of local path and remote URL."
+    r"  \x1b\[90m\[default:( \S+)?\n"
     r"(                            .+\n)*"
-    r"                            \S+\.{toml,yaml,yml,json,ini,xml}\x1b\[0m\x1b\[90m\]\x1b\[0m\n"
-    r"  \x1b\[36m--show-params\x1b\[0m             Show all CLI parameters, their provenance, defaults\n"
+    r"                            "
+    r"\S+\.{toml,yaml,yml,json,ini,xml}\x1b\[0m\x1b\[90m\]\x1b\[0m\n"
+    r"  \x1b\[36m--show-params\x1b\[0m"
+    r"             Show all CLI parameters, their provenance, defaults\n"
     r"                            and value, then exit.\n"
-    r"  \x1b\[36m-v\x1b\[0m, \x1b\[36m--verbosity\x1b\[0m \x1b\[90mLEVEL\x1b\[0m     Either \x1b\[35mCRITICAL\x1b\[0m, \x1b\[35mERROR\x1b\[0m, \x1b\[35mWARNING\x1b\[0m, \x1b\[35mINFO\x1b\[0m, \x1b\[35mDEBUG\x1b\[0m.\n"
-    r"                            \x1b\[90m\[default: \x1b\[0m\x1b\[35mINFO\x1b\[0m\x1b\[90m\]\x1b\[0m\n"
+    r"  \x1b\[36m-v\x1b\[0m, \x1b\[36m--verbosity\x1b\[0m \x1b\[90mLEVEL\x1b\[0m"
+    r"     Either \x1b\[35mCRITICAL\x1b\[0m, \x1b\[35mERROR\x1b\[0m, "
+    r"\x1b\[35mWARNING\x1b\[0m, \x1b\[35mINFO\x1b\[0m, \x1b\[35mDEBUG\x1b\[0m.\n"
+    r"                            \x1b\[90m\[default: "
+    r"\x1b\[0m\x1b\[35mINFO\x1b\[0m\x1b\[90m\]\x1b\[0m\n"
     r"  \x1b\[36m--version\x1b\[0m                 Show the version and exit.\n"
-    r"  \x1b\[36m-h\x1b\[0m, \x1b\[36m--help\x1b\[0m                Show this message and exit.\n"
+    r"  \x1b\[36m-h\x1b\[0m, \x1b\[36m--help\x1b\[0m"
+    r"                Show this message and exit.\n"
 )
 
 
@@ -354,11 +373,13 @@ default_debug_uncolored_log = (
 
 default_debug_colored_log = (
     r"\x1b\[34mdebug: \x1b\[0mVerbosity set to DEBUG.\n"
-    r"\x1b\[34mdebug: \x1b\[0mLoad configuration matching .+\*\.{toml,yaml,yml,json,ini,xml}\n"
+    r"\x1b\[34mdebug: \x1b\[0mLoad configuration"
+    r" matching .+\*\.{toml,yaml,yml,json,ini,xml}\n"
     r"\x1b\[34mdebug: \x1b\[0mPattern is not an URL.\n"
     r"\x1b\[34mdebug: \x1b\[0mSearch local file system.\n"
     r"\x1b\[34mdebug: \x1b\[0mNo configuration file found.\n"
-    r"\x1b\[34mdebug: \x1b\[0m\x1b\[97m\S+\x1b\[0m, version \x1b\[32m\S+\x1b\[0m(\x1b\[90m)?\n"
+    r"\x1b\[34mdebug: \x1b\[0m\x1b\[97m\S+\x1b\[0m,"
+    r" version \x1b\[32m\S+\x1b\[0m(\x1b\[90m)?\n"
 )
 
 

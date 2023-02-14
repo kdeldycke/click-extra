@@ -171,7 +171,8 @@ color_env_vars = {
 """List of environment variables recognized as flags to switch color rendering on or
 off.
 
-The key is the name of the variable and the boolean value the value to pass to ``--color`` option flag when encountered.
+The key is the name of the variable and the boolean value the value to pass to
+``--color`` option flag when encountered.
 
 Source: https://github.com/pallets/click/issues/558
 """
@@ -197,12 +198,12 @@ class ColorOption(ExtraOption):
         colorize_from_env = set()
         for var, default in color_env_vars.items():
             if var in os.environ:
-                # Presence of the variable in the environment without a value encodes for an activation,
-                # hence the default to True.
+                # Presence of the variable in the environment without a value encodes
+                # for an activation, hence the default to True.
                 var_value = os.environ.get(var, "true")
-                # `os.environ` is a dict whose all values are strings. Here we normalize these string into
-                # booleans. If we can't, we fallback to True, in the same spirit as
-                # above.
+                # `os.environ` is a dict whose all values are strings. Here we normalize
+                # these string into booleans. If we can't, we fallback to True, in the
+                # same spirit as above.
                 var_boolean = RawConfigParser.BOOLEAN_STATES.get(
                     var_value.lower(), True
                 )
@@ -220,7 +221,7 @@ class ColorOption(ExtraOption):
                 value = True in colorize_from_env
 
         # There is an undocumented color flag in context:
-        # https://github.com/pallets/click/blob/65eceb08e392e74dcc761be2090e951274ccbe36/src/click/globals.py#L56-L69
+        # https://github.com/pallets/click/blob/65eceb0/src/click/globals.py#L56-L69
         ctx.color = value
 
         if not value:
@@ -322,9 +323,9 @@ class ExtraHelpColorsMixin:
         cli_names.add(ctx.command_path)
         command = ctx.command
 
-        # Will fetch command's metavar (i.e. the "[OPTIONS]" after the CLI name in "Usage:") and dig
-        # into subcommands to get subcommand_metavar: ("COMMAND1 [ARGS]...
-        # [COMMAND2 [ARGS]...]...").
+        # Will fetch command's metavar (i.e. the "[OPTIONS]" after the CLI name in
+        # "Usage:") and dig into subcommands to get subcommand_metavar:
+        # ("COMMAND1 [ARGS]... [COMMAND2 [ARGS]...]...").
         metavars.update(command.collect_usage_pieces(ctx))
 
         # Get subcommands and their aliases.
@@ -350,16 +351,16 @@ class ExtraHelpColorsMixin:
         # Split between shorts and long options
         long_options: set[str] = set()
         short_options: set[str] = set()
-        for option in options:
+        for option_name in options:
             # TODO: reuse ctx._opt_prefixes for finer match?
-            # Short options no longer than 2 characters
-            # (example: "-D", "/d", "/?", "+w", "-w", "f_", "_f", ...)
-            if len(option) <= 2:
-                short_options.add(option)
-            # Any other is considered a long options
-            # (example: "--debug", "--c", "-otest", "---debug", "-vvvv, "++foo", "/debug", "from_", "_from", ...)
+            # Short options no longer than 2 characters like "-D", "/d", "/?", "+w",
+            # "-w", "f_", "_f", ...)
+            if len(option_name) <= 2:
+                short_options.add(option_name)
+            # Any other is considered a long options. Like: "--debug", "--c", "-otest",
+            # "---debug", "-vvvv, "++foo", "/debug", "from_", "_from", ...
             else:
-                long_options.add(option)
+                long_options.add(option_name)
 
         return (
             cli_names,
@@ -534,7 +535,7 @@ class HelpExtraFormatter(HelpFormatter):
                 default:            # Starting content within the brackets.
                 \s+                 # Any number of blank chars.
             )
-            (?P<default_value>.+?)  # Greedy-matching of any string (including line returns).
+            (?P<default_value>.+?)  # Greedy-matching of any string and line returns.
             (?P<default_end>\])     # Square brackets closing.
             """,
             self.colorize,
@@ -556,7 +557,9 @@ class HelpExtraFormatter(HelpFormatter):
             )
 
         # Highligh sections.
-        # XXX Duplicates Cloup's job, with the only subtlety of not highlighting the trailing semicolon.
+        # XXX Duplicates Cloup's job, with the only subtlety of not highlighting the
+        # trailing semicolon.
+        #
         # help_text = re.sub(
         #     r"""
         #     ^                       # Beginning of a line preceded by a newline.
@@ -581,7 +584,7 @@ class HelpExtraFormatter(HelpFormatter):
                     rf"""
                     ([               # A keyword is preceded with either:
                         \s           # - a blank char
-                        \[           # - an opening square bracket (like in choice strings)
+                        \[           # - an opening square bracket (as in choice string)
                         \|           # - a pipe (again like in choice strings)
                         \(           # - an opening parenthesis
                     ])
