@@ -38,7 +38,7 @@ from click import *  # noqa: E402, F403
 from click.core import ParameterSource  # noqa: E402
 
 # Overrides some of click helpers with cloup's.
-from cloup import (  # noqa: E402
+from cloup import (  # type: ignore # noqa: E402
     Argument,
     Command,
     Group,
@@ -47,8 +47,8 @@ from cloup import (  # noqa: E402
     Option,
     Style,
     argument,
-    command,  # type: ignore   # noqa: E402
-    group,  # type: ignore   # noqa: E402
+    command,  # noqa: E402
+    group,  # noqa: E402
     option,
     option_group,
 )
