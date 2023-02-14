@@ -19,7 +19,7 @@
 from __future__ import annotations
 
 __version__ = "3.8.1"
-""" Examples of valid version strings according :pep:`440#version-scheme`:
+"""Examples of valid version strings according :pep:`440#version-scheme`:
 
 .. code-block:: python
 

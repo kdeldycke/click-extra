@@ -94,8 +94,8 @@ class AnsiClickExtraFuroStyle(style_base):  # type: ignore
 DEFAULT_TOKEN_TYPE = Generic.Output
 """Default Pygments' token type to render with ANSI support.
 
-We defaults to ``Generic.Output`` tokens, as this is the token type used by all
-REPL-like and terminal lexers.
+We defaults to ``Generic.Output`` tokens, as this is the token type used by all REPL-
+like and terminal lexers.
 """
 
 

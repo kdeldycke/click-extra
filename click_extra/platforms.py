@@ -181,43 +181,43 @@ class Platform:
 
 
 AIX = Platform("aix", "AIX")
-""" Identify distributions of the AIX family. """
+"""Identify distributions of the AIX family."""
 
 CYGWIN = Platform("cygwin", "Cygwin")
-""" Identify distributions of the Cygwin family. """
+"""Identify distributions of the Cygwin family."""
 
 FREEBSD = Platform("freebsd", "FreeBSD")
-""" Identify distributions of the FreeBSD family. """
+"""Identify distributions of the FreeBSD family."""
 
 HURD = Platform("hurd", "GNU/Hurd")
-""" Identify distributions of the GNU/Hurd family. """
+"""Identify distributions of the GNU/Hurd family."""
 
 LINUX = Platform("linux", "Linux")
-""" Identify distributions of the Linux family. """
+"""Identify distributions of the Linux family."""
 
 MACOS = Platform("macos", "macOS")
-""" Identify distributions of the macOS family. """
+"""Identify distributions of the macOS family."""
 
 NETBSD = Platform("netbsd", "NetBSD")
-""" Identify distributions of the NetBSD family. """
+"""Identify distributions of the NetBSD family."""
 
 OPENBSD = Platform("openbsd", "OpenBSD")
-""" Identify distributions of the OpenBSD family. """
+"""Identify distributions of the OpenBSD family."""
 
 SOLARIS = Platform("solaris", "Solaris")
-""" Identify distributions of the Solaris family. """
+"""Identify distributions of the Solaris family."""
 
 SUNOS = Platform("sunos", "SunOS")
-""" Identify distributions of the SunOS family. """
+"""Identify distributions of the SunOS family."""
 
 WINDOWS = Platform("windows", "Windows")
-""" Identify distributions of the Windows family. """
+"""Identify distributions of the Windows family."""
 
 WSL1 = Platform("wsl1", "Windows Subsystem for Linux v1")
-""" Identify Windows Subsystem for Linux v1. """
+"""Identify Windows Subsystem for Linux v1."""
 
 WSL2 = Platform("wsl2", "Windows Subsystem for Linux v2")
-""" Identify Windows Subsystem for Linux v2. """
+"""Identify Windows Subsystem for Linux v2."""
 
 
 @dataclass(frozen=True)
@@ -313,7 +313,7 @@ ALL_PLATFORMS: Group = Group(
 
 
 ALL_WINDOWS = Group("all_windows", "All Windows", (WINDOWS,))
-""" All Windows operating systems."""
+"""All Windows operating systems."""
 
 
 UNIX = Group(
@@ -321,7 +321,7 @@ UNIX = Group(
     "All Unix",
     tuple(p for p in ALL_PLATFORMS.platforms if p not in ALL_WINDOWS),
 )
-""" All Unix-like operating systems and compatibility layers."""
+"""All Unix-like operating systems and compatibility layers."""
 
 
 UNIX_WITHOUT_MACOS = Group(
@@ -329,14 +329,14 @@ UNIX_WITHOUT_MACOS = Group(
     "All Unix without macOS",
     tuple(p for p in UNIX if p is not MACOS),
 )
-""" All Unix platforms, without macOS.
+"""All Unix platforms, without macOS.
 
 This is useful to avoid macOS-specific workarounds on Unix platforms.
 """
 
 
 BSD = Group("bsd", "All BSD", (FREEBSD, MACOS, NETBSD, OPENBSD, SUNOS))
-""" All BSD platforms.
+"""All BSD platforms.
 
 .. note::
     Are considered of this family (`according Wikipedia
@@ -355,14 +355,14 @@ BSD_WITHOUT_MACOS = Group(
     "All BSD without macOS",
     tuple(p for p in BSD if p is not MACOS),
 )
-""" All BSD platforms, without macOS.
+"""All BSD platforms, without macOS.
 
 This is useful to avoid macOS-specific workarounds on BSD platforms.
 """
 
 
 ALL_LINUX = Group("all_linux", "All Linux", (LINUX,))
-""" All Unix platforms based on a Linux kernel.
+"""All Unix platforms based on a Linux kernel.
 
 .. note::
     Are considered of this family (`according Wikipedia
@@ -375,7 +375,7 @@ ALL_LINUX = Group("all_linux", "All Linux", (LINUX,))
 
 
 LINUX_LAYERS = Group("linux_layers", "All Linux compatibility layers", (WSL1, WSL2))
-""" Interfaces that allows Linux binaries to run on a different host system.
+"""Interfaces that allows Linux binaries to run on a different host system.
 
 .. note::
     Are considered of this family (`according Wikipedia
@@ -386,7 +386,7 @@ LINUX_LAYERS = Group("linux_layers", "All Linux compatibility layers", (WSL1, WS
 
 
 SYSTEM_V = Group("system_v", "All Unix derived from AT&T System Five", (AIX, SOLARIS))
-""" All Unix platforms derived from AT&T System Five.
+"""All Unix platforms derived from AT&T System Five.
 
 .. note::
     Are considered of this family (`according Wikipedia
@@ -407,7 +407,7 @@ SYSTEM_V = Group("system_v", "All Unix derived from AT&T System Five", (AIX, SOL
 
 
 UNIX_LAYERS = Group("unix_layers", "All Unix compatibility layers", (CYGWIN,))
-""" Interfaces that allows Unix binaries to run on a different host system.
+"""Interfaces that allows Unix binaries to run on a different host system.
 
 .. note::
     Are considered of this family (`according Wikipedia
@@ -446,7 +446,7 @@ OTHER_UNIX = Group(
         )
     ),
 )
-""" All other Unix platforms.
+"""All other Unix platforms.
 
 .. note::
     Are considered of this family (`according Wikipedia
@@ -497,7 +497,7 @@ ALL_GROUPS: frozenset[Group] = frozenset(NON_OVERLAPPING_GROUPS | EXTRA_GROUPS)
 
 
 ALL_OS_LABELS: frozenset[str] = frozenset(p.name for p in ALL_PLATFORMS.platforms)
-""" Sets of all recognized labels. """
+"""Sets of all recognized labels."""
 
 
 @cache

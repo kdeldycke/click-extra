@@ -147,7 +147,6 @@ def invoke(runner, monkeypatch):
     This is not allowed in current implementation of ``click.testing.CliRunner.invoke()``. See:
     https://github.com/pallets/click/issues/2110
     """
-
     def _run(cli, *args, env: EnvVars | None = None, color=None):
         # We allow for nested iterables and None values as args for
         # convenience. We just need to flatten and filters them out.
@@ -203,7 +202,7 @@ def command_decorators(
     extra command-like decorators."""
     params = []
 
-    if no_commands == False:
+    if no_commands is False:
         if not no_click:
             params.extend(
                 [
@@ -286,7 +285,6 @@ def command_decorators(
 @pytest.fixture
 def create_config(tmp_path):
     """A generic fixture to produce a temporary configuration file."""
-
     def _create_config(filename, content):
         """Create a fake configuration file."""
         assert isinstance(content, str)

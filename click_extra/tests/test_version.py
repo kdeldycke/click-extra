@@ -109,7 +109,6 @@ def test_color_option_precedence(invoke):
         Maybe have the possibility to tweak CLI callback evaluation order so we can
         let the user to have the NO_COLOR env set to allow for color-less --version output.
     """
-
     @click.command
     @color_option()
     @version_option(version="2.1.9")

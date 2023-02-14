@@ -226,7 +226,7 @@ def test_standalone_time_option(invoke):
     result = invoke(standalone_time, "--help")
     assert result.exit_code == 0
     assert result.stdout == dedent(
-        f"""\
+        """\
         Usage: standalone-time [OPTIONS]
 
         Options:

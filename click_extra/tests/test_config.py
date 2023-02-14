@@ -262,7 +262,6 @@ def test_conf_not_file(invoke):
 
 def test_conf_auto_types(invoke, create_config):
     """Check the conf type and structure is properly derived from CLI options."""
-
     @click.command
     @option("--flag1/--no-flag1")
     @option("--flag2", is_flag=True)
@@ -389,7 +388,6 @@ def test_conf_auto_types(invoke, create_config):
 
 def test_strict_conf(invoke, create_config):
     """Same test as the one shown in the readme, but in strict validation mode."""
-
     @click.group
     @option("--dummy-flag/--no-flag")
     @option("--my-list", multiple=True)

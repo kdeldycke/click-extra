@@ -84,9 +84,9 @@ def print_cli_output(
 def env_copy(extend: EnvVars | None = None) -> EnvVars | None:
     """Returns a copy of the current environment variables and eventually ``extend`` it.
 
-    Mimics Python's original implementation by returning ``None`` if no ``extend`` ``dict`` are added. See:
+    Mimics Python's original implementation by returning ``None`` if no ``extend``
+    ``dict`` are added. See:
     https://github.com/python/cpython/blob/7b5b429adab4fe0fe81858fe3831f06adc2e2141/Lib/subprocess.py#L1648-L1649
-
     Environment variables are expected to be a ``dict`` of ``str:str``.
     """
     if isinstance(extend, dict):

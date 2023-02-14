@@ -61,7 +61,6 @@ def test_env_copy():
 @pass_context
 def run_cli1(ctx):
     """https://github.com/pallets/click/issues/2111."""
-
     echo(Style(fg="green")("echo()"))
     echo(Style(fg="green")("echo(color=None)"), color=None)
     echo(Style(fg="red")("echo(color=True) bypass invoke.color = False"), color=True)
@@ -87,7 +86,6 @@ def color_cli(cmd_decorator):
     @pass_context
     def run_cli2(ctx):
         """https://github.com/pallets/click/issues/2111."""
-
         echo(Style(fg="green")("echo()"))
         echo(Style(fg="green")("echo(color=None)"), color=None)
         echo(
