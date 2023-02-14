@@ -53,27 +53,27 @@ from cloup import (
     option_group,
 )
 
-from .parameters import ExtraOption  # isort:skip
+from .parameters import ExtraOption  # noqa: I001
 
 # Replace some of click defaults with click-extra variant.
-from .colorize import (  # isort:skip
+from .colorize import (  # noqa: I001
     ColorOption,
     HelpOption,
     color_option,
     help_option,
 )
-from .config import (  # isort:skip
+from .config import (  # noqa: I001
     ConfigOption,
     ShowParamsOption,
     config_option,
     show_params_option,
 )
-from .logging import VerbosityOption, verbosity_option  # isort:skip
-from .tabulate import table_format_option  # isort:skip
-from .version import VersionOption, version_option  # isort:skip
+from .logging import VerbosityOption, verbosity_option  # noqa: I001
+from .tabulate import table_format_option  # noqa: I001
+from .version import VersionOption, version_option  # noqa: I001
 
 # Import last to avoid circular dependencies.
-from .commands import (  # isort:skip
+from .commands import (  # noqa: I001
     TimerOption,
     extra_command,
     extra_group,

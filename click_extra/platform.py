@@ -30,8 +30,8 @@ import warnings
 from boltons.dictutils import FrozenDict
 
 from .platforms import AIX as NEW_AIX
-from .platforms import OTHER_UNIX  # nopycln: import
-from .platforms import (  # nopycln: import
+from .platforms import OTHER_UNIX  # noqa: F401
+from .platforms import (  # noqa: F401
     ALL_LINUX,
     ALL_OS_LABELS,
     ALL_PLATFORMS,
@@ -48,17 +48,12 @@ from .platforms import NETBSD as NEW_NETBSD
 from .platforms import OPENBSD as NEW_OPENBSD
 from .platforms import SOLARIS as NEW_SOLARIS
 from .platforms import SUNOS as NEW_SUNOS
-from .platforms import (  # nopycln: import
-    SYSTEM_V,
-    UNIX,
-    UNIX_LAYERS,
-    UNIX_WITHOUT_MACOS,
-)
+from .platforms import SYSTEM_V, UNIX, UNIX_LAYERS, UNIX_WITHOUT_MACOS  # noqa: F401
 from .platforms import WINDOWS as NEW_WINDOWS
 from .platforms import WSL1 as NEW_WSL1
 from .platforms import WSL2 as NEW_WSL2
 from .platforms import current_os as new_current_os
-from .platforms import (  # nopycln: import
+from .platforms import (  # noqa: F401
     is_aix,
     is_cygwin,
     is_freebsd,
