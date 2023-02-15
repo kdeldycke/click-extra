@@ -1443,14 +1443,14 @@ files = [
 
 [[package]]
 name = "types-pygments"
-version = "2.14.0.2"
+version = "2.14.0.3"
 description = "Typing stubs for Pygments"
 category = "dev"
 optional = false
 python-versions = "*"
 files = [
-    {file = "types-Pygments-2.14.0.2.tar.gz", hash = "sha256:fabbe7566b4aebf0299d50c30f0119377eb6ee37203beec237ae86b7f40d5f08"},
-    {file = "types_Pygments-2.14.0.2-py3-none-any.whl", hash = "sha256:da9aa1064f5a41135002a5610ba18cc9ed6424541ce9c0bdfff7882fed6d9185"},
+    {file = "types-Pygments-2.14.0.3.tar.gz", hash = "sha256:32861b82d847e9c6867c0b717241f8b41e7607d7394a92334cb9cd86f03469c0"},
+    {file = "types_Pygments-2.14.0.3-py3-none-any.whl", hash = "sha256:7383a935a368b6f20d3a08cebbaf136f27c9983939dc0a26f5ebde33926084a8"},
 ]
 
 [package.dependencies]
