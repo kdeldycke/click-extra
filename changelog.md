@@ -1,5 +1,11 @@
 # Changelog
 
+## {gh}`3.8.2 (unreleased) <compare/v3.8.1...main>`
+
+```{important}
+This version is not released yet and is under active development.
+```
+
 ## {gh}`3.8.1 (2023-02-15) <compare/v3.8.0...v3.8.1>`
 
 - Code, comments and documentation style change to conform to new QA workflows based on `ruff`.
