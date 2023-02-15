@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Code, comments and documentation style change to conform to new QA workflows based on `ruff`.
+
 ## {gh}`3.8.0 (2023-01-24) <compare/v3.7.0...v3.8.0>`
 
 - Rename `click_extra.platform` to `click_extra.platforms`.
