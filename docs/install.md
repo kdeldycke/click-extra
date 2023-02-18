@@ -19,6 +19,6 @@ See also
 FYI, here is a graph of Python package dependencies:
 
 ```{eval-rst}
-.. graphviz:: images/dependencies.dot
+.. mermaid:: images/dependencies.mmd
    :align: center
 ```

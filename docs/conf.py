@@ -40,7 +40,6 @@ extensions = [
     "sphinxext.opengraph",
     "myst_parser",
     "click_extra.sphinx",
-    "sphinx.ext.graphviz",
     "sphinxcontrib.mermaid",
 ]
 
@@ -60,8 +59,6 @@ autoclass_content = "both"
 # Keep the same ordering as in original source code.
 autodoc_member_order = "bysource"
 autodoc_default_flags = ["members", "undoc-members", "show-inheritance"]
-
-graphviz_output_format = "svg"
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
