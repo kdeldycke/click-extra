@@ -41,6 +41,7 @@ extensions = [
     "myst_parser",
     "click_extra.sphinx",
     "sphinx.ext.graphviz",
+    "sphinxcontrib.mermaid",
 ]
 
 myst_enable_extensions = [

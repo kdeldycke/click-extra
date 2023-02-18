@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Renders platform groups in documentation in Mermaid format instead of Graphviz. Add new dependency on `sphinxcontrib-mermaid`, removed dependency on `graphviz`.
+
 ## {gh}`3.8.1 (2023-02-15) <compare/v3.8.0...v3.8.1>`
 
 - Code, comments and documentation style change to conform to new QA workflows based on `ruff`.
