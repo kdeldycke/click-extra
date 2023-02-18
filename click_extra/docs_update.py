@@ -69,7 +69,7 @@ def replace_content(
     )
 
 
-def generate_lexer_table():
+def generate_lexer_table() -> str:
     """Generate a Markdown table mapping original Pygments' lexers to their new ANSI
     variants implemented by Click Extra."""
     table = []
@@ -98,7 +98,7 @@ def generate_lexer_table():
     return output
 
 
-def generate_platforms_graph(graph_id: str, description: str, groups: frozenset[Group]):
+def generate_platforms_graph(graph_id: str, description: str, groups: frozenset[Group]) -> str:
     """Generates an `Euler diagram <https://xkcd.com/2721/>`_ of platform and their
     grouping.
 
@@ -151,7 +151,7 @@ def generate_platforms_graph(graph_id: str, description: str, groups: frozenset[
     )
 
 
-def update_docs():
+def update_docs() -> None:
     """Update documentation with dynamic content."""
     project_root = Path(__file__).parent.parent
 
