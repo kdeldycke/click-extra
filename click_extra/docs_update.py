@@ -98,7 +98,9 @@ def generate_lexer_table() -> str:
     return output
 
 
-def generate_platforms_graph(graph_id: str, description: str, groups: frozenset[Group]) -> str:
+def generate_platforms_graph(
+        graph_id: str, description: str, groups: frozenset[Group]
+    ) -> str:
     """Generates an `Euler diagram <https://xkcd.com/2721/>`_ of platform and their
     grouping.
 
