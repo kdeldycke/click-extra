@@ -74,7 +74,8 @@ def generate_lexer_table() -> str:
     variants implemented by Click Extra."""
     table = []
     for orig_lexer, ansi_lexer in sorted(
-        lexer_map.items(), key=lambda i: i[0].__qualname__
+        lexer_map.items(),
+        key=lambda i: i[0].__qualname__  # type: ignore[no-any-return]
     ):
         table.append(
             [
@@ -189,10 +190,12 @@ def update_docs() -> None:
             f"<!-- {top_groups['id']}-graph-start -->\n\n",
             f"\n\n<!-- {top_groups['id']}-graph-end -->",
             generate_platforms_graph(
-                top_groups["id"], top_groups["description"], top_groups["groups"]
+                top_groups["id"],  # type: ignore[arg-type]
+                top_groups["description"],  # type: ignore[arg-type]
+                top_groups["groups"]  # type: ignore[arg-type]
             ),
         )
 
 
 if __name__ == "__main__":
-    sys.exit(update_docs())
+    sys.exit(update_docs())  # type: ignore[func-returns-value]
