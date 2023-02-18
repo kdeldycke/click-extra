@@ -43,6 +43,11 @@ Which produces:
 ## `click_extra.logging` API
 
 ```{eval-rst}
+.. autoclasstree:: click_extra.logging
+   :strict:
+```
+
+```{eval-rst}
 .. automodule:: click_extra.logging
    :members:
    :undoc-members:

@@ -27,6 +27,11 @@ Write example and tutorial.
 ## `click_extra.colorize` API
 
 ```{eval-rst}
+.. autoclasstree:: click_extra.colorize
+   :strict:
+```
+
+```{eval-rst}
 .. automodule:: click_extra.colorize
    :members:
    :undoc-members:

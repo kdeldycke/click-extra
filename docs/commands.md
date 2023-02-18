@@ -167,6 +167,11 @@ Values passed to function: {'dummy_flag': True, 'my_list': ('pip', 'npm', 'gem')
 ## `click_extra.commands` API
 
 ```{eval-rst}
+.. autoclasstree:: click_extra.commands
+   :strict:
+```
+
+```{eval-rst}
 .. automodule:: click_extra.commands
    :members:
    :undoc-members:

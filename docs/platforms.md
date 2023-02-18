@@ -108,6 +108,11 @@ There's still a chance to [have them supported by Mermaid](https://github.com/me
 ## `click_extra.platforms` API
 
 ```{eval-rst}
+.. autoclasstree:: click_extra.platforms
+   :strict:
+```
+
+```{eval-rst}
 .. automodule:: click_extra.platforms
    :members:
    :undoc-members:

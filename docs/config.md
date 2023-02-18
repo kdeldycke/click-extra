@@ -453,6 +453,11 @@ Notice how `--show-params` is showing all parameters, even those provided to the
 ## `click_extra.config` API
 
 ```{eval-rst}
+.. autoclasstree:: click_extra.config
+   :strict:
+```
+
+```{eval-rst}
 .. automodule:: click_extra.config
    :members:
    :undoc-members:

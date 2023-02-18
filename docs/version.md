@@ -61,6 +61,11 @@ To disable environement metadata reporting, set the `print_env_info` argument:
 ## `click_extra.version` API
 
 ```{eval-rst}
+.. autoclasstree:: click_extra.version
+   :strict:
+```
+
+```{eval-rst}
 .. automodule:: click_extra.version
    :members:
    :undoc-members:
