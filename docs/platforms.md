@@ -41,7 +41,7 @@ flowchart
 
 ## Other groups
 
-Other groups are available for convenience:
+Other groups are available for convenience, but these overlaps:
 
 <!-- EXTRA_GROUPS-graph-start -->
 
