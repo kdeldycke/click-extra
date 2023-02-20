@@ -67,14 +67,14 @@ lxml = ["lxml"]
 
 [[package]]
 name = "boltons"
-version = "21.0.0"
+version = "23.0.0"
 description = "When they're not builtins, they're boltons."
 category = "main"
 optional = false
 python-versions = "*"
 files = [
-    {file = "boltons-21.0.0-py2.py3-none-any.whl", hash = "sha256:b9bb7b58b2b420bbe11a6025fdef6d3e5edc9f76a42fb467afe7ca212ef9948b"},
-    {file = "boltons-21.0.0.tar.gz", hash = "sha256:65e70a79a731a7fe6e98592ecfb5ccf2115873d01dbc576079874629e5c90f13"},
+    {file = "boltons-23.0.0-py2.py3-none-any.whl", hash = "sha256:f716a1b57698a5b19062f3146cb5ce3549904028a2f267c2c0cf584eea3ad75b"},
+    {file = "boltons-23.0.0.tar.gz", hash = "sha256:8c50a71829525835ca3c849c7ed2511610c972b4dddfcd41a4a5447222beb4b0"},
 ]
 
 [[package]]
@@ -1594,6 +1594,7 @@ category = "main"
 optional = false
 python-versions = "*"
 files = [
+    {file = "wcwidth-0.2.6-py2.py3-none-any.whl", hash = "sha256:795b138f6875577cd91bba52baf9e445cd5118fd32723b460e30a0af30ea230e"},
     {file = "wcwidth-0.2.6.tar.gz", hash = "sha256:a5220780a404dbe3353789870978e472cfe477761f06ee55077256e509b156d0"},
 ]
 
@@ -1646,4 +1647,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.7"
-content-hash = "68a55961a59d38b76da7b3f10a3999a7b5ad2188e95b08afd2daa5f19e9cff87"
+content-hash = "74987d56d09332cd03b36b1dad6537c2d348536cf5a1e233e1848917cb3ddc72"
