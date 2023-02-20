@@ -19,7 +19,6 @@
 from __future__ import annotations
 
 import os
-import sys
 from functools import partial
 from pathlib import Path
 from textwrap import dedent
@@ -368,6 +367,7 @@ default_debug_uncolored_log = (
     r"debug: Search local file system.\n"
     r"debug: No configuration file found.\n"
     r"debug: \S+, version \S+\n"
+    r"debug: {.*}\n"
 )
 
 
@@ -380,11 +380,5 @@ default_debug_colored_log = (
     r"\x1b\[34mdebug: \x1b\[0mNo configuration file found.\n"
     r"\x1b\[34mdebug: \x1b\[0m\x1b\[97m\S+\x1b\[0m,"
     r" version \x1b\[32m\S+\x1b\[0m(\x1b\[90m)?\n"
+    r"\x1b\[34mdebug: \x1b\[0m{.*}\x1b\[0m\n"
 )
-
-
-# XXX Temporarily expect extra-env info for Python < 3.10 while we wait for
-# https://github.com/mahmoud/boltons/issues/294 to be released upstream.
-if sys.version_info[:2] < (3, 10):
-    default_debug_uncolored_log += r"debug: {.*}\n"
-    default_debug_colored_log += r"\x1b\[34mdebug: \x1b\[0m{.*}\x1b\[0m\n"

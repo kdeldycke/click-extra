@@ -67,14 +67,14 @@ lxml = ["lxml"]
 
 [[package]]
 name = "boltons"
-version = "21.0.0"
+version = "23.0.0"
 description = "When they're not builtins, they're boltons."
 category = "main"
 optional = false
 python-versions = "*"
 files = [
-    {file = "boltons-21.0.0-py2.py3-none-any.whl", hash = "sha256:b9bb7b58b2b420bbe11a6025fdef6d3e5edc9f76a42fb467afe7ca212ef9948b"},
-    {file = "boltons-21.0.0.tar.gz", hash = "sha256:65e70a79a731a7fe6e98592ecfb5ccf2115873d01dbc576079874629e5c90f13"},
+    {file = "boltons-23.0.0-py2.py3-none-any.whl", hash = "sha256:f716a1b57698a5b19062f3146cb5ce3549904028a2f267c2c0cf584eea3ad75b"},
+    {file = "boltons-23.0.0.tar.gz", hash = "sha256:8c50a71829525835ca3c849c7ed2511610c972b4dddfcd41a4a5447222beb4b0"},
 ]
 
 [[package]]
@@ -1454,14 +1454,14 @@ types-setuptools = "*"
 
 [[package]]
 name = "types-pyyaml"
-version = "6.0.12.6"
+version = "6.0.12.7"
 description = "Typing stubs for PyYAML"
 category = "dev"
 optional = false
 python-versions = "*"
 files = [
-    {file = "types-PyYAML-6.0.12.6.tar.gz", hash = "sha256:24e76b938d58e68645271eeb149af6022d1da99788e481f959bd284b164f39a1"},
-    {file = "types_PyYAML-6.0.12.6-py3-none-any.whl", hash = "sha256:77b74d0874482f2b42dd566b7277b0a220068595e0fb42689d0c0560f3d1ae9e"},
+    {file = "types-PyYAML-6.0.12.7.tar.gz", hash = "sha256:ad40c99142b1812615bac08d5e240d35107a27ec285af501682c685957692f95"},
+    {file = "types_PyYAML-6.0.12.7-py3-none-any.whl", hash = "sha256:91c64379a9ae88471a473d1ce0abf6a09c285700a297621b2177163d506584b8"},
 ]
 
 [[package]]
@@ -1646,4 +1646,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.7"
-content-hash = "68a55961a59d38b76da7b3f10a3999a7b5ad2188e95b08afd2daa5f19e9cff87"
+content-hash = "8972cd9e99d28203645297acbf62a285662527a093036451df7a3bd8a33bbe92"

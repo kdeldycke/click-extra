@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Let `--version` option output system details when run on `python >= 3.10`.
+
 ## {gh}`3.8.2 (2023-02-20) <compare/v3.8.1...v3.8.2>`
 
 - Fix overlapping detection of `linux` and `wsl2` platforms.

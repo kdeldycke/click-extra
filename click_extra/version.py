@@ -30,6 +30,7 @@ if sys.version_info >= (3, 8):
 else:
     import importlib_metadata as metadata  # type: ignore[import]
 
+from boltons.ecoutils import get_profile
 from click import Parameter, echo
 from cloup import Context, Style, option
 
@@ -194,11 +195,7 @@ class VersionOption(ExtraOption):
         if self.version is None and self.package_name is None:
             self.package_name = self.guess_package_name()
 
-        # XXX Temporarily skip displaying environment details for Python >= 3.10 while
-        # we wait for https://github.com/mahmoud/boltons/issues/294 to reach upstream.
-        if print_env_info and sys.version_info[:2] < (3, 10):
-            from boltons.ecoutils import get_profile
-
+        if print_env_info:
             env_info = "\n" + str(get_profile(scrub=True))
             if env_info_style:
                 env_info = env_info_style(env_info)

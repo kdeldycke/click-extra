@@ -17,7 +17,6 @@
 from __future__ import annotations
 
 import re
-import sys
 from os.path import sep
 from pathlib import Path
 
@@ -452,11 +451,8 @@ def test_conf_file_overrides_defaults(
             rf"Load configuration matching {re.escape(str(conf_path))}\n"
             r"debug: Verbosity set to DEBUG.\n"
             r"debug: \S+, version \S+\n"
+            r"debug: {.*}\n"
         )
-        # XXX Temporarily expect extra-env info for Python < 3.10 while we wait for
-        # https://github.com/mahmoud/boltons/issues/294 to be released upstream.
-        if sys.version_info[:2] < (3, 10):
-            debug_log += r"debug: {.*}\n"
         assert re.fullmatch(debug_log, result.stderr)
 
 
