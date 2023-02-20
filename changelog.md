@@ -1,5 +1,11 @@
 # Changelog
 
+## {gh}`3.8.3 (unreleased) <compare/v3.8.2...main>`
+
+```{important}
+This version is not released yet and is under active development.
+```
+
 ## {gh}`3.8.2 (2023-02-20) <compare/v3.8.1...v3.8.2>`
 
 - Fix overlapping detection of `linux` and `wsl2` platforms.
