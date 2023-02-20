@@ -6,6 +6,7 @@
 This version is not released yet and is under active development.
 ```
 
+- Fix overlapping detection of `linux` and `wsl2` platforms.
 - Renders platform groups in documentation in Mermaid format instead of Graphviz. Add new dependency on `sphinxcontrib-mermaid`, removed dependency on `graphviz`.
 - Produce dependency graph in Mermaid instead of Graphviz.
 
