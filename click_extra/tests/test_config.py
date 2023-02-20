@@ -34,9 +34,11 @@ from click import (
     File,
     FloatRange,
     IntRange,
+    Tuple,
+    echo,
+    get_app_dir,
 )
 from click import Path as ClickPath
-from click import Tuple, echo, get_app_dir
 from cloup import argument, option
 from tabulate import tabulate
 
