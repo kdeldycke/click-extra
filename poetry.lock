@@ -1466,14 +1466,14 @@ files = [
 
 [[package]]
 name = "types-regex"
-version = "2022.10.31.5"
+version = "2022.10.31.6"
 description = "Typing stubs for regex"
 category = "dev"
 optional = false
 python-versions = "*"
 files = [
-    {file = "types-regex-2022.10.31.5.tar.gz", hash = "sha256:ada9a91664b9cfb596331584d3e5f9f4d195547b9ac2f4d5e6c4b7534b0d0453"},
-    {file = "types_regex-2022.10.31.5-py3-none-any.whl", hash = "sha256:3639876084e74c73df8406ab970a8c798c64095060c3d389855c053ad9b79aaa"},
+    {file = "types-regex-2022.10.31.6.tar.gz", hash = "sha256:4b552e26afb01597d0a53a3bf4fe5892736c7178ae6e3d9d9b919168e58a6875"},
+    {file = "types_regex-2022.10.31.6-py3-none-any.whl", hash = "sha256:0e5917db2ed629b7a658091576cc758fedf48397eae1aa9b085ae3ccfae225f2"},
 ]
 
 [[package]]
@@ -1647,4 +1647,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.7"
-content-hash = "8972cd9e99d28203645297acbf62a285662527a093036451df7a3bd8a33bbe92"
+content-hash = "07502cee1d9f5ceb3d4b30dc3d0fed875fa03d66a785a3ee4c49d9e2cca2ddfa"
