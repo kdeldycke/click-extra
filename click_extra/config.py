@@ -213,8 +213,8 @@ class ParamStructure:
     def get_param_type(self, param):
         """Get the Python type of a Click parameter.
 
-        See the list of `custom types provided by Click
-        <https://click.palletsprojects.com/en/8.1.x/api/?highlight=intrange#types>`_.
+        See the list of
+        `custom types provided by Click <https://click.palletsprojects.com/en/8.1.x/api/?highlight=intrange#types>`_.
         """
         if param.multiple or param.nargs != 1:
             return list
@@ -260,8 +260,8 @@ class ParamStructure:
         Elements of this list are expected to be the fully-qualified ID of the
         parameter, i.e. the dot-separated ID that is prefixed by the CLI name.
 
-        It's been made into a property to allow for a last-minute call to the
-        current context to fetch the CLI name.
+        It's been made into a property to allow for a last-minute call to the current
+        context to fetch the CLI name.
         """
         ctx = get_current_context()
         cli = ctx.find_root().command
@@ -619,10 +619,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         """Fetch parameters values from configuration file and merge them with the
         defaults.
 
-        User configuration is `merged to the context default_map as Click does
-        <https://click.palletsprojects.com/en/8.1.x/commands/#context-defaults>`_.
-
-
+        User configuration is
+        `merged to the context default_map as Click does <https://click.palletsprojects.com/en/8.1.x/commands/#context-defaults>`_.
         This allow user's config to only overrides defaults. Values sets from direct
         command line parameters, environment variables or interactive prompts, takes
         precedence over any values from the config file.

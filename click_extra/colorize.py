@@ -304,8 +304,8 @@ help_option = partial(option, cls=HelpOption)
 class ExtraHelpColorsMixin:
     """Adds extra-keywords highlighting to Click commands.
 
-    This mixin for `click.core.Command`-like classes intercepts the top-level
-    helper-generation method to initialize the formatter with dynamic settings.
+    This mixin for `click.core.Command`-like classes intercepts the top-level helper-
+    generation method to initialize the formatter with dynamic settings.
 
     This is implemented here to get access to the global context.
     """

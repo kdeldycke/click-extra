@@ -75,7 +75,7 @@ def generate_lexer_table() -> str:
     table = []
     for orig_lexer, ansi_lexer in sorted(
         lexer_map.items(),
-        key=lambda i: i[0].__qualname__  # type: ignore[no-any-return]
+        key=lambda i: i[0].__qualname__,  # type: ignore[no-any-return]
     ):
         table.append(
             [
@@ -100,13 +100,14 @@ def generate_lexer_table() -> str:
 
 
 def generate_platforms_graph(
-        graph_id: str, description: str, groups: frozenset[Group]
-    ) -> str:
+    graph_id: str, description: str, groups: frozenset[Group]
+) -> str:
     """Generates an `Euler diagram <https://xkcd.com/2721/>`_ of platform and their
     grouping.
 
-    Euler diagrams are `not supported by mermaid yet
-    <https://github.com/mermaid-js/mermaid/issues/2583>`_ so we fallback on a flowchart
+    Euler diagrams are
+    `not supported by mermaid yet <https://github.com/mermaid-js/mermaid/issues/2583>`_
+    so we fallback on a flowchart
     without arrows.
 
     Returns a ready to use and properly indented MyST block.
@@ -128,9 +129,7 @@ def generate_platforms_graph(
                 f"subgraph <code>click_extra.platforms.{group.id.upper()}</code>"
                 "<br/>"
                 f"<em>{group.name}</em>"
-                "\n"
-                + indent("\n".join(sorted(nodes)), INDENT) +
-                "\nend"
+                "\n" + indent("\n".join(sorted(nodes)), INDENT) + "\nend"
             )
         )
 
@@ -192,7 +191,7 @@ def update_docs() -> None:
             generate_platforms_graph(
                 top_groups["id"],  # type: ignore[arg-type]
                 top_groups["description"],  # type: ignore[arg-type]
-                top_groups["groups"]  # type: ignore[arg-type]
+                top_groups["groups"],  # type: ignore[arg-type]
             ),
         )
 
