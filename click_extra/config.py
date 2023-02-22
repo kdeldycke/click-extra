@@ -46,6 +46,8 @@ import xmltodict
 import yaml
 from boltons.iterutils import flatten, remap
 from boltons.urlutils import URL
+from boltons.pathutils import shrinkuser
+
 from click import (
     BOOL,
     FLOAT,
@@ -430,23 +432,11 @@ class ConfigOption(ExtraOption, ParamStructure):
             ext_pattern = f"{{{','.join(extensions)}}}"
         return f"{app_dir}{os.path.sep}*.{ext_pattern}"
 
-    @staticmethod
-    def compress_path(path: Path) -> Path:
-        """Reduces a path length by prefixing it with the ``~`` user's home prefix if
-        possible."""
-        if not is_windows():
-            try:
-                path = "~" / path.relative_to(Path.home())
-            except (RuntimeError, ValueError):
-                pass
-        return path
-
     def get_help_record(self, ctx):
         """Replaces the default value by the pretty version of the configuration
         matching pattern."""
         # Pre-compute pretty_path to bypass infinite recursive loop on get_default.
-        default_path = Path(self.get_default(ctx))
-        pretty_path = self.compress_path(default_path)
+        pretty_path = shrinkuser(Path(self.get_default(ctx)))
         with patch.object(ConfigOption, "get_default") as mock_method:
             mock_method.return_value = pretty_path
             return super().get_help_record(ctx)

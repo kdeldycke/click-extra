@@ -41,6 +41,7 @@ from click import (
 from click import Path as ClickPath
 from cloup import argument, option
 from tabulate import tabulate
+from boltons.pathutils import shrinkuser
 
 from ..colorize import escape_for_help_sceen
 from ..commands import extra_command, extra_group
@@ -224,7 +225,7 @@ def test_conf_default_path(invoke):
     assert result.exit_code == 0
 
     # OS-specific path.
-    default_path = ConfigOption.compress_path(
+    default_path = shrinkuser(
         Path(get_app_dir("config-cli1")) / "*.{toml,yaml,yml,json,ini,xml}"
     )
 
