@@ -791,14 +791,14 @@ plugins = ["importlib-metadata"]
 
 [[package]]
 name = "pygments-ansi-color"
-version = "0.1.0"
+version = "0.2.0"
 description = ""
 category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "pygments-ansi-color-0.1.0.tar.gz", hash = "sha256:d3076c798e5867966b7a4872a4c6174a9c1fccaf5b4895db3d5692bcd84ecd64"},
-    {file = "pygments_ansi_color-0.1.0-py3-none-any.whl", hash = "sha256:fb6017b43d39802f8b5fedd3c3d64b2f670f23a302d9c2e2faa90cd1a5f4ef3c"},
+    {file = "pygments-ansi-color-0.2.0.tar.gz", hash = "sha256:8e2f9a57873b4b28d6b95a8f1c9f346be5fc0f9e4f4a316594584a0684aa7959"},
+    {file = "pygments_ansi_color-0.2.0-py3-none-any.whl", hash = "sha256:29d7c56e1bf143df4b0ccc03cd313488bb580c5aa207992ed5548e88fccc0a68"},
 ]
 
 [package.dependencies]
@@ -1647,4 +1647,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.7"
-content-hash = "9ac046b54c6526922985e5b1235b9ee4981e1ddb3885c3a805fca96a3d980c67"
+content-hash = "3d2329d2014db82af53938a7a24d1f2f0cb7300b0f715993eaead6afcecbefb4"
