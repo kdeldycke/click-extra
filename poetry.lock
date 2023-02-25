@@ -831,14 +831,14 @@ testing = ["argcomplete", "hypothesis (>=3.56)", "mock", "nose", "pygments (>=2.
 
 [[package]]
 name = "pytest-cases"
-version = "3.6.13"
+version = "3.6.14"
 description = "Separate test code from test cases in pytest."
 category = "dev"
 optional = false
 python-versions = "*"
 files = [
-    {file = "pytest-cases-3.6.13.tar.gz", hash = "sha256:7b584433231280b16a74f34d9ba1f50abcc6b973d3ba3ada9053c2c41a11fb77"},
-    {file = "pytest_cases-3.6.13-py2.py3-none-any.whl", hash = "sha256:d5bdea5a2bf8a9fef594153d2f33c6a5b45328fe26bb7b8e136442ddc67c72cd"},
+    {file = "pytest-cases-3.6.14.tar.gz", hash = "sha256:7455e6ca57a544c1bfdd8b56ace08c1c1ce4c6572a8aab8f1bd351dc25a10b6b"},
+    {file = "pytest_cases-3.6.14-py2.py3-none-any.whl", hash = "sha256:a087f3d019efd8942d0f0dc3fb526bedf9f83d742c40289e9623f6788aff7257"},
 ]
 
 [package.dependencies]
@@ -1647,4 +1647,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.7"
-content-hash = "3d2329d2014db82af53938a7a24d1f2f0cb7300b0f715993eaead6afcecbefb4"
+content-hash = "38117a2b56fe064e53d88735a9b3af2dd264e3124ffe6f03d71bd402425fa33b"
