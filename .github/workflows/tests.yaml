@@ -165,6 +165,7 @@ jobs:
         if: runner.os == 'Windows'
         env:
           DESTRUCTIVE_TESTS: true
+        shell: pwsh
         run: |
           poetry run pytest --randomly-seed=2892842890 --cov-config=pyproject.toml --cov=./ --cov-report=xml `
           click_extra/tests/test_colorize.py `
