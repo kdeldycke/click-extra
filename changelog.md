@@ -1,10 +1,6 @@
 # Changelog
 
-## {gh}`3.8.3 (unreleased) <compare/v3.8.2...main>`
-
-```{important}
-This version is not released yet and is under active development.
-```
+## {gh}`3.8.3 (2023-02-25) <compare/v3.8.2...v3.8.3>`
 
 - Let `--version` option output system details when run on `python >= 3.10`.
 
