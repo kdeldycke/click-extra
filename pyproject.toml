@@ -94,7 +94,7 @@ xmltodict = ">=0.12,<0.14"
 [tool.poetry.dev-dependencies]
 bump2version = "^1.0.1"
 coverage = { extras = ["toml"], version = "^7.2" }
-furo = "^2022.9.15"
+furo = "^2023.03.27"
 mypy = "^1.1"
 myst-parser = "^0.19.1"
 pytest = "^7.2.2"
