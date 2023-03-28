@@ -50,7 +50,7 @@ pytz = ">=2015.7"
 name = "beautifulsoup4"
 version = "4.11.2"
 description = "Screen-scraping library"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6.0"
 files = [
@@ -397,7 +397,7 @@ test = ["pytest (>=6)"]
 name = "furo"
 version = "2023.3.27"
 description = "A clean customisable Sphinx documentation theme."
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -1094,7 +1094,7 @@ files = [
 name = "soupsieve"
 version = "2.4"
 description = "A modern CSS selector implementation for Beautiful Soup."
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -1162,7 +1162,7 @@ type-comment = ["typed-ast (>=1.5.4)"]
 name = "sphinx-basic-ng"
 version = "1.0.0b1"
 description = "A modern skeleton for Sphinx themes."
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -1648,4 +1648,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.7"
-content-hash = "68aef98d554ddd531e7385c961b925918ce8e9b86b03b723b469b5fb6c3aedbf"
+content-hash = "a917e13f35d66f6f5e984f84ab36aa9ddf7ac18b4ffb6d2452b46ab7aac984e1"
