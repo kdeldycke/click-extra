@@ -44,8 +44,10 @@ extensions = [
 ]
 
 myst_enable_extensions = [
+    "attrs_block",
     "colon_fence",
 ]
+myst_fence_as_directive = ["mermaid"]
 
 master_doc = "index"
 

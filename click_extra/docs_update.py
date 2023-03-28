@@ -136,16 +136,13 @@ def generate_platforms_graph(
     # Wrap the Mermaid code into a MyST block.
     return "\n".join(
         (
-            "```{mermaid}",
-            # XXX Titles are not supported by sphinxcontrib-mermaid yet:
-            # https://github.com/mgaitan/sphinxcontrib-mermaid/issues/108
-            #
-            # "---",
-            # (
-            #     f"title: click_extra.platforms.{graph_id} - {description}"
-            #     f" (Click Extra v{__version__})"
-            # ),
-            # "---",
+            # Use attributes blocks extension to add a title.
+            (
+                '{caption="'
+                f"`click_extra.platforms.{graph_id}` - {description}"
+                '"}'
+            ),
+            "```mermaid",
             "flowchart",
             indent("\n".join(sorted(subgraphs)), INDENT),
             "```",
