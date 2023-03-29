@@ -43,8 +43,10 @@ extensions = [
     "sphinxcontrib.mermaid",
 ]
 
+# https://myst-parser.readthedocs.io/en/latest/syntax/optional.html
 myst_enable_extensions = [
     "attrs_block",
+    "attrs_inline",
     "colon_fence",
 ]
 myst_fence_as_directive = ["mermaid"]
