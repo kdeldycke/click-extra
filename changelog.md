@@ -7,6 +7,7 @@ This version is not released yet and is under active development.
 ```
 
 - Add main dependency on `furo` which is referenced in ANSI-aware Pygment styles.
+- Move all documentation assets to `assets` subfolder.
 
 ## {gh}`3.8.3 (2023-02-25) <compare/v3.8.2...v3.8.3>`
 

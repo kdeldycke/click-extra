@@ -18,6 +18,6 @@ See also
 
 FYI, here is a graph of Python package dependencies:
 
-```mermaid images/dependencies.mmd
+```mermaid assets/dependencies.mmd
 :align: center
 ```

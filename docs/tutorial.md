@@ -2,11 +2,11 @@
 
 This tutorial details how we transformed the [canonical `click` example](https://github.com/pallets/click#a-simple-example):
 
-![click CLI help screen](https://github.com/kdeldycke/click-extra/raw/main/docs/images/click-help-screen.png)
+![click CLI help screen](https://github.com/kdeldycke/click-extra/raw/main/docs/assets/click-help-screen.png)
 
 Into this:
 
-![click-extra CLI help screen](https://github.com/kdeldycke/click-extra/raw/main/docs/images/click-extra-screen.png)
+![click-extra CLI help screen](https://github.com/kdeldycke/click-extra/raw/main/docs/assets/click-extra-screen.png)
 
 ## All bells and whistles
 

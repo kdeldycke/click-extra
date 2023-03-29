@@ -18,6 +18,8 @@ jobs:
 
   docs:
     uses: kdeldycke/workflows/.github/workflows/docs.yaml@v2.12.3
+    with:
+      dependency-graph-output: './docs/assets/dependencies.mmd'
 
   update-docs:
     needs: docs
