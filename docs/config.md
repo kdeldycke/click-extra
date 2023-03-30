@@ -433,9 +433,9 @@ See how the default `@extra_command` decorator come with the default `--show-par
 
 ```{eval-rst}
 .. click:example::
-    from click_extra import *
+    from click_extra import extra_command, option, echo
 
-    @extra_command()
+    @extra_command
     @option("--int-param1", type=int, default=10)
     @option("--int-param2", type=int, default=555)
     def cli(int_param1, int_param2):

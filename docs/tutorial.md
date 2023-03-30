@@ -83,7 +83,7 @@ If, for example, you're only interested in using the `--config` option, nothing 
     from click import command, echo, option
     from click_extra import config_option
 
-    @command()
+    @command
     @option("--count", default=1, help="Number of greetings.")
     @option("--name", prompt="Your name", help="The person to greet.")
     @config_option()
@@ -105,7 +105,7 @@ This option itself behave like any Click option and can be customized easely:
     from click import command, echo, option
     from click_extra import config_option
 
-    @command()
+    @command
     @option("--count", default=1, help="Number of greetings.")
     @option("--name", prompt="Your name", help="The person to greet.")
     @config_option("--hello-conf", metavar="CONF_FILE", help="Loads CLI config.")
@@ -146,6 +146,10 @@ See how the configuration option is grouped with others:
 
 .. click:run::
    invoke(hello, args=["--help"])
+```
+
+```{caution}
+Notice in the example above how the `@command()` decorator from Cloup is used with parenthesis. Contrary to Click and Click Extra, [Cloup requires parenthesis on its decorators](https://github.com/janluke/cloup/issues/127).
 ```
 
 ```{seealso}
