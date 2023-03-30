@@ -245,6 +245,73 @@ def test_standalone_time_option(invoke):
     assert not result.stderr
 
 
+def test_no_option_leaks_between_subcommands(invoke):
+    """As reported in https://github.com/kdeldycke/click-extra/issues/489."""
+
+    @click.group()
+    def cli():
+        echo("Run cli...")
+
+    @extra_command
+    @click.option('--one')
+    def foo():
+        echo("Run foo...")
+
+    @extra_command(short_help="Bar subcommand.")
+    @click.option('--two')
+    def bar():
+        echo("Run bar...")
+
+    cli.add_command(foo)
+    cli.add_command(bar)
+
+    result = invoke(cli, "--help", color=False)
+    assert result.exit_code == 0
+    assert result.output == dedent(
+        """\
+        Usage: cli [OPTIONS] COMMAND [ARGS]...
+
+        Options:
+          --help  Show this message and exit.
+
+        Commands:
+          bar  Bar subcommand.
+          foo
+        """
+    )
+    assert not result.stderr
+
+    result = invoke(cli, "foo", "--help", color=False)
+    assert result.exit_code == 0
+    assert re.fullmatch(
+        (
+            r"Run cli\.\.\.\n"
+            r"Usage: cli foo \[OPTIONS\]\n"
+            r"\n"
+            r"Options:\n"
+            r"  --one TEXT\n"
+            rf"{default_options_uncolored_help}"
+        ),
+        result.stdout,
+    )
+    assert not result.stderr
+
+    result = invoke(cli, "bar", "--help", color=False)
+    assert result.exit_code == 0
+    assert re.fullmatch(
+        (
+            r"Run cli\.\.\.\n"
+            r"Usage: cli bar \[OPTIONS\]\n"
+            r"\n"
+            r"Options:\n"
+            r"  --two TEXT\n"
+            rf"{default_options_uncolored_help}"
+        ),
+        result.stdout,
+    )
+    assert not result.stderr
+
+
 def test_option_group_integration(invoke):
     # Mix regular and grouped options
     @extra_group
