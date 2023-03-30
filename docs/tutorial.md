@@ -16,7 +16,7 @@ The [canonical `click` example](https://github.com/pallets/click#a-simple-exampl
 .. click:example::
     from click import command, echo, option
 
-    @command()
+    @command
     @option("--count", default=1, help="Number of greetings.")
     @option("--name", prompt="Your name", help="The person to greet.")
     def hello(count, name):
@@ -36,7 +36,7 @@ To augment the simple example above with [all the bells and whistles](index#feat
 .. click:example::
     from click_extra import extra_command, echo, option
 
-    @extra_command()
+    @extra_command
     @option("--count", default=1, help="Number of greetings.")
     @option("--name", prompt="Your name", help="The person to greet.")
     def hello(count, name):
@@ -58,8 +58,8 @@ Here is a highlight of the only changes between the two versions:
 -from click import command, echo, option
 +from click_extra import extra_command, echo, option
 
--@command()
-+@extra_command()
+-@command
++@extra_command
  @option("--count", default=1, help="Number of greetings.")
  @option("--name", prompt="Your name", help="The person to greet.")
  def hello(count, name):
@@ -74,7 +74,7 @@ As you can see above, `click_extra` is proxy-ing the whole `click` namespace, so
 
 ## Standalone options
 
-If you do not like the opiniated way the `@extra_command()` decorator is built with all its defaults options, you are still free to pick them up independently.
+If you do not like the opiniated way the `@extra_command` decorator is built with all its defaults options, you are still free to pick them up independently.
 
 If, for example, you're only interested in using the `--config` option, nothing prevents you to use it with a standard `click` CLI:
 

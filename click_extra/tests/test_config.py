@@ -192,7 +192,7 @@ all_config_formats = pytest.mark.parametrize(
 )
 
 
-@extra_group()
+@extra_group
 @option("--dummy-flag/--no-flag")
 @option("--my-list", multiple=True)
 def config_cli1(dummy_flag, my_list):
@@ -521,7 +521,7 @@ def test_conf_file_overrided_by_cli_param(
 
 
 def test_show_params_option(invoke, create_config):
-    @extra_command()
+    @extra_command
     @option("--int-param1", type=int, default=10)
     @option("--int-param2", type=int, default=555)
     def show_params_cli(int_param1, int_param2):

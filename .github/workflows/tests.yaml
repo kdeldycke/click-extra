@@ -141,24 +141,18 @@ jobs:
         env:
           DESTRUCTIVE_TESTS: true
         run: |
-          poetry run pytest --randomly-seed=2892842890 --cov-config=pyproject.toml --cov=./ --cov-report=xml \
-          click_extra/tests/test_colorize.py \
-          click_extra/tests/test_version.py
-
-          poetry run pytest --randomly-seed=1927446530 --cov-config=pyproject.toml --cov=./ --cov-report=xml \
-          click_extra/tests/test_commands.py
-
           poetry run pytest --randomly-seed=498379502 --cov-config=pyproject.toml --cov=./ --cov-report=xml \
           click_extra/tests/test_config.py
 
-          poetry run pytest --randomly-seed=3568961045 --cov-config=pyproject.toml --cov=./ --cov-report=xml \
-          click_extra/tests/test_logging.py
-
           poetry run pytest --cov-config=pyproject.toml --cov=./ --cov-report=xml \
+          click_extra/tests/test_colorize.py \
+          click_extra/tests/test_commands.py \
+          click_extra/tests/test_logging.py \
           click_extra/tests/test_platforms.py \
           click_extra/tests/test_pygments.py \
           click_extra/tests/test_run.py \
-          click_extra/tests/test_tabulate.py
+          click_extra/tests/test_tabulate.py \
+          click_extra/tests/test_version.py
 
       # XXX We need a different step for windows because PowerShell line-continuation is not a slash but a backtick.
       - name: Tests - Windows
@@ -167,24 +161,18 @@ jobs:
           DESTRUCTIVE_TESTS: true
         shell: pwsh
         run: |
-          poetry run pytest --randomly-seed=2892842890 --cov-config=pyproject.toml --cov=./ --cov-report=xml `
-          click_extra/tests/test_colorize.py `
-          click_extra/tests/test_version.py
-
-          poetry run pytest --randomly-seed=1927446530 --cov-config=pyproject.toml --cov=./ --cov-report=xml `
-          click_extra/tests/test_commands.py
-
           poetry run pytest --randomly-seed=498379502 --cov-config=pyproject.toml --cov=./ --cov-report=xml `
           click_extra/tests/test_config.py
 
-          poetry run pytest --randomly-seed=3568961045 --cov-config=pyproject.toml --cov=./ --cov-report=xml `
-          click_extra/tests/test_logging.py
-
           poetry run pytest --cov-config=pyproject.toml --cov=./ --cov-report=xml `
+          click_extra/tests/test_colorize.py `
+          click_extra/tests/test_commands.py `
+          click_extra/tests/test_logging.py `
           click_extra/tests/test_platforms.py `
           click_extra/tests/test_pygments.py `
           click_extra/tests/test_run.py `
-          click_extra/tests/test_tabulate.py
+          click_extra/tests/test_tabulate.py `
+          click_extra/tests/test_version.py
 
       - name: Codecov upload
         uses: codecov/codecov-action@v3.1.1

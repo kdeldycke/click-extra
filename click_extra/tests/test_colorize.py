@@ -108,7 +108,7 @@ def test_only_full_word_highlight():
 @skip_windows_colors
 def test_keyword_collection(invoke):
     # Create a dummy Click CLI.
-    @extra_group()
+    @extra_group
     @option_group(
         "Group 1",
         option("-a", "--o1"),
@@ -353,7 +353,7 @@ def test_no_color_env_convention(
     ),
 )
 def test_integrated_color_option(invoke, param, expecting_colors):
-    @extra_group()
+    @extra_group
     def color_cli8():
         echo(Style(fg="yellow")("It works!"))
         echo("\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m")

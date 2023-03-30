@@ -41,7 +41,7 @@ As you can see in the example below, these Click directives are not recognized a
 .. click:example::
     from click_extra import echo, extra_command, option, style
 
-    @extra_command()
+    @extra_command
     @option("--name", prompt="Your name", help="The person to greet.")
     def hello_world(name):
         """Simple program that greets NAME."""
@@ -77,7 +77,7 @@ NameError: name 'hello_world' is not defined
 .. click:example::
     from click_extra import echo, extra_command, option, style
 
-    @extra_command()
+    @extra_command
     @option("--name", prompt="Your name", help="The person to greet.")
     def hello_world(name):
         """Simple program that greets NAME."""
@@ -99,7 +99,7 @@ Placed in your Sphinx documentation, the two blocks above renders to:
 .. click:example::
     from click_extra import echo, extra_command, option, style
 
-    @extra_command()
+    @extra_command
     @option("--name", prompt="Your name", help="The person to greet.")
     def hello_world(name):
         """Simple program that greets NAME."""

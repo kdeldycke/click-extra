@@ -51,8 +51,8 @@ def test_unrecognized_verbosity(invoke, cmd_decorator, cmd_type):
 
 @skip_windows_colors
 @pytest.mark.parametrize(
-    # Skip click extra's commands, as verbosity option is already part of the default.
     "cmd_decorator",
+    # Skip click extra's commands, as verbosity option is already part of the default.
     command_decorators(no_groups=True, no_extra=True),
 )
 @pytest.mark.parametrize("level", LOG_LEVELS.keys())
@@ -88,7 +88,7 @@ def test_standalone_verbosity_option(invoke, cmd_decorator, level):
 @pytest.mark.parametrize("level", LOG_LEVELS.keys())
 # TODO: test extra_group
 def test_integrated_verbosity_option(invoke, level):
-    @extra_command()
+    @extra_command
     def logging_cli3():
         echo("It works!")
 

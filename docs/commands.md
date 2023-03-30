@@ -63,7 +63,7 @@ If you try to add again options it already has by default, you will end up with 
 .. click:example::
    from click_extra import extra_command, version_option, config_option, verbosity_option
 
-   @extra_command()
+   @extra_command
    @version_option(version="0.1")
    @config_option(default="ex.yml")
    @verbosity_option(default="DEBUG")
@@ -115,7 +115,7 @@ from click import option, echo, pass_context
 
 from click_extra import config_option, extra_group
 
-@extra_group()
+@extra_group
 @option("--dummy-flag/--no-flag")
 @option("--my-list", multiple=True)
 @config_option()

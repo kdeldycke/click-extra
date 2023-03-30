@@ -37,7 +37,7 @@
         ```{click-example}
         from click_extra import echo, extra_command, option, style
 
-        @extra_command()
+        @extra_command
         @option("--name", prompt="Your name", help="The person to greet.")
         def hello_world(name):
             "Simple program that greets NAME."

@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Allow `@extra_group` and `@extra_command` decorators to be used without parenthesis.
+- Fix wrapping of Cloup decorators by `@extra_group`/`@extra_command` decorators. Closes {issue}`489`.
 - Add main dependency on `furo` which is referenced in ANSI-aware Pygment styles.
 - Move all documentation assets to `assets` subfolder.
 

@@ -229,7 +229,7 @@ def command_decorators(
                         extra_command,
                         {"extra", "command"},
                         "click_extra.extra_command",
-                        skip_naked,
+                        (),
                     ),
                     (
                         extra_command(),
@@ -264,7 +264,7 @@ def command_decorators(
                         extra_group,
                         {"extra", "group"},
                         "click_extra.extra_group",
-                        skip_naked,
+                        (),
                     ),
                     (
                         extra_group(),

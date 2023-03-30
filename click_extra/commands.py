@@ -250,17 +250,39 @@ def default_extra_params():
     ]
 
 
-extra_command = partial(command, cls=ExtraCommand, params=default_extra_params())
-"""Augment default ``cloup.command`` with additional options.
+def extra_command(_func=None, *args, **kwargs):
+    """Augment default ``cloup.command`` with additional options.
 
-See :py:func:`click_extra.commands.default_extra_params` for the list of default
-options.
-"""
+    See :py:func:`click_extra.commands.default_extra_params` for the list of default
+    options.
+    """
+
+    def extra_decorator(func):
+        kwargs.setdefault("cls", ExtraCommand)
+        kwargs.setdefault("params", default_extra_params())
+        return command(*args, **kwargs)(func)
+
+    # Allow to be used as decorator with or without arguments.
+    if _func is None:
+        return extra_decorator
+    else:
+        return extra_decorator(_func)
 
 
-extra_group = partial(group, cls=ExtraGroup, params=default_extra_params())
-"""Augment default ``cloup.group`` with additional options.
+def extra_group(_func=None, *args, **kwargs):
+    """Augment default ``cloup.group`` with additional options.
 
-See :py:func:`click_extra.commands.default_extra_params` for the list of default
-options.
-"""
+    See :py:func:`click_extra.commands.default_extra_params` for the list of default
+    options.
+    """
+
+    def extra_decorator(func):
+        kwargs.setdefault("cls", ExtraGroup)
+        kwargs.setdefault("params", default_extra_params())
+        return group(*args, **kwargs)(func)
+
+    # Allow to be used as decorator with or without arguments.
+    if _func is None:
+        return extra_decorator
+    else:
+        return extra_decorator(_func)

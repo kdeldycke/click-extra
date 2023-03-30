@@ -43,7 +43,7 @@ def all_command_cli():
     def default_subcommand():
         echo("Run default subcommand...")
 
-    @extra_command()
+    @extra_command
     def click_extra_subcommand():
         echo("Run click-extra subcommand...")
 
@@ -247,7 +247,7 @@ def test_standalone_time_option(invoke):
 
 def test_option_group_integration(invoke):
     # Mix regular and grouped options
-    @extra_group()
+    @extra_group
     @option_group(
         "Group 1",
         click.option("-a", "--opt1"),
