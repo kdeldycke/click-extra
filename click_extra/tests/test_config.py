@@ -22,6 +22,7 @@ from pathlib import Path
 
 import click
 import pytest
+from boltons.pathutils import shrinkuser
 from click import (
     BOOL,
     FLOAT,
@@ -41,7 +42,6 @@ from click import (
 from click import Path as ClickPath
 from cloup import argument, option
 from tabulate import tabulate
-from boltons.pathutils import shrinkuser
 
 from ..colorize import escape_for_help_sceen
 from ..commands import extra_command, extra_group
