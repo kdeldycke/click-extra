@@ -1,5 +1,11 @@
 # Changelog
 
+## {gh}`3.9.1 (unreleased) <compare/v3.9.0...main>`
+
+```{important}
+This version is not released yet and is under active development.
+```
+
 ## {gh}`3.9.0 (2023-03-31) <compare/v3.8.3...v3.9.0>`
 
 - Allow `@color_option`, `@command`, `@config_option`, `@extra_command`, `@extra_group`, `@group`, `@help_option`, `@show_params_option`, `@table_format_option`, `@timer_option`, `@verbosity_option` and `@version_option` decorators to be used without parenthesis.
