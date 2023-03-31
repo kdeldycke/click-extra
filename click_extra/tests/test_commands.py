@@ -26,15 +26,20 @@ import click
 import cloup
 import pytest
 from click import echo
-from cloup import command, option, option_group
-from pytest_cases import fixture
+from cloup import option, option_group
+from pytest_cases import fixture, parametrize
 
 from ..commands import extra_command, extra_group, timer_option
-from .conftest import default_debug_uncolored_log, default_options_uncolored_help
+from .conftest import (
+    command_decorators,
+    default_debug_uncolored_log,
+    default_options_uncolored_help,
+)
 
 
 @fixture
 def all_command_cli():
+    """A CLI that used all variations and flavors of subcommands."""
     @extra_group(version="2021.10.08")
     def command_cli1():
         echo("It works!")
@@ -212,37 +217,43 @@ def test_integrated_version_value(invoke, all_command_cli):
     assert not result.stderr
 
 
-def test_standalone_time_option(invoke):
-    @command()
-    @timer_option
-    def standalone_time():
+@parametrize(
+    "cmd_decorator",
+    # Skip click extra's commands, as timer option is already part of the default.
+    command_decorators(no_groups=True, no_extra=True)
+)
+@parametrize("option_decorator", (timer_option, timer_option()))
+def test_standalone_timer_option(invoke, cmd_decorator, option_decorator):
+    @cmd_decorator
+    @option_decorator
+    def standalone_timer():
         echo("It works!")
 
-    result = invoke(standalone_time, "--help")
+    result = invoke(standalone_timer, "--help")
     assert result.exit_code == 0
+    assert not result.stderr
     assert result.stdout == dedent(
         """\
-        Usage: standalone-time [OPTIONS]
+        Usage: standalone-timer [OPTIONS]
 
         Options:
           --time / --no-time  Measure and print elapsed execution time.
           --help              Show this message and exit.
         """
     )
-    assert not result.stderr
 
-    result = invoke(standalone_time, "--time")
+    result = invoke(standalone_timer, "--time")
     assert result.exit_code == 0
+    assert not result.stderr
     assert re.fullmatch(
         r"It works!\nExecution time: [0-9.]+ seconds.\n",
         result.output,
     )
-    assert not result.stderr
 
-    result = invoke(standalone_time, "--no-time")
+    result = invoke(standalone_timer, "--no-time")
     assert result.exit_code == 0
-    assert result.output == "It works!\n"
     assert not result.stderr
+    assert result.output == "It works!\n"
 
 
 def test_no_option_leaks_between_subcommands(invoke):

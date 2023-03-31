@@ -515,9 +515,10 @@ def test_recognized_modes():
 
 @fixture
 @parametrize("cmd_decorator", command_decorators(no_groups=True))
-def table_cli(cmd_decorator):
+@parametrize("option_decorator", (table_format_option, table_format_option()))
+def table_cli(cmd_decorator, option_decorator):
     @cmd_decorator
-    @table_format_option
+    @option_decorator
     @pass_context
     def tabulate_cli2(ctx):
         data = ((1, 87), (2, 80), (3, 79))

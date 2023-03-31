@@ -41,12 +41,16 @@ from click import (
 )
 from click import Path as ClickPath
 from cloup import argument, option
+from pytest_cases import parametrize
 from tabulate import tabulate
 
 from ..colorize import escape_for_help_sceen
 from ..commands import extra_command, extra_group
-from ..config import ConfigOption, ShowParamsOption, config_option
-from .conftest import default_debug_uncolored_log
+from ..config import ConfigOption, ShowParamsOption, config_option, show_params_option
+from .conftest import (
+    command_decorators,
+    default_debug_uncolored_log,
+)
 
 DUMMY_TOML_FILE = """
     # Comment
@@ -262,8 +266,13 @@ def test_conf_not_file(invoke):
     )
 
 
-def test_conf_auto_types(invoke, create_config):
-    """Check the conf type and structure is properly derived from CLI options."""
+@parametrize("option_decorator", (config_option, config_option()))
+def test_conf_auto_types(invoke, create_config, option_decorator):
+    """Check the conf type and structure is properly derived from CLI options.
+
+    Also covers the tests of the standalone ``@config_option`` decorator in all its
+    flavors.
+    """
     @click.command
     @option("--flag1/--no-flag1")
     @option("--flag2", is_flag=True)
@@ -288,7 +297,7 @@ def test_conf_auto_types(invoke, create_config):
     @option("--list1", multiple=True)
     @argument("file_arg1", type=File("w"))
     @argument("file_arg2", type=File("w"), nargs=-1)
-    @config_option
+    @option_decorator
     def config_cli2(
         flag1,
         flag2,
@@ -520,7 +529,51 @@ def test_conf_file_overrided_by_cli_param(
         assert result.stderr == f"Load configuration matching {conf_path.resolve()}\n"
 
 
-def test_show_params_option(invoke, create_config):
+@parametrize(
+    "cmd_decorator",
+    # Skip click extra's commands, as show_params option is already part of the default.
+    command_decorators(no_groups=True, no_extra=True)
+)
+@parametrize("option_decorator", (show_params_option, show_params_option()))
+def test_standalone_show_params_option(invoke, cmd_decorator, option_decorator):
+
+    @cmd_decorator
+    @option_decorator
+    def show_params():
+        echo("It works!")
+
+    result = invoke(show_params, "--show-params")
+    assert result.exit_code == 0
+
+    table = [
+        (
+            "show-params.show_params",
+            "click_extra.config.ShowParamsOption",
+            "--show-params",
+            "bool",
+            "",
+            "✘",
+            "",
+            False,
+            "",
+            "COMMANDLINE",
+        ),
+    ]
+    output = tabulate(
+        table,
+        headers=ShowParamsOption.TABLE_HEADERS,
+        tablefmt="rounded_outline",
+        disable_numparse=True,
+    )
+    assert result.output == f"{output}\n"
+
+    assert result.stderr == (
+        "warning: Cannot extract parameters values: "
+        "<Command show-params> does not inherits from ExtraCommand.\n"
+    )
+
+
+def test_integrated_show_params_option(invoke, create_config):
     @extra_command
     @option("--int-param1", type=int, default=10)
     @option("--int-param2", type=int, default=555)

@@ -30,6 +30,23 @@ from ..version import version_option
 from .conftest import command_decorators, skip_windows_colors
 
 
+@parametrize("cmd_decorator", command_decorators())
+@parametrize("option_decorator", (version_option, version_option()))
+def test_standalone_version_option(invoke, cmd_decorator, option_decorator):
+    @cmd_decorator
+    @option_decorator
+    def standalone_option():
+        echo("It works!")
+
+    result = invoke(standalone_option, "--version", color=True)
+    assert result.exit_code == 0
+    assert not result.stderr
+    assert re.fullmatch(
+        r"\x1b\[97mstandalone-option\x1b\[0m, version \x1b\[32m\d+.\d+.\d+\x1b\[0m\n",
+        result.output
+    )
+
+
 @skip_windows_colors
 def test_standalone_version_option_with_env_info(invoke):
     @click.group

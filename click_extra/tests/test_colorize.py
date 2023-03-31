@@ -25,17 +25,20 @@ import pytest
 from boltons.strutils import strip_ansi
 from click import echo, secho, style
 from cloup import HelpTheme, Style, argument, command, option, option_group
+from pytest_cases import parametrize
 
 from ..colorize import (
     HelpExtraFormatter,
     HelpExtraTheme,
     color_option,
     default_theme,
+    help_option,
     highlight,
 )
 from ..commands import extra_command, extra_group
 from ..logging import LOG_LEVELS, logger, verbosity_option
 from .conftest import (
+    command_decorators,
     default_debug_colored_log,
     default_debug_uncolored_log,
     default_options_colored_help,
@@ -242,6 +245,7 @@ def test_keyword_collection(invoke):
 
 
 @skip_windows_colors
+@parametrize("option_decorator", (color_option, color_option()))
 @pytest.mark.parametrize(
     "param,expecting_colors",
     (
@@ -252,14 +256,14 @@ def test_keyword_collection(invoke):
         (None, True),
     ),
 )
-def test_standalone_color_option(invoke, param, expecting_colors):
+def test_standalone_color_option(invoke, option_decorator, param, expecting_colors):
     """Check color option values, defaults and effects on all things colored, including
     verbosity option."""
 
     @click.command
     @verbosity_option
-    @color_option
-    def color_cli5():
+    @option_decorator
+    def standalone_color():
         echo(Style(fg="yellow")("It works!"))
         echo("\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m")
         echo(style("Run command.", fg="magenta"))
@@ -267,11 +271,11 @@ def test_standalone_color_option(invoke, param, expecting_colors):
         print(style("print() bypass Click.", fg="blue"))
         secho("Done.", fg="green")
 
-    result = invoke(color_cli5, param, "--verbosity", "DEBUG", color=True)
+    result = invoke(standalone_color, param, "--verbosity", "DEBUG", color=True)
     assert result.exit_code == 0
 
     if expecting_colors:
-        assert result.output == (
+        assert result.stdout == (
             "\x1b[33mIt works!\x1b[0m\n"
             "\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m\n"
             "\x1b[35mRun command.\x1b[0m\n"
@@ -283,7 +287,7 @@ def test_standalone_color_option(invoke, param, expecting_colors):
             "\x1b[33mwarning: \x1b[0mProcessing...\n"
         )
     else:
-        assert result.output == (
+        assert result.stdout == (
             "It works!\n"
             "Art\n"
             "Run command.\n"
@@ -460,3 +464,40 @@ def test_substring_highlighting(substrings, expected, ignore_case):
         ignore_case=ignore_case,
     )
     assert result == expected
+
+
+@parametrize(
+    "cmd_decorator, cmd_type",
+    # Skip click extra's commands, as help option is already part of the default.
+    command_decorators(no_extra=True, with_types=True)
+)
+@parametrize("option_decorator", (help_option, help_option()))
+def test_standalone_help_option(invoke, cmd_decorator, cmd_type, option_decorator):
+
+    @cmd_decorator
+    @option_decorator
+    def standalone_help():
+        echo("It works!")
+
+    result = invoke(standalone_help, "--help")
+    assert result.exit_code == 0
+    assert not result.stderr
+
+    if "group" in cmd_type:
+        assert result.stdout == dedent(
+            """\
+            Usage: standalone-help [OPTIONS] COMMAND [ARGS]...
+
+            Options:
+              -h, --help  Show this message and exit.
+            """
+        )
+    else:
+        assert result.stdout == dedent(
+            """\
+            Usage: standalone-help [OPTIONS]
+
+            Options:
+              -h, --help  Show this message and exit.
+            """
+        )

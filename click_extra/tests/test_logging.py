@@ -20,6 +20,7 @@ import re
 
 import pytest
 from click import echo
+from pytest_cases import parametrize
 
 from ..commands import extra_command
 from ..logging import LOG_LEVELS, logger, verbosity_option
@@ -55,10 +56,11 @@ def test_unrecognized_verbosity(invoke, cmd_decorator, cmd_type):
     # Skip click extra's commands, as verbosity option is already part of the default.
     command_decorators(no_groups=True, no_extra=True),
 )
+@parametrize("option_decorator", (verbosity_option, verbosity_option()))
 @pytest.mark.parametrize("level", LOG_LEVELS.keys())
-def test_standalone_verbosity_option(invoke, cmd_decorator, level):
+def test_standalone_verbosity_option(invoke, cmd_decorator, option_decorator, level):
     @cmd_decorator
-    @verbosity_option
+    @option_decorator
     def logging_cli2():
         echo("It works!")
         logger.debug("my debug message.")
