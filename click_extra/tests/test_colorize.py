@@ -474,11 +474,10 @@ def test_substring_highlighting(substrings, expected, ignore_case):
 @parametrize(
     "cmd_decorator, cmd_type",
     # Skip click extra's commands, as help option is already part of the default.
-    command_decorators(no_extra=True, with_types=True)
+    command_decorators(no_extra=True, with_types=True),
 )
 @parametrize("option_decorator", (help_option, help_option()))
 def test_standalone_help_option(invoke, cmd_decorator, cmd_type, option_decorator):
-
     @cmd_decorator
     @option_decorator
     def standalone_help():

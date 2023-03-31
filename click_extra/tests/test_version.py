@@ -42,7 +42,7 @@ def test_standalone_version_option(invoke, cmd_decorator, option_decorator):
     assert not result.stderr
     assert re.fullmatch(
         r"\x1b\[97mstandalone-option\x1b\[0m, version \x1b\[32m\d+.\d+.\d+\x1b\[0m\n",
-        result.output
+        result.output,
     )
 
 

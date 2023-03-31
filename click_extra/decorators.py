@@ -68,12 +68,12 @@ def default_extra_params():
 
 # Command and group decorators.
 
+
 def command(_func=None, *args, **kwargs):
     """Allows ``cloup.command`` decorator to be used with or without arguments.
 
     Fixes `Cloup issue #127 <https://github.com/janluke/cloup/issues/127>`_
     """
-
     def cloup_decorator(func):
         return cloup_command(*args, **kwargs)(func)
 
@@ -88,7 +88,6 @@ def group(_func=None, *args, **kwargs):
 
     Fixes `Cloup issue #127 <https://github.com/janluke/cloup/issues/127>`_
     """
-
     def cloup_decorator(func):
         return cloup_group(*args, **kwargs)(func)
 
@@ -106,7 +105,6 @@ def extra_command(_func=None, *args, **kwargs):
 
     This decorator can be used with or without arguments.
     """
-
     def extra_decorator(func):
         kwargs.setdefault("cls", ExtraCommand)
         kwargs.setdefault("params", default_extra_params())
@@ -126,7 +124,6 @@ def extra_group(_func=None, *args, **kwargs):
 
     This decorator can be used with or without arguments.
     """
-
     def extra_decorator(func):
         kwargs.setdefault("cls", ExtraGroup)
         kwargs.setdefault("params", default_extra_params())
@@ -140,12 +137,12 @@ def extra_group(_func=None, *args, **kwargs):
 
 # Option decorators.
 
+
 def color_option(_func=None, *args, **kwargs):
     """Decorator for ``ColorOption``.
 
     This decorator can be used with or without arguments.
     """
-
     def option_decorator(func):
         kwargs.setdefault("cls", ColorOption)
         return option(*args, **kwargs)(func)
@@ -161,7 +158,6 @@ def config_option(_func=None, *args, **kwargs):
 
     This decorator can be used with or without arguments.
     """
-
     def option_decorator(func):
         kwargs.setdefault("cls", ConfigOption)
         return option(*args, **kwargs)(func)
@@ -177,7 +173,6 @@ def help_option(_func=None, *args, **kwargs):
 
     This decorator can be used with or without arguments.
     """
-
     def option_decorator(func):
         kwargs.setdefault("cls", HelpOption)
         return option(*args, **kwargs)(func)
@@ -193,7 +188,6 @@ def show_params_option(_func=None, *args, **kwargs):
 
     This decorator can be used with or without arguments.
     """
-
     def option_decorator(func):
         kwargs.setdefault("cls", ShowParamsOption)
         return option(*args, **kwargs)(func)
@@ -209,7 +203,6 @@ def table_format_option(_func=None, *args, **kwargs):
 
     This decorator can be used with or without arguments.
     """
-
     def option_decorator(func):
         kwargs.setdefault("cls", TableFormatOption)
         return option(*args, **kwargs)(func)
@@ -225,7 +218,6 @@ def timer_option(_func=None, *args, **kwargs):
 
     This decorator can be used with or without arguments.
     """
-
     def option_decorator(func):
         kwargs.setdefault("cls", TimerOption)
         return option(*args, **kwargs)(func)
@@ -241,7 +233,6 @@ def verbosity_option(_func=None, *args, **kwargs):
 
     This decorator can be used with or without arguments.
     """
-
     def option_decorator(func):
         kwargs.setdefault("cls", VerbosityOption)
         return option(*args, **kwargs)(func)
@@ -257,7 +248,6 @@ def version_option(_func=None, *args, **kwargs):
 
     This decorator can be used with or without arguments.
     """
-
     def option_decorator(func):
         kwargs.setdefault("cls", VersionOption)
         return option(*args, **kwargs)(func)
