@@ -21,7 +21,6 @@ from __future__ import annotations
 import os
 import re
 from configparser import RawConfigParser
-from functools import partial
 from gettext import gettext as _
 from operator import getitem
 from typing import NamedTuple
@@ -259,8 +258,20 @@ class ColorOption(ExtraOption):
         )
 
 
-color_option = partial(option, cls=ColorOption)
-"""Decorator for ``ColorOption``."""
+def color_option(_func=None, *args, **kwargs):
+    """Decorator for ``ColorOption``.
+
+    This decorator can be used with or without arguments.
+    """
+
+    def option_decorator(func):
+        kwargs.setdefault("cls", ColorOption)
+        return option(*args, **kwargs)(func)
+
+    if _func is None:
+        return option_decorator
+    else:
+        return option_decorator(_func)
 
 
 class HelpOption(ExtraOption):
@@ -297,8 +308,20 @@ class HelpOption(ExtraOption):
         )
 
 
-help_option = partial(option, cls=HelpOption)
-"""Decorator for ``HelpOption``."""
+def help_option(_func=None, *args, **kwargs):
+    """Decorator for ``HelpOption``.
+
+    This decorator can be used with or without arguments.
+    """
+
+    def option_decorator(func):
+        kwargs.setdefault("cls", HelpOption)
+        return option(*args, **kwargs)(func)
+
+    if _func is None:
+        return option_decorator
+    else:
+        return option_decorator(_func)
 
 
 class ExtraHelpColorsMixin:

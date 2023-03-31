@@ -86,7 +86,7 @@ If, for example, you're only interested in using the `--config` option, nothing 
     @command
     @option("--count", default=1, help="Number of greetings.")
     @option("--name", prompt="Your name", help="The person to greet.")
-    @config_option()
+    @config_option
     def hello(count, name):
         """Simple program that greets NAME for a total of COUNT times."""
         for _ in range(count):

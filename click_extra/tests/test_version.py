@@ -108,7 +108,7 @@ def test_color_option_precedence(invoke):
         output.
     """
     @click.command
-    @color_option()
+    @color_option
     @version_option(version="2.1.9")
     def color_cli6():
         echo(Style(fg="yellow")("It works!"))

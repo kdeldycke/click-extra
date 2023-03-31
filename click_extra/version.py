@@ -21,7 +21,6 @@ from __future__ import annotations
 import inspect
 import re
 import sys
-from functools import partial
 from gettext import gettext as _
 from typing import Iterable
 
@@ -228,5 +227,17 @@ class VersionOption(ExtraOption):
         )
 
 
-version_option = partial(option, cls=VersionOption)
-"""Decorator for ``VersionOption``."""
+def version_option(_func=None, *args, **kwargs):
+    """Decorator for ``VersionOption``.
+
+    This decorator can be used with or without arguments.
+    """
+
+    def option_decorator(func):
+        kwargs.setdefault("cls", VersionOption)
+        return option(*args, **kwargs)(func)
+
+    if _func is None:
+        return option_decorator
+    else:
+        return option_decorator(_func)

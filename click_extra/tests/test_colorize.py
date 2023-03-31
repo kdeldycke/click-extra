@@ -257,8 +257,8 @@ def test_standalone_color_option(invoke, param, expecting_colors):
     verbosity option."""
 
     @click.command
-    @verbosity_option()
-    @color_option()
+    @verbosity_option
+    @color_option
     def color_cli5():
         echo(Style(fg="yellow")("It works!"))
         echo("\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m")
@@ -322,7 +322,7 @@ def test_no_color_env_convention(
     invoke, env, env_expect_colors, param, param_expect_colors
 ):
     @click.command
-    @color_option()
+    @color_option
     def color_cli7():
         echo(Style(fg="yellow")("It works!"))
 

@@ -19,7 +19,6 @@
 from __future__ import annotations
 
 import logging
-from functools import partial
 from gettext import gettext as _
 
 from click_log import basic_config
@@ -126,5 +125,17 @@ class VerbosityOption(ExtraOption):
         )
 
 
-verbosity_option = partial(option, cls=VerbosityOption)
-"""Decorator for ``VerbosityOption``."""
+def verbosity_option(_func=None, *args, **kwargs):
+    """Decorator for ``VerbosityOption``.
+
+    This decorator can be used with or without arguments.
+    """
+
+    def option_decorator(func):
+        kwargs.setdefault("cls", VerbosityOption)
+        return option(*args, **kwargs)(func)
+
+    if _func is None:
+        return option_decorator
+    else:
+        return option_decorator(_func)

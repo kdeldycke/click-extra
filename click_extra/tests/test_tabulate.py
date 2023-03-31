@@ -31,7 +31,7 @@ from .conftest import command_decorators
 @pytest.mark.parametrize("cmd_decorator, cmd_type", command_decorators(with_types=True))
 def test_unrecognized_format(invoke, cmd_decorator, cmd_type):
     @cmd_decorator
-    @table_format_option()
+    @table_format_option
     def tabulate_cli1():
         echo("It works!")
 
@@ -517,7 +517,7 @@ def test_recognized_modes():
 @parametrize("cmd_decorator", command_decorators(no_groups=True))
 def table_cli(cmd_decorator):
     @cmd_decorator
-    @table_format_option()
+    @table_format_option
     @pass_context
     def tabulate_cli2(ctx):
         data = ((1, 87), (2, 80), (3, 79))

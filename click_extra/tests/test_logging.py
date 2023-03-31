@@ -29,7 +29,7 @@ from .conftest import command_decorators, default_debug_colored_log, skip_window
 @pytest.mark.parametrize("cmd_decorator, cmd_type", command_decorators(with_types=True))
 def test_unrecognized_verbosity(invoke, cmd_decorator, cmd_type):
     @cmd_decorator
-    @verbosity_option()
+    @verbosity_option
     def logging_cli1():
         echo("It works!")
 
@@ -58,7 +58,7 @@ def test_unrecognized_verbosity(invoke, cmd_decorator, cmd_type):
 @pytest.mark.parametrize("level", LOG_LEVELS.keys())
 def test_standalone_verbosity_option(invoke, cmd_decorator, level):
     @cmd_decorator
-    @verbosity_option()
+    @verbosity_option
     def logging_cli2():
         echo("It works!")
         logger.debug("my debug message.")

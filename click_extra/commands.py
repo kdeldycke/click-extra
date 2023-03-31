@@ -22,7 +22,6 @@ still mix'n'match the mixins below to build your own custom variants.
 
 from __future__ import annotations
 
-from functools import partial
 from gettext import gettext as _
 from logging import getLevelName
 from time import perf_counter
@@ -86,8 +85,20 @@ class TimerOption(ExtraOption):
         )
 
 
-timer_option = partial(option, cls=TimerOption)
-"""Decorator for ``TimerOption``."""
+def timer_option(_func=None, *args, **kwargs):
+    """Decorator for ``TimerOption``.
+
+    This decorator can be used with or without arguments.
+    """
+
+    def option_decorator(func):
+        kwargs.setdefault("cls", TimerOption)
+        return option(*args, **kwargs)(func)
+
+    if _func is None:
+        return option_decorator
+    else:
+        return option_decorator(_func)
 
 
 class ExtraContext(CloupContext):

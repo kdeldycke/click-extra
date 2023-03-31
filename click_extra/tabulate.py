@@ -139,5 +139,17 @@ class TableFormatOption(ExtraOption):
         )
 
 
-table_format_option = partial(option, cls=TableFormatOption)
-"""Decorator for ``TableFormatOption``."""
+def table_format_option(_func=None, *args, **kwargs):
+    """Decorator for ``TableFormatOption``.
+
+    This decorator can be used with or without arguments.
+    """
+
+    def option_decorator(func):
+        kwargs.setdefault("cls", TableFormatOption)
+        return option(*args, **kwargs)(func)
+
+    if _func is None:
+        return option_decorator
+    else:
+        return option_decorator(_func)

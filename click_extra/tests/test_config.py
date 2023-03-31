@@ -288,7 +288,7 @@ def test_conf_auto_types(invoke, create_config):
     @option("--list1", multiple=True)
     @argument("file_arg1", type=File("w"))
     @argument("file_arg2", type=File("w"), nargs=-1)
-    @config_option()
+    @config_option
     def config_cli2(
         flag1,
         flag2,

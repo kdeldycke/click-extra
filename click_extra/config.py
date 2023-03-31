@@ -23,7 +23,7 @@ import sys
 from collections.abc import MutableMapping
 from configparser import ConfigParser, ExtendedInterpolation
 from enum import Enum
-from functools import partial, reduce
+from functools import reduce
 from gettext import gettext as _
 from operator import getitem, methodcaller
 from pathlib import Path
@@ -45,9 +45,8 @@ import requests
 import xmltodict
 import yaml
 from boltons.iterutils import flatten, remap
-from boltons.urlutils import URL
 from boltons.pathutils import shrinkuser
-
+from boltons.urlutils import URL
 from click import (
     BOOL,
     FLOAT,
@@ -833,9 +832,33 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         ctx.exit()
 
 
-show_params_option = partial(option, cls=ShowParamsOption)
-"""Decorator for ``ShowParamsOption``."""
+def show_params_option(_func=None, *args, **kwargs):
+    """Decorator for ``ShowParamsOption``.
+
+    This decorator can be used with or without arguments.
+    """
+
+    def option_decorator(func):
+        kwargs.setdefault("cls", ShowParamsOption)
+        return option(*args, **kwargs)(func)
+
+    if _func is None:
+        return option_decorator
+    else:
+        return option_decorator(_func)
 
 
-config_option = partial(option, cls=ConfigOption)
-"""Decorator for ``ConfigOption``."""
+def config_option(_func=None, *args, **kwargs):
+    """Decorator for ``ConfigOption``.
+
+    This decorator can be used with or without arguments.
+    """
+
+    def option_decorator(func):
+        kwargs.setdefault("cls", ConfigOption)
+        return option(*args, **kwargs)(func)
+
+    if _func is None:
+        return option_decorator
+    else:
+        return option_decorator(_func)

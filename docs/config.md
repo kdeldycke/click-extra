@@ -17,7 +17,7 @@ The `@config_option` decorator provided by Click Extra can be used as-is with va
     @group(context_settings={"show_default": True})
     @option("--dummy-flag/--no-flag")
     @option("--my-list", multiple=True)
-    @config_option()
+    @config_option
     def my_cli(dummy_flag, my_list):
         echo(f"dummy_flag    is {dummy_flag!r}")
         echo(f"my_list       is {my_list!r}")

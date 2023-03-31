@@ -118,7 +118,7 @@ from click_extra import config_option, extra_group
 @extra_group
 @option("--dummy-flag/--no-flag")
 @option("--my-list", multiple=True)
-@config_option()
+@config_option
 @pass_context
 def my_cli(ctx, dummy_flag, my_list):
     echo(f"dummy_flag    is {dummy_flag!r}")

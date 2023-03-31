@@ -214,7 +214,7 @@ def test_integrated_version_value(invoke, all_command_cli):
 
 def test_standalone_time_option(invoke):
     @command()
-    @timer_option()
+    @timer_option
     def standalone_time():
         echo("It works!")
 
