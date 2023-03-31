@@ -30,6 +30,7 @@ from ..version import version_option
 from .conftest import command_decorators, skip_windows_colors
 
 
+@skip_windows_colors
 @parametrize("cmd_decorator", command_decorators())
 @parametrize("option_decorator", (version_option, version_option()))
 def test_standalone_version_option(invoke, cmd_decorator, option_decorator):
