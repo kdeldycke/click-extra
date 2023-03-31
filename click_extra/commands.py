@@ -253,8 +253,10 @@ def default_extra_params():
 def extra_command(_func=None, *args, **kwargs):
     """Augment default ``cloup.command`` with additional options.
 
-    See :py:func:`click_extra.commands.default_extra_params` for the list of default
-    options.
+    The list of default options is available at
+    :py:func:`click_extra.commands.default_extra_params`.
+
+    This decorator can be used with or without arguments.
     """
 
     def extra_decorator(func):
@@ -262,7 +264,6 @@ def extra_command(_func=None, *args, **kwargs):
         kwargs.setdefault("params", default_extra_params())
         return command(*args, **kwargs)(func)
 
-    # Allow to be used as decorator with or without arguments.
     if _func is None:
         return extra_decorator
     else:
@@ -272,8 +273,10 @@ def extra_command(_func=None, *args, **kwargs):
 def extra_group(_func=None, *args, **kwargs):
     """Augment default ``cloup.group`` with additional options.
 
-    See :py:func:`click_extra.commands.default_extra_params` for the list of default
-    options.
+    The list of default options is available at
+    :py:func:`click_extra.commands.default_extra_params`.
+
+    This decorator can be used with or without arguments.
     """
 
     def extra_decorator(func):
@@ -281,7 +284,6 @@ def extra_group(_func=None, *args, **kwargs):
         kwargs.setdefault("params", default_extra_params())
         return group(*args, **kwargs)(func)
 
-    # Allow to be used as decorator with or without arguments.
     if _func is None:
         return extra_decorator
     else:
