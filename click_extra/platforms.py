@@ -87,8 +87,8 @@ def is_hurd() -> bool:
 def is_linux() -> bool:
     """Return `True` only if current platform is of the Linux family.
 
-    Excludes WSL1 and WSL2 from this check to `avoid false positives
-    <https://github.com/kdeldycke/meta-package-manager/issues/944>`_.
+    Excludes WSL1 and WSL2 from this check to
+    `avoid false positives <https://github.com/kdeldycke/meta-package-manager/issues/944>`_.
     """
     return sys.platform.startswith("linux") and not is_wsl1() and not is_wsl2()
 

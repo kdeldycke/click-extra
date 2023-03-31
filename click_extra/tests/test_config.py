@@ -532,11 +532,10 @@ def test_conf_file_overrided_by_cli_param(
 @parametrize(
     "cmd_decorator",
     # Skip click extra's commands, as show_params option is already part of the default.
-    command_decorators(no_groups=True, no_extra=True)
+    command_decorators(no_groups=True, no_extra=True),
 )
 @parametrize("option_decorator", (show_params_option, show_params_option()))
 def test_standalone_show_params_option(invoke, cmd_decorator, option_decorator):
-
     @cmd_decorator
     @option_decorator
     def show_params():

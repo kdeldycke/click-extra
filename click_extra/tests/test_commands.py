@@ -220,7 +220,7 @@ def test_integrated_version_value(invoke, all_command_cli):
 @parametrize(
     "cmd_decorator",
     # Skip click extra's commands, as timer option is already part of the default.
-    command_decorators(no_groups=True, no_extra=True)
+    command_decorators(no_groups=True, no_extra=True),
 )
 @parametrize("option_decorator", (timer_option, timer_option()))
 def test_standalone_timer_option(invoke, cmd_decorator, option_decorator):
@@ -258,18 +258,17 @@ def test_standalone_timer_option(invoke, cmd_decorator, option_decorator):
 
 def test_no_option_leaks_between_subcommands(invoke):
     """As reported in https://github.com/kdeldycke/click-extra/issues/489."""
-
     @click.group
     def cli():
         echo("Run cli...")
 
     @extra_command
-    @click.option('--one')
+    @click.option("--one")
     def foo():
         echo("Run foo...")
 
     @extra_command(short_help="Bar subcommand.")
-    @click.option('--two')
+    @click.option("--two")
     def bar():
         echo("Run bar...")
 
