@@ -145,14 +145,7 @@ jobs:
           click_extra/tests/test_config.py
 
           poetry run pytest --cov-config=pyproject.toml --cov=./ --cov-report=xml \
-          click_extra/tests/test_colorize.py \
-          click_extra/tests/test_commands.py \
-          click_extra/tests/test_logging.py \
-          click_extra/tests/test_platforms.py \
-          click_extra/tests/test_pygments.py \
-          click_extra/tests/test_run.py \
-          click_extra/tests/test_tabulate.py \
-          click_extra/tests/test_version.py
+          --ignore=click_extra/tests/test_config.py
 
       # XXX We need a different step for windows because PowerShell line-continuation is not a slash but a backtick.
       - name: Tests - Windows
@@ -165,14 +158,7 @@ jobs:
           click_extra/tests/test_config.py
 
           poetry run pytest --cov-config=pyproject.toml --cov=./ --cov-report=xml `
-          click_extra/tests/test_colorize.py `
-          click_extra/tests/test_commands.py `
-          click_extra/tests/test_logging.py `
-          click_extra/tests/test_platforms.py `
-          click_extra/tests/test_pygments.py `
-          click_extra/tests/test_run.py `
-          click_extra/tests/test_tabulate.py `
-          click_extra/tests/test_version.py
+          --ignore=click_extra/tests/test_config.py
 
       - name: Codecov upload
         uses: codecov/codecov-action@v3.1.1
