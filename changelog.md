@@ -6,7 +6,7 @@
 This version is not released yet and is under active development.
 ```
 
-- Allow `@extra_group`, `@extra_command`, `@color_option`, `@config_option`, `@help_option`, `@show_params_option`, `@table_format_option`, `@timer_option`, `@verbosity_option` and `@version_option` decorators to be used without parenthesis.
+- Allow `@color_option`, `@command`, `@config_option`, `@extra_command`, `@extra_group`, `@group`, `@help_option`, `@show_params_option`, `@table_format_option`, `@timer_option`, `@verbosity_option` and `@version_option` decorators to be used without parenthesis.
 - Fix wrapping of Cloup decorators by `@extra_group`/`@extra_command` decorators. Closes {issue}`489`.
 - Add main dependency on `furo` which is referenced in ANSI-aware Pygment styles.
 - Move all documentation assets to `assets` subfolder.

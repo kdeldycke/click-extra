@@ -47,8 +47,6 @@ from cloup import (  # type: ignore # noqa: E402
     Option,
     Style,
     argument,
-    command,  # noqa: E402
-    group,  # noqa: E402
     option,
     option_group,
 )
@@ -64,8 +62,10 @@ from .colorize import (  # noqa: I001, E402
 # Import last to avoid circular dependencies.
 from .commands import (  # noqa: I001, E402
     TimerOption,
+    command,  # noqa: E402
     extra_command,
     extra_group,
+    group,  # noqa: E402
     timer_option,
 )
 from .config import (  # noqa: I001, E402

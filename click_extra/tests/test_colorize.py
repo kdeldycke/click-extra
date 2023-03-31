@@ -24,9 +24,10 @@ import cloup
 import pytest
 from boltons.strutils import strip_ansi
 from click import echo, secho, style
-from cloup import HelpTheme, Style, argument, command, option, option_group
+from cloup import HelpTheme, Style, argument, option, option_group
 from pytest_cases import parametrize
 
+from .. import command
 from ..colorize import (
     HelpExtraFormatter,
     HelpExtraTheme,

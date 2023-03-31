@@ -32,6 +32,7 @@ from boltons.tbutils import ExceptionInfo
 from click.core import BaseCommand
 from click.testing import CliRunner, Result
 
+from .. import command, group
 from ..commands import extra_command, extra_group
 from ..platforms import is_linux, is_macos, is_windows
 from ..run import EnvVars, args_cleanup, print_cli_output
@@ -198,6 +199,7 @@ def command_decorators(
     no_groups=False,
     no_click=False,
     no_cloup=False,
+    no_redefined=False,
     no_extra=False,
     with_types=False,
 ):
@@ -219,6 +221,14 @@ def command_decorators(
                 [
                     (cloup.command, {"cloup", "command"}, "cloup.command", skip_naked),
                     (cloup.command(), {"cloup", "command"}, "cloup.command()", ()),
+                ]
+            )
+
+        if not no_redefined:
+            params.extend(
+                [
+                    (command, {"redefined", "command"}, "click_extra.command", ()),
+                    (command(), {"redefined", "command"}, "click_extra.command()", ()),
                 ]
             )
 
@@ -254,6 +264,14 @@ def command_decorators(
                 [
                     (cloup.group, {"cloup", "group"}, "cloup.group", skip_naked),
                     (cloup.group(), {"cloup", "group"}, "cloup.group()", ()),
+                ]
+            )
+
+        if not no_redefined:
+            params.extend(
+                [
+                    (group, {"redefined", "group"}, "click_extra.group", ()),
+                    (group(), {"redefined", "group"}, "click_extra.group()", ()),
                 ]
             )
 

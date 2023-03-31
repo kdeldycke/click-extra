@@ -29,8 +29,10 @@ from typing import Any
 
 from click import Context as ClickContext
 from click import echo
-from cloup import Command, Group, command, group, option
+from cloup import Command, Group, option
 from cloup import Context as CloupContext
+from cloup import command as cloup_command
+from cloup import group as cloup_group
 
 from .colorize import ColorOption, ExtraHelpColorsMixin, HelpOption
 from .config import ConfigOption, ShowParamsOption
@@ -259,6 +261,37 @@ def default_extra_params():
         VersionOption(print_env_info=True),
         HelpOption(),
     ]
+
+
+
+def command(_func=None, *args, **kwargs):
+    """Allows ``cloup.command`` decorator to be used with or without arguments.
+
+    Fixes `Cloup issue #127 <https://github.com/janluke/cloup/issues/127>`_
+    """
+
+    def cloup_decorator(func):
+        return cloup_command(*args, **kwargs)(func)
+
+    if _func is None:
+        return cloup_decorator
+    else:
+        return cloup_decorator(_func)
+
+
+def group(_func=None, *args, **kwargs):
+    """Allows ``cloup.group`` decorator to be used with or without arguments.
+
+    Fixes `Cloup issue #127 <https://github.com/janluke/cloup/issues/127>`_
+    """
+
+    def cloup_decorator(func):
+        return cloup_group(*args, **kwargs)(func)
+
+    if _func is None:
+        return cloup_decorator
+    else:
+        return cloup_decorator(_func)
 
 
 def extra_command(_func=None, *args, **kwargs):

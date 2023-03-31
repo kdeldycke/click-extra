@@ -259,7 +259,7 @@ def test_standalone_timer_option(invoke, cmd_decorator, option_decorator):
 def test_no_option_leaks_between_subcommands(invoke):
     """As reported in https://github.com/kdeldycke/click-extra/issues/489."""
 
-    @click.group()
+    @click.group
     def cli():
         echo("Run cli...")
 
