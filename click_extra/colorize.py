@@ -29,7 +29,7 @@ import regex as re3
 from boltons.strutils import complement_int_list, int_ranges_from_int_list
 from click import Parameter, echo, get_current_context
 from click.core import ParameterSource
-from cloup import Choice, Context, HelpFormatter, Style, option
+from cloup import Choice, Context, HelpFormatter, Style
 from cloup._util import identity
 from cloup.styling import IStyle
 
@@ -258,22 +258,6 @@ class ColorOption(ExtraOption):
         )
 
 
-def color_option(_func=None, *args, **kwargs):
-    """Decorator for ``ColorOption``.
-
-    This decorator can be used with or without arguments.
-    """
-
-    def option_decorator(func):
-        kwargs.setdefault("cls", ColorOption)
-        return option(*args, **kwargs)(func)
-
-    if _func is None:
-        return option_decorator
-    else:
-        return option_decorator(_func)
-
-
 class HelpOption(ExtraOption):
     @staticmethod
     def print_help(ctx: Context, param: Parameter, value: bool) -> None:
@@ -306,22 +290,6 @@ class HelpOption(ExtraOption):
             help=help,
             **kwargs,
         )
-
-
-def help_option(_func=None, *args, **kwargs):
-    """Decorator for ``HelpOption``.
-
-    This decorator can be used with or without arguments.
-    """
-
-    def option_decorator(func):
-        kwargs.setdefault("cls", HelpOption)
-        return option(*args, **kwargs)(func)
-
-    if _func is None:
-        return option_decorator
-    else:
-        return option_decorator(_func)
 
 
 class ExtraHelpColorsMixin:

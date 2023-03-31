@@ -31,7 +31,7 @@ else:
 
 from boltons.ecoutils import get_profile
 from click import Parameter, echo
-from cloup import Context, Style, option
+from cloup import Context, Style
 
 from .colorize import default_theme
 from .parameters import ExtraOption
@@ -225,19 +225,3 @@ class VersionOption(ExtraOption):
             help=help,
             **kwargs,
         )
-
-
-def version_option(_func=None, *args, **kwargs):
-    """Decorator for ``VersionOption``.
-
-    This decorator can be used with or without arguments.
-    """
-
-    def option_decorator(func):
-        kwargs.setdefault("cls", VersionOption)
-        return option(*args, **kwargs)(func)
-
-    if _func is None:
-        return option_decorator
-    else:
-        return option_decorator(_func)

@@ -51,33 +51,26 @@ from cloup import (  # type: ignore # noqa: E402
     option_group,
 )
 
-# Replace some of click defaults with click-extra variant.
-from .colorize import (  # noqa: I001, E402
-    ColorOption,
-    HelpOption,
+from .colorize import ColorOption, HelpOption  # noqa: I001, E402
+from .commands import TimerOption  # noqa: I001, E402
+from .config import ConfigOption, ShowParamsOption  # noqa: I001, E402
+from .decorators import (  # noqa: I001, E402
     color_option,
-    help_option,
-)
-
-# Import last to avoid circular dependencies.
-from .commands import (  # noqa: I001, E402
-    TimerOption,
     command,  # noqa: E402
+    config_option,
     extra_command,
     extra_group,
     group,  # noqa: E402
-    timer_option,
-)
-from .config import (  # noqa: I001, E402
-    ConfigOption,
-    ShowParamsOption,
-    config_option,
+    help_option,
     show_params_option,
+    table_format_option,
+    timer_option,
+    verbosity_option,
+    version_option,
 )
-from .logging import VerbosityOption, verbosity_option  # noqa: I001, E402
+from .logging import VerbosityOption  # noqa: I001, E402
 from .parameters import ExtraOption  # noqa: I001, E402
-from .tabulate import table_format_option  # noqa: I001, E402
-from .version import VersionOption, version_option  # noqa: I001, E402
+from .version import VersionOption  # noqa: I001, E402
 
 __all__ = [
     "Abort",

@@ -25,18 +25,17 @@ from __future__ import annotations
 from gettext import gettext as _
 from logging import getLevelName
 from time import perf_counter
-from typing import Any
+from typing import (
+    Any,
+)
 
 from click import Context as ClickContext
 from click import echo
-from cloup import Command, Group, option
+from cloup import Command, Group
 from cloup import Context as CloupContext
-from cloup import command as cloup_command
-from cloup import group as cloup_group
 
-from .colorize import ColorOption, ExtraHelpColorsMixin, HelpOption
-from .config import ConfigOption, ShowParamsOption
-from .logging import VerbosityOption, logger
+from .colorize import ExtraHelpColorsMixin
+from .logging import logger
 from .parameters import ExtraOption
 from .version import VersionOption
 
@@ -85,22 +84,6 @@ class TimerOption(ExtraOption):
             help=help,
             **kwargs,
         )
-
-
-def timer_option(_func=None, *args, **kwargs):
-    """Decorator for ``TimerOption``.
-
-    This decorator can be used with or without arguments.
-    """
-
-    def option_decorator(func):
-        kwargs.setdefault("cls", TimerOption)
-        return option(*args, **kwargs)(func)
-
-    if _func is None:
-        return option_decorator
-    else:
-        return option_decorator(_func)
 
 
 class ExtraContext(CloupContext):
@@ -231,104 +214,3 @@ class ExtraGroup(ExtraCommand, Group):
     colorization."""
 
     pass
-
-
-def default_extra_params():
-    """Default additional options added to ``extra_command`` and ``extra_group``:
-
-    #. ``--time`` / ``--no-time``
-    #. ``--color``, ``--ansi`` / ``--no-color``, ``--no-ansi``
-    #. ``-C``, ``--config CONFIG_PATH``
-    #. ``--show-params``
-    #. ``-v``, ``--verbosity LEVEL``
-    #. ``--version``
-    #. ``-h``, ``--help``
-
-    Order is important to let options at the top have influence on those below.
-
-    .. note::
-
-        This default set is a list wrapped in a method, as a workaround for unittests,
-        in which option instances seems to be reused in unrelated commands and mess with
-        test isolation.
-    """
-    return [
-        TimerOption(),
-        ColorOption(),
-        ConfigOption(),
-        ShowParamsOption(),
-        VerbosityOption(),
-        VersionOption(print_env_info=True),
-        HelpOption(),
-    ]
-
-
-
-def command(_func=None, *args, **kwargs):
-    """Allows ``cloup.command`` decorator to be used with or without arguments.
-
-    Fixes `Cloup issue #127 <https://github.com/janluke/cloup/issues/127>`_
-    """
-
-    def cloup_decorator(func):
-        return cloup_command(*args, **kwargs)(func)
-
-    if _func is None:
-        return cloup_decorator
-    else:
-        return cloup_decorator(_func)
-
-
-def group(_func=None, *args, **kwargs):
-    """Allows ``cloup.group`` decorator to be used with or without arguments.
-
-    Fixes `Cloup issue #127 <https://github.com/janluke/cloup/issues/127>`_
-    """
-
-    def cloup_decorator(func):
-        return cloup_group(*args, **kwargs)(func)
-
-    if _func is None:
-        return cloup_decorator
-    else:
-        return cloup_decorator(_func)
-
-
-def extra_command(_func=None, *args, **kwargs):
-    """Augment default ``cloup.command`` with additional options.
-
-    The list of default options is available at
-    :py:func:`click_extra.commands.default_extra_params`.
-
-    This decorator can be used with or without arguments.
-    """
-
-    def extra_decorator(func):
-        kwargs.setdefault("cls", ExtraCommand)
-        kwargs.setdefault("params", default_extra_params())
-        return command(*args, **kwargs)(func)
-
-    if _func is None:
-        return extra_decorator
-    else:
-        return extra_decorator(_func)
-
-
-def extra_group(_func=None, *args, **kwargs):
-    """Augment default ``cloup.group`` with additional options.
-
-    The list of default options is available at
-    :py:func:`click_extra.commands.default_extra_params`.
-
-    This decorator can be used with or without arguments.
-    """
-
-    def extra_decorator(func):
-        kwargs.setdefault("cls", ExtraGroup)
-        kwargs.setdefault("params", default_extra_params())
-        return group(*args, **kwargs)(func)
-
-    if _func is None:
-        return extra_decorator
-    else:
-        return extra_decorator(_func)

@@ -22,7 +22,7 @@ import logging
 from gettext import gettext as _
 
 from click_log import basic_config
-from cloup import Choice, option
+from cloup import Choice
 
 from .parameters import ExtraOption
 
@@ -123,19 +123,3 @@ class VerbosityOption(ExtraOption):
             is_eager=is_eager,
             **kwargs,
         )
-
-
-def verbosity_option(_func=None, *args, **kwargs):
-    """Decorator for ``VerbosityOption``.
-
-    This decorator can be used with or without arguments.
-    """
-
-    def option_decorator(func):
-        kwargs.setdefault("cls", VerbosityOption)
-        return option(*args, **kwargs)(func)
-
-    if _func is None:
-        return option_decorator
-    else:
-        return option_decorator(_func)

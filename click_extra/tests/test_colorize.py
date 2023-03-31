@@ -27,17 +27,21 @@ from click import echo, secho, style
 from cloup import HelpTheme, Style, argument, option, option_group
 from pytest_cases import parametrize
 
-from .. import command
 from ..colorize import (
     HelpExtraFormatter,
     HelpExtraTheme,
-    color_option,
     default_theme,
-    help_option,
     highlight,
 )
-from ..commands import extra_command, extra_group
-from ..logging import LOG_LEVELS, logger, verbosity_option
+from ..decorators import (
+    color_option,
+    command,
+    extra_command,
+    extra_group,
+    help_option,
+    verbosity_option,
+)
+from ..logging import LOG_LEVELS, logger
 from .conftest import (
     command_decorators,
     default_debug_colored_log,

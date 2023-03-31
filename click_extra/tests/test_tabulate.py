@@ -23,8 +23,9 @@ import tabulate
 from click import echo, pass_context
 from pytest_cases import fixture, parametrize
 
+from ..decorators import table_format_option
 from ..platforms import is_windows
-from ..tabulate import output_formats, table_format_option
+from ..tabulate import output_formats
 from .conftest import command_decorators
 
 

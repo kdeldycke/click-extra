@@ -22,8 +22,8 @@ import pytest
 from click import echo
 from pytest_cases import parametrize
 
-from ..commands import extra_command
-from ..logging import LOG_LEVELS, logger, verbosity_option
+from ..decorators import extra_command, verbosity_option
+from ..logging import LOG_LEVELS, logger
 from .conftest import command_decorators, default_debug_colored_log, skip_windows_colors
 
 

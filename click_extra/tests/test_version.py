@@ -24,9 +24,7 @@ from click import echo
 from cloup import Style
 from pytest_cases import parametrize
 
-from ..colorize import color_option
-from ..commands import extra_group
-from ..version import version_option
+from ..decorators import color_option, extra_group, version_option
 from .conftest import command_decorators, skip_windows_colors
 
 

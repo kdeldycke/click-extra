@@ -62,7 +62,7 @@ from click import (
 )
 from click import Path as ClickPath
 from click.core import ParameterSource
-from cloup import Choice, DateTime, File, FloatRange, IntRange, Style, option
+from cloup import Choice, DateTime, File, FloatRange, IntRange, Style
 from cloup import Tuple as CloupTuple
 from mergedeep import merge
 from tabulate import tabulate
@@ -830,35 +830,3 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         )
         echo(output, color=ctx.color)
         ctx.exit()
-
-
-def show_params_option(_func=None, *args, **kwargs):
-    """Decorator for ``ShowParamsOption``.
-
-    This decorator can be used with or without arguments.
-    """
-
-    def option_decorator(func):
-        kwargs.setdefault("cls", ShowParamsOption)
-        return option(*args, **kwargs)(func)
-
-    if _func is None:
-        return option_decorator
-    else:
-        return option_decorator(_func)
-
-
-def config_option(_func=None, *args, **kwargs):
-    """Decorator for ``ConfigOption``.
-
-    This decorator can be used with or without arguments.
-    """
-
-    def option_decorator(func):
-        kwargs.setdefault("cls", ConfigOption)
-        return option(*args, **kwargs)(func)
-
-    if _func is None:
-        return option_decorator
-    else:
-        return option_decorator(_func)

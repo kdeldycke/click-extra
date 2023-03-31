@@ -48,6 +48,7 @@ This is the list of issues and bugs from other projects that `click-extra` has a
 
 ## [`cloup`](https://github.com/janluke/cloup)
 
+- [`#127` - Optional parenthesis for `@command` and `@option`](https://github.com/janluke/cloup/issues/127)
 - [`#98` - Add support for option groups on `cloup.Group`](https://github.com/janluke/cloup/issues/98)
 - [`#97` - Styling metavars, default values, env var, choices](https://github.com/janluke/cloup/issues/97)
 - [`#96` - Add loading of options from a TOML configuration file](https://github.com/janluke/cloup/issues/96)

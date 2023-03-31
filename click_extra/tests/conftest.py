@@ -32,8 +32,7 @@ from boltons.tbutils import ExceptionInfo
 from click.core import BaseCommand
 from click.testing import CliRunner, Result
 
-from .. import command, group
-from ..commands import extra_command, extra_group
+from ..decorators import command, extra_command, extra_group, group
 from ..platforms import is_linux, is_macos, is_windows
 from ..run import EnvVars, args_cleanup, print_cli_output
 

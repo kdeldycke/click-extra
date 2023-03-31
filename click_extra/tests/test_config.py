@@ -45,8 +45,8 @@ from pytest_cases import parametrize
 from tabulate import tabulate
 
 from ..colorize import escape_for_help_sceen
-from ..commands import extra_command, extra_group
-from ..config import ConfigOption, ShowParamsOption, config_option, show_params_option
+from ..config import ConfigOption, ShowParamsOption
+from ..decorators import config_option, extra_command, extra_group, show_params_option
 from .conftest import (
     command_decorators,
     default_debug_uncolored_log,
