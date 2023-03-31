@@ -141,7 +141,7 @@ jobs:
         env:
           DESTRUCTIVE_TESTS: true
         run: |
-          poetry run pytest --randomly-seed=498379502 --cov-config=pyproject.toml --cov=./ --cov-report=xml \
+          poetry run pytest --randomly-seed=177219628 --cov-config=pyproject.toml --cov=./ --cov-report=xml \
           click_extra/tests/test_config.py
 
           poetry run pytest --cov-config=pyproject.toml --cov=./ --cov-report=xml \
@@ -161,7 +161,7 @@ jobs:
           DESTRUCTIVE_TESTS: true
         shell: pwsh
         run: |
-          poetry run pytest --randomly-seed=498379502 --cov-config=pyproject.toml --cov=./ --cov-report=xml `
+          poetry run pytest --randomly-seed=177219628 --cov-config=pyproject.toml --cov=./ --cov-report=xml `
           click_extra/tests/test_config.py
 
           poetry run pytest --cov-config=pyproject.toml --cov=./ --cov-report=xml `
