@@ -72,7 +72,7 @@ from .logging import VerbosityOption  # noqa: I001, E402
 from .parameters import ExtraOption  # noqa: I001, E402
 from .version import VersionOption  # noqa: I001, E402
 
-__all__ = [
+__all__ = [  # noqa: F405
     "Abort",
     "Argument",
     "argument",
