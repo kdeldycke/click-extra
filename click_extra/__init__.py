@@ -38,7 +38,7 @@ from click import *  # noqa: E402, F403
 from click.core import ParameterSource  # noqa: E402
 
 # Overrides some of click helpers with cloup's.
-from cloup import (  # type: ignore # noqa: E402
+from cloup import (  # noqa: E402
     Argument,
     Command,
     Group,
@@ -54,7 +54,7 @@ from cloup import (  # type: ignore # noqa: E402
 from .colorize import ColorOption, HelpOption  # noqa: I001, E402
 from .commands import TimerOption  # noqa: I001, E402
 from .config import ConfigOption, ShowParamsOption  # noqa: I001, E402
-from .decorators import (  # noqa: I001, E402
+from .decorators import (  # type: ignore # noqa: I001, E402
     color_option,
     command,  # noqa: E402
     config_option,
