@@ -41,6 +41,14 @@ click\_extra.config module
    :undoc-members:
    :show-inheritance:
 
+click\_extra.decorators module
+------------------------------
+
+.. automodule:: click_extra.decorators
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 click\_extra.docs\_update module
 --------------------------------
 
