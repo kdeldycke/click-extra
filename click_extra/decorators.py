@@ -160,7 +160,8 @@ def decorator_factory(dec: Decorator, **new_defaults: dict[str, Any]) -> Decorat
 
     @allow_missing_parenthesis
     def decorator(*args, **kwargs) -> Decorator:
-        """Returns a new decorator instanciated with new defaults and the user's own arguments.
+        """Returns a new decorator instanciated with new defaults and the user's own
+        arguments.
 
         This decorator can be used with or without arguments.
         """
