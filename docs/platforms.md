@@ -120,12 +120,3 @@ There's still a chance to [have them supported by Mermaid](https://github.com/me
    :undoc-members:
    :show-inheritance:
 ```
-
-## Deprecated `click_extra.platform` API
-
-```{eval-rst}
-.. automodule:: click_extra.platform
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```
