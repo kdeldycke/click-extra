@@ -170,8 +170,9 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         ``ShowParamsOption.print_params()`` to print the table of parameters fed to the
         CLI.
 
-        .. todo::
-            Propose this patch upstream to ``click``.
+        .. seealso::
+            This workaround is being discussed upstream in `click#1279
+            <https://github.com/pallets/click/issues/1279#issuecomment-1493348208>`_.
         """
         # ``args`` needs to be copied: its items are consummed by the parsing process.
         extra.update({"meta": {"click_extra.raw_args": args.copy()}})
