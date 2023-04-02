@@ -174,15 +174,10 @@ module = [
 addopts = "--durations=10 --cov-report=term --cov-report=xml --cov-config=pyproject.toml --cov=."
 xfail_strict = true
 
-[tool.coverage.paths]
 # https://coverage.readthedocs.io/en/latest/config.html
-source = ["click_extra"]
 [tool.coverage.run]
-source = ["click_extra"]
 branch = true
-omit = ["*/tests/*"]
 [tool.coverage.report]
-omit = ["*/tests/*"]
 precision = 2
 
 [build-system]
