@@ -128,33 +128,12 @@ jobs:
 
       # XXX Hard-coding random seeds is the worse thing ever but at least it will catch regressions while we search
       # for the root cause and leaking code.
-      # pyproject.toml config file is specified at CLI level instead of letting coverage find it because of this bug:
-      #   https://github.com/nedbat/coveragepy/issues/512#issuecomment-399707938
-      #   https://github.com/pytest-dev/pytest-cov/issues/168#issuecomment-327533847
-      #   https://github.com/pytest-dev/pytest-cov/issues/243
-      - name: Tests - Linux and macOS
-        if: runner.os != 'Windows'
+      - name: Tests
         env:
           DESTRUCTIVE_TESTS: true
         run: |
-          poetry run pytest --randomly-seed=177219628 --cov-config=pyproject.toml --cov=./ --cov-report=xml \
-          click_extra/tests/test_config.py
-
-          poetry run pytest --cov-config=pyproject.toml --cov=./ --cov-report=xml \
-          --ignore=click_extra/tests/test_config.py
-
-      # XXX We need a different step for windows because PowerShell line-continuation is not a slash but a backtick.
-      - name: Tests - Windows
-        if: runner.os == 'Windows'
-        env:
-          DESTRUCTIVE_TESTS: true
-        shell: pwsh
-        run: |
-          poetry run pytest --randomly-seed=177219628 --cov-config=pyproject.toml --cov=./ --cov-report=xml `
-          click_extra/tests/test_config.py
-
-          poetry run pytest --cov-config=pyproject.toml --cov=./ --cov-report=xml `
-          --ignore=click_extra/tests/test_config.py
+          poetry run pytest --ignore=click_extra/tests/test_config.py
+          poetry run pytest --randomly-seed=177219628 click_extra/tests/test_config.py
 
       - name: Codecov upload
         uses: codecov/codecov-action@v3.1.1
