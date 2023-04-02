@@ -17,7 +17,7 @@
 """Decorators for group, commands and options."""
 
 from functools import wraps
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, Dict, TypeVar
 
 import cloup
 
@@ -121,7 +121,7 @@ def extra_group(_func=None, *args, **kwargs):
         return extra_decorator(_func)
 
 
-def decorator_factory(dec: Decorator, **new_defaults: dict[str, Any]) -> Decorator[F]:
+def decorator_factory(dec: Decorator, **new_defaults: Dict[str, Any]) -> Decorator[F]:
     """Clone decorator with a set of new defaults.
 
     Used to create our own collection of decorators for our custom options, based on
