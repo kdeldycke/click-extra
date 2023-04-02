@@ -83,36 +83,6 @@ def default_extra_params():
     ]
 
 
-# Command and group decorators.
-
-def command(_func=None, *args, **kwargs):
-    """Allows ``cloup.command`` decorator to be used with or without arguments.
-
-    Fixes `Cloup issue #127 <https://github.com/janluke/cloup/issues/127>`_
-    """
-    def cloup_decorator(func):
-        return cloup.command(*args, **kwargs)(func)
-
-    if _func is None:
-        return cloup_decorator
-    else:
-        return cloup_decorator(_func)
-
-
-def group(_func=None, *args, **kwargs):
-    """Allows ``cloup.group`` decorator to be used with or without arguments.
-
-    Fixes `Cloup issue #127 <https://github.com/janluke/cloup/issues/127>`_
-    """
-    def cloup_decorator(func):
-        return cloup.group(*args, **kwargs)(func)
-
-    if _func is None:
-        return cloup_decorator
-    else:
-        return cloup_decorator(_func)
-
-
 def extra_command(_func=None, *args, **kwargs):
     """Augment default ``cloup.command`` with additional options.
 
@@ -173,6 +143,10 @@ def decorator_factory(dec: Decorator, **new_defaults: dict[str, Any]) -> Decorat
 
     return decorator
 
+
+# Command and group decorators.
+command = decorator_factory(dec=cloup.command)
+group = decorator_factory(dec=cloup.group)
 
 # Option decorators.
 color_option = decorator_factory(dec=cloup.option, cls=ColorOption)
