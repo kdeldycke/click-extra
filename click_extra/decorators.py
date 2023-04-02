@@ -52,6 +52,39 @@ def allow_missing_parenthesis(dec_factory):
     return new_factory
 
 
+def decorator_factory(dec: Decorator, **new_defaults: Dict[str, Any]) -> Decorator[F]:
+    """Clone decorator with a set of new defaults.
+
+    Used to create our own collection of decorators for our custom options, based on
+    Cloup's.
+    """
+
+    @allow_missing_parenthesis
+    def decorator(*args, **kwargs) -> Decorator:
+        """Returns a new decorator instanciated with custom defaults.
+
+        These defaults values are merged with the user's own arguments.
+
+        A special case is made for the ``params`` argument, to allow it to be callable.
+        This limits the issue of the mutable options being shared between commands.
+
+        This decorator can be used with or without arguments.
+        """
+        # Use a copy of the defaults to avoid modifying the original dict.
+        new_kwargs = new_defaults.copy()
+        new_kwargs.update(kwargs)
+
+        # If the params argument is a callable, we need to call it to get the actual
+        # list of options.
+        if callable(new_kwargs.get("params")):
+            new_kwargs["params"] = new_kwargs["params"]()
+
+        # Return the original decorator with the new defaults.
+        return dec(*args, **new_kwargs)
+
+    return decorator
+
+
 def default_extra_params():
     """Default additional options added to ``extra_command`` and ``extra_group``:
 
@@ -64,12 +97,6 @@ def default_extra_params():
     #. ``-h``, ``--help``
 
     Order is important to let options at the top have influence on those below.
-
-    .. note::
-
-        This default set is a list wrapped in a method, as a workaround for unittests,
-        in which option instances seems to be reused in unrelated commands and mess with
-        test isolation.
     """
     return [
         TimerOption(),
@@ -83,70 +110,14 @@ def default_extra_params():
     ]
 
 
-def extra_command(_func=None, *args, **kwargs):
-    """Augment default ``cloup.command`` with additional options.
-
-    The list of default options is available at
-    :py:func:`click_extra.commands.default_extra_params`.
-
-    This decorator can be used with or without arguments.
-    """
-    def extra_decorator(func):
-        kwargs.setdefault("cls", ExtraCommand)
-        kwargs.setdefault("params", default_extra_params())
-        return command(*args, **kwargs)(func)
-
-    if _func is None:
-        return extra_decorator
-    else:
-        return extra_decorator(_func)
-
-
-def extra_group(_func=None, *args, **kwargs):
-    """Augment default ``cloup.group`` with additional options.
-
-    The list of default options is available at
-    :py:func:`click_extra.commands.default_extra_params`.
-
-    This decorator can be used with or without arguments.
-    """
-    def extra_decorator(func):
-        kwargs.setdefault("cls", ExtraGroup)
-        kwargs.setdefault("params", default_extra_params())
-        return group(*args, **kwargs)(func)
-
-    if _func is None:
-        return extra_decorator
-    else:
-        return extra_decorator(_func)
-
-
-def decorator_factory(dec: Decorator, **new_defaults: Dict[str, Any]) -> Decorator[F]:
-    """Clone decorator with a set of new defaults.
-
-    Used to create our own collection of decorators for our custom options, based on
-    Cloup's.
-    """
-
-    @allow_missing_parenthesis
-    def decorator(*args, **kwargs) -> Decorator:
-        """Returns a new decorator instanciated with new defaults and the user's own
-        arguments.
-
-        This decorator can be used with or without arguments.
-        """
-        # Use a copy of the defaults to avoid modifying the original dict.
-        new_kwargs = new_defaults.copy()
-        new_kwargs.update(kwargs)
-        # Return the original decorator with the new defaults.
-        return dec(*args, **new_kwargs)
-
-    return decorator
-
-
-# Command and group decorators.
+# Redefine cloup decorators to allow them to be used with or without parenthesis.
 command = decorator_factory(dec=cloup.command)
 group = decorator_factory(dec=cloup.group)
+
+# Extra command and group decorators with default options.
+extra_command = decorator_factory(dec=cloup.command, cls=ExtraCommand, params=default_extra_params)
+extra_group = decorator_factory(dec=cloup.group, cls=ExtraGroup, params=default_extra_params)
+
 
 # Option decorators.
 color_option = decorator_factory(dec=cloup.option, cls=ColorOption)

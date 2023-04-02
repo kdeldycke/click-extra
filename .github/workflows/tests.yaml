@@ -126,10 +126,6 @@ jobs:
           python -m pip install --upgrade poetry
           poetry install --no-interaction --no-ansi
 
-      # XXX Execute each test suite separately. That way we bypass a bug with our @extra_group() and @extra_command()
-      # decorators which I have not identified yet. Suspected issues are:
-      #   https://github.com/pallets/click/issues/2294
-      #   https://github.com/pallets/click/pull/2312
       # XXX Hard-coding random seeds is the worse thing ever but at least it will catch regressions while we search
       # for the root cause and leaking code.
       # pyproject.toml config file is specified at CLI level instead of letting coverage find it because of this bug:
