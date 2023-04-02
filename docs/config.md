@@ -356,6 +356,10 @@ Like the latter, the `@config_option` decorator and `ConfigOption` class accept 
 | Windows (default) | `True`    | -             | `C:\Users\<user>\AppData\Roaming\Foo Bar` |
 | Windows           | `False`   | -             | `C:\Users\<user>\AppData\Local\Foo Bar`   |
 
+```{seealso}
+These default follow the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html), whose [benefits are detailed here](https://xdgbasedirectoryspecification.com).
+```
+
 Let's change the default base folder in the following example:
 
 ```{eval-rst}
