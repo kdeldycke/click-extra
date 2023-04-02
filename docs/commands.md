@@ -25,7 +25,7 @@ Here is the [canonical `click` example](https://github.com/pallets/click#a-simpl
 .. click:example::
     from click_extra import command, echo, option
 
-    @command()
+    @command
     @option("--count", default=1, help="Number of greetings.")
     @option("--name", prompt="Your name", help="The person to greet.")
     def hello(count, name):
