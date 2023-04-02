@@ -14,18 +14,12 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-"""Decorators for group, commands and options.
+"""Decorators for group, commands and options."""
 
-..todo::
+from functools import wraps
+from typing import Any, Callable, TypeVar
 
-    Reuse code proposed in `Cloup issue #127
-    <https://github.com/janluke/cloup/issues/127>`_ to reduce the boilerplate code used
-    below to allow decorators to be used without parenthesis.
-"""
-
-from cloup import command as cloup_command
-from cloup import group as cloup_group
-from cloup import option
+import cloup
 
 from .colorize import ColorOption, HelpOption
 from .commands import ExtraCommand, ExtraGroup, TimerOption
@@ -33,6 +27,29 @@ from .config import ConfigOption, ShowParamsOption
 from .logging import VerbosityOption
 from .tabulate import TableFormatOption
 from .version import VersionOption
+
+AnyCallable = Callable[..., Any]
+
+F = TypeVar('F', bound=AnyCallable)
+"""Type variable for a Callable."""
+
+Decorator = Callable[[F], F]
+DecoratorFactory = Callable[..., Decorator[F]]
+
+
+def allow_missing_parenthesis(dec_factory):
+    """Allow to use decorators with or without parenthesis.
+
+    As proposed in `Cloup issue #127
+    <https://github.com/janluke/cloup/issues/127#issuecomment-1264704896>`_.
+    """
+    @wraps(dec_factory)
+    def new_factory(*args, **kwargs):
+        if args and callable(args[0]):
+            return dec_factory(*args[1:], **kwargs)(args[0])
+        return dec_factory(*args, **kwargs)
+
+    return new_factory
 
 
 def default_extra_params():
@@ -68,14 +85,13 @@ def default_extra_params():
 
 # Command and group decorators.
 
-
 def command(_func=None, *args, **kwargs):
     """Allows ``cloup.command`` decorator to be used with or without arguments.
 
     Fixes `Cloup issue #127 <https://github.com/janluke/cloup/issues/127>`_
     """
     def cloup_decorator(func):
-        return cloup_command(*args, **kwargs)(func)
+        return cloup.command(*args, **kwargs)(func)
 
     if _func is None:
         return cloup_decorator
@@ -89,7 +105,7 @@ def group(_func=None, *args, **kwargs):
     Fixes `Cloup issue #127 <https://github.com/janluke/cloup/issues/127>`_
     """
     def cloup_decorator(func):
-        return cloup_group(*args, **kwargs)(func)
+        return cloup.group(*args, **kwargs)(func)
 
     if _func is None:
         return cloup_decorator
@@ -135,124 +151,34 @@ def extra_group(_func=None, *args, **kwargs):
         return extra_decorator(_func)
 
 
+def decorator_factory(dec: Decorator, **new_defaults: dict[str, Any]) -> Decorator[F]:
+    """Clone decorator with a set of new defaults.
+
+    Used to create our own collection of decorators for our custom options, based on
+    Cloup's.
+    """
+
+    @allow_missing_parenthesis
+    def decorator(*args, **kwargs) -> Decorator:
+        """Returns a new decorator instanciated with new defaults and the user's own arguments.
+
+        This decorator can be used with or without arguments.
+        """
+        # Use a copy of the defaults to avoid modifying the original dict.
+        new_kwargs = new_defaults.copy()
+        new_kwargs.update(kwargs)
+        # Return the original decorator with the new defaults.
+        return dec(*args, **new_kwargs)
+
+    return decorator
+
+
 # Option decorators.
-
-
-def color_option(_func=None, *args, **kwargs):
-    """Decorator for ``ColorOption``.
-
-    This decorator can be used with or without arguments.
-    """
-    def option_decorator(func):
-        kwargs.setdefault("cls", ColorOption)
-        return option(*args, **kwargs)(func)
-
-    if _func is None:
-        return option_decorator
-    else:
-        return option_decorator(_func)
-
-
-def config_option(_func=None, *args, **kwargs):
-    """Decorator for ``ConfigOption``.
-
-    This decorator can be used with or without arguments.
-    """
-    def option_decorator(func):
-        kwargs.setdefault("cls", ConfigOption)
-        return option(*args, **kwargs)(func)
-
-    if _func is None:
-        return option_decorator
-    else:
-        return option_decorator(_func)
-
-
-def help_option(_func=None, *args, **kwargs):
-    """Decorator for ``HelpOption``.
-
-    This decorator can be used with or without arguments.
-    """
-    def option_decorator(func):
-        kwargs.setdefault("cls", HelpOption)
-        return option(*args, **kwargs)(func)
-
-    if _func is None:
-        return option_decorator
-    else:
-        return option_decorator(_func)
-
-
-def show_params_option(_func=None, *args, **kwargs):
-    """Decorator for ``ShowParamsOption``.
-
-    This decorator can be used with or without arguments.
-    """
-    def option_decorator(func):
-        kwargs.setdefault("cls", ShowParamsOption)
-        return option(*args, **kwargs)(func)
-
-    if _func is None:
-        return option_decorator
-    else:
-        return option_decorator(_func)
-
-
-def table_format_option(_func=None, *args, **kwargs):
-    """Decorator for ``TableFormatOption``.
-
-    This decorator can be used with or without arguments.
-    """
-    def option_decorator(func):
-        kwargs.setdefault("cls", TableFormatOption)
-        return option(*args, **kwargs)(func)
-
-    if _func is None:
-        return option_decorator
-    else:
-        return option_decorator(_func)
-
-
-def timer_option(_func=None, *args, **kwargs):
-    """Decorator for ``TimerOption``.
-
-    This decorator can be used with or without arguments.
-    """
-    def option_decorator(func):
-        kwargs.setdefault("cls", TimerOption)
-        return option(*args, **kwargs)(func)
-
-    if _func is None:
-        return option_decorator
-    else:
-        return option_decorator(_func)
-
-
-def verbosity_option(_func=None, *args, **kwargs):
-    """Decorator for ``VerbosityOption``.
-
-    This decorator can be used with or without arguments.
-    """
-    def option_decorator(func):
-        kwargs.setdefault("cls", VerbosityOption)
-        return option(*args, **kwargs)(func)
-
-    if _func is None:
-        return option_decorator
-    else:
-        return option_decorator(_func)
-
-
-def version_option(_func=None, *args, **kwargs):
-    """Decorator for ``VersionOption``.
-
-    This decorator can be used with or without arguments.
-    """
-    def option_decorator(func):
-        kwargs.setdefault("cls", VersionOption)
-        return option(*args, **kwargs)(func)
-
-    if _func is None:
-        return option_decorator
-    else:
-        return option_decorator(_func)
+color_option = decorator_factory(dec=cloup.option, cls=ColorOption)
+config_option = decorator_factory(dec=cloup.option, cls=ConfigOption)
+help_option = decorator_factory(dec=cloup.option, cls=HelpOption)
+show_params_option = decorator_factory(dec=cloup.option, cls=ShowParamsOption)
+table_format_option = decorator_factory(dec=cloup.option, cls=TableFormatOption)
+timer_option = decorator_factory(dec=cloup.option, cls=TimerOption)
+verbosity_option = decorator_factory(dec=cloup.option, cls=VerbosityOption)
+version_option = decorator_factory(dec=cloup.option, cls=VersionOption)
