@@ -158,7 +158,6 @@ pretty = true
 ignore_missing_imports = true
 module = [
     "boltons.*",
-    "cli_helpers.*",
     "click_log",
     "commentjson.*",
     "furo",

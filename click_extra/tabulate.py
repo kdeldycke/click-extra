@@ -14,7 +14,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-"""Extend cli_helpers.tabulate utilities with new formats."""
+"""Collection of table rendering utilities."""
 
 from __future__ import annotations
 
@@ -66,9 +66,9 @@ def render_csv(tabular_data, headers=(), **kwargs):
 
 
 def render_vertical(tabular_data, headers=(), **kwargs):
-    """Re-implements ``cli-helpers``' vertical table layout.
+    """Re-implements ``cli-helpers``'s vertical table layout.
 
-    `cli-helpers source for reference
+    See `cli-helpers source for reference
     <https://github.com/dbcli/cli_helpers/blob/v2.3.0/cli_helpers/tabular_output/vertical_table_adapter.py>`_.
     """
     header_len = max(len(h) for h in headers)
