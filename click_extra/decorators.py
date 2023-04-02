@@ -30,7 +30,7 @@ from .version import VersionOption
 
 AnyCallable = Callable[..., Any]
 
-F = TypeVar('F', bound=AnyCallable)
+F = TypeVar("F", bound=AnyCallable)
 """Type variable for a Callable."""
 
 Decorator = Callable[[F], F]
@@ -40,8 +40,8 @@ DecoratorFactory = Callable[..., Decorator[F]]
 def allow_missing_parenthesis(dec_factory):
     """Allow to use decorators with or without parenthesis.
 
-    As proposed in `Cloup issue #127
-    <https://github.com/janluke/cloup/issues/127#issuecomment-1264704896>`_.
+    As proposed in
+    `Cloup issue #127 <https://github.com/janluke/cloup/issues/127#issuecomment-1264704896>`_.
     """
     @wraps(dec_factory)
     def new_factory(*args, **kwargs):
@@ -58,7 +58,6 @@ def decorator_factory(dec: Decorator, **new_defaults: Dict[str, Any]) -> Decorat
     Used to create our own collection of decorators for our custom options, based on
     Cloup's.
     """
-
     @allow_missing_parenthesis
     def decorator(*args, **kwargs) -> Decorator:
         """Returns a new decorator instanciated with custom defaults.
@@ -115,8 +114,12 @@ command = decorator_factory(dec=cloup.command)
 group = decorator_factory(dec=cloup.group)
 
 # Extra command and group decorators with default options.
-extra_command = decorator_factory(dec=cloup.command, cls=ExtraCommand, params=default_extra_params)
-extra_group = decorator_factory(dec=cloup.group, cls=ExtraGroup, params=default_extra_params)
+extra_command = decorator_factory(
+    dec=cloup.command, cls=ExtraCommand, params=default_extra_params
+)
+extra_group = decorator_factory(
+    dec=cloup.group, cls=ExtraGroup, params=default_extra_params
+)
 
 
 # Option decorators.
