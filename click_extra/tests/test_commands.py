@@ -33,6 +33,7 @@ from ..decorators import extra_command, extra_group, timer_option
 from .conftest import (
     command_decorators,
     default_debug_uncolored_log,
+    default_options_colored_help,
     default_options_uncolored_help,
 )
 
@@ -133,48 +134,62 @@ def test_help_eagerness(invoke, all_command_cli, params):
     """
     See: https://click.palletsprojects.com/en/8.0.x/advanced/#callback-evaluation-order
     """
-    result = invoke(all_command_cli, "--help", params, color=False)
+    result = invoke(all_command_cli, "--help", params)
     assert result.exit_code == 0
     assert re.fullmatch(help_screen, result.stdout)
     assert "It works!" not in result.stdout
     assert not result.stderr
 
 
-# XXX default and click-extra should have the same results, i.e. includes extra options.
-# @pytest.mark.parametrize("cmd_id", ("default", "click-extra"))
-@pytest.mark.parametrize("cmd_id", ("click-extra",))
-@pytest.mark.parametrize("param", ("-h", "--help"))
-def test_click_extra_subcommand_help(invoke, all_command_cli, cmd_id, param):
-    result = invoke(all_command_cli, f"{cmd_id}-subcommand", param, color=False)
-    assert result.exit_code == 0
-    assert re.fullmatch(
-        (
-            r"It works!\n"
-            rf"Usage: command-cli1 {cmd_id}-subcommand \[OPTIONS\]\n"
-            r"\n"
-            r"Options:\n"
-            rf"{default_options_uncolored_help}"
-        ),
-        result.stdout,
-    )
-    assert not result.stderr
-
-
-@pytest.mark.parametrize("cmd_id", ("default", "cloup", "click"))
+@pytest.mark.parametrize("cmd_id", ("default", "click-extra", "cloup", "click"))
 @pytest.mark.parametrize("param", ("-h", "--help"))
 def test_subcommand_help(invoke, all_command_cli, cmd_id, param):
-    result = invoke(all_command_cli, f"{cmd_id}-subcommand", param, color=False)
+    result = invoke(all_command_cli, f"{cmd_id}-subcommand", param)
     assert result.exit_code == 0
-    assert result.stdout == dedent(
-        f"""\
+    assert not result.stderr
+
+    colored_help_header = (
+        r"It works!\n"
+        rf"\x1b\[94m\x1b\[1mUsage: "
+        rf"\x1b\[0m\x1b\[97mcommand-cli1 {cmd_id}-subcommand\x1b\[0m"
+        r" \x1b\[90m\[OPTIONS\]\x1b\[0m\n"
+        r"\n"
+        r"\x1b\[94m\x1b\[1mOptions:\x1b\[0m\n"
+    )
+
+    # Extra sucommands are colored and include all extra options.
+    if cmd_id == "click-extra":
+        assert re.fullmatch(
+            (
+                rf"{colored_help_header}"
+                rf"{default_options_colored_help}"
+            ),
+            result.stdout,
+        )
+
+    # Default subcommand inherits from extra family and is colored, but does not include
+    # extra options.
+    elif cmd_id == "default":
+        assert re.fullmatch(
+            (
+                rf"{colored_help_header}"
+                r"  \x1b\[36m-h\x1b\[0m, \x1b\[36m--help\x1b\[0m"
+                r"  Show this message and exit.\n"
+            ),
+            result.stdout,
+        )
+
+    # Non-extra subcommands are not colored.
+    else:
+        assert result.stdout == dedent(
+            f"""\
             It works!
             Usage: command-cli1 {cmd_id}-subcommand [OPTIONS]
 
             Options:
               -h, --help  Show this message and exit.
             """
-    )
-    assert not result.stderr
+        )
 
 
 @pytest.mark.parametrize("cmd_id", ("default", "click-extra", "cloup", "click"))
@@ -183,9 +198,9 @@ def test_subcommand_execution(invoke, all_command_cli, cmd_id):
     assert result.exit_code == 0
     assert result.stdout == dedent(
         f"""\
-            It works!
-            Run {cmd_id} subcommand...
-            """
+        It works!
+        Run {cmd_id} subcommand...
+        """
     )
     assert not result.stderr
 

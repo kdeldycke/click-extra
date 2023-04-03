@@ -25,9 +25,7 @@ from __future__ import annotations
 from gettext import gettext as _
 from logging import getLevelName
 from time import perf_counter
-from typing import (
-    Any,
-)
+from typing import Any
 
 from click import Context as ClickContext
 from click import echo
@@ -181,7 +179,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
     def _get_param(ctx, klass):
         """Search for the unique instance of a parameter that has been setup on the
         command and return it."""
-        params = [p for p in ctx.find_root().command.params if isinstance(p, klass)]
+        params = [p for p in ctx.command.params if isinstance(p, klass)]
         if params:
             assert len(params) == 1
             return params.pop()
@@ -212,4 +210,18 @@ class ExtraGroup(ExtraCommand, Group):
     """Same as ``cloup.group``, but with sane defaults and extra help screen
     colorization."""
 
-    pass
+    def command(self, *args, **kwargs):
+        """Returns a decorator that creates a new subcommand for this ``Group``.
+
+        This makes a command that is a :class:`~click_extra.command.ExtraCommand`
+        instead of a :class:`~cloup._command.Command` so by default all subcommands of
+        an ``ExtraGroup`` benefits from the same defaults and extra help screen
+        colorization.
+
+        Fixes `click-extra#479 <https://github.com/kdeldycke/click-extra/issues/479>`_.
+
+        ..todo::
+            Allow this decorator to be called without parenthesis.
+        """
+        kwargs.setdefault("cls", ExtraCommand)
+        return super().command(*args, **kwargs)

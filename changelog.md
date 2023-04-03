@@ -6,6 +6,7 @@
 This version is not released yet and is under active development.
 ```
 
+- Colorize help screens of subcommands spawned out of an `@extra_group`. Closes {issue}`479`.
 - Remove deprecated `click_extra.platform`.
 
 ## {gh}`3.9.0 (2023-03-31) <compare/v3.8.3...v3.9.0>`
