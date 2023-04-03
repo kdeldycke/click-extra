@@ -2,24 +2,9 @@
 
 ## Drop-in replacement
 
-Click Extra aims to be a drop-in replacement for Click, in which some elements are proxy of either Click or Cloup:
+Click Extra aims to be a drop-in replacement for Click. The vast majority of Click Extra's decorators, functions and classes are direct proxies of their Click counterparts. This means that you can replace in your code imports the `click` namespace by `click_extra` and it will work as expected.
 
-| [Original](https://click.palletsprojects.com/en/8.1.x/api/) | Proxy                         | Target                |
-| ----------------------------------------------------------- | ----------------------------- | --------------------- |
-| `@click.command`                                            | `@click_extra.command`        | `@cloup.command`      |
-| `@click.group`                                              | `@click_extra.group`          | `@cloup.group`        |
-| `@click.argument`                                           | `@click_extra.argument`       | `@cloup.argument`     |
-| `@click.option`                                             | `@click_extra.option`         | `@cloup.option`       |
-| `@click.version_option`                                     | `@click_extra.version_option` | itself                |
-| `@click.help_option`                                        | `@click_extra.help_option`    | itself                |
-| `click.Command`                                             | `click_extra.Command`         | `cloup.Command`       |
-| `click.Group`                                               | `click_extra.Group`           | `cloup.Group`         |
-| `click.Option`                                              | `click_extra.Option`          | `cloup.Option`        |
-| `click.HelpFormatter`                                       | `click_extra.HelpFormatter`   | `cloup.HelpFormatter` |
-
-All others not in the table above are direct imports from `click.*`. You can inspect how this is implemented in [`click_extra.__init__`](https://github.com/kdeldycke/click-extra/blob/main/click_extra/__init__.py). That way, if you replace the namespace, nothing is supposed to happens.
-
-Here is the [canonical `click` example](https://github.com/pallets/click#a-simple-example) with all elements imported from  `click_extra`:
+Here is for instance the [canonical `click` example](https://github.com/pallets/click#a-simple-example) with all original imports replaced with `click_extra`:
 
 ```{eval-rst}
 .. click:example::
@@ -33,10 +18,49 @@ Here is the [canonical `click` example](https://github.com/pallets/click#a-simpl
         for _ in range(count):
             echo(f"Hello, {name}!")
 
-As you can see the result does not deviates from the original `click`-based output:
+As you can see the result does not deviates from the original Click-based output:
 
 .. click:run::
    invoke(hello, args=["--help"])
+```
+
+```{note}
+At the module level, `click_extra` imports all elements from `click.*`, then all elements from the `cloup.*` namespace.
+
+Which means all elements not redefined by Click Extra fallback to Cloup. And if Cloup itself does not redefine them, they fallback to Click.
+
+For example, `click_extra.echo` is a transparent proxy to `click.echo`. While `@click_extra.option` is a proxy of `@cloup.option`. And `@click_extra.version_option` is not a proxy of anything, and is a decorator fully reimplemented by Click Extra, but mimicks the original `@click.version_option` while adding new features.
+
+Here are few other examples on how Click Extra proxies the main elements from Click and Cloup:
+
+| Click Extra element           | Target                | [Click's original](https://click.palletsprojects.com/en/8.1.x/api/) |
+| ----------------------------- | --------------------- | ----------------------------------------------------------- |
+| `@click_extra.command`        | `@cloup.command`      | `@click.command`                                            |
+| `@click_extra.group`          | `@cloup.group`        | `@click.group`                                              |
+| `@click_extra.argument`       | `@cloup.argument`     | `@click.argument`                                           |
+| `@click_extra.option`         | `@cloup.option`       | `@click.option`                                             |
+| `@click_extra.option_group`   | `@cloup.option_group` | *Not implemented*                                           |
+| `@click_extra.pass_context`   | `@click.pass_context` | `@click.pass_context`                                       |
+| `@click_extra.version_option` | *Itself*              | `@click.version_option`                                     |
+| `@click_extra.help_option`    | *Itself*              | `@click.help_option`                                        |
+| `@click_extra.timer_option`   | *Itself*              | *Not implemented*                                           |
+| …                             | …                            | …                                                    |
+| `click_extra.Argument`        | `cloup.Argument`      | `click.Argument`                                            |
+| `click_extra.Command`         | `cloup.Command`       | `click.Command`                                             |
+| `click_extra.Group`           | `cloup.Group`         | `click.Group`                                               |
+| `click_extra.HelpFormatter`   | `cloup.HelpFormatter` | `click.HelpFormatter`                                       |
+| `click_extra.HelpTheme`       | `cloup.HelpThene`     | *Not implemented*                                           |
+| `click_extra.Option`          | `cloup.Option`        | `click.Option`                                              |
+| `click_extra.Style`           | `cloup.Style`         | *Not implemented*                                           |
+| `click_extra.echo`            | `click.echo`          | `click.echo`                                                |
+| `click_extra.ParameterSource` | `click.core.ParameterSource` | `click.core.ParameterSource`                         |
+| …                             | …                            | …                                                    |
+
+You can inspect the implementation details by looking at:
+
+  * [`click_extra.__init__`](https://github.com/kdeldycke/click-extra/blob/main/click_extra/__init__.py)
+  * [`cloup.__init__`](https://github.com/janluke/cloup/blob/master/cloup/__init__.py)
+  * [`click.__init__`](https://github.com/pallets/click/blob/main/src/click/__init__.py)
 ```
 
 ## Extra variants

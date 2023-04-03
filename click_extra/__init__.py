@@ -34,27 +34,18 @@ __version__ = "3.10.0"
 # Import all click's module-level content to allow for drop-in replacement.
 # XXX Star import is really badly supported by mypy for now and leads to lots of
 # "Module 'XXX' has no attribute 'YYY'". See: https://github.com/python/mypy/issues/4930
+# Overrides click helpers with cloup's.
+import click  # noqa: I001, E402
 from click import *  # noqa: E402, F403
-from click.core import ParameterSource  # noqa: E402
+from click.core import ParameterSource  # noqa: E402, F401
 
-# Overrides some of click helpers with cloup's.
-from cloup import (  # noqa: E402
-    Argument,
-    Command,
-    Group,
-    HelpFormatter,
-    HelpTheme,
-    Option,
-    Style,
-    argument,
-    option,
-    option_group,
-)
+import cloup  # noqa: I001, E402
+from cloup import *  # noqa: E402, F403
 
-from .colorize import ColorOption, HelpOption  # noqa: I001, E402
-from .commands import TimerOption  # noqa: I001, E402
-from .config import ConfigOption, ShowParamsOption  # noqa: I001, E402
-from .decorators import (  # type: ignore # noqa: I001, E402
+from .colorize import ColorOption, HelpOption  # noqa: I001, E402, F401
+from .commands import TimerOption  # noqa: I001, E402, F401
+from .config import ConfigOption, ShowParamsOption  # noqa: I001, E402, F401
+from .decorators import (  # type: ignore # noqa: I001, E402, F401
     color_option,
     command,  # noqa: E402
     config_option,
@@ -68,94 +59,39 @@ from .decorators import (  # type: ignore # noqa: I001, E402
     verbosity_option,
     version_option,
 )
-from .logging import VerbosityOption  # noqa: I001, E402
-from .parameters import ExtraOption  # noqa: I001, E402
-from .version import VersionOption  # noqa: I001, E402
+from .logging import VerbosityOption  # noqa: I001, E402, F401
+from .parameters import ExtraOption  # noqa: I001, E402, F401
+from .version import VersionOption  # noqa: I001, E402, F401
 
-__all__ = [  # noqa: F405
-    "Abort",
-    "Argument",
-    "argument",
-    "BadArgumentUsage",
-    "BadOptionUsage",
-    "BadParameter",
-    "BaseCommand",
-    "BOOL",
-    "Choice",
-    "clear",
-    "ClickException",
+
+# Expose all of click_extra's content.
+__all__ = [
     "color_option",
     "ColorOption",
     "command",
-    "Command",
-    "CommandCollection",
     "config_option",
     "ConfigOption",
-    "confirm",
-    "confirmation_option",
-    "Context",
-    "DateTime",
-    "echo",
-    "echo_via_pager",
-    "edit",
     "extra_command",
     "extra_group",
     "ExtraOption",
-    "File",
-    "FileError",
-    "FLOAT",
-    "FloatRange",
-    "format_filename",
-    "get_app_dir",
-    "get_binary_stream",
-    "get_current_context",
-    "get_text_stream",
-    "getchar",
     "group",
-    "Group",
     "help_option",
-    "HelpFormatter",
     "HelpOption",
-    "HelpTheme",
-    "INT",
-    "IntRange",
-    "launch",
-    "make_pass_decorator",
-    "MissingParameter",
-    "MultiCommand",
-    "NoSuchOption",
-    "open_file",
-    "option",
-    "Option",
-    "option_group",
-    "OptionParser",
-    "Parameter",
-    "ParameterSource",
-    "ParamType",
-    "pass_context",
-    "pass_obj",
-    "password_option",
-    "Path",
-    "pause",
-    "progressbar",
-    "prompt",
-    "secho",
     "show_params_option",
     "ShowParamsOption",
-    "STRING",
-    "style",
-    "Style",
     "table_format_option",
     "timer_option",
     "TimerOption",
-    "Tuple",
-    "UNPROCESSED",
-    "unstyle",
-    "UsageError",
-    "UUID",
     "verbosity_option",
     "VerbosityOption",
     "version_option",
     "VersionOption",
-    "wrap_text",
 ]
+
+__all__ = list(
+    set(__all__)
+    # Expose all Click's module-level content to allow for drop-in replacement.
+    | {member for member in dir(click) if not member.startswith("_")}
+    # Expose all Cloup's module-level content to allow for drop-in replacement.
+    | set(cloup.__all__)
+)
