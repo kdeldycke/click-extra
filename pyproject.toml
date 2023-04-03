@@ -178,6 +178,7 @@ xfail_strict = true
 [tool.coverage.paths]
 source = ["click_extra"]
 [tool.coverage.run]
+source = ["click_extra"]
 branch = true
 [tool.coverage.report]
 precision = 2
