@@ -69,7 +69,13 @@ __all__ = [  # noqa: F405
     "BaseCommand",
     "Choice",
     "ClickException",
-    "Color",
+    # XXX Color cannot be imported from cloup. It leads to an issue in the way autodoc
+    # is trying to render it:
+    #   Exception occurred:
+    #     File ".../python3.11/site-packages/cloup/_util.py", line 128, in __setattr__
+    #       raise Exception("you can't set attributes on this class")
+    #   Exception: you can't set attributes on this class
+    # "Color",
     "ColorOption",
     "Command",
     "CommandCollection",

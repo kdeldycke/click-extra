@@ -58,6 +58,13 @@ def test_module_root_declarations():
 
     click_members = fetch_root_members(click)
     cloup_members = {m for m in cloup.__all__ if not m.startswith("_")}
+    # XXX Color cannot be imported from cloup. It leads to an issue in the way autodoc
+    # is trying to render it:
+    #   Exception occurred:
+    #     File ".../python3.11/site-packages/cloup/_util.py", line 128, in __setattr__
+    #       raise Exception("you can't set attributes on this class")
+    #   Exception: you can't set attributes on this class
+    cloup.members.remove("Color")
     click_extra_members = fetch_root_members(click_extra)
 
     expected_members = sorted(click_members | cloup_members | click_extra_members)
