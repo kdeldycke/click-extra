@@ -13,8 +13,7 @@
 
 ## What is Click Extra?
 
-A collection of helpers and utilities for
-[Click](https://click.palletsprojects.com), the Python CLI framework.
+A ready-to-use wrapper for [Click](https://click.palletsprojects.com), the Python CLI framework.
 
 It is a drop-in replacement with good defaults that saves lots of boilerplate code and frustration.
 It also comes with
@@ -23,7 +22,7 @@ reached upstream yet (or are unlikely to).
 
 ## Example
 
-It can transform this vanilla `click` CLI:
+It transforms this vanilla `click` CLI:
 
 ![click CLI help screen](https://github.com/kdeldycke/click-extra/raw/main/docs/assets/click-help-screen.png)
 
@@ -31,7 +30,7 @@ Into this:
 
 ![click-extra CLI help screen](https://github.com/kdeldycke/click-extra/raw/main/docs/assets/click-extra-screen.png)
 
-To undestrand how we ended up with the result above, go [read the tutorial](https://kdeldycke.github.io/click-extra/tutorial.html).
+To undestrand how we ended up with the result above, [go read the tutorial](https://kdeldycke.github.io/click-extra/tutorial.html).
 
 ## Features
 
@@ -41,7 +40,8 @@ To undestrand how we ended up with the result above, go [read the tutorial](http
   - `JSON`, with inline and block comments (Python-style `#` and Javascript-style `//`)
   - `INI`, with extended interpolation, multi-level sections and non-native types (`list`, `set`, …)
   - `XML`
-- Download configuration from remote URLs
+- Automatic inference of the configuration file structure from your CLI's options
+- Remote loading of configuration files from URLs
 - Optional strict validation of configuration
 - Search of configuration file from default user folder and glob patterns
 - Respect of `CLI` > `Configuration` > `Environment` > `Defaults` precedence
@@ -53,12 +53,12 @@ To undestrand how we ended up with the result above, go [read the tutorial](http
 - Colored `--version` option
 - Colored `--verbosity` option and logs
 - `--time`/`--no-time` flag to measure duration of command execution
-- Platform recognition utilities (macOS, Linux and Windows)
+- Platform recognition utilities (macOS, Linux, Windows, UNIX, *BSD, …)
 - New conditional markers for `pytest`:
   - `@skip_linux`, `@skip_macos` and `@skip_windows`
   - `@unless_linux`, `@unless_macos` and `@unless_windows`
   - `@destructive` and `@non_destructive`
-- [`.. click:example::` and `.. click:run::` Sphinx extensions](https://kdeldycke.github.io/click-extra/sphinx.html) to document CLI source code and their execution
+- [`.. click:example::` and `.. click:run::` Sphinx directives](https://kdeldycke.github.io/click-extra/sphinx.html) to document CLI source code and their execution
 - [ANSI-capable Pygments lexers](https://kdeldycke.github.io/click-extra/pygments.html#lexers) for shell session and console output
 - Pygments styles and filters for ANSI rendering
 - [Fixes 30+ bugs](https://kdeldycke.github.io/click-extra/issues.html) from other Click-related projects
