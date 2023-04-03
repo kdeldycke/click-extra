@@ -42,7 +42,6 @@ from .conftest import (
 
 
 def test_module_root_declarations():
-
     def fetch_root_members(module):
         """Fetch all members exposed at the module root."""
         members = set()
@@ -61,9 +60,7 @@ def test_module_root_declarations():
     cloup_members = {m for m in cloup.__all__ if not m.startswith("_")}
     click_extra_members = fetch_root_members(click_extra)
 
-    expected_members = sorted(
-        click_members | cloup_members | click_extra_members
-    )
+    expected_members = sorted(click_members | cloup_members | click_extra_members)
 
     assert expected_members == click_extra.__all__
 
@@ -190,10 +187,7 @@ def test_subcommand_help(invoke, all_command_cli, cmd_id, param):
     # Extra sucommands are colored and include all extra options.
     if cmd_id == "click-extra":
         assert re.fullmatch(
-            (
-                rf"{colored_help_header}"
-                rf"{default_options_colored_help}"
-            ),
+            (rf"{colored_help_header}" rf"{default_options_colored_help}"),
             result.stdout,
         )
 
