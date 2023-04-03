@@ -64,7 +64,7 @@ def test_module_root_declarations():
     #     File ".../python3.11/site-packages/cloup/_util.py", line 128, in __setattr__
     #       raise Exception("you can't set attributes on this class")
     #   Exception: you can't set attributes on this class
-    cloup.members.remove("Color")
+    cloup_members.remove("Color")
     click_extra_members = fetch_root_members(click_extra)
 
     expected_members = sorted(click_members | cloup_members | click_extra_members)
