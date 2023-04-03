@@ -178,7 +178,6 @@ xfail_strict = true
 [tool.coverage.run]
 branch = true
 [tool.coverage.report]
-omit = ["*/tests/*"]
 precision = 2
 
 [build-system]
