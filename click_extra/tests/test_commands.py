@@ -365,7 +365,6 @@ def test_option_group_integration(invoke):
 
 def test_raw_args(invoke):
     """Raw args are expected to be scoped in subcommands."""
-
     @extra_group
     @option("--dummy-flag/--no-flag")
     @pass_context
