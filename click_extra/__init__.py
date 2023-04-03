@@ -16,8 +16,6 @@
 
 """Expose package-wide elements."""
 
-from __future__ import annotations
-
 __version__ = "3.10.0"
 """Examples of valid version strings according :pep:`440#version-scheme`:
 
@@ -35,11 +33,8 @@ __version__ = "3.10.0"
 # XXX Star import is really badly supported by mypy for now and leads to lots of
 # "Module 'XXX' has no attribute 'YYY'". See: https://github.com/python/mypy/issues/4930
 # Overrides click helpers with cloup's.
-import click  # noqa: I001, E402
 from click import *  # noqa: E402, F403
 from click.core import ParameterSource  # noqa: E402, F401
-
-import cloup  # noqa: I001, E402
 from cloup import *  # noqa: E402, F403
 
 from .colorize import ColorOption, HelpOption  # noqa: I001, E402, F401
@@ -63,35 +58,108 @@ from .logging import VerbosityOption  # noqa: I001, E402, F401
 from .parameters import ExtraOption  # noqa: I001, E402, F401
 from .version import VersionOption  # noqa: I001, E402, F401
 
-
-# Expose all of click_extra's content.
-__all__ = [
-    "color_option",
+# Expose all of Click, Cloup and Click Extra.
+__all__ = [  # noqa: F405
+    "Abort",
+    "Argument",
+    "BOOL",
+    "BadArgumentUsage",
+    "BadOptionUsage",
+    "BadParameter",
+    "BaseCommand",
+    "Choice",
+    "ClickException",
+    "Color",
     "ColorOption",
+    "Command",
+    "CommandCollection",
+    "ConfigOption",
+    "ConstraintMixin",
+    "Context",
+    "DateTime",
+    "ExtraOption",
+    "FLOAT",
+    "File",
+    "FileError",
+    "FloatRange",
+    "Group",
+    "HelpFormatter",
+    "HelpOption",
+    "HelpSection",
+    "HelpTheme",
+    "INT",
+    "IntRange",
+    "MissingParameter",
+    "MultiCommand",
+    "NoSuchOption",
+    "Option",
+    "OptionGroup",
+    "OptionGroupMixin",
+    "OptionParser",
+    "ParamType",
+    "Parameter",
+    "ParameterSource",
+    "Path",
+    "STRING",
+    "Section",
+    "SectionMixin",
+    "ShowParamsOption",
+    "Style",
+    "TimerOption",
+    "Tuple",
+    "UNPROCESSED",
+    "UUID",
+    "UsageError",
+    "VerbosityOption",
+    "VersionOption",
+    "argument",
+    "clear",
+    "color_option",
     "command",
     "config_option",
-    "ConfigOption",
+    "confirm",
+    "confirmation_option",
+    "constrained_params",
+    "constraint",
+    "dir_path",
+    "echo",
+    "echo_via_pager",
+    "edit",
     "extra_command",
     "extra_group",
-    "ExtraOption",
+    "file_path",
+    "format_filename",
+    "get_app_dir",
+    "get_binary_stream",
+    "get_current_context",
+    "get_text_stream",
+    "getchar",
     "group",
     "help_option",
-    "HelpOption",
+    "launch",
+    "make_pass_decorator",
+    "open_file",
+    "option",
+    "option_group",
+    "pass_context",
+    "pass_obj",
+    "password_option",
+    "path",
+    "pause",
+    "progressbar",
+    "prompt",
+    "secho",
     "show_params_option",
-    "ShowParamsOption",
+    "style",
     "table_format_option",
     "timer_option",
-    "TimerOption",
+    "unstyle",
     "verbosity_option",
-    "VerbosityOption",
     "version_option",
-    "VersionOption",
+    "warnings",
+    "wrap_text",
 ]
-
-__all__ = list(
-    set(__all__)
-    # Expose all Click's module-level content to allow for drop-in replacement.
-    | {member for member in dir(click) if not member.startswith("_")}
-    # Expose all Cloup's module-level content to allow for drop-in replacement.
-    | set(cloup.__all__)
-)
+"""
+..note::
+    The content of ``__all__` is checked and enforced in unittests.
+"""

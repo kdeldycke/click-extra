@@ -19,6 +19,7 @@ options, and how they interact with each others."""
 
 from __future__ import annotations
 
+import inspect
 import re
 from textwrap import dedent
 
@@ -29,6 +30,8 @@ from click import echo, pass_context
 from cloup import option, option_group
 from pytest_cases import fixture, parametrize
 
+import click_extra
+
 from ..decorators import extra_command, extra_group, timer_option
 from .conftest import (
     command_decorators,
@@ -36,6 +39,33 @@ from .conftest import (
     default_options_colored_help,
     default_options_uncolored_help,
 )
+
+
+def test_module_root_declarations():
+
+    def fetch_root_members(module):
+        """Fetch all members exposed at the module root."""
+        members = set()
+        for name, member in inspect.getmembers(module):
+            # Exclude private members.
+            if name.startswith("_"):
+                continue
+            # Exclude automatic imports of submodules as we inspect __init__'s content
+            # only.
+            if inspect.ismodule(member):
+                continue
+            members.add(name)
+        return members
+
+    click_members = fetch_root_members(click)
+    cloup_members = {m for m in cloup.__all__ if not m.startswith("_")}
+    click_extra_members = fetch_root_members(click_extra)
+
+    expected_members = sorted(
+        click_members | cloup_members | click_extra_members
+    )
+
+    assert expected_members == click_extra.__all__
 
 
 @fixture
