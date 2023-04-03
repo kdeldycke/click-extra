@@ -25,7 +25,7 @@ from textwrap import dedent
 import click
 import cloup
 import pytest
-from click import echo
+from click import echo, pass_context
 from cloup import option, option_group
 from pytest_cases import fixture, parametrize
 
@@ -361,3 +361,37 @@ def test_option_group_integration(invoke):
     )
     assert "It works!" not in result.stdout
     assert not result.stderr
+
+
+def test_raw_args(invoke):
+    """Raw args are expected to be scoped in subcommands."""
+
+    @extra_group
+    @option("--dummy-flag/--no-flag")
+    @pass_context
+    def my_cli(ctx, dummy_flag):
+        echo("-- Group output --")
+        echo(f"dummy_flag is {dummy_flag!r}")
+        echo(f"Raw parameters: {ctx.meta.get('click_extra.raw_args', [])}")
+
+    @my_cli.command()
+    @pass_context
+    @option("--int-param", type=int, default=10)
+    def subcommand(ctx, int_param):
+        echo("-- Subcommand output --")
+        echo(f"int_parameter is {int_param!r}")
+        echo(f"Raw parameters: {ctx.meta.get('click_extra.raw_args', [])}")
+
+    result = invoke(my_cli, "--dummy-flag", "subcommand", "--int-param", "33")
+    assert result.exit_code == 0
+    assert not result.stderr
+    assert result.output == dedent(
+        """\
+        -- Group output --
+        dummy_flag is True
+        Raw parameters: ['--dummy-flag', 'subcommand', '--int-param', '33']
+        -- Subcommand output --
+        int_parameter is 33
+        Raw parameters: ['--int-param', '33']
+        """
+    )

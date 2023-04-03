@@ -100,8 +100,6 @@ class ExtraContext(CloupContext):
     @property
     def meta(self) -> dict[str, Any]:
         """Returns context meta augmented with our own."""
-        # Check the two set of meta keys does not intersect.
-        assert not set(self._meta).intersection(self._extra_meta)
         meta = dict(self._meta)
         meta.update(self._extra_meta)
         return meta
