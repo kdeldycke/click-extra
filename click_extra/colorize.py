@@ -125,7 +125,7 @@ class HelpExtraTheme(NamedTuple):
 
 
 # Populate our global theme with all default styles.
-default_theme = HelpExtraTheme(  # type: ignore[has-type]
+default_theme = HelpExtraTheme(
     # Cloup properties.
     invoked_command=Style(fg="bright_white"),
     heading=Style(fg="bright_blue", bold=True),
@@ -410,7 +410,7 @@ class HelpExtraFormatter(HelpFormatter):
     - https://github.com/janluke/cloup/issues/95
     """
 
-    theme: HelpExtraTheme  # type: ignore
+    theme: HelpExtraTheme
 
     def __init__(self, *args, **kwargs):
         """Forces theme to our default.
