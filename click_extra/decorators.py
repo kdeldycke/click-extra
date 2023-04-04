@@ -17,7 +17,6 @@
 """Decorators for group, commands and options."""
 
 from functools import wraps
-from typing import Any, Callable, Dict, TypeVar
 
 import cloup
 
@@ -27,14 +26,6 @@ from .config import ConfigOption, ShowParamsOption
 from .logging import VerbosityOption
 from .tabulate import TableFormatOption
 from .version import VersionOption
-
-AnyCallable = Callable[..., Any]
-
-F = TypeVar("F", bound=AnyCallable)
-"""Type variable for a Callable."""
-
-Decorator = Callable[[F], F]
-DecoratorFactory = Callable[..., Decorator[F]]
 
 
 def allow_missing_parenthesis(dec_factory):
@@ -52,14 +43,14 @@ def allow_missing_parenthesis(dec_factory):
     return new_factory
 
 
-def decorator_factory(dec: Decorator, **new_defaults: Dict[str, Any]) -> Decorator[F]:
+def decorator_factory(dec, **new_defaults):
     """Clone decorator with a set of new defaults.
 
     Used to create our own collection of decorators for our custom options, based on
     Cloup's.
     """
     @allow_missing_parenthesis
-    def decorator(*args, **kwargs) -> Decorator:
+    def decorator(*args, **kwargs):
         """Returns a new decorator instanciated with custom defaults.
 
         These defaults values are merged with the user's own arguments.
@@ -75,8 +66,9 @@ def decorator_factory(dec: Decorator, **new_defaults: Dict[str, Any]) -> Decorat
 
         # If the params argument is a callable, we need to call it to get the actual
         # list of options.
-        if callable(new_kwargs.get("params")):
-            new_kwargs["params"] = new_kwargs["params"]()
+        params_func = new_kwargs.get("params")
+        if callable(params_func):
+            new_kwargs["params"] = params_func()
 
         # Return the original decorator with the new defaults.
         return dec(*args, **new_kwargs)
