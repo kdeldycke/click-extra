@@ -1,10 +1,6 @@
 # Changelog
 
-## {gh}`3.10.0 (unreleased) <compare/v3.9.0...main>`
-
-```{important}
-This version is not released yet and is under active development.
-```
+## {gh}`3.10.0 (2023-04-04) <compare/v3.9.0...v3.10.0>`
 
 - Colorize help screens of subcommands spawned out of an `@extra_group`. Closes {issue}`479`.
 - Remove deprecated `click_extra.platform`.
