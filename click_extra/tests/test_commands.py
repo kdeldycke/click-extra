@@ -78,7 +78,10 @@ def test_module_root_declarations():
     assert click_members.issubset(click_extra_members)
     assert cloup_members.issubset(click_extra_members)
 
-    expected_members = sorted(click_members | cloup_members | click_extra_members)
+    expected_members = sorted(
+        click_members | cloup_members | click_extra_members,
+        key=lambda m: (m.lower(), m),
+    )
     assert expected_members == sorted(click_extra_members)
 
 
