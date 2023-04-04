@@ -35,10 +35,9 @@ import sys
 from pathlib import Path
 from textwrap import indent
 
-from tabulate import tabulate
-
 from .platforms import ALL_GROUPS, EXTRA_GROUPS, NON_OVERLAPPING_GROUPS, Group
 from .pygments import lexer_map
+from .tabulate import tabulate
 
 
 def replace_content(
@@ -85,7 +84,7 @@ def generate_lexer_table() -> str:
                 f"{', '.join(f'`{a}`' for a in sorted(ansi_lexer.aliases))}",
             ]
         )
-    output = tabulate(
+    output = tabulate.tabulate(
         table,
         headers=[
             "Original Lexer",
