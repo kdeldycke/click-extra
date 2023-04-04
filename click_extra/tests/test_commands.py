@@ -67,22 +67,22 @@ def test_module_root_declarations():
     cloup_members.remove("Color")
 
     tree = ast.parse(Path(__file__).parent.joinpath("../__init__.py").read_bytes())
-    click_extra_members = set()
+    click_extra_members = []
     for node in tree.body:
         if isinstance(node, ast.Assign):
             for target in node.targets:
                 if target.id == "__all__":
                     for element in node.value.elts:
-                        click_extra_members.add(element.s)
+                        click_extra_members.append(element.s)
 
     assert click_members.issubset(click_extra_members)
     assert cloup_members.issubset(click_extra_members)
 
     expected_members = sorted(
-        click_members | cloup_members | click_extra_members,
+        click_members.union(cloup_members).union(click_extra_members),
         key=lambda m: (m.lower(), m),
     )
-    assert expected_members == sorted(click_extra_members)
+    assert expected_members == click_extra_members
 
 
 @fixture
