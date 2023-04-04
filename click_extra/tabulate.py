@@ -33,18 +33,20 @@ tabulate.MIN_PADDING = 0
 """Neutralize spurious double-spacing in table rendering."""
 
 
-tabulate._table_formats.update({ # type: ignore[attr-defined]
-    "github": TableFormat(
-        lineabove=Line("| ", "-", " | ", " |"),
-        linebelowheader=Line("| ", "-", " | ", " |"),
-        linebetweenrows=None,
-        linebelow=None,
-        headerrow=DataRow("| ", " | ", " |"),
-        datarow=DataRow("| ", " | ", " |"),
-        padding=0,
-        with_header_hide=["lineabove"],
-    ),
-})
+tabulate._table_formats.update(  # type: ignore[attr-defined]
+    {
+        "github": TableFormat(
+            lineabove=Line("| ", "-", " | ", " |"),
+            linebelowheader=Line("| ", "-", " | ", " |"),
+            linebetweenrows=None,
+            linebelow=None,
+            headerrow=DataRow("| ", " | ", " |"),
+            datarow=DataRow("| ", " | ", " |"),
+            padding=0,
+            with_header_hide=["lineabove"],
+        ),
+    }
+)
 """
 Tweak table separators to match MyST and GFM syntax.
 
