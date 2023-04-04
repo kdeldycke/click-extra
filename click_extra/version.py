@@ -22,7 +22,7 @@ import inspect
 import re
 import sys
 from gettext import gettext as _
-from typing import Iterable
+from typing import Sequence
 
 if sys.version_info >= (3, 8):
     from importlib import metadata
@@ -121,7 +121,7 @@ class VersionOption(ExtraOption):
 
     def __init__(
         self,
-        param_decls: Iterable[str] | None = None,
+        param_decls: Sequence[str] | None = None,
         version: str | None = None,
         package_name: str | None = None,
         prog_name: str | None = None,

@@ -24,7 +24,7 @@ from pathlib import Path
 import click
 from pytest_cases import fixture, parametrize
 
-from .. import Style, echo, pass_context, secho, style, utils
+from .. import Style, echo, pass_context, secho, style
 from ..logging import logger
 from ..platforms import is_windows
 from ..run import env_copy
@@ -75,7 +75,7 @@ def run_cli1(ctx):
     print(style("print() bypass Click.", fg="blue"))
 
     echo(f"Context.color = {ctx.color!r}")
-    echo(f"click.utils.should_strip_ansi = {utils.should_strip_ansi()!r}")
+    echo(f"click.utils.should_strip_ansi = {click.utils.should_strip_ansi()!r}")
 
 
 @fixture
@@ -102,7 +102,7 @@ def color_cli(cmd_decorator):
         print(style("print() bypass Click.", fg="blue"))
 
         echo(f"Context.color = {ctx.color!r}")
-        echo(f"click.utils.should_strip_ansi = {utils.should_strip_ansi()!r}")
+        echo(f"click.utils.should_strip_ansi = {click.utils.should_strip_ansi()!r}")
 
     return run_cli2
 

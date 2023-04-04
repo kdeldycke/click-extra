@@ -35,12 +35,12 @@ __version__ = "3.10.0"
 # Overrides click helpers with cloup's.
 from click import *  # noqa: E402, F403
 from click.core import ParameterSource  # noqa: E402, F401
-from cloup import *  # noqa: E402, F403
+from cloup import *  # type: ignore[no-redef] # noqa: E402, F403
 
 from .colorize import ColorOption, HelpOption  # noqa: I001, E402, F401
 from .commands import TimerOption  # noqa: I001, E402, F401
 from .config import ConfigOption, ShowParamsOption  # noqa: I001, E402, F401
-from .decorators import (  # type: ignore # noqa: I001, E402, F401
+from .decorators import (  # type: ignore[no-redef] # noqa: I001, E402, F401
     color_option,
     command,  # noqa: E402
     config_option,

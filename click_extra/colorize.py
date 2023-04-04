@@ -125,7 +125,7 @@ class HelpExtraTheme(NamedTuple):
 
 
 # Populate our global theme with all default styles.
-default_theme = HelpExtraTheme(
+default_theme = HelpExtraTheme(  # type: ignore[has-type]
     # Cloup properties.
     invoked_command=Style(fg="bright_white"),
     heading=Style(fg="bright_blue", bold=True),
