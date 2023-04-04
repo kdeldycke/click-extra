@@ -75,6 +75,7 @@ This is the list of issues and bugs from other projects that `click-extra` has a
 
 ## [`python-tabulate`](https://github.com/astanin/python-tabulate)
 
+- [`#260` - Renders GitHub-Flavored Markdown tables in canonical format](https://github.com/astanin/python-tabulate/pull/260)
 - [`#151` - Add new {`rounded`,`simple`,`double`}\_(`grid`,`outline`} formats](https://github.com/astanin/python-tabulate/pull/151)
 
 ## [`sphinx-click`](https://github.com/click-contrib/sphinx-click)

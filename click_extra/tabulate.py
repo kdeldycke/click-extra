@@ -24,12 +24,39 @@ from gettext import gettext as _
 from io import StringIO
 
 import tabulate
+from tabulate import DataRow, Line, TableFormat
 
 from . import Choice, echo
 from .parameters import ExtraOption
 
 tabulate.MIN_PADDING = 0
 """Neutralize spurious double-spacing in table rendering."""
+
+
+tabulate._table_formats.update({
+    "github": TableFormat(
+        lineabove=Line("| ", "-", " | ", " |"),
+        linebelowheader=Line("| ", "-", " | ", " |"),
+        linebetweenrows=None,
+        linebelow=None,
+        headerrow=DataRow("| ", " | ", " |"),
+        datarow=DataRow("| ", " | ", " |"),
+        padding=0,
+        with_header_hide=["lineabove"],
+    ),
+})
+"""
+Tweak table separators to match MyST and GFM syntax.
+
+I.e. add a space between the column separator and the dashes filling a cell:
+
+    ``|---|---|---|`` → ``| --- | --- | --- |``
+
+That way we produce a table that doesn't need any supplement linting.
+
+This has been proposed upstream at `python-tabulate#260
+<https://github.com/astanin/python-tabulate/pull/260>`_.
+"""
 
 
 output_formats: list[str] = sorted(

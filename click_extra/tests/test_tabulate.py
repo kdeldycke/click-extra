@@ -136,7 +136,7 @@ fancy_outline_table = """\
 
 github_table = """\
 | day | temperature |
-|-----|-------------|
+| --- | ----------- |
 | 1   | 87          |
 | 2   | 80          |
 | 3   | 79          |
