@@ -30,9 +30,8 @@ else:
     import importlib_metadata as metadata  # type: ignore[import]
 
 from boltons.ecoutils import get_profile
-from click import Parameter, echo
-from cloup import Context, Style
 
+from . import Context, Parameter, Style, echo
 from .colorize import default_theme
 from .parameters import ExtraOption
 

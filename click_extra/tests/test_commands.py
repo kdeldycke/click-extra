@@ -28,10 +28,9 @@ from textwrap import dedent
 import click
 import cloup
 import pytest
-from click import echo, pass_context
-from cloup import option, option_group
 from pytest_cases import fixture, parametrize
 
+from .. import echo, option, option_group, pass_context
 from ..decorators import extra_command, extra_group, timer_option
 from .conftest import (
     command_decorators,

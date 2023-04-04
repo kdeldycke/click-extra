@@ -27,11 +27,10 @@ from logging import getLevelName
 from time import perf_counter
 from typing import Any
 
-from click import Context as ClickContext
-from click import echo
-from cloup import Command, Group
-from cloup import Context as CloupContext
+import click
+import cloup
 
+from . import Command, Group, echo
 from .colorize import ExtraHelpColorsMixin
 from .logging import logger
 from .parameters import ExtraOption
@@ -84,7 +83,7 @@ class TimerOption(ExtraOption):
         )
 
 
-class ExtraContext(CloupContext):
+class ExtraContext(cloup.Context):
     """Like ``cloup._context.Context``, but with the ability to populate the context's
     ``meta`` property at instanciation."""
 
@@ -107,7 +106,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
     """Same as ``cloup.command``, but with sane defaults and extra help screen
     colorization."""
 
-    context_class: type[CloupContext] = ExtraContext
+    context_class: type[cloup.Context] = ExtraContext
 
     def __init__(self, *args, version=None, extra_option_at_end=True, **kwargs):
         super().__init__(*args, **kwargs)
@@ -154,7 +153,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         self,
         info_name: str | None,
         args: list[str],
-        parent: ClickContext | None = None,
+        parent: click.Context | None = None,
         **extra: Any,
     ) -> Any:
         """Intercept the call to the original ``click.core.BaseCommand.make_context`` so

@@ -16,7 +16,7 @@
 
 from __future__ import annotations
 
-from cloup import Option
+from . import Option
 
 
 class ExtraOption(Option):

@@ -22,8 +22,8 @@ import logging
 from gettext import gettext as _
 
 from click_log import basic_config
-from cloup import Choice
 
+from . import Choice
 from .parameters import ExtraOption
 
 LOG_LEVELS = {

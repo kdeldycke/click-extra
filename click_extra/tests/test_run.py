@@ -22,10 +22,9 @@ import os
 from pathlib import Path
 
 import click
-from click import echo, pass_context, secho, style, utils
-from cloup import Style
 from pytest_cases import fixture, parametrize
 
+from .. import Style, echo, pass_context, secho, style, utils
 from ..logging import logger
 from ..platforms import is_windows
 from ..run import env_copy

@@ -23,7 +23,10 @@ from pathlib import Path
 import click
 import pytest
 from boltons.pathutils import shrinkuser
-from click import (
+from pytest_cases import parametrize
+from tabulate import tabulate
+
+from .. import (
     BOOL,
     FLOAT,
     INT,
@@ -36,14 +39,11 @@ from click import (
     FloatRange,
     IntRange,
     Tuple,
+    argument,
     echo,
     get_app_dir,
+    option,
 )
-from click import Path as ClickPath
-from cloup import argument, option
-from pytest_cases import parametrize
-from tabulate import tabulate
-
 from ..colorize import escape_for_help_sceen
 from ..config import ConfigOption, ShowParamsOption
 from ..decorators import config_option, extra_command, extra_group, show_params_option
@@ -287,7 +287,7 @@ def test_conf_auto_types(invoke, create_config, option_decorator):
     @option("--uuid-param", type=UUID)
     @option("--unprocessed-param", type=UNPROCESSED)
     @option("--file-param", type=File())
-    @option("--path-param", type=ClickPath())
+    @option("--path-param", type=click.Path())
     @option("--choice-param", type=Choice(("a", "b", "c")))
     @option("--int-range-param", type=IntRange())
     @option("--count-param", count=True)  # See issue #170.

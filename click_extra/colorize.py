@@ -27,12 +27,19 @@ from typing import NamedTuple
 
 import regex as re3
 from boltons.strutils import complement_int_list, int_ranges_from_int_list
-from click import Parameter, echo, get_current_context
-from click.core import ParameterSource
-from cloup import Choice, Context, HelpFormatter, Style
 from cloup._util import identity
 from cloup.styling import IStyle
 
+from . import (
+    Choice,
+    Context,
+    HelpFormatter,
+    Parameter,
+    ParameterSource,
+    Style,
+    echo,
+    get_current_context,
+)
 from .parameters import ExtraOption
 
 

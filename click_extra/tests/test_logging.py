@@ -19,9 +19,9 @@ from __future__ import annotations
 import re
 
 import pytest
-from click import echo
 from pytest_cases import parametrize
 
+from .. import echo
 from ..decorators import extra_command, verbosity_option
 from ..logging import LOG_LEVELS, logger
 from .conftest import command_decorators, default_debug_colored_log, skip_windows_colors

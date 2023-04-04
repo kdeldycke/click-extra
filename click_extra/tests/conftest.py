@@ -25,12 +25,11 @@ from textwrap import dedent
 from typing import IO, Any, Sequence
 
 import click
+import click.testing
 import cloup
 import pytest
 from boltons.strutils import strip_ansi
 from boltons.tbutils import ExceptionInfo
-from click.core import BaseCommand
-from click.testing import CliRunner, Result
 
 from ..decorators import command, extra_command, extra_group, group
 from ..platforms import is_linux, is_macos, is_windows
@@ -92,7 +91,7 @@ See:
 """
 
 
-class ExtraCliRunner(CliRunner):
+class ExtraCliRunner(click.testing.CliRunner):
     force_color: bool = False
     """Add a ``force_color`` boolean flag on the class to allow for overriding of the
     ``color`` parameter in ``invoke``.
@@ -103,14 +102,14 @@ class ExtraCliRunner(CliRunner):
 
     def invoke(
         self,
-        cli: BaseCommand,
+        cli: click.core.BaseCommand,
         args: str | Sequence[str] | None = None,
         input: str | bytes | IO | None = None,
         env: EnvVars | None = None,
         catch_exceptions: bool = True,
         color: bool = False,
         **extra: Any,
-    ) -> Result:
+    ) -> click.testing.Result:
         if self.force_color:
             color = True
 

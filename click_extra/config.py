@@ -40,6 +40,7 @@ if sys.version_info >= (3, 11):
 else:
     import tomli as tomllib  # type: ignore[import]
 
+import click
 import commentjson as json
 import requests
 import xmltodict
@@ -47,23 +48,6 @@ import yaml
 from boltons.iterutils import flatten, remap
 from boltons.pathutils import shrinkuser
 from boltons.urlutils import URL
-from click import (
-    BOOL,
-    FLOAT,
-    INT,
-    STRING,
-    UNPROCESSED,
-    UUID,
-    Option,
-    Parameter,
-    echo,
-    get_app_dir,
-    get_current_context,
-)
-from click import Path as ClickPath
-from click.core import ParameterSource
-from cloup import Choice, DateTime, File, FloatRange, IntRange, Style
-from cloup import Tuple as CloupTuple
 from mergedeep import merge
 from tabulate import tabulate
 from wcmatch.glob import (
@@ -77,6 +61,27 @@ from wcmatch.glob import (
     iglob,
 )
 
+from . import (
+    BOOL,
+    FLOAT,
+    INT,
+    STRING,
+    UNPROCESSED,
+    UUID,
+    Choice,
+    DateTime,
+    File,
+    FloatRange,
+    IntRange,
+    Option,
+    Parameter,
+    ParameterSource,
+    Style,
+    Tuple,
+    echo,
+    get_app_dir,
+    get_current_context,
+)
 from .colorize import KO, OK, default_theme
 from .logging import logger
 from .parameters import ExtraOption
@@ -236,12 +241,12 @@ class ParamStructure:
 
         instance_map = {
             File: str,
-            ClickPath: str,
+            click.Path: str,
             Choice: str,
             IntRange: int,
             FloatRange: float,
             DateTime: str,
-            CloupTuple: list,
+            Tuple: list,
         }
 
         for click_type, py_type in instance_map.items():
@@ -620,7 +625,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         User configuration is
         `merged to the context default_map as Click does <https://click.palletsprojects.com/en/8.1.x/commands/#context-defaults>`_.
-        
+
         This allow user's config to only overrides defaults. Values sets from direct
         command line parameters, environment variables or interactive prompts, takes
         precedence over any values from the config file.

@@ -18,11 +18,10 @@ from __future__ import annotations
 
 import pytest
 import tabulate
-
-# We use vanilla click primitives here to demonstrate the full-compatibility.
-from click import echo, pass_context
 from pytest_cases import fixture, parametrize
 
+# We use vanilla click primitives here to demonstrate the full-compatibility.
+from .. import echo, pass_context
 from ..decorators import table_format_option
 from ..platforms import is_windows
 from ..tabulate import output_formats

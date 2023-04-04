@@ -24,8 +24,8 @@ from gettext import gettext as _
 from io import StringIO
 
 import tabulate
-from click import Choice, echo
 
+from . import Choice, echo
 from .parameters import ExtraOption
 
 tabulate.MIN_PADDING = 0
