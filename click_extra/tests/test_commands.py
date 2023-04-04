@@ -19,8 +19,10 @@ options, and how they interact with each others."""
 
 from __future__ import annotations
 
+import ast
 import inspect
 import re
+from pathlib import Path
 from textwrap import dedent
 
 import click
@@ -29,8 +31,6 @@ import pytest
 from click import echo, pass_context
 from cloup import option, option_group
 from pytest_cases import fixture, parametrize
-
-import click_extra
 
 from ..decorators import extra_command, extra_group, timer_option
 from .conftest import (
@@ -57,6 +57,7 @@ def test_module_root_declarations():
         return members
 
     click_members = fetch_root_members(click)
+
     cloup_members = {m for m in cloup.__all__ if not m.startswith("_")}
     # XXX Color cannot be imported from cloup. It leads to an issue in the way autodoc
     # is trying to render it:
@@ -65,11 +66,21 @@ def test_module_root_declarations():
     #       raise Exception("you can't set attributes on this class")
     #   Exception: you can't set attributes on this class
     cloup_members.remove("Color")
-    click_extra_members = fetch_root_members(click_extra)
+
+    tree = ast.parse(Path(__file__).parent.joinpath("../__init__.py").read_bytes())
+    click_extra_members = set()
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if target.id == "__all__":
+                    for element in node.value.elts:
+                        click_extra_members.add(element.s)
+
+    assert click_members.issubset(click_extra_members)
+    assert cloup_members.issubset(click_extra_members)
 
     expected_members = sorted(click_members | cloup_members | click_extra_members)
-
-    assert expected_members == click_extra.__all__
+    assert expected_members == sorted(click_extra_members)
 
 
 @fixture
