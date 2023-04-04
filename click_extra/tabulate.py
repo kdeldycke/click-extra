@@ -33,7 +33,7 @@ tabulate.MIN_PADDING = 0
 """Neutralize spurious double-spacing in table rendering."""
 
 
-tabulate._table_formats.update({
+tabulate._table_formats.update({ # type: ignore[attr-defined]
     "github": TableFormat(
         lineabove=Line("| ", "-", " | ", " |"),
         linebelowheader=Line("| ", "-", " | ", " |"),
