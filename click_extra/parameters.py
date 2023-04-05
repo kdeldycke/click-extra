@@ -17,6 +17,36 @@
 from __future__ import annotations
 
 from . import Option
+from typing import Sequence
+from boltons.iterutils import unique
+
+
+def extend_envvars(orig_envvar: str | Sequence[str] | None, extra_envvars: str | Sequence[str]) -> str | tuple[str]:
+    """Utility to build environment variables value to be fed to options.
+
+    Deduplicates the list of string if multiple elements are provided.
+
+    Returns a tuple of environment variable strings or a plein string if only a single
+    element persist. The result is ready to be used as the ``envvar`` parameter for
+    options or arguments.
+    """
+    envvars = []
+    if orig_envvar:
+        if isinstance(orig_envvar, str):
+            envvars = [orig_envvar]
+        else:
+            envvars = list(orig_envvar)
+
+    if isinstance(extra_envvars, str):
+        envvars.append(extra_envvars)
+    else:
+        envvars.extend(extra_envvars)
+
+    envvars = unique(envvars)
+
+    if len(envvars) == 1:
+        return envvars[0]
+    return tuple(envvars)
 
 
 class ExtraOption(Option):

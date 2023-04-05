@@ -50,12 +50,14 @@ from .decorators import (  # type: ignore[no-redef] # noqa: I001, E402, F401
     help_option,
     show_params_option,
     table_format_option,
+    telemetry_option,
     timer_option,
     verbosity_option,
     version_option,
 )
 from .logging import VerbosityOption  # noqa: I001, E402, F401
 from .parameters import ExtraOption  # noqa: I001, E402, F401
+from .telemetry import TelemetryOption  # noqa: I001, E402, F401
 from .version import VersionOption  # noqa: I001, E402, F401
 
 # Expose all of Click, Cloup and Click Extra.
@@ -151,6 +153,8 @@ __all__ = [  # noqa: F405
     "Style",
     "style",
     "table_format_option",
+    "telemetry_option",
+    "TelemetryOption",
     "timer_option",
     "TimerOption",
     "Tuple",

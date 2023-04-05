@@ -25,6 +25,7 @@ from .commands import ExtraCommand, ExtraGroup, TimerOption
 from .config import ConfigOption, ShowParamsOption
 from .logging import VerbosityOption
 from .tabulate import TableFormatOption
+from .telemetry import TelemetryOption
 from .version import VersionOption
 
 
@@ -120,6 +121,7 @@ config_option = decorator_factory(dec=cloup.option, cls=ConfigOption)
 help_option = decorator_factory(dec=cloup.option, cls=HelpOption)
 show_params_option = decorator_factory(dec=cloup.option, cls=ShowParamsOption)
 table_format_option = decorator_factory(dec=cloup.option, cls=TableFormatOption)
+telemetry_option = decorator_factory(dec=cloup.option, cls=TelemetryOption)
 timer_option = decorator_factory(dec=cloup.option, cls=TimerOption)
 verbosity_option = decorator_factory(dec=cloup.option, cls=VerbosityOption)
 version_option = decorator_factory(dec=cloup.option, cls=VersionOption)
