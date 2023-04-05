@@ -10,6 +10,7 @@ This is the list of issues and bugs from other projects that `click-extra` has a
 
 ## [`click`](https://github.com/pallets/click)
 
+- [`#2483` - Missing auto-generated environment variables in help screen & case-sensitivity](https://github.com/pallets/click/issues/2483)
 - [`#2324` - Can't pass `click.version_option()` to `click.MultiCommand(params=)`](https://github.com/pallets/click/issues/2324)
 - [`#2207` - Support NO_COLOR environment variable](https://github.com/pallets/click/issues/2207)
 - [`#2111` - `Context.color = False` doesn't overrides `echo(color=True)`](https://github.com/pallets/click/issues/2111)

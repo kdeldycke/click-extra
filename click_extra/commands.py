@@ -35,6 +35,7 @@ from .colorize import ExtraHelpColorsMixin
 from .logging import logger
 from .parameters import ExtraOption
 from .version import VersionOption
+from .parameters import ExtraOption, extend_envvars
 
 
 class TimerOption(ExtraOption):
@@ -113,6 +114,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         *args,
         version: str | None=None,
         extra_option_at_end: bool=True,
+        populate_auto_envvars: bool=True,
         **kwargs: Any,
     ):
         """
@@ -125,6 +127,12 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         :param extra_option_at_end: reorders all parameters attached to the command, by
         moving all instances of ``ExtraOption`` at the end of the parameter list. The
         original order of the options is preserved among themselves.
+
+        :param populate_auto_envvars: forces all parameters to have their auto-generated
+        environment variables registered. This address the shortcoming of ``click``
+        which only evaluates them dynamiccaly. By forcing their registration, the
+        auto-generated environment variables gets displayed in the help screen, fixing
+        `click#2483 issue<https://github.com/pallets/click/issues/2483>`_.
 
         By default, these context settings are applied:
 
@@ -168,6 +176,12 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         # Fill-in the unset settings with our defaults.
         default_ctx_settings.update(self.context_settings)
         self.context_settings = default_ctx_settings
+
+        if populate_auto_envvars and self.context_settings.get("auto_envvar_prefix"):
+            for param in self.params:
+                prefix = self.context_settings["auto_envvar_prefix"]
+                auto_envvar = f"{prefix}_{param.name}".upper()
+                param.envvar = extend_envvars(param.envvar, auto_envvar)
 
         if version:
             version_params = [p for p in self.params if isinstance(p, VersionOption)]
