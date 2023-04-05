@@ -81,6 +81,14 @@ click\_extra.tests.test\_tabulate module
    :undoc-members:
    :show-inheritance:
 
+click\_extra.tests.test\_telemetry module
+-----------------------------------------
+
+.. automodule:: click_extra.tests.test_telemetry
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 click\_extra.tests.test\_version module
 ---------------------------------------
 
