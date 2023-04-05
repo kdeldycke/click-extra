@@ -109,7 +109,23 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
 
     context_class: type[cloup.Context] = ExtraContext
 
-    def __init__(self, *args, version=None, extra_option_at_end=True, **kwargs):
+    def __init__(
+            self,
+            *args,
+            version: str | None=None,
+            extra_option_at_end: bool=True,
+            **kwargs: Any,
+    ):
+        """List of extra parameters:
+
+        :param version: allows a version string to be set directly on the command. Will
+        be passed to the first instance of ``VersionOption`` parameter attached to the
+        command.
+
+        :param extra_option_at_end: reorders all parameters attached to the command, by
+        moving all instances of ``ExtraOption`` at the end of the parameter list. The
+        original order of the options is preserved among themselves.
+        """
         super().__init__(*args, **kwargs)
 
         self.context_settings.update(
@@ -124,7 +140,6 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
             }
         )
 
-        # Update version number with the one provided on the command.
         if version:
             version_params = [p for p in self.params if isinstance(p, VersionOption)]
             if version_params:
@@ -132,7 +147,6 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
                 version_param = version_params.pop()
                 version_param.version = version
 
-        # Move extra options to the end while keeping the original natural order.
         if extra_option_at_end:
             self.params.sort(key=lambda p: isinstance(p, ExtraOption))
 
