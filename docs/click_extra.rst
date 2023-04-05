@@ -113,6 +113,14 @@ click\_extra.tabulate module
    :undoc-members:
    :show-inheritance:
 
+click\_extra.telemetry module
+-----------------------------
+
+.. automodule:: click_extra.telemetry
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 click\_extra.version module
 ---------------------------
 
