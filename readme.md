@@ -49,7 +49,10 @@ To undestrand how we ended up with the result above, [go read the tutorial](http
 - Colorization of help screens
 - `-h`/`--help` option names (see [rant on other inconsistencies](https://blog.craftyguy.net/cmdline-help/))
 - `--color`/`--no-color` option flag
-- Recognize the `NO_COLOR` environment variable convention from [`no-color.org`](https://no-color.org)
+- `--telemetry`/`--no-telemetry` flag to opt-in/out of tracking code
+- Recognize pseudo-standard environment variable conventions:
+  - `NO_COLOR` from [`no-color.org`](https://no-color.org)
+  - `DO_NOT_TRACK` from [`consoledonottrack.com`](https://consoledonottrack.com)
 - Colored `--version` option
 - Colored `--verbosity` option and logs
 - `--time`/`--no-time` flag to measure duration of command execution
