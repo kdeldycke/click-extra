@@ -103,20 +103,20 @@ class ExtraContext(cloup.Context):
 
 
 class ExtraCommand(ExtraHelpColorsMixin, Command):
-    """Same as ``cloup.command``, but with sane defaults and extra help screen
-    colorization.
+    """Like ``cloup.command``, with sane defaults and extra help screen colorization.
     """
 
     context_class: type[cloup.Context] = ExtraContext
 
     def __init__(
-            self,
-            *args,
-            version: str | None=None,
-            extra_option_at_end: bool=True,
-            **kwargs: Any,
+        self,
+        *args,
+        version: str | None=None,
+        extra_option_at_end: bool=True,
+        **kwargs: Any,
     ):
-        """List of extra parameters:
+        """
+        List of extra parameters:
 
         :param version: allows a version string to be set directly on the command. Will
         be passed to the first instance of ``VersionOption`` parameter attached to the
@@ -125,20 +125,49 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         :param extra_option_at_end: reorders all parameters attached to the command, by
         moving all instances of ``ExtraOption`` at the end of the parameter list. The
         original order of the options is preserved among themselves.
+
+        By default, these context settings are applied:
+
+        - ``show_default = True``: `show all default values <https://click.palletsprojects.com/en/8.1.x/api/#click.Context.show_default>`_ in help screen.
+
+        - ``auto_envvar_prefix = self.name``: auto-generate environment variables for
+        all options, using the command ID as prefix.
+
+        - ``align_option_groups = False``: `align option groups in help screen <https://cloup.readthedocs.io/en/stable/pages/option-groups.html#aligned-vs-non-aligned-groups>`_.
+
+        - ``show_constraints = True``: `show all constraints in help screen <https://cloup.readthedocs.io/en/stable/pages/constraints.html#the-constraint-decorator>`_.
+
+        - ``show_subcommand_aliases = True``: `show all subcommand aliases in help screen <https://cloup.readthedocs.io/en/stable/pages/aliases.html?highlight=show_subcommand_aliases#help-output-of-the-group>`_.
+
+        - ``help_option_names = ("--help", "-h")``: `allow help screen to be invoked with either --help or -h options <https://click.palletsprojects.com/en/8.1.x/documentation/#help-parameter-customization>`_.
+
+        To override these defaults, you can pass your own settings with the
+        ``context_settings`` parameter:
+
+            .. code-block:: python
+
+                @extra_command(
+                    context_settings={
+                        "show_default": False,
+                        ...
+                    }
+                )
         """
         super().__init__(*args, **kwargs)
 
-        self.context_settings.update(
-            {
-                "show_default": True,
-                "auto_envvar_prefix": self.name,
-                # "default_map": {"verbosity": "DEBUG"},
-                "align_option_groups": False,
-                "show_constraints": True,
-                "show_subcommand_aliases": True,
-                "help_option_names": ("--help", "-h"),
-            }
-        )
+        default_ctx_settings = {
+            "show_default": True,
+            "auto_envvar_prefix": self.name,
+            # "default_map": {"verbosity": "DEBUG"},
+            "align_option_groups": False,
+            "show_constraints": True,
+            "show_subcommand_aliases": True,
+            "help_option_names": ("--help", "-h"),
+        }
+
+        # Fill-in the unset settings with our defaults.
+        default_ctx_settings.update(self.context_settings)
+        self.context_settings = default_ctx_settings
 
         if version:
             version_params = [p for p in self.params if isinstance(p, VersionOption)]
