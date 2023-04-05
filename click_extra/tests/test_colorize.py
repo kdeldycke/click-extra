@@ -251,7 +251,7 @@ def test_keyword_collection(invoke):
 @skip_windows_colors
 @parametrize("option_decorator", (color_option, color_option()))
 @pytest.mark.parametrize(
-    "param,expecting_colors",
+    "param, expecting_colors",
     (
         ("--color", True),
         ("--no-color", False),
@@ -305,7 +305,7 @@ def test_standalone_color_option(invoke, option_decorator, param, expecting_colo
 
 @skip_windows_colors
 @pytest.mark.parametrize(
-    "env,env_expect_colors",
+    "env, env_expect_colors",
     (
         ({"COLOR": "True"}, True),
         ({"COLOR": "true"}, True),
@@ -325,7 +325,7 @@ def test_standalone_color_option(invoke, option_decorator, param, expecting_colo
     ),
 )
 @pytest.mark.parametrize(
-    "param,param_expect_colors",
+    "param, param_expect_colors",
     (
         ("--color", True),
         ("--no-color", False),
@@ -359,7 +359,7 @@ def test_no_color_env_convention(
 
 @skip_windows_colors
 @pytest.mark.parametrize(
-    "param,expecting_colors",
+    "param, expecting_colors",
     (
         ("--color", True),
         ("--no-color", False),
@@ -415,7 +415,7 @@ def test_integrated_color_option(invoke, param, expecting_colors):
 
 
 @pytest.mark.parametrize(
-    "substrings,expected,ignore_case",
+    "substrings, expected, ignore_case",
     (
         # Function input types.
         (["hey"], "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m", False),

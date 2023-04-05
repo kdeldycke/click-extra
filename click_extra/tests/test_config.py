@@ -182,7 +182,7 @@ DUMMY_XML_FILE = """
 
 
 all_config_formats = pytest.mark.parametrize(
-    "conf_name,conf_content",
+    "conf_name, conf_content",
     (
         pytest.param(f"configuration.{ext}", content, id=ext)
         for ext, content in (
