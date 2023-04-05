@@ -7,6 +7,8 @@ This version is not released yet and is under active development.
 ```
 
 - Add a simple `--telemetry`/`--no-telemetry` option flag which respects the `DO_NOT_TRACK` environment variable.
+- Add new `populate_auto_envvars` parameter to `@extra_command`/`@extra_group` decorators to allow auto-generated environment variables to be displayed in help screens.
+- Allow hard-coded context defaults on `@extra_command`/`@extra_group` to be overriden by user.
 - Fix rendering of GitHub-Flavored Markdown tables in canonical format.
 
 ## {gh}`3.10.0 (2023-04-04) <compare/v3.9.0...v3.10.0>`
