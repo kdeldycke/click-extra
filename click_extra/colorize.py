@@ -111,7 +111,9 @@ class HelpExtraTheme(NamedTuple):
     def dark() -> HelpExtraTheme:
         """A theme assuming a dark terminal background color.
 
-        .. todo:     Implement default dark theme.
+        .. todo::
+
+            Implement default dark theme.
         """
         raise NotImplementedError
 
@@ -119,7 +121,9 @@ class HelpExtraTheme(NamedTuple):
     def light() -> HelpExtraTheme:
         """A theme assuming a light terminal background color.
 
-        .. todo:     Implement default light theme.
+        .. todo::
+
+            Implement default light theme.
         """
         raise NotImplementedError
 
@@ -302,7 +306,7 @@ class HelpOption(ExtraOption):
 class ExtraHelpColorsMixin:
     """Adds extra-keywords highlighting to Click commands.
 
-    This mixin for `click.core.Command`-like classes intercepts the top-level helper-
+    This mixin for ``click.core.Command``-like classes intercepts the top-level helper-
     generation method to initialize the formatter with dynamic settings.
 
     This is implemented here to get access to the global context.

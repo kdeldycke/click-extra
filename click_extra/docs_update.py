@@ -106,8 +106,7 @@ def generate_platforms_graph(
 
     Euler diagrams are
     `not supported by mermaid yet <https://github.com/mermaid-js/mermaid/issues/2583>`_
-    so we fallback on a flowchart
-    without arrows.
+    so we fallback on a flowchart without arrows.
 
     Returns a ready to use and properly indented MyST block.
     """

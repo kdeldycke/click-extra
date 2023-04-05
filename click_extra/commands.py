@@ -104,7 +104,8 @@ class ExtraContext(cloup.Context):
 
 class ExtraCommand(ExtraHelpColorsMixin, Command):
     """Same as ``cloup.command``, but with sane defaults and extra help screen
-    colorization."""
+    colorization.
+    """
 
     context_class: type[cloup.Context] = ExtraContext
 

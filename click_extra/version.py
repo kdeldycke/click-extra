@@ -138,46 +138,26 @@ class VersionOption(ExtraOption):
         help=_("Show the version and exit."),
         **kwargs,
     ) -> None:
-        """For other params `see Click's version_option decorator.
+        """Adds a couple of extra parameters to the standard ``click.version_option``.
 
-        <https://click.palletsprojects.com/en/8.1.x/api/#click.version_option>`_.
-
-        :param param_decls: _description_, defaults to None
-        :type param_decls: _type_, optional
-        :param version: _description_, defaults to None
-        :type version: _type_, optional
-        :param package_name: _description_, defaults to None
-        :type package_name: t.Optional[str], optional
-        :param prog_name: _description_, defaults to None
-        :type prog_name: t.Optional[str], optional
-        :param message: _description_, defaults to "%(prog)s, version %(version)s"
-        :type message: str, optional
-        :param print_env_info: _description_, defaults to False
-        :type print_env_info: bool, optional
         :param version_style: adds environment info at the end of the message. Useful to
             gather user's details for troubleshooting. Defaults to
             ``Style(fg="green")``.
-        :type version_style: _type_, optional
+
         :param package_name_style: style of the ``version``. Defaults to
             ``default_theme.invoked_command``.
-        :type package_name_style: _type_, optional
+
         :param prog_name_style: style of the ``prog_name``. Defaults to
             ``default_theme.invoked_command``.
-        :type prog_name_style: _type_, optional
+
         :param message_style: default style of the ``message`` parameter. Defaults to
             ``None``.
-        :type message_style: _type_, optional
+
         :param env_info_style: style of the environment info. Defaults to
             ``Style(fg="bright_black")``.
-        :type env_info_style: _type_, optional
-        :param is_flag: _description_, defaults to True
-        :type is_flag: bool, optional
-        :param expose_value: _description_, defaults to False
-        :type expose_value: bool, optional
-        :param is_eager: _description_, defaults to True
-        :type is_eager: bool, optional
-        :param help: _description_, defaults to "Show the version and exit."
-        :type help: str, optional
+
+        For other params `see Click's version_option decorator
+        <https://click.palletsprojects.com/en/8.1.x/api/#click.version_option>`_.
         """
         if not param_decls:
             param_decls = ("--version",)
