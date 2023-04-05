@@ -307,12 +307,20 @@ def test_standalone_color_option(invoke, option_decorator, param, expecting_colo
 @pytest.mark.parametrize(
     "env,env_expect_colors",
     (
+        ({"COLOR": "True"}, True),
         ({"COLOR": "true"}, True),
+        ({"COLOR": "1"}, True),
         ({"COLOR": ""}, True),
+        ({"COLOR": "False"}, False),
         ({"COLOR": "false"}, False),
+        ({"COLOR": "0"}, False),
+        ({"NO_COLOR": "True"}, False),
         ({"NO_COLOR": "true"}, False),
+        ({"NO_COLOR": "1"}, False),
         ({"NO_COLOR": ""}, False),
+        ({"NO_COLOR": "False"}, True),
         ({"NO_COLOR": "false"}, True),
+        ({"NO_COLOR": "0"}, True),
         (None, True),
     ),
 )
