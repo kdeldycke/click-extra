@@ -82,7 +82,7 @@ def normalize_envvar(envvar: str) -> str:
     The normalization process separates all contiguous alphanumeric string segments,
     eliminate empty strings, join them with an underscore and uppercase the result.
     """
-    return "_".join((p for p in re.split(r"\W+", envvar) if p)).upper()
+    return "_".join((p for p in re.split(r"[^a-zA-Z0-9]+", envvar) if p)).upper()
 
 
 def all_envvars(

@@ -19,6 +19,18 @@ from __future__ import annotations
 import pytest
 
 from .. import command, echo, option
+from ..parameters import normalize_envvar
+
+
+@pytest.mark.parametrize(
+    "env_name, normalized_env",
+    (
+        ("show-params-cli_VERSION", "SHOW_PARAMS_CLI_VERSION"),
+        ("show---params-cli___VERSION", "SHOW_PARAMS_CLI_VERSION"),
+    ),
+)
+def test_normalize_envvar(env_name, normalized_env):
+    assert normalize_envvar(env_name) == normalized_env
 
 
 @pytest.mark.parametrize(
