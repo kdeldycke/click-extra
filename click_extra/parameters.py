@@ -18,9 +18,10 @@ from __future__ import annotations
 
 import click
 from . import Option
-from typing import Sequence, Dict
+from typing import Sequence, Dict, Any
 from boltons.iterutils import unique
 import re
+
 
 def auto_envvar(param: click.Parameter, ctx: click.Context | Dict[str, Any]) -> str | None:
     """Compute the auto-generated environment variable of an option or argument.
@@ -30,7 +31,7 @@ def auto_envvar(param: click.Parameter, ctx: click.Context | Dict[str, Any]) -> 
     ``click.core.Option.resolve_envvar_value()``.
     """
     # Skip parameters that have their auto-envvar explicitly disabled.
-    if getattr(param, "allow_from_autoenv", None):
+    if not getattr(param, "allow_from_autoenv", None):
         return None
 
     if isinstance(ctx, click.Context):
