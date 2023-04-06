@@ -104,21 +104,19 @@ class ExtraContext(cloup.Context):
 
 
 class ExtraCommand(ExtraHelpColorsMixin, Command):
-    """Like ``cloup.command``, with sane defaults and extra help screen colorization.
-    """
+    """Like ``cloup.command``, with sane defaults and extra help screen colorization."""
 
     context_class: type[cloup.Context] = ExtraContext
 
     def __init__(
         self,
         *args,
-        version: str | None=None,
-        extra_option_at_end: bool=True,
-        populate_auto_envvars: bool=True,
+        version: str | None = None,
+        extra_option_at_end: bool = True,
+        populate_auto_envvars: bool = True,
         **kwargs: Any,
     ):
-        """
-        List of extra parameters:
+        """List of extra parameters:
 
         :param version: allows a version string to be set directly on the command. Will
         be passed to the first instance of ``VersionOption`` parameter attached to the

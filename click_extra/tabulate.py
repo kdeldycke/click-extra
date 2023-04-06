@@ -47,16 +47,16 @@ tabulate._table_formats.update(  # type: ignore[attr-defined]
         ),
     }
 )
-"""
-Tweak table separators to match MyST and GFM syntax.
+"""Tweak table separators to match MyST and GFM syntax.
 
 I.e. add a space between the column separator and the dashes filling a cell:
 
-    ``|---|---|---|`` → ``| --- | --- | --- |``
+``|---|---|---|`` → ``| --- | --- | --- |``
 
 That way we produce a table that doesn't need any supplement linting.
 
 This has been proposed upstream at `python-tabulate#261
+
 <https://github.com/astanin/python-tabulate/pull/261>`_.
 """
 
