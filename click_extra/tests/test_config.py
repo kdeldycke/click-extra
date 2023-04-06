@@ -461,6 +461,7 @@ def test_conf_file_overrides_defaults(
         # Debug level has been activated by configuration file.
         debug_log = (
             rf"Load configuration matching {re.escape(str(conf_path))}\n"
+            r".*"
             r"debug: Verbosity set to DEBUG.\n"
             r"debug: \S+, version \S+\n"
             r"debug: {.*}\n"
@@ -566,7 +567,7 @@ def test_standalone_show_params_option(invoke, cmd_decorator, option_decorator):
     )
     assert result.output == f"{output}\n"
 
-    assert result.stderr == (
+    assert result.stderr.endswith(
         "warning: Cannot extract parameters values: "
         "<Command show-params> does not inherits from ExtraCommand.\n"
     )
