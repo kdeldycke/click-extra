@@ -19,7 +19,29 @@ from __future__ import annotations
 import pytest
 
 from .. import command, echo, option
-from ..parameters import normalize_envvar
+from ..parameters import normalize_envvar, extend_envvars
+
+
+@pytest.mark.parametrize(
+    "envvars_1, envvars_2, result",
+    (
+        ("MY_VAR", "MY_VAR", ("MY_VAR",)),
+        (None, "MY_VAR", ("MY_VAR",)),
+        ("MY_VAR", None, ("MY_VAR",)),
+        (["MY_VAR"], "MY_VAR", ("MY_VAR",)),
+        (["MY_VAR"], None, ("MY_VAR",)),
+        ("MY_VAR", ["MY_VAR"], ("MY_VAR",)),
+        (None, ["MY_VAR"], ("MY_VAR",)),
+        (["MY_VAR"], ["MY_VAR"], ("MY_VAR",)),
+        (["MY_VAR1"], ["MY_VAR2"], ("MY_VAR1", "MY_VAR2")),
+        (["MY_VAR1", "MY_VAR2"], ["MY_VAR2"], ("MY_VAR1", "MY_VAR2")),
+        (["MY_VAR1"], ["MY_VAR1", "MY_VAR2"], ("MY_VAR1", "MY_VAR2")),
+        (["MY_VAR1"], ["MY_VAR2", "MY_VAR2"], ("MY_VAR1", "MY_VAR2")),
+        (["MY_VAR1", "MY_VAR1"], ["MY_VAR2"], ("MY_VAR1", "MY_VAR2")),
+    ),
+)
+def test_extend_envvars(envvars_1, envvars_2, result):
+    assert extend_envvars(envvars_1, envvars_2) == result
 
 
 @pytest.mark.parametrize(
