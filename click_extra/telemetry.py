@@ -35,7 +35,10 @@ class TelemetryOption(ExtraOption):
 
     ..seealso::
 
-        Another `list of environment variable to disable telemetry in desktop apps
+        - A `knowledge base of telemetry disabling configuration options
+        <https://github.com/beatcracker/toptout>`_.
+
+        - And another `list of environment variable to disable telemetry in desktop apps
         <https://telemetry.timseverien.com/opt-out/>`_.
     """
 
