@@ -29,7 +29,7 @@ def auto_envvar(param: click.Parameter, ctx: click.Context | Dict[str, Any]) -> 
     ``click.core.Parameter.resolve_envvar_value()`` and
     ``click.core.Option.resolve_envvar_value()``.
     """
-    # Skip parameters that have their auto-envvar explicitely disabled.
+    # Skip parameters that have their auto-envvar explicitly disabled.
     if getattr(param, "allow_from_autoenv", None):
         return None
 
