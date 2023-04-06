@@ -32,6 +32,11 @@ class TelemetryOption(ExtraOption):
 
     The ``DO_NOT_TRACK`` convention takes precedence over the user-defined environment
     variables and the auto-generated values.
+
+    ..seealso::
+
+        Another `list of environment variable to disable telemetry in desktop apps
+        <https://telemetry.timseverien.com/opt-out/>`_.
     """
 
     def save_telemetry(self, ctx, param, value):
