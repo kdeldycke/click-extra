@@ -49,6 +49,14 @@ click\_extra.tests.test\_logging module
    :undoc-members:
    :show-inheritance:
 
+click\_extra.tests.test\_parameters module
+------------------------------------------
+
+.. automodule:: click_extra.tests.test_parameters
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 click\_extra.tests.test\_platforms module
 -----------------------------------------
 
