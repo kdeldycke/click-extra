@@ -25,7 +25,7 @@ from __future__ import annotations
 from gettext import gettext as _
 from logging import getLevelName
 from time import perf_counter
-from typing import Any
+from typing import Any, Dict
 
 import click
 import cloup
@@ -35,7 +35,7 @@ from .colorize import ExtraHelpColorsMixin
 from .logging import logger
 from .parameters import ExtraOption
 from .version import VersionOption
-from .parameters import ExtraOption, extend_envvars
+from .parameters import ExtraOption, all_envvars
 
 
 class TimerOption(ExtraOption):
@@ -132,7 +132,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         environment variables registered. This address the shortcoming of ``click``
         which only evaluates them dynamiccaly. By forcing their registration, the
         auto-generated environment variables gets displayed in the help screen, fixing
-        `click#2483 issue<https://github.com/pallets/click/issues/2483>`_.
+        `click#2483 issue <https://github.com/pallets/click/issues/2483>`_.
 
         By default, these context settings are applied:
 
@@ -163,7 +163,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         """
         super().__init__(*args, **kwargs)
 
-        default_ctx_settings = {
+        default_ctx_settings: Dict[str, Any] = {
             "show_default": True,
             "auto_envvar_prefix": self.name,
             # "default_map": {"verbosity": "DEBUG"},
@@ -175,13 +175,11 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
 
         # Fill-in the unset settings with our defaults.
         default_ctx_settings.update(self.context_settings)
-        self.context_settings = default_ctx_settings
+        self.context_settings: Dict[str, Any] = default_ctx_settings
 
-        if populate_auto_envvars and self.context_settings.get("auto_envvar_prefix"):
+        if populate_auto_envvars:
             for param in self.params:
-                prefix = self.context_settings["auto_envvar_prefix"]
-                auto_envvar = f"{prefix}_{param.name}".upper()
-                param.envvar = extend_envvars(param.envvar, auto_envvar)
+                param.envvar = all_envvars(param, self.context_settings)
 
         if version:
             version_params = [p for p in self.params if isinstance(p, VersionOption)]
@@ -193,7 +191,8 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         if extra_option_at_end:
             self.params.sort(key=lambda p: isinstance(p, ExtraOption))
 
-        # Forces re-identification of grouped and non-grouped options.
+        # Forces re-identification of grouped and non-grouped options as we re-ordered
+        # them above and added our own extra options since initialization.
         self.arguments, self.option_groups, self.ungrouped_options = self._group_params(
             self.params
         )

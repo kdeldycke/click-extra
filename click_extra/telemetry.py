@@ -28,7 +28,10 @@ class TelemetryOption(ExtraOption):
 
     Respects the
     `proposed DO_NOT_TRACK environment variable <https://consoledonottrack.com>`_ as a
-    unified standard to opt out of telemetry for TUI/console apps.
+    unified standard to opt-out of telemetry for TUI/console apps.
+
+    The ``DO_NOT_TRACK`` convention takes precedence over the user-defined environment
+    variables and the auto-generated values.
     """
 
     def save_telemetry(self, ctx, param, value):
@@ -48,7 +51,7 @@ class TelemetryOption(ExtraOption):
         if not param_decls:
             param_decls = ("--telemetry/--no-telemetry",)
 
-        envvar = extend_envvars(envvar, "DO_NOT_TRACK")
+        envvar = extend_envvars(["DO_NOT_TRACK"], envvar)
 
         kwargs.setdefault("callback", self.save_telemetry)
 

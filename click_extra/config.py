@@ -73,8 +73,6 @@ from . import (
     File,
     FloatRange,
     IntRange,
-    Option,
-    Parameter,
     ParameterSource,
     Style,
     Tuple,
@@ -84,7 +82,7 @@ from . import (
 )
 from .colorize import KO, OK, default_theme
 from .logging import logger
-from .parameters import ExtraOption
+from .parameters import ExtraOption, all_envvars
 from .platforms import is_windows
 
 
@@ -685,7 +683,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         "Type",
         "Allowed in conf?",
         "Exposed",
-        "Env. var.",
+        "Env. vars.",
         "Default",
         "Value",
         "Source",
@@ -719,31 +717,6 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             help=help,
             **kwargs,
         )
-
-    @staticmethod
-    def get_envvar(ctx, param: Parameter | Option):
-        """Emulates the retrieval and dynamic generation of a parameter's environment
-        variable.
-
-        .. important::
-            This code is a copy of what happens in
-            ``click.core.Parameter.resolve_envvar_value()`` and
-            ``click.core.Option.resolve_envvar_value()`` as the logic is deeply
-            embedded in Click's internals and can't be independently used.
-
-        .. todo::
-            Contribute this to Click as slight refactor to DRY?
-        """
-        if param.envvar:
-            return param.envvar
-        else:
-            if (
-                getattr(param, "allow_from_autoenv", None)
-                and ctx.auto_envvar_prefix is not None
-                and param.name is not None
-            ):
-                return f"{ctx.auto_envvar_prefix}_{param.name.upper()}"
-        return None
 
     def print_params(self, ctx, param, value):
         """Introspects current CLI and list its parameters and metadata.
@@ -810,7 +783,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 param_type.__name__,
                 None,  # XXX TODO
                 OK if param.expose_value is True else KO,
-                self.get_envvar(ctx, param),
+                ', '.join(all_envvars(param, ctx)),
                 param.get_default(ctx),
                 param_value,
                 source._name_ if source else None,

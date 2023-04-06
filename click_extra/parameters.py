@@ -16,37 +16,90 @@
 
 from __future__ import annotations
 
+import click
 from . import Option
-from typing import Sequence
+from typing import Sequence, Dict
 from boltons.iterutils import unique
+import re
+
+def auto_envvar(param: click.Parameter, ctx: click.Context | Dict[str, Any]) -> str | None:
+    """Compute the auto-generated environment variable of an option or argument.
+
+    Returns the auto envvar as it is exacly computed within Click's internals, i.e.
+    ``click.core.Parameter.resolve_envvar_value()`` and
+    ``click.core.Option.resolve_envvar_value()``.
+    """
+    # Skip parameters that have their auto-envvar explicitely disabled.
+    if getattr(param, "allow_from_autoenv", None):
+        return None
+
+    if isinstance(ctx, click.Context):
+        prefix = ctx.auto_envvar_prefix
+    else:
+        prefix = ctx.get("auto_envvar_prefix")
+    if not prefix or not param.name:
+        return None
+
+    # Mimicks Click's internals.
+    return f"{prefix}_{param.name.upper()}"
 
 
-def extend_envvars(orig_envvar: str | Sequence[str] | None, extra_envvars: str | Sequence[str]) -> str | tuple[str]:
+def extend_envvars(envvars_1: str | Sequence[str] | None, envvars_2: str | Sequence[str] | None) -> tuple[str]:
     """Utility to build environment variables value to be fed to options.
 
-    Deduplicates the list of string if multiple elements are provided.
+    Variable names are deduplicated while preserving their initial order.
 
-    Returns a tuple of environment variable strings or a plein string if only a single
-    element persist. The result is ready to be used as the ``envvar`` parameter for
-    options or arguments.
+    Returns a tuple of environment variable strings. The result is ready to be used as
+    the ``envvar`` parameter for options or arguments.
     """
+    # Make the fist argument into a list of string.
     envvars = []
-    if orig_envvar:
-        if isinstance(orig_envvar, str):
-            envvars = [orig_envvar]
+    if envvars_1:
+        if isinstance(envvars_1, str):
+            envvars = [envvars_1]
         else:
-            envvars = list(orig_envvar)
+            envvars = list(envvars_1)
 
-    if isinstance(extra_envvars, str):
-        envvars.append(extra_envvars)
-    else:
-        envvars.extend(extra_envvars)
+    # Merge the second argument into the list.
+    if envvars_2:
+        if isinstance(envvars_2, str):
+            envvars.append(envvars_2)
+        else:
+            envvars.extend(envvars_2)
 
-    envvars = unique(envvars)
+    # Deduplicate the list and cast it into an immutable tuple.
+    return tuple(unique(envvars))
 
-    if len(envvars) == 1:
-        return envvars[0]
-    return tuple(envvars)
+
+def normalize_envvar(envvar: str) -> str:
+    """Utility to normalize an environment variable name.
+
+    The normalization process separates all contiguous alphanumeric string segments,
+    eliminate empty strings, join them with an underscore and uppercase the result.
+    """
+    return "_".join((p for p in re.split(r"\W+", envvar) if p)).upper()
+
+
+def all_envvars(param: click.Parameter, ctx: click.Context | Dict[str, Any], normalize:bool=False) -> tuple[str]:
+    """Returns the deduplicated, ordered list of environment variables for an option or
+    argument, including the auto-generated one.
+
+    The auto-generated environment variable is added at the end of the list, so that
+    user-defined envvars takes precedence. This respects the current implementation
+    of ``click.core.Option.resolve_envvar_value()``.
+
+    If ``normalize`` is `True`, the returned value is normalized. By default it is
+    `False` to perfectly reproduce the
+    `current behavior of Click, which is subject to discussions <https://github.com/pallets/click/issues/2483>`_.
+    """
+    envvars = param.envvar
+    auto_envvar_id = auto_envvar(param, ctx)
+
+    if normalize:
+        envvars = normalize_envvar(envvars)
+        auto_envvar_id = normalize_envvar(auto_envvar_id)
+
+    return extend_envvars(envvars, auto_envvar_id)
 
 
 class ExtraOption(Option):
