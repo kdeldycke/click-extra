@@ -21,7 +21,6 @@ import pytest
 from .. import command, echo, option
 
 
-
 @pytest.mark.parametrize(
     "env, flag_value",
     (
@@ -77,7 +76,6 @@ from .. import command, echo, option
     ),
 )
 def test_default_auto_envvar(invoke, env, flag_value):
-
     @command(context_settings={"auto_envvar_prefix": "yo"})
     @option("--flag/--no-flag", envvar=["Magic", "sUper"])
     def my_cli(flag):

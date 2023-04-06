@@ -23,7 +23,9 @@ from boltons.iterutils import unique
 import re
 
 
-def auto_envvar(param: click.Parameter, ctx: click.Context | Dict[str, Any]) -> str | None:
+def auto_envvar(
+    param: click.Parameter, ctx: click.Context | Dict[str, Any]
+) -> str | None:
     """Compute the auto-generated environment variable of an option or argument.
 
     Returns the auto envvar as it is exacly computed within Click's internals, i.e.
@@ -45,7 +47,9 @@ def auto_envvar(param: click.Parameter, ctx: click.Context | Dict[str, Any]) -> 
     return f"{prefix}_{param.name.upper()}"
 
 
-def extend_envvars(envvars_1: str | Sequence[str] | None, envvars_2: str | Sequence[str] | None) -> tuple[str]:
+def extend_envvars(
+    envvars_1: str | Sequence[str] | None, envvars_2: str | Sequence[str] | None
+) -> tuple[str]:
     """Utility to build environment variables value to be fed to options.
 
     Variable names are deduplicated while preserving their initial order.
@@ -81,7 +85,9 @@ def normalize_envvar(envvar: str) -> str:
     return "_".join((p for p in re.split(r"\W+", envvar) if p)).upper()
 
 
-def all_envvars(param: click.Parameter, ctx: click.Context | Dict[str, Any], normalize:bool=False) -> tuple[str]:
+def all_envvars(
+    param: click.Parameter, ctx: click.Context | Dict[str, Any], normalize: bool = False
+) -> tuple[str]:
     """Returns the deduplicated, ordered list of environment variables for an option or
     argument, including the auto-generated one.
 
