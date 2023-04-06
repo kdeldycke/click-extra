@@ -35,7 +35,7 @@ from .colorize import ExtraHelpColorsMixin
 from .logging import logger
 from .parameters import ExtraOption
 from .version import VersionOption
-from .parameters import ExtraOption, all_envvars
+from .parameters import ExtraOption, all_envvars, normalize_envvar
 
 
 class TimerOption(ExtraOption):
@@ -165,7 +165,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
 
         default_ctx_settings: Dict[str, Any] = {
             "show_default": True,
-            "auto_envvar_prefix": self.name,
+            "auto_envvar_prefix": normalize_envvar(self.name),
             # "default_map": {"verbosity": "DEBUG"},
             "align_option_groups": False,
             "show_constraints": True,
