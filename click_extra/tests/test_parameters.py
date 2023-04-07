@@ -17,8 +17,9 @@
 from __future__ import annotations
 
 import pytest
+from pytest_cases import parametrize
 
-from .. import command, echo, option
+from .. import echo, option, extra_command, command
 from ..parameters import normalize_envvar, extend_envvars
 
 
@@ -55,69 +56,94 @@ def test_normalize_envvar(env_name, normalized_env):
     assert normalize_envvar(env_name) == normalized_env
 
 
-@pytest.mark.parametrize(
-    "env, flag_value",
-    (
-        # User-defined Magic envvar is recognized.
-        ({"Magic": "True"}, True),
-        ({"Magic": "true"}, True),
-        ({"Magic": "1"}, True),
-        ({"Magic": ""}, False),  # XXX: Should be True?
-        ({"Magic": "False"}, False),
-        ({"Magic": "false"}, False),
-        ({"Magic": "0"}, False),
-        # Uppercased user-defined envvar is not recognized.
-        ({"MAGIC": "True"}, False),
-        ({"MAGIC": "true"}, False),
-        ({"MAGIC": "1"}, False),
-        ({"MAGIC": ""}, False),
-        ({"MAGIC": "False"}, False),
-        ({"MAGIC": "false"}, False),
-        ({"MAGIC": "0"}, False),
-        # Second user-defined envvar is recognized too.
-        ({"sUper": "True"}, True),
-        ({"sUper": "true"}, True),
-        ({"sUper": "1"}, True),
-        ({"sUper": ""}, False),  # XXX: Should be True?
-        ({"sUper": "False"}, False),
-        ({"sUper": "false"}, False),
-        ({"sUper": "0"}, False),
-        # Literal auto-generated yo_FLAG is not recognized.
-        ({"yo_FLAG": "True"}, False),
-        ({"yo_FLAG": "true"}, False),
-        ({"yo_FLAG": "1"}, False),
-        ({"yo_FLAG": ""}, False),
-        ({"yo_FLAG": "False"}, False),
-        ({"yo_FLAG": "false"}, False),
-        ({"yo_FLAG": "0"}, False),
-        # YO_FLAG is recognized.
-        ({"YO_FLAG": "True"}, True),
-        ({"YO_FLAG": "true"}, True),
-        ({"YO_FLAG": "1"}, True),
-        ({"YO_FLAG": ""}, False),  # XXX: Should be True?
-        ({"YO_FLAG": "False"}, False),
-        ({"YO_FLAG": "false"}, False),
-        ({"YO_FLAG": "0"}, False),
-        # yo_FlAg is not recognized because of its mixed case.
-        ({"yo_FlAg": "True"}, False),
-        ({"yo_FlAg": "true"}, False),
-        ({"yo_FlAg": "1"}, False),
-        ({"yo_FlAg": ""}, False),
-        ({"yo_FlAg": "False"}, False),
-        ({"yo_FlAg": "false"}, False),
-        ({"yo_FlAg": "0"}, False),
-        (None, False),
-    ),
-)
-def test_default_auto_envvar(invoke, env, flag_value):
-    @command(context_settings={"auto_envvar_prefix": "yo"})
+def envvars_test_cases():
+    params = []
+
+    matrix = {
+        (command, "command"): {
+            "working_envvar": (
+                # User-defined envvars are recognized as-is.
+                "Magic",
+                "sUper",
+                # XXX Uppercased auto-generated envvar is recognized be should not.
+                "YO_FLAG",
+            ),
+            "unknown_envvar": (
+                # Uppercased user-defined envvar is not recognized.
+                "MAGIC",
+                # XXX Literal auto-generated is not recognized but should be.
+                "yo_FLAG",
+                # Mixed-cased auto-generated envvat is not recognized.
+                "yo_FlAg",
+            ),
+        },
+        (extra_command, "extra_command"): {
+            "working_envvar": (
+                # User-defined envvars are recognized as-is.
+                "Magic",
+                "sUper",
+                # Literal auto-generated is properly recognized but is not in vanilla
+                # Click (see above).
+                "yo_FLAG",
+                # XXX Uppercased auto-generated envvar is recognized be should not.
+                "YO_FLAG",
+            ),
+            "unknown_envvar": (
+                # Uppercased user-defined envvar is not recognized.
+                "MAGIC",
+                # Mixed-cased auto-generated envvat is not recognized.
+                "yo_FlAg",
+            ),
+        },
+    }
+
+    # If properly recognized, these envvar values should be passed to the flag.
+    working_value_map = {
+        "True": True,
+        "true": True,
+        "1": True,
+        "": False,  # XXX: Should be True?
+        "False": False,
+        "false": False,
+        "0": False,
+    }
+    # No envvar value will have an effect on the flag if the envvar is not recognized.
+    broken_value_map = {k: False for k in working_value_map}
+
+    for (cmd_decorator, decorator_name), envvar_cases in matrix.items():
+        for case_name, envvar_names in envvar_cases.items():
+            value_map = working_value_map if case_name == "working_envvar" else broken_value_map
+
+            for envvar_name in envvar_names:
+                for envar_value, expected_flag in value_map.items():
+                    envvar = {envvar_name: envar_value}
+                    params.append(
+                        pytest.param(
+                            cmd_decorator,
+                            envvar,
+                            expected_flag,
+                            id=f"{decorator_name}|{case_name}={envvar}|expected_flag={expected_flag}",
+                        )
+                    )
+
+    return params
+
+
+@parametrize("cmd_decorator, envvars, expected_flag", envvars_test_cases())
+def test_default_auto_envvar(invoke, cmd_decorator, envvars, expected_flag):
+
+    @cmd_decorator(context_settings={"auto_envvar_prefix": "yo"})
     @option("--flag/--no-flag", envvar=["Magic", "sUper"])
     def my_cli(flag):
         echo(f"Flag value: {flag}")
 
-    assert my_cli.params[0].envvar == ["Magic", "sUper"]
+    registered_envvars = ["Magic", "sUper"]
+    # @extra_command forces registration of auto-generated envvar.
+    if cmd_decorator == extra_command:
+        registered_envvars = tuple(registered_envvars + ["yo_FLAG"])
+    assert my_cli.params[0].envvar == registered_envvars
 
-    result = invoke(my_cli, env=env)
+    result = invoke(my_cli, env=envvars)
     assert result.exit_code == 0
     assert not result.stderr
-    assert result.output == f"Flag value: {flag_value}\n"
+    assert result.output == f"Flag value: {expected_flag}\n"
