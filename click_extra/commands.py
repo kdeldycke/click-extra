@@ -14,10 +14,11 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-"""Wrap-up all click-extra extensions into click-like commands.
+"""Wraps vanilla Click and Cloup commands with extra features.
 
-The collection of pre-defined decorators here present good and common defaults. You can
-still mix'n'match the mixins below to build your own custom variants.
+Our flavor of commands, groups and context are all subclasses of their vanilla
+counterparts, but are pre-configured with good and common defaults. You can
+still leverage the mixins in here to build up your own custom variants.
 """
 
 from __future__ import annotations
