@@ -126,12 +126,9 @@ jobs:
           python -m pip install --upgrade poetry
           poetry install --no-interaction --no-ansi
 
-      # XXX Hard-coding random seeds is the worse thing ever but at least it will catch regressions while we search
-      # for the root cause and leaking code.
       - name: Tests
         run: |
-          poetry run pytest --ignore=click_extra/tests/test_config.py
-          poetry run pytest --randomly-seed=177219628 click_extra/tests/test_config.py
+          poetry run pytest
 
       - name: Codecov upload
         uses: codecov/codecov-action@v3.1.1
