@@ -265,6 +265,13 @@ class ExtraGroup(ExtraCommand, Group):
     """Same as ``cloup.group``, but with sane defaults and extra help screen
     colorization."""
 
+    # XXX This simple override might be enough to replace the command() override below,
+    # but there is a bug in click that prevents this from working:
+    #   https://github.com/pallets/click/issues/2416
+    #   https://github.com/pallets/click/pull/2417
+    #
+    # command_class = ExtraCommand
+
     def command(self, *args, **kwargs):
         """Returns a decorator that creates a new subcommand for this ``Group``.
 
