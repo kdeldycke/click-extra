@@ -56,7 +56,7 @@ To undestrand how we ended up with the result above, [go read the tutorial](http
 - Colored `--version` option
 - Colored `--verbosity` option and logs
 - `--time`/`--no-time` flag to measure duration of command execution
-- Platform recognition utilities (macOS, Linux, Windows, UNIX, *BSD, …)
+- Platform recognition utilities (macOS, Linux, Windows, UNIX, \*BSD, …)
 - New conditional markers for `pytest`:
   - `@skip_linux`, `@skip_macos` and `@skip_windows`
   - `@unless_linux`, `@unless_macos` and `@unless_windows`
