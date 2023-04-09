@@ -57,6 +57,7 @@ That way we produce a table that doesn't need any supplement linting.
 
 This has been proposed upstream at `python-tabulate#261
 
+
 <https://github.com/astanin/python-tabulate/pull/261>`_.
 """
 

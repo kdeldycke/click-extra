@@ -17,8 +17,8 @@
 """Wraps vanilla Click and Cloup commands with extra features.
 
 Our flavor of commands, groups and context are all subclasses of their vanilla
-counterparts, but are pre-configured with good and common defaults. You can
-still leverage the mixins in here to build up your own custom variants.
+counterparts, but are pre-configured with good and common defaults. You can still
+leverage the mixins in here to build up your own custom variants.
 """
 
 from __future__ import annotations
