@@ -71,11 +71,10 @@ classifiers = [
 # List of python versions and their support status:
 # https://en.wikipedia.org/wiki/History_of_Python#Support
 python = "^3.7"
-# XXX A leaky monkey-patching in boltons.ecoutils breaks PDB interactive sessions in pytest.
-# A patch has been submitted upstream, but is not yet merged or released:
+# XXX boltons.ecoutils 23.0.0 breaks PDB interactive sessions in pytest.
+# Investigation of the root cause is being discussed upstream at:
 # https://github.com/mahmoud/boltons/issues/334
-# https://github.com/mahmoud/boltons/pull/335
-boltons = { git = "https://github.com/kdeldycke/boltons.git", branch = "fix-pprint.safe_repr-monkeypatching" }
+boltons = "^23.0.0"
 click = "^8.1.1"
 click-log = "^0.4.0"
 cloup = "^2.0.0.post1"
