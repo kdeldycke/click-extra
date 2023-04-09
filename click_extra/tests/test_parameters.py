@@ -112,7 +112,9 @@ def envvars_test_cases():
 
     for (cmd_decorator, decorator_name), envvar_cases in matrix.items():
         for case_name, envvar_names in envvar_cases.items():
-            value_map = working_value_map if case_name == "working_envvar" else broken_value_map
+            value_map = (
+                working_value_map if case_name == "working_envvar" else broken_value_map
+            )
 
             for envvar_name in envvar_names:
                 for envar_value, expected_flag in value_map.items():
@@ -131,7 +133,6 @@ def envvars_test_cases():
 
 @parametrize("cmd_decorator, envvars, expected_flag", envvars_test_cases())
 def test_default_auto_envvar(invoke, cmd_decorator, envvars, expected_flag):
-
     @cmd_decorator(context_settings={"auto_envvar_prefix": "yo"})
     @option("--flag/--no-flag", envvar=["Magic", "sUper"])
     def my_cli(flag):

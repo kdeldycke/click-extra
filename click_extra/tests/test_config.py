@@ -228,7 +228,9 @@ def test_unset_conf_no_message(invoke, simple_config_cli):
 
 
 def test_unset_conf_debug_message(invoke, simple_config_cli):
-    result = invoke(simple_config_cli, "--verbosity", "DEBUG", "default-command", color=False)
+    result = invoke(
+        simple_config_cli, "--verbosity", "DEBUG", "default-command", color=False
+    )
     assert result.exit_code == 0
     assert result.output == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
     assert re.fullmatch(default_debug_uncolored_log, result.stderr)
@@ -458,7 +460,11 @@ def test_conf_file_overrides_defaults(
 
     for conf_path in conf_filepath, conf_url:
         result = invoke(
-            simple_config_cli, "--config", str(conf_path), "default-command", color=False
+            simple_config_cli,
+            "--config",
+            str(conf_path),
+            "default-command",
+            color=False,
         )
         assert result.exit_code == 0
         assert result.stdout == (
@@ -477,7 +483,9 @@ def test_conf_file_overrides_defaults(
 
 
 @all_config_formats
-def test_auto_env_var_conf(invoke, simple_config_cli, create_config, httpserver, conf_name, conf_content):
+def test_auto_env_var_conf(
+    invoke, simple_config_cli, create_config, httpserver, conf_name, conf_content
+):
     # Create a local config.
     conf_filepath = create_config(conf_name, conf_content)
 
