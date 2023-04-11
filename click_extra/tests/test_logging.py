@@ -74,12 +74,12 @@ def test_standalone_verbosity_option(invoke, cmd_decorator, option_decorator, le
     assert result.output == "It works!\n"
 
     messages = (
-        "\x1b[34mdebug: \x1b[0mVerbosity set to DEBUG.\n"
-        "\x1b[34mdebug: \x1b[0mmy debug message.\n",
-        "my info message.\n",
-        "\x1b[33mwarning: \x1b[0mmy warning message.\n",
-        "\x1b[31merror: \x1b[0mmy error message.\n",
-        "\x1b[31mcritical: \x1b[0mmy critical message.\n",
+        "\x1b[34mdebug\x1b[0m: Verbosity set to DEBUG.\n"
+        "\x1b[34mdebug\x1b[0m: my debug message.\n",
+        "info: my info message.\n",
+        "\x1b[33mwarning\x1b[0m: my warning message.\n",
+        "\x1b[31merror\x1b[0m: my error message.\n",
+        "\x1b[31mcritical\x1b[0m: my critical message.\n",
     )
     level_index = {index: level for level, index in enumerate(LOG_LEVELS)}[level]
     log_records = "".join(messages[-level_index - 1 :])

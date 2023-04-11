@@ -18,13 +18,15 @@
 
 from __future__ import annotations
 
+import click
 import logging
 from gettext import gettext as _
-
-from click_log import basic_config
+from typing import Any, Mapping
 
 from . import Choice
 from .parameters import ExtraOption
+from .colorize import default_theme
+
 
 LOG_LEVELS = {
     name: value
@@ -37,13 +39,59 @@ Sorted from lowest to highest verbosity.
 """
 
 
+class ColorFormatter(logging.Formatter):
+
+    def __init__(
+            self,
+            fmt: str | None = "%(levelname)s: %(message)s",
+            datefmt: str | None = None,
+            style: str = "%",
+            validate: bool = True,
+            *,
+            defaults: Mapping[str, Any] | None = None
+    ) -> None:
+        """Set up the formatter with a default message format of ``levelname: message``.
+        """
+        super().__init__(fmt, datefmt, style, validate, defaults=defaults)
+
+    def formatMessage(self, record):
+        """Colorize the record's log level name before calling the strandard formatter.
+        """
+        level = record.levelname.lower()
+        level_style = getattr(default_theme, level, None)
+        record.levelname = level_style(level)
+        return super().formatMessage(record)
+
+
+class ClickExtraHandler(logging.Handler):
+
+    def emit(self, record):
+        """Print the log message to console's ``<stderr>``."""
+        try:
+            msg = self.format(record)
+            click.echo(msg, err=True)
+
+        # If exception occurs format it to the stream.
+        except Exception:
+            self.handleError(record)
+
+
 class WrappedLogger:
+    """A wrapper around the default logger."""
+
     wrapped_logger = None
 
     def initialize_logger(self):
-        """Generate a default logger."""
+        """Generate a default logger.
+
+        Set up the default handler (:py:class:`ClickExtraHandler`) and formatter
+        (:py:class:`ColorFormatter`) on the given logger.
+        """
         logger = logging.getLogger(__name__)
-        basic_config(logger)
+        _default_handler = ClickExtraHandler()
+        _default_handler.formatter = ColorFormatter()
+        logger.handlers = [_default_handler]
+        logger.propagate = False
         return logger
 
     def set_logger(self, default_logger=None):

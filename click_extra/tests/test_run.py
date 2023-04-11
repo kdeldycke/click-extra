@@ -120,7 +120,7 @@ def check_default_colored_rendering(result):
         "secho(color=False)\n"
         "\x1b[34mprint() bypass Click.\x1b[0m\n"
     )
-    assert result.stderr == "\x1b[33mwarning: \x1b[0mIs the logger colored?\n"
+    assert result.stderr == "\x1b[33mwarning\x1b[0m: Is the logger colored?\n"
 
 
 def check_default_uncolored_rendering(result):

@@ -287,8 +287,8 @@ def test_standalone_color_option(invoke, option_decorator, param, expecting_colo
             "\x1b[32mDone.\x1b[0m\n"
         )
         assert result.stderr == (
-            "\x1b[34mdebug: \x1b[0mVerbosity set to DEBUG.\n"
-            "\x1b[33mwarning: \x1b[0mProcessing...\n"
+            "\x1b[34mdebug\x1b[0m: Verbosity set to DEBUG.\n"
+            "\x1b[33mwarning\x1b[0m: Processing...\n"
         )
     else:
         assert result.stdout == (
@@ -395,7 +395,7 @@ def test_integrated_color_option(invoke, param, expecting_colors):
         assert re.fullmatch(
             (
                 rf"{default_debug_colored_log}"
-                r"\x1b\[33mwarning: \x1b\[0mProcessing...\n"
+                r"\x1b\[33mwarning\x1b\[0m: Processing...\n"
             ),
             result.stderr,
         )
