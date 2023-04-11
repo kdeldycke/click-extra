@@ -21,6 +21,7 @@ from pytest_cases import parametrize
 
 from .. import echo, option, extra_command, command
 from ..parameters import normalize_envvar, extend_envvars
+from ..platforms import is_windows
 
 
 @pytest.mark.parametrize(
@@ -96,6 +97,35 @@ def envvars_test_cases():
             ),
         },
     }
+
+    if is_windows():
+        # Windows is automaticcaly normalizing any env var to upper-case, see:
+        # https://github.com/python/cpython/blob/e715da6/Lib/os.py#L748-L749
+        # So Windows needs its own test case.
+        matrix = {
+            (command, "command"): {
+                "working_envvar": (
+                    "Magic",
+                    "MAGIC",
+                    "sUper",
+                    "yo_FLAG",
+                    "YO_FLAG",
+                    "yo_FlAg",
+                ),
+                "unknown_envvar": (),
+            },
+            (extra_command, "extra_command"): {
+                "working_envvar": (
+                    "Magic",
+                    "MAGIC",
+                    "sUper",
+                    "yo_FLAG",
+                    "YO_FLAG",
+                    "yo_FlAg",
+                ),
+                "unknown_envvar": (),
+            },
+        }
 
     # If properly recognized, these envvar values should be passed to the flag.
     working_value_map = {
