@@ -39,20 +39,15 @@ Sorted from lowest to highest verbosity.
 
 
 class ColorFormatter(logging.Formatter):
-
     def __init__(
-        self,
-        fmt: str | None="%(levelname)s: %(message)s",
-        *args,
-        **kwargs
+        self, fmt: str | None = "%(levelname)s: %(message)s", *args, **kwargs
     ) -> None:
-        """Set up the formatter with a default message format to ``levelname: message``.
-        """
+        """Set up the formatter with a default message format to ``levelname: message``."""
         super().__init__(fmt=fmt, *args, **kwargs)
 
     def formatMessage(self, record):
-        """Colorize the record's log level name before calling the strandard formatter.
-        """
+        """Colorize the record's log level name before calling the strandard
+        formatter."""
         level = record.levelname.lower()
         level_style = getattr(default_theme, level, None)
         record.levelname = level_style(level)
@@ -60,7 +55,6 @@ class ColorFormatter(logging.Formatter):
 
 
 class ClickExtraHandler(logging.Handler):
-
     def emit(self, record):
         """Print the log message to console's ``<stderr>``."""
         try:
