@@ -21,7 +21,6 @@ from __future__ import annotations
 import click
 import logging
 from gettext import gettext as _
-from typing import Any, Mapping
 
 from . import Choice
 from .parameters import ExtraOption
@@ -42,17 +41,14 @@ Sorted from lowest to highest verbosity.
 class ColorFormatter(logging.Formatter):
 
     def __init__(
-            self,
-            fmt: str | None = "%(levelname)s: %(message)s",
-            datefmt: str | None = None,
-            style: str = "%",
-            validate: bool = True,
-            *,
-            defaults: Mapping[str, Any] | None = None
+        self,
+        fmt: str | None="%(levelname)s: %(message)s",
+        *args,
+        **kwargs
     ) -> None:
-        """Set up the formatter with a default message format of ``levelname: message``.
+        """Set up the formatter with a default message format to ``levelname: message``.
         """
-        super().__init__(fmt, datefmt, style, validate, defaults=defaults)
+        super().__init__(fmt=fmt, *args, **kwargs)
 
     def formatMessage(self, record):
         """Colorize the record's log level name before calling the strandard formatter.
