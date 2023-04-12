@@ -37,6 +37,7 @@ from .conftest import (
     default_debug_uncolored_log,
     default_options_colored_help,
     default_options_uncolored_help,
+    skip_windows_colors,
 )
 
 
@@ -188,6 +189,7 @@ def test_help_eagerness(invoke, all_command_cli, params):
     assert not result.stderr
 
 
+@skip_windows_colors
 @pytest.mark.parametrize("cmd_id", ("default", "click-extra", "cloup", "click"))
 @pytest.mark.parametrize("param", ("-h", "--help"))
 def test_subcommand_help(invoke, all_command_cli, cmd_id, param):
