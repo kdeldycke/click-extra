@@ -209,7 +209,7 @@ def test_subcommand_help(invoke, all_command_cli, cmd_id, param):
     # Extra sucommands are colored and include all extra options.
     if cmd_id == "click-extra":
         assert re.fullmatch(
-            (rf"{colored_help_header}" rf"{default_options_colored_help}"),
+            rf"{colored_help_header}{default_options_colored_help}",
             result.stdout,
         )
 
