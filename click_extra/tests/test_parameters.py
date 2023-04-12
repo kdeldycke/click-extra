@@ -98,31 +98,26 @@ def envvars_test_cases():
         },
     }
 
+    # Windows is automaticcaly normalizing any env var to upper-case, see:
+    # https://github.com/python/cpython/blob/e715da6/Lib/os.py#L748-L749
+    # https://docs.python.org/3/library/os.html?highlight=environ#os.environ
+    # So Windows needs its own test case.
     if is_windows():
-        # Windows is automaticcaly normalizing any env var to upper-case, see:
-        # https://github.com/python/cpython/blob/e715da6/Lib/os.py#L748-L749
-        # So Windows needs its own test case.
+        all_envvars = (
+            "Magic",
+            "MAGIC",
+            "sUper",
+            "yo_FLAG",
+            "YO_FLAG",
+            "yo_FlAg",
+        )
         matrix = {
             (command, "command"): {
-                "working_envvar": (
-                    "Magic",
-                    "MAGIC",
-                    "sUper",
-                    "yo_FLAG",
-                    "YO_FLAG",
-                    "yo_FlAg",
-                ),
+                "working_envvar": all_envvars,
                 "unknown_envvar": (),
             },
             (extra_command, "extra_command"): {
-                "working_envvar": (
-                    "Magic",
-                    "MAGIC",
-                    "sUper",
-                    "yo_FLAG",
-                    "YO_FLAG",
-                    "yo_FlAg",
-                ),
+                "working_envvar": all_envvars,
                 "unknown_envvar": (),
             },
         }
