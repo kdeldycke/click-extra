@@ -32,9 +32,10 @@ LOG_LEVELS = {
     for value, name in sorted(logging._levelToName.items(), reverse=True)
     if name != "NOTSET"
 }
-"""Index levels by their ID.
+"""Mapping of canonical log level names to their IDs.
 
-Sorted from lowest to highest verbosity.
+Sorted from lowest to highest verbosity, and ignore ``NOTSET``, as well as ``FATAL`` &
+``WARN`` aliases.
 """
 
 
