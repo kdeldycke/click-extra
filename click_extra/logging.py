@@ -137,7 +137,7 @@ class VerbosityOption(ExtraOption):
     def __init__(
         self,
         default_logger=None,
-        param_decls=None,
+        param_decls: Sequence[str] | None = None,
         default="INFO",
         metavar="LEVEL",
         type=Choice(LOG_LEVELS, case_sensitive=False),
