@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 from gettext import gettext as _
+from typing import Sequence
 
 from .parameters import ExtraOption, extend_envvars
 
@@ -48,7 +49,7 @@ class TelemetryOption(ExtraOption):
 
     def __init__(
         self,
-        param_decls=None,
+        param_decls: Sequence[str] | None = None,
         default=False,
         expose_value=False,
         envvar=None,

@@ -23,7 +23,7 @@ import re
 from configparser import RawConfigParser
 from gettext import gettext as _
 from operator import getitem
-from typing import NamedTuple
+from typing import NamedTuple, Sequence
 
 import regex as re3
 from boltons.strutils import complement_int_list, int_ranges_from_int_list
@@ -245,7 +245,7 @@ class ColorOption(ExtraOption):
 
     def __init__(
         self,
-        param_decls=None,
+        param_decls: Sequence[str] | None = None,
         is_flag=True,
         default=True,
         is_eager=True,
@@ -281,7 +281,7 @@ class HelpOption(ExtraOption):
 
     def __init__(
         self,
-        param_decls=None,
+        param_decls: Sequence[str] | None = None,
         is_flag=True,
         expose_value=False,
         is_eager=True,

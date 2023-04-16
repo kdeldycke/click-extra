@@ -21,6 +21,7 @@ from __future__ import annotations
 import click
 import logging
 from gettext import gettext as _
+from typing import Sequence
 
 from . import Choice
 from .parameters import ExtraOption

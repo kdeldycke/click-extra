@@ -26,7 +26,7 @@ from __future__ import annotations
 from gettext import gettext as _
 from logging import getLevelName
 from time import perf_counter
-from typing import Any, Dict
+from typing import Any, Dict, Sequence
 
 import click
 import cloup
@@ -65,7 +65,7 @@ class TimerOption(ExtraOption):
 
     def __init__(
         self,
-        param_decls=None,
+        param_decls: Sequence[str] | None = None,
         default=False,
         expose_value=False,
         help=_("Measure and print elapsed execution time."),

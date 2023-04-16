@@ -22,6 +22,7 @@ import csv
 from functools import partial
 from gettext import gettext as _
 from io import StringIO
+from typing import Sequence
 
 import tabulate
 from tabulate import DataRow, Line, TableFormat
@@ -146,7 +147,7 @@ class TableFormatOption(ExtraOption):
 
     def __init__(
         self,
-        param_decls=None,
+        param_decls: Sequence[str] | None = None,
         type=Choice(output_formats, case_sensitive=False),
         default="rounded_outline",
         expose_value=False,

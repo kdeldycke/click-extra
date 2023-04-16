@@ -333,7 +333,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
     def __init__(
         self,
-        param_decls=None,
+        param_decls: Sequence[str] | None = None,
         metavar="CONFIG_PATH",
         type=STRING,
         help=_(
@@ -692,7 +692,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
 
     def __init__(
         self,
-        param_decls=None,
+        param_decls: Sequence[str] | None = None,
         is_flag=True,
         expose_value=False,
         is_eager=True,
