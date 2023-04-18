@@ -102,6 +102,14 @@ def default_extra_params():
     ]
 
 
+def minimal_extra_params():
+    """Minimal options added to ``extra_command`` and ``extra_group``:
+
+    #. ``-h``, ``--help``
+    """
+    return [HelpOption()]
+
+
 # Redefine cloup decorators to allow them to be used with or without parenthesis.
 command = decorator_factory(dec=cloup.command)
 group = decorator_factory(dec=cloup.group)
@@ -112,6 +120,14 @@ extra_command = decorator_factory(
 )
 extra_group = decorator_factory(
     dec=cloup.group, cls=ExtraGroup, params=default_extra_params
+)
+
+# Colored command and group decorators with minimal options.
+colored_command = decorator_factory(
+    dec=cloup.command, cls=ExtraCommand, params=minimal_extra_params
+)
+colored_group = decorator_factory(
+    dec=cloup.group, cls=ExtraGroup, params=minimal_extra_params
 )
 
 
