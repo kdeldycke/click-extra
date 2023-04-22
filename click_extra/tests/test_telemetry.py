@@ -26,7 +26,7 @@ from .conftest import command_decorators
 
 @parametrize("cmd_decorator", command_decorators(no_groups=True, no_extra=True))
 @parametrize("option_decorator", (telemetry_option, telemetry_option()))
-def test_standalone_timer_option(invoke, cmd_decorator, option_decorator):
+def test_standalone_telemetry_option(invoke, cmd_decorator, option_decorator):
     @cmd_decorator
     @option_decorator
     @pass_context
