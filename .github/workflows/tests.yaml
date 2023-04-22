@@ -126,9 +126,14 @@ jobs:
           python -m pip install --upgrade poetry
           poetry install --no-interaction --no-ansi
 
-      - name: Tests
+      - name: Tests (without config suite)
         run: |
-          poetry run pytest
+          poetry run pytest --ignore=click_extra/tests/test_config.py
+
+      # XXX Run config tests separately because they are leaking states around logging.
+      - name: Test config suite
+        run: |
+          poetry run pytest click_extra/tests/test_config.py
 
       - name: Codecov upload
         uses: codecov/codecov-action@v3.1.3
