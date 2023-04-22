@@ -44,7 +44,12 @@ class ColorFormatter(logging.Formatter):
     def __init__(
         self, fmt: str | None = "%(levelname)s: %(message)s", *args, **kwargs
     ) -> None:
-        """Set up the formatter with a default message format to ``levelname: message``."""
+        """Set up the formatter with a default message format.
+
+        Default message format is ``levelname: message`` instead of
+        ``levelname:name:message`` as defined by `logging.BASIC_FORMAT
+        <https://github.com/python/cpython/blob/2b5dbd1/Lib/logging/__init__.py#L523>`_.
+        """
         super().__init__(fmt=fmt, *args, **kwargs)
 
     def formatMessage(self, record):
