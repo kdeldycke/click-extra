@@ -24,7 +24,7 @@ import cloup
 import pytest
 from boltons.strutils import strip_ansi
 from pytest_cases import parametrize
-
+import logging
 from .. import HelpTheme, Style, argument, echo, option, option_group, secho, style
 from ..colorize import (
     HelpExtraFormatter,
@@ -40,7 +40,7 @@ from ..decorators import (
     help_option,
     verbosity_option,
 )
-from ..logging import LOG_LEVELS, logger
+from ..logging import LOG_LEVELS
 from .conftest import (
     command_decorators,
     default_debug_colored_log,
@@ -271,7 +271,7 @@ def test_standalone_color_option(invoke, option_decorator, param, expecting_colo
         echo(Style(fg="yellow")("It works!"))
         echo("\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m")
         echo(style("Run command.", fg="magenta"))
-        logger.warning("Processing...")
+        logging.getLogger("click_extra").warning("Processing...")
         print(style("print() bypass Click.", fg="blue"))
         secho("Done.", fg="green")
 
@@ -377,7 +377,7 @@ def test_integrated_color_option(invoke, param, expecting_colors):
     @color_cli8.command()
     def command1():
         echo(style("Run command #1.", fg="magenta"))
-        logger.warning("Processing...")
+        logging.getLogger("click_extra").warning("Processing...")
         print(style("print() bypass Click.", fg="blue"))
         secho("Done.", fg="green")
 

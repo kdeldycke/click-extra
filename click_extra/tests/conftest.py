@@ -399,24 +399,3 @@ default_debug_colored_log = (
     r" version \x1b\[32m\S+\x1b\[0m(\x1b\[90m)?\n"
     r"\x1b\[34mdebug\x1b\[0m: {.*}\x1b\[0m\n"
 )
-
-
-@pytest.hookimpl(hookwrapper=True)
-def pytest_runtest_teardown(item, nextitem):
-    """Destroy the logger singleton after each test.
-
-    .. danger::
-        This prevent the logger singleton from being reused between tests with the wrong
-        logging level.
-
-        This is a temporary workaround until we clean up our mess around logger
-        management. In the mean time it allows us to have our tests pass. This as no
-        serious implication as in real life users relying on Click Extra for their CLI
-        have all the loggers being destroyed when the CLI exits.
-    """
-    # Let pytest finish the test as-is.
-    outcome = yield  # noqa: F841
-
-    from ..logging import logger
-
-    del logger

@@ -19,12 +19,12 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import logging
 
 import click
 from pytest_cases import fixture, parametrize
 
 from .. import Style, echo, pass_context, secho, style
-from ..logging import logger
 from ..platforms import is_windows
 from ..run import env_copy
 from .conftest import command_decorators, skip_windows_colors
@@ -69,7 +69,7 @@ def run_cli1(ctx):
     secho("secho(color=True) bypass invoke.color = False", fg="red", color=True)
     secho("secho(color=False)", fg="green", color=False)
 
-    logger.warning("Is the logger colored?")
+    logging.getLogger("click_extra").warning("Is the logger colored?")
 
     print(style("print() bypass Click.", fg="blue"))
 
@@ -96,7 +96,7 @@ def color_cli(cmd_decorator):
         secho("secho(color=True) bypass invoke.color = False", fg="red", color=True)
         secho("secho(color=False)", fg="green", color=False)
 
-        logger.warning("Is the logger colored?")
+        logging.getLogger("click_extra").warning("Is the logger colored?")
 
         print(style("print() bypass Click.", fg="blue"))
 

@@ -17,15 +17,15 @@
 
 from __future__ import annotations
 
-import click
 import logging
 from gettext import gettext as _
 from typing import Sequence
 
-from . import Choice
-from .parameters import ExtraOption
-from .colorize import default_theme
+import click
 
+from . import Choice
+from .colorize import default_theme
+from .parameters import ExtraOption
 
 LOG_LEVELS = {
     name: value
@@ -40,16 +40,6 @@ Sorted from lowest to highest verbosity, and ignore ``NOTSET``, as well as ``FAT
 
 
 class ColorFormatter(logging.Formatter):
-    def __init__(
-        self, fmt: str | None = "%(levelname)s: %(message)s", *args, **kwargs
-    ) -> None:
-        """Set up the formatter with a default message format.
-
-        Default message format is ``levelname: message`` instead of
-        ``levelname:name:message`` as defined by `logging.BASIC_FORMAT
-        <https://github.com/python/cpython/blob/2b5dbd1/Lib/logging/__init__.py#L523>`_.
-        """
-        super().__init__(fmt=fmt, *args, **kwargs)  # type: ignore[misc]
 
     def formatMessage(self, record):
         """Colorize the record's log level name before calling the strandard
@@ -72,75 +62,66 @@ class ClickExtraHandler(logging.Handler):
             self.handleError(record)
 
 
-class WrappedLogger:
-    """A wrapper around the default logger."""
+def extra_basic_config(logger_name: str | None=None):
+    """Emulate ``logging.basicConfig``, but with sane defaults:
 
-    wrapped_logger = None
+      - handler to :py:class:`ClickExtraHandler`
+      - formatter to :py:class:`ColorFormatter` with ``%(levelname)s: %(message)s`` as
+      default message format
+    """
+    logger = logging.getLogger(logger_name)
 
-    def initialize_logger(self):
-        """Generate a default logger.
+    if logger is logging.root:
+        logging.basicConfig(force=True)
 
-        Set up the default handler (:py:class:`ClickExtraHandler`) and formatter
-        (:py:class:`ColorFormatter`) on the given logger.
-        """
-        logger = logging.getLogger(__name__)
-        _default_handler = ClickExtraHandler()
-        _default_handler.formatter = ColorFormatter()
-        logger.handlers = [_default_handler]
-        logger.propagate = False
-        return logger
+    else:
+        # Emulates `force=True` parameter of logging.basicConfig:
+        # https://github.com/python/cpython/blob/2b5dbd1f237a013defdaf0799e0a1a3cbd0b13cc/Lib/logging/__init__.py#L2028-L2031
+        for h in logger.handlers[:]:
+            logger.removeHandler(h)
+            h.close()
 
-    def set_logger(self, default_logger=None):
-        if not default_logger:
-            self.wrapped_logger = self.initialize_logger()
-        else:
-            self.wrapped_logger = default_logger
-        # Double-check we're not fed junk.
-        assert isinstance(self.wrapped_logger, logging.Logger)
+    handlers = [ClickExtraHandler()]
 
-    def __getattr__(self, name):
-        """Passthrought attribute calls to our wrapped logger."""
-        if not self.wrapped_logger:
-            self.set_logger()
-        return getattr(self.wrapped_logger, name)
+    # Set up the formatter with a default message format to ``levelname: message``.
+    fmt = ColorFormatter(fmt="%(levelname)s: %(message)s")
+    for h in handlers:
+        if h.formatter is None:
+            h.setFormatter(fmt)
+        logger.addHandler(h)
 
-    def reset(self):
-        """Forces the logger level to reset at the end of each CLI execution, as it
-        might pollute the logger state between multiple test calls."""
-        self.wrapped_logger.setLevel(logging.NOTSET)
+    logger.propagate = False
 
-
-# Global application logger.
-logger = WrappedLogger()
+    return logger
 
 
 class VerbosityOption(ExtraOption):
     """Adds a ``--verbosity``/``-v`` option.
 
-    A re-implementation of ``click_log.simple_verbosity_option`` decorator, with
-    sensible defaults and bug fixes.
-
-    .. seealso::
-        - https://github.com/click-contrib/click-log/issues/28
-        - https://github.com/click-contrib/click-log/issues/29
-        - https://github.com/click-contrib/click-log/pull/18
-        - https://github.com/click-contrib/click-log/pull/24
+    Sets the level of the provided logger.
     """
 
-    @staticmethod
-    def set_level(ctx, param, value):
-        """Set logger level and print its value as a debug message.
+    logger_name: str
+    """The name of the logger to use.
 
-        Also forces logger level reset at the end of each CLI execution, as it pollutes
-        the logger state between multiple test calls.
-        """
+    This is used to fetch the logger instance via
+    `logging.getLogger <https://docs.python.org/3/library/logging.html?highlight=getlogger#logging.getLogger>`_.
+    """
+
+    def set_level(self, ctx, param, value):
+        """Set logger level and print its value as a debug message."""
+        logger = logging.getLogger(self.logger_name)
         logger.setLevel(LOG_LEVELS[value])
-        logger.debug(f"Verbosity set to {value}.")
-        ctx.call_on_close(logger.reset)
+
+        # Aligns Click Extra's internal logger level with the verbosity option.
+        extra_logger = logging.getLogger("click_extra")
+        extra_logger.setLevel(LOG_LEVELS[value])
+
+        extra_logger.debug(f"Verbosity set to {value}.")
 
     def __init__(
         self,
-        default_logger=None,
+        default_logger: logging.Logger | str | None=None,
         param_decls: Sequence[str] | None = None,
         default="INFO",
         metavar="LEVEL",
@@ -150,12 +131,30 @@ class VerbosityOption(ExtraOption):
         is_eager=True,
         **kwargs,
     ):
+        """Set up the verbosity option.
+
+        :param default_logger: If an instance of ``logging.Logger`` is provided, that's
+            the instance to which we will set the level set via the option. If the
+            parameter is a string, we will use it as the name of the logger to fetch via
+            `logging.getLogger <https://docs.python.org/3/library/logging.html?highlight=getlogger#logging.getLogger>`_.
+            If not provided or `None`, the `default Python root logger
+            <https://github.com/python/cpython/blob/2b5dbd1/Lib/logging/__init__.py#L1945>`_ is used.
+        """
         if not param_decls:
             param_decls = ("--verbosity", "-v")
 
-        kwargs.setdefault("callback", self.set_level)
+        # Use the provided logger instance as-is. User is responsible for setting it up.
+        if isinstance(default_logger, logging.Logger):
+            logger = default_logger
+        # If a string is provided, use it as the logger name. ``None`` will produce a
+        # default root logger.
+        else:
+            logger = extra_basic_config(default_logger)
 
-        logger.set_logger(default_logger)
+        # Store the logger name for later use.
+        self.logger_name = logger.name
+
+        kwargs.setdefault("callback", self.set_level)
 
         super().__init__(
             param_decls=param_decls,

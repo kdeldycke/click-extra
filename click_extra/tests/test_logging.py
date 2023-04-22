@@ -17,13 +17,14 @@
 from __future__ import annotations
 
 import re
+import logging
 
 import pytest
 from pytest_cases import parametrize
 
 from .. import echo
 from ..decorators import extra_command, verbosity_option
-from ..logging import LOG_LEVELS, logger
+from ..logging import LOG_LEVELS
 from .conftest import command_decorators, default_debug_colored_log, skip_windows_colors
 
 
@@ -63,6 +64,7 @@ def test_standalone_verbosity_option(invoke, cmd_decorator, option_decorator, le
     @option_decorator
     def logging_cli2():
         echo("It works!")
+        logger = logging.getLogger("click_extra")
         logger.debug("my debug message.")
         logger.info("my info message.")
         logger.warning("my warning message.")
