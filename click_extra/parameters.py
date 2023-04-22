@@ -14,16 +14,20 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-"""Our own flavor of ``Option``, ``Argument``, ``parameters`` and environment variable utilities.
+"""Our own flavor of ``Option``, ``Argument`` and ``parameters``.
+
+Also implements environment variable utilities.
 """
 
 from __future__ import annotations
 
-import click
-from . import Option
-from typing import Sequence, Dict, Any
-from boltons.iterutils import unique
 import re
+from typing import Any, Dict, Sequence
+
+import click
+from boltons.iterutils import unique
+
+from . import Option
 
 
 def auto_envvar(

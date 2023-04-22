@@ -34,9 +34,8 @@ import cloup
 from . import Command, Group, echo
 from .colorize import ExtraHelpColorsMixin
 from .logging import logger
-from .parameters import ExtraOption
-from .version import VersionOption
 from .parameters import ExtraOption, all_envvars, normalize_envvar
+from .version import VersionOption
 
 
 class TimerOption(ExtraOption):
