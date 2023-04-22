@@ -282,6 +282,7 @@ def test_conf_auto_types(invoke, create_config, option_decorator):
     Also covers the tests of the standalone ``@config_option`` decorator in all its
     flavors.
     """
+
     @click.command
     @option("--flag1/--no-flag1")
     @option("--flag2", is_flag=True)
@@ -408,6 +409,7 @@ def test_conf_auto_types(invoke, create_config, option_decorator):
 
 def test_strict_conf(invoke, create_config):
     """Same test as the one shown in the readme, but in strict validation mode."""
+
     @click.group
     @option("--dummy-flag/--no-flag")
     @option("--my-list", multiple=True)
