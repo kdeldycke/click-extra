@@ -50,7 +50,7 @@ class ColorFormatter(logging.Formatter):
         ``levelname:name:message`` as defined by `logging.BASIC_FORMAT
         <https://github.com/python/cpython/blob/2b5dbd1/Lib/logging/__init__.py#L523>`_.
         """
-        super().__init__(fmt=fmt, *args, **kwargs)
+        super().__init__(fmt=fmt, *args, **kwargs)  # type: ignore[misc]
 
     def formatMessage(self, record):
         """Colorize the record's log level name before calling the strandard
@@ -145,7 +145,7 @@ class VerbosityOption(ExtraOption):
         param_decls: Sequence[str] | None = None,
         default="INFO",
         metavar="LEVEL",
-        type=Choice(LOG_LEVELS, case_sensitive=False),
+        type=Choice(LOG_LEVELS, case_sensitive=False),  # type: ignore[arg-type]
         expose_value=False,
         help=_("Either {log_levels}.").format(log_levels=", ".join(LOG_LEVELS)),
         is_eager=True,
