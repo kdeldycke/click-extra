@@ -60,7 +60,6 @@ from .parameters import ExtraOption  # noqa: I001, E402, F401
 from .telemetry import TelemetryOption  # noqa: I001, E402, F401
 from .version import VersionOption  # noqa: I001, E402, F401
 
-# Expose all of Click, Cloup and Click Extra.
 __all__ = [  # noqa: F405
     "Abort",
     "Argument",
@@ -169,7 +168,8 @@ __all__ = [  # noqa: F405
     "warnings",
     "wrap_text",
 ]
-"""
-..note::
+"""Expose all of Click, Cloup and Click Extra.
+
+.. note::
     The content of ``__all__` is checked and enforced in unittests.
 """

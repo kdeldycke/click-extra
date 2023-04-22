@@ -116,7 +116,7 @@ def test_color_option_precedence(invoke):
     line by the user as expleined in:
     https://click.palletsprojects.com/en/8.0.x/advanced/#callback-evaluation-order
 
-    ..todo:
+    .. todo::
 
         Maybe have the possibility to tweak CLI callback evaluation order so we can
         let the user to have the NO_COLOR env set to allow for color-less ``--version``

@@ -404,7 +404,7 @@ default_debug_colored_log = (
 def pytest_runtest_teardown(item, nextitem):
     """Destroy the logger singleton after each test.
 
-    ..danger::
+    .. danger::
         This prevent the logger singleton from being reused between tests with the wrong
         logging level.
 

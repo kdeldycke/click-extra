@@ -133,18 +133,26 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
 
         By default, these context settings are applied:
 
-        - ``show_default = True``: `show all default values <https://click.palletsprojects.com/en/8.1.x/api/#click.Context.show_default>`_ in help screen.
+        - ``show_default = True``: `show all default values
+          <https://click.palletsprojects.com/en/8.1.x/api/#click.Context.show_default>`_
+          in help screen.
 
         - ``auto_envvar_prefix = self.name``: auto-generate environment variables for
-        all options, using the command ID as prefix.
+          all options, using the command ID as prefix.
 
-        - ``align_option_groups = False``: `align option groups in help screen <https://cloup.readthedocs.io/en/stable/pages/option-groups.html#aligned-vs-non-aligned-groups>`_.
+        - ``align_option_groups = False``: `align option groups in help screen
+          <https://cloup.readthedocs.io/en/stable/pages/option-groups.html#aligned-vs-non-aligned-groups>`_.
 
-        - ``show_constraints = True``: `show all constraints in help screen <https://cloup.readthedocs.io/en/stable/pages/constraints.html#the-constraint-decorator>`_.
+        - ``show_constraints = True``: `show all constraints in help screen
+          <https://cloup.readthedocs.io/en/stable/pages/constraints.html#the-constraint-decorator>`_.
 
-        - ``show_subcommand_aliases = True``: `show all subcommand aliases in help screen <https://cloup.readthedocs.io/en/stable/pages/aliases.html?highlight=show_subcommand_aliases#help-output-of-the-group>`_.
+        - ``show_subcommand_aliases = True``: `show all subcommand aliases in help
+          screen
+          <https://cloup.readthedocs.io/en/stable/pages/aliases.html?highlight=show_subcommand_aliases#help-output-of-the-group>`_.
 
-        - ``help_option_names = ("--help", "-h")``: `allow help screen to be invoked with either --help or -h options <https://click.palletsprojects.com/en/8.1.x/documentation/#help-parameter-customization>`_.
+        - ``help_option_names = ("--help", "-h")``: `allow help screen to be invoked
+          with either --help or -h options
+          <https://click.palletsprojects.com/en/8.1.x/documentation/#help-parameter-customization>`_.
 
         To override these defaults, you can pass your own settings with the
         ``context_settings`` parameter:
@@ -280,7 +288,7 @@ class ExtraGroup(ExtraCommand, Group):
 
         Fixes `click-extra#479 <https://github.com/kdeldycke/click-extra/issues/479>`_.
 
-        ..todo::
+        .. todo::
             Allow this decorator to be called without parenthesis.
         """
         kwargs.setdefault("cls", ExtraCommand)
