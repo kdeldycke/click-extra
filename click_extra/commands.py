@@ -199,9 +199,8 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
 
         # Forces re-identification of grouped and non-grouped options as we re-ordered
         # them above and added our own extra options since initialization.
-        self.arguments, self.option_groups, self.ungrouped_options = self._group_params(
-            self.params
-        )  # type: ignore[attr-defined]
+        _grouped_params = self._group_params(self.params)  # type: ignore[attr-defined]
+        self.arguments, self.option_groups, self.ungrouped_options = _grouped_params
 
     def main(self, *args, **kwargs):
         """Pre-invokation step that is instantiating the context, then call ``invoke()``
