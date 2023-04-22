@@ -13,7 +13,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
 """Wraps vanilla Click and Cloup commands with extra features.
 
 Our flavor of commands, groups and context are all subclasses of their vanilla
@@ -200,9 +199,9 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
 
         # Forces re-identification of grouped and non-grouped options as we re-ordered
         # them above and added our own extra options since initialization.
-        self.arguments, self.option_groups, self.ungrouped_options = (
-            self._group_params(self.params) # type: ignore[attr-defined]
-        )
+        self.arguments, self.option_groups, self.ungrouped_options = self._group_params(
+            self.params
+        )  # type: ignore[attr-defined]
 
     def main(self, *args, **kwargs):
         """Pre-invokation step that is instantiating the context, then call ``invoke()``

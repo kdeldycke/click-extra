@@ -13,7 +13,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
 """Decorators for group, commands and options."""
 
 from functools import wraps
@@ -35,6 +34,7 @@ def allow_missing_parenthesis(dec_factory):
     As proposed in
     `Cloup issue #127 <https://github.com/janluke/cloup/issues/127#issuecomment-1264704896>`_.
     """
+
     @wraps(dec_factory)
     def new_factory(*args, **kwargs):
         if args and callable(args[0]):
@@ -50,6 +50,7 @@ def decorator_factory(dec, **new_defaults):
     Used to create our own collection of decorators for our custom options, based on
     Cloup's.
     """
+
     @allow_missing_parenthesis
     def decorator(*args, **kwargs):
         """Returns a new decorator instanciated with custom defaults.

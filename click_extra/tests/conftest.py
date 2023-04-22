@@ -13,7 +13,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
 """Fixtures, configuration and helpers for tests."""
 
 from __future__ import annotations
@@ -149,6 +148,7 @@ def invoke(runner, monkeypatch):
     <https://github.com/pallets/click/issues/2110>`_ of
     ``click.testing.CliRunner.invoke()``.
     """
+
     def _run(cli, *args, env: EnvVars | None = None, color=None):
         # We allow for nested iterables and None values as args for
         # convenience. We just need to flatten and filters them out.
@@ -304,6 +304,7 @@ def command_decorators(
 @pytest.fixture
 def create_config(tmp_path):
     """A generic fixture to produce a temporary configuration file."""
+
     def _create_config(filename, content):
         """Create a fake configuration file."""
         assert isinstance(content, str)
@@ -417,4 +418,5 @@ def pytest_runtest_teardown(item, nextitem):
     outcome = yield  # noqa: F841
 
     from ..logging import logger
+
     del logger

@@ -122,6 +122,7 @@ def test_color_option_precedence(invoke):
         let the user to have the NO_COLOR env set to allow for color-less ``--version``
         output.
     """
+
     @click.command
     @color_option
     @version_option(version="2.1.9")

@@ -13,7 +13,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
 """Test defaults of our custom commands, as well as their customizations and attached
 options, and how they interact with each others."""
 
@@ -89,6 +88,7 @@ def test_module_root_declarations():
 @fixture
 def all_command_cli():
     """A CLI that used all variations and flavors of subcommands."""
+
     @extra_group(version="2021.10.08")
     def command_cli1():
         echo("It works!")
@@ -319,6 +319,7 @@ def test_standalone_timer_option(invoke, cmd_decorator, option_decorator):
 
 def test_no_option_leaks_between_subcommands(invoke):
     """As reported in https://github.com/kdeldycke/click-extra/issues/489."""
+
     @click.group
     def cli():
         echo("Run cli...")
@@ -426,6 +427,7 @@ def test_option_group_integration(invoke):
 
 def test_raw_args(invoke):
     """Raw args are expected to be scoped in subcommands."""
+
     @extra_group
     @option("--dummy-flag/--no-flag")
     @pass_context
