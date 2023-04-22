@@ -56,7 +56,7 @@ def auto_envvar(
 
 def extend_envvars(
     envvars_1: str | Sequence[str] | None, envvars_2: str | Sequence[str] | None
-) -> tuple[str]:
+) -> tuple[str, ...]:
     """Utility to build environment variables value to be fed to options.
 
     Variable names are deduplicated while preserving their initial order.
@@ -94,7 +94,7 @@ def normalize_envvar(envvar: str) -> str:
 
 def all_envvars(
     param: click.Parameter, ctx: click.Context | Dict[str, Any], normalize: bool = False
-) -> tuple[str]:
+) -> tuple[str, ...]:
     """Returns the deduplicated, ordered list of environment variables for an option or
     argument, including the auto-generated one.
 
@@ -106,14 +106,13 @@ def all_envvars(
     `False` to perfectly reproduce the
     `current behavior of Click, which is subject to discussions <https://github.com/pallets/click/issues/2483>`_.
     """
-    envvars = param.envvar
     auto_envvar_id = auto_envvar(param, ctx)
+    envvars = extend_envvars(param.envvar, auto_envvar_id)
 
     if normalize:
-        envvars = normalize_envvar(envvars)
-        auto_envvar_id = normalize_envvar(auto_envvar_id)
+        envvars = tuple(normalize_envvar(var) for var in envvars)
 
-    return extend_envvars(envvars, auto_envvar_id)
+    return envvars
 
 
 class ExtraOption(Option):

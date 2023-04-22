@@ -170,13 +170,15 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
 
         default_ctx_settings: Dict[str, Any] = {
             "show_default": True,
-            "auto_envvar_prefix": normalize_envvar(self.name),
             # "default_map": {"verbosity": "DEBUG"},
             "align_option_groups": False,
             "show_constraints": True,
             "show_subcommand_aliases": True,
             "help_option_names": ("--help", "-h"),
         }
+
+        if self.name:
+            default_ctx_settings["auto_envvar_prefix"] = normalize_envvar(self.name)
 
         # Fill-in the unset settings with our defaults.
         default_ctx_settings.update(self.context_settings)
@@ -198,8 +200,8 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
 
         # Forces re-identification of grouped and non-grouped options as we re-ordered
         # them above and added our own extra options since initialization.
-        self.arguments, self.option_groups, self.ungrouped_options = self._group_params(
-            self.params
+        self.arguments, self.option_groups, self.ungrouped_options = (
+            self._group_params(self.params) # type: ignore[attr-defined]
         )
 
     def main(self, *args, **kwargs):
