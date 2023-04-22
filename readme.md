@@ -50,7 +50,7 @@ To undestrand how we ended up with the result above, [go read the tutorial](http
 - `-h`/`--help` option names (see [rant on other inconsistencies](https://blog.craftyguy.net/cmdline-help/))
 - `--color`/`--no-color` option flag
 - `--telemetry`/`--no-telemetry` flag to opt-in/out of tracking code
-- Recognize pseudo-standard environment variable conventions:
+- Recognize traditional environment variable conventions:
   - `NO_COLOR` from [`no-color.org`](https://no-color.org)
   - `DO_NOT_TRACK` from [`consoledonottrack.com`](https://consoledonottrack.com)
 - Colored `--version` option
