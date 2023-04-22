@@ -16,7 +16,7 @@
 
 """Expose package-wide elements."""
 
-__version__ = "3.11.0"
+__version__ = "4.0.0"
 """Examples of valid version strings according :pep:`440#version-scheme`:
 
 .. code-block:: python
