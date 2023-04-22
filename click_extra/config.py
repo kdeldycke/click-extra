@@ -23,6 +23,7 @@ from collections.abc import MutableMapping
 from configparser import ConfigParser, ExtendedInterpolation
 from enum import Enum
 from functools import reduce
+from logging import getLogger
 from gettext import gettext as _
 from operator import getitem, methodcaller
 from pathlib import Path
@@ -80,7 +81,6 @@ from . import (
     get_current_context,
 )
 from .colorize import KO, OK, default_theme
-from .logging import logger
 from .parameters import ExtraOption, all_envvars
 from .platforms import is_windows
 
@@ -452,6 +452,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         Returns an iterator of raw content for each file/URL matching the
         pattern.
         """
+        logger = getLogger("click_extra")
+
         # Check if the pattern is an URL.
         location = URL(pattern)
         if location and location.scheme.lower() in ("http", "https"):
@@ -489,6 +491,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         """
         user_conf = None
         for conf_format in self.formats:
+            logger = getLogger("click_extra")
             logger.debug(f"Parse configuration as {conf_format.name}...")
 
             try:
@@ -627,6 +630,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         command line parameters, environment variables or interactive prompts, takes
         precedence over any values from the config file.
         """
+        logger = getLogger("click_extra")
+
         explicit_conf = ctx.get_parameter_source("config") in (
             ParameterSource.COMMANDLINE,
             ParameterSource.ENVIRONMENT,
@@ -733,6 +738,8 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         # Exit early if the callback was processed but the option wasn't set.
         if not value:
             return
+
+        logger = getLogger("click_extra")
 
         if "click_extra.raw_args" in ctx.meta:
             raw_args = ctx.meta.get("click_extra.raw_args", [])

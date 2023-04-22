@@ -23,7 +23,7 @@ leverage the mixins in here to build up your own custom variants.
 from __future__ import annotations
 
 from gettext import gettext as _
-from logging import getLevelName
+from logging import getLevelName, getLogger
 from time import perf_counter
 from typing import Any, Dict, Sequence
 
@@ -32,7 +32,6 @@ import cloup
 
 from . import Command, Group, echo
 from .colorize import ExtraHelpColorsMixin
-from .logging import logger
 from .parameters import ExtraOption, all_envvars, normalize_envvar
 from .version import VersionOption
 
@@ -253,6 +252,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         normal execution flow the output of ``--version`` in ``DEBUG`` logs. This
         facilitates troubleshooting of user's issues.
         """
+        logger = getLogger("click_extra")
         if getLevelName(logger.level) == "DEBUG":
             # Look for our custom version parameter.
             version_param = self._get_param(ctx, VersionOption)
