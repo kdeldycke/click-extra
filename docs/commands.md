@@ -124,6 +124,14 @@ And now you get:
 
 This let you replace the preset options by your own set, tweak their order and fine-tune their defaults.
 
+## Option order
+
+Notice how the options above are ordered in the help message.
+
+The default behavior of `@extra_command` (and its derivates decorators) is to order options in the way they are provided to the `params=` argument of the decorator. Then adds to that list the additional option decorators positionned after the `@extra_command` decorator.
+
+After that, there is a final `sorting step applied to options <https://kdeldycke.github.io/click-extra/commands.html#click_extra.commands.ExtraCommand>`_. This is done by the `extra_option_at_end` option, which is `True` by default.
+
 ## Timer option
 
 ```{todo}

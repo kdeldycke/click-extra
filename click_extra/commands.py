@@ -122,7 +122,8 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         :param version: allows a version string to be set directly on the command. Will
             be passed to the first instance of ``VersionOption`` parameter attached to
             the command.
-        :param extra_option_at_end: reorders all parameters attached to the command, by
+        :param extra_option_at_end: `reorders all parameters attached to the command
+            <https://kdeldycke.github.io/click-extra/commands.html#option-order>`_, by
             moving all instances of ``ExtraOption`` at the end of the parameter list.
             The original order of the options is preserved among themselves.
         :param populate_auto_envvars: forces all parameters to have their auto-generated
