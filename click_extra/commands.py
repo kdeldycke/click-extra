@@ -120,18 +120,16 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         """List of extra parameters:
 
         :param version: allows a version string to be set directly on the command. Will
-        be passed to the first instance of ``VersionOption`` parameter attached to the
-        command.
-
+            be passed to the first instance of ``VersionOption`` parameter attached to
+            the command.
         :param extra_option_at_end: reorders all parameters attached to the command, by
-        moving all instances of ``ExtraOption`` at the end of the parameter list. The
-        original order of the options is preserved among themselves.
-
+            moving all instances of ``ExtraOption`` at the end of the parameter list.
+            The original order of the options is preserved among themselves.
         :param populate_auto_envvars: forces all parameters to have their auto-generated
-        environment variables registered. This address the shortcoming of ``click``
-        which only evaluates them dynamiccaly. By forcing their registration, the
-        auto-generated environment variables gets displayed in the help screen, fixing
-        `click#2483 issue <https://github.com/pallets/click/issues/2483>`_.
+            environment variables registered. This address the shortcoming of ``click``
+            which only evaluates them dynamiccaly. By forcing their registration, the
+            auto-generated environment variables gets displayed in the help screen,
+            fixing `click#2483 issue <https://github.com/pallets/click/issues/2483>`_.
 
         By default, these context settings are applied:
 

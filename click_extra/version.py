@@ -143,16 +143,12 @@ class VersionOption(ExtraOption):
         :param version_style: adds environment info at the end of the message. Useful to
             gather user's details for troubleshooting. Defaults to
             ``Style(fg="green")``.
-
         :param package_name_style: style of the ``version``. Defaults to
             ``default_theme.invoked_command``.
-
         :param prog_name_style: style of the ``prog_name``. Defaults to
             ``default_theme.invoked_command``.
-
         :param message_style: default style of the ``message`` parameter. Defaults to
             ``None``.
-
         :param env_info_style: style of the environment info. Defaults to
             ``Style(fg="bright_black")``.
 
