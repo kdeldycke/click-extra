@@ -22,7 +22,7 @@ These directives allows you to display any Click-based Python code blocks in Sph
 Thanks to these, you can directly demonstrate the usage of you CLI in your documentation, as well as the effects of its options and parameters. You'll no longer have to maintain screenshots of you CLIs. Or copy and paste their outputs to keep them in sync with the latest revision. Let Click Extra does that job for you!
 
 ```{hint}
-These directives are [based on the official `Pallets-Sphinx-Themes`](https://github.com/pallets/pallets-sphinx-themes/blob/main/src/pallets_sphinx_themes/themes/click/domain.py) from Click's authors, but augmented with support for ANSI colouring. That way you can show off your user-friendly CLI in all its glory! 🌈
+These directives are [based on the official `Pallets-Sphinx-Themes`](https://github.com/pallets/pallets-sphinx-themes/blob/main/src/pallets_sphinx_themes/themes/click/domain.py) from Click's authors, but augmented with support for ANSI coloring. That way you can show off your user-friendly CLI in all its glory! 🌈
 ```
 
 ### Usage
@@ -128,7 +128,7 @@ Which renders in Sphinx into a full execution trace in a terminal block:
 ```{tip}
 `.. click:example::` and `.. click:run::` directives works well with standard vanilla `click`-based CLIs.
 
-In the example above, we choose to import our CLI primitives from the `click-extra` module instead, to demonstrate the colouring of terminal session outputs, as `click-extra` provides [fancy colouring of help screens](colorize.md) by default.
+In the example above, we choose to import our CLI primitives from the `click-extra` module instead, to demonstrate the coloring of terminal session outputs, as `click-extra` provides [fancy coloring of help screens](colorize.md) by default.
 ```
 
 ```{seealso}

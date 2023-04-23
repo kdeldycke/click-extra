@@ -39,7 +39,7 @@ This is the list of issues and bugs from other projects that `click-extra` has a
 
 ## [`click-log`](https://github.com/click-contrib/click-log)
 
-- [`#30` - Add a `no-color` option, method or parameter to disable colouring globally](https://github.com/click-contrib/click-log/issues/30)
+- [`#30` - Add a `no-color` option, method or parameter to disable coloring globally](https://github.com/click-contrib/click-log/issues/30)
 - [`#29` - Log level is leaking between invokations: hack to force-reset it](https://github.com/click-contrib/click-log/issues/29)
 - [`#24` - Add missing string interpolation in error message](https://github.com/click-contrib/click-log/pull/24)
 - [`#18` - Add trailing dot to help text](https://github.com/click-contrib/click-log/pull/18)

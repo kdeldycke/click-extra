@@ -52,7 +52,7 @@ def test_standalone_version_option_with_env_info(invoke):
     def color_cli2():
         echo("It works!")
 
-    # Test default colouring.
+    # Test default coloring.
     result = invoke(color_cli2, "--version", color=True)
     assert result.exit_code == 0
 
@@ -77,7 +77,7 @@ def test_standalone_version_option_without_env_info(invoke, cmd_decorator):
     def color_cli3():
         echo("It works!")
 
-    # Test default colouring.
+    # Test default coloring.
     result = invoke(color_cli3, "--version", color=True)
     assert result.exit_code == 0
     assert (

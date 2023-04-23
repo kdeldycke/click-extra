@@ -197,7 +197,7 @@ def test_invoke_color_keep(invoke):
 
 @skip_windows_colors
 def test_invoke_color_forced(invoke):
-    # Test colours are preserved while invoking, and forced to be rendered
+    # Test colors are preserved while invoking, and forced to be rendered
     # on Windows.
     result = invoke(run_cli1, color="forced")
     check_default_colored_rendering(result)
