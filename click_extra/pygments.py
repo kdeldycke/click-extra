@@ -121,7 +121,7 @@ class AnsiFilter(Filter):
         """Transform each token of ``token_type`` type into a stream of ANSI tokens."""
         for ttype, value in stream:
             if ttype == self.token_type:
-                # TODO: Shoul we re-wrap the resulting list of token into their
+                # TODO: Should we re-wrap the resulting list of token into their
                 # original Generic.Output?
                 yield from self.ansi_lexer.get_tokens(value)
             else:
