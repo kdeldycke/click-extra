@@ -138,7 +138,8 @@ class VerbosityOption(ExtraOption):
             parameter is a string, we will use it as the name of the logger to fetch via
             `logging.getLogger <https://docs.python.org/3/library/logging.html?highlight=getlogger#logging.getLogger>`_.
             If not provided or `None`, the `default Python root logger
-            <https://github.com/python/cpython/blob/2b5dbd1/Lib/logging/__init__.py#L1945>`_ is used.
+            <https://github.com/python/cpython/blob/2b5dbd1/Lib/logging/__init__.py#L1945>`_
+            is used.
         """
         if not param_decls:
             param_decls = ("--verbosity", "-v")
