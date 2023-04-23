@@ -40,7 +40,6 @@ Sorted from lowest to highest verbosity, and ignore ``NOTSET``, as well as ``FAT
 
 
 class ColorFormatter(logging.Formatter):
-
     def formatMessage(self, record):
         """Colorize the record's log level name before calling the strandard
         formatter."""
@@ -62,12 +61,12 @@ class ClickExtraHandler(logging.Handler):
             self.handleError(record)
 
 
-def extra_basic_config(logger_name: str | None=None):
+def extra_basic_config(logger_name: str | None = None):
     """Emulate ``logging.basicConfig``, but with sane defaults:
 
-      - handler to :py:class:`ClickExtraHandler`
-      - formatter to :py:class:`ColorFormatter` with ``%(levelname)s: %(message)s`` as
-      default message format
+    - handler to :py:class:`ClickExtraHandler`
+    - formatter to :py:class:`ColorFormatter` with ``%(levelname)s: %(message)s`` as
+    default message format
     """
     logger = logging.getLogger(logger_name)
 
@@ -121,7 +120,7 @@ class VerbosityOption(ExtraOption):
 
     def __init__(
         self,
-        default_logger: logging.Logger | str | None=None,
+        default_logger: logging.Logger | str | None = None,
         param_decls: Sequence[str] | None = None,
         default="INFO",
         metavar="LEVEL",
