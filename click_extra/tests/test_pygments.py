@@ -20,6 +20,7 @@ import sys
 import tarfile
 from operator import itemgetter
 from pathlib import Path
+from importlib import metadata
 
 from boltons.strutils import camel2under
 from boltons.typeutils import issubclass
@@ -30,11 +31,6 @@ from pygments.filter import Filter
 from pygments.formatter import Formatter
 from pygments.lexers import find_lexer_class_by_name
 from pygments.style import Style
-
-if sys.version_info >= (3, 8):
-    from importlib import metadata
-else:
-    import importlib_metadata as metadata  # type: ignore[import]
 
 if sys.version_info >= (3, 11):
     import tomllib

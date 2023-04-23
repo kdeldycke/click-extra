@@ -19,14 +19,9 @@ from __future__ import annotations
 
 import inspect
 import re
-import sys
 from gettext import gettext as _
+from importlib import metadata
 from typing import Sequence
-
-if sys.version_info >= (3, 8):
-    from importlib import metadata
-else:
-    import importlib_metadata as metadata  # type: ignore[import]
 
 from boltons.ecoutils import get_profile
 

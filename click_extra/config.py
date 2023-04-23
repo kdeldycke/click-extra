@@ -29,11 +29,7 @@ from operator import getitem, methodcaller
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 from unittest.mock import patch
-
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from boltons.cacheutils import cachedproperty as cached_property
+from functools import cached_property
 
 if sys.version_info >= (3, 11):
     import tomllib
