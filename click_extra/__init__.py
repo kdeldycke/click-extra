@@ -46,6 +46,8 @@ from .decorators import (  # type: ignore[no-redef] # noqa: I001, E402, F401
     config_option,
     extra_command,
     extra_group,
+    colored_command,
+    colored_group,
     group,  # noqa: E402
     help_option,
     show_params_option,
@@ -100,6 +102,8 @@ __all__ = [  # noqa: F405
     "edit",
     "extra_command",
     "extra_group",
+    "colored_command",
+    "colored_group",
     "ExtraOption",
     "File",
     "file_path",
