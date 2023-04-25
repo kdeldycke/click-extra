@@ -155,14 +155,13 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         To override these defaults, you can pass your own settings with the
         ``context_settings`` parameter:
 
-            .. code-block:: python
-
-                @extra_command(
-                    context_settings={
-                        "show_default": False,
-                        ...
-                    }
-                )
+        .. code-block:: python
+            @extra_command(
+                context_settings={
+                    "show_default": False,
+                    ...
+                }
+            )
         """
         super().__init__(*args, **kwargs)
 
