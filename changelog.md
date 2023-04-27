@@ -18,6 +18,7 @@ This version is not released yet and is under active development.
 - Prefix `INFO`-level log message with `info: ` prefix by default.
 - Do not force resetting of log level on `--verbosity`'s context closing.
 - Remove dependency on `click-log`.
+- Remove supports for `Pallets-Sphinx-Themes < 2.1.0`.
 - Fix rendering of GitHub-Flavored Markdown tables in canonical format.
 
 ## {gh}`3.10.0 (2023-04-04) <compare/v3.9.0...v3.10.0>`

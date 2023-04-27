@@ -99,26 +99,25 @@ def setup_ansi_pygment_styles(app):
 
 
 class PatchedViewList(ViewList):
-    """Replace the code block produced by ``.. click:run::`` directive with an ANSI
-    Shell Session (``.. code-block:: ansi-shell-session``).
+    """Force the rendering of ANSI shell session.
 
-    Targets:
-        - ``.. sourcecode:: text`` `for Pallets-Sphinx-Themes <= 2.0.2
-          <https://github.com/pallets/pallets-sphinx-themes/blob/7b69241/src/pallets_sphinx_themes/themes/click/domain.py#L245>`_
-        - ``.. sourcecode:: shell-session`` `for Pallets-Sphinx-Themes > 2.0.2
-          <https://github.com/pallets/pallets-sphinx-themes/pull/62>`_
+    Replaces the ``.. sourcecode:: shell-session`` code block produced by
+    ``.. click:run::`` directive with an ANSI Shell Session:
+    ``.. code-block:: ansi-shell-session``.
+
+    ``.. sourcecode:: shell-session`` has been `released in Pallets-Sphinx-Themes 2.1.0
+    <https://github.com/pallets/pallets-sphinx-themes/pull/62>`_.
     """
 
     def append(self, *args, **kwargs):
-        default_run_blocks = (
-            ".. sourcecode:: text",
-            ".. sourcecode:: shell-session",
-        )
-        for run_block in default_run_blocks:
-            if run_block in args:
-                args = list(args)
-                index = args.index(run_block)
-                args[index] = ".. code-block:: ansi-shell-session"
+        """Search the default code block and replace it with our own version."""
+        default_code_block = ".. sourcecode:: shell-session"
+        new_code_block = ".. code-block:: ansi-shell-session"
+
+        if default_code_block in args:
+            args = list(args)
+            index = args.index(default_code_block)
+            args[index] = new_code_block
 
         return super().append(*args, **kwargs)
 
