@@ -79,11 +79,16 @@ Emulates:
 
         click._compat.text_type = str
 
-See:
+.. seealso::
     - `similar hack in click 8.x's docs/conf.py
       <https://github.com/pallets/click/commit/00883dd3d0a29f68f375cab5e21cef0669941aba#diff-85933aa74a2d66c3e4dcdf7a9ad8397f5a7971080d34ef1108296a7c6b69e7e3>`_
+
     - `incriminating import in pallets_sphinx_themes
       <https://github.com/pallets/pallets-sphinx-themes/blob/7b69241/src/pallets_sphinx_themes/themes/click/domain.py#L9>`_
+
+.. tip::
+    A fix has been proposed upstream at
+    `pallets-sphinx-themes#69 <https://github.com/pallets/pallets-sphinx-themes/pull/69>`_.
 """
 
 
