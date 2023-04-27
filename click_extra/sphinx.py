@@ -16,15 +16,15 @@
 """Helpers and utilities for Sphinx rendering of CLI based on Click Extra.
 
 .. danger::
-    This module is quite janky and does the job, but would benefits from a total clean
-    rewrite. This would require a better understanding of Sphinx, Click and MyST
-    internals.
-
-    I'll probably start by porting the whole
-    ``pallets_sphinx_themes.themes.click.domain`` here, merge it with the local
-    collection of monkey-patches from here, then clean the whole code to make it more
-    readable and maintainable. This will also eliminate the dependency on
+    This module is quite janky but does the job. Still, it would benefits from a total
+    clean rewrite. This would require a better understanding of Sphinx, Click and MyST
+    internals. And as a side effect will eliminate the dependency on
     ``pallets_sphinx_themes``.
+
+    If your up to the task, you can try to refactor it. I'll probably start by moving
+    the whole ``pallets_sphinx_themes.themes.click.domain`` code here, merge it with
+    the local collection of monkey-patches below, then clean the whole code to make it
+    more readable and maintainable. And finally, address all the todo-list below.
 
 .. todo::
     Add support for plain MyST directives to remove the need of wrapping rST into an
