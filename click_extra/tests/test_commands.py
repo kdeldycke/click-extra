@@ -83,6 +83,7 @@ def test_module_root_declarations():
         click_members.union(cloup_members).union(click_extra_members),
         key=lambda m: (m.lower(), m),
     )
+    click_extra_members = sorted(click_extra_members, key=str.casefold)
     assert expected_members == click_extra_members
 
 
