@@ -21,7 +21,7 @@
     internals. And as a side effect will eliminate the dependency on
     ``pallets_sphinx_themes``.
 
-    If your up to the task, you can try to refactor it. I'll probably start by moving
+    If you're up to the task, you can try to refactor it. I'll probably start by moving
     the whole ``pallets_sphinx_themes.themes.click.domain`` code here, merge it with
     the local collection of monkey-patches below, then clean the whole code to make it
     more readable and maintainable. And finally, address all the todo-list below.
