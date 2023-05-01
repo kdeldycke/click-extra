@@ -66,7 +66,7 @@ def extra_basic_config(logger_name: str | None = None):
 
     - handler to :py:class:`ClickExtraHandler`
     - formatter to :py:class:`ColorFormatter` with ``%(levelname)s: %(message)s`` as
-    default message format
+      default message format
     """
     logger = logging.getLogger(logger_name)
 

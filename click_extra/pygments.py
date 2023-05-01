@@ -133,11 +133,11 @@ class AnsiSessionLexer(LexerMeta):
     shell session lexers."""
 
     def __new__(cls, name, bases, dct):
-        """Setup class properties' defaults for new ANSI-capable lexers:
+        """Setup class properties' defaults for new ANSI-capable lexers.
 
-        - Add an ``ANSI `` prefix to the lexer's name.
-        - Replace all ``aliases`` IDs from the parent lexer with variants prefixed with
-          ``ansi-``.
+        - Adds an ``ANSI`` prefix to the lexer's name.
+        - Replaces all ``aliases`` IDs from the parent lexer with variants prefixed with
+            ``ansi-``.
         """
         new_cls = super().__new__(cls, name, bases, dct)
         new_cls.name = f"ANSI {new_cls.name}"
@@ -209,8 +209,9 @@ for original_lexer in collect_session_lexers():
 
 
 class AnsiHtmlFormatter(ExtendedColorHtmlFormatterMixin, HtmlFormatter):
-    """Extend standard Pygments' ``HtmlFormatter`` to `add support for ANSI 256 colors.
+    """Extend standard Pygments' ``HtmlFormatter``.
 
+    `Adds support for ANSI 256 colors
     <https://github.com/chriskuehl/pygments-ansi-color#optional-enable-256-color-support>`_.
     """
 
