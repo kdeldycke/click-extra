@@ -344,9 +344,10 @@ class ConfigOption(ExtraOption, ParamStructure):
         strict=False,
         **kwargs,
     ):
-        """Takes as input either a `wcmatch.glob local-file pattern.
+        """Takes as input a glob pattern or an URL.
 
-        <https://facelessuser.github.io/wcmatch/glob/#syntax>`_ or an URL.
+        Glob patterns must follow the syntax of `wcmatch.glob
+        <https://facelessuser.github.io/wcmatch/glob/#syntax>`_.
 
         - ``is_eager`` is active by default so the config option's ``callback``
           gets the opportunity to set the ``default_map`` values before the
