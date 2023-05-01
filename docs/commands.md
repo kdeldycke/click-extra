@@ -24,7 +24,8 @@ As you can see the result does not deviates from the original Click-based output
    invoke(hello, args=["--help"])
 ```
 
-```{note}
+```{note} Click and Cloup inheritance
+
 At the module level, `click_extra` imports all elements from `click.*`, then all elements from the `cloup.*` namespace.
 
 Which means all elements not redefined by Click Extra fallback to Cloup. And if Cloup itself does not redefine them, they fallback to Click.
@@ -110,7 +111,7 @@ And now you get:
 This let you replace the preset options by your own set, tweak their order and fine-tune their defaults.
 
 ```{eval-rst}
-.. caution::
+.. caution:: Duplicate options
 
    If you try to add option decorators to a command which already have them by default, you will end up with duplicate entries (as seen in issue {issue}`232`):
 
