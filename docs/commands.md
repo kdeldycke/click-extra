@@ -2,7 +2,7 @@
 
 ## Drop-in replacement
 
-Click Extra aims to be a drop-in replacement for Click. The vast majority of Click Extra's decorators, functions and classes are direct proxies of their Click counterparts. This means that you can replace in your code imports the `click` namespace by `click_extra` and it will work as expected.
+Click Extra aims to be a drop-in replacement for Click. The vast majority of Click Extra's decorators, functions and classes are direct proxies of their Click counterparts. This means that you can replace, in your code, imports of the `click` namespace by `click_extra` and it will work as expected.
 
 Here is for instance the [canonical `click` example](https://github.com/pallets/click#a-simple-example) with all original imports replaced with `click_extra`:
 
@@ -29,7 +29,11 @@ At the module level, `click_extra` imports all elements from `click.*`, then all
 
 Which means all elements not redefined by Click Extra fallback to Cloup. And if Cloup itself does not redefine them, they fallback to Click.
 
-For example, `click_extra.echo` is a transparent proxy to `click.echo`. While `@click_extra.option` is a proxy of `@cloup.option`. And `@click_extra.version_option` is not a proxy of anything, and is a decorator fully reimplemented by Click Extra, but mimicks the original `@click.version_option` while adding new features.
+For example:
+- `click_extra.echo` is a direct proxy to `click.echo` because Cloup does not re-implement an `echo` helper.
+- On the other hand, `@click_extra.option` is a proxy of `@cloup.option`, because Cloup adds the [possibility for options to be grouped](https://cloup.readthedocs.io/en/stable/pages/option-groups.html).
+- `@click_extra.timer` is not a proxy of anything, because it is a new decorator implemented by Click Extra.
+- As for `@click_extra.version_option`, it mimicks the original `@click.version_option`, but because it adds new features, it was fully reimplemented by Click Extra and is no longer a proxy of the original from Click.
 
 Here are few other examples on how Click Extra proxies the main elements from Click and Cloup:
 
@@ -75,34 +79,15 @@ Now if you want to benefits from all the [wonderful features of Click Extra](ind
 | `click.Group`                                               | `click_extra.ExtraGroup`     |
 | `click.Option`                                              | `click_extra.ExtraOption`    |
 
-Go to the [example in the tutorial](tutorial) to see how these `extra`-variants are used in place of their originals.
+The best place to see how to use these `extra`-variants is the [tutorial](tutorial).
 
-## Change default options
+## Default options
 
 The `@extra_command` and `@extra_group` decorators are [pre-configured with a set of default options](click_extra.commands.default_extra_params).
 
-If you try to add again options it already has by default, you will end up with duplicate entries (as seen in issue {issue}`232`):
+## Change default options
 
-```{eval-rst}
-.. click:example::
-   from click_extra import extra_command, version_option, config_option, verbosity_option
-
-   @extra_command
-   @version_option(version="0.1")
-   @config_option(default="ex.yml")
-   @verbosity_option(default="DEBUG")
-   def cli():
-      pass
-
-See how options are duplicated at the end:
-
-.. click:run::
-   invoke(cli, args=["--help"])
-```
-
-This is an expected behavior: it allows you to add your own options to the preset of `@extra_command` and `@extra_group`.
-
-To override this, you can directly provide the base decorator with options via the `params=` argument. But this time we use classes instead of decorators:
+To override the default options, you can prvide the `params=` argument to the command. But note how we use classes instead of option decorators:
 
 ```{eval-rst}
 .. click:example::
@@ -123,6 +108,29 @@ And now you get:
 ```
 
 This let you replace the preset options by your own set, tweak their order and fine-tune their defaults.
+
+```{eval-rst}
+.. caution::
+
+   If you try to add option decorators to a command which already have them by default, you will end up with duplicate entries (as seen in issue {issue}`232`):
+
+   .. click:example::
+      from click_extra import extra_command, version_option, config_option, verbosity_option
+
+      @extra_command
+      @version_option(version="0.1")
+      @config_option(default="ex.yml")
+      @verbosity_option(default="DEBUG")
+      def cli():
+         pass
+
+   See how options are duplicated at the end:
+
+   .. click:run::
+      invoke(cli, args=["--help"])
+
+   This is an expected behavior: decorators are cumulative to not prevent you to add your own options to the preset of `@extra_command` and `@extra_group`.
+```
 
 ## Option order
 

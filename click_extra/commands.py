@@ -34,6 +34,10 @@ from . import Command, Group, echo
 from .colorize import ExtraHelpColorsMixin
 from .parameters import ExtraOption, all_envvars, normalize_envvar
 from .version import VersionOption
+from .colorize import ColorOption, HelpOption
+from .config import ConfigOption, ShowParamsOption
+from .logging import VerbosityOption
+from .version import VersionOption
 
 
 class TimerOption(ExtraOption):
@@ -99,6 +103,31 @@ class ExtraContext(cloup.Context):
         meta = dict(self._meta)
         meta.update(self._extra_meta)
         return meta
+
+
+def default_extra_params():
+    """Default additional options added to ``extra_command`` and ``extra_group``:
+
+    #. ``--time`` / ``--no-time``
+    #. ``--color``, ``--ansi`` / ``--no-color``, ``--no-ansi``
+    #. ``-C``, ``--config CONFIG_PATH``
+    #. ``--show-params``
+    #. ``-v``, ``--verbosity LEVEL``
+    #. ``--version``
+    #. ``-h``, ``--help``
+
+    Order is important to let options at the top have influence on those below.
+    """
+    return [
+        TimerOption(),
+        ColorOption(),
+        # XXX Should we move config to the top as it might influence other options?
+        ConfigOption(),
+        ShowParamsOption(),
+        VerbosityOption(),
+        VersionOption(print_env_info=True),
+        HelpOption(),
+    ]
 
 
 class ExtraCommand(ExtraHelpColorsMixin, Command):

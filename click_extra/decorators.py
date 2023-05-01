@@ -20,7 +20,7 @@ from functools import wraps
 import cloup
 
 from .colorize import ColorOption, HelpOption
-from .commands import ExtraCommand, ExtraGroup, TimerOption
+from .commands import ExtraCommand, ExtraGroup, TimerOption, default_extra_params
 from .config import ConfigOption, ShowParamsOption
 from .logging import VerbosityOption
 from .tabulate import TableFormatOption
@@ -76,31 +76,6 @@ def decorator_factory(dec, **new_defaults):
         return dec(*args, **new_kwargs)
 
     return decorator
-
-
-def default_extra_params():
-    """Default additional options added to ``extra_command`` and ``extra_group``:
-
-    #. ``--time`` / ``--no-time``
-    #. ``--color``, ``--ansi`` / ``--no-color``, ``--no-ansi``
-    #. ``-C``, ``--config CONFIG_PATH``
-    #. ``--show-params``
-    #. ``-v``, ``--verbosity LEVEL``
-    #. ``--version``
-    #. ``-h``, ``--help``
-
-    Order is important to let options at the top have influence on those below.
-    """
-    return [
-        TimerOption(),
-        ColorOption(),
-        # XXX Should we move config to the top as it might influence other options?
-        ConfigOption(),
-        ShowParamsOption(),
-        VerbosityOption(),
-        VersionOption(print_env_info=True),
-        HelpOption(),
-    ]
 
 
 # Redefine cloup decorators to allow them to be used with or without parenthesis.
