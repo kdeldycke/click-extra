@@ -156,6 +156,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         ``context_settings`` parameter:
 
         .. code-block:: python
+
             @extra_command(
                 context_settings={
                     "show_default": False,
