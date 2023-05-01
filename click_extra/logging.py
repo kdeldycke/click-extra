@@ -61,7 +61,10 @@ class ClickExtraHandler(logging.Handler):
             self.handleError(record)
 
 
-def extra_basic_config(logger_name: str | None = None):
+def extra_basic_config(
+        logger_name: str | None = None,
+        fmt: str = "%(levelname)s: %(message)s",
+    ):
     """Emulate ``logging.basicConfig``, but with sane defaults:
 
     - handler to :py:class:`ClickExtraHandler`
@@ -82,11 +85,11 @@ def extra_basic_config(logger_name: str | None = None):
 
     handlers = [ClickExtraHandler()]
 
-    # Set up the formatter with a default message format to ``levelname: message``.
-    fmt = ColorFormatter(fmt="%(levelname)s: %(message)s")
+    # Set up the formatter with a default message format.
+    formatter = ColorFormatter(fmt=fmt)
     for h in handlers:
         if h.formatter is None:
-            h.setFormatter(fmt)
+            h.setFormatter(formatter)
         logger.addHandler(h)
 
     logger.propagate = False
@@ -120,8 +123,8 @@ class VerbosityOption(ExtraOption):
 
     def __init__(
         self,
-        default_logger: logging.Logger | str | None = None,
         param_decls: Sequence[str] | None = None,
+        default_logger: logging.Logger | str | None = None,
         default="INFO",
         metavar="LEVEL",
         type=Choice(LOG_LEVELS, case_sensitive=False),  # type: ignore[arg-type]

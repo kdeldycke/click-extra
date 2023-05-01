@@ -18,9 +18,11 @@ from __future__ import annotations
 
 import re
 import logging
+import random
 
 import pytest
 from pytest_cases import parametrize
+import click
 
 from .. import echo
 from ..decorators import extra_command, verbosity_option
@@ -59,25 +61,38 @@ def test_unrecognized_verbosity(invoke, cmd_decorator, cmd_type):
 )
 @parametrize("option_decorator", (verbosity_option, verbosity_option()))
 @pytest.mark.parametrize("level", LOG_LEVELS.keys())
-def test_standalone_verbosity_option(invoke, cmd_decorator, option_decorator, level):
+def test_default_root_logger(invoke, cmd_decorator, option_decorator, level):
+    """Checks:
+      - the default logger is ``<root>``
+      - the default logger message format
+      - level names are colored
+      - log level is propagated to all other loggers
+    """
+
     @cmd_decorator
     @option_decorator
     def logging_cli2():
         echo("It works!")
-        logger = logging.getLogger("click_extra")
-        logger.debug("my debug message.")
-        logger.info("my info message.")
-        logger.warning("my warning message.")
-        logger.error("my error message.")
-        logger.critical("my critical message.")
+
+        random_logger = logging.getLogger(f"random_logger_{random.randrange(10000, 99999)}")
+        random_logger.debug("my random message.")
+
+        logging.debug("my debug message.")
+        logging.info("my info message.")
+        logging.warning("my warning message.")
+        logging.error("my error message.")
+        logging.critical("my critical message.")
 
     result = invoke(logging_cli2, "--verbosity", level, color=True)
     assert result.exit_code == 0
     assert result.output == "It works!\n"
 
     messages = (
-        "\x1b[34mdebug\x1b[0m: Verbosity set to DEBUG.\n"
-        "\x1b[34mdebug\x1b[0m: my debug message.\n",
+        (
+            "\x1b[34mdebug\x1b[0m: Verbosity set to DEBUG.\n"
+            "\x1b[34mdebug\x1b[0m: my random message.\n"
+            "\x1b[34mdebug\x1b[0m: my debug message.\n"
+        ),
         "info: my info message.\n",
         "\x1b[33mwarning\x1b[0m: my warning message.\n",
         "\x1b[31merror\x1b[0m: my error message.\n",
@@ -103,3 +118,63 @@ def test_integrated_verbosity_option(invoke, level):
         assert re.fullmatch(default_debug_colored_log, result.stderr)
     else:
         assert not result.stderr
+
+
+@pytest.mark.parametrize("params", (("--verbosity", "DEBUG"), None))
+def test_custom_logger_id(invoke, params):
+    my_app_logger = logging.getLogger("awesome_app")
+
+    @click.command
+    @verbosity_option(default_logger="awesome_app")
+    def awesome_app():
+        echo("Starting Awesome App...")
+        my_app_logger.debug("Awesome App has started.")
+
+    result = invoke(awesome_app, params, color=True)
+    assert result.exit_code == 0
+    assert result.output == "Starting Awesome App...\n"
+    if params:
+        assert result.stderr == (
+            "\x1b[34mdebug\x1b[0m: Verbosity set to DEBUG.\n"
+            "\x1b[34mdebug\x1b[0m: Awesome App has started.\n"
+        )
+
+
+@pytest.mark.parametrize("params", (("--verbosity", "DEBUG"), None))
+def test_custom_logger_object(invoke, params):
+    my_app_logger = logging.getLogger("awesome_app")
+
+    @click.command
+    @verbosity_option(default_logger=my_app_logger)
+    def awesome_app():
+        echo("Starting Awesome App...")
+        my_app_logger.debug("Awesome App has started.")
+
+    result = invoke(awesome_app, params, color=True)
+    assert result.exit_code == 0
+    assert result.output == "Starting Awesome App...\n"
+    if params:
+        assert result.stderr == (
+            "\x1b[34mdebug\x1b[0m: Verbosity set to DEBUG.\n"
+            "\x1b[34mdebug\x1b[0m: Awesome App has started.\n"
+        )
+
+
+def test_custom_option_name(invoke):
+
+    param_names = ("--blah", "-B")
+
+    @click.command
+    @verbosity_option(*param_names)
+    def awesome_app():
+        root_logger = logging.getLogger()
+        root_logger.debug("my debug message.")
+
+    for name in param_names:
+        result = invoke(awesome_app, name, "DEBUG", color=True)
+        assert result.exit_code == 0
+        assert not result.output
+        assert result.stderr == (
+            "\x1b[34mdebug\x1b[0m: Verbosity set to DEBUG.\n"
+            "\x1b[34mdebug\x1b[0m: my debug message.\n"
+        )
