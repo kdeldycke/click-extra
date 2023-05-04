@@ -47,6 +47,17 @@ Are ignored:
 """
 
 
+DEFAULT_LEVEL = logging.WARNING
+"""``WARNING`` is the default level we expect any loggers to starts their lives at.
+
+``WARNING`` has been choosen as it is `the level at which the default Python's global
+root logger is set up
+<https://github.com/python/cpython/blob/0df7c3a/Lib/logging/__init__.py#L1945>`_.
+
+This value is also used as the default level of the ``--verbosity`` option below.
+"""
+
+
 class ColorFormatter(logging.Formatter):
     def formatMessage(self, record):
         """Colorize the record's log level name before calling the strandard
@@ -106,28 +117,54 @@ def extra_basic_config(
 
 
 class VerbosityOption(ExtraOption):
-    """Adds a ``--verbosity``/``-v`` option.
+    """A pre-configured ``--verbosity``/``-v`` option.
 
     Sets the level of the provided logger.
+
+    .. important::
+
+        The internal ``click_extra`` logger level will be aligned to the value set via
+        this option.
     """
 
     logger_name: str
-    """The name of the logger to use.
+    """The ID of the logger to set the level to.
 
-    This is used to fetch the logger instance via
-    `logging.getLogger <https://docs.python.org/3/library/logging.html?highlight=getlogger#logging.getLogger>`_.
+    This will be provided to
+    `logging.getLogger <https://docs.python.org/3/library/logging.html?highlight=getlogger#logging.getLogger>`_
+    method to fetch the logger object, and as such, can be a dot-separated string to
+    build hierarchical loggers.
     """
 
-    def set_level(self, ctx, param, value):
-        """Set logger level and print its value as a debug message."""
-        logger = logging.getLogger(self.logger_name)
-        logger.setLevel(LOG_LEVELS[value])
+    @property
+    def all_loggers(self) -> tuple[str, ...]:
+        """Returns the list of logger IDs affected by the verbosity option.
 
-        # Aligns Click Extra's internal logger level with the verbosity option.
-        extra_logger = logging.getLogger("click_extra")
-        extra_logger.setLevel(LOG_LEVELS[value])
+        Will returns the option's logger and Click Extra's internal logger, so we'll
+        have the level of these two aligned.
+        """
+        return (self.logger_name, "click_extra")
 
-        extra_logger.debug(f"Verbosity set to {value}.")
+    def reset_loggers(self):
+        """Forces all loggers managed by the option to be reset to the default level.
+        """
+        for name in self.all_loggers:
+            logger = logging.getLogger(name)
+            logger.setLevel(DEFAULT_LEVEL)
+
+    def set_levels(self, ctx, param, value):
+        """Set level of all loggers configured on the option.
+
+        Also prints the chosen value as a debug message via the internal
+        ``click_extra`` logger.
+        """
+        for name in self.all_loggers:
+            logger = logging.getLogger(name)
+            logger.setLevel(LOG_LEVELS[value])
+            if name == "click_extra":
+                logger.debug(f"Verbosity set to {value}.")
+
+        ctx.call_on_close(self.reset_loggers)
 
     def __init__(
         self,
@@ -165,7 +202,7 @@ class VerbosityOption(ExtraOption):
         # Store the logger name for later use.
         self.logger_name = logger.name
 
-        kwargs.setdefault("callback", self.set_level)
+        kwargs.setdefault("callback", self.set_levels)
 
         super().__init__(
             param_decls=param_decls,
