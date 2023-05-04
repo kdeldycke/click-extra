@@ -37,7 +37,7 @@ def test_level_default_order():
 
 def test_root_logger_default_level():
     """Check our internal default is aligned to Python's root logger."""
-    assert logging._levelToName[logging.root.level] == 'WARNING'
+    assert logging._levelToName[logging.root.level] == "WARNING"
     assert logging.root.level == DEFAULT_LEVEL
 
 
@@ -74,10 +74,10 @@ def test_unrecognized_verbosity(invoke, cmd_decorator, cmd_type):
 @pytest.mark.parametrize("level", LOG_LEVELS.keys())
 def test_default_root_logger(invoke, cmd_decorator, option_decorator, level):
     """Checks:
-      - the default logger is ``<root>``
-      - the default logger message format
-      - level names are colored
-      - log level is propagated to all other loggers
+    - the default logger is ``<root>``
+    - the default logger message format
+    - level names are colored
+    - log level is propagated to all other loggers
     """
 
     @cmd_decorator
@@ -85,7 +85,9 @@ def test_default_root_logger(invoke, cmd_decorator, option_decorator, level):
     def logging_cli2():
         echo("It works!")
 
-        random_logger = logging.getLogger(f"random_logger_{random.randrange(10000, 99999)}")
+        random_logger = logging.getLogger(
+            f"random_logger_{random.randrange(10000, 99999)}"
+        )
         random_logger.debug("my random message.")
 
         logging.debug("my debug message.")
@@ -172,7 +174,6 @@ def test_custom_logger_object(invoke, params):
 
 
 def test_custom_option_name(invoke):
-
     param_names = ("--blah", "-B")
 
     @click.command
