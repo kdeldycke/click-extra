@@ -31,6 +31,10 @@ from .conftest import command_decorators, default_debug_colored_log, skip_window
 from ..logging import DEFAULT_LEVEL
 
 
+def test_level_default_order():
+    assert tuple(LOG_LEVELS) == ("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG")
+
+
 def test_root_logger_default_level():
     """Check our internal default is aligned to Python's root logger."""
     assert logging._levelToName[logging.root.level] == 'WARNING'
