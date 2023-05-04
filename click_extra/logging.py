@@ -34,8 +34,16 @@ LOG_LEVELS = {
 }
 """Mapping of canonical log level names to their IDs.
 
-Sorted from lowest to highest verbosity, and ignore ``NOTSET``, as well as ``FATAL`` &
-``WARN`` aliases.
+Sorted from lowest to highest verbosity.
+
+Are ignored:
+
+- ``NOTSET``, which is considered internal
+- ``WARN``, which `is obsolete
+  <https://docs.python.org/3/library/logging.html?highlight=warn#logging.Logger.warning>`_
+- ``FATAL``, which `has been deprecated
+  <https://github.com/python/cpython/blob/0df7c3a/Lib/logging/__init__.py#L1538-L1541>`_
+  in favor of ``CRITICAL``
 """
 
 
