@@ -141,7 +141,6 @@ And then see how each level selectively print messages and renders with colors:
       invoke(multiple_loggers, args=["--verbosity", "DEBUG"])
 ```
 
-
 ### Custom logger
 
 If you'd like to target another logger than the default `root` logger, you can pass [your own logger](https://docs.python.org/3/library/logging.html?#logging.getLogger)'s ID to the option parameter:
@@ -150,8 +149,7 @@ If you'd like to target another logger than the default `root` logger, you can p
 .. click:example::
     import logging
     from click import command, echo
-    from click_extra import verbosity_option
-    from click_extra.logging import extra_basic_config
+    from click_extra import extra_basic_config, verbosity_option
 
     # Create a custom logger in the style of Click Extra, with our own format message.
     extra_basic_config(
@@ -162,7 +160,7 @@ If you'd like to target another logger than the default `root` logger, you can p
     @command
     @verbosity_option(default_logger="app_logger")
     def awesome_app():
-        echo("Awesome App strated")
+        echo("Awesome App started")
         logger = logging.getLogger("app_logger")
         logger.debug("Awesome App has started.")
 
@@ -188,7 +186,7 @@ You can also pass the default logger object to the option:
     @command
     @verbosity_option(default_logger=my_app_logger)
     def awesome_app():
-        echo("Awesome App strated")
+        echo("Awesome App started")
         logger = logging.getLogger("app_logger")
         logger.debug("Awesome App has started.")
 
