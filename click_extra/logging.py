@@ -81,9 +81,9 @@ class ClickExtraHandler(logging.Handler):
 
 
 def extra_basic_config(
-        logger_name: str | None = None,
-        fmt: str = "%(levelname)s: %(message)s",
-    ):
+    logger_name: str | None = None,
+    fmt: str = "%(levelname)s: %(message)s",
+):
     """Emulate ``logging.basicConfig``, but with sane defaults:
 
     - handler to :py:class:`ClickExtraHandler`
