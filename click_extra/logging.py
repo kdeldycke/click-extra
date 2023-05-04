@@ -50,7 +50,7 @@ Are ignored:
 DEFAULT_LEVEL = logging.WARNING
 """``WARNING`` is the default level we expect any loggers to starts their lives at.
 
-``WARNING`` has been choosen as it is `the level at which the default Python's global
+``WARNING`` has been chosen as it is `the level at which the default Python's global
 root logger is set up
 <https://github.com/python/cpython/blob/0df7c3a/Lib/logging/__init__.py#L1945>`_.
 
