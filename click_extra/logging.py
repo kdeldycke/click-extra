@@ -147,6 +147,11 @@ class VerbosityOption(ExtraOption):
 
     def reset_loggers(self):
         """Forces all loggers managed by the option to be reset to the default level.
+
+        .. danger::
+            Resseting loggers is extremely important for unittests. Because they're
+            global, loggers have tendency to leak and pollute their state between
+            multiple test calls.
         """
         for name in self.all_loggers:
             logger = logging.getLogger(name)
