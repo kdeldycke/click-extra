@@ -28,6 +28,13 @@ from .. import echo
 from ..decorators import extra_command, verbosity_option
 from ..logging import LOG_LEVELS
 from .conftest import command_decorators, default_debug_colored_log, skip_windows_colors
+from ..logging import DEFAULT_LEVEL
+
+
+def test_root_logger_default_level():
+    """Check our internal default is aligned to Python's root logger."""
+    assert logging._levelToName[logging.root.level] == 'WARNING'
+    assert logging.root.level == DEFAULT_LEVEL
 
 
 @pytest.mark.parametrize("cmd_decorator, cmd_type", command_decorators(with_types=True))
