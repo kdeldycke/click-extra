@@ -36,8 +36,18 @@ from click import *  # noqa: E402, F403
 from click.core import ParameterSource  # noqa: E402, F401
 from cloup import *  # type: ignore[no-redef] # noqa: E402, F403
 
-from .colorize import ColorOption, HelpOption  # noqa: I001, E402, F401
-from .commands import TimerOption  # noqa: I001, E402, F401
+from .colorize import (  # noqa: I001, E402, F401
+    ColorOption,
+    HelpExtraFormatter,
+    HelpOption,
+    HelpExtraTheme,
+)
+from .commands import (  # noqa: I001, E402, F401
+    TimerOption,
+    ExtraCommand,
+    ExtraContext,
+    ExtraGroup,
+)
 from .config import ConfigOption, ShowParamsOption  # noqa: I001, E402, F401
 from .decorators import (  # type: ignore[no-redef] # noqa: I001, E402, F401
     color_option,
@@ -54,8 +64,14 @@ from .decorators import (  # type: ignore[no-redef] # noqa: I001, E402, F401
     verbosity_option,
     version_option,
 )
-from .logging import VerbosityOption  # noqa: I001, E402, F401
+from .logging import (  # noqa: I001, E402, F401
+    VerbosityOption,
+    ColorFormatter,
+    ClickExtraHandler,
+    extra_basic_config,
+)
 from .parameters import ExtraOption  # noqa: I001, E402, F401
+from .tabulate import TableFormatOption  # noqa: I001, E402, F401
 from .telemetry import TelemetryOption  # noqa: I001, E402, F401
 from .version import VersionOption  # noqa: I001, E402, F401
 
@@ -71,6 +87,7 @@ __all__ = [  # noqa: F405
     "Choice",
     "clear",
     "ClickException",
+    "ClickExtraHandler",
     # XXX Color cannot be imported from cloup. It leads to an issue in the way autodoc
     # is trying to render it:
     #   Exception occurred:
@@ -79,6 +96,7 @@ __all__ = [  # noqa: F405
     #   Exception: you can't set attributes on this class
     # "Color",
     "color_option",
+    "ColorFormatter",
     "ColorOption",
     "Command",
     "command",
@@ -96,8 +114,12 @@ __all__ = [  # noqa: F405
     "echo",
     "echo_via_pager",
     "edit",
+    "extra_basic_config",
     "extra_command",
     "extra_group",
+    "ExtraCommand",
+    "ExtraContext",
+    "ExtraGroup",
     "ExtraOption",
     "File",
     "file_path",
@@ -113,6 +135,8 @@ __all__ = [  # noqa: F405
     "Group",
     "group",
     "help_option",
+    "HelpExtraFormatter",
+    "HelpExtraTheme",
     "HelpFormatter",
     "HelpOption",
     "HelpSection",
@@ -151,6 +175,7 @@ __all__ = [  # noqa: F405
     "Style",
     "style",
     "table_format_option",
+    "TableFormatOption",
     "telemetry_option",
     "TelemetryOption",
     "timer_option",
