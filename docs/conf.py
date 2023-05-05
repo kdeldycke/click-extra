@@ -31,6 +31,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.todo",
     "sphinx.ext.extlinks",
+    "sphinx.ext.intersphinx",
     "sphinx.ext.viewcode",
     # Adds a copy button to code blocks.
     "sphinx_copybutton",
@@ -39,6 +40,8 @@ extensions = [
     "sphinx_issues",
     "sphinxext.opengraph",
     "myst_parser",
+    "sphinx.ext.autosectionlabel",
+    "sphinx_autodoc_typehints",
     "click_extra.sphinx",
     "sphinxcontrib.mermaid",
 ]
@@ -76,6 +79,14 @@ github_project = f"https://github.com/{issues_github_path}"
 extlinks = {
     "gh": (f"{github_project}/%s", "GitHub: %s"),
 }
+
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+}
+
+# Prefix document path to section labels, to use:
+# `path/to/file:heading` instead of just `heading`
+autosectionlabel_prefix_document = True
 
 # Theme config.
 html_theme = "furo"
