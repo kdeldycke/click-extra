@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import logging
 from gettext import gettext as _
-from typing import Sequence
+from typing import Iterable, Sequence, TypeVar, Type, Literal
 
 import click
 
@@ -58,18 +58,14 @@ This value is also used as the default level of the ``--verbosity`` option below
 """
 
 
-class ColorFormatter(logging.Formatter):
-    def formatMessage(self, record):
-        """Colorize the record's log level name before calling the strandard
-        formatter."""
-        level = record.levelname.lower()
-        level_style = getattr(default_theme, level, None)
-        record.levelname = level_style(level)
-        return super().formatMessage(record)
+Formatter = TypeVar('Formatter', bound=logging.Formatter)
+Handler = TypeVar('Handler', bound=logging.Handler)
 
 
 class ClickExtraHandler(logging.Handler):
-    def emit(self, record):
+#class ExtraHandler(logging.Handler):
+
+    def emit(self, record: logging.LogRecord) -> None:
         """Print the log message to console's ``<stderr>``."""
         try:
             msg = self.format(record)
@@ -80,17 +76,28 @@ class ClickExtraHandler(logging.Handler):
             self.handleError(record)
 
 
+class ColorFormatter(logging.Formatter):
+    def formatMessage(self, record: logging.LogRecord) -> str:
+        """Colorize the record's log level name before calling the strandard
+        formatter."""
+        level = record.levelname.lower()
+        level_style = getattr(default_theme, level, None)
+        if level_style:
+            record.levelname = level_style(level)
+        return super().formatMessage(record)
+
+
 def extra_basic_config(
     logger_name: str | None = None,
     format: str | None = "{levelname}: {message}",
     datefmt: str | None = None,
-    style: str = "{",
+    style: Literal['%', '{', '$'] = "{",
     level: int | None = None,
-    handlers: Sequence[logging.Handler] | None = None,
+    handlers: Iterable[logging.Handler] | None = None,
     force: bool = True,
-    handler_class: logging.Handler = ClickExtraHandler,
-    formatter_class: logging.Formatter = ColorFormatter,
-):
+    handler_class: type[Handler] = ClickExtraHandler,  # type: ignore[assignment]
+    formatter_class: type[Formatter] = ColorFormatter,  # type: ignore[assignment]
+) -> logging.Logger:
     """Setup and configure a logger.
 
     Reimplements `logging.basicConfig
