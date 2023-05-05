@@ -27,7 +27,7 @@ from . import Choice
 from .colorize import default_theme
 from .parameters import ExtraOption
 
-LOG_LEVELS = {
+LOG_LEVELS: dict[str, int] = {
     name: value
     for value, name in sorted(logging._levelToName.items(), reverse=True)
     if name != "NOTSET"
@@ -47,7 +47,7 @@ Are ignored:
 """
 
 
-DEFAULT_LEVEL = logging.WARNING
+DEFAULT_LEVEL: int = logging.WARNING
 """``WARNING`` is the default level we expect any loggers to starts their lives at.
 
 ``WARNING`` has been chosen as it is `the level at which the default Python's global
@@ -82,36 +82,80 @@ class ClickExtraHandler(logging.Handler):
 
 def extra_basic_config(
     logger_name: str | None = None,
-    fmt: str = "%(levelname)s: %(message)s",
+    format: str | None = "{levelname}: {message}",
+    datefmt: str | None = None,
+    style: str = "{",
+    level: int | None = None,
+    handlers: Sequence[logging.Handler] | None = None,
+    force: bool = True,
+    handler_class: logging.Handler = ClickExtraHandler,
+    formatter_class: logging.Formatter = ColorFormatter,
 ):
-    """Emulate ``logging.basicConfig``, but with sane defaults:
+    """Setup and configure a logger.
 
-    - handler to :py:class:`ClickExtraHandler`
-    - formatter to :py:class:`ColorFormatter` with ``%(levelname)s: %(message)s`` as
-      default message format
+    Reimplements `logging.basicConfig
+    <https://docs.python.org/3/library/logging.html?highlight=basicconfig#logging.basicConfig>`_,
+    but with sane defaults and more parameters.
+
+    :param logger_name: ID of the logger to setup. If ``None``, Python's ``root``
+        logger will be used.
+    :param format: Use the specified format string for the handler.
+        Defaults to ``levelname`` and ``message`` separated by a colon.
+    :param datefmt: Use the specified date/time format, as accepted by
+        :func:`time.strftime`.
+    :param style: If *format* is specified, use this style for the format string. One
+        of ``%``, ``{`` or ``$`` for :ref:`printf-style <old-string-formatting>`,
+        :meth:`str.format` or :class:`string.Template` respectively. Defaults to ``{``.
+    :param level: Set the logger level to the specified :ref:`level <levels>`.
+    :param handlers: A list of ``logging.Handler`` instances to attach to the logger.
+        If not provided, a new handler of the class set by the ``handler_class``
+        parameter will be created. Any handler in the list which does not have a
+        formatter assigned will be assigned the formatter created in this function.
+    :param force: Remove and close any existing handlers attached to the logger
+        before carrying out the configuration as specified by the other arguments.
+        Default to ``True`` so we always starts from a clean state each time we
+        configure a logger. This is a life-saver in unittests in which loggers pollutes
+        output.
+    :param handler_class: Handler class to be used to create a new handler if none
+        provided. Defaults to :py:class:`ClickExtraHandler`.
+    :param formatter_class: Class of the formatter that will be setup on each handler
+        if none found. Defaults to :py:class:`ColorFormatter`.
+
+    .. todo::
+        Add more parameters for even greater configurability of the logger, by
+        re-implementing those supported by ``logging.basicConfig``.
     """
+    # Fetch the logger or create a new one.
     logger = logging.getLogger(logger_name)
 
-    if logger is logging.root:
-        logging.basicConfig(force=True)
-
-    else:
-        # Emulates `force=True` parameter of logging.basicConfig:
-        # https://github.com/python/cpython/blob/2b5dbd1f237a013defdaf0799e0a1a3cbd0b13cc/Lib/logging/__init__.py#L2028-L2031
+    # Remove and close any existing handlers. Copy of:
+    # https://github.com/python/cpython/blob/2b5dbd1/Lib/logging/__init__.py#L2028-L2031
+    if force:
         for h in logger.handlers[:]:
             logger.removeHandler(h)
             h.close()
 
-    handlers = [ClickExtraHandler()]
+    # If no handlers provided, create a new one with the default handler class.
+    if not handlers:
+        handlers = (handler_class(),)
 
     # Set up the formatter with a default message format.
-    formatter = ColorFormatter(fmt=fmt)
+    formatter = formatter_class(
+        fmt=format,
+        datefmt=datefmt,
+        style=style,
+    )
+
+    # Attach handlers to the loggers.
     for h in handlers:
         if h.formatter is None:
             h.setFormatter(formatter)
         logger.addHandler(h)
 
     logger.propagate = False
+
+    if level is not None:
+        logger.setLevel(level)
 
     return logger
 
@@ -196,11 +240,13 @@ class VerbosityOption(ExtraOption):
         if not param_decls:
             param_decls = ("--verbosity", "-v")
 
-        # Use the provided logger instance as-is. User is responsible for setting it up.
+        # Use the provided logger instance as-is.
         if isinstance(default_logger, logging.Logger):
             logger = default_logger
-        # If a string is provided, use it as the logger name. ``None`` will produce a
-        # default root logger.
+        # If a string is provided, use it as the logger name.
+        elif isinstance(default_logger, str):
+            logger = logging.getLogger(default_logger)
+        # ``None`` will produce a default root logger.
         else:
             logger = extra_basic_config(default_logger)
 

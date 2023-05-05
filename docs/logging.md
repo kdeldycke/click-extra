@@ -153,8 +153,8 @@ If you'd like to target another logger than the default `root` logger, you can p
 
     # Create a custom logger in the style of Click Extra, with our own format message.
     extra_basic_config(
-        "app_logger",
-        fmt="%(levelname)s | %(name)s | %(message)s",
+        logger_name="app_logger",
+        format="{levelname} | {name} | {message}",
     )
 
     @command
