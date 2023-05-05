@@ -33,7 +33,6 @@ import cloup
 from . import Command, Group, echo
 from .colorize import ExtraHelpColorsMixin
 from .parameters import ExtraOption, all_envvars, normalize_envvar
-from .version import VersionOption
 from .colorize import ColorOption, HelpOption
 from .config import ConfigOption, ShowParamsOption
 from .logging import VerbosityOption
