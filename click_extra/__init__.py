@@ -66,8 +66,8 @@ from .decorators import (  # type: ignore[no-redef] # noqa: I001, E402, F401
 )
 from .logging import (  # noqa: I001, E402, F401
     VerbosityOption,
-    ColorFormatter,
-    ClickExtraHandler,
+    ExtraLogFormatter,
+    ExtraLogHandler,
     extra_basic_config,
 )
 from .parameters import ExtraOption  # noqa: I001, E402, F401
@@ -87,7 +87,6 @@ __all__ = [  # noqa: F405
     "Choice",
     "clear",
     "ClickException",
-    "ClickExtraHandler",
     # XXX Color cannot be imported from cloup. It leads to an issue in the way autodoc
     # is trying to render it:
     #   Exception occurred:
@@ -96,7 +95,6 @@ __all__ = [  # noqa: F405
     #   Exception: you can't set attributes on this class
     # "Color",
     "color_option",
-    "ColorFormatter",
     "ColorOption",
     "Command",
     "command",
@@ -120,6 +118,8 @@ __all__ = [  # noqa: F405
     "ExtraCommand",
     "ExtraContext",
     "ExtraGroup",
+    "ExtraLogFormatter",
+    "ExtraLogHandler",
     "ExtraOption",
     "File",
     "file_path",

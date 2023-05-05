@@ -62,11 +62,11 @@ Formatter = TypeVar('Formatter', bound=logging.Formatter)
 Handler = TypeVar('Handler', bound=logging.Handler)
 
 
-class ClickExtraHandler(logging.Handler):
-#class ExtraHandler(logging.Handler):
+class ExtraLogHandler(logging.Handler):
+    """A handler to output logs to console's ``<stderr>``."""
 
     def emit(self, record: logging.LogRecord) -> None:
-        """Print the log message to console's ``<stderr>``."""
+        """Use ``click.echo`` to print to ``<stderr>`` and supports colors."""
         try:
             msg = self.format(record)
             click.echo(msg, err=True)
@@ -76,7 +76,7 @@ class ClickExtraHandler(logging.Handler):
             self.handleError(record)
 
 
-class ColorFormatter(logging.Formatter):
+class ExtraLogFormatter(logging.Formatter):
     def formatMessage(self, record: logging.LogRecord) -> str:
         """Colorize the record's log level name before calling the strandard
         formatter."""
@@ -95,8 +95,8 @@ def extra_basic_config(
     level: int | None = None,
     handlers: Iterable[logging.Handler] | None = None,
     force: bool = True,
-    handler_class: type[Handler] = ClickExtraHandler,  # type: ignore[assignment]
-    formatter_class: type[Formatter] = ColorFormatter,  # type: ignore[assignment]
+    handler_class: type[Handler] = ExtraLogHandler,  # type: ignore[assignment]
+    formatter_class: type[Formatter] = ExtraLogFormatter,  # type: ignore[assignment]
 ) -> logging.Logger:
     """Setup and configure a logger.
 
@@ -124,9 +124,9 @@ def extra_basic_config(
         configure a logger. This is a life-saver in unittests in which loggers pollutes
         output.
     :param handler_class: Handler class to be used to create a new handler if none
-        provided. Defaults to :py:class:`ClickExtraHandler`.
+        provided. Defaults to :py:class:`ExtraLogHandler`.
     :param formatter_class: Class of the formatter that will be setup on each handler
-        if none found. Defaults to :py:class:`ColorFormatter`.
+        if none found. Defaults to :py:class:`ExtraLogFormatter`.
 
     .. todo::
         Add more parameters for even greater configurability of the logger, by
