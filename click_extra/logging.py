@@ -159,8 +159,6 @@ def extra_basic_config(
             h.setFormatter(formatter)
         logger.addHandler(h)
 
-    logger.propagate = False
-
     if level is not None:
         logger.setLevel(level)
 
