@@ -194,6 +194,10 @@ You can also pass the default logger object to the option:
    invoke(awesome_app, args=["--verbosity", "DEBUG"])
 ```
 
+```{todo}
+Write more documentation about `extra_basic_config()`.
+```
+
 ## Internal `click_extra` logger
 
 ```{todo}

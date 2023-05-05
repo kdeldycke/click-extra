@@ -236,11 +236,15 @@ class VerbosityOption(ExtraOption):
 
         :param default_logger: If an instance of ``logging.Logger`` is provided, that's
             the instance to which we will set the level set via the option. If the
-            parameter is a string, we will use it as the name of the logger to fetch via
-            `logging.getLogger <https://docs.python.org/3/library/logging.html?highlight=getlogger#logging.getLogger>`_.
-            If not provided or `None`, the `default Python root logger
+            parameter is a string, we will fetch it with `logging.getLogger
+            <https://docs.python.org/3/library/logging.html?highlight=getlogger#logging.getLogger>`_.
+            If not provided or ``None``, the `default Python root logger
             <https://github.com/python/cpython/blob/2b5dbd1/Lib/logging/__init__.py#L1945>`_
             is used.
+
+        .. todo::
+            Write more documentation to detail in which case the user is responsible
+            for setting up the logger, and when ``extra_basic_config`` is used.
         """
         if not param_decls:
             param_decls = ("--verbosity", "-v")
