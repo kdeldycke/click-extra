@@ -58,8 +58,8 @@ This value is also used as the default level of the ``--verbosity`` option below
 """
 
 
-Formatter = TypeVar('Formatter', bound=logging.Formatter)
-Handler = TypeVar('Handler', bound=logging.Handler)
+Formatter = TypeVar("Formatter", bound=logging.Formatter)
+Handler = TypeVar("Handler", bound=logging.Handler)
 
 
 class ExtraLogHandler(logging.Handler):
@@ -91,7 +91,7 @@ def extra_basic_config(
     logger_name: str | None = None,
     format: str | None = "{levelname}: {message}",
     datefmt: str | None = None,
-    style: Literal['%', '{', '$'] = "{",
+    style: Literal["%", "{", "$"] = "{",
     level: int | None = None,
     handlers: Iterable[logging.Handler] | None = None,
     force: bool = True,
