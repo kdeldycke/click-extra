@@ -14,8 +14,8 @@ This version is not released yet and is under active development.
 - Force resetting of log level on `--verbosity`'s context closing to the hard-coded default.
 - Use a dedicated `click_extra` logger for all internal messages, instead of sending them to the user-defined one.
 - Aligns `click_extra` logger level to `--verbosity` option level.
-- `--verbosity` set the level of the Python's global `root` logger by default, instead of `click_extra.logging`.
-- Allow user to provide a string as the default logger to `--verbosity` that will be used to fetch the global logger singleton of that name.
+- Set default logger of `--verbosity` to Python's global `root` logger, instead a local wrapped logger. Closes {issue}`318`.
+- Allow user to provide a string as the default logger to `--verbosity` that will be used to fetch the global logger singleton of that name. Closes {issue}`318`.
 - Only colorize the `%(levelname)s` field during log record formatting, not the `:` message separator.
 - Prefix `INFO`-level log message with `info: ` prefix by default.
 - Remove dependency on `click-log`.

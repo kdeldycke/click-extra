@@ -194,6 +194,11 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         """
         super().__init__(*args, **kwargs)
 
+        # TODO: implements:
+        # self.show_all_default = show_default
+        # self.show_all_choices = show_choices
+        # self.show_all_envvar = show_envvar => https://github.com/pallets/click/issues/2313
+
         default_ctx_settings: Dict[str, Any] = {
             "show_default": True,
             # "default_map": {"verbosity": "DEBUG"},
@@ -321,3 +326,11 @@ class ExtraGroup(ExtraCommand, Group):
         """
         kwargs.setdefault("cls", ExtraCommand)
         return super().command(*args, **kwargs)
+
+
+
+# -0, --zero-exit
+# rospector will exit with a code of 1 (one) if any messages are found. This makes
+# automation easier; if there are any problems at all, the exit code is non-zero.
+# However this behaviour is not always desirable, so if this flag is set, prospector
+# will exit with a code of 0 if it ran successfully, and non-zero if it failed to run.
