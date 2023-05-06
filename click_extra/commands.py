@@ -269,13 +269,24 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         return ctx
 
     @staticmethod
-    def _get_param(ctx, klass):
-        """Search for the unique instance of a parameter that has been setup on the
-        command and return it."""
+    def _search_params(ctx, klass: type[click.Parameter], unique: bool=True) -> list[click.Parameter] | click.Parameter | None:
+        """Search on the command all instances of a parameter and return them.
+
+        :param klass: the class of the parameters to look for.
+        :param unique: if ``True``, raise an error if more than one parameter of the
+            provided ``klass`` is found.
+        """
         params = [p for p in ctx.command.params if isinstance(p, klass)]
-        if params:
-            assert len(params) == 1
+        if not params:
+            return None
+        if unique:
+            if len(params) != 1:
+                raise RuntimeError(
+                    f"More than one {klass.__name__} parameters found "
+                    f"on command: {params}"
+                )
             return params.pop()
+        return params
 
     def invoke(self, ctx):
         """Main execution of the command, just after the context has been instantiated
@@ -288,7 +299,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         logger = getLogger("click_extra")
         if getLevelName(logger.level) == "DEBUG":
             # Look for our custom version parameter.
-            version_param = self._get_param(ctx, VersionOption)
+            version_param = self._search_params(ctx, VersionOption)
             if version_param:
                 version_message = version_param.callback(
                     ctx, version_param, True, capture_output=True

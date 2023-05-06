@@ -18,6 +18,7 @@ This version is not released yet and is under active development.
 - Allow user to provide a string as the default logger to `--verbosity` that will be used to fetch the global logger singleton of that name. Closes {issue}`318`.
 - Only colorize the `%(levelname)s` field during log record formatting, not the `:` message separator.
 - Prefix `INFO`-level log message with `info: ` prefix by default.
+- Raise an error if multiple `--version` options are defined in the same command. Closes {issue}`317`.
 - Remove dependency on `click-log`.
 - Remove supports for `Pallets-Sphinx-Themes < 2.1.0`.
 - Fix rendering of GitHub-Flavored Markdown tables in canonical format.
