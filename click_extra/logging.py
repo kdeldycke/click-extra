@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-import logging
+from logging import getLevelName, getLogger, Logger, WARNING, _levelToName, Formatter, Handler, LogRecord
 import sys
 from collections.abc import Generator, Iterable, Sequence
 from gettext import gettext as _
@@ -31,7 +31,7 @@ from .parameters import ExtraOption
 
 LOG_LEVELS: dict[str, int] = {
     name: value
-    for value, name in sorted(logging._levelToName.items(), reverse=True)
+    for value, name in sorted(_levelToName.items(), reverse=True)
     if name != "NOTSET"
 }
 """Mapping of canonical log level names to their IDs.
@@ -49,8 +49,8 @@ Are ignored:
 """
 
 
-DEFAULT_LEVEL: int = logging.WARNING
-DEFAULT_LEVEL_NAME: str = logging._levelToName[DEFAULT_LEVEL]
+DEFAULT_LEVEL: int = WARNING
+DEFAULT_LEVEL_NAME: str = _levelToName[DEFAULT_LEVEL]
 """``WARNING`` is the default level we expect any loggers to starts their lives at.
 
 ``WARNING`` has been chosen as it is `the level at which the default Python's global
@@ -61,14 +61,14 @@ This value is also used as the default level of the ``--verbosity`` option below
 """
 
 
-Formatter = TypeVar("Formatter", bound=logging.Formatter)
-Handler = TypeVar("Handler", bound=logging.Handler)
+TFormatter = TypeVar("TFormatter", bound=Formatter)
+THandler = TypeVar("THandler", bound=Handler)
 
 
-class ExtraLogHandler(logging.Handler):
+class ExtraLogHandler(Handler):
     """A handler to output logs to console's ``<stderr>``."""
 
-    def emit(self, record: logging.LogRecord) -> None:
+    def emit(self, record: LogRecord) -> None:
         """Use ``click.echo`` to print to ``<stderr>`` and supports colors."""
         try:
             msg = self.format(record)
@@ -79,8 +79,8 @@ class ExtraLogHandler(logging.Handler):
             self.handleError(record)
 
 
-class ExtraLogFormatter(logging.Formatter):
-    def formatMessage(self, record: logging.LogRecord) -> str:
+class ExtraLogFormatter(Formatter):
+    def formatMessage(self, record: LogRecord) -> str:
         """Colorize the record's log level name before calling the strandard
         formatter."""
         level = record.levelname.lower()
@@ -96,11 +96,11 @@ def extra_basic_config(
     datefmt: str | None = None,
     style: Literal["%", "{", "$"] = "{",
     level: int | None = None,
-    handlers: Iterable[logging.Handler] | None = None,
+    handlers: Iterable[Handler] | None = None,
     force: bool = True,
-    handler_class: type[Handler] = ExtraLogHandler,  # type: ignore[assignment]
-    formatter_class: type[Formatter] = ExtraLogFormatter,  # type: ignore[assignment]
-) -> logging.Logger:
+    handler_class: type[THandler] = ExtraLogHandler,  # type: ignore[assignment]
+    formatter_class: type[TFormatter] = ExtraLogFormatter,  # type: ignore[assignment]
+) -> Logger:
     """Setup and configure a logger.
 
     Reimplements `logging.basicConfig
@@ -136,7 +136,7 @@ def extra_basic_config(
         re-implementing those supported by ``logging.basicConfig``.
     """
     # Fetch the logger or create a new one.
-    logger = logging.getLogger(logger_name)
+    logger = getLogger(logger_name)
 
     # Remove and close any existing handlers. Copy of:
     # https://github.com/python/cpython/blob/2b5dbd1/Lib/logging/__init__.py#L2028-L2031
@@ -189,7 +189,7 @@ class VerbosityOption(ExtraOption):
     """
 
     @property
-    def all_loggers(self) -> Generator[logging.Logger, None, None]:
+    def all_loggers(self) -> Generator[Logger, None, None]:
         """Returns the list of logger IDs affected by the verbosity option.
 
         Will returns Click Extra's internal logger first, then the option's custom logger.
@@ -200,8 +200,8 @@ class VerbosityOption(ExtraOption):
             #   https://github.com/python/cpython/issues/81923
             #   https://github.com/python/cpython/commit/cb65b3a4f484ce71dcb76a918af98c7015513025
             if sys.version_info < (3, 9) and name == "root":
-                yield logging.getLogger()
-            yield logging.getLogger(name)
+                yield getLogger()
+            yield getLogger(name)
 
     def reset_loggers(self):
         """Forces all loggers managed by the option to be reset to the default level.
@@ -214,7 +214,7 @@ class VerbosityOption(ExtraOption):
             multiple test calls.
         """
         for logger in list(self.all_loggers)[::-1]:
-            logging.getLogger("click_extra").debug(f"Reset {logger} to {DEFAULT_LEVEL_NAME}.")
+            getLogger("click_extra").debug(f"Reset {logger} to {DEFAULT_LEVEL_NAME}.")
             logger.setLevel(DEFAULT_LEVEL)
 
     def set_levels(self, ctx, param, value):
@@ -225,14 +225,14 @@ class VerbosityOption(ExtraOption):
         """
         for logger in self.all_loggers:
             logger.setLevel(LOG_LEVELS[value])
-            logging.getLogger("click_extra").debug(f"Set {logger} to {value}.")
+            getLogger("click_extra").debug(f"Set {logger} to {value}.")
 
         ctx.call_on_close(self.reset_loggers)
 
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        default_logger: logging.Logger | str | None = None,
+        default_logger: Logger | str | None = None,
         default: str = DEFAULT_LEVEL_NAME,
         metavar="LEVEL",
         type=Choice(LOG_LEVELS, case_sensitive=False),  # type: ignore[arg-type]
@@ -259,11 +259,11 @@ class VerbosityOption(ExtraOption):
             param_decls = ("--verbosity", "-v")
 
         # Use the provided logger instance as-is.
-        if isinstance(default_logger, logging.Logger):
+        if isinstance(default_logger, Logger):
             logger = default_logger
         # If a string is provided, use it as the logger name.
         elif isinstance(default_logger, str):
-            logger = logging.getLogger(default_logger)
+            logger = getLogger(default_logger)
         # ``None`` will produce a default root logger.
         else:
             logger = extra_basic_config(default_logger)
