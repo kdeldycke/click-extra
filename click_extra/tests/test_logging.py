@@ -19,6 +19,7 @@ from __future__ import annotations
 import re
 import logging
 import random
+import sys
 
 import pytest
 from pytest_cases import parametrize
@@ -35,8 +36,16 @@ def test_level_default_order():
     assert tuple(LOG_LEVELS) == ("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG")
 
 
-def test_root_logger_default_level():
+def test_root_logger_defaults():
     """Check our internal default is aligned to Python's root logger."""
+    # Check the root logger is the default logger.
+    if sys.version_info < (3, 9):
+        assert logging.getLogger() is not logging.getLogger("root")
+    else:
+        assert logging.getLogger() is logging.getLogger("root")
+    assert logging.getLogger() is logging.root
+
+    # Check root logger's level.
     assert logging._levelToName[logging.root.level] == "WARNING"
     assert logging.root.level == DEFAULT_LEVEL
 
