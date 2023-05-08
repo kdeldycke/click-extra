@@ -111,6 +111,9 @@ class VersionOption(ExtraOption):
             return output
 
         echo(output, color=ctx.color)
+
+        # Do not just ctx.exit() as it will prevent callbacks defined on options to be called.
+        ctx.close()
         ctx.exit()
 
     def __init__(

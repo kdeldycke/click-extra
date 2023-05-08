@@ -651,7 +651,10 @@ class ConfigOption(ExtraOption, ParamStructure):
         if user_conf is None:
             message = "No configuration file found."
             if explicit_conf:
-                logger.fatal(message)
+                logger.critical(message)
+
+                # Do not just ctx.exit() as it will prevent callbacks defined on options to be called.
+                ctx.close()
                 ctx.exit(2)
             else:
                 logger.debug(message)
@@ -810,4 +813,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             disable_numparse=True,
         )
         echo(output, color=ctx.color)
+
+        # Do not just ctx.exit() as it will prevent callbacks defined on options to be called.
+        ctx.close()
         ctx.exit()

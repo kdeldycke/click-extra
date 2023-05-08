@@ -22,6 +22,7 @@ This version is not released yet and is under active development.
 - Raise an error if multiple `--version` options are defined in the same command. Closes {issue}`317`.
 - Remove dependency on `click-log`.
 - Remove supports for `Pallets-Sphinx-Themes < 2.1.0`.
+- Force closing of the context before stopping the execution flow, to make sure all callbacks are called.
 - Fix rendering of GitHub-Flavored Markdown tables in canonical format.
 
 ## {gh}`3.10.0 (2023-04-04) <compare/v3.9.0...v3.10.0>`
