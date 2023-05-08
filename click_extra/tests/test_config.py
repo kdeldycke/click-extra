@@ -713,7 +713,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "",
             "✘",
             "SHOW_PARAMS_CLI_VERBOSITY",
-            "INFO",
+            "WARNING",
             "DeBuG",
             "COMMANDLINE",
         ),

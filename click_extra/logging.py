@@ -226,7 +226,7 @@ class VerbosityOption(ExtraOption):
         self,
         param_decls: Sequence[str] | None = None,
         default_logger: logging.Logger | str | None = None,
-        default="INFO",
+        default: str = logging._levelToName[DEFAULT_LEVEL],
         metavar="LEVEL",
         type=Choice(LOG_LEVELS, case_sensitive=False),  # type: ignore[arg-type]
         expose_value=False,

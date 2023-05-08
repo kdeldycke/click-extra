@@ -340,7 +340,7 @@ default_options_uncolored_help = (
     r"  --show-params             Show all CLI parameters, their provenance, defaults\n"
     r"                            and value, then exit.\n"
     r"  -v, --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.\n"
-    r"                            \[default: INFO\]\n"
+    r"                            \[default: WARNING\]\n"
     r"  --version                 Show the version and exit.\n"
     r"  -h, --help                Show this message and exit.\n"
 )
@@ -370,7 +370,7 @@ default_options_colored_help = (
     r"     Either \x1b\[35mCRITICAL\x1b\[0m, \x1b\[35mERROR\x1b\[0m, "
     r"\x1b\[35mWARNING\x1b\[0m, \x1b\[35mINFO\x1b\[0m, \x1b\[35mDEBUG\x1b\[0m.\n"
     r"                            \x1b\[90m\[default: "
-    r"\x1b\[0m\x1b\[35mINFO\x1b\[0m\x1b\[90m\]\x1b\[0m\n"
+    r"\x1b\[0m\x1b\[35mWARNING\x1b\[0m\x1b\[90m\]\x1b\[0m\n"
     r"  \x1b\[36m--version\x1b\[0m                 Show the version and exit.\n"
     r"  \x1b\[36m-h\x1b\[0m, \x1b\[36m--help\x1b\[0m"
     r"                Show this message and exit.\n"
