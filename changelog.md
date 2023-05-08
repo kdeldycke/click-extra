@@ -1,10 +1,6 @@
 # Changelog
 
-## {gh}`4.0.0 (unreleased) <compare/v3.10.0...main>`
-
-```{important}
-This version is not released yet and is under active development.
-```
+## {gh}`4.0.0 (2023-05-08) <compare/v3.10.0...v4.0.0>`
 
 - Drop support for Python 3.7.
 - Add a simple `--telemetry`/`--no-telemetry` option flag which respects the `DO_NOT_TRACK` environment variable.
