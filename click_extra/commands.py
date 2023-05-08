@@ -247,7 +247,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         if version:
             version_param = self._search_params(self.params, VersionOption)
             if version_param:
-                version_param.version = version
+                version_param.version = version  # type: ignore[union-attr]
 
         if extra_option_at_end:
             self.params.sort(key=lambda p: isinstance(p, ExtraOption))
