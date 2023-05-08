@@ -24,9 +24,6 @@ from importlib import metadata
 
 from boltons.strutils import camel2under
 from boltons.typeutils import issubclass
-from pip._internal.cli.status_codes import SUCCESS
-from pip._internal.commands.download import DownloadCommand
-from pip._internal.utils.temp_dir import global_tempdir_manager, tempdir_registry
 from pygments.filter import Filter
 from pygments.formatter import Formatter
 from pygments.lexers import find_lexer_class_by_name
@@ -64,7 +61,20 @@ def test_ansi_lexers_candidates(tmp_path):
 
     The list is manually maintained in Click Extra code, and this test is here to
     detect new candidates from Pygments new releases.
+
+    .. danger::
+        ``pip._internal`` objects are loaded within the scope of this test, in order to
+        limit the `leak of VerboseLogger
+        <https://github.com/pypa/pip/blob/f25f8fff/src/pip/_internal/utils/_log.py#L31-L38>`_
+        into the global state of the test suite.
+
+        This hacky workaround to present our internal ``click_extra`` logger to auto-magiccaly become a
+        ``pip._internal.utils._log.VerboseLogger`` instead of a ``logging.Logger``.
     """
+    from pip._internal.cli.status_codes import SUCCESS
+    from pip._internal.commands.download import DownloadCommand
+    from pip._internal.utils.temp_dir import global_tempdir_manager, tempdir_registry
+
     # Get the version of the Pygments package installed in the current environment.
     version = metadata.version("pygments")
 

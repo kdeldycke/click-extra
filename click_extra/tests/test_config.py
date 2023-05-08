@@ -480,7 +480,7 @@ def test_conf_file_overrides_defaults(
         if is_url:
             debug_log += rf'info: 127\.0\.0\.1 - - \[\S+ \S+\] "GET /{re.escape(conf_name)} HTTP/1\.1" 200 -\n'
         debug_log += (
-            r"debug: Set <(Verbose)?Logger click_extra \(DEBUG\)> to DEBUG.\n"
+            r"debug: Set <Logger click_extra \(DEBUG\)> to DEBUG.\n"
             r"debug: Set <RootLogger root \(DEBUG\)> to DEBUG.\n"
             r"debug: \S+, version \S+\n"
             r"debug: {.*}\n"

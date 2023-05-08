@@ -290,7 +290,7 @@ def test_standalone_color_option(invoke, option_decorator, param, expecting_colo
         )
         assert re.fullmatch(
             (
-                r"\x1b\[34mdebug\x1b\[0m: Set <(Verbose)?Logger click_extra \(DEBUG\)> to DEBUG.\n"
+                r"\x1b\[34mdebug\x1b\[0m: Set <Logger click_extra \(DEBUG\)> to DEBUG.\n"
                 r"\x1b\[34mdebug\x1b\[0m: Set <RootLogger root \(DEBUG\)> to DEBUG.\n"
                 r"\x1b\[33mwarning\x1b\[0m: Processing...\n"
                 rf"{default_debug_colored_log_end}"
@@ -307,7 +307,7 @@ def test_standalone_color_option(invoke, option_decorator, param, expecting_colo
         )
         assert re.fullmatch(
             (
-                r"debug: Set <(Verbose)?Logger click_extra \(DEBUG\)> to DEBUG.\n"
+                r"debug: Set <Logger click_extra \(DEBUG\)> to DEBUG.\n"
                 r"debug: Set <RootLogger root \(DEBUG\)> to DEBUG.\n"
                 rf"warning: Processing\.\.\.\n"
                 rf"{default_debug_uncolored_log_end}"

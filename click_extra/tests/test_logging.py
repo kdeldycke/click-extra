@@ -112,7 +112,7 @@ def test_default_root_logger(invoke, cmd_decorator, option_decorator, level):
 
     messages = (
         (
-            r"\x1b\[34mdebug\x1b\[0m: Set <(Verbose)?Logger click_extra \(DEBUG\)> to DEBUG.\n"
+            r"\x1b\[34mdebug\x1b\[0m: Set <Logger click_extra \(DEBUG\)> to DEBUG.\n"
             r"\x1b\[34mdebug\x1b\[0m: Set <RootLogger root \(DEBUG\)> to DEBUG.\n"
             r"\x1b\[34mdebug\x1b\[0m: my random message.\n"
             r"\x1b\[34mdebug\x1b\[0m: my debug message.\n"
@@ -165,11 +165,11 @@ def test_custom_logger_param(invoke, logger_param, params):
     if params:
         assert re.fullmatch(
             (
-                r"debug: Set <(Verbose)?Logger click_extra \(DEBUG\)> to DEBUG.\n"
-                r"debug: Set <(Verbose)?Logger awesome_app \(DEBUG\)> to DEBUG.\n"
+                r"debug: Set <Logger click_extra \(DEBUG\)> to DEBUG.\n"
+                r"debug: Set <Logger awesome_app \(DEBUG\)> to DEBUG.\n"
                 r"debug: Awesome App has started\.\n"
-                r"debug: Reset <(Verbose)?Logger awesome_app \(DEBUG\)> to WARNING.\n"
-                r"debug: Reset <(Verbose)?Logger click_extra \(DEBUG\)> to WARNING.\n"
+                r"debug: Reset <Logger awesome_app \(DEBUG\)> to WARNING.\n"
+                r"debug: Reset <Logger click_extra \(DEBUG\)> to WARNING.\n"
             ),
             result.stderr
         )
@@ -192,7 +192,7 @@ def test_custom_option_name(invoke):
         assert not result.output
         assert re.fullmatch(
             (
-                r"debug: Set <(Verbose)?Logger click_extra \(DEBUG\)> to DEBUG.\n"
+                r"debug: Set <Logger click_extra \(DEBUG\)> to DEBUG.\n"
                 r"debug: Set <RootLogger root \(DEBUG\)> to DEBUG.\n"
                 r"debug: my debug message\.\n"
                 rf"{default_debug_uncolored_log_end}"
