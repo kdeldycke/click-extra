@@ -135,7 +135,11 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
     context_class: type[cloup.Context] = ExtraContext
 
     @staticmethod
-    def _search_params(params: Iterable[click.Parameter], klass: type[click.Parameter], unique: bool=True) -> list[click.Parameter] | click.Parameter | None:
+    def _search_params(
+        params: Iterable[click.Parameter],
+        klass: type[click.Parameter],
+        unique: bool = True,
+    ) -> list[click.Parameter] | click.Parameter | None:
         """Search on the command all instances of a parameter and return them.
 
         :param klass: the class of the parameters to look for.
@@ -217,7 +221,8 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         # TODO: implements:
         # self.show_all_default = show_default
         # self.show_all_choices = show_choices
-        # self.show_all_envvar = show_envvar => https://github.com/pallets/click/issues/2313
+        # self.show_all_envvar = show_envvar =>
+        # https://github.com/pallets/click/issues/2313
 
         default_ctx_settings: Dict[str, Any] = {
             "show_default": True,
@@ -335,7 +340,6 @@ class ExtraGroup(ExtraCommand, Group):
         """
         kwargs.setdefault("cls", ExtraCommand)
         return super().command(*args, **kwargs)
-
 
 
 # -0, --zero-exit

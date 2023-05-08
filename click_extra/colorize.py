@@ -277,7 +277,8 @@ class HelpOption(ExtraOption):
 
         echo(ctx.get_help(), color=ctx.color)
 
-        # Do not just ctx.exit() as it will prevent callbacks defined on options to be called.
+        # Do not just ctx.exit() as it will prevent callbacks defined on options
+        # to be called.
         ctx.close()
         ctx.exit()
 

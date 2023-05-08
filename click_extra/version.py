@@ -112,7 +112,8 @@ class VersionOption(ExtraOption):
 
         echo(output, color=ctx.color)
 
-        # Do not just ctx.exit() as it will prevent callbacks defined on options to be called.
+        # Do not just ctx.exit() as it will prevent callbacks defined on options
+        # to be called.
         ctx.close()
         ctx.exit()
 
