@@ -174,7 +174,7 @@ module = [
 #   https://github.com/nedbat/coveragepy/issues/512#issuecomment-399707938
 #   https://github.com/pytest-dev/pytest-cov/issues/168#issuecomment-327533847
 #   https://github.com/pytest-dev/pytest-cov/issues/243
-addopts = "--durations=10 --cov-report=term --cov-report=xml --cov-config=pyproject.toml --cov=."
+addopts = "--durations=10 --cov-report=term --cov-report=xml --cov-config=pyproject.toml --cov=click_extra"
 xfail_strict = true
 
 # https://coverage.readthedocs.io/en/latest/config.html
