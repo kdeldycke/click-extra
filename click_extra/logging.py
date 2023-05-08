@@ -50,6 +50,7 @@ Are ignored:
 
 
 DEFAULT_LEVEL: int = logging.WARNING
+DEFAULT_LEVEL_NAME: str = logging._levelToName[DEFAULT_LEVEL]
 """``WARNING`` is the default level we expect any loggers to starts their lives at.
 
 ``WARNING`` has been chosen as it is `the level at which the default Python's global
@@ -191,10 +192,9 @@ class VerbosityOption(ExtraOption):
     def all_loggers(self) -> Generator[logging.Logger, None, None]:
         """Returns the list of logger IDs affected by the verbosity option.
 
-        Will returns the option's logger and Click Extra's internal logger, so we'll
-        have the level of these two aligned.
+        Will returns Click Extra's internal logger first, then the option's custom logger.
         """
-        for name in (self.logger_name, "click_extra"):
+        for name in ("click_extra", self.logger_name):
             # XXX This is a bug for Python 3.8 and earlier for which the ``root``
             # logger cannot be fetch with its ``"root"`` name: See:
             #   https://github.com/python/cpython/issues/81923
@@ -206,12 +206,15 @@ class VerbosityOption(ExtraOption):
     def reset_loggers(self):
         """Forces all loggers managed by the option to be reset to the default level.
 
+        Reset loggers in reverse order to ensure the internal logger is reset last.
+
         .. danger::
             Resseting loggers is extremely important for unittests. Because they're
             global, loggers have tendency to leak and pollute their state between
             multiple test calls.
         """
-        for logger in self.all_loggers:
+        for logger in list(self.all_loggers)[::-1]:
+            logging.getLogger("click_extra").debug(f"Reset {logger} to {DEFAULT_LEVEL_NAME}.")
             logger.setLevel(DEFAULT_LEVEL)
 
     def set_levels(self, ctx, param, value):
@@ -222,8 +225,7 @@ class VerbosityOption(ExtraOption):
         """
         for logger in self.all_loggers:
             logger.setLevel(LOG_LEVELS[value])
-            if logger.name == "click_extra":
-                logger.debug(f"Verbosity set to {value}.")
+            logging.getLogger("click_extra").debug(f"Set {logger} to {value}.")
 
         ctx.call_on_close(self.reset_loggers)
 
@@ -231,7 +233,7 @@ class VerbosityOption(ExtraOption):
         self,
         param_decls: Sequence[str] | None = None,
         default_logger: logging.Logger | str | None = None,
-        default: str = logging._levelToName[DEFAULT_LEVEL],
+        default: str = DEFAULT_LEVEL_NAME,
         metavar="LEVEL",
         type=Choice(LOG_LEVELS, case_sensitive=False),  # type: ignore[arg-type]
         expose_value=False,

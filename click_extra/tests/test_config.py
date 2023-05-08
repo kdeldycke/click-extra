@@ -50,7 +50,8 @@ from ..config import ConfigOption, ShowParamsOption
 from ..decorators import config_option, extra_command, extra_group, show_params_option
 from .conftest import (
     command_decorators,
-    default_debug_uncolored_log,
+    default_debug_uncolored_log_start,
+    default_debug_uncolored_log_end,
 )
 
 DUMMY_TOML_FILE = """
@@ -234,7 +235,7 @@ def test_unset_conf_debug_message(invoke, simple_config_cli):
     )
     assert result.exit_code == 0
     assert result.output == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
-    assert re.fullmatch(default_debug_uncolored_log, result.stderr)
+    assert re.fullmatch(default_debug_uncolored_log_start + default_debug_uncolored_log_end, result.stderr)
 
 
 def test_conf_default_path(invoke, simple_config_cli):
@@ -459,7 +460,7 @@ def test_conf_file_overrides_defaults(
     httpserver.expect_request(f"/{conf_name}").respond_with_data(conf_content)
     conf_url = httpserver.url_for(f"/{conf_name}")
 
-    for conf_path in conf_filepath, conf_url:
+    for conf_path, is_url in (conf_filepath, False), (conf_url, True):
         result = invoke(
             simple_config_cli,
             "--config",
@@ -475,10 +476,15 @@ def test_conf_file_overrides_defaults(
         # Debug level has been activated by configuration file.
         debug_log = (
             rf"Load configuration matching {re.escape(str(conf_path))}\n"
-            r"(.+\n)*"
-            r"debug: Verbosity set to DEBUG.\n"
+        )
+        if is_url:
+            debug_log += rf'info: 127\.0\.0\.1 - - \[\S+ \S+\] "GET /{re.escape(conf_name)} HTTP/1\.1" 200 -\n'
+        debug_log += (
+            r"debug: Set <(Verbose)?Logger click_extra \(DEBUG\)> to DEBUG.\n"
+            r"debug: Set <RootLogger root \(DEBUG\)> to DEBUG.\n"
             r"debug: \S+, version \S+\n"
             r"debug: {.*}\n"
+            rf"{default_debug_uncolored_log_end}"
         )
         assert re.fullmatch(debug_log, result.stderr)
 

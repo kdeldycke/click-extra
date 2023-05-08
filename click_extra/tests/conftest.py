@@ -377,8 +377,9 @@ default_options_colored_help = (
 )
 
 
-default_debug_uncolored_log = (
-    r"debug: Verbosity set to DEBUG.\n"
+default_debug_uncolored_log_start = (
+    r"debug: Set <(Verbose)?Logger click_extra \(DEBUG\)> to DEBUG.\n"
+    r"debug: Set <RootLogger root \(DEBUG\)> to DEBUG.\n"
     r"debug: Load configuration matching .+\*\.{toml,yaml,yml,json,ini,xml}\n"
     r"debug: Pattern is not an URL.\n"
     r"debug: Search local file system.\n"
@@ -387,9 +388,15 @@ default_debug_uncolored_log = (
     r"debug: {.*}\n"
 )
 
+default_debug_uncolored_log_end = (
+    r"debug: Reset <RootLogger root \(DEBUG\)> to WARNING.\n"
+    r"debug: Reset <(Verbose)?Logger click_extra \(DEBUG\)> to WARNING.\n"
+)
 
-default_debug_colored_log = (
-    r"\x1b\[34mdebug\x1b\[0m: Verbosity set to DEBUG.\n"
+
+default_debug_colored_log_start = (
+    r"\x1b\[34mdebug\x1b\[0m: Set <(Verbose)?Logger click_extra \(DEBUG\)> to DEBUG.\n"
+    r"\x1b\[34mdebug\x1b\[0m: Set <RootLogger root \(DEBUG\)> to DEBUG.\n"
     r"\x1b\[34mdebug\x1b\[0m: Load configuration"
     r" matching .+\*\.{toml,yaml,yml,json,ini,xml}\n"
     r"\x1b\[34mdebug\x1b\[0m: Pattern is not an URL.\n"
@@ -398,4 +405,9 @@ default_debug_colored_log = (
     r"\x1b\[34mdebug\x1b\[0m: \x1b\[97m\S+\x1b\[0m,"
     r" version \x1b\[32m\S+\x1b\[0m(\x1b\[90m)?\n"
     r"\x1b\[34mdebug\x1b\[0m: {.*}\x1b\[0m\n"
+)
+
+default_debug_colored_log_end = (
+    r"\x1b\[34mdebug\x1b\[0m: Reset <RootLogger root \(DEBUG\)> to WARNING.\n"
+    r"\x1b\[34mdebug\x1b\[0m: Reset <(Verbose)?Logger click_extra \(DEBUG\)> to WARNING.\n"
 )

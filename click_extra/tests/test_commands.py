@@ -33,7 +33,8 @@ from .. import echo, option, option_group, pass_context
 from ..decorators import extra_command, extra_group, timer_option
 from .conftest import (
     command_decorators,
-    default_debug_uncolored_log,
+    default_debug_uncolored_log_start,
+    default_debug_uncolored_log_end,
     default_options_colored_help,
     default_options_uncolored_help,
     skip_windows_colors,
@@ -156,7 +157,8 @@ def test_required_command(invoke, all_command_cli):
     assert not result.stdout
     assert re.fullmatch(
         (
-            rf"{default_debug_uncolored_log}"
+            rf"{default_debug_uncolored_log_start}"
+            rf"{default_debug_uncolored_log_end}"
             r"Usage: command-cli1 \[OPTIONS\] COMMAND \[ARGS\]...\n"
             r"\n"
             r"Error: Missing command.\n"

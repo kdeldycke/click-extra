@@ -20,6 +20,7 @@ import re
 import logging
 import random
 import sys
+from textwrap import dedent
 
 import pytest
 from pytest_cases import parametrize
@@ -28,7 +29,7 @@ import click
 from .. import echo
 from ..decorators import extra_command, verbosity_option
 from ..logging import LOG_LEVELS
-from .conftest import command_decorators, default_debug_colored_log, skip_windows_colors
+from .conftest import command_decorators, default_debug_colored_log_start, default_debug_uncolored_log_end, default_debug_colored_log_end, skip_windows_colors
 from ..logging import DEFAULT_LEVEL
 
 
@@ -111,18 +112,23 @@ def test_default_root_logger(invoke, cmd_decorator, option_decorator, level):
 
     messages = (
         (
-            "\x1b[34mdebug\x1b[0m: Verbosity set to DEBUG.\n"
-            "\x1b[34mdebug\x1b[0m: my random message.\n"
-            "\x1b[34mdebug\x1b[0m: my debug message.\n"
+            r"\x1b\[34mdebug\x1b\[0m: Set <(Verbose)?Logger click_extra \(DEBUG\)> to DEBUG.\n"
+            r"\x1b\[34mdebug\x1b\[0m: Set <RootLogger root \(DEBUG\)> to DEBUG.\n"
+            r"\x1b\[34mdebug\x1b\[0m: my random message.\n"
+            r"\x1b\[34mdebug\x1b\[0m: my debug message.\n"
         ),
-        "info: my info message.\n",
-        "\x1b[33mwarning\x1b[0m: my warning message.\n",
-        "\x1b[31merror\x1b[0m: my error message.\n",
-        "\x1b[31mcritical\x1b[0m: my critical message.\n",
+        r"info: my info message.\n",
+        r"\x1b\[33mwarning\x1b\[0m: my warning message.\n",
+        r"\x1b\[31merror\x1b\[0m: my error message.\n",
+        r"\x1b\[31mcritical\x1b\[0m: my critical message.\n",
     )
     level_index = {index: level for level, index in enumerate(LOG_LEVELS)}[level]
-    log_records = "".join(messages[-level_index - 1 :])
-    assert result.stderr == log_records
+    log_records = r"".join(messages[-level_index - 1 :])
+
+    if level == "DEBUG":
+        log_records += default_debug_colored_log_end
+    assert re.fullmatch(log_records, result.stderr)
+
 
 
 @skip_windows_colors
@@ -137,54 +143,40 @@ def test_integrated_verbosity_option(invoke, level):
     assert result.exit_code == 0
     assert result.output == "It works!\n"
     if level == "DEBUG":
-        assert re.fullmatch(default_debug_colored_log, result.stderr)
+        assert re.fullmatch(default_debug_colored_log_start + default_debug_colored_log_end, result.stderr)
     else:
         assert not result.stderr
 
 
-@skip_windows_colors
+@pytest.mark.parametrize("logger_param", (logging.getLogger("awesome_app"), "awesome_app"))
 @pytest.mark.parametrize("params", (("--verbosity", "DEBUG"), None))
-def test_custom_logger_id(invoke, params):
-    my_app_logger = logging.getLogger("awesome_app")
+def test_custom_logger_param(invoke, logger_param, params):
+    """Check passing a logger instance or bame to the ``default_logger`` parameter works."""
 
     @click.command
-    @verbosity_option(default_logger="awesome_app")
+    @verbosity_option(default_logger=logger_param)
     def awesome_app():
         echo("Starting Awesome App...")
-        my_app_logger.debug("Awesome App has started.")
+        logging.getLogger("awesome_app").debug("Awesome App has started.")
 
-    result = invoke(awesome_app, params, color=True)
+    result = invoke(awesome_app, params, color=False)
     assert result.exit_code == 0
     assert result.output == "Starting Awesome App...\n"
     if params:
-        assert result.stderr == (
-            "\x1b[34mdebug\x1b[0m: Verbosity set to DEBUG.\n"
-            "\x1b[34mdebug\x1b[0m: Awesome App has started.\n"
+        assert re.fullmatch(
+            (
+                r"debug: Set <(Verbose)?Logger click_extra \(DEBUG\)> to DEBUG.\n"
+                r"debug: Set <(Verbose)?Logger awesome_app \(DEBUG\)> to DEBUG.\n"
+                r"debug: Awesome App has started\.\n"
+                r"debug: Reset <(Verbose)?Logger awesome_app \(DEBUG\)> to WARNING.\n"
+                r"debug: Reset <(Verbose)?Logger click_extra \(DEBUG\)> to WARNING.\n"
+            ),
+            result.stderr
         )
+    else:
+        assert not result.stderr
 
 
-@skip_windows_colors
-@pytest.mark.parametrize("params", (("--verbosity", "DEBUG"), None))
-def test_custom_logger_object(invoke, params):
-    my_app_logger = logging.getLogger("awesome_app")
-
-    @click.command
-    @verbosity_option(default_logger=my_app_logger)
-    def awesome_app():
-        echo("Starting Awesome App...")
-        my_app_logger.debug("Awesome App has started.")
-
-    result = invoke(awesome_app, params, color=True)
-    assert result.exit_code == 0
-    assert result.output == "Starting Awesome App...\n"
-    if params:
-        assert result.stderr == (
-            "\x1b[34mdebug\x1b[0m: Verbosity set to DEBUG.\n"
-            "\x1b[34mdebug\x1b[0m: Awesome App has started.\n"
-        )
-
-
-@skip_windows_colors
 def test_custom_option_name(invoke):
     param_names = ("--blah", "-B")
 
@@ -195,10 +187,15 @@ def test_custom_option_name(invoke):
         root_logger.debug("my debug message.")
 
     for name in param_names:
-        result = invoke(awesome_app, name, "DEBUG", color=True)
+        result = invoke(awesome_app, name, "DEBUG", color=False)
         assert result.exit_code == 0
         assert not result.output
-        assert result.stderr == (
-            "\x1b[34mdebug\x1b[0m: Verbosity set to DEBUG.\n"
-            "\x1b[34mdebug\x1b[0m: my debug message.\n"
+        assert re.fullmatch(
+            (
+                r"debug: Set <(Verbose)?Logger click_extra \(DEBUG\)> to DEBUG.\n"
+                r"debug: Set <RootLogger root \(DEBUG\)> to DEBUG.\n"
+                r"debug: my debug message\.\n"
+                rf"{default_debug_uncolored_log_end}"
+            ),
+            result.stderr,
         )

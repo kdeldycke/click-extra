@@ -43,8 +43,10 @@ from ..decorators import (
 from ..logging import LOG_LEVELS
 from .conftest import (
     command_decorators,
-    default_debug_colored_log,
-    default_debug_uncolored_log,
+    default_debug_colored_log_start,
+    default_debug_colored_log_end,
+    default_debug_uncolored_log_start,
+    default_debug_uncolored_log_end,
     default_options_colored_help,
     skip_windows_colors,
 )
@@ -286,9 +288,14 @@ def test_standalone_color_option(invoke, option_decorator, param, expecting_colo
             "\x1b[34mprint() bypass Click.\x1b[0m\n"
             "\x1b[32mDone.\x1b[0m\n"
         )
-        assert result.stderr == (
-            "\x1b[34mdebug\x1b[0m: Verbosity set to DEBUG.\n"
-            "\x1b[33mwarning\x1b[0m: Processing...\n"
+        assert re.fullmatch(
+            (
+                r"\x1b\[34mdebug\x1b\[0m: Set <(Verbose)?Logger click_extra \(DEBUG\)> to DEBUG.\n"
+                r"\x1b\[34mdebug\x1b\[0m: Set <RootLogger root \(DEBUG\)> to DEBUG.\n"
+                r"\x1b\[33mwarning\x1b\[0m: Processing...\n"
+                rf"{default_debug_colored_log_end}"
+            ),
+            result.stderr,
         )
     else:
         assert result.stdout == (
@@ -298,8 +305,14 @@ def test_standalone_color_option(invoke, option_decorator, param, expecting_colo
             "\x1b[34mprint() bypass Click.\x1b[0m\n"
             "Done.\n"
         )
-        assert result.stderr == (
-            "debug: Verbosity set to DEBUG.\nwarning: Processing...\n"
+        assert re.fullmatch(
+            (
+                r"debug: Set <(Verbose)?Logger click_extra \(DEBUG\)> to DEBUG.\n"
+                r"debug: Set <RootLogger root \(DEBUG\)> to DEBUG.\n"
+                rf"warning: Processing\.\.\.\n"
+                rf"{default_debug_uncolored_log_end}"
+            ),
+            result.stderr,
         )
 
 
@@ -394,8 +407,9 @@ def test_integrated_color_option(invoke, param, expecting_colors):
         )
         assert re.fullmatch(
             (
-                rf"{default_debug_colored_log}"
+                rf"{default_debug_colored_log_start}"
                 r"\x1b\[33mwarning\x1b\[0m: Processing...\n"
+                rf"{default_debug_colored_log_end}"
             ),
             result.stderr,
         )
@@ -409,7 +423,11 @@ def test_integrated_color_option(invoke, param, expecting_colors):
             "Done.\n"
         )
         assert re.fullmatch(
-            rf"{default_debug_uncolored_log}warning: Processing\.\.\.\n",
+            (
+                rf"{default_debug_uncolored_log_start}"
+                rf"warning: Processing\.\.\.\n"
+                rf"{default_debug_uncolored_log_end}"
+            ),
             result.stderr,
         )
 
