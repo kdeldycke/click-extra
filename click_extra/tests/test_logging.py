@@ -133,6 +133,7 @@ def test_integrated_verbosity_option(invoke, level):
         assert not result.stderr
 
 
+@skip_windows_colors
 @pytest.mark.parametrize("params", (("--verbosity", "DEBUG"), None))
 def test_custom_logger_id(invoke, params):
     my_app_logger = logging.getLogger("awesome_app")
@@ -153,6 +154,7 @@ def test_custom_logger_id(invoke, params):
         )
 
 
+@skip_windows_colors
 @pytest.mark.parametrize("params", (("--verbosity", "DEBUG"), None))
 def test_custom_logger_object(invoke, params):
     my_app_logger = logging.getLogger("awesome_app")
@@ -173,6 +175,7 @@ def test_custom_logger_object(invoke, params):
         )
 
 
+@skip_windows_colors
 def test_custom_option_name(invoke):
     param_names = ("--blah", "-B")
 
