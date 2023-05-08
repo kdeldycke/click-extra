@@ -18,8 +18,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable, Sequence
 from gettext import gettext as _
-from typing import Iterable, Sequence, TypeVar, Literal
+from typing import Literal, TypeVar
 
 import click
 
@@ -79,7 +80,8 @@ class ExtraLogHandler(logging.Handler):
 class ExtraLogFormatter(logging.Formatter):
     def formatMessage(self, record: logging.LogRecord) -> str:
         """Colorize the record's log level name before calling the strandard
-        formatter."""
+        formatter.
+        """
         level = record.levelname.lower()
         level_style = getattr(default_theme, level, None)
         if level_style:
@@ -231,7 +233,7 @@ class VerbosityOption(ExtraOption):
         help=_("Either {log_levels}.").format(log_levels=", ".join(LOG_LEVELS)),
         is_eager=True,
         **kwargs,
-    ):
+    ) -> None:
         """Set up the verbosity option.
 
         :param default_logger: If an instance of ``logging.Logger`` is provided, that's
