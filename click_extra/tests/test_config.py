@@ -45,6 +45,7 @@ from .. import (
     option,
 )
 from ..colorize import escape_for_help_sceen
+from ..commands import ExtraCommand
 from ..config import ConfigOption, ShowParamsOption
 from ..decorators import config_option, extra_command, extra_group, show_params_option
 from .conftest import (
@@ -348,9 +349,7 @@ def test_conf_auto_types(invoke, create_config, option_decorator):
     assert result.exit_code == 0
     assert result.output == "Works!\n"
 
-    cli_config_option = [
-        p for p in config_cli2.params if isinstance(p, ConfigOption)
-    ].pop()
+    cli_config_option = ExtraCommand._search_params(config_cli2.params, ConfigOption)
     assert cli_config_option.params_template == {
         "config-cli2": {
             "flag1": None,

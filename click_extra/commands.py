@@ -25,7 +25,7 @@ from __future__ import annotations
 from gettext import gettext as _
 from logging import getLevelName, getLogger
 from time import perf_counter
-from typing import Any, Dict, Sequence
+from typing import Any, Dict, Sequence, Iterable
 
 import click
 import cloup
@@ -134,6 +134,26 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
 
     context_class: type[cloup.Context] = ExtraContext
 
+    @staticmethod
+    def _search_params(params: Iterable[click.Parameter], klass: type[click.Parameter], unique: bool=True) -> list[click.Parameter] | click.Parameter | None:
+        """Search on the command all instances of a parameter and return them.
+
+        :param klass: the class of the parameters to look for.
+        :param unique: if ``True``, raise an error if more than one parameter of the
+            provided ``klass`` is found.
+        """
+        param_list = [p for p in params if isinstance(p, klass)]
+        if not param_list:
+            return None
+        if unique:
+            if len(param_list) != 1:
+                raise RuntimeError(
+                    f"More than one {klass.__name__} parameters found "
+                    f"on command: {param_list}"
+                )
+            return param_list.pop()
+        return param_list
+
     def __init__(
         self,
         *args,
@@ -220,10 +240,8 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
                 param.envvar = all_envvars(param, self.context_settings)
 
         if version:
-            version_params = [p for p in self.params if isinstance(p, VersionOption)]
-            if version_params:
-                assert len(version_params) == 1
-                version_param = version_params.pop()
+            version_param = self._search_params(self.params, VersionOption)
+            if version_param:
                 version_param.version = version
 
         if extra_option_at_end:
@@ -268,26 +286,6 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         ctx = super().make_context(info_name, args, parent, **extra)
         return ctx
 
-    @staticmethod
-    def _search_params(ctx, klass: type[click.Parameter], unique: bool=True) -> list[click.Parameter] | click.Parameter | None:
-        """Search on the command all instances of a parameter and return them.
-
-        :param klass: the class of the parameters to look for.
-        :param unique: if ``True``, raise an error if more than one parameter of the
-            provided ``klass`` is found.
-        """
-        params = [p for p in ctx.command.params if isinstance(p, klass)]
-        if not params:
-            return None
-        if unique:
-            if len(params) != 1:
-                raise RuntimeError(
-                    f"More than one {klass.__name__} parameters found "
-                    f"on command: {params}"
-                )
-            return params.pop()
-        return params
-
     def invoke(self, ctx):
         """Main execution of the command, just after the context has been instantiated
         in ``main()``.
@@ -299,7 +297,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         logger = getLogger("click_extra")
         if getLevelName(logger.level) == "DEBUG":
             # Look for our custom version parameter.
-            version_param = self._search_params(ctx, VersionOption)
+            version_param = self._search_params(ctx.command.params, VersionOption)
             if version_param:
                 version_message = version_param.callback(
                     ctx, version_param, True, capture_output=True
