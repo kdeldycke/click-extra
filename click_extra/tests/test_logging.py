@@ -49,6 +49,7 @@ def test_root_logger_defaults():
     assert logging.getLogger() is logging.root
 
     # Check root logger's level.
+    assert logging.root.getEffectiveLevel() == logging.WARNING
     assert logging._levelToName[logging.root.level] == "WARNING"
     assert logging.root.level == DEFAULT_LEVEL
 

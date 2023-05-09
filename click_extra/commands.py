@@ -278,7 +278,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         facilitates troubleshooting of user's issues.
         """
         logger = logging.getLogger("click_extra")
-        if getLevelName(logger.level) == "DEBUG":
+        if logger.getEffectiveLevel() == logging.DEBUG:
             # Look for our custom version parameter.
             version_param = search_params(ctx.command.params, VersionOption)
             if version_param:
