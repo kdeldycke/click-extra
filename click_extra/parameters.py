@@ -21,7 +21,7 @@ Also implements environment variable utilities.
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, Sequence
+from typing import Any, Dict, Sequence, Iterable
 
 import click
 from boltons.iterutils import unique
@@ -121,3 +121,28 @@ class ExtraOption(Option):
     options with certainty. Might be used in the future to implement common behavior,
     fixes or hacks.
     """
+
+
+def search_params(
+    params: Iterable[click.Parameter],
+    klass: type[click.Parameter],
+    unique: bool = True,
+) -> list[click.Parameter] | click.Parameter | None:
+    """Search a particular class of parameter in a list and return them.
+
+    :param params: list of parameter instances to search in.
+    :param klass: the class of the parameters to look for.
+    :param unique: if ``True``, raise an error if more than one parameter of the
+        provided ``klass`` is found.
+    """
+    param_list = [p for p in params if isinstance(p, klass)]
+    if not param_list:
+        return None
+    if unique:
+        if len(param_list) != 1:
+            raise RuntimeError(
+                f"More than one {klass.__name__} parameters found "
+                f"on command: {param_list}"
+            )
+        return param_list.pop()
+    return param_list

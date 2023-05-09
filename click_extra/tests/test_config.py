@@ -45,9 +45,9 @@ from .. import (
     option,
 )
 from ..colorize import escape_for_help_sceen
-from ..commands import ExtraCommand
 from ..config import ConfigOption, ShowParamsOption
 from ..decorators import config_option, extra_command, extra_group, show_params_option
+from ..parameters import search_params
 from .conftest import (
     command_decorators,
     default_debug_uncolored_log_start,
@@ -353,7 +353,7 @@ def test_conf_auto_types(invoke, create_config, option_decorator):
     assert result.exit_code == 0
     assert result.output == "Works!\n"
 
-    cli_config_option = ExtraCommand._search_params(config_cli2.params, ConfigOption)
+    cli_config_option = search_params(config_cli2.params, ConfigOption)
     assert cli_config_option.params_template == {
         "config-cli2": {
             "flag1": None,
@@ -632,7 +632,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "click_extra.colorize.ColorOption",
             "--color, --ansi / --no-color, --no-ansi",
             "bool",
-            "",
+            "✓",
             "✘",
             "SHOW_PARAMS_CLI_COLOR",
             True,
@@ -644,7 +644,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "click_extra.config.ConfigOption",
             "-C, --config CONFIG_PATH",
             "str",
-            "",
+            "✘",
             "✘",
             "SHOW_PARAMS_CLI_CONFIG",
             f"{Path(get_app_dir('show-params-cli')).resolve()}{sep}*.{{toml,yaml,yml,json,ini,xml}}",
@@ -656,7 +656,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "click_extra.colorize.HelpOption",
             "-h, --help",
             "bool",
-            "",
+            "✘",
             "✘",
             "SHOW_PARAMS_CLI_HELP",
             False,
@@ -668,7 +668,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "cloup._params.Option",
             "--int-param1 INTEGER",
             "int",
-            "",
+            "✓",
             "✓",
             "SHOW_PARAMS_CLI_INT_PARAM1",
             3,
@@ -680,7 +680,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "cloup._params.Option",
             "--int-param2 INTEGER",
             "int",
-            "",
+            "✓",
             "✓",
             "SHOW_PARAMS_CLI_INT_PARAM2",
             555,
@@ -692,7 +692,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "click_extra.config.ShowParamsOption",
             "--show-params",
             "bool",
-            "",
+            "✘",
             "✘",
             "SHOW_PARAMS_CLI_SHOW_PARAMS",
             False,
@@ -704,7 +704,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "click_extra.commands.TimerOption",
             "--time / --no-time",
             "bool",
-            "",
+            "✓",
             "✘",
             "SHOW_PARAMS_CLI_TIME",
             False,
@@ -716,7 +716,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "click_extra.logging.VerbosityOption",
             "-v, --verbosity LEVEL",
             "str",
-            "",
+            "✓",
             "✘",
             "SHOW_PARAMS_CLI_VERBOSITY",
             "WARNING",
@@ -728,7 +728,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "click_extra.version.VersionOption",
             "--version",
             "bool",
-            "",
+            "✘",
             "✘",
             "SHOW_PARAMS_CLI_VERSION",
             False,

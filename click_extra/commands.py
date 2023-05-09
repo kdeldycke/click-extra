@@ -26,14 +26,14 @@ from gettext import gettext as _
 import logging
 from logging import getLevelName
 from time import perf_counter
-from typing import Any, Dict, Sequence, Iterable
+from typing import Any, Dict, Sequence
 
 import click
 import cloup
 
 from . import Command, Group, echo
 from .colorize import ExtraHelpColorsMixin
-from .parameters import ExtraOption, all_envvars, normalize_envvar
+from .parameters import ExtraOption, all_envvars, normalize_envvar, search_params
 from .colorize import ColorOption, HelpOption
 from .config import ConfigOption, ShowParamsOption
 from .logging import VerbosityOption
@@ -131,33 +131,10 @@ def default_extra_params():
 
 
 class ExtraCommand(ExtraHelpColorsMixin, Command):
-    """Like ``cloup.command``, with sane defaults and extra help screen colorization."""
+    """Like ``cloup.command``, with sane defaults and extra help screen colorization.
+    """
 
     context_class: type[cloup.Context] = ExtraContext
-
-    @staticmethod
-    def _search_params(
-        params: Iterable[click.Parameter],
-        klass: type[click.Parameter],
-        unique: bool = True,
-    ) -> list[click.Parameter] | click.Parameter | None:
-        """Search on the command all instances of a parameter and return them.
-
-        :param klass: the class of the parameters to look for.
-        :param unique: if ``True``, raise an error if more than one parameter of the
-            provided ``klass`` is found.
-        """
-        param_list = [p for p in params if isinstance(p, klass)]
-        if not param_list:
-            return None
-        if unique:
-            if len(param_list) != 1:
-                raise RuntimeError(
-                    f"More than one {klass.__name__} parameters found "
-                    f"on command: {param_list}"
-                )
-            return param_list.pop()
-        return param_list
 
     def __init__(
         self,
@@ -246,7 +223,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
                 param.envvar = all_envvars(param, self.context_settings)
 
         if version:
-            version_param = self._search_params(self.params, VersionOption)
+            version_param = search_params(self.params, VersionOption)
             if version_param:
                 version_param.version = version  # type: ignore[union-attr]
 
@@ -303,7 +280,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         logger = logging.getLogger("click_extra")
         if getLevelName(logger.level) == "DEBUG":
             # Look for our custom version parameter.
-            version_param = self._search_params(ctx.command.params, VersionOption)
+            version_param = search_params(ctx.command.params, VersionOption)
             if version_param:
                 version_message = version_param.callback(
                     ctx, version_param, True, capture_output=True

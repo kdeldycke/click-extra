@@ -77,7 +77,7 @@ from . import (
     get_current_context,
 )
 from .colorize import KO, OK, default_theme
-from .parameters import ExtraOption, all_envvars
+from .parameters import ExtraOption, all_envvars, search_params
 from .platforms import is_windows
 
 
@@ -772,6 +772,9 @@ class ShowParamsOption(ExtraOption, ParamStructure):
 
             get_param_value = vanilla_getter
 
+        # Inspect the CLI to search for any --config option.
+        config_option = search_params(ctx.command.params, ConfigOption)
+
         table = []
         for path, param_type in self.flatten_tree_dict(self.params_types).items():
             # Get the parameter instance.
@@ -783,12 +786,20 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             param_class = self.get_tree_value(self.params_objects, *tree_keys).__class__
             param_spec = param.get_help_record(ctx)[0]
 
+            # Check if the parameter is allowed in the configuration file.
+            allowed_in_conf = None
+            if config_option:
+                if path in config_option.exclude_params:
+                    allowed_in_conf = KO
+                else:
+                    allowed_in_conf = OK
+
             line = (
                 default_theme.invoked_command(path),
                 f"{param_class.__module__}.{param_class.__qualname__}",
                 param_spec,
                 param_type.__name__,
-                None,  # XXX TODO
+                allowed_in_conf,
                 OK if param.expose_value is True else KO,
                 ", ".join(all_envvars(param, ctx)),
                 param.get_default(ctx),
