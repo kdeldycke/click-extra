@@ -729,8 +729,9 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         .. important::
             Click doesn't keep a list of all parsed arguments and their origin.
             So we need to emulate here what's happening during CLI invokation.
-            But can't even to that because the raw, pre-parsed arguments are
-            not available anywhere.
+
+            Unfortunately we cannot even do that because the raw, pre-parsed arguments
+            are not available anywhere within Click's internals.
 
             Our workaround consist in leveraging our custom
             ``ExtraCommand``/``ExtraGroup`` classes, in which we are attaching
