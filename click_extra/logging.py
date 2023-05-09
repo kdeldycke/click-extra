@@ -17,7 +17,8 @@
 
 from __future__ import annotations
 
-from logging import getLevelName, getLogger, Logger, WARNING, _levelToName, Formatter, Handler, LogRecord
+import logging
+from  logging import Logger, WARNING, _levelToName, Formatter, Handler, LogRecord
 import sys
 from collections.abc import Generator, Iterable, Sequence
 from gettext import gettext as _
@@ -136,7 +137,7 @@ def extra_basic_config(
         re-implementing those supported by ``logging.basicConfig``.
     """
     # Fetch the logger or create a new one.
-    logger = getLogger(logger_name)
+    logger = logging.getLogger(logger_name)
 
     # Remove and close any existing handlers. Copy of:
     # https://github.com/python/cpython/blob/2b5dbd1/Lib/logging/__init__.py#L2028-L2031
@@ -200,8 +201,8 @@ class VerbosityOption(ExtraOption):
             #   https://github.com/python/cpython/issues/81923
             #   https://github.com/python/cpython/commit/cb65b3a4f484ce71dcb76a918af98c7015513025
             if sys.version_info < (3, 9) and name == "root":
-                yield getLogger()
-            yield getLogger(name)
+                yield logging.getLogger()
+            yield logging.getLogger(name)
 
     def reset_loggers(self):
         """Forces all loggers managed by the option to be reset to the default level.
@@ -214,7 +215,7 @@ class VerbosityOption(ExtraOption):
             multiple test calls.
         """
         for logger in list(self.all_loggers)[::-1]:
-            getLogger("click_extra").debug(f"Reset {logger} to {DEFAULT_LEVEL_NAME}.")
+            logging.getLogger("click_extra").debug(f"Reset {logger} to {DEFAULT_LEVEL_NAME}.")
             logger.setLevel(DEFAULT_LEVEL)
 
     def set_levels(self, ctx, param, value):
@@ -225,7 +226,7 @@ class VerbosityOption(ExtraOption):
         """
         for logger in self.all_loggers:
             logger.setLevel(LOG_LEVELS[value])
-            getLogger("click_extra").debug(f"Set {logger} to {value}.")
+            logging.getLogger("click_extra").debug(f"Set {logger} to {value}.")
 
         ctx.call_on_close(self.reset_loggers)
 
@@ -263,7 +264,7 @@ class VerbosityOption(ExtraOption):
             logger = default_logger
         # If a string is provided, use it as the logger name.
         elif isinstance(default_logger, str):
-            logger = getLogger(default_logger)
+            logger = logging.getLogger(default_logger)
         # ``None`` will produce a default root logger.
         else:
             logger = extra_basic_config(default_logger)
