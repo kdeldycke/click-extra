@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import logging
+from  logging import Logger, WARNING, _levelToName, Formatter, Handler, LogRecord, _levelToName
 import sys
 from collections.abc import Generator, Iterable, Sequence
 from gettext import gettext as _
@@ -30,10 +31,9 @@ from .colorize import default_theme
 from .parameters import ExtraOption
 
 
-
 _original_get_logger = logging.getLogger
 
-def _patched_get_logger(name: str | None=None) -> logging.Logger:
+def _patched_get_logger(name: str | None=None) -> Logger:
     """Patch ``logging.getLogger`` to return the right root logger object.
 
     .. warning::
@@ -54,7 +54,7 @@ if sys.version_info < (3, 9):
 
 LOG_LEVELS: dict[str, int] = {
     name: value
-    for value, name in sorted(logging._levelToName.items(), reverse=True)
+    for value, name in sorted(_levelToName.items(), reverse=True)
     if name != "NOTSET"
 }
 """Mapping of canonical log level names to their IDs.
@@ -72,8 +72,8 @@ Are ignored:
 """
 
 
-DEFAULT_LEVEL: int = logging.WARNING
-DEFAULT_LEVEL_NAME: str = logging._levelToName[DEFAULT_LEVEL]
+DEFAULT_LEVEL: int = WARNING
+DEFAULT_LEVEL_NAME: str = _levelToName[DEFAULT_LEVEL]
 """``WARNING`` is the default level we expect any loggers to starts their lives at.
 
 ``WARNING`` has been chosen as it is `the level at which the default Python's global
@@ -84,14 +84,15 @@ This value is also used as the default level of the ``--verbosity`` option below
 """
 
 
-TFormatter = TypeVar("TFormatter", bound=logging.Formatter)
-THandler = TypeVar("THandler", bound=logging.Handler)
+TFormatter = TypeVar("TFormatter", bound=Formatter)
+THandler = TypeVar("THandler", bound=Handler)
+"""Custom types to be used in type hints below."""
 
 
-class ExtraLogHandler(logging.Handler):
+class ExtraLogHandler(Handler):
     """A handler to output logs to console's ``<stderr>``."""
 
-    def emit(self, record: logging.LogRecord) -> None:
+    def emit(self, record: LogRecord) -> None:
         """Use ``click.echo`` to print to ``<stderr>`` and supports colors."""
         try:
             msg = self.format(record)
@@ -102,8 +103,8 @@ class ExtraLogHandler(logging.Handler):
             self.handleError(record)
 
 
-class ExtraLogFormatter(logging.Formatter):
-    def formatMessage(self, record: logging.LogRecord) -> str:
+class ExtraLogFormatter(Formatter):
+    def formatMessage(self, record: LogRecord) -> str:
         """Colorize the record's log level name before calling the strandard
         formatter."""
         level = record.levelname.lower()
@@ -119,11 +120,11 @@ def extra_basic_config(
     datefmt: str | None = None,
     style: Literal["%", "{", "$"] = "{",
     level: int | None = None,
-    handlers: Iterable[logging.Handler] | None = None,
+    handlers: Iterable[Handler] | None = None,
     force: bool = True,
     handler_class: type[THandler] = ExtraLogHandler,  # type: ignore[assignment]
     formatter_class: type[TFormatter] = ExtraLogFormatter,  # type: ignore[assignment]
-) -> logging.Logger:
+) -> Logger:
     """Setup and configure a logger.
 
     Reimplements `logging.basicConfig
@@ -212,7 +213,7 @@ class VerbosityOption(ExtraOption):
     """
 
     @property
-    def all_loggers(self) -> Generator[logging.Logger, None, None]:
+    def all_loggers(self) -> Generator[Logger, None, None]:
         """Returns the list of logger IDs affected by the verbosity option.
 
         Will returns Click Extra's internal logger first, then the option's custom logger.
@@ -249,7 +250,7 @@ class VerbosityOption(ExtraOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        default_logger: logging.Logger | str | None = None,
+        default_logger: Logger | str | None = None,
         default: str = DEFAULT_LEVEL_NAME,
         metavar="LEVEL",
         type=Choice(LOG_LEVELS, case_sensitive=False),  # type: ignore[arg-type]
@@ -276,7 +277,7 @@ class VerbosityOption(ExtraOption):
             param_decls = ("--verbosity", "-v")
 
         # Use the provided logger instance as-is.
-        if isinstance(default_logger, logging.Logger):
+        if isinstance(default_logger, Logger):
             logger = default_logger
         # If a string is provided, use it as the logger name.
         elif isinstance(default_logger, str):

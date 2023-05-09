@@ -24,6 +24,7 @@ from __future__ import annotations
 
 from gettext import gettext as _
 import logging
+from logging import getLevelName
 from time import perf_counter
 from typing import Any, Dict, Sequence, Iterable
 
@@ -300,7 +301,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         facilitates troubleshooting of user's issues.
         """
         logger = logging.getLogger("click_extra")
-        if logging.getLevelName(logger.level) == "DEBUG":
+        if getLevelName(logger.level) == "DEBUG":
             # Look for our custom version parameter.
             version_param = self._search_params(ctx.command.params, VersionOption)
             if version_param:
