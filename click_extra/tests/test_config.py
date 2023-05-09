@@ -235,7 +235,10 @@ def test_unset_conf_debug_message(invoke, simple_config_cli):
     )
     assert result.exit_code == 0
     assert result.output == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
-    assert re.fullmatch(default_debug_uncolored_log_start + default_debug_uncolored_log_end, result.stderr)
+    assert re.fullmatch(
+        default_debug_uncolored_log_start + default_debug_uncolored_log_end,
+        result.stderr,
+    )
 
 
 def test_conf_default_path(invoke, simple_config_cli):
@@ -474,9 +477,7 @@ def test_conf_file_overrides_defaults(
         )
 
         # Debug level has been activated by configuration file.
-        debug_log = (
-            rf"Load configuration matching {re.escape(str(conf_path))}\n"
-        )
+        debug_log = rf"Load configuration matching {re.escape(str(conf_path))}\n"
         if is_url:
             debug_log += rf'info: 127\.0\.0\.1 - - \[\S+ \S+\] "GET /{re.escape(conf_name)} HTTP/1\.1" 200 -\n'
         debug_log += (

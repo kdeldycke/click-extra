@@ -76,7 +76,9 @@ def test_ansi_lexers_candidates(tmp_path):
     """
     version = metadata.version("pygments")
 
-    source_url = f"https://github.com/pygments/pygments/archive/refs/tags/{version}.tar.gz"
+    source_url = (
+        f"https://github.com/pygments/pygments/archive/refs/tags/{version}.tar.gz"
+    )
     base_folder = f"pygments-{version}"
     archive_path = tmp_path / f"{base_folder}.tar.gz"
 

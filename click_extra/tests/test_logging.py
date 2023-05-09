@@ -19,8 +19,6 @@ from __future__ import annotations
 import re
 import logging
 import random
-import sys
-from textwrap import dedent
 
 import pytest
 from pytest_cases import parametrize
@@ -29,7 +27,13 @@ import click
 from .. import echo
 from ..decorators import extra_command, verbosity_option
 from ..logging import LOG_LEVELS
-from .conftest import command_decorators, default_debug_colored_log_start, default_debug_uncolored_log_end, default_debug_colored_log_end, skip_windows_colors
+from .conftest import (
+    command_decorators,
+    default_debug_colored_log_start,
+    default_debug_uncolored_log_end,
+    default_debug_colored_log_end,
+    skip_windows_colors,
+)
 from ..logging import DEFAULT_LEVEL
 
 
@@ -39,7 +43,8 @@ def test_level_default_order():
 
 def test_root_logger_defaults():
     """Check our internal default is aligned to Python's root logger."""
-    # Check the root logger is the default logger, ans that getLogger is properly patched on Python 3.8.
+    # Check the root logger is the default logger, ans that getLogger is
+    # properly patched on Python 3.8.
     assert logging.getLogger() is logging.getLogger("root")
     assert logging.getLogger() is logging.root
 
@@ -127,7 +132,6 @@ def test_default_root_logger(invoke, cmd_decorator, option_decorator, level):
     assert re.fullmatch(log_records, result.stderr)
 
 
-
 @skip_windows_colors
 @pytest.mark.parametrize("level", LOG_LEVELS.keys())
 # TODO: test extra_group
@@ -140,12 +144,17 @@ def test_integrated_verbosity_option(invoke, level):
     assert result.exit_code == 0
     assert result.output == "It works!\n"
     if level == "DEBUG":
-        assert re.fullmatch(default_debug_colored_log_start + default_debug_colored_log_end, result.stderr)
+        assert re.fullmatch(
+            default_debug_colored_log_start + default_debug_colored_log_end,
+            result.stderr,
+        )
     else:
         assert not result.stderr
 
 
-@pytest.mark.parametrize("logger_param", (logging.getLogger("awesome_app"), "awesome_app"))
+@pytest.mark.parametrize(
+    "logger_param", (logging.getLogger("awesome_app"), "awesome_app")
+)
 @pytest.mark.parametrize("params", (("--verbosity", "DEBUG"), None))
 def test_custom_logger_param(invoke, logger_param, params):
     """Check passing a logger instance or bame to the ``default_logger`` parameter works."""
@@ -168,7 +177,7 @@ def test_custom_logger_param(invoke, logger_param, params):
                 r"debug: Reset <Logger awesome_app \(DEBUG\)> to WARNING.\n"
                 r"debug: Reset <Logger click_extra \(DEBUG\)> to WARNING.\n"
             ),
-            result.stderr
+            result.stderr,
         )
     else:
         assert not result.stderr

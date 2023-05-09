@@ -18,7 +18,15 @@
 from __future__ import annotations
 
 import logging
-from  logging import Logger, WARNING, _levelToName, Formatter, Handler, LogRecord, _levelToName
+from logging import (
+    Logger,
+    WARNING,
+    _levelToName,
+    Formatter,
+    Handler,
+    LogRecord,
+    _levelToName,
+)
 import sys
 from collections.abc import Generator, Iterable, Sequence
 from gettext import gettext as _
@@ -33,7 +41,8 @@ from .parameters import ExtraOption
 
 _original_get_logger = logging.getLogger
 
-def _patched_get_logger(name: str | None=None) -> Logger:
+
+def _patched_get_logger(name: str | None = None) -> Logger:
     """Patch ``logging.getLogger`` to return the right root logger object.
 
     .. warning::
@@ -47,6 +56,7 @@ def _patched_get_logger(name: str | None=None) -> Logger:
     if name == "root":
         name = None
     return _original_get_logger(name)
+
 
 if sys.version_info < (3, 9):
     logging.getLogger = _patched_get_logger
@@ -216,7 +226,8 @@ class VerbosityOption(ExtraOption):
     def all_loggers(self) -> Generator[Logger, None, None]:
         """Returns the list of logger IDs affected by the verbosity option.
 
-        Will returns Click Extra's internal logger first, then the option's custom logger.
+        Will returns Click Extra's internal logger first, then the option's custom
+        logger.
         """
         for name in ("click_extra", self.logger_name):
             yield logging.getLogger(name)
@@ -232,7 +243,9 @@ class VerbosityOption(ExtraOption):
             multiple test calls.
         """
         for logger in list(self.all_loggers)[::-1]:
-            logging.getLogger("click_extra").debug(f"Reset {logger} to {DEFAULT_LEVEL_NAME}.")
+            logging.getLogger("click_extra").debug(
+                f"Reset {logger} to {DEFAULT_LEVEL_NAME}."
+            )
             logger.setLevel(DEFAULT_LEVEL)
 
     def set_levels(self, ctx, param, value):
