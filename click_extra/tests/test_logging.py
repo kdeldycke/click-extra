@@ -39,11 +39,8 @@ def test_level_default_order():
 
 def test_root_logger_defaults():
     """Check our internal default is aligned to Python's root logger."""
-    # Check the root logger is the default logger.
-    if sys.version_info < (3, 9):
-        assert logging.getLogger() is not logging.getLogger("root")
-    else:
-        assert logging.getLogger() is logging.getLogger("root")
+    # Check the root logger is the default logger, ans that getLogger is properly patched on Python 3.8.
+    assert logging.getLogger() is logging.getLogger("root")
     assert logging.getLogger() is logging.root
 
     # Check root logger's level.

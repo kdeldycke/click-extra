@@ -29,6 +29,29 @@ from . import Choice
 from .colorize import default_theme
 from .parameters import ExtraOption
 
+
+
+_original_get_logger = logging.getLogger
+
+def _patched_get_logger(name: str | None=None) -> logging.Logger:
+    """Patch ``logging.getLogger`` to return the right root logger object.
+
+    .. warning::
+        This is a bugfix for Python 3.8 and earlier for which the ``root`` logger
+        cannot be fetched with its plain ``root`` name.
+
+        See:
+        - `cpython#81923 <https://github.com/python/cpython/issues/81923>`_
+        - `cpython@cb65b3a <https://github.com/python/cpython/commit/cb65b3a>`_
+    """
+    if name == "root":
+        name = None
+    return _original_get_logger(name)
+
+if sys.version_info < (3, 9):
+    logging.getLogger = _patched_get_logger
+
+
 LOG_LEVELS: dict[str, int] = {
     name: value
     for value, name in sorted(logging._levelToName.items(), reverse=True)
@@ -195,12 +218,6 @@ class VerbosityOption(ExtraOption):
         Will returns Click Extra's internal logger first, then the option's custom logger.
         """
         for name in ("click_extra", self.logger_name):
-            # XXX This is a bug for Python 3.8 and earlier for which the ``root``
-            # logger cannot be fetch with its ``"root"`` name: See:
-            #   https://github.com/python/cpython/issues/81923
-            #   https://github.com/python/cpython/commit/cb65b3a4f484ce71dcb76a918af98c7015513025
-            if sys.version_info < (3, 9) and name == "root":
-                yield logging.getLogger()
             yield logging.getLogger(name)
 
     def reset_loggers(self):
