@@ -21,6 +21,7 @@ import tarfile
 from operator import itemgetter
 from pathlib import Path
 from importlib import metadata
+import logging
 
 from boltons.strutils import camel2under
 from boltons.typeutils import issubclass
@@ -64,16 +65,23 @@ def test_ansi_lexers_candidates(tmp_path):
 
     .. danger::
         ``pip._internal`` objects are loaded within the scope of this test, in order to
-        limit the `leak of VerboseLogger
+        limit the global overriding of default ``logging.Logger`` by `VerboseLogger
         <https://github.com/pypa/pip/blob/f25f8fff/src/pip/_internal/utils/_log.py#L31-L38>`_
-        into the global state of the test suite.
+        into the global Python standard library.
 
-        This hacky workaround to present our internal ``click_extra`` logger to auto-magiccaly become a
-        ``pip._internal.utils._log.VerboseLogger`` instead of a ``logging.Logger``.
+        This hacky workaround prevents our internal ``click_extra`` logger to
+        auto-magiccaly become a ``pip._internal.utils._log.VerboseLogger`` instead of a
+        ``logging.Logger``.
     """
     from pip._internal.cli.status_codes import SUCCESS
     from pip._internal.commands.download import DownloadCommand
     from pip._internal.utils.temp_dir import global_tempdir_manager, tempdir_registry
+    from pip._internal.utils._log import VERBOSE
+
+    # XXX Undo the effects of pip._internal.utils._log.init_logging().
+    logging.setLoggerClass(logging.Logger)
+    del logging._levelToName[VERBOSE]
+    del logging._nameToLevel["VERBOSE"]
 
     # Get the version of the Pygments package installed in the current environment.
     version = metadata.version("pygments")
