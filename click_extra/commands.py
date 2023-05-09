@@ -23,7 +23,7 @@ leverage the mixins in here to build up your own custom variants.
 from __future__ import annotations
 
 from gettext import gettext as _
-from logging import getLevelName, getLogger
+import logging
 from time import perf_counter
 from typing import Any, Dict, Sequence, Iterable
 
@@ -299,8 +299,8 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         normal execution flow the output of ``--version`` in ``DEBUG`` logs. This
         facilitates troubleshooting of user's issues.
         """
-        logger = getLogger("click_extra")
-        if getLevelName(logger.level) == "DEBUG":
+        logger = logging.getLogger("click_extra")
+        if logging.getLevelName(logger.level) == "DEBUG":
             # Look for our custom version parameter.
             version_param = self._search_params(ctx.command.params, VersionOption)
             if version_param:

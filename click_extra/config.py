@@ -23,7 +23,7 @@ from collections.abc import MutableMapping
 from configparser import ConfigParser, ExtendedInterpolation
 from enum import Enum
 from functools import reduce
-from logging import getLogger
+import logging
 from gettext import gettext as _
 from operator import getitem, methodcaller
 from pathlib import Path
@@ -449,7 +449,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         Returns an iterator of raw content for each file/URL matching the
         pattern.
         """
-        logger = getLogger("click_extra")
+        logger = logging.getLogger("click_extra")
 
         # Check if the pattern is an URL.
         location = URL(pattern)
@@ -488,7 +488,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         """
         user_conf = None
         for conf_format in self.formats:
-            logger = getLogger("click_extra")
+            logger = logging.getLogger("click_extra")
             logger.debug(f"Parse configuration as {conf_format.name}...")
 
             try:
@@ -622,12 +622,12 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         User configuration is
         `merged to the context default_map as Click does <https://click.palletsprojects.com/en/8.1.x/commands/#context-defaults>`_.
-        
+
         This allow user's config to only overrides defaults. Values sets from direct
         command line parameters, environment variables or interactive prompts, takes
         precedence over any values from the config file.
         """
-        logger = getLogger("click_extra")
+        logger = logging.getLogger("click_extra")
 
         explicit_conf = ctx.get_parameter_source("config") in (
             ParameterSource.COMMANDLINE,
@@ -740,7 +740,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         if not value:
             return
 
-        logger = getLogger("click_extra")
+        logger = logging.getLogger("click_extra")
 
         if "click_extra.raw_args" in ctx.meta:
             raw_args = ctx.meta.get("click_extra.raw_args", [])
