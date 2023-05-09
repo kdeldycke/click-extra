@@ -21,7 +21,6 @@ import tarfile
 from operator import itemgetter
 from pathlib import Path
 from importlib import metadata
-import logging
 
 from boltons.strutils import camel2under
 from boltons.typeutils import issubclass
@@ -29,6 +28,7 @@ from pygments.filter import Filter
 from pygments.formatter import Formatter
 from pygments.lexers import find_lexer_class_by_name
 from pygments.style import Style
+import requests
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -61,59 +61,33 @@ def test_ansi_lexers_candidates(tmp_path):
     terminal to render text in a console.
 
     The list is manually maintained in Click Extra code, and this test is here to
-    detect new candidates from Pygments new releases.
+    detect new candidates from new releases of Pygments.
 
-    .. danger::
-        ``pip._internal`` objects are loaded within the scope of this test, in order to
-        limit the global overriding of default ``logging.Logger`` by `VerboseLogger
-        <https://github.com/pypa/pip/blob/f25f8fff/src/pip/_internal/utils/_log.py#L31-L38>`_
-        into the global Python standard library.
+    .. attention::
+        The Pygments source code is downloaded from GitHub in the form of an archive,
+        and extracted in a temporary folder.
 
-        This hacky workaround prevents our internal ``click_extra`` logger to
-        auto-magiccaly become a ``pip._internal.utils._log.VerboseLogger`` instead of a
-        ``logging.Logger``.
+        The version of Pygments used for this test is the one installed in the current
+        environment.
+
+    .. danger:: Security check
+        While extracting the archive, we double check we are not fed an archive
+        exploiting relative ``..`` or ``.`` path attacks.
     """
-    from pip._internal.cli.status_codes import SUCCESS
-    from pip._internal.commands.download import DownloadCommand
-    from pip._internal.utils.temp_dir import global_tempdir_manager, tempdir_registry
-    from pip._internal.utils._log import VERBOSE
-
-    # XXX Undo the effects of pip._internal.utils._log.init_logging().
-    logging.setLoggerClass(logging.Logger)
-    del logging._levelToName[VERBOSE]
-    del logging._nameToLevel["VERBOSE"]
-
-    # Get the version of the Pygments package installed in the current environment.
     version = metadata.version("pygments")
 
-    # Emulate CLI call to download Pygments' source distribution (which contains the
-    # full test suite and data) from PyPi via pip:
-    #   $ pip download --no-binary=:all: --no-deps pygments==2.14.0
-    # Source: https://stackoverflow.com/a/56773693
-    cmd = DownloadCommand(name="dummy_name", summary="dummy_summary")
+    source_url = f"https://github.com/pygments/pygments/archive/refs/tags/{version}.tar.gz"
+    base_folder = f"pygments-{version}"
+    archive_path = tmp_path / f"{base_folder}.tar.gz"
 
-    # Inspired by pip._internal.cli.base_command.Command._main(). See:
-    # https://github.com/pypa/pip/blob/ba38c33b6b4fc3ee22dabb747a4b4ccff0a87d22/src/pip/_internal/cli/base_command.py#L105-L114
-    with cmd.main_context():
-        cmd.tempdir_registry = cmd.enter_context(tempdir_registry())
-        cmd.enter_context(global_tempdir_manager())
-        options, args = cmd.parse_args(
-            [
-                "--no-binary=:all:",
-                "--no-deps",
-                "--dest",
-                f"{tmp_path}",
-                f"pygments=={version}",
-            ]
-        )
-        cmd.verbosity = options.verbose
-        outcome = cmd.run(options, args)
-        assert outcome == SUCCESS
+    # Download the source distribution from GitHub.
+    with requests.get(source_url) as response:
+        assert response.ok
+        archive_path.write_bytes(response.content)
 
-    base_folder = f"Pygments-{version}"
-    package_path = tmp_path.joinpath(f"{base_folder}.tar.gz")
-    assert package_path.exists()
-    assert package_path.is_file()
+    assert archive_path.exists()
+    assert archive_path.is_file()
+    assert archive_path.stat().st_size > 0
 
     # Locations of lexer artifacts in test suite.
     parser_token_traces = {
@@ -124,14 +98,13 @@ def test_ansi_lexers_candidates(tmp_path):
     # Browse the downloaded package to find the test suite, and inspect the
     # traces of parsed tokens used as gold master for lexers tests.
     lexer_candidates = set()
-    with tarfile.open(package_path, "r:gz") as tar:
+    with tarfile.open(archive_path, "r:gz") as tar:
         for member in tar.getmembers():
             # Skip non-test files.
             if not member.isfile():
                 continue
 
-            # Double check we are not fed an archive exploiting relative ``..`` or
-            # ``.`` path attacks.
+            # XXX Security check of relative ``..`` or ``.`` path attacks.
             filename = tmp_path.joinpath(member.name).resolve()
             if sys.version_info >= (3, 9):
                 assert filename.is_relative_to(tmp_path)
@@ -161,6 +134,7 @@ def test_ansi_lexers_candidates(tmp_path):
             # Extarct lexer alias from the test file path.
             lexer_candidates.add(filename.parent.name)
 
+    assert lexer_candidates
     lexer_classes = {find_lexer_class_by_name(alias) for alias in lexer_candidates}
     # We cannot test for strict equality yet, as some ANSI-ready lexers do not
     # have any test artifacts producing ``Generic.Output`` tokens.
