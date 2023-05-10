@@ -100,9 +100,9 @@ jobs:
               # Match the job against the exclude criterions.
               exclude_job = False
               for criterion in exclude:
-                if set(criterion.items()).issubset(job.items()):
-                  exclude_job = True
-                    break
+                  if set(criterion.items()).issubset(job.items()):
+                      exclude_job = True
+                      break
               if exclude_job:
                   continue
 
