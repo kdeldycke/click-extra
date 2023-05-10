@@ -76,9 +76,9 @@ Are ignored:
 - ``NOTSET``, which is considered internal
 - ``WARN``, which `is obsolete
   <https://docs.python.org/3/library/logging.html?highlight=warn#logging.Logger.warning>`_
-- ``FATAL``, which `has been deprecated
+- ``FATAL``, which `shouldn't be used <https://github.com/python/cpython/issues/85013>`_
+  and `replaced by CRITICAL
   <https://github.com/python/cpython/blob/0df7c3a/Lib/logging/__init__.py#L1538-L1541>`_
-  in favor of ``CRITICAL``
 """
 
 
