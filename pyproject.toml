@@ -72,7 +72,8 @@ python = "^3.8"
 # Investigation of the root cause is being discussed upstream at:
 # https://github.com/mahmoud/boltons/issues/334
 boltons = "^23.0.0"
-click = "^8.1.3"
+# Click 8.1 is the first version to support ``params=`` in ``@command``.
+click = "^8.1"
 cloup = "^2.0.0.post1"
 commentjson = "^0.9.0"
 furo = "^2023.03.27"
