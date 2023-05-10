@@ -64,19 +64,57 @@ jobs:
                   "master",
               }
           }
+          # TODO: List of additional variants to include in the matrix.
+          include: list[dict[str, str]] = []
+
+          # List of variants to exclude from the matrix.
+          exclude: list[dict[str, str]] = []
 
           # List of unstable criterions.
           unstable: list[dict[str, str]] = []
 
-          jobs = []
+          # Exclude dev tests of third-party dependencies on old OSes and Python dev.
+          for criterion in (
+              # Exclude old OSes.
+              {"os": "ubuntu-20.04"},
+              {"os": "macos-11"},
+              {"os": "windows-2019"},
+              # Exclude Python's dev version.
+              {"python-version": "3.12-dev"},
+              # Only test on oldest and newest released Python versions.
+              {"python-version": "3.9"},
+              {"python-version": "3.10"},
+          ):
+              for dev_version in (
+                  {"click-version": "8.1.x"},
+                  {"click-version": "main"},
+                  {"cloup-version": "master"},
+              ):
+                  exclude.append({**criterion, **dev_version})
+
+          # Build the job matrix.
+          jobs: list[dict[str, str]] = []
           for variants in product(*[{(key, value) for value in values} for key, values in variants.items()]):
               job = dict(variants)
+
+              # Match the job against the exclude criterions.
+              exclude = False
+              for criterion in exclude:
+                if set(criterion.items()).issubset(job.items()):
+                    exclude = True
+                    break
+              if exclude:
+                  continue
+
+              # Match the job against the unstable criterions.
               job["state"] = "stable"
               for criterion in unstable:
                   if set(criterion.items()).issubset(job.items()):
                       job["state"] = "unstable"
                       break
+
               jobs.append(job)
+
           matrix = json.dumps({"include": jobs})
 
           env_file = Path(os.getenv("GITHUB_OUTPUT"))
