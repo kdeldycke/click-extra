@@ -9,6 +9,7 @@ This version is not released yet and is under active development.
 - Populate the `Allowed in conf?` column in `--show-params` output if there is a `--config` option in the command.
 - Print all modified loggers and their levels in `DEBUG` mode.
 - Directly download in Pygments source code from GitHub  to check for candidates for ANSI-coloring in unittests.
+- Test continuously against Click and Cloup development version. Closes {issue}`525`.
 
 ## {gh}`4.0.0 (2023-05-08) <compare/v3.10.0...v4.0.0>`
 
