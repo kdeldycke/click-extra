@@ -24,7 +24,6 @@ from __future__ import annotations
 
 from gettext import gettext as _
 import logging
-from logging import getLevelName
 from time import perf_counter
 from typing import Any, Dict, Sequence
 
@@ -131,8 +130,7 @@ def default_extra_params():
 
 
 class ExtraCommand(ExtraHelpColorsMixin, Command):
-    """Like ``cloup.command``, with sane defaults and extra help screen colorization.
-    """
+    """Like ``cloup.command``, with sane defaults and extra help screen colorization."""
 
     context_class: type[cloup.Context] = ExtraContext
 
