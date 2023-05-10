@@ -33,56 +33,47 @@ jobs:
         run: |
           import json
           import os
-          from itertools import combinations, product
+          from itertools import product
           from pathlib import Path
 
-          # See what each os came pre-installed with at:
-          # https://help.github.com/en/actions/reference/software-installed-on-github-hosted-runners
-          os_list = {
-              "ubuntu-22.04",
-              "ubuntu-20.04",
-              "macos-12",
-              "macos-11",
-              "windows-2022",
-              "windows-2019",
+          variants: dict[str, set[str]] = {
+              "os": {
+                  # See what each os came pre-installed with at:
+                  # https://help.github.com/en/actions/reference/software-installed-on-github-hosted-runners
+                  "ubuntu-22.04",
+                  "ubuntu-20.04",
+                  "macos-12",
+                  "macos-11",
+                  "windows-2022",
+                  "windows-2019",
+              },
+              "python-version": {
+                  "3.8",
+                  "3.9",
+                  "3.10",
+                  "3.11",
+                  "3.12-dev",
+              },
+              "click-version": {
+                  "pinned",
+                  "8.1.x",
+                  "main",
+              },
+              "cloup-version": {
+                  "pinned",
+                  "master",
+              }
           }
-          python_list = {
-              "3.8",
-              "3.9",
-              "3.10",
-              "3.11",
-              "3.12-dev",
-          }
-          click_list = {
-              "pinned",
-              "8.1.x",
-              "main",
-          }
-          cloup_list = {
-              "pinned",
-              "master",
-          }
-
-          sets = (os_list, python_list, click_list, cloup_list)
-
-          # Safety check to ensure there is no overlap between sets.
-          for set_1, set_2 in combinations(sets, 2):
-              assert not set_1.intersection(set_2)
 
           # List of unstable criterions.
-          unstable = []
+          unstable: list[dict[str, str]] = []
 
           jobs = []
-          for os_id, python_version, click_version, cloup_version in product(*sets):
-              job = {
-                  "os": os_id,
-                  "python-version": python_version,
-                  "click-version": click_version,
-                  "cloup-version": cloup_version,
-                  "state": "stable",
-              }
+          for variants in product(*[{(key, value) for value in values} for key, values in variants.items()]):
+              job = dict(variants)
+              job["state"] = "stable"
               for criterion in unstable:
-                  if criterion.issubset(job.values()):
+                  if set(criterion.items()).issubset(job.items()):
                       job["state"] = "unstable"
                       break
               jobs.append(job)
