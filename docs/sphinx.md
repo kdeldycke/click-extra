@@ -12,17 +12,21 @@ extensions = ["click_extra.sphinx", ...]
 
 ## Click directives
 
-Click Extra implements two new directives to document your CLI:
+Click Extra adds two new directives:
 
-- `.. click:example::`
-- `.. click:run::`
+- `.. click:example::` to display any Click-based Python code blocks in Sphinx (and renders like `.. code-block:: python`)
+- `.. click:run::` to invoke the CLI defined above, and display the results as if was executed in a terminmal (within a `.. code-block:: ansi-shell-session`)
 
-These directives allows you to display any Click-based Python code blocks in Sphinx (with `.. click:example::`), then render the results of their invokation (via `.. click:run::`).
-
-Thanks to these, you can directly demonstrate the usage of you CLI in your documentation, as well as the effects of its options and parameters. You'll no longer have to maintain screenshots of you CLIs. Or copy and paste their outputs to keep them in sync with the latest revision. Let Click Extra does that job for you!
+Thanks to these, you can directly demonstrate the usage of your CLI in your documentation. You no longer have to maintain screenshots of you CLIs. Or copy and paste their outputs to keep them in sync with the latest revision. Click Extra will do that job for you.
 
 ```{hint}
-These directives are [based on the official `Pallets-Sphinx-Themes`](https://github.com/pallets/pallets-sphinx-themes/blob/main/src/pallets_sphinx_themes/themes/click/domain.py) from Click's authors, but augmented with support for ANSI coloring. That way you can show off your user-friendly CLI in all its glory! 🌈
+These directives are [based on the official `Pallets-Sphinx-Themes`](https://github.com/pallets/pallets-sphinx-themes/blob/main/src/pallets_sphinx_themes/themes/click/domain.py) from Click's authors, but augmented with support for ANSI coloring. That way you can show off your user-friendly CLI in all its glory. 🌈
+```
+
+```{seealso}
+Click Extra's own documentation extensively use `.. click:example::` and `.. click:run::` directives. [Look around
+in its Markdown source files](https://github.com/kdeldycke/click-extra/tree/main/docs) for advanced examples and
+inspiration.
 ```
 
 ### Usage
@@ -119,7 +123,7 @@ You can then invoke that CLI again with its ``--name`` option:
     .. click:run::
         invoke(hello_world, args=["--name", "Joe"])
 
-Which renders in Sphinx into a full execution trace in a terminal block:
+Which renders in Sphinx like it was executed in a terminal block:
 
 .. click:run::
     invoke(hello_world, args=["--name", "Joe"])
@@ -129,12 +133,6 @@ Which renders in Sphinx into a full execution trace in a terminal block:
 `.. click:example::` and `.. click:run::` directives works well with standard vanilla `click`-based CLIs.
 
 In the example above, we choose to import our CLI primitives from the `click-extra` module instead, to demonstrate the coloring of terminal session outputs, as `click-extra` provides [fancy coloring of help screens](colorize.md) by default.
-```
-
-```{seealso}
-Click Extra's own documentation extensively use `.. click:example::` and `.. click:run::` directives. [Look around
-in its Markdown source files](https://github.com/kdeldycke/click-extra/tree/main/docs) for real-life examples and
-inspiration.
 ```
 
 ## ANSI shell sessions
@@ -203,7 +201,7 @@ $ for i in {0..255}; do \
 `````
 ``````
 
-In Sphinx, the snippet above will be rendered into:
+In Sphinx, the snippet above renders to:
 
 ```ansi-shell-session
 $ # Print ANSI foreground colors.
