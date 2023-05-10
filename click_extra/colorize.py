@@ -321,6 +321,8 @@ class ExtraHelpColorsMixin:
         subcommands: set[str] = set()
         command_aliases: set[str] = set()
         options: set[str] = set()
+        long_options: set[str] = set()
+        short_options: set[str] = set()
         choices: set[str] = set()
         metavars: set[str] = set()
 
@@ -354,12 +356,15 @@ class ExtraHelpColorsMixin:
             metavars.add(param.make_metavar())
 
         # Split between shorts and long options
-        long_options: set[str] = set()
-        short_options: set[str] = set()
         for option_name in options:
-            # TODO: reuse ctx._opt_prefixes for finer match?
-            # Short options no longer than 2 characters like "-D", "/d", "/?", "+w",
-            # "-w", "f_", "_f", ...)
+            # Short options are no longer than 2 characters like "-D", "/d", "/?",
+            # "+w", "-w", "f_", "_f", ...
+            # XXX We cannot reuse the _short_opts and _long_opts attributes from
+            # https://github.com/pallets/click/blob/b0538df/src/click/parser.py#L173-L182
+            # because their values are not passed when the context is updated like
+            # ctx._opt_prefixes is at:
+            # https://github.com/pallets/click/blob/b0538df/src/click/core.py#L1408 .
+            # So we rely on simple heuristics to guess the option category.
             if len(option_name) <= 2:
                 short_options.add(option_name)
             # Any other is considered a long options. Like: "--debug", "--c", "-otest",
