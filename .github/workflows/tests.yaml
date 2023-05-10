@@ -98,12 +98,12 @@ jobs:
               job = dict(variants)
 
               # Match the job against the exclude criterions.
-              exclude = False
+              exclude_job = False
               for criterion in exclude:
                 if set(criterion.items()).issubset(job.items()):
-                    exclude = True
+                  exclude_job = True
                     break
-              if exclude:
+              if exclude_job:
                   continue
 
               # Match the job against the unstable criterions.
