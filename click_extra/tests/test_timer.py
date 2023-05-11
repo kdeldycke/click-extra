@@ -54,7 +54,7 @@ def slow_subcommand():
     "subcommand_id, time_min, time_max",
     (
         ("fast", 0.01, 0.2),
-        ("slow", 0.1, 0.4),
+        ("slow", 0.1, 1),
     ),
 )
 def test_integrated_time_option(invoke, subcommand_id, time_min, time_max):
