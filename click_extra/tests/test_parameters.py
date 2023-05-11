@@ -68,7 +68,8 @@ def test_normalize_envvar(env_name, normalized_env):
         # (and show the defaults).
         (
             extra_command,
-            "  --flag / --no-flag        [env var: custom, yo_FLAG; default: no-flag]\n",
+            "  --flag / --no-flag        "
+            "[env var: custom, yo_FLAG; default: no-flag]\n",
         ),
     ),
 )

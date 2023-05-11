@@ -177,8 +177,8 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         - ``show_choices = None`` (*Click Extra feature*)
 
           If set to ``True`` or ``False``, will force that value on all options, so we
-          can globally show or hide choices when prompting a user for input. Only makes sense
-          for options whose ``prompt`` property is set.
+          can globally show or hide choices when prompting a user for input. Only makes
+          sense for options whose ``prompt`` property is set.
 
           Defaults to ``None``, which will leave all options untouched, and let them
           decide of their own ``show_choices`` setting.

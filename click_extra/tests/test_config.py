@@ -479,7 +479,10 @@ def test_conf_file_overrides_defaults(
         # Debug level has been activated by configuration file.
         debug_log = rf"Load configuration matching {re.escape(str(conf_path))}\n"
         if is_url:
-            debug_log += rf'info: 127\.0\.0\.1 - - \[\S+ \S+\] "GET /{re.escape(conf_name)} HTTP/1\.1" 200 -\n'
+            debug_log += (
+                r'info: 127\.0\.0\.1 - - \[\S+ \S+\] '
+                rf'"GET /{re.escape(conf_name)} HTTP/1\.1" 200 -\n'
+            )
         debug_log += (
             r"debug: Set <Logger click_extra \(DEBUG\)> to DEBUG.\n"
             r"debug: Set <RootLogger root \(DEBUG\)> to DEBUG.\n"

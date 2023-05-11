@@ -62,7 +62,8 @@ def test_integrated_time_option(invoke, subcommand_id, time_min, time_max):
     assert result.exit_code == 0
     assert not result.stderr
     group = re.fullmatch(
-        rf"Start of CLI\nEnd of {subcommand_id} subcommand\nExecution time: (?P<time>[0-9.]+) seconds.\n",
+        rf"Start of CLI\nEnd of {subcommand_id} subcommand\n"
+        r"Execution time: (?P<time>[0-9.]+) seconds.\n",
         result.output,
     )
     assert group
