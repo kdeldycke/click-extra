@@ -34,7 +34,7 @@ To undestrand how we ended up with the result above, [go read the tutorial](http
 
 ## Features
 
-- Configuration file loader for:
+- [Configuration file](https://kdeldycke.github.io/click-extra/config.html) loader for:
   - `TOML`
   - `YAML`
   - `JSON`, with inline and block comments (Python-style `#` and Javascript-style `//`)
@@ -42,11 +42,13 @@ To undestrand how we ended up with the result above, [go read the tutorial](http
   - `XML`
 - Automatic inference of the configuration file structure from your CLI's options
 - Remote loading of configuration files from URLs
-- Optional strict validation of configuration
-- Search of configuration file from default user folder and glob patterns
-- Respect of `CLI` > `Configuration` > `Environment` > `Defaults` precedence
-- `--show-params` option to debug parameters defaults, values, environment variables and provenance
-- Colorization of help screens
+- Optional [strict validation](https://kdeldycke.github.io/click-extra/config.html#strictness) of configuration
+- Respect the [default application path](https://kdeldycke.github.io/click-extra/config.html#default-folder) on each platform (XDG spec on Linux)
+- Glob search patterns for configuration files
+- Respect of `CLI` > `Configuration` > `Environment` > `Defaults` [precedence](https://kdeldycke.github.io/click-extra/config.html#precedence)
+- Normalization and discoverability of environment variables
+- [`--show-params` option](https://kdeldycke.github.io/click-extra/config.html#show-params-option) to debug parameters defaults, values, environment variables and provenance
+- Colorization of help screens at the semantic-level of options, parameters, subheadings, choices, metavars and defaults
 - `-h`/`--help` option names (see [rant on other inconsistencies](https://blog.craftyguy.net/cmdline-help/))
 - `--color`/`--no-color` option flag
 - `--telemetry`/`--no-telemetry` flag to opt-in/out of tracking code
