@@ -34,7 +34,6 @@ from .conftest import (
 
 @extra_group
 def integrated_timer():
-    pass
     echo("Start of CLI")
 
 
