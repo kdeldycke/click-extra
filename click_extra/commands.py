@@ -22,7 +22,6 @@ leverage the mixins in here to build up your own custom variants.
 
 from __future__ import annotations
 
-from gettext import gettext as _
 import logging
 from typing import Any, Dict
 

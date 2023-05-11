@@ -24,8 +24,8 @@ from time import sleep
 
 from pytest_cases import parametrize
 
-from .. import echo, option, option_group, pass_context
-from ..decorators import extra_command, extra_group, timer_option
+from .. import echo
+from ..decorators import extra_group, timer_option
 
 from .conftest import (
     command_decorators,
@@ -37,10 +37,12 @@ def integrated_timer():
     pass
     echo("Start of CLI")
 
+
 @integrated_timer.command()
 def fast_subcommand():
     sleep(0.02)
     echo("End of fast subcommand")
+
 
 @integrated_timer.command()
 def slow_subcommand():
@@ -48,12 +50,14 @@ def slow_subcommand():
     echo("End of slow subcommand")
 
 
-@parametrize("subcommand_id, time_min, time_max", (
+@parametrize(
+    "subcommand_id, time_min, time_max",
+    (
         ("fast", 0.01, 0.2),
         ("slow", 0.1, 0.4),
-))
+    ),
+)
 def test_integrated_time_option(invoke, subcommand_id, time_min, time_max):
-
     result = invoke(integrated_timer, "--time", f"{subcommand_id}-subcommand")
     assert result.exit_code == 0
     assert not result.stderr
@@ -62,7 +66,7 @@ def test_integrated_time_option(invoke, subcommand_id, time_min, time_max):
         result.output,
     )
     assert group
-    assert time_min < float(group.groupdict()['time']) < time_max
+    assert time_min < float(group.groupdict()["time"]) < time_max
 
 
 @parametrize("subcommand_id", ("fast", "slow"))
