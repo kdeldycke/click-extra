@@ -55,7 +55,7 @@ from .decorators import (  # type: ignore[no-redef] # noqa: I001, E402, F401
     extra_command,
     extra_group,
     group,  # noqa: E402
-    help_option,
+    help_option,  # type: ignore[has-type]
     show_params_option,
     table_format_option,
     telemetry_option,
