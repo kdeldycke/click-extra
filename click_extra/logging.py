@@ -25,7 +25,6 @@ from logging import (
     Formatter,
     Handler,
     LogRecord,
-    _levelToName,
 )
 import sys
 from collections.abc import Generator, Iterable, Sequence

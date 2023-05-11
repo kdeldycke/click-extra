@@ -284,7 +284,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
                     ctx, version_param, True, capture_output=True
                 )
                 for line in version_message.splitlines():
-                    # TODO: pretty print JSON output (easier to read in bug reports).
+                    # TODO: pretty print JSON output (easier to read in bug reports)?
                     logger.debug(line)
 
         return super().invoke(ctx)
