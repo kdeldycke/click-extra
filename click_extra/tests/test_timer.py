@@ -39,18 +39,18 @@ def integrated_timer():
 
 @integrated_timer.command()
 def fast_subcommand():
-    sleep(0.2)
+    sleep(0.02)
     echo("End of fast subcommand")
 
 @integrated_timer.command()
 def slow_subcommand():
-    sleep(2)
+    sleep(0.2)
     echo("End of slow subcommand")
 
 
 @parametrize("subcommand_id, time_min, time_max", (
-        ("fast", 0.2, 0.3),
-        ("slow", 2.0, 2.1),
+        ("fast", 0.02, 0.03),
+        ("slow", 0.2, 0.3),
 ))
 def test_integrated_time_option(invoke, subcommand_id, time_min, time_max):
 
