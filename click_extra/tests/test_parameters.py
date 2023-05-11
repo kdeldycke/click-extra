@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import pytest
 from pytest_cases import parametrize
+import click
 
 from .. import echo, option, extra_command, command
 from ..parameters import normalize_envvar, extend_envvars
@@ -56,6 +57,38 @@ def test_extend_envvars(envvars_1, envvars_2, result):
 )
 def test_normalize_envvar(env_name, normalized_env):
     assert normalize_envvar(env_name) == normalized_env
+
+
+@pytest.mark.parametrize(
+    "cmd_decorator, option_help",
+    (
+        # Click's command does not show the auto-generated envvar in the help screen.
+        (
+            click.command,
+            "--flag / --no-flag  [env var: custom]"
+        ),
+        # Click-ectra's command always adds the auto-generated envvar to the help screen.
+        (
+            extra_command,
+            "--flag / --no-flag        [env var: custom, yo_FLAG; default: no-flag]"
+        ),
+    ),
+)
+def test_show_auto_envvar_help(invoke, cmd_decorator, option_help):
+    """Check that the auto-generated envvar appears in the help screen with the extra variants.
+
+    Checks that https://github.com/pallets/click/issues/2483 is addressed.
+    """
+
+    @cmd_decorator(context_settings={"auto_envvar_prefix": "yo"})
+    @option("--flag/--no-flag", envvar=["custom"], show_envvar=True)
+    def envvar_help():
+        pass
+
+    result = invoke(envvar_help, "--help")
+    assert result.exit_code == 0
+    assert not result.stderr
+    assert option_help in result.stdout
 
 
 def envvars_test_cases():
