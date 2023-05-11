@@ -105,22 +105,45 @@ class ExtraContext(cloup.Context):
 
 
 def default_extra_params():
-    """Default additional options added to ``extra_command`` and ``extra_group``:
+    """Default additional options added to ``extra_command`` and ``extra_group``.
+
+    .. caution::
+        The order of options has been carefully crafted to handle subtle edge-cases and
+        avoid leaky states in unittests.
+
+        You can still override this hard-coded order for easthetic reasons and it
+        should be fine. Your end-users are unlikely to be affected by these sneaky
+        bugs, as the CLI context is going to be naturraly resetted after each
+        invokation (which is not the case in unitests).
 
     #. ``--time`` / ``--no-time``
-    #. ``--color``, ``--ansi`` / ``--no-color``, ``--no-ansi``
+        .. hint::
+            ``--time`` is placed at the top so all other options can be timed.
     #. ``-C``, ``--config CONFIG_PATH``
+        .. attention::
+            ``--config`` is at the top so it can have a direct influence on the default
+            behavior and value of the other options.
+    #. ``--color``, ``--ansi`` / ``--no-color``, ``--no-ansi``
     #. ``--show-params``
     #. ``-v``, ``--verbosity LEVEL``
     #. ``--version``
     #. ``-h``, ``--help``
 
-    Order is important to let options at the top have influence on those below.
+    .. todo::
+        For bullet-proof handling of edge-cases, we should probably add an indirection
+        layer to have the processing order of options (the one below) different from
+        the presentation order of options in the help screen.
+
+        This is probably something that has been requested in {issue}`544`.
+
+    .. important::
+        Sensitivity to order still remains to be proven. With the code of Click Extra
+        and its dependencies moving fast, there is a non-zero chance that all the
+        options are now sound enough to be re-ordered in a more natural way.
     """
     return [
         TimerOption(),
         ColorOption(),
-        # XXX Should we move config to the top as it might influence other options?
         ConfigOption(),
         ShowParamsOption(),
         VerbosityOption(),
