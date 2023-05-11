@@ -57,9 +57,9 @@ To undestrand how we ended up with the result above, [go read the tutorial](http
   - `NO_COLOR` from [`no-color.org`](https://no-color.org)
   - `DO_NOT_TRACK` from [`consoledonottrack.com`](https://consoledonottrack.com)
 - Colored `--version` option
-- Colored `--verbosity` option and logs
+- [Colored `--verbosity` option and logs](https://kdeldycke.github.io/click-extra/logging.html)
 - `--time`/`--no-time` flag to measure duration of command execution
-- Platform recognition utilities (macOS, Linux, Windows, UNIX, \*BSD, …)
+- [Platform recognition](https://kdeldycke.github.io/click-extra/platforms.html) utilities (macOS, Linux, Windows, UNIX, \*BSD, …)
 - New conditional markers for `pytest`:
   - `@skip_linux`, `@skip_macos` and `@skip_windows`
   - `@unless_linux`, `@unless_macos` and `@unless_windows`
