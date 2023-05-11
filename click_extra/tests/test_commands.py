@@ -412,7 +412,7 @@ def test_raw_args(invoke):
         (
             click.command,
             {},
-            "  --flag1\n" "  --flag2  [env var: custom2]\n" "  --flag3\n",
+            "  --flag1\n  --flag2  [env var: custom2]\n  --flag3\n",
         ),
         # Click Extra defaults to let each option choose its own show_envvar value.
         (
@@ -441,7 +441,7 @@ def test_raw_args(invoke):
         (
             extra_command,
             {"show_envvar": False},
-            "  --flag1\n" "  --flag2\n" "  --flag3\n",
+            "  --flag1\n  --flag2\n  --flag3\n",
         ),
     ),
 )
