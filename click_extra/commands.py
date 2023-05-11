@@ -180,28 +180,61 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
             auto-generated environment variables gets displayed in the help screen,
             fixing `click#2483 issue <https://github.com/pallets/click/issues/2483>`_.
 
-        By default, these context settings are applied:
+        By default, these `Click context settings
+        <https://click.palletsprojects.com/en/8.1.x/api/#click.Context>`_ are applied:
 
-        - ``show_default = True``: `show all default values
+        - ``auto_envvar_prefix = self.name``
+
+          Auto-generate environment variables for all options, using the command ID as
+          prefix. The prefix is normalized to be uppercased and all non-alphanumerics
+          replaced by underscores.
+
+        - ``help_option_names = ("--help", "-h")``
+
+          `Allow help screen to be invoked with either --help or -h options
+          <https://click.palletsprojects.com/en/8.1.x/documentation/#help-parameter-customization>`_.
+
+        - ``show_default = True``
+
+          `Show all default values
           <https://click.palletsprojects.com/en/8.1.x/api/#click.Context.show_default>`_
           in help screen.
 
-        - ``auto_envvar_prefix = self.name``: auto-generate environment variables for
-          all options, using the command ID as prefix.
+        Additionnaly, these `Cloup context settings
+        <https://cloup.readthedocs.io/en/stable/pages/formatting.html#formatting-settings>`_
+        are set:
 
-        - ``align_option_groups = False``: `align option groups in help screen
+        - ``align_option_groups = False`` (*Cloup feature*)
+
+          `Aligns option groups in help screen
           <https://cloup.readthedocs.io/en/stable/pages/option-groups.html#aligned-vs-non-aligned-groups>`_.
 
-        - ``show_constraints = True``: `show all constraints in help screen
+        - ``show_constraints = True`` (*Cloup feature*)
+
+          `Show all constraints in help screen
           <https://cloup.readthedocs.io/en/stable/pages/constraints.html#the-constraint-decorator>`_.
 
-        - ``show_subcommand_aliases = True``: `show all subcommand aliases in help
-          screen
+        - ``show_subcommand_aliases = True`` (*Cloup feature*)
+
+          `Show all subcommand aliases in help screen
           <https://cloup.readthedocs.io/en/stable/pages/aliases.html?highlight=show_subcommand_aliases#help-output-of-the-group>`_.
 
-        - ``help_option_names = ("--help", "-h")``: `allow help screen to be invoked
-          with either --help or -h options
-          <https://click.palletsprojects.com/en/8.1.x/documentation/#help-parameter-customization>`_.
+        Click Extra also adds its own ``context_settings``:
+
+        - ``show_envvar = None`` (*Click Extra feature*)
+
+          If set to ``True`` or ``False``, will force that value on all options, so we
+          can globally enable or disable the display of environment variables in help
+          screen.
+
+          Defaults to ``None``, which will leave all options untouched, and let them
+          decide of their own ``show_envvar`` setting. The rationale being that
+          discoverability of environment variables is enabled by the ``--show-params``
+          option, which is active by default on extra commands. So there is no need to
+          surcharge the help screen.
+
+          This addresses the
+          `click#2313 issue <https://github.com/pallets/click/issues/2313>`_.
 
         To override these defaults, you can pass your own settings with the
         ``context_settings`` parameter:
@@ -217,26 +250,39 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         """
         super().__init__(*args, **kwargs)
 
-        # TODO: implements:
+        # TODO: implements: to improve discoverability and self-documentation of the CLI
         # self.show_all_default = show_default
         # self.show_all_choices = show_choices
-        # self.show_all_envvar = show_envvar =>
-        # https://github.com/pallets/click/issues/2313
 
         default_ctx_settings: Dict[str, Any] = {
-            "show_default": True,
+            # Click settings:
             # "default_map": {"verbosity": "DEBUG"},
+            "help_option_names": ("--help", "-h"),
+            "show_default": True,
+            # Cloup settings:
             "align_option_groups": False,
             "show_constraints": True,
             "show_subcommand_aliases": True,
-            "help_option_names": ("--help", "-h"),
+            # Click Extra settings:
+            "show_envvar": None,
         }
 
+        # Generate environment variables for all options based on the command name.
         if self.name:
             default_ctx_settings["auto_envvar_prefix"] = normalize_envvar(self.name)
 
         # Fill-in the unset settings with our defaults.
         default_ctx_settings.update(self.context_settings)
+
+        # If set, force the ``show_envvar`` settings on all options.
+        if default_ctx_settings["show_envvar"] is not None:
+            for param in self.params:
+                # ``Parameter`` instances do not have that attribute.
+                if isinstance(param, click.Option):
+                    param.show_envvar = default_ctx_settings["show_envvar"]
+
+        # Remove click-extra-specific settings, before passing it to Cloup and Click.
+        del default_ctx_settings["show_envvar"]
         self.context_settings: Dict[str, Any] = default_ctx_settings
 
         if populate_auto_envvars:

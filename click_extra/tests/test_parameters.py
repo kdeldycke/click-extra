@@ -62,15 +62,15 @@ def test_normalize_envvar(env_name, normalized_env):
 @pytest.mark.parametrize(
     "cmd_decorator, option_help",
     (
-        # Click's command does not show the auto-generated envvar in the help screen.
+        # Click does not show the auto-generated envvar in the help screen.
         (
             click.command,
-            "--flag / --no-flag  [env var: custom]"
+            "  --flag / --no-flag  [env var: custom]\n"
         ),
-        # Click-ectra's command always adds the auto-generated envvar to the help screen.
+        # Click Extra always adds the auto-generated envvar to the help screen (and show the defaults).
         (
             extra_command,
-            "--flag / --no-flag        [env var: custom, yo_FLAG; default: no-flag]"
+            "  --flag / --no-flag        [env var: custom, yo_FLAG; default: no-flag]\n"
         ),
     ),
 )
@@ -193,7 +193,12 @@ def envvars_test_cases():
 
 
 @parametrize("cmd_decorator, envvars, expected_flag", envvars_test_cases())
-def test_default_auto_envvar(invoke, cmd_decorator, envvars, expected_flag):
+def test_auto_envvar_parsing(invoke, cmd_decorator, envvars, expected_flag):
+    """This test highlights the way Click recognize and parse envvars.
+
+    It shows that the default behavior is not ideal, and covers how ``extra_command``
+    improves the situation by normalizing the envvar name.
+    """
     @cmd_decorator(context_settings={"auto_envvar_prefix": "yo"})
     @option("--flag/--no-flag", envvar=["Magic", "sUper"])
     def my_cli(flag):

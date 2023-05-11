@@ -459,3 +459,62 @@ def test_raw_args(invoke):
         Raw parameters: ['--int-param', '33']
         """
     )
+
+
+@pytest.mark.parametrize(
+    "cmd_decorator, ctx_settings, expected_help",
+    (
+        # Click does not show all envvar in the help screen by default, unless specifficaly set on an option.
+        (
+            click.command,
+            {},
+            "  --flag1\n"
+            "  --flag2  [env var: custom2]\n"
+            "  --flag3\n"
+        ),
+        # Click Extra defaults to let each option choose its own show_envvar value.
+        (
+            extra_command,
+            {},
+            "  --flag1\n"
+            "  --flag2                   [env var: custom2, CLI_FLAG2]\n"
+            "  --flag3\n"
+        ),
+        # Click Extra allow bypassing its global show_envvar setting.
+        (
+            extra_command,
+            {"show_envvar": None},
+            "  --flag1\n"
+            "  --flag2                   [env var: custom2, CLI_FLAG2]\n"
+            "  --flag3\n"
+        ),
+        # Click Extra force the show_envvar value on all options.
+        (
+            extra_command,
+            {"show_envvar": True},
+            "  --flag1                   [env var: custom1, CLI_FLAG1]\n"
+            "  --flag2                   [env var: custom2, CLI_FLAG2]\n"
+            "  --flag3                   [env var: custom3, CLI_FLAG3]\n"
+        ),
+        (
+            extra_command,
+            {"show_envvar": False},
+            "  --flag1\n"
+            "  --flag2\n"
+            "  --flag3\n"
+        ),
+    ),
+)
+def test_show_envvar_parameter(invoke, cmd_decorator, ctx_settings, expected_help):
+
+    @cmd_decorator(context_settings=ctx_settings)
+    @option("--flag1", is_flag=True, envvar=["custom1"])
+    @option("--flag2", is_flag=True, envvar=["custom2"], show_envvar=True)
+    @option("--flag3", is_flag=True, envvar=["custom3"], show_envvar=False)
+    def cli():
+        pass
+
+    result = invoke(cli, "--help")
+    assert result.exit_code == 0
+    assert not result.stderr
+    assert expected_help in result.stdout
