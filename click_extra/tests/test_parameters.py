@@ -51,6 +51,7 @@ def test_extend_envvars(envvars_1, envvars_2, result):
     (
         ("show-params-cli_VERSION", "SHOW_PARAMS_CLI_VERSION"),
         ("show---params-cli___VERSION", "SHOW_PARAMS_CLI_VERSION"),
+        ("__show-__params-_-_-", "SHOW_PARAMS"),
     ),
 )
 def test_normalize_envvar(env_name, normalized_env):
@@ -66,7 +67,7 @@ def envvars_test_cases():
                 # User-defined envvars are recognized as-is.
                 "Magic",
                 "sUper",
-                # XXX Uppercased auto-generated envvar is recognized be should not.
+                # XXX Uppercased auto-generated envvar is recognized but should not be.
                 "YO_FLAG",
             ),
             "unknown_envvar": (
@@ -86,7 +87,7 @@ def envvars_test_cases():
                 # Literal auto-generated is properly recognized but is not in vanilla
                 # Click (see above).
                 "yo_FLAG",
-                # XXX Uppercased auto-generated envvar is recognized be should not.
+                # XXX Uppercased auto-generated envvar is recognized but should not be.
                 "YO_FLAG",
             ),
             "unknown_envvar": (
@@ -126,10 +127,12 @@ def envvars_test_cases():
     working_value_map = {
         "True": True,
         "true": True,
+        "tRuE": True,
         "1": True,
         "": False,  # XXX: Should be True?
         "False": False,
         "false": False,
+        "fAlsE": False,
         "0": False,
     }
     # No envvar value will have an effect on the flag if the envvar is not recognized.
