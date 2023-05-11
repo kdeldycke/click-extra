@@ -59,6 +59,7 @@ To undestrand how we ended up with the result above, [go read the tutorial](http
 - Colored `--version` option
 - [Colored `--verbosity` option and logs](https://kdeldycke.github.io/click-extra/logging.html)
 - `--time`/`--no-time` flag to measure duration of command execution
+- Global `show_choices` to activate selection of choices on user input prompts
 - [Platform recognition](https://kdeldycke.github.io/click-extra/platforms.html) utilities (macOS, Linux, Windows, UNIX, \*BSD, …)
 - New conditional markers for `pytest`:
   - `@skip_linux`, `@skip_macos` and `@skip_windows`

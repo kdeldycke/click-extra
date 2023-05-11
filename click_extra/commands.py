@@ -221,6 +221,15 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
 
         Click Extra also adds its own ``context_settings``:
 
+        - ``show_choices = None`` (*Click Extra feature*)
+
+          If set to ``True`` or ``False``, will force that value on all options, so we
+          can globally show or hide choices when prompting a user for input. Only makes sense
+          for options whose ``prompt`` property is set.
+
+          Defaults to ``None``, which will leave all options untouched, and let them
+          decide of their own ``show_choices`` setting.
+
         - ``show_envvar = None`` (*Click Extra feature*)
 
           If set to ``True`` or ``False``, will force that value on all options, so we
@@ -250,9 +259,8 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         """
         super().__init__(*args, **kwargs)
 
-        # TODO: implements: to improve discoverability and self-documentation of the CLI
-        # self.show_all_default = show_default
-        # self.show_all_choices = show_choices
+        # List of additional global settings for options.
+        extra_option_settings = ["show_choices", "show_envvar"]
 
         default_ctx_settings: Dict[str, Any] = {
             # Click settings:
@@ -264,6 +272,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
             "show_constraints": True,
             "show_subcommand_aliases": True,
             # Click Extra settings:
+            "show_choices": None,
             "show_envvar": None,
         }
 
@@ -271,18 +280,20 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         if self.name:
             default_ctx_settings["auto_envvar_prefix"] = normalize_envvar(self.name)
 
-        # Fill-in the unset settings with our defaults.
+        # Merge defaults and user settings.
         default_ctx_settings.update(self.context_settings)
 
-        # If set, force the ``show_envvar`` settings on all options.
-        if default_ctx_settings["show_envvar"] is not None:
-            for param in self.params:
-                # ``Parameter`` instances do not have that attribute.
-                if isinstance(param, click.Option):
-                    param.show_envvar = default_ctx_settings["show_envvar"]
+        # If set, force extra settings on all options.
+        for setting in extra_option_settings:
+            if default_ctx_settings[setting] is not None:
+                for param in self.params:
+                    # These attributes are specific to options.
+                    if isinstance(param, click.Option):
+                        param.show_envvar = default_ctx_settings[setting]
 
-        # Remove click-extra-specific settings, before passing it to Cloup and Click.
-        del default_ctx_settings["show_envvar"]
+        # Remove Click Extra-specific settings, before passing it to Cloup and Click.
+        for setting in extra_option_settings:
+            del default_ctx_settings[setting]
         self.context_settings: Dict[str, Any] = default_ctx_settings
 
         if populate_auto_envvars:

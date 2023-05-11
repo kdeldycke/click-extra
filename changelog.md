@@ -7,6 +7,7 @@ This version is not released yet and is under active development.
 ```
 
 - Add new global `show_envvar` option to display all environment variables in help screens.
+- Global `show_choices` setting to show or hide choices when prompting a user for input.
 - Populate the `Allowed in conf?` column in `--show-params` output if there is a `--config` option in the command.
 - Print all modified loggers and their levels in `DEBUG` mode.
 - Directly download in Pygments source code from GitHub  to check for candidates for ANSI-coloring in unittests.
