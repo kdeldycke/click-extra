@@ -701,7 +701,7 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.time",
-            "click_extra.commands.TimerOption",
+            "click_extra.timer.TimerOption",
             "--time / --no-time",
             "bool",
             "✓",

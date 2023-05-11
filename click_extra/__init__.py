@@ -43,7 +43,6 @@ from .colorize import (  # noqa: I001, E402, F401
     HelpExtraTheme,
 )
 from .commands import (  # noqa: I001, E402, F401
-    TimerOption,
     ExtraCommand,
     ExtraContext,
     ExtraGroup,
@@ -73,6 +72,7 @@ from .logging import (  # noqa: I001, E402, F401
 from .parameters import ExtraOption  # noqa: I001, E402, F401
 from .tabulate import TableFormatOption  # noqa: I001, E402, F401
 from .telemetry import TelemetryOption  # noqa: I001, E402, F401
+from .timer import TimerOption  # noqa: I001, E402, F401
 from .version import VersionOption  # noqa: I001, E402, F401
 
 __all__ = [  # noqa: F405

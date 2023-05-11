@@ -27,12 +27,11 @@ from textwrap import dedent
 import click
 import cloup
 import pytest
-from pytest_cases import fixture, parametrize
+from pytest_cases import fixture
 
 from .. import echo, option, option_group, pass_context
-from ..decorators import extra_command, extra_group, timer_option
+from ..decorators import extra_command, extra_group
 from .conftest import (
-    command_decorators,
     default_debug_uncolored_log_start,
     default_debug_uncolored_log_end,
     default_options_colored_help,
@@ -88,7 +87,7 @@ def test_module_root_declarations():
 
 @fixture
 def all_command_cli():
-    """A CLI that used all variations and flavors of subcommands."""
+    """A CLI that is mixing all variations and flavors of subcommands."""
 
     @extra_group(version="2021.10.08")
     def command_cli1():
@@ -253,23 +252,6 @@ def test_subcommand_execution(invoke, all_command_cli, cmd_id):
     assert not result.stderr
 
 
-def test_integrated_time_option(invoke, all_command_cli):
-    result = invoke(all_command_cli, "--time", "default-subcommand")
-    assert result.exit_code == 0
-    assert re.fullmatch(
-        r"It works!\nRun default subcommand...\nExecution time: [0-9.]+ seconds.\n",
-        result.output,
-    )
-    assert not result.stderr
-
-
-def test_integrated_notime_option(invoke, all_command_cli):
-    result = invoke(all_command_cli, "--no-time", "default-subcommand")
-    assert result.exit_code == 0
-    assert result.output == "It works!\nRun default subcommand...\n"
-    assert not result.stderr
-
-
 def test_integrated_version_value(invoke, all_command_cli):
     result = invoke(all_command_cli, "--version", color=False)
     assert result.exit_code == 0
@@ -278,45 +260,6 @@ def test_integrated_version_value(invoke, all_command_cli):
     assert re.fullmatch(regex_output, result.output)
 
     assert not result.stderr
-
-
-@parametrize(
-    "cmd_decorator",
-    # Skip click extra's commands, as timer option is already part of the default.
-    command_decorators(no_groups=True, no_extra=True),
-)
-@parametrize("option_decorator", (timer_option, timer_option()))
-def test_standalone_timer_option(invoke, cmd_decorator, option_decorator):
-    @cmd_decorator
-    @option_decorator
-    def standalone_timer():
-        echo("It works!")
-
-    result = invoke(standalone_timer, "--help")
-    assert result.exit_code == 0
-    assert not result.stderr
-    assert result.stdout == dedent(
-        """\
-        Usage: standalone-timer [OPTIONS]
-
-        Options:
-          --time / --no-time  Measure and print elapsed execution time.
-          --help              Show this message and exit.
-        """
-    )
-
-    result = invoke(standalone_timer, "--time")
-    assert result.exit_code == 0
-    assert not result.stderr
-    assert re.fullmatch(
-        r"It works!\nExecution time: [0-9.]+ seconds.\n",
-        result.output,
-    )
-
-    result = invoke(standalone_timer, "--no-time")
-    assert result.exit_code == 0
-    assert not result.stderr
-    assert result.output == "It works!\n"
 
 
 def test_no_option_leaks_between_subcommands(invoke):

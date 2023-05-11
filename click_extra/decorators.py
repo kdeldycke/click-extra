@@ -20,11 +20,12 @@ from functools import wraps
 import cloup
 
 from .colorize import ColorOption, HelpOption
-from .commands import ExtraCommand, ExtraGroup, TimerOption, default_extra_params
+from .commands import ExtraCommand, ExtraGroup, default_extra_params
 from .config import ConfigOption, ShowParamsOption
 from .logging import VerbosityOption
 from .tabulate import TableFormatOption
 from .telemetry import TelemetryOption
+from .timer import TimerOption
 from .version import VersionOption
 
 
