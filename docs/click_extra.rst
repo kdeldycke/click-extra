@@ -121,6 +121,14 @@ click\_extra.telemetry module
    :undoc-members:
    :show-inheritance:
 
+click\_extra.timer module
+-------------------------
+
+.. automodule:: click_extra.timer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 click\_extra.version module
 ---------------------------
 

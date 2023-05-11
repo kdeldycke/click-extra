@@ -97,6 +97,14 @@ click\_extra.tests.test\_telemetry module
    :undoc-members:
    :show-inheritance:
 
+click\_extra.tests.test\_timer module
+-------------------------------------
+
+.. automodule:: click_extra.tests.test_timer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 click\_extra.tests.test\_version module
 ---------------------------------------
 
