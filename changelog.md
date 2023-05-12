@@ -6,6 +6,7 @@
 This version is not released yet and is under active development.
 ```
 
+- Allow setting the style of `(deprecated)` tag in help screen's theme. Defaults to bold, bright yellow.
 - Change default style of critical log messages' prefix to bold, bright red.
 
 ## {gh}`4.1.0 (2023-05-11) <compare/v4.0.0...v4.1.0>`

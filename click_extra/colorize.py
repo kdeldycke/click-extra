@@ -74,6 +74,7 @@ class HelpExtraTheme(NamedTuple):
     option: IStyle = identity
     choice: IStyle = identity
     metavar: IStyle = identity
+    deprecated: IStyle = identity
     search: IStyle = identity
     success: IStyle = identity
 
@@ -96,6 +97,7 @@ class HelpExtraTheme(NamedTuple):
         option: IStyle | None = None,
         choice: IStyle | None = None,
         metavar: IStyle | None = None,
+        deprecated: IStyle | None = None,
         search: IStyle | None = None,
         success: IStyle | None = None,
     ) -> HelpExtraTheme:
@@ -148,6 +150,7 @@ default_theme = HelpExtraTheme(
     option=Style(fg="cyan"),
     choice=Style(fg="magenta"),
     metavar=Style(fg="bright_black"),
+    deprecated=Style(fg="bright_yellow", bold=True),
     search=Style(fg="green", bold=True),
     success=Style(fg="green"),
 )
@@ -493,8 +496,8 @@ class HelpExtraFormatter(HelpFormatter):
         # https://github.com/janluke/cloup/blob/c29fa051ed405856ed8bc2dbd733f9df2c8e6418/cloup/formatting/_formatter.py#L188
         help_text = re.sub(
             rf"""
-            (\s)                                      # Any blank char.
-            (?P<warning>{re.escape("(DEPRECATED)")})  # The flag string.
+            (\s)                                         # Any blank char.
+            (?P<deprecated>{re.escape("(DEPRECATED)")})  # The flag string.
             """,
             self.colorize,
             help_text,
