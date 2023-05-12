@@ -137,7 +137,7 @@ default_theme = HelpExtraTheme(
     # which takes care of separators.
     col1=identity,
     # Log levels.
-    critical=Style(fg="red"),
+    critical=Style(fg="bright_red", bold=True),
     error=Style(fg="red"),
     warning=Style(fg="yellow"),
     # INFO log level is the default, so no style applied.

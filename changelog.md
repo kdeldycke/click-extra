@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Change default style of critical log messages' prefix to bold, bright red.
+
 ## {gh}`4.1.0 (2023-05-11) <compare/v4.0.0...v4.1.0>`
 
 - Add new global `show_envvar` option to display all environment variables in help screens.

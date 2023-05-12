@@ -123,7 +123,7 @@ def test_default_root_logger(invoke, cmd_decorator, option_decorator, level):
         r"info: my info message.\n",
         r"\x1b\[33mwarning\x1b\[0m: my warning message.\n",
         r"\x1b\[31merror\x1b\[0m: my error message.\n",
-        r"\x1b\[31mcritical\x1b\[0m: my critical message.\n",
+        r"\x1b\[91m\x1b\[1mcritical\x1b\[0m: my critical message.\n",
     )
     level_index = {index: level for level, index in enumerate(LOG_LEVELS)}[level]
     log_records = r"".join(messages[-level_index - 1 :])
