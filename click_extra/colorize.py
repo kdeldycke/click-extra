@@ -582,6 +582,8 @@ class HelpExtraFormatter(HelpFormatter):
         # Highlight " (Deprecated)" or " (DEPRECATED)" labels, as set by either:
         # https://github.com/pallets/click/blob/ef11be6e/tests/test_commands.py#L345
         # https://github.com/janluke/cloup/blob/c29fa051/cloup/formatting/_formatter.py#L188
+        # Full history of this case change is detailed at:
+        # https://github.com/janluke/cloup/pull/153
         help_text = re.sub(
             rf"""
             (\s)                                         # Any blank char.
