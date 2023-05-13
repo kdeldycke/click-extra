@@ -480,7 +480,7 @@ def test_conf_file_overrides_defaults(
         debug_log = rf"Load configuration matching {re.escape(str(conf_path))}\n"
         if is_url:
             debug_log += (
-                r'info: 127\.0\.0\.1 - - \[\S+ \S+\] '
+                r"info: 127\.0\.0\.1 - - \[\S+ \S+\] "
                 rf'"GET /{re.escape(conf_name)} HTTP/1\.1" 200 -\n'
             )
         debug_log += (

@@ -468,21 +468,22 @@ class HelpExtraFormatter(HelpFormatter):
 
     # TODO: Hihglight extra keywords <stdout> or <stderr>
 
-    # TODO: add collection of regexps as pre-compiled constants, so we can inspect them and get some performances improvements.
+    # TODO: add collection of regexps as pre-compiled constants, so we can
+    # inspect them and get some performances improvements.
 
     style_aliases = {
         # Layout elements of the square brackets trailing each option.
-        'bracket_1': 'bracket',
-        'bracket_2': 'bracket',
-        'label_sep': 'bracket',
-        'envvar_label': 'bracket',
-        'default_label': 'bracket',
+        "bracket_1": "bracket",
+        "bracket_2": "bracket",
+        "label_sep": "bracket",
+        "envvar_label": "bracket",
+        "default_label": "bracket",
         # Style subcommand names and aliases like options.
-        "subcommand": 'option',
-        "command_aliases": 'option',
+        "subcommand": "option",
+        "command_aliases": "option",
         # Long and short options are options.
-        "long_option": 'option',
-        "short_option": 'option',
+        "long_option": "option",
+        "short_option": "option",
     }
     """Map regex's group IDs to styles.
 
@@ -549,7 +550,7 @@ class HelpExtraFormatter(HelpFormatter):
             raise ValueError(
                 "The matching result contains named groups that were not processed. "
                 "There is an edge-case in the design of regular expressions."
-                )
+            )
 
         return txt
 
