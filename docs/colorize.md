@@ -8,6 +8,15 @@ to add colorization of:
 - Choices
 - Metavars
 
+- Cli name
+- Sub-commands
+- Command aliases
+- Long and short options
+- Choices
+- Metavars
+- Environment variables
+- Defaults
+
 ```{todo}
 Write example and tutorial.
 ```

@@ -22,6 +22,8 @@ from __future__ import annotations
 
 import re
 from typing import Any, Dict, Sequence, Iterable
+import inspect
+from gettext import gettext as _
 
 import click
 from boltons.iterutils import unique
@@ -114,15 +116,6 @@ def all_envvars(
     return envvars
 
 
-class ExtraOption(Option):
-    """All new options implemented by ``click-extra`` derives from this class.
-
-    Does nothing in particular for now but provides a way to identify click-extra's own
-    options with certainty. Might be used in the future to implement common behavior,
-    fixes or hacks.
-    """
-
-
 def search_params(
     params: Iterable[click.Parameter],
     klass: type[click.Parameter],
@@ -146,3 +139,89 @@ def search_params(
             )
         return param_list.pop()
     return param_list
+
+
+class ExtraOption(Option):
+    """All new options implemented by ``click-extra`` inherits this class.
+
+    Does nothing in particular for now but provides a way to identify Click Extra's own
+    options with certainty.
+
+    Also contains Option-specific code that should be contributed upstream to Click.
+    """
+
+    @staticmethod
+    def get_help_default(option: click.Option, ctx: click.Context) -> str | None:
+        """Produce the string to be displayed in the help as option's default.
+
+        .. caution::
+            This is a `copy of Click's default value rendering of the default
+            <https://github.com/pallets/click/blob/b0538df/src/click/core.py#L2754-L2792>`_
+
+            This code **should be keep in sync with Click's implementation**.
+
+        .. attention::
+            This doens't work with our own ``--config`` option because we are also
+            monkey-patching `ConfigOption.get_help_record()
+            <https://kdeldycke.github.io/click-extra/config.html#click_extra.config.ConfigOption.get_help_record>`_
+            to display the dynamic default value.
+
+            So the results of this method call is:
+
+                .. code-block:: text
+
+                    <bound method ConfigOption.default_pattern of <ConfigOption config>>
+
+            instead of the expected:
+
+                .. code-block:: text
+
+                    ~/Library/Application Support/multiple_envvars.py/*.{toml,yaml,yml,json,ini,xml}
+
+        .. todo::
+            Contribute this code upstream to Click.
+        """
+        # Temporarily enable resilient parsing to avoid type casting
+        # failing for the default. Might be possible to extend this to
+        # help formatting in general.
+        resilient = ctx.resilient_parsing
+        ctx.resilient_parsing = True
+
+        try:
+            default_value = option.get_default(ctx, call=False)
+        finally:
+            ctx.resilient_parsing = resilient
+
+        show_default = False
+        show_default_is_str = False
+
+        if option.show_default is not None:
+            if isinstance(option.show_default, str):
+                show_default_is_str = show_default = True
+            else:
+                show_default = option.show_default
+        elif ctx.show_default is not None:
+            show_default = ctx.show_default
+
+        if show_default_is_str or (show_default and (default_value is not None)):
+            if show_default_is_str:
+                default_string = f"({option.show_default})"
+            elif isinstance(default_value, (list, tuple)):
+                default_string = ", ".join(str(d) for d in default_value)
+            elif inspect.isfunction(default_value):
+                default_string = _("(dynamic)")
+            elif option.is_bool_flag and option.secondary_opts:
+                # For boolean flags that have distinct True/False opts,
+                # use the opt without prefix instead of the value.
+                default_string = click.parser.split_opt(
+                    (option.opts if option.default else option.secondary_opts)[0]
+                )[1]
+            elif option.is_bool_flag and not option.secondary_opts and not default_value:
+                default_string = ""
+            else:
+                default_string = str(default_value)
+
+            if default_string:
+                return default_string
+
+        return None

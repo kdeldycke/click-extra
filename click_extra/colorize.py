@@ -28,6 +28,7 @@ import regex as re3
 from boltons.strutils import complement_int_list, int_ranges_from_int_list
 from cloup._util import identity
 from cloup.styling import IStyle, Color
+import click
 
 from . import (
     Choice,
@@ -84,6 +85,7 @@ class HelpExtraTheme(NamedTuple):
 
     def with_(
         self,
+        # Cloup properties.
         invoked_command: IStyle | None = None,
         command_help: IStyle | None = None,
         heading: IStyle | None = None,
@@ -92,12 +94,13 @@ class HelpExtraTheme(NamedTuple):
         col1: IStyle | None = None,
         col2: IStyle | None = None,
         epilog: IStyle | None = None,
+        # Log levels.
         critical: IStyle | None = None,
         error: IStyle | None = None,
         warning: IStyle | None = None,
         info: IStyle | None = None,
         debug: IStyle | None = None,
-        subheading: IStyle | None = None,
+        # Click Extra properties.
         option: IStyle | None = None,
         choice: IStyle | None = None,
         metavar: IStyle | None = None,
@@ -107,6 +110,9 @@ class HelpExtraTheme(NamedTuple):
         deprecated: IStyle | None = None,
         search: IStyle | None = None,
         success: IStyle | None = None,
+        # XXX Subheading is used for sub-sections, like in the help of mail-deduplicate:
+        # https://github.com/kdeldycke/mail-deduplicate/blob/0764287/mail_deduplicate/deduplicate.py#L445
+        subheading: IStyle | None = None,
     ) -> HelpExtraTheme:
         """Copy of ``cloup.HelpTheme.with_``."""
         kwargs = {key: val for key, val in locals().items() if val is not None}
@@ -138,20 +144,17 @@ class HelpExtraTheme(NamedTuple):
 
 # Populate our global theme with all default styles.
 default_theme = HelpExtraTheme(
-    # Cloup properties.
     invoked_command=Style(fg=Color.bright_white),
     heading=Style(fg=Color.bright_blue, bold=True, underline=True),
     constraint=Style(fg=Color.magenta),
     # Neutralize Cloup's col1, as it interfers with our finer option styling
     # which takes care of separators.
     col1=identity,
-    # Log levels.
     critical=Style(fg=Color.bright_red, bold=True),
     error=Style(fg=Color.red),
     warning=Style(fg=Color.yellow),
     info=identity,  # INFO level is the default, so no style applied.
     debug=Style(fg=Color.blue),
-    # Click Extra properties.
     option=Style(fg=Color.cyan),
     choice=Style(fg=Color.magenta),
     metavar=Style(fg=Color.cyan, dim=True),
@@ -161,8 +164,6 @@ default_theme = HelpExtraTheme(
     deprecated=Style(fg=Color.bright_yellow, bold=True),
     search=Style(fg=Color.green, bold=True),
     success=Style(fg=Color.green),
-    # XXX Subheading is used for sub-sections, like in the help of mail-deduplicate:
-    # https://github.com/kdeldycke/mail-deduplicate/blob/0764287/mail_deduplicate/deduplicate.py#L445
     subheading=Style(fg=Color.blue),
 )
 
@@ -361,7 +362,7 @@ class ExtraHelpColorsMixin:
         # Add user defined help options.
         options.update(ctx.help_option_names)
 
-        # Collect all option names and choice keywords.
+        # Collect all options, choices, metavars, envvars and default values.
         for param in command.params:
             options.update(param.opts)
             options.update(param.secondary_opts)
@@ -370,6 +371,13 @@ class ExtraHelpColorsMixin:
                 choices.update(param.type.choices)
 
             metavars.add(param.make_metavar())
+
+            envvars.update(param.envvar)
+
+            if isinstance(param, click.Option):
+                default_string = ExtraOption.get_help_default(param, ctx)
+                if default_string:
+                    defaults.add(default_string)
 
         # Split between shorts and long options
         for option_name in options:
