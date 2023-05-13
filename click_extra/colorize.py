@@ -23,7 +23,6 @@ from configparser import RawConfigParser
 from gettext import gettext as _
 from operator import getitem
 from typing import NamedTuple, Sequence, cast
-from functools import cache
 
 import regex as re3
 from boltons.strutils import complement_int_list, int_ranges_from_int_list
@@ -39,6 +38,7 @@ from . import (
     Style,
     echo,
     get_current_context,
+    cache,
 )
 from .parameters import ExtraOption
 
