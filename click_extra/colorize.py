@@ -568,7 +568,7 @@ class HelpExtraFormatter(HelpFormatter):
             into a sequence of contiguous groups.
 
             This means each part of the matching result must be encapsulated in a group.
-            And subgroups are not allowed (unless their are explicitely set as
+            And subgroups are not allowed (unless their are explicitly set as
             non-matching with ``(?:...)`` prefix).
 
             Groups with a name must have a corresponding style.
