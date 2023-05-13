@@ -507,7 +507,7 @@ class HelpExtraFormatter(HelpFormatter):
         style = cast("IStyle", getattr(self.theme, self.get_style_id(group_id)))
         return style(str_to_style)
 
-    def colorize(self, match: re.Match, ) -> str:
+    def colorize(self, match: re.Match) -> str:
         """Colorize all groups with IDs in the provided matching result.
 
         All groups without IDs are left as-is.
@@ -526,9 +526,6 @@ class HelpExtraFormatter(HelpFormatter):
             returning an ordered dictionnary. Which is supposed to be true as of Python
             3.7.
         """
-        #print(repr(match.groupdict()))
-        #print(repr(match.groups()))
-
         # Get a snapshot of all named groups.
         named_matches = list(match.groupdict().items())
 
