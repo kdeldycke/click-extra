@@ -140,30 +140,30 @@ class HelpExtraTheme(NamedTuple):
 default_theme = HelpExtraTheme(
     # Cloup properties.
     invoked_command=Style(fg=Color.bright_white),
-    heading=Style(fg="bright_blue", bold=True, underline=True),
-    constraint=Style(fg="magenta"),
+    heading=Style(fg=Color.bright_blue, bold=True, underline=True),
+    constraint=Style(fg=Color.magenta),
     # Neutralize Cloup's col1, as it interfers with our finer option styling
     # which takes care of separators.
     col1=identity,
     # Log levels.
-    critical=Style(fg="bright_red", bold=True),
-    error=Style(fg="red"),
-    warning=Style(fg="yellow"),
+    critical=Style(fg=Color.bright_red, bold=True),
+    error=Style(fg=Color.red),
+    warning=Style(fg=Color.yellow),
     info=identity,  # INFO level is the default, so no style applied.
-    debug=Style(fg="blue"),
+    debug=Style(fg=Color.blue),
     # Click Extra properties.
-    option=Style(fg="cyan"),
-    choice=Style(fg="magenta"),
-    metavar=Style(fg="cyan", dim=True),
+    option=Style(fg=Color.cyan),
+    choice=Style(fg=Color.magenta),
+    metavar=Style(fg=Color.cyan, dim=True),
     bracket=Style(dim=True),
-    envvar=Style(fg="yellow", dim=True),
-    default=Style(fg="green", dim=True, italic=True),
-    deprecated=Style(fg="bright_yellow", bold=True),
-    search=Style(fg="green", bold=True),
-    success=Style(fg="green"),
+    envvar=Style(fg=Color.yellow, dim=True),
+    default=Style(fg=Color.green, dim=True, italic=True),
+    deprecated=Style(fg=Color.bright_yellow, bold=True),
+    search=Style(fg=Color.green, bold=True),
+    success=Style(fg=Color.green),
     # XXX Subheading is used for sub-sections, like in the help of mail-deduplicate:
     # https://github.com/kdeldycke/mail-deduplicate/blob/0764287/mail_deduplicate/deduplicate.py#L445
-    subheading=Style(fg="blue"),
+    subheading=Style(fg=Color.blue),
 )
 
 
