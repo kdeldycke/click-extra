@@ -159,34 +159,34 @@ def test_keyword_collection(invoke):
     color_cli1.section("Extra commands", command3, command4)
 
     help_screen = (
-        r"\x1b\[94m\x1b\[1mUsage: \x1b\[0m\x1b\[97mcolor-cli1\x1b\[0m "
-        r"\x1b\[90m\[OPTIONS\]\x1b\[0m \x1b\[90mCOMMAND \[ARGS\]...\x1b\[0m\n\n"
-        r"\x1b\[94m\x1b\[1mGroup 1:\x1b\[0m\n"
-        r"  \x1b\[36m-a\x1b\[0m, \x1b\[36m--o1\x1b\[0m \x1b\[90mTEXT\x1b\[0m\n"
-        r"  \x1b\[36m-b\x1b\[0m, \x1b\[36m--o2\x1b\[0m \x1b\[90mTEXT\x1b\[0m\n\n"
-        r"\x1b\[94m\x1b\[1mGroup 2:\x1b\[0m\n"
-        r"  \x1b\[36m--o3\x1b\[0m \x1b\[90mMY_VAR\x1b\[0m\n"
-        r"  \x1b\[36m--o4\x1b\[0m \x1b\[90mTEXT\x1b\[0m\n\n"
-        r"\x1b\[94m\x1b\[1mOther options:\x1b\[0m\n"
-        r"  \x1b\[36m--test\x1b\[0m \x1b\[90mTEXT\x1b\[0m\n"
+        r"\x1b\[94m\x1b\[1m\x1b\[4mUsage: \x1b\[0m\x1b\[97mcolor-cli1\x1b\[0m "
+        r"\x1b\[36m\x1b\[2m\[OPTIONS\]\x1b\[0m \x1b\[36m\x1b\[2mCOMMAND \[ARGS\]...\x1b\[0m\n\n"
+        r"\x1b\[94m\x1b\[1m\x1b\[4mGroup 1:\x1b\[0m\n"
+        r"  \x1b\[36m-a\x1b\[0m, \x1b\[36m--o1\x1b\[0m \x1b\[36m\x1b\[2mTEXT\x1b\[0m\n"
+        r"  \x1b\[36m-b\x1b\[0m, \x1b\[36m--o2\x1b\[0m \x1b\[36m\x1b\[2mTEXT\x1b\[0m\n\n"
+        r"\x1b\[94m\x1b\[1m\x1b\[4mGroup 2:\x1b\[0m\n"
+        r"  \x1b\[36m--o3\x1b\[0m \x1b\[36m\x1b\[2mMY_VAR\x1b\[0m\n"
+        r"  \x1b\[36m--o4\x1b\[0m \x1b\[36m\x1b\[2mTEXT\x1b\[0m\n\n"
+        r"\x1b\[94m\x1b\[1m\x1b\[4mOther options:\x1b\[0m\n"
+        r"  \x1b\[36m--test\x1b\[0m \x1b\[36m\x1b\[2mTEXT\x1b\[0m\n"
         r"  \x1b\[36m-b\x1b\[0m, \x1b\[36m--boolean\x1b\[0m / \x1b\[36m\+B\x1b\[0m,"
         r" \x1b\[36m--no-boolean\x1b\[0m\n"
         r"                            "
-        r"\x1b\[90m\[default: \x1b\[0m\x1b\[35mno-boolean\x1b\[0m\x1b\[90m\]\x1b\[0m\n"
+        r"\x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mno-boolean\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
         r"  \x1b\[36m/debug\x1b\[0m; \x1b\[36m/no-debug\x1b\[0m"
-        r"         \x1b\[90m\[default:"
-        r" \x1b\[0m\x1b\[35mno-debug\x1b\[0m\x1b\[90m\]\x1b\[0m\n"
+        r"         \x1b\[2m\[\x1b\[0m\x1b\[2mdefault:"
+        r" \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mno-debug\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
         r"  \x1b\[36m--shout\x1b\[0m / \x1b\[36m-S\x1b\[0m, \x1b\[36m--no-shout\x1b\[0m"
-        r"  \x1b\[90m\[default: \x1b\[0m\x1b\[35mno-shout\x1b\[0m\x1b\[90m\]\x1b\[0m\n"
+        r"  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mno-shout\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
         rf"{default_options_colored_help}"
         r"\n"
-        r"\x1b\[94m\x1b\[1mSubcommand group 1:\x1b\[0m\n"
+        r"\x1b\[94m\x1b\[1m\x1b\[4mSubcommand group 1:\x1b\[0m\n"
         r"  \x1b\[36mcommand1\x1b\[0m  CLI description with extra"
-        r" \x1b\[90mMY_VAR\x1b\[0m reference.\n"
+        r" \x1b\[36m\x1b\[2mMY_VAR\x1b\[0m reference.\n"
         r"  \x1b\[36mcommand2\x1b\[0m\n\n"
-        r"\x1b\[94m\x1b\[1mExtra commands:\x1b\[0m\n"
+        r"\x1b\[94m\x1b\[1m\x1b\[4mExtra commands:\x1b\[0m\n"
         r"  \x1b\[36mcommand3\x1b\[0m\n"
-        r"  \x1b\[36mcommand4\x1b\[0m  \x1b\[93m\x1b\[1m(Deprecated)\x1b\[0m\n"
+        r"  \x1b\[36mcommand4\x1b\[0m  \x1b\[93m\x1b\[1m\(Deprecated\)\x1b\[0m\n"
     )
 
     result = invoke(color_cli1, "--help", color=True)
@@ -204,15 +204,15 @@ def test_keyword_collection(invoke):
     assert result.exit_code == 0
     assert result.output == (
         "It works!\n"
-        "\x1b[94m\x1b[1mUsage: \x1b[0m\x1b[97mcolor-cli1 command1\x1b[0m"
-        " \x1b[90m[OPTIONS]\x1b[0m [\x1b[36mMY_ARG\x1b[0m]...\n"
+        "\x1b[94m\x1b[1m\x1b[4mUsage: \x1b[0m\x1b[97mcolor-cli1 command1\x1b[0m"
+        " \x1b[36m\x1b[2m[OPTIONS]\x1b[0m [\x1b[36mMY_ARG\x1b[0m]...\n"
         "\n"
         "  CLI description with extra MY_VAR reference.\n"
         "\n"
-        "\x1b[94m\x1b[1mPositional arguments:\x1b[0m\n"
+        "\x1b[94m\x1b[1m\x1b[4mPositional arguments:\x1b[0m\n"
         "  [\x1b[36mMY_ARG\x1b[0m]...  Argument supports help.\n"
         "\n"
-        "\x1b[94m\x1b[1mOptions:\x1b[0m\n"
+        "\x1b[94m\x1b[1m\x1b[4mOptions:\x1b[0m\n"
         "  \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m  Show this message and exit.\n"
     )
     assert not result.stderr
@@ -221,15 +221,15 @@ def test_keyword_collection(invoke):
     result = invoke(command1, "--help", color=True)
     assert result.exit_code == 0
     assert result.output == (
-        "\x1b[94m\x1b[1mUsage: \x1b[0m\x1b[97mcommand1\x1b[0m"
-        " \x1b[90m[OPTIONS]\x1b[0m [\x1b[36mMY_ARG\x1b[0m]...\n"
+        "\x1b[94m\x1b[1m\x1b[4mUsage: \x1b[0m\x1b[97mcommand1\x1b[0m"
+        " \x1b[36m\x1b[2m[OPTIONS]\x1b[0m [\x1b[36mMY_ARG\x1b[0m]...\n"
         "\n"
         "  CLI description with extra MY_VAR reference.\n"
         "\n"
-        "\x1b[94m\x1b[1mPositional arguments:\x1b[0m\n"
+        "\x1b[94m\x1b[1m\x1b[4mPositional arguments:\x1b[0m\n"
         "  [\x1b[36mMY_ARG\x1b[0m]...  Argument supports help.\n"
         "\n"
-        "\x1b[94m\x1b[1mOptions:\x1b[0m\n"
+        "\x1b[94m\x1b[1m\x1b[4mOptions:\x1b[0m\n"
         "  \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m  Show this message and exit.\n"
     )
     assert not result.stderr

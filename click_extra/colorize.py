@@ -22,12 +22,13 @@ import re
 from configparser import RawConfigParser
 from gettext import gettext as _
 from operator import getitem
-from typing import NamedTuple, Sequence
+from typing import NamedTuple, Sequence, cast
+from functools import cache
 
 import regex as re3
 from boltons.strutils import complement_int_list, int_ranges_from_int_list
 from cloup._util import identity
-from cloup.styling import IStyle
+from cloup.styling import IStyle, Color
 
 from . import (
     Choice,
@@ -74,6 +75,9 @@ class HelpExtraTheme(NamedTuple):
     option: IStyle = identity
     choice: IStyle = identity
     metavar: IStyle = identity
+    bracket: IStyle = identity
+    envvar: IStyle = identity
+    default: IStyle = identity
     deprecated: IStyle = identity
     search: IStyle = identity
     success: IStyle = identity
@@ -97,6 +101,9 @@ class HelpExtraTheme(NamedTuple):
         option: IStyle | None = None,
         choice: IStyle | None = None,
         metavar: IStyle | None = None,
+        bracket: IStyle | None = None,
+        envvar: IStyle | None = None,
+        default: IStyle | None = None,
         deprecated: IStyle | None = None,
         search: IStyle | None = None,
         success: IStyle | None = None,
@@ -132,8 +139,8 @@ class HelpExtraTheme(NamedTuple):
 # Populate our global theme with all default styles.
 default_theme = HelpExtraTheme(
     # Cloup properties.
-    invoked_command=Style(fg="bright_white"),
-    heading=Style(fg="bright_blue", bold=True),
+    invoked_command=Style(fg=Color.bright_white),
+    heading=Style(fg="bright_blue", bold=True, underline=True),
     constraint=Style(fg="magenta"),
     # Neutralize Cloup's col1, as it interfers with our finer option styling
     # which takes care of separators.
@@ -142,17 +149,21 @@ default_theme = HelpExtraTheme(
     critical=Style(fg="bright_red", bold=True),
     error=Style(fg="red"),
     warning=Style(fg="yellow"),
-    # INFO log level is the default, so no style applied.
-    info=identity,
+    info=identity,  # INFO level is the default, so no style applied.
     debug=Style(fg="blue"),
     # Click Extra properties.
-    subheading=Style(fg="blue"),
     option=Style(fg="cyan"),
     choice=Style(fg="magenta"),
-    metavar=Style(fg="bright_black"),
+    metavar=Style(fg="cyan", dim=True),
+    bracket=Style(dim=True),
+    envvar=Style(fg="yellow", dim=True),
+    default=Style(fg="green", dim=True, italic=True),
     deprecated=Style(fg="bright_yellow", bold=True),
     search=Style(fg="green", bold=True),
     success=Style(fg="green"),
+    # XXX Subheading is used for sub-sections, like in the help of mail-deduplicate:
+    # https://github.com/kdeldycke/mail-deduplicate/blob/0764287/mail_deduplicate/deduplicate.py#L445
+    subheading=Style(fg="blue"),
 )
 
 
@@ -328,6 +339,8 @@ class ExtraHelpColorsMixin:
         short_options: set[str] = set()
         choices: set[str] = set()
         metavars: set[str] = set()
+        envvars: set[str] = set()
+        defaults: set[str] = set()
 
         # Includes CLI base name and its commands.
         cli_names.add(ctx.command_path)
@@ -383,6 +396,8 @@ class ExtraHelpColorsMixin:
             short_options,
             choices,
             metavars,
+            envvars,
+            defaults,
         )
 
     def get_help(self, ctx):
@@ -400,6 +415,8 @@ class ExtraHelpColorsMixin:
             formatter.short_options,
             formatter.choices,
             formatter.metavars,
+            formatter.envvars,
+            formatter.defaults,
         ) = self.collect_keywords(ctx)
         return super().format_help(ctx, formatter)
 
@@ -446,42 +463,97 @@ class HelpExtraFormatter(HelpFormatter):
     short_options: set[str] = set()
     choices: set[str] = set()
     metavars: set[str] = set()
-    # TODO
-    default_values: set[str] = set()
+    envvars: set[str] = set()
+    defaults: set[str] = set()
 
     # TODO: Hihglight extra keywords <stdout> or <stderr>
 
-    def style_group(self, str_to_style: str, group_id: str):
-        style_alias = {
-            "default_start": self.theme.metavar,
-            "default_end": self.theme.metavar,
-            "default_value": self.theme.choice,
-            "subcommand": self.theme.option,
-            "command_aliases": self.theme.option,
-            "long_option": self.theme.option,
-            "short_option": self.theme.option,
-        }
-        # Get the style directly named by the group ID. Else inspect the
-        # style_alias above.
-        group_style = getattr(self.theme, group_id, None)
-        if not group_style:
-            group_style = style_alias[group_id]
-        return group_style(str_to_style)
+    # TODO: add collection of regexps as pre-compiled constants, so we can inspect them and get some performances improvements.
 
-    def colorize(self, match: re.Match) -> str:
-        """Recreate the matching string by concatenating all groups, but only colorize
-        named groups with using the function provided in ``style_map``."""
-        # Invert the group dictionnary to we can get the group ID of a match.
-        match_group = {v: k for k, v in match.groupdict().items()}
-        assert len(match_group) == len(match.groupdict())
+    style_aliases = {
+        # Layout elements of the square brackets trailing each option.
+        'bracket_1': 'bracket',
+        'bracket_2': 'bracket',
+        'label_sep': 'bracket',
+        'envvar_label': 'bracket',
+        'default_label': 'bracket',
+        # Style subcommand names and aliases like options.
+        "subcommand": 'option',
+        "command_aliases": 'option',
+        # Long and short options are options.
+        "long_option": 'option',
+        "short_option": 'option',
+    }
+    """Map regex's group IDs to styles.
+
+    Most of the time, the style name is the same as the group ID. But some regular
+    expression implementations requires us to work around group IDs limitations, like
+    ``bracket_1`` and ``bracket_2``. In which case we use this mapping to apply back
+    the canonical style to that regex-specific group ID.
+    """
+
+    @cache
+    def get_style_id(self, group_id: str) -> str:
+        """Get the style ID to apply to a group.
+
+        Return the style which has the same ID as the group, unless it is defined in
+        the ``style_aliases`` mapping above.
+        """
+        return self.style_aliases.get(group_id, group_id)
+
+    @cache
+    def colorize_group(self, str_to_style: str, group_id: str) -> str:
+        """Colorize a string according to the style of the group ID."""
+        style = cast("IStyle", getattr(self.theme, self.get_style_id(group_id)))
+        return style(str_to_style)
+
+    def colorize(self, match: re.Match, ) -> str:
+        """Colorize all groups with IDs in the provided matching result.
+
+        All groups without IDs are left as-is.
+
+        All groups are proccessed in the order they appear in the ``match`` object.
+        Then all groups are concatenated to form the final string that is returned.
+
+        .. caution::
+            Implementation is a bit funky here because there is no way to iterate over
+            both unnamed and named groups, in the order they appear in the regex, while
+            keeping track of the group ID.
+
+            So we have to iterate over the list of matching strings and pick up the
+            corresponding group ID along the way, from the ``match.groupdict()``
+            dictionnary. This also means we assume that the ``match.groupdict()`` is
+            returning an ordered dictionnary. Which is supposed to be true as of Python
+            3.7.
+        """
+        #print(repr(match.groupdict()))
+        #print(repr(match.groups()))
+
+        # Get a snapshot of all named groups.
+        named_matches = list(match.groupdict().items())
 
         txt = ""
-        for group in match.groups():
-            if group in match_group:
-                group_id = match_group[group]
-                txt += self.style_group(group, group_id)
+        # Iterate over all groups, named or not.
+        for group_string in match.groups():
+            # Is the next available named group is matching current group string?
+            if named_matches and group_string == named_matches[0][1]:
+                # We just found a named group. Consume it from the list of named groups
+                # to prevent it from being processed twice.
+                group_id, group_string = named_matches.pop(0)
+                if group_string is not None:
+                    # Colorize the group with a style matching its ID.
+                    txt += self.colorize_group(group_string, group_id)
             else:
-                txt += group
+                # No named group matching this string. Leave it as-is.
+                txt += group_string
+
+        # Double-check we processed all named groups.
+        if len(named_matches) != 0:
+            raise ValueError(
+                "The matching result contains named groups that were not processed. "
+                "There is an edge-case in the design of regular expressions."
+                )
+
         return txt
 
     def highlight_extra_keywords(self, help_text):
@@ -490,10 +562,20 @@ class HelpExtraFormatter(HelpFormatter):
         It is based on regular expressions. While this is not a bullet-proof method, it
         is good enough. After all, help screens are not consumed by machine but are
         designed for humans.
+
+        .. danger::
+            All the regular expressions below are designed to match its original string
+            into a sequence of contiguous groups.
+
+            This means each part of the matching result must be encapsulated in a group.
+            And subgroups are not allowed (unless their are explicitely set as
+            non-matching with ``(?:...)`` prefix).
+
+            Groups with a name must have a corresponding style.
         """
         # Highlight " (Deprecated)" or " (DEPRECATED)" labels, as set by either:
-        # https://github.com/pallets/click/blob/ef11be6e49e19a055fe7e5a89f0f1f4062c68dba/tests/test_commands.py#L345
-        # https://github.com/janluke/cloup/blob/c29fa051ed405856ed8bc2dbd733f9df2c8e6418/cloup/formatting/_formatter.py#L188
+        # https://github.com/pallets/click/blob/ef11be6e/tests/test_commands.py#L345
+        # https://github.com/janluke/cloup/blob/c29fa051/cloup/formatting/_formatter.py#L188
         help_text = re.sub(
             rf"""
             (\s)                                         # Any blank char.
@@ -539,17 +621,34 @@ class HelpExtraFormatter(HelpFormatter):
                 flags=re.VERBOSE,
             )
 
-        # Highligh defaults.
+        # Highligh environment variables and defaults in trailing square brackets.
         help_text = re.sub(
             r"""
             (\ \ )                  # 2 spaces (column spacing or description spacing).
-            (?P<default_start>
-                \[                  # Square brackets opening.
-                default:            # Starting content within the brackets.
+            (?P<bracket_1>\[)                  # Square brackets opening.
+
+            (?:                         # Non-capturing group.
+                (?P<envvar_label>
+                    env\s+var:            # Starting content within the brackets.
+                    \s+                 # Any number of blank chars.
+                )
+                (?P<envvar>.+?)  # Greedy-matching of any string and line returns.
+            )?                  # The envvar group is optional.
+
+            (?P<label_sep>
+                ;               # Separator between labels.
                 \s+                 # Any number of blank chars.
-            )
-            (?P<default_value>.+?)  # Greedy-matching of any string and line returns.
-            (?P<default_end>\])     # Square brackets closing.
+            )?
+
+            (?:                         # Non-capturing group.
+                (?P<default_label>
+                    default:            # Starting content within the brackets.
+                    \s+                 # Any number of blank chars.
+                )
+                (?P<default>.+?)  # Greedy-matching of any string and line returns.
+            )?                      # The default group is optional.
+
+            (?P<bracket_2>\])     # Square brackets closing.
             """,
             self.colorize,
             help_text,
