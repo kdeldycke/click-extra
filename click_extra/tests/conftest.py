@@ -359,7 +359,7 @@ default_options_colored_help = (
     r"  \x1b\[36m-C\x1b\[0m, \x1b\[36m--config\x1b\[0m \x1b\[36m\x1b\[2mCONFIG_PATH\x1b\[0m"
     r"  Location of the configuration file. Supports glob\n"
     r"                            pattern of local path and remote URL."
-    r"  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault:(\S+)?\n"
+    r"  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault:( \S+)?\n"
     r"(                            .+\n)*"
     r"                            "
     r"\S+\.{toml,yaml,yml,json,ini,xml}\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
