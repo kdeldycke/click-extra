@@ -47,6 +47,7 @@ else:
         """
         return lru_cache(maxsize=None)(user_function)
 
+
 # Import all click's module-level content to allow for drop-in replacement.
 # XXX Star import is really badly supported by mypy for now and leads to lots of
 # "Module 'XXX' has no attribute 'YYY'". See: https://github.com/python/mypy/issues/4930

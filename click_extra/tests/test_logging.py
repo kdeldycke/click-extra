@@ -158,8 +158,7 @@ def test_integrated_verbosity_option(invoke, level):
 )
 @pytest.mark.parametrize("params", (("--verbosity", "DEBUG"), None))
 def test_custom_logger_param(invoke, logger_param, params):
-    """Passing a logger instance or name to the ``default_logger`` parameter works.
-    """
+    """Passing a logger instance or name to the ``default_logger`` parameter works."""
 
     @click.command
     @verbosity_option(default_logger=logger_param)
