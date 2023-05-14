@@ -2,7 +2,6 @@ flowchart TD
     classDef missing stroke-dasharray: 5
     alabaster["alabaster\n0.7.13"]
     babel["Babel\n2.12.1"]
-    beautifulsoup4["beautifulsoup4\n4.12.2"]
     boltons["boltons\n23.0.0"]
     bracex["bracex\n2.3.post1"]
     certifi["certifi\n2023.5.7"]
@@ -12,7 +11,6 @@ flowchart TD
     cloup["cloup\n2.0.0.post1"]
     commentjson["commentjson\n0.9.0"]
     docutils["docutils\n0.19"]
-    furo["furo\n2023.3.27"]
     idna["idna\n3.4"]
     imagesize["imagesize\n1.4.1"]
     jinja2["Jinja2\n3.1.2"]
@@ -27,8 +25,6 @@ flowchart TD
     regex["regex\n2023.5.5"]
     requests["requests\n2.30.0"]
     snowballstemmer["snowballstemmer\n2.2.0"]
-    soupsieve["soupsieve\n2.4.1"]
-    sphinx-basic-ng["sphinx-basic-ng\n1.0.0b1"]
     sphinx["sphinx\n6.2.1"]
     sphinxcontrib-applehelp["sphinxcontrib-applehelp\n1.0.4"]
     sphinxcontrib-devhelp["sphinxcontrib-devhelp\n1.0.2"]
@@ -40,7 +36,6 @@ flowchart TD
     urllib3["urllib3\n2.0.2"]
     wcmatch["wcmatch\n8.4.1"]
     xmltodict["xmltodict\n0.13.0"]
-    beautifulsoup4 -- ">1.2" --> soupsieve
     click-extra -- ">=0.13.0,<0.14.0" --> xmltodict
     click-extra -- ">=0.2.0,<0.3.0" --> pygments-ansi-color
     click-extra -- ">=0.9,<0.10" --> tabulate
@@ -50,7 +45,6 @@ flowchart TD
     click-extra -- ">=2.1.0,<3.0.0" --> pallets-sphinx-themes
     click-extra -- ">=2.14,<3.0" --> pygments
     click-extra -- ">=2.28.2,<3.0.0" --> requests
-    click-extra -- ">=2023.03.27,<2024.0.0" --> furo
     click-extra -- ">=2023.3.22,<2024.0.0" --> regex
     click-extra -- ">=23.0.0,<24.0.0" --> boltons
     click-extra -- ">=6,<7" --> sphinx
@@ -59,10 +53,6 @@ flowchart TD
     click-extra -- ">=8.4.1,<9.0.0" --> wcmatch
     cloup -- ">=8.0,<9.0" --> click_0
     commentjson -- ">=0.7.1,<0.8.0" --> lark-parser
-    furo -- ">=2.7" --> pygments
-    furo -- ">=5.0,<7.0" --> sphinx
-    furo -- "any" --> beautifulsoup4
-    furo -- "any" --> sphinx-basic-ng
     jinja2 -- ">=2.0" --> markupsafe
     pallets-sphinx-themes -- ">=3" --> sphinx
     pallets-sphinx-themes -- "any" --> packaging
@@ -86,6 +76,5 @@ flowchart TD
     sphinx -- "any" --> sphinxcontrib-devhelp
     sphinx -- "any" --> sphinxcontrib-jsmath
     sphinx -- "any" --> sphinxcontrib-qthelp
-    sphinx-basic-ng -- ">=4.0" --> sphinx
     wcmatch -- ">=2.1.1" --> bracex
 
