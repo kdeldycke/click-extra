@@ -150,8 +150,7 @@ def setup(app):
     PygmentsBridge.html_formatter = AnsiHtmlFormatter
 
     # XXX Fetch the theme from the Sphinx config. Check the raw config first, because
-    # of the way this extension is loaded first, before the theme is properly set on
-    # the app.
+    # of the way this extension is loaded before the theme is properly setup.
     theme_id = app.config._raw_config.get("html_theme", app.config.html_theme)
     if theme_id == "furo":
         try:
