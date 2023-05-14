@@ -40,7 +40,7 @@ Here is a little CLI to demonstrate the rendering of colors and styles, based on
 ```{eval-rst}
 .. click:example::
    from click import command
-   from click_extra import Color, Style, Choice, option
+   from click_extra import Color, style, Choice, option
    from click_extra.tabulate import render_table
 
    all_styles = [
@@ -64,23 +64,25 @@ Here is a little CLI to demonstrate the rendering of colors and styles, based on
       if matrix == "colors":
          table_headers = ["Foreground ↴ \ Background →"] + all_colors
          for fg_color in all_colors:
-            props = {"fg": Color[fg_color]}
-
-            line = [Style(**props)(fg_color)]
+            line = [
+               style(fg_color, fg=fg_color)
+            ]
             for bg_color in all_colors:
-               line.append(Style(**props, **{"bg": bg_color})(fg_color))
-
+               line.append(
+                  style(fg_color, fg=fg_color, bg=bg_color)
+               )
             table.append(line)
 
       elif matrix == "styles":
          table_headers = ["Color ↴ \ Style →"] + all_styles
          for color_name in all_colors:
-            props = {"fg": Color[color_name]}
-
-            line = [Style(**props)(color_name)]
-            for p in all_styles:
-               line.append(Style(**props, **{p: True})(color_name))
-
+            line = [
+               style(color_name, fg=color_name)
+            ]
+            for prop in all_styles:
+               line.append(
+                  style(color_name, fg=color_name, **{prop: True})
+               )
             table.append(line)
 
       render_table(table, headers=table_headers)
