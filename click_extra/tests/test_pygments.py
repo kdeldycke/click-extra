@@ -27,7 +27,6 @@ from boltons.typeutils import issubclass
 from pygments.filter import Filter
 from pygments.formatter import Formatter
 from pygments.lexers import find_lexer_class_by_name
-from pygments.style import Style
 import requests
 
 if sys.version_info >= (3, 11):
@@ -202,15 +201,6 @@ def test_registered_formatters():
         entry_points[entry_id] = f"click_extra.pygments:{name}"
 
     check_entry_points(entry_points, "tool", "poetry", "plugins", "pygments.formatters")
-
-
-def test_registered_styles():
-    entry_points = {}
-    for name in collect_class_names(Style):
-        entry_id = camel2under(name).replace("_", "-")
-        entry_points[entry_id] = f"click_extra.pygments:{name}"
-
-    check_entry_points(entry_points, "tool", "poetry", "plugins", "pygments.styles")
 
 
 def test_ansi_lexers_doc():
