@@ -10,6 +10,7 @@ This version is not released yet and is under active development.
 - Colorization of environment variables and defaults in help screens.
 - Allow setting the style of `(deprecated)` tag in help screen's theme. Defaults to bold, bright yellow.
 - Change default style of critical log messages' prefix to bold red.
+- Document the full matrix of colors and styles.
 
 ## {gh}`4.1.0 (2023-05-11) <compare/v4.0.0...v4.1.0>`
 
