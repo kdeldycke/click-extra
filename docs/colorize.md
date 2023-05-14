@@ -99,7 +99,7 @@ Here is a little CLI to demonstrate the rendering of colors and styles, based on
 ```{caution}
 The current rendering of colors and styles in this HTML documentation is not complete, and does not reflect the real output in a terminal.
 
-That is because [`pygments-ansi-color`](https://github.com/chriskuehl/pygments-ansi-color), the component we rely on to render ANSI code in Sphinx via Pygments, only supports a subset of the ANSI codes we use.
+That is because [`pygments-ansi-color`](https://github.com/chriskuehl/pygments-ansi-color), the component we rely on to render ANSI code in Sphinx via Pygments, [only supports a subset of the ANSI codes](https://github.com/chriskuehl/pygments-ansi-color/issues/31) we use.
 ```
 
 ```{tip}
