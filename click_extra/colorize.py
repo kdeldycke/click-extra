@@ -582,12 +582,18 @@ class HelpExtraFormatter(HelpFormatter):
         # Highlight " (Deprecated)" or " (DEPRECATED)" labels, as set by either:
         # https://github.com/pallets/click/blob/ef11be6e/tests/test_commands.py#L345
         # https://github.com/janluke/cloup/blob/c29fa051/cloup/formatting/_formatter.py#L188
-        # Full history of this case change is detailed at:
+        # For the record, this has been changed from `(DEPRECATED)`
+        # (https://github.com/pallets/click/commit/0786fda333610aa04c912b17d81f2784bf54ba50#diff-11ba83cac151f7b24a1ed7c31a2a522d24d190cfa43199aa478d1e9cd2e6c610L43)
+        # to the current `(Deprecated)` [in Click  in `8.0.0rc1`
+        # ](https://github.com/pallets/click/commit/0786fda333610aa04c912b17d81f2784bf54ba50#diff-11ba83cac151f7b24a1ed7c31a2a522d24d190cfa43199aa478d1e9cd2e6c610L43).
+        # Also see: https://github.com/pallets/click/pull/1816.
+        # Click and Cloup has been aligned in Cloup >= 2.0.1:
         # https://github.com/janluke/cloup/pull/153
+        # Once the later is released, we can remove the case-insensitive flag.
         help_text = re.sub(
             rf"""
             (\s)                                         # Any blank char.
-            (?P<deprecated>{re.escape("(DEPRECATED)")})  # The flag string.
+            (?P<deprecated>{re.escape("(Deprecated)")})  # The flag string.
             """,
             self.colorize,
             help_text,
