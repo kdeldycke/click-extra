@@ -65,27 +65,23 @@ Here is a little CLI to demonstrate the rendering of colors and styles, based on
          table_headers = ["Foreground ↴ \ Background →"] + all_colors
          for fg_color in all_colors:
             props = {"fg": Color[fg_color]}
-            table.append(
-               [
-                  Style(**props)(fg_color)
-               ] + [
-                  Style(**props, **{"bg": bg_color})(fg_color)
-                  for bg_color in all_colors
-               ]
-            )
+
+            line = [Style(**props)(fg_color)]
+            for bg_color in all_colors:
+               line.append(Style(**props, **{"bg": bg_color})(fg_color))
+
+            table.append(line)
 
       elif matrix == "styles":
          table_headers = ["Color ↴ \ Style →"] + all_styles
          for color_name in all_colors:
             props = {"fg": Color[color_name]}
-            table.append(
-               [
-                  Style(**props)(color_name)
-               ] + [
-                  Style(**props, **{p: True})(color_name)
-                  for p in all_styles
-               ]
-            )
+
+            line = [Style(**props)(color_name)]
+            for p in all_styles:
+               line.append(Style(**props, **{p: True})(color_name))
+
+            table.append(line)
 
       render_table(table, headers=table_headers)
 
