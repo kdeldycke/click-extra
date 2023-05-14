@@ -222,7 +222,9 @@ class AnsiHtmlFormatter(ExtendedColorHtmlFormatterMixin, HtmlFormatter):
 
         # Augment the style with ANSI colors support.
         augmented_styles = dict(base_style.styles)
-        augmented_styles.update(color_tokens(fg_colors, bg_colors, enable_256color=True))
+        augmented_styles.update(
+            color_tokens(fg_colors, bg_colors, enable_256color=True)
+        )
 
         # Prefix the style name with `Ansi` to avoid name collision with the original
         # and ease debugging.
