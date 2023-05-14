@@ -12,6 +12,9 @@ This version is not released yet and is under active development.
 - Change default style of critical log messages' prefix to bold red.
 - Document the full matrix of colors and styles.
 - Render bright variants of ANSI colors in documentation.
+- Dynamiccaly patch the style provided to `AnsiHtmlFormatter` to augment it with ANSI colors.
+- Remove main dependency on `furo`, make it a development dependency.
+- Remove the custom `ansi-click-extra-furo-style` Pygments style for Furo and its `AnsiClickExtraFuroStyle` class.
 
 ## {gh}`4.1.0 (2023-05-11) <compare/v4.0.0...v4.1.0>`
 

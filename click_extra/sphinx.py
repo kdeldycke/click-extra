@@ -79,23 +79,18 @@ Emulates:
 
         click._compat.text_type = str
 
+.. hint::
+    A fix has been proposed upstream at
+    `pallets-sphinx-themes#69 <https://github.com/pallets/pallets-sphinx-themes/pull/69>`_
+    and is waiting for a merge.
+
 .. seealso::
     - `similar hack in click 8.x's docs/conf.py
       <https://github.com/pallets/click/commit/00883dd3d0a29f68f375cab5e21cef0669941aba#diff-85933aa74a2d66c3e4dcdf7a9ad8397f5a7971080d34ef1108296a7c6b69e7e3>`_
 
     - `incriminating import in pallets_sphinx_themes
       <https://github.com/pallets/pallets-sphinx-themes/blob/7b69241/src/pallets_sphinx_themes/themes/click/domain.py#L9>`_
-
-.. tip::
-    A fix has been proposed upstream at
-    `pallets-sphinx-themes#69 <https://github.com/pallets/pallets-sphinx-themes/pull/69>`_.
 """
-
-
-def setup_ansi_pygment_styles(app):
-    """Add support for ANSI Shell Session syntax highlighting."""
-    app.config.pygments_style = "ansi-click-extra-furo-style"
-    PygmentsBridge.html_formatter = AnsiHtmlFormatter
 
 
 class PatchedViewList(ViewList):
@@ -128,8 +123,47 @@ def setup(app):
     New directives:
         - ``.. click:example::``
         - ``.. click:run::``
+
+    .. danger::
+        This function activates lots of monkey-patches:
+
+        - ``sphinx.highlighting.PygmentsBridge`` is updated to set its default HTML
+        formatter to an ANSI capable one for the whole Sphinx app.
+
+        - ``furo.HtmlFormatter`` is `patched because of its hard-coded reference to
+        Pygments's HTML formatter <https://github.com/pradyunsg/furo/pull/657>`_ and
+        not the one from ``sphinx.highlighting``.
+
+        - ``click_compat_hack`` to `bypass old Python 2.x in pallets-sphinx-themes
+        <#click_extra.sphinx.click_compat_hack>`.
+
+        - ``pallets_sphinx_themes.themes.click.domain.ViewList`` is
+        `patched to force an ANSI lexer on the rST code block
+        <#click_extra.sphinx.PatchedViewList>`_.
+
+    .. todo::
+        `Furo's issue has been reported upstream
+        <https://github.com/pradyunsg/furo/pull/657>`_. If it gets merged, we will have
+        the possibility to remove the patching of ``furo.HtmlFormatter``.
     """
-    setup_ansi_pygment_styles(app)
+    # Set Sphinx's default HTML formatter to an ANSI capable one.
+    PygmentsBridge.html_formatter = AnsiHtmlFormatter
+
+    # XXX Fetch the theme from the Sphinx config. Check the raw config first, because
+    # of the way this extension is loaded first, before the theme is properly set on
+    # the app.
+    theme_id = app.config._raw_config.get("html_theme", app.config.html_theme)
+    if theme_id == "furo":
+        try:
+            import furo
+        except ImportError:
+            raise ImportError(
+                "Click Extra detected Furo as main Sphinx theme, but cannot find it"
+                " for monkey-patching."
+            )
+        # Patch Furo hard-coded reference to HTML formatter.
+        else:
+            furo.HtmlFormatter = AnsiHtmlFormatter
 
     with click_compat_hack:
         from pallets_sphinx_themes.themes.click import domain

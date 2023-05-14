@@ -26,13 +26,11 @@
 
 from __future__ import annotations
 
-from configparser import ConfigParser
-
-import furo
 from pygments import lexers
 from pygments.filter import Filter
 from pygments.filters import TokenMergeFilter
 from pygments.formatters import HtmlFormatter
+from pygments.formatter import _lookup_style
 from pygments.lexer import Lexer, LexerMeta
 from pygments.lexers.algebra import GAPConsoleLexer
 from pygments.lexers.dylan import DylanConsoleLexer
@@ -47,7 +45,6 @@ from pygments.lexers.shell import ShellSessionBaseLexer
 from pygments.lexers.special import OutputLexer
 from pygments.lexers.sql import PostgresConsoleLexer, SqliteConsoleLexer
 from pygments.style import StyleMeta
-from pygments.styles import get_style_by_name
 from pygments.token import Generic, string_to_tokentype
 from pygments_ansi_color import (
     AnsiColorLexer,
@@ -79,23 +76,6 @@ fg_colors = bg_colors = {
 
     Make this more configurable.
 """
-
-
-# Extract the name of furo's default pygment style, as defined in:
-# https://github.com/pradyunsg/furo/blob/8eba6499b812d7aeab2a99fcdf33e8bcb07b05fc/src/furo/theme/furo/theme.conf#L4
-furo_conf = furo.THEME_PATH / "theme.conf"
-ini_config = ConfigParser()
-ini_config.read_string(furo_conf.read_text())
-furo_style_name = ini_config.get("theme", "pygments_style")
-
-
-# Base our new custom style in furo's.
-style_base: StyleMeta = get_style_by_name(furo_style_name)
-
-
-class AnsiClickExtraFuroStyle(style_base):  # type: ignore
-    styles = dict(style_base.styles)
-    styles.update(color_tokens(fg_colors, bg_colors, enable_256color=True))
 
 
 DEFAULT_TOKEN_TYPE = Generic.Output
@@ -172,7 +152,7 @@ class AnsiLexerFiltersMixin(Lexer):
 
 
 def collect_session_lexers():
-    """Retrieve among default Pygments lexers those producing shell-like sessions.
+    """Retrieve all lexers producing shell-like sessions in Pygments.
 
     This function contain a manually-maintained list of lexers, to which we dynamiccaly
     adds lexers inheriting from ``ShellSessionBaseLexer``.
@@ -225,3 +205,30 @@ class AnsiHtmlFormatter(ExtendedColorHtmlFormatterMixin, HtmlFormatter):
 
     name = "ANSI HTML"
     aliases = ["ansi-html"]
+
+    def __init__(self, **kwargs):
+        """Intercept the ``style`` argument to augment it with ANSI colors support.
+
+        Creates a new style instance that inherits from the one provided by the user,
+        but updates its ``styles`` attribute to add ANSI colors support from
+        ``pygments_ansi_color``.
+        """
+        # XXX Same default style as in Pygments' HtmlFormatter, which is... `default`. See:
+        # https://github.com/pygments/pygments/blob/1d83928eaaf66e297acd9bef6545ffe7dce820c4/pygments/formatter.py#LL89C33-L89C33
+        base_style_id = kwargs.setdefault("style", "default")
+
+        # Fetch user-provided style.
+        base_style = _lookup_style(base_style_id)
+
+        # Augment the style with ANSI colors support.
+        augmented_styles = dict(base_style.styles)
+        augmented_styles.update(color_tokens(fg_colors, bg_colors, enable_256color=True))
+
+        # Prefix the style name with `Ansi` to avoid name collision with the original
+        # and ease debugging.
+        new_name = f"Ansi{base_style.__name__}"
+        new_lexer = StyleMeta(new_name, (base_style,), {"styles": augmented_styles})
+
+        kwargs["style"] = new_lexer
+
+        super().__init__(**kwargs)
