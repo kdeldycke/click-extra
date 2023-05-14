@@ -150,7 +150,7 @@ default_theme = HelpExtraTheme(
     # Neutralize Cloup's col1, as it interfers with our finer option styling
     # which takes care of separators.
     col1=identity,
-    critical=Style(fg=Color.bright_red, bold=True),
+    critical=Style(fg=Color.red, bold=True),
     error=Style(fg=Color.red),
     warning=Style(fg=Color.yellow),
     info=identity,  # INFO level is the default, so no style applied.
