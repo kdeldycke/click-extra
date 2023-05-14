@@ -216,7 +216,9 @@ class ExtraOption(Option):
                 default_string = click.parser.split_opt(
                     (option.opts if option.default else option.secondary_opts)[0]
                 )[1]
-            elif option.is_bool_flag and not option.secondary_opts and not default_value:
+            elif (
+                option.is_bool_flag and not option.secondary_opts and not default_value
+            ):
                 default_string = ""
             else:
                 default_string = str(default_value)
