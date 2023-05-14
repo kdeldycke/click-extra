@@ -166,7 +166,7 @@ class AnsiLexerFiltersMixin(Lexer):
 def collect_session_lexers():
     """Retrieve among default Pygments lexers those producing shell-like sessions.
 
-    This function contain a anually-maintained list of lexers, to which we dynamiccaly
+    This function contain a manually-maintained list of lexers, to which we dynamiccaly
     adds lexers inheriting from ``ShellSessionBaseLexer``.
 
     .. hint::
