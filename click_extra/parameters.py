@@ -176,7 +176,7 @@ class ExtraOption(Option):
 
                 .. code-block:: text
 
-                    ~/Library/Application Support/multiple_envvars.py/*.{toml,yaml,yml,json,ini,xml}
+                    ~/(...)/multiple_envvars.py/*.{toml,yaml,yml,json,ini,xml}
 
         .. todo::
             Contribute this code upstream to Click.

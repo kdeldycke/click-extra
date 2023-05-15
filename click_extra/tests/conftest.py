@@ -160,9 +160,9 @@ def invoke(runner, monkeypatch):
             extra["color"] = True
 
         with monkeypatch.context() as patch:
-            # Monkeypatch the original command's ``main()`` call to pass extra parameter
-            # for Context initialization. Because we cannot simply add ``color`` to
-            # ``**extra``.
+            # Monkeypatch the original command's ``main()`` call to pass extra
+            # parameter for Context initialization. Because we cannot simply add
+            # ``color`` to ``**extra``.
             patch.setattr(cli, "main", partial(cli.main, **extra))
 
             result = runner.invoke(cli=cli, args=args, env=env, color=bool(color))
@@ -348,15 +348,18 @@ default_options_uncolored_help = (
 
 default_options_colored_help = (
     r"  \x1b\[36m--time\x1b\[0m / \x1b\[36m--no-time\x1b\[0m"
-    r"        Measure and print elapsed execution time.  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault:\n"
-    r"                            \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mno-time\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
+    r"        Measure and print elapsed execution time."
+    r"  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault:\n"
+    r"                            "
+    r"\x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mno-time\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
     r"  \x1b\[36m--color\x1b\[0m, \x1b\[36m--ansi\x1b\[0m /"
     r" \x1b\[36m--no-color\x1b\[0m, \x1b\[36m--no-ansi\x1b\[0m\n"
     r"                            Strip out all colors and all ANSI codes from"
     r" output.\n"
     r"                            \x1b\[2m\[\x1b\[0m\x1b\[2mdefault:"
     r" \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mcolor\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
-    r"  \x1b\[36m-C\x1b\[0m, \x1b\[36m--config\x1b\[0m \x1b\[36m\x1b\[2mCONFIG_PATH\x1b\[0m"
+    r"  \x1b\[36m-C\x1b\[0m, \x1b\[36m--config\x1b\[0m"
+    r" \x1b\[36m\x1b\[2mCONFIG_PATH\x1b\[0m"
     r"  Location of the configuration file. Supports glob\n"
     r"                            pattern of local path and remote URL."
     r"  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault:( \S+)?\n"
@@ -366,7 +369,8 @@ default_options_colored_help = (
     r"  \x1b\[36m--show-params\x1b\[0m"
     r"             Show all CLI parameters, their provenance, defaults\n"
     r"                            and value, then exit.\n"
-    r"  \x1b\[36m-v\x1b\[0m, \x1b\[36m--verbosity\x1b\[0m \x1b\[36m\x1b\[2mLEVEL\x1b\[0m"
+    r"  \x1b\[36m-v\x1b\[0m, \x1b\[36m--verbosity\x1b\[0m"
+    r" \x1b\[36m\x1b\[2mLEVEL\x1b\[0m"
     r"     Either \x1b\[35mCRITICAL\x1b\[0m, \x1b\[35mERROR\x1b\[0m, "
     r"\x1b\[35mWARNING\x1b\[0m, \x1b\[35mINFO\x1b\[0m, \x1b\[35mDEBUG\x1b\[0m.\n"
     r"                            \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: "

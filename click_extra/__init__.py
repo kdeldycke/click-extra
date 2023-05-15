@@ -15,6 +15,8 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Expose package-wide elements."""
 
+import sys
+
 __version__ = "4.2.0"
 """Examples of valid version strings according :pep:`440#version-scheme`:
 
@@ -27,8 +29,6 @@ __version__ = "4.2.0"
     __version__ = "1.2.3"  # Final Release
     __version__ = "1.2.3.post1"  # Post Release 1
 """
-
-import sys
 
 if sys.version_info >= (3, 9):
     from functools import cache

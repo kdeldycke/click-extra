@@ -213,8 +213,8 @@ class AnsiHtmlFormatter(ExtendedColorHtmlFormatterMixin, HtmlFormatter):
         but updates its ``styles`` attribute to add ANSI colors support from
         ``pygments_ansi_color``.
         """
-        # XXX Same default style as in Pygments' HtmlFormatter, which is... `default`. See:
-        # https://github.com/pygments/pygments/blob/1d83928eaaf66e297acd9bef6545ffe7dce820c4/pygments/formatter.py#LL89C33-L89C33
+        # XXX Same default style as in Pygments' HtmlFormatter, which is... `default`:
+        # https://github.com/pygments/pygments/blob/1d83928/pygments/formatter.py#LL89C33-L89C33
         base_style_id = kwargs.setdefault("style", "default")
 
         # Fetch user-provided style.
