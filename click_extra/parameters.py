@@ -179,7 +179,9 @@ class ExtraOption(Option):
                     ~/(...)/multiple_envvars.py/*.{toml,yaml,yml,json,ini,xml}
 
         .. todo::
-            Contribute this code upstream to Click.
+            A better solution has been proposed upstream to Click:
+            - https://github.com/pallets/click/issues/2516
+            - https://github.com/pallets/click/pull/2517
         """
         # Temporarily enable resilient parsing to avoid type casting
         # failing for the default. Might be possible to extend this to
