@@ -6,9 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
-- Change default colors of help screen to improve readability.
-- Colorization of environment variables and defaults in help screens.
-- Allow setting the style of `(deprecated)` tag in help screen's theme. Defaults to bold, bright yellow.
+- Add support for dedicated styling of environment variables, defaults, command aliases, aliases punctuation, subcommands and deprecated tag in help screen.
+- Update default colors of help screen to improve readability.
 - Change default style of critical log messages' prefix to bold red.
 - Document the full matrix of colors and styles.
 - Render bright variants of ANSI colors in documentation.

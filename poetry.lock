@@ -292,14 +292,14 @@ colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
 name = "cloup"
-version = "2.0.0.post1"
+version = "2.1.0"
 description = "Adds features to Click: option groups, constraints, subcommand sections and help themes."
 category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "cloup-2.0.0.post1-py2.py3-none-any.whl", hash = "sha256:da37c0a940e066c4c2e17c351448e797333926c0e00a15139dbf57c2c4fab4d6"},
-    {file = "cloup-2.0.0.post1.tar.gz", hash = "sha256:1430c9075062e09cb64cd84ab7afe5d5acd28adf561d6ab3109eb1975bbd7b6b"},
+    {file = "cloup-2.1.0-py2.py3-none-any.whl", hash = "sha256:cf93e4c4d22482d64be49d931342c997f100b9633600d59d061d0b449033754d"},
+    {file = "cloup-2.1.0.tar.gz", hash = "sha256:dd42c7c9cd493fadc53a4236f96178a3f118bbbd945a7f8adafcd5034d826971"},
 ]
 
 [package.dependencies]
@@ -1956,4 +1956,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "6b62ff5e6afe5926b28bbdca1c9008aebfdc6ca641baf6e2decd02ecfb9b41cd"
+content-hash = "7cb70d2015107333ef224e8e412dbf0788c36fc70d3e2118af5977771ddb44b2"

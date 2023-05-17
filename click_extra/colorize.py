@@ -22,12 +22,13 @@ import re
 from configparser import RawConfigParser
 from gettext import gettext as _
 from operator import getitem
-from typing import NamedTuple, Sequence, cast
+from typing import NamedTuple, Sequence, cast, Optional
 
 import regex as re3
 from boltons.strutils import complement_int_list, int_ranges_from_int_list
 from cloup._util import identity
 from cloup.styling import IStyle, Color
+from cloup.typing import MISSING, Possibly
 import click
 
 from . import (
@@ -54,7 +55,7 @@ class HelpExtraTheme(NamedTuple):
     https://mypy.readthedocs.io/en/stable/runtime_troubles.html#future-annotations-import-pep-563
     """
 
-    # Hard-copy from cloup.HelpTheme.
+    ### Hard-copy from cloup.HelpTheme.
     invoked_command: IStyle = identity
     command_help: IStyle = identity
     heading: IStyle = identity
@@ -62,18 +63,20 @@ class HelpExtraTheme(NamedTuple):
     section_help: IStyle = identity
     col1: IStyle = identity
     col2: IStyle = identity
+    alias: IStyle = identity
+    alias_secondary: Optional[IStyle] = None
     epilog: IStyle = identity
 
-    # Log levels from Python's logging module.
+    ### Log levels from Python's logging module.
     critical: IStyle = identity
     error: IStyle = identity
     warning: IStyle = identity
     info: IStyle = identity
     debug: IStyle = identity
 
-    # Click Extra new coloring properties.
-    subheading: IStyle = identity
+    ### Click Extra new coloring properties.
     option: IStyle = identity
+    subcommand: IStyle = identity
     choice: IStyle = identity
     metavar: IStyle = identity
     bracket: IStyle = identity
@@ -83,9 +86,14 @@ class HelpExtraTheme(NamedTuple):
     search: IStyle = identity
     success: IStyle = identity
 
+    ### Non-canonical Click Extra properties.
+    # XXX Subheading is used for sub-sections, like in the help of mail-deduplicate:
+    # https://github.com/kdeldycke/mail-deduplicate/blob/0764287/mail_deduplicate/deduplicate.py#L445
+    subheading: IStyle = identity
+
     def with_(
         self,
-        # Cloup properties.
+        ### Cloup properties.
         invoked_command: IStyle | None = None,
         command_help: IStyle | None = None,
         heading: IStyle | None = None,
@@ -93,15 +101,18 @@ class HelpExtraTheme(NamedTuple):
         section_help: IStyle | None = None,
         col1: IStyle | None = None,
         col2: IStyle | None = None,
+        alias: IStyle | None = None,
+        alias_secondary: Possibly[Optional[IStyle]] = MISSING,
         epilog: IStyle | None = None,
-        # Log levels.
+        ### Log levels.
         critical: IStyle | None = None,
         error: IStyle | None = None,
         warning: IStyle | None = None,
         info: IStyle | None = None,
         debug: IStyle | None = None,
-        # Click Extra properties.
+        ### Click Extra properties.
         option: IStyle | None = None,
+        subcommand: IStyle | None = None,
         choice: IStyle | None = None,
         metavar: IStyle | None = None,
         bracket: IStyle | None = None,
@@ -110,8 +121,7 @@ class HelpExtraTheme(NamedTuple):
         deprecated: IStyle | None = None,
         search: IStyle | None = None,
         success: IStyle | None = None,
-        # XXX Subheading is used for sub-sections, like in the help of mail-deduplicate:
-        # https://github.com/kdeldycke/mail-deduplicate/blob/0764287/mail_deduplicate/deduplicate.py#L445
+        ### Non-canonical Click Extra properties.
         subheading: IStyle | None = None,
     ) -> HelpExtraTheme:
         """Copy of ``cloup.HelpTheme.with_``."""
@@ -144,18 +154,27 @@ class HelpExtraTheme(NamedTuple):
 
 # Populate our global theme with all default styles.
 default_theme = HelpExtraTheme(
+    ### Cloup styles.
     invoked_command=Style(fg=Color.bright_white),
     heading=Style(fg=Color.bright_blue, bold=True, underline=True),
     constraint=Style(fg=Color.magenta),
     # Neutralize Cloup's col1, as it interfers with our finer option styling
     # which takes care of separators.
     col1=identity,
+    # Style aliases like options and subcommands.
+    alias=Style(fg=Color.cyan),
+    # Style aliases punctuation like options, but dimmed.
+    alias_secondary=Style(fg=Color.cyan, dim=True),
+    ### Log styles.
     critical=Style(fg=Color.red, bold=True),
     error=Style(fg=Color.red),
     warning=Style(fg=Color.yellow),
     info=identity,  # INFO level is the default, so no style applied.
     debug=Style(fg=Color.blue),
+    ### Click Extra styles.
     option=Style(fg=Color.cyan),
+    # Style subcommands like options and aliases.
+    subcommand=Style(fg=Color.cyan),
     choice=Style(fg=Color.magenta),
     metavar=Style(fg=Color.cyan, dim=True),
     bracket=Style(dim=True),
@@ -164,6 +183,7 @@ default_theme = HelpExtraTheme(
     deprecated=Style(fg=Color.bright_yellow, bold=True),
     search=Style(fg=Color.green, bold=True),
     success=Style(fg=Color.green),
+    ### Non-canonical Click Extra styles.
     subheading=Style(fg=Color.blue),
 )
 
@@ -486,9 +506,6 @@ class HelpExtraFormatter(HelpFormatter):
         "label_sep": "bracket",
         "envvar_label": "bracket",
         "default_label": "bracket",
-        # Style subcommand names and aliases like options.
-        "subcommand": "option",
-        "command_aliases": "option",
         # Long and short options are options.
         "long_option": "option",
         "short_option": "option",
@@ -579,17 +596,9 @@ class HelpExtraFormatter(HelpFormatter):
 
             Groups with a name must have a corresponding style.
         """
-        # Highlight " (Deprecated)" or " (DEPRECATED)" labels, as set by either:
-        # https://github.com/pallets/click/blob/ef11be6e/tests/test_commands.py#L345
-        # https://github.com/janluke/cloup/blob/c29fa051/cloup/formatting/_formatter.py#L188
-        # For the record, this has been changed from `(DEPRECATED)`
-        # (https://github.com/pallets/click/commit/0786fda333610aa04c912b17d81f2784bf54ba50#diff-11ba83cac151f7b24a1ed7c31a2a522d24d190cfa43199aa478d1e9cd2e6c610L43)
-        # to the current `(Deprecated)` [in Click  in `8.0.0rc1`
-        # ](https://github.com/pallets/click/commit/0786fda333610aa04c912b17d81f2784bf54ba50#diff-11ba83cac151f7b24a1ed7c31a2a522d24d190cfa43199aa478d1e9cd2e6c610L43).
-        # Also see: https://github.com/pallets/click/pull/1816.
-        # Click and Cloup has been aligned in Cloup >= 2.0.1:
-        # https://github.com/janluke/cloup/pull/153
-        # Once the later is released, we can remove the case-insensitive flag.
+        # Highlight " (Deprecated)" label, as set by either Click or Cloup:
+        # https://github.com/pallets/click/blob/8.0.0rc1/tests/test_commands.py#L322
+        # https://github.com/janluke/cloup/blob/v2.1.0/cloup/formatting/_formatter.py#L190
         help_text = re.sub(
             rf"""
             (\s)                                         # Any blank char.
@@ -597,30 +606,8 @@ class HelpExtraFormatter(HelpFormatter):
             """,
             self.colorize,
             help_text,
-            flags=re.VERBOSE | re.IGNORECASE,
+            flags=re.VERBOSE,
         )
-
-        # Highligh subcommands' aliases.
-        for alias in self.command_aliases:
-            help_text = re.sub(
-                rf"""
-                (
-                    \ \                       # 2 spaces (i.e. section indention).
-                    \S+                       # Any subcommand.
-                    \                         # A space.
-                    \(                        # An opening parenthesis.
-                    .*                        # Any string.
-                )
-                (?P<command_aliases>{re.escape(alias)})  # The alias.
-                (
-                    .*                        # Any string.
-                    \)                        # A closing parenthesis.
-                )
-                """,
-                self.colorize,
-                help_text,
-                flags=re.VERBOSE,
-            )
 
         # Highligh subcommands.
         for subcommand in self.subcommands:
