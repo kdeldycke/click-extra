@@ -55,7 +55,6 @@ class HelpExtraTheme(NamedTuple):
     https://mypy.readthedocs.io/en/stable/runtime_troubles.html#future-annotations-import-pep-563
     """
 
-    ### Hard-copy from cloup.HelpTheme.
     invoked_command: IStyle = identity
     command_help: IStyle = identity
     heading: IStyle = identity
@@ -66,15 +65,18 @@ class HelpExtraTheme(NamedTuple):
     alias: IStyle = identity
     alias_secondary: Optional[IStyle] = None
     epilog: IStyle = identity
+    """Set of properties inherited from ``cloup.HelpTheme``.
 
-    ### Log levels from Python's logging module.
+    See: https://cloup.readthedocs.io/en/stable/autoapi/cloup/index.html#cloup.HelpTheme.invoked_command
+    """
+
     critical: IStyle = identity
     error: IStyle = identity
     warning: IStyle = identity
     info: IStyle = identity
     debug: IStyle = identity
+    """Log levels from Python's logging module."""
 
-    ### Click Extra new coloring properties.
     option: IStyle = identity
     subcommand: IStyle = identity
     choice: IStyle = identity
@@ -85,11 +87,19 @@ class HelpExtraTheme(NamedTuple):
     deprecated: IStyle = identity
     search: IStyle = identity
     success: IStyle = identity
+    """Click Extra new coloring properties."""
 
-    ### Non-canonical Click Extra properties.
-    # XXX Subheading is used for sub-sections, like in the help of mail-deduplicate:
-    # https://github.com/kdeldycke/mail-deduplicate/blob/0764287/mail_deduplicate/deduplicate.py#L445
     subheading: IStyle = identity
+    """Non-canonical Click Extra properties.
+
+    .. note::
+        Subheading is used for sub-sections, like `in the help of mail-deduplicate
+        <https://github.com/kdeldycke/mail-deduplicate/blob/0764287/mail_deduplicate/deduplicate.py#L445>`_.
+
+    .. todo::
+        Maybe this shouln't be in Click Extra because it is a legacy inheritance from
+        one of my other project.
+    """
 
     def with_(
         self,
