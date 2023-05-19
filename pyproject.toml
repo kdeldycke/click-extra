@@ -82,7 +82,7 @@ mergedeep = "^1.3.4"
 Pallets-Sphinx-Themes = "^2.1.0"
 # Pygments 2.14.0 is the first version with ``lexers.algebra.GAPConsoleLexer`` that is referenced in our code.
 pygments = "^2.14"
-pygments-ansi-color = "^0.2.0"
+pygments-ansi-color = ">=0.2,<0.4"
 pyyaml = "^6.0.0"
 # regex is required for case-insensitive matches in Unicode.
 # v2023.3.22 is the first to drop Python 3.7.
