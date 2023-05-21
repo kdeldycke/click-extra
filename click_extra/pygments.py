@@ -13,16 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Helpers and utilities to allow Pygments to parse and render ANSI codes.
-
-.. warning::
-
-    Styling has been hard-coded to match the default style of the `Furo Sphinx theme
-    <https://github.com/pradyunsg/furo>`_.
-
-    We will revisit this in the future to make it more flexible for new users with
-    different needs.
-"""
+"""Helpers and utilities to allow Pygments to parse and render ANSI codes."""
 
 from __future__ import annotations
 
