@@ -52,31 +52,6 @@ from pygments_ansi_color import (
     color_tokens,
 )
 
-fg_colors = bg_colors = {
-    "Black": "#000000",
-    "Red": "#EF2929",
-    "Green": "#8AE234",
-    "Yellow": "#FCE94F",
-    "Blue": "#3465A4",
-    "Magenta": "#c509c5",
-    "Cyan": "#34E2E2",
-    "White": "#F5F5F5",
-    "BrightBlack": "#676767",
-    "BrightRed": "#FF6D67",
-    "BrightGreen": "#5FF967",
-    "BrightYellow": "#FEFB67",
-    "BrightBlue": "#6871FF",
-    "BrightMagenta": "#FF76FF",
-    "BrightCyan": "#5FFDFF",
-    "BrightWhite": "#FEFFFF",
-}
-"""Hard-coded default style for ANSI code rendering.
-
-.. todo::
-
-    Make this more configurable.
-"""
-
 
 DEFAULT_TOKEN_TYPE = Generic.Output
 """Default Pygments' token type to render with ANSI support.
@@ -222,9 +197,7 @@ class AnsiHtmlFormatter(ExtendedColorHtmlFormatterMixin, HtmlFormatter):
 
         # Augment the style with ANSI colors support.
         augmented_styles = dict(base_style.styles)
-        augmented_styles.update(
-            color_tokens(fg_colors, bg_colors, enable_256color=True)
-        )
+        augmented_styles.update(color_tokens(enable_256color=True))
 
         # Prefix the style name with `Ansi` to avoid name collision with the original
         # and ease debugging.

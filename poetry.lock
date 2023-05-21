@@ -992,14 +992,14 @@ plugins = ["importlib-metadata"]
 
 [[package]]
 name = "pygments-ansi-color"
-version = "0.2.0"
+version = "0.3.0"
 description = ""
 category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "pygments-ansi-color-0.2.0.tar.gz", hash = "sha256:8e2f9a57873b4b28d6b95a8f1c9f346be5fc0f9e4f4a316594584a0684aa7959"},
-    {file = "pygments_ansi_color-0.2.0-py3-none-any.whl", hash = "sha256:29d7c56e1bf143df4b0ccc03cd313488bb580c5aa207992ed5548e88fccc0a68"},
+    {file = "pygments-ansi-color-0.3.0.tar.gz", hash = "sha256:7018954cf5b11d1e734383a1bafab5af613213f246109417fee3f76da26d5431"},
+    {file = "pygments_ansi_color-0.3.0-py3-none-any.whl", hash = "sha256:7eb063feaecadad9d4d1fd3474cbfeadf3486b64f760a8f2a00fc25392180aba"},
 ]
 
 [package.dependencies]
