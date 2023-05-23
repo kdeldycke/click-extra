@@ -1,10 +1,6 @@
 # Changelog
 
-## {gh}`4.2.0 (unreleased) <compare/v4.1.0...main>`
-
-```{important}
-This version is not released yet and is under active development.
-```
+## {gh}`4.2.0 (2023-05-23) <compare/v4.1.0...v4.2.0>`
 
 - Add support for dedicated styling of environment variables, defaults, command aliases, aliases punctuation, subcommands and deprecated tag in help screen.
 - Update default colors of help screen to improve readability.
