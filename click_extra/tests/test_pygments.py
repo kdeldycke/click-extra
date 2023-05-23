@@ -25,8 +25,11 @@ from importlib import metadata
 from boltons.strutils import camel2under
 from boltons.typeutils import issubclass
 from pygments.filter import Filter
+from pygments.filters import get_filter_by_name
 from pygments.formatter import Formatter
-from pygments.lexers import find_lexer_class_by_name
+from pygments.formatters import get_formatter_by_name
+from pygments.lexer import Lexer
+from pygments.lexers import find_lexer_class_by_name, get_lexer_by_name
 import requests
 
 if sys.version_info >= (3, 11):
@@ -142,6 +145,16 @@ def test_ansi_lexers_candidates(tmp_path):
     assert lexer_classes.issubset(collect_session_lexers())
 
 
+def collect_classes(klass, prefix="Ansi"):
+    """Returns all classes defined in ``click_extra.pygments`` that are a
+    subclass of ``klass``, and whose name starts with the provided ``prefix``."""
+    klasses = {}
+    for name, var in extra_pygments.__dict__.items():
+        if issubclass(var, klass) and name.startswith(prefix):
+            klasses[name] = var
+    return klasses
+
+
 def get_pyproject_section(*section_path: str) -> dict[str, str]:
     """Descends into the TOML tree of ``pyproject.toml`` to reach the value specified by
     ``section_path``."""
@@ -158,7 +171,7 @@ def check_entry_points(entry_points: dict[str, str], *section_path: str) -> None
     assert project_entry_points == entry_points
 
 
-def test_registered_lexers():
+def test_lexer_entry_points():
     entry_points = {}
     for lexer in collect_session_lexers():
         # Check an ANSI lexer variant is available for import from Click Extra.
@@ -177,30 +190,40 @@ def test_registered_lexers():
     check_entry_points(entry_points, "tool", "poetry", "plugins", "pygments.lexers")
 
 
-def collect_class_names(klass, prefix="Ansi"):
-    """Returns the name of all classes defined in ``click_extra.pygments`` that are a
-    subclass of ``klass``, and whose name starts with the provided ``prefix``."""
-    for name, var in extra_pygments.__dict__.items():
-        if issubclass(var, klass) and name.startswith(prefix):
-            yield name
-
-
-def test_registered_filters():
+def test_filter_entry_points():
     entry_points = {}
-    for name in collect_class_names(Filter):
+    for name in collect_classes(Filter):
         entry_id = camel2under(name).replace("_", "-")
         entry_points[entry_id] = f"click_extra.pygments:{name}"
 
     check_entry_points(entry_points, "tool", "poetry", "plugins", "pygments.filters")
 
 
-def test_registered_formatters():
+def test_formatter_entry_points():
     entry_points = {}
-    for name in collect_class_names(Formatter):
+    for name in collect_classes(Formatter):
         entry_id = camel2under(name).replace("_", "-")
         entry_points[entry_id] = f"click_extra.pygments:{name}"
 
     check_entry_points(entry_points, "tool", "poetry", "plugins", "pygments.formatters")
+
+
+def test_registered_lexers():
+    for klass in collect_classes(Lexer).values():
+        for alias in klass.aliases:
+            get_lexer_by_name(alias)
+
+
+def test_registered_filters():
+    for name in collect_classes(Filter):
+        entry_id = camel2under(name).replace("_", "-")
+        get_filter_by_name(entry_id)
+
+
+def test_registered_formatters():
+    for klass in collect_classes(Formatter).values():
+        for alias in klass.aliases:
+            get_formatter_by_name(alias)
 
 
 def test_ansi_lexers_doc():

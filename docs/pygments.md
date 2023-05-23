@@ -37,9 +37,8 @@ Click Extra adds new lexers capable of parsing ANSI code in various shell-like s
 To check the new lexers are properly register by Pygments:
 
 ```ansi-pycon
->>> from pygments import lexers
->>> ansi_lexer = lexers.get_lexer_by_name('ansi-shell-session')
->>> ansi_lexer
+>>> from pygments.lexers import get_lexer_by_name
+>>> get_lexer_by_name("ansi-shell-session")
 <pygments.lexers.AnsiBashSessionLexer>
 ```
 
@@ -71,17 +70,25 @@ All these new lexers [can be used in Sphinx](https://kdeldycke.github.io/click-e
 
 ## Filters
 
+To check the new filters are properly register by Pygments:
+
+```ansi-pycon
+>>> from pygments.filters import get_filter_by_name
+>>> get_filter_by_name("ansi-filter")
+<click_extra.pygments.AnsiFilter object at 0x103aaa790>
+```
+
 ```{todo}
 Write example and tutorial.
 ```
 
 ## Formatters
 
-```{todo}
-Write example and tutorial.
+```ansi-pycon
+>>> from pygments.formatters import get_formatter_by_name
+>>> get_formatter_by_name("ansi-html")
+<click_extra.pygments.AnsiHtmlFormatter object at 0x1011ff1d0>
 ```
-
-## Styles
 
 ```{todo}
 Write example and tutorial.
