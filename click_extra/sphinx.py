@@ -128,14 +128,12 @@ def setup(app):
         This function activates lots of monkey-patches:
 
         - ``sphinx.highlighting.PygmentsBridge`` is updated to set its default HTML
-        formatter to an ANSI capable one for the whole Sphinx app.
-
+          formatter to an ANSI capable one for the whole Sphinx app.
         - ``click_compat_hack`` to `bypass old Python 2.x in pallets-sphinx-themes
-        <#click_extra.sphinx.click_compat_hack>`.
-
+          <#click_extra.sphinx.click_compat_hack>`.
         - ``pallets_sphinx_themes.themes.click.domain.ViewList`` is
-        `patched to force an ANSI lexer on the rST code block
-        <#click_extra.sphinx.PatchedViewList>`_.
+          `patched to force an ANSI lexer on the rST code block
+          <#click_extra.sphinx.PatchedViewList>`_.
     """
     # Set Sphinx's default HTML formatter to an ANSI capable one.
     PygmentsBridge.html_formatter = AnsiHtmlFormatter
