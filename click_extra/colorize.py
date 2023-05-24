@@ -46,13 +46,15 @@ from .parameters import ExtraOption
 
 
 class HelpExtraTheme(NamedTuple):
-    """Extends ``cloup.HelpTheme`` with Click Extra's specific properties and
-    ``logging.levels``.
+    """Extends ``cloup.HelpTheme`` with extra properties and ``logging.levels``.
 
-    We had to redefined all fields and couldn't extend ``cloup.HelpTheme`` as there is
-    no way to cleanly do it because of mypy. See:
-    https://github.com/python/typing/issues/427
-    https://mypy.readthedocs.io/en/stable/runtime_troubles.html#future-annotations-import-pep-563
+    .. caution::
+        We had to redefined all fields and couldn't extend ``cloup.HelpTheme`` as there
+        is no way to cleanly do it with MyPy.
+
+        See:
+        - https://github.com/python/typing/issues/427
+        - https://mypy.readthedocs.io/en/stable/runtime_troubles.html#future-annotations-import-pep-563
     """
 
     invoked_command: IStyle = identity
