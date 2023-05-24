@@ -85,3 +85,7 @@ This is the list of issues and bugs from other projects that `click-extra` has a
 
 - [`#117` - Add reference to complementary Click CLI documentation helpers](https://github.com/click-contrib/sphinx-click/pull/117)
 - [`#110` - Supports `.. click:example::` and `.. click:run::` directives](https://github.com/click-contrib/sphinx-click/issues/110)
+
+## [`sphinx-contrib/ansi`](https://github.com/sphinx-contrib/ansi)
+
+- [`#9` - ANSI Codes in output](https://github.com/sphinx-contrib/ansi/issues/9)
