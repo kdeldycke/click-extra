@@ -71,7 +71,11 @@ jobs:
           exclude: list[dict[str, str]] = []
 
           # List of unstable criterions.
-          unstable: list[dict[str, str]] = []
+          unstable: list[dict[str, str]] = [
+              # pytest-cases is not compatible with Python 3.12-dev yet:
+              # https://github.com/smarie/python-pytest-cases/issues/297
+              {"python-version": "3.12-dev"},
+          ]
 
           # Exclude dev tests of third-party dependencies on old OSes and Python dev.
           for criterion in (
