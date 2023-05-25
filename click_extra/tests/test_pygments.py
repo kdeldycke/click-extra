@@ -171,6 +171,24 @@ def check_entry_points(entry_points: dict[str, str], *section_path: str) -> None
     assert project_entry_points == entry_points
 
 
+def test_formatter_entry_points():
+    entry_points = {}
+    for name in collect_classes(Formatter):
+        entry_id = camel2under(name).replace("_", "-")
+        entry_points[entry_id] = f"click_extra.pygments:{name}"
+
+    check_entry_points(entry_points, "tool", "poetry", "plugins", "pygments.formatters")
+
+
+def test_filter_entry_points():
+    entry_points = {}
+    for name in collect_classes(Filter):
+        entry_id = camel2under(name).replace("_", "-")
+        entry_points[entry_id] = f"click_extra.pygments:{name}"
+
+    check_entry_points(entry_points, "tool", "poetry", "plugins", "pygments.filters")
+
+
 def test_lexer_entry_points():
     entry_points = {}
     for lexer in collect_session_lexers():
@@ -190,28 +208,10 @@ def test_lexer_entry_points():
     check_entry_points(entry_points, "tool", "poetry", "plugins", "pygments.lexers")
 
 
-def test_filter_entry_points():
-    entry_points = {}
-    for name in collect_classes(Filter):
-        entry_id = camel2under(name).replace("_", "-")
-        entry_points[entry_id] = f"click_extra.pygments:{name}"
-
-    check_entry_points(entry_points, "tool", "poetry", "plugins", "pygments.filters")
-
-
-def test_formatter_entry_points():
-    entry_points = {}
-    for name in collect_classes(Formatter):
-        entry_id = camel2under(name).replace("_", "-")
-        entry_points[entry_id] = f"click_extra.pygments:{name}"
-
-    check_entry_points(entry_points, "tool", "poetry", "plugins", "pygments.formatters")
-
-
-def test_registered_lexers():
-    for klass in collect_classes(Lexer).values():
+def test_registered_formatters():
+    for klass in collect_classes(Formatter).values():
         for alias in klass.aliases:
-            get_lexer_by_name(alias)
+            get_formatter_by_name(alias)
 
 
 def test_registered_filters():
@@ -220,10 +220,10 @@ def test_registered_filters():
         get_filter_by_name(entry_id)
 
 
-def test_registered_formatters():
-    for klass in collect_classes(Formatter).values():
+def test_registered_lexers():
+    for klass in collect_classes(Lexer).values():
         for alias in klass.aliases:
-            get_formatter_by_name(alias)
+            get_lexer_by_name(alias)
 
 
 def test_ansi_lexers_doc():
