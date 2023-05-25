@@ -87,7 +87,7 @@ print(highlight(ansi_content, lexer, formatter))
 ```
 
 ```{hint}
-The `ansi-color` lexer above is the component that parse raw ANSI codes and transform them into custom Pygments tokens, for the formatter to render.
+The `ansi-color` lexer parse raw ANSI codes and transform them into custom Pygments tokens, for the formatter to render.
 
 [Pygments' `highlight()`](https://pygments.org/docs/api/#pygments.highlight) is the utility method tying the lexer and formatter together to generate the final output.
 ```
@@ -109,12 +109,7 @@ The code above prints the following HTML:
       <span class=" -Color -Color-C178 -C-C178"> </span>
       <span class=" -Color -Color-C214 -C-C214">for peopl</span>
       <span class=" -Color -Color-C208 -C-C208">e who lack</span>
-      <span class=" -Color -Color-C209 -C-C209"> </span>
-      <span class=" -Color -Color-C203 -C-C203">\</span>
-      <span class=" -Color -Color-C184 -C-C184">\ imagina</span>
-      <span class=" -Color -Color-C178 -C-C178">t</span>
-      <span class=" -Color -Color-C214 -C-C214">ion.     </span>
-      (...)
+      …
    </pre>
 </div>
 ```
@@ -127,33 +122,19 @@ print(formatter.get_style_defs('.highlight'))
 
 ```css
 pre { line-height: 125%; }
-td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
-span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
-td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
-span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
 .highlight .hll { background-color: #ffffcc }
 .highlight { background: #f8f8f8; }
 .highlight .c { color: #3D7B7B; font-style: italic } /* Comment */
 .highlight .err { border: 1px solid #FF0000 } /* Error */
-.highlight .k { color: #008000; font-weight: bold } /* Keyword */
 .highlight .o { color: #666666 } /* Operator */
 .highlight .-C-BGBlack { background-color: #000000 } /* C.BGBlack */
 .highlight .-C-BGBlue { background-color: #3465a4 } /* C.BGBlue */
 .highlight .-C-BGBrightBlack { background-color: #676767 } /* C.BGBrightBlack */
 .highlight .-C-BGBrightBlue { background-color: #6871ff } /* C.BGBrightBlue */
-.highlight .-C-BGBrightCyan { background-color: #5ffdff } /* C.BGBrightCyan */
-.highlight .-C-BGBrightGreen { background-color: #5ff967 } /* C.BGBrightGreen */
-.highlight .-C-BGBrightMagenta { background-color: #ff76ff } /* C.BGBrightMagenta */
-.highlight .-C-BGBrightRed { background-color: #ff6d67 } /* C.BGBrightRed */
-.highlight .-C-BGBrightWhite { background-color: #feffff } /* C.BGBrightWhite */
-.highlight .-C-BGBrightYellow { background-color: #fefb67 } /* C.BGBrightYellow */
 .highlight .-C-BGC0 { background-color: #000000 } /* C.BGC0 */
-.highlight .-C-BGC1 { background-color: #800000 } /* C.BGC1 */
-.highlight .-C-BGC10 { background-color: #00ff00 } /* C.BGC10 */
 .highlight .-C-BGC100 { background-color: #878700 } /* C.BGC100 */
 .highlight .-C-BGC101 { background-color: #87875f } /* C.BGC101 */
-.highlight .-C-BGC102 { background-color: #878787 } /* C.BGC102 */
-(...)
+/* … */
 ```
 
 ```{caution}
@@ -249,14 +230,77 @@ We can check how `pygments_ansi_color`'s `ansi-color` lexer transforms a raw str
 ```ansi-pycon
 >>> from pygments.lexers import get_lexer_by_name
 >>> ansi_lexer = get_lexer_by_name("ansi-color")
->>> ansi_lexer
-<pygments.lexers.AnsiColorLexer>
 >>> tokens = ansi_lexer.get_tokens(art)
 >>> tuple(tokens)
 ((Token.Color.Magenta, '║'), (Token.Text, ''), (Token.Color.Cyan, '▌'), (Token.Text, ''), (Token.Color.Red, '█'), (Token.Text, ''), (Token.Color.Green, '║'), (Token.Text, ''), (Token.Color.Yellow, ' '), (Token.Text, ''), (Token.Color.Blue, 'A'), (Token.Text, ''), (Token.Color.Magenta, 'N'), (Token.Text, ''), (Token.Color.Cyan, 'S'), (Token.Text, ''), (Token.Color.Red, 'I'), (Token.Text, ''), (Token.Color.Green, ' '), (Token.Text, ''), (Token.Color.Yellow, 'A'), (Token.Text, ''), (Token.Color.Blue, 'r'), (Token.Text, ''), (Token.Color.Magenta, 't'), (Token.Text, ''), (Token.Color.Cyan, ' '), (Token.Text, ''), (Token.Color.Red, '▌'), (Token.Text, ''), (Token.Color.Green, '│'), (Token.Text, ''), (Token.Color.Yellow, '║'), (Token.Text, ''), (Token.Color.Blue, '▌'), (Token.Text, '\n'))
 ```
 
 See how the raw string is split into Pygments tokens, including the new `Token.Color` tokens. These tokens are then ready to be rendered by [our own `ansi-html` formatter](#ansi-html-formatter).
+
+## `pygmentize` command line
+
+Because they're properly registered to Pygments, all these new components can be invoked with the [`pygmentize` CLI](https://pygments.org/docs/cmdline/).
+
+For example, here is how we can render the `cowsay.ans` file from the [example above]() into a standalone HTML file:
+
+```ansi-shell-session
+$ pygmentize -f ansi-html -O full -o cowsay.html ./cowsay.ans
+$ cat cowsay.html
+```
+
+```html
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!--
+generated by Pygments <https://pygments.org/>
+Copyright 2006-2023 by the Pygments team.
+Licensed under the BSD license, see LICENSE for details.
+-->
+<html>
+   <head>
+      <title></title>
+      <meta http-equiv="content-type" content="text/html; charset=utf-8">
+      <style type="text/css">
+         /*
+         generated by Pygments <https://pygments.org/>
+         Copyright 2006-2023 by the Pygments team.
+         Licensed under the BSD license, see LICENSE for details.
+         */
+         pre { line-height: 125%; }
+         body { background: #f8f8f8; }
+         body .c { color: #3D7B7B; font-style: italic } /* Comment */
+         body .err { border: 1px solid #FF0000 } /* Error */
+         body .o { color: #666666 } /* Operator */
+         body .-Color-BGBlack { background-color: #000000 } /* Color.BGBlack */
+         body .-Color-BGBlue { background-color: #3465a4 } /* Color.BGBlue */
+         body .-Color-BGBrightBlack { background-color: #676767 } /* Color.BGBrightBlack */
+         body .-Color-BGBrightBlue { background-color: #6871ff } /* Color.BGBrightBlue */
+         body .-Color-BGCyan { background-color: #34e2e2 } /* Color.BGCyan */
+         body .-Color-BGGreen { background-color: #8ae234 } /* Color.BGGreen */
+         /* … */
+      </style>
+   </head>
+   <body>
+      <h2></h2>
+      <div class="highlight">
+         <pre>
+            <span></span>
+            <span class=" -Color -Color-C154"> __</span>
+            <span class=" -Color -Color-C148">_</span>
+            <span class=" -Color -Color-C184">___________</span>
+            <span class=" -Color -Color-C178">_</span>
+            <span class=" -Color -Color-C214">_________</span>
+            <span class=" -Color -Color-C208">________ </span>
+            <span class=" -Color -Color-C148">/</span>
+            <span class=" -Color -Color-C184"> Reality is</span>
+            <span class=" -Color -Color-C178"> </span>
+            <span class=" -Color -Color-C214">for peopl</span>
+            <span class=" -Color -Color-C208">e who lack</span>
+            …
+         </pre>
+      </div>
+   </body>
+</html>
+```
 
 ## `click_extra.pygments` API
 
