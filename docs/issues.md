@@ -1,6 +1,8 @@
 # Fixed issues
 
-This is the list of issues and bugs from other projects that `click-extra` has addressed.
+Click Extra was basically born as a collection of patches for unmaintained or slow moving [`click-contrib` addons](https://github.com/click-contrib).
+
+Here is the list of issues and bugs from other projects that `click-extra` has addressed over the years.
 
 ## [`configmanager`](https://github.com/jbasko/configmanager)
 
