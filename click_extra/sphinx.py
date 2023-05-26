@@ -129,11 +129,19 @@ def setup(app):
 
         - ``sphinx.highlighting.PygmentsBridge`` is updated to set its default HTML
           formatter to an ANSI capable one for the whole Sphinx app.
+
         - ``click_compat_hack`` to `bypass old Python 2.x in pallets-sphinx-themes
           <#click_extra.sphinx.click_compat_hack>`.
+
         - ``pallets_sphinx_themes.themes.click.domain.ViewList`` is
           `patched to force an ANSI lexer on the rST code block
           <#click_extra.sphinx.PatchedViewList>`_.
+
+        - ``pallets_sphinx_themes.themes.click.domain.ExampleRunner`` is replaced with
+          ``click_extra.tests.conftest.ExtraCliRunner`` to have full control of
+          contextual color settings by the way of the ``color`` parameter. It also
+          produce unfiltered ANSI codes so that the other ``PatchedViewList``
+          monkey-patch can do its job and render colors in the HTML output.
     """
     # Set Sphinx's default HTML formatter to an ANSI capable one.
     PygmentsBridge.html_formatter = AnsiHtmlFormatter
@@ -143,18 +151,9 @@ def setup(app):
 
         domain.ViewList = PatchedViewList
 
-        ####################################
-        #  pallets_sphinx_themes Patch #2  #
-        ####################################
-        # Replace the call to default ``CliRunner.invoke`` with a call to click_extra
-        # own version which is sensible to contextual color settings and output
-        # unfiltered ANSI codes.
-        # Fixes: <insert upstream bug report here>
-
         # Brutal, but effective.
         # Alternative patching methods: https://stackoverflow.com/a/38928265
         domain.ExampleRunner.__bases__ = (ExtraCliRunner,)
-
         # Force color rendering in ``invoke`` calls.
         domain.ExampleRunner.force_color = True
 
