@@ -135,6 +135,59 @@ Which renders in Sphinx like it was executed in a terminal block:
 In the example above, we choose to import our CLI primitives from the `click-extra` module instead, to demonstrate the coloring of terminal session outputs, as `click-extra` provides [fancy coloring of help screens](colorize.md) by default.
 ```
 
+### Inline tests
+
+The `.. click:run::` directive can also be used to embed tests in your documentation.
+
+These blocks are Python code executed at build time, so you can use them to validate the behavior of your CLI. This allow you to catch regressions, outdated documentation or changes in terminal output.
+
+For example, here is a simple CLI:
+
+```{eval-rst}
+.. click:example::
+    from click_extra import echo, extra_command, option, style
+
+    @extra_command
+    @option("--name", prompt="Your name", help="The person to greet.")
+    def hello_world(name):
+        """Simple program that greets NAME."""
+        echo(f"Hello, {style(name, fg='red')}!")
+
+If we put this CLI code in a ``.. click:example::`` directive, we can associate it with the following ``.. click:run::`` block:
+
+.. code-block:: rst
+
+    .. click:run::
+        result = invoke(hello_world, args=["--help"])
+
+        assert result.exit_code == 0, "CLI execution failed"
+        assert "--show-params" in result.output, "--show-params not found in help screeen"
+
+See how we collect the ``result`` of the ``invoke`` command and inspect the ``exit_code`` and ``output`` of the CLI with ``assert`` statements.
+
+If for any reason our CLI changes and its help screen is no longer what we expect, the test will fail and the documentation build will break with a message similar to:
+
+.. code-block:: pytb
+
+    Exception occurred:
+    File "<docs>", line 4, in <module>
+    AssertionError: --show-params not found in help screeen
+
+Having your build fails when something unexpected happens is a great signal to catch regressions early.
+
+On the other hand, if the build succeed, the ``.. click:run::`` block will render as usual with the result of the invokation:
+
+.. click:run::
+    result = invoke(hello_world, args=["--help"])
+
+    assert result.exit_code == 0, "CLI execution failed"
+    assert "--show-params" in result.output, "--show-params not found in help screeen"
+```
+
+```{tip}
+These kind of inline tests on code snippets are somewhat like [doctests](https://docs.python.org/3/library/doctest.html), but for Click CLIs.
+```
+
 ## ANSI shell sessions
 
 Sphinx extensions from Click Extra automaticcaly integrates the [new ANSI-capable lexers for Pygments](https://kdeldycke.github.io/click-extra/pygments.html#lexers).
