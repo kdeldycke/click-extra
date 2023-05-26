@@ -802,8 +802,8 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 param_type.__name__,
                 allowed_in_conf,
                 OK if param.expose_value is True else KO,
-                ", ".join(all_envvars(param, ctx)),
-                param.get_default(ctx),
+                ", ".join(map(default_theme.envvar, all_envvars(param, ctx))),
+                default_theme.default(param.get_default(ctx)),
                 param_value,
                 source._name_ if source else None,
             )
