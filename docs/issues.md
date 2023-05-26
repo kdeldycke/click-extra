@@ -74,6 +74,7 @@ This is the list of issues and bugs from other projects that `click-extra` has a
 ## [`pygments`](https://github.com/pygments/pygments)
 
 - [`#1148` - Can't format console/shell-session output that includes ANSI colors](https://github.com/pygments/pygments/issues/1148)
+- [`#477` - Support ANSI (ECMA-48) color-coded text input](https://github.com/pygments/pygments/issues/477)
 
 ## [`python-tabulate`](https://github.com/astanin/python-tabulate)
 
