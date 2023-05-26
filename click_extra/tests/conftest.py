@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import os
+from configparser import RawConfigParser  # noqa: E402
 from functools import partial
 from pathlib import Path
 from textwrap import dedent
@@ -34,9 +35,9 @@ from ..decorators import command, extra_command, extra_group, group
 from ..platforms import is_linux, is_macos, is_windows
 from ..run import EnvVars, args_cleanup, print_cli_output
 
-DESTRUCTIVE_MODE = bool(
-    os.environ.get("DESTRUCTIVE_TESTS", False) not in {True, 1, "True", "true", "1"}
-)
+DESTRUCTIVE_MODE = RawConfigParser.BOOLEAN_STATES[
+    str(os.environ.get("DESTRUCTIVE_TESTS", False)).lower()
+]
 """Pre-computed boolean flag indicating if destructive mode is activated by the presence
 of a ``DESTRUCTIVE_TESTS`` environment variable set to ``True``."""
 
