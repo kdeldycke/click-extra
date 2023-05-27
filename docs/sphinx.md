@@ -161,16 +161,17 @@ If we put this CLI code in a ``.. click:example::`` directive, we can associate 
         result = invoke(hello_world, args=["--help"])
 
         assert result.exit_code == 0, "CLI execution failed"
-        assert "--show-params" in result.output, "--show-params not found in help screeen"
+        assert not result.stderr, "error message in <stderr>"
+        assert "--show-params" in result.stdout, "--show-params not found in help screeen"
 
-See how we collect the ``result`` of the ``invoke`` command and inspect the ``exit_code`` and ``output`` of the CLI with ``assert`` statements.
+See how we collect the ``result`` of the ``invoke`` command, and inspect the ``exit_code``, ``stderr`` and ``stdout`` of the CLI with ``assert`` statements.
 
 If for any reason our CLI changes and its help screen is no longer what we expect, the test will fail and the documentation build will break with a message similar to:
 
 .. code-block:: pytb
 
     Exception occurred:
-    File "<docs>", line 4, in <module>
+    File "<docs>", line 5, in <module>
     AssertionError: --show-params not found in help screeen
 
 Having your build fails when something unexpected happens is a great signal to catch regressions early.
@@ -181,11 +182,18 @@ On the other hand, if the build succeed, the ``.. click:run::`` block will rende
     result = invoke(hello_world, args=["--help"])
 
     assert result.exit_code == 0, "CLI execution failed"
-    assert "--show-params" in result.output, "--show-params not found in help screeen"
+    assert not result.stderr, "error message in <stderr>"
+    assert "--show-params" in result.stdout, "--show-params not found in help screeen"
 ```
 
 ```{tip}
-These kind of inline tests on code snippets are somewhat like [doctests](https://docs.python.org/3/library/doctest.html), but for Click CLIs.
+In a way, you can consider this kind of inline tests as like [doctests](https://docs.python.org/3/library/doctest.html), but for Click CLIs.
+```
+
+```{hint}
+The CLI runner used by `.. click:run::` is a custom version [derived from the original `click.testing.CliRunner`](https://click.palletsprojects.com/en/8.1.x/api/#click.testing.CliRunner).
+
+It is [called `ExtraCliRunner`](click_extra.tests#click_extra.tests.conftest.ExtraCliRunner) and sets the `mix_stderr` parameter to `False` by default. That way you can refine your tests by inspecting both `<stdout>` and `<stderr>` independently.
 ```
 
 ## ANSI shell sessions

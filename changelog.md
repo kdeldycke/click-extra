@@ -7,6 +7,7 @@ This version is not released yet and is under active development.
 ```
 
 - Colorize envvars and default values in `--show-params` option.
+- Do not let `ExtraCliRunner` mix `<stderr>` and `<stdout>` by default.
 - Document inline tests in Sphinx CLI execution blocks.
 
 ## {gh}`4.2.0 (2023-05-23) <compare/v4.1.0...v4.2.0>`

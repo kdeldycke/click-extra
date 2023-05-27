@@ -22,7 +22,7 @@ from configparser import RawConfigParser  # noqa: E402
 from functools import partial
 from pathlib import Path
 from textwrap import dedent
-from typing import IO, Any, Sequence
+from typing import IO, Any, Sequence, Mapping, Optional
 
 import click
 import click.testing
@@ -92,13 +92,29 @@ See:
 
 
 class ExtraCliRunner(click.testing.CliRunner):
-    force_color: bool = False
-    """Add a ``force_color`` boolean flag on the class to allow for overriding of the
-    ``color`` parameter in ``invoke``.
+    """Extends Click's ``CliRunner`` to add extra features:
 
-    This is only used to initialize the CliRunner in the context of Sphinx
-    documentation.
+    - Adds a ``force_color`` property
+    - Sets ``mix_stderr`` to ``False`` by default
     """
+
+    force_color: bool = False
+    """Flag to override the ``color`` parameter in ``invoke``.
+
+    .. note::
+        This is only used to initialize the ``CliRunner`` `in the context of Sphinx
+        documentation <sphinx#click_extra.sphinx.setup>`_.
+    """
+
+    def __init__(
+        self,
+        charset: str = "utf-8",
+        env: Optional[Mapping[str, Optional[str]]] = None,
+        echo_stdin: bool = False,
+        # Set to False to avoid mixing stdout and stderr in the result object.
+        mix_stderr: bool = False,
+    ) -> None:
+        return super().__init__(charset=charset, env=env, echo_stdin=echo_stdin, mix_stderr=mix_stderr)
 
     def invoke(
         self,
@@ -110,6 +126,11 @@ class ExtraCliRunner(click.testing.CliRunner):
         color: bool = False,
         **extra: Any,
     ) -> click.testing.Result:
+        """Same as ``click.testing.CliRunner.invoke()`` with extra features.
+
+        - Activates ``color`` property depending on the ``force_color`` value.
+        - Prints a formatted exception traceback if the command fails.
+        """
         if self.force_color:
             color = True
 
@@ -131,7 +152,8 @@ class ExtraCliRunner(click.testing.CliRunner):
 
 @pytest.fixture
 def runner():
-    runner = ExtraCliRunner(mix_stderr=False)
+    """``ExtraCliRunner`` runner  with ``mix_stderr=False`` by default."""
+    runner = ExtraCliRunner()
     with runner.isolated_filesystem():
         yield runner
 
