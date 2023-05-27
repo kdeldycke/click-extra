@@ -79,12 +79,14 @@ That way you can simply use the module helpers like [`logging.debug`](https://do
         logging.error("Does not compute.")
         logging.critical("Complete meltdown!")
 
-By default, the ``root`` logger is preconfigured to:
+.. hint::
 
-* output to ``<stderr>``,
-* render log records with the ``%(levelname)s: %(message)s`` format,
-* color the log level name in the ``%(levelname)s`` variable,
-* default to the ``INFO`` level.
+   By default, the ``root`` logger is preconfigured to:
+
+   - output to ``<stderr>``,
+   - render log records with the ``%(levelname)s: %(message)s`` format,
+   - color the log level name in the ``%(levelname)s`` variable,
+   - default to the ``INFO`` level.
 
 You can check these defaults by running the CLI without the ``--verbosity`` option:
 
