@@ -28,7 +28,6 @@ from tabulate import tabulate
 from .. import (
     command,
     echo,
-    extra_command,
     get_app_dir,
     option,
     pass_context,

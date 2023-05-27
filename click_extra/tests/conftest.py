@@ -114,7 +114,12 @@ class ExtraCliRunner(click.testing.CliRunner):
         # Set to False to avoid mixing stdout and stderr in the result object.
         mix_stderr: bool = False,
     ) -> None:
-        return super().__init__(charset=charset, env=env, echo_stdin=echo_stdin, mix_stderr=mix_stderr)
+        return super().__init__(
+            charset=charset,
+            env=env,
+            echo_stdin=echo_stdin,
+            mix_stderr=mix_stderr
+        )
 
     def invoke(
         self,
