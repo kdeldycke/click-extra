@@ -20,8 +20,8 @@ from __future__ import annotations
 from pygments import lexers
 from pygments.filter import Filter
 from pygments.filters import TokenMergeFilter
-from pygments.formatters import HtmlFormatter
 from pygments.formatter import _lookup_style  # type: ignore[attr-defined]
+from pygments.formatters import HtmlFormatter
 from pygments.lexer import Lexer, LexerMeta
 from pygments.lexers.algebra import GAPConsoleLexer
 from pygments.lexers.dylan import DylanConsoleLexer
@@ -42,7 +42,6 @@ from pygments_ansi_color import (
     ExtendedColorHtmlFormatterMixin,
     color_tokens,
 )
-
 
 DEFAULT_TOKEN_TYPE = Generic.Output
 """Default Pygments' token type to render with ANSI support.

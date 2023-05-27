@@ -17,9 +17,9 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
-import logging
 
 import click
 from pytest_cases import fixture, parametrize

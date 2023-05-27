@@ -18,17 +18,17 @@
 from __future__ import annotations
 
 import logging
-from logging import (
-    Logger,
-    WARNING,
-    _levelToName,
-    Formatter,
-    Handler,
-    LogRecord,
-)
 import sys
 from collections.abc import Generator, Iterable, Sequence
 from gettext import gettext as _
+from logging import (
+    WARNING,
+    Formatter,
+    Handler,
+    Logger,
+    LogRecord,
+    _levelToName,
+)
 from typing import Literal, TypeVar
 
 import click
@@ -36,7 +36,6 @@ import click
 from . import Choice
 from .colorize import default_theme
 from .parameters import ExtraOption
-
 
 _original_get_logger = logging.getLogger
 

@@ -22,7 +22,7 @@ from configparser import RawConfigParser  # noqa: E402
 from functools import partial
 from pathlib import Path
 from textwrap import dedent
-from typing import IO, Any, Sequence, Mapping, Optional
+from typing import IO, Any, Mapping, Optional, Sequence
 
 import click
 import click.testing

@@ -81,10 +81,10 @@ That way you can simply use the module helpers like [`logging.debug`](https://do
 
 By default, the ``root`` logger is preconfigured to:
 
- * output to ``<stderr>``,
- * render log records with the ``%(levelname)s: %(message)s`` format,
- * color the log level name in the ``%(levelname)s`` variable,
- * default to the ``INFO`` level.
+* output to ``<stderr>``,
+* render log records with the ``%(levelname)s: %(message)s`` format,
+* color the log level name in the ``%(levelname)s`` variable,
+* default to the ``INFO`` level.
 
 You can check these defaults by running the CLI without the ``--verbosity`` option:
 

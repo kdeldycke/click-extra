@@ -29,11 +29,16 @@ import click
 import cloup
 
 from . import Command, Group
-from .colorize import ExtraHelpColorsMixin
-from .parameters import ExtraOption, all_envvars, normalize_envvar, search_params
-from .colorize import ColorOption, HelpOption
-from .config import ConfigOption, ShowParamsOption
+from .colorize import ColorOption, ExtraHelpColorsMixin, HelpOption
+from .config import ConfigOption
 from .logging import VerbosityOption
+from .parameters import (
+    ExtraOption,
+    ShowParamsOption,
+    all_envvars,
+    normalize_envvar,
+    search_params,
+)
 from .timer import TimerOption
 from .version import VersionOption
 

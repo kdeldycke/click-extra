@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from textwrap import dedent
 
@@ -24,7 +25,7 @@ import cloup
 import pytest
 from boltons.strutils import strip_ansi
 from pytest_cases import parametrize
-import logging
+
 from .. import HelpTheme, Style, argument, echo, option, option_group, secho, style
 from ..colorize import (
     HelpExtraFormatter,
@@ -43,10 +44,10 @@ from ..decorators import (
 from ..logging import LOG_LEVELS
 from .conftest import (
     command_decorators,
-    default_debug_colored_log_start,
     default_debug_colored_log_end,
-    default_debug_uncolored_log_start,
+    default_debug_colored_log_start,
     default_debug_uncolored_log_end,
+    default_debug_uncolored_log_start,
     default_options_colored_help,
     skip_windows_colors,
 )

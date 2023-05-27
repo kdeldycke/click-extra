@@ -59,15 +59,15 @@ from cloup import *  # type: ignore[no-redef] # noqa: E402, F403
 from .colorize import (  # noqa: I001, E402, F401
     ColorOption,
     HelpExtraFormatter,
-    HelpOption,
     HelpExtraTheme,
+    HelpOption,
 )
 from .commands import (  # noqa: I001, E402, F401
     ExtraCommand,
     ExtraContext,
     ExtraGroup,
 )
-from .config import ConfigOption, ShowParamsOption  # noqa: I001, E402, F401
+from .config import ConfigOption  # noqa: I001, E402, F401
 from .decorators import (  # type: ignore[no-redef] # noqa: I001, E402, F401
     color_option,
     command,  # noqa: E402
@@ -84,12 +84,16 @@ from .decorators import (  # type: ignore[no-redef] # noqa: I001, E402, F401
     version_option,
 )
 from .logging import (  # noqa: I001, E402, F401
-    VerbosityOption,
     ExtraLogFormatter,
     ExtraLogHandler,
+    VerbosityOption,
     extra_basic_config,
 )
-from .parameters import ExtraOption  # noqa: I001, E402, F401
+from .parameters import (  # noqa: I001, E402, F401
+    ExtraOption,
+    ParamStructure,
+    ShowParamsOption,
+)
 from .tabulate import TableFormatOption  # noqa: I001, E402, F401
 from .telemetry import TelemetryOption  # noqa: I001, E402, F401
 from .timer import TimerOption  # noqa: I001, E402, F401
@@ -177,6 +181,7 @@ __all__ = [  # noqa: F405
     "OptionParser",
     "Parameter",
     "ParameterSource",
+    "ParamStructure",
     "ParamType",
     "pass_context",
     "pass_obj",

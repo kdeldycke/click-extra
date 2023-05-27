@@ -16,13 +16,27 @@
 
 from __future__ import annotations
 
+from os.path import sep
+from pathlib import Path
+from textwrap import dedent
+
+import click
 import pytest
 from pytest_cases import parametrize
-import click
+from tabulate import tabulate
 
-from .. import echo, option, extra_command, command
-from ..parameters import normalize_envvar, extend_envvars
+from .. import (
+    command,
+    echo,
+    extra_command,
+    get_app_dir,
+    option,
+    pass_context,
+)
+from ..decorators import extra_command, extra_group, show_params_option
+from ..parameters import ShowParamsOption, extend_envvars, normalize_envvar
 from ..platforms import is_windows
+from .conftest import command_decorators
 
 
 @pytest.mark.parametrize(
@@ -215,3 +229,231 @@ def test_auto_envvar_parsing(invoke, cmd_decorator, envvars, expected_flag):
     assert result.exit_code == 0
     assert not result.stderr
     assert result.output == f"Flag value: {expected_flag}\n"
+
+
+def test_raw_args(invoke):
+    """Raw args are expected to be scoped in subcommands."""
+
+    @extra_group
+    @option("--dummy-flag/--no-flag")
+    @pass_context
+    def my_cli(ctx, dummy_flag):
+        echo("-- Group output --")
+        echo(f"dummy_flag is {dummy_flag!r}")
+        echo(f"Raw parameters: {ctx.meta.get('click_extra.raw_args', [])}")
+
+    @my_cli.command()
+    @pass_context
+    @option("--int-param", type=int, default=10)
+    def subcommand(ctx, int_param):
+        echo("-- Subcommand output --")
+        echo(f"int_parameter is {int_param!r}")
+        echo(f"Raw parameters: {ctx.meta.get('click_extra.raw_args', [])}")
+
+    result = invoke(my_cli, "--dummy-flag", "subcommand", "--int-param", "33")
+    assert result.exit_code == 0
+    assert not result.stderr
+    assert result.output == dedent(
+        """\
+        -- Group output --
+        dummy_flag is True
+        Raw parameters: ['--dummy-flag', 'subcommand', '--int-param', '33']
+        -- Subcommand output --
+        int_parameter is 33
+        Raw parameters: ['--int-param', '33']
+        """
+    )
+
+
+@parametrize(
+    "cmd_decorator",
+    # Skip click extra's commands, as show_params option is already part of the default.
+    command_decorators(no_groups=True, no_extra=True),
+)
+@parametrize("option_decorator", (show_params_option, show_params_option()))
+def test_standalone_show_params_option(invoke, cmd_decorator, option_decorator):
+    @cmd_decorator
+    @option_decorator
+    def show_params():
+        echo("It works!")
+
+    result = invoke(show_params, "--show-params")
+    assert result.exit_code == 0
+
+    table = [
+        (
+            "show-params.show_params",
+            "click_extra.parameters.ShowParamsOption",
+            "--show-params",
+            "bool",
+            "",
+            "✘",
+            "",
+            False,
+            "",
+            "COMMANDLINE",
+        ),
+    ]
+    output = tabulate(
+        table,
+        headers=ShowParamsOption.TABLE_HEADERS,
+        tablefmt="rounded_outline",
+        disable_numparse=True,
+    )
+    assert result.output == f"{output}\n"
+
+    assert result.stderr.endswith(
+        "warning: Cannot extract parameters values: "
+        "<Command show-params> does not inherits from ExtraCommand.\n"
+    )
+
+
+def test_integrated_show_params_option(invoke, create_config):
+    @extra_command
+    @option("--int-param1", type=int, default=10)
+    @option("--int-param2", type=int, default=555)
+    def show_params_cli(int_param1, int_param2):
+        echo(f"int_param1 is {int_param1!r}")
+        echo(f"int_param2 is {int_param2!r}")
+
+    conf_file = """
+        [show-params-cli]
+        int_param1 = 3
+        extra_value = "unallowed"
+        """
+    conf_path = create_config("show-params-cli.toml", conf_file)
+
+    raw_args = [
+        "--verbosity",
+        "DeBuG",
+        "--config",
+        str(conf_path),
+        "--int-param1",
+        "9999",
+        "--show-params",
+        "--help",
+    ]
+    result = invoke(show_params_cli, *raw_args, color=False)
+
+    assert result.exit_code == 0
+    assert f"debug: click_extra.raw_args: {raw_args!r}\n" in result.stderr
+
+    table = [
+        (
+            "show-params-cli.color",
+            "click_extra.colorize.ColorOption",
+            "--color, --ansi / --no-color, --no-ansi",
+            "bool",
+            "✓",
+            "✘",
+            "SHOW_PARAMS_CLI_COLOR",
+            True,
+            True,
+            "DEFAULT",
+        ),
+        (
+            "show-params-cli.config",
+            "click_extra.config.ConfigOption",
+            "-C, --config CONFIG_PATH",
+            "str",
+            "✘",
+            "✘",
+            "SHOW_PARAMS_CLI_CONFIG",
+            f"{Path(get_app_dir('show-params-cli')).resolve()}{sep}*.{{toml,yaml,yml,json,ini,xml}}",
+            str(conf_path),
+            "COMMANDLINE",
+        ),
+        (
+            "show-params-cli.help",
+            "click_extra.colorize.HelpOption",
+            "-h, --help",
+            "bool",
+            "✘",
+            "✘",
+            "SHOW_PARAMS_CLI_HELP",
+            False,
+            True,
+            "COMMANDLINE",
+        ),
+        (
+            "show-params-cli.int_param1",
+            "cloup._params.Option",
+            "--int-param1 INTEGER",
+            "int",
+            "✓",
+            "✓",
+            "SHOW_PARAMS_CLI_INT_PARAM1",
+            3,
+            9999,
+            "COMMANDLINE",
+        ),
+        (
+            "show-params-cli.int_param2",
+            "cloup._params.Option",
+            "--int-param2 INTEGER",
+            "int",
+            "✓",
+            "✓",
+            "SHOW_PARAMS_CLI_INT_PARAM2",
+            555,
+            555,
+            "DEFAULT",
+        ),
+        (
+            "show-params-cli.show_params",
+            "click_extra.parameters.ShowParamsOption",
+            "--show-params",
+            "bool",
+            "✘",
+            "✘",
+            "SHOW_PARAMS_CLI_SHOW_PARAMS",
+            False,
+            True,
+            "COMMANDLINE",
+        ),
+        (
+            "show-params-cli.time",
+            "click_extra.timer.TimerOption",
+            "--time / --no-time",
+            "bool",
+            "✓",
+            "✘",
+            "SHOW_PARAMS_CLI_TIME",
+            False,
+            False,
+            "DEFAULT",
+        ),
+        (
+            "show-params-cli.verbosity",
+            "click_extra.logging.VerbosityOption",
+            "-v, --verbosity LEVEL",
+            "str",
+            "✓",
+            "✘",
+            "SHOW_PARAMS_CLI_VERBOSITY",
+            "WARNING",
+            "DeBuG",
+            "COMMANDLINE",
+        ),
+        (
+            "show-params-cli.version",
+            "click_extra.version.VersionOption",
+            "--version",
+            "bool",
+            "✘",
+            "✘",
+            "SHOW_PARAMS_CLI_VERSION",
+            False,
+            False,
+            "DEFAULT",
+        ),
+    ]
+    output = tabulate(
+        table,
+        headers=ShowParamsOption.TABLE_HEADERS,
+        tablefmt="rounded_outline",
+        disable_numparse=True,
+    )
+    assert result.output == f"{output}\n"
+
+    assert f"debug: click_extra.raw_args: {raw_args}" in result.stderr

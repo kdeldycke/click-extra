@@ -16,25 +16,24 @@
 
 from __future__ import annotations
 
-import re
 import logging
 import random
+import re
 
+import click
 import pytest
 from pytest_cases import parametrize
-import click
 
 from .. import echo
 from ..decorators import extra_command, verbosity_option
-from ..logging import LOG_LEVELS
+from ..logging import DEFAULT_LEVEL, LOG_LEVELS
 from .conftest import (
     command_decorators,
+    default_debug_colored_log_end,
     default_debug_colored_log_start,
     default_debug_uncolored_log_end,
-    default_debug_colored_log_end,
     skip_windows_colors,
 )
-from ..logging import DEFAULT_LEVEL
 
 
 def test_level_default_order():

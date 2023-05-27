@@ -18,10 +18,16 @@ from __future__ import annotations
 
 import sys
 import tarfile
+from importlib import metadata
 from operator import itemgetter
 from pathlib import Path
-from importlib import metadata
 
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib  # type: ignore[import]
+
+import requests
 from boltons.strutils import camel2under
 from boltons.typeutils import issubclass
 from pygments.filter import Filter
@@ -30,12 +36,6 @@ from pygments.formatter import Formatter
 from pygments.formatters import get_formatter_by_name
 from pygments.lexer import Lexer
 from pygments.lexers import find_lexer_class_by_name, get_lexer_by_name
-import requests
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib  # type: ignore[import]
 
 from .. import pygments as extra_pygments
 from ..pygments import DEFAULT_TOKEN_TYPE, collect_session_lexers

@@ -17,14 +17,12 @@
 from __future__ import annotations
 
 import re
-from os.path import sep
 from pathlib import Path
 
 import click
 import pytest
 from boltons.pathutils import shrinkuser
 from pytest_cases import fixture, parametrize
-from tabulate import tabulate
 
 from .. import (
     BOOL,
@@ -45,13 +43,12 @@ from .. import (
     option,
 )
 from ..colorize import escape_for_help_sceen
-from ..config import ConfigOption, ShowParamsOption
-from ..decorators import config_option, extra_command, extra_group, show_params_option
+from ..config import ConfigOption
+from ..decorators import config_option, extra_group
 from ..parameters import search_params
 from .conftest import (
-    command_decorators,
-    default_debug_uncolored_log_start,
     default_debug_uncolored_log_end,
+    default_debug_uncolored_log_start,
 )
 
 DUMMY_TOML_FILE = """
@@ -554,197 +551,3 @@ def test_conf_file_overrided_by_cli_param(
             "dummy_flag = False\nmy_list = ('super', 'wow')\nint_parameter = 15\n"
         )
         assert result.stderr == f"Load configuration matching {conf_path.resolve()}\n"
-
-
-@parametrize(
-    "cmd_decorator",
-    # Skip click extra's commands, as show_params option is already part of the default.
-    command_decorators(no_groups=True, no_extra=True),
-)
-@parametrize("option_decorator", (show_params_option, show_params_option()))
-def test_standalone_show_params_option(invoke, cmd_decorator, option_decorator):
-    @cmd_decorator
-    @option_decorator
-    def show_params():
-        echo("It works!")
-
-    result = invoke(show_params, "--show-params")
-    assert result.exit_code == 0
-
-    table = [
-        (
-            "show-params.show_params",
-            "click_extra.config.ShowParamsOption",
-            "--show-params",
-            "bool",
-            "",
-            "✘",
-            "",
-            False,
-            "",
-            "COMMANDLINE",
-        ),
-    ]
-    output = tabulate(
-        table,
-        headers=ShowParamsOption.TABLE_HEADERS,
-        tablefmt="rounded_outline",
-        disable_numparse=True,
-    )
-    assert result.output == f"{output}\n"
-
-    assert result.stderr.endswith(
-        "warning: Cannot extract parameters values: "
-        "<Command show-params> does not inherits from ExtraCommand.\n"
-    )
-
-
-def test_integrated_show_params_option(invoke, create_config):
-    @extra_command
-    @option("--int-param1", type=int, default=10)
-    @option("--int-param2", type=int, default=555)
-    def show_params_cli(int_param1, int_param2):
-        echo(f"int_param1 is {int_param1!r}")
-        echo(f"int_param2 is {int_param2!r}")
-
-    conf_file = """
-        [show-params-cli]
-        int_param1 = 3
-        extra_value = "unallowed"
-        """
-    conf_path = create_config("show-params-cli.toml", conf_file)
-
-    raw_args = [
-        "--verbosity",
-        "DeBuG",
-        "--config",
-        str(conf_path),
-        "--int-param1",
-        "9999",
-        "--show-params",
-        "--help",
-    ]
-    result = invoke(show_params_cli, *raw_args, color=False)
-
-    assert result.exit_code == 0
-    assert f"debug: click_extra.raw_args: {raw_args!r}\n" in result.stderr
-
-    table = [
-        (
-            "show-params-cli.color",
-            "click_extra.colorize.ColorOption",
-            "--color, --ansi / --no-color, --no-ansi",
-            "bool",
-            "✓",
-            "✘",
-            "SHOW_PARAMS_CLI_COLOR",
-            True,
-            True,
-            "DEFAULT",
-        ),
-        (
-            "show-params-cli.config",
-            "click_extra.config.ConfigOption",
-            "-C, --config CONFIG_PATH",
-            "str",
-            "✘",
-            "✘",
-            "SHOW_PARAMS_CLI_CONFIG",
-            f"{Path(get_app_dir('show-params-cli')).resolve()}{sep}*.{{toml,yaml,yml,json,ini,xml}}",
-            str(conf_path),
-            "COMMANDLINE",
-        ),
-        (
-            "show-params-cli.help",
-            "click_extra.colorize.HelpOption",
-            "-h, --help",
-            "bool",
-            "✘",
-            "✘",
-            "SHOW_PARAMS_CLI_HELP",
-            False,
-            True,
-            "COMMANDLINE",
-        ),
-        (
-            "show-params-cli.int_param1",
-            "cloup._params.Option",
-            "--int-param1 INTEGER",
-            "int",
-            "✓",
-            "✓",
-            "SHOW_PARAMS_CLI_INT_PARAM1",
-            3,
-            9999,
-            "COMMANDLINE",
-        ),
-        (
-            "show-params-cli.int_param2",
-            "cloup._params.Option",
-            "--int-param2 INTEGER",
-            "int",
-            "✓",
-            "✓",
-            "SHOW_PARAMS_CLI_INT_PARAM2",
-            555,
-            555,
-            "DEFAULT",
-        ),
-        (
-            "show-params-cli.show_params",
-            "click_extra.config.ShowParamsOption",
-            "--show-params",
-            "bool",
-            "✘",
-            "✘",
-            "SHOW_PARAMS_CLI_SHOW_PARAMS",
-            False,
-            True,
-            "COMMANDLINE",
-        ),
-        (
-            "show-params-cli.time",
-            "click_extra.timer.TimerOption",
-            "--time / --no-time",
-            "bool",
-            "✓",
-            "✘",
-            "SHOW_PARAMS_CLI_TIME",
-            False,
-            False,
-            "DEFAULT",
-        ),
-        (
-            "show-params-cli.verbosity",
-            "click_extra.logging.VerbosityOption",
-            "-v, --verbosity LEVEL",
-            "str",
-            "✓",
-            "✘",
-            "SHOW_PARAMS_CLI_VERBOSITY",
-            "WARNING",
-            "DeBuG",
-            "COMMANDLINE",
-        ),
-        (
-            "show-params-cli.version",
-            "click_extra.version.VersionOption",
-            "--version",
-            "bool",
-            "✘",
-            "✘",
-            "SHOW_PARAMS_CLI_VERSION",
-            False,
-            False,
-            "DEFAULT",
-        ),
-    ]
-    output = tabulate(
-        table,
-        headers=ShowParamsOption.TABLE_HEADERS,
-        tablefmt="rounded_outline",
-        disable_numparse=True,
-    )
-    assert result.output == f"{output}\n"
-
-    assert f"debug: click_extra.raw_args: {raw_args}" in result.stderr

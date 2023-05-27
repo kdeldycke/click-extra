@@ -147,66 +147,6 @@ After that, there is a final [sorting step applied to options](https://kdeldycke
 Write example and tutorial.
 ```
 
-## Introspecting parameters
-
-If for any reason you need to dive into parameters and their values, there is a lot of intermediate and metadata available in the context. Here are some pointers:
-
-```{code-block} python
-from click import option, echo, pass_context
-
-from click_extra import config_option, extra_group
-
-@extra_group
-@option("--dummy-flag/--no-flag")
-@option("--my-list", multiple=True)
-@config_option
-@pass_context
-def my_cli(ctx, dummy_flag, my_list):
-    echo(f"dummy_flag    is {dummy_flag!r}")
-    echo(f"my_list       is {my_list!r}")
-    echo(f"Raw parameters:            {ctx.meta.get('click_extra.raw_args', [])}")
-    echo(f"Loaded, default values:    {ctx.default_map}")
-    echo(f"Values passed to function: {ctx.params}")
-
-@my_cli.command()
-@option("--int-param", type=int, default=10)
-def subcommand(int_param):
-    echo(f"int_parameter is {int_param!r}")
-```
-
-```{caution}
-The `click_extra.raw_args` metadata field in the context referenced above is not a standard feature from Click, but a helper introduced by Click Extra. It is only available with `@extra_group` and `@extra_command` decorators.
-
-In the mean time, it is [being discussed in the Click community at `click#1279`](https://github.com/pallets/click/issues/1279#issuecomment-1493348208).
-```
-
-```{todo}
-Propose the `raw_args` feature upstream to Click.
-```
-
-Now if we feed the following `~/configuration.toml` configuration file:
-
-```toml
-[my-cli]
-verbosity = "DEBUG"
-dummy_flag = true
-my_list = [ "item 1", "item #2", "Very Last Item!",]
-
-[my-cli.subcommand]
-int_param = 3
-```
-
-Here is what we get:
-
-```{code-block} shell-session
-$ cli --config ~/configuration.toml default-command
-dummy_flag    is True
-my_list       is ('item 1', 'item #2', 'Very Last Item!')
-Raw parameters:            ['--config', '~/configuration.toml', 'default-command']
-Loaded, default values:    {'dummy_flag': True, 'my_list': ['pip', 'npm', 'gem'], 'verbosity': 'DEBUG', 'default-command': {'int_param': 3}}
-Values passed to function: {'dummy_flag': True, 'my_list': ('pip', 'npm', 'gem')}
-```
-
 ## `click_extra.commands` API
 
 ```{eval-rst}

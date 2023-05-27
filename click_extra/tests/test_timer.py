@@ -26,7 +26,6 @@ from pytest_cases import parametrize
 
 from .. import echo
 from ..decorators import extra_group, timer_option
-
 from .conftest import (
     command_decorators,
 )

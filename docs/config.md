@@ -152,7 +152,7 @@ ValueError: Parameter 'random_param' is not allowed in configuration file.
 
 The {py:attr}`exclude_params <click_extra.config.ConfigOption.exclude_params>` argument allows you to block some of your CLI options to be loaded from configuration. By setting this argument, you will prevent your CLI users to set these parameters in their configuration file.
 
-It {py:attr}`defaults to the value of ParamStructure.DEFAULT_EXCLUDE_PARAMS <click_extra.config.ParamStructure.DEFAULT_EXCLUDE_PARAMS>`.
+It {py:attr}`defaults to the value of ParamStructure.DEFAULT_EXCLUDE_PARAMS <click_extra.parameters.ParamStructure.DEFAULT_EXCLUDE_PARAMS>`.
 
 You can set your own list of option to ignore with the `exclude_params` argument:
 
@@ -425,33 +425,6 @@ $ my-cli --config "https://example.com/dummy/configuration.yaml" subcommand
 dummy_flag    is True
 my_list       is ('point 1', 'point #2', 'Very Last Point!')
 int_parameter is 77
-```
-
-## `--show-params` option
-
-Click Extra provides a ready-to-use `--show-params` option, which is enabled by default.
-
-It produces a comprehensive table of your CLI parameters, normalized IDs, types and corresponding environment variables. And because it dynamiccaly print their default value, actual value and its source, it is a pratical tool for users to introspect and debug the parameters of a CLI.
-
-See how the default `@extra_command` decorator come with the default `--show-params` option and the result of its use:
-
-```{eval-rst}
-.. click:example::
-    from click_extra import extra_command, option, echo
-
-    @extra_command
-    @option("--int-param1", type=int, default=10)
-    @option("--int-param2", type=int, default=555)
-    def cli(int_param1, int_param2):
-        echo(f"int_param1 is {int_param1!r}")
-        echo(f"int_param2 is {int_param2!r}")
-
-.. click:run::
-    invoke(cli, args=["--verbosity", "Debug", "--int-param1", "3", "--show-params"])
-```
-
-```{note}
-Notice how `--show-params` is showing all parameters, even those provided to the `exclude_params` argument. You can still see the `--help`, `--version`, `-C`/`--config` and `--show-params` options in the table.
 ```
 
 ## `click_extra.config` API

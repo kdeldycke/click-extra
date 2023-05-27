@@ -22,14 +22,14 @@ import re
 from configparser import RawConfigParser
 from gettext import gettext as _
 from operator import getitem
-from typing import NamedTuple, Sequence, cast, Optional
+from typing import NamedTuple, Optional, Sequence, cast
 
+import click
 import regex as re3
 from boltons.strutils import complement_int_list, int_ranges_from_int_list
 from cloup._util import identity
-from cloup.styling import IStyle, Color
+from cloup.styling import Color, IStyle
 from cloup.typing import MISSING, Possibly
-import click
 
 from . import (
     Choice,
@@ -38,9 +38,9 @@ from . import (
     Parameter,
     ParameterSource,
     Style,
+    cache,
     echo,
     get_current_context,
-    cache,
 )
 from .parameters import ExtraOption
 
