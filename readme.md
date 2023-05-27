@@ -66,10 +66,10 @@ To undestrand how we ended up with the result above, [go read the tutorial](http
   - `@unless_linux`, `@unless_macos` and `@unless_windows`
   - `@destructive` and `@non_destructive`
 - [`.. click:example::` and `.. click:run::` Sphinx directives](https://kdeldycke.github.io/click-extra/sphinx.html) to document CLI source code and their execution
+- [Inline testing of CLI examples](https://kdeldycke.github.io/click-extra/sphinx.html#inline-tests) in documentation
 - [ANSI-capable Pygments lexers](https://kdeldycke.github.io/click-extra/pygments.html#lexers) for shell session and console output
-- Pygments styles and filters for ANSI rendering
-- [Fixes 30+ bugs](https://kdeldycke.github.io/click-extra/issues.html) from other Click-related projects
-- Rely on [`cloup`](https://github.com/janluke/cloup) to add:
+- [Fixes 40+ bugs](https://kdeldycke.github.io/click-extra/issues.html) from other Click-related projects
+- Rely on [Cloup](https://github.com/janluke/cloup) to add:
   - option groups
   - constraints
   - subcommands sections
