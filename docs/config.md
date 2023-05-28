@@ -84,9 +84,9 @@ int_parameter is 3
 The configuration loader fetch values according the following precedence:
 
 - `CLI parameters`
-  - `Configuration file`
-    - `Environment variables`
-      - `Defaults`
+  - ↖ `Configuration file`
+    - ↖ `Environment variables`
+      - ↖ `Defaults`
 
 The parameter will take the first value set in that chain.
 
