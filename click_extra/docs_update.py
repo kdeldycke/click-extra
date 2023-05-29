@@ -136,6 +136,7 @@ def generate_platforms_graph(
             # Use attributes blocks extension to add a title.
             ('{caption="' f"`click_extra.platforms.{graph_id}` - {description}" '"}'),
             "```mermaid",
+            ":zoom:",
             "flowchart",
             indent("\n".join(sorted(subgraphs)), INDENT),
             "```",

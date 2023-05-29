@@ -8,6 +8,7 @@ All platforms are grouped in sets of non-overlaping families:
 
 {caption="`click_extra.platforms.NON_OVERLAPPING_GROUPS` - Non-overlapping groups."}
 ```mermaid
+:zoom:
 flowchart
     subgraph <code>click_extra.platforms.ALL_LINUX</code><br/><em>All Linux</em>
         all_linux_linux(<code>linux</code><br/><em>Linux</em>)
@@ -48,6 +49,7 @@ Other groups are available for convenience, but these overlaps:
 
 {caption="`click_extra.platforms.EXTRA_GROUPS` - Overlapping groups, defined for convenience."}
 ```mermaid
+:zoom:
 flowchart
     subgraph <code>click_extra.platforms.ALL_PLATFORMS</code><br/><em>All platforms</em>
         all_platforms_aix(<code>aix</code><br/><em>AIX</em>)

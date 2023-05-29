@@ -12,6 +12,7 @@ This version is not released yet and is under active development.
 - Improve Pygments ANSI formatter and lexers documentation.
 - Document usage of `pygmentize` command line.
 - Regroup all parameter-related code.
+- Activate zoom on big Mermaid graphs.
 
 ## {gh}`4.2.0 (2023-05-23) <compare/v4.1.0...v4.2.0>`
 
