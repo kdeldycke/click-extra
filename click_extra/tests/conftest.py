@@ -22,7 +22,6 @@ from configparser import RawConfigParser  # noqa: E402
 from functools import partial
 from pathlib import Path
 from textwrap import dedent
-from typing import IO, Any, Mapping, Optional, Sequence
 
 import click
 import click.testing
@@ -34,6 +33,8 @@ from boltons.tbutils import ExceptionInfo
 from ..decorators import command, extra_command, extra_group, group
 from ..platforms import is_linux, is_macos, is_windows
 from ..run import EnvVars, args_cleanup, print_cli_output
+from ..testing import ExtraCliRunner
+
 
 DESTRUCTIVE_MODE = RawConfigParser.BOOLEAN_STATES[
     str(os.environ.get("DESTRUCTIVE_TESTS", False)).lower()
@@ -89,70 +90,6 @@ See:
 - https://github.com/pallets/click/issues/2111
 - https://github.com/pallets/click/issues/2110
 """
-
-
-class ExtraCliRunner(click.testing.CliRunner):
-    """Extends Click's ``CliRunner`` to add extra features:
-
-    - Adds a ``force_color`` property
-    - Sets ``mix_stderr`` to ``False`` by default
-    """
-
-    force_color: bool = False
-    """Flag to override the ``color`` parameter in ``invoke``.
-
-    .. note::
-        This is only used to initialize the ``CliRunner`` `in the context of Sphinx
-        documentation <sphinx#click_extra.sphinx.setup>`_.
-    """
-
-    def __init__(
-        self,
-        charset: str = "utf-8",
-        env: Optional[Mapping[str, Optional[str]]] = None,
-        echo_stdin: bool = False,
-        # Set to False to avoid mixing stdout and stderr in the result object.
-        mix_stderr: bool = False,
-    ) -> None:
-        return super().__init__(
-            charset=charset,
-            env=env,
-            echo_stdin=echo_stdin,
-            mix_stderr=mix_stderr
-        )
-
-    def invoke(
-        self,
-        cli: click.core.BaseCommand,
-        args: str | Sequence[str] | None = None,
-        input: str | bytes | IO | None = None,
-        env: EnvVars | None = None,
-        catch_exceptions: bool = True,
-        color: bool = False,
-        **extra: Any,
-    ) -> click.testing.Result:
-        """Same as ``click.testing.CliRunner.invoke()`` with extra features.
-
-        - Activates ``color`` property depending on the ``force_color`` value.
-        - Prints a formatted exception traceback if the command fails.
-        """
-        if self.force_color:
-            color = True
-
-        result = super().invoke(
-            cli=cli,
-            args=args,
-            input=input,
-            env=env,
-            catch_exceptions=catch_exceptions,
-            color=color,
-            **extra,
-        )
-
-        if result.exception:
-            print(ExceptionInfo.from_exc_info(*result.exc_info).get_formatted())
-
-        return result
 
 
 @pytest.fixture
