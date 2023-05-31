@@ -288,7 +288,7 @@ class ExtraCliRunner(click.testing.CliRunner):
                     **extra,
                 )
 
-        # ``color`` has been explicitely set to ``False``, so strip all ANSI codes.
+        # ``color`` has been explicitly set to ``False``, so strip all ANSI codes.
         if color is False:
             result.stdout_bytes = strip_ansi(result.stdout_bytes)
             result.stderr_bytes = strip_ansi(result.stderr_bytes)
