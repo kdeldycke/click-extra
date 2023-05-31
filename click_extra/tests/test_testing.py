@@ -69,7 +69,7 @@ def test_extra_cli_runner():
     result = runner.invoke(cli_output)
 
     assert result.output == "1 - stdout\n3 - stdout\n"
-    assert result.stdout == "1 - stdout\n3 - stdout\n"
+    assert result.stdout == result.output
     assert result.stderr == "2 - stderr\n4 - stderr\n"
 
     runner_mix = ExtraCliRunner(mix_stderr=True)
