@@ -73,14 +73,6 @@ click\_extra.tests.test\_pygments module
    :undoc-members:
    :show-inheritance:
 
-click\_extra.tests.test\_run module
------------------------------------
-
-.. automodule:: click_extra.tests.test_run
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 click\_extra.tests.test\_tabulate module
 ----------------------------------------
 
@@ -93,6 +85,14 @@ click\_extra.tests.test\_telemetry module
 -----------------------------------------
 
 .. automodule:: click_extra.tests.test_telemetry
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+click\_extra.tests.test\_testing module
+---------------------------------------
+
+.. automodule:: click_extra.tests.test_testing
    :members:
    :undoc-members:
    :show-inheritance:

@@ -89,14 +89,6 @@ click\_extra.pygments module
    :undoc-members:
    :show-inheritance:
 
-click\_extra.run module
------------------------
-
-.. automodule:: click_extra.run
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 click\_extra.sphinx module
 --------------------------
 
@@ -117,6 +109,14 @@ click\_extra.telemetry module
 -----------------------------
 
 .. automodule:: click_extra.telemetry
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+click\_extra.testing module
+---------------------------
+
+.. automodule:: click_extra.testing
    :members:
    :undoc-members:
    :show-inheritance:
