@@ -138,7 +138,7 @@ def setup(app):
           <#click_extra.sphinx.PatchedViewList>`_.
 
         - ``pallets_sphinx_themes.themes.click.domain.ExampleRunner`` is replaced with
-          ``click_extra.tests.conftest.ExtraCliRunner`` to have full control of
+          ``click_extra.testing.ExtraCliRunner`` to have full control of
           contextual color settings by the way of the ``color`` parameter. It also
           produce unfiltered ANSI codes so that the other ``PatchedViewList``
           monkey-patch can do its job and render colors in the HTML output.
