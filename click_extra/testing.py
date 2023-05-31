@@ -296,7 +296,7 @@ class ExtraCliRunner(click.testing.CliRunner):
         print_cli_run(
             [self.get_default_prog_name(cli)] + list(args),
             result.output,
-            result.stderr,
+            result.stderr if result.stderr_bytes is not None else "",
             result.exit_code,
         )
 
