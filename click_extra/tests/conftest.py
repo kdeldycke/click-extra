@@ -28,12 +28,10 @@ import click.testing
 import cloup
 import pytest
 from boltons.strutils import strip_ansi
-from boltons.tbutils import ExceptionInfo
 
 from ..decorators import command, extra_command, extra_group, group
 from ..platforms import is_linux, is_macos, is_windows
-from ..run import EnvVars, args_cleanup, print_cli_output
-from ..testing import ExtraCliRunner
+from ..testing import ExtraCliRunner, EnvVars
 
 
 DESTRUCTIVE_MODE = RawConfigParser.BOOLEAN_STATES[
@@ -115,10 +113,6 @@ def invoke(runner, monkeypatch):
     """
 
     def _run(cli, *args, env: EnvVars | None = None, color=None):
-        # We allow for nested iterables and None values as args for
-        # convenience. We just need to flatten and filters them out.
-        args = args_cleanup(args)
-
         # Extra parameters passed to the invoked command's ``main()`` constructor.
         extra = {}
         if color == "forced":
@@ -130,22 +124,12 @@ def invoke(runner, monkeypatch):
             # ``color`` to ``**extra``.
             patch.setattr(cli, "main", partial(cli.main, **extra))
 
-            result = runner.invoke(cli=cli, args=args, env=env, color=bool(color))
+            result = runner.invoke(cli, *args, env=env, color=bool(color))
 
         # Force stripping of all colors from results.
         if color is False:
             result.stdout_bytes = strip_ansi(result.stdout_bytes)
             result.stderr_bytes = strip_ansi(result.stderr_bytes)
-
-        print_cli_output(
-            [runner.get_default_prog_name(cli)] + list(args),
-            result.output,
-            result.stderr,
-            result.exit_code,
-        )
-
-        if result.exception:
-            print(ExceptionInfo.from_exc_info(*result.exc_info).get_formatted())
 
         return result
 

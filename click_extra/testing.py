@@ -13,17 +13,120 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""All utilities to test CLIs."""
+"""All utilities to test CLIs and their execution."""
 
 from __future__ import annotations
 
-from typing import IO, Any, Mapping, Optional, Sequence
+import os
+import subprocess
+from pathlib import Path
+from textwrap import indent
+from typing import Iterable, Mapping, Optional, Union, cast, IO, Any, Mapping, Optional
 
 import click
 import click.testing
 from boltons.tbutils import ExceptionInfo
+from boltons.iterutils import flatten
 
-from .run import EnvVars
+from .colorize import default_theme
+
+
+PROMPT = "► "
+INDENT = " " * len(PROMPT)
+"""Some CLI printing constants."""
+
+
+EnvVars = Mapping[str, Optional[str]]
+
+
+Arg = Union[str, Path, None]
+Args = Iterable[Arg]
+NestedArgs = Iterable[Union[Arg, Iterable["NestedArgs"]]]
+
+
+def args_cleanup(*args: Arg | NestedArgs) -> tuple[str, ...]:
+    """Flatten recursive iterables, remove all ``None``, and cast each element to
+    strings.
+
+    Helps serialize :py:class:`pathlib.Path` and other objects.
+
+    It also allows for nested iterables and ``None`` values as CLI arguments for
+    convenience. We just need to flatten and filters them out.
+    """
+    return tuple(str(arg) for arg in flatten(args) if arg is not None)
+
+
+def format_cli(cmd, extra_env: EnvVars | None = None) -> str:
+    """Simulate CLI rendering in terminal."""
+    assert cmd
+    cmd_str = default_theme.invoked_command(" ".join(cmd))
+
+    extra_env_string = ""
+    if extra_env:
+        extra_env_string = "".join(f"{k}={v} " for k, v in extra_env.items())
+
+    return f"{PROMPT}{extra_env_string}{cmd_str}"
+
+
+def print_cli_output(
+    args, output=None, error=None, error_code=None, extra_env=None
+) -> None:
+    """Same as above but print the full simulation of CLI execution, including output.
+
+    Mostly used to print debug traces to user or in test results.
+    """
+    print(f"\n{format_cli(args, extra_env)}")
+    if output:
+        print(indent(output, INDENT))
+    if error:
+        print(indent(default_theme.error(error), INDENT))
+    if error_code is not None:
+        print(default_theme.error(f"{INDENT}Return code: {error_code}"))
+
+
+def env_copy(extend: EnvVars | None = None) -> EnvVars | None:
+    """Returns a copy of the current environment variables and eventually ``extend`` it.
+
+    Mimics Python's original implementation by returning ``None`` if no ``extend``
+    ``dict`` are added. See:
+    https://github.com/python/cpython/blob/7b5b429adab4fe0fe81858fe3831f06adc2e2141/Lib/subprocess.py#L1648-L1649
+    Environment variables are expected to be a ``dict`` of ``str:str``.
+    """
+    if isinstance(extend, dict):
+        for k, v in extend.items():
+            assert isinstance(k, str)
+            assert isinstance(v, str)
+    else:
+        assert not extend
+    env_copy: EnvVars | None = None
+    if extend:
+        # By casting to dict we make a copy and prevent the modification of the
+        # global environment.
+        env_copy = dict(os.environ)
+        env_copy.update(extend)
+    return env_copy
+
+
+def run_cmd(*args, extra_env: EnvVars | None = None, print_output: bool = True):
+    """Run a system command, print output and return results."""
+    assert isinstance(args, tuple)
+    process = subprocess.run(
+        args,
+        capture_output=True,
+        encoding="utf-8",
+        env=cast("subprocess._ENV", env_copy(extra_env)),
+    )
+
+    if print_output:
+        print_cli_output(
+            args,
+            process.stdout,
+            process.stderr,
+            process.returncode,
+            extra_env=extra_env,
+        )
+
+    return process.returncode, process.stdout, process.stderr
 
 
 class ExtraCliRunner(click.testing.CliRunner):
@@ -59,7 +162,7 @@ class ExtraCliRunner(click.testing.CliRunner):
     def invoke(
         self,
         cli: click.core.BaseCommand,
-        args: str | Sequence[str] | None = None,
+        *args: Arg | NestedArgs,
         input: str | bytes | IO | None = None,
         env: EnvVars | None = None,
         catch_exceptions: bool = True,
@@ -68,9 +171,29 @@ class ExtraCliRunner(click.testing.CliRunner):
     ) -> click.testing.Result:
         """Same as ``click.testing.CliRunner.invoke()`` with extra features.
 
+        The first positional parameter is the CLI to invoke. The remaining positional
+        parameters of the function are the CLI arguments. All other parameters are
+        required to be named.
+
+        :param cli: CLI to invoke.
+        :param *args: can be nested iterables composed of ``str``, ``pathlib.Path``
+            objects and ``None`` values. The nested structure will be flattened and
+            ``None`` values will be filtered out. Then all elements will be casted to
+            ``str``. See :func:`args_cleanup` for details.
+        :param input: same as ``click.testing.CliRunner.invoke()``.
+        :param env: same as ``click.testing.CliRunner.invoke()``.
+        :param catch_exceptions: same as ``click.testing.CliRunner.invoke()``.
+        :param color: TODO
+        :param **extra: same as ``click.testing.CliRunner.invoke()``.
+
+
+
         - Activates ``color`` property depending on the ``force_color`` value.
         - Prints a formatted exception traceback if the command fails.
         """
+        # Flatten and filters out CLI arguments.
+        args = args_cleanup(args)
+
         if self.force_color:
             color = True
 
@@ -82,6 +205,13 @@ class ExtraCliRunner(click.testing.CliRunner):
             catch_exceptions=catch_exceptions,
             color=color,
             **extra,
+        )
+
+        print_cli_output(
+            [self.get_default_prog_name(cli)] + list(args),
+            result.output,
+            result.stderr,
+            result.exit_code,
         )
 
         if result.exception:

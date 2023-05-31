@@ -19,7 +19,7 @@ logging
 tabulate
 version
 platforms
-run
+testing
 parameters
 pygments
 sphinx

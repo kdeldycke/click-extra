@@ -1,4 +1,4 @@
-# CLI execution
+# CLI testing and execution
 
 ```{todo}
 Write example and tutorial.
@@ -7,12 +7,12 @@ Write example and tutorial.
 ## `click_extra.run` API
 
 ```{eval-rst}
-.. autoclasstree:: click_extra.run
+.. autoclasstree:: click_extra.testing
    :strict:
 ```
 
 ```{eval-rst}
-.. automodule:: click_extra.run
+.. automodule:: click_extra.testing
    :members:
    :undoc-members:
    :show-inheritance:
