@@ -75,7 +75,7 @@ def test_extra_cli_runner():
     runner_mix = ExtraCliRunner(mix_stderr=True)
     result_mix = runner_mix.invoke(cli_output)
 
-    assert result_mix.output == "1 - stdout\n3 - stdout\n"
+    assert result_mix.output == "1 - stdout\n2 - stderr\n3 - stdout\n4 - stderr\n"
     assert result_mix.stdout == "1 - stdout\n3 - stdout\n"
 
     @command
