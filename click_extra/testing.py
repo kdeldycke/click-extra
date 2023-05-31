@@ -195,6 +195,12 @@ class ExtraCliRunner(click.testing.CliRunner):
         - Activates ``color`` property depending on the ``force_color`` value.
         - Prints a formatted exception traceback if the command fails.
         """
+        # Pop out the ``args`` parameter from ``extra`` and append it to the positional arguments. This situation append when the ``args`` parameter is passed
+        # as a keyword argument in ``pallets_sphinx_themes.themes.click.domain.ExampleRunner.invoke()``.
+        args = list(args)
+        if "args" in extra:
+            args.extend(extra.pop("args"))
+
         # Flatten and filters out CLI arguments.
         args = args_cleanup(args)
 
