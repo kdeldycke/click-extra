@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import os
 from configparser import RawConfigParser  # noqa: E402
-from functools import partial
 from pathlib import Path
 from textwrap import dedent
 
@@ -27,11 +26,10 @@ import click
 import click.testing
 import cloup
 import pytest
-from boltons.strutils import strip_ansi
 
 from ..decorators import command, extra_command, extra_group, group
 from ..platforms import is_linux, is_macos, is_windows
-from ..testing import ExtraCliRunner, EnvVars
+from ..testing import ExtraCliRunner
 
 
 DESTRUCTIVE_MODE = RawConfigParser.BOOLEAN_STATES[
@@ -91,49 +89,17 @@ See:
 
 
 @pytest.fixture
-def runner():
-    """``ExtraCliRunner`` runner  with ``mix_stderr=False`` by default."""
+def extra_runner():
+    """Runner fixture for ``click.testing.ExtraCliRunner``."""
     runner = ExtraCliRunner()
     with runner.isolated_filesystem():
         yield runner
 
 
 @pytest.fixture
-def invoke(runner, monkeypatch):
-    """Executes Click's CLI, print output and return results.
-
-    If ``color=False`` both ``<stdout>`` and ``<stderr>`` are stripped out of ANSI
-    codes.
-
-    Adds a special case in the form of ``color="forced"`` parameter, which allows
-    colored output to be kept, while forcing the initialization of
-    ``Context.color = True``. This is not `allowed in current implementation
-    <https://github.com/pallets/click/issues/2110>`_ of
-    ``click.testing.CliRunner.invoke()``.
-    """
-
-    def _run(cli, *args, env: EnvVars | None = None, color=None):
-        # Extra parameters passed to the invoked command's ``main()`` constructor.
-        extra = {}
-        if color == "forced":
-            extra["color"] = True
-
-        with monkeypatch.context() as patch:
-            # Monkeypatch the original command's ``main()`` call to pass extra
-            # parameter for Context initialization. Because we cannot simply add
-            # ``color`` to ``**extra``.
-            patch.setattr(cli, "main", partial(cli.main, **extra))
-
-            result = runner.invoke(cli, *args, env=env, color=bool(color))
-
-        # Force stripping of all colors from results.
-        if color is False:
-            result.stdout_bytes = strip_ansi(result.stdout_bytes)
-            result.stderr_bytes = strip_ansi(result.stderr_bytes)
-
-        return result
-
-    return _run
+def invoke(extra_runner):
+    """Invoke fixture shorthand for ``click.testing.ExtraCliRunner.invoke``."""
+    return extra_runner.invoke
 
 
 # XXX Support for decorator without parenthesis in Cloup has been reported upstream:

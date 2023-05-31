@@ -21,10 +21,17 @@ import os
 import subprocess
 from pathlib import Path
 from textwrap import indent
-from typing import Iterable, Mapping, Optional, Union, cast, IO, Any, Mapping, Optional
+from typing import Iterable, Mapping, Optional, Union, cast, IO, Any, Mapping, Optional,ContextManager, Literal
+import os
+import inspect
+from functools import partial
+from pathlib import Path
+from contextlib import nullcontext
+from unittest.mock import patch
 
 import click
 import click.testing
+from boltons.strutils import strip_ansi
 from boltons.tbutils import ExceptionInfo
 from boltons.iterutils import flatten
 
@@ -90,9 +97,10 @@ def print_cli_run(
 def env_copy(extend: EnvVars | None = None) -> EnvVars | None:
     """Returns a copy of the current environment variables and eventually ``extend`` it.
 
-    Mimics Python's original implementation by returning ``None`` if no ``extend``
-    ``dict`` are added. See:
-    https://github.com/python/cpython/blob/7b5b429adab4fe0fe81858fe3831f06adc2e2141/Lib/subprocess.py#L1648-L1649
+    Mimics `Python's original implementation
+    <https://github.com/python/cpython/blob/7b5b429/Lib/subprocess.py#L1648-L1649>`_ by
+    returning ``None`` if no ``extend`` content are provided.
+
     Environment variables are expected to be a ``dict`` of ``str:str``.
     """
     if isinstance(extend, dict):
@@ -132,19 +140,29 @@ def run_cmd(*args, extra_env: EnvVars | None = None, print_output: bool = True):
     return process.returncode, process.stdout, process.stderr
 
 
-class ExtraCliRunner(click.testing.CliRunner):
-    """Extends Click's ``CliRunner`` to add extra features:
+INVOKE_ARGS = set(inspect.getfullargspec(click.testing.CliRunner.invoke).args)
+"""Parameter IDs of ``click.testing.CliRunner.invoke()``.
 
-    - Adds a ``force_color`` property
-    - Sets ``mix_stderr`` to ``False`` by default
-    """
+We need to collect them to help us identify which extra parameters passed to
+``invoke()`` collides with its original signature.
+
+.. note::
+    This has been `reported upstream to Click project
+    <https://github.com/pallets/click/issues/2110>`_ but was not considered an issue.
+"""
+
+
+class ExtraCliRunner(click.testing.CliRunner):
+    """Augment ``click.testing.CliRunner`` with extra features and bug fixes."""
 
     force_color: bool = False
-    """Flag to override the ``color`` parameter in ``invoke``.
+    """Global class attribute to override the ``color`` parameter in ``invoke``.
 
     .. note::
-        This is only used to initialize the ``CliRunner`` `in the context of Sphinx
-        documentation <sphinx#click_extra.sphinx.setup>`_.
+        This was initially developed to `force the initialization of the runner during
+        the setup of Sphinx new directives <sphinx#click_extra.sphinx.setup>`_. This
+        was the only way we found, as to patch some code we had to operate at the class
+        level.
     """
 
     def __init__(
@@ -152,9 +170,12 @@ class ExtraCliRunner(click.testing.CliRunner):
         charset: str = "utf-8",
         env: Optional[Mapping[str, Optional[str]]] = None,
         echo_stdin: bool = False,
-        # Set to False to avoid mixing stdout and stderr in the result object.
         mix_stderr: bool = False,
     ) -> None:
+        """Same as original but sets default to ``mix_stderr=False``.
+
+        This way we avoid mixing ``<stdout>`` and ``<stderr>`` in the result object.
+        """
         return super().__init__(
             charset=charset,
             env=env,
@@ -169,51 +190,108 @@ class ExtraCliRunner(click.testing.CliRunner):
         input: str | bytes | IO | None = None,
         env: EnvVars | None = None,
         catch_exceptions: bool = True,
-        color: bool = False,
-        **extra: Any,
+        color: bool | Literal["forced"] | None = None,
+        **extra: Mapping[str, Any],
     ) -> click.testing.Result:
         """Same as ``click.testing.CliRunner.invoke()`` with extra features.
 
-        - Activates ``color`` property depending on the ``force_color`` value.
-        - Always prints a simulation of the CLI execution as the user would see it in its terminal.
+        - The first positional parameter is the CLI to invoke. The remaining positional
+          parameters of the function are the CLI arguments. All other parameters are
+          required to be named.
+
+        - The CLI arguments can be nested iterables of arbitrary depth.
+
+        - Allow forcing of the ``color`` property at the class-level via
+          ``force_color`` attribute.
+
+        - Adds a special case in the form of ``color="forced"`` parameter, which allows
+          colored output to be kept, while forcing the initialization of
+          ``Context.color = True``. This is `not allowed in current implementation
+          <https://github.com/pallets/click/issues/2110>`_ of
+          ``click.testing.CliRunner.invoke()`` because of colliding parameters.
+
+        - Strips all ANSI codes from results if ``color`` was explicirely set to
+          ``False``.
+
+        - Always prints a simulation of the CLI execution as the user would see it in
+          its terminal. Including colors.
+
         - Pretty-prints a formatted exception traceback if the command fails.
 
-        The first positional parameter is the CLI to invoke. The remaining positional
-        parameters of the function are the CLI arguments. All other parameters are
-        required to be named.
-
         :param cli: CLI to invoke.
-        :param *args: can be nested iterables composed of ``str``, :py:class:`pathlib.Path`
-            objects and ``None`` values. The nested structure will be flattened and
-            ``None`` values will be filtered out. Then all elements will be casted to
-            ``str``. See :func:`args_cleanup` for details.
+        :param *args: can be nested iterables composed of ``str``,
+            :py:class:`pathlib.Path` objects and ``None`` values. The nested structure
+            will be flattened and ``None`` values will be filtered out. Then all
+            elements will be casted to ``str``. See :func:`args_cleanup` for details.
         :param input: same as ``click.testing.CliRunner.invoke()``.
         :param env: same as ``click.testing.CliRunner.invoke()``.
         :param catch_exceptions: same as ``click.testing.CliRunner.invoke()``.
-        :param color: TODO
-        :param **extra: same as ``click.testing.CliRunner.invoke()``.
+        :param color: If a boolean, the parameter will be passed as-is to
+            ``click.testing.CliRunner.isolation()``. If ``"forced"``, the parameter
+            will be passed as ``True`` to ``click.testing.CliRunner.isolation()`` and
+            an extra ``color=True`` parameter will be passed to the invoked CLI.
+        :param **extra: same as ``click.testing.CliRunner.invoke()``, but colliding
+            parameters are allowed and properly passed on to the invoked CLI.
         """
-        # Pop out the ``args`` parameter from ``extra`` and append it to the positional arguments. This situation append when the ``args`` parameter is passed
-        # as a keyword argument in ``pallets_sphinx_themes.themes.click.domain.ExampleRunner.invoke()``.
+        # Initialize ``extra`` if not provided.
+        if not extra:
+            extra = {}
+
+        # Pop out the ``args`` parameter from ``extra`` and append it to the positional
+        # arguments. This situation append when the ``args`` parameter is passed as a
+        # keyword argument in
+        # ``pallets_sphinx_themes.themes.click.domain.ExampleRunner.invoke()``.
         args = list(args)
         if "args" in extra:
             args.extend(extra.pop("args"))
-
         # Flatten and filters out CLI arguments.
         args = args_cleanup(args)
 
+        # The class attribute ``force_color`` overrides the ``color`` parameter.
         if self.force_color:
-            color = True
+            isolation_color = True
 
-        result = super().invoke(
-            cli=cli,
-            args=args,
-            input=input,
-            env=env,
-            catch_exceptions=catch_exceptions,
-            color=color,
-            **extra,
-        )
+        if color == "forced":
+            # Pass the color argument as an extra parameter to the invoked CLI.
+            extra["color"] = True
+            # TODO: investigate the possibility of forcing coloring on ``echo`` too,
+            # because by default, Windows is rendered colorless:
+            # https://github.com/pallets/click/blob/0c85d80/src/click/utils.py#L295-L296
+            # echo_extra["color"] = True
+
+        # Cast to ``bool`` to avoid passing ``None`` or ``"forced"`` to ``invoke()``.
+        isolation_color = bool(color)
+
+        # No-op context manager without any effects.
+        extra_params_bypass: ContextManager = nullcontext()
+
+        # If ``extra`` contains parameters that collide with the original ``invoke()``
+        # parameters, we need to remove them from ``extra``, then use a monkeypatch to
+        # properly pass them to the CLI.
+        colliding_params = INVOKE_ARGS.intersection(extra)
+        if colliding_params:
+            # Transfer colliding parameters from ``extra`` to ``extra_bypass``.
+            extra_bypass = {pid: extra.pop(pid) for pid in colliding_params}
+            # Monkeypatch the original command's ``main()`` call to pass extra
+            # parameter for ``Context`` initialization. Because we cannot simply add
+            # colliding parameter IDs to ``**extra``.
+            extra_params_bypass = patch.object(cli, "main", partial(cli.main, **extra_bypass))
+
+        with extra_params_bypass:
+            result = super().invoke(
+                    cli=cli,
+                    args=args,
+                    input=input,
+                    env=env,
+                    catch_exceptions=catch_exceptions,
+                    color=isolation_color,
+                    **extra,
+                )
+
+        # ``color`` has been explicitely set to ``False``, so strip all ANSI codes.
+        if color is False:
+            result.stdout_bytes = strip_ansi(result.stdout_bytes)
+            result.stderr_bytes = strip_ansi(result.stderr_bytes)
 
         print_cli_run(
             [self.get_default_prog_name(cli)] + list(args),

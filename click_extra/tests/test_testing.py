@@ -37,7 +37,7 @@ def test_real_fs():
     assert str(Path(__file__)).startswith(str(Path.cwd()))
 
 
-def test_temporary_fs(runner):
+def test_temporary_fs(extra_runner):
     """Check the CLI runner fixture properly encapsulated the filesystem in temporary
     directory."""
     assert not str(Path(__file__)).startswith(str(Path.cwd()))
