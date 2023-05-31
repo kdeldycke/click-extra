@@ -60,26 +60,25 @@ def args_cleanup(*args: Arg | NestedArgs) -> tuple[str, ...]:
     return tuple(str(arg) for arg in flatten(args) if arg is not None)
 
 
-def format_cli(cmd, extra_env: EnvVars | None = None) -> str:
-    """Simulate CLI rendering in terminal."""
-    assert cmd
-    cmd_str = default_theme.invoked_command(" ".join(cmd))
-
+def format_cli_prompt(cmd_args: Iterable[str], extra_env: EnvVars | None = None) -> str:
+    """Simulate the console prompt used to invoke the CLI."""
     extra_env_string = ""
     if extra_env:
         extra_env_string = "".join(f"{k}={v} " for k, v in extra_env.items())
 
+    cmd_str = default_theme.invoked_command(" ".join(cmd_args))
+
     return f"{PROMPT}{extra_env_string}{cmd_str}"
 
 
-def print_cli_output(
+def print_cli_run(
     args, output=None, error=None, error_code=None, extra_env=None
 ) -> None:
-    """Same as above but print the full simulation of CLI execution, including output.
+    """Prints the full simulation of CLI execution, including output.
 
     Mostly used to print debug traces to user or in test results.
     """
-    print(f"\n{format_cli(args, extra_env)}")
+    print(f"\n{format_cli_prompt(args, extra_env)}")
     if output:
         print(indent(output, INDENT))
     if error:
@@ -122,7 +121,7 @@ def run_cmd(*args, extra_env: EnvVars | None = None, print_output: bool = True):
     )
 
     if print_output:
-        print_cli_output(
+        print_cli_run(
             args,
             process.stdout,
             process.stderr,
@@ -175,6 +174,10 @@ class ExtraCliRunner(click.testing.CliRunner):
     ) -> click.testing.Result:
         """Same as ``click.testing.CliRunner.invoke()`` with extra features.
 
+        - Activates ``color`` property depending on the ``force_color`` value.
+        - Always prints a simulation of the CLI execution as the user would see it in its terminal.
+        - Pretty-prints a formatted exception traceback if the command fails.
+
         The first positional parameter is the CLI to invoke. The remaining positional
         parameters of the function are the CLI arguments. All other parameters are
         required to be named.
@@ -189,11 +192,6 @@ class ExtraCliRunner(click.testing.CliRunner):
         :param catch_exceptions: same as ``click.testing.CliRunner.invoke()``.
         :param color: TODO
         :param **extra: same as ``click.testing.CliRunner.invoke()``.
-
-
-
-        - Activates ``color`` property depending on the ``force_color`` value.
-        - Prints a formatted exception traceback if the command fails.
         """
         # Pop out the ``args`` parameter from ``extra`` and append it to the positional arguments. This situation append when the ``args`` parameter is passed
         # as a keyword argument in ``pallets_sphinx_themes.themes.click.domain.ExampleRunner.invoke()``.
@@ -217,7 +215,7 @@ class ExtraCliRunner(click.testing.CliRunner):
             **extra,
         )
 
-        print_cli_output(
+        print_cli_run(
             [self.get_default_prog_name(cli)] + list(args),
             result.output,
             result.stderr,
