@@ -1,4 +1,4 @@
-# Commands and groups
+# Commands & groups
 
 ## Drop-in replacement
 
