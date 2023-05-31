@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""All utilities to test CLIs and their execution."""
+"""CLI testing and simulation of their execution."""
 
 from __future__ import annotations
 
@@ -33,15 +33,19 @@ from .colorize import default_theme
 
 PROMPT = "► "
 INDENT = " " * len(PROMPT)
-"""Some CLI printing constants."""
+"""Constants for rendering of CLI execution."""
 
 
 EnvVars = Mapping[str, Optional[str]]
-
+"""Type for ``dict``-like environment variables."""
 
 Arg = Union[str, Path, None]
 Args = Iterable[Arg]
 NestedArgs = Iterable[Union[Arg, Iterable["NestedArgs"]]]
+"""Types for arbitrary nested CLI arguments.
+
+Arguments can be ``str``, :py:class:`pathlib.Path` objects or ``None`` values.
+"""
 
 
 def args_cleanup(*args: Arg | NestedArgs) -> tuple[str, ...]:
@@ -176,7 +180,7 @@ class ExtraCliRunner(click.testing.CliRunner):
         required to be named.
 
         :param cli: CLI to invoke.
-        :param *args: can be nested iterables composed of ``str``, ``pathlib.Path``
+        :param *args: can be nested iterables composed of ``str``, :py:class:`pathlib.Path`
             objects and ``None`` values. The nested structure will be flattened and
             ``None`` values will be filtered out. Then all elements will be casted to
             ``str``. See :func:`args_cleanup` for details.
@@ -218,4 +222,3 @@ class ExtraCliRunner(click.testing.CliRunner):
             print(ExceptionInfo.from_exc_info(*result.exc_info).get_formatted())
 
         return result
-
