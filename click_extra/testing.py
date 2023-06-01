@@ -17,39 +17,44 @@
 
 from __future__ import annotations
 
+import contextlib
+import inspect
+import io
 import os
-import sys
 import shlex
 import subprocess
-from pathlib import Path
-from textwrap import indent
-from typing import Iterable, Mapping, Optional, Union, cast, IO, Any, Type, Mapping, BinaryIO, Optional,ContextManager, Literal, Sequence, Iterator, Tuple
-import os
-import inspect
+import sys
+from contextlib import nullcontext
 from functools import partial
 from pathlib import Path
-from contextlib import nullcontext
-from unittest.mock import patch
-import io
-import contextlib
-import io
-import os
-import shlex
-import sys
+from textwrap import indent
 from types import TracebackType
-
-from click import formatting
-from click import termui
-from click import utils
+from typing import (
+    IO,
+    Any,
+    BinaryIO,
+    ContextManager,
+    Iterable,
+    Iterator,
+    Literal,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+    cast,
+)
+from unittest.mock import patch
 
 import click
 import click.testing
+from boltons.iterutils import flatten
 from boltons.strutils import strip_ansi
 from boltons.tbutils import ExceptionInfo
-from boltons.iterutils import flatten
+from click import formatting, termui, utils
 
 from .colorize import default_theme
-
 
 PROMPT = "► "
 INDENT = " " * len(PROMPT)
@@ -302,7 +307,8 @@ class ExtraCliRunner(click.testing.CliRunner):
         - Always returns the ``<stderr>`` stream.
 
         .. caution::
-            This is a hard-copy of the modified ``isolation()`` method `from click#2523 PR
+            This is a hard-copy of the modified ``isolation()`` method `from click#2523
+            PR
             <https://github.com/pallets/click/pull/2523/files#diff-b07fd6fad9f9ea8be5cbcbeaf34c956703b929b2de95c56229e77c328a7c6010>`_
             which has not been merged upstream yet.
         """
@@ -584,7 +590,9 @@ class ExtraCliRunner(click.testing.CliRunner):
             # Monkeypatch the original command's ``main()`` call to pass extra
             # parameter for ``Context`` initialization. Because we cannot simply add
             # colliding parameter IDs to ``**extra``.
-            extra_params_bypass = patch.object(cli, "main", partial(cli.main, **extra_bypass))
+            extra_params_bypass = patch.object(
+                cli, "main", partial(cli.main, **extra_bypass)
+            )
 
         with extra_params_bypass:
             result = self.invoke2(

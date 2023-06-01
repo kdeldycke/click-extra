@@ -20,16 +20,15 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
-import pytest
 
 import click
+import pytest
 from pytest_cases import fixture, parametrize
 
-from .. import Style, echo, pass_context, secho, style, command
+from .. import Style, command, echo, pass_context, secho, style
 from ..platforms import is_windows
-from ..testing import env_copy
+from ..testing import ExtraCliRunner, env_copy
 from .conftest import command_decorators, skip_windows_colors
-from ..testing import ExtraCliRunner
 
 
 def test_real_fs():

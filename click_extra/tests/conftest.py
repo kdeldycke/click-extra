@@ -31,7 +31,6 @@ from ..decorators import command, extra_command, extra_group, group
 from ..platforms import is_linux, is_macos, is_windows
 from ..testing import ExtraCliRunner
 
-
 DESTRUCTIVE_MODE = RawConfigParser.BOOLEAN_STATES[
     str(os.environ.get("DESTRUCTIVE_TESTS", False)).lower()
 ]
