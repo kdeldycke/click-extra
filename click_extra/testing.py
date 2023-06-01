@@ -573,9 +573,6 @@ class ExtraCliRunner(click.testing.CliRunner):
         # Flatten and filters out CLI arguments.
         args = args_cleanup(args)
 
-        # The class attribute ``force_color`` overrides the ``color`` parameter.
-        if self.force_color:
-            isolation_color = True
 
         if color == "forced":
             # Pass the color argument as an extra parameter to the invoked CLI.
@@ -585,8 +582,12 @@ class ExtraCliRunner(click.testing.CliRunner):
             # https://github.com/pallets/click/blob/0c85d80/src/click/utils.py#L295-L296
             # echo_extra["color"] = True
 
+        # The class attribute ``force_color`` overrides the ``color`` parameter.
+        if self.force_color:
+            isolation_color = True
         # Cast to ``bool`` to avoid passing ``None`` or ``"forced"`` to ``invoke()``.
-        isolation_color = bool(color)
+        else:
+            isolation_color = bool(color)
 
         # No-op context manager without any effects.
         extra_params_bypass: ContextManager = nullcontext()
