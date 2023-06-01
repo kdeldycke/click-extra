@@ -20,6 +20,7 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
+import pytest
 
 import click
 from pytest_cases import fixture, parametrize
@@ -77,6 +78,8 @@ def test_extra_cli_runner():
 
     assert result_mix.output == "1 - stdout\n2 - stderr\n3 - stdout\n4 - stderr\n"
     assert result_mix.stdout == "1 - stdout\n2 - stderr\n3 - stdout\n4 - stderr\n"
+    with pytest.raises(ValueError):
+        result.stderr
 
     @command
     def cli_empty_stderr():
@@ -89,7 +92,10 @@ def test_extra_cli_runner():
         assert result.output == "stdout\n"
         assert result.stdout == "stdout\n"
         if mix_stderr:
-            assert result.stderr == ""
+            assert result.stderr == "stdout\n"
+        else:
+            with pytest.raises(ValueError):
+                result.stderr
 
 
 @click.command
