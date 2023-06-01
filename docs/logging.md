@@ -19,12 +19,15 @@ This option is added by default to `@extra_command` and `@extra_group`:
 See the default ``--verbosity``/``-v`` option in the help screen:
 
 .. click:run::
-   invoke(my_cli, args=["--help"])
+   result = invoke(my_cli, args=["--help"])
+   assert "--verbosity" in result.stdout, "missing --verbosity option"
 
 Which can be invoked to display all the gory details of your CLI with the ``DEBUG`` level:
 
 .. click:run::
-   invoke(my_cli, args=["--verbosity", "DEBUG"])
+   result = invoke(my_cli, args=["--verbosity", "DEBUG"])
+   assert "Set <Logger click_extra (DEBUG)> to DEBUG." in result.stderr, "missing DEBUG message"
+   assert "Set <RootLogger root (DEBUG)> to DEBUG." in result.stderr, "missing DEBUG message"
 ```
 
 ### Standalone option
@@ -44,13 +47,18 @@ The verbosity option can be used independently of `@extra_command`, and you can 
         logging.debug("We're printing stuff.")
 
 .. click:run::
-   invoke(vanilla_command, args=["--help"])
+   result = invoke(vanilla_command, args=["--help"])
+   assert "-v, --verbosity LEVEL  Either CRITICAL, ERROR, WARNING, INFO, DEBUG." in result.stdout, "missing --verbosity option"
 
 .. click:run::
-   invoke(vanilla_command)
+   result = invoke(vanilla_command)
+   assert result.stdout == "It works!\n"
+   assert not result.stderr
 
 .. click:run::
-   invoke(vanilla_command, args=["--verbosity", "DEBUG"])
+   result = invoke(vanilla_command, args=["--verbosity", "DEBUG"])
+   assert result.stdout == "It works!\n"
+   assert "We're printing stuff." in result.stderr
 ```
 
 ```{tip}
@@ -91,24 +99,67 @@ That way you can simply use the module helpers like [`logging.debug`](https://do
 You can check these defaults by running the CLI without the ``--verbosity`` option:
 
 .. click:run::
-   invoke(my_cli)
+   from textwrap import dedent
+   result = invoke(my_cli)
+   assert result.stderr == dedent("""\
+      \x1b[33mwarning\x1b[0m: Mad scientist at work!
+      \x1b[31merror\x1b[0m: Does not compute.
+      \x1b[31m\x1b[1mcritical\x1b[0m: Complete meltdown!
+      """
+   )
 
 And then see how each level selectively print messages and renders with colors:
 
 .. click:run::
-   invoke(my_cli, args=["--verbosity", "CRITICAL"])
+   from textwrap import dedent
+   result = invoke(my_cli, args=["--verbosity", "CRITICAL"])
+   assert result.stderr == "\x1b[31m\x1b[1mcritical\x1b[0m: Complete meltdown!\n"
 
 .. click:run::
-   invoke(my_cli, args=["--verbosity", "ERROR"])
+   from textwrap import dedent
+   result = invoke(my_cli, args=["--verbosity", "ERROR"])
+   assert result.stderr == dedent("""\
+      \x1b[31merror\x1b[0m: Does not compute.
+      \x1b[31m\x1b[1mcritical\x1b[0m: Complete meltdown!
+      """
+   )
 
 .. click:run::
-   invoke(my_cli, args=["--verbosity", "WARNING"])
+   from textwrap import dedent
+   result = invoke(my_cli, args=["--verbosity", "WARNING"])
+   assert result.stderr == dedent("""\
+      \x1b[33mwarning\x1b[0m: Mad scientist at work!
+      \x1b[31merror\x1b[0m: Does not compute.
+      \x1b[31m\x1b[1mcritical\x1b[0m: Complete meltdown!
+      """
+   )
 
 .. click:run::
-   invoke(my_cli, args=["--verbosity", "INFO"])
+   from textwrap import dedent
+   result = invoke(my_cli, args=["--verbosity", "INFO"])
+   assert result.stderr == dedent("""\
+      info: This is a message.
+      \x1b[33mwarning\x1b[0m: Mad scientist at work!
+      \x1b[31merror\x1b[0m: Does not compute.
+      \x1b[31m\x1b[1mcritical\x1b[0m: Complete meltdown!
+      """
+   )
 
 .. click:run::
-   invoke(my_cli, args=["--verbosity", "DEBUG"])
+   from textwrap import dedent
+   result = invoke(my_cli, args=["--verbosity", "DEBUG"])
+   assert result.stderr == dedent("""\
+      \x1b[34mdebug\x1b[0m: Set <Logger click_extra (DEBUG)> to DEBUG.
+      \x1b[34mdebug\x1b[0m: Set <RootLogger root (DEBUG)> to DEBUG.
+      \x1b[34mdebug\x1b[0m: We're printing stuff.
+      info: This is a message.
+      \x1b[33mwarning\x1b[0m: Mad scientist at work!
+      \x1b[31merror\x1b[0m: Does not compute.
+      \x1b[31m\x1b[1mcritical\x1b[0m: Complete meltdown!
+      \x1b[34mdebug\x1b[0m: Reset <RootLogger root (DEBUG)> to WARNING.
+      \x1b[34mdebug\x1b[0m: Reset <Logger click_extra (DEBUG)> to WARNING.
+      """
+   )
 ```
 
 ```{eval-rst}

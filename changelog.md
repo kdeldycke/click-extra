@@ -11,6 +11,7 @@ This version is not released yet and is under active development.
 - Always collect `<stderr>` output and never raise an exception.
 - Add a new `<output>` stream to simulate what the user sees in its terminal.
 - Only mix `<stdout>` and `<stderr>` in `<output>` when ``mix_stderr=True``.
+- Print detailed CLI execution trace in logs.
 - Document inline tests in Sphinx CLI execution blocks.
 - Improve Pygments ANSI formatter and lexers documentation.
 - Document usage of `pygmentize` command line.

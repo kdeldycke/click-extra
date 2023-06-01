@@ -55,6 +55,7 @@ from boltons.tbutils import ExceptionInfo
 from click import formatting, termui, utils
 
 from .colorize import default_theme
+from . import Color, Style
 
 PROMPT = "► "
 INDENT = " " * len(PROMPT)
@@ -89,7 +90,9 @@ def format_cli_prompt(cmd_args: Iterable[str], extra_env: EnvVars | None = None)
     """Simulate the console prompt used to invoke the CLI."""
     extra_env_string = ""
     if extra_env:
-        extra_env_string = "".join(f"{k}={v} " for k, v in extra_env.items())
+        extra_env_string = default_theme.envvar(
+            "".join(f"{k}={v} " for k, v in extra_env.items())
+        )
 
     cmd_str = default_theme.invoked_command(" ".join(cmd_args))
 
@@ -97,19 +100,49 @@ def format_cli_prompt(cmd_args: Iterable[str], extra_env: EnvVars | None = None)
 
 
 def print_cli_run(
-    args, output=None, error=None, error_code=None, extra_env=None
+    args: Iterable[str], result: click.testing.Result | subprocess.CompletedProcess, env: EnvVars | None = None
 ) -> None:
     """Prints the full simulation of CLI execution, including output.
 
     Mostly used to print debug traces to user or in test results.
     """
-    print(f"\n{format_cli_prompt(args, extra_env)}")
+    prompt = format_cli_prompt(args, env)
+    stdout = ""
+    stderr = ""
+    output = ""
+    exit_code = None
+
+    if isinstance(result, click.testing.Result):
+        stdout = result.stdout
+        stderr = result.stderr
+        exit_code = result.exit_code
+
+        if isinstance(result, ExtraResult):
+            output = result.output
+
+    elif isinstance(result, subprocess.CompletedProcess):
+        stdout = result.stdout
+        stderr = result.stderr
+        exit_code = result.returncode
+
+    else:
+        raise TypeError(f"Unknown result type: {type(result)}")
+
+    # Render the execution trace.
+    print()
+    print(prompt)
     if output:
+        print(f"{PROMPT}{Style(fg=Color.blue)('<output>')} stream:")
         print(indent(output, INDENT))
-    if error:
-        print(indent(default_theme.error(error), INDENT))
-    if error_code is not None:
-        print(default_theme.error(f"{INDENT}Return code: {error_code}"))
+    if stdout:
+        print(f"{PROMPT}{Style(fg=Color.green)('<stdout>')} stream:")
+        print(indent(stdout, INDENT))
+    if stderr:
+        print(f"{PROMPT}{Style(fg=Color.red)('<stderr>')} stream:")
+        print(indent(stderr, INDENT))
+    if exit_code is not None:
+        print(f"{PROMPT}{Style(fg=Color.yellow)('Exit code:')} {exit_code}")
+    print()
 
 
 def env_copy(extend: EnvVars | None = None) -> EnvVars | None:
@@ -136,26 +169,17 @@ def env_copy(extend: EnvVars | None = None) -> EnvVars | None:
     return env_copy
 
 
-def run_cmd(*args, extra_env: EnvVars | None = None, print_output: bool = True):
+def run_cmd(*args: str, extra_env: EnvVars | None = None, print_output: bool = True) -> tuple[int, str, str]:
     """Run a system command, print output and return results."""
-    assert isinstance(args, tuple)
-    process = subprocess.run(
+    result = subprocess.run(
         args,
         capture_output=True,
         encoding="utf-8",
         env=cast("subprocess._ENV", env_copy(extra_env)),
     )
-
     if print_output:
-        print_cli_run(
-            args,
-            process.stdout,
-            process.stderr,
-            process.returncode,
-            extra_env=extra_env,
-        )
-
-    return process.returncode, process.stdout, process.stderr
+        print_cli_run(args, result, env=extra_env)
+    return result.returncode, result.stdout, result.stderr
 
 
 INVOKE_ARGS = set(inspect.getfullargspec(click.testing.CliRunner.invoke).args)
@@ -561,7 +585,6 @@ class ExtraCliRunner(click.testing.CliRunner):
         # Flatten and filters out CLI arguments.
         args = args_cleanup(args)
 
-
         if color == "forced":
             # Pass the color argument as an extra parameter to the invoked CLI.
             extra["color"] = True
@@ -613,9 +636,8 @@ class ExtraCliRunner(click.testing.CliRunner):
 
         print_cli_run(
             [self.get_default_prog_name(cli)] + list(args),
-            result.output,
-            result.stderr,
-            result.exit_code,
+            result,
+            env=env,
         )
 
         if result.exception:
