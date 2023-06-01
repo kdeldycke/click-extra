@@ -95,10 +95,10 @@ def test_runner_empty_stderr(mix_stderr):
     assert result.output == "stdout\n"
     assert result.stdout == "stdout\n"
     if mix_stderr:
-        assert result.stderr == "stdout\n"
-    else:
         with pytest.raises(ValueError):
             result.stderr
+    else:
+        assert result.stderr == ""
 
 
 @click.command
