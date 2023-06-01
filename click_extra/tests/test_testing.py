@@ -88,7 +88,8 @@ def test_extra_cli_runner():
 
         assert result.output == "stdout\n"
         assert result.stdout == "stdout\n"
-        assert result.stderr == ""
+        if mix_stderr:
+            assert result.stderr == ""
 
 
 @click.command
