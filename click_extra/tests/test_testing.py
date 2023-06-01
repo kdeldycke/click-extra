@@ -79,7 +79,7 @@ def test_extra_cli_runner():
     assert result_mix.output == "1 - stdout\n2 - stderr\n3 - stdout\n4 - stderr\n"
     assert result_mix.stdout == "1 - stdout\n2 - stderr\n3 - stdout\n4 - stderr\n"
     with pytest.raises(ValueError):
-        result.stderr
+        result_mix.stderr
 
     @command
     def cli_empty_stderr():
