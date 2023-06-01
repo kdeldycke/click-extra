@@ -12,6 +12,8 @@ Here is the list of issues and bugs from other projects that `click-extra` has a
 
 ## [`click`](https://github.com/pallets/click)
 
+- [`#2523` - Keep track of `<stderr>` and `<stdout>` mix in `CliRunner` results ](https://github.com/pallets/click/pull/2523)
+- [`#2522` - `CliRunner`: restrict `mix_stderr` influence to `<output>`; keep `<stderr>` and `<stdout>` stable](https://github.com/pallets/click/issues/2522)
 - [`#2483` - Missing auto-generated environment variables in help screen & case-sensitivity](https://github.com/pallets/click/issues/2483)
 - [`#2324` - Can't pass `click.version_option()` to `click.MultiCommand(params=)`](https://github.com/pallets/click/issues/2324)
 - [`#2313` - Add `show_envvar` as global setting via `context_settings` (like `show_default`)](https://github.com/pallets/click/issues/2313)

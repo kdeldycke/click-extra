@@ -77,9 +77,8 @@ def test_runner_output():
     result_mix = runner_mix.invoke(cli_output)
 
     assert result_mix.output == "1 - stdout\n2 - stderr\n3 - stdout\n4 - stderr\n"
-    assert result_mix.stdout == "1 - stdout\n2 - stderr\n3 - stdout\n4 - stderr\n"
-    with pytest.raises(ValueError):
-        result_mix.stderr
+    assert result_mix.stdout == "1 - stdout\n3 - stdout\n"
+    assert result_mix.stderr == "2 - stderr\n4 - stderr\n"
 
 
 @pytest.mark.parametrize("mix_stderr", (True, False))
@@ -94,11 +93,7 @@ def test_runner_empty_stderr(mix_stderr):
 
     assert result.output == "stdout\n"
     assert result.stdout == "stdout\n"
-    if mix_stderr:
-        with pytest.raises(ValueError):
-            result.stderr
-    else:
-        assert result.stderr == ""
+    assert result.stderr == ""
 
 
 @click.command
@@ -229,7 +224,7 @@ def test_invoke_forced_color_stripping(invoke):
 
 @skip_windows_colors
 def test_invoke_color_keep(invoke):
-    """On windows Click ends up deciding it is not running in an interactive terminal
+    """On Windows Click ends up deciding it is not running in an interactive terminal
     and forces the stripping of all colors."""
     result = invoke(run_cli1, color=True)
     if is_windows():
@@ -243,8 +238,9 @@ def test_invoke_color_keep(invoke):
 
 @skip_windows_colors
 def test_invoke_color_forced(invoke):
-    # Test colors are preserved while invoking, and forced to be rendered
-    # on Windows.
+    """Test colors are preserved while invoking, and forced to be rendered
+    on Windows.
+    """
     result = invoke(run_cli1, color="forced")
     check_default_colored_rendering(result)
     assert result.output.endswith(
