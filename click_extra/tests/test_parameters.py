@@ -227,7 +227,7 @@ def test_auto_envvar_parsing(invoke, cmd_decorator, envvars, expected_flag):
     result = invoke(my_cli, env=envvars)
     assert result.exit_code == 0
     assert not result.stderr
-    assert result.output == f"Flag value: {expected_flag}\n"
+    assert result.stdout == f"Flag value: {expected_flag}\n"
 
 
 def test_raw_args(invoke):
@@ -252,7 +252,7 @@ def test_raw_args(invoke):
     result = invoke(my_cli, "--dummy-flag", "subcommand", "--int-param", "33")
     assert result.exit_code == 0
     assert not result.stderr
-    assert result.output == dedent(
+    assert result.stdout == dedent(
         """\
         -- Group output --
         dummy_flag is True
@@ -299,7 +299,7 @@ def test_standalone_show_params_option(invoke, cmd_decorator, option_decorator):
         tablefmt="rounded_outline",
         disable_numparse=True,
     )
-    assert result.output == f"{output}\n"
+    assert result.stdout == f"{output}\n"
 
     assert result.stderr.endswith(
         "warning: Cannot extract parameters values: "
@@ -453,6 +453,6 @@ def test_integrated_show_params_option(invoke, create_config):
         tablefmt="rounded_outline",
         disable_numparse=True,
     )
-    assert result.output == f"{output}\n"
+    assert result.stdout == f"{output}\n"
 
     assert f"debug: click_extra.raw_args: {raw_args}" in result.stderr

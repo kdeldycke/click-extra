@@ -56,12 +56,12 @@ def test_standalone_version_option_with_env_info(invoke):
     result = invoke(color_cli2, "--version", color=True)
     assert result.exit_code == 0
 
-    regex_output = (
+    regex_stdout = (
         r"\x1b\[97mcolor-cli2\x1b\[0m, version \x1b\[32m1.2.3.4"
         r"\x1b\[0m\x1b\[90m\n{'.+'}"
         r"\x1b\[0m\n"
     )
-    assert re.fullmatch(regex_output, result.output)
+    assert re.fullmatch(regex_stdout, result.stdout)
 
     assert not result.stderr
 
@@ -81,7 +81,7 @@ def test_standalone_version_option_without_env_info(invoke, cmd_decorator):
     result = invoke(color_cli3, "--version", color=True)
     assert result.exit_code == 0
     assert (
-        result.output == "\x1b[97mcolor-cli3\x1b[0m, version \x1b[32m1.2.3.4\x1b[0m\n"
+        result.stdout == "\x1b[97mcolor-cli3\x1b[0m, version \x1b[32m1.2.3.4\x1b[0m\n"
     )
     assert not result.stderr
 
@@ -98,12 +98,12 @@ def test_integrated_version_option_precedence(invoke, params):
     result = invoke(color_cli4, "--version", params, color=True)
     assert result.exit_code == 0
 
-    regex_output = (
+    regex_stdout = (
         r"\x1b\[97mcolor-cli4\x1b\[0m, version \x1b\[32m1.2.3.4"
         r"\x1b\[0m\x1b\[90m\n{'.+'}"
         r"\x1b\[0m\n"
     )
-    assert re.fullmatch(regex_output, result.output)
+    assert re.fullmatch(regex_stdout, result.stdout)
 
     assert not result.stderr
 
@@ -131,10 +131,10 @@ def test_color_option_precedence(invoke):
 
     result = invoke(color_cli6, "--no-color", "--version", "command1", color=True)
     assert result.exit_code == 0
-    assert result.output == "color-cli6, version 2.1.9\n"
+    assert result.stdout == "color-cli6, version 2.1.9\n"
     assert not result.stderr
 
     result = invoke(color_cli6, "--version", "--no-color", "command1", color=True)
     assert result.exit_code == 0
-    assert result.output == "\x1b[97mcolor-cli6\x1b[0m, version \x1b[32m2.1.9\x1b[0m\n"
+    assert result.stdout == "\x1b[97mcolor-cli6\x1b[0m, version \x1b[32m2.1.9\x1b[0m\n"
     assert not result.stderr

@@ -196,18 +196,18 @@ def test_keyword_collection(invoke):
 
     result = invoke(color_cli1, "--help", color=True)
     assert result.exit_code == 0
-    assert re.fullmatch(help_screen, result.output)
+    assert re.fullmatch(help_screen, result.stdout)
     assert not result.stderr
 
     result = invoke(color_cli1, "-h", color=True)
     assert result.exit_code == 0
-    assert re.fullmatch(help_screen, result.output)
+    assert re.fullmatch(help_screen, result.stdout)
     assert not result.stderr
 
     # CLI main group is invoked before sub-command.
     result = invoke(color_cli1, "command1", "--help", color=True)
     assert result.exit_code == 0
-    assert result.output == (
+    assert result.stdout == (
         "It works!\n"
         "\x1b[94m\x1b[1m\x1b[4mUsage: \x1b[0m\x1b[97mcolor-cli1 command1\x1b[0m"
         " \x1b[36m\x1b[2m[OPTIONS]\x1b[0m [\x1b[36mMY_ARG\x1b[0m]...\n"
@@ -225,7 +225,7 @@ def test_keyword_collection(invoke):
     # Standalone call to command: CLI main group is skipped.
     result = invoke(command1, "--help", color=True)
     assert result.exit_code == 0
-    assert result.output == (
+    assert result.stdout == (
         "\x1b[94m\x1b[1m\x1b[4mUsage: \x1b[0m\x1b[97mcommand1\x1b[0m"
         " \x1b[36m\x1b[2m[OPTIONS]\x1b[0m [\x1b[36mMY_ARG\x1b[0m]...\n"
         "\n"
@@ -371,9 +371,12 @@ def test_no_color_env_convention(
         expecting_colors = param_expect_colors
 
     if expecting_colors:
-        assert result.output == "\x1b[33mIt works!\x1b[0m\n"
+        assert result.stdout == "\x1b[33mIt works!\x1b[0m\n"
     else:
-        assert result.output == "It works!\n"
+        assert result.stdout == "It works!\n"
+
+
+# TODO: test with  configuration file
 
 
 @skip_windows_colors
@@ -404,7 +407,7 @@ def test_integrated_color_option(invoke, param, expecting_colors):
 
     assert result.exit_code == 0
     if expecting_colors:
-        assert result.output == (
+        assert result.stdout == (
             "\x1b[33mIt works!\x1b[0m\n"
             "\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m\n"
             "\x1b[35mRun command #1.\x1b[0m\n"
@@ -421,7 +424,7 @@ def test_integrated_color_option(invoke, param, expecting_colors):
         )
 
     else:
-        assert result.output == (
+        assert result.stdout == (
             "It works!\n"
             "Art\n"
             "Run command #1.\n"

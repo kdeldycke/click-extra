@@ -62,7 +62,7 @@ def test_integrated_time_option(invoke, subcommand_id, time_min, time_max):
     group = re.fullmatch(
         rf"Start of CLI\nEnd of {subcommand_id} subcommand\n"
         r"Execution time: (?P<time>[0-9.]+) seconds.\n",
-        result.output,
+        result.stdout,
     )
     assert group
     assert time_min < float(group.groupdict()["time"]) < time_max
@@ -73,7 +73,7 @@ def test_integrated_notime_option(invoke, subcommand_id):
     result = invoke(integrated_timer, "--no-time", f"{subcommand_id}-subcommand")
     assert result.exit_code == 0
     assert not result.stderr
-    assert result.output == f"Start of CLI\nEnd of {subcommand_id} subcommand\n"
+    assert result.stdout == f"Start of CLI\nEnd of {subcommand_id} subcommand\n"
 
 
 @parametrize(
@@ -106,10 +106,10 @@ def test_standalone_timer_option(invoke, cmd_decorator, option_decorator):
     assert not result.stderr
     assert re.fullmatch(
         r"It works!\nExecution time: [0-9.]+ seconds.\n",
-        result.output,
+        result.stdout,
     )
 
     result = invoke(standalone_timer, "--no-time")
     assert result.exit_code == 0
     assert not result.stderr
-    assert result.output == "It works!\n"
+    assert result.stdout == "It works!\n"

@@ -52,12 +52,12 @@ def test_standalone_telemetry_option(invoke, cmd_decorator, option_decorator):
     result = invoke(standalone_telemetry, "--telemetry")
     assert result.exit_code == 0
     assert not result.stderr
-    assert result.output == "It works!\nTelemetry value: True\n"
+    assert result.stdout == "It works!\nTelemetry value: True\n"
 
     result = invoke(standalone_telemetry, "--no-telemetry")
     assert result.exit_code == 0
     assert not result.stderr
-    assert result.output == "It works!\nTelemetry value: False\n"
+    assert result.stdout == "It works!\nTelemetry value: False\n"
 
 
 def test_multiple_envvars(invoke):
@@ -86,4 +86,4 @@ def test_multiple_envvars(invoke):
     result = invoke(standalone_telemetry, env={"DO_NOT_TRACK": "1"})
     assert result.exit_code == 0
     assert not result.stderr
-    assert result.output == "It works!\nTelemetry value: True\n"
+    assert result.stdout == "It works!\nTelemetry value: True\n"

@@ -62,7 +62,7 @@ def test_unrecognized_verbosity(invoke, cmd_decorator, cmd_type):
 
     result = invoke(logging_cli1, "--verbosity", "random")
     assert result.exit_code == 2
-    assert not result.output
+    assert not result.stdout
 
     group_help = " COMMAND [ARGS]..." if "group" in cmd_type else ""
     extra_suggest = (
@@ -110,7 +110,7 @@ def test_default_root_logger(invoke, cmd_decorator, option_decorator, level):
 
     result = invoke(logging_cli2, "--verbosity", level, color=True)
     assert result.exit_code == 0
-    assert result.output == "It works!\n"
+    assert result.stdout == "It works!\n"
 
     messages = (
         (
@@ -142,7 +142,7 @@ def test_integrated_verbosity_option(invoke, level):
 
     result = invoke(logging_cli3, "--verbosity", level, color=True)
     assert result.exit_code == 0
-    assert result.output == "It works!\n"
+    assert result.stdout == "It works!\n"
     if level == "DEBUG":
         assert re.fullmatch(
             default_debug_colored_log_start + default_debug_colored_log_end,
@@ -167,7 +167,7 @@ def test_custom_logger_param(invoke, logger_param, params):
 
     result = invoke(awesome_app, params, color=False)
     assert result.exit_code == 0
-    assert result.output == "Starting Awesome App...\n"
+    assert result.stdout == "Starting Awesome App...\n"
     if params:
         assert re.fullmatch(
             (
@@ -195,7 +195,7 @@ def test_custom_option_name(invoke):
     for name in param_names:
         result = invoke(awesome_app, name, "DEBUG", color=False)
         assert result.exit_code == 0
-        assert not result.output
+        assert not result.stdout
         assert re.fullmatch(
             (
                 r"debug: Set <Logger click_extra \(DEBUG\)> to DEBUG.\n"

@@ -37,7 +37,7 @@ def test_unrecognized_format(invoke, cmd_decorator, cmd_type):
 
     result = invoke(tabulate_cli1, "--table-format", "random")
     assert result.exit_code == 2
-    assert not result.output
+    assert not result.stdout
 
     group_help = " COMMAND [ARGS]..." if "group" in cmd_type else ""
     extra_suggest = (

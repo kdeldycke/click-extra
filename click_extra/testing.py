@@ -287,24 +287,6 @@ class ExtraCliRunner(click.testing.CliRunner):
         level.
     """
 
-    def __init__(
-        self,
-        charset: str = "utf-8",
-        env: Optional[Mapping[str, Optional[str]]] = None,
-        echo_stdin: bool = False,
-        mix_stderr: bool = False,
-    ) -> None:
-        """Same as original but sets default to ``mix_stderr=False``.
-
-        This way we avoid mixing ``<stdout>`` and ``<stderr>`` in the result object.
-        """
-        return super().__init__(
-            charset=charset,
-            env=env,
-            echo_stdin=echo_stdin,
-            mix_stderr=mix_stderr
-        )
-
     @contextlib.contextmanager
     def isolation(
         self,

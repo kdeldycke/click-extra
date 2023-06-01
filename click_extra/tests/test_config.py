@@ -222,8 +222,8 @@ def simple_config_cli():
 def test_unset_conf_no_message(invoke, simple_config_cli):
     result = invoke(simple_config_cli, "default-command")
     assert result.exit_code == 0
-    assert result.output == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
     assert not result.stderr
+    assert result.stdout == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
 
 
 def test_unset_conf_debug_message(invoke, simple_config_cli):
@@ -231,7 +231,7 @@ def test_unset_conf_debug_message(invoke, simple_config_cli):
         simple_config_cli, "--verbosity", "DEBUG", "default-command", color=False
     )
     assert result.exit_code == 0
-    assert result.output == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
+    assert result.stdout == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
     assert re.fullmatch(
         default_debug_uncolored_log_start + default_debug_uncolored_log_end,
         result.stderr,
@@ -241,6 +241,7 @@ def test_unset_conf_debug_message(invoke, simple_config_cli):
 def test_conf_default_path(invoke, simple_config_cli):
     result = invoke(simple_config_cli, "--help", color=False)
     assert result.exit_code == 0
+    assert not result.stderr
 
     # OS-specific path.
     default_path = shrinkuser(
@@ -250,7 +251,7 @@ def test_conf_default_path(invoke, simple_config_cli):
     # Make path string compatible with regexp.
     assert re.search(
         rf"\[default:\s+{escape_for_help_sceen(str(default_path))}\]",
-        result.output,
+        result.stdout,
     )
 
 
@@ -260,7 +261,7 @@ def test_conf_not_exist(invoke, simple_config_cli):
         simple_config_cli, "--config", str(conf_path), "default-command", color=False
     )
     assert result.exit_code == 2
-    assert not result.output
+    assert not result.stdout
     assert f"Load configuration matching {conf_path}\n" in result.stderr
     assert "critical: No configuration file found.\n" in result.stderr
 
@@ -271,7 +272,7 @@ def test_conf_not_file(invoke, simple_config_cli):
         simple_config_cli, "--config", str(conf_path), "default-command", color=False
     )
     assert result.exit_code == 2
-    assert not result.output
+    assert not result.stdout
 
     assert f"Load configuration matching {conf_path}\n" in result.stderr
     assert "critical: No configuration file found.\n" in result.stderr
@@ -348,7 +349,7 @@ def test_conf_auto_types(invoke, create_config, option_decorator):
     )
 
     assert result.exit_code == 0
-    assert result.output == "Works!\n"
+    assert result.stdout == "Works!\n"
 
     cli_config_option = search_params(config_cli2.params, ConfigOption)
     assert cli_config_option.params_template == {
@@ -510,7 +511,7 @@ def test_auto_env_var_conf(
             env={"CONFIG_TEST_CLI_CONFIG": str(conf_path)},
         )
         assert result.exit_code == 0
-        assert result.output == (
+        assert result.stdout == (
             "dummy_flag = True\nmy_list = ('pip', 'npm', 'gem')\nint_parameter = 3\n"
         )
         # Debug level has been activated by configuration file.
@@ -547,7 +548,7 @@ def test_conf_file_overrided_by_cli_param(
             "15",
         )
         assert result.exit_code == 0
-        assert result.output == (
+        assert result.stdout == (
             "dummy_flag = False\nmy_list = ('super', 'wow')\nint_parameter = 15\n"
         )
         assert result.stderr == f"Load configuration matching {conf_path.resolve()}\n"

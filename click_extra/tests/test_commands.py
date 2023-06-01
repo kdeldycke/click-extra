@@ -256,8 +256,8 @@ def test_integrated_version_value(invoke, all_command_cli):
     result = invoke(all_command_cli, "--version", color=False)
     assert result.exit_code == 0
 
-    regex_output = r"command-cli1, version 2021.10.08\n{'.+'}\n"
-    assert re.fullmatch(regex_output, result.output)
+    regex_stdout = r"command-cli1, version 2021.10.08\n{'.+'}\n"
+    assert re.fullmatch(regex_stdout, result.stdout)
 
     assert not result.stderr
 
@@ -284,7 +284,7 @@ def test_no_option_leaks_between_subcommands(invoke):
 
     result = invoke(cli, "--help", color=False)
     assert result.exit_code == 0
-    assert result.output == dedent(
+    assert result.stdout == dedent(
         """\
         Usage: cli [OPTIONS] COMMAND [ARGS]...
 

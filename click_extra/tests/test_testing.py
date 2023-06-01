@@ -92,7 +92,7 @@ def test_runner_empty_stderr(mix_stderr):
     result = runner.invoke(cli_empty_stderr)
 
     assert result.output == "stdout\n"
-    assert result.stdout == "stdout\n"
+    assert result.stdout == result.output
     assert result.stderr == ""
 
 
@@ -149,7 +149,7 @@ def color_cli(cmd_decorator):
 
 def check_default_colored_rendering(result):
     assert result.exit_code == 0
-    assert result.output.startswith(
+    assert result.stdout.startswith(
         "\x1b[32mecho()\x1b[0m\n"
         "\x1b[32mecho(color=None)\x1b[0m\n"
         "\x1b[31mecho(color=True) bypass invoke.color = False\x1b[0m\n"
@@ -165,7 +165,7 @@ def check_default_colored_rendering(result):
 
 def check_default_uncolored_rendering(result):
     assert result.exit_code == 0
-    assert result.output.startswith(
+    assert result.stdout.startswith(
         "echo()\n"
         "echo(color=None)\n"
         "\x1b[31mecho(color=True) bypass invoke.color = False\x1b[0m\n"
@@ -181,7 +181,7 @@ def check_default_uncolored_rendering(result):
 
 def check_forced_uncolored_rendering(result):
     assert result.exit_code == 0
-    assert result.output.startswith(
+    assert result.stdout.startswith(
         "echo()\n"
         "echo(color=None)\n"
         "echo(color=True) bypass invoke.color = False\n"
@@ -199,7 +199,7 @@ def check_forced_uncolored_rendering(result):
 def test_invoke_optional_color(invoke):
     result = invoke(run_cli1, color=None)
     check_default_uncolored_rendering(result)
-    assert result.output.endswith(
+    assert result.stdout.endswith(
         "Context.color = None\nclick.utils.should_strip_ansi = True\n"
     )
 
@@ -208,7 +208,7 @@ def test_invoke_optional_color(invoke):
 def test_invoke_default_color(invoke):
     result = invoke(run_cli1)
     check_default_uncolored_rendering(result)
-    assert result.output.endswith(
+    assert result.stdout.endswith(
         "Context.color = None\nclick.utils.should_strip_ansi = True\n"
     )
 
@@ -217,7 +217,7 @@ def test_invoke_default_color(invoke):
 def test_invoke_forced_color_stripping(invoke):
     result = invoke(run_cli1, color=False)
     check_forced_uncolored_rendering(result)
-    assert result.output.endswith(
+    assert result.stdout.endswith(
         "Context.color = None\nclick.utils.should_strip_ansi = True\n"
     )
 
@@ -231,7 +231,7 @@ def test_invoke_color_keep(invoke):
         check_default_uncolored_rendering(result)
     else:
         check_default_colored_rendering(result)
-    assert result.output.endswith(
+    assert result.stdout.endswith(
         "Context.color = None\nclick.utils.should_strip_ansi = False\n"
     )
 
@@ -243,6 +243,6 @@ def test_invoke_color_forced(invoke):
     """
     result = invoke(run_cli1, color="forced")
     check_default_colored_rendering(result)
-    assert result.output.endswith(
+    assert result.stdout.endswith(
         "Context.color = True\nclick.utils.should_strip_ansi = False\n"
     )
