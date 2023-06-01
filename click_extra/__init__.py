@@ -96,6 +96,7 @@ from .parameters import (  # noqa: I001, E402, F401
 )
 from .tabulate import TableFormatOption  # noqa: I001, E402, F401
 from .telemetry import TelemetryOption  # noqa: I001, E402, F401
+from .testing import ExtraCliRunner  # noqa: I001, E402, F401
 from .timer import TimerOption  # noqa: I001, E402, F401
 from .version import VersionOption  # noqa: I001, E402, F401
 
@@ -139,6 +140,7 @@ __all__ = [  # noqa: F405
     "extra_basic_config",
     "extra_command",
     "extra_group",
+    "ExtraCliRunner",
     "ExtraCommand",
     "ExtraContext",
     "ExtraGroup",
