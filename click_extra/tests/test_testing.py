@@ -57,7 +57,7 @@ def test_env_copy():
     assert env_var not in os.environ
 
 
-def test_extra_cli_runner():
+def test_runner_output():
 
     @command
     def cli_output():
@@ -81,21 +81,24 @@ def test_extra_cli_runner():
     with pytest.raises(ValueError):
         result_mix.stderr
 
+
+@pytest.mark.parametrize("mix_stderr", (True, False))
+def test_runner_empty_stderr(mix_stderr):
+
     @command
     def cli_empty_stderr():
         echo("stdout")
 
-    for mix_stderr in (True, False):
-        runner = ExtraCliRunner(mix_stderr=mix_stderr)
-        result = runner.invoke(cli_empty_stderr)
+    runner = ExtraCliRunner(mix_stderr=mix_stderr)
+    result = runner.invoke(cli_empty_stderr)
 
-        assert result.output == "stdout\n"
-        assert result.stdout == "stdout\n"
-        if mix_stderr:
-            assert result.stderr == "stdout\n"
-        else:
-            with pytest.raises(ValueError):
-                result.stderr
+    assert result.output == "stdout\n"
+    assert result.stdout == "stdout\n"
+    if mix_stderr:
+        assert result.stderr == "stdout\n"
+    else:
+        with pytest.raises(ValueError):
+            result.stderr
 
 
 @click.command
