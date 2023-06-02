@@ -255,6 +255,9 @@ class ExtraResult(click.testing.Result):
         <https://github.com/pallets/click/pull/2523>`_ but has not been merged yet.
     """
 
+    stderr_bytes: bytes
+    """Makes ``stderr_bytes`` mandatory."""
+
     def __init__(
             self,
             runner: click.testing.CliRunner,
@@ -323,7 +326,7 @@ class ExtraCliRunner(click.testing.CliRunner):
     """
 
     @contextlib.contextmanager
-    def isolation(
+    def isolation(  # type: ignore[override]
         self,
         input: Optional[Union[str, bytes, IO[Any]]] = None,
         env: Optional[Mapping[str, Optional[str]]] = None,
@@ -381,7 +384,7 @@ class ExtraCliRunner(click.testing.CliRunner):
             errors="backslashreplace",
         )
 
-        @click.testing._pause_echo(echo_input)
+        @click.testing._pause_echo(echo_input)  # type: ignore[arg-type]
         def visible_input(prompt: Optional[str] = None) -> str:
             sys.stdout.write(prompt or "")
             val = text_input.readline().rstrip("\r\n")
@@ -389,13 +392,13 @@ class ExtraCliRunner(click.testing.CliRunner):
             sys.stdout.flush()
             return val
 
-        @click.testing._pause_echo(echo_input)
+        @click.testing._pause_echo(echo_input)  # type: ignore[arg-type]
         def hidden_input(prompt: Optional[str] = None) -> str:
             sys.stdout.write(f"{prompt or ''}\n")
             sys.stdout.flush()
             return text_input.readline().rstrip("\r\n")
 
-        @click.testing._pause_echo(echo_input)
+        @click.testing._pause_echo(echo_input)  # type: ignore[arg-type]
         def _getchar(echo: bool) -> str:
             char = sys.stdin.read(1)
 
@@ -462,7 +465,7 @@ class ExtraCliRunner(click.testing.CliRunner):
         catch_exceptions: bool = True,
         color: bool = False,
         **extra: Any,
-    ) -> click.testing.Result:
+    ) -> ExtraResult:
         """Copy of ``click.testing.CliRunner.invoke()`` with extra ``<output>`` stream.
 
         .. caution::
@@ -527,7 +530,7 @@ class ExtraCliRunner(click.testing.CliRunner):
         )
 
 
-    def invoke(
+    def invoke(  # type: ignore[override]
         self,
         cli: click.core.BaseCommand,
         *args: Arg | NestedArgs,
@@ -535,7 +538,7 @@ class ExtraCliRunner(click.testing.CliRunner):
         env: EnvVars | None = None,
         catch_exceptions: bool = True,
         color: bool | Literal["forced"] | None = None,
-        **extra: Mapping[str, Any],
+        **extra: Any,
     ) -> click.testing.Result:
         """Same as ``click.testing.CliRunner.invoke()`` with extra features.
 
@@ -587,11 +590,11 @@ class ExtraCliRunner(click.testing.CliRunner):
         # arguments. This situation append when the ``args`` parameter is passed as a
         # keyword argument in
         # ``pallets_sphinx_themes.themes.click.domain.ExampleRunner.invoke()``.
-        args = list(args)
+        cli_args = list(args)
         if "args" in extra:
-            args.extend(extra.pop("args"))
+            cli_args.extend(extra.pop("args"))
         # Flatten and filters out CLI arguments.
-        args = args_cleanup(args)
+        clean_args = args_cleanup(*cli_args)
 
         if color == "forced":
             # Pass the color argument as an extra parameter to the invoked CLI.
@@ -628,7 +631,7 @@ class ExtraCliRunner(click.testing.CliRunner):
         with extra_params_bypass:
             result = self.invoke2(
                     cli=cli,
-                    args=args,
+                    args=clean_args,
                     input=input,
                     env=env,
                     catch_exceptions=catch_exceptions,
@@ -643,7 +646,7 @@ class ExtraCliRunner(click.testing.CliRunner):
             result.output_bytes = strip_ansi(result.output_bytes)
 
         print_cli_run(
-            [self.get_default_prog_name(cli)] + list(args),
+            [self.get_default_prog_name(cli)] + list(clean_args),
             result,
             env=env,
         )

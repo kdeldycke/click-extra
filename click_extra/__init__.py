@@ -68,7 +68,7 @@ from .commands import (  # noqa: I001, E402, F401
     ExtraGroup,
 )
 from .config import ConfigOption  # noqa: I001, E402, F401
-from .decorators import (  # type: ignore[no-redef] # noqa: I001, E402, F401
+from .decorators import (  # type: ignore[no-redef,has-type] # noqa: I001, E402, F401
     color_option,
     command,  # noqa: E402
     config_option,
