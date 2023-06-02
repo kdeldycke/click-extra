@@ -457,7 +457,7 @@ class ExtraCliRunner(click.testing.CliRunner):
         color: bool = False,
         **extra: Any,
     ) -> click.testing.Result:
-        """Copy of ``click.testing.CliRunner.invoke()`` with
+        """Copy of ``click.testing.CliRunner.invoke()`` with support of extra ``<output>`` stream.
 
         .. caution::
             This is a hard-copy of the modified ``invoke()`` method `from click#2523 PR
@@ -537,7 +537,9 @@ class ExtraCliRunner(click.testing.CliRunner):
           parameters of the function are the CLI arguments. All other parameters are
           required to be named.
 
-        - The CLI arguments can be nested iterables of arbitrary depth.
+        - The CLI arguments can be nested iterables of arbitrary depth. This is
+          `usefull for argument composition of test cases with @pytest.mark.parametrize
+          <https://docs.pytest.org/en/stable/example/parametrize.html>`_.
 
         - Allow forcing of the ``color`` property at the class-level via
           ``force_color`` attribute.

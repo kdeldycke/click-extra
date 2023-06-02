@@ -188,12 +188,14 @@ On the other hand, if the build succeed, the ``.. click:run::`` block will rende
 
 ```{tip}
 In a way, you can consider this kind of inline tests as like [doctests](https://docs.python.org/3/library/doctest.html), but for Click CLIs.
+
+Look around in the sources of Click Extra's documentation for more examples of inline tests.
 ```
 
 ```{hint}
 The CLI runner used by `.. click:run::` is a custom version [derived from the original `click.testing.CliRunner`](https://click.palletsprojects.com/en/8.1.x/api/#click.testing.CliRunner).
 
-It is [called `ExtraCliRunner`](click_extra.tests#click_extra.tests.conftest.ExtraCliRunner) and sets the `mix_stderr` parameter to `False` by default. That way you can refine your tests by inspecting both `<stdout>` and `<stderr>` independently.
+It is [called `ExtraCliRunner`](testing.md#click_extra.testing.ExtraCliRunner) and is patched so you can refine your tests by inspecting both `<stdout>` and `<stderr>` independently. It also provides an additional `<output>` stream which simulates what the user sees in its terminal.
 ```
 
 ## ANSI shell sessions
