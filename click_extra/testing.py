@@ -54,8 +54,8 @@ from boltons.strutils import strip_ansi
 from boltons.tbutils import ExceptionInfo
 from click import formatting, termui, utils
 
-from .colorize import default_theme
 from . import Color, Style
+from .colorize import default_theme
 
 PROMPT = "► "
 INDENT = " " * len(PROMPT)
@@ -100,7 +100,9 @@ def format_cli_prompt(cmd_args: Iterable[str], extra_env: EnvVars | None = None)
 
 
 def print_cli_run(
-    args: Iterable[str], result: click.testing.Result | subprocess.CompletedProcess, env: EnvVars | None = None
+    args: Iterable[str],
+    result: click.testing.Result | subprocess.CompletedProcess,
+    env: EnvVars | None = None
 ) -> None:
     """Prints the full simulation of CLI execution, including output.
 
@@ -169,7 +171,11 @@ def env_copy(extend: EnvVars | None = None) -> EnvVars | None:
     return env_copy
 
 
-def run_cmd(*args: str, extra_env: EnvVars | None = None, print_output: bool = True) -> tuple[int, str, str]:
+def run_cmd(
+    *args: str,
+    extra_env: EnvVars | None = None,
+    print_output: bool = True
+) -> tuple[int, str, str]:
     """Run a system command, print output and return results."""
     result = subprocess.run(
         args,
@@ -457,7 +463,7 @@ class ExtraCliRunner(click.testing.CliRunner):
         color: bool = False,
         **extra: Any,
     ) -> click.testing.Result:
-        """Copy of ``click.testing.CliRunner.invoke()`` with support of extra ``<output>`` stream.
+        """Copy of ``click.testing.CliRunner.invoke()`` with extra ``<output>`` stream.
 
         .. caution::
             This is a hard-copy of the modified ``invoke()`` method `from click#2523 PR
