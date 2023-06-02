@@ -223,7 +223,14 @@ You can now check that the ``--verbosity`` option influence the log level of you
    invoke(awesome_app)
 
 .. click:run::
-   invoke(awesome_app, args=["--verbosity", "DEBUG"])
+   from textwrap import dedent
+   result = invoke(awesome_app, args=["--verbosity", "DEBUG"])
+   assert dedent("""\
+      Awesome App started
+      \x1b[34mdebug\x1b[0m | app_logger | Awesome App has started.
+      \x1b[34mdebug\x1b[0m: Awesome App has started.
+      """
+      ) in result.output
 ```
 
 You can also pass the default logger object to the option:
@@ -244,7 +251,14 @@ You can also pass the default logger object to the option:
         logger.debug("Awesome App has started.")
 
 .. click:run::
-   invoke(awesome_app, args=["--verbosity", "DEBUG"])
+   from textwrap import dedent
+   result = invoke(awesome_app, args=["--verbosity", "DEBUG"])
+   assert dedent("""\
+      Awesome App started
+      \x1b[34mdebug\x1b[0m | app_logger | Awesome App has started.
+      \x1b[34mdebug\x1b[0m: Awesome App has started.
+      """
+      ) in result.output
 ```
 
 ```{todo}

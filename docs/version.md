@@ -16,7 +16,8 @@ Click Extra provides its own version option which, compared to [Click's built-in
          print("It works!")
 
 .. click:run::
-   invoke(cli, args=["--version"])
+   result = invoke(cli, args=["--version"])
+   assert result.output == "\x1b[97mcli\x1b[0m, version \x1b[32m0.1\x1b[0m\n"
 ```
 
 ## Environment information
@@ -55,7 +56,8 @@ To disable environement metadata reporting, set the `print_env_info` argument:
          print("It works!")
 
 .. click:run::
-   invoke(cli, args=["--version"])
+   result = invoke(cli, args=["--version"])
+   assert result.output == "\x1b[97mcli\x1b[0m, version \x1b[32m0.1\x1b[0m\n"
 ```
 
 ## `click_extra.version` API

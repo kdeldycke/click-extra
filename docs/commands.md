@@ -21,7 +21,20 @@ Here is for instance the [canonical `click` example](https://github.com/pallets/
 As you can see the result does not deviates from the original Click-based output:
 
 .. click:run::
-   invoke(hello, args=["--help"])
+   from textwrap import dedent
+   result = invoke(hello, args=["--help"])
+   assert result.output == dedent(
+      """\
+      Usage: hello [OPTIONS]
+
+        Simple program that greets NAME for a total of COUNT times.
+
+      Options:
+        --count INTEGER  Number of greetings.
+        --name TEXT      The person to greet.
+        --help           Show this message and exit.
+      """
+    )
 ```
 
 ```{note} Click and Cloup inheritance
@@ -105,7 +118,16 @@ To override the default options, you can prvide the `params=` argument to the co
 And now you get:
 
 .. click:run::
-   invoke(cli, args=["--help"])
+   from textwrap import dedent
+   result = invoke(cli, args=["--help"])
+   assert result.stdout.startswith(dedent(
+      """\
+      \x1b[94m\x1b[1m\x1b[4mUsage: \x1b[0m\x1b[97mcli\x1b[0m \x1b[36m\x1b[2m[OPTIONS]\x1b[0m
+
+      \x1b[94m\x1b[1m\x1b[4mOptions:\x1b[0m
+        \x1b[36m--version\x1b[0m                 Show the version and exit.
+        \x1b[36m-C\x1b[0m, \x1b[36m--config\x1b[0m \x1b[36m\x1b[2mCONFIG_PATH\x1b[0m"""
+   ))
 ```
 
 This let you replace the preset options by your own set, tweak their order and fine-tune their defaults.
@@ -128,7 +150,13 @@ This let you replace the preset options by your own set, tweak their order and f
    See how options are duplicated at the end:
 
    .. click:run::
-      invoke(cli, args=["--help"])
+      from textwrap import dedent
+      result = invoke(cli, args=["--help"])
+      assert (
+         "  \x1b[36m--version\x1b[0m                 Show the version and exit.\n"
+         "  \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m                Show this message and exit.\n"
+         "  \x1b[36m--version\x1b[0m                 Show the version and exit.\n"
+      ) in result.output
 
    This is an expected behavior: decorators are cumulative to not prevent you to add your own options to the preset of `@extra_command` and `@extra_group`.
 ```

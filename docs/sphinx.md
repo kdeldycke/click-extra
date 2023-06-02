@@ -110,7 +110,18 @@ Placed in your Sphinx documentation, the two blocks above renders to:
         echo(f"Hello, {style(name, fg='red')}!")
 
 .. click:run::
-    invoke(hello_world, args=["--help"])
+    from textwrap import dedent
+    result = invoke(hello_world, args=["--help"])
+    assert result.stdout.startswith(dedent(
+        """\
+        \x1b[94m\x1b[1m\x1b[4mUsage: \x1b[0m\x1b[97mhello-world\x1b[0m \x1b[36m\x1b[2m[OPTIONS]\x1b[0m
+
+          Simple program that greets NAME.
+
+        \x1b[94m\x1b[1m\x1b[4mOptions:\x1b[0m
+          \x1b[36m--name\x1b[0m \x1b[36m\x1b[2mTEXT\x1b[0m               The person to greet.
+          \x1b[36m--time\x1b[0m / \x1b[36m--no-time\x1b[0m        Measure and print elapsed execution time."""
+    ))
 
 This is perfect for documentation, as it shows both the source code of the CLI and its results.
 
@@ -126,7 +137,8 @@ You can then invoke that CLI again with its ``--name`` option:
 Which renders in Sphinx like it was executed in a terminal block:
 
 .. click:run::
-    invoke(hello_world, args=["--name", "Joe"])
+    result = invoke(hello_world, args=["--name", "Joe"])
+    assert result.output == 'Hello, \x1b[31mJoe\x1b[0m!\n'
 ```
 
 ```{tip}

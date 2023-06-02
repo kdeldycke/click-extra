@@ -27,7 +27,20 @@ The [canonical `click` example](https://github.com/pallets/click#a-simple-exampl
 Whose help screen renders as:
 
 .. click:run::
-   invoke(hello, args=["--help"])
+    from textwrap import dedent
+    result = invoke(hello, args=["--help"])
+    assert result.output == dedent(
+        """\
+        Usage: hello [OPTIONS]
+
+          Simple program that greets NAME for a total of COUNT times.
+
+        Options:
+          --count INTEGER  Number of greetings.
+          --name TEXT      The person to greet.
+          --help           Show this message and exit.
+        """
+    )
 ```
 
 To augment the simple example above with [all the bells and whistles](index#features) `click-extra` has in store, you just need to replace the base command decorator with its `extra_`-prefixed variant:
@@ -47,7 +60,18 @@ To augment the simple example above with [all the bells and whistles](index#feat
 And now you get:
 
 .. click:run::
-   invoke(hello, args=["--help"])
+    from textwrap import dedent
+    result = invoke(hello, args=["--help"])
+    assert result.output.startswith(dedent("""\
+        \x1b[94m\x1b[1m\x1b[4mUsage: \x1b[0m\x1b[97mhello\x1b[0m \x1b[36m\x1b[2m[OPTIONS]\x1b[0m
+
+          Simple program that greets NAME for a total of COUNT times.
+
+        \x1b[94m\x1b[1m\x1b[4mOptions:\x1b[0m
+          \x1b[36m--count\x1b[0m \x1b[36m\x1b[2mINTEGER\x1b[0m           Number of greetings.  \x1b[2m[\x1b[0m\x1b[2mdefault: \x1b[0m\x1b[32m\x1b[2m\x1b[3m1\x1b[0m\x1b[2m]\x1b[0m
+          \x1b[36m--name\x1b[0m \x1b[36m\x1b[2mTEXT\x1b[0m               The person to greet.
+        """
+    ))
 ```
 
 That's it!
@@ -95,7 +119,8 @@ If, for example, you're only interested in using the `--config` option, nothing 
 Which now renders to:
 
 .. click:run::
-   invoke(hello, args=["--help"])
+    result = invoke(hello, args=["--help"])
+    assert "-C, --config CONFIG_PATH" in result.output
 ```
 
 This option itself behave like any Click option and can be customized easely:
@@ -115,7 +140,8 @@ This option itself behave like any Click option and can be customized easely:
             echo(f"Hello, {name}!")
 
 .. click:run::
-   invoke(hello, args=["--help"])
+    result = invoke(hello, args=["--help"])
+    assert "--hello-conf CONF_FILE  Loads CLI config." in result.output
 ```
 
 Click Extra's options are sub-classes of Cloup's and supports all its features, like [option groups](https://cloup.readthedocs.io/en/stable/pages/option-groups.html):
@@ -145,7 +171,16 @@ Click Extra's options are sub-classes of Cloup's and supports all its features, 
 See how the configuration option is grouped with others:
 
 .. click:run::
-   invoke(hello, args=["--help"])
+    from textwrap import dedent
+    result = invoke(hello, args=["--help"])
+    assert dedent(
+        """\
+        Cool options: [at least 1 required]
+          --foo TEXT              The option that starts it all.
+          --bar TEXT              Another important option.
+          --hello-conf CONF_FILE  Loads CLI config.
+        """
+    ) in result.output
 ```
 
 ```{caution}

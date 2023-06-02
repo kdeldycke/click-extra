@@ -87,8 +87,10 @@ See how the default `@extra_command` decorator come with the default `--show-par
         echo(f"int_param2 is {int_param2!r}")
 
 .. click:run::
-    x = invoke(cli, args=["--verbosity", "Debug", "--int-param1", "3", "--show-params"])
-    #import pdb; pdb.set_trace()
+    result = invoke(cli, args=["--verbosity", "Debug", "--int-param1", "3", "--show-params"])
+    assert "click_extra.raw_args: ['--verbosity', 'Debug', '--int-param1', '3', '--show-params']" in result.stderr
+    assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM1\x1b[0m  │ \x1b[32m\x1b[2m\x1b[3m10\x1b[0m " in result.stdout
+    assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM2\x1b[0m  │ \x1b[32m\x1b[2m\x1b[3m555\x1b[0m " in result.stdout
 ```
 
 ```{note}

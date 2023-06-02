@@ -32,12 +32,20 @@ The code above is saved into a file named ``my_cli.py``.
 It produces the following help screen:
 
 .. click:run::
-    invoke(my_cli, args=["--help"])
+    result = invoke(my_cli, args=["--help"])
+    assert "-C, --config CONFIG_PATH" in result.stdout
 
 A bare call returns:
 
 .. click:run::
-    invoke(my_cli, args=["subcommand"])
+    from textwrap import dedent
+    result = invoke(my_cli, args=["subcommand"])
+    assert result.stdout == dedent("""\
+        dummy_flag    is False
+        my_list       is ()
+        int_parameter is 10
+        """
+    )
 ```
 
 With a simple TOML file in the application folder, we will change the CLI's default output.
@@ -319,7 +327,8 @@ If you know in advance the only format you'd like to support, you can use the `f
 Notice how the default search pattern gets limited to files with a ``.json`` extension:
 
 .. click:run::
-    invoke(cli, args=["--help"])
+    result = invoke(cli, args=["--help"])
+    assert "*.json]" in result.stdout
 ```
 
 This also works with a subset of formats:
@@ -338,7 +347,8 @@ This also works with a subset of formats:
         echo(f"int_parameter is {int_param!r}")
 
 .. click:run::
-    invoke(cli, args=["--help"])
+    result = invoke(cli, args=["--help"])
+    assert "*.{ini,yaml,yml}]" in result.stdout
 ```
 
 ### Default folder
@@ -376,7 +386,8 @@ Let's change the default base folder in the following example:
 See how the default to ``--config`` option has been changed to ``~/.cli/*.{toml,yaml,yml,json,ini,xml}``:
 
 .. click:run::
-    invoke(cli, args=["--help"])
+    result = invoke(cli, args=["--help"])
+    assert "~/.cli/*.{toml,yaml,yml,json,ini,xml}]" in result.stdout
 ```
 
 ### Custom pattern
@@ -398,7 +409,8 @@ Here is how to look for an extension-less YAML dotfile in the home directory, wi
         pass
 
 .. click:run::
-    invoke(cli, args=["--help"])
+    result = invoke(cli, args=["--help"])
+    assert "~/.commandrc]" in result.stdout
 ```
 
 ### Pattern specifications

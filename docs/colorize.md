@@ -88,10 +88,16 @@ Here is a little CLI to demonstrate the rendering of colors and styles, based on
       render_table(table, headers=table_headers)
 
 .. click:run::
-   invoke(render_matrix, ["--matrix=colors"])
+   result = invoke(render_matrix, ["--matrix=colors"])
+   assert "\x1b[95mbright_magenta\x1b[0m" in result.stdout
+   assert "\x1b[95m\x1b[101mbright_magenta\x1b[0m" in result.stdout
 
 .. click:run::
-   invoke(render_matrix, ["--matrix=styles"])
+   result = invoke(render_matrix, ["--matrix=styles"])
+   assert "\x1b[97mbright_white\x1b[0m" in result.stdout
+   assert "\x1b[97m\x1b[1mbright_white\x1b[0m" in result.stdout
+   assert "\x1b[97m\x1b[2mbright_white\x1b[0m" in result.stdout
+   assert "\x1b[97m\x1b[4mbright_white\x1b[0m" in result.stdout
 ```
 
 ```{caution}
