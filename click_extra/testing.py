@@ -309,7 +309,7 @@ class ExtraCliRunner(click.testing.CliRunner):
     force_color: bool = False
     """Global class attribute to override the ``color`` parameter in ``invoke``.
 
-    .. info::
+    .. note::
         This was initially developed to `force the initialization of the runner during
         the setup of Sphinx new directives <sphinx#click_extra.sphinx.setup>`_. This
         was the only way we found, as to patch some code we had to operate at the class
