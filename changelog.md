@@ -9,7 +9,7 @@ This version is not released yet and is under active development.
 ## {gh}`4.3.0 (2023-06-01) <compare/v4.2.0...v4.3.0>`
 
 - Colorize envvars and default values in `--show-params` option.
-- Keep `<stdout>` and `<stderr>` streams in `ExtraCliRunner` independent.
+- Keep `<stdout>` and `<stderr>` streams independent in `ExtraCliRunner`.
 - Always collect `<stderr>` output and never raise an exception.
 - Add a new `<output>` stream to simulate what the user sees in its terminal.
 - Only mix `<stdout>` and `<stderr>` in `<output>` when ``mix_stderr=True``.
