@@ -538,7 +538,7 @@ class ExtraCliRunner(click.testing.CliRunner):
           required to be named.
 
         - The CLI arguments can be nested iterables of arbitrary depth. This is
-          `usefull for argument composition of test cases with @pytest.mark.parametrize
+          `useful for argument composition of test cases with @pytest.mark.parametrize
           <https://docs.pytest.org/en/stable/example/parametrize.html>`_.
 
         - Allow forcing of the ``color`` property at the class-level via
