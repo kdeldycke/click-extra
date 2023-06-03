@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Remove `@destructive` and `@non_destructive` pytest markers.
+
 ## {gh}`4.3.0 (2023-06-01) <compare/v4.2.0...v4.3.0>`
 
 - Colorize envvars and default values in `--show-params` option.

@@ -17,8 +17,6 @@
 
 from __future__ import annotations
 
-import os
-from configparser import RawConfigParser  # noqa: E402
 from pathlib import Path
 from textwrap import dedent
 
@@ -30,32 +28,6 @@ import pytest
 from ..decorators import command, extra_command, extra_group, group
 from ..platforms import is_linux, is_macos, is_windows
 from ..testing import ExtraCliRunner
-
-DESTRUCTIVE_MODE = RawConfigParser.BOOLEAN_STATES[
-    str(os.environ.get("DESTRUCTIVE_TESTS", False)).lower()
-]
-"""Pre-computed boolean flag indicating if destructive mode is activated by the presence
-of a ``DESTRUCTIVE_TESTS`` environment variable set to ``True``."""
-
-
-destructive = pytest.mark.skipif(DESTRUCTIVE_MODE, reason="destructive test")
-"""Pytest mark to skip a test unless destructive mode is allowed.
-
-.. todo:
-
-    Test destructive test assessment.
-"""
-
-
-non_destructive = pytest.mark.skipif(
-    not DESTRUCTIVE_MODE, reason="non-destructive test"
-)
-"""Pytest mark to skip a test unless destructive mode is allowed.
-
-.. todo:
-
-    Test destructive test assessment.
-"""
 
 
 skip_linux = pytest.mark.skipif(is_linux(), reason="Skip Linux")
