@@ -344,6 +344,9 @@ class ExtraCliRunner(click.testing.CliRunner):
             PR
             <https://github.com/pallets/click/pull/2523/files#diff-b07fd6fad9f9ea8be5cbcbeaf34c956703b929b2de95c56229e77c328a7c6010>`_
             which has not been merged upstream yet.
+
+        .. todo::
+            Reduce the code duplication here by using clever monkeypatching?
         """
         bytes_input = click.testing.make_input_stream(input, self.charset)
         echo_input = None
@@ -472,6 +475,9 @@ class ExtraCliRunner(click.testing.CliRunner):
             This is a hard-copy of the modified ``invoke()`` method `from click#2523 PR
             <https://github.com/pallets/click/pull/2523/files#diff-b07fd6fad9f9ea8be5cbcbeaf34c956703b929b2de95c56229e77c328a7c6010>`_
             which has not been merged upstream yet.
+
+        .. todo::
+            Reduce the code duplication here by using clever monkeypatching?
         """
         exc_info = None
         with self.isolation(input=input, env=env, color=color) as outstreams:
