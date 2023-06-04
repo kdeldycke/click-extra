@@ -117,7 +117,7 @@ The code above prints the following HTML:
 And here is how to obtain the corresponding CSS style:
 
 ```python
-print(formatter.get_style_defs('.highlight'))
+print(formatter.get_style_defs(".highlight"))
 ```
 
 ```css

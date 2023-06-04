@@ -25,21 +25,16 @@ import pytest
 from pytest_cases import parametrize
 from tabulate import tabulate
 
-from .. import (
-    command,
-    echo,
-    get_app_dir,
-    option,
-    pass_context,
-)
-from ..decorators import extra_command, extra_group, show_params_option
-from ..parameters import ShowParamsOption, extend_envvars, normalize_envvar
-from ..platforms import is_windows
+from click_extra import command, echo, get_app_dir, option, pass_context
+from click_extra.decorators import extra_command, extra_group, show_params_option
+from click_extra.parameters import ShowParamsOption, extend_envvars, normalize_envvar
+from click_extra.platforms import is_windows
+
 from .conftest import command_decorators
 
 
 @pytest.mark.parametrize(
-    "envvars_1, envvars_2, result",
+    ("envvars_1", "envvars_2", "result"),
     (
         ("MY_VAR", "MY_VAR", ("MY_VAR",)),
         (None, "MY_VAR", ("MY_VAR",)),
@@ -61,7 +56,7 @@ def test_extend_envvars(envvars_1, envvars_2, result):
 
 
 @pytest.mark.parametrize(
-    "env_name, normalized_env",
+    ("env_name", "normalized_env"),
     (
         ("show-params-cli_VERSION", "SHOW_PARAMS_CLI_VERSION"),
         ("show---params-cli___VERSION", "SHOW_PARAMS_CLI_VERSION"),
@@ -73,7 +68,7 @@ def test_normalize_envvar(env_name, normalized_env):
 
 
 @pytest.mark.parametrize(
-    "cmd_decorator, option_help",
+    ("cmd_decorator", "option_help"),
     (
         # Click does not show the auto-generated envvar in the help screen.
         (click.command, "  --flag / --no-flag  [env var: custom]\n"),
@@ -199,7 +194,7 @@ def envvars_test_cases():
                             envvar,
                             expected_flag,
                             id=f"{decorator_name}|{case_name}={envvar}|expected_flag={expected_flag}",
-                        )
+                        ),
                     )
 
     return params
@@ -221,7 +216,7 @@ def test_auto_envvar_parsing(invoke, cmd_decorator, envvars, expected_flag):
     registered_envvars = ["Magic", "sUper"]
     # @extra_command forces registration of auto-generated envvar.
     if cmd_decorator == extra_command:
-        registered_envvars = tuple(registered_envvars + ["yo_FLAG"])
+        registered_envvars = (*registered_envvars, "yo_FLAG")
     assert my_cli.params[0].envvar == registered_envvars
 
     result = invoke(my_cli, env=envvars)
@@ -260,7 +255,7 @@ def test_raw_args(invoke):
         -- Subcommand output --
         int_parameter is 33
         Raw parameters: ['--int-param', '33']
-        """
+        """,
     )
 
 
@@ -303,7 +298,7 @@ def test_standalone_show_params_option(invoke, cmd_decorator, option_decorator):
 
     assert result.stderr.endswith(
         "warning: Cannot extract parameters values: "
-        "<Command show-params> does not inherits from ExtraCommand.\n"
+        "<Command show-params> does not inherits from ExtraCommand.\n",
     )
 
 

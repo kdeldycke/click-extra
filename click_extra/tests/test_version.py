@@ -22,8 +22,9 @@ import click
 import pytest
 from pytest_cases import parametrize
 
-from .. import Style, echo
-from ..decorators import color_option, extra_group, version_option
+from click_extra import Style, echo
+from click_extra.decorators import color_option, extra_group, version_option
+
 from .conftest import command_decorators, skip_windows_colors
 
 
@@ -67,7 +68,8 @@ def test_standalone_version_option_with_env_info(invoke):
 
 
 @pytest.mark.xfail(
-    strict=False, reason="version_option always displays click-extra version. See #176."
+    strict=False,
+    reason="version_option always displays click-extra version. See #176.",
 )
 @skip_windows_colors
 @parametrize("cmd_decorator", command_decorators(no_groups=True))
@@ -88,7 +90,8 @@ def test_standalone_version_option_without_env_info(invoke, cmd_decorator):
 
 @skip_windows_colors
 @pytest.mark.parametrize(
-    "params", (None, "--help", "blah", ("--config", "random.toml"))
+    "params",
+    (None, "--help", "blah", ("--config", "random.toml")),
 )
 def test_integrated_version_option_precedence(invoke, params):
     @extra_group(version="1.2.3.4")

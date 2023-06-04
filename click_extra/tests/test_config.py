@@ -24,7 +24,7 @@ import pytest
 from boltons.pathutils import shrinkuser
 from pytest_cases import fixture, parametrize
 
-from .. import (
+from click_extra import (
     BOOL,
     FLOAT,
     INT,
@@ -42,10 +42,11 @@ from .. import (
     get_app_dir,
     option,
 )
-from ..colorize import escape_for_help_sceen
-from ..config import ConfigOption
-from ..decorators import config_option, extra_group
-from ..parameters import search_params
+from click_extra.colorize import escape_for_help_sceen
+from click_extra.config import ConfigOption
+from click_extra.decorators import config_option, extra_group
+from click_extra.parameters import search_params
+
 from .conftest import (
     default_debug_uncolored_log_end,
     default_debug_uncolored_log_start,
@@ -228,7 +229,11 @@ def test_unset_conf_no_message(invoke, simple_config_cli):
 
 def test_unset_conf_debug_message(invoke, simple_config_cli):
     result = invoke(
-        simple_config_cli, "--verbosity", "DEBUG", "default-command", color=False
+        simple_config_cli,
+        "--verbosity",
+        "DEBUG",
+        "default-command",
+        color=False,
     )
     assert result.exit_code == 0
     assert result.stdout == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
@@ -245,7 +250,7 @@ def test_conf_default_path(invoke, simple_config_cli):
 
     # OS-specific path.
     default_path = shrinkuser(
-        Path(get_app_dir("config-cli1")) / "*.{toml,yaml,yml,json,ini,xml}"
+        Path(get_app_dir("config-cli1")) / "*.{toml,yaml,yml,json,ini,xml}",
     )
 
     # Make path string compatible with regexp.
@@ -258,7 +263,11 @@ def test_conf_default_path(invoke, simple_config_cli):
 def test_conf_not_exist(invoke, simple_config_cli):
     conf_path = Path("dummy.toml")
     result = invoke(
-        simple_config_cli, "--config", str(conf_path), "default-command", color=False
+        simple_config_cli,
+        "--config",
+        str(conf_path),
+        "default-command",
+        color=False,
     )
     assert result.exit_code == 2
     assert not result.stdout
@@ -269,7 +278,11 @@ def test_conf_not_exist(invoke, simple_config_cli):
 def test_conf_not_file(invoke, simple_config_cli):
     conf_path = Path().parent
     result = invoke(
-        simple_config_cli, "--config", str(conf_path), "default-command", color=False
+        simple_config_cli,
+        "--config",
+        str(conf_path),
+        "default-command",
+        color=False,
     )
     assert result.exit_code == 2
     assert not result.stdout
@@ -377,7 +390,7 @@ def test_conf_auto_types(invoke, create_config, option_decorator):
             "list1": None,
             "file_arg1": None,
             "file_arg2": None,
-        }
+        },
     }
     assert cli_config_option.params_types == {
         "config-cli2": {
@@ -404,7 +417,7 @@ def test_conf_auto_types(invoke, create_config, option_decorator):
             "list1": list,
             "file_arg1": str,
             "file_arg2": list,
-        }
+        },
     }
 
 
@@ -454,7 +467,12 @@ def test_strict_conf(invoke, create_config):
 
 @all_config_formats
 def test_conf_file_overrides_defaults(
-    invoke, simple_config_cli, create_config, httpserver, conf_name, conf_content
+    invoke,
+    simple_config_cli,
+    create_config,
+    httpserver,
+    conf_name,
+    conf_content,
 ):
     # Create a local file and remote config.
     conf_filepath = create_config(conf_name, conf_content)
@@ -493,7 +511,12 @@ def test_conf_file_overrides_defaults(
 
 @all_config_formats
 def test_auto_env_var_conf(
-    invoke, simple_config_cli, create_config, httpserver, conf_name, conf_content
+    invoke,
+    simple_config_cli,
+    create_config,
+    httpserver,
+    conf_name,
+    conf_content,
 ):
     # Create a local config.
     conf_filepath = create_config(conf_name, conf_content)
@@ -523,7 +546,12 @@ def test_auto_env_var_conf(
 
 @all_config_formats
 def test_conf_file_overrided_by_cli_param(
-    invoke, simple_config_cli, create_config, httpserver, conf_name, conf_content
+    invoke,
+    simple_config_cli,
+    create_config,
+    httpserver,
+    conf_name,
+    conf_content,
 ):
     # Create a local file and remote config.
     conf_filepath = create_config(conf_name, conf_content)

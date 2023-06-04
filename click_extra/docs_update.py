@@ -40,7 +40,10 @@ from .tabulate import tabulate
 
 
 def replace_content(
-    filepath: Path, start_tag: str, end_tag: str, new_content: str
+    filepath: Path,
+    start_tag: str,
+    end_tag: str,
+    new_content: str,
 ) -> None:
     """Replace in the provided file the content surrounded by the provided tags."""
     filepath = filepath.resolve()
@@ -55,15 +58,7 @@ def replace_content(
 
     # Reconstruct the content with our updated table.
     filepath.write_text(
-        "".join(
-            (
-                pre_content,
-                start_tag,
-                new_content,
-                end_tag,
-                post_content,
-            )
-        )
+        f"{pre_content}{start_tag}{new_content}{end_tag}{post_content}",
     )
 
 
@@ -81,7 +76,7 @@ def generate_lexer_table() -> str:
                 f"{orig_lexer.__module__}.{orig_lexer.__qualname__})",
                 f"{', '.join(f'`{a}`' for a in sorted(orig_lexer.aliases))}",
                 f"{', '.join(f'`{a}`' for a in sorted(ansi_lexer.aliases))}",
-            ]
+            ],
         )
     output = tabulate.tabulate(
         table,
@@ -98,7 +93,9 @@ def generate_lexer_table() -> str:
 
 
 def generate_platforms_graph(
-    graph_id: str, description: str, groups: frozenset[Group]
+    graph_id: str,
+    description: str,
+    groups: frozenset[Group],
 ) -> str:
     """Generates an `Euler diagram <https://xkcd.com/2721/>`_ of platform and their
     grouping.
@@ -119,15 +116,13 @@ def generate_platforms_graph(
             # Make the node ID unique for overlapping groups.
             nodes.add(
                 f"{group.id}_{platform.id}"
-                f"(<code>{platform.id}</code><br/><em>{html.escape(platform.name)}</em>)"
+                f"(<code>{platform.id}</code><br/><em>{html.escape(platform.name)}</em>)",
             )
         subgraphs.add(
-            (
-                f"subgraph <code>click_extra.platforms.{group.id.upper()}</code>"
-                "<br/>"
-                f"<em>{group.name}</em>"
-                "\n" + indent("\n".join(sorted(nodes)), INDENT) + "\nend"
-            )
+            f"subgraph <code>click_extra.platforms.{group.id.upper()}</code>"
+            "<br/>"
+            f"<em>{group.name}</em>"
+            "\n" + indent("\n".join(sorted(nodes)), INDENT) + "\nend",
         )
 
     # Wrap the Mermaid code into a MyST block.
@@ -140,7 +135,7 @@ def generate_platforms_graph(
             "flowchart",
             indent("\n".join(sorted(subgraphs)), INDENT),
             "```",
-        )
+        ),
     )
 
 

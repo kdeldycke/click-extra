@@ -19,8 +19,8 @@ from __future__ import annotations
 import functools
 from itertools import combinations
 
-from .. import platforms as platforms_module
-from ..platforms import (
+from click_extra import platforms as platforms_module
+from click_extra.platforms import (
     ALL_GROUPS,
     ALL_LINUX,
     ALL_OS_LABELS,
@@ -58,6 +58,7 @@ from ..platforms import (
     is_wsl2,
     os_label,
 )
+
 from .conftest import (
     skip_linux,
     skip_macos,
@@ -72,8 +73,8 @@ def test_mutual_exclusion():
     """Only directly tests OSes on which the test suite is running via GitHub
     actions."""
     if is_linux():
-        assert CURRENT_OS_ID == LINUX.id
-        assert CURRENT_OS_LABEL == os_label(LINUX.id)
+        assert LINUX.id == CURRENT_OS_ID
+        assert os_label(LINUX.id) == CURRENT_OS_LABEL
         assert not is_aix()
         assert not is_cygwin()
         assert not is_freebsd()
@@ -87,8 +88,8 @@ def test_mutual_exclusion():
         assert not is_wsl1()
         assert not is_wsl2()
     if is_macos():
-        assert CURRENT_OS_ID == MACOS.id
-        assert CURRENT_OS_LABEL == os_label(MACOS.id)
+        assert MACOS.id == CURRENT_OS_ID
+        assert os_label(MACOS.id) == CURRENT_OS_LABEL
         assert not is_aix()
         assert not is_cygwin()
         assert not is_freebsd()
@@ -102,8 +103,8 @@ def test_mutual_exclusion():
         assert not is_wsl1()
         assert not is_wsl2()
     if is_windows():
-        assert CURRENT_OS_ID == WINDOWS.id
-        assert CURRENT_OS_LABEL == os_label(WINDOWS.id)
+        assert WINDOWS.id == CURRENT_OS_ID
+        assert os_label(WINDOWS.id) == CURRENT_OS_LABEL
         assert not is_aix()
         assert not is_cygwin()
         assert not is_freebsd()
@@ -185,14 +186,14 @@ def test_groups_content():
             assert group.issuperset(group.platforms)
 
             # Test against empty iterables.
-            assert group.issuperset(tuple())
-            assert group.issuperset(list())
-            assert group.issuperset(dict())
+            assert group.issuperset(())
+            assert group.issuperset([])
+            assert group.issuperset({})
             assert group.issuperset(set())
             assert group.issuperset(frozenset())
-            assert not group.issubset(tuple())
-            assert not group.issubset(list())
-            assert not group.issubset(dict())
+            assert not group.issubset(())
+            assert not group.issubset([])
+            assert not group.issubset({})
             assert not group.issubset(set())
             assert not group.issubset(frozenset())
 

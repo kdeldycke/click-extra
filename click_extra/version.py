@@ -90,15 +90,15 @@ class VersionOption(ExtraOption):
             try:
                 self.version = metadata.version(self.package_name)
             except metadata.PackageNotFoundError:
+                msg = f"{self.package_name!r} is not installed. Try passing 'package_name' instead."
                 raise RuntimeError(
-                    f"{self.package_name!r} is not installed. Try passing"
-                    " 'package_name' instead."
+                    msg,
                 ) from None
 
         if self.version is None:
+            msg = f"Could not determine the version for {self.package_name!r} automatically."
             raise RuntimeError(
-                f"Could not determine the version for "
-                f"{self.package_name!r} automatically."
+                msg,
             )
 
         output = self.message % {
@@ -116,6 +116,7 @@ class VersionOption(ExtraOption):
         # to be called.
         ctx.close()
         ctx.exit()
+        return None
 
     def __init__(
         self,

@@ -45,7 +45,7 @@ tabulate._table_formats.update(  # type: ignore[attr-defined]
             padding=0,
             with_header_hide=["lineabove"],
         ),
-    }
+    },
 )
 """Tweak table separators to match MyST and GFM syntax.
 
@@ -66,7 +66,7 @@ output_formats: list[str] = sorted(
     # Formats inherited from previous legacy cli-helpers dependency.
     + ["csv", "vertical"]
     # Formats derived from CSV dialects.
-    + [f"csv-{d}" for d in csv.list_dialects()]
+    + [f"csv-{d}" for d in csv.list_dialects()],
 )
 """All output formats supported by click-extra."""
 
@@ -122,7 +122,8 @@ def render_table(tabular_data, headers=(), **kwargs):
 
 class TableFormatOption(ExtraOption):
     """A pre-configured option that is adding a ``-t``/``--table-format`` flag to select
-    the rendering style of a table."""
+    the rendering style of a table.
+    """
 
     def init_formatter(self, ctx, param, value):
         """Save table format ID in the context, and attach ``print_table()`` method to
@@ -150,7 +151,7 @@ class TableFormatOption(ExtraOption):
         expose_value=False,
         help=_("Rendering style of tables."),
         **kwargs,
-    ):
+    ) -> None:
         if not param_decls:
             param_decls = ("-t", "--table-format")
 

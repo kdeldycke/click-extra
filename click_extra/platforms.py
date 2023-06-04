@@ -235,10 +235,14 @@ class Group:
     def __post_init__(self):
         """Keep the platforms sorted by IDs."""
         object.__setattr__(
-            self, "platforms", tuple(sorted(self.platforms, key=lambda p: p.id))
+            self,
+            "platforms",
+            tuple(sorted(self.platforms, key=lambda p: p.id)),
         )
         object.__setattr__(
-            self, "platform_ids", frozenset({p.id for p in self.platforms})
+            self,
+            "platform_ids",
+            frozenset({p.id for p in self.platforms}),
         )
         # Double-check there is no duplicate platforms.
         assert len(self.platforms) == len(self.platform_ids)
@@ -247,7 +251,7 @@ class Group:
         """Iterate over the platforms of the group."""
         yield from self.platforms
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Return the number of platforms in the group."""
         return len(self.platforms)
 
@@ -463,7 +467,7 @@ NON_OVERLAPPING_GROUPS: frozenset[Group] = frozenset(
         SYSTEM_V,
         UNIX_LAYERS,
         OTHER_UNIX,
-    )
+    ),
 )
 """Non-overlapping groups."""
 
@@ -474,7 +478,7 @@ EXTRA_GROUPS: frozenset[Group] = frozenset(
         UNIX,
         UNIX_WITHOUT_MACOS,
         BSD_WITHOUT_MACOS,
-    )
+    ),
 )
 """Overlapping groups, defined for convenience."""
 
@@ -505,12 +509,13 @@ def current_os() -> Platform:
             matching.append(p)
 
     if len(matching) > 1:
-        raise RuntimeError(f"Multiple platforms match current OS: {matching}")
+        msg = f"Multiple platforms match current OS: {matching}"
+        raise RuntimeError(msg)
 
     if not matching:
+        msg = f"Unrecognized {sys.platform} / {platform.platform(aliased=True, terse=True)} platform."
         raise SystemError(
-            f"Unrecognized {sys.platform} / "
-            f"{platform.platform(aliased=True, terse=True)} platform."
+            msg,
         )
 
     assert len(matching) == 1

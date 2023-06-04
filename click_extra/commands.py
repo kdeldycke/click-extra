@@ -23,7 +23,7 @@ leverage the mixins in here to build up your own custom variants.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict
+from typing import Any
 
 import click
 import cloup
@@ -45,7 +45,8 @@ from .version import VersionOption
 
 class ExtraContext(cloup.Context):
     """Like ``cloup._context.Context``, but with the ability to populate the context's
-    ``meta`` property at instanciation."""
+    ``meta`` property at instanciation.
+    """
 
     _extra_meta: dict[str, Any] = {}
 
@@ -122,7 +123,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         extra_option_at_end: bool = True,
         populate_auto_envvars: bool = True,
         **kwargs: Any,
-    ):
+    ) -> None:
         """List of extra parameters:
 
         :param version: allows a version string to be set directly on the command. Will
@@ -220,7 +221,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         # List of additional global settings for options.
         extra_option_settings = ["show_choices", "show_envvar"]
 
-        default_ctx_settings: Dict[str, Any] = {
+        default_ctx_settings: dict[str, Any] = {
             # Click settings:
             # "default_map": {"verbosity": "DEBUG"},
             "help_option_names": ("--help", "-h"),
@@ -252,7 +253,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         # Remove Click Extra-specific settings, before passing it to Cloup and Click.
         for setting in extra_option_settings:
             del default_ctx_settings[setting]
-        self.context_settings: Dict[str, Any] = default_ctx_settings
+        self.context_settings: dict[str, Any] = default_ctx_settings
 
         if populate_auto_envvars:
             for param in self.params:
@@ -319,7 +320,10 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
             version_param = search_params(ctx.command.params, VersionOption)
             if version_param:
                 version_message = version_param.callback(
-                    ctx, version_param, True, capture_output=True
+                    ctx,
+                    version_param,
+                    True,
+                    capture_output=True,
                 )
                 for line in version_message.splitlines():
                     # TODO: pretty print JSON output (easier to read in bug reports)?
@@ -330,7 +334,8 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
 
 class ExtraGroup(ExtraCommand, Group):
     """Same as ``cloup.group``, but with sane defaults and extra help screen
-    colorization."""
+    colorization.
+    """
 
     # XXX This simple override might be enough to replace the command() override below,
     # but there is a bug in click that prevents this from working:

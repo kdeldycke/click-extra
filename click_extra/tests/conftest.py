@@ -25,10 +25,9 @@ import click.testing
 import cloup
 import pytest
 
-from ..decorators import command, extra_command, extra_group, group
-from ..platforms import is_linux, is_macos, is_windows
-from ..testing import ExtraCliRunner
-
+from click_extra.decorators import command, extra_command, extra_group, group
+from click_extra.platforms import is_linux, is_macos, is_windows
+from click_extra.testing import ExtraCliRunner
 
 skip_linux = pytest.mark.skipif(is_linux(), reason="Skip Linux")
 """Pytest mark to skip a test if run on a Linux system."""
@@ -59,7 +58,7 @@ See:
 """
 
 
-@pytest.fixture
+@pytest.fixture()
 def extra_runner():
     """Runner fixture for ``click.testing.ExtraCliRunner``."""
     runner = ExtraCliRunner()
@@ -67,7 +66,7 @@ def extra_runner():
         yield runner
 
 
-@pytest.fixture
+@pytest.fixture()
 def invoke(extra_runner):
     """Invoke fixture shorthand for ``click.testing.ExtraCliRunner.invoke``."""
     return extra_runner.invoke
@@ -97,7 +96,7 @@ def command_decorators(
                 [
                     (click.command, {"click", "command"}, "click.command", ()),
                     (click.command(), {"click", "command"}, "click.command()", ()),
-                ]
+                ],
             )
 
         if not no_cloup:
@@ -105,7 +104,7 @@ def command_decorators(
                 [
                     (cloup.command, {"cloup", "command"}, "cloup.command", skip_naked),
                     (cloup.command(), {"cloup", "command"}, "cloup.command()", ()),
-                ]
+                ],
             )
 
         if not no_redefined:
@@ -113,7 +112,7 @@ def command_decorators(
                 [
                     (command, {"redefined", "command"}, "click_extra.command", ()),
                     (command(), {"redefined", "command"}, "click_extra.command()", ()),
-                ]
+                ],
             )
 
         if not no_extra:
@@ -131,7 +130,7 @@ def command_decorators(
                         "click_extra.extra_command()",
                         (),
                     ),
-                ]
+                ],
             )
 
     if not no_groups:
@@ -140,7 +139,7 @@ def command_decorators(
                 [
                     (click.group, {"click", "group"}, "click.group", ()),
                     (click.group(), {"click", "group"}, "click.group()", ()),
-                ]
+                ],
             )
 
         if not no_cloup:
@@ -148,7 +147,7 @@ def command_decorators(
                 [
                     (cloup.group, {"cloup", "group"}, "cloup.group", skip_naked),
                     (cloup.group(), {"cloup", "group"}, "cloup.group()", ()),
-                ]
+                ],
             )
 
         if not no_redefined:
@@ -156,7 +155,7 @@ def command_decorators(
                 [
                     (group, {"redefined", "group"}, "click_extra.group", ()),
                     (group(), {"redefined", "group"}, "click_extra.group()", ()),
-                ]
+                ],
             )
 
         if not no_extra:
@@ -174,7 +173,7 @@ def command_decorators(
                         "click_extra.extra_group()",
                         (),
                     ),
-                ]
+                ],
             )
 
     decorator_params = []
@@ -187,7 +186,7 @@ def command_decorators(
     return tuple(decorator_params)
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_config(tmp_path):
     """A generic fixture to produce a temporary configuration file."""
 

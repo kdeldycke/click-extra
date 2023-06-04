@@ -67,7 +67,10 @@ from .pygments import AnsiHtmlFormatter
 from .tests.conftest import ExtraCliRunner
 
 click_compat_hack = patch.object(
-    click._compat, "text_type", create=True, return_value=str
+    click._compat,
+    "text_type",
+    create=True,
+    return_value=str,
 )
 """Workaround for ``pallets-sphinx-themes``'s outdated reference to old ``click``'s
 Python 2 compatibility hack.

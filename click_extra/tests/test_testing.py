@@ -25,9 +25,10 @@ import click
 import pytest
 from pytest_cases import fixture, parametrize
 
-from .. import Style, command, echo, pass_context, secho, style
-from ..platforms import is_windows
-from ..testing import ExtraCliRunner, env_copy
+from click_extra import Style, command, echo, pass_context, secho, style
+from click_extra.platforms import is_windows
+from click_extra.testing import ExtraCliRunner, env_copy
+
 from .conftest import command_decorators, skip_windows_colors
 
 
@@ -57,7 +58,6 @@ def test_env_copy():
 
 
 def test_runner_output():
-
     @command
     def cli_output():
         echo("1 - stdout")
@@ -82,7 +82,6 @@ def test_runner_output():
 
 @pytest.mark.parametrize("mix_stderr", (True, False))
 def test_runner_empty_stderr(mix_stderr):
-
     @command
     def cli_empty_stderr():
         echo("stdout")
@@ -127,7 +126,8 @@ def color_cli(cmd_decorator):
         echo(Style(fg="green")("echo()"))
         echo(Style(fg="green")("echo(color=None)"), color=None)
         echo(
-            Style(fg="red")("echo(color=True) bypass invoke.color = False"), color=True
+            Style(fg="red")("echo(color=True) bypass invoke.color = False"),
+            color=True,
         )
         echo(Style(fg="green")("echo(color=False)"), color=False)
 
@@ -157,7 +157,7 @@ def check_default_colored_rendering(result):
         "\x1b[32msecho(color=None)\x1b[0m\n"
         "\x1b[31msecho(color=True) bypass invoke.color = False\x1b[0m\n"
         "secho(color=False)\n"
-        "\x1b[34mprint() bypass Click.\x1b[0m\n"
+        "\x1b[34mprint() bypass Click.\x1b[0m\n",
     )
     assert result.stderr == "\x1b[33mwarning\x1b[0m: Is the logger colored?\n"
 
@@ -173,7 +173,7 @@ def check_default_uncolored_rendering(result):
         "secho(color=None)\n"
         "\x1b[31msecho(color=True) bypass invoke.color = False\x1b[0m\n"
         "secho(color=False)\n"
-        "\x1b[34mprint() bypass Click.\x1b[0m\n"
+        "\x1b[34mprint() bypass Click.\x1b[0m\n",
     )
     assert result.stderr == "warning: Is the logger colored?\n"
 
@@ -189,7 +189,7 @@ def check_forced_uncolored_rendering(result):
         "secho(color=None)\n"
         "secho(color=True) bypass invoke.color = False\n"
         "secho(color=False)\n"
-        "print() bypass Click.\n"
+        "print() bypass Click.\n",
     )
     assert result.stderr == "warning: Is the logger colored?\n"
 
@@ -199,7 +199,7 @@ def test_invoke_optional_color(invoke):
     result = invoke(run_cli1, color=None)
     check_default_uncolored_rendering(result)
     assert result.stdout.endswith(
-        "Context.color = None\nclick.utils.should_strip_ansi = True\n"
+        "Context.color = None\nclick.utils.should_strip_ansi = True\n",
     )
 
 
@@ -208,7 +208,7 @@ def test_invoke_default_color(invoke):
     result = invoke(run_cli1)
     check_default_uncolored_rendering(result)
     assert result.stdout.endswith(
-        "Context.color = None\nclick.utils.should_strip_ansi = True\n"
+        "Context.color = None\nclick.utils.should_strip_ansi = True\n",
     )
 
 
@@ -217,7 +217,7 @@ def test_invoke_forced_color_stripping(invoke):
     result = invoke(run_cli1, color=False)
     check_forced_uncolored_rendering(result)
     assert result.stdout.endswith(
-        "Context.color = None\nclick.utils.should_strip_ansi = True\n"
+        "Context.color = None\nclick.utils.should_strip_ansi = True\n",
     )
 
 
@@ -231,17 +231,16 @@ def test_invoke_color_keep(invoke):
     else:
         check_default_colored_rendering(result)
     assert result.stdout.endswith(
-        "Context.color = None\nclick.utils.should_strip_ansi = False\n"
+        "Context.color = None\nclick.utils.should_strip_ansi = False\n",
     )
 
 
 @skip_windows_colors
 def test_invoke_color_forced(invoke):
-    """Test colors are preserved while invoking, and forced to be rendered
-    on Windows.
-    """
+    """Test colors are preserved while invoking, and forced to be rendered on
+    Windows."""
     result = invoke(run_cli1, color="forced")
     check_default_colored_rendering(result)
     assert result.stdout.endswith(
-        "Context.color = True\nclick.utils.should_strip_ansi = False\n"
+        "Context.color = True\nclick.utils.should_strip_ansi = False\n",
     )
