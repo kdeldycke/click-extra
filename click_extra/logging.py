@@ -242,7 +242,7 @@ class VerbosityOption(ExtraOption):
         """
         for logger in list(self.all_loggers)[::-1]:
             logging.getLogger("click_extra").debug(
-                f"Reset {logger} to {DEFAULT_LEVEL_NAME}."
+                f"Reset {logger} to {DEFAULT_LEVEL_NAME}.",
             )
             logger.setLevel(DEFAULT_LEVEL)
 

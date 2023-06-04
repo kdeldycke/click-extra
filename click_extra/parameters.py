@@ -27,7 +27,7 @@ from collections.abc import MutableMapping
 from functools import cached_property, reduce
 from gettext import gettext as _
 from operator import getitem, methodcaller
-from typing import Any, Dict, Iterable, Sequence
+from typing import Any, Iterable, Sequence
 
 import click
 from boltons.iterutils import unique
@@ -55,7 +55,8 @@ from . import (
 
 
 def auto_envvar(
-    param: click.Parameter, ctx: click.Context | Dict[str, Any]
+    param: click.Parameter,
+    ctx: click.Context | dict[str, Any],
 ) -> str | None:
     """Compute the auto-generated environment variable of an option or argument.
 
@@ -79,7 +80,8 @@ def auto_envvar(
 
 
 def extend_envvars(
-    envvars_1: str | Sequence[str] | None, envvars_2: str | Sequence[str] | None
+    envvars_1: str | Sequence[str] | None,
+    envvars_2: str | Sequence[str] | None,
 ) -> tuple[str, ...]:
     """Utility to build environment variables value to be fed to options.
 
@@ -91,10 +93,7 @@ def extend_envvars(
     # Make the fist argument into a list of string.
     envvars = []
     if envvars_1:
-        if isinstance(envvars_1, str):
-            envvars = [envvars_1]
-        else:
-            envvars = list(envvars_1)
+        envvars = [envvars_1] if isinstance(envvars_1, str) else list(envvars_1)
 
     # Merge the second argument into the list.
     if envvars_2:
@@ -113,11 +112,13 @@ def normalize_envvar(envvar: str) -> str:
     The normalization process separates all contiguous alphanumeric string segments,
     eliminate empty strings, join them with an underscore and uppercase the result.
     """
-    return "_".join((p for p in re.split(r"[^a-zA-Z0-9]+", envvar) if p)).upper()
+    return "_".join(p for p in re.split(r"[^a-zA-Z0-9]+", envvar) if p).upper()
 
 
 def all_envvars(
-    param: click.Parameter, ctx: click.Context | Dict[str, Any], normalize: bool = False
+    param: click.Parameter,
+    ctx: click.Context | dict[str, Any],
+    normalize: bool = False,
 ) -> tuple[str, ...]:
     """Returns the deduplicated, ordered list of environment variables for an option or
     argument, including the auto-generated one.
@@ -156,9 +157,9 @@ def search_params(
         return None
     if unique:
         if len(param_list) != 1:
+            msg = f"More than one {klass.__name__} parameters found on command: {param_list}"
             raise RuntimeError(
-                f"More than one {klass.__name__} parameters found "
-                f"on command: {param_list}"
+                msg,
             )
         return param_list.pop()
     return param_list
@@ -239,7 +240,7 @@ class ExtraOption(Option):
                 # For boolean flags that have distinct True/False opts,
                 # use the opt without prefix instead of the value.
                 default_string = click.parser.split_opt(
-                    (option.opts if option.default else option.secondary_opts)[0]
+                    (option.opts if option.default else option.secondary_opts)[0],
                 )[1]
             elif (
                 option.is_bool_flag and not option.secondary_opts and not default_value
@@ -283,7 +284,9 @@ class ParamStructure:
     - ``--version``, which is not a configurable option *per-se*.
     """
 
-    def __init__(self, *args, exclude_params: Iterable[str] | None = None, **kwargs):
+    def __init__(
+        self, *args, exclude_params: Iterable[str] | None = None, **kwargs
+    ) -> None:
         """Force the blocklist with paramerers provided by the user.
 
         Else, let the cached ``self.exclude_params`` property compute it.
@@ -296,7 +299,8 @@ class ParamStructure:
     @staticmethod
     def init_tree_dict(*path: str, leaf: Any = None):
         """Utility method to recursively create a nested dict structure whose keys are
-        provided by ``path`` list and at the end is populated by a copy of ``leaf``."""
+        provided by ``path`` list and at the end is populated by a copy of ``leaf``.
+        """
 
         def dive(levels):
             if levels:
@@ -314,8 +318,7 @@ class ParamStructure:
             return None
 
     def _flatten_tree_dict_gen(self, tree_dict, parent_key):
-        """
-        `Source of this snippet
+        """`Source of this snippet
         <https://www.freecodecamp.org/news/how-to-flatten-a-dictionary-in-python-in-4-different-ways/>`_.
         """
         for k, v in tree_dict.items():
@@ -326,10 +329,13 @@ class ParamStructure:
                 yield new_key, v
 
     def flatten_tree_dict(
-        self, tree_dict: MutableMapping, parent_key: str | None = None
+        self,
+        tree_dict: MutableMapping,
+        parent_key: str | None = None,
     ):
         """Recursively traverse the tree-like ``dict`` and produce a flat ``dict`` whose
-        keys are path and values are the leaf's content."""
+        keys are path and values are the leaf's content.
+        """
         return dict(self._flatten_tree_dict_gen(tree_dict, parent_key))
 
     def walk_params(self):
@@ -358,9 +364,9 @@ class ParamStructure:
         if hasattr(cli, "commands"):
             for cmd_id, cmd in cli.commands.items():
                 if cmd_id in top_level_params:
+                    msg = f"{cli.name}{self.SEP}{cmd_id} subcommand conflicts with {top_level_params} top-level parameters"
                     raise ValueError(
-                        f"{cli.name}{self.SEP}{cmd_id} subcommand conflicts with "
-                        f"{top_level_params} top-level parameters"
+                        msg,
                     )
 
                 for p in cmd.params:
@@ -375,7 +381,7 @@ class ParamStructure:
         if param.multiple or param.nargs != 1:
             return list
 
-        if hasattr(param, "is_bool_flag") and getattr(param, "is_bool_flag"):
+        if hasattr(param, "is_bool_flag") and param.is_bool_flag:
             return bool
 
         direct_map = {
@@ -405,8 +411,9 @@ class ParamStructure:
             if isinstance(param.type, click_type):
                 return py_type
 
+        msg = f"Can't guess the appropriate Python type of {param!r} parameter."
         raise ValueError(
-            f"Can't guess the appropriate Python type of {param!r} parameter."
+            msg,
         )
 
     @cached_property
@@ -504,7 +511,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         expose_value=False,
         is_eager=True,
         help=_(
-            "Show all CLI parameters, their provenance, defaults and value, then exit."
+            "Show all CLI parameters, their provenance, defaults and value, then exit.",
         ),
         **kwargs,
     ) -> None:
@@ -569,7 +576,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             logger.debug(f"click_extra.raw_args not in {ctx.meta}")
             logger.warning(
                 f"Cannot extract parameters values: "
-                f"{ctx.command} does not inherits from ExtraCommand."
+                f"{ctx.command} does not inherits from ExtraCommand.",
             )
 
             def vanilla_getter(param):
@@ -596,10 +603,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             # Check if the parameter is allowed in the configuration file.
             allowed_in_conf = None
             if config_option:
-                if path in config_option.exclude_params:
-                    allowed_in_conf = KO
-                else:
-                    allowed_in_conf = OK
+                allowed_in_conf = KO if path in config_option.exclude_params else OK
 
             line = (
                 default_theme.invoked_command(path),

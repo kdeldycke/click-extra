@@ -21,14 +21,17 @@ import tabulate
 from pytest_cases import fixture, parametrize
 
 # We use vanilla click primitives here to demonstrate the full-compatibility.
-from .. import echo, pass_context
-from ..decorators import table_format_option
-from ..platforms import is_windows
-from ..tabulate import output_formats
+from click_extra import echo, pass_context
+from click_extra.decorators import table_format_option
+from click_extra.platforms import is_windows
+from click_extra.tabulate import output_formats
+
 from .conftest import command_decorators
 
 
-@pytest.mark.parametrize("cmd_decorator, cmd_type", command_decorators(with_types=True))
+@pytest.mark.parametrize(
+    ("cmd_decorator", "cmd_type"), command_decorators(with_types=True)
+)
 def test_unrecognized_format(invoke, cmd_decorator, cmd_type):
     @cmd_decorator
     @table_format_option
@@ -529,7 +532,7 @@ def table_cli(cmd_decorator, option_decorator):
 
 
 @pytest.mark.parametrize(
-    "format_name, expected",
+    ("format_name", "expected"),
     (pytest.param(k, v, id=k) for k, v in expected_renderings.items()),
 )
 def test_all_table_rendering(invoke, table_cli, format_name, expected):

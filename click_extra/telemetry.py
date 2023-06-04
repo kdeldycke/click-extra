@@ -55,7 +55,7 @@ class TelemetryOption(ExtraOption):
         show_envvar=True,
         help=_("Collect telemetry and usage data."),
         **kwargs,
-    ):
+    ) -> None:
         if not param_decls:
             param_decls = ("--telemetry/--no-telemetry",)
 

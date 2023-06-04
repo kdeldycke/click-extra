@@ -29,8 +29,9 @@ import cloup
 import pytest
 from pytest_cases import fixture
 
-from .. import echo, option, option_group
-from ..decorators import extra_command, extra_group
+from click_extra import echo, option, option_group
+from click_extra.decorators import extra_command, extra_group
+
 from .conftest import (
     default_debug_uncolored_log_end,
     default_debug_uncolored_log_start,
@@ -180,9 +181,8 @@ def test_group_help(invoke, all_command_cli, param):
     ("--version", "blah", ("--verbosity", "DEBUG"), ("--config", "random.toml")),
 )
 def test_help_eagerness(invoke, all_command_cli, params):
-    """
-    See: https://click.palletsprojects.com/en/8.0.x/advanced/#callback-evaluation-order
-    """
+    """See: https://click.palletsprojects.com/en/8.0.x/advanced/#callback-evaluation-
+    order."""
     result = invoke(all_command_cli, "--help", params)
     assert result.exit_code == 0
     assert re.fullmatch(help_screen, result.stdout)
@@ -235,7 +235,7 @@ def test_subcommand_help(invoke, all_command_cli, cmd_id, param):
 
             Options:
               -h, --help  Show this message and exit.
-            """
+            """,
         )
 
 
@@ -247,7 +247,7 @@ def test_subcommand_execution(invoke, all_command_cli, cmd_id):
         f"""\
         It works!
         Run {cmd_id} subcommand...
-        """
+        """,
     )
     assert not result.stderr
 
@@ -294,7 +294,7 @@ def test_no_option_leaks_between_subcommands(invoke):
         Commands:
           bar  Bar subcommand.
           foo
-        """
+        """,
     )
     assert not result.stderr
 
@@ -371,7 +371,7 @@ def test_option_group_integration(invoke):
 
 
 @pytest.mark.parametrize(
-    "cmd_decorator, ctx_settings, expected_help",
+    ("cmd_decorator", "ctx_settings", "expected_help"),
     (
         # Click does not show all envvar in the help screen by default, unless
         # specifficaly set on an option.

@@ -93,7 +93,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         type=STRING,
         help=_(
             "Location of the configuration file. Supports glob pattern of local "
-            "path and remote URL."
+            "path and remote URL.",
         ),
         is_eager=True,
         expose_value=False,
@@ -103,7 +103,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         exclude_params=None,
         strict=False,
         **kwargs,
-    ):
+    ) -> None:
         """Takes as input a glob pattern or an URL.
 
         Glob patterns must follow the syntax of `wcmatch.glob
@@ -179,7 +179,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         if not cli_name:
             raise ValueError
         app_dir = Path(
-            get_app_dir(cli_name, roaming=self.roaming, force_posix=self.force_posix)
+            get_app_dir(cli_name, roaming=self.roaming, force_posix=self.force_posix),
         ).resolve()
         # Build the extension matching pattern.
         extensions = flatten(f.value for f in self.formats)
@@ -303,7 +303,9 @@ class ConfigOption(ExtraOption, ParamStructure):
             sub_conf = {}
             for option_id in ini_config.options(section_id):
                 target_type = self.get_tree_value(
-                    self.params_types, section_id, option_id
+                    self.params_types,
+                    section_id,
+                    option_id,
                 )
 
                 if target_type in (None, str):
@@ -324,9 +326,9 @@ class ConfigOption(ExtraOption, ParamStructure):
                     value = json.loads(ini_config.get(section_id, option_id))
 
                 else:
+                    msg = f"Conversion of {target_type} type for [{section_id}]:{option_id} INI config option."
                     raise ValueError(
-                        f"Conversion of {target_type} type for "
-                        f"[{section_id}]:{option_id} INI config option."
+                        msg,
                     )
 
                 sub_conf[option_id] = value
@@ -348,8 +350,9 @@ class ConfigOption(ExtraOption, ParamStructure):
             elif k in a:
                 a[k] = b[k]
             elif self.strict:
+                msg = f"Parameter {k!r} is not allowed in configuration file."
                 raise ValueError(
-                    f"Parameter {k!r} is not allowed in configuration file."
+                    msg,
                 )
         return a
 
@@ -426,7 +429,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
             # Merge config to the default_map.
             if ctx.default_map is None:
-                ctx.default_map = dict()
+                ctx.default_map = {}
             ctx.default_map.update(conf.get(ctx.find_root().command.name, {}))
             logger.debug(f"New defaults: {ctx.default_map}")
 

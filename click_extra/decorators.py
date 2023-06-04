@@ -86,10 +86,14 @@ group = decorator_factory(dec=cloup.group)
 
 # Extra command and group decorators with default options.
 extra_command = decorator_factory(
-    dec=cloup.command, cls=ExtraCommand, params=default_extra_params
+    dec=cloup.command,
+    cls=ExtraCommand,
+    params=default_extra_params,
 )
 extra_group = decorator_factory(
-    dec=cloup.group, cls=ExtraGroup, params=default_extra_params
+    dec=cloup.group,
+    cls=ExtraGroup,
+    params=default_extra_params,
 )
 
 

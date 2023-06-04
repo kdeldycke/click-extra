@@ -27,7 +27,8 @@ from .parameters import ExtraOption
 
 class TimerOption(ExtraOption):
     """A pre-configured option that is adding a ``--time``/``--no-time`` flag to print
-    elapsed time at the end of CLI execution."""
+    elapsed time at the end of CLI execution.
+    """
 
     def print_timer(self):
         """Compute and print elapsed execution time."""
@@ -56,7 +57,7 @@ class TimerOption(ExtraOption):
         expose_value=False,
         help=_("Measure and print elapsed execution time."),
         **kwargs,
-    ):
+    ) -> None:
         if not param_decls:
             param_decls = ("--time/--no-time",)
 

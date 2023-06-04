@@ -26,14 +26,23 @@ import pytest
 from boltons.strutils import strip_ansi
 from pytest_cases import parametrize
 
-from .. import HelpTheme, Style, argument, echo, option, option_group, secho, style
-from ..colorize import (
+from click_extra import (
+    HelpTheme,
+    Style,
+    argument,
+    echo,
+    option,
+    option_group,
+    secho,
+    style,
+)
+from click_extra.colorize import (
     HelpExtraFormatter,
     HelpExtraTheme,
     default_theme,
     highlight,
 )
-from ..decorators import (
+from click_extra.decorators import (
     color_option,
     command,
     extra_command,
@@ -41,7 +50,8 @@ from ..decorators import (
     help_option,
     verbosity_option,
 )
-from ..logging import LOG_LEVELS
+from click_extra.logging import LOG_LEVELS
+
 from .conftest import (
     command_decorators,
     default_debug_colored_log_end,
@@ -82,7 +92,7 @@ def test_choices_highlight():
                         Exclude a package manager.
                         Repeat to exclude multiple
                         managers.
-        """
+        """,
     )
 
     formatter.choices = {"apm", "apt", "apt-mint", "brew"}
@@ -250,7 +260,7 @@ def test_keyword_collection(invoke):
 
             Options:
               -h, --help  Show this message and exit.
-            """
+            """,
         )
         assert not result.stderr
 
@@ -258,7 +268,7 @@ def test_keyword_collection(invoke):
 @skip_windows_colors
 @parametrize("option_decorator", (color_option, color_option()))
 @pytest.mark.parametrize(
-    "param, expecting_colors",
+    ("param", "expecting_colors"),
     (
         ("--color", True),
         ("--no-color", False),
@@ -324,7 +334,7 @@ def test_standalone_color_option(invoke, option_decorator, param, expecting_colo
 
 @skip_windows_colors
 @pytest.mark.parametrize(
-    "env, env_expect_colors",
+    ("env", "env_expect_colors"),
     (
         ({"COLOR": "True"}, True),
         ({"COLOR": "true"}, True),
@@ -344,7 +354,7 @@ def test_standalone_color_option(invoke, option_decorator, param, expecting_colo
     ),
 )
 @pytest.mark.parametrize(
-    "param, param_expect_colors",
+    ("param", "param_expect_colors"),
     (
         ("--color", True),
         ("--no-color", False),
@@ -354,7 +364,11 @@ def test_standalone_color_option(invoke, option_decorator, param, expecting_colo
     ),
 )
 def test_no_color_env_convention(
-    invoke, env, env_expect_colors, param, param_expect_colors
+    invoke,
+    env,
+    env_expect_colors,
+    param,
+    param_expect_colors,
 ):
     @click.command
     @color_option
@@ -381,7 +395,7 @@ def test_no_color_env_convention(
 
 @skip_windows_colors
 @pytest.mark.parametrize(
-    "param, expecting_colors",
+    ("param", "expecting_colors"),
     (
         ("--color", True),
         ("--no-color", False),
@@ -442,7 +456,7 @@ def test_integrated_color_option(invoke, param, expecting_colors):
 
 
 @pytest.mark.parametrize(
-    "substrings, expected, ignore_case",
+    ("substrings", "expected", "ignore_case"),
     (
         # Function input types.
         (["hey"], "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m", False),
@@ -528,7 +542,7 @@ def test_standalone_help_option(invoke, cmd_decorator, cmd_type, option_decorato
 
             Options:
               -h, --help  Show this message and exit.
-            """
+            """,
         )
     else:
         assert result.stdout == dedent(
@@ -537,5 +551,5 @@ def test_standalone_help_option(invoke, cmd_decorator, cmd_type, option_decorato
 
             Options:
               -h, --help  Show this message and exit.
-            """
+            """,
         )

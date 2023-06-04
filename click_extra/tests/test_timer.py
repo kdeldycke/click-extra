@@ -24,8 +24,9 @@ from time import sleep
 
 from pytest_cases import parametrize
 
-from .. import echo
-from ..decorators import extra_group, timer_option
+from click_extra import echo
+from click_extra.decorators import extra_group, timer_option
+
 from .conftest import (
     command_decorators,
 )
@@ -98,7 +99,7 @@ def test_standalone_timer_option(invoke, cmd_decorator, option_decorator):
         Options:
           --time / --no-time  Measure and print elapsed execution time.
           --help              Show this message and exit.
-        """
+        """,
     )
 
     result = invoke(standalone_timer, "--time")

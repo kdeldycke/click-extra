@@ -24,9 +24,10 @@ import click
 import pytest
 from pytest_cases import parametrize
 
-from .. import echo
-from ..decorators import extra_command, verbosity_option
-from ..logging import DEFAULT_LEVEL, LOG_LEVELS
+from click_extra import echo
+from click_extra.decorators import extra_command, verbosity_option
+from click_extra.logging import DEFAULT_LEVEL, LOG_LEVELS
+
 from .conftest import (
     command_decorators,
     default_debug_colored_log_end,
@@ -53,7 +54,9 @@ def test_root_logger_defaults():
     assert logging.root.level == DEFAULT_LEVEL
 
 
-@pytest.mark.parametrize("cmd_decorator, cmd_type", command_decorators(with_types=True))
+@pytest.mark.parametrize(
+    ("cmd_decorator", "cmd_type"), command_decorators(with_types=True)
+)
 def test_unrecognized_verbosity(invoke, cmd_decorator, cmd_type):
     @cmd_decorator
     @verbosity_option
@@ -89,7 +92,7 @@ def test_default_root_logger(invoke, cmd_decorator, option_decorator, level):
     - the default logger is ``<root>``
     - the default logger message format
     - level names are colored
-    - log level is propagated to all other loggers
+    - log level is propagated to all other loggers.
     """
 
     @cmd_decorator
@@ -98,7 +101,7 @@ def test_default_root_logger(invoke, cmd_decorator, option_decorator, level):
         echo("It works!")
 
         random_logger = logging.getLogger(
-            f"random_logger_{random.randrange(10000, 99999)}"
+            f"random_logger_{random.randrange(10000, 99999)}",
         )
         random_logger.debug("my random message.")
 
@@ -153,7 +156,8 @@ def test_integrated_verbosity_option(invoke, level):
 
 
 @pytest.mark.parametrize(
-    "logger_param", (logging.getLogger("awesome_app"), "awesome_app")
+    "logger_param",
+    (logging.getLogger("awesome_app"), "awesome_app"),
 )
 @pytest.mark.parametrize("params", (("--verbosity", "DEBUG"), None))
 def test_custom_logger_param(invoke, logger_param, params):

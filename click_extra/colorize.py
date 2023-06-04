@@ -22,7 +22,7 @@ import re
 from configparser import RawConfigParser
 from gettext import gettext as _
 from operator import getitem
-from typing import NamedTuple, Optional, Sequence, cast
+from typing import NamedTuple, Sequence, cast
 
 import click
 import regex as re3
@@ -65,7 +65,7 @@ class HelpExtraTheme(NamedTuple):
     col1: IStyle = identity
     col2: IStyle = identity
     alias: IStyle = identity
-    alias_secondary: Optional[IStyle] = None
+    alias_secondary: IStyle | None = None
     epilog: IStyle = identity
     """Set of properties inherited from ``cloup.HelpTheme``.
 
@@ -114,7 +114,7 @@ class HelpExtraTheme(NamedTuple):
         col1: IStyle | None = None,
         col2: IStyle | None = None,
         alias: IStyle | None = None,
-        alias_secondary: Possibly[Optional[IStyle]] = MISSING,
+        alias_secondary: Possibly[IStyle | None] = MISSING,
         epilog: IStyle | None = None,
         ### Log levels.
         critical: IStyle | None = None,
@@ -261,7 +261,8 @@ class ColorOption(ExtraOption):
                 # these string into booleans. If we can't, we fallback to True, in the
                 # same spirit as above.
                 var_boolean = RawConfigParser.BOOLEAN_STATES.get(
-                    var_value.lower(), True
+                    var_value.lower(),
+                    True,
                 )
                 colorize_from_env.add(default ^ (not var_boolean))
 
@@ -337,7 +338,7 @@ class HelpOption(ExtraOption):
         is_eager=True,
         help=_("Show this message and exit."),
         **kwargs,
-    ):
+    ) -> None:
         if not param_decls:
             param_decls = ("--help", "-h")
 
@@ -484,7 +485,7 @@ class HelpExtraFormatter(HelpFormatter):
 
     theme: HelpExtraTheme
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Forces theme to our default.
 
         Also transform Cloup's standard ``HelpTheme`` to our own ``HelpExtraTheme``.
@@ -584,9 +585,9 @@ class HelpExtraFormatter(HelpFormatter):
 
         # Double-check we processed all named groups.
         if len(named_matches) != 0:
+            msg = "The matching result contains named groups that were not processed. There is an edge-case in the design of regular expressions."
             raise ValueError(
-                "The matching result contains named groups that were not processed. "
-                "There is an edge-case in the design of regular expressions."
+                msg,
             )
 
         return txt
@@ -750,7 +751,7 @@ def highlight(string, substrings, styling_method, ignore_case=False):
     ranges = ",".join(ranges)
     highlight_ranges = int_ranges_from_int_list(ranges)
     untouched_ranges = int_ranges_from_int_list(
-        complement_int_list(ranges, range_end=len(string))
+        complement_int_list(ranges, range_end=len(string)),
     )
 
     # Apply style to range of characters flagged as matching.

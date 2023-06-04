@@ -37,8 +37,8 @@ from pygments.formatters import get_formatter_by_name
 from pygments.lexer import Lexer
 from pygments.lexers import find_lexer_class_by_name, get_lexer_by_name
 
-from .. import pygments as extra_pygments
-from ..pygments import DEFAULT_TOKEN_TYPE, collect_session_lexers
+from click_extra import pygments as extra_pygments
+from click_extra.pygments import DEFAULT_TOKEN_TYPE, collect_session_lexers
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 
@@ -147,7 +147,8 @@ def test_ansi_lexers_candidates(tmp_path):
 
 def collect_classes(klass, prefix="Ansi"):
     """Returns all classes defined in ``click_extra.pygments`` that are a
-    subclass of ``klass``, and whose name starts with the provided ``prefix``."""
+    subclass of ``klass``, and whose name starts with the provided ``prefix``.
+    """
     klasses = {}
     for name, var in extra_pygments.__dict__.items():
         if issubclass(var, klass) and name.startswith(prefix):
@@ -157,7 +158,8 @@ def collect_classes(klass, prefix="Ansi"):
 
 def get_pyproject_section(*section_path: str) -> dict[str, str]:
     """Descends into the TOML tree of ``pyproject.toml`` to reach the value specified by
-    ``section_path``."""
+    ``section_path``.
+    """
     toml_path = PROJECT_ROOT.joinpath("pyproject.toml").resolve()
     section: dict = tomllib.loads(toml_path.read_text(encoding="utf-8"))
     for section_id in section_path:

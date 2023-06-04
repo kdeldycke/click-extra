@@ -53,7 +53,8 @@ like and terminal lexers.
 
 class AnsiFilter(Filter):
     """Custom filter transforming a particular kind of token (``Generic.Output`` by
-    defaults) into ANSI tokens."""
+    defaults) into ANSI tokens.
+    """
 
     def __init__(self, **options) -> None:
         """Initialize a ``AnsiColorLexer`` and configure the ``token_type`` to be
@@ -67,7 +68,7 @@ class AnsiFilter(Filter):
         super().__init__(**options)
         self.ansi_lexer = AnsiColorLexer()
         self.token_type = string_to_tokentype(
-            options.get("token_type", DEFAULT_TOKEN_TYPE)
+            options.get("token_type", DEFAULT_TOKEN_TYPE),
         )
 
     def filter(self, lexer, stream):
@@ -171,7 +172,7 @@ class AnsiHtmlFormatter(ExtendedColorHtmlFormatterMixin, HtmlFormatter):
     name = "ANSI HTML"
     aliases = ["ansi-html"]
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         """Intercept the ``style`` argument to augment it with ANSI colors support.
 
         Creates a new style instance that inherits from the one provided by the user,

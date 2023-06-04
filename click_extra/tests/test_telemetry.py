@@ -20,7 +20,8 @@ from textwrap import dedent
 
 from pytest_cases import parametrize
 
-from .. import command, echo, pass_context, telemetry_option
+from click_extra import command, echo, pass_context, telemetry_option
+
 from .conftest import command_decorators
 
 
@@ -46,7 +47,7 @@ def test_standalone_telemetry_option(invoke, cmd_decorator, option_decorator):
           --telemetry / --no-telemetry  Collect telemetry and usage data.  [env var:
                                         DO_NOT_TRACK]
           --help                        Show this message and exit.
-        """
+        """,
     )
 
     result = invoke(standalone_telemetry, "--telemetry")
@@ -80,7 +81,7 @@ def test_multiple_envvars(invoke):
           --telemetry / --no-telemetry  Collect telemetry and usage data.  [env var:
                                         DO_NOT_TRACK; default: no-telemetry]
           --help                        Show this message and exit.
-        """
+        """,
     )
 
     result = invoke(standalone_telemetry, env={"DO_NOT_TRACK": "1"})

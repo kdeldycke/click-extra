@@ -40,8 +40,6 @@ from typing import (
     Mapping,
     Optional,
     Sequence,
-    Tuple,
-    Type,
     Union,
     cast,
 )
@@ -91,7 +89,7 @@ def format_cli_prompt(cmd_args: Iterable[str], extra_env: EnvVars | None = None)
     extra_env_string = ""
     if extra_env:
         extra_env_string = default_theme.envvar(
-            "".join(f"{k}={v} " for k, v in extra_env.items())
+            "".join(f"{k}={v} " for k, v in extra_env.items()),
         )
 
     cmd_str = default_theme.invoked_command(" ".join(cmd_args))
@@ -102,7 +100,7 @@ def format_cli_prompt(cmd_args: Iterable[str], extra_env: EnvVars | None = None)
 def print_cli_run(
     args: Iterable[str],
     result: click.testing.Result | subprocess.CompletedProcess,
-    env: EnvVars | None = None
+    env: EnvVars | None = None,
 ) -> None:
     """Prints the full simulation of CLI execution, including output.
 
@@ -128,7 +126,8 @@ def print_cli_run(
         exit_code = result.returncode
 
     else:
-        raise TypeError(f"Unknown result type: {type(result)}")
+        msg = f"Unknown result type: {type(result)}"
+        raise TypeError(msg)
 
     # Render the execution trace.
     print()
@@ -174,7 +173,7 @@ def env_copy(extend: EnvVars | None = None) -> EnvVars | None:
 def run_cmd(
     *args: str,
     extra_env: EnvVars | None = None,
-    print_output: bool = True
+    print_output: bool = True,
 ) -> tuple[int, str, str]:
     """Run a system command, print output and return results."""
     result = subprocess.run(
@@ -259,18 +258,17 @@ class ExtraResult(click.testing.Result):
     """Makes ``stderr_bytes`` mandatory."""
 
     def __init__(
-            self,
-            runner: click.testing.CliRunner,
-            stdout_bytes: bytes,
-            stderr_bytes: bytes,
-            output_bytes: bytes,
-            return_value: Any,
-            exit_code: int,
-            exception: Optional[BaseException],
-            exc_info: Optional[
-                Tuple[Type[BaseException], BaseException, TracebackType]
-            ] = None,
-    ):
+        self,
+        runner: click.testing.CliRunner,
+        stdout_bytes: bytes,
+        stderr_bytes: bytes,
+        output_bytes: bytes,
+        return_value: Any,
+        exit_code: int,
+        exception: BaseException | None,
+        exc_info: tuple[type[BaseException], BaseException, TracebackType]
+        | None = None,
+    ) -> None:
         """Same as original but adds ``output_bytes`` parameter.
 
         Also makes ``stderr_bytes`` mandatory.
@@ -296,7 +294,8 @@ class ExtraResult(click.testing.Result):
             ``<stderr>`` depending on the ``mix_stderr`` value.
         """
         return self.output_bytes.decode(self.runner.charset, "replace").replace(
-            "\r\n", "\n"
+            "\r\n",
+            "\n",
         )
 
     @property
@@ -308,7 +307,8 @@ class ExtraResult(click.testing.Result):
             exception, and always returns the ``<stderr>`` string.
         """
         return self.stderr_bytes.decode(self.runner.charset, "replace").replace(
-            "\r\n", "\n"
+            "\r\n",
+            "\n",
         )
 
 
@@ -328,10 +328,10 @@ class ExtraCliRunner(click.testing.CliRunner):
     @contextlib.contextmanager
     def isolation(  # type: ignore[override]
         self,
-        input: Optional[Union[str, bytes, IO[Any]]] = None,
-        env: Optional[Mapping[str, Optional[str]]] = None,
+        input: str | bytes | IO[Any] | None = None,
+        env: Mapping[str, str | None] | None = None,
         color: bool = False,
-    ) -> Iterator[Tuple[io.BytesIO, io.BytesIO, io.BytesIO]]:
+    ) -> Iterator[tuple[io.BytesIO, io.BytesIO, io.BytesIO]]:
         """Copy of ``click.testing.CliRunner.isolation()`` with extra features.
 
         - An additional output stream is returned, which is a mix of ``<stdout>`` and
@@ -363,11 +363,15 @@ class ExtraCliRunner(click.testing.CliRunner):
 
         if self.echo_stdin:
             bytes_input = echo_input = cast(
-                BinaryIO, click.testing.EchoingStdin(bytes_input, stream_mixer.stdout)
+                BinaryIO,
+                click.testing.EchoingStdin(bytes_input, stream_mixer.stdout),
             )
 
         sys.stdin = text_input = click.testing._NamedTextIOWrapper(
-            bytes_input, encoding=self.charset, name="<stdin>", mode="r"
+            bytes_input,
+            encoding=self.charset,
+            name="<stdin>",
+            mode="r",
         )
 
         if self.echo_stdin:
@@ -376,7 +380,10 @@ class ExtraCliRunner(click.testing.CliRunner):
             text_input._CHUNK_SIZE = 1  # type: ignore
 
         sys.stdout = click.testing._NamedTextIOWrapper(
-            stream_mixer.stdout, encoding=self.charset, name="<stdout>", mode="w"
+            stream_mixer.stdout,
+            encoding=self.charset,
+            name="<stdout>",
+            mode="w",
         )
 
         sys.stderr = click.testing._NamedTextIOWrapper(
@@ -388,7 +395,7 @@ class ExtraCliRunner(click.testing.CliRunner):
         )
 
         @click.testing._pause_echo(echo_input)  # type: ignore[arg-type]
-        def visible_input(prompt: Optional[str] = None) -> str:
+        def visible_input(prompt: str | None = None) -> str:
             sys.stdout.write(prompt or "")
             val = text_input.readline().rstrip("\r\n")
             sys.stdout.write(f"{val}\n")
@@ -396,7 +403,7 @@ class ExtraCliRunner(click.testing.CliRunner):
             return val
 
         @click.testing._pause_echo(echo_input)  # type: ignore[arg-type]
-        def hidden_input(prompt: Optional[str] = None) -> str:
+        def hidden_input(prompt: str | None = None) -> str:
             sys.stdout.write(f"{prompt or ''}\n")
             sys.stdout.flush()
             return text_input.readline().rstrip("\r\n")
@@ -414,7 +421,8 @@ class ExtraCliRunner(click.testing.CliRunner):
         default_color = color
 
         def should_strip_ansi(
-            stream: Optional[IO[Any]] = None, color: Optional[bool] = None
+            stream: IO[Any] | None = None,
+            color: bool | None = None,
         ) -> bool:
             if color is None:
                 return not default_color
@@ -434,20 +442,18 @@ class ExtraCliRunner(click.testing.CliRunner):
             for key, value in env.items():
                 old_env[key] = os.environ.get(key)
                 if value is None:
-                    try:
+                    with contextlib.suppress(Exception):
                         del os.environ[key]
-                    except Exception:
-                        pass
+
                 else:
                     os.environ[key] = value
             yield (stream_mixer.stdout, stream_mixer.stderr, stream_mixer.output)
         finally:
             for key, value in old_env.items():
                 if value is None:
-                    try:
+                    with contextlib.suppress(Exception):
                         del os.environ[key]
-                    except Exception:
-                        pass
+
                 else:
                     os.environ[key] = value
             sys.stdout = old_stdout
@@ -462,9 +468,9 @@ class ExtraCliRunner(click.testing.CliRunner):
     def invoke2(
         self,
         cli: click.core.BaseCommand,
-        args: Optional[Union[str, Sequence[str]]] = None,
-        input: Optional[Union[str, bytes, IO[Any]]] = None,
-        env: Optional[Mapping[str, Optional[str]]] = None,
+        args: str | Sequence[str] | None = None,
+        input: str | bytes | IO[Any] | None = None,
+        env: Mapping[str, str | None] | None = None,
         catch_exceptions: bool = True,
         color: bool = False,
         **extra: Any,
@@ -482,7 +488,7 @@ class ExtraCliRunner(click.testing.CliRunner):
         exc_info = None
         with self.isolation(input=input, env=env, color=color) as outstreams:
             return_value = None
-            exception: Optional[BaseException] = None
+            exception: BaseException | None = None
             exit_code = 0
 
             if isinstance(args, str):
@@ -534,7 +540,6 @@ class ExtraCliRunner(click.testing.CliRunner):
             exception=exception,
             exc_info=exc_info,  # type: ignore
         )
-
 
     def invoke(  # type: ignore[override]
         self,
@@ -631,19 +636,21 @@ class ExtraCliRunner(click.testing.CliRunner):
             # parameter for ``Context`` initialization. Because we cannot simply add
             # colliding parameter IDs to ``**extra``.
             extra_params_bypass = patch.object(
-                cli, "main", partial(cli.main, **extra_bypass)
+                cli,
+                "main",
+                partial(cli.main, **extra_bypass),
             )
 
         with extra_params_bypass:
             result = self.invoke2(
-                    cli=cli,
-                    args=clean_args,
-                    input=input,
-                    env=env,
-                    catch_exceptions=catch_exceptions,
-                    color=isolation_color,
-                    **extra,
-                )
+                cli=cli,
+                args=clean_args,
+                input=input,
+                env=env,
+                catch_exceptions=catch_exceptions,
+                color=isolation_color,
+                **extra,
+            )
 
         # ``color`` has been explicitly set to ``False``, so strip all ANSI codes.
         if color is False:
@@ -652,7 +659,7 @@ class ExtraCliRunner(click.testing.CliRunner):
             result.output_bytes = strip_ansi(result.output_bytes)
 
         print_cli_run(
-            [self.get_default_prog_name(cli)] + list(clean_args),
+            [self.get_default_prog_name(cli), *list(clean_args)],
             result,
             env=env,
         )
