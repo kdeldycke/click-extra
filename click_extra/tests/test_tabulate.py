@@ -30,7 +30,8 @@ from .conftest import command_decorators
 
 
 @pytest.mark.parametrize(
-    ("cmd_decorator", "cmd_type"), command_decorators(with_types=True)
+    ("cmd_decorator", "cmd_type"),
+    command_decorators(with_types=True),
 )
 def test_unrecognized_format(invoke, cmd_decorator, cmd_type):
     @cmd_decorator

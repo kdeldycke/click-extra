@@ -286,7 +286,10 @@ class ParamStructure:
     """
 
     def __init__(
-        self, *args, exclude_params: Iterable[str] | None = None, **kwargs
+        self,
+        *args,
+        exclude_params: Iterable[str] | None = None,
+        **kwargs,
     ) -> None:
         """Force the blocklist with paramerers provided by the user.
 
