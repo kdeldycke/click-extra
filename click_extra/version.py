@@ -118,7 +118,7 @@ class VersionOption(ExtraOption):
         # to be called.
         ctx.close()
         ctx.exit()
-        return None
+        return None  # type: ignore[unreachable]
 
     def __init__(
         self,
