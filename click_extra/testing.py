@@ -659,7 +659,7 @@ class ExtraCliRunner(click.testing.CliRunner):
             result.output_bytes = strip_ansi(result.output_bytes)
 
         print_cli_run(
-            [self.get_default_prog_name(cli), *list(clean_args)],
+            [self.get_default_prog_name(cli), *clean_args],
             result,
             env=env,
         )
