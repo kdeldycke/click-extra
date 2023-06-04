@@ -55,7 +55,8 @@ def test_root_logger_defaults():
 
 
 @pytest.mark.parametrize(
-    ("cmd_decorator", "cmd_type"), command_decorators(with_types=True)
+    ("cmd_decorator", "cmd_type"),
+    command_decorators(with_types=True),
 )
 def test_unrecognized_verbosity(invoke, cmd_decorator, cmd_type):
     @cmd_decorator
