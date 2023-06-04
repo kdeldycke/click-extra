@@ -114,7 +114,7 @@ Placed in your Sphinx documentation, the two blocks above renders to:
     result = invoke(hello_world, args=["--help"])
     assert result.stdout.startswith(dedent(
         """\
-        \x1b[94m\x1b[1m\x1b[4mUsage: \x1b[0m\x1b[97mhello-world\x1b[0m \x1b[36m\x1b[2m[OPTIONS]\x1b[0m
+        \x1b[94m\x1b[1m\x1b[4mUsage:\x1b[0m \x1b[97mhello-world\x1b[0m \x1b[36m\x1b[2m[OPTIONS]\x1b[0m
 
           Simple program that greets NAME.
 

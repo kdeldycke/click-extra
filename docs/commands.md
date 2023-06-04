@@ -122,7 +122,7 @@ And now you get:
    result = invoke(cli, args=["--help"])
    assert result.stdout.startswith(dedent(
       """\
-      \x1b[94m\x1b[1m\x1b[4mUsage: \x1b[0m\x1b[97mcli\x1b[0m \x1b[36m\x1b[2m[OPTIONS]\x1b[0m
+      \x1b[94m\x1b[1m\x1b[4mUsage:\x1b[0m \x1b[97mcli\x1b[0m \x1b[36m\x1b[2m[OPTIONS]\x1b[0m
 
       \x1b[94m\x1b[1m\x1b[4mOptions:\x1b[0m
         \x1b[36m--version\x1b[0m                 Show the version and exit.

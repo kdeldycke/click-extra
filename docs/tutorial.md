@@ -63,7 +63,7 @@ And now you get:
     from textwrap import dedent
     result = invoke(hello, args=["--help"])
     assert result.output.startswith(dedent("""\
-        \x1b[94m\x1b[1m\x1b[4mUsage: \x1b[0m\x1b[97mhello\x1b[0m \x1b[36m\x1b[2m[OPTIONS]\x1b[0m
+        \x1b[94m\x1b[1m\x1b[4mUsage:\x1b[0m \x1b[97mhello\x1b[0m \x1b[36m\x1b[2m[OPTIONS]\x1b[0m
 
           Simple program that greets NAME for a total of COUNT times.
 

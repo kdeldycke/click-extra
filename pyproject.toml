@@ -74,8 +74,8 @@ python = "^3.8"
 boltons = "^23.0.0"
 # Click 8.1 is the first version to support ``params=`` in ``@command``.
 click = "^8.1"
-# Cloup 2.1.0 introduced colorization of subcommand aliases.
-cloup = "^2.1.0"
+# Cloup 2.1.1 fix heading colorization.
+cloup = "^2.1.1"
 commentjson = "^0.9.0"
 mergedeep = "^1.3.4"
 # Pallets-Sphinx-Themes 2.1.0 is the first version rendering ``.. sourcecode:: shell-session`` code-blocks.
