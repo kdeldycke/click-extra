@@ -326,10 +326,11 @@ class ConfigOption(ExtraOption, ParamStructure):
                     value = json.loads(ini_config.get(section_id, option_id))
 
                 else:
-                    msg = f"Conversion of {target_type} type for [{section_id}]:{option_id} INI config option."
-                    raise ValueError(
-                        msg,
+                    msg = (
+                        f"Conversion of {target_type} type for "
+                        f"[{section_id}]:{option_id} INI config option."
                     )
+                    raise ValueError(msg)
 
                 sub_conf[option_id] = value
 

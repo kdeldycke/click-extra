@@ -513,10 +513,11 @@ def current_os() -> Platform:
         raise RuntimeError(msg)
 
     if not matching:
-        msg = f"Unrecognized {sys.platform} / {platform.platform(aliased=True, terse=True)} platform."
-        raise SystemError(
-            msg,
+        msg = (
+            f"Unrecognized {sys.platform} / "
+            f"{platform.platform(aliased=True, terse=True)} platform."
         )
+        raise SystemError(msg)
 
     assert len(matching) == 1
     return matching.pop()

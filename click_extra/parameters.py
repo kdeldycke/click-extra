@@ -128,8 +128,8 @@ def all_envvars(
     of ``click.core.Option.resolve_envvar_value()``.
 
     If ``normalize`` is `True`, the returned value is normalized. By default it is
-    `False` to perfectly reproduce the
-    `current behavior of Click, which is subject to discussions <https://github.com/pallets/click/issues/2483>`_.
+    `False` to perfectly reproduce the `current behavior of Click, which is subject to
+    discussions <https://github.com/pallets/click/issues/2483>`_.
     """
     auto_envvar_id = auto_envvar(param, ctx)
     envvars = extend_envvars(param.envvar, auto_envvar_id)
@@ -157,10 +157,11 @@ def search_params(
         return None
     if unique:
         if len(param_list) != 1:
-            msg = f"More than one {klass.__name__} parameters found on command: {param_list}"
-            raise RuntimeError(
-                msg,
+            msg = (
+                f"More than one {klass.__name__} parameters found on command: "
+                f"{param_list}"
             )
+            raise RuntimeError(msg)
         return param_list.pop()
     return param_list
 
@@ -364,10 +365,11 @@ class ParamStructure:
         if hasattr(cli, "commands"):
             for cmd_id, cmd in cli.commands.items():
                 if cmd_id in top_level_params:
-                    msg = f"{cli.name}{self.SEP}{cmd_id} subcommand conflicts with {top_level_params} top-level parameters"
-                    raise ValueError(
-                        msg,
+                    msg = (
+                        f"{cli.name}{self.SEP}{cmd_id} subcommand conflicts with "
+                        f"{top_level_params} top-level parameters"
                     )
+                    raise ValueError(msg)
 
                 for p in cmd.params:
                     yield (cli.name, cmd_id, p.name), p

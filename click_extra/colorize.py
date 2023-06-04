@@ -585,10 +585,11 @@ class HelpExtraFormatter(HelpFormatter):
 
         # Double-check we processed all named groups.
         if len(named_matches) != 0:
-            msg = "The matching result contains named groups that were not processed. There is an edge-case in the design of regular expressions."
-            raise ValueError(
-                msg,
+            msg = (
+                "The matching result contains named groups that were not processed. "
+                "There is an edge-case in the design of regular expressions."
             )
+            raise ValueError(msg)
 
         return txt
 

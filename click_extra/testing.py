@@ -125,10 +125,6 @@ def print_cli_run(
         stderr = result.stderr
         exit_code = result.returncode
 
-    else:
-        msg = f"Unknown result type: {type(result)}"
-        raise TypeError(msg)
-
     # Render the execution trace.
     print()
     print(prompt)

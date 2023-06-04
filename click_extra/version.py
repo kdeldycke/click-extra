@@ -35,7 +35,7 @@ class VersionOption(ExtraOption):
 
     .. warning::
         This is a `copy of the standard @click.version_option() decorator
-        <https://github.com/pallets/click/blob/dc918b48fb9006be683a684b42cc7496ad649b83/src/click/decorators.py#L399-L466>`_.
+        <https://github.com/pallets/click/blob/dc918b4/src/click/decorators.py#L399-L466>`_.
 
         It has been made into a class here, to allow its use with the declarative
         ``params=`` argument. Which `fixes Click #2324 issue
@@ -90,16 +90,18 @@ class VersionOption(ExtraOption):
             try:
                 self.version = metadata.version(self.package_name)
             except metadata.PackageNotFoundError:
-                msg = f"{self.package_name!r} is not installed. Try passing 'package_name' instead."
-                raise RuntimeError(
-                    msg,
-                ) from None
+                msg = (
+                    f"{self.package_name!r} is not installed. Try passing "
+                    "'package_name' instead."
+                )
+                raise RuntimeError(msg) from None
 
         if self.version is None:
-            msg = f"Could not determine the version for {self.package_name!r} automatically."
-            raise RuntimeError(
-                msg,
+            msg = (
+                f"Could not determine the version for {self.package_name!r} "
+                "automatically."
             )
+            raise RuntimeError(msg)
 
         output = self.message % {
             "prog": self.prog_name,
@@ -116,7 +118,6 @@ class VersionOption(ExtraOption):
         # to be called.
         ctx.close()
         ctx.exit()
-        return None
 
     def __init__(
         self,
