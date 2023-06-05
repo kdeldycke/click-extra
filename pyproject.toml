@@ -99,7 +99,6 @@ wcmatch = "^8.4.1"
 xmltodict = "^0.13.0"
 
 [tool.poetry.group.dev.dependencies]
-bump2version = "^1.0.1"
 coverage = { extras = ["toml"], version = "^7.2.3" }
 furo = "^2023.05.20"
 mypy = "^1.2.0"
