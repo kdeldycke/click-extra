@@ -285,7 +285,7 @@ class Group:
 
 ALL_PLATFORMS: Group = Group(
     "all_platforms",
-    "All platforms",
+    "Any platforms",
     (
         AIX,
         CYGWIN,
@@ -305,13 +305,13 @@ ALL_PLATFORMS: Group = Group(
 """All recognized platforms."""
 
 
-ALL_WINDOWS = Group("all_windows", "All Windows", (WINDOWS,))
+ALL_WINDOWS = Group("all_windows", "Any Windows", (WINDOWS,))
 """All Windows operating systems."""
 
 
 UNIX = Group(
     "unix",
-    "All Unix",
+    "Any Unix",
     tuple(p for p in ALL_PLATFORMS.platforms if p not in ALL_WINDOWS),
 )
 """All Unix-like operating systems and compatibility layers."""
@@ -319,7 +319,7 @@ UNIX = Group(
 
 UNIX_WITHOUT_MACOS = Group(
     "unix_without_macos",
-    "All Unix without macOS",
+    "Any Unix but macOS",
     tuple(p for p in UNIX if p is not MACOS),
 )
 """All Unix platforms, without macOS.
@@ -328,7 +328,7 @@ This is useful to avoid macOS-specific workarounds on Unix platforms.
 """
 
 
-BSD = Group("bsd", "All BSD", (FREEBSD, MACOS, NETBSD, OPENBSD, SUNOS))
+BSD = Group("bsd", "Any BSD", (FREEBSD, MACOS, NETBSD, OPENBSD, SUNOS))
 """All BSD platforms.
 
 .. note::
@@ -345,7 +345,7 @@ BSD = Group("bsd", "All BSD", (FREEBSD, MACOS, NETBSD, OPENBSD, SUNOS))
 
 BSD_WITHOUT_MACOS = Group(
     "bsd_without_macos",
-    "All BSD without macOS",
+    "Any BSD but macOS",
     tuple(p for p in BSD if p is not MACOS),
 )
 """All BSD platforms, without macOS.
@@ -354,7 +354,7 @@ This is useful to avoid macOS-specific workarounds on BSD platforms.
 """
 
 
-ALL_LINUX = Group("all_linux", "All Linux", (LINUX,))
+ALL_LINUX = Group("all_linux", "Any Linux", (LINUX,))
 """All Unix platforms based on a Linux kernel.
 
 .. note::
@@ -367,7 +367,7 @@ ALL_LINUX = Group("all_linux", "All Linux", (LINUX,))
 """
 
 
-LINUX_LAYERS = Group("linux_layers", "All Linux compatibility layers", (WSL1, WSL2))
+LINUX_LAYERS = Group("linux_layers", "Any Linux compatibility layers", (WSL1, WSL2))
 """Interfaces that allows Linux binaries to run on a different host system.
 
 .. note::
@@ -378,7 +378,7 @@ LINUX_LAYERS = Group("linux_layers", "All Linux compatibility layers", (WSL1, WS
 """
 
 
-SYSTEM_V = Group("system_v", "All Unix derived from AT&T System Five", (AIX, SOLARIS))
+SYSTEM_V = Group("system_v", "Any Unix derived from AT&T System Five", (AIX, SOLARIS))
 """All Unix platforms derived from AT&T System Five.
 
 .. note::
@@ -399,7 +399,7 @@ SYSTEM_V = Group("system_v", "All Unix derived from AT&T System Five", (AIX, SOL
 """
 
 
-UNIX_LAYERS = Group("unix_layers", "All Unix compatibility layers", (CYGWIN,))
+UNIX_LAYERS = Group("unix_layers", "Any Unix compatibility layers", (CYGWIN,))
 """Interfaces that allows Unix binaries to run on a different host system.
 
 .. note::
@@ -425,7 +425,7 @@ UNIX_LAYERS = Group("unix_layers", "All Unix compatibility layers", (CYGWIN,))
 
 OTHER_UNIX = Group(
     "other_unix",
-    "All other Unix",
+    "Any other Unix",
     tuple(
         p
         for p in UNIX
