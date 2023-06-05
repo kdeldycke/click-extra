@@ -524,8 +524,8 @@ def reduce(items: Iterable[Group | Platform]) -> set[Group | Platform]:
     # Serialize group sets for deterministic lookups. Sort them by platform count.
     groups = tuple(sorted(valid_groups, key=len, reverse=True))
     for subset_size in range(1, len(groups) + 1):
-        # If we already have a solution that involves less items than the current subset of
-        # groups we're going to evaluates, there is no point in continuing.
+        # If we already have a solution that involves less items than the current
+        # subset of groups we're going to evaluates, there is no point in continuing.
         if min_items and subset_size > min_items:
             break
 
@@ -558,7 +558,7 @@ def reduce(items: Iterable[Group | Platform]) -> set[Group | Platform]:
 
     # If no reduceted solution was found, return the original platforms.
     if not results:
-        return platforms
+        return platforms  # type: ignore[return-value]
 
     return results.pop()
 
