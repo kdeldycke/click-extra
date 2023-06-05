@@ -10,31 +10,31 @@ All platforms are grouped in sets of non-overlaping families:
 ```mermaid
 :zoom:
 flowchart
-    subgraph <code>click_extra.platforms.ALL_LINUX</code><br/><em>All Linux</em>
+    subgraph <code>click_extra.platforms.ALL_LINUX</code><br/><em>Any Linux</em>
         all_linux_linux(<code>linux</code><br/><em>Linux</em>)
     end
-    subgraph <code>click_extra.platforms.ALL_WINDOWS</code><br/><em>All Windows</em>
+    subgraph <code>click_extra.platforms.ALL_WINDOWS</code><br/><em>Any Windows</em>
         all_windows_windows(<code>windows</code><br/><em>Windows</em>)
     end
-    subgraph <code>click_extra.platforms.BSD</code><br/><em>All BSD</em>
+    subgraph <code>click_extra.platforms.BSD</code><br/><em>Any BSD</em>
         bsd_freebsd(<code>freebsd</code><br/><em>FreeBSD</em>)
         bsd_macos(<code>macos</code><br/><em>macOS</em>)
         bsd_netbsd(<code>netbsd</code><br/><em>NetBSD</em>)
         bsd_openbsd(<code>openbsd</code><br/><em>OpenBSD</em>)
         bsd_sunos(<code>sunos</code><br/><em>SunOS</em>)
     end
-    subgraph <code>click_extra.platforms.LINUX_LAYERS</code><br/><em>All Linux compatibility layers</em>
+    subgraph <code>click_extra.platforms.LINUX_LAYERS</code><br/><em>Any Linux compatibility layers</em>
         linux_layers_wsl1(<code>wsl1</code><br/><em>Windows Subsystem for Linux v1</em>)
         linux_layers_wsl2(<code>wsl2</code><br/><em>Windows Subsystem for Linux v2</em>)
     end
-    subgraph <code>click_extra.platforms.OTHER_UNIX</code><br/><em>All other Unix</em>
+    subgraph <code>click_extra.platforms.OTHER_UNIX</code><br/><em>Any other Unix</em>
         other_unix_hurd(<code>hurd</code><br/><em>GNU/Hurd</em>)
     end
-    subgraph <code>click_extra.platforms.SYSTEM_V</code><br/><em>All Unix derived from AT&T System Five</em>
+    subgraph <code>click_extra.platforms.SYSTEM_V</code><br/><em>Any Unix derived from AT&T System Five</em>
         system_v_aix(<code>aix</code><br/><em>AIX</em>)
         system_v_solaris(<code>solaris</code><br/><em>Solaris</em>)
     end
-    subgraph <code>click_extra.platforms.UNIX_LAYERS</code><br/><em>All Unix compatibility layers</em>
+    subgraph <code>click_extra.platforms.UNIX_LAYERS</code><br/><em>Any Unix compatibility layers</em>
         unix_layers_cygwin(<code>cygwin</code><br/><em>Cygwin</em>)
     end
 ```
@@ -51,7 +51,7 @@ Other groups are available for convenience, but these overlaps:
 ```mermaid
 :zoom:
 flowchart
-    subgraph <code>click_extra.platforms.ALL_PLATFORMS</code><br/><em>All platforms</em>
+    subgraph <code>click_extra.platforms.ALL_PLATFORMS</code><br/><em>Any platforms</em>
         all_platforms_aix(<code>aix</code><br/><em>AIX</em>)
         all_platforms_cygwin(<code>cygwin</code><br/><em>Cygwin</em>)
         all_platforms_freebsd(<code>freebsd</code><br/><em>FreeBSD</em>)
@@ -66,13 +66,13 @@ flowchart
         all_platforms_wsl1(<code>wsl1</code><br/><em>Windows Subsystem for Linux v1</em>)
         all_platforms_wsl2(<code>wsl2</code><br/><em>Windows Subsystem for Linux v2</em>)
     end
-    subgraph <code>click_extra.platforms.BSD_WITHOUT_MACOS</code><br/><em>All BSD without macOS</em>
+    subgraph <code>click_extra.platforms.BSD_WITHOUT_MACOS</code><br/><em>Any BSD but macOS</em>
         bsd_without_macos_freebsd(<code>freebsd</code><br/><em>FreeBSD</em>)
         bsd_without_macos_netbsd(<code>netbsd</code><br/><em>NetBSD</em>)
         bsd_without_macos_openbsd(<code>openbsd</code><br/><em>OpenBSD</em>)
         bsd_without_macos_sunos(<code>sunos</code><br/><em>SunOS</em>)
     end
-    subgraph <code>click_extra.platforms.UNIX</code><br/><em>All Unix</em>
+    subgraph <code>click_extra.platforms.UNIX</code><br/><em>Any Unix</em>
         unix_aix(<code>aix</code><br/><em>AIX</em>)
         unix_cygwin(<code>cygwin</code><br/><em>Cygwin</em>)
         unix_freebsd(<code>freebsd</code><br/><em>FreeBSD</em>)
@@ -86,7 +86,7 @@ flowchart
         unix_wsl1(<code>wsl1</code><br/><em>Windows Subsystem for Linux v1</em>)
         unix_wsl2(<code>wsl2</code><br/><em>Windows Subsystem for Linux v2</em>)
     end
-    subgraph <code>click_extra.platforms.UNIX_WITHOUT_MACOS</code><br/><em>All Unix without macOS</em>
+    subgraph <code>click_extra.platforms.UNIX_WITHOUT_MACOS</code><br/><em>Any Unix but macOS</em>
         unix_without_macos_aix(<code>aix</code><br/><em>AIX</em>)
         unix_without_macos_cygwin(<code>cygwin</code><br/><em>Cygwin</em>)
         unix_without_macos_freebsd(<code>freebsd</code><br/><em>FreeBSD</em>)
