@@ -100,7 +100,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         formats=tuple(Formats),
         roaming=True,
         force_posix=False,
-        exclude_params=None,
+        excluded_params=None,
         strict=False,
         **kwargs,
     ) -> None:
@@ -120,9 +120,9 @@ class ConfigOption(ExtraOption, ParamStructure):
           <https://click.palletsprojects.com/en/8.1.x/api/#click.get_app_dir>`_
           to setup the default configuration folder.
 
-        - ``exclude_params`` is a list of options to ignore by the
+        - ``excluded_params`` is a list of options to ignore by the
           configuration parser. Defaults to
-          ``ParamStructure.DEFAULT_EXCLUDE_PARAMS``.
+          ``ParamStructure.DEFAULT_EXCLUDED_PARAMS``.
 
         - ``strict``
             - If ``True``, raise an error if the configuration file contain
@@ -142,8 +142,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         self.force_posix = force_posix
         kwargs.setdefault("default", self.default_pattern)
 
-        if exclude_params is not None:
-            self.exclude_params = exclude_params
+        if excluded_params is not None:
+            self.excluded_params = excluded_params
 
         self.strict = strict
 

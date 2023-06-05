@@ -269,7 +269,7 @@ class ParamStructure:
     """Use a dot ``.`` as a separator between levels of the tree-like parameter
     structure."""
 
-    DEFAULT_EXCLUDE_PARAMS: Iterable[str] = (
+    DEFAULT_EXCLUDED_PARAMS: Iterable[str] = (
         "config",
         "help",
         "show_params",
@@ -288,15 +288,16 @@ class ParamStructure:
     def __init__(
         self,
         *args,
-        exclude_params: Iterable[str] | None = None,
+        excluded_params: Iterable[str] | None = None,
         **kwargs,
     ) -> None:
-        """Force the blocklist with paramerers provided by the user.
+        """Allow a list of paramerers to be blocked from the parameter structure.
 
-        Else, let the cached ``self.exclude_params`` property compute it.
+        If ``excluded_params`` is not provided, let the dynamic and cached
+        ``self.excluded_params`` property to compute the default value on first use.
         """
-        if exclude_params is not None:
-            self.exclude_params = exclude_params
+        if excluded_params is not None:
+            self.excluded_params = excluded_params
 
         super().__init__(*args, **kwargs)
 
@@ -345,8 +346,8 @@ class ParamStructure:
     def walk_params(self):
         """Generates an unfiltered list of all CLI parameters.
 
-        Everything is included, from top-level to subcommands, from options to
-        arguments.
+        Everything is included, from top-level groups to subcommands, and from options
+        to arguments.
 
         Returns a 2-elements tuple:
             - the first being a tuple of keys leading to the parameter
@@ -424,23 +425,28 @@ class ParamStructure:
         raise ValueError(msg)
 
     @cached_property
-    def exclude_params(self) -> Iterable[str]:
+    def excluded_params(self) -> Iterable[str]:
         """List of parameter IDs to exclude from the parameter structure.
 
         Elements of this list are expected to be the fully-qualified ID of the
         parameter, i.e. the dot-separated ID that is prefixed by the CLI name.
 
-        It's been made into a property to allow for a last-minute call to the current
-        context to fetch the CLI name.
+        .. caution::
+            It is only called once to produce the list of default parameters to
+            exclude, if the user did not provided its own list to the constructor.
+
+            It was not implemented in the constructor but made as a property, to allow
+            for a just-in-time call to the current context. Without this trick we could
+            not have fetched the CLI name.
         """
         ctx = get_current_context()
         cli = ctx.find_root().command
-        return [f"{cli.name}{self.SEP}{p}" for p in self.DEFAULT_EXCLUDE_PARAMS]
+        return [f"{cli.name}{self.SEP}{p}" for p in self.DEFAULT_EXCLUDED_PARAMS]
 
     def build_param_trees(self) -> None:
         """Build all parameters tree structure in one go and cache them.
 
-        This removes parameters whose fully-qualified IDs are in the ``exclude_params``
+        This removes parameters whose fully-qualified IDs are in the ``excluded_params``
         blocklist.
         """
         template: dict[str, Any] = {}
@@ -448,7 +454,7 @@ class ParamStructure:
         objects: dict[str, Any] = {}
 
         for keys, param in self.walk_params():
-            if self.SEP.join(keys) in self.exclude_params:
+            if self.SEP.join(keys) in self.excluded_params:
                 continue
             merge(template, self.init_tree_dict(*keys))
             merge(types, self.init_tree_dict(*keys, leaf=self.get_param_type(param)))
@@ -527,8 +533,8 @@ class ShowParamsOption(ExtraOption, ParamStructure):
 
         kwargs.setdefault("callback", self.print_params)
 
-        # Deactivate blocking of any parameter.
-        self.exclude_params = ()
+        self.excluded_params = ()
+        """Deactivates the blocking of any parameter."""
 
         super().__init__(
             param_decls=param_decls,
@@ -610,7 +616,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             # Check if the parameter is allowed in the configuration file.
             allowed_in_conf = None
             if config_option:
-                allowed_in_conf = KO if path in config_option.exclude_params else OK
+                allowed_in_conf = KO if path in config_option.excluded_params else OK
 
             line = (
                 default_theme.invoked_command(path),
