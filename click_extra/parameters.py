@@ -263,6 +263,11 @@ class ParamStructure:
 
     Access to a node is available using a serialized path string composed of the keys to
     descend to that node, separated by a dot ``.``.
+
+    .. todo::
+        Evaluates the possibility of replacing all key-based access to the tree-like
+        structure by a `Box <https://github.com/cdgriffith/Box>`_ object, as it
+        provides lots of utilities to merge its content.
     """
 
     SEP: str = "."
