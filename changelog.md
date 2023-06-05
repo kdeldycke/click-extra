@@ -6,6 +6,7 @@
 This version is not released yet and is under active development.
 ```
 
+- Add a `reduce()` utility to reduce a collection of `Group` and `Platform` to a minimal set.
 - Remove `@destructive` and `@non_destructive` pytest markers.
 - Rename the `exclude_params` argument of `ParamStructure` and `ConfigOption` to `excluded_params`.
 - Fix over-styling of usage heading in help screen.

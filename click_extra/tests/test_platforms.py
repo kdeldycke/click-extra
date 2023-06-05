@@ -19,8 +19,11 @@ from __future__ import annotations
 import functools
 from itertools import combinations
 
+import pytest
+
 from click_extra import platforms as platforms_module
 from click_extra.platforms import (
+    AIX,
     ALL_GROUPS,
     ALL_LINUX,
     ALL_OS_LABELS,
@@ -30,17 +33,26 @@ from click_extra.platforms import (
     BSD_WITHOUT_MACOS,
     CURRENT_OS_ID,
     CURRENT_OS_LABEL,
+    CYGWIN,
     EXTRA_GROUPS,
+    FREEBSD,
+    HURD,
     LINUX,
     LINUX_LAYERS,
     MACOS,
+    NETBSD,
     NON_OVERLAPPING_GROUPS,
+    OPENBSD,
     OTHER_UNIX,
+    SOLARIS,
+    SUNOS,
     SYSTEM_V,
     UNIX,
     UNIX_LAYERS,
     UNIX_WITHOUT_MACOS,
     WINDOWS,
+    WSL1,
+    WSL2,
     Group,
     current_os,
     is_aix,
@@ -57,6 +69,7 @@ from click_extra.platforms import (
     is_wsl1,
     is_wsl2,
     os_label,
+    reduce,
 )
 
 from .conftest import (
@@ -71,7 +84,8 @@ from .conftest import (
 
 def test_mutual_exclusion():
     """Only directly tests OSes on which the test suite is running via GitHub
-    actions."""
+    actions.
+    """
     if is_linux():
         assert LINUX.id == CURRENT_OS_ID
         assert os_label(LINUX.id) == CURRENT_OS_LABEL
@@ -267,6 +281,47 @@ def test_overlapping_groups():
                 overlap = True
                 break
         assert overlap is True
+
+
+@pytest.mark.parametrize(
+    ("items", "expected"),
+    [
+        ([], set()),
+        (tuple(), set()),
+        (set(), set()),
+        ([AIX], {AIX}),
+        ([AIX, AIX], {AIX}),
+        ([UNIX], {UNIX}),
+        ([UNIX, UNIX], {UNIX}),
+        ([UNIX, AIX], {UNIX}),
+        ([WINDOWS], {ALL_WINDOWS}),
+        ([ALL_PLATFORMS, WINDOWS], {ALL_PLATFORMS}),
+        ([UNIX, WINDOWS], {ALL_PLATFORMS}),
+        ([UNIX, ALL_WINDOWS], {ALL_PLATFORMS}),
+        ([BSD_WITHOUT_MACOS, UNIX], {UNIX}),
+        ([BSD_WITHOUT_MACOS, MACOS], {BSD}),
+        (
+            [
+                AIX,
+                CYGWIN,
+                FREEBSD,
+                HURD,
+                LINUX,
+                MACOS,
+                NETBSD,
+                OPENBSD,
+                SOLARIS,
+                SUNOS,
+                WINDOWS,
+                WSL1,
+                WSL2,
+            ],
+            {ALL_PLATFORMS},
+        ),
+    ],
+)
+def test_reduction(items, expected):
+    assert reduce(items) == expected
 
 
 def test_current_os_func():
