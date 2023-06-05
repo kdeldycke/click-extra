@@ -7,7 +7,8 @@ This version is not released yet and is under active development.
 ```
 
 - Remove `@destructive` and `@non_destructive` pytest markers.
-- Rename `exclude_params` to `excluded_params`.
+- Rename the `exclude_params` argument of `ParamStructure` and `ConfigOption` to `excluded_params`.
+- Fix over-styling of usage heading in help screen.
 
 ## {gh}`4.3.0 (2023-06-01) <compare/v4.2.0...v4.3.0>`
 
