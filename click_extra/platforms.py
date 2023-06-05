@@ -31,9 +31,8 @@ from __future__ import annotations
 import platform
 import sys
 from dataclasses import dataclass, field
-from typing import Iterable
-
 from itertools import combinations
+from typing import Iterable
 
 from . import cache
 
@@ -525,7 +524,6 @@ def reduce(items: Iterable[Group | Platform]) -> set[Group | Platform]:
     # Serialize group sets for deterministic lookups. Sort them by platform count.
     groups = tuple(sorted(valid_groups, key=len, reverse=True))
     for subset_size in range(1, len(groups) + 1):
-
         # If we already have a solution that involves less items than the current subset of
         # groups we're going to evaluates, there is no point in continuing.
         if min_items and subset_size > min_items:
@@ -545,7 +543,8 @@ def reduce(items: Iterable[Group | Platform]) -> set[Group | Platform]:
             reduction = ungrouped_platforms.union(group_subset)
             reduction_size = len(reduction)
 
-            # Reset the results if we have a new solution that is better than the previous ones.
+            # Reset the results if we have a new solution that is better than the
+            # previous ones.
             if not results or reduction_size < min_items:
                 results = [reduction]
                 min_items = reduction_size
@@ -554,7 +553,8 @@ def reduce(items: Iterable[Group | Platform]) -> set[Group | Platform]:
                 results.append(reduction)
 
     if len(results) > 1:
-        raise RuntimeError(f"Multiple solutions found: {results}")
+        msg = f"Multiple solutions found: {results}"
+        raise RuntimeError(msg)
 
     # If no reduceted solution was found, return the original platforms.
     if not results:
