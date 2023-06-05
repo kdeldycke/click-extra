@@ -377,6 +377,31 @@ class ParamStructure:
                 for p in cmd.params:
                     yield (cli.name, cmd_id, p.name), p
 
+    TYPE_MAP = {
+        # Instances of click.types.ParamType.
+        STRING: str,
+        INT: int,
+        FLOAT: float,
+        BOOL: bool,
+        UUID: str,
+        UNPROCESSED: str,
+        # Subclasses of click.types.ParamType.
+        File: str,
+        click.Path: str,
+        Choice: str,
+        IntRange: int,
+        FloatRange: float,
+        DateTime: str,
+        Tuple: list,
+    }
+    """Mapping of Click types to their Python equivalent.
+
+    Keys can be a mix of instances or subclasses of ``click.types.ParamType``. Values
+    are expected to be simple Python types.
+
+    This mapping can be seen as a reverse of the ``click.types.convert_type()`` method.
+    """
+
     def get_param_type(self, param):
         """Get the Python type of a Click parameter.
 
@@ -389,37 +414,14 @@ class ParamStructure:
         if hasattr(param, "is_bool_flag") and param.is_bool_flag:
             return bool
 
-        direct_map = {
-            STRING: str,
-            INT: int,
-            FLOAT: float,
-            BOOL: bool,
-            UUID: str,
-            UNPROCESSED: str,
-        }
-
-        for click_type, py_type in direct_map.items():
+        for click_type, py_type in self.TYPE_MAP.items():
             if param.type == click_type:
                 return py_type
-
-        instance_map = {
-            File: str,
-            click.Path: str,
-            Choice: str,
-            IntRange: int,
-            FloatRange: float,
-            DateTime: str,
-            Tuple: list,
-        }
-
-        for click_type, py_type in instance_map.items():
-            if isinstance(param.type, click_type):
+            if inspect.isclass(click_type) and isinstance(param.type, click_type):
                 return py_type
 
         msg = f"Can't guess the appropriate Python type of {param!r} parameter."
-        raise ValueError(
-            msg,
-        )
+        raise ValueError(msg)
 
     @cached_property
     def exclude_params(self) -> Iterable[str]:
