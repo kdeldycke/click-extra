@@ -57,43 +57,11 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
-
-import click
 from docutils.statemachine import ViewList
 from sphinx.highlighting import PygmentsBridge
 
 from .pygments import AnsiHtmlFormatter
 from .tests.conftest import ExtraCliRunner
-
-click_compat_hack = patch.object(
-    click._compat,
-    "text_type",
-    create=True,
-    return_value=str,
-)
-"""Workaround for ``pallets-sphinx-themes``'s outdated reference to old ``click``'s
-Python 2 compatibility hack.
-
-Emulates:
-    .. code-block:: python
-
-        import click._compat
-
-        click._compat.text_type = str
-
-.. hint::
-    A fix has been proposed upstream at
-    `pallets-sphinx-themes#69 <https://github.com/pallets/pallets-sphinx-themes/pull/69>`_
-    and is waiting for a merge.
-
-.. seealso::
-    - `similar hack in click 8.x's docs/conf.py
-      <https://github.com/pallets/click/commit/00883dd3d0a29f68f375cab5e21cef0669941aba#diff-85933aa74a2d66c3e4dcdf7a9ad8397f5a7971080d34ef1108296a7c6b69e7e3>`_
-
-    - `incriminating import in pallets_sphinx_themes
-      <https://github.com/pallets/pallets-sphinx-themes/blob/7b69241/src/pallets_sphinx_themes/themes/click/domain.py#L9>`_
-"""
 
 
 class PatchedViewList(ViewList):
@@ -133,9 +101,6 @@ def setup(app):
         - ``sphinx.highlighting.PygmentsBridge`` is updated to set its default HTML
           formatter to an ANSI capable one for the whole Sphinx app.
 
-        - ``click_compat_hack`` to `bypass old Python 2.x in pallets-sphinx-themes
-          <#click_extra.sphinx.click_compat_hack>`.
-
         - ``pallets_sphinx_themes.themes.click.domain.ViewList`` is
           `patched to force an ANSI lexer on the rST code block
           <#click_extra.sphinx.PatchedViewList>`_.
@@ -149,16 +114,15 @@ def setup(app):
     # Set Sphinx's default HTML formatter to an ANSI capable one.
     PygmentsBridge.html_formatter = AnsiHtmlFormatter
 
-    with click_compat_hack:
-        from pallets_sphinx_themes.themes.click import domain
+    from pallets_sphinx_themes.themes.click import domain
 
-        domain.ViewList = PatchedViewList
+    domain.ViewList = PatchedViewList
 
-        # Brutal, but effective.
-        # Alternative patching methods: https://stackoverflow.com/a/38928265
-        domain.ExampleRunner.__bases__ = (ExtraCliRunner,)
-        # Force color rendering in ``invoke`` calls.
-        domain.ExampleRunner.force_color = True
+    # Brutal, but effective.
+    # Alternative patching methods: https://stackoverflow.com/a/38928265
+    domain.ExampleRunner.__bases__ = (ExtraCliRunner,)
+    # Force color rendering in ``invoke`` calls.
+    domain.ExampleRunner.force_color = True
 
-        # Register directives to Sphinx.
-        domain.setup(app)
+    # Register directives to Sphinx.
+    domain.setup(app)

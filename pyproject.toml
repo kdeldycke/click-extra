@@ -78,8 +78,8 @@ click = "^8.1"
 cloup = "^2.1.1"
 commentjson = "^0.9.0"
 mergedeep = "^1.3.4"
-# Pallets-Sphinx-Themes 2.1.0 is the first version rendering ``.. sourcecode:: shell-session`` code-blocks.
-Pallets-Sphinx-Themes = "^2.1.0"
+# Pallets-Sphinx-Themes 2.1.1 is the first version removing old and conflicting Python 2 code.
+Pallets-Sphinx-Themes = "^2.1.1"
 # Pygments 2.14.0 is the first version with ``lexers.algebra.GAPConsoleLexer`` that is referenced in our code.
 pygments = "^2.14"
 # pygments-ansi-color 0.3.0 is the first version to set the default theme of ANSI colors.

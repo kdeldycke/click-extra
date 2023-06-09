@@ -11,6 +11,7 @@ This version is not released yet and is under active development.
 - Rename the `exclude_params` argument of `ParamStructure` and `ConfigOption` to `excluded_params`.
 - Fix over-styling of usage heading in help screen.
 - Remove `bump2version` from dev dependencies, and let the external workflows install it.
+- Remove workaround for `pallets-sphinx-themes`'s outdated reference to old `click`'s Python 2 compatibility hack.
 
 ## {gh}`4.3.0 (2023-06-01) <compare/v4.2.0...v4.3.0>`
 

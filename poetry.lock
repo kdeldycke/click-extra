@@ -685,14 +685,13 @@ files = [
 
 [[package]]
 name = "pallets-sphinx-themes"
-version = "2.1.0"
+version = "2.1.1"
 description = "Sphinx themes for Pallets and related projects."
-category = "main"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "Pallets-Sphinx-Themes-2.1.0.tar.gz", hash = "sha256:4b2536495e58facce6047cf481f613558f11c89351f913f392b8eba002c6b7c7"},
-    {file = "Pallets_Sphinx_Themes-2.1.0-py3-none-any.whl", hash = "sha256:a34e6e62c63c3e0f0793470c5c9c0f6f9191a0d40767d3c119670850da072c45"},
+    {file = "Pallets-Sphinx-Themes-2.1.1.tar.gz", hash = "sha256:e5da65967bb6fae3055682a97d37c3311fe38e132c0761052c16aaacafc8d47f"},
+    {file = "Pallets_Sphinx_Themes-2.1.1-py3-none-any.whl", hash = "sha256:b690b0b89aad3dc3f02afa546cf3fa56c29406012bb2e29158a69b774c4d4a98"},
 ]
 
 [package.dependencies]
@@ -1549,4 +1548,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "bb9ab71d7eb2aa65ea37bef18cb2b24e89dbfa4a443905713915672b9d27b436"
+content-hash = "f3cb51b67a262682660eb1b640206e602d396701e94225afce8839bc5431e513"
