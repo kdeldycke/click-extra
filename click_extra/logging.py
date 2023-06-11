@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import logging
 import sys
-from collections.abc import Generator, Iterable, Sequence
 from gettext import gettext as _
 from logging import (
     WARNING,
@@ -29,13 +28,16 @@ from logging import (
     LogRecord,
     _levelToName,
 )
-from typing import Literal, TypeVar
+from typing import TYPE_CHECKING, Literal, TypeVar
 
 import click
 
 from . import Choice
 from .colorize import default_theme
 from .parameters import ExtraOption
+
+if TYPE_CHECKING:
+    from collections.abc import Generator, Iterable, Sequence
 
 _original_get_logger = logging.getLogger
 

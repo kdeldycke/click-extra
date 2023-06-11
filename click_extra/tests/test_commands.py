@@ -182,7 +182,8 @@ def test_group_help(invoke, all_command_cli, param):
 )
 def test_help_eagerness(invoke, all_command_cli, params):
     """See: https://click.palletsprojects.com/en/8.0.x/advanced/#callback-evaluation-
-    order."""
+    order.
+    """
     result = invoke(all_command_cli, "--help", params)
     assert result.exit_code == 0
     assert re.fullmatch(help_screen, result.stdout)
