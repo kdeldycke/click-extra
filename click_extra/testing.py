@@ -28,9 +28,9 @@ from contextlib import nullcontext
 from functools import partial
 from pathlib import Path
 from textwrap import indent
-from types import TracebackType
 from typing import (
     IO,
+    TYPE_CHECKING,
     Any,
     BinaryIO,
     ContextManager,
@@ -54,6 +54,9 @@ from click import formatting, termui, utils
 
 from . import Color, Style
 from .colorize import default_theme
+
+if TYPE_CHECKING:
+    from types import TracebackType
 
 PROMPT = "► "
 INDENT = " " * len(PROMPT)
