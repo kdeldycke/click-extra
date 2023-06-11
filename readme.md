@@ -24,11 +24,11 @@ reached upstream yet (or are unlikely to).
 
 It transforms this vanilla `click` CLI:
 
-![click CLI help screen](https://github.com/kdeldycke/click-extra/raw/main/docs/assets/click-help-screen.png)
+![click CLI help screen](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/click-help-screen.png)
 
 Into this:
 
-![click-extra CLI help screen](https://github.com/kdeldycke/click-extra/raw/main/docs/assets/click-extra-screen.png)
+![click-extra CLI help screen](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/click-extra-screen.png)
 
 To undestrand how we ended up with the result above, [go read the tutorial](https://kdeldycke.github.io/click-extra/tutorial.html).
 
