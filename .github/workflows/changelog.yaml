@@ -6,7 +6,7 @@ name: Changelog & versions
       - main
     paths:
       - changelog.md
-      - .bumpversion.cfg
+      - pyproject.toml
       - .github/workflows/changelog.yaml
       - .github/workflows/release.yaml
 
@@ -20,4 +20,4 @@ name: Changelog & versions
 jobs:
 
   changelog:
-    uses: kdeldycke/workflows/.github/workflows/changelog.yaml@v2.15.2
+    uses: kdeldycke/workflows/.github/workflows/changelog.yaml@v2.16.2
