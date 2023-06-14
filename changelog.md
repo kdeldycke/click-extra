@@ -1,10 +1,6 @@
 # Changelog
 
-## {gh}`4.4.0 (unreleased) <compare/v4.3.0...main>`
-
-```{important}
-This version is not released yet and is under active development.
-```
+## {gh}`4.4.0 (2023-06-14) <compare/v4.3.0...v4.4.0>`
 
 - Add a `reduce()` utility to reduce a collection of `Group` and `Platform` to a minimal set.
 - Remove `@destructive` and `@non_destructive` pytest markers.
