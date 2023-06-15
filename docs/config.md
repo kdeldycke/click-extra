@@ -197,7 +197,7 @@ Several dialects are supported:
 
 ### TOML
 
-See the [example in the top of this page](standalone-option).
+See the [example in the top of this page](#standalone-option).
 
 ### YAML
 

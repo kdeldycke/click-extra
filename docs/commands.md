@@ -83,7 +83,7 @@ You can inspect the implementation details by looking at:
 
 ## Extra variants
 
-Now if you want to benefits from all the [wonderful features of Click Extra](index#features), you have to use the `extra`-prefixed variants:
+Now if you want to benefits from all the [wonderful features of Click Extra](index.md#features), you have to use the `extra`-prefixed variants:
 
 | [Original](https://click.palletsprojects.com/en/8.1.x/api/) | Extra variant                |
 | ----------------------------------------------------------- | ---------------------------- |
@@ -93,11 +93,11 @@ Now if you want to benefits from all the [wonderful features of Click Extra](ind
 | `click.Group`                                               | `click_extra.ExtraGroup`     |
 | `click.Option`                                              | `click_extra.ExtraOption`    |
 
-The best place to see how to use these `extra`-variants is the [tutorial](tutorial).
+The best place to see how to use these `extra`-variants is the [tutorial](tutorial.md).
 
 ## Default options
 
-The `@extra_command` and `@extra_group` decorators are [pre-configured with a set of default options](click_extra.commands.default_extra_params).
+The `@extra_command` and `@extra_group` decorators are [pre-configured with a set of default options](commands.md#click_extra.commands.default_extra_params).
 
 ## Change default options
 

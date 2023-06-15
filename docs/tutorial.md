@@ -43,7 +43,7 @@ Whose help screen renders as:
     )
 ```
 
-To augment the simple example above with [all the bells and whistles](index#features) `click-extra` has in store, you just need to replace the base command decorator with its `extra_`-prefixed variant:
+To augment the simple example above with [all the bells and whistles](index.md#features) `click-extra` has in store, you just need to replace the base command decorator with its `extra_`-prefixed variant:
 
 ```{eval-rst}
 .. click:example::
