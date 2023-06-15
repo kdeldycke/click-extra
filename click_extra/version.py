@@ -129,8 +129,8 @@ class VersionOption(ExtraOption):
         message: str | None = None,
         print_env_info: bool = False,
         version_style=Style(fg="green"),
-        package_name_style=default_theme.invoked_command,  # type: ignore[has-type]
-        prog_name_style=default_theme.invoked_command,  # type: ignore[has-type]
+        package_name_style=default_theme.invoked_command,
+        prog_name_style=default_theme.invoked_command,
         message_style=None,
         env_info_style=Style(fg="bright_black"),
         is_flag=True,
