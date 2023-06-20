@@ -107,6 +107,7 @@ pytest = "^7.3.1"
 # More pytest plugins at: https://docs.pytest.org/en/latest/reference/plugin_list.html
 pytest-cases = "^3.6.14"
 pytest-cov = "^4.0.0"
+pytest-github-actions-annotate-failures = "^0.2.0"
 pytest-httpserver = "^1.0.6"
 pytest-randomly = "^3.12.0"
 sphinx-autodoc-typehints = "^1.23.0"
