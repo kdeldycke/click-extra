@@ -24,6 +24,7 @@ from importlib import metadata
 from typing import TYPE_CHECKING
 
 from boltons.ecoutils import get_profile
+from cloup.styling import IStyle
 
 from . import Context, Parameter, Style, echo
 from .colorize import default_theme
@@ -131,11 +132,11 @@ class VersionOption(ExtraOption):
         prog_name: str | None = None,
         message: str | None = None,
         print_env_info: bool = False,
-        version_style=Style(fg="green"),
-        package_name_style=default_theme.invoked_command,  # type: ignore[has-type]
-        prog_name_style=default_theme.invoked_command,  # type: ignore[has-type]
-        message_style=None,
-        env_info_style=Style(fg="bright_black"),
+        version_style: IStyle | None = Style(fg="green"),
+        package_name_style: IStyle | None = default_theme.invoked_command,  # type: ignore[has-type]
+        prog_name_style: IStyle | None = default_theme.invoked_command,  # type: ignore[has-type]
+        message_style: IStyle | None = None,
+        env_info_style: IStyle | None = Style(fg="bright_black"),
         is_flag=True,
         expose_value=False,
         is_eager=True,
