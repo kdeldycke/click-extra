@@ -6,7 +6,6 @@
 Write example and tutorial.
 ```
 
-
 ## Introspecting parameters
 
 If for any reason you need to dive into parameters and their values, there is a lot of intermediate and metadata available in the context. Here are some pointers:

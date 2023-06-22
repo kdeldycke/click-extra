@@ -9,25 +9,28 @@ As soon as [`click-extra` is installed](install.md), all its additionnal compone
 Here is a quick way to check the new plugins are visible to Pygments' regular API:
 
 - Formatter:
-   ```ansi-pycon
-   >>> from pygments.formatters import get_formatter_by_name
-   >>> get_formatter_by_name("ansi-html")
-   <click_extra.pygments.AnsiHtmlFormatter object at 0x1011ff1d0>
-   ```
+
+  ```ansi-pycon
+  >>> from pygments.formatters import get_formatter_by_name
+  >>> get_formatter_by_name("ansi-html")
+  <click_extra.pygments.AnsiHtmlFormatter object at 0x1011ff1d0>
+  ```
 
 - Filter:
-   ```ansi-pycon
-   >>> from pygments.filters import get_filter_by_name
-   >>> get_filter_by_name("ansi-filter")
-   <click_extra.pygments.AnsiFilter object at 0x103aaa790>
-   ```
+
+  ```ansi-pycon
+  >>> from pygments.filters import get_filter_by_name
+  >>> get_filter_by_name("ansi-filter")
+  <click_extra.pygments.AnsiFilter object at 0x103aaa790>
+  ```
 
 - Lexers:
-   ```ansi-pycon
-   >>> from pygments.lexers import get_lexer_by_name
-   >>> get_lexer_by_name("ansi-shell-session")
-   <pygments.lexers.AnsiBashSessionLexer>
-   ```
+
+  ```ansi-pycon
+  >>> from pygments.lexers import get_lexer_by_name
+  >>> get_lexer_by_name("ansi-shell-session")
+  <pygments.lexers.AnsiBashSessionLexer>
+  ```
 
 ```{tip}
 If `click-extra` is installed but you don't see these new components, you are probably running the snippets above in the wrong Python interpreter.
@@ -96,22 +99,23 @@ The code above prints the following HTML:
 
 ```html
 <div class="highlight">
-   <pre>
+ <pre>
       <span></span>
-      <span class=" -Color -Color-C154 -C-C154"> __</span>
-      <span class=" -Color -Color-C148 -C-C148">_</span>
-      <span class=" -Color -Color-C184 -C-C184">___________</span>
-      <span class=" -Color -Color-C178 -C-C178">_</span>
-      <span class=" -Color -Color-C214 -C-C214">_________</span>
-      <span class=" -Color -Color-C208 -C-C208">________ </span>
-      <span class=" -Color -Color-C148 -C-C148">/</span>
-      <span class=" -Color -Color-C184 -C-C184"> Reality is</span>
-      <span class=" -Color -Color-C178 -C-C178"> </span>
-      <span class=" -Color -Color-C214 -C-C214">for peopl</span>
-      <span class=" -Color -Color-C208 -C-C208">e who lack</span>
+      <span class="-Color -Color-C154 -C-C154"> __</span>
+      <span class="-Color -Color-C148 -C-C148">_</span>
+      <span class="-Color -Color-C184 -C-C184">___________</span>
+      <span class="-Color -Color-C178 -C-C178">_</span>
+      <span class="-Color -Color-C214 -C-C214">_________</span>
+      <span class="-Color -Color-C208 -C-C208">________ </span>
+      <span class="-Color -Color-C148 -C-C148">/</span>
+      <span class="-Color -Color-C184 -C-C184"> Reality is</span>
+      <span class="-Color -Color-C178 -C-C178"> </span>
+      <span class="-Color -Color-C214 -C-C214">for peopl</span>
+      <span class="-Color -Color-C208 -C-C208">e who lack</span>
       …
    </pre>
 </div>
+
 ```
 
 And here is how to obtain the corresponding CSS style:
@@ -121,19 +125,69 @@ print(formatter.get_style_defs(".highlight"))
 ```
 
 ```css
-pre { line-height: 125%; }
-.highlight .hll { background-color: #ffffcc }
-.highlight { background: #f8f8f8; }
-.highlight .c { color: #3D7B7B; font-style: italic } /* Comment */
-.highlight .err { border: 1px solid #FF0000 } /* Error */
-.highlight .o { color: #666666 } /* Operator */
-.highlight .-C-BGBlack { background-color: #000000 } /* C.BGBlack */
-.highlight .-C-BGBlue { background-color: #3465a4 } /* C.BGBlue */
-.highlight .-C-BGBrightBlack { background-color: #676767 } /* C.BGBrightBlack */
-.highlight .-C-BGBrightBlue { background-color: #6871ff } /* C.BGBrightBlue */
-.highlight .-C-BGC0 { background-color: #000000 } /* C.BGC0 */
-.highlight .-C-BGC100 { background-color: #878700 } /* C.BGC100 */
-.highlight .-C-BGC101 { background-color: #87875f } /* C.BGC101 */
+pre {
+    line-height: 125%;
+}
+
+.highlight .hll {
+    background-color: #ffffcc
+}
+
+.highlight {
+    background: #f8f8f8;
+}
+
+.highlight .c {
+    color: #3D7B7B;
+    font-style: italic
+}
+
+/* Comment */
+.highlight .err {
+    border: 1px solid #FF0000
+}
+
+/* Error */
+.highlight .o {
+    color: #666666
+}
+
+/* Operator */
+.highlight .-C-BGBlack {
+    background-color: #000000
+}
+
+/* C.BGBlack */
+.highlight .-C-BGBlue {
+    background-color: #3465a4
+}
+
+/* C.BGBlue */
+.highlight .-C-BGBrightBlack {
+    background-color: #676767
+}
+
+/* C.BGBrightBlack */
+.highlight .-C-BGBrightBlue {
+    background-color: #6871ff
+}
+
+/* C.BGBrightBlue */
+.highlight .-C-BGC0 {
+    background-color: #000000
+}
+
+/* C.BGC0 */
+.highlight .-C-BGC100 {
+    background-color: #878700
+}
+
+/* C.BGC100 */
+.highlight .-C-BGC101 {
+    background-color: #87875f
+}
+
+/* C.BGC101 */
 /* … */
 ```
 
@@ -241,7 +295,7 @@ See how the raw string is split into Pygments tokens, including the new `Token.C
 
 Because they're properly registered to Pygments, all these new components can be invoked with the [`pygmentize` CLI](https://pygments.org/docs/cmdline/).
 
-For example, here is how we can render the `cowsay.ans` file from the [example above]() into a standalone HTML file:
+For example, here is how we can render the `cowsay.ans` file from the [example above](<>) into a standalone HTML file:
 
 ```ansi-shell-session
 $ pygmentize -f ansi-html -O full -o cowsay.html ./cowsay.ans
@@ -256,11 +310,12 @@ Copyright 2006-2023 by the Pygments team.
 Licensed under the BSD license, see LICENSE for details.
 -->
 <html>
-   <head>
-      <title></title>
-      <meta http-equiv="content-type" content="text/html; charset=utf-8">
-      <style type="text/css">
-         /*
+ <head>
+  <title>
+  </title>
+  <meta content="text/html; charset=utf-8" http-equiv="content-type"/>
+  <style type="text/css">
+   /*
          generated by Pygments <https://pygments.org/>
          Copyright 2006-2023 by the Pygments team.
          Licensed under the BSD license, see LICENSE for details.
@@ -277,29 +332,31 @@ Licensed under the BSD license, see LICENSE for details.
          body .-Color-BGCyan { background-color: #34e2e2 } /* Color.BGCyan */
          body .-Color-BGGreen { background-color: #8ae234 } /* Color.BGGreen */
          /* … */
-      </style>
-   </head>
-   <body>
-      <h2></h2>
-      <div class="highlight">
-         <pre>
+  </style>
+ </head>
+ <body>
+  <h2>
+  </h2>
+  <div class="highlight">
+   <pre>
             <span></span>
-            <span class=" -Color -Color-C154"> __</span>
-            <span class=" -Color -Color-C148">_</span>
-            <span class=" -Color -Color-C184">___________</span>
-            <span class=" -Color -Color-C178">_</span>
-            <span class=" -Color -Color-C214">_________</span>
-            <span class=" -Color -Color-C208">________ </span>
-            <span class=" -Color -Color-C148">/</span>
-            <span class=" -Color -Color-C184"> Reality is</span>
-            <span class=" -Color -Color-C178"> </span>
-            <span class=" -Color -Color-C214">for peopl</span>
-            <span class=" -Color -Color-C208">e who lack</span>
+            <span class="-Color -Color-C154"> __</span>
+            <span class="-Color -Color-C148">_</span>
+            <span class="-Color -Color-C184">___________</span>
+            <span class="-Color -Color-C178">_</span>
+            <span class="-Color -Color-C214">_________</span>
+            <span class="-Color -Color-C208">________ </span>
+            <span class="-Color -Color-C148">/</span>
+            <span class="-Color -Color-C184"> Reality is</span>
+            <span class="-Color -Color-C178"> </span>
+            <span class="-Color -Color-C214">for peopl</span>
+            <span class="-Color -Color-C208">e who lack</span>
             …
          </pre>
-      </div>
-   </body>
+  </div>
+ </body>
 </html>
+
 ```
 
 ## `click_extra.pygments` API

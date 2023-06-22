@@ -5,16 +5,25 @@ Extend
 to add colorization of:
 
 - Options
+
 - Choices
+
 - Metavars
 
 - Cli name
+
 - Sub-commands
+
 - Command aliases
+
 - Long and short options
+
 - Choices
+
 - Metavars
+
 - Environment variables
+
 - Defaults
 
 ```{todo}
