@@ -27,7 +27,7 @@ Write examples and tutorial.
 
 But contrary to Click Extra, the [help screen is rendered within a table](https://github.com/ewels/rich-click#styling), which takes the whole width of the terminal. This is not ideal if you try to print the output of a command somewhere else.
 
-The typical use-case is users reporting issues on GitHub, and pasting the output of a command in the issue description. If the output is too wide, it will be akwardly wrapped, or adds a horizontal scrollbar to the page.
+The typical use-case is users reporting issues on GitHub, and pasting the output of a command in the issue description. If the output is too wide, it will be akwardly wrapped, or [adds a horizontal scrollbar](https://github.com/callowayproject/bump-my-version/pull/23#issuecomment-1602007874) to the page.
 
 Without a table imposing a maximal width, the help screens from Click Extra will be rendered with the minimal width of the text, and will be more readable.
 
