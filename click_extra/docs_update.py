@@ -68,7 +68,7 @@ def generate_lexer_table() -> str:
     table = []
     for orig_lexer, ansi_lexer in sorted(
         lexer_map.items(),
-        key=lambda i: i[0].__qualname__,  # type: ignore[no-any-return]
+        key=lambda i: i[0].__qualname__,
     ):
         table.append(
             [
