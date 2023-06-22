@@ -86,6 +86,11 @@ Here is the list of issues and bugs from other projects that `click-extra` has a
 - [`#260` - Renders GitHub-Flavored Markdown tables in canonical format](https://github.com/astanin/python-tabulate/pull/260)
 - [`#151` - Add new {`rounded`,`simple`,`double`}\_(`grid`,`outline`} formats](https://github.com/astanin/python-tabulate/pull/151)
 
+## [`rich-click`](https://github.com/ewels/rich-click)
+
+- [`#101` - Command Aliases?](https://github.com/ewels/rich-click/issues/101)
+- [`#18` - Options inherited from context settings aren't applied](https://github.com/ewels/rich-click/issues/18)
+
 ## [`sphinx-click`](https://github.com/click-contrib/sphinx-click)
 
 - [`#117` - Add reference to complementary Click CLI documentation helpers](https://github.com/click-contrib/sphinx-click/pull/117)
