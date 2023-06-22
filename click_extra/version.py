@@ -21,13 +21,16 @@ import inspect
 import re
 from gettext import gettext as _
 from importlib import metadata
-from typing import Sequence
+from typing import TYPE_CHECKING
 
 from boltons.ecoutils import get_profile
 
 from . import Context, Parameter, Style, echo
 from .colorize import default_theme
 from .parameters import ExtraOption
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 class VersionOption(ExtraOption):
@@ -75,7 +78,7 @@ class VersionOption(ExtraOption):
         value: bool,
         capture_output: bool = False,
     ) -> str | None:
-        """Prints version and exits.
+        """Print version and exits.
 
         Standard callback with an extra ``capture_output`` parameter which returns the
         output string instead of printing the (colored) version to the console.
