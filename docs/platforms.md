@@ -7,7 +7,6 @@ All platforms are grouped in sets of non-overlaping families:
 <!-- NON_OVERLAPPING_GROUPS-graph-start -->
 
 {caption="`click_extra.platforms.NON_OVERLAPPING_GROUPS` - Non-overlapping groups."}
-
 ```mermaid
 :zoom:
 flowchart
@@ -49,7 +48,6 @@ Other groups are available for convenience, but these overlaps:
 <!-- EXTRA_GROUPS-graph-start -->
 
 {caption="`click_extra.platforms.EXTRA_GROUPS` - Overlapping groups, defined for convenience."}
-
 ```mermaid
 :zoom:
 flowchart
