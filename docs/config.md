@@ -35,6 +35,8 @@ It produces the following help screen:
     result = invoke(my_cli, args=["--help"])
     assert "-C, --config CONFIG_PATH" in result.stdout
 
+See there the explicit mention of the default location of the configuration file. This improves discoverability, and [makes sysadmins happy](https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations), especially those not familiar with your CLI.
+
 A bare call returns:
 
 .. click:run::
@@ -284,71 +286,18 @@ The configuration file is searched based on a wildcard-based pattern.
 
 By default, the pattern is `/<app_dir>/*.{toml,yaml,yml,json,ini,xml}`, where:
 
-- `<app_dir>` is the [default application folder (see below)](#default-folder)
+- `<app_dir>` is the [default application folder](#default-folder) (see section below)
 - `*.{toml,yaml,yml,json,ini,xml}` is any file in that folder with any of `.toml`, `.yaml`, `.yml`, `.json` , `.ini` or `.xml` extension.
 
-```{note}
-Oldest reference on the Unix tradition of default path is from the [*Where Configurations Live* chapter](http://www.catb.org/~esr/writings/taoup/html/ch10s02.html)
-of [The Art of Unix Programming](http://www.catb.org/~esr/writings/taoup/html/ch10s02.html) by Eric S. Raymond.
-```
+```{seealso}
+There is a long history about the choice of the default application folder.
 
-### Default extensions
+For Unix, the oldest reference I can track is from the [*Where Configurations Live* chapter](http://www.catb.org/~esr/writings/taoup/html/ch10s02.html)
+of [The Art of Unix Programming](https://www.amazon.com/dp/0131429019?&linkCode=ll1&tag=kevideld-20&linkId=49054395b39ea5b23bdf912ff839bca2&language=en_US&ref_=as_li_ss_tl) by Eric S. Raymond.
 
-The extensions that are used for each dialect to produce the default file pattern matching are encoded by
-the {py:class}`Formats <click_extra.config.Formats>` Enum:
+The [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html) is the latest iteration of this tradition on Linux. This long-due guidelines brings [lots of benefits](https://xdgbasedirectoryspecification.com) to the platform. This is what Click Extra is [implementing by default](#default-folder).
 
-| Format | Extensions        |
-| :----- | :---------------- |
-| `TOML` | `*.toml`          |
-| `YAML` | `*.yaml`, `*.yml` |
-| `JSON` | `*.json`          |
-| `INI`  | `*.ini`           |
-| `XML`  | `*.xml`           |
-
-The default behavior consist in searching for all files matching the default `*.{toml,yaml,yml,json,ini,xml}` pattern. And parse each of the matchin file with every supported format, in the priority order of the table above. As soon as a file is able to be parsed without error and returns a `dict`, the search stops and the file is used to feed the CLI's default values.
-
-### Forcing formats
-
-If you know in advance the only format you'd like to support, you can use the `formats` argument on your decorator like so:
-
-```{eval-rst}
-.. click:example::
-    from click import command, option, echo
-
-    from click_extra import config_option
-    from click_extra.config import Formats
-
-    @command(context_settings={"show_default": True})
-    @option("--int-param", type=int, default=10)
-    @config_option(formats=Formats.JSON)
-    def cli(int_param):
-        echo(f"int_parameter is {int_param!r}")
-
-Notice how the default search pattern gets limited to files with a ``.json`` extension:
-
-.. click:run::
-    result = invoke(cli, args=["--help"])
-    assert "*.json]" in result.stdout
-```
-
-This also works with a subset of formats:
-
-```{eval-rst}
-.. click:example::
-    from click import command, option, echo
-
-    from click_extra import config_option
-    from click_extra.config import Formats
-
-    @command(context_settings={"show_default": True})
-    @option("--int-param", type=int, default=10)
-    @config_option(formats=[Formats.INI, Formats.YAML])
-    def cli(int_param):
-        echo(f"int_parameter is {int_param!r}")
-
-.. click:run::
-    result = invoke(cli, args=["--help"])
-    assert "*.{ini,yaml,yml}]" in result.stdout
+But there is still a lot of cases for which the XDG doesn't cut it, like on other platforms (macOS, Windows, …) or for legacy applications. That's why Click Extra allows you to customize the way configuration is searched and located.
 ```
 
 ### Default folder
@@ -365,10 +314,6 @@ Like the latter, the `@config_option` decorator and `ConfigOption` class accept 
 | Unix              | -         | `True`        | `~/.foo-bar`                              |
 | Windows (default) | `True`    | -             | `C:\Users\<user>\AppData\Roaming\Foo Bar` |
 | Windows           | `False`   | -             | `C:\Users\<user>\AppData\Local\Foo Bar`   |
-
-```{seealso}
-These default follow the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html), whose [benefits are detailed here](https://xdgbasedirectoryspecification.com).
-```
 
 Let's change the default base folder in the following example:
 
@@ -427,6 +372,71 @@ Patterns provided to `@config_option`:
   - [`BRACE`](https://facelessuser.github.io/wcmatch/glob/#brace): allow brace expansion for greater expressiveness
   - [`GLOBTILDE`](https://facelessuser.github.io/wcmatch/glob/#globtilde): allows for user path expansion via `~`
   - [`NODIR`](https://facelessuser.github.io/wcmatch/glob/#nodir): restricts results to files
+
+### Default extensions
+
+The extensions that are used for each dialect to produce the default file pattern matching are encoded by
+the {py:class}`Formats <click_extra.config.Formats>` Enum:
+
+| Format | Extensions        |
+| :----- | :---------------- |
+| `TOML` | `*.toml`          |
+| `YAML` | `*.yaml`, `*.yml` |
+| `JSON` | `*.json`          |
+| `INI`  | `*.ini`           |
+| `XML`  | `*.xml`           |
+
+### Multi-format matching
+
+The default behavior consist in searching for all files matching the default `*.{toml,yaml,yml,json,ini,xml}` pattern.
+
+A parsing attempt is made for each file matching the extension pattern, in the order of the table above.
+
+As soon as a file is able to be parsed without error and returns a `dict`, the search stops and the file is used to feed the CLI's default values.
+
+### Forcing formats
+
+If you know in advance the only format you'd like to support, you can use the `formats` argument on your decorator like so:
+
+```{eval-rst}
+.. click:example::
+    from click import command, option, echo
+
+    from click_extra import config_option
+    from click_extra.config import Formats
+
+    @command(context_settings={"show_default": True})
+    @option("--int-param", type=int, default=10)
+    @config_option(formats=Formats.JSON)
+    def cli(int_param):
+        echo(f"int_parameter is {int_param!r}")
+
+Notice how the default search pattern gets limited to files with a ``.json`` extension:
+
+.. click:run::
+    result = invoke(cli, args=["--help"])
+    assert "*.json]" in result.stdout
+```
+
+This also works with a subset of formats:
+
+```{eval-rst}
+.. click:example::
+    from click import command, option, echo
+
+    from click_extra import config_option
+    from click_extra.config import Formats
+
+    @command(context_settings={"show_default": True})
+    @option("--int-param", type=int, default=10)
+    @config_option(formats=[Formats.INI, Formats.YAML])
+    def cli(int_param):
+        echo(f"int_parameter is {int_param!r}")
+
+.. click:run::
+    result = invoke(cli, args=["--help"])
+    assert "*.{ini,yaml,yml}]" in result.stdout
+```
 
 ### Remote URL
 
