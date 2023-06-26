@@ -24,7 +24,6 @@ from importlib import metadata
 from typing import TYPE_CHECKING
 
 from boltons.ecoutils import get_profile
-from cloup.styling import IStyle
 
 from . import Context, Parameter, Style, echo
 from .colorize import default_theme
@@ -32,6 +31,8 @@ from .parameters import ExtraOption
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+
+    from cloup.styling import IStyle
 
 
 class VersionOption(ExtraOption):
@@ -133,8 +134,10 @@ class VersionOption(ExtraOption):
         message: str | None = None,
         print_env_info: bool = False,
         version_style: IStyle | None = Style(fg="green"),
-        package_name_style: IStyle | None = default_theme.invoked_command,  # type: ignore[has-type]
-        prog_name_style: IStyle | None = default_theme.invoked_command,  # type: ignore[has-type]
+        # type: ignore[has-type]
+        package_name_style: IStyle | None = default_theme.invoked_command,
+        # type: ignore[has-type]
+        prog_name_style: IStyle | None = default_theme.invoked_command,
         message_style: IStyle | None = None,
         env_info_style: IStyle | None = Style(fg="bright_black"),
         is_flag=True,

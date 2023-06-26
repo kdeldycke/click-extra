@@ -78,7 +78,7 @@ def generate_lexer_table() -> str:
                 f"{', '.join(f'`{a}`' for a in sorted(ansi_lexer.aliases))}",
             ],
         )
-    output = tabulate.tabulate(
+    return tabulate.tabulate(
         table,
         headers=[
             "Original Lexer",
@@ -89,7 +89,6 @@ def generate_lexer_table() -> str:
         colalign=["left", "left", "left"],
         disable_numparse=True,
     )
-    return output
 
 
 def generate_platforms_graph(
