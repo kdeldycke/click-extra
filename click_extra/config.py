@@ -377,8 +377,7 @@ class ConfigOption(ExtraOption, ParamStructure):
                 return False
             return True
 
-        clean_conf = remap(valid_conf, visit=visit)
-        return clean_conf
+        return remap(valid_conf, visit=visit)
 
     def load_conf(self, ctx, param, path_pattern):
         """Fetch parameters values from configuration file and merge them with the

@@ -303,8 +303,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         """
         # ``args`` needs to be copied: its items are consummed by the parsing process.
         extra.update({"meta": {"click_extra.raw_args": args.copy()}})
-        ctx = super().make_context(info_name, args, parent, **extra)
-        return ctx
+        return super().make_context(info_name, args, parent, **extra)
 
     def invoke(self, ctx):
         """Main execution of the command, just after the context has been instantiated
