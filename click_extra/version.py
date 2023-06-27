@@ -134,9 +134,7 @@ class VersionOption(ExtraOption):
         message: str | None = None,
         print_env_info: bool = False,
         version_style: IStyle | None = Style(fg="green"),
-        # type: ignore[has-type]
         package_name_style: IStyle | None = default_theme.invoked_command,
-        # type: ignore[has-type]
         prog_name_style: IStyle | None = default_theme.invoked_command,
         message_style: IStyle | None = None,
         env_info_style: IStyle | None = Style(fg="bright_black"),
