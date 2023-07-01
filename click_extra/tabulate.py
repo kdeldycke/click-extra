@@ -123,6 +123,9 @@ def render_table(tabular_data, headers=(), **kwargs):
 class TableFormatOption(ExtraOption):
     """A pre-configured option that is adding a ``-t``/``--table-format`` flag to select
     the rendering style of a table.
+
+    The selected table format ID is made available in the context in
+    ``ctx.meta["click_extra.table_format"]``.
     """
 
     def init_formatter(self, ctx, param, value):
@@ -132,7 +135,8 @@ class TableFormatOption(ExtraOption):
         ``print_table(tabular_data, headers)`` is a ready-to-use method that takes a
         2-dimentional ``tabular_data`` iterable of iterables and a list of headers.
         """
-        ctx.table_format = value
+        # XXX ctx.meta doesn't cut it, we need to target ctx._meta.
+        ctx._meta["click_extra.table_format"] = value
 
         render_func = None
         if value.startswith("csv"):
@@ -141,6 +145,7 @@ class TableFormatOption(ExtraOption):
             render_func = render_vertical
         else:
             render_func = partial(render_table, tablefmt=value)
+
         ctx.print_table = render_func
 
     def __init__(

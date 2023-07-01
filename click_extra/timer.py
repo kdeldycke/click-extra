@@ -28,6 +28,9 @@ from .parameters import ExtraOption
 class TimerOption(ExtraOption):
     """A pre-configured option that is adding a ``--time``/``--no-time`` flag to print
     elapsed time at the end of CLI execution.
+
+    The start time is made available in the context in
+    ``ctx.meta["click_extra.start_time"]``.
     """
 
     def print_timer(self):
@@ -40,15 +43,16 @@ class TimerOption(ExtraOption):
         Computes and print the execution time at the end of the CLI, if option has been
         activated.
         """
-        # Skip timekeeping if option is not active.
-        if not value:
-            return
-
         # Take timestamp snapshot.
         self.start_time = perf_counter()
 
-        # Register printing at the end of execution.
-        ctx.call_on_close(self.print_timer)
+        # XXX ctx.meta doesn't cut it, we need to target ctx._meta.
+        ctx._meta["click_extra.start_time"] = self.start_time
+
+        # Skip timekeeping if option is not active.
+        if value:
+            # Register printing at the end of execution.
+            ctx.call_on_close(self.print_timer)
 
     def __init__(
         self,

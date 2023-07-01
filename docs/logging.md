@@ -261,8 +261,37 @@ You can also pass the default logger object to the option:
       ) in result.output
 ```
 
+### Custom configuration
+
+The Python standard library provides the [`logging.basicConfig`](https://docs.python.org/3/library/logging.html?#logging.basicConfig) function, which is a helper to simplify the configuration of loggers and covers most use cases.
+
+Click Extra provides a similar helper, [`click_extra.logging.extra_basic_config`](https://click-extra.readthedocs.io/en/latest/api/logging.html#click_extra.logging.extra_basic_config).
+
 ```{todo}
-Write more documentation about `extra_basic_config()`.
+Write detailed documentation of `extra_basic_config()`.
+```
+
+### Get verbosity level
+
+You can get the name of the current verbosity level from the context or the logger itself:
+
+```{eval-rst}
+.. click:example::
+    import logging
+    from click_extra import command, echo, pass_context, verbosity_option
+
+    @command
+    @verbosity_option
+    @pass_context
+    def vanilla_command(ctx):
+        level_from_context = ctx.meta["click_extra.verbosity"]
+        echo(f"Level from context: {level_from_context}")
+
+        level_from_logger = logging._levelToName[logging.getLogger().getEffectiveLevel()]
+        echo(f"Level from logger: {level_from_logger}")
+
+.. click:run::
+   result = invoke(vanilla_command, args=["--verbosity", "DEBUG"])
 ```
 
 ## Internal `click_extra` logger

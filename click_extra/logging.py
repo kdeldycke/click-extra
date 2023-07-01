@@ -207,6 +207,9 @@ class VerbosityOption(ExtraOption):
 
     Sets the level of the provided logger.
 
+    The selected verbosity level name is made available in the context in
+    ``ctx.meta["click_extra.verbosity"]``.
+
     .. important::
 
         The internal ``click_extra`` logger level will be aligned to the value set via
@@ -251,9 +254,14 @@ class VerbosityOption(ExtraOption):
     def set_levels(self, ctx, param, value):
         """Set level of all loggers configured on the option.
 
+        Save the verbosity level name in the context.
+
         Also prints the chosen value as a debug message via the internal
         ``click_extra`` logger.
         """
+        # XXX ctx.meta doesn't cut it, we need to target ctx._meta.
+        ctx._meta["click_extra.verbosity"] = value
+
         for logger in self.all_loggers:
             logger.setLevel(LOG_LEVELS[value])
             logging.getLogger("click_extra").debug(f"Set {logger} to {value}.")

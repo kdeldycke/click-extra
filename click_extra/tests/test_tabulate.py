@@ -525,6 +525,9 @@ def table_cli(cmd_decorator, option_decorator):
     @option_decorator
     @pass_context
     def tabulate_cli2(ctx):
+        format_id = ctx.meta["click_extra.table_format"]
+        echo(f"Table format: {format_id}")
+
         data = ((1, 87), (2, 80), (3, 79))
         headers = ("day", "temperature")
         ctx.print_table(data, headers)
@@ -541,5 +544,5 @@ def test_all_table_rendering(invoke, table_cli, format_name, expected):
     assert result.exit_code == 0
     if not is_windows():
         expected = expected.replace("\r\n", "\n")
-    assert result.stdout == expected
+    assert result.stdout == f"Table format: {format_name}\n{expected}"
     assert not result.stderr
