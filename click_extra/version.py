@@ -56,8 +56,8 @@ class VersionOption(ExtraOption):
 
     def __init__(
         self,
-        version: str | None = None,
         param_decls: Sequence[str] | None = None,
+        version: str | None = None,
         package_name: str | None = None,
         prog_name: str | None = None,
         message: str | None = None,
