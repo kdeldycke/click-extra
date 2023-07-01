@@ -35,7 +35,7 @@ It produces the following help screen:
     result = invoke(my_cli, args=["--help"])
     assert "-C, --config CONFIG_PATH" in result.stdout
 
-See there the explicit mention of the default location of the configuration file. This improves discoverability, and [makes sysadmins happy](https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations), especially those not familiar with your CLI.
+See there the explicit mention of the default location of the configuration file. This improves discoverability, and `makes sysadmins happy <https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations>`_, especially those not familiar with your CLI.
 
 A bare call returns:
 
@@ -114,7 +114,7 @@ int_parameter is 555
 
 ## Strictness
 
-As you can see [in the example above](#standalone-option), all unrecognized content is ignored.
+As you can see [in the first example above](#standalone-option), all unrecognized content is ignored.
 
 If for any reason you do not want to allow any garbage in configuration files provided by the user, you can use the `strict` argument.
 
@@ -146,7 +146,7 @@ def cli(int_param):
     echo(f"int_parameter is {int_param!r}")
 ```
 
-Will raise an error and stop the the CLI execution on unrecognized `random_param` value:
+Will raise an error and stop the CLI execution on unrecognized `random_param` value:
 
 ```{code-block} shell-session
 ---
