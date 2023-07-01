@@ -2,62 +2,200 @@
 
 Click Extra provides its own version option which, compared to [Click's built-in](https://click.palletsprojects.com/en/8.1.x/api/?highlight=version#click.version_option):
 
-- adds colors
-- prints complete environment information in JSON
+- adds [new variable](#variables) to compose your version string
+- adds [colors](#colors)
+- adds complete [environment information in JSON](#environment-information)
+- prints details metadata `DEBUG` logs
+- expose [metadata in the context](#get-metadata-values)
+
+## Defaults
+
+Here is how the defaults looks like:
 
 ```{eval-rst}
 .. click:example::
-      import click_extra
+      from click_extra import command, version_option
 
-      @click_extra.extra_command(params=[
-         click_extra.VersionOption(version="0.1")
-      ])
+      @command
+      @version_option(version="1.2.3")
       def cli():
-         print("It works!")
+         pass
+
+Here I have hard-coded the version to ``1.2.3`` for the sake of the example, but by default, the version will be automattically fetched from the ``__version__`` attribute of the module where the command is defined.
+
+.. click:run::
+   result = invoke(cli, args=["--help"])
+   assert "--version" in result.output
+
+The default version message is ``%(prog)s, version %(version)s`` (`like Click's own default <https://github.com/pallets/click/blob/b498906/src/click/decorators.py#L455>`_), but is colored:
 
 .. click:run::
    result = invoke(cli, args=["--version"])
-   assert result.output == "\x1b[97mcli\x1b[0m, version \x1b[32m0.1\x1b[0m\n"
+   assert result.output == "\x1b[97mcli\x1b[0m, version \x1b[32m1.2.3\x1b[0m\n"
+```
+
+## Variables
+
+You can customize the version string with the following variables:
+
+- `%(version)s`: the version of the package where the command is defined
+- `%(package_name)s`: the name of the package where the command is defined
+- `%(prog_name)s`: the name of the program (i.e. the CLI's name)
+- `%(env_info)s`: the environment information in JSON
+
+```{hint}
+Click's built-in variables are recognized but deprecated:
+- Click's `%(package)s` is aliased to Click Extra's `%(package_name)s`
+- Click's `%(prog)s` is aliased to Click Extra's `%(prog_name)s`
+
+A deprecation warning will be emitted when using Click's variables.
+```
+
+You can compose your own version string by passing the `message` argument:
+
+```{eval-rst}
+.. click:example::
+      from click_extra import command, version_option
+
+      @command
+      @version_option(message="%(prog_name)s v%(version)s - %(package_name)s")
+      def my_own_cli():
+         pass
+
+.. click:run::
+   from click_extra import __version__
+   result = invoke(my_own_cli, args=["--version"])
+   assert result.output == (
+      "\x1b[97mmy-own-cli\x1b[0m "
+      f"v\x1b[32m{__version__}\x1b[0m - "
+      "\x1b[97mclick_extra\x1b[0m\n"
+   )
+```
+
+```{note}
+Notice here how the `%(package_name)s` string takes the value of the current package name, i.e. `click_extra`, because that is the Python package this snippet of code is defined in. Consequently, the `%(version)s` string takes the value of the current version of Click Extra (i.e.  `click_extra.__version__`).
+
+Once your CLI gets packaged in its own module, its metadata will be fetched automatically so you don't have to manage them manually.
+```
+
+## Colors
+
+Each variable listed in the section above can be rendered in its own style. They all have dedicated parameters you can pass to the `version_option` decorator:
+
+| Parameter | Description |
+| --- | --- |
+| `version_style` | Style of the `%(version)s` variable. |
+| `package_name_style` | Style of the `%(package_name)s` variable. |
+| `prog_name_style` | Style of the `%(prog_name)s` variable. |
+| `env_info_style` | Style of the `%(env_info)s` variable. |
+| `message_style` | Default style of the rest of the message. |
+
+Here is an example:
+
+```{eval-rst}
+.. click:example::
+      from click_extra import command, version_option, Style
+
+      @command
+      @version_option(
+         message="%(prog_name)s v%(version)s - %(package_name)s",
+         message_style=Style(fg="cyan"),
+         prog_name_style=Style(fg="green", bold=True),
+         version_style=Style(fg="bright_yellow", bg="red"),
+         package_name_style=Style(fg="bright_blue", italic=True),
+      )
+      def cli():
+         pass
+
+.. click:run::
+   from click_extra import __version__
+   result = invoke(cli, args=["--version"])
+   assert result.output == (
+      "\x1b[32m\x1b[1mcli\x1b[0m\x1b[36m "
+      f"v\x1b[0m\x1b[93m\x1b[41m{__version__}\x1b[0m\x1b[36m - "
+      "\x1b[0m\x1b[94m\x1b[3mclick_extra\x1b[0m\n"
+   )
+```
+
+```{hint}
+The [`Style()` helper is defined by Cloup](https://cloup.readthedocs.io/en/stable/autoapi/cloup/styling/index.html#cloup.styling.Style).
+```
+
+You can pass `None` to any of the style parameters to disable styling for the corresponding variable:
+
+```{eval-rst}
+.. click:example::
+      from click_extra import command, version_option
+
+      @command
+      @version_option(
+          version_style=None,
+          package_name_style=None,
+          prog_name_style=None,
+          env_info_style=None,
+          message_style=None,
+      )
+      def cli():
+         pass
+
+.. click:run::
+   from click_extra import __version__
+   result = invoke(cli, args=["--version"])
+   assert result.output == f"cli, version {__version__}\n"
 ```
 
 ## Environment information
 
-By default, the version option collects and output the environment information. The idea is to collect enough metadata on the system a CLI is run from, to help debugging and reporting of issues from end users.
-
-```{warning}
-Environment information collection is temporarily disabled for Python >= 3.10, because we rely on [`boltons.ecoutils`](https://boltons.readthedocs.io/en/latest/ecoutils.html), for which we wait for a new release to have [issue `mahmoud/boltons#294` fixed](https://github.com/mahmoud/boltons/issues/294) upstream.
-```
+The `%(env_info)s` variable compiles all sorts of environment informations.
 
 Here is how it looks like:
 
-```ansi-shell-session
-$ cli --version
-[97mcli[0m, version [32m0.1
-[0m[90m{'username': '-', 'guid': 'bd92d7b5d66e95baac0b0fc36a247a5', 'hostname': '-', 'hostfqdn': '-', 'uname': {'system': 'Darwin', 'node': '-', 'release': '21.3.0', 'version': 'Darwin Kernel Version 21.3.0: Wed Jan  5 21:37:58 PST 2022; root:xnu-8019.80.24~20/RELEASE_X86_64', 'machine': 'x86_64', 'processor': 'i386'}, 'linux_dist_name': '', 'linux_dist_version': '', 'cpu_count': 8, 'fs_encoding': 'utf-8', 'ulimit_soft': 256, 'ulimit_hard': 9223372036854775807, 'cwd': '-', 'umask': '0o2', 'python': {'argv': '-', 'bin': '-', 'version': '3.9.12 (main, Mar 26 2022, 15:51:15) [Clang 13.1.6 (clang-1316.0.21.2)]', 'compiler': 'Clang 13.1.6 (clang-1316.0.21.2)', 'build_date': 'Mar 26 2022 15:51:15', 'version_info': [3, 9, 12, 'final', 0], 'features': {'openssl': 'OpenSSL 1.1.1n  15 Mar 2022', 'expat': 'expat_2.4.1', 'sqlite': '3.38.2', 'tkinter': '', 'zlib': '1.2.11', 'unicode_wide': True, 'readline': True, '64bit': True, 'ipv6': True, 'threading': True, 'urandom': True}}, 'time_utc': '2022-04-04 14:09:17.339140', 'time_utc_offset': -6.0, '_eco_version': '1.0.1'}[0m
+```{eval-rst}
+.. click:example::
+      from click_extra import command, version_option
+
+      @command
+      @version_option(message="%(env_info)s")
+      def my_own_cli():
+         pass
+
+.. click:run::
+   result = invoke(my_own_cli, args=["--version"])
 ```
+
+It's verbose but it's helpful for debugging and reporting of issues from end users.
 
 ```{note}
-The environment JSON output is scrubbed out of identifiable information by default: current working directory, hostname, Python executable path, command-line arguments and username are replaced with `-`.
+The JSON output is scrubbed out of identifiable information by default: current working directory, hostname, Python executable path, command-line arguments and username are replaced with `-`.
 ```
 
-To disable environment metadata reporting, set the `print_env_info` argument:
+## Get metadata values
+
+You can get the values used in the composition of the version message from the context:
 
 ```{eval-rst}
 .. click:example::
-      import click_extra
+    from click_extra import command, echo, pass_context, version_option
 
-      @click_extra.extra_command(params=[
-         click_extra.VersionOption(
-            version="0.1",
-            print_env_info=False,
-         )
-      ])
-      def cli():
-         print("It works!")
+    @command
+    @version_option
+    @pass_context
+    def version_command(ctx):
+        version = ctx.meta["click_extra.version"]
+        package_name = ctx.meta["click_extra.package_name"]
+        prog_name = ctx.meta["click_extra.prog_name"]
+        env_info = ctx.meta["click_extra.env_info"]
+
+        echo(f"version = {version}")
+        echo(f"package_name = {package_name}")
+        echo(f"prog_name = {prog_name}")
+        echo(f"env_info = {env_info}")
 
 .. click:run::
-   result = invoke(cli, args=["--version"])
-   assert result.output == "\x1b[97mcli\x1b[0m, version \x1b[32m0.1\x1b[0m\n"
+   result = invoke(version_command, ["--version"])
+
+.. click:run::
+   result = invoke(version_command)
 ```
 
 ## `click_extra.version` API

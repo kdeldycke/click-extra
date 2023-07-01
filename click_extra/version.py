@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Extraction of CLI's version and its printing."""
+"""Gather CLI metadata and print them."""
 
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ from gettext import gettext as _
 from importlib import metadata
 from typing import TYPE_CHECKING
 from functools import cached_property
+import warnings
 
 from boltons.ecoutils import get_profile
 
@@ -39,12 +40,6 @@ if TYPE_CHECKING:
 class VersionOption(ExtraOption):
     """Gather CLI metadata and prints a colored version string.
 
-    The elements composing the version string are made available in the context as:
-
-    - ``ctx.meta["click_extra.prog_name"]``
-    - ``ctx.meta["click_extra.package"]``
-    - ``ctx.meta["click_extra.version"]``
-
     .. warning::
         This started as a `copy of the standard @click.version_option() decorator
         <https://github.com/pallets/click/blob/dc918b4/src/click/decorators.py#L399-L466>`_,
@@ -57,27 +52,21 @@ class VersionOption(ExtraOption):
         This option has been made into a class here, to allow its use with the declarative
         ``params=`` argument. Which `fixes Click #2324 issue
         <https://github.com/pallets/click/issues/2324>`_.
-
-    .. important::
-        This class has been augmented with...
     """
 
     def __init__(
         self,
-        param_decls: Sequence[str] | None = None,
-
         version: str | None = None,
+        param_decls: Sequence[str] | None = None,
         package_name: str | None = None,
         prog_name: str | None = None,
-        env_info: str | None = None,
         message: str | None = None,
-
+        env_info: str | None = None,
         version_style: IStyle | None = Style(fg="green"),
         package_name_style: IStyle | None = default_theme.invoked_command,
         prog_name_style: IStyle | None = default_theme.invoked_command,
         env_info_style: IStyle | None = Style(fg="bright_black"),
         message_style: IStyle | None = None,
-
         is_flag=True,
         expose_value=False,
         is_eager=True,
@@ -86,17 +75,17 @@ class VersionOption(ExtraOption):
     ) -> None:
         """Adds a couple of extra parameters to the standard ``click.version_option``.
 
-        :param version_style: adds environment info at the end of the message. Useful to
-            gather user's details for troubleshooting. Defaults to
-            ``Style(fg="green")``.
-        :param package_name_style: style of the ``version``. Defaults to
-            ``default_theme.invoked_command``.
-        :param prog_name_style: style of the ``prog_name``. Defaults to
-            ``default_theme.invoked_command``.
-        :param message_style: default style of the ``message`` parameter. Defaults to
-            ``None``.
-        :param env_info_style: style of the environment info. Defaults to
-            ``Style(fg="bright_black")``.
+        :param version: forces the value of ``%(version)s``.
+        :param package_name: forces the value of ``%(package_name)s``.
+        :param prog_name: forces the value of ``%(prog_name)s``.
+        :param env_info: forces the value of ``%(env_info)s``.
+        :param message: the message template to print. Defaults to ``%(prog_name)s, version %(version)s``.
+
+        :param version_style: style of ``%(version)s``.
+        :param package_name_style: style of ``%(package_name)s``.
+        :param prog_name_style: style of ``%(prog_name)s``.
+        :param env_info_style: style of ``%(env_info)s``.
+        :param message_style: default style of rest of the message.
 
         For other params `see Click's version_option decorator
         <https://click.palletsprojects.com/en/8.1.x/api/#click.version_option>`_.
@@ -175,6 +164,12 @@ class VersionOption(ExtraOption):
 
     @cached_property
     def version(self) -> str:
+        """Auto-detect the version of the package.
+
+        Fetch version using `importlib.metadata.version()
+        <https://docs.python.org/3/library/importlib.metadata.html?highlight=metadata#distribution-versions>`_
+        on the module whose ID is given by ``self.package_name``.
+        """
         try:
             version = metadata.version(self.package_name)
         except metadata.PackageNotFoundError:
@@ -195,12 +190,18 @@ class VersionOption(ExtraOption):
 
     @cached_property
     def prog_name(self) -> str:
-        ctx = get_current_context()
-        return ctx.find_root().info_name
+        """Return the name of the program.
+        """
+        return get_current_context().find_root().info_name
 
     @cached_property
-    def env_info(self) -> str:
-        return str(get_profile(scrub=True))
+    def env_info(self) -> str | dict[str, str]:
+        """Return the environment info.
+
+        Defaults to the dictionnary return by `boltons.ecoutils.get_profile()
+        <https://boltons.readthedocs.io/en/latest/ecoutils.html#boltons.ecoutils.get_profile>`_.
+        """
+        return get_profile(scrub=True)
 
     message: str = _("%(prog_name)s, version %(version)s")
     """Default message template used to render the version string."""
@@ -210,6 +211,9 @@ class VersionOption(ExtraOption):
 
         Accepts a custom ``template`` as parameter, otherwise uses the default message defined on the instance.
         """
+        if template is None:
+            template = self.message
+
         # Map the template parts to their style function.
         part_vars = {
             "%(version)s": self.version_style,
@@ -217,14 +221,7 @@ class VersionOption(ExtraOption):
             "%(prog_name)s": self.prog_name_style,
             "%(env_info)s": self.env_info_style,
         }
-        part_regex = re.compile(
-            "(" +
-            "|".join(map(re.escape, part_vars)) +
-            ")"
-        )
-
-        if template is None:
-            template = self.message
+        part_regex = re.compile("(" + "|".join(map(re.escape, part_vars)) + ")")
 
         colored_template = ""
         for part in re.split(part_regex, template):
@@ -245,11 +242,21 @@ class VersionOption(ExtraOption):
         """
         if template is None:
             template = self.colored_template()
+        # Detect deprecated template variables from Click.
+        deprecated_vars = {v for v in {"%(package)s", "%(prog)s"} if v in template}
+        if deprecated_vars:
+            warnings.warn(
+                f"Deprecated Click-specific variables: {deprecated_vars}",
+                FutureWarning,
+            )
         return template % {
             "version": self.version,
             "package_name": self.package_name,
             "prog_name": self.prog_name,
-            "env_info": self.env_info,
+            "env_info": str(self.env_info),
+            # Deprecated Click-specific template variables.
+            "package": self.package_name,
+            "prog": self.prog_name,
         }
 
     def print_and_exit(
@@ -260,7 +267,7 @@ class VersionOption(ExtraOption):
     ) -> None:
         """Print the version string and exits.
 
-        Also stores all version string elements in the context's ``meta`` `dict`.
+        Also stores all version string elements in the Context's ``meta`` `dict`.
         """
         # XXX ctx.meta doesn't cut it, we need to target ctx._meta.
         ctx._meta["click_extra.package_name"] = self.package_name

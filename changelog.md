@@ -12,7 +12,8 @@ This version is not released yet and is under active development.
 - Remove `print_env_info` option from `VersionOption` class and `version_option` decorators.
 - Add new `%(env_info)` element. Default value is the same as what the removed `print_env_info` produced (i.e. a JSON dump of the environment).
 - Allow `%(env_info)` value to be set by user on `--version`.
-- Rename in version string formatting the `%(prog)` element to `%(prog_name)`.
+- Rename in version string formatting the `%(prog)` element to `%(prog_name)`, and `%(package)` to `%(package_name)`.
+- Detect Click-specific `%(prog)` and `%(package)` and raise a deprecated warning.
 - Do not print environment info in `--version` by default. Change default message from `%(prog)s, version %(version)s\n%(env_info)` to `%(prog_name)s, version %(version)s`.
 - Automaticcaly augment version string with environment info in `DEBUG` log level.
 
