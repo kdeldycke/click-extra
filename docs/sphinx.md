@@ -125,7 +125,7 @@ Placed in your Sphinx documentation, the two blocks above renders to:
 
 This is perfect for documentation, as it shows both the source code of the CLI and its results.
 
-See for instance how the CLI code is properly rendered as a Python code block with syntax highlighting. And how the invokation of that CLI renders into a terminal session with ANSI coloring of output.
+See for instance how the CLI code is properly rendered as a Python code block with syntax highlighting. And how the invocation of that CLI renders into a terminal session with ANSI coloring of output.
 
 You can then invoke that CLI again with its ``--name`` option:
 
@@ -188,7 +188,7 @@ If for any reason our CLI changes and its help screen is no longer what we expec
 
 Having your build fails when something unexpected happens is a great signal to catch regressions early.
 
-On the other hand, if the build succeed, the ``.. click:run::`` block will render as usual with the result of the invokation:
+On the other hand, if the build succeed, the ``.. click:run::`` block will render as usual with the result of the invocation:
 
 .. click:run::
     result = invoke(hello_world, args=["--help"])

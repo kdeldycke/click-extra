@@ -99,7 +99,7 @@ class HelpExtraTheme(NamedTuple):
         <https://github.com/kdeldycke/mail-deduplicate/blob/0764287/mail_deduplicate/deduplicate.py#L445>`_.
 
     .. todo::
-        Maybe this shouln't be in Click Extra because it is a legacy inheritance from
+        Maybe this shouldn't be in Click Extra because it is a legacy inheritance from
         one of my other project.
     """
 
@@ -170,7 +170,7 @@ default_theme = HelpExtraTheme(
     invoked_command=Style(fg=Color.bright_white),
     heading=Style(fg=Color.bright_blue, bold=True, underline=True),
     constraint=Style(fg=Color.magenta),
-    # Neutralize Cloup's col1, as it interfers with our finer option styling
+    # Neutralize Cloup's col1, as it interferes with our finer option styling
     # which takes care of separators.
     col1=identity,
     # Style aliases like options and subcommands.
@@ -462,8 +462,8 @@ class ExtraHelpColorsMixin:
         return super().format_help(ctx, formatter)
 
 
-def escape_for_help_sceen(text: str) -> str:
-    """Escape a text to be used in a regural expression to match help screen.
+def escape_for_help_screen(text: str) -> str:
+    """Escape a text to be used in a regular expression to match help screen.
 
     Like ``re.escape``, but allows any number of optional blank characters (line
     returns, spaces, tabs) after a dash, to accounts for text wrapping rules and
@@ -551,7 +551,7 @@ class HelpExtraFormatter(HelpFormatter):
 
         All groups without IDs are left as-is.
 
-        All groups are proccessed in the order they appear in the ``match`` object.
+        All groups are processed in the order they appear in the ``match`` object.
         Then all groups are concatenated to form the final string that is returned.
 
         .. caution::
@@ -561,8 +561,8 @@ class HelpExtraFormatter(HelpFormatter):
 
             So we have to iterate over the list of matching strings and pick up the
             corresponding group ID along the way, from the ``match.groupdict()``
-            dictionnary. This also means we assume that the ``match.groupdict()`` is
-            returning an ordered dictionnary. Which is supposed to be true as of Python
+            dictionary. This also means we assume that the ``match.groupdict()`` is
+            returning an ordered dictionary. Which is supposed to be true as of Python
             3.7.
         """
         # Get a snapshot of all named groups.
@@ -623,11 +623,11 @@ class HelpExtraFormatter(HelpFormatter):
             flags=re.VERBOSE,
         )
 
-        # Highligh subcommands.
+        # Highlight subcommands.
         for subcommand in self.subcommands:
             help_text = re.sub(
                 rf"""
-                (\ \ )                        # 2 spaces (i.e. section indention).
+                (\ \ )                        # 2 spaces (i.e. section indentation).
                 (?P<subcommand>{re.escape(subcommand)})
                 (\s)                          # Any blank char.
                 """,
@@ -636,7 +636,7 @@ class HelpExtraFormatter(HelpFormatter):
                 flags=re.VERBOSE,
             )
 
-        # Highligh environment variables and defaults in trailing square brackets.
+        # Highlight environment variables and defaults in trailing square brackets.
         help_text = re.sub(
             r"""
             (\ \ )                  # 2 spaces (column spacing or description spacing).
@@ -683,7 +683,7 @@ class HelpExtraFormatter(HelpFormatter):
                 flags=re.VERBOSE,
             )
 
-        # Highligh sections.
+        # Highlight sections.
         # XXX Duplicates Cloup's job, with the only subtlety of not highlighting the
         # trailing semicolon.
         #
@@ -706,7 +706,7 @@ class HelpExtraFormatter(HelpFormatter):
             (sorted(self.metavars, reverse=True), "metavar"),
         ):
             for keyword in matching_keywords:
-                keyword = escape_for_help_sceen(keyword)
+                keyword = escape_for_help_screen(keyword)
                 help_text = re.sub(
                     rf"""
                     ([               # A keyword is preceded with either:

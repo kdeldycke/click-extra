@@ -476,7 +476,7 @@ def test_integrated_color_option(invoke, param, expecting_colors):
             "H\x1b[32mey\x1b[0m-xx-xxx-\x1b[32mhe\x1b[0mY-xXxXxxxxx-\x1b[32mhey\x1b[0m",
             False,
         ),
-        # Case-sensivity and multiple matches.
+        # Case-sensitivity and multiple matches.
         (["hey"], "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m", False),
         (
             ["Hey"],

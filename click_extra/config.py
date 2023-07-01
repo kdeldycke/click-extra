@@ -358,7 +358,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         return a
 
     def merge_conf(self, user_conf):
-        """Try-out configuration formats againts file's content and returns a ``dict``.
+        """Try-out configuration formats against file's content and returns a ``dict``.
 
         The returned ``dict`` will only contain options and parameters defined on the
         CLI. All others will be filtered out.

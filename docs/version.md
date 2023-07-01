@@ -40,7 +40,7 @@ $ cli --version
 The environment JSON output is scrubbed out of identifiable information by default: current working directory, hostname, Python executable path, command-line arguments and username are replaced with `-`.
 ```
 
-To disable environement metadata reporting, set the `print_env_info` argument:
+To disable environment metadata reporting, set the `print_env_info` argument:
 
 ```{eval-rst}
 .. click:example::
