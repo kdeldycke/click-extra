@@ -2,7 +2,7 @@
 
 ## OS families
 
-All platforms are grouped in sets of non-overlaping families:
+All platforms are grouped in sets of non-overlpaping families:
 
 <!-- NON_OVERLAPPING_GROUPS-graph-start -->
 

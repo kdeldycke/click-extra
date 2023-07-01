@@ -42,7 +42,7 @@ from click_extra import (
     get_app_dir,
     option,
 )
-from click_extra.colorize import escape_for_help_sceen
+from click_extra.colorize import escape_for_help_screen
 from click_extra.config import ConfigOption
 from click_extra.decorators import config_option, extra_group
 from click_extra.parameters import search_params
@@ -255,7 +255,7 @@ def test_conf_default_path(invoke, simple_config_cli):
 
     # Make path string compatible with regexp.
     assert re.search(
-        rf"\[default:\s+{escape_for_help_sceen(str(default_path))}\]",
+        rf"\[default:\s+{escape_for_help_screen(str(default_path))}\]",
         result.stdout,
     )
 
@@ -545,7 +545,7 @@ def test_auto_env_var_conf(
 
 
 @all_config_formats
-def test_conf_file_overrided_by_cli_param(
+def test_conf_file_overridden_by_cli_param(
     invoke,
     simple_config_cli,
     create_config,

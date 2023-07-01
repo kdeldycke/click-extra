@@ -64,7 +64,7 @@ This list is augmented with extra formats:
 - `vertical`
 
 ```{todo}
-Explicitely list all formats IDs and render an example of each format.
+Explicitly list all formats IDs and render an example of each format.
 ```
 
 ```{todo}

@@ -47,7 +47,7 @@ For example:
 - `click_extra.echo` is a direct proxy to `click.echo` because Cloup does not re-implement an `echo` helper.
 - On the other hand, `@click_extra.option` is a proxy of `@cloup.option`, because Cloup adds the [possibility for options to be grouped](https://cloup.readthedocs.io/en/stable/pages/option-groups.html).
 - `@click_extra.timer` is not a proxy of anything, because it is a new decorator implemented by Click Extra.
-- As for `@click_extra.version_option`, it mimicks the original `@click.version_option`, but because it adds new features, it was fully reimplemented by Click Extra and is no longer a proxy of the original from Click.
+- As for `@click_extra.version_option`, it mimics the original `@click.version_option`, but because it adds new features, it was fully reimplemented by Click Extra and is no longer a proxy of the original from Click.
 
 Here are few other examples on how Click Extra proxies the main elements from Click and Cloup:
 
@@ -165,7 +165,7 @@ This let you replace the preset options by your own set, tweak their order and f
 
 Notice how the options above are ordered in the help message.
 
-The default behavior of `@extra_command` (and its derivates decorators) is to order options in the way they are provided to the `params=` argument of the decorator. Then adds to that list the additional option decorators positionned after the `@extra_command` decorator.
+The default behavior of `@extra_command` (and its derivates decorators) is to order options in the way they are provided to the `params=` argument of the decorator. Then adds to that list the additional option decorators positioned after the `@extra_command` decorator.
 
 After that, there is a final [sorting step applied to options](https://kdeldycke.github.io/click-extra/commands.html#click_extra.commands.ExtraCommand). This is done by the `extra_option_at_end` option, which is `True` by default.
 

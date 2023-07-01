@@ -4,7 +4,7 @@ Click Extra plugs into Pygments to allow for the rendering of ANSI codes in vari
 
 ## Integration
 
-As soon as [`click-extra` is installed](install.md), all its additionnal components are automaticcaly registered to Pygments.
+As soon as [`click-extra` is installed](install.md), all its additional components are automaticcaly registered to Pygments.
 
 Here is a quick way to check the new plugins are visible to Pygments' regular API:
 
@@ -209,7 +209,7 @@ Some [languages supported by Pygments](https://pygments.org/languages/) are comm
 
 For example, the [`console` lexer can be used to highlight shell sessions](https://pygments.org/docs/terminal-sessions/). The general structure of the shell session will be highlighted by the `console` lexer, including the leading prompt. But the ANSI codes in the output will not be interpreted by `console` and will be rendered as plain text.
 
-To fix that, Click Extra implements ANSI-capable lexers. These can parse both the language syntax and the ANSI codes in the output. So you can use the `ansi-console` lexer intead of `console`, and this `ansi-`-prefixed variant will highlight shell sessions with ANSI codes.
+To fix that, Click Extra implements ANSI-capable lexers. These can parse both the language syntax and the ANSI codes in the output. So you can use the `ansi-console` lexer instead of `console`, and this `ansi-`-prefixed variant will highlight shell sessions with ANSI codes.
 
 ### Lexer variants
 
@@ -255,7 +255,7 @@ First, we will generate some random art in an interactive Python shell:
 '\x1b[35m║\x1b[0m\x1b[36m▌\x1b[0m\x1b[31m█\x1b[0m\x1b[32m║\x1b[0m\x1b[33m \x1b[0m\x1b[34mA\x1b[0m\x1b[35mN\x1b[0m\x1b[36mS\x1b[0m\x1b[31mI\x1b[0m\x1b[32m \x1b[0m\x1b[33mA\x1b[0m\x1b[34mr\x1b[0m\x1b[35mt\x1b[0m\x1b[36m \x1b[0m\x1b[31m▌\x1b[0m\x1b[32m│\x1b[0m\x1b[33m║\x1b[0m\x1b[34m▌\x1b[0m'
 ```
 
-The code block above is a typical Python console session. You have interactive prompt (`>>>`), pure Python code, and the output of these invokations. It is rendered here with Pygments' original `pycon` lexer.
+The code block above is a typical Python console session. You have interactive prompt (`>>>`), pure Python code, and the output of these invocations. It is rendered here with Pygments' original `pycon` lexer.
 
 You can see that the raw Python string `art` contain ANSI escape sequences (`\x1b[XXm`). When we print this string and give the results to Pygments, the ANSI codes are not interpreted and the output is rendered as-is:
 

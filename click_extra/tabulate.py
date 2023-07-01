@@ -133,7 +133,7 @@ class TableFormatOption(ExtraOption):
 
         The ``print_table(tabular_data, headers)`` method added to the context is a
         ready-to-use helper that takes for parameters:
-        - ``tabular_data``, a 2-dimentional iterable of iterables for cell values,
+        - ``tabular_data``, a 2-dimensional iterable of iterables for cell values,
         - ``headers``, a list of string to be used as headers.
         """
         # XXX ctx.meta doesn't cut it, we need to target ctx._meta.

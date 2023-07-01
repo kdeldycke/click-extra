@@ -133,24 +133,24 @@ def test_mutual_exclusion():
 
 
 def test_platform_definitions():
-    for plaform in ALL_PLATFORMS.platforms:
+    for platform in ALL_PLATFORMS.platforms:
         # ID.
-        assert plaform.id
-        assert plaform.id.isascii()
-        assert plaform.id.isalnum()
-        assert plaform.id.islower()
+        assert platform.id
+        assert platform.id.isascii()
+        assert platform.id.isalnum()
+        assert platform.id.islower()
         # Name.
-        assert plaform.name
-        assert plaform.name.isascii()
-        assert plaform.name.isprintable()
-        assert plaform.name in ALL_OS_LABELS
+        assert platform.name
+        assert platform.name.isascii()
+        assert platform.name.isprintable()
+        assert platform.name in ALL_OS_LABELS
         # Identification function.
-        check_func_id = f"is_{plaform.id}"
+        check_func_id = f"is_{platform.id}"
         assert check_func_id in globals()
         check_func = globals()[check_func_id]
         assert isinstance(check_func, functools._lru_cache_wrapper)
         assert isinstance(check_func(), bool)
-        assert check_func() == plaform.current
+        assert check_func() == platform.current
 
 
 def test_unique_ids():

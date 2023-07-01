@@ -55,7 +55,7 @@ def decorator_factory(dec, **new_defaults):
 
     @allow_missing_parenthesis
     def decorator(*args, **kwargs):
-        """Returns a new decorator instanciated with custom defaults.
+        """Returns a new decorator instantiated with custom defaults.
 
         These defaults values are merged with the user's own arguments.
 

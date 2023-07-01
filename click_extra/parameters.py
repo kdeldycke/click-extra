@@ -60,7 +60,7 @@ def auto_envvar(
 ) -> str | None:
     """Compute the auto-generated environment variable of an option or argument.
 
-    Returns the auto envvar as it is exacly computed within Click's internals, i.e.
+    Returns the auto envvar as it is exactly computed within Click's internals, i.e.
     ``click.core.Parameter.resolve_envvar_value()`` and
     ``click.core.Option.resolve_envvar_value()``.
     """
@@ -75,7 +75,7 @@ def auto_envvar(
     if not prefix or not param.name:
         return None
 
-    # Mimicks Click's internals.
+    # Mimics Click's internals.
     return f"{prefix}_{param.name.upper()}"
 
 
@@ -186,7 +186,7 @@ class ExtraOption(Option):
             This code **should be keep in sync with Click's implementation**.
 
         .. attention::
-            This doens't work with our own ``--config`` option because we are also
+            This doesn't work with our own ``--config`` option because we are also
             monkey-patching `ConfigOption.get_help_record()
             <https://kdeldycke.github.io/click-extra/config.html#click_extra.config.ConfigOption.get_help_record>`_
             to display the dynamic default value.
@@ -471,7 +471,7 @@ class ParamStructure:
 
     @cached_property
     def params_template(self):
-        """Returns a tree-like dictionnary whose keys shadows the CLI options and
+        """Returns a tree-like dictionary whose keys shadows the CLI options and
         subcommands and values are ``None``.
 
         Perfect to serve as a template for configuration files.
@@ -481,7 +481,7 @@ class ParamStructure:
 
     @cached_property
     def params_types(self):
-        """Returns a tree-like dictionnary whose keys shadows the CLI options and
+        """Returns a tree-like dictionary whose keys shadows the CLI options and
         subcommands and values are their expected Python type.
 
         Perfect to parse configuration files and user-provided parameters.
@@ -491,7 +491,7 @@ class ParamStructure:
 
     @cached_property
     def params_objects(self):
-        """Returns a tree-like dictionnary whose keys shadows the CLI options and
+        """Returns a tree-like dictionary whose keys shadows the CLI options and
         subcommands and values are parameter objects.
 
         Perfect to parse configuration files and user-provided parameters.
@@ -555,7 +555,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
 
         .. important::
             Click doesn't keep a list of all parsed arguments and their origin.
-            So we need to emulate here what's happening during CLI invokation.
+            So we need to emulate here what's happening during CLI invocation.
 
             Unfortunately we cannot even do that because the raw, pre-parsed arguments
             are not available anywhere within Click's internals.

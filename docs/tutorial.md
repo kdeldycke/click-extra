@@ -123,7 +123,7 @@ Which now renders to:
     assert "-C, --config CONFIG_PATH" in result.output
 ```
 
-This option itself behave like any Click option and can be customized easely:
+This option itself behave like any Click option and can be customized easily:
 
 ```{eval-rst}
 .. click:example::

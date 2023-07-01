@@ -45,7 +45,7 @@ from .version import VersionOption
 
 class ExtraContext(cloup.Context):
     """Like ``cloup._context.Context``, but with the ability to populate the context's
-    ``meta`` property at instanciation.
+    ``meta`` property at instantiation.
     """
 
     _extra_meta: dict[str, Any] = {}
@@ -72,8 +72,8 @@ def default_extra_params():
 
         You can still override this hard-coded order for easthetic reasons and it
         should be fine. Your end-users are unlikely to be affected by these sneaky
-        bugs, as the CLI context is going to be naturraly resetted after each
-        invokation (which is not the case in unitests).
+        bugs, as the CLI context is going to be naturraly reset after each
+        invocation (which is not the case in unitests).
 
     #. ``--time`` / ``--no-time``
         .. hint::
@@ -159,7 +159,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
           <https://click.palletsprojects.com/en/8.1.x/api/#click.Context.show_default>`_
           in help screen.
 
-        Additionnaly, these `Cloup context settings
+        Additionally, these `Cloup context settings
         <https://cloup.readthedocs.io/en/stable/pages/formatting.html#formatting-settings>`_
         are set:
 
@@ -276,7 +276,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         self.arguments, self.option_groups, self.ungrouped_options = _grouped_params
 
     def main(self, *args, **kwargs):
-        """Pre-invokation step that is instantiating the context, then call ``invoke()``
+        """Pre-invocation step that is instantiating the context, then call ``invoke()``
         within it.
 
         During context instantiation, each option's callbacks are called. Beware that
@@ -304,7 +304,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
             This workaround is being discussed upstream in `click#1279
             <https://github.com/pallets/click/issues/1279#issuecomment-1493348208>`_.
         """
-        # ``args`` needs to be copied: its items are consummed by the parsing process.
+        # ``args`` needs to be copied: its items are consumed by the parsing process.
         extra.update({"meta": {"click_extra.raw_args": args.copy()}})
         return super().make_context(info_name, args, parent, **extra)
 
