@@ -129,11 +129,12 @@ class TableFormatOption(ExtraOption):
     """
 
     def init_formatter(self, ctx, param, value):
-        """Save table format ID in the context, and attach ``print_table()`` method to
-        it.
+        """Save table format ID in the context, and adds ``print_table()`` to it.
 
-        ``print_table(tabular_data, headers)`` is a ready-to-use method that takes a
-        2-dimentional ``tabular_data`` iterable of iterables and a list of headers.
+        The ``print_table(tabular_data, headers)`` method added to the context is a
+        ready-to-use helper that takes for parameters:
+        - ``tabular_data``, a 2-dimentional iterable of iterables for cell values,
+        - ``headers``, a list of string to be used as headers.
         """
         # XXX ctx.meta doesn't cut it, we need to target ctx._meta.
         ctx._meta["click_extra.table_format"] = value

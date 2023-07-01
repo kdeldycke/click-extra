@@ -219,7 +219,10 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         super().__init__(*args, **kwargs)
 
         # List of additional global settings for options.
-        extra_option_settings = ["show_choices", "show_envvar"]
+        extra_option_settings = [
+            "show_choices",
+            "show_envvar",
+        ]
 
         default_ctx_settings: dict[str, Any] = {
             # Click settings:
@@ -277,7 +280,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         within it.
 
         During context instantiation, each option's callbacks are called. Beware that
-        these might break the execution flow (like ``--version``).
+        these might break the execution flow (like ``--help`` or ``--version``).
         """
         return super().main(*args, **kwargs)
 
