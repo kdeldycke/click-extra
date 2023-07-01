@@ -169,64 +169,6 @@ The default behavior of `@extra_command` (and its derivates decorators) is to or
 
 After that, there is a final [sorting step applied to options](https://kdeldycke.github.io/click-extra/commands.html#click_extra.commands.ExtraCommand). This is done by the `extra_option_at_end` option, which is `True` by default.
 
-## Timer option
-
-Click Extra can measure the execution time of a CLI via a dedicated `--time`/`--no-time` option.
-
-Here how to use the standalone decorator:
-
-```{eval-rst}
-.. click:example::
-    from time import sleep
-
-    from click_extra import command, echo, pass_context, timer_option
-
-    @command
-    @timer_option
-    def timer():
-        sleep(0.2)
-        echo("Hello world!")
-
-.. click:run::
-   result = invoke(timer, args=["--help"])
-   assert "--time / --no-time" in result.stdout
-
-.. click:run::
-   import re
-
-   result = invoke(timer, ["--time"])
-   assert re.fullmatch(
-        r"Hello world!\n"
-        r"Execution time: (?P<time>[0-9.]+) seconds.\n",
-        result.stdout,
-    )
-```
-
-### Get start time
-
-You can get the timestamp of the CLI start from the context:
-
-```{eval-rst}
-.. click:example::
-    from click_extra import command, echo, pass_context, timer_option
-
-    @command
-    @timer_option
-    @pass_context
-    def timer_command(ctx):
-        start_time = ctx.meta["click_extra.start_time"]
-        echo(f"Start timestamp: {start_time}")
-
-.. click:run::
-   import re
-
-   result = invoke(timer_command)
-   assert re.fullmatch(
-        r"Start timestamp: (?P<time>[0-9.]+)\n",
-        result.stdout,
-    )
-```
-
 ## `click_extra.commands` API
 
 ```{eval-rst}

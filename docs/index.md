@@ -18,6 +18,7 @@ colorize
 logging
 tabulate
 version
+timer
 platforms
 testing
 parameters
