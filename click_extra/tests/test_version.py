@@ -25,6 +25,7 @@ from pytest_cases import parametrize
 from click_extra import Style, echo
 from click_extra.decorators import color_option, extra_group, version_option
 
+from .. import __version__
 from .conftest import command_decorators, skip_windows_colors
 
 
@@ -40,52 +41,68 @@ def test_standalone_version_option(invoke, cmd_decorator, option_decorator):
     result = invoke(standalone_option, "--version", color=True)
     assert result.exit_code == 0
     assert not result.stderr
-    assert re.fullmatch(
-        r"\x1b\[97mstandalone-option\x1b\[0m, version \x1b\[32m\d+.\d+.\d+\x1b\[0m\n",
-        result.output,
+    assert result.output == (
+        "\x1b[97mstandalone-option\x1b[0m, "
+        f"version \x1b[32m{__version__}"
+        "\x1b[0m\n"
     )
 
 
 @skip_windows_colors
-def test_standalone_version_option_with_env_info(invoke):
+def test_set_version(invoke):
     @click.group
-    @version_option(version="1.2.3.4", print_env_info=True)
+    @version_option(version="1.2.3.4")
     def color_cli2():
         echo("It works!")
 
     # Test default coloring.
     result = invoke(color_cli2, "--version", color=True)
     assert result.exit_code == 0
-
-    regex_stdout = (
-        r"\x1b\[97mcolor-cli2\x1b\[0m, version \x1b\[32m1.2.3.4"
-        r"\x1b\[0m\x1b\[90m\n{'.+'}"
-        r"\x1b\[0m\n"
-    )
-    assert re.fullmatch(regex_stdout, result.stdout)
-
     assert not result.stderr
+    assert result.stdout == (
+        "\x1b[97mcolor-cli2\x1b[0m, version \x1b[32m1.2.3.4\x1b[0m\n"
+    )
 
 
-@pytest.mark.xfail(
-    strict=False,
-    reason="version_option always displays click-extra version. See #176.",
-)
 @skip_windows_colors
 @parametrize("cmd_decorator", command_decorators(no_groups=True))
-def test_standalone_version_option_without_env_info(invoke, cmd_decorator):
+@parametrize(
+    "message, regex_stdout",
+    (
+        (
+            "%(prog_name)s, version %(version)s",
+            r"\x1b\[97mcolor-cli3\x1b\[0m, "
+            rf"version \x1b\[32m{re.escape(__version__)}"
+            r"\x1b\[0m\n",
+        ),
+        (
+            "%(prog_name)s, version %(version)s\n%(env_info)s",
+            r"\x1b\[97mcolor-cli3\x1b\[0m, "
+            rf"version \x1b\[32m{re.escape(__version__)}"
+            r"\x1b\[0m\n"
+            r"\x1b\[90m{'.+'}"
+            r"\x1b\[0m\n",
+        ),
+        (
+            "%(prog_name)s v%(version)s - %(package_name)s",
+            r"\x1b\[97mcolor-cli3\x1b\[0m "
+            rf"v\x1b\[32m{re.escape(__version__)}"
+            r"\x1b\[0m - "
+            r"\x1b\[97mclick_extra"
+            r"\x1b\[0m\n",
+        ),
+    ),
+)
+def test_custom_message(invoke, cmd_decorator, message, regex_stdout):
     @cmd_decorator
-    @version_option(version="1.2.3.4", print_env_info=False)
+    @version_option(message=message)
     def color_cli3():
         echo("It works!")
 
-    # Test default coloring.
     result = invoke(color_cli3, "--version", color=True)
     assert result.exit_code == 0
-    assert (
-        result.stdout == "\x1b[97mcolor-cli3\x1b[0m, version \x1b[32m1.2.3.4\x1b[0m\n"
-    )
     assert not result.stderr
+    assert re.fullmatch(regex_stdout, result.output)
 
 
 @skip_windows_colors
@@ -100,15 +117,10 @@ def test_integrated_version_option_precedence(invoke, params):
 
     result = invoke(color_cli4, "--version", params, color=True)
     assert result.exit_code == 0
-
-    regex_stdout = (
-        r"\x1b\[97mcolor-cli4\x1b\[0m, version \x1b\[32m1.2.3.4"
-        r"\x1b\[0m\x1b\[90m\n{'.+'}"
-        r"\x1b\[0m\n"
-    )
-    assert re.fullmatch(regex_stdout, result.stdout)
-
     assert not result.stderr
+    assert result.stdout == (
+        "\x1b[97mcolor-cli4\x1b[0m, version \x1b[32m1.2.3.4\x1b[0m\n"
+    )
 
 
 @skip_windows_colors
@@ -134,10 +146,12 @@ def test_color_option_precedence(invoke):
 
     result = invoke(color_cli6, "--no-color", "--version", "command1", color=True)
     assert result.exit_code == 0
-    assert result.stdout == "color-cli6, version 2.1.9\n"
     assert not result.stderr
+    assert result.stdout == "color-cli6, version 2.1.9\n"
 
     result = invoke(color_cli6, "--version", "--no-color", "command1", color=True)
     assert result.exit_code == 0
-    assert result.stdout == "\x1b[97mcolor-cli6\x1b[0m, version \x1b[32m2.1.9\x1b[0m\n"
     assert not result.stderr
+    assert result.stdout == (
+        "\x1b[97mcolor-cli6\x1b[0m, version \x1b[32m2.1.9\x1b[0m\n"
+    )

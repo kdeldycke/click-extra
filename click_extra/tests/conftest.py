@@ -292,8 +292,8 @@ default_debug_colored_log_start = (
     r"\x1b\[34mdebug\x1b\[0m: Search local file system.\n"
     r"\x1b\[34mdebug\x1b\[0m: No configuration file found.\n"
     r"\x1b\[34mdebug\x1b\[0m: \x1b\[97m\S+\x1b\[0m,"
-    r" version \x1b\[32m\S+\x1b\[0m(\x1b\[90m)?\n"
-    r"\x1b\[34mdebug\x1b\[0m: {.*}\x1b\[0m\n"
+    r" version \x1b\[32m\S+\x1b\[0m\n"
+    r"\x1b\[34mdebug\x1b\[0m: \x1b\[90m{.*}\x1b\[0m\n"
 )
 
 default_debug_colored_log_end = (

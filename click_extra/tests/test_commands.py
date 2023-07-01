@@ -256,11 +256,8 @@ def test_subcommand_execution(invoke, all_command_cli, cmd_id):
 def test_integrated_version_value(invoke, all_command_cli):
     result = invoke(all_command_cli, "--version", color=False)
     assert result.exit_code == 0
-
-    regex_stdout = r"command-cli1, version 2021.10.08\n{'.+'}\n"
-    assert re.fullmatch(regex_stdout, result.stdout)
-
     assert not result.stderr
+    assert result.stdout == "command-cli1, version 2021.10.08\n"
 
 
 def test_no_option_leaks_between_subcommands(invoke):

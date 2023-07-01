@@ -106,7 +106,7 @@ def default_extra_params():
         ConfigOption(),
         ShowParamsOption(),
         VerbosityOption(),
-        VersionOption(print_env_info=True),
+        VersionOption(),
         HelpOption(),
     ]
 
@@ -309,22 +309,25 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         """Main execution of the command, just after the context has been instantiated
         in ``main()``.
 
-        If an instance of ``VersionOption`` has been setup on the command, adds to the
-        normal execution flow the output of ``--version`` in ``DEBUG`` logs. This
-        facilitates troubleshooting of user's issues.
+        If an instance of ``VersionOption`` is found attached to the command, print its
+        output in ``DEBUG`` logs. This facilitates troubleshooting of user's issues.
         """
         logger = logging.getLogger("click_extra")
         if logger.getEffectiveLevel() == logging.DEBUG:
-            # Look for our custom version parameter.
-            version_param = search_params(ctx.command.params, VersionOption)
-            if version_param:
-                version_message = version_param.callback(
-                    ctx,
-                    version_param,
-                    True,
-                    capture_output=True,
-                )
-                for line in version_message.splitlines():
+            # Look for a ``--version`` parameter.
+            version_opt = search_params(ctx.command.params, VersionOption)
+            if version_opt:
+
+                # Environment info is already present in the version string: use it as-is.
+                if "%(env_info)s" in version_opt.message:
+                    msg = version_opt.render_message()
+                # Augments the version string with the environment info.
+                else:
+                    msg = version_opt.render_message(version_opt.colored_template(
+                        version_opt.message + "\n%(env_info)s"
+                    ))
+
+                for line in msg.splitlines():
                     # TODO: pretty print JSON output (easier to read in bug reports)?
                     logger.debug(line)
 
