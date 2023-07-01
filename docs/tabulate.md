@@ -1,4 +1,4 @@
-# Table rendering
+# Table
 
 Click Extra provides a way to render tables in the terminal.
 
