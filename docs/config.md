@@ -112,6 +112,37 @@ my_list       is ('item 1', 'item #2', 'Very Last Item!')
 int_parameter is 555
 ```
 
+## Get configuration values
+
+After gathering all the configuration from the different sources, and assembling them together following the precedence rules above, the configuration values are merged back into the Context's `default_map`.
+
+This means that you can access the final configuration values from there like so:
+
+```python
+from click_extra import option, echo, pass_context, command, config_option
+
+@command
+@option("--int-param", type=int, default=10)
+@config_option
+@pass_context
+def my_cli(ctx, int_param):
+    echo(f"Configuration values: {ctx.default_map}")
+    echo(f"int_param is {int_param!r}")
+```
+
+```toml
+[my-cli]
+int_param = 3
+random_stuff = "will be ignored"
+```
+
+```shell-session
+$ my-cli --config ./conf.toml --int-param 999
+Load configuration matching ./conf.toml
+Configuration values: {'int_param': 3}
+int_parameter is 999
+```
+
 ## Strictness
 
 As you can see [in the first example above](#standalone-option), all unrecognized content is ignored.
