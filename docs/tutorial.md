@@ -76,7 +76,7 @@ And now you get:
 
 That's it!
 
-Here is a highlight of the only changes between the two versions:
+Here is a `diff` highlight of the simple changes between the two versions:
 
 ```diff
 -from click import command, echo, option

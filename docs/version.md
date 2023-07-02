@@ -156,11 +156,13 @@ Here is how it looks like:
 
       @command
       @version_option(message="%(env_info)s")
-      def my_own_cli():
+      def env_info_cli():
          pass
 
 .. click:run::
-   result = invoke(my_own_cli, args=["--version"])
+   import re
+   result = invoke(env_info_cli, args=["--version"])
+   assert re.fullmatch(r"\x1b\[90m{'.+'}\x1b\[0m\n", result.output)
 ```
 
 It's verbose but it's helpful for debugging and reporting of issues from end users.
@@ -185,7 +187,15 @@ When the `DEBUG` level is enabled, the version message will be printed to the `D
           echo("Standard operation")
 
 .. click:run::
+   import re
+   from click_extra import __version__
    result = invoke(version_in_logs, ["--verbosity", "DEBUG"])
+   assert re.search((
+      r"\n\x1b\[34mdebug\x1b\[0m: "
+      rf"\x1b\[97mversion-in-logs\x1b\[0m, version \x1b\[32m{__version__}\x1b\[0m"
+      r"\n\x1b\[34mdebug\x1b\[0m: "
+      r"\x1b\[90m{'.+'}\x1b\[0m\n"
+   ), result.output)
 ```
 
 ```{hint}
@@ -200,7 +210,7 @@ Unless you assemble your own command with `extra_command`, or use the later with
 
 ## Get metadata values
 
-You can get the values used in the composition of the version message from the context:
+You can get the uncolored, Python values used in the composition of the version message from the context:
 
 ```{eval-rst}
 .. click:example::
@@ -209,7 +219,7 @@ You can get the values used in the composition of the version message from the c
     @command
     @version_option
     @pass_context
-    def version_command(ctx):
+    def version_metadata(ctx):
         version = ctx.meta["click_extra.version"]
         package_name = ctx.meta["click_extra.package_name"]
         prog_name = ctx.meta["click_extra.prog_name"]
@@ -221,11 +231,60 @@ You can get the values used in the composition of the version message from the c
         echo(f"env_info = {env_info}")
 
 .. click:run::
-   result = invoke(version_command, ["--version"])
+   result = invoke(version_metadata, ["--version"])
 
 .. click:run::
-   result = invoke(version_command)
+   import re
+   from click_extra import __version__
+   result = invoke(version_metadata)
+   assert re.fullmatch((
+      rf"version = {__version__}\n"
+      r"package_name = click_extra\n"
+      r"prog_name = version-metadata\n"
+      r"env_info = {'.+'}\n"
+   ), result.output)
 ```
+
+```{hint}
+These variables are presented in their original Python type. If most of these variables are strings, others like `env_info` retains their original `dict` type.
+```
+
+## Template rendering
+
+You can render the version string manually by calling the option's internal methods:
+
+```{eval-rst}
+.. click:example::
+    from click_extra import command, echo, pass_context, version_option, VersionOption, search_params
+
+    @command
+    @version_option
+    @pass_context
+    def template_rendering(ctx):
+         # Search for a ``--version`` parameter.
+         version_opt = search_params(ctx.command.params, VersionOption)
+         version_string = version_opt.render_message()
+         echo(f"Version string ~> {version_string}")
+
+.. hint::
+   To look for the ``--version`` parameter defined on the command, we rely on the `click_extra.search_params <parameters.md#click_extra.parameters.search_params>`_.
+
+.. click:run::
+   result = invoke(template_rendering, ["--version"])
+
+.. click:run::
+   import re
+   from click_extra import __version__
+   result = invoke(template_rendering)
+   assert re.fullmatch((
+      r"Version string ~> "
+      rf"\x1b\[97mtemplate-rendering\x1b\[0m, version \x1b\[32m{__version__}\x1b\[0m\n"
+   ), result.output)
+```
+
+That way you can collect the rendered (and colored) `version_string`, as if it was printed to the terminal by a call to `--version`, and use it in your own way.
+
+Other internal methods to build-up and render the version string are [available in the API below](#click_extraversion-api).
 
 ## `click_extra.version` API
 
