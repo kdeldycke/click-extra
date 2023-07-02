@@ -82,13 +82,13 @@ Once your CLI gets packaged in its own module, its metadata will be fetched auto
 
 Each variable listed in the section above can be rendered in its own style. They all have dedicated parameters you can pass to the `version_option` decorator:
 
-| Parameter | Description |
-| --- | --- |
-| `version_style` | Style of the `%(version)s` variable. |
+| Parameter            | Description                               |
+| -------------------- | ----------------------------------------- |
+| `version_style`      | Style of the `%(version)s` variable.      |
 | `package_name_style` | Style of the `%(package_name)s` variable. |
-| `prog_name_style` | Style of the `%(prog_name)s` variable. |
-| `env_info_style` | Style of the `%(env_info)s` variable. |
-| `message_style` | Default style of the rest of the message. |
+| `prog_name_style`    | Style of the `%(prog_name)s` variable.    |
+| `env_info_style`     | Style of the `%(env_info)s` variable.     |
+| `message_style`      | Default style of the rest of the message. |
 
 Here is an example:
 
