@@ -121,6 +121,7 @@ This means that you can access the final configuration values from there like so
 ```python
 from click_extra import option, echo, pass_context, command, config_option
 
+
 @command
 @option("--int-param", type=int, default=10)
 @config_option

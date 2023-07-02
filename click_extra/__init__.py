@@ -92,8 +92,8 @@ from .logging import (  # noqa: E402
 from .parameters import (  # noqa: E402
     ExtraOption,
     ParamStructure,
-    search_params,
     ShowParamsOption,
+    search_params,
 )
 from .tabulate import TableFormatOption  # noqa: E402
 from .telemetry import TelemetryOption  # noqa: E402
