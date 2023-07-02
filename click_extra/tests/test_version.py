@@ -21,8 +21,9 @@ import re
 import click
 import pytest
 from pytest_cases import parametrize
+from boltons.strutils import strip_ansi
 
-from click_extra import Style, echo
+from click_extra import Style, echo, pass_context
 from click_extra.decorators import color_option, extra_group, version_option
 
 from .. import __version__
@@ -103,6 +104,47 @@ def test_custom_message(invoke, cmd_decorator, message, regex_stdout):
     assert result.exit_code == 0
     assert not result.stderr
     assert re.fullmatch(regex_stdout, result.output)
+
+
+@parametrize("cmd_decorator", command_decorators(no_groups=True))
+def test_style_reset(invoke, cmd_decorator):
+    @cmd_decorator
+    @version_option(
+          version_style=None,
+          package_name_style=None,
+          prog_name_style=None,
+          env_info_style=None,
+          message_style=None,
+    )
+    def color_reset():
+        pass
+
+    result = invoke(color_reset, "--version", color=True)
+    assert result.exit_code == 0
+    assert not result.stderr
+    assert result.output == strip_ansi(result.output)
+
+
+@parametrize("cmd_decorator", command_decorators(no_groups=True))
+def test_context_meta(invoke, cmd_decorator):
+    @cmd_decorator
+    @version_option
+    @pass_context
+    def version_metadata(ctx):
+        for var in ("version", "package_name", "prog_name", "env_info"):
+            value = ctx.meta[f"click_extra.{var}"]
+            echo(f"{var} = {value}")
+
+    result = invoke(version_metadata, color=True)
+    assert result.exit_code == 0
+    assert not result.stderr
+    assert re.fullmatch((
+        rf"version = {__version__}\n"
+        r"package_name = click_extra\n"
+        r"prog_name = version-metadata\n"
+        r"env_info = {'.+'}\n"
+    ), result.output)
+    assert result.output == strip_ansi(result.output)
 
 
 @skip_windows_colors
