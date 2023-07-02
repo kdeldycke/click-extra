@@ -5,7 +5,7 @@ Click Extra provides its own version option which, compared to [Click's built-in
 - adds [new variable](#variables) to compose your version string
 - adds [colors](#colors)
 - adds complete [environment information in JSON](#environment-information)
-- prints details metadata `DEBUG` logs
+- prints [details metadata in `DEBUG` logs](#debug-logs)
 - expose [metadata in the context](#get-metadata-values)
 
 ## Defaults
@@ -43,7 +43,7 @@ You can customize the version string with the following variables:
 - `%(prog_name)s`: the name of the program (i.e. the CLI's name)
 - `%(env_info)s`: the environment information in JSON
 
-```{hint}
+```{caution}
 Click's built-in variables are recognized but deprecated:
 - Click's `%(package)s` is aliased to Click Extra's `%(package_name)s`
 - Click's `%(prog)s` is aliased to Click Extra's `%(prog_name)s`
@@ -165,8 +165,37 @@ Here is how it looks like:
 
 It's verbose but it's helpful for debugging and reporting of issues from end users.
 
-```{note}
+```{important}
 The JSON output is scrubbed out of identifiable information by default: current working directory, hostname, Python executable path, command-line arguments and username are replaced with `-`.
+```
+
+## Debug logs
+
+When the `DEBUG` level is enabled, the version message will be printed to the `DEBUG` log:
+
+```{eval-rst}
+.. click:example::
+      from click_extra import extra_command, VerbosityOption, VersionOption, echo
+
+      @extra_command(params=[
+          VersionOption(),
+          VerbosityOption(),
+      ])
+      def version_in_logs():
+          echo("Standard operation")
+
+.. click:run::
+   result = invoke(version_in_logs, ["--verbosity", "DEBUG"])
+```
+
+```{hint}
+If the message template does not contains the `%(env_info)s` variable, it will be automattically added to the log message.
+```
+
+```{attention}
+This feature only works with the combination of `extra_command`, `VersionOption` and `VerbosityOption`.
+
+Unless you assemble your own command with `extra_command`, or use the later with the default options, you won't see the version message in the logs.
 ```
 
 ## Get metadata values
