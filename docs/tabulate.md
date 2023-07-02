@@ -57,6 +57,7 @@ So you can use the ``--table-format`` option to change the table format:
 Available table [formats are inherited from `python-tabulate`](https://github.com/astanin/python-tabulate#table-format).
 
 This list is augmented with extra formats:
+
 - `csv`
 - `csv-excel`
 - `csv-excel-tab`
