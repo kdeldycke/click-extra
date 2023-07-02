@@ -20,13 +20,12 @@ import re
 
 import click
 import pytest
-from pytest_cases import parametrize
 from boltons.strutils import strip_ansi
+from pytest_cases import parametrize
 
-from click_extra import Style, echo, pass_context
+from click_extra import Style, __version__, echo, pass_context
 from click_extra.decorators import color_option, extra_group, version_option
 
-from .. import __version__
 from .conftest import command_decorators, skip_windows_colors
 
 
@@ -110,11 +109,11 @@ def test_custom_message(invoke, cmd_decorator, message, regex_stdout):
 def test_style_reset(invoke, cmd_decorator):
     @cmd_decorator
     @version_option(
-          version_style=None,
-          package_name_style=None,
-          prog_name_style=None,
-          env_info_style=None,
-          message_style=None,
+        version_style=None,
+        package_name_style=None,
+        prog_name_style=None,
+        env_info_style=None,
+        message_style=None,
     )
     def color_reset():
         pass
@@ -138,12 +137,15 @@ def test_context_meta(invoke, cmd_decorator):
     result = invoke(version_metadata, color=True)
     assert result.exit_code == 0
     assert not result.stderr
-    assert re.fullmatch((
-        rf"version = {__version__}\n"
-        r"package_name = click_extra\n"
-        r"prog_name = version-metadata\n"
-        r"env_info = {'.+'}\n"
-    ), result.output)
+    assert re.fullmatch(
+        (
+            rf"version = {__version__}\n"
+            r"package_name = click_extra\n"
+            r"prog_name = version-metadata\n"
+            r"env_info = {'.+'}\n"
+        ),
+        result.output,
+    )
     assert result.output == strip_ansi(result.output)
 
 

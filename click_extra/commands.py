@@ -320,14 +320,17 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
             # Look for a ``--version`` parameter.
             version_opt = search_params(ctx.command.params, VersionOption)
             if version_opt:
-                # Environment info is already present in the version string: use it as-is.
+                # Environment info is already present in the version string: use it
+                # as-is.
                 if "%(env_info)s" in version_opt.message:
                     msg = version_opt.render_message()
                 # Augments the version string with the environment info.
                 else:
-                    msg = version_opt.render_message(version_opt.colored_template(
-                        version_opt.message + "\n%(env_info)s"
-                    ))
+                    msg = version_opt.render_message(
+                        version_opt.colored_template(
+                            version_opt.message + "\n%(env_info)s",
+                        )
+                    )
                 for line in msg.splitlines():
                     # TODO: pretty print JSON output (easier to read in bug reports)?
                     logger.debug(line)

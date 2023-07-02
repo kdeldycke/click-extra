@@ -19,11 +19,11 @@ from __future__ import annotations
 
 import inspect
 import re
+import warnings
+from functools import cached_property
 from gettext import gettext as _
 from importlib import metadata
 from typing import TYPE_CHECKING
-from functools import cached_property
-import warnings
 
 from boltons.ecoutils import get_profile
 
@@ -93,7 +93,8 @@ class VersionOption(ExtraOption):
         if not param_decls:
             param_decls = ("--version",)
 
-        # Use the user-provided values instead of relying on auto-detection and defaults.
+        # Use the user-provided values instead of relying on auto-detection and
+        # defaults.
         if version:
             self.version = version
         if package_name:
@@ -138,7 +139,7 @@ class VersionOption(ExtraOption):
             # Get back one frame.
             f_back = frame.f_back
             if f_back is not None:
-                f_class = f_back.f_locals['self'].__class__
+                f_class = f_back.f_locals["self"].__class__
                 f_source = f"{f_class.__module__}.{f_class.__name__}"
                 # Skip the intermediate frame added by the `@cached_property` decorator.
                 if f_source == "functools.cached_property":
@@ -190,8 +191,7 @@ class VersionOption(ExtraOption):
 
     @cached_property
     def prog_name(self) -> str:
-        """Return the name of the program.
-        """
+        """Return the name of the program."""
         return get_current_context().find_root().info_name
 
     @cached_property
@@ -277,7 +277,7 @@ class VersionOption(ExtraOption):
         ctx._meta["click_extra.env_info"] = self.env_info
 
         if not value or ctx.resilient_parsing:
-            return None
+            return
 
         echo(self.render_message(), color=ctx.color)
 
@@ -285,4 +285,4 @@ class VersionOption(ExtraOption):
         # to be called.
         ctx.close()
         ctx.exit()
-        return None  # type: ignore[unreachable]
+        return  # type: ignore[unreachable]
