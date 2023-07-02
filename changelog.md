@@ -16,6 +16,7 @@ This version is not released yet and is under active development.
 - Detect Click-specific `%(prog)` and `%(package)` and raise a deprecated warning.
 - Do not print environment info in `--version` by default. Change default message from `%(prog)s, version %(version)s\n%(env_info)` to `%(prog_name)s, version %(version)s`.
 - Automaticcaly augment version string with environment info in `DEBUG` log level.
+- Expose `click_extra.search_params` utility.
 
 ## {gh}`4.4.0 (2023-06-14) <compare/v4.3.0...v4.4.0>`
 

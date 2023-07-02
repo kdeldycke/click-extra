@@ -92,6 +92,7 @@ from .logging import (  # noqa: E402
 from .parameters import (  # noqa: E402
     ExtraOption,
     ParamStructure,
+    search_params,
     ShowParamsOption,
 )
 from .tabulate import TableFormatOption  # noqa: E402
@@ -193,6 +194,7 @@ __all__ = [  # noqa: F405
     "pause",
     "progressbar",
     "prompt",
+    "search_params",
     "secho",
     "Section",
     "SectionMixin",
