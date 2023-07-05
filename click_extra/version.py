@@ -23,7 +23,7 @@ import warnings
 from functools import cached_property
 from gettext import gettext as _
 from importlib import metadata
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from boltons.ecoutils import get_profile
 
@@ -61,7 +61,7 @@ class VersionOption(ExtraOption):
         package_name: str | None = None,
         prog_name: str | None = None,
         message: str | None = None,
-        env_info: str | None = None,
+        env_info: dict[str, str] | None = None,
         version_style: IStyle | None = Style(fg="green"),
         package_name_style: IStyle | None = default_theme.invoked_command,
         prog_name_style: IStyle | None = default_theme.invoked_command,
@@ -126,12 +126,12 @@ class VersionOption(ExtraOption):
         )
 
     @cached_property
-    def package_name(self) -> str | None:
+    def package_name(self) -> str:
         """Try to guess the package name.
 
         Inspects the stack frames to find the exact name of the installed package.
         """
-        package_name = None
+        package_name: str | None = None
 
         frame = inspect.currentframe()
 
@@ -162,6 +162,13 @@ class VersionOption(ExtraOption):
             if package_name:
                 package_name = package_name.partition(".")[0]
 
+        if not package_name:
+            msg = (
+                "Could not determine the package name automatically. Try passing "
+                "'package_name' instead."
+            )
+            raise RuntimeError(msg)
+
         return package_name
 
     @cached_property
@@ -191,18 +198,18 @@ class VersionOption(ExtraOption):
         return version
 
     @cached_property
-    def prog_name(self) -> str:
+    def prog_name(self) -> str | None:
         """Return the name of the program."""
         return get_current_context().find_root().info_name
 
     @cached_property
-    def env_info(self) -> str | dict[str, str]:
+    def env_info(self) -> dict[str, str]:
         """Return the environment info.
 
         Defaults to the dictionnary return by `boltons.ecoutils.get_profile()
         <https://boltons.readthedocs.io/en/latest/ecoutils.html#boltons.ecoutils.get_profile>`_.
         """
-        return get_profile(scrub=True)
+        return cast("dict[str, str]", get_profile(scrub=True))
 
     message: str = _("%(prog_name)s, version %(version)s")
     """Default message template used to render the version string."""
