@@ -49,8 +49,8 @@ class VersionOption(ExtraOption):
         improvements.
 
     .. important::
-        This option has been made into a class here, to allow its use with the declarative
-        ``params=`` argument. Which `fixes Click #2324 issue
+        This option has been made into a class here, to allow its use with the
+        declarative ``params=`` argument. Which `fixes Click #2324 issue
         <https://github.com/pallets/click/issues/2324>`_.
     """
 
@@ -79,7 +79,8 @@ class VersionOption(ExtraOption):
         :param package_name: forces the value of ``%(package_name)s``.
         :param prog_name: forces the value of ``%(prog_name)s``.
         :param env_info: forces the value of ``%(env_info)s``.
-        :param message: the message template to print. Defaults to ``%(prog_name)s, version %(version)s``.
+        :param message: the message template to print. Defaults to
+            ``%(prog_name)s, version %(version)s``.
 
         :param version_style: style of ``%(version)s``.
         :param package_name_style: style of ``%(package_name)s``.
@@ -209,7 +210,8 @@ class VersionOption(ExtraOption):
     def colored_template(self, template: str | None = None) -> str:
         """Insert ANSI style to a message template.
 
-        Accepts a custom ``template`` as parameter, otherwise uses the default message defined on the instance.
+        Accepts a custom ``template`` as parameter, otherwise uses the default message
+        defined on the instance.
         """
         if template is None:
             template = self.message
@@ -238,7 +240,8 @@ class VersionOption(ExtraOption):
     def render_message(self, template: str | None = None) -> str:
         """Render the version string from the provided template.
 
-        Accepts a custom ``template`` as parameter, otherwise uses the default ``self.colored_template()`` defined on the instance.
+        Accepts a custom ``template`` as parameter, otherwise uses the default
+        ``self.colored_template()`` defined on the instance.
         """
         if template is None:
             template = self.colored_template()
