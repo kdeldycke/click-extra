@@ -24,7 +24,7 @@ from configparser import ConfigParser, ExtendedInterpolation
 from enum import Enum
 from gettext import gettext as _
 from pathlib import Path
-from typing import Iterable, Sequence, Any
+from typing import Any, Iterable, Sequence
 from unittest.mock import patch
 
 if sys.version_info >= (3, 11):
@@ -278,7 +278,9 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         return None
 
-    def read_and_parse_conf(self, pattern: str) -> tuple[Path| URL, dict[str, Any]] | tuple[None, None]:
+    def read_and_parse_conf(
+        self, pattern: str
+    ) -> tuple[Path | URL, dict[str, Any]] | tuple[None, None]:
         """Search for a configuration file matching the provided pattern.
 
         Returns the location and parsed content of the first valid configuration file
@@ -377,7 +379,8 @@ class ConfigOption(ExtraOption, ParamStructure):
                 return False
             return True
 
-        # Clean-up the conf by removing all blank values left-over by the template structure.
+        # Clean-up the conf by removing all blank values left-over by the template
+        # structure.
         clean_conf = remap(filtered_conf, visit=visit)
 
         # Update the default_map.
@@ -390,8 +393,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         User configuration is merged to the `context's default_map
         <https://click.palletsprojects.com/en/8.1.x/commands/#overriding-defaults>`_,
-        `like Click does
-        <https://click.palletsprojects.com/en/8.1.x/commands/#context-defaults>`_.
+        `like Click does <https://click.palletsprojects.com/en/8.1.x/commands/#context-defaults>`_.
 
         By relying on Click's default_map, we make sure that precedence is respected.
         And direct CLI parameters, environment variables or interactive prompts takes

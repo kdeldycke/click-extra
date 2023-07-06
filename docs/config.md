@@ -121,6 +121,7 @@ You can still access the full configuration by looking into the context's `meta`
 ```python
 from click_extra import option, echo, pass_context, command, config_option
 
+
 @command
 @option("--int-param", type=int, default=10)
 @config_option
