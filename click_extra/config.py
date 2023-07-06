@@ -352,9 +352,7 @@ class ConfigOption(ExtraOption, ParamStructure):
                 a[k] = b[k]
             elif self.strict:
                 msg = f"Parameter {k!r} is not allowed in configuration file."
-                raise ValueError(
-                    msg,
-                )
+                raise ValueError(msg)
         return a
 
     def merge_conf(self, user_conf):
