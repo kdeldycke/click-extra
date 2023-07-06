@@ -1,7 +1,7 @@
 # Configuration
 
-The structure of the configuration file is automatically derived from the
-parameters of the CLI and their types. There is no need to manually produce a configuration
+The structure of the configuration file is automatically [derived from the
+parameters](parameters.md#parameter-structure) of the CLI and their types. There is no need to manually produce a configuration
 data structure to mirror the CLI.
 
 ## Standalone option
@@ -114,20 +114,21 @@ int_parameter is 555
 
 ## Get configuration values
 
-After gathering all the configuration from the different sources, and assembling them together following the precedence rules above, the configuration values are merged back into the Context's `default_map`.
+After gathering all the configuration from the different sources, and assembling them together following the precedence rules above, the configuration values are merged back into the Context's `default_map`. But only the values that are matching the CLI's parameters are kept and passed as defaults. All others are silently ignored.
 
-This means that you can access the final configuration values from there like so:
+You can still access the full configuration by looking into the context's `meta` attribute:
 
 ```python
 from click_extra import option, echo, pass_context, command, config_option
-
 
 @command
 @option("--int-param", type=int, default=10)
 @config_option
 @pass_context
 def my_cli(ctx, int_param):
-    echo(f"Configuration values: {ctx.default_map}")
+    echo(f"Configuration location: {ctx.meta['click_extra.conf_source']}")
+    echo(f"Full configuration: {ctx.meta['click_extra.conf_full']}")
+    echo(f"Default values: {ctx.default_map}")
     echo(f"int_param is {int_param!r}")
 ```
 
@@ -135,13 +136,24 @@ def my_cli(ctx, int_param):
 [my-cli]
 int_param = 3
 random_stuff = "will be ignored"
+
+[garbage]
+dummy_flag = true
 ```
 
 ```shell-session
 $ my-cli --config ./conf.toml --int-param 999
 Load configuration matching ./conf.toml
-Configuration values: {'int_param': 3}
+Configuration location: /home/me/conf.toml
+Full configuration: {'my-cli': {'int_param': 3, 'random_stuff': 'will be ignored'}, 'garbage': {'dummy_flag': True}}
+Default values: {'int_param': 3}
 int_parameter is 999
+```
+
+```{hint}
+Variables in `meta` are presented in their original Python type:
+- `click_extra.conf_source` is either a normalized [`Path`](https://docs.python.org/3/library/pathlib.html) or [`URL` object](https://boltons.readthedocs.io/en/latest/urlutils.html#the-url-type)
+- `click_extra.conf_full` is a `dict` whose values are either `str` or richer types, depending on the capabilities of [each format](#formats)
 ```
 
 ## Strictness

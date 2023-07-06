@@ -713,7 +713,7 @@ def test_conf_metadata(
     @pass_context
     def config_metadata(ctx):
         echo(f"conf_source={ctx.meta['click_extra.conf_source']}")
-        echo(f"conf={ctx.meta['click_extra.conf']}")
+        echo(f"conf_full={ctx.meta['click_extra.conf_full']}")
         echo(f"default_map={ctx.default_map}")
 
     # Create a local file and remote config.
@@ -726,6 +726,10 @@ def test_conf_metadata(
         result = invoke(config_metadata, "--config", str(conf_path))
         assert result.exit_code == 0
         assert result.stdout == (
-            f"conf_source={conf_path}\n" f"conf={conf_data}\n" "default_map={}\n"
+            f"conf_source={conf_path}\n"
+            f"conf_full={conf_data}\n"
+            # No configuration values match the CLI's parameter structure, so default
+            # map is left untouched.
+            "default_map={}\n"
         )
         assert result.stderr == f"Load configuration matching {conf_path}\n"
