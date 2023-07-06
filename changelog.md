@@ -6,7 +6,7 @@
 This version is not released yet and is under active development.
 ```
 
-- Expose location of configuration file in the Context's `meta` property. Closes {issue}`673`.
+- Expose location and content of user's configuration file in the Context's `meta` property. Closes {issue}`673`.
 
 ## {gh}`4.5.0 (2023-07-06) <compare/v4.4.0...v4.5.0>`
 

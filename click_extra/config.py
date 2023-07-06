@@ -215,7 +215,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         location = URL(pattern)
         location.normalize()
         if location and location.scheme in ("http", "https"):
-            logger.debug(f"Fetch configuration from remote URL: {location}")
+            logger.debug(f"Download configuration from URL: {location}")
             with requests.get(location) as response:
                 if response.ok:
                     yield location, response.text
@@ -247,9 +247,10 @@ class ConfigOption(ExtraOption, ParamStructure):
         result, including any raised exception, is considered a failure and the next
         format is tried.
         """
+        logger = logging.getLogger("click_extra")
+
         user_conf = None
         for conf_format in self.formats:
-            logger = logging.getLogger("click_extra")
             logger.debug(f"Parse configuration as {conf_format.name}...")
 
             try:
@@ -361,39 +362,42 @@ class ConfigOption(ExtraOption, ParamStructure):
                 raise ValueError(msg)
         return a
 
-    def merge_conf(self, user_conf):
-        """Try-out configuration formats against file's content and returns a ``dict``.
+    def merge_default_map(self, ctx, user_conf):
+        """Save the user configuration into the context's ``default_map``.
 
-        The returned ``dict`` will only contain options and parameters defined on the
-        CLI. All others will be filtered out.
+        Merge the user configuration into the pre-computed template structure, which
+        will filter out all unrecognized options not supported by the command. Then
+        cleans up blank values and update the context's ``default_map``.
         """
-        # Merge configuration file's content into the template structure, but
-        # ignore all unrecognized options.
-        valid_conf = self.recursive_update(self.params_template, user_conf)
-
-        # Clean-up blank values left-over by the template structure.
+        filtered_conf = self.recursive_update(self.params_template, user_conf)
 
         def visit(path, key, value):
-            """Skip None values and empty dicts."""
+            """Skip `None` values and empty `dict`."""
             if value is None:
                 return False
             if isinstance(value, dict) and not len(value):
                 return False
             return True
 
-        return remap(valid_conf, visit=visit)
+        # Clean-up the conf by removing all blank values left-over by the template structure.
+        clean_conf = remap(filtered_conf, visit=visit)
+
+        # Update the default_map.
+        if ctx.default_map is None:
+            ctx.default_map = {}
+        ctx.default_map.update(clean_conf.get(ctx.find_root().command.name, {}))
 
     def load_conf(self, ctx, param, path_pattern):
-        """Fetch parameters values from configuration file and merge them with the
-        defaults.
+        """Fetch parameters values from configuration file and sets them as defaults.
 
-        User configuration is merged to the context's ``default_map``, `like Click does
+        User configuration is merged to the `context's default_map
+        <https://click.palletsprojects.com/en/8.1.x/commands/#overriding-defaults>`_,
+        `like Click does
         <https://click.palletsprojects.com/en/8.1.x/commands/#context-defaults>`_.
 
-        This will restrict the user's config to only overrides the defaults. That way
-        we make sure values provided by the user as direct CLI parameters, environment
-        variables or interactive prompts takes precedence over any values from the
-        config file.
+        By relying on Click's default_map, we make sure that precedence is respected.
+        And direct CLI parameters, environment variables or interactive prompts takes
+        precedence over any values from the config file.
         """
         logger = logging.getLogger("click_extra")
 
@@ -402,19 +406,23 @@ class ConfigOption(ExtraOption, ParamStructure):
             ParameterSource.ENVIRONMENT,
             ParameterSource.PROMPT,
         )
-        # Always print a message if the user explicitly set the configuration location.
-        # We can't use logger.info() because the default have not been loaded yet
-        # and the logger is stuck to its default WARNING level.
+
         message = f"Load configuration matching {path_pattern}"
+        # Force printing of configuration location if the user explicitly set it.
         if explicit_conf:
+            # We have can't simply use logger.info() here as the defaults have not been
+            # loaded yet and the logger is stuck to its default WARNING level.
             echo(message, err=True)
-        # Fallback on default configuration file location.
         else:
             logger.debug(message)
 
         # Read configuration file.
-        conf = {}
         conf_path, user_conf = self.read_and_parse_conf(path_pattern)
+        logger.debug(f"Parsed user configuration: {user_conf}")
+        # XXX ctx.meta doesn't cut it, we need to target ctx._meta.
+        ctx._meta["click_extra.conf_source"] = conf_path
+        ctx._meta["click_extra.conf"] = user_conf
+
         # Exit the CLI if no user-provided config file was found.
         if user_conf is None:
             message = "No configuration file found."
@@ -429,16 +437,8 @@ class ConfigOption(ExtraOption, ParamStructure):
                 logger.debug(message)
 
         else:
-            # XXX ctx.meta doesn't cut it, we need to target ctx._meta.
-            ctx._meta["click_extra.conf_source"] = conf_path
-
-            conf = self.merge_conf(user_conf)
-            logger.debug(f"Loaded configuration: {conf}")
-
-            # Merge config to the default_map.
-            if ctx.default_map is None:
-                ctx.default_map = {}
-            ctx.default_map.update(conf.get(ctx.find_root().command.name, {}))
+            logger.debug(f"Initial defaults: {ctx.default_map}")
+            self.merge_default_map(ctx, user_conf)
             logger.debug(f"New defaults: {ctx.default_map}")
 
         return path_pattern
