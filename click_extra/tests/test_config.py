@@ -293,7 +293,7 @@ DUMMY_XML_FILE, DUMMY_XML_DATA = (
 )
 
 all_config_formats = parametrize(
-    ("conf_name", "conf_text", "conf_data"),
+    ("conf_name, conf_text, conf_data"),
     (
         pytest.param(f"configuration.{ext}", content, data, id=ext)
         for ext, content, data in (

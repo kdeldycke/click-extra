@@ -194,6 +194,7 @@ def create_config(tmp_path):
 
     def _create_config(filename: str | Path, content: str) -> Path:
         """Create a fake configuration file."""
+        config_path: Path
         if isinstance(filename, str):
             config_path = tmp_path.joinpath(filename)
         else:
