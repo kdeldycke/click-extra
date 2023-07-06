@@ -315,7 +315,7 @@ def test_integrated_show_params_option(invoke, create_config):
         [show-params-cli]
         int_param1 = 3
         extra_value = "unallowed"
-        """
+        """,
     )
     conf_path = create_config("show-params-cli.toml", conf_file)
 
