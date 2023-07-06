@@ -71,7 +71,7 @@ DUMMY_TOML_FILE = dedent(
     [config-cli1.default-command]
     int_param = 3
     random_stuff = "will be ignored"
-    """
+    """,
 )
 
 DUMMY_YAML_FILE = dedent(
@@ -95,7 +95,7 @@ DUMMY_YAML_FILE = dedent(
     garbage:
         # An empty random section that will be skipped
 
-    """
+    """,
 )
 
 DUMMY_JSON_FILE = dedent(
@@ -122,7 +122,7 @@ DUMMY_JSON_FILE = dedent(
         // Section to ignore
         "garbage": {}
     }
-    """
+    """,
 )
 
 DUMMY_INI_FILE = dedent(
@@ -149,7 +149,7 @@ DUMMY_INI_FILE = dedent(
     blahblah: 234
     dummy_flag = true
     my_list = ["pip", "npm", "gem"]
-    """
+    """,
 )
 
 DUMMY_XML_FILE = dedent(
@@ -188,7 +188,7 @@ DUMMY_XML_FILE = dedent(
         </default-command>
 
     </config-cli1>
-    """
+    """,
 )
 
 
@@ -452,7 +452,7 @@ def test_strict_conf(invoke, create_config):
         [config-cli3.subcommand]
         int_param = 3
         random_stuff = "will be ignored"
-        """
+        """,
     )
 
     conf_path = create_config("messy.toml", conf_file)
