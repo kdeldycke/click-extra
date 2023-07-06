@@ -463,13 +463,18 @@ class ExtraHelpColorsMixin:
 
 
 def escape_for_help_screen(text: str) -> str:
-    """Escape a text to be used in a regular expression to match help screen.
+    """Prepares a string to be used in a regular expression for matches in help screen.
 
-    Like ``re.escape``, but allows any number of optional blank characters (line
-    returns, spaces, tabs) after a dash, to accounts for text wrapping rules and
-    columnar layout.
+    Applies `re.escape <https://docs.python.org/3/library/re.html#re.escape>`_, then
+    accounts for long strings being wrapped on multiple lines and padded with spaces to
+    fit the columnar layout.
+
+    It allows for:
+    - additional number of optional blank characters (line-returns, spaces, tabs, ...)
+      after a dash, as the help renderer is free to wrap strings after a dash.
+    - a space to be replaced by any number of blank characters.
     """
-    return re.escape(text).replace("-", "-\\s*")
+    return re.escape(text).replace("-", "-\\s*").replace("\\ ", "\\s+")
 
 
 class HelpExtraFormatter(HelpFormatter):

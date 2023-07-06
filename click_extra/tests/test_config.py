@@ -211,7 +211,7 @@ all_config_formats = parametrize(
 
 @fixture
 def simple_config_cli():
-    @extra_group
+    @extra_group(context_settings={"show_envvar": True})
     @option("--dummy-flag/--no-flag")
     @option("--my-list", multiple=True)
     def config_cli1(dummy_flag, my_list):
@@ -261,7 +261,8 @@ def test_conf_default_path(invoke, simple_config_cli):
 
     # Make path string compatible with regexp.
     assert re.search(
-        rf"\[default:\s+{escape_for_help_screen(str(default_path))}\]",
+        r"\s+\[env\s+var:\s+CONFIG_CLI1_CONFIG;\s+"
+        rf"default:\s+{escape_for_help_screen(str(default_path))}\]\s+",
         result.stdout,
     )
 
@@ -526,6 +527,12 @@ def test_auto_env_var_conf(
     conf_name,
     conf_content,
 ):
+    # Check the --config option properly documents its environment variable.
+    result = invoke(simple_config_cli, "--help")
+    assert result.exit_code == 0
+    assert not result.stderr
+    assert "CONFIG_CLI1_CONFIG" in result.stdout
+
     # Create a local config.
     conf_filepath = create_config(conf_name, conf_content)
 
@@ -539,16 +546,17 @@ def test_auto_env_var_conf(
             simple_config_cli,
             "default-command",
             color=False,
-            env={"CONFIG_TEST_CLI_CONFIG": str(conf_path)},
+            env={"CONFIG_CLI1_CONFIG": str(conf_path)},
         )
         assert result.exit_code == 0
         assert result.stdout == (
             "dummy_flag = True\nmy_list = ('pip', 'npm', 'gem')\nint_parameter = 3\n"
         )
         # Debug level has been activated by configuration file.
-        assert result.stderr == (
-            f"Load configuration matching {conf_path.resolve()}\n"
-            "debug: Verbosity set to DEBUG.\n"
+        assert result.stderr.startswith(
+            f"Load configuration matching {conf_path}\n"
+            "debug: Set <Logger click_extra (DEBUG)> to DEBUG.\n"
+            "debug: Set <RootLogger root (DEBUG)> to DEBUG.\n"
         )
 
 
