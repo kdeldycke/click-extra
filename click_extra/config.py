@@ -279,7 +279,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         return None
 
     def read_and_parse_conf(
-        self, pattern: str
+        self,
+        pattern: str,
     ) -> tuple[Path | URL, dict[str, Any]] | tuple[None, None]:
         """Search for a configuration file matching the provided pattern.
 
