@@ -329,7 +329,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
                     msg = version_opt.render_message(
                         version_opt.colored_template(
                             version_opt.message + "\n%(env_info)s",
-                        )
+                        ),
                     )
                 for line in msg.splitlines():
                     # TODO: pretty print JSON output (easier to read in bug reports)?
