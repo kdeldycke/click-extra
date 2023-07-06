@@ -288,7 +288,7 @@ DUMMY_XML_FILE, DUMMY_XML_DATA = (
                 "int_param": "3",
                 "random_stuff": "will be ignored",
             },
-        }
+        },
     },
 )
 
