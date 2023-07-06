@@ -42,6 +42,8 @@ from click_extra import (
     echo,
     get_app_dir,
     option,
+    command,
+    pass_context,
 )
 from click_extra.colorize import escape_for_help_screen
 from click_extra.config import ConfigOption
@@ -192,8 +194,8 @@ DUMMY_XML_FILE = dedent(
 )
 
 
-all_config_formats = pytest.mark.parametrize(
-    "conf_name, conf_content",
+all_config_formats = parametrize(
+    ("conf_name", "conf_content"),
     (
         pytest.param(f"configuration.{ext}", content, id=ext)
         for ext, content in (
@@ -585,4 +587,36 @@ def test_conf_file_overridden_by_cli_param(
         assert result.stdout == (
             "dummy_flag = False\nmy_list = ('super', 'wow')\nint_parameter = 15\n"
         )
-        assert result.stderr == f"Load configuration matching {conf_path.resolve()}\n"
+        assert result.stderr == f"Load configuration matching {conf_path}\n"
+
+
+@all_config_formats
+def test_conf_metadata(
+    invoke,
+    create_config,
+    httpserver,
+    conf_name,
+    conf_content,
+):
+
+    @command
+    @config_option
+    @pass_context
+    def config_metadata(ctx):
+        echo(f"conf_source={ctx.meta['click_extra.conf_source']}")
+        echo(f"conf_values={ctx.default_map}")
+
+    # Create a local file and remote config.
+    conf_filepath = create_config(conf_name, conf_content)
+    httpserver.expect_request(f"/{conf_name}").respond_with_data(conf_content)
+    conf_url = httpserver.url_for(f"/{conf_name}")
+
+    for conf_path in conf_filepath, conf_url:
+        conf_path = create_config(conf_name, conf_content)
+        result = invoke(config_metadata, "--config", str(conf_path))
+        assert result.exit_code == 0
+        assert result.stdout == (
+            f"conf_source={conf_path}\n"
+            "conf_values={}\n"
+        )
+        assert result.stderr == f"Load configuration matching {conf_path}\n"

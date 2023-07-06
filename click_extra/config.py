@@ -24,7 +24,7 @@ from configparser import ConfigParser, ExtendedInterpolation
 from enum import Enum
 from gettext import gettext as _
 from pathlib import Path
-from typing import Iterable, Sequence
+from typing import Iterable, Sequence, Any
 from unittest.mock import patch
 
 if sys.version_info >= (3, 11):
@@ -199,25 +199,26 @@ class ConfigOption(ExtraOption, ParamStructure):
             mock_method.return_value = pretty_path
             return super().get_help_record(ctx)
 
-    def search_and_read_conf(self, pattern: str) -> Iterable[str]:
+    def search_and_read_conf(self, pattern: str) -> Iterable[tuple[Path | URL, str]]:
         """Search on local file system or remote URL files matching the provided
         pattern.
 
-        ``pattern`` is considered as an URL only if it is parseable as such and starts
+        ``pattern`` is considered an URL only if it is parseable as such and starts
         with ``http://`` or ``https://``.
 
-        Returns an iterator of raw content for each file/URL matching the
-        pattern.
+        Returns an iterator of the normalized configuration location and its textual
+        content, for each file/URL matching the pattern.
         """
         logger = logging.getLogger("click_extra")
 
         # Check if the pattern is an URL.
         location = URL(pattern)
-        if location and location.scheme.lower() in ("http", "https"):
-            logger.debug("Fetch configuration from remote URL.")
+        location.normalize()
+        if location and location.scheme in ("http", "https"):
+            logger.debug(f"Fetch configuration from remote URL: {location}")
             with requests.get(location) as response:
                 if response.ok:
-                    yield from (response.text,)
+                    yield location, response.text
                     return
                 logger.warning(f"Can't download {location}: {response.reason}")
         else:
@@ -234,9 +235,9 @@ class ConfigOption(ExtraOption, ParamStructure):
             pattern,
             flags=NODIR | GLOBSTAR | DOTGLOB | GLOBTILDE | BRACE | FOLLOW | IGNORECASE,
         ):
-            file_path = Path(file)
+            file_path = Path(file).resolve()
             logger.debug(f"Configuration file found at {file_path}")
-            yield file_path.read_text()
+            yield file_path, file_path.read_text()
 
     def parse_conf(self, conf_content: str) -> dict | None:
         """Try to parse the provided content with each format in the order provided by
@@ -278,12 +279,17 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         return None
 
-    def read_and_parse_conf(self, pattern: str) -> dict | None:
-        for conf_content in self.search_and_read_conf(pattern):
+    def read_and_parse_conf(self, pattern: str) -> tuple[Path| URL, dict[str, Any]] | tuple[None, None]:
+        """Search for a configuration file matching the provided pattern.
+
+        Returns the location and parsed content of the first valid configuration file
+        that is not blank, or `(None, None)` if no file was found.
+        """
+        for conf_path, conf_content in self.search_and_read_conf(pattern):
             user_conf = self.parse_conf(conf_content)
             if user_conf is not None:
-                return user_conf
-        return None
+                return conf_path, user_conf
+        return None, None
 
     def load_ini_config(self, content):
         """Utility method to parse INI configuration file.
@@ -381,12 +387,13 @@ class ConfigOption(ExtraOption, ParamStructure):
         """Fetch parameters values from configuration file and merge them with the
         defaults.
 
-        User configuration is
-        `merged to the context default_map as Click does <https://click.palletsprojects.com/en/8.1.x/commands/#context-defaults>`_.
+        User configuration is merged to the context's ``default_map``, `like Click does
+        <https://click.palletsprojects.com/en/8.1.x/commands/#context-defaults>`_.
 
-        This allow user's config to only overrides defaults. Values sets from direct
-        command line parameters, environment variables or interactive prompts, takes
-        precedence over any values from the config file.
+        This will restrict the user's config to only overrides the defaults. That way
+        we make sure values provided by the user as direct CLI parameters, environment
+        variables or interactive prompts takes precedence over any values from the
+        config file.
         """
         logger = logging.getLogger("click_extra")
 
@@ -396,7 +403,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             ParameterSource.PROMPT,
         )
         # Always print a message if the user explicitly set the configuration location.
-        # We can't use logger.info because the default have not been loaded yet
+        # We can't use logger.info() because the default have not been loaded yet
         # and the logger is stuck to its default WARNING level.
         message = f"Load configuration matching {path_pattern}"
         if explicit_conf:
@@ -407,8 +414,8 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         # Read configuration file.
         conf = {}
-        user_conf = self.read_and_parse_conf(path_pattern)
-        # Exit the CLI if the user-provided config file is bad.
+        conf_path, user_conf = self.read_and_parse_conf(path_pattern)
+        # Exit the CLI if no user-provided config file was found.
         if user_conf is None:
             message = "No configuration file found."
             if explicit_conf:
@@ -422,6 +429,9 @@ class ConfigOption(ExtraOption, ParamStructure):
                 logger.debug(message)
 
         else:
+            # XXX ctx.meta doesn't cut it, we need to target ctx._meta.
+            ctx._meta["click_extra.conf_source"] = conf_path
+
             conf = self.merge_conf(user_conf)
             logger.debug(f"Loaded configuration: {conf}")
 
