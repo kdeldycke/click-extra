@@ -1,10 +1,6 @@
 # Changelog
 
-## {gh}`4.5.0 (unreleased) <compare/v4.4.0...main>`
-
-```{important}
-This version is not released yet and is under active development.
-```
+## {gh}`4.5.0 (2023-07-06) <compare/v4.4.0...v4.5.0>`
 
 - Expose verbosity level name, table format ID and CLI start timestamp in the Context's `meta` property.
 - Refactor `VersionOption`. Introduce internal caching.
