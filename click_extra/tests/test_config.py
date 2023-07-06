@@ -39,10 +39,10 @@ from click_extra import (
     IntRange,
     Tuple,
     argument,
+    command,
     echo,
     get_app_dir,
     option,
-    command,
     pass_context,
 )
 from click_extra.colorize import escape_for_help_screen
@@ -55,155 +55,253 @@ from .conftest import (
     default_debug_uncolored_log_start,
 )
 
-DUMMY_TOML_FILE = dedent(
-    """
-    # Comment
+DUMMY_TOML_FILE, DUMMY_TOML_DATA = (
+    dedent(
+        """
+        # Comment
 
-    top_level_param             = "to_ignore"
+        top_level_param             = "to_ignore"
 
-    [config-cli1]
-    verbosity = "DEBUG"
-    blahblah = 234
-    dummy_flag = true
-    my_list = ["pip", "npm", "gem"]
+        [config-cli1]
+        verbosity = "DEBUG"
+        blahblah = 234
+        dummy_flag = true
+        my_list = ["pip", "npm", "gem"]
 
-    [garbage]
-    # An empty random section that will be skipped
-
-    [config-cli1.default-command]
-    int_param = 3
-    random_stuff = "will be ignored"
-    """,
-)
-
-DUMMY_YAML_FILE = dedent(
-    """
-    # Comment
-
-    top_level_param: to_ignore
-
-    config-cli1:
-        verbosity : DEBUG
-        blahblah: 234
-        dummy_flag: True
-        my_list:
-          - pip
-          - "npm"
-          - gem
-        default-command:
-            int_param: 3
-            random_stuff : will be ignored
-
-    garbage:
+        [garbage]
         # An empty random section that will be skipped
 
-    """,
+        [config-cli1.default-command]
+        int_param = 3
+        random_stuff = "will be ignored"
+        """,
+    ),
+    {
+        "top_level_param": "to_ignore",
+        "config-cli1": {
+            "verbosity": "DEBUG",
+            "blahblah": 234,
+            "dummy_flag": True,
+            "my_list": ["pip", "npm", "gem"],
+            "default-command": {
+                "int_param": 3,
+                "random_stuff": "will be ignored",
+            },
+        },
+        "garbage": {},
+    },
 )
 
-DUMMY_JSON_FILE = dedent(
-    """
+DUMMY_YAML_FILE, DUMMY_YAML_DATA = (
+    dedent(
+        """
+        # Comment
+
+        top_level_param: to_ignore
+
+        config-cli1:
+            verbosity : DEBUG
+            blahblah: 234
+            dummy_flag: True
+            my_list:
+              - pip
+              - "npm"
+              - gem
+            default-command:
+                int_param: 3
+                random_stuff : will be ignored
+
+        garbage:
+            # An empty random section that will be skipped
+
+        """,
+    ),
+    {
+        "top_level_param": "to_ignore",
+        "config-cli1": {
+            "verbosity": "DEBUG",
+            "blahblah": 234,
+            "dummy_flag": True,
+            "my_list": ["pip", "npm", "gem"],
+            "default-command": {
+                "int_param": 3,
+                "random_stuff": "will be ignored",
+            },
+        },
+        "garbage": None,
+    },
+)
+
+DUMMY_JSON_FILE, DUMMY_JSON_DATA = (
+    dedent(
+        """
+        {
+            "top_level_param": "to_ignore",
+            "config-cli1": {
+                "blahblah": 234,
+                "dummy_flag": true,
+                "my_list": [
+                    "pip",
+                    "npm",
+                    "gem"
+                ],
+                "verbosity": "DEBUG",   // log level
+
+                # Subcommand config
+                "default-command": {
+                    "int_param": 3,
+                    "random_stuff": "will be ignored"
+                }
+            },
+
+            // Section to ignore
+            "garbage": {}
+        }
+        """,
+    ),
     {
         "top_level_param": "to_ignore",
         "config-cli1": {
             "blahblah": 234,
-            "dummy_flag": true,
-            "my_list": [
-                "pip",
-                "npm",
-                "gem"
-            ],
-            "verbosity": "DEBUG",   // log level
-
-            # Subcommand config
+            "dummy_flag": True,
+            "my_list": ["pip", "npm", "gem"],
+            "verbosity": "DEBUG",
             "default-command": {
                 "int_param": 3,
-                "random_stuff": "will be ignored"
-            }
+                "random_stuff": "will be ignored",
+            },
         },
-
-        // Section to ignore
-        "garbage": {}
-    }
-    """,
+        "garbage": {},
+    },
 )
 
-DUMMY_INI_FILE = dedent(
-    """
-    ; Comment
-    # Another kind of comment
+DUMMY_INI_FILE, DUMMY_INI_DATA = (
+    dedent(
+        """
+        ; Comment
+        # Another kind of comment
 
-    [to_ignore]
-    key=value
-    spaces in keys=allowed
-    spaces in values=allowed as well
-    spaces around the delimiter = obviously
-    you can also use : to delimit keys from values
+        [to_ignore]
+        key=value
+        spaces in keys=allowed
+        spaces in values=allowed as well
+        spaces around the delimiter = obviously
+        you can also use : to delimit keys from values
 
-    [config-cli1.default-command]
-    int_param = 3
-    random_stuff = will be ignored
+        [config-cli1.default-command]
+        int_param = 3
+        random_stuff = will be ignored
 
-    [garbage]
-    # An empty random section that will be skipped
+        [garbage]
+        # An empty random section that will be skipped
 
-    [config-cli1]
-    verbosity : DEBUG
-    blahblah: 234
-    dummy_flag = true
-    my_list = ["pip", "npm", "gem"]
-    """,
+        [config-cli1]
+        verbosity : DEBUG
+        blahblah: 234
+        dummy_flag = true
+        my_list = ["pip", "npm", "gem"]
+        """,
+    ),
+    {
+        "to_ignore": {
+            "key": "value",
+            "spaces in keys": "allowed",
+            "spaces in values": "allowed as well",
+            "spaces around the delimiter": "obviously",
+            "you can also use": "to delimit keys from values",
+        },
+        "config-cli1": {
+            "default-command": {
+                "int_param": "3",
+                "random_stuff": "will be ignored",
+            },
+            "verbosity": "DEBUG",
+            "blahblah": "234",
+            "dummy_flag": "true",
+            "my_list": '["pip", "npm", "gem"]',
+        },
+        "garbage": {},
+    },
 )
 
-DUMMY_XML_FILE = dedent(
-    """
-    <!-- Comment -->
+DUMMY_XML_FILE, DUMMY_XML_DATA = (
+    dedent(
+        """
+        <!-- Comment -->
 
-    <config-cli1 has="an attribute">
+        <config-cli1 has="an attribute">
 
-        <to_ignore>
-            <key>value</key>
-            <spaces >    </spaces>
-            <text_as_value>
-                Ratione omnis sit rerum dolor.
-                Quas omnis dolores quod sint aspernatur.
-                Veniam deleniti est totam pariatur temporibus qui
-                        accusantium eaque.
-            </text_as_value>
+            <to_ignore>
+                <key>value</key>
+                <spaces >    </spaces>
+                <text_as_value>
+                    Ratione omnis sit rerum dolor.
+                    Quas omnis dolores quod sint aspernatur.
+                    Veniam deleniti est totam pariatur temporibus qui
+                            accusantium eaque.
+                </text_as_value>
 
-        </to_ignore>
+            </to_ignore>
 
-        <verbosity>debug</verbosity>
-        <blahblah>234</blahblah>
-        <dummy_flag>true</dummy_flag>
+            <verbosity>debug</verbosity>
+            <blahblah>234</blahblah>
+            <dummy_flag>true</dummy_flag>
 
-        <my_list>pip</my_list>
-        <my_list>npm</my_list>
-        <my_list>gem</my_list>
+            <my_list>pip</my_list>
+            <my_list>npm</my_list>
+            <my_list>gem</my_list>
 
-        <garbage>
-            <!-- An empty random section that will be skipped -->
-        </garbage>
+            <garbage>
+                <!-- An empty random section that will be skipped -->
+            </garbage>
 
-        <default-command>
-            <int_param>3</int_param>
-            <random_stuff>will be ignored</random_stuff>
-        </default-command>
+            <default-command>
+                <int_param>3</int_param>
+                <random_stuff>will be ignored</random_stuff>
+            </default-command>
 
-    </config-cli1>
+        </config-cli1>
     """,
+    ),
+    {
+        "config-cli1": {
+            "@has": "an attribute",
+            "to_ignore": {
+                "key": "value",
+                "spaces": None,
+                "text_as_value": (
+                    "Ratione omnis sit rerum dolor.\n"
+                    "            "
+                    "Quas omnis dolores quod sint aspernatur.\n"
+                    "            "
+                    "Veniam deleniti est totam pariatur temporibus qui\n"
+                    "                    "
+                    "accusantium eaque."
+                ),
+            },
+            "verbosity": "debug",
+            "blahblah": "234",
+            "dummy_flag": "true",
+            "my_list": ["pip", "npm", "gem"],
+            "garbage": None,
+            "default-command": {
+                "int_param": "3",
+                "random_stuff": "will be ignored",
+            },
+        }
+    },
 )
-
 
 all_config_formats = parametrize(
-    ("conf_name", "conf_content"),
+    ("conf_name", "conf_text", "conf_data"),
     (
-        pytest.param(f"configuration.{ext}", content, id=ext)
-        for ext, content in (
-            ("toml", DUMMY_TOML_FILE),
-            ("yaml", DUMMY_YAML_FILE),
-            ("json", DUMMY_JSON_FILE),
-            ("ini", DUMMY_INI_FILE),
-            ("xml", DUMMY_XML_FILE),
+        pytest.param(f"configuration.{ext}", content, data, id=ext)
+        for ext, content, data in (
+            ("toml", DUMMY_TOML_FILE, DUMMY_TOML_DATA),
+            ("yaml", DUMMY_YAML_FILE, DUMMY_YAML_DATA),
+            ("json", DUMMY_JSON_FILE, DUMMY_JSON_DATA),
+            ("ini", DUMMY_INI_FILE, DUMMY_INI_DATA),
+            ("xml", DUMMY_XML_FILE, DUMMY_XML_DATA),
         )
     ),
 )
@@ -481,11 +579,12 @@ def test_conf_file_overrides_defaults(
     create_config,
     httpserver,
     conf_name,
-    conf_content,
+    conf_text,
+    conf_data,
 ):
     # Create a local file and remote config.
-    conf_filepath = create_config(conf_name, conf_content)
-    httpserver.expect_request(f"/{conf_name}").respond_with_data(conf_content)
+    conf_filepath = create_config(conf_name, conf_text)
+    httpserver.expect_request(f"/{conf_name}").respond_with_data(conf_text)
     conf_url = httpserver.url_for(f"/{conf_name}")
 
     for conf_path, is_url in (conf_filepath, False), (conf_url, True):
@@ -525,7 +624,8 @@ def test_auto_env_var_conf(
     create_config,
     httpserver,
     conf_name,
-    conf_content,
+    conf_text,
+    conf_data,
 ):
     # Check the --config option properly documents its environment variable.
     result = invoke(simple_config_cli, "--help")
@@ -534,14 +634,14 @@ def test_auto_env_var_conf(
     assert "CONFIG_CLI1_CONFIG" in result.stdout
 
     # Create a local config.
-    conf_filepath = create_config(conf_name, conf_content)
+    conf_filepath = create_config(conf_name, conf_text)
 
     # Create a remote config.
-    httpserver.expect_request(f"/{conf_name}").respond_with_data(conf_content)
+    httpserver.expect_request(f"/{conf_name}").respond_with_data(conf_text)
     conf_url = httpserver.url_for(f"/{conf_name}")
 
     for conf_path in conf_filepath, conf_url:
-        conf_path = create_config(conf_name, conf_content)
+        conf_path = create_config(conf_name, conf_text)
         result = invoke(
             simple_config_cli,
             "default-command",
@@ -556,7 +656,7 @@ def test_auto_env_var_conf(
         assert result.stderr.startswith(
             f"Load configuration matching {conf_path}\n"
             "debug: Set <Logger click_extra (DEBUG)> to DEBUG.\n"
-            "debug: Set <RootLogger root (DEBUG)> to DEBUG.\n"
+            "debug: Set <RootLogger root (DEBUG)> to DEBUG.\n",
         )
 
 
@@ -567,15 +667,16 @@ def test_conf_file_overridden_by_cli_param(
     create_config,
     httpserver,
     conf_name,
-    conf_content,
+    conf_text,
+    conf_data,
 ):
     # Create a local file and remote config.
-    conf_filepath = create_config(conf_name, conf_content)
-    httpserver.expect_request(f"/{conf_name}").respond_with_data(conf_content)
+    conf_filepath = create_config(conf_name, conf_text)
+    httpserver.expect_request(f"/{conf_name}").respond_with_data(conf_text)
     conf_url = httpserver.url_for(f"/{conf_name}")
 
     for conf_path in conf_filepath, conf_url:
-        conf_path = create_config(conf_name, conf_content)
+        conf_path = create_config(conf_name, conf_text)
         result = invoke(
             simple_config_cli,
             "--my-list",
@@ -604,27 +705,27 @@ def test_conf_metadata(
     create_config,
     httpserver,
     conf_name,
-    conf_content,
+    conf_text,
+    conf_data,
 ):
-
     @command
     @config_option
     @pass_context
     def config_metadata(ctx):
         echo(f"conf_source={ctx.meta['click_extra.conf_source']}")
-        echo(f"conf_values={ctx.default_map}")
+        echo(f"conf={ctx.meta['click_extra.conf']}")
+        echo(f"default_map={ctx.default_map}")
 
     # Create a local file and remote config.
-    conf_filepath = create_config(conf_name, conf_content)
-    httpserver.expect_request(f"/{conf_name}").respond_with_data(conf_content)
+    conf_filepath = create_config(conf_name, conf_text)
+    httpserver.expect_request(f"/{conf_name}").respond_with_data(conf_text)
     conf_url = httpserver.url_for(f"/{conf_name}")
 
     for conf_path in conf_filepath, conf_url:
-        conf_path = create_config(conf_name, conf_content)
+        conf_path = create_config(conf_name, conf_text)
         result = invoke(config_metadata, "--config", str(conf_path))
         assert result.exit_code == 0
         assert result.stdout == (
-            f"conf_source={conf_path}\n"
-            "conf_values={}\n"
+            f"conf_source={conf_path}\n" f"conf={conf_data}\n" "default_map={}\n"
         )
         assert result.stderr == f"Load configuration matching {conf_path}\n"

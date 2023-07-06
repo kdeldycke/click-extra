@@ -221,10 +221,8 @@ class ConfigOption(ExtraOption, ParamStructure):
                     yield location, response.text
                     return
                 logger.warning(f"Can't download {location}: {response.reason}")
-        else:
-            logger.debug("Pattern is not an URL.")
 
-        logger.debug("Search local file system.")
+        logger.debug("Pattern is not an URL: search local file system.")
         # wcmatch expect patterns to be written with Unix-like syntax by default, even
         # on Windows. See more details at:
         # https://facelessuser.github.io/wcmatch/glob/#windows-separators
@@ -239,7 +237,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             logger.debug(f"Configuration file found at {file_path}")
             yield file_path, file_path.read_text()
 
-    def parse_conf(self, conf_content: str) -> dict | None:
+    def parse_conf(self, conf_text: str) -> dict | None:
         """Try to parse the provided content with each format in the order provided by
         the user.
 
@@ -255,19 +253,19 @@ class ConfigOption(ExtraOption, ParamStructure):
 
             try:
                 if conf_format == Formats.TOML:
-                    user_conf = tomllib.loads(conf_content)
+                    user_conf = tomllib.loads(conf_text)
 
                 elif conf_format == Formats.YAML:
-                    user_conf = yaml.full_load(conf_content)
+                    user_conf = yaml.full_load(conf_text)
 
                 elif conf_format == Formats.JSON:
-                    user_conf = json.loads(conf_content)
+                    user_conf = json.loads(conf_text)
 
                 elif conf_format == Formats.INI:
-                    user_conf = self.load_ini_config(conf_content)
+                    user_conf = self.load_ini_config(conf_text)
 
                 elif conf_format == Formats.XML:
-                    user_conf = xmltodict.parse(conf_content)
+                    user_conf = xmltodict.parse(conf_text)
 
             except Exception as ex:
                 logger.debug(ex)
@@ -286,8 +284,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         Returns the location and parsed content of the first valid configuration file
         that is not blank, or `(None, None)` if no file was found.
         """
-        for conf_path, conf_content in self.search_and_read_conf(pattern):
-            user_conf = self.parse_conf(conf_content)
+        for conf_path, conf_text in self.search_and_read_conf(pattern):
+            user_conf = self.parse_conf(conf_text)
             if user_conf is not None:
                 return conf_path, user_conf
         return None, None
@@ -418,7 +416,6 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         # Read configuration file.
         conf_path, user_conf = self.read_and_parse_conf(path_pattern)
-        logger.debug(f"Parsed user configuration: {user_conf}")
         # XXX ctx.meta doesn't cut it, we need to target ctx._meta.
         ctx._meta["click_extra.conf_source"] = conf_path
         ctx._meta["click_extra.conf"] = user_conf
@@ -437,6 +434,7 @@ class ConfigOption(ExtraOption, ParamStructure):
                 logger.debug(message)
 
         else:
+            logger.debug(f"Parsed user configuration: {user_conf}")
             logger.debug(f"Initial defaults: {ctx.default_map}")
             self.merge_default_map(ctx, user_conf)
             logger.debug(f"New defaults: {ctx.default_map}")
