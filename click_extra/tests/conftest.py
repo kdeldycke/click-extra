@@ -18,7 +18,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from textwrap import dedent
 
 import click
 import click.testing
@@ -190,19 +189,16 @@ def command_decorators(
 def create_config(tmp_path):
     """A generic fixture to produce a temporary configuration file."""
 
-    def _create_config(filename, content):
+    def _create_config(filename: str | Path, content: str) -> Path:
         """Create a fake configuration file."""
-        assert isinstance(content, str)
-
         if isinstance(filename, str):
             config_path = tmp_path.joinpath(filename)
         else:
-            assert isinstance(filename, Path)
             config_path = filename.resolve()
 
         # Create the missing folder structure, like "mkdir -p" does.
         config_path.parent.mkdir(parents=True, exist_ok=True)
-        config_path.write_text(dedent(content).strip())
+        config_path.write_text(content)
 
         return config_path
 

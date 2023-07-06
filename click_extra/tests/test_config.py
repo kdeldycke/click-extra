@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from textwrap import dedent
 
 import click
 import pytest
@@ -52,7 +53,7 @@ from .conftest import (
     default_debug_uncolored_log_start,
 )
 
-DUMMY_TOML_FILE = """
+DUMMY_TOML_FILE = dedent("""
     # Comment
 
     top_level_param             = "to_ignore"
@@ -69,9 +70,9 @@ DUMMY_TOML_FILE = """
     [config-cli1.default-command]
     int_param = 3
     random_stuff = "will be ignored"
-    """
+    """)
 
-DUMMY_YAML_FILE = """
+DUMMY_YAML_FILE = dedent("""
     # Comment
 
     top_level_param: to_ignore
@@ -91,9 +92,9 @@ DUMMY_YAML_FILE = """
     garbage:
         # An empty random section that will be skipped
 
-    """
+    """)
 
-DUMMY_JSON_FILE = """
+DUMMY_JSON_FILE = dedent("""
     {
         "top_level_param": "to_ignore",
         "config-cli1": {
@@ -116,9 +117,9 @@ DUMMY_JSON_FILE = """
         // Section to ignore
         "garbage": {}
     }
-    """
+    """)
 
-DUMMY_INI_FILE = """
+DUMMY_INI_FILE = dedent("""
     ; Comment
     # Another kind of comment
 
@@ -141,9 +142,9 @@ DUMMY_INI_FILE = """
     blahblah: 234
     dummy_flag = true
     my_list = ["pip", "npm", "gem"]
-    """
+    """)
 
-DUMMY_XML_FILE = """
+DUMMY_XML_FILE = dedent("""
     <!-- Comment -->
 
     <config-cli1 has="an attribute">
@@ -178,7 +179,7 @@ DUMMY_XML_FILE = """
         </default-command>
 
     </config-cli1>
-    """
+    """)
 
 
 all_config_formats = pytest.mark.parametrize(
@@ -437,7 +438,7 @@ def test_strict_conf(invoke, create_config):
     def subcommand(int_param):
         echo(f"int_parameter is {int_param!r}")
 
-    conf_file = """
+    conf_file = dedent("""
         # My default configuration file.
 
         [config-cli3]
@@ -447,7 +448,7 @@ def test_strict_conf(invoke, create_config):
         [config-cli3.subcommand]
         int_param = 3
         random_stuff = "will be ignored"
-        """
+        """)
 
     conf_path = create_config("messy.toml", conf_file)
 
