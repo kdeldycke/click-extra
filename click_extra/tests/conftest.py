@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import click
 import click.testing
@@ -27,6 +27,9 @@ import pytest
 from click_extra.decorators import command, extra_command, extra_group, group
 from click_extra.platforms import is_linux, is_macos, is_windows
 from click_extra.testing import ExtraCliRunner
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 skip_linux = pytest.mark.skipif(is_linux(), reason="Skip Linux")
 """Pytest mark to skip a test if run on a Linux system."""

@@ -310,11 +310,13 @@ def test_integrated_show_params_option(invoke, create_config):
         echo(f"int_param1 is {int_param1!r}")
         echo(f"int_param2 is {int_param2!r}")
 
-    conf_file = dedent("""
+    conf_file = dedent(
+        """
         [show-params-cli]
         int_param1 = 3
         extra_value = "unallowed"
-        """)
+        """
+    )
     conf_path = create_config("show-params-cli.toml", conf_file)
 
     raw_args = [
