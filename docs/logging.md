@@ -265,7 +265,7 @@ You can also pass the default logger object to the option:
 
 The Python standard library provides the [`logging.basicConfig`](https://docs.python.org/3/library/logging.html?#logging.basicConfig) function, which is a helper to simplify the configuration of loggers and covers most use cases.
 
-Click Extra provides a similar helper, [`click_extra.logging.extra_basic_config`](https://click-extra.readthedocs.io/en/latest/api/logging.html#click_extra.logging.extra_basic_config).
+Click Extra provides a similar helper, [`click_extra.logging.extra_basic_config`](#click_extra.logging.extra_basic_config).
 
 ```{todo}
 Write detailed documentation of `extra_basic_config()`.
