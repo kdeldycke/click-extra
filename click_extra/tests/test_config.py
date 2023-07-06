@@ -214,13 +214,6 @@ def simple_config_cli():
     return config_cli1
 
 
-@pytest.mark.xfail(
-    strict=False,
-    reason=(
-        "stderr is not supposed to be filled with debug logs, but it seems there is a "
-        "leak somewhere in our logging system"
-    ),
-)
 def test_unset_conf_no_message(invoke, simple_config_cli):
     result = invoke(simple_config_cli, "default-command")
     assert result.exit_code == 0
