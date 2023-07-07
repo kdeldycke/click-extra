@@ -514,6 +514,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         "Spec.",
         "Type",
         "Allowed in conf?",
+        "Hidden",
         "Exposed",
         "Env. vars.",
         "Default",
@@ -627,12 +628,18 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             if config_option:
                 allowed_in_conf = KO if path in config_option.excluded_params else OK
 
+            # Check if the parameter is hidden.
+            hidden = None
+            if hasattr(param, "hidden"):
+                hidden = OK if param.hidden is True else KO
+
             line = (
                 default_theme.invoked_command(path),
                 f"{param_class.__module__}.{param_class.__qualname__}",
                 param_spec,
                 param_type.__name__,
                 allowed_in_conf,
+                hidden,
                 OK if param.expose_value is True else KO,
                 ", ".join(map(default_theme.envvar, all_envvars(param, ctx))),
                 default_theme.default(param.get_default(ctx)),
