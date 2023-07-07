@@ -1,5 +1,9 @@
 # Parameters
 
+Click Extra provides a set of tools to help you manage parameters in your CLI.
+
+Like the magical `--show-params` option, which is a X-ray scanner for your CLI's parameters.
+
 ## Parameter structure
 
 ```{todo}
