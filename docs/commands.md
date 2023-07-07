@@ -101,17 +101,19 @@ The `@extra_command` and `@extra_group` decorators are [pre-configured with a se
 
 ## Change default options
 
-To override the default options, you can prvide the `params=` argument to the command. But note how we use classes instead of option decorators:
+To override the default options, you can provide the `params=` argument to the command. But note how we use classes instead of option decorators:
 
 ```{eval-rst}
 .. click:example::
    from click_extra import extra_command, VersionOption, ConfigOption, VerbosityOption
 
-   @extra_command(params=[
-      VersionOption(version="0.1"),
-      ConfigOption(default="ex.yml"),
-      VerbosityOption(default="DEBUG"),
-   ])
+   @extra_command(
+      params=[
+         VersionOption(version="0.1"),
+         ConfigOption(default="ex.yml"),
+         VerbosityOption(default="DEBUG"),
+      ]
+   )
    def cli():
       pass
 
@@ -168,6 +170,45 @@ Notice how the options above are ordered in the help message.
 The default behavior of `@extra_command` (and its derivates decorators) is to order options in the way they are provided to the `params=` argument of the decorator. Then adds to that list the additional option decorators positioned after the `@extra_command` decorator.
 
 After that, there is a final [sorting step applied to options](https://kdeldycke.github.io/click-extra/commands.html#click_extra.commands.ExtraCommand). This is done by the `extra_option_at_end` option, which is `True` by default.
+
+## Set new defaults
+
+Because Click Extra commands and groups inherits from Click, you can [override the defaults the way Click allow you to](https://click.palletsprojects.com/en/8.1.x/commands/#context-defaults). Here is a reminder on how to do it.
+
+For example, the [`--verbosity` option defaults to the `WARNING` level](logging.md#click_extra.logging.DEFAULT_LEVEL_NAME). Now we'd like to change this default to `INFO`.
+
+If you manage your own `--verbosity` option, you can [pass the `default` argument to its decorator like we did above](#change-default-options):
+
+```python
+from click_extra import command, verbosity_option
+
+@command
+@verbosity_option(default="INFO")
+def cli():
+   pass
+```
+
+This also works with a class:
+
+```python
+from click_extra import command, VerbosityOption
+
+@command(params=[VerbosityOption(default="INFO")])
+def cli():
+   pass
+```
+
+But you also have the alternative to pass a `default_map` via the `context_settings`:
+
+```python
+from click_extra import extra_group
+
+@extra_group(context_settings={"default_map": {"verbosity": "INFO"}})
+def cli():
+   pass
+```
+
+This let you change the default of the `--verbosity` option provided by Click Extra, without having to [re-list the whole set of default options](#change-default-options).
 
 ## `click_extra.commands` API
 
