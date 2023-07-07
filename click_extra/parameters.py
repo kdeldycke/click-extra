@@ -616,7 +616,11 @@ class ShowParamsOption(ExtraOption, ParamStructure):
 
             param_value, source = get_param_value(param)
             param_class = self.get_tree_value(self.params_objects, *tree_keys).__class__
-            param_spec = param.get_help_record(ctx)[0]
+
+            help_record = param.get_help_record(ctx)
+            # TODO: Allow hidden parameters to produce a help record.
+            # See: https://github.com/kdeldycke/click-extra/issues/689
+            param_spec = help_record[0] if help_record else None
 
             # Check if the parameter is allowed in the configuration file.
             allowed_in_conf = None

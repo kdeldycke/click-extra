@@ -270,6 +270,7 @@ def test_params_auto_types(invoke, option_decorator):
     @option("--datetime-param", type=DateTime())
     @option("--tuple1", nargs=2, type=Tuple([str, int]))
     @option("--list1", multiple=True)
+    @option("--hidden-param", hidden=True)  # See issue #689.
     @argument("file_arg1", type=File("w"))
     @argument("file_arg2", type=File("w"), nargs=-1)
     @option_decorator
@@ -295,6 +296,7 @@ def test_params_auto_types(invoke, option_decorator):
         datetime_param,
         tuple1,
         list1,
+        hidden_param,
         file_arg1,
         file_arg2,
     ):
@@ -337,6 +339,7 @@ def test_params_auto_types(invoke, option_decorator):
             "datetime_param": None,
             "tuple1": None,
             "list1": None,
+            "hidden_param": None,
             "file_arg1": None,
             "file_arg2": None,
         },
@@ -365,6 +368,7 @@ def test_params_auto_types(invoke, option_decorator):
             "datetime_param": str,
             "tuple1": list,
             "list1": list,
+            "hidden_param": str,
             "file_arg1": str,
             "file_arg2": list,
         },

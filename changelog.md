@@ -7,6 +7,7 @@ This version is not released yet and is under active development.
 ```
 
 - Expose location and content of user's configuration file in the Context's `meta` property. Closes {issue}`673`.
+- Fix display of hidden parameters in `--show-params` output. Fixes {issue}`689`.
 
 ## {gh}`4.5.0 (2023-07-06) <compare/v4.4.0...v4.5.0>`
 
