@@ -225,40 +225,6 @@ def test_auto_envvar_parsing(invoke, cmd_decorator, envvars, expected_flag):
     assert result.stdout == f"Flag value: {expected_flag}\n"
 
 
-def test_raw_args(invoke):
-    """Raw args are expected to be scoped in subcommands."""
-
-    @extra_group
-    @option("--dummy-flag/--no-flag")
-    @pass_context
-    def my_cli(ctx, dummy_flag):
-        echo("-- Group output --")
-        echo(f"dummy_flag is {dummy_flag!r}")
-        echo(f"Raw parameters: {ctx.meta.get('click_extra.raw_args', [])}")
-
-    @my_cli.command()
-    @pass_context
-    @option("--int-param", type=int, default=10)
-    def subcommand(ctx, int_param):
-        echo("-- Subcommand output --")
-        echo(f"int_parameter is {int_param!r}")
-        echo(f"Raw parameters: {ctx.meta.get('click_extra.raw_args', [])}")
-
-    result = invoke(my_cli, "--dummy-flag", "subcommand", "--int-param", "33")
-    assert result.exit_code == 0
-    assert not result.stderr
-    assert result.stdout == dedent(
-        """\
-        -- Group output --
-        dummy_flag is True
-        Raw parameters: ['--dummy-flag', 'subcommand', '--int-param', '33']
-        -- Subcommand output --
-        int_parameter is 33
-        Raw parameters: ['--int-param', '33']
-        """,
-    )
-
-
 @parametrize(
     "cmd_decorator",
     # Skip click extra's commands, as show_params option is already part of the default.

@@ -29,7 +29,7 @@ import cloup
 import pytest
 from pytest_cases import fixture
 
-from click_extra import echo, option, option_group
+from click_extra import echo, option, option_group, pass_context
 from click_extra.decorators import extra_command, extra_group
 
 from .conftest import (
@@ -421,3 +421,37 @@ def test_show_envvar_parameter(invoke, cmd_decorator, ctx_settings, expected_hel
     assert result.exit_code == 0
     assert not result.stderr
     assert expected_help in result.stdout
+
+
+def test_raw_args(invoke):
+    """Raw args are expected to be scoped in subcommands."""
+
+    @extra_group
+    @option("--dummy-flag/--no-flag")
+    @pass_context
+    def my_cli(ctx, dummy_flag):
+        echo("-- Group output --")
+        echo(f"dummy_flag is {dummy_flag!r}")
+        echo(f"Raw parameters: {ctx.meta.get('click_extra.raw_args', [])}")
+
+    @my_cli.command()
+    @pass_context
+    @option("--int-param", type=int, default=10)
+    def subcommand(ctx, int_param):
+        echo("-- Subcommand output --")
+        echo(f"int_parameter is {int_param!r}")
+        echo(f"Raw parameters: {ctx.meta.get('click_extra.raw_args', [])}")
+
+    result = invoke(my_cli, "--dummy-flag", "subcommand", "--int-param", "33")
+    assert result.exit_code == 0
+    assert not result.stderr
+    assert result.stdout == dedent(
+        """\
+        -- Group output --
+        dummy_flag is True
+        Raw parameters: ['--dummy-flag', 'subcommand', '--int-param', '33']
+        -- Subcommand output --
+        int_parameter is 33
+        Raw parameters: ['--int-param', '33']
+        """,
+    )
