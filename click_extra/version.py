@@ -63,8 +63,8 @@ class VersionOption(ExtraOption):
         message: str | None = None,
         env_info: dict[str, str] | None = None,
         version_style: IStyle | None = Style(fg="green"),
-        package_name_style: IStyle | None = default_theme.invoked_command,
-        prog_name_style: IStyle | None = default_theme.invoked_command,
+        package_name_style: IStyle | None = default_theme.invoked_command,  # type: ignore
+        prog_name_style: IStyle | None = default_theme.invoked_command,  # type: ignore
         env_info_style: IStyle | None = Style(fg="bright_black"),
         message_style: IStyle | None = None,
         is_flag=True,
