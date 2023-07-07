@@ -55,6 +55,10 @@ class HelpExtraTheme(NamedTuple):
         See:
         - https://github.com/python/typing/issues/427
         - https://mypy.readthedocs.io/en/stable/runtime_troubles.html#future-annotations-import-pep-563
+
+    .. todo::
+        This is being `discussed upstream at janluke/cloup#159
+        <https://github.com/janluke/cloup/issues/159>`_.
     """
 
     invoked_command: IStyle = identity
