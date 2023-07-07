@@ -200,15 +200,20 @@ def cli():
 
 But you also have the alternative to pass a `default_map` via the `context_settings`:
 
-```python
-from click_extra import extra_group
+```{eval-rst}
+.. click:example::
+   from click_extra import extra_command
 
-@extra_group(context_settings={"default_map": {"verbosity": "INFO"}})
-def cli():
-   pass
+   @extra_command(context_settings={"default_map": {"verbosity": "INFO"}})
+   def cli():
+      pass
+
+.. click:run::
+   result = invoke(cli, args=["--help"])
+   assert "\x1b[2m[\x1b[0m\x1b[2mdefault: \x1b[0m\x1b[32m\x1b[2m\x1b[3mINFO\x1b[0m\x1b[2m]\x1b[0m\n" in result.stdout
 ```
 
-This let you change the default of the `--verbosity` option provided by Click Extra, without having to [re-list the whole set of default options](#change-default-options).
+This let you change the default of the `--verbosity` option provided by Click Extra, without having to [re-list the whole set of default options](#change-default-options). And see how this new default gets reflected in the help message.
 
 ## `click_extra.commands` API
 
