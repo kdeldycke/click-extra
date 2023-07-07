@@ -182,10 +182,11 @@ If you manage your own `--verbosity` option, you can [pass the `default` argumen
 ```python
 from click_extra import command, verbosity_option
 
+
 @command
 @verbosity_option(default="INFO")
 def cli():
-   pass
+    pass
 ```
 
 This also works with a class:
@@ -193,9 +194,10 @@ This also works with a class:
 ```python
 from click_extra import command, VerbosityOption
 
+
 @command(params=[VerbosityOption(default="INFO")])
 def cli():
-   pass
+    pass
 ```
 
 But you also have the alternative to pass a `default_map` via the `context_settings`:
