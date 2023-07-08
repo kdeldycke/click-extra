@@ -513,9 +513,9 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         "Class",
         "Spec.",
         "Type",
-        "Allowed in conf?",
         "Hidden",
         "Exposed",
+        "Allowed in conf?",
         "Env. vars.",
         "Default",
         "Value",
@@ -623,24 +623,24 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             # See: https://github.com/kdeldycke/click-extra/issues/689
             param_spec = help_record[0] if help_record else None
 
-            # Check if the parameter is allowed in the configuration file.
-            allowed_in_conf = None
-            if config_option:
-                allowed_in_conf = KO if path in config_option.excluded_params else OK
-
             # Check if the parameter is hidden.
             hidden = None
             if hasattr(param, "hidden"):
                 hidden = OK if param.hidden is True else KO
+
+            # Check if the parameter is allowed in the configuration file.
+            allowed_in_conf = None
+            if config_option:
+                allowed_in_conf = KO if path in config_option.excluded_params else OK
 
             line = (
                 default_theme.invoked_command(path),
                 f"{param_class.__module__}.{param_class.__qualname__}",
                 param_spec,
                 param_type.__name__,
-                allowed_in_conf,
                 hidden,
                 OK if param.expose_value is True else KO,
+                allowed_in_conf,
                 ", ".join(map(default_theme.envvar, all_envvars(param, ctx))),
                 default_theme.default(param.get_default(ctx)),
                 param_value,
