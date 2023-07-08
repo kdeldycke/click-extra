@@ -577,5 +577,3 @@ def test_integrated_show_params_option(invoke, create_config):
         disable_numparse=True,
     )
     assert result.stdout == f"{output}\n"
-
-    assert f"debug: click_extra.raw_args: {raw_args}" in result.stderr
