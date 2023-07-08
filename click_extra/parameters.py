@@ -238,7 +238,7 @@ class ExtraOption(Option):
         if show_default_is_str or (show_default and (default_value is not None)):
             if show_default_is_str:
                 default_string = f"({option.show_default})"
-            elif isinstance(default_value, list | tuple):
+            elif isinstance(default_value, (list, tuple)):
                 default_string = ", ".join(str(d) for d in default_value)
             elif inspect.isfunction(default_value):
                 default_string = _("(dynamic)")
