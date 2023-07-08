@@ -246,7 +246,7 @@ def test_auto_envvar_parsing(invoke, cmd_decorator, envvars, expected_flag):
 
 @parametrize("option_decorator", (show_params_option, show_params_option()))
 def test_params_auto_types(invoke, option_decorator):
-    """Check the parameter's types and structure are properly derived from CLI options."""
+    """Check parameters types and structure are properly derived from CLI."""
 
     @click.command
     @option("--flag1/--no-flag1")

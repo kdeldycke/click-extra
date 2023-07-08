@@ -54,7 +54,7 @@ else:
 # Overrides click helpers with cloup's.
 from click import *  # noqa: E402, F403
 from click.core import ParameterSource  # noqa: E402
-from cloup import *  # type: ignore[no-redef] # noqa: E402, F403
+from cloup import *  # type: ignore[no-redef, assignment] # noqa: E402, F403
 
 from .colorize import (  # noqa: E402
     ColorOption,
