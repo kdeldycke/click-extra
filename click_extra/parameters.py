@@ -23,11 +23,16 @@ from __future__ import annotations
 import inspect
 import logging
 import re
-from collections.abc import MutableMapping
+from collections.abc import Iterable, MutableMapping, Sequence
+from contextlib import nullcontext
 from functools import cached_property, reduce
 from gettext import gettext as _
 from operator import getitem, methodcaller
-from typing import Any, Iterable, Sequence
+from typing import (
+    Any,
+    ContextManager,
+)
+from unittest.mock import patch
 
 import click
 from boltons.iterutils import unique
@@ -233,7 +238,7 @@ class ExtraOption(Option):
         if show_default_is_str or (show_default and (default_value is not None)):
             if show_default_is_str:
                 default_string = f"({option.show_default})"
-            elif isinstance(default_value, (list, tuple)):
+            elif isinstance(default_value, list | tuple):
                 default_string = ", ".join(str(d) for d in default_value)
             elif inspect.isfunction(default_value):
                 default_string = _("(dynamic)")
@@ -565,7 +570,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             ``ExtraCommand``/``ExtraGroup`` classes, in which we are attaching
             a ``click_extra.raw_args`` metadata entry to the context.
         """
-        # imported here to avoid circular imports.
+        # Imported here to avoid circular imports.
         from .colorize import KO, OK, default_theme
         from .config import ConfigOption
 
@@ -618,15 +623,26 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             param_value, source = get_param_value(param)
             param_class = self.get_tree_value(self.params_objects, *tree_keys).__class__
 
-            help_record = param.get_help_record(ctx)
-            # TODO: Allow hidden parameters to produce a help record.
-            # See: https://github.com/kdeldycke/click-extra/issues/689
-            param_spec = help_record[0] if help_record else None
-
-            # Check if the parameter is hidden.
+            # Collect param's spec and hidden status.
             hidden = None
+            param_spec = None
+            # Hidden property is only supported by Option, not Argument.
+            # TODO: Allow arguments to produce their spec.
             if hasattr(param, "hidden"):
                 hidden = OK if param.hidden is True else KO
+
+                # No-op context manager without any effects.
+                hidden_param_bypass: ContextManager = nullcontext()
+                # If the parameter is hidden, we need to temporarily disable this flag
+                # to let Click produce a help record.
+                # See: https://github.com/kdeldycke/click-extra/issues/689
+                # TODO: Submit a PR to Click to separate production of param spec and
+                # help record. That way we can always produce the param spec even if
+                # the parameter is hidden.
+                if param.hidden:
+                    hidden_param_bypass = patch.object(param, "hidden", False)
+                with hidden_param_bypass:
+                    param_spec = param.get_help_record(ctx)[0]
 
             # Check if the parameter is allowed in the configuration file.
             allowed_in_conf = None
@@ -650,7 +666,8 @@ class ShowParamsOption(ExtraOption, ParamStructure):
 
         def sort_by_depth(line):
             """Sort parameters by depth first, then IDs, so that top-level parameters
-            are kept to the top."""
+            are kept to the top.
+            """
             param_path = line[0]
             tree_keys = param_path.split(self.SEP)
             return len(tree_keys), param_path

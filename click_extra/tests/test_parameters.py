@@ -423,9 +423,11 @@ def test_integrated_show_params_option(invoke, create_config):
     @extra_command
     @option("--int-param1", type=int, default=10)
     @option("--int-param2", type=int, default=555)
-    def show_params_cli(int_param1, int_param2):
+    @option("--hidden-param", hidden=True)  # See issue #689.
+    def show_params_cli(int_param1, int_param2, hidden_param):
         echo(f"int_param1 is {int_param1!r}")
         echo(f"int_param2 is {int_param2!r}")
+        echo(f"hidden_param is {hidden_param!r}")
 
     conf_file = dedent(
         """
@@ -490,6 +492,19 @@ def test_integrated_show_params_option(invoke, create_config):
             False,
             True,
             "COMMANDLINE",
+        ),
+        (
+            "show-params-cli.hidden_param",
+            "cloup._params.Option",
+            "--hidden-param TEXT",
+            "str",
+            "✓",
+            "✓",
+            "✓",
+            "SHOW_PARAMS_CLI_HIDDEN_PARAM",
+            "None",
+            None,
+            "DEFAULT",
         ),
         (
             "show-params-cli.int_param1",
