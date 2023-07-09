@@ -573,7 +573,7 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.version",
-            "click_extra.version.VersionOption",
+            "click_extra.version.ExtraVersionOption",
             "--version",
             "bool",
             "✘",

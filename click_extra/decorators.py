@@ -27,7 +27,7 @@ from .parameters import ShowParamsOption
 from .tabulate import TableFormatOption
 from .telemetry import TelemetryOption
 from .timer import TimerOption
-from .version import VersionOption
+from .version import ExtraVersionOption
 
 
 def allow_missing_parenthesis(dec_factory):
@@ -84,7 +84,7 @@ def decorator_factory(dec, **new_defaults):
 command = decorator_factory(dec=cloup.command)
 group = decorator_factory(dec=cloup.group)
 
-# Extra command and group decorators with default options.
+# Extra-prefixed decorators augments the default Cloup and Click ones.
 extra_command = decorator_factory(
     dec=cloup.command,
     cls=ExtraCommand,
@@ -95,9 +95,9 @@ extra_group = decorator_factory(
     cls=ExtraGroup,
     params=default_extra_params,
 )
+extra_version_option = decorator_factory(dec=cloup.option, cls=ExtraVersionOption)
 
-
-# Option decorators.
+# New option decorators provided by Click Extra.
 color_option = decorator_factory(dec=cloup.option, cls=ColorOption)
 config_option = decorator_factory(dec=cloup.option, cls=ConfigOption)
 help_option = decorator_factory(dec=cloup.option, cls=HelpOption)
@@ -106,4 +106,3 @@ table_format_option = decorator_factory(dec=cloup.option, cls=TableFormatOption)
 telemetry_option = decorator_factory(dec=cloup.option, cls=TelemetryOption)
 timer_option = decorator_factory(dec=cloup.option, cls=TimerOption)
 verbosity_option = decorator_factory(dec=cloup.option, cls=VerbosityOption)
-version_option = decorator_factory(dec=cloup.option, cls=VersionOption)

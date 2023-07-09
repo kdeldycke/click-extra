@@ -40,7 +40,7 @@ from .parameters import (
     search_params,
 )
 from .timer import TimerOption
-from .version import VersionOption
+from .version import ExtraVersionOption
 
 
 class ExtraContext(cloup.Context):
@@ -127,8 +127,8 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         """List of extra parameters:
 
         :param version: allows a version string to be set directly on the command. Will
-            be passed to the first instance of ``VersionOption`` parameter attached to
-            the command.
+            be passed to the first instance of ``ExtraVersionOption`` parameter
+            attached to the command.
         :param extra_option_at_end: `reorders all parameters attached to the command
             <https://kdeldycke.github.io/click-extra/commands.html#option-order>`_, by
             moving all instances of ``ExtraOption`` at the end of the parameter list.
@@ -263,7 +263,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
                 param.envvar = all_envvars(param, self.context_settings)
 
         if version:
-            version_param = search_params(self.params, VersionOption)
+            version_param = search_params(self.params, ExtraVersionOption)
             if version_param:
                 version_param.version = version  # type: ignore[union-attr]
 
@@ -312,13 +312,14 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         """Main execution of the command, just after the context has been instantiated
         in ``main()``.
 
-        If an instance of ``VersionOption`` is found attached to the command, print its
-        output in ``DEBUG`` logs. This facilitates troubleshooting of user's issues.
+        If an instance of ``ExtraVersionOption`` is found attached to the command,
+        print its output in ``DEBUG`` logs. This facilitates troubleshooting of user's
+        issues.
         """
         logger = logging.getLogger("click_extra")
         if logger.getEffectiveLevel() == logging.DEBUG:
             # Look for a ``--version`` parameter.
-            version_opt = search_params(ctx.command.params, VersionOption)
+            version_opt = search_params(ctx.command.params, ExtraVersionOption)
             if version_opt:
                 # Environment info is already present in the version string: use it
                 # as-is.

@@ -193,9 +193,9 @@ Click Extra provides these additional options:
 - [`color_option`](colorize.md#color-option)
 - [`config_option`](config.md)
 - [`help_option`](colorize.md#help-option)
-- [`show_params_option`](config.md#show-params-option)
+- [`show_params_option`](parameters.md#show-params-option)
 - [`table_format_option`](tabulate.md)
 - [`timer_option`](timer.md)
 - [`verbosity_option`](logging.md)
-- [`version_option`](colorize.md#version-option)
+- [`extra_version_option`](version.md)
 ```

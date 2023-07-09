@@ -47,7 +47,7 @@ For example:
 - `click_extra.echo` is a direct proxy to `click.echo` because Cloup does not re-implement an `echo` helper.
 - On the other hand, `@click_extra.option` is a proxy of `@cloup.option`, because Cloup adds the [possibility for options to be grouped](https://cloup.readthedocs.io/en/stable/pages/option-groups.html).
 - `@click_extra.timer` is not a proxy of anything, because it is a new decorator implemented by Click Extra.
-- As for `@click_extra.version_option`, it mimics the original `@click.version_option`, but because it adds new features, it was fully reimplemented by Click Extra and is no longer a proxy of the original from Click.
+- As for `@click_extra.extra_version_option`, it is a re-implementation of `@click.version_option`. Because it adds new features and breaks the original API, it was prefixed with `extra_` to become its own thing. And `@click_extra.version_option` still proxy the original from Click.
 
 Here are few other examples on how Click Extra proxies the main elements from Click and Cloup:
 
@@ -59,7 +59,8 @@ Here are few other examples on how Click Extra proxies the main elements from Cl
 | `@click_extra.option`         | `@cloup.option`       | `@click.option`                                             |
 | `@click_extra.option_group`   | `@cloup.option_group` | *Not implemented*                                           |
 | `@click_extra.pass_context`   | `@click.pass_context` | `@click.pass_context`                                       |
-| `@click_extra.version_option` | *Itself*              | `@click.version_option`                                     |
+| `@click_extra.version_option`   | `@click.version_option` | `@click.version_option`                                       |
+| `@click_extra.extra_version_option` | *Itself*              | `@click.version_option`                                     |
 | `@click_extra.help_option`    | *Itself*              | `@click.help_option`                                        |
 | `@click_extra.timer_option`   | *Itself*              | *Not implemented*                                           |
 | …                             | …                            | …                                                    |
@@ -69,6 +70,7 @@ Here are few other examples on how Click Extra proxies the main elements from Cl
 | `click_extra.HelpFormatter`   | `cloup.HelpFormatter` | `click.HelpFormatter`                                       |
 | `click_extra.HelpTheme`       | `cloup.HelpThene`     | *Not implemented*                                           |
 | `click_extra.Option`          | `cloup.Option`        | `click.Option`                                              |
+| `click_extra.ExtraVersionOption`          |  *Not implemented*        |  *Not implemented*                     |
 | `click_extra.Style`           | `cloup.Style`         | *Not implemented*                                           |
 | `click_extra.echo`            | `click.echo`          | `click.echo`                                                |
 | `click_extra.ParameterSource` | `click.core.ParameterSource` | `click.core.ParameterSource`                         |
@@ -92,6 +94,7 @@ Now if you want to benefits from all the [wonderful features of Click Extra](ind
 | `click.Command`                                             | `click_extra.ExtraCommand`   |
 | `click.Group`                                               | `click_extra.ExtraGroup`     |
 | `click.Option`                                              | `click_extra.ExtraOption`    |
+| `@click.version_option`                                      | `@click_extra.extra_version_option`    |
 
 The best place to see how to use these `extra`-variants is the [tutorial](tutorial.md).
 
@@ -105,11 +108,10 @@ To override the default options, you can provide the `params=` argument to the c
 
 ```{eval-rst}
 .. click:example::
-   from click_extra import extra_command, VersionOption, ConfigOption, VerbosityOption
+   from click_extra import extra_command, ConfigOption, VerbosityOption
 
    @extra_command(
       params=[
-         VersionOption(version="0.1"),
          ConfigOption(default="ex.yml"),
          VerbosityOption(default="DEBUG"),
       ]
@@ -127,7 +129,6 @@ And now you get:
       \x1b[94m\x1b[1m\x1b[4mUsage:\x1b[0m \x1b[97mcli\x1b[0m \x1b[36m\x1b[2m[OPTIONS]\x1b[0m
 
       \x1b[94m\x1b[1m\x1b[4mOptions:\x1b[0m
-        \x1b[36m--version\x1b[0m                 Show the version and exit.
         \x1b[36m-C\x1b[0m, \x1b[36m--config\x1b[0m \x1b[36m\x1b[2mCONFIG_PATH\x1b[0m"""
    ))
 ```
@@ -140,16 +141,14 @@ This let you replace the preset options by your own set, tweak their order and f
    If you try to add option decorators to a command which already have them by default, you will end up with duplicate entries (as seen in issue {issue}`232`):
 
    .. click:example::
-      from click_extra import extra_command, version_option, config_option, verbosity_option
+      from click_extra import extra_command, extra_version_option
 
       @extra_command
-      @version_option(version="0.1")
-      @config_option(default="ex.yml")
-      @verbosity_option(default="DEBUG")
+      @extra_version_option(version="0.1")
       def cli():
          pass
 
-   See how options are duplicated at the end:
+   See how the ``--version`` option gets duplicated at the end:
 
    .. click:run::
       from textwrap import dedent
@@ -160,7 +159,7 @@ This let you replace the preset options by your own set, tweak their order and f
          "  \x1b[36m--version\x1b[0m                 Show the version and exit.\n"
       ) in result.output
 
-   This is an expected behavior: decorators are cumulative to not prevent you to add your own options to the preset of `@extra_command` and `@extra_group`.
+   This is by design: decorators are cumulative, to allow you to add your own options to the preset of `@extra_command` and `@extra_group`.
 ```
 
 ## Option order

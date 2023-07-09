@@ -24,14 +24,14 @@ from boltons.strutils import strip_ansi
 from pytest_cases import parametrize
 
 from click_extra import Style, __version__, echo, pass_context
-from click_extra.decorators import color_option, extra_group, version_option
+from click_extra.decorators import color_option, extra_group, extra_version_option
 
 from .conftest import command_decorators, skip_windows_colors
 
 
 @skip_windows_colors
 @parametrize("cmd_decorator", command_decorators())
-@parametrize("option_decorator", (version_option, version_option()))
+@parametrize("option_decorator", (extra_version_option, extra_version_option()))
 def test_standalone_version_option(invoke, cmd_decorator, option_decorator):
     @cmd_decorator
     @option_decorator
@@ -51,7 +51,7 @@ def test_standalone_version_option(invoke, cmd_decorator, option_decorator):
 @skip_windows_colors
 def test_set_version(invoke):
     @click.group
-    @version_option(version="1.2.3.4")
+    @extra_version_option(version="1.2.3.4")
     def color_cli2():
         echo("It works!")
 
@@ -95,7 +95,7 @@ def test_set_version(invoke):
 )
 def test_custom_message(invoke, cmd_decorator, message, regex_stdout):
     @cmd_decorator
-    @version_option(message=message)
+    @extra_version_option(message=message)
     def color_cli3():
         echo("It works!")
 
@@ -108,7 +108,7 @@ def test_custom_message(invoke, cmd_decorator, message, regex_stdout):
 @parametrize("cmd_decorator", command_decorators(no_groups=True))
 def test_style_reset(invoke, cmd_decorator):
     @cmd_decorator
-    @version_option(
+    @extra_version_option(
         version_style=None,
         package_name_style=None,
         prog_name_style=None,
@@ -127,7 +127,7 @@ def test_style_reset(invoke, cmd_decorator):
 @parametrize("cmd_decorator", command_decorators(no_groups=True))
 def test_context_meta(invoke, cmd_decorator):
     @cmd_decorator
-    @version_option
+    @extra_version_option
     @pass_context
     def version_metadata(ctx):
         for var in ("version", "package_name", "prog_name", "env_info"):
@@ -184,7 +184,7 @@ def test_color_option_precedence(invoke):
 
     @click.command
     @color_option
-    @version_option(version="2.1.9")
+    @extra_version_option(version="2.1.9")
     def color_cli6():
         echo(Style(fg="yellow")("It works!"))
 

@@ -81,7 +81,7 @@ from .decorators import (  # type: ignore[no-redef, has-type] # noqa: E402
     telemetry_option,
     timer_option,
     verbosity_option,
-    version_option,
+    extra_version_option,
 )
 from .logging import (  # noqa: E402
     ExtraLogFormatter,
@@ -99,7 +99,7 @@ from .tabulate import TableFormatOption  # noqa: E402
 from .telemetry import TelemetryOption  # noqa: E402
 from .testing import ExtraCliRunner  # noqa: E402
 from .timer import TimerOption  # noqa: E402
-from .version import VersionOption  # noqa: E402
+from .version import ExtraVersionOption  # noqa: E402
 
 __all__ = [  # noqa: F405
     "Abort",
@@ -141,6 +141,7 @@ __all__ = [  # noqa: F405
     "extra_basic_config",
     "extra_command",
     "extra_group",
+    "extra_version_option",
     "ExtraCliRunner",
     "ExtraCommand",
     "ExtraContext",
@@ -148,6 +149,7 @@ __all__ = [  # noqa: F405
     "ExtraLogFormatter",
     "ExtraLogHandler",
     "ExtraOption",
+    "ExtraVersionOption",
     "File",
     "file_path",
     "FileError",

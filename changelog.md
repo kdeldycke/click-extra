@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Keep the promise of drop-in replacement for `@version_option` which is now a proxy to Click's original.
+- Rename the colored, enhanced `--version` option to `@extra_version_option` for its decorator, and `ExtraVersionOption` for its class.
 - Expose location and content of user's configuration file in the Context's `meta` property. Closes {issue}`673`.
 - Render specs of hidden parameters in `--show-params` output. Fixes {issue}`689`.
 - Swap `Exposed` and `Allowed in conf?` columns in `--show-params` output.

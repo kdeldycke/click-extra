@@ -37,15 +37,15 @@ if TYPE_CHECKING:
     from cloup.styling import IStyle
 
 
-class VersionOption(ExtraOption):
+class ExtraVersionOption(ExtraOption):
     """Gather CLI metadata and prints a colored version string.
 
     .. warning::
         This started as a `copy of the standard @click.version_option() decorator
         <https://github.com/pallets/click/blob/dc918b4/src/click/decorators.py#L399-L466>`_,
-        but is **no longer a drop-in replacement**.
+        but is **no longer a drop-in replacement**. Hence the ``Extra`` prefix.
 
-        Still, keep an eye on the original implementation to backport fixes and
+        Still, we'll keep an eye on the original implementation to backport fixes and
         improvements.
 
     .. important::

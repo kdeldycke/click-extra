@@ -8,30 +8,39 @@ Click Extra provides its own version option which, compared to [Click's built-in
 - prints [details metadata in `DEBUG` logs](#debug-logs)
 - expose [metadata in the context](#get-metadata-values)
 
+```{hint}
+To prevent any confusion, and keep on [the promise of drop-in replacement](commands.md#drop-in-replacement), Click Extra's version option is prefixed:
+   - the vanilla Click's `version_option` is accessible as `click_extra.version_option`
+   - Click Extra's own take on `version_option` is available as [`click_extra.extra_version_option`](click_extra.md#click_extra.extra_version_option)
+   - [`@extra_version_option` decorator](click_extra.md#click_extra.extra_version_option) is derived from [`click_extra.ExtraVersionOption` class](#click_extra.version.ExtraVersionOption)
+```
+
 ## Defaults
 
 Here is how the defaults looks like:
 
 ```{eval-rst}
 .. click:example::
-      from click_extra import command, version_option
+      from click_extra import command, extra_version_option
 
       @command
-      @version_option(version="1.2.3")
+      @extra_version_option(version="1.2.3")
       def cli():
          pass
-
-Here I have hard-coded the version to ``1.2.3`` for the sake of the example, but by default, the version will be automattically fetched from the ``__version__`` attribute of the module where the command is defined.
 
 .. click:run::
    result = invoke(cli, args=["--help"])
    assert "--version" in result.output
 
-The default version message is ``%(prog)s, version %(version)s`` (`like Click's own default <https://github.com/pallets/click/blob/b498906/src/click/decorators.py#L455>`_), but is colored:
+The default version message is the `same as Click's default <https://github.com/pallets/click/blob/b498906/src/click/decorators.py#L455>`_ (i.e. ``%(prog)s, version %(version)s``), but colored:
 
 .. click:run::
    result = invoke(cli, args=["--version"])
    assert result.output == "\x1b[97mcli\x1b[0m, version \x1b[32m1.2.3\x1b[0m\n"
+```
+
+```{hint}
+In this example I have hard-coded the version to `1.2.3` for the sake of demonstration. But by default, the version will be automattically fetched from the `__version__` attribute of the module where the command is defined.
 ```
 
 ## Variables
@@ -55,10 +64,10 @@ You can compose your own version string by passing the `message` argument:
 
 ```{eval-rst}
 .. click:example::
-      from click_extra import command, version_option
+      from click_extra import command, extra_version_option
 
       @command
-      @version_option(message="%(prog_name)s v%(version)s - %(package_name)s")
+      @extra_version_option(message="✨ %(prog_name)s v%(version)s - %(package_name)s")
       def my_own_cli():
          pass
 
@@ -66,7 +75,7 @@ You can compose your own version string by passing the `message` argument:
    from click_extra import __version__
    result = invoke(my_own_cli, args=["--version"])
    assert result.output == (
-      "\x1b[97mmy-own-cli\x1b[0m "
+      "✨ \x1b[97mmy-own-cli\x1b[0m "
       f"v\x1b[32m{__version__}\x1b[0m - "
       "\x1b[97mclick_extra\x1b[0m\n"
    )
@@ -80,7 +89,7 @@ Once your CLI gets packaged in its own module, its metadata will be fetched auto
 
 ## Colors
 
-Each variable listed in the section above can be rendered in its own style. They all have dedicated parameters you can pass to the `version_option` decorator:
+Each variable listed in the section above can be rendered in its own style. They all have dedicated parameters you can pass to the `extra_version_option` decorator:
 
 | Parameter            | Description                               |
 | -------------------- | ----------------------------------------- |
@@ -94,11 +103,11 @@ Here is an example:
 
 ```{eval-rst}
 .. click:example::
-      from click_extra import command, version_option, Style
+      from click_extra import command, extra_version_option, Style
 
       @command
-      @version_option(
-         message="%(prog_name)s v%(version)s - %(package_name)s",
+      @extra_version_option(
+         message="%(prog_name)s v%(version)s 🔥 %(package_name)s ( ͡❛ ͜ʖ ͡❛)",
          message_style=Style(fg="cyan"),
          prog_name_style=Style(fg="green", bold=True),
          version_style=Style(fg="bright_yellow", bg="red"),
@@ -112,8 +121,8 @@ Here is an example:
    result = invoke(cli, args=["--version"])
    assert result.output == (
       "\x1b[32m\x1b[1mcli\x1b[0m\x1b[36m "
-      f"v\x1b[0m\x1b[93m\x1b[41m{__version__}\x1b[0m\x1b[36m - "
-      "\x1b[0m\x1b[94m\x1b[3mclick_extra\x1b[0m\n"
+      f"v\x1b[0m\x1b[93m\x1b[41m{__version__}\x1b[0m\x1b[36m 🔥 "
+      "\x1b[0m\x1b[94m\x1b[3mclick_extra\x1b[0m\x1b[36m ( ͡❛\u202f͜ʖ ͡❛)\x1b[0m\n"
    )
 ```
 
@@ -125,10 +134,10 @@ You can pass `None` to any of the style parameters to disable styling for the co
 
 ```{eval-rst}
 .. click:example::
-      from click_extra import command, version_option
+      from click_extra import command, extra_version_option
 
       @command
-      @version_option(
+      @extra_version_option(
           version_style=None,
           package_name_style=None,
           prog_name_style=None,
@@ -152,10 +161,10 @@ Here is how it looks like:
 
 ```{eval-rst}
 .. click:example::
-      from click_extra import command, version_option
+      from click_extra import command, extra_version_option
 
       @command
-      @version_option(message="%(env_info)s")
+      @extra_version_option(message="%(env_info)s")
       def env_info_cli():
          pass
 
@@ -177,12 +186,14 @@ When the `DEBUG` level is enabled, the version message will be printed to the `D
 
 ```{eval-rst}
 .. click:example::
-      from click_extra import extra_command, VerbosityOption, VersionOption, echo
+      from click_extra import extra_command, VerbosityOption, ExtraVersionOption, echo
 
-      @extra_command(params=[
-          VersionOption(),
-          VerbosityOption(),
-      ])
+      @extra_command(
+         params=[
+            ExtraVersionOption(),
+            VerbosityOption(),
+         ]
+      )
       def version_in_logs():
           echo("Standard operation")
 
@@ -203,7 +214,7 @@ If the message template does not contains the `%(env_info)s` variable, it will b
 ```
 
 ```{attention}
-This feature only works with the combination of `extra_command`, `VersionOption` and `VerbosityOption`.
+This feature only works with the combination of `extra_command`, `ExtraVersionOption` and `VerbosityOption`.
 
 Unless you assemble your own command with `extra_command`, or use the later with the default options, you won't see the version message in the logs.
 ```
@@ -214,10 +225,10 @@ You can get the uncolored, Python values used in the composition of the version 
 
 ```{eval-rst}
 .. click:example::
-    from click_extra import command, echo, pass_context, version_option
+    from click_extra import command, echo, pass_context, extra_version_option
 
     @command
-    @version_option
+    @extra_version_option
     @pass_context
     def version_metadata(ctx):
         version = ctx.meta["click_extra.version"]
@@ -255,14 +266,14 @@ You can render the version string manually by calling the option's internal meth
 
 ```{eval-rst}
 .. click:example::
-    from click_extra import command, echo, pass_context, version_option, VersionOption, search_params
+    from click_extra import command, echo, pass_context, extra_version_option, ExtraVersionOption, search_params
 
     @command
-    @version_option
+    @extra_version_option
     @pass_context
     def template_rendering(ctx):
          # Search for a ``--version`` parameter.
-         version_opt = search_params(ctx.command.params, VersionOption)
+         version_opt = search_params(ctx.command.params, ExtraVersionOption)
          version_string = version_opt.render_message()
          echo(f"Version string ~> {version_string}")
 
