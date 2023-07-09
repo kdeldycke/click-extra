@@ -106,7 +106,7 @@ def default_extra_params():
         ConfigOption(),
         ShowParamsOption(),
         VerbosityOption(),
-        VersionOption(),
+        ExtraVersionOption(),
         HelpOption(),
     ]
 
