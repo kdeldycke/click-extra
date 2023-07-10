@@ -46,8 +46,7 @@ class TimerOption(ExtraOption):
         # Take timestamp snapshot.
         self.start_time = perf_counter()
 
-        # XXX ctx.meta doesn't cut it, we need to target ctx._meta.
-        ctx._meta["click_extra.start_time"] = self.start_time
+        ctx.meta["click_extra.start_time"] = self.start_time
 
         # Skip timekeeping if option is not active.
         if value:

@@ -46,21 +46,16 @@ from .version import ExtraVersionOption
 class ExtraContext(cloup.Context):
     """Like ``cloup._context.Context``, but with the ability to populate the context's
     ``meta`` property at instantiation.
+
+    .. todo::
+        Propose this upstream to Click.
     """
 
-    _extra_meta: dict[str, Any] = {}
-
-    def __init__(self, *args, meta: dict[str, Any] = {}, **kwargs) -> None:
+    def __init__(self, *args, meta: dict[str, Any] | None = None, **kwargs) -> None:
         """Like parent's context but with an extra ``meta`` keyword-argument."""
-        self._extra_meta = meta
         super().__init__(*args, **kwargs)
-
-    @property
-    def meta(self) -> dict[str, Any]:
-        """Returns context meta augmented with our own."""
-        meta = dict(self._meta)
-        meta.update(self._extra_meta)
-        return meta
+        if meta:
+            self._meta.update(meta)
 
 
 def default_extra_params():

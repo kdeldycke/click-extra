@@ -280,12 +280,11 @@ class ExtraVersionOption(ExtraOption):
 
         Also stores all version string elements in the Context's ``meta`` `dict`.
         """
-        # XXX ctx.meta doesn't cut it, we need to target ctx._meta.
-        ctx._meta["click_extra.package_name"] = self.package_name
+        ctx.meta["click_extra.package_name"] = self.package_name
         # Trigger the version after package_name as it depends on it.
-        ctx._meta["click_extra.version"] = self.version
-        ctx._meta["click_extra.prog_name"] = self.prog_name
-        ctx._meta["click_extra.env_info"] = self.env_info
+        ctx.meta["click_extra.version"] = self.version
+        ctx.meta["click_extra.prog_name"] = self.prog_name
+        ctx.meta["click_extra.env_info"] = self.env_info
 
         if not value or ctx.resilient_parsing:
             return

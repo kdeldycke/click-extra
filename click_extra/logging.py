@@ -259,8 +259,7 @@ class VerbosityOption(ExtraOption):
         Also prints the chosen value as a debug message via the internal
         ``click_extra`` logger.
         """
-        # XXX ctx.meta doesn't cut it, we need to target ctx._meta.
-        ctx._meta["click_extra.verbosity"] = value
+        ctx.meta["click_extra.verbosity"] = value
 
         for logger in self.all_loggers:
             logger.setLevel(LOG_LEVELS[value])

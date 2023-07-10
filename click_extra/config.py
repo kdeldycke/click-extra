@@ -419,9 +419,8 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         # Read configuration file.
         conf_path, user_conf = self.read_and_parse_conf(path_pattern)
-        # XXX ctx.meta doesn't cut it, we need to target ctx._meta.
-        ctx._meta["click_extra.conf_source"] = conf_path
-        ctx._meta["click_extra.conf_full"] = user_conf
+        ctx.meta["click_extra.conf_source"] = conf_path
+        ctx.meta["click_extra.conf_full"] = user_conf
 
         # Exit the CLI if no user-provided config file was found.
         if user_conf is None:

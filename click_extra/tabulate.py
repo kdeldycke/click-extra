@@ -136,8 +136,7 @@ class TableFormatOption(ExtraOption):
         - ``tabular_data``, a 2-dimensional iterable of iterables for cell values,
         - ``headers``, a list of string to be used as headers.
         """
-        # XXX ctx.meta doesn't cut it, we need to target ctx._meta.
-        ctx._meta["click_extra.table_format"] = value
+        ctx.meta["click_extra.table_format"] = value
 
         render_func = None
         if value.startswith("csv"):
