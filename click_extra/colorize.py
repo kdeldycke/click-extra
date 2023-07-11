@@ -25,6 +25,7 @@ from operator import getitem
 from typing import NamedTuple, Sequence, cast
 
 import click
+import cloup
 import regex as re3
 from boltons.strutils import complement_int_list, int_ranges_from_int_list
 from cloup._util import identity
@@ -34,6 +35,7 @@ from cloup.typing import MISSING, Possibly
 from . import (
     Choice,
     Context,
+    Option,
     HelpFormatter,
     Parameter,
     ParameterSource,
@@ -321,18 +323,16 @@ class ColorOption(ExtraOption):
 
 
 class HelpOption(ExtraOption):
-    @staticmethod
-    def print_help(ctx: Context, param: Parameter, value: bool) -> None:
-        """Prints help text and exits."""
-        if not value or ctx.resilient_parsing:
-            return
+    """Like Click's @help_option but made into a reusable class-based option.
 
-        echo(ctx.get_help(), color=ctx.color)
+    .. note::
+        Keep implementation in sync with upstream for drop-in replacement
+        compatibility.
 
-        # Do not just ctx.exit() as it will prevent callbacks defined on options
-        # to be called.
-        ctx.close()
-        ctx.exit()
+    .. todo::
+        Reuse Click's ``HelpOption`` once this PR is merged:
+        https://github.com/pallets/click/pull/2563
+    """
 
     def __init__(
         self,
@@ -343,6 +343,10 @@ class HelpOption(ExtraOption):
         help=_("Show this message and exit."),
         **kwargs,
     ) -> None:
+        """Same defaults as Click's @help_option but with ``-h`` short option.
+
+        See: https://github.com/pallets/click/blob/d9af5cf/src/click/decorators.py#L563C23-L563C34
+        """
         if not param_decls:
             param_decls = ("--help", "-h")
 
@@ -357,18 +361,36 @@ class HelpOption(ExtraOption):
             **kwargs,
         )
 
+    @staticmethod
+    def print_help(ctx: Context, param: Parameter, value: bool) -> None:
+        """Prints help text and exits.
 
-class ExtraHelpColorsMixin:
+        Exact same behavior as `Click's original @help_option callback
+        <https://github.com/pallets/click/blob/d9af5cf/src/click/decorators.py#L555-L560>`_,
+        but forces the closing of the context before exiting.
+        """
+        if value and not ctx.resilient_parsing:
+            echo(ctx.get_help(), color=ctx.color)
+            # Do not just ctx.exit() as it will prevent callbacks defined on options
+            # to be called.
+            ctx.close()
+            ctx.exit()
+
+
+class ExtraHelpColorsMixin:  #(Command)??
     """Adds extra-keywords highlighting to Click commands.
 
-    This mixin for ``click.core.Command``-like classes intercepts the top-level helper-
-    generation method to initialize the formatter with dynamic settings.
-
-    This is implemented here to get access to the global context.
+    This mixin for ``click.Command``-like classes intercepts the top-level helper-
+    generation method to initialize the formatter with dynamic settings. This is
+    implemented at this stage so we have access to the global context.
     """
 
-    def collect_keywords(self, ctx):
-        """Parse click context to collect option names, choices and metavar keywords."""
+    def _collect_keywords(self, ctx: Context) -> tuple[set[str], set[str], set[str], set[str], set[str], set[str], set[str], set[str], set[str]]:
+        """Parse click context to collect option names, choices and metavar keywords.
+
+        This is Click Extra-specific and is not part of the upstream ``click.Command``
+        API.
+        """
         cli_names: set[str] = set()
         subcommands: set[str] = set()
         command_aliases: set[str] = set()
@@ -445,12 +467,23 @@ class ExtraHelpColorsMixin:
             defaults,
         )
 
-    def get_help(self, ctx):
+    def get_help_option(self, ctx: Context) -> Option | None:
+        """Returns our custom help option object instead of Click's default one.
+        """
+        # Let Click generate the default help option or not.
+        help_option = super().get_help_option(ctx)
+        # If Click decided to not add a default help option, we don't either.
+        if not help_option:
+            return None
+        # Return our own help option.
+        return HelpOption(param_decls=help_option.opts)
+
+    def get_help(self, ctx: Context) -> str:
         """Replace default formatter by our own."""
         ctx.formatter_class = HelpExtraFormatter
         return super().get_help(ctx)
 
-    def format_help(self, ctx, formatter):
+    def format_help(self, ctx: Context, formatter: HelpFormatter) -> None:
         """Feed our custom formatter instance with the keywords to highlight."""
         (
             formatter.cli_names,
@@ -462,7 +495,7 @@ class ExtraHelpColorsMixin:
             formatter.metavars,
             formatter.envvars,
             formatter.defaults,
-        ) = self.collect_keywords(ctx)
+        ) = self._collect_keywords(ctx)
         return super().format_help(ctx, formatter)
 
 
@@ -516,7 +549,7 @@ class HelpExtraFormatter(HelpFormatter):
     envvars: set[str] = set()
     defaults: set[str] = set()
 
-    # TODO: Hihglight extra keywords <stdout> or <stderr>
+    # TODO: Highlight extra keywords <stdout> or <stderr>
 
     # TODO: add collection of regexps as pre-compiled constants, so we can
     # inspect them and get some performances improvements.

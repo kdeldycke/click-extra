@@ -28,8 +28,8 @@ from typing import Any
 import click
 import cloup
 
-from . import Command, Group
-from .colorize import ColorOption, ExtraHelpColorsMixin, HelpOption
+from . import BaseCommand, Command, Group
+from .colorize import ColorOption, ExtraHelpColorsMixin, HelpOption, HelpExtraFormatter
 from .config import ConfigOption
 from .logging import VerbosityOption
 from .parameters import (
@@ -50,6 +50,8 @@ class ExtraContext(cloup.Context):
     .. todo::
         Propose this upstream to Click.
     """
+
+    formatter_class = HelpExtraFormatter
 
     def __init__(self, *args, meta: dict[str, Any] | None = None, **kwargs) -> None:
         """Like parent's context but with an extra ``meta`` keyword-argument."""
@@ -303,7 +305,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         extra.update({"meta": {"click_extra.raw_args": args.copy()}})
         return super().make_context(info_name, args, parent, **extra)
 
-    def invoke(self, ctx):
+    def invoke(self, ctx: click.Context) -> Any:
         """Main execution of the command, just after the context has been instantiated
         in ``main()``.
 

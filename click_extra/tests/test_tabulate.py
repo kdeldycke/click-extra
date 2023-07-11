@@ -39,7 +39,7 @@ def test_unrecognized_format(invoke, cmd_decorator, cmd_type):
     def tabulate_cli1():
         echo("It works!")
 
-    result = invoke(tabulate_cli1, "--table-format", "random")
+    result = invoke(tabulate_cli1, "--table-format", "random", color=False)
     assert result.exit_code == 2
     assert not result.stdout
 
