@@ -1,5 +1,11 @@
 # Changelog
 
+## {gh}`4.6.1 (unreleased) <compare/v4.6.0...main>`
+
+```{important}
+This version is not released yet and is under active development.
+```
+
 ## {gh}`4.6.0 (2023-07-12) <compare/v4.5.0...v4.6.0>`
 
 - Keep the promise of drop-in replacement for `@version_option` which is now a proxy to Click's original.
