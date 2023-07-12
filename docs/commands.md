@@ -70,7 +70,7 @@ Here are few other examples on how Click Extra proxies the main elements from Cl
 | `click_extra.HelpFormatter`   | `cloup.HelpFormatter` | `click.HelpFormatter`                                       |
 | `click_extra.HelpTheme`       | `cloup.HelpThene`     | *Not implemented*                                           |
 | `click_extra.Option`          | `cloup.Option`        | `click.Option`                                              |
-| `click_extra.ExtraVersionOption`          |  *Not implemented*        |  *Not implemented*                     |
+| `click_extra.ExtraVersionOption`          |  *Itself*        |  *Not implemented*                     |
 | `click_extra.Style`           | `cloup.Style`         | *Not implemented*                                           |
 | `click_extra.echo`            | `click.echo`          | `click.echo`                                                |
 | `click_extra.ParameterSource` | `click.core.ParameterSource` | `click.core.ParameterSource`                         |
@@ -85,7 +85,7 @@ You can inspect the implementation details by looking at:
 
 ## Extra variants
 
-Now if you want to benefits from all the [wonderful features of Click Extra](index.md#features), you have to use the `extra`-prefixed variants:
+Now if you want to benefit from all the [wonderful features of Click Extra](index.md#features), you have to use the `extra`-prefixed variants:
 
 | [Original](https://click.palletsprojects.com/en/8.1.x/api/) | Extra variant                |
 | ----------------------------------------------------------- | ---------------------------- |
@@ -93,14 +93,45 @@ Now if you want to benefits from all the [wonderful features of Click Extra](ind
 | `@click.group`                                              | `@click_extra.extra_group`   |
 | `click.Command`                                             | `click_extra.ExtraCommand`   |
 | `click.Group`                                               | `click_extra.ExtraGroup`     |
+| `click.Context`                                               | `click_extra.ExtraContext`     |
 | `click.Option`                                              | `click_extra.ExtraOption`    |
 | `@click.version_option`                                      | `@click_extra.extra_version_option`    |
+| `click.testing.CliRunner`                                      | `click_extra.ExtraCliRunner`    |
 
-The best place to see how to use these `extra`-variants is the [tutorial](tutorial.md).
+You can see how to use some of these `extra` variants in the [tutorial](tutorial.md).
 
 ## Default options
 
 The `@extra_command` and `@extra_group` decorators are [pre-configured with a set of default options](commands.md#click_extra.commands.default_extra_params).
+
+## Remove default options
+
+You can remove all default options by resetting the `params` argument to `None`:
+
+```{eval-rst}
+.. click:example::
+   from click_extra import extra_command
+
+   @extra_command(params=None)
+   def bare_cli():
+      pass
+
+Which results in:
+
+.. click:run::
+   from textwrap import dedent
+   result = invoke(bare_cli, args=["--help"])
+   assert result.output == dedent(
+      """\
+      \x1b[94m\x1b[1m\x1b[4mUsage:\x1b[0m \x1b[97mbare-cli\x1b[0m \x1b[36m\x1b[2m[OPTIONS]\x1b[0m
+
+      \x1b[94m\x1b[1m\x1b[4mOptions:\x1b[0m
+        \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m  Show this message and exit.
+      """
+   )
+```
+
+As you can see, all options are stripped out, but the colouring and formatting of the help message is preserved.
 
 ## Change default options
 
@@ -170,9 +201,9 @@ The default behavior of `@extra_command` (and its derivates decorators) is to or
 
 After that, there is a final [sorting step applied to options](https://kdeldycke.github.io/click-extra/commands.html#click_extra.commands.ExtraCommand). This is done by the `extra_option_at_end` option, which is `True` by default.
 
-## Set new defaults
+## Option's defaults
 
-Because Click Extra commands and groups inherits from Click, you can [override the defaults the way Click allow you to](https://click.palletsprojects.com/en/8.1.x/commands/#context-defaults). Here is a reminder on how to do it.
+Because Click Extra commands and groups inherits from Click, you can [override the defaults the way Click allows you to](https://click.palletsprojects.com/en/8.1.x/commands/#context-defaults). Here is a reminder on how to do it.
 
 For example, the [`--verbosity` option defaults to the `WARNING` level](logging.md#click_extra.logging.DEFAULT_LEVEL_NAME). Now we'd like to change this default to `INFO`.
 
@@ -188,7 +219,7 @@ def cli():
     pass
 ```
 
-This also works with a class:
+This also works in its class form:
 
 ```python
 from click_extra import command, VerbosityOption
@@ -209,12 +240,16 @@ But you also have the alternative to pass a `default_map` via the `context_setti
    def cli():
       pass
 
+Which results in ``[default: INFO]`` being featured in the help message:
+
 .. click:run::
    result = invoke(cli, args=["--help"])
    assert "\x1b[2m[\x1b[0m\x1b[2mdefault: \x1b[0m\x1b[32m\x1b[2m\x1b[3mINFO\x1b[0m\x1b[2m]\x1b[0m\n" in result.stdout
 ```
 
-This let you change the default of the `--verbosity` option provided by Click Extra, without having to [re-list the whole set of default options](#change-default-options). And see how this new default gets reflected in the help message.
+```{tip}
+The advantage of the `context_settings` method we demonstrated last, is that it let you change the default of the `--verbosity` option provided by Click Extra, without having to [re-list the whole set of default options](#change-default-options).
+```
 
 ## `click_extra.commands` API
 
