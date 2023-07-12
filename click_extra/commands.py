@@ -381,8 +381,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):  # type: ignore[misc]
 
 class ExtraGroup(ExtraCommand, Group):  # type: ignore[misc]
     """Same as ``cloup.group``, but with sane defaults and extra help screen
-    colorization.
-    """
+    colorization."""
 
     command_class = ExtraCommand
     """Makes commands of an ``ExtraGroup`` be instances of ``ExtraCommand``.
