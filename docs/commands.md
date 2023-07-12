@@ -87,16 +87,16 @@ You can inspect the implementation details by looking at:
 
 Now if you want to benefit from all the [wonderful features of Click Extra](index.md#features), you have to use the `extra`-prefixed variants:
 
-| [Original](https://click.palletsprojects.com/en/8.1.x/api/) | Extra variant                |
-| ----------------------------------------------------------- | ---------------------------- |
-| `@click.command`                                            | `@click_extra.extra_command` |
-| `@click.group`                                              | `@click_extra.extra_group`   |
-| `click.Command`                                             | `click_extra.ExtraCommand`   |
-| `click.Group`                                               | `click_extra.ExtraGroup`     |
-| `click.Context`                                               | `click_extra.ExtraContext`     |
-| `click.Option`                                              | `click_extra.ExtraOption`    |
-| `@click.version_option`                                      | `@click_extra.extra_version_option`    |
-| `click.testing.CliRunner`                                      | `click_extra.ExtraCliRunner`    |
+| [Original](https://click.palletsprojects.com/en/8.1.x/api/) | Extra variant                       |
+| ----------------------------------------------------------- | ----------------------------------- |
+| `@click.command`                                            | `@click_extra.extra_command`        |
+| `@click.group`                                              | `@click_extra.extra_group`          |
+| `click.Command`                                             | `click_extra.ExtraCommand`          |
+| `click.Group`                                               | `click_extra.ExtraGroup`            |
+| `click.Context`                                             | `click_extra.ExtraContext`          |
+| `click.Option`                                              | `click_extra.ExtraOption`           |
+| `@click.version_option`                                     | `@click_extra.extra_version_option` |
+| `click.testing.CliRunner`                                   | `click_extra.ExtraCliRunner`        |
 
 You can see how to use some of these `extra` variants in the [tutorial](tutorial.md).
 
