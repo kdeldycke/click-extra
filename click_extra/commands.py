@@ -23,7 +23,7 @@ leverage the mixins in here to build up your own custom variants.
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Type, cast
 
 import click
 import cloup
@@ -54,7 +54,7 @@ class ExtraContext(cloup.Context):
         Propose addition of ``meta`` keyword upstream to Click.
     """
 
-    formatter_class = HelpExtraFormatter
+    formatter_class: Type[cloup.HelpFormatter] = HelpExtraFormatter  # type: ignore[assignment]
     """Use our own formatter to colorize the help screen."""
 
     def __init__(self, *args, meta: dict[str, Any] | None = None, **kwargs) -> None:
@@ -69,15 +69,14 @@ class ExtraContext(cloup.Context):
         if meta:
             self._meta.update(meta)
 
+        # Transfer user color setting to our internally managed value.
+        self._color: bool | None = kwargs.get("color", None)
+
         # A Context created from scratch, i.e. without a parent, and whose color
-        # setting is not set by the user at instantiation, will defaults to colorized
-        # output.
-        user_setting = kwargs.get("color", None)
-        if not self.parent and user_setting is None:
+        # setting is set to auto-detect (i.e. is None), will defaults to forced
+        # colorized output.
+        if not self.parent and self._color is None:
             self._color = True
-        # Default to the user's setting.
-        else:
-            self._color = user_setting
 
     @property
     def color(self) -> bool | None:
@@ -150,7 +149,7 @@ def default_extra_params():
     ]
 
 
-class ExtraCommand(ExtraHelpColorsMixin, Command):
+class ExtraCommand(ExtraHelpColorsMixin, Command):  # type: ignore[misc]
     """Like ``cloup.command``, with sane defaults and extra help screen colorization."""
 
     context_class: type[cloup.Context] = ExtraContext
@@ -359,7 +358,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         logger = logging.getLogger("click_extra")
         if logger.getEffectiveLevel() == logging.DEBUG:
             # Look for a ``--version`` parameter.
-            version_opt = search_params(ctx.command.params, ExtraVersionOption)
+            version_opt = cast("ExtraVersionOption | None", search_params(ctx.command.params, ExtraVersionOption))
             if version_opt:
                 # Environment info is already present in the version string: use it
                 # as-is.
@@ -379,7 +378,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         return super().invoke(ctx)
 
 
-class ExtraGroup(ExtraCommand, Group):
+class ExtraGroup(ExtraCommand, Group):  # type: ignore[misc]
     """Same as ``cloup.group``, but with sane defaults and extra help screen
     colorization.
     """

@@ -35,6 +35,7 @@ from . import (
     Choice,
     Context,
     Option,
+    Command,
     HelpFormatter,
     Parameter,
     ParameterSource,
@@ -423,7 +424,7 @@ class ExtraHelpColorsMixin:  #(Command)??
         metavars.update(command.collect_usage_pieces(ctx))
 
         # Get subcommands and their aliases.
-        if hasattr(command, "list_commands"):
+        if isinstance(command, click.MultiCommand):
             subcommands.update(command.list_commands(ctx))
             for sub_id in subcommands:
                 sub_cmd = command.get_command(ctx, sub_id)
@@ -442,7 +443,11 @@ class ExtraHelpColorsMixin:  #(Command)??
 
             metavars.add(param.make_metavar())
 
-            envvars.update(param.envvar)
+            if param.envvar:
+                if isinstance(param.envvar, str):
+                    envvars.add(param.envvar)
+                else:
+                    envvars.update(param.envvar)
 
             if isinstance(param, click.Option):
                 default_string = ExtraOption.get_help_default(param, ctx)
@@ -481,7 +486,7 @@ class ExtraHelpColorsMixin:  #(Command)??
     def get_help_option(self, ctx: Context) -> Option | None:
         """Returns our custom help option object instead of Click's default one."""
         # Let Click generate the default help option or not.
-        help_option = super().get_help_option(ctx)
+        help_option = super().get_help_option(ctx)  # type: ignore[misc]
         # If Click decided to not add a default help option, we don't either.
         if not help_option:
             return None
@@ -491,9 +496,9 @@ class ExtraHelpColorsMixin:  #(Command)??
     def get_help(self, ctx: Context) -> str:
         """Replace default formatter by our own."""
         ctx.formatter_class = HelpExtraFormatter
-        return super().get_help(ctx)
+        return super().get_help(ctx)  # type: ignore[no-any-return,misc]
 
-    def format_help(self, ctx: Context, formatter: HelpFormatter) -> None:
+    def format_help(self, ctx: Context, formatter: HelpExtraFormatter) -> None:
         """Feed our custom formatter instance with the keywords to highlight."""
         (
             formatter.cli_names,
@@ -506,7 +511,7 @@ class ExtraHelpColorsMixin:  #(Command)??
             formatter.envvars,
             formatter.defaults,
         ) = self._collect_keywords(ctx)
-        return super().format_help(ctx, formatter)
+        super().format_help(ctx, formatter)  # type: ignore[misc]
 
 
 def escape_for_help_screen(text: str) -> str:

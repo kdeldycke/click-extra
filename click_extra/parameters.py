@@ -30,6 +30,8 @@ from gettext import gettext as _
 from operator import getitem, methodcaller
 from typing import (
     Any,
+    Callable,
+    cast,
     ContextManager,
 )
 from unittest.mock import patch
@@ -347,7 +349,7 @@ class ParamStructure:
         self,
         tree_dict: MutableMapping,
         parent_key: str | None = None,
-    ):
+    ) -> dict[str, Any]:
         """Recursively traverse the tree-like ``dict`` and produce a flat ``dict`` whose
         keys are path and values are the leaf's content.
         """
@@ -556,7 +558,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             **kwargs,
         )
 
-    def print_params(self, ctx, param, value):
+    def print_params(self, ctx: click.Context, param: click.Parameter, value: bool) -> None:
         """Introspects current CLI and list its parameters and metadata.
 
         .. important::
@@ -579,6 +581,8 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             return
 
         logger = logging.getLogger("click_extra")
+
+        get_param_value: Callable[[Any], Any]
 
         if "click_extra.raw_args" in ctx.meta:
             raw_args = ctx.meta.get("click_extra.raw_args", [])
@@ -603,24 +607,24 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 f"{ctx.command} does not inherits from ExtraCommand.",
             )
 
-            def vanilla_getter(param):
+            def vanilla_getter(p):
                 param_value = None
-                source = ctx.get_parameter_source(param.name)
+                source = ctx.get_parameter_source(p.name)
                 return param_value, source
 
             get_param_value = vanilla_getter
 
         # Inspect the CLI to search for any --config option.
-        config_option = search_params(ctx.command.params, ConfigOption)
+        config_option = cast("ConfigOption", search_params(ctx.command.params, ConfigOption))
 
-        table = []
+        table: list[tuple[str|None, str|None, str|None, str|None, str|None, str|None, str|None, str|None, str|None, str|None, str|None]] = []
         for path, param_type in self.flatten_tree_dict(self.params_types).items():
             # Get the parameter instance.
             tree_keys = path.split(self.SEP)
-            param = self.get_tree_value(self.params_objects, *tree_keys)
-            assert param.name == tree_keys[-1]
+            par = cast("click.Parameter", self.get_tree_value(self.params_objects, *tree_keys))
+            assert par.name == tree_keys[-1]
 
-            param_value, source = get_param_value(param)
+            param_value, source = get_param_value(par)
             param_class = self.get_tree_value(self.params_objects, *tree_keys).__class__
 
             # Collect param's spec and hidden status.
@@ -628,8 +632,8 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             param_spec = None
             # Hidden property is only supported by Option, not Argument.
             # TODO: Allow arguments to produce their spec.
-            if hasattr(param, "hidden"):
-                hidden = OK if param.hidden is True else KO
+            if hasattr(par, "hidden"):
+                hidden = OK if par.hidden is True else KO
 
                 # No-op context manager without any effects.
                 hidden_param_bypass: ContextManager = nullcontext()
@@ -639,10 +643,12 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 # TODO: Submit a PR to Click to separate production of param spec and
                 # help record. That way we can always produce the param spec even if
                 # the parameter is hidden.
-                if param.hidden:
-                    hidden_param_bypass = patch.object(param, "hidden", False)
+                if par.hidden:
+                    hidden_param_bypass = patch.object(par, "hidden", False)
                 with hidden_param_bypass:
-                    param_spec = param.get_help_record(ctx)[0]
+                    help_record = par.get_help_record(ctx)
+                    if help_record:
+                        param_spec = help_record[0]
 
             # Check if the parameter is allowed in the configuration file.
             allowed_in_conf = None
@@ -655,10 +661,10 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 param_spec,
                 param_type.__name__,
                 hidden,
-                OK if param.expose_value is True else KO,
+                OK if par.expose_value is True else KO,
                 allowed_in_conf,
-                ", ".join(map(default_theme.envvar, all_envvars(param, ctx))),
-                default_theme.default(param.get_default(ctx)),
+                ", ".join(map(default_theme.envvar, all_envvars(par, ctx))),
+                default_theme.default(str(par.get_default(ctx))),
                 param_value,
                 source._name_ if source else None,
             )
@@ -673,7 +679,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             return len(tree_keys), param_path
 
         header_style = Style(bold=True)
-        header_labels = map(header_style, self.TABLE_HEADERS)
+        header_labels = tuple(map(header_style, self.TABLE_HEADERS))
 
         output = tabulate(
             sorted(table, key=sort_by_depth),

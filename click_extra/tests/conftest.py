@@ -24,6 +24,9 @@ import click.testing
 import cloup
 import pytest
 
+from _pytest.mark import MarkDecorator
+from _pytest.mark.structures import ParameterSet
+
 from click_extra.decorators import command, extra_command, extra_group, group
 from click_extra.platforms import is_linux, is_macos, is_windows
 from click_extra.testing import ExtraCliRunner
@@ -88,10 +91,10 @@ def command_decorators(
     no_extra: bool = False,
     with_parenthesis: bool = True,
     with_types: bool = False,
-) -> tuple[pytest.structures.ParameterSet, ...]:
+) -> tuple[ParameterSet, ...]:
     """Returns collection of Pytest parameters to test all forms of click/cloup/click-
     extra command-like decorators."""
-    params: list[tuple[Any, set[str], str, tuple | pytest.mark.MarkDecorator]] = []
+    params: list[tuple[Any, set[str], str, tuple | MarkDecorator]] = []
 
     if no_commands is False:
         if not no_click:
