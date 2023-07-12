@@ -263,6 +263,7 @@ def test_integrated_version_value(invoke, all_command_cli):
     assert result.stdout == "command-cli1, version 2021.10.08\n"
 
 
+@skip_windows_colors
 @parametrize(
     "cmd_decorator",
     command_decorators(
