@@ -54,8 +54,7 @@ class ExtraContext(cloup.Context):
         Propose addition of ``meta`` keyword upstream to Click.
     """
 
-    # type: ignore[assignment]
-    formatter_class: type[cloup.HelpFormatter] = HelpExtraFormatter
+    formatter_class = HelpExtraFormatter  # type: ignore[assignment]
     """Use our own formatter to colorize the help screen."""
 
     def __init__(self, *args, meta: dict[str, Any] | None = None, **kwargs) -> None:
@@ -97,7 +96,7 @@ class ExtraContext(cloup.Context):
 
     @color.deleter
     def color(self) -> None:
-        """Reset the color value to `None` so it defaults to inheritance from parent's."""
+        """Reset the color value so it defaults to inheritance from parent's."""
         self._color = None
 
 
