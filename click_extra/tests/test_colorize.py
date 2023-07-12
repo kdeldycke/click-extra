@@ -35,6 +35,7 @@ from click_extra import (
     option_group,
     secho,
     style,
+    pass_context,
 )
 from click_extra.colorize import (
     HelpExtraFormatter,
@@ -405,13 +406,22 @@ def test_no_color_env_convention(
     ),
 )
 def test_integrated_color_option(invoke, param, expecting_colors):
+    """Check effect of color option on all things colored, including verbosity option.
+
+    Also checks the color option in subcommands is inherited from parent context.
+    """
+
     @extra_group
-    def color_cli8():
+    @pass_context
+    def color_cli8(ctx):
+        echo(f"ctx.color={ctx.color}")
         echo(Style(fg="yellow")("It works!"))
         echo("\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m")
 
     @color_cli8.command()
-    def command1():
+    @pass_context
+    def command1(ctx):
+        echo(f"ctx.color={ctx.color}")
         echo(style("Run command #1.", fg="magenta"))
         logging.getLogger("click_extra").warning("Processing...")
         print(style("print() bypass Click.", fg="blue"))
@@ -422,8 +432,10 @@ def test_integrated_color_option(invoke, param, expecting_colors):
     assert result.exit_code == 0
     if expecting_colors:
         assert result.stdout == (
+            "ctx.color=True\n"
             "\x1b[33mIt works!\x1b[0m\n"
             "\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m\n"
+            "ctx.color=True\n"
             "\x1b[35mRun command #1.\x1b[0m\n"
             "\x1b[34mprint() bypass Click.\x1b[0m\n"
             "\x1b[32mDone.\x1b[0m\n"
@@ -439,8 +451,10 @@ def test_integrated_color_option(invoke, param, expecting_colors):
 
     else:
         assert result.stdout == (
+            "ctx.color=False\n"
             "It works!\n"
             "Art\n"
+            "ctx.color=False\n"
             "Run command #1.\n"
             "\x1b[34mprint() bypass Click.\x1b[0m\n"
             "Done.\n"

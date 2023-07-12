@@ -72,8 +72,10 @@ python = "^3.8"
 # Investigation of the root cause is being discussed upstream at:
 # https://github.com/mahmoud/boltons/issues/334
 boltons = "^23.0.0"
-# Click 8.1 is the first version to support ``params=`` in ``@command``.
-click = "^8.1"
+# Click 8.1.4 fix @group.command calls with a custom command_class. See:
+# https://github.com/pallets/click/issues/2416
+# https://github.com/pallets/click/pull/2417
+click = "^8.1.4"
 # Cloup 2.1.1 fix heading colorization.
 cloup = "^2.1.1"
 commentjson = "^0.9.0"

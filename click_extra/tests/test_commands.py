@@ -27,10 +27,12 @@ from textwrap import dedent
 import click
 import cloup
 import pytest
-from pytest_cases import fixture
+from pytest_cases import fixture, parametrize
 
 from click_extra import echo, option, option_group, pass_context
 from click_extra.decorators import extra_command, extra_group
+
+from click_extra.colorize import ColorOption
 
 from .conftest import (
     default_debug_uncolored_log_end,
@@ -38,6 +40,7 @@ from .conftest import (
     default_options_colored_help,
     default_options_uncolored_help,
     skip_windows_colors,
+    command_decorators,
 )
 
 
@@ -184,7 +187,7 @@ def test_help_eagerness(invoke, all_command_cli, params):
     """See: https://click.palletsprojects.com/en/8.0.x/advanced/#callback-evaluation-
     order.
     """
-    result = invoke(all_command_cli, "--help", params)
+    result = invoke(all_command_cli, "--help", params, color=False)
     assert result.exit_code == 0
     assert re.fullmatch(help_screen, result.stdout)
     assert "It works!" not in result.stdout
@@ -258,6 +261,35 @@ def test_integrated_version_value(invoke, all_command_cli):
     assert result.exit_code == 0
     assert not result.stderr
     assert result.stdout == "command-cli1, version 2021.10.08\n"
+
+
+@parametrize(
+    "cmd_decorator",
+    command_decorators(
+        no_click=True, no_cloup=True, no_redefined=True, with_parenthesis=False
+    ),
+)
+@pytest.mark.parametrize("param", ("-h", "--help"))
+def test_colored_bare_help(invoke, cmd_decorator, param):
+    """Extra decorators are always colored.
+
+    Even when stripped of their default parameters, as reported in:
+    https://github.com/kdeldycke/click-extra/issues/534
+    https://github.com/kdeldycke/click-extra/pull/543
+    """
+
+    @cmd_decorator(params=None)
+    def bare_cli():
+        pass
+
+    result = invoke(bare_cli, param)
+    assert result.exit_code == 0
+    assert not result.stderr
+    assert (
+        "\n"
+        "\x1b[94m\x1b[1m\x1b[4mOptions:\x1b[0m\n"
+        "  \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m  Show this message and exit.\n"
+    ) in result.stdout
 
 
 def test_no_option_leaks_between_subcommands(invoke):
@@ -344,6 +376,7 @@ def test_option_group_integration(invoke):
     def default_command():
         echo("Run command...")
 
+    # Remove colors to simplify output comparison.
     result = invoke(command_cli2, "--help", color=False)
     assert result.exit_code == 0
     assert re.fullmatch(
@@ -417,7 +450,8 @@ def test_show_envvar_parameter(invoke, cmd_decorator, ctx_settings, expected_hel
     def cli():
         pass
 
-    result = invoke(cli, "--help")
+    # Remove colors to simplify output comparison.
+    result = invoke(cli, "--help", color=False)
     assert result.exit_code == 0
     assert not result.stderr
     assert expected_help in result.stdout

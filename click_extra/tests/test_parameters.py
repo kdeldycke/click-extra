@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import re
 from os.path import sep
 from pathlib import Path
 from textwrap import dedent
@@ -112,7 +113,8 @@ def test_show_auto_envvar_help(invoke, cmd_decorator, option_help):
     def envvar_help():
         pass
 
-    result = invoke(envvar_help, "--help")
+    # Remove colors to simplify output comparison.
+    result = invoke(envvar_help, "--help", color=False)
     assert result.exit_code == 0
     assert not result.stderr
     assert option_help in result.stdout
@@ -375,11 +377,8 @@ def test_params_auto_types(invoke, option_decorator):
     }
 
 
-@parametrize(
-    "cmd_decorator",
-    # Skip click extra's commands, as show_params option is already part of the default.
-    command_decorators(no_groups=True, no_extra=True),
-)
+# Skip click extra's commands, as show_params option is already part of the default.
+@parametrize("cmd_decorator", command_decorators(no_extra=True))
 @parametrize("option_decorator", (show_params_option, show_params_option()))
 def test_standalone_show_params_option(invoke, cmd_decorator, option_decorator):
     @cmd_decorator
@@ -413,9 +412,10 @@ def test_standalone_show_params_option(invoke, cmd_decorator, option_decorator):
     )
     assert result.stdout == f"{output}\n"
 
-    assert result.stderr.endswith(
-        "warning: Cannot extract parameters values: "
-        "<Command show-params> does not inherits from ExtraCommand.\n",
+    assert re.fullmatch(
+        r"warning: Cannot extract parameters values: "
+        r"<(Group|Command) show-params> does not inherits from ExtraCommand\.\n",
+        result.stderr,
     )
 
 

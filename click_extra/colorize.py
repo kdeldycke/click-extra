@@ -385,7 +385,19 @@ class ExtraHelpColorsMixin:  #(Command)??
     implemented at this stage so we have access to the global context.
     """
 
-    def _collect_keywords(self, ctx: Context) -> tuple[set[str], set[str], set[str], set[str], set[str], set[str], set[str], set[str], set[str]]:
+    def _collect_keywords(
+        self, ctx: Context
+    ) -> tuple[
+        set[str],
+        set[str],
+        set[str],
+        set[str],
+        set[str],
+        set[str],
+        set[str],
+        set[str],
+        set[str],
+    ]:
         """Parse click context to collect option names, choices and metavar keywords.
 
         This is Click Extra-specific and is not part of the upstream ``click.Command``
@@ -468,8 +480,7 @@ class ExtraHelpColorsMixin:  #(Command)??
         )
 
     def get_help_option(self, ctx: Context) -> Option | None:
-        """Returns our custom help option object instead of Click's default one.
-        """
+        """Returns our custom help option object instead of Click's default one."""
         # Let Click generate the default help option or not.
         help_option = super().get_help_option(ctx)
         # If Click decided to not add a default help option, we don't either.

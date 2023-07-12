@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import click
 import click.testing
@@ -80,103 +80,100 @@ skip_naked = pytest.mark.skip(reason="Naked decorator not supported yet.")
 
 
 def command_decorators(
-    no_commands=False,
-    no_groups=False,
-    no_click=False,
-    no_cloup=False,
-    no_redefined=False,
-    no_extra=False,
-    with_types=False,
-):
+    no_commands: bool = False,
+    no_groups: bool = False,
+    no_click: bool = False,
+    no_cloup: bool = False,
+    no_redefined: bool = False,
+    no_extra: bool = False,
+    with_parenthesis: bool = True,
+    with_types: bool = False,
+) -> tuple[pytest.structures.ParameterSet, ...]:
     """Returns collection of Pytest parameters to test all forms of click/cloup/click-
     extra command-like decorators."""
-    params = []
+    params: list[tuple[Any, set[str], str, tuple | pytest.mark.MarkDecorator]] = []
 
     if no_commands is False:
         if not no_click:
-            params.extend(
-                [
-                    (click.command, {"click", "command"}, "click.command", ()),
-                    (click.command(), {"click", "command"}, "click.command()", ()),
-                ],
-            )
+            params.append((click.command, {"click", "command"}, "click.command", ()))
+            if with_parenthesis:
+                params.append(
+                    (click.command(), {"click", "command"}, "click.command()", ())
+                )
 
         if not no_cloup:
-            params.extend(
-                [
-                    (cloup.command, {"cloup", "command"}, "cloup.command", skip_naked),
-                    (cloup.command(), {"cloup", "command"}, "cloup.command()", ()),
-                ],
+            params.append(
+                (cloup.command, {"cloup", "command"}, "cloup.command", skip_naked)
             )
+            if with_parenthesis:
+                params.append(
+                    (cloup.command(), {"cloup", "command"}, "cloup.command()", ())
+                )
 
         if not no_redefined:
-            params.extend(
-                [
-                    (command, {"redefined", "command"}, "click_extra.command", ()),
-                    (command(), {"redefined", "command"}, "click_extra.command()", ()),
-                ],
+            params.append(
+                (command, {"redefined", "command"}, "click_extra.command", ())
             )
+            if with_parenthesis:
+                params.append(
+                    (command(), {"redefined", "command"}, "click_extra.command()", ())
+                )
 
         if not no_extra:
-            params.extend(
-                [
-                    (
-                        extra_command,
-                        {"extra", "command"},
-                        "click_extra.extra_command",
-                        (),
-                    ),
+            params.append(
+                (
+                    extra_command,
+                    {"extra", "command"},
+                    "click_extra.extra_command",
+                    (),
+                )
+            )
+            if with_parenthesis:
+                params.append(
                     (
                         extra_command(),
                         {"extra", "command"},
                         "click_extra.extra_command()",
                         (),
-                    ),
-                ],
-            )
+                    )
+                )
 
     if not no_groups:
         if not no_click:
-            params.extend(
-                [
-                    (click.group, {"click", "group"}, "click.group", ()),
-                    (click.group(), {"click", "group"}, "click.group()", ()),
-                ],
-            )
+            params.append((click.group, {"click", "group"}, "click.group", ()))
+            if with_parenthesis:
+                params.append((click.group(), {"click", "group"}, "click.group()", ()))
 
         if not no_cloup:
-            params.extend(
-                [
-                    (cloup.group, {"cloup", "group"}, "cloup.group", skip_naked),
-                    (cloup.group(), {"cloup", "group"}, "cloup.group()", ()),
-                ],
-            )
+            params.append((cloup.group, {"cloup", "group"}, "cloup.group", skip_naked))
+            if with_parenthesis:
+                params.append((cloup.group(), {"cloup", "group"}, "cloup.group()", ()))
 
         if not no_redefined:
-            params.extend(
-                [
-                    (group, {"redefined", "group"}, "click_extra.group", ()),
-                    (group(), {"redefined", "group"}, "click_extra.group()", ()),
-                ],
-            )
+            params.append((group, {"redefined", "group"}, "click_extra.group", ()))
+            if with_parenthesis:
+                params.append(
+                    (group(), {"redefined", "group"}, "click_extra.group()", ())
+                )
 
         if not no_extra:
-            params.extend(
-                [
-                    (
-                        extra_group,
-                        {"extra", "group"},
-                        "click_extra.extra_group",
-                        (),
-                    ),
+            params.append(
+                (
+                    extra_group,
+                    {"extra", "group"},
+                    "click_extra.extra_group",
+                    (),
+                )
+            )
+            if with_parenthesis:
+                params.append(
                     (
                         extra_group(),
                         {"extra", "group"},
                         "click_extra.extra_group()",
                         (),
-                    ),
-                ],
-            )
+                    )
+                )
 
     decorator_params = []
     for deco, deco_type, label, marks in params:

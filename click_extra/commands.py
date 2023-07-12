@@ -28,7 +28,7 @@ from typing import Any
 import click
 import cloup
 
-from . import BaseCommand, Command, Group
+from . import Command, Group
 from .colorize import ColorOption, ExtraHelpColorsMixin, HelpOption, HelpExtraFormatter
 from .config import ConfigOption
 from .logging import VerbosityOption
@@ -47,17 +47,58 @@ class ExtraContext(cloup.Context):
     """Like ``cloup._context.Context``, but with the ability to populate the context's
     ``meta`` property at instantiation.
 
+    Also inherits ``color`` property from parent context. And sets it to `True` for
+    parentless contexts at instantiatiom, so we can always have colorized output.
+
     .. todo::
-        Propose this upstream to Click.
+        Propose addition of ``meta`` keyword upstream to Click.
     """
 
     formatter_class = HelpExtraFormatter
+    """Use our own formatter to colorize the help screen."""
 
     def __init__(self, *args, meta: dict[str, Any] | None = None, **kwargs) -> None:
-        """Like parent's context but with an extra ``meta`` keyword-argument."""
+        """Like parent's context but with an extra ``meta`` keyword-argument.
+
+        Also force ``color`` property default to `True` if not provided by user and
+        this context has no parent.
+        """
         super().__init__(*args, **kwargs)
+
+        # Update the context's meta property with the one provided by user.
         if meta:
             self._meta.update(meta)
+
+        # A Context created from scratch, i.e. without a parent, and whose color
+        # setting is not set by the user at instantiation, will defaults to colorized
+        # output.
+        user_setting = kwargs.get("color", None)
+        if not self.parent and user_setting is None:
+            self._color = True
+        # Default to the user's setting.
+        else:
+            self._color = user_setting
+
+    @property
+    def color(self) -> bool | None:
+        """Overrides ``Context.color`` to allow inheritance from parent context.
+
+        Returns the color setting of the parent context if it exists and the color is
+        not set on the current context.
+        """
+        if self._color is None and self.parent:
+            return self.parent.color
+        return self._color
+
+    @color.setter
+    def color(self, value: bool | None) -> None:
+        """Set the color value of the current context."""
+        self._color = value
+
+    @color.deleter
+    def color(self) -> None:
+        """Reset the color value to `None` so it defaults to inheritance from parent's."""
+        self._color = None
 
 
 def default_extra_params():
@@ -139,18 +180,18 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         By default, these `Click context settings
         <https://click.palletsprojects.com/en/8.1.x/api/#click.Context>`_ are applied:
 
-        - ``auto_envvar_prefix = self.name``
+        - ``auto_envvar_prefix = self.name`` (*Click feature*)
 
           Auto-generate environment variables for all options, using the command ID as
           prefix. The prefix is normalized to be uppercased and all non-alphanumerics
           replaced by underscores.
 
-        - ``help_option_names = ("--help", "-h")``
+        - ``help_option_names = ("--help", "-h")`` (*Click feature*)
 
           `Allow help screen to be invoked with either --help or -h options
           <https://click.palletsprojects.com/en/8.1.x/documentation/#help-parameter-customization>`_.
 
-        - ``show_default = True``
+        - ``show_default = True`` (*Click feature*)
 
           `Show all default values
           <https://click.palletsprojects.com/en/8.1.x/api/#click.Context.show_default>`_
@@ -279,6 +320,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):
         During context instantiation, each option's callbacks are called. Beware that
         these might break the execution flow (like ``--help`` or ``--version``).
         """
+
         return super().main(*args, **kwargs)
 
     def make_context(
@@ -341,32 +383,27 @@ class ExtraGroup(ExtraCommand, Group):
     colorization.
     """
 
-    # XXX This simple override might be enough to replace the command() override below,
-    # but there is a bug in click that prevents this from working:
-    #   https://github.com/pallets/click/issues/2416
-    #   https://github.com/pallets/click/pull/2417
-    #
-    # command_class = ExtraCommand
+    command_class = ExtraCommand
+    """Makes commands of an ``ExtraGroup`` be instances of ``ExtraCommand``.
+
+    That way all subcommands created from an ``ExtraGroup`` benefits from the same
+    defaults and extra help screen colorization.
+
+    Fixes `click-extra#479 <https://github.com/kdeldycke/click-extra/issues/479>`_.
+    """
 
     def command(self, *args, **kwargs):
-        """Returns a decorator that creates a new subcommand for this ``Group``.
+        """Bypass ``cloup.Group.command()`` to produce an ``ExtraCommand`` decorator.
 
-        This makes a command that is a :class:`~click_extra.command.ExtraCommand`
-        instead of a :class:`~cloup._command.Command` so by default all subcommands of
-        an ``ExtraGroup`` benefits from the same defaults and extra help screen
-        colorization.
+        Starts the seach for the ``command()`` method after the ``cloup.Group`` class
+        in the MRO chain, effectively bypassing ``cloup.Group.command()``, which does
+        not support the ``command_class`` property.
 
-        Fixes `click-extra#479 <https://github.com/kdeldycke/click-extra/issues/479>`_.
+        .. todo::
+            Removes this workaround when `Cloup issue #160 is addressed
+            <https://github.com/janluke/cloup/issues/160>`_.
 
         .. todo::
             Allow this decorator to be called without parenthesis.
         """
-        kwargs.setdefault("cls", ExtraCommand)
-        return super().command(*args, **kwargs)
-
-
-# -0, --zero-exit
-# rospector will exit with a code of 1 (one) if any messages are found. This makes
-# automation easier; if there are any problems at all, the exit code is non-zero.
-# However this behaviour is not always desirable, so if this flag is set, prospector
-# will exit with a code of 0 if it ran successfully, and non-zero if it failed to run.
+        return super(cloup.Group, self).command(*args, **kwargs)

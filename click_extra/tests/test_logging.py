@@ -64,7 +64,8 @@ def test_unrecognized_verbosity(invoke, cmd_decorator, cmd_type):
     def logging_cli1():
         echo("It works!")
 
-    result = invoke(logging_cli1, "--verbosity", "random")
+    # Remove colors to simplify output comparison.
+    result = invoke(logging_cli1, "--verbosity", "random", color=False)
     assert result.exit_code == 2
     assert not result.stdout
 
