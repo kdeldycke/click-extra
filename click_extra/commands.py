@@ -23,13 +23,13 @@ leverage the mixins in here to build up your own custom variants.
 from __future__ import annotations
 
 import logging
-from typing import Any, Type, cast
+from typing import Any, cast
 
 import click
 import cloup
 
 from . import Command, Group
-from .colorize import ColorOption, ExtraHelpColorsMixin, HelpOption, HelpExtraFormatter
+from .colorize import ColorOption, ExtraHelpColorsMixin, HelpExtraFormatter, HelpOption
 from .config import ConfigOption
 from .logging import VerbosityOption
 from .parameters import (
@@ -54,7 +54,8 @@ class ExtraContext(cloup.Context):
         Propose addition of ``meta`` keyword upstream to Click.
     """
 
-    formatter_class: Type[cloup.HelpFormatter] = HelpExtraFormatter  # type: ignore[assignment]
+    # type: ignore[assignment]
+    formatter_class: type[cloup.HelpFormatter] = HelpExtraFormatter
     """Use our own formatter to colorize the help screen."""
 
     def __init__(self, *args, meta: dict[str, Any] | None = None, **kwargs) -> None:
@@ -96,8 +97,7 @@ class ExtraContext(cloup.Context):
 
     @color.deleter
     def color(self) -> None:
-        """Reset the color value to `None` so it defaults to inheritance from parent's.
-        """
+        """Reset the color value to `None` so it defaults to inheritance from parent's."""
         self._color = None
 
 
@@ -320,7 +320,6 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):  # type: ignore[misc]
         During context instantiation, each option's callbacks are called. Beware that
         these might break the execution flow (like ``--help`` or ``--version``).
         """
-
         return super().main(*args, **kwargs)
 
     def make_context(
@@ -358,7 +357,10 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):  # type: ignore[misc]
         logger = logging.getLogger("click_extra")
         if logger.getEffectiveLevel() == logging.DEBUG:
             # Look for a ``--version`` parameter.
-            version_opt = cast("ExtraVersionOption | None", search_params(ctx.command.params, ExtraVersionOption))
+            version_opt = cast(
+                "ExtraVersionOption | None",
+                search_params(ctx.command.params, ExtraVersionOption),
+            )
             if version_opt:
                 # Environment info is already present in the version string: use it
                 # as-is.

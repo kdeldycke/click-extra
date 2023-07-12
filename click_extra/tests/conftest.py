@@ -24,15 +24,15 @@ import click.testing
 import cloup
 import pytest
 
-from _pytest.mark import MarkDecorator
-from _pytest.mark.structures import ParameterSet
-
 from click_extra.decorators import command, extra_command, extra_group, group
 from click_extra.platforms import is_linux, is_macos, is_windows
 from click_extra.testing import ExtraCliRunner
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from _pytest.mark import MarkDecorator
+    from _pytest.mark.structures import ParameterSet
 
 skip_linux = pytest.mark.skipif(is_linux(), reason="Skip Linux")
 """Pytest mark to skip a test if run on a Linux system."""
@@ -101,25 +101,25 @@ def command_decorators(
             params.append((click.command, {"click", "command"}, "click.command", ()))
             if with_parenthesis:
                 params.append(
-                    (click.command(), {"click", "command"}, "click.command()", ())
+                    (click.command(), {"click", "command"}, "click.command()", ()),
                 )
 
         if not no_cloup:
             params.append(
-                (cloup.command, {"cloup", "command"}, "cloup.command", skip_naked)
+                (cloup.command, {"cloup", "command"}, "cloup.command", skip_naked),
             )
             if with_parenthesis:
                 params.append(
-                    (cloup.command(), {"cloup", "command"}, "cloup.command()", ())
+                    (cloup.command(), {"cloup", "command"}, "cloup.command()", ()),
                 )
 
         if not no_redefined:
             params.append(
-                (command, {"redefined", "command"}, "click_extra.command", ())
+                (command, {"redefined", "command"}, "click_extra.command", ()),
             )
             if with_parenthesis:
                 params.append(
-                    (command(), {"redefined", "command"}, "click_extra.command()", ())
+                    (command(), {"redefined", "command"}, "click_extra.command()", ()),
                 )
 
         if not no_extra:
@@ -129,7 +129,7 @@ def command_decorators(
                     {"extra", "command"},
                     "click_extra.extra_command",
                     (),
-                )
+                ),
             )
             if with_parenthesis:
                 params.append(
@@ -138,7 +138,7 @@ def command_decorators(
                         {"extra", "command"},
                         "click_extra.extra_command()",
                         (),
-                    )
+                    ),
                 )
 
     if not no_groups:
@@ -156,7 +156,7 @@ def command_decorators(
             params.append((group, {"redefined", "group"}, "click_extra.group", ()))
             if with_parenthesis:
                 params.append(
-                    (group(), {"redefined", "group"}, "click_extra.group()", ())
+                    (group(), {"redefined", "group"}, "click_extra.group()", ()),
                 )
 
         if not no_extra:
@@ -166,7 +166,7 @@ def command_decorators(
                     {"extra", "group"},
                     "click_extra.extra_group",
                     (),
-                )
+                ),
             )
             if with_parenthesis:
                 params.append(
@@ -175,7 +175,7 @@ def command_decorators(
                         {"extra", "group"},
                         "click_extra.extra_group()",
                         (),
-                    )
+                    ),
                 )
 
     decorator_params = []

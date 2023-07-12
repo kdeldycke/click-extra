@@ -34,9 +34,8 @@ from cloup.typing import MISSING, Possibly
 from . import (
     Choice,
     Context,
-    Option,
-    Command,
     HelpFormatter,
+    Option,
     Parameter,
     ParameterSource,
     Style,
@@ -377,7 +376,7 @@ class HelpOption(ExtraOption):
             ctx.exit()
 
 
-class ExtraHelpColorsMixin:  #(Command)??
+class ExtraHelpColorsMixin:  # (Command)??
     """Adds extra-keywords highlighting to Click commands.
 
     This mixin for ``click.Command``-like classes intercepts the top-level helper-
@@ -386,7 +385,8 @@ class ExtraHelpColorsMixin:  #(Command)??
     """
 
     def _collect_keywords(
-        self, ctx: Context
+        self,
+        ctx: Context,
     ) -> tuple[
         set[str],
         set[str],

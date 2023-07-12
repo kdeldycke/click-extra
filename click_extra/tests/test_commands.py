@@ -33,12 +33,12 @@ from click_extra import echo, option, option_group, pass_context
 from click_extra.decorators import extra_command, extra_group
 
 from .conftest import (
+    command_decorators,
     default_debug_uncolored_log_end,
     default_debug_uncolored_log_start,
     default_options_colored_help,
     default_options_uncolored_help,
     skip_windows_colors,
-    command_decorators,
 )
 
 
@@ -265,7 +265,10 @@ def test_integrated_version_value(invoke, all_command_cli):
 @parametrize(
     "cmd_decorator",
     command_decorators(
-        no_click=True, no_cloup=True, no_redefined=True, with_parenthesis=False
+        no_click=True,
+        no_cloup=True,
+        no_redefined=True,
+        with_parenthesis=False,
     ),
 )
 @pytest.mark.parametrize("param", ("-h", "--help"))

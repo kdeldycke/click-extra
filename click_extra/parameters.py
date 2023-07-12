@@ -31,8 +31,8 @@ from operator import getitem, methodcaller
 from typing import (
     Any,
     Callable,
-    cast,
     ContextManager,
+    cast,
 )
 from unittest.mock import patch
 
@@ -558,7 +558,9 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             **kwargs,
         )
 
-    def print_params(self, ctx: click.Context, param: click.Parameter, value: bool) -> None:
+    def print_params(
+        self, ctx: click.Context, param: click.Parameter, value: bool
+    ) -> None:
         """Introspects current CLI and list its parameters and metadata.
 
         .. important::
@@ -615,13 +617,31 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             get_param_value = vanilla_getter
 
         # Inspect the CLI to search for any --config option.
-        config_option = cast("ConfigOption", search_params(ctx.command.params, ConfigOption))
+        config_option = cast(
+            "ConfigOption", search_params(ctx.command.params, ConfigOption)
+        )
 
-        table: list[tuple[str|None, str|None, str|None, str|None, str|None, str|None, str|None, str|None, str|None, str|None, str|None]] = []
+        table: list[
+            tuple[
+                str | None,
+                str | None,
+                str | None,
+                str | None,
+                str | None,
+                str | None,
+                str | None,
+                str | None,
+                str | None,
+                str | None,
+                str | None,
+            ]
+        ] = []
         for path, param_type in self.flatten_tree_dict(self.params_types).items():
             # Get the parameter instance.
             tree_keys = path.split(self.SEP)
-            par = cast("click.Parameter", self.get_tree_value(self.params_objects, *tree_keys))
+            par = cast(
+                "click.Parameter", self.get_tree_value(self.params_objects, *tree_keys)
+            )
             assert par.name == tree_keys[-1]
 
             param_value, source = get_param_value(par)
@@ -672,8 +692,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
 
         def sort_by_depth(line):
             """Sort parameters by depth first, then IDs, so that top-level parameters
-            are kept to the top.
-            """
+            are kept to the top."""
             param_path = line[0]
             tree_keys = param_path.split(self.SEP)
             return len(tree_keys), param_path
