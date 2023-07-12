@@ -32,8 +32,6 @@ from pytest_cases import fixture, parametrize
 from click_extra import echo, option, option_group, pass_context
 from click_extra.decorators import extra_command, extra_group
 
-from click_extra.colorize import ColorOption
-
 from .conftest import (
     default_debug_uncolored_log_end,
     default_debug_uncolored_log_start,

@@ -97,7 +97,8 @@ class ExtraContext(cloup.Context):
 
     @color.deleter
     def color(self) -> None:
-        """Reset the color value to `None` so it defaults to inheritance from parent's."""
+        """Reset the color value to `None` so it defaults to inheritance from parent's.
+        """
         self._color = None
 
 

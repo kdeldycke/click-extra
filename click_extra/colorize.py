@@ -25,7 +25,6 @@ from operator import getitem
 from typing import NamedTuple, Sequence, cast
 
 import click
-import cloup
 import regex as re3
 from boltons.strutils import complement_int_list, int_ranges_from_int_list
 from cloup._util import identity
