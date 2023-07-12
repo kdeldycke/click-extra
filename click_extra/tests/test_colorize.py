@@ -33,9 +33,9 @@ from click_extra import (
     echo,
     option,
     option_group,
+    pass_context,
     secho,
     style,
-    pass_context,
 )
 from click_extra.colorize import (
     HelpExtraFormatter,

@@ -74,6 +74,7 @@ from .decorators import (  # type: ignore[no-redef, has-type] # noqa: E402
     config_option,
     extra_command,
     extra_group,
+    extra_version_option,
     group,
     help_option,
     show_params_option,
@@ -81,7 +82,6 @@ from .decorators import (  # type: ignore[no-redef, has-type] # noqa: E402
     telemetry_option,
     timer_option,
     verbosity_option,
-    extra_version_option,
 )
 from .logging import (  # noqa: E402
     ExtraLogFormatter,
