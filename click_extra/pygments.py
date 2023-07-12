@@ -53,8 +53,7 @@ like and terminal lexers.
 
 class AnsiFilter(Filter):
     """Custom filter transforming a particular kind of token (``Generic.Output`` by
-    defaults) into ANSI tokens.
-    """
+    defaults) into ANSI tokens."""
 
     def __init__(self, **options) -> None:
         """Initialize a ``AnsiColorLexer`` and configure the ``token_type`` to be
@@ -165,8 +164,7 @@ for original_lexer in collect_session_lexers():
 class AnsiHtmlFormatter(ExtendedColorHtmlFormatterMixin, HtmlFormatter):
     """Extend standard Pygments' ``HtmlFormatter``.
 
-    `Adds support for ANSI 256 colors
-    <https://github.com/chriskuehl/pygments-ansi-color#optional-enable-256-color-support>`_.
+    `Adds support for ANSI 256 colors <https://github.com/chriskuehl/pygments-ansi-color#optional-enable-256-color-support>`_.
     """
 
     name = "ANSI HTML"

@@ -316,8 +316,7 @@ class ParamStructure:
     @staticmethod
     def init_tree_dict(*path: str, leaf: Any = None):
         """Utility method to recursively create a nested dict structure whose keys are
-        provided by ``path`` list and at the end is populated by a copy of ``leaf``.
-        """
+        provided by ``path`` list and at the end is populated by a copy of ``leaf``."""
 
         def dive(levels):
             if levels:
@@ -351,8 +350,7 @@ class ParamStructure:
         parent_key: str | None = None,
     ) -> dict[str, Any]:
         """Recursively traverse the tree-like ``dict`` and produce a flat ``dict`` whose
-        keys are path and values are the leaf's content.
-        """
+        keys are path and values are the leaf's content."""
         return dict(self._flatten_tree_dict_gen(tree_dict, parent_key))
 
     def walk_params(self):
@@ -559,7 +557,10 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         )
 
     def print_params(
-        self, ctx: click.Context, param: click.Parameter, value: bool
+        self,
+        ctx: click.Context,
+        param: click.Parameter,
+        value: bool,
     ) -> None:
         """Introspects current CLI and list its parameters and metadata.
 
@@ -618,7 +619,8 @@ class ShowParamsOption(ExtraOption, ParamStructure):
 
         # Inspect the CLI to search for any --config option.
         config_option = cast(
-            "ConfigOption", search_params(ctx.command.params, ConfigOption)
+            "ConfigOption",
+            search_params(ctx.command.params, ConfigOption),
         )
 
         table: list[
@@ -640,7 +642,8 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             # Get the parameter instance.
             tree_keys = path.split(self.SEP)
             par = cast(
-                "click.Parameter", self.get_tree_value(self.params_objects, *tree_keys)
+                "click.Parameter",
+                self.get_tree_value(self.params_objects, *tree_keys),
             )
             assert par.name == tree_keys[-1]
 
