@@ -18,15 +18,15 @@
 from __future__ import annotations
 
 import inspect
+import logging
 import re
 import warnings
 from functools import cached_property
 from gettext import gettext as _
 from importlib import metadata
 from typing import TYPE_CHECKING, cast
-import logging
-import click
 
+import click
 from boltons.ecoutils import get_profile
 
 from . import Context, Parameter, Style, echo, get_current_context
@@ -149,11 +149,15 @@ class ExtraVersionOption(ExtraOption):
             # Keep track of the inspected frames.
             frame_chain.append((frame_name, frame_info.function))
 
-            # Stop at the invoke() function of any CliRunner class, which is used for testing.
-            if frame_info.function == "invoke" and isinstance(frame.f_locals.get("self"), click.testing.CliRunner):
+            # Stop at the invoke() function of any CliRunner class, which is used for
+            # testing.
+            if frame_info.function == "invoke" and isinstance(
+                frame.f_locals.get("self"), click.testing.CliRunner
+            ):
                 pass
 
-            # Skip the intermediate frames added by the `@cached_property` decorator and the Click ecosystem.
+            # Skip the intermediate frames added by the `@cached_property` decorator
+            # and the Click ecosystem.
             elif frame_name.startswith(("functools", "click_extra", "cloup", "click")):
                 continue
 
