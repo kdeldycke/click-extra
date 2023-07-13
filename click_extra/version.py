@@ -152,7 +152,8 @@ class ExtraVersionOption(ExtraOption):
             # Stop at the invoke() function of any CliRunner class, which is used for
             # testing.
             if frame_info.function == "invoke" and isinstance(
-                frame.f_locals.get("self"), click.testing.CliRunner
+                frame.f_locals.get("self"),
+                click.testing.CliRunner,
             ):
                 pass
 
