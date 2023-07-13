@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Inspect in `--version` the whole execution stack to find the package in which the user's CLI is implemented.
+
 ## {gh}`4.6.0 (2023-07-12) <compare/v4.5.0...v4.6.0>`
 
 - Keep the promise of drop-in replacement for `@version_option` which is now a proxy to Click's original.

@@ -24,6 +24,8 @@ from functools import cached_property
 from gettext import gettext as _
 from importlib import metadata
 from typing import TYPE_CHECKING, cast
+import logging
+import click
 
 from boltons.ecoutils import get_profile
 
@@ -130,43 +132,53 @@ class ExtraVersionOption(ExtraOption):
     def package_name(self) -> str:
         """Try to guess the package name.
 
-        Inspects the stack frames to find the exact name of the installed package.
+        Inspects the execution stack frames to find the package in which the user's CLI
+        is implemented.
         """
+        # Keep a list of all frames inspected for debugging.
+        frame_chain: list[tuple[str, str]] = []
+
+        # Move back up the execution stack.
         package_name: str | None = None
+        for frame_info in inspect.stack():
+            frame = frame_info.frame
 
-        frame = inspect.currentframe()
+            # Get the current package name from the frame's globals.
+            frame_name = frame.f_globals["__name__"]
 
-        f_back = None
-        if frame is not None:
-            # Get back one frame.
-            f_back = frame.f_back
-            if f_back is not None:
-                f_class = f_back.f_locals["self"].__class__
-                f_source = f"{f_class.__module__}.{f_class.__name__}"
-                # Skip the intermediate frame added by the `@cached_property` decorator.
-                if f_source == "functools.cached_property":
-                    # Get back 2 frames: i.e. the frame before the decorator.
-                    f_back = f_back.f_back
+            # Keep track of the inspected frames.
+            frame_chain.append((frame_name, frame_info.function))
 
-        f_globals = f_back.f_globals if f_back is not None else None
+            # Stop at the invoke() function of any CliRunner class, which is used for testing.
+            if frame_info.function == "invoke" and isinstance(frame.f_locals.get("self"), click.testing.CliRunner):
+                pass
+
+            # Skip the intermediate frames added by the `@cached_property` decorator and the Click ecosystem.
+            elif frame_name.startswith(("functools", "click_extra", "cloup", "click")):
+                continue
+
+            # We found the frame where the CLI is implemented.
+            package_name = frame_name.split(".")[0]
+
+            # Re-interpret the package name if it defined as `__main__` entry-point.
+            if package_name == "__main__":
+                package_name = frame.f_globals.get("__package__")
+                if package_name:
+                    package_name = package_name.split(".")[0]
+
+            break
 
         # Break reference cycle
         # https://docs.python.org/3/library/inspect.html#the-interpreter-stack
         del frame
 
-        if f_globals is not None:
-            package_name = f_globals.get("__name__")
-
-            if package_name == "__main__":
-                package_name = f_globals.get("__package__")
-
-            if package_name:
-                package_name = package_name.partition(".")[0]
-
         if not package_name:
+            logger = logging.getLogger("click_extra")
+            for counter, (p_name, f_name) in enumerate(frame_chain):
+                logger.debug(f"Inspected frame #{counter}: {p_name}, {f_name}")
             msg = (
-                "Could not determine the package name automatically. Try passing "
-                "'package_name' instead."
+                "Could not determine the package name automatically from the frame "
+                "stack. Try passing 'package_name' instead."
             )
             raise RuntimeError(msg)
 
