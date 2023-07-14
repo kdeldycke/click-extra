@@ -49,7 +49,7 @@ from . import (
 from .parameters import ExtraOption
 
 
-@dataclass
+@dataclass(frozen=True)
 class HelpExtraTheme(cloup.HelpTheme):
     """Extends ``cloup.HelpTheme`` with ``logging.levels`` and extra properties."""
 

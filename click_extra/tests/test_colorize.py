@@ -71,8 +71,8 @@ def test_theme_definition():
     assert set(HelpTheme.__dataclass_fields__).issubset(HelpExtraTheme.__dataclass_fields__)
 
     log_levels = {level.lower() for level in LOG_LEVELS}
-    assert log_levels.issubset(HelpExtraTheme._fields)
-    assert log_levels.isdisjoint(HelpTheme._fields)
+    assert log_levels.issubset(HelpExtraTheme.__dataclass_fields__)
+    assert log_levels.isdisjoint(HelpTheme.__dataclass_fields__)
 
 
 def test_extra_theme():
