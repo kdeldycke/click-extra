@@ -36,6 +36,7 @@ from click_extra import (
     pass_context,
     secho,
     style,
+    Color,
 )
 from click_extra.colorize import (
     HelpExtraFormatter,
@@ -67,11 +68,36 @@ from .conftest import (
 def test_theme_definition():
     """Ensure we do not leave any property we would have inherited from cloup and
     logging primitives."""
-    assert set(HelpTheme._fields).issubset(HelpExtraTheme._fields)
+    assert set(HelpTheme.__dataclass_fields__).issubset(HelpExtraTheme.__dataclass_fields__)
 
     log_levels = {level.lower() for level in LOG_LEVELS}
     assert log_levels.issubset(HelpExtraTheme._fields)
     assert log_levels.isdisjoint(HelpTheme._fields)
+
+
+def test_extra_theme():
+
+    theme = HelpExtraTheme()
+
+    # Check the same instance is returned when no attribute is set.
+    assert theme.with_() == theme
+    assert theme.with_() is theme
+
+    # Check that we can't set a non-existing attribute.
+    with pytest.raises(TypeError):
+        theme.with_(random_arg=Style())
+
+    # Create a new theme with a different color.
+    assert theme.choice != Style(fg=Color.magenta)
+    new_theme = theme.with_(choice=Style(fg=Color.magenta))
+    assert new_theme != theme
+    assert new_theme is not theme
+    assert new_theme.choice == Style(fg=Color.magenta)
+
+    # Derives a second theme from the first one.
+    second_theme = new_theme.with_(choice=Style(fg=Color.magenta))
+    assert second_theme == new_theme
+    assert second_theme is new_theme
 
 
 def test_options_highlight():
