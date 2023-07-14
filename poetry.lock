@@ -185,13 +185,13 @@ develop = false
 
 [package.dependencies]
 click = ">=8.0,<9.0"
-typing-extensions = {version = "*", markers = "python_version <= \"3.8\""}
+typing_extensions = {version = "*", markers = "python_version <= \"3.8\""}
 
 [package.source]
 type = "git"
 url = "https://github.com/janluke/cloup.git"
-reference = "helptheme-as-dataclass"
-resolved_reference = "1372cfb3149224cdde17fed549e252456bbe299e"
+reference = "master"
+resolved_reference = "b407fb2f2cb6243a35324ea6d84864a5c016f61b"
 
 [[package]]
 name = "colorama"
@@ -1490,4 +1490,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "911b6602eeb8b96148446848e3e8fe74cdc9820e83d5479799948c25e59c8206"
+content-hash = "7ea6b5168b233ba4ac78b12760b1145e0fb4c0da10e7bced6c2d9d247ad329e4"
