@@ -69,7 +69,7 @@ def test_theme_definition():
     """Ensure we do not leave any property we would have inherited from cloup and
     logging primitives."""
     assert set(HelpTheme.__dataclass_fields__).issubset(
-        HelpExtraTheme.__dataclass_fields__
+        HelpExtraTheme.__dataclass_fields__,
     )
 
     log_levels = {level.lower() for level in LOG_LEVELS}
