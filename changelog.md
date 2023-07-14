@@ -6,7 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
-- Remove workaround for `cloup`'s handling of `command_class` default on custom groups.
+- Remove workaround for Cloup handling of `command_class` default on custom groups.
+- Force `@extra_group` to produce sub-groups of the same class.
 
 ## {gh}`4.6.1 (2023-07-13) <compare/v4.6.0...v4.6.1>`
 

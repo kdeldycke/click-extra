@@ -380,8 +380,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):  # type: ignore[misc]
 
 
 class ExtraGroup(ExtraCommand, Group):  # type: ignore[misc]
-    """Same as ``cloup.group``, but with sane defaults and extra help screen
-    colorization."""
+    """Like``cloup.Group``, with sane defaults and extra help screen colorization."""
 
     command_class = ExtraCommand
     """Makes commands of an ``ExtraGroup`` be instances of ``ExtraCommand``.
@@ -389,5 +388,11 @@ class ExtraGroup(ExtraCommand, Group):  # type: ignore[misc]
     That way all subcommands created from an ``ExtraGroup`` benefits from the same
     defaults and extra help screen colorization.
 
-    Fixes `click-extra#479 <https://github.com/kdeldycke/click-extra/issues/479>`_.
+    See: https://click.palletsprojects.com/en/8.1.x/api/#click.Group.command_class
+    """
+
+    group_class = type
+    """Let ``ExtraGroup`` produce sub-groups that are also of ``ExtraGroup`` type.
+
+    See: https://click.palletsprojects.com/en/8.1.x/api/#click.Group.group_class
     """
