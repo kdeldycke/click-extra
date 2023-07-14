@@ -24,15 +24,14 @@ from configparser import RawConfigParser
 from dataclasses import dataclass
 from gettext import gettext as _
 from operator import getitem
-from typing import Sequence, cast, Optional
+from typing import Sequence, cast
 
 import click
+import cloup
 import regex as re3
 from boltons.strutils import complement_int_list, int_ranges_from_int_list
 from cloup._util import identity
-import cloup
 from cloup.styling import Color, IStyle
-from cloup.typing import MISSING, Possibly
 
 from . import (
     Choice,
@@ -92,8 +91,9 @@ class HelpExtraTheme(cloup.HelpTheme):
         # Check for unrecognized arguments.
         unrecognized_args = set(kwargs).difference(self.__dataclass_fields__)
         if unrecognized_args:
+            msg = f"Got unexpected keyword argument(s): {', '.join(unrecognized_args)}"
             raise TypeError(
-                f"Got unexpected keyword argument(s): {', '.join(unrecognized_args)}"
+                msg,
             )
 
         # List of styles that are different from the base theme.
@@ -152,7 +152,6 @@ class HelpExtraTheme(cloup.HelpTheme):
             Tweak colors to make them more readable.
         """
         return HelpExtraTheme.dark()
-
 
 
 # Populate our global theme with all default styles.

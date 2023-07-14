@@ -27,6 +27,7 @@ from boltons.strutils import strip_ansi
 from pytest_cases import parametrize
 
 from click_extra import (
+    Color,
     HelpTheme,
     Style,
     argument,
@@ -36,7 +37,6 @@ from click_extra import (
     pass_context,
     secho,
     style,
-    Color,
 )
 from click_extra.colorize import (
     HelpExtraFormatter,
@@ -68,7 +68,9 @@ from .conftest import (
 def test_theme_definition():
     """Ensure we do not leave any property we would have inherited from cloup and
     logging primitives."""
-    assert set(HelpTheme.__dataclass_fields__).issubset(HelpExtraTheme.__dataclass_fields__)
+    assert set(HelpTheme.__dataclass_fields__).issubset(
+        HelpExtraTheme.__dataclass_fields__
+    )
 
     log_levels = {level.lower() for level in LOG_LEVELS}
     assert log_levels.issubset(HelpExtraTheme.__dataclass_fields__)
@@ -76,7 +78,6 @@ def test_theme_definition():
 
 
 def test_extra_theme():
-
     theme = HelpExtraTheme()
 
     # Check the same instance is returned when no attribute is set.
