@@ -17,17 +17,20 @@
 
 from __future__ import annotations
 
+import dataclasses
 import os
 import re
 from configparser import RawConfigParser
+from dataclasses import dataclass
 from gettext import gettext as _
 from operator import getitem
-from typing import NamedTuple, Sequence, cast
+from typing import Sequence, cast, Optional
 
 import click
 import regex as re3
 from boltons.strutils import complement_int_list, int_ranges_from_int_list
 from cloup._util import identity
+import cloup
 from cloup.styling import Color, IStyle
 from cloup.typing import MISSING, Possibly
 
@@ -46,36 +49,9 @@ from . import (
 from .parameters import ExtraOption
 
 
-class HelpExtraTheme(NamedTuple):
-    """Extends ``cloup.HelpTheme`` with extra properties and ``logging.levels``.
-
-    .. caution::
-        We had to redefined all fields and couldn't extend ``cloup.HelpTheme`` as there
-        is no way to cleanly do it with MyPy.
-
-        See:
-        - https://github.com/python/typing/issues/427
-        - https://mypy.readthedocs.io/en/stable/runtime_troubles.html#future-annotations-import-pep-563
-
-    .. todo::
-        This is being `discussed upstream at janluke/cloup#159
-        <https://github.com/janluke/cloup/issues/159>`_.
-    """
-
-    invoked_command: IStyle = identity
-    command_help: IStyle = identity
-    heading: IStyle = identity
-    constraint: IStyle = identity
-    section_help: IStyle = identity
-    col1: IStyle = identity
-    col2: IStyle = identity
-    alias: IStyle = identity
-    alias_secondary: IStyle | None = None
-    epilog: IStyle = identity
-    """Set of properties inherited from ``cloup.HelpTheme``.
-
-    See: https://cloup.readthedocs.io/en/stable/autoapi/cloup/index.html#cloup.HelpTheme.invoked_command
-    """
+@dataclass
+class HelpExtraTheme(cloup.HelpTheme):
+    """Extends ``cloup.HelpTheme`` with ``logging.levels`` and extra properties."""
 
     critical: IStyle = identity
     error: IStyle = identity
@@ -108,101 +84,79 @@ class HelpExtraTheme(NamedTuple):
         one of my other project.
     """
 
-    def with_(
-        self,
-        ### Cloup properties.
-        invoked_command: IStyle | None = None,
-        command_help: IStyle | None = None,
-        heading: IStyle | None = None,
-        constraint: IStyle | None = None,
-        section_help: IStyle | None = None,
-        col1: IStyle | None = None,
-        col2: IStyle | None = None,
-        alias: IStyle | None = None,
-        alias_secondary: Possibly[IStyle | None] = MISSING,
-        epilog: IStyle | None = None,
-        ### Log levels.
-        critical: IStyle | None = None,
-        error: IStyle | None = None,
-        warning: IStyle | None = None,
-        info: IStyle | None = None,
-        debug: IStyle | None = None,
-        ### Click Extra properties.
-        option: IStyle | None = None,
-        subcommand: IStyle | None = None,
-        choice: IStyle | None = None,
-        metavar: IStyle | None = None,
-        bracket: IStyle | None = None,
-        envvar: IStyle | None = None,
-        default: IStyle | None = None,
-        deprecated: IStyle | None = None,
-        search: IStyle | None = None,
-        success: IStyle | None = None,
-        ### Non-canonical Click Extra properties.
-        subheading: IStyle | None = None,
-    ) -> HelpExtraTheme:
-        """Copy of ``cloup.HelpTheme.with_``."""
-        kwargs = {key: val for key, val in locals().items() if val is not None}
-        kwargs.pop("self")
-        if kwargs:
-            return self._replace(**kwargs)
+    def with_(self, **kwargs: dict[str, IStyle | None]) -> HelpExtraTheme:
+        """Derives a new theme from the current one, with some styles overridden.
+
+        Returns the same instance if the provided styles are the same as the current.
+        """
+        # Check for unrecognized arguments.
+        unrecognized_args = set(kwargs).difference(self.__dataclass_fields__)
+        if unrecognized_args:
+            raise TypeError(
+                f"Got unexpected keyword argument(s): {', '.join(unrecognized_args)}"
+            )
+
+        # List of styles that are different from the base theme.
+        new_styles = {
+            field_id: new_style
+            for field_id, new_style in kwargs.items()
+            if new_style != getattr(self, field_id)
+        }
+        if new_styles:
+            return dataclasses.replace(self, **new_styles)
+
+        # No new styles, return the same instance.
         return self
 
     @staticmethod
     def dark() -> HelpExtraTheme:
-        """A theme assuming a dark terminal background color.
-
-        .. todo::
-
-            Implement default dark theme.
-        """
-        raise NotImplementedError
+        """A theme assuming a dark terminal background color."""
+        return HelpExtraTheme(
+            invoked_command=Style(fg=Color.bright_white),
+            heading=Style(fg=Color.bright_blue, bold=True, underline=True),
+            constraint=Style(fg=Color.magenta),
+            # Neutralize Cloup's col1, as it interferes with our finer option styling
+            # which takes care of separators.
+            col1=identity,
+            # Style aliases like options and subcommands.
+            alias=Style(fg=Color.cyan),
+            # Style aliases punctuation like options, but dimmed.
+            alias_secondary=Style(fg=Color.cyan, dim=True),
+            ### Log styles.
+            critical=Style(fg=Color.red, bold=True),
+            error=Style(fg=Color.red),
+            warning=Style(fg=Color.yellow),
+            info=identity,  # INFO level is the default, so no style applied.
+            debug=Style(fg=Color.blue),
+            ### Click Extra styles.
+            option=Style(fg=Color.cyan),
+            # Style subcommands like options and aliases.
+            subcommand=Style(fg=Color.cyan),
+            choice=Style(fg=Color.magenta),
+            metavar=Style(fg=Color.cyan, dim=True),
+            bracket=Style(dim=True),
+            envvar=Style(fg=Color.yellow, dim=True),
+            default=Style(fg=Color.green, dim=True, italic=True),
+            deprecated=Style(fg=Color.bright_yellow, bold=True),
+            search=Style(fg=Color.green, bold=True),
+            success=Style(fg=Color.green),
+            ### Non-canonical Click Extra styles.
+            subheading=Style(fg=Color.blue),
+        )
 
     @staticmethod
     def light() -> HelpExtraTheme:
         """A theme assuming a light terminal background color.
 
         .. todo::
-
-            Implement default light theme.
+            Tweak colors to make them more readable.
         """
-        raise NotImplementedError
+        return HelpExtraTheme.dark()
+
 
 
 # Populate our global theme with all default styles.
-default_theme = HelpExtraTheme(
-    ### Cloup styles.
-    invoked_command=Style(fg=Color.bright_white),
-    heading=Style(fg=Color.bright_blue, bold=True, underline=True),
-    constraint=Style(fg=Color.magenta),
-    # Neutralize Cloup's col1, as it interferes with our finer option styling
-    # which takes care of separators.
-    col1=identity,
-    # Style aliases like options and subcommands.
-    alias=Style(fg=Color.cyan),
-    # Style aliases punctuation like options, but dimmed.
-    alias_secondary=Style(fg=Color.cyan, dim=True),
-    ### Log styles.
-    critical=Style(fg=Color.red, bold=True),
-    error=Style(fg=Color.red),
-    warning=Style(fg=Color.yellow),
-    info=identity,  # INFO level is the default, so no style applied.
-    debug=Style(fg=Color.blue),
-    ### Click Extra styles.
-    option=Style(fg=Color.cyan),
-    # Style subcommands like options and aliases.
-    subcommand=Style(fg=Color.cyan),
-    choice=Style(fg=Color.magenta),
-    metavar=Style(fg=Color.cyan, dim=True),
-    bracket=Style(dim=True),
-    envvar=Style(fg=Color.yellow, dim=True),
-    default=Style(fg=Color.green, dim=True, italic=True),
-    deprecated=Style(fg=Color.bright_yellow, bold=True),
-    search=Style(fg=Color.green, bold=True),
-    success=Style(fg=Color.green),
-    ### Non-canonical Click Extra styles.
-    subheading=Style(fg=Color.blue),
-)
+default_theme = HelpExtraTheme.dark()
 
 
 # No color theme.
