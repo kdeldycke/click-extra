@@ -391,19 +391,3 @@ class ExtraGroup(ExtraCommand, Group):  # type: ignore[misc]
 
     Fixes `click-extra#479 <https://github.com/kdeldycke/click-extra/issues/479>`_.
     """
-
-    def command(self, *args, **kwargs):
-        """Bypass ``cloup.Group.command()`` to produce an ``ExtraCommand`` decorator.
-
-        Starts the seach for the ``command()`` method after the ``cloup.Group`` class
-        in the MRO chain, effectively bypassing ``cloup.Group.command()``, which does
-        not support the ``command_class`` property.
-
-        .. todo::
-            Removes this workaround when `Cloup issue #160 is addressed
-            <https://github.com/janluke/cloup/issues/160>`_.
-
-        .. todo::
-            Allow this decorator to be called without parenthesis.
-        """
-        return super(cloup.Group, self).command(*args, **kwargs)

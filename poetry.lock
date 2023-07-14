@@ -162,13 +162,13 @@ files = [
 
 [[package]]
 name = "click"
-version = "8.1.4"
+version = "8.1.5"
 description = "Composable command line interface toolkit"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "click-8.1.4-py3-none-any.whl", hash = "sha256:2739815aaa5d2c986a88f1e9230c55e17f0caad3d958a5e13ad0797c166db9e3"},
-    {file = "click-8.1.4.tar.gz", hash = "sha256:b97d0c74955da062a7d4ef92fadb583806a585b2ea81958a81bd72726cbb8e37"},
+    {file = "click-8.1.5-py3-none-any.whl", hash = "sha256:e576aa487d679441d7d30abb87e1b43d24fc53bffb8758443b1a9e1cee504548"},
+    {file = "click-8.1.5.tar.gz", hash = "sha256:4be4b1af8d665c6d942909916d31a213a106800c47d0eeba73d34da3cbc11367"},
 ]
 
 [package.dependencies]
@@ -176,13 +176,13 @@ colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
 name = "cloup"
-version = "2.1.1"
+version = "2.1.2"
 description = "Adds features to Click: option groups, constraints, subcommand sections and help themes."
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "cloup-2.1.1-py2.py3-none-any.whl", hash = "sha256:09084e54b3397d31171d6b0a5dac00e676eb0718e59251030a5b4afc19c013e3"},
-    {file = "cloup-2.1.1.tar.gz", hash = "sha256:bbfe11686334309b3fbe876af7db9bc265d4eaea93b562fd13472767af648615"},
+    {file = "cloup-2.1.2-py2.py3-none-any.whl", hash = "sha256:2e2e5040f1e85f7f391487c1aeeb0cce3e7cfed3493e67fc2aabc683551ba7b7"},
+    {file = "cloup-2.1.2.tar.gz", hash = "sha256:43f10e944056f3a1eea714cb67373beebebbefc3f4551428750392f3e04ac964"},
 ]
 
 [package.dependencies]
@@ -1470,13 +1470,13 @@ files = [
 
 [[package]]
 name = "zipp"
-version = "3.16.0"
+version = "3.16.1"
 description = "Backport of pathlib-compatible object wrapper for zip files"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "zipp-3.16.0-py3-none-any.whl", hash = "sha256:5dadc3ad0a1f825fe42ce1bce0f2fc5a13af2e6b2d386af5b0ff295bc0a287d3"},
-    {file = "zipp-3.16.0.tar.gz", hash = "sha256:1876cb065531855bbe83b6c489dcf69ecc28f1068d8e95959fe8bbc77774c941"},
+    {file = "zipp-3.16.1-py3-none-any.whl", hash = "sha256:0b37c326d826d5ca35f2b9685cd750292740774ef16190008b00a0227c256fe0"},
+    {file = "zipp-3.16.1.tar.gz", hash = "sha256:857b158da2cbf427b376da1c24fd11faecbac5a4ac7523c3607f8a01f94c2ec0"},
 ]
 
 [package.extras]
@@ -1486,4 +1486,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "ea87306e0085646efb6400db5fb9181756b8335a6b3a5de84e339bf02c24c34e"
+content-hash = "a8de8e95234d4d4293089498cab0b564ac46046ce1771974d25ffccef1fc795d"
