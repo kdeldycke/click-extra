@@ -83,7 +83,10 @@ class HelpExtraTheme(cloup.HelpTheme):
         one of my other project.
     """
 
-    def with_(self, **kwargs: dict[str, IStyle | None]) -> HelpExtraTheme:
+    def with_(  # type: ignore[override]
+        self,
+        **kwargs: dict[str, IStyle | None],
+    ) -> HelpExtraTheme:
         """Derives a new theme from the current one, with some styles overridden.
 
         Returns the same instance if the provided styles are the same as the current.
