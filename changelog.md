@@ -1,5 +1,11 @@
 # Changelog
 
+## {gh}`4.6.3 (unreleased) <compare/v4.6.2...main>`
+
+```{important}
+This version is not released yet and is under active development.
+```
+
 ## {gh}`4.6.2 (2023-07-15) <compare/v4.6.1...v4.6.2>`
 
 - Remove workaround for Cloup handling of `command_class` default on custom groups.
