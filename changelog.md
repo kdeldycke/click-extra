@@ -1,10 +1,6 @@
 # Changelog
 
-## {gh}`4.6.2 (unreleased) <compare/v4.6.1...main>`
-
-```{important}
-This version is not released yet and is under active development.
-```
+## {gh}`4.6.2 (2023-07-15) <compare/v4.6.1...v4.6.2>`
 
 - Remove workaround for Cloup handling of `command_class` default on custom groups.
 - Force `@extra_group` to produce sub-groups of the same class.
