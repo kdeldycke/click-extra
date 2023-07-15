@@ -76,10 +76,9 @@ boltons = "^23.0.0"
 # https://github.com/pallets/click/issues/2416
 # https://github.com/pallets/click/pull/2417
 click = "^8.1.4"
-# Cloup 2.1.2 fix default command_class on custom groups. See:
-# https://github.com/janluke/cloup/pull/162
-#cloup = "^2.1.2"
-cloup = { git = "https://github.com/janluke/cloup.git", branch = "master" }
+# Cloup 3.0.0 changed HelpTheme to a dataclass. See:
+# https://github.com/janluke/cloup/pull/163
+cloup = "^3.0.0"
 commentjson = "^0.9.0"
 mergedeep = "^1.3.4"
 # Pallets-Sphinx-Themes 2.1.1 is the first version removing old and conflicting Python 2 code.
