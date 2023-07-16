@@ -503,6 +503,9 @@ def reduce(items: Iterable[Group | Platform]) -> set[Group | Platform]:
         Maybe this could be solved with some `Euler diagram
         <https://en.wikipedia.org/wiki/Euler_diagram>`_ algorithms, like those
         implemented in `eule <https://github.com/trouchet/eule>`_.
+
+        This is being discussed upstream at `trouchet/eule#120
+        <https://github.com/trouchet/eule/issues/120>`_.
     """
     # Collect all platforms.
     platforms: set[Platform] = set()
@@ -556,7 +559,7 @@ def reduce(items: Iterable[Group | Platform]) -> set[Group | Platform]:
         msg = f"Multiple solutions found: {results}"
         raise RuntimeError(msg)
 
-    # If no reduceted solution was found, return the original platforms.
+    # If no reduced solution was found, return the original platforms.
     if not results:
         return platforms  # type: ignore[return-value]
 
