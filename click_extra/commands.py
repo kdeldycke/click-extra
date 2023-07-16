@@ -112,7 +112,7 @@ class ExtraContext(cloup.Context):
             Propose this fix upstream to Click.
         """
         self.close()
-        return super().exit(code)
+        super().exit(code)
 
 
 def default_extra_params():
