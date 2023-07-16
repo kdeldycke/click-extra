@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Forces `ExtraContext` to properly close itself before exiting the program, to trigger all callbacks.
+
 ## {gh}`4.6.2 (2023-07-15) <compare/v4.6.1...v4.6.2>`
 
 - Remove workaround for Cloup handling of `command_class` default on custom groups.

@@ -308,8 +308,5 @@ class ExtraVersionOption(ExtraOption):
 
         echo(self.render_message(), color=ctx.color)
 
-        # Do not just ctx.exit() as it will prevent callbacks defined on options
-        # to be called.
-        ctx.close()
         ctx.exit()
         return  # type: ignore[unreachable]

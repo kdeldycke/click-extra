@@ -427,10 +427,6 @@ class ConfigOption(ExtraOption, ParamStructure):
             message = "No configuration file found."
             if explicit_conf:
                 logger.critical(message)
-
-                # Do not just ctx.exit() as it will prevent callbacks defined on options
-                # to be called.
-                ctx.close()
                 ctx.exit(2)
             else:
                 logger.debug(message)
