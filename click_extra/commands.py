@@ -23,8 +23,7 @@ leverage the mixins in here to build up your own custom variants.
 from __future__ import annotations
 
 import logging
-from typing import Any, cast
-from typing_extensions import NoReturn
+from typing import TYPE_CHECKING, Any, cast
 
 import click
 import cloup
@@ -42,6 +41,9 @@ from .parameters import (
 )
 from .timer import TimerOption
 from .version import ExtraVersionOption
+
+if TYPE_CHECKING:
+    from typing import NoReturn
 
 
 class ExtraContext(cloup.Context):
