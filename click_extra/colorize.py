@@ -95,9 +95,7 @@ class HelpExtraTheme(cloup.HelpTheme):
         unrecognized_args = set(kwargs).difference(self.__dataclass_fields__)
         if unrecognized_args:
             msg = f"Got unexpected keyword argument(s): {', '.join(unrecognized_args)}"
-            raise TypeError(
-                msg,
-            )
+            raise TypeError(msg)
 
         # List of styles that are different from the base theme.
         new_styles = {
