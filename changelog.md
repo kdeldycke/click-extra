@@ -75,7 +75,7 @@ This version is not released yet and is under active development.
 - Change default style of critical log messages' prefix to bold red.
 - Document the full matrix of colors and styles.
 - Render bright variants of ANSI colors in documentation.
-- Dynamiccaly patch the style provided to `AnsiHtmlFormatter` to augment it with ANSI colors.
+- Dynamically patch the style provided to `AnsiHtmlFormatter` to augment it with ANSI colors.
 - Remove main dependency on `furo`, make it a development dependency.
 - Remove the custom `ansi-click-extra-furo-style` Pygments style for Furo and its `AnsiClickExtraFuroStyle` class.
 
@@ -144,7 +144,7 @@ This version is not released yet and is under active development.
 - Add new dependency on `graphviz`.
 - Activate Graphviz extension in Sphinx.
 - Let Sphinx produce the dependency graph from Graphviz file.
-- Produce platform graph dynamiccaly.
+- Produce platform graph dynamically.
 - Rename `docs.py` to `docs_update.py` and allow this module to be called directly.
 
 ## {gh}`3.7.0 (2023-01-03) <compare/v3.6.0...v3.7.0>`
@@ -413,7 +413,7 @@ This version is not released yet and is under active development.
 
 ## {gh}`1.2.2 (2021-11-04) <compare/v1.2.1...v1.2.2>`
 
-- Evaluate format option dynamiccaly at use to let third-party register new
+- Evaluate format option dynamically at use to let third-party register new
   rendering formats.
 
 ## {gh}`1.2.1 (2021-11-04) <compare/v1.2.0...v1.2.1>`
