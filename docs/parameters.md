@@ -97,7 +97,7 @@ See how the default `@extra_command` decorator come with the default `--show-par
 ```
 
 ```{note}
-Notice how `--show-params` is showing all parameters, even those provided to the `exclude_params` argument. You can still see the `--help`, `--version`, `-C`/`--config` and `--show-params` options in the table.
+Notice how `--show-params` is showing all parameters, even those provided to the `excluded_params` argument. You can still see the `--help`, `--version`, `-C`/`--config` and `--show-params` options in the table.
 ```
 
 ## `click_extra.parameters` API

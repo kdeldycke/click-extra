@@ -205,11 +205,11 @@ ValueError: Parameter 'random_param' is not allowed in configuration file.
 
 ## Excluding parameters
 
-The {py:attr}`exclude_params <click_extra.config.ConfigOption.exclude_params>` argument allows you to block some of your CLI options to be loaded from configuration. By setting this argument, you will prevent your CLI users to set these parameters in their configuration file.
+The {py:attr}`excluded_params <click_extra.config.ConfigOption.excluded_params>` argument allows you to block some of your CLI options to be loaded from configuration. By setting this argument, you will prevent your CLI users to set these parameters in their configuration file.
 
-It {py:attr}`defaults to the value of ParamStructure.DEFAULT_EXCLUDE_PARAMS <click_extra.parameters.ParamStructure.DEFAULT_EXCLUDE_PARAMS>`.
+It {py:attr}`defaults to the value of ParamStructure.DEFAULT_EXCLUDED_PARAMS <click_extra.parameters.ParamStructure.DEFAULT_EXCLUDED_PARAMS>`.
 
-You can set your own list of option to ignore with the `exclude_params` argument:
+You can set your own list of option to ignore with the `excluded_params` argument:
 
 ```{code-block} python
 ---
@@ -221,7 +221,7 @@ from click_extra import config_option
 
 @command
 @option("--int-param", type=int, default=10)
-@config_option(exclude_params=["my-cli.non_configurable_option", "my-cli.dangerous_param"])
+@config_option(excluded_params=["my-cli.non_configurable_option", "my-cli.dangerous_param"])
 def my_cli(int_param):
     echo(f"int_parameter is {int_param!r}")
 ```
