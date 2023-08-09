@@ -353,6 +353,21 @@ class ParamStructure:
         keys are path and values are the leaf's content."""
         return dict(self._flatten_tree_dict_gen(tree_dict, parent_key))
 
+    def _recurse_cmd(self, cmd, top_level_params, parent_keys):
+        if hasattr(cmd, "commands"):
+            for subcmd_id, subcmd in cmd.commands.items():
+                if subcmd_id in top_level_params:
+                    msg = (
+                        f"{cmd.name}{self.SEP}{subcmd_id} subcommand conflicts with "
+                        f"{top_level_params} top-level parameters"
+                    )
+                    raise ValueError(msg)
+
+                for p in subcmd.params:
+                    yield (parent_keys + (subcmd_id, p.name)), p
+
+                yield from self._recurse_cmd(subcmd, top_level_params, (parent_keys + (subcmd.name,)))
+
     def walk_params(self):
         """Generates an unfiltered list of all CLI parameters.
 
@@ -376,18 +391,8 @@ class ParamStructure:
             yield (cli.name, p.name), p
 
         # Subcommand-specific options.
-        if hasattr(cli, "commands"):
-            for cmd_id, cmd in cli.commands.items():
-                if cmd_id in top_level_params:
-                    msg = (
-                        f"{cli.name}{self.SEP}{cmd_id} subcommand conflicts with "
-                        f"{top_level_params} top-level parameters"
-                    )
-                    raise ValueError(msg)
-
-                for p in cmd.params:
-                    yield (cli.name, cmd_id, p.name), p
-
+        yield from self._recurse_cmd(cli, top_level_params, (cli.name,))
+       
     TYPE_MAP = {
         # Instances of click.types.ParamType.
         STRING: str,
