@@ -46,7 +46,7 @@ from click_extra import (
     option,
     search_params,
 )
-from click_extra.decorators import extra_command, show_params_option
+from click_extra.decorators import extra_command, extra_group, show_params_option
 from click_extra.parameters import ShowParamsOption, extend_envvars, normalize_envvar
 from click_extra.platforms import is_windows
 
@@ -294,7 +294,7 @@ def test_params_auto_types(invoke, option_decorator):
         choice_param,
         int_range_param,
         count_param,
-        float_range_param,
+        float_range_param,#
         datetime_param,
         tuple1,
         list1,
@@ -592,3 +592,56 @@ def test_integrated_show_params_option(invoke, create_config):
         disable_numparse=True,
     )
     assert result.stdout == f"{output}\n"
+
+def test_recurse_subcommands(invoke):
+    @extra_group(params=[ShowParamsOption()])
+    def show_params_cli_main():
+        echo("main cmd")
+
+    @show_params_cli_main.group(params=[])
+    def show_params_sub_cmd():
+        echo("subcommand")
+
+    @show_params_sub_cmd.command()
+    @option("--int-param", type=int, default=10)
+    def show_params_sub_sub_cmd(int_param):
+        echo(f"subsubcommand int_param is {int_param!r}")
+
+    result = invoke(show_params_cli_main, "--show-params", color=False)
+        
+    table = [
+        (
+            "show-params-cli-main.show_params",
+            "click_extra.parameters.ShowParamsOption",
+            "--show-params",
+            "bool",
+            "✘",
+            "✘",
+            "",
+            "SHOW_PARAMS_CLI_MAIN_SHOW_PARAMS",
+            False,
+            True,
+            "COMMANDLINE",
+        ),
+        (
+            "show-params-cli-main.show-params-sub-cmd.show-params-sub-sub-cmd.int_param",
+            "cloup._params.Option",
+            "--int-param INTEGER",
+            "int",
+            "✘",
+            "✓",
+            "",
+            "SHOW_PARAMS_SUB_SUB_CMD_INT_PARAM, SHOW_PARAMS_CLI_MAIN_INT_PARAM",
+            10,
+            10,
+            "DEFAULT",
+        ),
+    ]
+    output = tabulate(
+        table,
+        headers=ShowParamsOption.TABLE_HEADERS,
+        tablefmt="rounded_outline",
+        disable_numparse=True,
+    )
+    assert result.stdout == f"{output}\n"
+
