@@ -366,7 +366,10 @@ class ParamStructure:
                 for p in subcmd.params:
                     yield (parent_keys + (subcmd_id, p.name)), p
 
-                yield from self._recurse_cmd(subcmd, top_level_params, (parent_keys + (subcmd.name,)))
+                yield from self._recurse_cmd(
+                    subcmd, top_level_params, 
+                    (parent_keys + (subcmd.name,))
+                )
 
     def walk_params(self):
         """Generates an unfiltered list of all CLI parameters.
