@@ -1315,13 +1315,13 @@ files = [
 
 [[package]]
 name = "types-regex"
-version = "2023.6.3.1"
+version = "2023.8.8.0"
 description = "Typing stubs for regex"
 optional = false
 python-versions = "*"
 files = [
-    {file = "types-regex-2023.6.3.1.tar.gz", hash = "sha256:21880e584e2bada8656abeeb3131287a89dcb215f24f1f5b1503eb9bca37f759"},
-    {file = "types_regex-2023.6.3.1-py3-none-any.whl", hash = "sha256:f385191206021e48db0f452fe9479812710daf07058c8f6972cfb2f6202df136"},
+    {file = "types-regex-2023.8.8.0.tar.gz", hash = "sha256:ec87fbb69802b7224d8067bf65048fbfa7bc061efde65cfe471471c0c4d561e0"},
+    {file = "types_regex-2023.8.8.0-py3-none-any.whl", hash = "sha256:52cc3e7748292fc0157388166e23b6d7b661459ae9dda8cec3c6a85ead3b1f98"},
 ]
 
 [[package]]
