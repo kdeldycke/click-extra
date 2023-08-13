@@ -45,7 +45,6 @@ from . import (
     echo,
     get_current_context,
 )
-from . import Context, Parameter, echo
 from .parameters import ExtraOption
 
 

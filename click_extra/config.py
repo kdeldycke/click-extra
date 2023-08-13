@@ -53,12 +53,13 @@ from wcmatch.glob import (
 
 from . import (
     STRING,
+    Context,
+    Parameter,
     ParameterSource,
     echo,
     get_app_dir,
     get_current_context,
 )
-from . import Context, Parameter, echo
 from .parameters import ExtraOption, ParamStructure
 from .platforms import is_windows
 

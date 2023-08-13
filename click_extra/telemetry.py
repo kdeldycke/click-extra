@@ -18,10 +18,12 @@
 from __future__ import annotations
 
 from gettext import gettext as _
-from typing import Sequence
+from typing import TYPE_CHECKING, Sequence
 
-from . import Context, Parameter, echo
 from .parameters import ExtraOption, extend_envvars
+
+if TYPE_CHECKING:
+    from . import Context, Parameter
 
 
 class TelemetryOption(ExtraOption):

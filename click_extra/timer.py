@@ -37,7 +37,9 @@ class TimerOption(ExtraOption):
         """Compute and print elapsed execution time."""
         echo(f"Execution time: {perf_counter() - self.start_time:0.3f} seconds.")
 
-    def register_timer_on_close(self, ctx: Context, param: Parameter, value: bool) -> None:
+    def register_timer_on_close(
+        self, ctx: Context, param: Parameter, value: bool
+    ) -> None:
         """Callback setting up all timer's machinery.
 
         Computes and print the execution time at the end of the CLI, if option has been
