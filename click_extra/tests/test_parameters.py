@@ -294,7 +294,7 @@ def test_params_auto_types(invoke, option_decorator):
         choice_param,
         int_range_param,
         count_param,
-        float_range_param,  #
+        float_range_param,
         datetime_param,
         tuple1,
         list1,
