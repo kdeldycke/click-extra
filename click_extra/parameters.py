@@ -365,11 +365,12 @@ class ParamStructure:
                     raise ValueError(msg)
 
                 for p in subcmd.params:
-                    yield (parent_keys + (subcmd_id, p.name)), p
+                    yield ((*parent_keys, subcmd_id, p.name)), p
 
                 yield from self._recurse_cmd(
-                    subcmd, top_level_params, 
-                    (parent_keys + (subcmd.name,))
+                    subcmd,
+                    top_level_params,
+                    ((*parent_keys, subcmd.name)),
                 )
 
     def walk_params(self):
@@ -396,7 +397,7 @@ class ParamStructure:
 
         # Subcommand-specific options.
         yield from self._recurse_cmd(cli, top_level_params, (cli.name,))
-       
+
     TYPE_MAP = {
         # Instances of click.types.ParamType.
         STRING: str,
