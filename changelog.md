@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Fix collection of subcommand parameters in `--show-params` output. Closes {issue}`725`.
+
 ## {gh}`4.6.3 (2023-07-16) <compare/v4.6.2...v4.6.3>`
 
 - Forces `ExtraContext` to properly close itself before exiting the program, to trigger all callbacks.
