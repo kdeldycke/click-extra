@@ -20,6 +20,7 @@ from __future__ import annotations
 from gettext import gettext as _
 from typing import Sequence
 
+from . import Context, Parameter, echo
 from .parameters import ExtraOption, extend_envvars
 
 
@@ -42,7 +43,12 @@ class TelemetryOption(ExtraOption):
           <https://telemetry.timseverien.com/opt-out/>`_.
     """
 
-    def save_telemetry(self, ctx, param, value):
+    def save_telemetry(
+        self,
+        ctx: Context,
+        param: Parameter,
+        value: bool,
+    ) -> None:
         """Save the option value in the context, in ``ctx.telemetry``."""
         ctx.telemetry = value
 

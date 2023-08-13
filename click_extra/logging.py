@@ -33,6 +33,7 @@ from typing import TYPE_CHECKING, Literal, TypeVar
 import click
 
 from . import Choice
+from . import Context, Parameter, echo
 from .colorize import default_theme
 from .parameters import ExtraOption
 
@@ -251,7 +252,7 @@ class VerbosityOption(ExtraOption):
             )
             logger.setLevel(DEFAULT_LEVEL)
 
-    def set_levels(self, ctx, param, value):
+    def set_levels(self, ctx: Context, param: Parameter, value: str) -> None:
         """Set level of all loggers configured on the option.
 
         Save the verbosity level name in the context.

@@ -45,6 +45,7 @@ from . import (
     echo,
     get_current_context,
 )
+from . import Context, Parameter, echo
 from .parameters import ExtraOption
 
 
@@ -203,7 +204,11 @@ class ColorOption(ExtraOption):
     """
 
     @staticmethod
-    def disable_colors(ctx, param, value):
+    def disable_colors(
+        ctx: Context,
+        param: Parameter,
+        value: bool,
+    ) -> None:
         """Callback disabling all coloring utilities.
 
         Re-inspect the environment for existence of colorization flags to re-interpret

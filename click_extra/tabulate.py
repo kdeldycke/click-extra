@@ -27,6 +27,7 @@ import tabulate
 from tabulate import DataRow, Line, TableFormat
 
 from . import Choice, echo
+from . import Context, Parameter, echo
 from .parameters import ExtraOption
 
 tabulate.MIN_PADDING = 0
@@ -83,7 +84,7 @@ def get_csv_dialect(format_id: str) -> str | None:
     return dialect
 
 
-def render_csv(tabular_data, headers=(), **kwargs):
+def render_csv(tabular_data: Sequence[Sequence[str]], headers: Sequence[str]=(), **kwargs) -> None:
     with StringIO(newline="") as output:
         writer = csv.writer(output, **kwargs)
         writer.writerow(headers)
@@ -93,7 +94,7 @@ def render_csv(tabular_data, headers=(), **kwargs):
         print(output.getvalue(), end="")
 
 
-def render_vertical(tabular_data, headers=(), **kwargs):
+def render_vertical(tabular_data: Sequence[Sequence[str]], headers: Sequence[str]=(), **kwargs)-> None:
     """Re-implements ``cli-helpers``'s vertical table layout.
 
     See `cli-helpers source for reference
@@ -110,7 +111,7 @@ def render_vertical(tabular_data, headers=(), **kwargs):
             echo(f"{cell_label} | {cell_value}")
 
 
-def render_table(tabular_data, headers=(), **kwargs):
+def render_table(tabular_data: Sequence[Sequence[str]], headers: Sequence[str]=(), **kwargs)-> None:
     """Render a table with tabulate and output it via echo."""
     defaults = {
         "disable_numparse": True,
@@ -127,26 +128,6 @@ class TableFormatOption(ExtraOption):
     The selected table format ID is made available in the context in
     ``ctx.meta["click_extra.table_format"]``.
     """
-
-    def init_formatter(self, ctx, param, value):
-        """Save table format ID in the context, and adds ``print_table()`` to it.
-
-        The ``print_table(tabular_data, headers)`` method added to the context is a
-        ready-to-use helper that takes for parameters:
-        - ``tabular_data``, a 2-dimensional iterable of iterables for cell values,
-        - ``headers``, a list of string to be used as headers.
-        """
-        ctx.meta["click_extra.table_format"] = value
-
-        render_func = None
-        if value.startswith("csv"):
-            render_func = partial(render_csv, dialect=get_csv_dialect(value))
-        elif value == "vertical":
-            render_func = render_vertical
-        else:
-            render_func = partial(render_table, tablefmt=value)
-
-        ctx.print_table = render_func
 
     def __init__(
         self,
@@ -170,3 +151,28 @@ class TableFormatOption(ExtraOption):
             help=help,
             **kwargs,
         )
+
+    def init_formatter(
+        self,
+        ctx: Context,
+        param: Parameter,
+        value: str,
+    ) -> None:
+        """Save table format ID in the context, and adds ``print_table()`` to it.
+
+        The ``print_table(tabular_data, headers)`` method added to the context is a
+        ready-to-use helper that takes for parameters:
+        - ``tabular_data``, a 2-dimensional iterable of iterables for cell values,
+        - ``headers``, a list of string to be used as headers.
+        """
+        ctx.meta["click_extra.table_format"] = value
+
+        render_func = None
+        if value.startswith("csv"):
+            render_func = partial(render_csv, dialect=get_csv_dialect(value))
+        elif value == "vertical":
+            render_func = render_vertical
+        else:
+            render_func = partial(render_table, tablefmt=value)
+
+        ctx.print_table = render_func

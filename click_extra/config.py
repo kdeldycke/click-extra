@@ -58,6 +58,7 @@ from . import (
     get_app_dir,
     get_current_context,
 )
+from . import Context, Parameter, echo
 from .parameters import ExtraOption, ParamStructure
 from .platforms import is_windows
 
@@ -389,7 +390,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             ctx.default_map = {}
         ctx.default_map.update(clean_conf.get(ctx.find_root().command.name, {}))
 
-    def load_conf(self, ctx, param, path_pattern):
+    def load_conf(self, ctx: Context, param: Parameter, path_pattern: str) -> None:
         """Fetch parameters values from configuration file and sets them as defaults.
 
         User configuration is merged to the `context's default_map
@@ -436,5 +437,3 @@ class ConfigOption(ExtraOption, ParamStructure):
             logger.debug(f"Initial defaults: {ctx.default_map}")
             self.merge_default_map(ctx, user_conf)
             logger.debug(f"New defaults: {ctx.default_map}")
-
-        return path_pattern

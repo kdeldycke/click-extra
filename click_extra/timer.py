@@ -21,7 +21,7 @@ from gettext import gettext as _
 from time import perf_counter
 from typing import Sequence
 
-from . import echo
+from . import Context, Parameter, echo
 from .parameters import ExtraOption
 
 
@@ -37,7 +37,7 @@ class TimerOption(ExtraOption):
         """Compute and print elapsed execution time."""
         echo(f"Execution time: {perf_counter() - self.start_time:0.3f} seconds.")
 
-    def register_timer_on_close(self, ctx, param, value):
+    def register_timer_on_close(self, ctx: Context, param: Parameter, value: bool) -> None:
         """Callback setting up all timer's machinery.
 
         Computes and print the execution time at the end of the CLI, if option has been
