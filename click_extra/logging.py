@@ -32,8 +32,7 @@ from typing import TYPE_CHECKING, Literal, TypeVar
 
 import click
 
-from . import Choice
-from . import Context, Parameter, echo
+from . import Choice, Context, Parameter
 from .colorize import default_theme
 from .parameters import ExtraOption
 

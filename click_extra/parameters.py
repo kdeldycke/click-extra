@@ -59,7 +59,6 @@ from . import (
     echo,
     get_current_context,
 )
-from . import Context, Parameter, echo
 
 
 def auto_envvar(

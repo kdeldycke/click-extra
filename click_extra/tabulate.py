@@ -26,8 +26,7 @@ from typing import Sequence
 import tabulate
 from tabulate import DataRow, Line, TableFormat
 
-from . import Choice, echo
-from . import Context, Parameter, echo
+from . import Choice, Context, Parameter, echo
 from .parameters import ExtraOption
 
 tabulate.MIN_PADDING = 0
@@ -84,7 +83,9 @@ def get_csv_dialect(format_id: str) -> str | None:
     return dialect
 
 
-def render_csv(tabular_data: Sequence[Sequence[str]], headers: Sequence[str]=(), **kwargs) -> None:
+def render_csv(
+    tabular_data: Sequence[Sequence[str]], headers: Sequence[str] = (), **kwargs
+) -> None:
     with StringIO(newline="") as output:
         writer = csv.writer(output, **kwargs)
         writer.writerow(headers)
@@ -94,7 +95,9 @@ def render_csv(tabular_data: Sequence[Sequence[str]], headers: Sequence[str]=(),
         print(output.getvalue(), end="")
 
 
-def render_vertical(tabular_data: Sequence[Sequence[str]], headers: Sequence[str]=(), **kwargs)-> None:
+def render_vertical(
+    tabular_data: Sequence[Sequence[str]], headers: Sequence[str] = (), **kwargs
+) -> None:
     """Re-implements ``cli-helpers``'s vertical table layout.
 
     See `cli-helpers source for reference
@@ -111,7 +114,9 @@ def render_vertical(tabular_data: Sequence[Sequence[str]], headers: Sequence[str
             echo(f"{cell_label} | {cell_value}")
 
 
-def render_table(tabular_data: Sequence[Sequence[str]], headers: Sequence[str]=(), **kwargs)-> None:
+def render_table(
+    tabular_data: Sequence[Sequence[str]], headers: Sequence[str] = (), **kwargs
+) -> None:
     """Render a table with tabulate and output it via echo."""
     defaults = {
         "disable_numparse": True,
