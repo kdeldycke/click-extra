@@ -294,7 +294,7 @@ def test_params_auto_types(invoke, option_decorator):
         choice_param,
         int_range_param,
         count_param,
-        float_range_param,#
+        float_range_param,  #
         datetime_param,
         tuple1,
         list1,
@@ -593,6 +593,7 @@ def test_integrated_show_params_option(invoke, create_config):
     )
     assert result.stdout == f"{output}\n"
 
+
 def test_recurse_subcommands(invoke):
     @extra_group(params=[ShowParamsOption()])
     def show_params_cli_main():
@@ -608,7 +609,7 @@ def test_recurse_subcommands(invoke):
         echo(f"subsubcommand int_param is {int_param!r}")
 
     result = invoke(show_params_cli_main, "--show-params", color=False)
-        
+
     table = [
         (
             "show-params-cli-main.show_params",
@@ -644,4 +645,3 @@ def test_recurse_subcommands(invoke):
         disable_numparse=True,
     )
     assert result.stdout == f"{output}\n"
-
