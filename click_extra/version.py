@@ -20,6 +20,7 @@ from __future__ import annotations
 import inspect
 import logging
 import re
+import os
 import warnings
 from functools import cached_property
 from gettext import gettext as _
@@ -170,6 +171,10 @@ class ExtraVersionOption(ExtraOption):
                 package_name = frame.f_globals.get("__package__")
                 if package_name:
                     package_name = package_name.split(".")[0]
+                    break
+                package_name = frame.f_globals.get("__file__")
+                if package_name:
+                    (_, package_name) = os.path.split(package_name)
 
             break
 
