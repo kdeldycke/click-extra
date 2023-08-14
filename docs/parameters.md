@@ -31,7 +31,7 @@ def my_cli(ctx, dummy_flag, my_list):
     echo(f"Loaded, default values:    {ctx.default_map}")
     echo(f"Values passed to function: {ctx.params}")
 
-@my_cli.command
+@my_cli.command()
 @option("--int-param", type=int, default=10)
 def subcommand(int_param):
     echo(f"int_parameter is {int_param!r}")
