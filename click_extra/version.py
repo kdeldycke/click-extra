@@ -307,6 +307,7 @@ class ExtraVersionOption(ExtraOption):
             "version": self.version,
             "package_name": self.package_name,
             "prog_name": self.prog_name,
+            # Serialize the JSON dict.
             "env_info": str(self.env_info),
             # Deprecated Click-specific template variables.
             "package": self.package_name,

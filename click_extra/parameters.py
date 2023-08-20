@@ -354,6 +354,8 @@ class ParamStructure:
         return dict(self._flatten_tree_dict_gen(tree_dict, parent_key))
 
     def _recurse_cmd(self, cmd, top_level_params, parent_keys):
+        """Recursive generator to walk through all subcommands and their parameters.
+        """
         if hasattr(cmd, "commands"):
             for subcmd_id, subcmd in cmd.commands.items():
                 if subcmd_id in top_level_params:
