@@ -5,14 +5,15 @@ Click Extra provides its own version option which, compared to [Click's built-in
 - adds [new variable](#variables) to compose your version string
 - adds [colors](#colors)
 - adds complete [environment information in JSON](#environment-information)
+- works with [standalone scripts](#standalone-script)
 - prints [details metadata in `DEBUG` logs](#debug-logs)
 - expose [metadata in the context](#get-metadata-values)
 
 ```{hint}
-To prevent any confusion, and keep on [the promise of drop-in replacement](commands.md#drop-in-replacement), Click Extra's version option is prefixed:
-   - the vanilla Click's `version_option` is accessible as `click_extra.version_option`
-   - Click Extra's own take on `version_option` is available as [`click_extra.extra_version_option`](click_extra.md#click_extra.extra_version_option)
-   - [`@extra_version_option` decorator](click_extra.md#click_extra.extra_version_option) is derived from [`click_extra.ExtraVersionOption` class](#click_extra.version.ExtraVersionOption)
+To prevent any confusion, and to keep on [the promise of drop-in replacement](commands.md#drop-in-replacement), Click Extra's version option is prefixed with `extra_`:
+   - the vanilla Click's `version_option` is aliased as `click_extra.version_option`
+   - Click Extra's own `version_option` is available as [`click_extra.extra_version_option`](click_extra.md#click_extra.extra_version_option)
+   - Click Extra adds a [`@extra_version_option` decorator](click_extra.md#click_extra.extra_version_option) which is based on [`click_extra.ExtraVersionOption` class](#click_extra.version.ExtraVersionOption)
 ```
 
 ## Defaults
@@ -40,7 +41,7 @@ The default version message is the `same as Click's default <https://github.com/
 ```
 
 ```{hint}
-In this example I have hard-coded the version to `1.2.3` for the sake of demonstration. But by default, the version will be automattically fetched from the `__version__` attribute of the module where the command is defined.
+In this example I have hard-coded the version to `1.2.3` for the sake of demonstration. But in most case, you do not need to force it. By default, the version will be automattically fetched from the `__version__` attribute of the module where the command is defined.
 ```
 
 ## Variables
@@ -82,9 +83,74 @@ You can compose your own version string by passing the `message` argument:
 ```
 
 ```{note}
-Notice here how the `%(package_name)s` string takes the value of the current package name, i.e. `click_extra`, because that is the Python package this snippet of code is defined in. Consequently, the `%(version)s` string takes the value of the current version of Click Extra (i.e.  `click_extra.__version__`).
+Notice here how the `%(package_name)s` string takes the `click_extra` value. That's because this snippet of code is dynamiccaly executed by Sphinx in the context of Click Extra itself. And as a result, the `%(version)s` string takes the value of the current version of Click Extra (i.e.  `click_extra.__version__`).
 
-Once your CLI gets packaged in its own module, its metadata will be fetched automatically so you don't have to manage them manually.
+You will not have this behavior once your get your CLI packaged: your CLI will properly inherits its metadata automatically from your package.
+```
+
+## Standalone script
+
+The `--version` option works with standalone scripts.
+
+Let's put this code in a file named `greet.py`:
+
+```python
+from click_extra import extra_command
+
+
+@extra_command
+def greet():
+    print("Hello world")
+
+
+if __name__ == "__main__":
+    greet()
+```
+
+```shell-session
+$ cat greet.py
+from click_extra import extra_command
+
+
+@extra_command
+def greet():
+    print("Hello world")
+
+
+if __name__ == "__main__":
+    greet()
+```
+
+Here is the result of the `--version` option:
+
+```ansi-shell-session
+$ python ./greet.py --version
+[97mgreet.py[0m, version [32mNone[0m
+```
+
+Because the script is not packaged, the `%(package_name)s` is set to the script file name (`greet.py`) and `%(version)s` variable to `None`.
+
+You can still define a `__version__` variable in your script to force the version string:
+
+```python
+from click_extra import extra_command
+
+
+__version__ = "0.9.3-alpha"
+
+
+@extra_command
+def greet():
+    print("Hello world")
+
+
+if __name__ == "__main__":
+    greet()
+```
+
+```ansi-shell-session
+$ python ./greet.py --version
+[97mgreet.py[0m, version [32m0.9.3-alpha[0m
 ```
 
 ## Colors
