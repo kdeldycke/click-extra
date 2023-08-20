@@ -131,15 +131,22 @@ class ExtraVersionOption(ExtraOption):
 
     @cached_property
     def package_name(self) -> str:
-        """Try to guess the package name.
+        """Guess the package name.
 
         Inspects the execution stack frames to find the package in which the user's CLI
-        is implemented.
+        is implemented. Returns the base module ID (i.e. the string before the first
+        dot `.`)
+
+        If the CLI is not implemented in a package, it assume the CLI is a simple
+        standalone script, and the returned package name is the script's file name
+        (including the extension). Also at this point, the version is taken from the
+        script's local ``__version__`` variable or set to ``None`` to bypass
+        auto-detection.
         """
         # Keep a list of all frames inspected for debugging.
         frame_chain: list[tuple[str, str]] = []
 
-        # Move back up the execution stack.
+        # Walk the execution stack from bottom to top.
         package_name: str | None = None
         for frame_info in inspect.stack():
             frame = frame_info.frame
@@ -166,15 +173,23 @@ class ExtraVersionOption(ExtraOption):
             # We found the frame where the CLI is implemented.
             package_name = frame_name.split(".")[0]
 
-            # Re-interpret the package name if it defined as `__main__` entry-point.
+            # Re-interpret the package name if the CLI was defined by the way of a `__main__` entry-point.
             if package_name == "__main__":
-                package_name = frame.f_globals.get("__package__")
-                if package_name:
-                    package_name = package_name.split(".")[0]
+
+                # Take the base package name itself.
+                package_path = frame.f_globals.get("__package__")
+                if package_path:
+                    package_name = package_path.split(".", 1)[0]
                     break
-                package_name = frame.f_globals.get("__file__")
-                if package_name:
-                    (_, package_name) = os.path.split(package_name)
+
+                # The CLI is a standalone script. Use its filename.
+                file_path = frame.f_globals.get("__file__")
+                if file_path:
+                    package_name = os.path.basename(file_path)
+                # Set the version from the script here to bypass auto-detection from the
+                # (non-applicable) package name.
+                version = frame.f_globals.get("__version__")
+                self.version = version if version else None
 
             break
 
@@ -195,12 +210,18 @@ class ExtraVersionOption(ExtraOption):
         return package_name
 
     @cached_property
-    def version(self) -> str:
+    def version(self) -> str | None:
         """Auto-detect the version of the package.
 
-        Fetch version using `importlib.metadata.version()
-        <https://docs.python.org/3/library/importlib.metadata.html?highlight=metadata#distribution-versions>`_
-        on the module whose ID is given by ``self.package_name``.
+        The version string is taken from the module whose ID is given by ``self.package_name``,
+        using `importlib.metadata.version()
+        <https://docs.python.org/3/library/importlib.metadata.html?highlight=metadata#distribution-versions>`_.
+
+        If the CLI is not implemented in a package, it assume the CLI is a simple script and the version returned is
+        the ``__version__`` attribute of the script's module.
+
+        Will raise an error if the package is not installed, or if the package version cannot
+        be determined.
         """
         try:
             version = metadata.version(self.package_name)

@@ -47,10 +47,10 @@ In this example I have hard-coded the version to `1.2.3` for the sake of demonst
 
 You can customize the version string with the following variables:
 
-- `%(version)s`: the version of the package where the command is defined
-- `%(package_name)s`: the name of the package where the command is defined
-- `%(prog_name)s`: the name of the program (i.e. the CLI's name)
-- `%(env_info)s`: the environment information in JSON
+- `%(package_name)s`: the name of the package where the command is defined. Will return the base module ID (string before the first dot `.`). If the CLI is not packaged, it will return the Python script's filename.
+- `%(version)s`: the version of the package where the command is defined. If the CLI is not packaged, the version string will be the one defined by the `__version__` variable in the Python script, or `None`.
+- `%(prog_name)s`: the name of the program (i.e. the CLI's name).
+- `%(env_info)s`: the environment information in JSON.
 
 ```{caution}
 Click's built-in variables are recognized but deprecated:
