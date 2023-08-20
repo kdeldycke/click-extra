@@ -19,8 +19,8 @@ from __future__ import annotations
 
 import inspect
 import logging
-import re
 import os
+import re
 import warnings
 from functools import cached_property
 from gettext import gettext as _
@@ -173,9 +173,9 @@ class ExtraVersionOption(ExtraOption):
             # We found the frame where the CLI is implemented.
             package_name = frame_name.split(".")[0]
 
-            # Re-interpret the package name if the CLI was defined by the way of a `__main__` entry-point.
+            # Re-interpret the package name if the CLI was defined by the way of a
+            # `__main__` entry-point.
             if package_name == "__main__":
-
                 # Take the base package name itself.
                 package_path = frame.f_globals.get("__package__")
                 if package_path:

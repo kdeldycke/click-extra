@@ -84,7 +84,9 @@ def get_csv_dialect(format_id: str) -> str | None:
 
 
 def render_csv(
-    tabular_data: Sequence[Sequence[str]], headers: Sequence[str] = (), **kwargs
+    tabular_data: Sequence[Sequence[str]],
+    headers: Sequence[str] = (),
+    **kwargs,
 ) -> None:
     with StringIO(newline="") as output:
         writer = csv.writer(output, **kwargs)
@@ -96,7 +98,9 @@ def render_csv(
 
 
 def render_vertical(
-    tabular_data: Sequence[Sequence[str]], headers: Sequence[str] = (), **kwargs
+    tabular_data: Sequence[Sequence[str]],
+    headers: Sequence[str] = (),
+    **kwargs,
 ) -> None:
     """Re-implements ``cli-helpers``'s vertical table layout.
 
@@ -115,7 +119,9 @@ def render_vertical(
 
 
 def render_table(
-    tabular_data: Sequence[Sequence[str]], headers: Sequence[str] = (), **kwargs
+    tabular_data: Sequence[Sequence[str]],
+    headers: Sequence[str] = (),
+    **kwargs,
 ) -> None:
     """Render a table with tabulate and output it via echo."""
     defaults = {
