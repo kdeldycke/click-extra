@@ -129,7 +129,7 @@ def render_table(
         "numalign": None,
     }
     defaults.update(kwargs)
-    echo(tabulate.tabulate(tabular_data, headers, **defaults))
+    echo(tabulate.tabulate(tabular_data, headers, **defaults))  # type: ignore[arg-type]
 
 
 class TableFormatOption(ExtraOption):
@@ -182,8 +182,8 @@ class TableFormatOption(ExtraOption):
         if value.startswith("csv"):
             render_func = partial(render_csv, dialect=get_csv_dialect(value))
         elif value == "vertical":
-            render_func = render_vertical
+            render_func = render_vertical  # type: ignore[assignment]
         else:
             render_func = partial(render_table, tablefmt=value)
 
-        ctx.print_table = render_func
+        ctx.print_table = render_func  # type: ignore[attr-defined]

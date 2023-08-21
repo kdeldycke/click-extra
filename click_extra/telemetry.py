@@ -52,7 +52,7 @@ class TelemetryOption(ExtraOption):
         value: bool,
     ) -> None:
         """Save the option value in the context, in ``ctx.telemetry``."""
-        ctx.telemetry = value
+        ctx.telemetry = value  # type: ignore[attr-defined]
 
     def __init__(
         self,

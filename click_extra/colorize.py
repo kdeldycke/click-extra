@@ -104,7 +104,7 @@ class HelpExtraTheme(cloup.HelpTheme):
             if new_style != getattr(self, field_id)
         }
         if new_styles:
-            return dataclasses.replace(self, **new_styles)
+            return dataclasses.replace(self, **new_styles)  # type: ignore[arg-type]
 
         # No new styles, return the same instance.
         return self
