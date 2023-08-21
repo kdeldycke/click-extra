@@ -213,15 +213,16 @@ class ExtraVersionOption(ExtraOption):
     def version(self) -> str | None:
         """Auto-detect the version of the package.
 
-        The version string is taken from the module whose ID is given by ``self.package_name``,
-        using `importlib.metadata.version()
+        The version string is taken from the module whose ID is given by
+        ``self.package_name``, using `importlib.metadata.version()
         <https://docs.python.org/3/library/importlib.metadata.html?highlight=metadata#distribution-versions>`_.
 
-        If the CLI is not implemented in a package, it assume the CLI is a simple script and the version returned is
-        the ``__version__`` attribute of the script's module.
+        If the CLI is not implemented in a package, it assume the CLI is a simple
+        script and the version returned is the ``__version__`` attribute of the
+        script's module.
 
-        Will raise an error if the package is not installed, or if the package version cannot
-        be determined.
+        Will raise an error if the package is not installed, or if the package version
+        cannot be determined.
         """
         try:
             version = metadata.version(self.package_name)
