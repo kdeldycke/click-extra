@@ -39,9 +39,10 @@ jobs:
           variants: dict[str, set[str]] = {
               "os": {
                   # See what each os came pre-installed with at:
-                  # https://help.github.com/en/actions/reference/software-installed-on-github-hosted-runners
+                  # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
                   "ubuntu-22.04",
                   "ubuntu-20.04",
+                  "macos-13",
                   "macos-12",
                   "macos-11",
                   "windows-2022",
@@ -55,12 +56,12 @@ jobs:
                   "3.12-dev",
               },
               "click-version": {
-                  "pinned",
+                  "released",
                   "8.1.x",
                   "main",
               },
               "cloup-version": {
-                  "pinned",
+                  "released",
                   "master",
               }
           }
@@ -75,26 +76,33 @@ jobs:
               # pytest-cases is not compatible with Python 3.12-dev yet:
               # https://github.com/smarie/python-pytest-cases/issues/297
               {"python-version": "3.12-dev"},
+              # Ignore failing tests on Click development branch, because some top-level classes (BaseCommand,
+              # MultiCommand and OptionParser) have been removed. See:
+              # https://github.com/pallets/click/compare/8.1.x...main#diff-768bcdbbdaa3001d4905761c3eed38d5ce6a62b9127df80de90d9ca4e806cacc
+              {"click-version": "main"},
           ]
 
-          # Exclude dev tests of third-party dependencies on old OSes and Python dev.
-          for criterion in (
-              # Exclude old OSes.
-              {"os": "ubuntu-20.04"},
-              {"os": "macos-11"},
-              {"os": "windows-2019"},
-              # Exclude Python's dev version.
-              {"python-version": "3.12-dev"},
-              # Only test on oldest and newest released Python versions.
-              {"python-version": "3.9"},
-              {"python-version": "3.10"},
+          # Removes from the matrix some combinations for development versions of Click and Cloup. This reduce the size
+          # of the matrix for tests on non-released versions. While keeping the full exhaustive tests on the released
+          # versions of Click and Cloup.
+          for dev_version in (
+              {"click-version": "8.1.x"},
+              {"click-version": "main"},
+              {"cloup-version": "master"},
           ):
-              for dev_version in (
-                  {"click-version": "8.1.x"},
-                  {"click-version": "main"},
-                  {"cloup-version": "master"},
+              for criterion in (
+                  # Exclude old OSes. Only keeps the latest OSes of each family.
+                  {"os": "ubuntu-20.04"},
+                  {"os": "macos-12"},
+                  {"os": "macos-11"},
+                  {"os": "windows-2019"},
+                  # Exclude Python's dev version.
+                  {"python-version": "3.12-dev"},
+                  # Exclude intermediate Python version. Only test on oldest and newest released Python versions.
+                  {"python-version": "3.9"},
+                  {"python-version": "3.10"},
               ):
-                  exclude.append({**criterion, **dev_version})
+                  exclude.append({**dev_version, **criterion})
 
           # Build the job matrix.
           jobs: list[dict[str, str]] = []
@@ -135,6 +143,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.test-matrix.outputs.test_matrix) }}
+    name: |
+      ${{ matrix.os }},
+      Python ${{ matrix.python-version }},
+      Click ${{ matrix.click-version }},
+      Cloup ${{ matrix.cloup-version }}
     runs-on: ${{ matrix.os }}
     # We keep going when a job flagged as not stable fails.
     continue-on-error: ${{ matrix.state == 'unstable' }}
@@ -153,12 +166,12 @@ jobs:
           poetry install --no-interaction
 
       - name: Install click@${{ matrix.click-version }}
-        if: matrix.click-version != 'pinned'
+        if: matrix.click-version != 'released'
         run: |
           poetry add git+https://github.com/pallets/click.git#${{ matrix.click-version }}
 
       - name: Install cloup@${{ matrix.cloup-version }}
-        if: matrix.cloup-version != 'pinned'
+        if: matrix.cloup-version != 'released'
         run: |
           poetry add git+https://github.com/janluke/cloup.git#${{ matrix.cloup-version }}
 

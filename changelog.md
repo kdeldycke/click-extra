@@ -10,6 +10,8 @@ This version is not released yet and is under active development.
 - Set `%(package_name)` in `--version` to file name for CLI that are standalone scripts and not packaged. Fix {issue}`729`.
 - Allow standalone scripts to define a local `__version__` variable to set the `%(version)` element in `--version` output.
 - Allow building of documentation with Sphinx 7.
+- Run tests on `macos-13`.
+- Ignore unstable tests on upcoming Click `8.2.x` / `main` branch.
 
 ## {gh}`4.6.3 (2023-07-16) <compare/v4.6.2...v4.6.3>`
 
