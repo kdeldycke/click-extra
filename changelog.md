@@ -1,10 +1,6 @@
 # Changelog
 
-## {gh}`4.6.4 (unreleased) <compare/v4.6.3...main>`
-
-```{important}
-This version is not released yet and is under active development.
-```
+## {gh}`4.6.4 (2023-08-23) <compare/v4.6.3...v4.6.4>`
 
 - Fix collection of subcommand parameters in `--show-params` output. Closes {issue}`725`.
 - Set `%(package_name)` in `--version` to file name for CLI that are standalone scripts and not packaged. Fix {issue}`729`.
