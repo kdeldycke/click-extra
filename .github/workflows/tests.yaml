@@ -142,6 +142,7 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJson(needs.test-matrix.outputs.test_matrix) }}
     name: |
+      [${{ matrix.state }}]
       ${{ matrix.os }},
       Python ${{ matrix.python-version }},
       Click ${{ matrix.click-version }},
