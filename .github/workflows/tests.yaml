@@ -44,7 +44,6 @@ jobs:
                   "ubuntu-20.04",
                   "macos-13",
                   "macos-12",
-                  "macos-11",
                   "windows-2022",
                   "windows-2019",
               },
@@ -94,7 +93,6 @@ jobs:
                   # Exclude old OSes. Only keeps the latest OSes of each family.
                   {"os": "ubuntu-20.04"},
                   {"os": "macos-12"},
-                  {"os": "macos-11"},
                   {"os": "windows-2019"},
                   # Exclude Python's dev version.
                   {"python-version": "3.12-dev"},
