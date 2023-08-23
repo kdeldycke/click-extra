@@ -145,8 +145,8 @@ jobs:
       [${{ matrix.state }}]
       ${{ matrix.os }},
       Python ${{ matrix.python-version }},
-      Click ${{ matrix.click-version }},
-      Cloup ${{ matrix.cloup-version }}
+      Click: ${{ matrix.click-version }},
+      Cloup: ${{ matrix.cloup-version }}
     runs-on: ${{ matrix.os }}
     # We keep going when a job flagged as not stable fails.
     continue-on-error: ${{ matrix.state == 'unstable' }}
