@@ -1,5 +1,11 @@
 # Changelog
 
+## {gh}`4.6.5 (unreleased) <compare/v4.6.4...main>`
+
+```{important}
+This version is not released yet and is under active development.
+```
+
 ## {gh}`4.6.4 (2023-08-23) <compare/v4.6.3...v4.6.4>`
 
 - Fix collection of subcommand parameters in `--show-params` output. Closes {issue}`725`.
