@@ -710,25 +710,37 @@ class HelpExtraFormatter(HelpFormatter):
         #     flags=re.VERBOSE | re.MULTILINE,
         # )
 
-        # Highlight keywords.
+        # Highlight long options first, then short options.
         for matching_keywords, style_group_id in (
             (sorted(self.long_options, reverse=True), "long_option"),
             (sorted(self.short_options), "short_option"),
+        ):
+            for keyword in matching_keywords:
+                help_text = re.sub(
+                    rf"""
+                    (
+                        # Not a: word character, or a repeated option's leading symbol.
+                        [^\w{re.escape(keyword[0])}]
+                    )
+                    (?P<{style_group_id}>{escape_for_help_screen(keyword)})
+                    (\W)
+                    """,
+                    self.colorize,
+                    help_text,
+                    flags=re.VERBOSE,
+                )
+
+        # Highlight other keywords, which are expected to be separated by any character but word characters.
+        for matching_keywords, style_group_id in (
             (sorted(self.choices, reverse=True), "choice"),
             (sorted(self.metavars, reverse=True), "metavar"),
         ):
             for keyword in matching_keywords:
-                keyword = escape_for_help_screen(keyword)
                 help_text = re.sub(
                     rf"""
-                    ([               # A keyword is preceded with either:
-                        \s           # - a blank char
-                        \[           # - an opening square bracket (as in choice string)
-                        \|           # - a pipe (again like in choice strings)
-                        \(           # - an opening parenthesis
-                    ])
-                    (?P<{style_group_id}>{keyword})
-                    (\W)             # Any character which is not a word character.
+                    (\W)    # Any character which is not a word character.
+                    (?P<{style_group_id}>{escape_for_help_screen(keyword)})
+                    (\W)    # Any character which is not a word character.
                     """,
                     self.colorize,
                     help_text,

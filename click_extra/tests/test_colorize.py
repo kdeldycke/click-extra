@@ -29,6 +29,9 @@ from pytest_cases import parametrize
 from click_extra import (
     Color,
     HelpTheme,
+    ExtraCommand,
+    ExtraContext,
+    ExtraOption,
     Style,
     argument,
     echo,
@@ -41,7 +44,7 @@ from click_extra import (
 from click_extra.colorize import (
     HelpExtraFormatter,
     HelpExtraTheme,
-    default_theme,
+    default_theme as theme,
     highlight,
 )
 from click_extra.decorators import (
@@ -101,45 +104,70 @@ def test_extra_theme():
     assert second_theme is new_theme
 
 
-def test_options_highlight():
-    formatter = HelpExtraFormatter()
-    formatter.write("applies filtering by --manager and --exclude options")
+@pytest.mark.parametrize(
+    "opt, expected_outputs",
+    (
+        # Short option.
+        (
+            ExtraOption(["-e"], help="Option -e (-e), not -ee or --e."),
+            (
+                # Usual option name highlighting.
+                f"{theme.option('-e')} {theme.metavar('TEXT')}",
+                # Option name in the description is highlighted as well.
+                f"Option {theme.option('-e')} ({theme.option('-e')}), not -ee or --e.",
+            )
+        ),
+        # Long option.
+        (
+            ExtraOption(["--exclude"], help="Option named --exclude."),
+            (
+                # Usual option name highlighting.
+                f"{theme.option('--exclude')} {theme.metavar('TEXT')}",
+                # Option name in the description is highlighted as well.
+                f"Option named {theme.option('--exclude')}.",
+            )
+        ),
+        # Choices.
+        (
+            ExtraOption(["--manager"], type=click.Choice(['apm', 'apt', 'brew']),
+                        help="apt, APT (not aptitude or apt_mint) and brew."),
+            (
+                # Choices after the option name are highlighted.
+                f"{theme.option('--manager')} "
+                f"[{theme.choice('apm')}|{theme.choice('apt')}|{theme.choice('brew')}]",
+                # Choices in description are highlighted as well, and only on matching case.
+                f"{theme.choice('apt')}, APT (not aptitude or apt_mint) and {theme.choice('brew')}.",
+            )
+        ),
+        # Metavar.
+        (
+            ExtraOption(["--special"], metavar="SPECIAL", help="Option with SPECIAL metavar."),
+            (
+                # Metavar after the option name is highlighted.
+                f"{theme.option('--special')} {theme.metavar('SPECIAL')}",
+                # Metavar in the description is highlighted as well.
+                f"Option with {theme.metavar('SPECIAL')} metavar.",
+            )
+        ),
 
-    formatter.long_options = {"--manager", "--exclude"}
+    ),
+)
+def test_option_highlight(opt, expected_outputs):
+    """Test highlighting of all option's variations."""
+    # Add option to a dummy command.
+    cli = ExtraCommand("test", params=[opt])
+    ctx = cli.make_context(info_name=None, args=[])
 
-    output = formatter.getvalue()
-    assert default_theme.option("--manager") in output
-    assert default_theme.option("--exclude") in output
+    # Render full CLI help.
+    help = cli.get_help(ctx)
 
+    # TODO: check extra elements of the option once
+    # https://github.com/pallets/click/pull/2517 is released.
+    # opt.get_help_extra()
 
-def test_choices_highlight():
-    formatter = HelpExtraFormatter()
-    formatter.write(
-        """
-        -e, --apt [apm|apt|apt-mint|brew]
-                        Exclude a package manager.
-                        Repeat to exclude multiple
-                        managers.
-        """,
-    )
-
-    formatter.choices = {"apm", "apt", "apt-mint", "brew"}
-
-    output = formatter.getvalue()
-    assert default_theme.choice("apm") in output
-    assert default_theme.choice("apt") in output
-    assert default_theme.choice("apt-mint") in output
-    assert default_theme.choice("brew") in output
-
-
-def test_metavars_highlight():
-    formatter = HelpExtraFormatter()
-    formatter.write("-v, --verbosity LEVEL   Either CRITICAL, ERROR or DEBUG.")
-
-    formatter.metavars = {"LEVEL"}
-
-    output = formatter.getvalue()
-    assert default_theme.metavar("LEVEL") in output
+    # Check that the option is highlighted.
+    for expected in expected_outputs:
+        assert dedent(expected) in help
 
 
 def test_only_full_word_highlight():
@@ -554,7 +582,7 @@ def test_substring_highlighting(substrings, expected, ignore_case):
     result = highlight(
         "Hey-xx-xxx-heY-xXxXxxxxx-hey",
         substrings,
-        styling_method=default_theme.success,
+        styling_method=theme.success,
         ignore_case=ignore_case,
     )
     assert result == expected
