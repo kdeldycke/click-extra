@@ -127,6 +127,43 @@ def test_extra_theme():
                 f"Option named {theme.option('--exclude')}.",
             )
         ),
+        # Boolean flags.
+        (
+            ExtraOption(["--flag/--no-flag"], default=False, help="Auto --no-flag and --flag options."),
+            (
+                # Option flag and its negative name are highlighted.
+                f"{theme.option('--flag')} / {theme.option('--no-flag')}",
+                # As well as in the description.
+                f"Auto {theme.option('--no-flag')} and {theme.option('--flag')} options.",
+            )
+        ),
+        (
+            ExtraOption(['--shout'], is_flag=True, help="Auto --shout but no --no-shout."),
+            (
+                # Option flag and its negative name are highlighted.
+                f"{theme.option('--shout')} ",
+                # As well as in the description.
+                f"Auto {theme.option('--shout')} but no --no-shout.",
+            )
+        ),
+        (
+            ExtraOption(["/debug;/no-debug"], help="Auto /no-debug and /debug options."),
+            (
+                # Option flag and its negative name are highlighted.
+                f"{theme.option('/debug')}; {theme.option('/no-debug')}",
+                # As well as in the description.
+                f"Auto {theme.option('/no-debug')} and {theme.option('/debug')} options.",
+            )
+        ),
+        (
+            ExtraOption(['--shout/--no-shout', ' /-S'], default=False, help="Auto --shout, --no-shout and -S."),
+            (
+                # Option flag and its negative name are highlighted.
+                f"{theme.option('--shout')} / {theme.option('-S')}, {theme.option('--no-shout')}",
+                # As well as in the description.
+                f"Auto {theme.option('--shout')}, {theme.option('--no-shout')} and {theme.option('-S')}.",
+            )
+        ),
         # Choices.
         (
             ExtraOption(["--manager"], type=click.Choice(['apm', 'apt', 'brew']),
