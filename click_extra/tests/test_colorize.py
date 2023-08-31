@@ -140,7 +140,7 @@ def test_extra_theme():
         (
             ExtraOption(['--shout'], is_flag=True, help="Auto --shout but no --no-shout."),
             (
-                # Option flag and its negative name are highlighted.
+                # Option flag is highlighted, but not its negative.
                 f"{theme.option('--shout')} ",
                 # As well as in the description.
                 f"Auto {theme.option('--shout')} but no --no-shout.",
@@ -158,7 +158,7 @@ def test_extra_theme():
         (
             ExtraOption(['--shout/--no-shout', ' /-S'], default=False, help="Auto --shout, --no-shout and -S."),
             (
-                # Option flag and its negative name are highlighted.
+                # Option flag, and its short and negative name are highlighted.
                 f"{theme.option('--shout')} / {theme.option('-S')}, {theme.option('--no-shout')}",
                 # As well as in the description.
                 f"Auto {theme.option('--shout')}, {theme.option('--no-shout')} and {theme.option('-S')}.",
@@ -186,7 +186,18 @@ def test_extra_theme():
                 f"Option with {theme.metavar('SPECIAL')} metavar.",
             )
         ),
-
+        # Envvars.
+        (
+            ExtraOption(["--flag1"], is_flag=True, envvar=["custom1", "FLAG1"], show_envvar=True),
+            (
+                f" {theme.option('--flag1')} ",
+                # Extras in square brackets are highlighted.
+                f"{theme.bracket('[')}"
+                f"{theme.bracket('env var: ')}"
+                f"{theme.envvar('custom1, FLAG1, TEST_FLAG1')}"
+                f"{theme.bracket(']')}",
+            )
+        ),
     ),
 )
 def test_option_highlight(opt, expected_outputs):
