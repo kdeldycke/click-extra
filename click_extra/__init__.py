@@ -17,7 +17,7 @@
 
 import sys
 
-__version__ = "4.6.5"
+__version__ = "4.6.6"
 """Examples of valid version strings according :pep:`440#version-scheme`:
 
 .. code-block:: python
