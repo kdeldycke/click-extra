@@ -200,7 +200,8 @@ def test_extra_theme():
             ),
             (
                 f" {theme.option('--flag')} / {theme.option('--no-flag')} ",
-                f" Auto {theme.option('--no-flag')} and {theme.option('--flag')} options.",
+                f" Auto {theme.option('--no-flag')}"
+                f" and {theme.option('--flag')} options.",
             ),
         ),
         (
@@ -220,7 +221,8 @@ def test_extra_theme():
             ),
             (
                 f" {theme.option('/debug')}; {theme.option('/no-debug')} ",
-                f" Auto {theme.option('/no-debug')} and {theme.option('/debug')} options.",
+                f" Auto {theme.option('/no-debug')}"
+                f" and {theme.option('/debug')} options.",
             ),
         ),
         (
@@ -228,7 +230,8 @@ def test_extra_theme():
             ExtraOption(["+w/-w"], help="Auto +w, and -w. Not ++w or -woo."),
             (
                 f" {theme.option('+w')} / {theme.option('-w')} ",
-                f" Auto {theme.option('+w')}, and {theme.option('-w')}. Not ++w or -woo.",
+                f" Auto {theme.option('+w')}, and {theme.option('-w')}."
+                " Not ++w or -woo.",
             ),
         ),
         (
@@ -239,8 +242,10 @@ def test_extra_theme():
                 help="Auto --shout, --no-shout and -S.",
             ),
             (
-                f" {theme.option('--shout')} / {theme.option('-S')}, {theme.option('--no-shout')} ",
-                f" Auto {theme.option('--shout')}, {theme.option('--no-shout')} and {theme.option('-S')}.",
+                f" {theme.option('--shout')} / {theme.option('-S')},"
+                f" {theme.option('--no-shout')} ",
+                f" Auto {theme.option('--shout')}, {theme.option('--no-shout')}"
+                f" and {theme.option('-S')}.",
             ),
         ),
         # Choices.
@@ -253,8 +258,10 @@ def test_extra_theme():
             ),
             (
                 f" {theme.option('--manager')} "
-                f"[{theme.choice('apm')}|{theme.choice('apt')}|{theme.choice('brew')}] ",
-                f" {theme.choice('apt')}, APT (not aptitude or apt_mint) and {theme.choice('brew')}.",
+                f"[{theme.choice('apm')}|{theme.choice('apt')}"
+                f"|{theme.choice('brew')}] ",
+                f" {theme.choice('apt')}, APT (not aptitude or apt_mint) and"
+                f" {theme.choice('brew')}.",
             ),
         ),
         # Tuple option.
