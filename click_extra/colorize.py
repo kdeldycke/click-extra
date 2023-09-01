@@ -762,7 +762,8 @@ class HelpExtraFormatter(HelpFormatter):
                     flags=re.VERBOSE,
                 )
 
-        # Highlight other keywords, which are expected to be separated by any character but word characters.
+        # Highlight other keywords, which are expected to be separated by any
+        # character but word characters.
         for matching_keywords, style_group_id in (
             (sorted(self.choices, reverse=True), "choice"),
             (sorted(self.metavars, reverse=True), "metavar"),
