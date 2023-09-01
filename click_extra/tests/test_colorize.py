@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 import re
 from textwrap import dedent
+import os
 
 import click
 import cloup
@@ -36,6 +37,7 @@ from click_extra import (
     argument,
     echo,
     option,
+    IntRange,
     option_group,
     pass_context,
     secho,
@@ -109,90 +111,153 @@ def test_extra_theme():
     (
         # Short option.
         (
+            # Short option name is highlighted in both the synopsis and the description.
             ExtraOption(["-e"], help="Option -e (-e), not -ee or --e."),
             (
-                # Usual option name highlighting.
-                f"{theme.option('-e')} {theme.metavar('TEXT')}",
-                # Option name in the description is highlighted as well.
-                f"Option {theme.option('-e')} ({theme.option('-e')}), not -ee or --e.",
+                f" {theme.option('-e')} {theme.metavar('TEXT')} ",
+                f" Option {theme.option('-e')} ({theme.option('-e')}), not -ee or --e.",
             )
         ),
         # Long option.
         (
+            # Long option name is highlighted in both the synopsis and the description.
             ExtraOption(["--exclude"], help="Option named --exclude."),
             (
-                # Usual option name highlighting.
-                f"{theme.option('--exclude')} {theme.metavar('TEXT')}",
-                # Option name in the description is highlighted as well.
-                f"Option named {theme.option('--exclude')}.",
+                f" {theme.option('--exclude')} {theme.metavar('TEXT')} ",
+                f" Option named {theme.option('--exclude')}.",
+            )
+        ),
+        # Default value.
+        (
+            ExtraOption(['--n'], default=1, show_default=True),
+            (
+                f" {theme.option('--n')} {theme.metavar('INTEGER')} ",
+                f" {theme.bracket('[')}"
+                f"{theme.bracket('default: ')}"
+                f"{theme.default('1')}"
+                f"{theme.bracket(']')}",
+            )
+        ),
+        # Dynamic default.
+        (
+            ExtraOption(["--username"], prompt=True, default=lambda: os.environ.get("USER", ""), show_default="current user"),
+            (
+                f" {theme.option('--username')} {theme.metavar('TEXT')} ",
+                f" {theme.bracket('[')}"
+                f"{theme.bracket('default: ')}"
+                f"{theme.default('(current user)')}"
+                f"{theme.bracket(']')}",
+            )
+        ),
+        # Required option.
+        (
+            ExtraOption(['--x'], required=True, type=int),
+            (
+                f" {theme.option('--x')} {theme.metavar('INTEGER')} ",
+                f" {theme.bracket('[')}"
+                f"{theme.bracket('required')}"
+                f"{theme.bracket(']')}",
+            )
+        ),
+        # Required and default value.
+        (
+            ExtraOption(['--y'], default=1, required=True, show_default=True),
+            (
+                f" {theme.option('--y')} {theme.metavar('INTEGER')} ",
+                f" {theme.bracket('[')}"
+                f"{theme.bracket('default: ')}"
+                f"{theme.default('1')}"
+                f"{theme.bracket('; ')}"
+                f"{theme.bracket('required')}"
+                f"{theme.bracket(']')}",
+            )
+        ),
+        # Range option.
+        (
+            ExtraOption(['--digit'], type=IntRange(0, 9)),
+            (
+                f" {theme.option('--digit')} {theme.metavar('INTEGER RANGE')} ",
+                f" {theme.bracket('[')}"
+                f"{theme.bracket('0<=x<=9')}"
+                f"{theme.bracket(']')}",
             )
         ),
         # Boolean flags.
         (
+            # Option flag and its opposite names are highlighted, including in the description.
             ExtraOption(["--flag/--no-flag"], default=False, help="Auto --no-flag and --flag options."),
             (
-                # Option flag and its negative name are highlighted.
-                f"{theme.option('--flag')} / {theme.option('--no-flag')}",
-                # As well as in the description.
-                f"Auto {theme.option('--no-flag')} and {theme.option('--flag')} options.",
+                f" {theme.option('--flag')} / {theme.option('--no-flag')} ",
+                f" Auto {theme.option('--no-flag')} and {theme.option('--flag')} options.",
             )
         ),
         (
+            # Option with single flag is highlighted, but not its negative.
             ExtraOption(['--shout'], is_flag=True, help="Auto --shout but no --no-shout."),
             (
-                # Option flag is highlighted, but not its negative.
-                f"{theme.option('--shout')} ",
-                # As well as in the description.
-                f"Auto {theme.option('--shout')} but no --no-shout.",
+                f" {theme.option('--shout')} ",
+                f" Auto {theme.option('--shout')} but no --no-shout.",
             )
         ),
         (
+            # Option flag with alternative leading symbol.
             ExtraOption(["/debug;/no-debug"], help="Auto /no-debug and /debug options."),
             (
-                # Option flag and its negative name are highlighted.
-                f"{theme.option('/debug')}; {theme.option('/no-debug')}",
-                # As well as in the description.
-                f"Auto {theme.option('/no-debug')} and {theme.option('/debug')} options.",
+                f" {theme.option('/debug')}; {theme.option('/no-debug')} ",
+                f" Auto {theme.option('/no-debug')} and {theme.option('/debug')} options.",
+            )
+        ),
+
+        (
+            # Option flag with alternative leading symbol.
+            ExtraOption(['+w/-w'], help="Auto +w, and -w. Not ++w or -woo."),
+            (
+                f" {theme.option('+w')} / {theme.option('-w')} ",
+                f" Auto {theme.option('+w')}, and {theme.option('-w')}. Not ++w or -woo.",
             )
         ),
         (
+            # Option flag, and its short and negative name are highlighted.
             ExtraOption(['--shout/--no-shout', ' /-S'], default=False, help="Auto --shout, --no-shout and -S."),
             (
-                # Option flag, and its short and negative name are highlighted.
-                f"{theme.option('--shout')} / {theme.option('-S')}, {theme.option('--no-shout')}",
-                # As well as in the description.
-                f"Auto {theme.option('--shout')}, {theme.option('--no-shout')} and {theme.option('-S')}.",
+                f" {theme.option('--shout')} / {theme.option('-S')}, {theme.option('--no-shout')} ",
+                f" Auto {theme.option('--shout')}, {theme.option('--no-shout')} and {theme.option('-S')}.",
             )
         ),
         # Choices.
         (
+            # Choices after the option name are highlighted. Case is respected.
             ExtraOption(["--manager"], type=click.Choice(['apm', 'apt', 'brew']),
                         help="apt, APT (not aptitude or apt_mint) and brew."),
             (
-                # Choices after the option name are highlighted.
-                f"{theme.option('--manager')} "
-                f"[{theme.choice('apm')}|{theme.choice('apt')}|{theme.choice('brew')}]",
-                # Choices in description are highlighted as well, and only on matching case.
-                f"{theme.choice('apt')}, APT (not aptitude or apt_mint) and {theme.choice('brew')}.",
+                f" {theme.option('--manager')} "
+                f"[{theme.choice('apm')}|{theme.choice('apt')}|{theme.choice('brew')}] ",
+                f" {theme.choice('apt')}, APT (not aptitude or apt_mint) and {theme.choice('brew')}.",
+            )
+        ),
+        # Tuple option.
+        (
+            ExtraOption(['--item'], type=(str, int), help="Option with tuple type."),
+            (
+                f" {theme.option('--item')} {theme.metavar('<TEXT INTEGER>...')} ",
             )
         ),
         # Metavar.
         (
+            # Metavar after the option name is highlighted.
             ExtraOption(["--special"], metavar="SPECIAL", help="Option with SPECIAL metavar."),
             (
-                # Metavar after the option name is highlighted.
-                f"{theme.option('--special')} {theme.metavar('SPECIAL')}",
-                # Metavar in the description is highlighted as well.
-                f"Option with {theme.metavar('SPECIAL')} metavar.",
+                f" {theme.option('--special')} {theme.metavar('SPECIAL')} ",
+                f" Option with {theme.metavar('SPECIAL')} metavar.",
             )
         ),
         # Envvars.
         (
+            # Envvars in square brackets are highlighted.
             ExtraOption(["--flag1"], is_flag=True, envvar=["custom1", "FLAG1"], show_envvar=True),
             (
                 f" {theme.option('--flag1')} ",
-                # Extras in square brackets are highlighted.
-                f"{theme.bracket('[')}"
+                f" {theme.bracket('[')}"
                 f"{theme.bracket('env var: ')}"
                 f"{theme.envvar('custom1, FLAG1, TEST_FLAG1')}"
                 f"{theme.bracket(']')}",
@@ -204,7 +269,7 @@ def test_option_highlight(opt, expected_outputs):
     """Test highlighting of all option's variations."""
     # Add option to a dummy command.
     cli = ExtraCommand("test", params=[opt])
-    ctx = cli.make_context(info_name=None, args=[])
+    ctx = ExtraContext(cli)
 
     # Render full CLI help.
     help = cli.get_help(ctx)
@@ -215,7 +280,7 @@ def test_option_highlight(opt, expected_outputs):
 
     # Check that the option is highlighted.
     for expected in expected_outputs:
-        assert dedent(expected) in help
+        assert expected in help
 
 
 def test_only_full_word_highlight():

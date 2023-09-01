@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Highlight required label and value range in option description. Closes {issue}`748`.
+
 ## {gh}`4.6.4 (2023-08-23) <compare/v4.6.3...v4.6.4>`
 
 - Fix collection of subcommand parameters in `--show-params` output. Closes {issue}`725`.

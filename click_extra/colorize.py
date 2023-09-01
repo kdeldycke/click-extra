@@ -527,10 +527,14 @@ class HelpExtraFormatter(HelpFormatter):
     style_aliases = {
         # Layout elements of the square brackets trailing each option.
         "bracket_1": "bracket",
-        "bracket_2": "bracket",
-        "label_sep": "bracket",
         "envvar_label": "bracket",
+        "label_sep_1": "bracket",
         "default_label": "bracket",
+        "label_sep_2": "bracket",
+        "range": "bracket",
+        "label_sep_3": "bracket",
+        "required_label": "bracket",
+        "bracket_2": "bracket",
         # Long and short options are options.
         "long_option": "option",
         "short_option": "option",
@@ -652,30 +656,58 @@ class HelpExtraFormatter(HelpFormatter):
         help_text = re.sub(
             r"""
             (\ \ )                  # 2 spaces (column spacing or description spacing).
-            (?P<bracket_1>\[)                  # Square brackets opening.
+            (?P<bracket_1>\[)       # Square brackets opening.
 
-            (?:                         # Non-capturing group.
+            (?:                     # Non-capturing group.
                 (?P<envvar_label>
-                    env\s+var:            # Starting content within the brackets.
-                    \s+                 # Any number of blank chars.
+                    env\s+var:      # Starting content within the brackets.
+                    \s+             # Any number of blank chars.
                 )
-                (?P<envvar>.+?)  # Greedy-matching of any string and line returns.
-            )?                  # The envvar group is optional.
+                (?P<envvar>.+?)     # Greedy-matching of any string and line returns.
+            )?                      # The envvar group is optional.
 
-            (?P<label_sep>
-                ;               # Separator between labels.
+            (?P<label_sep_1>
+                ;                   # Separator between labels.
                 \s+                 # Any number of blank chars.
             )?
 
-            (?:                         # Non-capturing group.
+            (?:                     # Non-capturing group.
                 (?P<default_label>
-                    default:            # Starting content within the brackets.
-                    \s+                 # Any number of blank chars.
+                    default:        # Starting content within the brackets.
+                    \s+             # Any number of blank chars.
                 )
-                (?P<default>.+?)  # Greedy-matching of any string and line returns.
+                (?P<default>.+?)    # Greedy-matching of any string and line returns.
             )?                      # The default group is optional.
 
-            (?P<bracket_2>\])     # Square brackets closing.
+            (?P<label_sep_2>
+                ;                   # Separator between labels.
+                \s+                 # Any number of blank chars.
+            )?
+
+            (?:                     # Non-capturing group.
+                (?P<range>
+                    (?:
+                        \S+
+                        (?:<|<=)    # Lower bound operators.
+                    )?              # Operator preceding x is optional.
+                    x
+                    (?:<|<=|>|>=)  # Any range operator.
+                    \S+
+                )
+            )?                      # The range group is optional.
+
+            (?P<label_sep_3>
+                ;                   # Separator between labels.
+                \s+                 # Any number of blank chars.
+            )?
+
+            (?:                     # Non-capturing group.
+                (?P<required_label>
+                    required        # Required label.
+                )
+            )?                      # The required group is optional.
+
+            (?P<bracket_2>\])       # Square brackets closing.
             """,
             self.colorize,
             help_text,
