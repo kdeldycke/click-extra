@@ -207,7 +207,9 @@ def test_extra_theme():
         (
             # Option with single flag is highlighted, but not its negative.
             ExtraOption(
-                ["--shout"], is_flag=True, help="Auto --shout but no --no-shout."
+                ["--shout"],
+                is_flag=True,
+                help="Auto --shout but no --no-shout.",
             ),
             (
                 f" {theme.option('--shout')} ",
@@ -217,7 +219,8 @@ def test_extra_theme():
         (
             # Option flag with alternative leading symbol.
             ExtraOption(
-                ["/debug;/no-debug"], help="Auto /no-debug and /debug options."
+                ["/debug;/no-debug"],
+                help="Auto /no-debug and /debug options.",
             ),
             (
                 f" {theme.option('/debug')}; {theme.option('/no-debug')} ",
@@ -273,7 +276,9 @@ def test_extra_theme():
         (
             # Metavar after the option name is highlighted.
             ExtraOption(
-                ["--special"], metavar="SPECIAL", help="Option with SPECIAL metavar."
+                ["--special"],
+                metavar="SPECIAL",
+                help="Option with SPECIAL metavar.",
             ),
             (
                 f" {theme.option('--special')} {theme.metavar('SPECIAL')} ",
@@ -284,7 +289,10 @@ def test_extra_theme():
         (
             # Envvars in square brackets are highlighted.
             ExtraOption(
-                ["--flag1"], is_flag=True, envvar=["custom1", "FLAG1"], show_envvar=True
+                ["--flag1"],
+                is_flag=True,
+                envvar=["custom1", "FLAG1"],
+                show_envvar=True,
             ),
             (
                 f" {theme.option('--flag1')} ",
