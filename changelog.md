@@ -1,5 +1,11 @@
 # Changelog
 
+## {gh}`4.6.6 (unreleased) <compare/v4.6.5...main>`
+
+```{important}
+This version is not released yet and is under active development.
+```
+
 ## {gh}`4.6.5 (2023-09-01) <compare/v4.6.4...v4.6.5>`
 
 - Highlight required label and value range in option description. Closes {issue}`748`.
