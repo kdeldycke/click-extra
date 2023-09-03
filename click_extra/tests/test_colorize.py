@@ -287,7 +287,7 @@ def test_extra_theme():
         ),
         # Envvars.
         (
-            # Envvars in square brackets are highlighted.
+            # All envvars in square brackets are highlighted.
             ExtraOption(
                 ["--flag1"],
                 is_flag=True,
@@ -299,6 +299,26 @@ def test_extra_theme():
                 f" {theme.bracket('[')}"
                 f"{theme.bracket('env var: ')}"
                 f"{theme.envvar('custom1, FLAG1, TEST_FLAG1')}"
+                f"{theme.bracket(']')}",
+            ),
+        ),
+        (
+            # Envvars and default.
+            ExtraOption(
+                ["--flag1"],
+                default=1,
+                envvar="custom1",
+                show_envvar=True,
+                show_default=True,
+            ),
+            (
+                f" {theme.option('--flag1')} ",
+                f" {theme.bracket('[')}"
+                f"{theme.bracket('env var: ')}"
+                f"{theme.envvar('custom1, TEST_FLAG1')}"
+                f"{theme.bracket('; ')}"
+                f"{theme.bracket('default: ')}"
+                f"{theme.default('1')}"
                 f"{theme.bracket(']')}",
             ),
         ),
