@@ -23,9 +23,11 @@ import os
 import re
 import warnings
 from functools import cached_property
+from collections.abc import Generator
 from gettext import gettext as _
 from importlib import metadata
 from typing import TYPE_CHECKING, cast
+from types import FrameType
 
 import click
 from boltons.ecoutils import get_profile
@@ -38,6 +40,10 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from cloup.styling import IStyle
+
+
+FrameChain = list[tuple[str, str]]
+"""Type for a list of all frames we inspected. Only used for debugging."""
 
 
 class ExtraVersionOption(ExtraOption):
@@ -128,25 +134,18 @@ class ExtraVersionOption(ExtraOption):
             **kwargs,
         )
 
-    @cached_property
-    def package_name(self) -> str:
-        """Guess the package name.
+    def cli_frame(self) -> Generator[tuple[str, FrameType, FrameChain], None, None]:
+        """Returns the frame in which the CLI is implemented.
 
         Inspects the execution stack frames to find the package in which the user's CLI
-        is implemented. Returns the base module ID (i.e. the string before the first
-        dot `.`)
+        is implemented.
 
-        If the CLI is not implemented in a package, it assume the CLI is a simple
-        standalone script, and the returned package name is the script's file name
-        (including the extension). Also at this point, the version is taken from the
-        script's local ``__version__`` variable or set to ``None`` to bypass
-        auto-detection.
+        Returns the frame name, the frame itself, and the frame chain for debugging.
         """
         # Keep a list of all frames inspected for debugging.
-        frame_chain: list[tuple[str, str]] = []
+        frame_chain: FrameChain = []
 
         # Walk the execution stack from bottom to top.
-        package_name: str | None = None
         for frame_info in inspect.stack():
             frame = frame_info.frame
 
@@ -170,18 +169,40 @@ class ExtraVersionOption(ExtraOption):
                 continue
 
             # We found the frame where the CLI is implemented.
-            package_name = frame_name.split(".")[0]
+            yield frame_name, frame, frame_chain
+            break
 
-            # Re-interpret the package name if the CLI was defined by the way of a
-            # `__main__` entry-point.
-            if package_name == "__main__":
-                # Take the base package name itself.
-                package_path = frame.f_globals.get("__package__")
-                if package_path:
-                    package_name = package_path.split(".", 1)[0]
-                    break
+        # Break reference cycle
+        # https://docs.python.org/3/library/inspect.html#the-interpreter-stack
+        del frame
 
-                # The CLI is a standalone script. Use its filename.
+    @cached_property
+    def package_name(self) -> str:
+        """Guess the package name.
+
+        If the CLI is not implemented in a package, it assume the CLI is a simple
+        standalone script, and the returned package name is the script's file name
+        (including the extension). Also at this point, the version is taken from the
+        script's local ``__version__`` variable or set to ``None`` to bypass
+        auto-detection.
+        """
+        # Get the frame in which the CLI is implemented.
+        frame_name, frame, frame_chain = tuple(self.cli_frame())[0]
+
+        # Extract the base module ID (i.e. the string before the first dot `.`).
+        package_name = frame_name.split(".")[0]
+
+        # Re-interpret the package name if the CLI was defined by the way of a
+        # `__main__` entry-point.
+        if package_name == "__main__":
+
+            # Take the base package name itself.
+            package_path = frame.f_globals.get("__package__")
+            if package_path:
+                package_name = package_path.split(".", 1)[0]
+
+            # The CLI is a standalone script. Use its filename.
+            else:
                 file_path = frame.f_globals.get("__file__")
                 if file_path:
                     package_name = os.path.basename(file_path)
@@ -190,20 +211,15 @@ class ExtraVersionOption(ExtraOption):
                 version = frame.f_globals.get("__version__")
                 self.version = version if version else None
 
-            break
-
-        # Break reference cycle
-        # https://docs.python.org/3/library/inspect.html#the-interpreter-stack
-        del frame
-
+        # Package name can't be guessed.
         if not package_name:
             logger = logging.getLogger("click_extra")
             for counter, (p_name, f_name) in enumerate(frame_chain):
                 logger.debug(f"Inspected frame #{counter}: {p_name}, {f_name}")
             msg = (
-                "Could not determine the package name automatically from the frame "
-                "stack. Try passing 'package_name' instead."
-            )
+                    "Could not determine the package name automatically from the frame "
+                    "stack. Try passing 'package_name' instead."
+                )
             raise RuntimeError(msg)
 
         return package_name
