@@ -63,19 +63,18 @@ Click Extra uses [modern format string syntax](https://docs.python.org/3/library
 
 You can customize the message template with the following variables:
 
-| Variable            | Description                               |
-| -------------------- | ----------------------------------------- |
-| [`{module}`](#click_extra.version.ExtraVersionOption.module) | The [module object](https://docs.python.org/3/glossary.html#term-module) in which the command is implemented.|
-| [`{module_name}`](#click_extra.version.ExtraVersionOption.module_name) | The [`__name__` of the module](https://docs.python.org/3/reference/import.html#name__) in which the command is implemented. |
-| [`{module_file}`](#click_extra.version.ExtraVersionOption.module_file) | The [full path of the file](https://docs.python.org/3/reference/import.html#file__) in which the command is implemented.|
-| [`{module_version}`](#click_extra.version.ExtraVersionOption.module_version)| The string found in the local `__version__` variable of the module.|
-| [`{package_name}`](#click_extra.version.ExtraVersionOption.package_name)| The [name of the package](https://docs.python.org/3/reference/import.html#package__) in which the CLI is distibuted.|
-| [`{package_version}`](#click_extra.version.ExtraVersionOption.package_version)| The [version from the package metadata](https://docs.python.org/3/library/importlib.metadata.html?highlight=metadata%20version#distribution-versions) in which the CLI is distibuted.|
-| [`{exec_name}`](#click_extra.version.ExtraVersionOption.exec_name)| User-friendly name of the executed CLI. Returns `{module_name}`, `{package_name}` or script's filename, in this order.|
-| [`{version}`](#click_extra.version.ExtraVersionOption.version) | Version of the CLI. Returns `{module_version}`, `{package_version}` or `None`, in this order.|
-| [`{prog_name}`](#click_extra.version.ExtraVersionOption.prog_name)| The name of the program, from Click's point of view.|
-| [`{env_info}`](#click_extra.version.ExtraVersionOption.env_info)| The [environment information](https://boltons.readthedocs.io/en/latest/ecoutils.html#boltons.ecoutils.get_profile) in JSON. |
-
+| Variable                                                                       | Description                                                                                                                                                                           |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`{module}`](#click_extra.version.ExtraVersionOption.module)                   | The [module object](https://docs.python.org/3/glossary.html#term-module) in which the command is implemented.                                                                         |
+| [`{module_name}`](#click_extra.version.ExtraVersionOption.module_name)         | The [`__name__` of the module](https://docs.python.org/3/reference/import.html#name__) in which the command is implemented.                                                           |
+| [`{module_file}`](#click_extra.version.ExtraVersionOption.module_file)         | The [full path of the file](https://docs.python.org/3/reference/import.html#file__) in which the command is implemented.                                                              |
+| [`{module_version}`](#click_extra.version.ExtraVersionOption.module_version)   | The string found in the local `__version__` variable of the module.                                                                                                                   |
+| [`{package_name}`](#click_extra.version.ExtraVersionOption.package_name)       | The [name of the package](https://docs.python.org/3/reference/import.html#package__) in which the CLI is distibuted.                                                                  |
+| [`{package_version}`](#click_extra.version.ExtraVersionOption.package_version) | The [version from the package metadata](https://docs.python.org/3/library/importlib.metadata.html?highlight=metadata%20version#distribution-versions) in which the CLI is distibuted. |
+| [`{exec_name}`](#click_extra.version.ExtraVersionOption.exec_name)             | User-friendly name of the executed CLI. Returns `{module_name}`, `{package_name}` or script's filename, in this order.                                                                |
+| [`{version}`](#click_extra.version.ExtraVersionOption.version)                 | Version of the CLI. Returns `{module_version}`, `{package_version}` or `None`, in this order.                                                                                         |
+| [`{prog_name}`](#click_extra.version.ExtraVersionOption.prog_name)             | The name of the program, from Click's point of view.                                                                                                                                  |
+| [`{env_info}`](#click_extra.version.ExtraVersionOption.env_info)               | The [environment information](https://boltons.readthedocs.io/en/latest/ecoutils.html#boltons.ecoutils.get_profile) in JSON.                                                           |
 
 ```{caution}
 Some Click's built-in variables are not recognized:
@@ -172,19 +171,19 @@ It is supported by Click Extra as a convenience for script developers.
 
 Each variable listed in the section above can be rendered in its own style. They all have dedicated parameters you can pass to the `extra_version_option` decorator:
 
-| Parameter            | Description                               |
-| -------------------- | ----------------------------------------- |
-| `message_style`      | Default style of the message. |
-| `module_style`      | Style of the `{module}` variable.      |
-| `module_name_style`      | Style of the `{module_name}` variable.      |
-| `module_file_style`      | Style of the `{module_file}` variable.      |
-| `module_version_style`      | Style of the `{module_version}` variable.      |
-| `package_name_style`      | Style of the `{package_name}` variable.      |
-| `package_version_style`      | Style of the `{package_version}` variable.      |
-| `exec_name_style`      | Style of the `{exec_name}` variable.      |
-| `version_style`      | Style of the `{version}` variable.      |
-| `prog_name_style`      | Style of the `{prog_name}` variable.      |
-| `env_info_style`      | Style of the `{env_info}` variable.      |
+| Parameter               | Description                                |
+| ----------------------- | ------------------------------------------ |
+| `message_style`         | Default style of the message.              |
+| `module_style`          | Style of the `{module}` variable.          |
+| `module_name_style`     | Style of the `{module_name}` variable.     |
+| `module_file_style`     | Style of the `{module_file}` variable.     |
+| `module_version_style`  | Style of the `{module_version}` variable.  |
+| `package_name_style`    | Style of the `{package_name}` variable.    |
+| `package_version_style` | Style of the `{package_version}` variable. |
+| `exec_name_style`       | Style of the `{exec_name}` variable.       |
+| `version_style`         | Style of the `{version}` variable.         |
+| `prog_name_style`       | Style of the `{prog_name}` variable.       |
+| `env_info_style`        | Style of the `{env_info}` variable.        |
 
 Here is an example:
 
