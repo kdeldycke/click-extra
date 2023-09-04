@@ -147,8 +147,7 @@ def test_ansi_lexers_candidates(tmp_path):
 
 def collect_classes(klass, prefix="Ansi"):
     """Returns all classes defined in ``click_extra.pygments`` that are a subclass of
-    ``klass``, and whose name starts with the provided ``prefix``.
-    """
+    ``klass``, and whose name starts with the provided ``prefix``."""
     klasses = {}
     for name, var in extra_pygments.__dict__.items():
         if issubclass(var, klass) and name.startswith(prefix):
@@ -158,8 +157,7 @@ def collect_classes(klass, prefix="Ansi"):
 
 def get_pyproject_section(*section_path: str) -> dict[str, str]:
     """Descends into the TOML tree of ``pyproject.toml`` to reach the value specified by
-    ``section_path``.
-    """
+    ``section_path``."""
     toml_path = PROJECT_ROOT.joinpath("pyproject.toml").resolve()
     section: dict = tomllib.loads(toml_path.read_text(encoding="utf-8"))
     for section_id in section_path:

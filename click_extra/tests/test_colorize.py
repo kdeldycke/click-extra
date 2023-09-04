@@ -76,8 +76,7 @@ from .conftest import (
 
 def test_theme_definition():
     """Ensure we do not leave any property we would have inherited from cloup and
-    logging primitives.
-    """
+    logging primitives."""
     assert set(HelpTheme.__dataclass_fields__).issubset(
         HelpExtraTheme.__dataclass_fields__,
     )
@@ -510,8 +509,7 @@ def test_keyword_collection(invoke):
 )
 def test_standalone_color_option(invoke, option_decorator, param, expecting_colors):
     """Check color option values, defaults and effects on all things colored, including
-    verbosity option.
-    """
+    verbosity option."""
 
     @click.command
     @verbosity_option

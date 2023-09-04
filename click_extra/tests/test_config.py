@@ -465,9 +465,9 @@ def test_conf_file_overrides_defaults(
                 rf'"GET /{re.escape(conf_name)} HTTP/1\.1" 200 -\n'
             )
         debug_log += (
-            default_debug_uncolored_logging +
-            default_debug_uncolored_version_details +
-            default_debug_uncolored_log_end
+            default_debug_uncolored_logging
+            + default_debug_uncolored_version_details
+            + default_debug_uncolored_log_end
         )
         assert re.fullmatch(debug_log, result.stderr)
 

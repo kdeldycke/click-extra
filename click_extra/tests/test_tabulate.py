@@ -509,8 +509,7 @@ expected_renderings = {
 
 def test_recognized_modes():
     """Check all rendering modes proposed by the table module are accounted for and
-    there is no duplicates.
-    """
+    there is no duplicates."""
     assert set(tabulate._table_formats).issubset(expected_renderings.keys())
     assert set(tabulate._table_formats).issubset(output_formats)
 

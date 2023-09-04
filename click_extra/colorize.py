@@ -784,8 +784,7 @@ class HelpExtraFormatter(HelpFormatter):
 
     def getvalue(self):
         """Wrap original `Click.HelpFormatter.getvalue()` to force extra-colorization on
-        rendering.
-        """
+        rendering."""
         help_text = super().getvalue()
         return self.highlight_extra_keywords(help_text)
 

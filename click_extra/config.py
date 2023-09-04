@@ -194,8 +194,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
     def get_help_record(self, ctx):
         """Replaces the default value by the pretty version of the configuration
-        matching pattern.
-        """
+        matching pattern."""
         # Pre-compute pretty_path to bypass infinite recursive loop on get_default.
         pretty_path = shrinkuser(Path(self.get_default(ctx)))
         with patch.object(ConfigOption, "get_default") as mock_method:

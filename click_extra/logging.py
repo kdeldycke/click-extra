@@ -116,8 +116,7 @@ class ExtraLogHandler(Handler):
 class ExtraLogFormatter(Formatter):
     def formatMessage(self, record: LogRecord) -> str:
         """Colorize the record's log level name before calling the strandard
-        formatter.
-        """
+        formatter."""
         level = record.levelname.lower()
         level_style = getattr(default_theme, level, None)
         if level_style:
