@@ -353,7 +353,8 @@ class ExtraVersionOption(ExtraOption):
 
         This step is necessary because we need to linearize the template to apply the
         ANSI codes on the string segments. This is a consequence of the nature of ANSI,
-        directives which cannot be encapsulated within another (unlike markup tags like HTML).
+        directives which cannot be encapsulated within another (unlike markup tags
+        like HTML).
         """
         if template is None:
             template = self.message
