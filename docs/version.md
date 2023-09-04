@@ -6,6 +6,7 @@ Click Extra provides its own version option which, compared to [Click's built-in
 - adds [colors](#colors)
 - adds complete [environment information in JSON](#environment-information)
 - works with [standalone scripts](#standalone-script)
+- use [format string syntax](https://docs.python.org/3/library/string.html#format-string-syntax)
 - prints [details metadata in `DEBUG` logs](#debug-logs)
 - expose [metadata in the context](#get-metadata-values)
 
@@ -33,7 +34,7 @@ Here is how the defaults looks like:
    result = invoke(cli, args=["--help"])
    assert "--version" in result.output
 
-The default version message is the `same as Click's default <https://github.com/pallets/click/blob/b498906/src/click/decorators.py#L455>`_ (i.e. ``%(prog)s, version %(version)s``), but colored:
+The default version message is the same as Click's default, but colored:
 
 .. click:run::
    result = invoke(cli, args=["--version"])
@@ -41,24 +42,46 @@ The default version message is the `same as Click's default <https://github.com/
 ```
 
 ```{hint}
-In this example I have hard-coded the version to `1.2.3` for the sake of demonstration. But in most case, you do not need to force it. By default, the version will be automattically fetched from the `__version__` attribute of the module where the command is defined.
+In this example I have hard-coded the version to `1.2.3` for the sake of demonstration. In most cases, you do not need to force it. By default, the version will be automattically fetched from the `__version__` attribute of the module where the command is defined.
 ```
 
 ## Variables
 
-You can customize the version string with the following variables:
+The message template is a [format string](https://docs.python.org/3/library/string.html#format-string-syntax), which [defaults to](#click_extra.version.ExtraVersionOption.message):
 
-- `%(package_name)s`: the name of the package where the command is defined. Will return the base module ID (string before the first dot `.`). If the CLI is not packaged, it will return the Python script's filename.
-- `%(version)s`: the version of the package where the command is defined. If the CLI is not packaged, the version string will be the one defined by the `__version__` variable in the Python script, or `None`.
-- `%(prog_name)s`: the name of the program (i.e. the CLI's name).
-- `%(env_info)s`: the environment information in JSON.
+```python
+"{prog_name}, version {version}"
+```
+
+```{important}
+This is different from Click, which uses [the `%(prog)s, version %(version)s` template](https://github.com/pallets/click/blob/b498906/src/click/decorators.py#L455).
+
+Click is based on [old-school `printf`-style formatting](https://docs.python.org/3/library/stdtypes.html#printf-style-string-formatting), which relies on variables of the `%(variable)s` form.
+
+Click Extra uses [modern format string syntax](https://docs.python.org/3/library/string.html#format-string-syntax), with variables of the `{variable}` form, to provide a more flexible and powerful templating.
+```
+
+You can customize the message template with the following variables:
+
+| Variable            | Description                               |
+| -------------------- | ----------------------------------------- |
+| [`{module}`](#click_extra.version.ExtraVersionOption.module) | The [module object](https://docs.python.org/3/glossary.html#term-module) in which the command is implemented.|
+| [`{module_name}`](#click_extra.version.ExtraVersionOption.module_name) | The [`__name__` of the module](https://docs.python.org/3/reference/import.html#name__) in which the command is implemented. |
+| [`{module_file}`](#click_extra.version.ExtraVersionOption.module_file) | The [full path of the file](https://docs.python.org/3/reference/import.html#file__) in which the command is implemented.|
+| [`{module_version}`](#click_extra.version.ExtraVersionOption.module_version)| The string found in the local `__version__` variable of the module.|
+| [`{package_name}`](#click_extra.version.ExtraVersionOption.package_name)| The [name of the package](https://docs.python.org/3/reference/import.html#package__) in which the CLI is distibuted.|
+| [`{package_version}`](#click_extra.version.ExtraVersionOption.package_version)| The [version from the package metadata](https://docs.python.org/3/library/importlib.metadata.html?highlight=metadata%20version#distribution-versions) in which the CLI is distibuted.|
+| [`{exec_name}`](#click_extra.version.ExtraVersionOption.exec_name)| User-friendly name of the executed CLI. Returns `{module_name}`, `{package_name}` or script's filename, in this order.|
+| [`{version}`](#click_extra.version.ExtraVersionOption.version) | Version of the CLI. Returns `{module_version}`, `{package_version}` or `None`, in this order.|
+| [`{prog_name}`](#click_extra.version.ExtraVersionOption.prog_name)| The name of the program, from Click's point of view.|
+| [`{env_info}`](#click_extra.version.ExtraVersionOption.env_info)| The [environment information](https://boltons.readthedocs.io/en/latest/ecoutils.html#boltons.ecoutils.get_profile) in JSON. |
+
 
 ```{caution}
-Click's built-in variables are recognized but deprecated:
-- Click's `%(package)s` is aliased to Click Extra's `%(package_name)s`
-- Click's `%(prog)s` is aliased to Click Extra's `%(prog_name)s`
-
-A deprecation warning will be emitted when using Click's variables.
+Some Click's built-in variables are not recognized:
+- `%(package)s` should be replaced by `{package_name}`
+- `%(prog)s` should be replaced by `{prog_name}`
+- All other `%(variable)s` should be replaced by their `{variable}` counterpart
 ```
 
 You can compose your own version string by passing the `message` argument:
@@ -68,7 +91,7 @@ You can compose your own version string by passing the `message` argument:
       from click_extra import command, extra_version_option
 
       @command
-      @extra_version_option(message="✨ %(prog_name)s v%(version)s - %(package_name)s")
+      @extra_version_option(message="✨ {prog_name} v{version} - {package_name}")
       def my_own_cli():
          pass
 
@@ -83,7 +106,7 @@ You can compose your own version string by passing the `message` argument:
 ```
 
 ```{note}
-Notice here how the `%(package_name)s` string takes the `click_extra` value. That's because this snippet of code is dynamiccaly executed by Sphinx in the context of Click Extra itself. And as a result, the `%(version)s` string takes the value of the current version of Click Extra (i.e.  `click_extra.__version__`).
+Notice here how the `{package_name}` string takes the `click_extra` value. That's because this snippet of code is dynamiccaly executed by Sphinx in the context of Click Extra itself. And as a result, the `{version}` string takes the value of the current version of Click Extra (i.e.  `click_extra.__version__`).
 
 You will not have this behavior once your get your CLI packaged: your CLI will properly inherits its metadata automatically from your package.
 ```
@@ -107,20 +130,6 @@ if __name__ == "__main__":
     greet()
 ```
 
-```shell-session
-$ cat greet.py
-from click_extra import extra_command
-
-
-@extra_command
-def greet():
-    print("Hello world")
-
-
-if __name__ == "__main__":
-    greet()
-```
-
 Here is the result of the `--version` option:
 
 ```ansi-shell-session
@@ -128,7 +137,7 @@ $ python ./greet.py --version
 [97mgreet.py[0m, version [32mNone[0m
 ```
 
-Because the script is not packaged, the `%(package_name)s` is set to the script file name (`greet.py`) and `%(version)s` variable to `None`.
+Because the script is not packaged, the `{package_name}` is set to the script file name (`greet.py`) and `{version}` variable to `None`.
 
 But Click Extra recognize a `__version__` variable. So you can force the version string in your script:
 
@@ -165,11 +174,17 @@ Each variable listed in the section above can be rendered in its own style. They
 
 | Parameter            | Description                               |
 | -------------------- | ----------------------------------------- |
-| `version_style`      | Style of the `%(version)s` variable.      |
-| `package_name_style` | Style of the `%(package_name)s` variable. |
-| `prog_name_style`    | Style of the `%(prog_name)s` variable.    |
-| `env_info_style`     | Style of the `%(env_info)s` variable.     |
-| `message_style`      | Default style of the rest of the message. |
+| `message_style`      | Default style of the message. |
+| `module_style`      | Style of the `{module}` variable.      |
+| `module_name_style`      | Style of the `{module_name}` variable.      |
+| `module_file_style`      | Style of the `{module_file}` variable.      |
+| `module_version_style`      | Style of the `{module_version}` variable.      |
+| `package_name_style`      | Style of the `{package_name}` variable.      |
+| `package_version_style`      | Style of the `{package_version}` variable.      |
+| `exec_name_style`      | Style of the `{exec_name}` variable.      |
+| `version_style`      | Style of the `{version}` variable.      |
+| `prog_name_style`      | Style of the `{prog_name}` variable.      |
+| `env_info_style`      | Style of the `{env_info}` variable.      |
 
 Here is an example:
 
@@ -179,7 +194,7 @@ Here is an example:
 
       @command
       @extra_version_option(
-         message="%(prog_name)s v%(version)s 🔥 %(package_name)s ( ͡❛ ͜ʖ ͡❛)",
+         message="{prog_name} v{version} 🔥 {package_name} ( ͡❛ ͜ʖ ͡❛)",
          message_style=Style(fg="cyan"),
          prog_name_style=Style(fg="green", bold=True),
          version_style=Style(fg="bright_yellow", bg="red"),
@@ -210,11 +225,9 @@ You can pass `None` to any of the style parameters to disable styling for the co
 
       @command
       @extra_version_option(
-          version_style=None,
-          package_name_style=None,
-          prog_name_style=None,
-          env_info_style=None,
           message_style=None,
+          version_style=None,
+          prog_name_style=None,
       )
       def cli():
          pass
@@ -227,7 +240,7 @@ You can pass `None` to any of the style parameters to disable styling for the co
 
 ## Environment information
 
-The `%(env_info)s` variable compiles all sorts of environment informations.
+The `{env_info}` variable compiles all sorts of environment informations.
 
 Here is how it looks like:
 
@@ -236,7 +249,7 @@ Here is how it looks like:
       from click_extra import command, extra_version_option
 
       @command
-      @extra_version_option(message="%(env_info)s")
+      @extra_version_option(message="{env_info}")
       def env_info_cli():
          pass
 
@@ -254,7 +267,7 @@ The JSON output is scrubbed out of identifiable information by default: current 
 
 ## Debug logs
 
-When the `DEBUG` level is enabled, the version message will be printed to the `DEBUG` log:
+When the `DEBUG` level is enabled, all available variables will be printed in the log:
 
 ```{eval-rst}
 .. click:example::
@@ -273,22 +286,13 @@ When the `DEBUG` level is enabled, the version message will be printed to the `D
    import re
    from click_extra import __version__
    result = invoke(version_in_logs, ["--verbosity", "DEBUG"])
-   assert re.search((
-      r"\n\x1b\[34mdebug\x1b\[0m: "
-      rf"\x1b\[97mversion-in-logs\x1b\[0m, version \x1b\[32m{__version__}\x1b\[0m"
-      r"\n\x1b\[34mdebug\x1b\[0m: "
-      r"\x1b\[90m{'.+'}\x1b\[0m\n"
-   ), result.output)
-```
-
-```{hint}
-If the message template does not contains the `%(env_info)s` variable, it will be automattically added to the log message.
+   assert "\n\x1b[34mdebug\x1b[0m: Version string template variables:\n" in result.output
 ```
 
 ```{attention}
 This feature only works with the combination of `extra_command`, `ExtraVersionOption` and `VerbosityOption`.
 
-Unless you assemble your own command with `extra_command`, or use the later with the default options, you won't see the version message in the logs.
+Unless you assemble your own command with `extra_command`, or use the later with the default options, you won't see the detailed version variables in the logs.
 ```
 
 ## Get metadata values
@@ -350,7 +354,7 @@ You can render the version string manually by calling the option's internal meth
          echo(f"Version string ~> {version_string}")
 
 .. hint::
-   To look for the ``--version`` parameter defined on the command, we rely on the `click_extra.search_params <parameters.md#click_extra.parameters.search_params>`_.
+   To fetch the ``--version`` parameter defined on the command, we rely on the `click_extra.search_params <parameters.md#click_extra.parameters.search_params>`_.
 
 .. click:run::
    result = invoke(template_rendering, ["--version"])
@@ -365,7 +369,7 @@ You can render the version string manually by calling the option's internal meth
    ), result.output)
 ```
 
-That way you can collect the rendered (and colored) `version_string`, as if it was printed to the terminal by a call to `--version`, and use it in your own way.
+That way you can collect the rendered `version_string`, as if it was printed to the terminal by a call to `--version`, and use it in your own way.
 
 Other internal methods to build-up and render the version string are [available in the API below](#click_extraversion-api).
 

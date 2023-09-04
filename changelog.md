@@ -6,7 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
-- Add new variables for version string template: `%(module)`, `%(module_name)`, `%(module_path)`, `%(module_version)`, `%(package_version)` and `%(exec_name)`.
+- Switch to format string style for version template.
+- Add new variables for version string template: `{module}`, `{module_name}`, `{module_file}`, `{module_version}`, `{package_version}` and `{exec_name}`.
 - Remove support for Click-specific `%(prog)` and `%(package)` variables in version string.
 - Print all versions string variables in debug mode.
 

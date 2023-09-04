@@ -377,14 +377,12 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):  # type: ignore[misc]
             )
             if version_opt:
                 # Build a message exposing all available variables.
-                max_len = max(map(len, ExtraVersionOption.template_keys))
+                all_vars = {f"{{{{{var}}}}}": f"{{{var}}}" for var in ExtraVersionOption.template_keys}
+                max_len = max(map(len, all_vars.keys()))
                 msg = version_opt.render_message(
-                        version_opt.colored_template(
-                            "\n".join(
-                                f"{var:<{max_len}}: %({var})s" for var in ExtraVersionOption.template_keys
-                            ),
-                        ),
-                    )
+                    "\n".join(f"{k:<{max_len}}: {v}" for k, v in all_vars.items()),
+                )
+                logger.debug("Version string template variables:")
                 for line in msg.splitlines():
                     # TODO: pretty print JSON output (easier to read in bug reports)?
                     logger.debug(line)

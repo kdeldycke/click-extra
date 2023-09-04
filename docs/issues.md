@@ -18,7 +18,7 @@ Here is the list of issues and bugs from other projects that `click-extra` has a
 - [`#2331` - `version_option` module name and package name are not equivalent](https://github.com/pallets/click/issues/2331)
 - [`#2324` - Can't pass `click.version_option()` to `click.MultiCommand(params=)`](https://github.com/pallets/click/issues/2324)
 - [`#2313` - Add `show_envvar` as global setting via `context_settings` (like `show_default`)](https://github.com/pallets/click/issues/2313)
-- [`#2207` - Support NO_COLOR environment variable](https://github.com/pallets/click/issues/2207)
+- [`#2207` - Support `NO_COLOR` environment variable](https://github.com/pallets/click/issues/2207)
 - [`#2111` - `Context.color = False` doesn't overrides `echo(color=True)`](https://github.com/pallets/click/issues/2111)
 - [`#2110` - `testing.CliRunner.invoke` cannot pass color for `Context` instantiation](https://github.com/pallets/click/issues/2110)
 - [`#1498` - Support for `NO_COLOR` proposal](https://github.com/pallets/click/issues/1498)

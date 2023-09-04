@@ -16,7 +16,8 @@
 """Test the ``--version`` option.
 
 .. todo::
-    Test standalone scripts setting package name to filename and version to None.
+    Test standalone scripts setting package name to filename and version to
+    `None`.
 
 .. todo::
     Test standalone script fetching version from ``__version__`` variable.
@@ -31,7 +32,7 @@ import pytest
 from boltons.strutils import strip_ansi
 from pytest_cases import parametrize
 
-from click_extra import Style, __version__, echo, pass_context
+from click_extra import Style, __version__, echo, pass_context, ExtraVersionOption
 from click_extra.decorators import color_option, extra_group, extra_version_option
 
 from .conftest import command_decorators, skip_windows_colors
@@ -78,13 +79,13 @@ def test_set_version(invoke):
     "message, regex_stdout",
     (
         (
-            "%(prog_name)s, version %(version)s",
+            "{prog_name}, version {version}",
             r"\x1b\[97mcolor-cli3\x1b\[0m, "
             rf"version \x1b\[32m{re.escape(__version__)}"
             r"\x1b\[0m\n",
         ),
         (
-            "%(prog_name)s, version %(version)s\n%(env_info)s",
+            "{prog_name}, version {version}\n{env_info}",
             r"\x1b\[97mcolor-cli3\x1b\[0m, "
             rf"version \x1b\[32m{re.escape(__version__)}"
             r"\x1b\[0m\n"
@@ -92,7 +93,7 @@ def test_set_version(invoke):
             r"\x1b\[0m\n",
         ),
         (
-            "%(prog_name)s v%(version)s - %(package_name)s",
+            "{prog_name} v{version} - {package_name}",
             r"\x1b\[97mcolor-cli3\x1b\[0m "
             rf"v\x1b\[32m{re.escape(__version__)}"
             r"\x1b\[0m - "
@@ -117,11 +118,9 @@ def test_custom_message(invoke, cmd_decorator, message, regex_stdout):
 def test_style_reset(invoke, cmd_decorator):
     @cmd_decorator
     @extra_version_option(
-        version_style=None,
-        package_name_style=None,
-        prog_name_style=None,
-        env_info_style=None,
         message_style=None,
+        version_style=None,
+        prog_name_style=None,
     )
     def color_reset():
         pass
@@ -133,12 +132,35 @@ def test_style_reset(invoke, cmd_decorator):
 
 
 @parametrize("cmd_decorator", command_decorators(no_groups=True))
+def test_custom_message_style(invoke, cmd_decorator):
+    @cmd_decorator
+    @extra_version_option(
+         message="{prog_name} v{version} 🔥 {package_name} ( ͡❛ ͜ʖ ͡❛)",
+         message_style=Style(fg="cyan"),
+         prog_name_style=Style(fg="green", bold=True),
+         version_style=Style(fg="bright_yellow", bg="red"),
+         package_name_style=Style(fg="bright_blue", italic=True),
+    )
+    def custom_style():
+        pass
+
+    result = invoke(custom_style, "--version", color=True)
+    assert result.exit_code == 0
+    assert not result.stderr
+    assert result.output == (
+      "\x1b[32m\x1b[1mcustom-style\x1b[0m\x1b[36m "
+      f"v\x1b[0m\x1b[93m\x1b[41m{__version__}\x1b[0m\x1b[36m 🔥 "
+      "\x1b[0m\x1b[94m\x1b[3mclick_extra\x1b[0m\x1b[36m ( ͡❛\u202f͜ʖ ͡❛)\x1b[0m\n"
+    )
+
+
+@parametrize("cmd_decorator", command_decorators(no_groups=True))
 def test_context_meta(invoke, cmd_decorator):
     @cmd_decorator
     @extra_version_option
     @pass_context
     def version_metadata(ctx):
-        for var in ("version", "package_name", "prog_name", "env_info"):
+        for var in ExtraVersionOption.template_keys:
             value = ctx.meta[f"click_extra.{var}"]
             echo(f"{var} = {value}")
 
@@ -147,8 +169,14 @@ def test_context_meta(invoke, cmd_decorator):
     assert not result.stderr
     assert re.fullmatch(
         (
-            rf"version = {__version__}\n"
+            r"module = <module 'click_extra\.testing' from '.+/click-extra/click_extra/testing\.py'>\n"
+            r"module_name = click_extra\.testing\n"
+            r"module_file = .+/click-extra/click_extra/testing\.py\n"
+            rf"module_version = None\n"
             r"package_name = click_extra\n"
+            fr"package_version = {__version__}\n"
+            r"exec_name = click_extra\.testing\n"
+            fr"version = {__version__}\n"
             r"prog_name = version-metadata\n"
             r"env_info = {'.+'}\n"
         ),

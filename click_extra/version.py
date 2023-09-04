@@ -20,14 +20,15 @@ from __future__ import annotations
 import inspect
 import logging
 import os
-import re
 from functools import cached_property
 from gettext import gettext as _
 from importlib import metadata
 from typing import TYPE_CHECKING, cast
+from string import Formatter
 
 import click
 from boltons.ecoutils import get_profile
+from boltons.formatutils import get_format_args, tokenize_format_str, BaseFormatField
 
 from . import Context, Parameter, Style, echo, get_current_context
 from .colorize import default_theme
@@ -43,28 +44,27 @@ if TYPE_CHECKING:
 class ExtraVersionOption(ExtraOption):
     """Gather CLI metadata and prints a colored version string.
 
-    .. warning::
+    .. note::
         This started as a `copy of the standard @click.version_option() decorator
         <https://github.com/pallets/click/blob/dc918b4/src/click/decorators.py#L399-L466>`_,
         but is **no longer a drop-in replacement**. Hence the ``Extra`` prefix.
 
-        Still, we'll keep an eye on the original implementation to backport fixes and
-        improvements.
+        This address the following Click issues:
 
-    .. important::
-        This option has been made into a class here, to allow its use with the
-        declarative ``params=`` argument. Which `fixes Click #2324 issue
-        <https://github.com/pallets/click/issues/2324>`_.
+        - `click#2324 <https://github.com/pallets/click/issues/2324>`_,
+          to allow its use with the declarative ``params=`` argument.
 
-    .. note::
-        This address `click#2331 issue <https://github.com/pallets/click/issues/2331>`_,
-        by distingushing the module from the package.
+        - `click#2331 <https://github.com/pallets/click/issues/2331>`_,
+          by distingushing the module from the package.
     """
+
+    message: str = _("{prog_name}, version {version}")
+    """Default message template used to render the version string."""
 
     template_keys: tuple[str] = (
         "module",
         "module_name",
-        "module_path",
+        "module_file",
         "module_version",
         "package_name",
         "package_version",
@@ -75,16 +75,14 @@ class ExtraVersionOption(ExtraOption):
     )
     """List of variables available for the message template."""
 
-    message: str = _("%(prog_name)s, version %(version)s")
-    """Default message template used to render the version string."""
-
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
+        message: str | None = None,
         # Variable ovverrides.
         module: str | None = None,
         module_name: str | None = None,
-        module_path: str | None = None,
+        module_file: str | None = None,
         module_version: str | None = None,
         package_name: str | None = None,
         package_version: str | None = None,
@@ -92,11 +90,11 @@ class ExtraVersionOption(ExtraOption):
         version: str | None = None,
         prog_name: str | None = None,
         env_info: dict[str, str] | None = None,
-        message: str | None = None,
         # Variable's styles.
+        message_style: IStyle | None = None,
         module_style: IStyle | None = None,
         module_name_style: IStyle | None = default_theme.invoked_command,
-        module_path_style: IStyle | None = None,
+        module_file_style: IStyle | None = None,
         module_version_style: IStyle | None = Style(fg="green"),
         package_name_style: IStyle | None = default_theme.invoked_command,
         package_version_style: IStyle | None = Style(fg="green"),
@@ -104,47 +102,78 @@ class ExtraVersionOption(ExtraOption):
         version_style: IStyle | None = Style(fg="green"),
         prog_name_style: IStyle | None = default_theme.invoked_command,
         env_info_style: IStyle | None = Style(fg="bright_black"),
-        message_style: IStyle | None = None,
         is_flag=True,
         expose_value=False,
         is_eager=True,
         help=_("Show the version and exit."),
         **kwargs,
     ) -> None:
-        """Adds a couple of extra parameters to the standard ``click.version_option``.
+        """Preconfigured ``--version`` option.
 
-        :param version: forces the value of ``%(version)s``.
-        :param package_name: forces the value of ``%(package_name)s``.
-        :param prog_name: forces the value of ``%(prog_name)s``.
-        :param env_info: forces the value of ``%(env_info)s``.
-        :param message: the message template to print. Defaults to
-            ``%(prog_name)s, version %(version)s``.
+        Immediately prints the version number and exits the CLI.
 
-        :param version_style: style of ``%(version)s``.
-        :param package_name_style: style of ``%(package_name)s``.
-        :param prog_name_style: style of ``%(prog_name)s``.
-        :param env_info_style: style of ``%(env_info)s``.
-        :param message_style: default style of rest of the message.
+        :param message: the message template to print, in `Format String syntax
+            <https://docs.python.org/3/library/string.html#format-string-syntax>`_.
+            Defaults to ``{prog_name}, version {version}``.
 
-        For other params `see Click's version_option decorator
-        <https://click.palletsprojects.com/en/8.1.x/api/#click.version_option>`_.
+        :param module: forces the value of ``{module}``.
+        :param module_name: forces the value of ``{module_name}``.
+        :param module_file: forces the value of ``{module_file}``.
+        :param module_version: forces the value of ``{module_version}``.
+        :param package_name: forces the value of ``{package_name}``.
+        :param package_version: forces the value of ``{package_version}``.
+        :param exec_name: forces the value of ``{exec_name}``.
+        :param version: forces the value of ``{version}``.
+        :param prog_name: forces the value of ``{prog_name}``.
+        :param env_info: forces the value of ``{env_info}``.
+
+        :param message_style: default style of the message.
+
+        :param module_style: style of ``{module}``.
+        :param module_name_style: style of ``{module_name}``.
+        :param module_file_style: style of ``{module_file}``.
+        :param module_version_style: style of ``{module_version}``.
+        :param package_name_style: style of ``{package_name}``.
+        :param package_version_style: style of ``{package_version}``.
+        :param exec_name_style: style of ``{exec_name}``.
+        :param version_style: style of ``{version}``.
+        :param prog_name_style: style of ``{prog_name}``.
+        :param env_info_style: style of ``{env_info}``.
         """
         if not param_decls:
             param_decls = ("--version",)
 
-        # Use the user-provided values instead of relying on auto-detection and
-        # defaults.
-        for var in self.template_keys:
-            var_value = locals().get(var)
-            if var_value:
-                setattr(self, var, var_value)
-        if message:
+        if message is not None:
             self.message = message
 
-        # Save the styles for later use.
-        for var in self.template_keys:
-            setattr(self, f"{var}_style", locals()[f"{var}_style"])
+        # Validates the message template.
+        pos_args, var_args = get_format_args(self.message)
+        if pos_args:
+            msg = (
+                "Positional arguments are not allowed in the message template. "
+                f"Found: {pos_args!r}"
+            )
+            raise ValueError(msg)
+        unknown_vars = {v for v, _ in var_args}.difference(self.template_keys)
+        if unknown_vars:
+            msg = (
+                f"Unknown variables in the message template: {unknown_vars}"
+            )
+            raise ValueError(msg)
+
         self.message_style = message_style
+
+        # Overrides default variable and their styles with user-provided values.
+        for var in self.template_keys:
+
+            # Set variable values.
+            var_value = locals().get(var)
+            if var_value is not None:
+                setattr(self, var, var_value)
+
+            # Set variable styles.
+            style_name = f"{var}_style"
+            setattr(self, style_name, locals()[style_name])
 
         kwargs.setdefault("callback", self.print_and_exit)
 
@@ -166,10 +195,10 @@ class ExtraVersionOption(ExtraOption):
 
         Returns the frame name, the frame itself, and the frame chain for debugging.
         """
-        logging.getLogger("click_extra")
+        # Keep a list of all frames inspected for debugging.
+        frame_chain: list[tuple[str, str]] = []
 
         # Walk the execution stack from bottom to top.
-        frame_number = 0
         for frame_info in inspect.stack():
             frame = frame_info.frame
 
@@ -179,8 +208,8 @@ class ExtraVersionOption(ExtraOption):
             # Get the current function name.
             func_name = frame_info.function
 
-            # Keep track of inspected frames.
-            frame_number += 1
+            # Keep track of the inspected frames.
+            frame_chain.append((frame_name, func_name))
 
             # Stop at the invoke() function of any CliRunner class, which is used for
             # testing.
@@ -197,7 +226,14 @@ class ExtraVersionOption(ExtraOption):
 
             # We found the frame where the CLI is implemented.
             return frame
-        return None
+
+        # Our heuristics to locate the CLI implementation failed.
+        logger = logging.getLogger("click_extra")
+        count_size = len(str(len(frame_chain)))
+        for counter, (p_name, f_name) in enumerate(frame_chain):
+            logger.debug(f"Frame {counter:<{count_size}} # {p_name}:{f_name}")
+        msg = "Could not find the frame in which the CLI is implemented."
+        raise RuntimeError(msg)
 
     @cached_property
     def module(self) -> ModuleType:
@@ -217,8 +253,8 @@ class ExtraVersionOption(ExtraOption):
         return self.module.__name__
 
     @cached_property
-    def module_path(self) -> str:
-        """Returns the module's full path."""
+    def module_file(self) -> str | None:
+        """Returns the module's file full path."""
         return self.module.__file__
 
     @cached_property
@@ -226,7 +262,7 @@ class ExtraVersionOption(ExtraOption):
         """Returns the string found in the local ``__version__`` variable."""
         version = getattr(self.module, "__version__", None)
         if version is not None and not isinstance(version, str):
-            msg = f"Module version {version!r} is not a string."
+            msg = f"Module version {version!r} expected to be a string or None."
             raise ValueError(msg)
         return version
 
@@ -283,9 +319,8 @@ class ExtraVersionOption(ExtraOption):
 
         # The CLI is not packaged: it is a standalone script. Fallback to its
         # filename.
-        filename = os.path.basename(self.module_path)
-        if filename:
-            return filename
+        if self.module_file:
+            return os.path.basename(self.module_file)
 
         msg = (
             "Could not determine the user-friendly name of the CLI from the frame "
@@ -326,47 +361,66 @@ class ExtraVersionOption(ExtraOption):
         """
         return cast("dict[str, str]", get_profile(scrub=True))
 
-    def colored_template(self, template: str | None = None) -> str:
-        """Insert ANSI style to a message template.
+    def colorize_default_segments(self, template: str) -> str:
+        """Colorize the literal parts of the template with the default style.
 
-        Accepts a custom ``template`` as parameter, otherwise uses the default message
-        defined on the instance.
+        This step is necessary because ANSI codes are linear and cannot be encapsulated.
         """
-        if template is None:
-            template = self.message
+        # A copy of the template in which all literal parts are colored with the default style.
+        colored_default = ""
 
-        # Map the template parts to their style function.
-        part_vars = {
-            f"%({var})s": getattr(self, f"{var}_style")
-            for var in self.template_keys
-        }
-        part_regex = re.compile("(" + "|".join(map(re.escape, part_vars)) + ")")
+        # Semantic split of the template into fields and literals.
+        accumulated_literals = ""
+        for segment in tokenize_format_str(template):
+            # Format field.
+            if isinstance(segment, BaseFormatField):
 
-        colored_template = ""
-        for part in re.split(part_regex, template):
-            # Skip empty strings.
-            if not part:
-                continue
-            # Get the style function for this part, defaults to `self.message_style`.
-            style_func = part_vars.get(part, self.message_style)
-            # Apply the style function if any, otherwise just append the part.
-            colored_template += style_func(part) if style_func else part
+                # Dump the accumulated literal string to the template copy, and reset it.
+                if accumulated_literals:
+                    # Colorize the literal string with the default style.
+                    colored_default += self.message_style(accumulated_literals)
+                    accumulated_literals = ""
 
-        return colored_template
+                # Add the field to the template copy.
+                colored_default += str(segment)
+
+            # Keep accumulating literal strings until the next field.
+            else:
+                accumulated_literals += segment
+
+        # Dump the accumulated literal string to the template copy, and reset it.
+        if accumulated_literals:
+            # Colorize the literal string with the default style.
+            colored_default += self.message_style(accumulated_literals)
+            accumulated_literals = ""
+
+
+        return colored_default
 
     def render_message(self, template: str | None = None) -> str:
         """Render the version string from the provided template.
 
         Accepts a custom ``template`` as parameter, otherwise uses the default
-        ``self.colored_template()`` defined on the instance.
+        ``self.message`` defined on the instance.
         """
         if template is None:
-            template = self.colored_template()
+            template = self.message
 
-        return template % {
-            var: getattr(self, var)
-            for var in self.template_keys
-        }
+        if self.message_style:
+            template = self.colorize_default_segments(template)
+
+        # Colorize each variable with its own style.
+        colored_vars = {}
+        for var in self.template_keys:
+            var_value = getattr(self, var)
+            # Get the style function for this part, defaults to `self.message_style`.
+            var_style = getattr(self, f"{var}_style")
+            if not var_style:
+                var_style = self.message_style
+            # Apply the style function if any.
+            colored_vars[var] = var_style(var_value) if var_style else var_value
+
+        return template.format(**colored_vars)
 
     def print_and_exit(
         self,
