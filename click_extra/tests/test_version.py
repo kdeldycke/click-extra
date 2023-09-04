@@ -137,6 +137,7 @@ def test_style_reset(invoke, cmd_decorator):
     assert result.output == strip_ansi(result.output)
 
 
+@skip_windows_colors
 @parametrize("cmd_decorator", command_decorators(no_groups=True))
 def test_custom_message_style(invoke, cmd_decorator):
     @cmd_decorator
