@@ -24,11 +24,10 @@ from functools import cached_property
 from gettext import gettext as _
 from importlib import metadata
 from typing import TYPE_CHECKING, cast
-from string import Formatter
 
 import click
 from boltons.ecoutils import get_profile
-from boltons.formatutils import get_format_args, tokenize_format_str, BaseFormatField
+from boltons.formatutils import tokenize_format_str, BaseFormatField
 
 from . import Context, Parameter, Style, echo, get_current_context
 from .colorize import default_theme
@@ -56,12 +55,15 @@ class ExtraVersionOption(ExtraOption):
 
         - `click#2331 <https://github.com/pallets/click/issues/2331>`_,
           by distingushing the module from the package.
+
+        - `click#1756 <https://github.com/pallets/click/issues/1756>`_,
+          by allowing path and Python version.
     """
 
     message: str = _("{prog_name}, version {version}")
     """Default message template used to render the version string."""
 
-    template_keys: tuple[str] = (
+    template_fields: tuple[str] = (
         "module",
         "module_name",
         "module_file",
@@ -73,13 +75,13 @@ class ExtraVersionOption(ExtraOption):
         "prog_name",
         "env_info",
     )
-    """List of variables available for the message template."""
+    """List of field IDs recognized by the message template."""
 
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
         message: str | None = None,
-        # Variable ovverrides.
+        # Field value ovverrides.
         module: str | None = None,
         module_name: str | None = None,
         module_file: str | None = None,
@@ -90,7 +92,7 @@ class ExtraVersionOption(ExtraOption):
         version: str | None = None,
         prog_name: str | None = None,
         env_info: dict[str, str] | None = None,
-        # Variable's styles.
+        # Field style ovverrides.
         message_style: IStyle | None = None,
         module_style: IStyle | None = None,
         module_name_style: IStyle | None = default_theme.invoked_command,
@@ -108,11 +110,9 @@ class ExtraVersionOption(ExtraOption):
         help=_("Show the version and exit."),
         **kwargs,
     ) -> None:
-        """Preconfigured ``--version`` option.
+        """Preconfigured as a ``--version`` option flag.
 
-        Immediately prints the version number and exits the CLI.
-
-        :param message: the message template to print, in `Format String syntax
+        :param message: the message template to print, in `format string syntax
             <https://docs.python.org/3/library/string.html#format-string-syntax>`_.
             Defaults to ``{prog_name}, version {version}``.
 
@@ -146,34 +146,19 @@ class ExtraVersionOption(ExtraOption):
         if message is not None:
             self.message = message
 
-        # Validates the message template.
-        pos_args, var_args = get_format_args(self.message)
-        if pos_args:
-            msg = (
-                "Positional arguments are not allowed in the message template. "
-                f"Found: {pos_args!r}"
-            )
-            raise ValueError(msg)
-        unknown_vars = {v for v, _ in var_args}.difference(self.template_keys)
-        if unknown_vars:
-            msg = (
-                f"Unknown variables in the message template: {unknown_vars}"
-            )
-            raise ValueError(msg)
-
         self.message_style = message_style
 
-        # Overrides default variable and their styles with user-provided values.
-        for var in self.template_keys:
+        # Overrides default field's value and style with user-provided parameters.
+        for field_id in self.template_fields:
 
-            # Set variable values.
-            var_value = locals().get(var)
-            if var_value is not None:
-                setattr(self, var, var_value)
+            # Override field value.
+            user_value = locals().get(field_id)
+            if user_value is not None:
+                setattr(self, field_id, user_value)
 
-            # Set variable styles.
-            style_name = f"{var}_style"
-            setattr(self, style_name, locals()[style_name])
+            # Set field style.
+            style_id = f"{field_id}_style"
+            setattr(self, style_id, locals()[style_id])
 
         kwargs.setdefault("callback", self.print_and_exit)
 
@@ -361,66 +346,74 @@ class ExtraVersionOption(ExtraOption):
         """
         return cast("dict[str, str]", get_profile(scrub=True))
 
-    def colorize_default_segments(self, template: str) -> str:
-        """Colorize the literal parts of the template with the default style.
+    def colored_template(self, template: str | None = None) -> str:
+        """Insert ANSI styles to a message template.
 
-        This step is necessary because ANSI codes are linear and cannot be encapsulated.
+        Accepts a custom ``template`` as parameter, otherwise uses the default message
+        defined on the Option instance.
+
+        This step is necessary because we need to linearize the template to apply the
+        ANSI codes on the string segments. This is a consequence of the nature of ANSI,
+        directives which cannot be encapsulated within another (unlike markup tags like HTML).
         """
-        # A copy of the template in which all literal parts are colored with the default style.
-        colored_default = ""
+        if template is None:
+            template = self.message
 
-        # Semantic split of the template into fields and literals.
+        # Normalize the default to a no-op Style() callable to simplify the code of the colorization step.
+        def noop(s: str) -> str:
+            return s
+        default_style = self.message_style if self.message_style else noop
+
+        # Associate each field with its own style.
+        field_styles = {}
+        for field_id in self.template_fields:
+            field_style = getattr(self, f"{field_id}_style")
+            # If no style is defined for this field, use the default style of the message.
+            if not field_style:
+                field_style = default_style
+            field_styles[field_id] = field_style
+
+        # A copy of the template, where literals and fields segments are colored.
+        colored_template = ""
+
+        # Split the template semantically between fields and literals.
         accumulated_literals = ""
-        for segment in tokenize_format_str(template):
+        for segment in tokenize_format_str(template, resolve_pos=False):
             # Format field.
             if isinstance(segment, BaseFormatField):
 
                 # Dump the accumulated literal string to the template copy, and reset it.
                 if accumulated_literals:
                     # Colorize the literal string with the default style.
-                    colored_default += self.message_style(accumulated_literals)
+                    colored_template += default_style(accumulated_literals)
                     accumulated_literals = ""
 
-                # Add the field to the template copy.
-                colored_default += str(segment)
+                # Add the field to the template copy, colored with its own style.
+                colored_template += field_styles[segment.base_name](str(segment))
 
             # Keep accumulating literal strings until the next field.
             else:
-                accumulated_literals += segment
+                # Escape the curly braces of the literal string.
+                accumulated_literals += segment.replace('{', '{{').replace('}', '}}')
 
         # Dump the accumulated literal string to the template copy, and reset it.
         if accumulated_literals:
             # Colorize the literal string with the default style.
-            colored_default += self.message_style(accumulated_literals)
+            colored_template += default_style(accumulated_literals)
             accumulated_literals = ""
 
-
-        return colored_default
+        return colored_template
 
     def render_message(self, template: str | None = None) -> str:
         """Render the version string from the provided template.
 
         Accepts a custom ``template`` as parameter, otherwise uses the default
-        ``self.message`` defined on the instance.
+        ``self.colored_template()`` produced by the instance.
         """
         if template is None:
-            template = self.message
+            template = self.colored_template()
 
-        if self.message_style:
-            template = self.colorize_default_segments(template)
-
-        # Colorize each variable with its own style.
-        colored_vars = {}
-        for var in self.template_keys:
-            var_value = getattr(self, var)
-            # Get the style function for this part, defaults to `self.message_style`.
-            var_style = getattr(self, f"{var}_style")
-            if not var_style:
-                var_style = self.message_style
-            # Apply the style function if any.
-            colored_vars[var] = var_style(var_value) if var_style else var_value
-
-        return template.format(**colored_vars)
+        return template.format(**{v: getattr(self, v) for v in self.template_fields})
 
     def print_and_exit(
         self,
@@ -433,7 +426,7 @@ class ExtraVersionOption(ExtraOption):
         Also stores all version string elements in the Context's ``meta`` `dict`.
         """
         # Populate the context's meta dict with the version string elements.
-        for var in self.template_keys:
+        for var in self.template_fields:
             ctx.meta[f"click_extra.{var}"] = getattr(self, var)
 
         if not value or ctx.resilient_parsing:

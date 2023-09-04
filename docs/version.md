@@ -264,6 +264,29 @@ It's verbose but it's helpful for debugging and reporting of issues from end use
 The JSON output is scrubbed out of identifiable information by default: current working directory, hostname, Python executable path, command-line arguments and username are replaced with `-`.
 ```
 
+Another trick consist in picking into the content of `{env_info}` to produce highly customized version strings. This can be done because `{env_info}` is kept as a `dict`:
+
+```{eval-rst}
+.. click:example::
+      from click_extra import command, extra_version_option
+
+      @command
+      @extra_version_option(
+          message="{prog_name} {version}, from {module_file} (Python {env_info[python][version]})"
+      )
+      def custom_env_info():
+         pass
+
+.. click:run::
+   import re
+   from click_extra import __version__
+   result = invoke(custom_env_info, args=["--version"])
+   assert re.fullmatch((
+      rf"\x1b\[97mcustom-env-info\x1b\[0m \x1b\[32m{__version__}\x1b\[0m, "
+      r"from .+ \(Python \x1b\[90m3\.\d+\.\d+ .+\x1b\[0m\)\n"
+   ), result.output)
+```
+
 ## Debug logs
 
 When the `DEBUG` level is enabled, all available variables will be printed in the log:

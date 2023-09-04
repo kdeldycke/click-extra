@@ -100,6 +100,12 @@ def test_set_version(invoke):
             r"\x1b\[97mclick_extra"
             r"\x1b\[0m\n",
         ),
+        (
+            "{prog_name}, version {version} (Python {env_info[python][version]})",
+            r"\x1b\[97mcolor-cli3\x1b\[0m, "
+            rf"version \x1b\[32m{re.escape(__version__)}\x1b\[0m "
+            r"\(Python \x1b\[90m3\.\d+\.\d+ .+\x1b\[0m\)\n",
+        ),
     ),
 )
 def test_custom_message(invoke, cmd_decorator, message, regex_stdout):
@@ -160,9 +166,9 @@ def test_context_meta(invoke, cmd_decorator):
     @extra_version_option
     @pass_context
     def version_metadata(ctx):
-        for var in ExtraVersionOption.template_keys:
-            value = ctx.meta[f"click_extra.{var}"]
-            echo(f"{var} = {value}")
+        for field in ExtraVersionOption.template_fields:
+            value = ctx.meta[f"click_extra.{field}"]
+            echo(f"{field} = {value}")
 
     result = invoke(version_metadata, color=True)
     assert result.exit_code == 0

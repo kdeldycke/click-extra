@@ -21,6 +21,7 @@ Here is the list of issues and bugs from other projects that `click-extra` has a
 - [`#2207` - Support `NO_COLOR` environment variable](https://github.com/pallets/click/issues/2207)
 - [`#2111` - `Context.color = False` doesn't overrides `echo(color=True)`](https://github.com/pallets/click/issues/2111)
 - [`#2110` - `testing.CliRunner.invoke` cannot pass color for `Context` instantiation](https://github.com/pallets/click/issues/2110)
+- [`#1756` - Path and Python version for version message formatting](https://github.com/pallets/click/issues/1756)
 - [`#1498` - Support for `NO_COLOR` proposal](https://github.com/pallets/click/issues/1498)
 - [`#1279` - Provide access to a normalized list of args](https://github.com/pallets/click/issues/1279)
 - [`#1090` - Color output from CI jobs](https://github.com/pallets/click/issues/1090)
