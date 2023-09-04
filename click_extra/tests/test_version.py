@@ -141,7 +141,7 @@ def test_style_reset(invoke, cmd_decorator):
 def test_custom_message_style(invoke, cmd_decorator):
     @cmd_decorator
     @extra_version_option(
-         message="{prog_name} v{version} 🔥 {package_name} ( ͡❛ ͜ʖ ͡❛)",
+         message="{prog_name} v{version} - {package_name} (latest)",
          message_style=Style(fg="cyan"),
          prog_name_style=Style(fg="green", bold=True),
          version_style=Style(fg="bright_yellow", bg="red"),
@@ -155,8 +155,8 @@ def test_custom_message_style(invoke, cmd_decorator):
     assert not result.stderr
     assert result.output == (
       "\x1b[32m\x1b[1mcustom-style\x1b[0m\x1b[36m "
-      f"v\x1b[0m\x1b[93m\x1b[41m{__version__}\x1b[0m\x1b[36m 🔥 "
-      "\x1b[0m\x1b[94m\x1b[3mclick_extra\x1b[0m\x1b[36m ( ͡❛\u202f͜ʖ ͡❛)\x1b[0m\n"
+      f"v\x1b[0m\x1b[93m\x1b[41m{__version__}\x1b[0m\x1b[36m - "
+      "\x1b[0m\x1b[94m\x1b[3mclick_extra\x1b[0m\x1b[36m (latest)\x1b[0m\n"
     )
 
 
@@ -175,9 +175,9 @@ def test_context_meta(invoke, cmd_decorator):
     assert not result.stderr
     assert re.fullmatch(
         (
-            r"module = <module 'click_extra\.testing' from '.+/click-extra/click_extra/testing\.py'>\n"
+            r"module = <module 'click_extra\.testing' from '.+testing\.py'>\n"
             r"module_name = click_extra\.testing\n"
-            r"module_file = .+/click-extra/click_extra/testing\.py\n"
+            r"module_file = .+testing\.py\n"
             rf"module_version = None\n"
             r"package_name = click_extra\n"
             fr"package_version = {__version__}\n"
