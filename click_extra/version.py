@@ -63,7 +63,7 @@ class ExtraVersionOption(ExtraOption):
     message: str = _("{prog_name}, version {version}")
     """Default message template used to render the version string."""
 
-    template_fields: tuple[str] = (
+    template_fields: tuple[str, ...] = (
         "module",
         "module_name",
         "module_file",
@@ -257,7 +257,7 @@ class ExtraVersionOption(ExtraOption):
         return self.module.__package__
 
     @cached_property
-    def package_version(self) -> str:
+    def package_version(self) -> str | None:
         """Returns the package version if installed.
 
         Will raise an error if the package is not installed, or if the package version
