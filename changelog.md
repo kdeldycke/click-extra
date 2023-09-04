@@ -1,10 +1,6 @@
 # Changelog
 
-## {gh}`4.7.0 (unreleased) <compare/v4.6.5...main>`
-
-```{important}
-This version is not released yet and is under active development.
-```
+## {gh}`4.7.0 (2023-09-04) <compare/v4.6.5...v4.7.0>`
 
 - Switch to format string style for version template.
 - Add new variables for version string template: `{module}`, `{module_name}`, `{module_file}`, `{module_version}`, `{package_version}` and `{exec_name}`.
