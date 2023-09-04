@@ -93,7 +93,8 @@ def command_decorators(
     with_types: bool = False,
 ) -> tuple[ParameterSet, ...]:
     """Returns collection of Pytest parameters to test all forms of click/cloup/click-
-    extra command-like decorators."""
+    extra command-like decorators.
+    """
     params: list[tuple[Any, set[str], str, tuple | MarkDecorator]] = []
 
     if no_commands is False:
@@ -266,34 +267,71 @@ default_options_colored_help = (
 )
 
 
-default_debug_uncolored_log_start = (
+default_debug_uncolored_logging = (
     r"debug: Set <Logger click_extra \(DEBUG\)> to DEBUG.\n"
     r"debug: Set <RootLogger root \(DEBUG\)> to DEBUG.\n"
+)
+default_debug_colored_logging = (
+    r"\x1b\[34mdebug\x1b\[0m: Set <Logger click_extra \(DEBUG\)> to DEBUG.\n"
+    r"\x1b\[34mdebug\x1b\[0m: Set <RootLogger root \(DEBUG\)> to DEBUG.\n"
+)
+
+
+default_debug_uncolored_config = (
     r"debug: Load configuration matching .+\*\.{toml,yaml,yml,json,ini,xml}\n"
     r"debug: Pattern is not an URL: search local file system.\n"
     r"debug: No configuration file found.\n"
-    r"debug: \S+, version \S+\n"
-    r"debug: {.*}\n"
 )
+default_debug_colored_config = (
+    r"\x1b\[34mdebug\x1b\[0m: Load configuration"
+    r" matching .+\*\.{toml,yaml,yml,json,ini,xml}\n"
+    r"\x1b\[34mdebug\x1b\[0m: Pattern is not an URL: search local file system.\n"
+    r"\x1b\[34mdebug\x1b\[0m: No configuration file found.\n"
+)
+
+
+default_debug_uncolored_version_details = (
+    r"debug: module         : <module '\S+' from '.+'>\n"
+    r"debug: module_name    : \S+\n"
+    r"debug: module_path    : .+\n"
+    r"debug: module_version : \S+\n"
+    r"debug: package_name   : \S+\n"
+    r"debug: package_version: \S+\n"
+    r"debug: exec_name      : \S+\n"
+    r"debug: version        : \S+\n"
+    r"debug: prog_name      : \S+\n"
+    r"debug: env_info       : {.*}\n"
+)
+default_debug_colored_version_details = (
+    r"\x1b\[34mdebug\x1b\[0m: module         : <module '\S+' from '.+'>\n"
+    r"\x1b\[34mdebug\x1b\[0m: module_name    : \x1b\[97m\S+\x1b\[0m\n"
+    r"\x1b\[34mdebug\x1b\[0m: module_path    : .+\n"
+    r"\x1b\[34mdebug\x1b\[0m: module_version : \x1b\[32m\S+\x1b\[0m\n"
+    r"\x1b\[34mdebug\x1b\[0m: package_name   : \x1b\[97m\S+\x1b\[0m\n"
+    r"\x1b\[34mdebug\x1b\[0m: package_version: \x1b\[32m\S+\x1b\[0m\n"
+    r"\x1b\[34mdebug\x1b\[0m: exec_name      : \x1b\[97m\S+\x1b\[0m\n"
+    r"\x1b\[34mdebug\x1b\[0m: version        : \x1b\[32m\S+\x1b\[0m\n"
+    r"\x1b\[34mdebug\x1b\[0m: prog_name      : \x1b\[97m\S+\x1b\[0m\n"
+    r"\x1b\[34mdebug\x1b\[0m: env_info       : \x1b\[90m{.*}\x1b\[0m\n"
+)
+
+
+default_debug_uncolored_log_start = (
+    default_debug_uncolored_logging +
+    default_debug_uncolored_config +
+    default_debug_uncolored_version_details
+)
+default_debug_colored_log_start = (
+    default_debug_colored_logging +
+    default_debug_colored_config +
+    default_debug_colored_version_details
+)
+
 
 default_debug_uncolored_log_end = (
     r"debug: Reset <RootLogger root \(DEBUG\)> to WARNING.\n"
     r"debug: Reset <Logger click_extra \(DEBUG\)> to WARNING.\n"
 )
-
-
-default_debug_colored_log_start = (
-    r"\x1b\[34mdebug\x1b\[0m: Set <Logger click_extra \(DEBUG\)> to DEBUG.\n"
-    r"\x1b\[34mdebug\x1b\[0m: Set <RootLogger root \(DEBUG\)> to DEBUG.\n"
-    r"\x1b\[34mdebug\x1b\[0m: Load configuration"
-    r" matching .+\*\.{toml,yaml,yml,json,ini,xml}\n"
-    r"\x1b\[34mdebug\x1b\[0m: Pattern is not an URL: search local file system.\n"
-    r"\x1b\[34mdebug\x1b\[0m: No configuration file found.\n"
-    r"\x1b\[34mdebug\x1b\[0m: \x1b\[97m\S+\x1b\[0m,"
-    r" version \x1b\[32m\S+\x1b\[0m\n"
-    r"\x1b\[34mdebug\x1b\[0m: \x1b\[90m{.*}\x1b\[0m\n"
-)
-
 default_debug_colored_log_end = (
     r"\x1b\[34mdebug\x1b\[0m: Reset <RootLogger root \(DEBUG\)> to WARNING.\n"
     r"\x1b\[34mdebug\x1b\[0m: Reset <Logger click_extra \(DEBUG\)> to WARNING.\n"

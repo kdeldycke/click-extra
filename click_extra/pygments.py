@@ -53,7 +53,8 @@ like and terminal lexers.
 
 class AnsiFilter(Filter):
     """Custom filter transforming a particular kind of token (``Generic.Output`` by
-    defaults) into ANSI tokens."""
+    defaults) into ANSI tokens.
+    """
 
     def __init__(self, **options) -> None:
         """Initialize a ``AnsiColorLexer`` and configure the ``token_type`` to be
@@ -83,7 +84,8 @@ class AnsiFilter(Filter):
 
 class AnsiSessionLexer(LexerMeta):
     """Custom metaclass used as a class factory to derive an ANSI variant of default
-    shell session lexers."""
+    shell session lexers.
+    """
 
     def __new__(cls, name, bases, dct):
         """Setup class properties' defaults for new ANSI-capable lexers.

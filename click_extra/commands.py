@@ -376,15 +376,13 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):  # type: ignore[misc]
                 search_params(ctx.command.params, ExtraVersionOption),
             )
             if version_opt:
-                # Environment info is already present in the version string: use it
-                # as-is.
-                if "%(env_info)s" in version_opt.message:
-                    msg = version_opt.render_message()
-                # Augments the version string with the environment info.
-                else:
-                    msg = version_opt.render_message(
+                # Build a message exposing all available variables.
+                max_len = max(map(len, ExtraVersionOption.template_keys))
+                msg = version_opt.render_message(
                         version_opt.colored_template(
-                            version_opt.message + "\n%(env_info)s",
+                            "\n".join(
+                                f"{var:<{max_len}}: %({var})s" for var in ExtraVersionOption.template_keys
+                            ),
                         ),
                     )
                 for line in msg.splitlines():

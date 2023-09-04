@@ -6,6 +6,10 @@
 This version is not released yet and is under active development.
 ```
 
+- Add new variables for version string template: `%(module)`, `%(module_name)`, `%(module_path)`, `%(module_version)`, `%(package_version)` and `%(exec_name)`.
+- Remove support for Click-specific `%(prog)` and `%(package)` variables in version string.
+- Print all versions string variables in debug mode.
+
 ## {gh}`4.6.5 (2023-09-01) <compare/v4.6.4...v4.6.5>`
 
 - Highlight required label and value range in option description. Closes {issue}`748`.

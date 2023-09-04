@@ -64,7 +64,8 @@ def replace_content(
 
 def generate_lexer_table() -> str:
     """Generate a Markdown table mapping original Pygments' lexers to their new ANSI
-    variants implemented by Click Extra."""
+    variants implemented by Click Extra.
+    """
     table = []
     for orig_lexer, ansi_lexer in sorted(
         lexer_map.items(),

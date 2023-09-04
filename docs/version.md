@@ -130,7 +130,7 @@ $ python ./greet.py --version
 
 Because the script is not packaged, the `%(package_name)s` is set to the script file name (`greet.py`) and `%(version)s` variable to `None`.
 
-You can still define a `__version__` variable in your script to force the version string:
+But Click Extra recognize a `__version__` variable. So you can force the version string in your script:
 
 ```python
 from click_extra import extra_command
@@ -151,6 +151,12 @@ if __name__ == "__main__":
 ```ansi-shell-session
 $ python ./greet.py --version
 [97mgreet.py[0m, version [32m0.9.3-alpha[0m
+```
+
+```{caution}
+The `__version__` variable is [not an enforced Python standard](https://peps.python.org/pep-0396/#specification) and [more like a tradition](https://peps.python.org/pep-0008/#module-level-dunder-names).
+
+It is supported by Click Extra as a convenience for script developers.
 ```
 
 ## Colors

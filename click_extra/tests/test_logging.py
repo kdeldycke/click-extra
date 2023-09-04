@@ -32,7 +32,9 @@ from .conftest import (
     command_decorators,
     default_debug_colored_log_end,
     default_debug_colored_log_start,
+    default_debug_colored_logging,
     default_debug_uncolored_log_end,
+    default_debug_uncolored_logging,
     skip_windows_colors,
 )
 
@@ -119,8 +121,7 @@ def test_default_root_logger(invoke, cmd_decorator, option_decorator, level):
 
     messages = (
         (
-            r"\x1b\[34mdebug\x1b\[0m: Set <Logger click_extra \(DEBUG\)> to DEBUG.\n"
-            r"\x1b\[34mdebug\x1b\[0m: Set <RootLogger root \(DEBUG\)> to DEBUG.\n"
+            rf"{default_debug_colored_logging}"
             r"\x1b\[34mdebug\x1b\[0m: my random message.\n"
             r"\x1b\[34mdebug\x1b\[0m: my debug message.\n"
         ),
@@ -204,8 +205,7 @@ def test_custom_option_name(invoke):
         assert not result.stdout
         assert re.fullmatch(
             (
-                r"debug: Set <Logger click_extra \(DEBUG\)> to DEBUG.\n"
-                r"debug: Set <RootLogger root \(DEBUG\)> to DEBUG.\n"
+                rf"{default_debug_uncolored_logging}"
                 r"debug: my debug message\.\n"
                 rf"{default_debug_uncolored_log_end}"
             ),

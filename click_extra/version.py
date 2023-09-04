@@ -21,13 +21,10 @@ import inspect
 import logging
 import os
 import re
-import warnings
 from functools import cached_property
-from collections.abc import Generator
 from gettext import gettext as _
 from importlib import metadata
 from typing import TYPE_CHECKING, cast
-from types import FrameType
 
 import click
 from boltons.ecoutils import get_profile
@@ -38,12 +35,9 @@ from .parameters import ExtraOption
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from types import FrameType, ModuleType
 
     from cloup.styling import IStyle
-
-
-FrameChain = list[tuple[str, str]]
-"""Type for a list of all frames we inspected. Only used for debugging."""
 
 
 class ExtraVersionOption(ExtraOption):
@@ -61,18 +55,53 @@ class ExtraVersionOption(ExtraOption):
         This option has been made into a class here, to allow its use with the
         declarative ``params=`` argument. Which `fixes Click #2324 issue
         <https://github.com/pallets/click/issues/2324>`_.
+
+    .. note::
+        This address `click#2331 issue <https://github.com/pallets/click/issues/2331>`_,
+        by distingushing the module from the package.
     """
+
+    template_keys: tuple[str] = (
+        "module",
+        "module_name",
+        "module_path",
+        "module_version",
+        "package_name",
+        "package_version",
+        "exec_name",
+        "version",
+        "prog_name",
+        "env_info",
+    )
+    """List of variables available for the message template."""
+
+    message: str = _("%(prog_name)s, version %(version)s")
+    """Default message template used to render the version string."""
 
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        version: str | None = None,
+        # Variable ovverrides.
+        module: str | None = None,
+        module_name: str | None = None,
+        module_path: str | None = None,
+        module_version: str | None = None,
         package_name: str | None = None,
+        package_version: str | None = None,
+        exec_name: str | None = None,
+        version: str | None = None,
         prog_name: str | None = None,
-        message: str | None = None,
         env_info: dict[str, str] | None = None,
-        version_style: IStyle | None = Style(fg="green"),
+        message: str | None = None,
+        # Variable's styles.
+        module_style: IStyle | None = None,
+        module_name_style: IStyle | None = default_theme.invoked_command,
+        module_path_style: IStyle | None = None,
+        module_version_style: IStyle | None = Style(fg="green"),
         package_name_style: IStyle | None = default_theme.invoked_command,
+        package_version_style: IStyle | None = Style(fg="green"),
+        exec_name_style: IStyle | None = default_theme.invoked_command,
+        version_style: IStyle | None = Style(fg="green"),
         prog_name_style: IStyle | None = default_theme.invoked_command,
         env_info_style: IStyle | None = Style(fg="bright_black"),
         message_style: IStyle | None = None,
@@ -105,22 +134,16 @@ class ExtraVersionOption(ExtraOption):
 
         # Use the user-provided values instead of relying on auto-detection and
         # defaults.
-        if version:
-            self.version = version
-        if package_name:
-            self.package_name = package_name
-        if prog_name:
-            self.prog_name = prog_name
-        if env_info:
-            self.env_info = env_info
+        for var in self.template_keys:
+            var_value = locals().get(var)
+            if var_value:
+                setattr(self, var, var_value)
         if message:
             self.message = message
 
         # Save the styles for later use.
-        self.version_style = version_style
-        self.package_name_style = package_name_style
-        self.prog_name_style = prog_name_style
-        self.env_info_style = env_info_style
+        for var in self.template_keys:
+            setattr(self, f"{var}_style", locals()[f"{var}_style"])
         self.message_style = message_style
 
         kwargs.setdefault("callback", self.print_and_exit)
@@ -134,7 +157,8 @@ class ExtraVersionOption(ExtraOption):
             **kwargs,
         )
 
-    def cli_frame(self) -> Generator[tuple[str, FrameType, FrameChain], None, None]:
+    @staticmethod
+    def cli_frame() -> FrameType:
         """Returns the frame in which the CLI is implemented.
 
         Inspects the execution stack frames to find the package in which the user's CLI
@@ -142,22 +166,25 @@ class ExtraVersionOption(ExtraOption):
 
         Returns the frame name, the frame itself, and the frame chain for debugging.
         """
-        # Keep a list of all frames inspected for debugging.
-        frame_chain: FrameChain = []
+        logging.getLogger("click_extra")
 
         # Walk the execution stack from bottom to top.
+        frame_number = 0
         for frame_info in inspect.stack():
             frame = frame_info.frame
 
             # Get the current package name from the frame's globals.
             frame_name = frame.f_globals["__name__"]
 
-            # Keep track of the inspected frames.
-            frame_chain.append((frame_name, frame_info.function))
+            # Get the current function name.
+            func_name = frame_info.function
+
+            # Keep track of inspected frames.
+            frame_number += 1
 
             # Stop at the invoke() function of any CliRunner class, which is used for
             # testing.
-            if frame_info.function == "invoke" and isinstance(
+            if func_name == "invoke" and isinstance(
                 frame.f_locals.get("self"),
                 click.testing.CliRunner,
             ):
@@ -169,76 +196,55 @@ class ExtraVersionOption(ExtraOption):
                 continue
 
             # We found the frame where the CLI is implemented.
-            yield frame_name, frame, frame_chain
-            break
-
-        # Break reference cycle
-        # https://docs.python.org/3/library/inspect.html#the-interpreter-stack
-        del frame
+            return frame
+        return None
 
     @cached_property
-    def package_name(self) -> str:
-        """Guess the package name.
+    def module(self) -> ModuleType:
+        """Returns the module in which the CLI resides."""
+        frame = self.cli_frame()
 
-        If the CLI is not implemented in a package, it assume the CLI is a simple
-        standalone script, and the returned package name is the script's file name
-        (including the extension). Also at this point, the version is taken from the
-        script's local ``__version__`` variable or set to ``None`` to bypass
-        auto-detection.
-        """
-        # Get the frame in which the CLI is implemented.
-        frame_name, frame, frame_chain = tuple(self.cli_frame())[0]
-
-        # Extract the base module ID (i.e. the string before the first dot `.`).
-        package_name = frame_name.split(".")[0]
-
-        # Re-interpret the package name if the CLI was defined by the way of a
-        # `__main__` entry-point.
-        if package_name == "__main__":
-
-            # Take the base package name itself.
-            package_path = frame.f_globals.get("__package__")
-            if package_path:
-                package_name = package_path.split(".", 1)[0]
-
-            # The CLI is a standalone script. Use its filename.
-            else:
-                file_path = frame.f_globals.get("__file__")
-                if file_path:
-                    package_name = os.path.basename(file_path)
-                # Set the version from the script here to bypass auto-detection from the
-                # (non-applicable) package name.
-                version = frame.f_globals.get("__version__")
-                self.version = version if version else None
-
-        # Package name can't be guessed.
-        if not package_name:
-            logger = logging.getLogger("click_extra")
-            for counter, (p_name, f_name) in enumerate(frame_chain):
-                logger.debug(f"Inspected frame #{counter}: {p_name}, {f_name}")
-            msg = (
-                    "Could not determine the package name automatically from the frame "
-                    "stack. Try passing 'package_name' instead."
-                )
+        module = inspect.getmodule(frame)
+        if not module:
+            msg = f"Cannot find module of {frame!r}"
             raise RuntimeError(msg)
 
-        return package_name
+        return module
 
     @cached_property
-    def version(self) -> str | None:
-        """Auto-detect the version of the package.
+    def module_name(self) -> str:
+        """Returns the full module name or ``__main__`."""
+        return self.module.__name__
 
-        The version string is taken from the module whose ID is given by
-        ``self.package_name``, using `importlib.metadata.version()
-        <https://docs.python.org/3/library/importlib.metadata.html?highlight=metadata#distribution-versions>`_.
+    @cached_property
+    def module_path(self) -> str:
+        """Returns the module's full path."""
+        return self.module.__file__
 
-        If the CLI is not implemented in a package, it assume the CLI is a simple
-        script and the version returned is the ``__version__`` attribute of the
-        script's module.
+    @cached_property
+    def module_version(self) -> str | None:
+        """Returns the string found in the local ``__version__`` variable."""
+        version = getattr(self.module, "__version__", None)
+        if version is not None and not isinstance(version, str):
+            msg = f"Module version {version!r} is not a string."
+            raise ValueError(msg)
+        return version
+
+    @cached_property
+    def package_name(self) -> str | None:
+        """Returns the package name."""
+        return self.module.__package__
+
+    @cached_property
+    def package_version(self) -> str:
+        """Returns the package version if installed.
 
         Will raise an error if the package is not installed, or if the package version
-        cannot be determined.
+        cannot be determined from the package metadata.
         """
+        if not self.package_name:
+            return None
+
         try:
             version = metadata.version(self.package_name)
         except metadata.PackageNotFoundError:
@@ -258,21 +264,67 @@ class ExtraVersionOption(ExtraOption):
         return version
 
     @cached_property
+    def exec_name(self) -> str:
+        """User-friendly name of the executed CLI.
+
+        Returns the module name. But if the later is ``__main__``, returns the package
+        name.
+
+        If not packaged, the CLI is assumed to be a simple standalone script, and the
+        returned name is the script's file name (including its extension).
+        """
+        # The CLI has its own module.
+        if self.module_name != "__main__":
+            return self.module_name
+
+        # The CLI module is a `__main__` entry-point, so returns its package name.
+        if self.package_name:
+            return self.package_name
+
+        # The CLI is not packaged: it is a standalone script. Fallback to its
+        # filename.
+        filename = os.path.basename(self.module_path)
+        if filename:
+            return filename
+
+        msg = (
+            "Could not determine the user-friendly name of the CLI from the frame "
+            "stack."
+        )
+        raise RuntimeError(msg)
+
+    @cached_property
+    def version(self) -> str | None:
+        """Return the version of the CLI.
+
+        Returns the module version if a ``__version__`` variable is set alongside the
+        CLI in its module.
+
+        Else returns the package version if the CLI is implemented in a package, using
+        `importlib.metadata.version()
+        <https://docs.python.org/3/library/importlib.metadata.html?highlight=metadata#distribution-versions>`_.
+        """
+        if self.module_version:
+            return self.module_version
+
+        if self.package_version:
+            return self.package_version
+
+        return None
+
+    @cached_property
     def prog_name(self) -> str | None:
-        """Return the name of the program."""
+        """Return the name of the CLI, from Click's point of view."""
         return get_current_context().find_root().info_name
 
     @cached_property
     def env_info(self) -> dict[str, str]:
-        """Return the environment info.
+        """Various environment info.
 
-        Defaults to the dictionnary return by `boltons.ecoutils.get_profile()
+        Returns the data produced by `boltons.ecoutils.get_profile()
         <https://boltons.readthedocs.io/en/latest/ecoutils.html#boltons.ecoutils.get_profile>`_.
         """
         return cast("dict[str, str]", get_profile(scrub=True))
-
-    message: str = _("%(prog_name)s, version %(version)s")
-    """Default message template used to render the version string."""
 
     def colored_template(self, template: str | None = None) -> str:
         """Insert ANSI style to a message template.
@@ -285,10 +337,8 @@ class ExtraVersionOption(ExtraOption):
 
         # Map the template parts to their style function.
         part_vars = {
-            "%(version)s": self.version_style,
-            "%(package_name)s": self.package_name_style,
-            "%(prog_name)s": self.prog_name_style,
-            "%(env_info)s": self.env_info_style,
+            f"%({var})s": getattr(self, f"{var}_style")
+            for var in self.template_keys
         }
         part_regex = re.compile("(" + "|".join(map(re.escape, part_vars)) + ")")
 
@@ -312,22 +362,10 @@ class ExtraVersionOption(ExtraOption):
         """
         if template is None:
             template = self.colored_template()
-        # Detect deprecated template variables from Click.
-        deprecated_vars = {v for v in {"%(package)s", "%(prog)s"} if v in template}
-        if deprecated_vars:
-            warnings.warn(
-                f"Deprecated Click-specific variables: {deprecated_vars}",
-                FutureWarning,
-            )
+
         return template % {
-            "version": self.version,
-            "package_name": self.package_name,
-            "prog_name": self.prog_name,
-            # Serialize the JSON dict.
-            "env_info": str(self.env_info),
-            # Deprecated Click-specific template variables.
-            "package": self.package_name,
-            "prog": self.prog_name,
+            var: getattr(self, var)
+            for var in self.template_keys
         }
 
     def print_and_exit(
@@ -340,11 +378,9 @@ class ExtraVersionOption(ExtraOption):
 
         Also stores all version string elements in the Context's ``meta`` `dict`.
         """
-        ctx.meta["click_extra.package_name"] = self.package_name
-        # Trigger the version after package_name as it depends on it.
-        ctx.meta["click_extra.version"] = self.version
-        ctx.meta["click_extra.prog_name"] = self.prog_name
-        ctx.meta["click_extra.env_info"] = self.env_info
+        # Populate the context's meta dict with the version string elements.
+        for var in self.template_keys:
+            ctx.meta[f"click_extra.{var}"] = getattr(self, var)
 
         if not value or ctx.resilient_parsing:
             return

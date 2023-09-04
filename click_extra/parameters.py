@@ -316,7 +316,8 @@ class ParamStructure:
     @staticmethod
     def init_tree_dict(*path: str, leaf: Any = None):
         """Utility method to recursively create a nested dict structure whose keys are
-        provided by ``path`` list and at the end is populated by a copy of ``leaf``."""
+        provided by ``path`` list and at the end is populated by a copy of ``leaf``.
+        """
 
         def dive(levels):
             if levels:
@@ -350,7 +351,8 @@ class ParamStructure:
         parent_key: str | None = None,
     ) -> dict[str, Any]:
         """Recursively traverse the tree-like ``dict`` and produce a flat ``dict`` whose
-        keys are path and values are the leaf's content."""
+        keys are path and values are the leaf's content.
+        """
         return dict(self._flatten_tree_dict_gen(tree_dict, parent_key))
 
     def _recurse_cmd(self, cmd, top_level_params, parent_keys):
@@ -705,7 +707,8 @@ class ShowParamsOption(ExtraOption, ParamStructure):
 
         def sort_by_depth(line):
             """Sort parameters by depth first, then IDs, so that top-level parameters
-            are kept to the top."""
+            are kept to the top.
+            """
             param_path = line[0]
             tree_keys = param_path.split(self.SEP)
             return len(tree_keys), param_path

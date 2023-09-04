@@ -65,8 +65,10 @@ from .conftest import (
     command_decorators,
     default_debug_colored_log_end,
     default_debug_colored_log_start,
+    default_debug_colored_logging,
     default_debug_uncolored_log_end,
     default_debug_uncolored_log_start,
+    default_debug_uncolored_logging,
     default_options_colored_help,
     skip_windows_colors,
 )
@@ -74,7 +76,8 @@ from .conftest import (
 
 def test_theme_definition():
     """Ensure we do not leave any property we would have inherited from cloup and
-    logging primitives."""
+    logging primitives.
+    """
     assert set(HelpTheme.__dataclass_fields__).issubset(
         HelpExtraTheme.__dataclass_fields__,
     )
@@ -507,7 +510,8 @@ def test_keyword_collection(invoke):
 )
 def test_standalone_color_option(invoke, option_decorator, param, expecting_colors):
     """Check color option values, defaults and effects on all things colored, including
-    verbosity option."""
+    verbosity option.
+    """
 
     @click.command
     @verbosity_option
@@ -533,9 +537,7 @@ def test_standalone_color_option(invoke, option_decorator, param, expecting_colo
         )
         assert re.fullmatch(
             (
-                r"\x1b\[34mdebug\x1b\[0m: "
-                r"Set <Logger click_extra \(DEBUG\)> to DEBUG.\n"
-                r"\x1b\[34mdebug\x1b\[0m: Set <RootLogger root \(DEBUG\)> to DEBUG.\n"
+                rf"{default_debug_colored_logging}"
                 r"\x1b\[33mwarning\x1b\[0m: Processing...\n"
                 rf"{default_debug_colored_log_end}"
             ),
@@ -551,8 +553,7 @@ def test_standalone_color_option(invoke, option_decorator, param, expecting_colo
         )
         assert re.fullmatch(
             (
-                r"debug: Set <Logger click_extra \(DEBUG\)> to DEBUG.\n"
-                r"debug: Set <RootLogger root \(DEBUG\)> to DEBUG.\n"
+                rf"{default_debug_uncolored_logging}"
                 rf"warning: Processing\.\.\.\n"
                 rf"{default_debug_uncolored_log_end}"
             ),

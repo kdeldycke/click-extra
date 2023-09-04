@@ -34,13 +34,15 @@ from .conftest import command_decorators, skip_windows_colors
 
 def test_real_fs():
     """Check a simple test is not caught into the CLI runner fixture which is
-    encapsulating all filesystem access into temporary directory structure."""
+    encapsulating all filesystem access into temporary directory structure.
+    """
     assert str(Path(__file__)).startswith(str(Path.cwd()))
 
 
 def test_temporary_fs(extra_runner):
     """Check the CLI runner fixture properly encapsulated the filesystem in temporary
-    directory."""
+    directory.
+    """
     assert not str(Path(__file__)).startswith(str(Path.cwd()))
 
 
@@ -224,7 +226,8 @@ def test_invoke_forced_color_stripping(invoke):
 @skip_windows_colors
 def test_invoke_color_keep(invoke):
     """On Windows Click ends up deciding it is not running in an interactive terminal
-    and forces the stripping of all colors."""
+    and forces the stripping of all colors.
+    """
     result = invoke(run_cli1, color=True)
     if is_windows():
         check_default_uncolored_rendering(result)
@@ -238,7 +241,8 @@ def test_invoke_color_keep(invoke):
 @skip_windows_colors
 def test_invoke_color_forced(invoke):
     """Test colors are preserved while invoking, and forced to be rendered on
-    Windows."""
+    Windows.
+    """
     result = invoke(run_cli1, color="forced")
     check_default_colored_rendering(result)
     assert result.stdout.endswith(
