@@ -377,12 +377,17 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):  # type: ignore[misc]
             )
             if version_opt:
                 # Build a message exposing all available variables.
-                all_fields = {f"{{{{{field_id}}}}}": f"{{{field_id}}}" for field_id in ExtraVersionOption.template_fields}
+                all_fields = {
+                    f"{{{{{field_id}}}}}": f"{{{field_id}}}"
+                    for field_id in ExtraVersionOption.template_fields
+                }
                 max_len = max(map(len, all_fields))
-                raw_format = "\n".join(f"{k:<{max_len}}: {v}" for k, v in all_fields.items())
+                raw_format = "\n".join(
+                    f"{k:<{max_len}}: {v}" for k, v in all_fields.items()
+                )
                 msg = version_opt.render_message(
                     version_opt.colored_template(
-                        raw_format
+                        raw_format,
                     ),
                 )
                 logger.debug("Version string template variables:")

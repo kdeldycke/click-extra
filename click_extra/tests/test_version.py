@@ -32,7 +32,7 @@ import pytest
 from boltons.strutils import strip_ansi
 from pytest_cases import parametrize
 
-from click_extra import Style, __version__, echo, pass_context, ExtraVersionOption
+from click_extra import ExtraVersionOption, Style, __version__, echo, pass_context
 from click_extra.decorators import color_option, extra_group, extra_version_option
 
 from .conftest import command_decorators, skip_windows_colors
@@ -142,11 +142,11 @@ def test_style_reset(invoke, cmd_decorator):
 def test_custom_message_style(invoke, cmd_decorator):
     @cmd_decorator
     @extra_version_option(
-         message="{prog_name} v{version} - {package_name} (latest)",
-         message_style=Style(fg="cyan"),
-         prog_name_style=Style(fg="green", bold=True),
-         version_style=Style(fg="bright_yellow", bg="red"),
-         package_name_style=Style(fg="bright_blue", italic=True),
+        message="{prog_name} v{version} - {package_name} (latest)",
+        message_style=Style(fg="cyan"),
+        prog_name_style=Style(fg="green", bold=True),
+        version_style=Style(fg="bright_yellow", bg="red"),
+        package_name_style=Style(fg="bright_blue", italic=True),
     )
     def custom_style():
         pass
@@ -155,9 +155,9 @@ def test_custom_message_style(invoke, cmd_decorator):
     assert result.exit_code == 0
     assert not result.stderr
     assert result.output == (
-      "\x1b[32m\x1b[1mcustom-style\x1b[0m\x1b[36m "
-      f"v\x1b[0m\x1b[93m\x1b[41m{__version__}\x1b[0m\x1b[36m - "
-      "\x1b[0m\x1b[94m\x1b[3mclick_extra\x1b[0m\x1b[36m (latest)\x1b[0m\n"
+        "\x1b[32m\x1b[1mcustom-style\x1b[0m\x1b[36m "
+        f"v\x1b[0m\x1b[93m\x1b[41m{__version__}\x1b[0m\x1b[36m - "
+        "\x1b[0m\x1b[94m\x1b[3mclick_extra\x1b[0m\x1b[36m (latest)\x1b[0m\n"
     )
 
 
@@ -181,9 +181,9 @@ def test_context_meta(invoke, cmd_decorator):
             r"module_file = .+testing\.py\n"
             rf"module_version = None\n"
             r"package_name = click_extra\n"
-            fr"package_version = {__version__}\n"
+            rf"package_version = {__version__}\n"
             r"exec_name = click_extra\.testing\n"
-            fr"version = {__version__}\n"
+            rf"version = {__version__}\n"
             r"prog_name = version-metadata\n"
             r"env_info = {'.+'}\n"
         ),

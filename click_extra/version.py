@@ -27,7 +27,7 @@ from typing import TYPE_CHECKING, cast
 
 import click
 from boltons.ecoutils import get_profile
-from boltons.formatutils import tokenize_format_str, BaseFormatField
+from boltons.formatutils import BaseFormatField, tokenize_format_str
 
 from . import Context, Parameter, Style, echo, get_current_context
 from .colorize import default_theme
@@ -150,7 +150,6 @@ class ExtraVersionOption(ExtraOption):
 
         # Overrides default field's value and style with user-provided parameters.
         for field_id in self.template_fields:
-
             # Override field value.
             user_value = locals().get(field_id)
             if user_value is not None:
@@ -359,16 +358,19 @@ class ExtraVersionOption(ExtraOption):
         if template is None:
             template = self.message
 
-        # Normalize the default to a no-op Style() callable to simplify the code of the colorization step.
+        # Normalize the default to a no-op Style() callable to simplify the code
+        # of the colorization step.
         def noop(s: str) -> str:
             return s
+
         default_style = self.message_style if self.message_style else noop
 
         # Associate each field with its own style.
         field_styles = {}
         for field_id in self.template_fields:
             field_style = getattr(self, f"{field_id}_style")
-            # If no style is defined for this field, use the default style of the message.
+            # If no style is defined for this field, use the default style of the
+            # message.
             if not field_style:
                 field_style = default_style
             field_styles[field_id] = field_style
@@ -381,8 +383,8 @@ class ExtraVersionOption(ExtraOption):
         for segment in tokenize_format_str(template, resolve_pos=False):
             # Format field.
             if isinstance(segment, BaseFormatField):
-
-                # Dump the accumulated literal string to the template copy, and reset it.
+                # Dump the accumulated literal string to the template copy, and reset
+                # it.
                 if accumulated_literals:
                     # Colorize the literal string with the default style.
                     colored_template += default_style(accumulated_literals)
@@ -394,7 +396,7 @@ class ExtraVersionOption(ExtraOption):
             # Keep accumulating literal strings until the next field.
             else:
                 # Escape the curly braces of the literal string.
-                accumulated_literals += segment.replace('{', '{{').replace('}', '}}')
+                accumulated_literals += segment.replace("{", "{{").replace("}", "}}")
 
         # Dump the accumulated literal string to the template copy, and reset it.
         if accumulated_literals:

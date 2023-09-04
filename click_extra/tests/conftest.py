@@ -93,8 +93,7 @@ def command_decorators(
     with_types: bool = False,
 ) -> tuple[ParameterSet, ...]:
     """Returns collection of Pytest parameters to test all forms of click/cloup/click-
-    extra command-like decorators.
-    """
+    extra command-like decorators."""
     params: list[tuple[Any, set[str], str, tuple | MarkDecorator]] = []
 
     if no_commands is False:
@@ -319,14 +318,14 @@ default_debug_colored_version_details = (
 
 
 default_debug_uncolored_log_start = (
-    default_debug_uncolored_logging +
-    default_debug_uncolored_config +
-    default_debug_uncolored_version_details
+    default_debug_uncolored_logging
+    + default_debug_uncolored_config
+    + default_debug_uncolored_version_details
 )
 default_debug_colored_log_start = (
-    default_debug_colored_logging +
-    default_debug_colored_config +
-    default_debug_colored_version_details
+    default_debug_colored_logging
+    + default_debug_colored_config
+    + default_debug_colored_version_details
 )
 
 
