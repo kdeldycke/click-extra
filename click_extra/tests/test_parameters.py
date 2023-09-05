@@ -247,18 +247,19 @@ def test_auto_envvar_parsing(invoke, cmd_decorator, envvars, expected_flag):
     assert result.stdout == f"Flag value: {expected_flag}\n"
 
 
+class Custom(ParamType):
+    """A dummy custom type."""
+
+    name = "Custom"
+
+    def convert(self, value, param, ctx):
+        assert isinstance(value, str)
+        return value
+
+
 @parametrize("option_decorator", (show_params_option, show_params_option()))
 def test_params_auto_types(invoke, option_decorator):
     """Check parameters types and structure are properly derived from CLI."""
-
-    class Custom(ParamType):
-        """A dummy custom type."""
-
-        name = "Custom"
-
-        def convert(self, value, param, ctx):
-            assert isinstance(value, str)
-            return value
 
     @click.command
     @option("--flag1/--no-flag1")
@@ -408,6 +409,7 @@ def test_standalone_show_params_option(invoke, cmd_decorator, option_decorator):
             "show-params.show_params",
             "click_extra.parameters.ShowParamsOption",
             "--show-params",
+            "click.types.BoolParamType",
             "bool",
             "✘",
             "✘",
@@ -438,10 +440,12 @@ def test_integrated_show_params_option(invoke, create_config):
     @option("--int-param1", type=int, default=10)
     @option("--int-param2", type=int, default=555)
     @option("--hidden-param", hidden=True)  # See issue #689.
-    def show_params_cli(int_param1, int_param2, hidden_param):
+    @option("--custom-param", type=Custom())   # See issue #721.
+    def show_params_cli(int_param1, int_param2, hidden_param, custom_param):
         echo(f"int_param1 is {int_param1!r}")
         echo(f"int_param2 is {int_param2!r}")
         echo(f"hidden_param is {hidden_param!r}")
+        echo(f"custom_param is {custom_param!r}")
 
     conf_file = dedent(
         """
@@ -472,6 +476,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "show-params-cli.color",
             "click_extra.colorize.ColorOption",
             "--color, --ansi / --no-color, --no-ansi",
+            "click.types.BoolParamType",
             "bool",
             "✘",
             "✘",
@@ -485,6 +490,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "show-params-cli.config",
             "click_extra.config.ConfigOption",
             "-C, --config CONFIG_PATH",
+            "click.types.StringParamType",
             "str",
             "✘",
             "✘",
@@ -495,9 +501,24 @@ def test_integrated_show_params_option(invoke, create_config):
             "COMMANDLINE",
         ),
         (
+            "show-params-cli.custom_param",
+            "cloup._params.Option",
+            "--custom-param CUSTOM",
+            "click_extra.tests.test_parameters.Custom",
+            "str",
+            "✘",
+            "✓",
+            "✓",
+            "SHOW_PARAMS_CLI_CUSTOM_PARAM",
+            "None",
+            None,
+            "DEFAULT",
+        ),
+        (
             "show-params-cli.help",
             "click_extra.colorize.HelpOption",
             "-h, --help",
+            "click.types.BoolParamType",
             "bool",
             "✘",
             "✘",
@@ -511,6 +532,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "show-params-cli.hidden_param",
             "cloup._params.Option",
             "--hidden-param TEXT",
+            "click.types.StringParamType",
             "str",
             "✓",
             "✓",
@@ -524,6 +546,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "show-params-cli.int_param1",
             "cloup._params.Option",
             "--int-param1 INTEGER",
+            "click.types.IntParamType",
             "int",
             "✘",
             "✓",
@@ -537,6 +560,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "show-params-cli.int_param2",
             "cloup._params.Option",
             "--int-param2 INTEGER",
+            "click.types.IntParamType",
             "int",
             "✘",
             "✓",
@@ -550,6 +574,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "show-params-cli.show_params",
             "click_extra.parameters.ShowParamsOption",
             "--show-params",
+            "click.types.BoolParamType",
             "bool",
             "✘",
             "✘",
@@ -563,6 +588,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "show-params-cli.time",
             "click_extra.timer.TimerOption",
             "--time / --no-time",
+            "click.types.BoolParamType",
             "bool",
             "✘",
             "✘",
@@ -576,6 +602,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "show-params-cli.verbosity",
             "click_extra.logging.VerbosityOption",
             "-v, --verbosity LEVEL",
+            "click.types.Choice",
             "str",
             "✘",
             "✘",
@@ -589,6 +616,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "show-params-cli.version",
             "click_extra.version.ExtraVersionOption",
             "--version",
+            "click.types.BoolParamType",
             "bool",
             "✘",
             "✘",
@@ -629,6 +657,7 @@ def test_recurse_subcommands(invoke):
             "show-params-cli-main.show_params",
             "click_extra.parameters.ShowParamsOption",
             "--show-params",
+            "click.types.BoolParamType",
             "bool",
             "✘",
             "✘",
@@ -642,6 +671,7 @@ def test_recurse_subcommands(invoke):
             "show-params-cli-main.show-params-sub-cmd.show-params-sub-sub-cmd.int_param",
             "cloup._params.Option",
             "--int-param INTEGER",
+            "click.types.IntParamType",
             "int",
             "✘",
             "✓",

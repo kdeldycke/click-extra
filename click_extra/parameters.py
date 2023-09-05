@@ -534,7 +534,8 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         "ID",
         "Class",
         "Spec.",
-        "Type",
+        "Param type",
+        "Python type",
         "Hidden",
         "Exposed",
         "Allowed in conf?",
@@ -653,27 +654,28 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 str | None,
                 str | None,
                 str | None,
+                str | None,
             ]
         ] = []
-        for path, param_type in self.flatten_tree_dict(self.params_types).items():
+        for path, python_type in self.flatten_tree_dict(self.params_types).items():
             # Get the parameter instance.
             tree_keys = path.split(self.SEP)
-            par = cast(
+            instance = cast(
                 "click.Parameter",
                 self.get_tree_value(self.params_objects, *tree_keys),
             )
-            assert par.name == tree_keys[-1]
+            assert instance.name == tree_keys[-1]
 
-            param_value, source = get_param_value(par)
-            param_class = self.get_tree_value(self.params_objects, *tree_keys).__class__
+            param_value, source = get_param_value(instance)
+            param_class = instance.__class__
 
             # Collect param's spec and hidden status.
             hidden = None
             param_spec = None
             # Hidden property is only supported by Option, not Argument.
             # TODO: Allow arguments to produce their spec.
-            if hasattr(par, "hidden"):
-                hidden = OK if par.hidden is True else KO
+            if hasattr(instance, "hidden"):
+                hidden = OK if instance.hidden is True else KO
 
                 # No-op context manager without any effects.
                 hidden_param_bypass: ContextManager = nullcontext()
@@ -683,10 +685,10 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 # TODO: Submit a PR to Click to separate production of param spec and
                 # help record. That way we can always produce the param spec even if
                 # the parameter is hidden.
-                if par.hidden:
-                    hidden_param_bypass = patch.object(par, "hidden", False)
+                if instance.hidden:
+                    hidden_param_bypass = patch.object(instance, "hidden", False)
                 with hidden_param_bypass:
-                    help_record = par.get_help_record(ctx)
+                    help_record = instance.get_help_record(ctx)
                     if help_record:
                         param_spec = help_record[0]
 
@@ -699,12 +701,13 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 default_theme.invoked_command(path),
                 f"{param_class.__module__}.{param_class.__qualname__}",
                 param_spec,
-                param_type.__name__,
+                f"{instance.type.__module__}.{instance.type.__class__.__name__}",
+                python_type.__name__,
                 hidden,
-                OK if par.expose_value is True else KO,
+                OK if instance.expose_value is True else KO,
                 allowed_in_conf,
-                ", ".join(map(default_theme.envvar, all_envvars(par, ctx))),
-                default_theme.default(str(par.get_default(ctx))),
+                ", ".join(map(default_theme.envvar, all_envvars(instance, ctx))),
+                default_theme.default(str(instance.get_default(ctx))),
                 param_value,
                 source._name_ if source else None,
             )
