@@ -38,6 +38,7 @@ from click_extra import (
     File,
     FloatRange,
     IntRange,
+    ParamType,
     Tuple,
     argument,
     command,
@@ -250,6 +251,15 @@ def test_auto_envvar_parsing(invoke, cmd_decorator, envvars, expected_flag):
 def test_params_auto_types(invoke, option_decorator):
     """Check parameters types and structure are properly derived from CLI."""
 
+    class Custom(ParamType):
+        """A dummy custom type."""
+
+        name = "Custom"
+
+        def convert(self, value, param, ctx):
+            assert isinstance(value, str)
+            return value
+
     @click.command
     @option("--flag1/--no-flag1")
     @option("--flag2", is_flag=True)
@@ -270,6 +280,7 @@ def test_params_auto_types(invoke, option_decorator):
     @option("--count-param", count=True)  # See issue #170.
     @option("--float-range-param", type=FloatRange())
     @option("--datetime-param", type=DateTime())
+    @option("--custom-param", type=Custom())
     @option("--tuple1", nargs=2, type=Tuple([str, int]))
     @option("--list1", multiple=True)
     @option("--hidden-param", hidden=True)  # See issue #689.
@@ -296,6 +307,7 @@ def test_params_auto_types(invoke, option_decorator):
         count_param,
         float_range_param,
         datetime_param,
+        custom_param,
         tuple1,
         list1,
         hidden_param,
@@ -339,6 +351,7 @@ def test_params_auto_types(invoke, option_decorator):
             "count_param": None,
             "float_range_param": None,
             "datetime_param": None,
+            "custom_param": None,
             "tuple1": None,
             "list1": None,
             "hidden_param": None,
@@ -368,6 +381,7 @@ def test_params_auto_types(invoke, option_decorator):
             "count_param": int,
             "float_range_param": float,
             "datetime_param": str,
+            "custom_param": str,
             "tuple1": list,
             "list1": list,
             "hidden_param": str,

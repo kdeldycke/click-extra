@@ -54,6 +54,7 @@ from . import (
     FloatRange,
     IntRange,
     Option,
+    ParamType,
     Style,
     Tuple,
     echo,
@@ -426,8 +427,8 @@ class ParamStructure:
     def get_param_type(self, param):
         """Get the Python type of a Click parameter.
 
-        See the list of
-        `custom types provided by Click <https://click.palletsprojects.com/en/8.1.x/api/?highlight=intrange#types>`_.
+        See the list of `custom types provided by Click
+        <https://click.palletsprojects.com/en/8.1.x/api/#types>`_.
         """
         if param.multiple or param.nargs != 1:
             return list
@@ -440,6 +441,12 @@ class ParamStructure:
                 return py_type
             if inspect.isclass(click_type) and isinstance(param.type, click_type):
                 return py_type
+
+        # Custom parameters are expected to convert from strings, as that's the default
+        # type of command lines.
+        # See: https://click.palletsprojects.com/en/8.1.x/api/#click.ParamType
+        if isinstance(param.type, ParamType):
+            return str
 
         msg = f"Can't guess the appropriate Python type of {param!r} parameter."
         raise ValueError(msg)
