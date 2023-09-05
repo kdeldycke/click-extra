@@ -42,21 +42,9 @@ from mergedeep import merge
 from tabulate import tabulate
 
 from . import (
-    BOOL,
-    FLOAT,
-    INT,
-    STRING,
-    UNPROCESSED,
-    UUID,
-    Choice,
-    DateTime,
-    File,
-    FloatRange,
-    IntRange,
     Option,
     ParamType,
     Style,
-    Tuple,
     echo,
     get_current_context,
 )
@@ -399,27 +387,25 @@ class ParamStructure:
         # Subcommand-specific options.
         yield from self._recurse_cmd(cli, top_level_params, (cli.name,))
 
-    TYPE_MAP = {
-        # Instances of click.types.ParamType.
-        STRING: str,
-        INT: int,
-        FLOAT: float,
-        BOOL: bool,
-        UUID: str,
-        UNPROCESSED: str,
-        # Subclasses of click.types.ParamType.
-        File: str,
-        click.Path: str,
-        Choice: str,
-        IntRange: int,
-        FloatRange: float,
-        DateTime: str,
-        Tuple: list,
+    TYPE_MAP: [ParamType, str|int|float|bool|list] = {
+        click.types.StringParamType: str,
+        click.types.IntParamType: int,
+        click.types.FloatParamType: float,
+        click.types.BoolParamType: bool,
+        click.types.UUIDParameterType: str,
+        click.types.UnprocessedParamType: str,
+        click.types.File: str,
+        click.types.Path: str,
+        click.types.Choice: str,
+        click.types.IntRange: int,
+        click.types.FloatRange: float,
+        click.types.DateTime: str,
+        click.types.Tuple: list,
     }
-    """Mapping of Click types to their Python equivalent.
+    """Map Click types to their Python equivalent.
 
-    Keys can be a mix of instances or subclasses of ``click.types.ParamType``. Values
-    are expected to be simple Python types.
+    Keys are subclasses of ``click.types.ParamType``. Values are expected to be simple
+    builtins Python types.
 
     This mapping can be seen as a reverse of the ``click.types.convert_type()`` method.
     """
@@ -436,11 +422,24 @@ class ParamStructure:
         if hasattr(param, "is_bool_flag") and param.is_bool_flag:
             return bool
 
+        # Try to directly map the Click type to a Python type.
+        py_type = self.TYPE_MAP.get(param.type.__class__)
+        if py_type is not None:
+            return py_type
+
+        # Try to indirectly map the type by looking at inheritance.
         for click_type, py_type in self.TYPE_MAP.items():
-            if param.type == click_type:
-                return py_type
-            if inspect.isclass(click_type) and isinstance(param.type, click_type):
-                return py_type
+            matching = set()
+            if isinstance(param.type, click_type):
+                matching.add(py_type)
+            if matching:
+                if len(matching) > 1:
+                    msg = (
+                        f"Multiple Python types found for {param.type!r} parameter: "
+                        f"{matching}"
+                    )
+                    raise ValueError(msg)
+                return matching.pop()
 
         # Custom parameters are expected to convert from strings, as that's the default
         # type of command lines.
