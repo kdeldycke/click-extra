@@ -376,34 +376,32 @@ class ExtraVersionOption(ExtraOption):
                 field_style = default_style
             field_styles[field_id] = field_style
 
+        # Split the template semantically between fields and literals.
+        segments = tokenize_format_str(template, resolve_pos=False)
+
         # A copy of the template, where literals and fields segments are colored.
         colored_template = ""
 
-        # Split the template semantically between fields and literals.
-        accumulated_literals = ""
-        for segment in tokenize_format_str(template, resolve_pos=False):
-            # Format field.
-            if isinstance(segment, BaseFormatField):
-                # Dump the accumulated literal string to the template copy, and reset
-                # it.
-                if accumulated_literals:
-                    # Colorize the literal string with the default style.
-                    colored_template += default_style(accumulated_literals)
-                    accumulated_literals = ""
+        lits_accu = ""
+        for i, segment in enumerate(segments):
+            # Is the segment a format field?
+            is_field = isinstance(segment, BaseFormatField)
+            # If not, keep accumulating literal strings until the next field.
+            if not is_field:
+                # Re-escape literal curly braces to avoid messing up the format.
+                lits_accu += segment.replace("{", "{{").replace("}", "}}")
 
-                # Add the field to the template copy, colored with its own style.
+            # Dump the accumulated literals before processing the field, or at the end of the template.
+            is_last_segment = (i + 1 == len(segments))
+            if (is_field or is_last_segment) and lits_accu:
+                # Colorize literals with the default style.
+                colored_template += default_style(lits_accu)
+                # Reset the accumulator.
+                lits_accu = ""
+
+            # Add the field to the template copy, colored with its own style.
+            if is_field:
                 colored_template += field_styles[segment.base_name](str(segment))
-
-            # Keep accumulating literal strings until the next field.
-            else:
-                # Escape the curly braces of the literal string.
-                accumulated_literals += segment.replace("{", "{{").replace("}", "}}")
-
-        # Dump the accumulated literal string to the template copy, and reset it.
-        if accumulated_literals:
-            # Colorize the literal string with the default style.
-            colored_template += default_style(accumulated_literals)
-            accumulated_literals = ""
 
         return colored_template
 
