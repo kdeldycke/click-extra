@@ -392,8 +392,9 @@ class ExtraVersionOption(ExtraOption):
                 # Re-escape literal curly braces to avoid messing up the format.
                 lits_accu += segment.replace("{", "{{").replace("}", "}}")
 
-            # Dump the accumulated literals before processing the field, or at the end of the template.
-            is_last_segment = (i + 1 == len(segments))
+            # Dump the accumulated literals before processing the field, or at the end
+            # of the template.
+            is_last_segment = i + 1 == len(segments)
             if (is_field or is_last_segment) and lits_accu:
                 # Colorize literals with the default style.
                 colored_template += default_style(lits_accu)

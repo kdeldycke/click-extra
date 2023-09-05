@@ -427,8 +427,8 @@ class ParamStructure:
     def get_param_type(self, param):
         """Get the Python type of a Click parameter.
 
-        See the list of `custom types provided by Click
-        <https://click.palletsprojects.com/en/8.1.x/api/#types>`_.
+        See the list of
+        `custom types provided by Click <https://click.palletsprojects.com/en/8.1.x/api/#types>`_.
         """
         if param.multiple or param.nargs != 1:
             return list

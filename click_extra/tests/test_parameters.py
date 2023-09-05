@@ -440,7 +440,7 @@ def test_integrated_show_params_option(invoke, create_config):
     @option("--int-param1", type=int, default=10)
     @option("--int-param2", type=int, default=555)
     @option("--hidden-param", hidden=True)  # See issue #689.
-    @option("--custom-param", type=Custom())   # See issue #721.
+    @option("--custom-param", type=Custom())  # See issue #721.
     def show_params_cli(int_param1, int_param2, hidden_param, custom_param):
         echo(f"int_param1 is {int_param1!r}")
         echo(f"int_param2 is {int_param2!r}")
