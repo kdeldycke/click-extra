@@ -104,7 +104,7 @@ You can see how to use some of these `extra` variants in the [tutorial](tutorial
 
 The `@extra_command` and `@extra_group` decorators are [pre-configured with a set of default options](commands.md#click_extra.commands.default_extra_params).
 
-## Remove default options
+### Remove default options
 
 You can remove all default options by resetting the `params` argument to `None`:
 
@@ -133,7 +133,7 @@ Which results in:
 
 As you can see, all options are stripped out, but the colouring and formatting of the help message is preserved.
 
-## Change default options
+### Change default options
 
 To override the default options, you can provide the `params=` argument to the command. But note how we use classes instead of option decorators:
 
@@ -193,7 +193,7 @@ This let you replace the preset options by your own set, tweak their order and f
    This is by design: decorators are cumulative, to allow you to add your own options to the preset of `@extra_command` and `@extra_group`.
 ```
 
-## Option order
+### Option order
 
 Notice how the options above are ordered in the help message.
 
@@ -201,7 +201,7 @@ The default behavior of `@extra_command` (and its derivates decorators) is to or
 
 After that, there is a final [sorting step applied to options](https://kdeldycke.github.io/click-extra/commands.html#click_extra.commands.ExtraCommand). This is done by the `extra_option_at_end` option, which is `True` by default.
 
-## Option's defaults
+### Option's defaults
 
 Because Click Extra commands and groups inherits from Click, you can [override the defaults the way Click allows you to](https://click.palletsprojects.com/en/8.1.x/commands/#context-defaults). Here is a reminder on how to do it.
 
