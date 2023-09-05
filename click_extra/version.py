@@ -382,6 +382,7 @@ class ExtraVersionOption(ExtraOption):
         # A copy of the template, where literals and fields segments are colored.
         colored_template = ""
 
+        # Apply styles to field and literal segments.
         lits_accu = ""
         for i, segment in enumerate(segments):
             # Is the segment a format field?
