@@ -387,7 +387,7 @@ class ParamStructure:
         # Subcommand-specific options.
         yield from self._recurse_cmd(cli, top_level_params, (cli.name,))
 
-    TYPE_MAP: [ParamType, str|int|float|bool|list] = {
+    TYPE_MAP: dict[ParamType, str|int|float|bool|list] = {
         click.types.StringParamType: str,
         click.types.IntParamType: int,
         click.types.FloatParamType: float,
