@@ -8,6 +8,7 @@ This version is not released yet and is under active development.
 
 - Distingish between parameter type and Python type in `--show-params` output.
 - Recognize custom parameter type as string-based. Closes {issue}`721`.
+- Rely on `bump-my-version` to update citation file metadata.
 
 ## {gh}`4.7.0 (2023-09-04) <compare/v4.6.5...v4.7.0>`
 
