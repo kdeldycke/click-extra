@@ -33,6 +33,7 @@ from typing import (
     Callable,
     ContextManager,
     cast,
+    Type,
 )
 from unittest.mock import patch
 
@@ -387,7 +388,7 @@ class ParamStructure:
         # Subcommand-specific options.
         yield from self._recurse_cmd(cli, top_level_params, (cli.name,))
 
-    TYPE_MAP: dict[ParamType, str | int | float | bool | list] = {
+    TYPE_MAP: dict[Type[ParamType], Type[str | int | float | bool | list]] = {
         click.types.StringParamType: str,
         click.types.IntParamType: int,
         click.types.FloatParamType: float,
