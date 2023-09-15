@@ -513,6 +513,14 @@ Here is the highlighted differences to make them even more obvious:
 
 Now that all commands are under the same umbrella, there is no limit to your imagination!
 
+```{important}
+This might looks janky, but this franken-CLI might be a great way to solve practical problems in your situation.
+
+You can augment them with your custom glue code. Or maybe mashing them up will simplify the re-distribution of these CLIs on your production machines. Or control their common dependencies. Or freeze their versions. Or hard-code some parameters. Or apply monkey-patches. Or chain these commands to create new kind of automation...
+
+There is a miriad of possibilities. If you have some other examples in the same vein, please share them in an issue or even directly via a PR. I'd love to complement this documentation with creative use-cases.
+```
+
 ## `click_extra.commands` API
 
 ```{eval-rst}
