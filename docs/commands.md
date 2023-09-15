@@ -251,6 +251,268 @@ Which results in ``[default: INFO]`` being featured in the help message:
 The advantage of the `context_settings` method we demonstrated last, is that it let you change the default of the `--verbosity` option provided by Click Extra, without having to [re-list the whole set of default options](#change-default-options).
 ```
 
+## Third-party commands composition
+
+Click Extra is capable of composing with existing Click CLI in various situation.
+
+### Wrap other commands
+
+Click allows you to build up a hierarchy of command and subcommands. Click Extra inherits this behavior, which means we are free to assemble multiple third-party subcommands into a top-level one.
+
+For this example, let's imagine you are working for an operation team that is relying daily on a couple of CLIs. Like [`dbt`](https://github.com/dbt-labs/dbt-core) to manage your data workflows, and [`aws-sam-cli`](https://github.com/aws/aws-sam-cli) to deploy them in the cloud.
+
+For some practical reasons, you'd like to wrap all these commands into a big one. This is how to do it.
+
+````{note}
+Here is how I initialized this example on my machine:
+
+```shell-session
+$ git clone https://github.com/kdeldycke/click-extra
+(...)
+
+$ cd click-extra
+(...)
+
+$ poetry install
+(...)
+
+$ poetry run python -m pip install dbt-core
+(...)
+
+$ poetry run python -m pip install aws-sam-cli
+(...)
+```
+
+That way I had the latest Click Extra, `dbt` and `aws-sam-cli` installed in the same virtual environment:
+
+```shell-session
+$ poetry run dbt --version
+Core:
+  - installed: 1.6.1
+  - latest:    1.6.2 - Update available!
+
+  Your version of dbt-core is out of date!
+  You can find instructions for upgrading here:
+  https://docs.getdbt.com/docs/installation
+
+Plugins:
+
+
+```
+
+```shell-session
+$ poetry run sam --version
+SAM CLI, version 1.97.0
+```
+````
+
+Once you identified the entry points of each commands, you can easely wrap them into a top-level Click Extra CLI. Here is for instance the content of a `wrap.py` script:
+
+```python
+from click_extra import extra_group
+
+from samcli.cli.main import cli as sam_cli
+from dbt.cli.main import cli as dbt_cli
+
+
+@extra_group
+def main():
+    pass
+
+
+main.add_command(cmd=sam_cli, name='aws_sam')
+main.add_command(cmd=dbt_cli, name='dbt')
+
+
+if __name__ == '__main__':
+    main()
+```
+
+And this simple script gets rendered into:
+
+```shell-session
+$ poetry run python ./wrap.py
+Usage: wrap.py [OPTIONS] COMMAND [ARGS]...
+
+Options:
+  --time / --no-time        Measure and print elapsed execution time.  [default:
+                            no-time]
+  --color, --ansi / --no-color, --no-ansi
+                            Strip out all colors and all ANSI codes from output.
+                            [default: color]
+  -C, --config CONFIG_PATH  Location of the configuration file. Supports glob
+                            pattern of local path and remote URL.  [default:
+                            ~/Library/Application
+                            Support/wrap.py/*.{toml,yaml,yml,json,ini,xml}]
+  --show-params             Show all CLI parameters, their provenance, defaults
+                            and value, then exit.
+  -v, --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.
+                            [default: WARNING]
+  --version                 Show the version and exit.
+  -h, --help                Show this message and exit.
+
+Commands:
+  aws_sam  AWS Serverless Application Model (SAM) CLI
+  dbt      An ELT tool for managing your SQL transformations and data models.
+```
+
+Here you can see that the top-level CLI gets [all the default options and behavior (including coloring)](tutorial.md#all-bells-and-whistles) of `@extra_group`. But it also made available the standalone `aws_sam` and `dbt` CLI as standard subcommands.
+
+And they are perfectly functional as-is.
+
+You can compare the output of the `aws_sam` subcommand with its original one:
+
+`````{tab-set}
+````{tab-item} aws_sam subcommand in wrap.py
+```shell-session
+$ poetry run python ./wrap.py aws_sam --help
+Usage: wrap.py aws_sam [OPTIONS] COMMAND [ARGS]...
+
+  AWS Serverless Application Model (SAM) CLI
+
+  The AWS Serverless Application Model Command Line Interface (AWS SAM CLI) is
+  a command line tool that you can use with AWS SAM templates and supported
+  third-party integrations to build and run your serverless applications.
+
+  Learn more: https://docs.aws.amazon.com/serverless-application-model/
+
+Commands:
+
+  Learn:
+    docs NEW!           Launch the AWS SAM CLI documentation in a browser.
+
+  Create an App:
+    init                Initialize an AWS SAM application.
+
+  Develop your App:
+    build               Build your AWS serverless function code.
+    local               Run your AWS serverless function locally.
+    validate            Validate an AWS SAM template.
+    sync NEW!           Sync an AWS SAM project to AWS.
+    remote NEW!         Invoke or send an event to cloud resources in your AWS
+                        Cloudformation stack.
+
+  Deploy your App:
+    package             Package an AWS SAM application.
+    deploy              Deploy an AWS SAM application.
+
+  Monitor your App:
+    logs                Fetch AWS Cloudwatch logs for AWS Lambda Functions or
+                        Cloudwatch Log groups.
+    traces              Fetch AWS X-Ray traces.
+
+  And More:
+    list NEW!           Fetch the state of your AWS serverless application.
+    delete              Delete an AWS SAM application and the artifacts created
+                        by sam deploy.
+    pipeline            Manage the continuous delivery of your AWS serverless
+                        application.
+    publish             Publish a packaged AWS SAM template to AWS Serverless
+                        Application Repository for easy sharing.
+
+Options:
+
+    --beta-features / --no-beta-features
+                                    Enable/Disable beta features.
+    --debug                         Turn on debug logging to print debug message
+                                    generated by AWS SAM CLI and display
+                                    timestamps.
+    --version                       Show the version and exit.
+    --info                          Show system and dependencies information.
+    -h, --help                      Show this message and exit.
+
+Examples:
+
+    Get Started:        $wrap.py aws_sam init
+```
+````
+
+````{tab-item} Vanilla sam CLI
+```shell-session
+$ poetry run sam --help
+Usage: sam [OPTIONS] COMMAND [ARGS]...
+
+  AWS Serverless Application Model (SAM) CLI
+
+  The AWS Serverless Application Model Command Line Interface (AWS SAM CLI) is
+  a command line tool that you can use with AWS SAM templates and supported
+  third-party integrations to build and run your serverless applications.
+
+  Learn more: https://docs.aws.amazon.com/serverless-application-model/
+
+Commands:
+
+  Learn:
+    docs NEW!           Launch the AWS SAM CLI documentation in a browser.
+
+  Create an App:
+    init                Initialize an AWS SAM application.
+
+  Develop your App:
+    build               Build your AWS serverless function code.
+    local               Run your AWS serverless function locally.
+    validate            Validate an AWS SAM template.
+    sync NEW!           Sync an AWS SAM project to AWS.
+    remote NEW!         Invoke or send an event to cloud resources in your AWS
+                        Cloudformation stack.
+
+  Deploy your App:
+    package             Package an AWS SAM application.
+    deploy              Deploy an AWS SAM application.
+
+  Monitor your App:
+    logs                Fetch AWS Cloudwatch logs for AWS Lambda Functions or
+                        Cloudwatch Log groups.
+    traces              Fetch AWS X-Ray traces.
+
+  And More:
+    list NEW!           Fetch the state of your AWS serverless application.
+    delete              Delete an AWS SAM application and the artifacts created
+                        by sam deploy.
+    pipeline            Manage the continuous delivery of your AWS serverless
+                        application.
+    publish             Publish a packaged AWS SAM template to AWS Serverless
+                        Application Repository for easy sharing.
+
+Options:
+
+    --beta-features / --no-beta-features
+                                    Enable/Disable beta features.
+    --debug                         Turn on debug logging to print debug message
+                                    generated by AWS SAM CLI and display
+                                    timestamps.
+    --version                       Show the version and exit.
+    --info                          Show system and dependencies information.
+    -h, --help                      Show this message and exit.
+
+Examples:
+
+    Get Started:        $sam init
+```
+````
+`````
+
+Here is the highlighted differences to make them even more obvious:
+
+```diff
+@@ -1,5 +1,5 @@
+-$ poetry run python ./wrap.py aws_sam --help
+-Usage: wrap.py aws_sam [OPTIONS] COMMAND [ARGS]...
++$ poetry run sam --help
++Usage: sam [OPTIONS] COMMAND [ARGS]...
+
+   AWS Serverless Application Model (SAM) CLI
+
+@@ -56,4 +56,4 @@
+
+ Examples:
+
+-    Get Started:        $wrap.py aws_sam init
++    Get Started:        $sam init
+```
+
+Now that all commands are under the same umbrella, there is no limit to your imagination!
+
 ## `click_extra.commands` API
 
 ```{eval-rst}
