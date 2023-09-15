@@ -320,11 +320,11 @@ def main():
     pass
 
 
-main.add_command(cmd=sam_cli, name='aws_sam')
-main.add_command(cmd=dbt_cli, name='dbt')
+main.add_command(cmd=sam_cli, name="aws_sam")
+main.add_command(cmd=dbt_cli, name="dbt")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
 ```
 
