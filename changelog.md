@@ -1,5 +1,11 @@
 # Changelog
 
+## {gh}`4.7.2 (unreleased) <compare/v4.7.1...main>`
+
+```{important}
+This version is not released yet and is under active development.
+```
+
 ## {gh}`4.7.1 (2023-09-19) <compare/v4.7.0...v4.7.1>`
 
 - Distingish between parameter type and Python type in `--show-params` output.
