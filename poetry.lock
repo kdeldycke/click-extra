@@ -1330,24 +1330,24 @@ files = [
 
 [[package]]
 name = "types-regex"
-version = "2023.8.8.0"
+version = "2023.10.3.0"
 description = "Typing stubs for regex"
 optional = false
-python-versions = "*"
+python-versions = ">=3.7"
 files = [
-    {file = "types-regex-2023.8.8.0.tar.gz", hash = "sha256:ec87fbb69802b7224d8067bf65048fbfa7bc061efde65cfe471471c0c4d561e0"},
-    {file = "types_regex-2023.8.8.0-py3-none-any.whl", hash = "sha256:52cc3e7748292fc0157388166e23b6d7b661459ae9dda8cec3c6a85ead3b1f98"},
+    {file = "types-regex-2023.10.3.0.tar.gz", hash = "sha256:2521c164b71fd0aa901df93993292e266b7fc6d59d4906a8f716033ace885235"},
+    {file = "types_regex-2023.10.3.0-py3-none-any.whl", hash = "sha256:d4a5b8968c3a53f120e4e599b4b062d8567e3525a646562692120cde23cb37af"},
 ]
 
 [[package]]
 name = "types-requests"
-version = "2.31.0.7"
+version = "2.31.0.8"
 description = "Typing stubs for requests"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "types-requests-2.31.0.7.tar.gz", hash = "sha256:4d930dcabbc2452e3d70728e581ac4ac8c2d13f62509ad9114673f542af8cb4e"},
-    {file = "types_requests-2.31.0.7-py3-none-any.whl", hash = "sha256:39844effefca88f4f824dcdc4127b813d3b86a56b2248d3d1afa58832040d979"},
+    {file = "types-requests-2.31.0.8.tar.gz", hash = "sha256:e1b325c687b3494a2f528ab06e411d7092cc546cc9245c000bacc2fca5ae96d4"},
+    {file = "types_requests-2.31.0.8-py3-none-any.whl", hash = "sha256:39894cbca3fb3d032ed8bdd02275b4273471aa5668564617cc1734b0a65ffdf8"},
 ]
 
 [package.dependencies]
