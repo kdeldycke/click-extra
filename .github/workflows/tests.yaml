@@ -53,7 +53,9 @@ jobs:
                   "3.10",
                   "3.11",
                   "3.12",
-                  "3.13-dev",
+                  # Work on Python 3.13 has not started yet:
+                  # https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
+                  # "3.13-dev",
               },
               "click-version": {
                   "released",
