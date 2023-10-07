@@ -65,7 +65,7 @@ classifiers = [
 "Changelog" = "https://kdeldycke.github.io/click-extra/changelog.html"
 
 [tool.poetry.dependencies]
-# List of python versions and their support status: https://endoflife.date/python
+# Python versions and their status: https://devguide.python.org/versions/
 python = "^3.8"
 # XXX boltons.ecoutils 23.0.0 breaks PDB interactive sessions in pytest.
 # Investigation of the root cause is being discussed upstream at:
