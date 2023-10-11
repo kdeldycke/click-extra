@@ -30,7 +30,7 @@ from unittest.mock import patch
 if sys.version_info >= (3, 11):
     import tomllib
 else:
-    import tomli as tomllib  # type: ignore[import]
+    import tomli as tomllib  # type: ignore[import-not-found]
 
 import commentjson as json
 import requests
