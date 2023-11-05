@@ -214,7 +214,7 @@ replace = "version: {new_version}"
 filename = "./citation.cff"
 regex = true
 search = "date-released: \\d{{4}}-\\d{{2}}-\\d{{2}}"
-replace = "date-released: {now:%Y-%m-%d}"
+replace = "date-released: {utcnow:%Y-%m-%d}"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
