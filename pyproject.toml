@@ -189,35 +189,30 @@ precision = 2
 [tool.bumpversion]
 current_version = "4.7.2"
 allow_dirty = true
-no_regex = true
 
 [[tool.bumpversion.files]]
 # Update Python package version.
-no_regex = true
 filename = "./click_extra/__init__.py"
 
 [[tool.bumpversion.files]]
 # Update version in Poetry section.
 filename = "./pyproject.toml"
-no_regex = true
 search = 'version = "{current_version}"'
 replace = 'version = "{new_version}"'
 
 [[tool.bumpversion.files]]
 filename = "./changelog.md"
-no_regex = true
 search = "{{gh}}`{current_version} (unreleased)"
 replace = "{{gh}}`{new_version} (unreleased)"
 
 [[tool.bumpversion.files]]
 filename = "./citation.cff"
-no_regex = true
 search = "version: {current_version}"
 replace = "version: {new_version}"
 
 [[tool.bumpversion.files]]
 filename = "./citation.cff"
-no_regex = false
+regex = true
 search = "date-released: \\d{{4}}-\\d{{2}}-\\d{{2}}"
 replace = "date-released: {now:%Y-%m-%d}"
 
