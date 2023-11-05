@@ -215,7 +215,8 @@ def envvars_test_cases():
                             cmd_decorator,
                             envvar,
                             expected_flag,
-                            id=f"{decorator_name}|{case_name}={envvar}|expected_flag={expected_flag}",
+                            id=f"{decorator_name}|{case_name}={
+                                envvar}|expected_flag={expected_flag}",
                         ),
                     )
 
@@ -496,7 +497,8 @@ def test_integrated_show_params_option(invoke, create_config):
             "✘",
             "✘",
             "SHOW_PARAMS_CLI_CONFIG",
-            f"{Path(get_app_dir('show-params-cli')).resolve()}{sep}*.{{toml,yaml,yml,json,ini,xml}}",
+            f"{Path(get_app_dir('show-params-cli')).resolve()
+                    }{sep}*.{{toml,yaml,yml,json,ini,xml}}",
             str(conf_path),
             "COMMANDLINE",
         ),
