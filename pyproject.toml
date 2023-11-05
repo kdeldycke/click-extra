@@ -191,8 +191,9 @@ current_version = "4.7.2"
 allow_dirty = true
 
 [[tool.bumpversion.files]]
-# Update Python package version.
-filename = "./click_extra/__init__.py"
+# Update Python package version in any __init__.py file.
+glob = "./**/__init__.py"
+ignore_missing_version = true
 
 [[tool.bumpversion.files]]
 # Update version in Poetry section.
