@@ -210,14 +210,12 @@ def envvars_test_cases():
             for envvar_name in envvar_names:
                 for envar_value, expected_flag in value_map.items():
                     envvar = {envvar_name: envar_value}
+                    test_id = (
+                        f"{decorator_name}|{case_name}={envvar}"
+                        f"|expected_flag={expected_flag}"
+                    )
                     params.append(
-                        pytest.param(
-                            cmd_decorator,
-                            envvar,
-                            expected_flag,
-                            id=f"{decorator_name}|{case_name}={
-                                envvar}|expected_flag={expected_flag}",
-                        ),
+                        pytest.param(cmd_decorator, envvar, expected_flag, id=test_id)
                     )
 
     return params
@@ -497,8 +495,10 @@ def test_integrated_show_params_option(invoke, create_config):
             "✘",
             "✘",
             "SHOW_PARAMS_CLI_CONFIG",
-            f"{Path(get_app_dir('show-params-cli')).resolve()
-                    }{sep}*.{{toml,yaml,yml,json,ini,xml}}",
+            (
+                f"{Path(get_app_dir('show-params-cli')).resolve()}{sep}"
+                "*.{toml,yaml,yml,json,ini,xml}"
+            ),
             str(conf_path),
             "COMMANDLINE",
         ),
