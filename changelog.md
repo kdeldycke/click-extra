@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Run tests on Python 3.13-dev branch.
+
 ## {gh}`4.7.2 (2023-11-06) <compare/v4.7.1...v4.7.2>`
 
 - Run tests on released Python 3.12 version.
