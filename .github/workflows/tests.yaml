@@ -73,9 +73,9 @@ jobs:
 
           # List of unstable criterions.
           unstable: list[dict[str, str]] = [
-              # pytest-cases is not compatible with Python 3.12-dev yet:
-              # https://github.com/smarie/python-pytest-cases/issues/297
-              {"python-version": "3.12-dev"},
+              # msgpack does not work on Python 3.13-dev yet:
+              # https://github.com/msgpack/msgpack-python/issues/573
+              {"python-version": "3.13-dev"},
               # Ignore failing tests on Click development branch, because some top-level classes (BaseCommand,
               # MultiCommand and OptionParser) have been removed. See:
               # https://github.com/pallets/click/compare/8.1.x...main#diff-768bcdbbdaa3001d4905761c3eed38d5ce6a62b9127df80de90d9ca4e806cacc
@@ -96,10 +96,11 @@ jobs:
                   {"os": "macos-12"},
                   {"os": "windows-2019"},
                   # Exclude Python's dev version.
-                  {"python-version": "3.12-dev"},
+                  {"python-version": "3.13-dev"},
                   # Exclude intermediate Python version. Only test on oldest and newest released Python versions.
                   {"python-version": "3.9"},
                   {"python-version": "3.10"},
+                  {"python-version": "3.11"},
               ):
                   exclude.append({**dev_version, **criterion})
 
