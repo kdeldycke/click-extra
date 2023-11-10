@@ -200,6 +200,20 @@ class ColorOption(ExtraOption):
 
     This option is eager by default to allow for other eager options (like
     ``--version``) to be rendered colorless.
+
+    .. todo::
+
+        Should we switch to ``--color=<auto|never|always>`` `as GNU tools does
+        <https://news.ycombinator.com/item?id=36102377>`_?
+
+        Also see `how the isatty property defaults with this option
+        <https://news.ycombinator.com/item?id=36100865>`_, and `how it can be
+        implemented in Python <https://bixense.com/clicolors/>`_.
+
+    .. todo::
+
+        Support the `TERM environment variable convention
+        <https://news.ycombinator.com/item?id=36101712>`_?
     """
 
     @staticmethod
