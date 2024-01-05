@@ -321,13 +321,13 @@ class ConfigOption(ExtraOption, ParamStructure):
                 if target_type in (None, str):
                     value = ini_config.get(section_id, option_id)
 
-                elif target_type == int:
+                elif target_type is int:
                     value = ini_config.getint(section_id, option_id)
 
-                elif target_type == float:
+                elif target_type is float:
                     value = ini_config.getfloat(section_id, option_id)
 
-                elif target_type == bool:
+                elif target_type is bool:
                     value = ini_config.getboolean(section_id, option_id)
 
                 # Types not natively supported by INI format are loaded as

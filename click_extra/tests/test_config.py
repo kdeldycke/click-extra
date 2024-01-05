@@ -418,7 +418,7 @@ def test_strict_conf(invoke, create_config):
     result = invoke(config_cli3, "--config", str(conf_path), "subcommand", color=False)
 
     assert result.exception
-    assert type(result.exception) == ValueError
+    assert type(result.exception) is ValueError
     assert (
         str(result.exception)
         == "Parameter 'random_stuff' is not allowed in configuration file."
