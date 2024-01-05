@@ -95,14 +95,14 @@ class ExtraVersionOption(ExtraOption):
         # Field style ovverrides.
         message_style: IStyle | None = None,
         module_style: IStyle | None = None,
-        module_name_style: IStyle | None = default_theme.invoked_command,
+        module_name_style: IStyle | None = default_theme.invoked_command,  # type: ignore[has-type]
         module_file_style: IStyle | None = None,
         module_version_style: IStyle | None = Style(fg="green"),
-        package_name_style: IStyle | None = default_theme.invoked_command,
+        package_name_style: IStyle | None = default_theme.invoked_command,  # type: ignore[has-type]
         package_version_style: IStyle | None = Style(fg="green"),
-        exec_name_style: IStyle | None = default_theme.invoked_command,
+        exec_name_style: IStyle | None = default_theme.invoked_command,  # type: ignore[has-type]
         version_style: IStyle | None = Style(fg="green"),
-        prog_name_style: IStyle | None = default_theme.invoked_command,
+        prog_name_style: IStyle | None = default_theme.invoked_command,  # type: ignore[has-type]
         env_info_style: IStyle | None = Style(fg="bright_black"),
         is_flag=True,
         expose_value=False,
