@@ -1,10 +1,6 @@
 # Changelog
 
-## {gh}`4.7.3 (unreleased) <compare/v4.7.2...main>`
-
-```{important}
-This version is not released yet and is under active development.
-```
+## {gh}`4.7.3 (2024-01-06) <compare/v4.7.2...v4.7.3>`
 
 - Run tests on Python 3.13-dev branch.
 
