@@ -1301,24 +1301,24 @@ files = [
 
 [[package]]
 name = "types-docutils"
-version = "0.20.0.3"
+version = "0.20.0.20240106"
 description = "Typing stubs for docutils"
 optional = false
-python-versions = "*"
+python-versions = ">=3.8"
 files = [
-    {file = "types-docutils-0.20.0.3.tar.gz", hash = "sha256:4928e790f42b99d5833990f99c8dd9fa9f16825f6ed30380ca981846d36870cd"},
-    {file = "types_docutils-0.20.0.3-py3-none-any.whl", hash = "sha256:a930150d8e01a9170f9bca489f46808ddebccdd8bc1e47c07968a77e49fb9321"},
+    {file = "types-docutils-0.20.0.20240106.tar.gz", hash = "sha256:03992ec976fbe080db588e1e56a83c5e4aba5c733022b25bb26cb84397b96049"},
+    {file = "types_docutils-0.20.0.20240106-py3-none-any.whl", hash = "sha256:d408f9305761905b157ea3cb80f53d4026bce7d4cc47312939118715467d0278"},
 ]
 
 [[package]]
 name = "types-pygments"
-version = "2.17.0.0"
+version = "2.17.0.20240106"
 description = "Typing stubs for Pygments"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "types-Pygments-2.17.0.0.tar.gz", hash = "sha256:4241c5f1b7448e559cd820143a564cf10de626a95ab10e2daa463449d16864e7"},
-    {file = "types_Pygments-2.17.0.0-py3-none-any.whl", hash = "sha256:83c33c89037f433fd5315b1abf80f5cb8b589b2d0549444d7f63824c628142c7"},
+    {file = "types-Pygments-2.17.0.20240106.tar.gz", hash = "sha256:92e62ac37793e567cd2b0f64f1456c24fccce4041d9c5f869697a6739fde4fce"},
+    {file = "types_Pygments-2.17.0.20240106-py3-none-any.whl", hash = "sha256:8052c574b0ab8f2dc94bdc4a31b9d48e8aa5a0f12398ef40cadadbe551da949b"},
 ]
 
 [package.dependencies]
@@ -1338,24 +1338,24 @@ files = [
 
 [[package]]
 name = "types-regex"
-version = "2023.12.25.20231225"
+version = "2023.12.25.20240106"
 description = "Typing stubs for regex"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "types-regex-2023.12.25.20231225.tar.gz", hash = "sha256:cc16f84276a550e13bd446741656e1e89c43740a6d68cdeec7154e6602602cb0"},
-    {file = "types_regex-2023.12.25.20231225-py3-none-any.whl", hash = "sha256:708084e8bb6f617f6e7479656bcc8379cf676c1821b6ee80f38f384882789687"},
+    {file = "types-regex-2023.12.25.20240106.tar.gz", hash = "sha256:972a331b1fcbbb415690ef85616aaf1ac11f94f31a5a617dea84ff02ed9428a6"},
+    {file = "types_regex-2023.12.25.20240106-py3-none-any.whl", hash = "sha256:d8171ac169993fffcca28307c414512e908321cb69236fc4b0983469e0bdc823"},
 ]
 
 [[package]]
 name = "types-requests"
-version = "2.31.0.20231231"
+version = "2.31.0.20240106"
 description = "Typing stubs for requests"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "types-requests-2.31.0.20231231.tar.gz", hash = "sha256:0f8c0c9764773384122813548d9eea92a5c4e1f33ed54556b508968ec5065cee"},
-    {file = "types_requests-2.31.0.20231231-py3-none-any.whl", hash = "sha256:2e2230c7bc8dd63fa3153c1c0ae335f8a368447f0582fc332f17d54f88e69027"},
+    {file = "types-requests-2.31.0.20240106.tar.gz", hash = "sha256:0e1c731c17f33618ec58e022b614a1a2ecc25f7dc86800b36ef341380402c612"},
+    {file = "types_requests-2.31.0.20240106-py3-none-any.whl", hash = "sha256:da997b3b6a72cc08d09f4dba9802fdbabc89104b35fe24ee588e674037689354"},
 ]
 
 [package.dependencies]
@@ -1363,24 +1363,24 @@ urllib3 = ">=2"
 
 [[package]]
 name = "types-setuptools"
-version = "69.0.0.0"
+version = "69.0.0.20240106"
 description = "Typing stubs for setuptools"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "types-setuptools-69.0.0.0.tar.gz", hash = "sha256:b0a06219f628c6527b2f8ce770a4f47550e00d3e8c3ad83e2dc31bc6e6eda95d"},
-    {file = "types_setuptools-69.0.0.0-py3-none-any.whl", hash = "sha256:8c86195bae2ad81e6dea900a570fe9d64a59dbce2b11cc63c046b03246ea77bf"},
+    {file = "types-setuptools-69.0.0.20240106.tar.gz", hash = "sha256:e077f9089578df3c9938f6e4aa1633f182ba6740a6fdb1333f162bae5dfcbadc"},
+    {file = "types_setuptools-69.0.0.20240106-py3-none-any.whl", hash = "sha256:b1da8981425723a674fd459c43dfa4402abeaee3f9cf682723ee9cf226125cc3"},
 ]
 
 [[package]]
 name = "types-tabulate"
-version = "0.9.0.3"
+version = "0.9.0.20240106"
 description = "Typing stubs for tabulate"
 optional = false
-python-versions = "*"
+python-versions = ">=3.8"
 files = [
-    {file = "types-tabulate-0.9.0.3.tar.gz", hash = "sha256:197651f9d6467193cd166d8500116a6d3a26f2a4eb2db093bc9535ee1c0be55e"},
-    {file = "types_tabulate-0.9.0.3-py3-none-any.whl", hash = "sha256:462d1b62e01728416e8277614d6a3eb172d53a8efaf04a04a973ff2dd45238f6"},
+    {file = "types-tabulate-0.9.0.20240106.tar.gz", hash = "sha256:c9b6db10dd7fcf55bd1712dd3537f86ddce72a08fd62bb1af4338c7096ce947e"},
+    {file = "types_tabulate-0.9.0.20240106-py3-none-any.whl", hash = "sha256:0378b7b6fe0ccb4986299496d027a6d4c218298ecad67199bbd0e2d7e9d335a1"},
 ]
 
 [[package]]
@@ -1437,13 +1437,13 @@ bracex = ">=2.1.1"
 
 [[package]]
 name = "wcwidth"
-version = "0.2.12"
+version = "0.2.13"
 description = "Measures the displayed width of unicode strings in a terminal"
 optional = false
 python-versions = "*"
 files = [
-    {file = "wcwidth-0.2.12-py2.py3-none-any.whl", hash = "sha256:f26ec43d96c8cbfed76a5075dac87680124fa84e0855195a6184da9c187f133c"},
-    {file = "wcwidth-0.2.12.tar.gz", hash = "sha256:f01c104efdf57971bcb756f054dd58ddec5204dd15fa31d6503ea57947d97c02"},
+    {file = "wcwidth-0.2.13-py2.py3-none-any.whl", hash = "sha256:3da69048e4540d84af32131829ff948f1e022c1c6bdb8d6102117aac784f6859"},
+    {file = "wcwidth-0.2.13.tar.gz", hash = "sha256:72ea0c06399eb286d978fdedb6923a9eb47e1c486ce63e9b4e64fc18303972b5"},
 ]
 
 [[package]]
