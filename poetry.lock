@@ -756,13 +756,13 @@ testing = ["argcomplete", "attrs (>=19.2.0)", "hypothesis (>=3.56)", "mock", "no
 
 [[package]]
 name = "pytest-cases"
-version = "3.8.1"
+version = "3.8.2"
 description = "Separate test code from test cases in pytest."
 optional = false
 python-versions = "*"
 files = [
-    {file = "pytest-cases-3.8.1.tar.gz", hash = "sha256:49d7f6f8ad534e5a6e73fb8f5fd38986606f17b46ee55f7ebee07a55c677ca01"},
-    {file = "pytest_cases-3.8.1-py2.py3-none-any.whl", hash = "sha256:595553f5a522ad6525778a35e0fcb4a46f8eb069e0abe108de02e1d4fb136b85"},
+    {file = "pytest-cases-3.8.2.tar.gz", hash = "sha256:24cec0128c822f51b5f402face09e7049954d9675db2ca675fce1ef7f8f749e8"},
+    {file = "pytest_cases-3.8.2-py2.py3-none-any.whl", hash = "sha256:1ad5ee85e580433caff42f59398d2812d9b8de470f593393c02e4249ddff3996"},
 ]
 
 [package.dependencies]
