@@ -38,8 +38,7 @@ jobs:
 
           variants: dict[str, set[str]] = {
               "os": {
-                  # See what each os came pre-installed with at:
-                  # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
+                  # Available OSes: https://github.com/actions/runner-images#available-images
                   "ubuntu-22.04",
                   "ubuntu-20.04",
                   "macos-13",
