@@ -222,6 +222,37 @@ regex = true
 search = "date-released: \\d{{4}}-\\d{{2}}-\\d{{2}}"
 replace = "date-released: {utcnow:%Y-%m-%d}"
 
+[tool.typos]
+default.extend-ignore-identifiers-re = [
+    # error: `PASE` should be `PASS`, `PACE`, `PARSE`
+    #   --> ./click_extra/platforms.py:416:8
+    #     |
+    # 416 |     - `PASE`
+    #     |        ^^^^
+    #     |
+    "PASE",
+    # error: `Uper` should be `Super`, `Upper`
+    #   --> ./click_extra/tests/test_parameters.py:132:19
+    #     |
+    # 132 |                 "sUper",
+    #     |                   ^^^^
+    #     |
+    "sUper",
+    # error: `Als` should be `Also`
+    #   --> ./click_extra/tests/test_parameters.py:198:11
+    #     |
+    # 198 |         "fAlsE": False,
+    #     |           ^^^
+    #     |
+    "fAlsE",
+    # error: `mey` should be `may`
+    #   --> ./click_extra/tests/test_colorize.py:712:22
+    #     |
+    # 712 |             "H\x1b[32mey\x1b[0m-xx-xxx-\x1b[32mhe\x1b[0mY-xXxXxxxxx-\x1b[32mhey\x1b[0m",
+    #     |                      ^^^
+    #     |
+    "mey",
+]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

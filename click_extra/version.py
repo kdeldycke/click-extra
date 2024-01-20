@@ -387,23 +387,23 @@ class ExtraVersionOption(ExtraOption):
         colored_template = ""
 
         # Apply styles to field and literal segments.
-        lits_accu = ""
+        literal_accu = ""
         for i, segment in enumerate(segments):
             # Is the segment a format field?
             is_field = isinstance(segment, BaseFormatField)
             # If not, keep accumulating literal strings until the next field.
             if not is_field:
                 # Re-escape literal curly braces to avoid messing up the format.
-                lits_accu += segment.replace("{", "{{").replace("}", "}}")
+                literal_accu += segment.replace("{", "{{").replace("}", "}}")
 
             # Dump the accumulated literals before processing the field, or at the end
             # of the template.
             is_last_segment = i + 1 == len(segments)
-            if (is_field or is_last_segment) and lits_accu:
+            if (is_field or is_last_segment) and literal_accu:
                 # Colorize literals with the default style.
-                colored_template += default_style(lits_accu)
+                colored_template += default_style(literal_accu)
                 # Reset the accumulator.
-                lits_accu = ""
+                literal_accu = ""
 
             # Add the field to the template copy, colored with its own style.
             if is_field:
