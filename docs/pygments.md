@@ -110,8 +110,8 @@ The code above prints the following HTML:
       <span class="-Color -Color-C148 -C-C148">/</span>
       <span class="-Color -Color-C184 -C-C184"> Reality is</span>
       <span class="-Color -Color-C178 -C-C178"> </span>
-      <span class="-Color -Color-C214 -C-C214">for peopl</span>
-      <span class="-Color -Color-C208 -C-C208">e who lack</span>
+      <span class="-Color -Color-C214 -C-C214">for people</span>
+      <span class="-Color -Color-C208 -C-C208"> who lack</span>
       …
    </pre>
 </div>
@@ -349,8 +349,8 @@ Licensed under the BSD license, see LICENSE for details.
             <span class="-Color -Color-C148">/</span>
             <span class="-Color -Color-C184"> Reality is</span>
             <span class="-Color -Color-C178"> </span>
-            <span class="-Color -Color-C214">for peopl</span>
-            <span class="-Color -Color-C208">e who lack</span>
+            <span class="-Color -Color-C214">for people</span>
+            <span class="-Color -Color-C208"> who lack</span>
             …
          </pre>
   </div>
