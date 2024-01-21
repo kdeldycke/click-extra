@@ -393,7 +393,7 @@ You can render the version string manually by calling the option's internal meth
 
 That way you can collect the rendered `version_string`, as if it was printed to the terminal by a call to `--version`, and use it in your own way.
 
-Other internal methods to build-up and render the version string are [available in the API below](#click_extraversion-api).
+Other internal methods to build-up and render the version string are [available in the API below](#click-extra-version-api).
 
 ## `click_extra.version` API
 
