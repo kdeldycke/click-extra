@@ -54,7 +54,7 @@ class ExtraVersionOption(ExtraOption):
           to allow its use with the declarative ``params=`` argument.
 
         - `click#2331 <https://github.com/pallets/click/issues/2331>`_,
-          by distingushing the module from the package.
+          by distinguishing the module from the package.
 
         - `click#1756 <https://github.com/pallets/click/issues/1756>`_,
           by allowing path and Python version.
@@ -81,7 +81,7 @@ class ExtraVersionOption(ExtraOption):
         self,
         param_decls: Sequence[str] | None = None,
         message: str | None = None,
-        # Field value ovverrides.
+        # Field value overrides.
         module: str | None = None,
         module_name: str | None = None,
         module_file: str | None = None,
@@ -92,7 +92,7 @@ class ExtraVersionOption(ExtraOption):
         version: str | None = None,
         prog_name: str | None = None,
         env_info: dict[str, str] | None = None,
-        # Field style ovverrides.
+        # Field style overrides.
         message_style: IStyle | None = None,
         module_style: IStyle | None = None,
         module_name_style: IStyle
