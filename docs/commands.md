@@ -306,7 +306,7 @@ SAM CLI, version 1.97.0
 ```
 ````
 
-Once you identified the entry points of each commands, you can easely wrap them into a top-level Click Extra CLI. Here is for instance the content of a `wrap.py` script:
+Once you identified the entry points of each commands, you can easily wrap them into a top-level Click Extra CLI. Here is for instance the content of a `wrap.py` script:
 
 ```python
 from click_extra import extra_group

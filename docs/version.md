@@ -69,8 +69,8 @@ You can customize the message template with the following variables:
 | [`{module_name}`](#click_extra.version.ExtraVersionOption.module_name)         | The [`__name__` of the module](https://docs.python.org/3/reference/import.html#name__) in which the command is implemented.                                                           |
 | [`{module_file}`](#click_extra.version.ExtraVersionOption.module_file)         | The [full path of the file](https://docs.python.org/3/reference/import.html#file__) in which the command is implemented.                                                              |
 | [`{module_version}`](#click_extra.version.ExtraVersionOption.module_version)   | The string found in the local `__version__` variable of the module.                                                                                                                   |
-| [`{package_name}`](#click_extra.version.ExtraVersionOption.package_name)       | The [name of the package](https://docs.python.org/3/reference/import.html#package__) in which the CLI is distibuted.                                                                  |
-| [`{package_version}`](#click_extra.version.ExtraVersionOption.package_version) | The [version from the package metadata](https://docs.python.org/3/library/importlib.metadata.html?highlight=metadata%20version#distribution-versions) in which the CLI is distibuted. |
+| [`{package_name}`](#click_extra.version.ExtraVersionOption.package_name)       | The [name of the package](https://docs.python.org/3/reference/import.html#package__) in which the CLI is distributed.                                                                  |
+| [`{package_version}`](#click_extra.version.ExtraVersionOption.package_version) | The [version from the package metadata](https://docs.python.org/3/library/importlib.metadata.html?highlight=metadata%20version#distribution-versions) in which the CLI is distributed. |
 | [`{exec_name}`](#click_extra.version.ExtraVersionOption.exec_name)             | User-friendly name of the executed CLI. Returns `{module_name}`, `{package_name}` or script's filename, in this order.                                                                |
 | [`{version}`](#click_extra.version.ExtraVersionOption.version)                 | Version of the CLI. Returns `{module_version}`, `{package_version}` or `None`, in this order.                                                                                         |
 | [`{prog_name}`](#click_extra.version.ExtraVersionOption.prog_name)             | The name of the program, from Click's point of view.                                                                                                                                  |
@@ -239,7 +239,7 @@ You can pass `None` to any of the style parameters to disable styling for the co
 
 ## Environment information
 
-The `{env_info}` variable compiles all sorts of environment informations.
+The `{env_info}` variable compiles all sorts of environment information.
 
 Here is how it looks like:
 
