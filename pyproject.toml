@@ -114,7 +114,7 @@ pytest-cov = "^4.0.0"
 pytest-github-actions-annotate-failures = "^0.2.0"
 pytest-httpserver = "^1.0.6"
 pytest-randomly = "^3.12.0"
-sphinx-autodoc-typehints = ">=1.23,<3.0"
+sphinx-autodoc-typehints = "^2.0.0"
 sphinx-copybutton = "^0.5.2"
 # sphinx-design 0.5.0 is the first to allow Sphinx 7.
 sphinx-design = "^0.5.0"
