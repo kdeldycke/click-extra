@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Run tests on `macos-14`. Remove tests on `macos-12`.
+
 ## {gh}`4.7.3 (2024-01-06) <compare/v4.7.2...v4.7.3>`
 
 - Run tests on Python 3.13-dev branch.
