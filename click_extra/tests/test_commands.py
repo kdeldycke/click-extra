@@ -66,6 +66,7 @@ def test_module_root_declarations():
     #     File ".../python3.11/site-packages/cloup/_util.py", line 128, in __setattr__
     #       raise Exception("you can't set attributes on this class")
     #   Exception: you can't set attributes on this class
+    # This has been reported upstream at: https://github.com/janluke/cloup/issues/177
     cloup_members.remove("Color")
 
     tree = ast.parse(Path(__file__).parent.joinpath("../__init__.py").read_bytes())

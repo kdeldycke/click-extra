@@ -119,6 +119,7 @@ __all__ = [  # noqa: F405
     #     File ".../python3.11/site-packages/cloup/_util.py", line 128, in __setattr__
     #       raise Exception("you can't set attributes on this class")
     #   Exception: you can't set attributes on this class
+    # This has been reported upstream at: https://github.com/janluke/cloup/issues/177
     # "Color",
     "color_option",
     "ColorOption",
@@ -226,5 +227,9 @@ __all__ = [  # noqa: F405
 """Expose all of Click, Cloup and Click Extra.
 
 .. note::
-    The content of ``__all__` is checked and enforced in unittests.
+    The content of ``__all__`` is checked and enforced in unittests.
+
+.. todo::
+    Test ruff __all__ formatting capabilities. And if good enough, remove ``__all__``
+    checks in unittests.
 """
