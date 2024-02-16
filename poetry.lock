@@ -807,13 +807,13 @@ pytest = ">=4.0.0"
 
 [[package]]
 name = "pytest-httpserver"
-version = "1.0.8"
+version = "1.0.9"
 description = "pytest-httpserver is a httpserver for pytest"
 optional = false
-python-versions = ">=3.8,<4.0"
+python-versions = ">=3.8"
 files = [
-    {file = "pytest_httpserver-1.0.8-py3-none-any.whl", hash = "sha256:24cd3d9f6a0b927c7bfc400d0b3fda7442721b8267ce29942bf307b190f0bb09"},
-    {file = "pytest_httpserver-1.0.8.tar.gz", hash = "sha256:e052f69bc8a9073db02484681e8e47004dd1fb3763b0ae833bd899e5895c559a"},
+    {file = "pytest_httpserver-1.0.9-py3-none-any.whl", hash = "sha256:5c84c372564b627521784909b8c8b45c5ededbae2406f7624e201dd86ae0610a"},
+    {file = "pytest_httpserver-1.0.9.tar.gz", hash = "sha256:9429f26c7ad7b1677dc2fa3bc9e928601f0e9b4ba0388edf961162be1242a662"},
 ]
 
 [package.dependencies]
@@ -1375,13 +1375,13 @@ urllib3 = ">=2"
 
 [[package]]
 name = "types-setuptools"
-version = "69.0.0.20240125"
+version = "69.1.0.20240215"
 description = "Typing stubs for setuptools"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "types-setuptools-69.0.0.20240125.tar.gz", hash = "sha256:22ad498cb585b22ce8c97ada1fccdf294a2e0dd7dc984a28535a84ea82f45b3f"},
-    {file = "types_setuptools-69.0.0.20240125-py3-none-any.whl", hash = "sha256:00835f959ff24ebc32c55da8df9d46e8df25e3c4bfacb43e98b61fde51a4bc41"},
+    {file = "types-setuptools-69.1.0.20240215.tar.gz", hash = "sha256:2a4fdd3a3ca643c57359e584db2dd2b5db7481a82ecc21ea368bc4317bfc0505"},
+    {file = "types_setuptools-69.1.0.20240215-py3-none-any.whl", hash = "sha256:7b450d7a853f40488ae13630d9fa29abc10458e5b2d81e9534f34a842b38fd65"},
 ]
 
 [[package]]
@@ -1505,4 +1505,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "1a823d40407780f33d9b3023733a45ce082d911fecb8ddc6d5d53d4a664b6ca4"
+content-hash = "40d2ced4a111ac7b9b7561c176ae0bfc7e8b87a8153d7bc2df34b18724dc9284"

@@ -97,7 +97,7 @@ sphinx = ">=6"
 # tabulate 0.9 is the first to add `*grid` and `*outline` formats.
 tabulate = { extras = ["widechars"], version = "^0.9" }
 tomli = { version = "^2.0.1", python = "< 3.11" }
-wcmatch = "^8.4.1"
+wcmatch = "^8.5"
 xmltodict = "^0.13.0"
 
 [tool.poetry.group.dev.dependencies]
