@@ -120,6 +120,7 @@ __all__ = [  # noqa: F405
     #       raise Exception("you can't set attributes on this class")
     #   Exception: you can't set attributes on this class
     # This has been reported upstream at: https://github.com/janluke/cloup/issues/177
+    # and https://github.com/sphinx-doc/sphinx/issues/11986
     # "Color",
     "color_option",
     "ColorOption",

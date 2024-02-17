@@ -67,6 +67,7 @@ def test_module_root_declarations():
     #       raise Exception("you can't set attributes on this class")
     #   Exception: you can't set attributes on this class
     # This has been reported upstream at: https://github.com/janluke/cloup/issues/177
+    # and https://github.com/sphinx-doc/sphinx/issues/11986
     cloup_members.remove("Color")
 
     tree = ast.parse(Path(__file__).parent.joinpath("../__init__.py").read_bytes())
