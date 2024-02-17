@@ -30,7 +30,6 @@ htmlhelp_basename = project_id
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.todo",
-    "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
     "sphinx.ext.viewcode",
     # Adds a copy button to code blocks.
@@ -77,12 +76,6 @@ todo_include_todos = True
 github_user = "kdeldycke"
 issues_github_path = f"{github_user}/{project_id}"
 
-# External reference shortcuts.
-github_project = f"https://github.com/{issues_github_path}"
-extlinks = {
-    "gh": (f"{github_project}/%s", "GitHub: %s"),
-}
-
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
 }
@@ -98,7 +91,7 @@ html_logo = "assets/logo-square.svg"
 html_theme_options = {
     "sidebar_hide_name": True,
     # Activates edit links.
-    "source_repository": github_project,
+    "source_repository": f"https://github.com/{issues_github_path}",
     "source_branch": "main",
     "source_directory": "docs/",
     "announcement": (

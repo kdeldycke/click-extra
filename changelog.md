@@ -1,6 +1,6 @@
 # Changelog
 
-## {gh}`4.7.4 (unreleased) <compare/v4.7.3...main>`
+## [4.7.4 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v4.7.3...main)
 
 ```{important}
 This version is not released yet and is under active development.
@@ -8,32 +8,32 @@ This version is not released yet and is under active development.
 
 - Run tests on `macos-14`. Remove tests on `macos-12`.
 
-## {gh}`4.7.3 (2024-01-06) <compare/v4.7.2...v4.7.3>`
+## [4.7.3 (2024-01-06)](https://github.com/kdeldycke/click-extra/compare/v4.7.2...v4.7.3)
 
 - Run tests on Python 3.13-dev branch.
 
-## {gh}`4.7.2 (2023-11-06) <compare/v4.7.1...v4.7.2>`
+## [4.7.2 (2023-11-06)](https://github.com/kdeldycke/click-extra/compare/v4.7.1...v4.7.2)
 
 - Run tests on released Python 3.12 version.
 
-## {gh}`4.7.1 (2023-09-19) <compare/v4.7.0...v4.7.1>`
+## [4.7.1 (2023-09-19)](https://github.com/kdeldycke/click-extra/compare/v4.7.0...v4.7.1)
 
 - Distinguish between parameter type and Python type in `--show-params` output.
 - Recognize custom parameter type as string-based. Closes {issue}`721`.
 - Rely on `bump-my-version` to update citation file metadata.
 
-## {gh}`4.7.0 (2023-09-04) <compare/v4.6.5...v4.7.0>`
+## [4.7.0 (2023-09-04)](https://github.com/kdeldycke/click-extra/compare/v4.6.5...v4.7.0)
 
 - Switch to format string style for version template.
 - Add new variables for version string template: `{module}`, `{module_name}`, `{module_file}`, `{module_version}`, `{package_version}` and `{exec_name}`.
 - Remove support for Click-specific `%(prog)` and `%(package)` variables in version string.
 - Print all versions string variables in debug mode.
 
-## {gh}`4.6.5 (2023-09-01) <compare/v4.6.4...v4.6.5>`
+## [4.6.5 (2023-09-01)](https://github.com/kdeldycke/click-extra/compare/v4.6.4...v4.6.5)
 
 - Highlight required label and value range in option description. Closes {issue}`748`.
 
-## {gh}`4.6.4 (2023-08-23) <compare/v4.6.3...v4.6.4>`
+## [4.6.4 (2023-08-23)](https://github.com/kdeldycke/click-extra/compare/v4.6.3...v4.6.4)
 
 - Fix collection of subcommand parameters in `--show-params` output. Closes {issue}`725`.
 - Set `%(package_name)` in `--version` to file name for CLI that are standalone scripts and not packaged. Fix {issue}`729`.
@@ -42,20 +42,20 @@ This version is not released yet and is under active development.
 - Run tests on `macos-13`. Remove tests on `macos-11`.
 - Ignore unstable tests on upcoming Click `8.2.x` / `main` branch.
 
-## {gh}`4.6.3 (2023-07-16) <compare/v4.6.2...v4.6.3>`
+## [4.6.3 (2023-07-16)](https://github.com/kdeldycke/click-extra/compare/v4.6.2...v4.6.3)
 
 - Forces `ExtraContext` to properly close itself before exiting the program, to trigger all callbacks.
 
-## {gh}`4.6.2 (2023-07-15) <compare/v4.6.1...v4.6.2>`
+## [4.6.2 (2023-07-15)](https://github.com/kdeldycke/click-extra/compare/v4.6.1...v4.6.2)
 
 - Remove workaround for Cloup handling of `command_class` default on custom groups.
 - Force `@extra_group` to produce sub-groups of the same class.
 
-## {gh}`4.6.1 (2023-07-13) <compare/v4.6.0...v4.6.1>`
+## [4.6.1 (2023-07-13)](https://github.com/kdeldycke/click-extra/compare/v4.6.0...v4.6.1)
 
 - Inspect in `--version` the whole execution stack to find the package in which the user's CLI is implemented.
 
-## {gh}`4.6.0 (2023-07-12) <compare/v4.5.0...v4.6.0>`
+## [4.6.0 (2023-07-12)](https://github.com/kdeldycke/click-extra/compare/v4.5.0...v4.6.0)
 
 - Keep the promise of drop-in replacement for `@version_option` which is now a proxy to Click's original.
 - Rename the colored, enhanced `--version` option to `@extra_version_option` for its decorator, and `ExtraVersionOption` for its class.
@@ -65,7 +65,7 @@ This version is not released yet and is under active development.
 - Swap `Exposed` and `Allowed in conf?` columns in `--show-params` output.
 - Add a `hidden` column to `--show-params` output. Refs {issue}`689`.
 
-## {gh}`4.5.0 (2023-07-06) <compare/v4.4.0...v4.5.0>`
+## [4.5.0 (2023-07-06)](https://github.com/kdeldycke/click-extra/compare/v4.4.0...v4.5.0)
 
 - Expose verbosity level name, table format ID and CLI start timestamp in the Context's `meta` property.
 - Refactor `VersionOption`. Introduce internal caching.
@@ -79,7 +79,7 @@ This version is not released yet and is under active development.
 - Automaticcaly augment version string with environment info in `DEBUG` log level.
 - Expose `click_extra.search_params` utility.
 
-## {gh}`4.4.0 (2023-06-14) <compare/v4.3.0...v4.4.0>`
+## [4.4.0 (2023-06-14)](https://github.com/kdeldycke/click-extra/compare/v4.3.0...v4.4.0)
 
 - Add a `reduce()` utility to reduce a collection of `Group` and `Platform` to a minimal set.
 - Remove `@destructive` and `@non_destructive` pytest markers.
@@ -89,7 +89,7 @@ This version is not released yet and is under active development.
 - Remove `bump2version` from dev dependencies, and let the external workflows install it.
 - Remove workaround for `pallets-sphinx-themes`'s outdated reference to old `click`'s Python 2 compatibility hack.
 
-## {gh}`4.3.0 (2023-06-01) <compare/v4.2.0...v4.3.0>`
+## [4.3.0 (2023-06-01)](https://github.com/kdeldycke/click-extra/compare/v4.2.0...v4.3.0)
 
 - Colorize envvars and default values in `--show-params` option.
 - Keep `<stdout>` and `<stderr>` streams independent in `ExtraCliRunner`.
@@ -104,7 +104,7 @@ This version is not released yet and is under active development.
 - Regroup all testing and CLI execution utilities.
 - Activate zoom on big Mermaid graphs.
 
-## {gh}`4.2.0 (2023-05-23) <compare/v4.1.0...v4.2.0>`
+## [4.2.0 (2023-05-23)](https://github.com/kdeldycke/click-extra/compare/v4.1.0...v4.2.0)
 
 - Add support for dedicated styling of environment variables, defaults, command aliases, aliases punctuation, subcommands and deprecated tag in help screen.
 - Update default colors of help screen to improve readability.
@@ -115,7 +115,7 @@ This version is not released yet and is under active development.
 - Remove main dependency on `furo`, make it a development dependency.
 - Remove the custom `ansi-click-extra-furo-style` Pygments style for Furo and its `AnsiClickExtraFuroStyle` class.
 
-## {gh}`4.1.0 (2023-05-11) <compare/v4.0.0...v4.1.0>`
+## [4.1.0 (2023-05-11)](https://github.com/kdeldycke/click-extra/compare/v4.0.0...v4.1.0)
 
 - Add new global `show_envvar` option to display all environment variables in help screens.
 - Global `show_choices` setting to show or hide choices when prompting a user for input.
@@ -125,7 +125,7 @@ This version is not released yet and is under active development.
 - Test continuously against Click and Cloup development version. Closes {issue}`525`.
 - Move `click_extra.commands.TimerOption` to `click_extra.timer.TimerOption`.
 
-## {gh}`4.0.0 (2023-05-08) <compare/v3.10.0...v4.0.0>`
+## [4.0.0 (2023-05-08)](https://github.com/kdeldycke/click-extra/compare/v3.10.0...v4.0.0)
 
 - Drop support for Python 3.7.
 - Add a simple `--telemetry`/`--no-telemetry` option flag which respects the `DO_NOT_TRACK` environment variable.
@@ -146,33 +146,33 @@ This version is not released yet and is under active development.
 - Force closing of the context before stopping the execution flow, to make sure all callbacks are called.
 - Fix rendering of GitHub-Flavored Markdown tables in canonical format.
 
-## {gh}`3.10.0 (2023-04-04) <compare/v3.9.0...v3.10.0>`
+## [3.10.0 (2023-04-04)](https://github.com/kdeldycke/click-extra/compare/v3.9.0...v3.10.0)
 
 - Colorize help screens of subcommands spawned out of an `@extra_group`. Closes {issue}`479`.
 - Remove deprecated `click_extra.platform`.
 
-## {gh}`3.9.0 (2023-03-31) <compare/v3.8.3...v3.9.0>`
+## [3.9.0 (2023-03-31)](https://github.com/kdeldycke/click-extra/compare/v3.8.3...v3.9.0)
 
 - Allow `@color_option`, `@command`, `@config_option`, `@extra_command`, `@extra_group`, `@group`, `@help_option`, `@show_params_option`, `@table_format_option`, `@timer_option`, `@verbosity_option` and `@version_option` decorators to be used without parenthesis.
 - Fix wrapping of Cloup decorators by `@extra_group`/`@extra_command` decorators. Closes {issue}`489`.
 - Add main dependency on `furo` which is referenced in ANSI-aware Pygment styles.
 - Move all documentation assets to `assets` subfolder.
 
-## {gh}`3.8.3 (2023-02-25) <compare/v3.8.2...v3.8.3>`
+## [3.8.3 (2023-02-25)](https://github.com/kdeldycke/click-extra/compare/v3.8.2...v3.8.3)
 
 - Let `--version` option output system details when run on `python >= 3.10`.
 
-## {gh}`3.8.2 (2023-02-20) <compare/v3.8.1...v3.8.2>`
+## [3.8.2 (2023-02-20)](https://github.com/kdeldycke/click-extra/compare/v3.8.1...v3.8.2)
 
 - Fix overlapping detection of `linux` and `wsl2` platforms.
 - Renders platform groups in documentation in Mermaid format instead of Graphviz. Add new dependency on `sphinxcontrib-mermaid`, removed dependency on `graphviz`.
 - Produce dependency graph in Mermaid instead of Graphviz.
 
-## {gh}`3.8.1 (2023-02-15) <compare/v3.8.0...v3.8.1>`
+## [3.8.1 (2023-02-15)](https://github.com/kdeldycke/click-extra/compare/v3.8.0...v3.8.1)
 
 - Code, comments and documentation style change to conform to new QA workflows based on `ruff`.
 
-## {gh}`3.8.0 (2023-01-24) <compare/v3.7.0...v3.8.0>`
+## [3.8.0 (2023-01-24)](https://github.com/kdeldycke/click-extra/compare/v3.7.0...v3.8.0)
 
 - Rename `click_extra.platform` to `click_extra.platforms`.
 - Refactor platforms and their groups with dataclasses instead of string IDs.
@@ -183,14 +183,14 @@ This version is not released yet and is under active development.
 - Produce platform graph dynamically.
 - Rename `docs.py` to `docs_update.py` and allow this module to be called directly.
 
-## {gh}`3.7.0 (2023-01-03) <compare/v3.6.0...v3.7.0>`
+## [3.7.0 (2023-01-03)](https://github.com/kdeldycke/click-extra/compare/v3.6.0...v3.7.0)
 
 - Add support for new ANSI-capable lexers: `ansi-gap-console` and `ansi-gap-repl`.
 - Auto-update table of supported lexers in documentation.
 - Add test to search in Pygments' test data for REPL/terminal-like lexers, as candidates for ANSI-coloring.
 - Depends on `importlib_metadata` for `Python < 3.8`.
 
-## {gh}`3.6.0 (2022-12-28) <compare/v3.5.0...v3.6.0>`
+## [3.6.0 (2022-12-28)](https://github.com/kdeldycke/click-extra/compare/v3.5.0...v3.6.0)
 
 - Add new constants to group platforms by family.
 - Add heuristics to recognize new platforms: IBM AIX, Cygwin, FreeBSD, GNU/Hurd, NetBSD, OpenBSD, Oracle Solaris, SunOS, Windows Subsystem for Linux v1 and v2.
@@ -198,41 +198,41 @@ This version is not released yet and is under active development.
 - Split version code to its own file and tests.
 - Run tests on Python `3.12-dev`.
 
-## {gh}`3.5.0 (2022-12-09) <compare/v3.4.1...v3.5.0>`
+## [3.5.0 (2022-12-09)](https://github.com/kdeldycke/click-extra/compare/v3.4.1...v3.5.0)
 
 - Print fully qualified class of options in `--show-params` output.
 - Add new columns in `--show-params` table to show option specifications, configuration exclusion and exposed attribute.
 - Rename `ignored_params` argument to `exclude_params` on the `ConfigOption` class.
 - Blocking parameters from configuration files now requires the fully qualified ID. Which adds support for selectively blocking parameters at any subcommand level.
 
-## {gh}`3.4.1 (2022-12-07) <compare/v3.4.0...v3.4.1>`
+## [3.4.1 (2022-12-07)](https://github.com/kdeldycke/click-extra/compare/v3.4.0...v3.4.1)
 
 - Fix highlighting of `+`-prefixed options in help screens. Closes {issue}`316`.
 - Fix highlighting of hard-coded deprecated labels in option help.
 - Document parameter introspection. Closes {issue}`319`.
 
-## {gh}`3.4.0 (2022-12-01) <compare/v3.3.4...v3.4.0>`
+## [3.4.0 (2022-12-01)](https://github.com/kdeldycke/click-extra/compare/v3.3.4...v3.4.0)
 
 - Streamline setup of Sphinx extensions.
 - Document `.. click:example::` and `.. click:run::` Sphinx extensions.
 
-## {gh}`3.3.4 (2022-11-14) <compare/v3.3.3...v3.3.4>`
+## [3.3.4 (2022-11-14)](https://github.com/kdeldycke/click-extra/compare/v3.3.3...v3.3.4)
 
 - Fix some types.
 
-## {gh}`3.3.3 (2022-11-14) <compare/v3.3.2...v3.3.3>`
+## [3.3.3 (2022-11-14)](https://github.com/kdeldycke/click-extra/compare/v3.3.2...v3.3.3)
 
 - Fix release workflow.
 
-## {gh}`3.3.2 (2022-11-14) <compare/v3.3.1...v3.3.2>`
+## [3.3.2 (2022-11-14)](https://github.com/kdeldycke/click-extra/compare/v3.3.1...v3.3.2)
 
 - Remove use of deprecated `::set-output` directives and replace them by environment files.
 
-## {gh}`3.3.1 (2022-11-11) <compare/v3.3.0...v3.3.1>`
+## [3.3.1 (2022-11-11)](https://github.com/kdeldycke/click-extra/compare/v3.3.0...v3.3.1)
 
 - Keep a copy of the table format ID in the context when set.
 
-## {gh}`3.3.0 (2022-11-09) <compare/v3.2.5...v3.3.0>`
+## [3.3.0 (2022-11-09)](https://github.com/kdeldycke/click-extra/compare/v3.2.5...v3.3.0)
 
 - Use `tabulate` dependency instead of `cli-helpers` for all the table rendering utilities.
 - Remove dependency on `cli-helpers`.
@@ -245,29 +245,29 @@ This version is not released yet and is under active development.
 - Deactivate number alignment and extra-spacing in table rendering by default.
 - Remove tests on Pypy. Nobody asked for it and I need to speed up tests.
 
-## {gh}`3.2.5 (2022-09-30) <compare/v3.2.4...v3.2.5>`
+## [3.2.5 (2022-09-30)](https://github.com/kdeldycke/click-extra/compare/v3.2.4...v3.2.5)
 
 - Fix argument's property getter in `--show-params`.
 - Remove GitHub edit link workaround in documentation.
 
-## {gh}`3.2.4 (2022-09-27) <compare/v3.2.3...v3.2.4>`
+## [3.2.4 (2022-09-27)](https://github.com/kdeldycke/click-extra/compare/v3.2.3...v3.2.4)
 
 - Add citation file.
 - Fix type casting.
 
-## {gh}`3.2.3 (2022-09-27) <compare/v3.2.2...v3.2.3>`
+## [3.2.3 (2022-09-27)](https://github.com/kdeldycke/click-extra/compare/v3.2.2...v3.2.3)
 
 - Increase type coverage.
 
-## {gh}`3.2.2 (2022-09-26) <compare/v3.2.1...v3.2.2>`
+## [3.2.2 (2022-09-26)](https://github.com/kdeldycke/click-extra/compare/v3.2.1...v3.2.2)
 
 - Fix bad typing import.
 
-## {gh}`3.2.1 (2022-09-26) <compare/v3.2.0...v3.2.1>`
+## [3.2.1 (2022-09-26)](https://github.com/kdeldycke/click-extra/compare/v3.2.0...v3.2.1)
 
 - Move some command utility from test machinery to `run` submodule.
 
-## {gh}`3.2.0 (2022-09-24) <compare/v3.1.0...v3.2.0>`
+## [3.2.0 (2022-09-24)](https://github.com/kdeldycke/click-extra/compare/v3.1.0...v3.2.0)
 
 - New `--show-params` option to debug parameters defaults, values, environment variables and provenance.
 - Rename `ignored_options` to `ignored_params` on `ConfigOption`.
@@ -278,7 +278,7 @@ This version is not released yet and is under active development.
 - Use the `Formats` enum to encode for default configuration file extensions.
 - Re-introduce `*.yml` as a possible extension for YAML files.
 
-## {gh}`3.1.0 (2022-09-20) <compare/v3.0.1...v3.1.0>`
+## [3.1.0 (2022-09-20)](https://github.com/kdeldycke/click-extra/compare/v3.0.1...v3.1.0)
 
 - Add support for pattern matching to search for configuration file.
 - Add a new `formats` option to specify which dialects the configuration file is written in, regardless of its name or file extension. Closes {issue}`197`.
@@ -290,11 +290,11 @@ This version is not released yet and is under active development.
 - Document preset options ovveriding. Closes {issue}`232`.
 - Document configuration option pattern matching and default folder. Closes {issue}`197` and {issue}`211`.
 
-## {gh}`3.0.1 (2022-08-07) <compare/v3.0.0...v3.0.1>`
+## [3.0.1 (2022-08-07)](https://github.com/kdeldycke/click-extra/compare/v3.0.0...v3.0.1)
 
 - Fix wrong dependency bump on `pytest-cov` produced by major release.
 
-## {gh}`3.0.0 (2022-08-07) <compare/v2.1.3...v3.0.0>`
+## [3.0.0 (2022-08-07)](https://github.com/kdeldycke/click-extra/compare/v2.1.3...v3.0.0)
 
 - Make default extra features optional, so `click_extra` can act as a drop-in replacement for `click` and `cloup` (closes {issue}`173`):
   - Rename `click_extra.group` to `click_extra.extra_group`.
@@ -319,28 +319,28 @@ This version is not released yet and is under active development.
 - Run tests on `ubuntu-22.04` and `macos-12`.
 - Remove tests on deprecated `macos-10.15`.
 
-## {gh}`2.1.3 (2022-07-08) <compare/v2.1.2...v2.1.3>`
+## [2.1.3 (2022-07-08)](https://github.com/kdeldycke/click-extra/compare/v2.1.2...v2.1.3)
 
 - Do not render `None` cells in tables with `<null>` string.
 - Disable workflow grouping and concurrency management.
 
-## {gh}`2.1.2 (2022-06-02) <compare/v2.1.1...v2.1.2>`
+## [2.1.2 (2022-06-02)](https://github.com/kdeldycke/click-extra/compare/v2.1.1...v2.1.2)
 
 - Fix auto-mapping and recognition of all missing Click option types in config module. Closes {issue}`170`.
 - Fix CI workflow grouping.
 
-## {gh}`2.1.1 (2022-05-22) <compare/v2.1.0...v2.1.1>`
+## [2.1.1 (2022-05-22)](https://github.com/kdeldycke/click-extra/compare/v2.1.0...v2.1.1)
 
 - Fix compatibility with `cloup >= 0.14.0`.
 - Group workflow jobs so new commits cancels in-progress execution triggered by previous commits.
 - Run tests on early Python 3.11 releases.
 
-## {gh}`2.1.0 (2022-04-22) <compare/v2.0.2...v2.1.0>`
+## [2.1.0 (2022-04-22)](https://github.com/kdeldycke/click-extra/compare/v2.0.2...v2.1.0)
 
 - Add a `highlight` utility to style substrings.
 - Add `regex` dependency.
 
-## {gh}`2.0.2 (2022-04-14) <compare/v2.0.1...v2.0.2>`
+## [2.0.2 (2022-04-14)](https://github.com/kdeldycke/click-extra/compare/v2.0.1...v2.0.2)
 
 - Fix and unittest derivation of configuration template and types from CLI
   options.
@@ -349,13 +349,13 @@ This version is not released yet and is under active development.
 - Replace `sphinx_tabs` by `sphinx-design`.
 - Add edit link to documentation pages.
 
-## {gh}`2.0.1 (2022-04-13) <compare/v2.0.0...v2.0.1>`
+## [2.0.1 (2022-04-13)](https://github.com/kdeldycke/click-extra/compare/v2.0.0...v2.0.1)
 
 - Fix mapping of file arguments in configuration files.
 - Fix Sphinx documentation update and publishing.
 - Run tests on `pypy-3.7`.
 
-## {gh}`2.0.0 (2022-04-11) <compare/v1.9.0...v2.0.0>`
+## [2.0.0 (2022-04-11)](https://github.com/kdeldycke/click-extra/compare/v1.9.0...v2.0.0)
 
 - Add support for XML configuration file. Closes {issue}`122`.
 - Add strict mode to fail on unrecognized configuration options.
@@ -368,7 +368,7 @@ This version is not released yet and is under active development.
 - Add a logo.
 - Outsource documentation publishing to external workflow.
 
-## {gh}`1.9.0 (2022-04-08) <compare/v1.8.0...v1.9.0>`
+## [1.9.0 (2022-04-08)](https://github.com/kdeldycke/click-extra/compare/v1.8.0...v1.9.0)
 
 - Add supports for `.ini` configuration files.
 - Add supports for commented JSON configuration files.
@@ -377,36 +377,36 @@ This version is not released yet and is under active development.
 - Ignore `help` boolean in configuration files.
 - Add new dependency on `mergedeep`.
 
-## {gh}`1.8.0 (2022-04-03) <compare/v1.7.0...v1.8.0>`
+## [1.8.0 (2022-04-03)](https://github.com/kdeldycke/click-extra/compare/v1.7.0...v1.8.0)
 
 - Split the `print_cli_output` method to expose the simpler `format_cli` utility.
 
-## {gh}`1.7.0 (2022-03-31) <compare/v1.6.4...v1.7.0>`
+## [1.7.0 (2022-03-31)](https://github.com/kdeldycke/click-extra/compare/v1.6.4...v1.7.0)
 
 - Refactor global logging management.
 - Remove `click_extra.run.run` and rebase all run utilities around `subprocess.run`.
 - Use the `tomllib` from the standard library starting with Python 3.11.
 
-## {gh}`1.6.4 (2022-03-04) <compare/v1.6.3...v1.6.4>`
+## [1.6.4 (2022-03-04)](https://github.com/kdeldycke/click-extra/compare/v1.6.3...v1.6.4)
 
 - Fix extension of default environment variables.
 
-## {gh}`1.6.3 (2022-03-04) <compare/v1.6.2...v1.6.3>`
+## [1.6.3 (2022-03-04)](https://github.com/kdeldycke/click-extra/compare/v1.6.2...v1.6.3)
 
 - Add support for environment variables to run utilities.
 
-## {gh}`1.6.2 (2022-03-03) <compare/v1.6.1...v1.6.2>`
+## [1.6.2 (2022-03-03)](https://github.com/kdeldycke/click-extra/compare/v1.6.1...v1.6.2)
 
 - Temporarily skip displaying environment details in `--version` option results
   for `python >= 3.10`.
 - Reactivate all tests on Python 3.10.
 
-## {gh}`1.6.1 (2022-03-02) <compare/v1.6.0...v1.6.1>`
+## [1.6.1 (2022-03-02)](https://github.com/kdeldycke/click-extra/compare/v1.6.0...v1.6.1)
 
 - Expose some `cloup` versions of `click` utilities at the root of
   `click_extra`.
 
-## {gh}`1.6.0 (2022-03-02) <compare/v1.5.0...v1.6.0>`
+## [1.6.0 (2022-03-02)](https://github.com/kdeldycke/click-extra/compare/v1.5.0...v1.6.0)
 
 - Allow `click_extra` to be imported as a drop-in replacement for `click`.
 - Share the same set of default options between `click_extra.command` and
@@ -414,14 +414,14 @@ This version is not released yet and is under active development.
 - Document default help screen comparison between simple `click` CLI and
   enhanced `click-extra` CLI.
 
-## {gh}`1.5.0 (2022-02-21) <compare/v1.4.1...v1.5.0>`
+## [1.5.0 (2022-02-21)](https://github.com/kdeldycke/click-extra/compare/v1.4.1...v1.5.0)
 
 - Add support for JSON configuration file.
 - Search all supported formats in default location if configuration file not
   provided.
 - Print configuration file default location in help screens.
 
-## {gh}`1.4.1 (2022-02-13) <compare/v1.4.0...v1.4.1>`
+## [1.4.1 (2022-02-13)](https://github.com/kdeldycke/click-extra/compare/v1.4.0...v1.4.1)
 
 - Add new external workflow to modernize Python code.
 - Use external workflow suite to manage changelog and build & publish packages
@@ -432,7 +432,7 @@ This version is not released yet and is under active development.
 - Remove dev dependencies on `check-wheel-contents`, `graphviz`, `pipdeptree`
   and `twine`.
 
-## {gh}`1.4.0 (2022-01-08) <compare/v1.3.0...v1.4.0>`
+## [1.4.0 (2022-01-08)](https://github.com/kdeldycke/click-extra/compare/v1.3.0...v1.4.0)
 
 - Allow downloading of a remote config URL.
 - Add new dependencies on `requests` and `pytest-httpserver`.
@@ -441,22 +441,22 @@ This version is not released yet and is under active development.
 - Use external workflows for GitHub actions.
 - Automate version and changelog management.
 
-## {gh}`1.3.0 (2021-11-28) <compare/v1.2.2...v1.3.0>`
+## [1.3.0 (2021-11-28)](https://github.com/kdeldycke/click-extra/compare/v1.2.2...v1.3.0)
 
 - Add support for YAML configuration file. Closes #13.
 - Auto-detect configuration file on loading.
 - Add `pyyaml` dependency.
 
-## {gh}`1.2.2 (2021-11-04) <compare/v1.2.1...v1.2.2>`
+## [1.2.2 (2021-11-04)](https://github.com/kdeldycke/click-extra/compare/v1.2.1...v1.2.2)
 
 - Evaluate format option dynamically at use to let third-party register new
   rendering formats.
 
-## {gh}`1.2.1 (2021-11-04) <compare/v1.2.0...v1.2.1>`
+## [1.2.1 (2021-11-04)](https://github.com/kdeldycke/click-extra/compare/v1.2.0...v1.2.1)
 
 - Fix creation of post-release version bump PR on tagging.
 
-## {gh}`1.2.0 (2021-11-04) <compare/v1.1.1...v1.2.0>`
+## [1.2.0 (2021-11-04)](https://github.com/kdeldycke/click-extra/compare/v1.1.1...v1.2.0)
 
 - Extend `cli-helper.TabularOutputFormatter` with new formats: `simple_grid`,
   `rounded_grid`, `double_grid`, `outline`, `simple_outline`, `rounded_outline`
@@ -465,19 +465,19 @@ This version is not released yet and is under active development.
 - Add new dependency on `cli-helper` and `tabulate`.
 - Automate post-release version bump.
 
-## {gh}`1.1.1 (2021-11-01) <compare/v1.1.0...v1.1.1>`
+## [1.1.1 (2021-11-01)](https://github.com/kdeldycke/click-extra/compare/v1.1.0...v1.1.1)
 
 - Fix printing of additional non-grouped default options in help screen.
 
-## {gh}`1.1.0 (2021-10-28) <compare/v1.0.1...v1.1.0>`
+## [1.1.0 (2021-10-28)](https://github.com/kdeldycke/click-extra/compare/v1.0.1...v1.1.0)
 
 - Add a `--config`/`-C` option to load CLI configuration from a TOML file.
 
-## {gh}`1.0.1 (2021-10-27) <compare/v1.0.0...v1.0.1>`
+## [1.0.1 (2021-10-27)](https://github.com/kdeldycke/click-extra/compare/v1.0.0...v1.0.1)
 
 - Re-release previous version with fixed dependency.
 
-## {gh}`1.0.0 (2021-10-27) <compare/v0.0.1...v1.0.0>`
+## [1.0.0 (2021-10-27)](https://github.com/kdeldycke/click-extra/compare/v0.0.1...v1.0.0)
 
 - Add colorization of options, choices and metavars in help screens.
 - Add `--color`/`--no-color` option flag (aliased to `--ansi`/`--no-ansi`).
@@ -489,6 +489,6 @@ This version is not released yet and is under active development.
 - Add new conditional markers for `pytest`: `@skip_{linux,macos,windows}`,
   `@unless_{linux,macos,windows}`, `@destructive` and `@non_destructive`.
 
-## {gh}`0.0.1 (2021-10-18) <compare/88b81e...v0.0.1>`
+## [0.0.1 (2021-10-18)](https://github.com/kdeldycke/click-extra/compare/88b81e...v0.0.1)
 
 - Initial public release.
