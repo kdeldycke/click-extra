@@ -82,14 +82,14 @@ def test_debug_output(invoke, cmd_decorator, option_decorator):
     assert result.exit_code == 0
 
     assert re.fullmatch(
-        default_debug_colored_logging
-        + default_debug_colored_version_details
-        + default_debug_colored_log_end,
-        result.stderr,
-    )
-
-    assert result.stdout == (
-        f"\x1b[97mdebug-output\x1b[0m, version \x1b[32m{__version__}\x1b[0m\n"
+        (
+            default_debug_colored_logging
+            + default_debug_colored_version_details
+            + r"\x1b\[97mdebug-output\x1b\[0m, "
+            rf"version \x1b\[32m{re.escape(__version__)}\x1b\[0m\n"
+            + default_debug_colored_log_end
+        ),
+        result.output,
     )
 
 
