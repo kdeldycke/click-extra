@@ -33,9 +33,20 @@ from boltons.strutils import strip_ansi
 from pytest_cases import parametrize
 
 from click_extra import ExtraVersionOption, Style, __version__, echo, pass_context
-from click_extra.decorators import color_option, extra_group, extra_version_option
+from click_extra.decorators import (
+    color_option,
+    extra_group,
+    extra_version_option,
+    verbosity_option,
+)
 
-from .conftest import command_decorators, skip_windows_colors
+from .conftest import (
+    command_decorators,
+    default_debug_colored_log_end,
+    default_debug_colored_logging,
+    default_debug_colored_version_details,
+    skip_windows_colors,
+)
 
 
 @skip_windows_colors
@@ -54,6 +65,31 @@ def test_standalone_version_option(invoke, cmd_decorator, option_decorator):
         "\x1b[97mstandalone-option\x1b[0m, "
         f"version \x1b[32m{__version__}"
         "\x1b[0m\n"
+    )
+
+
+@skip_windows_colors
+@parametrize("cmd_decorator", command_decorators())
+@parametrize("option_decorator", (extra_version_option, extra_version_option()))
+def test_debug_output(invoke, cmd_decorator, option_decorator):
+    @cmd_decorator
+    @verbosity_option
+    @option_decorator
+    def debug_output():
+        echo("It works!")
+
+    result = invoke(debug_output, "--verbosity", "DEBUG", "--version", color=True)
+    assert result.exit_code == 0
+
+    assert re.fullmatch(
+        default_debug_colored_logging
+        + default_debug_colored_version_details
+        + default_debug_colored_log_end,
+        result.stderr,
+    )
+
+    assert result.stdout == (
+        f"\x1b[97mdebug-output\x1b[0m, version \x1b[32m{__version__}\x1b[0m\n"
     )
 
 

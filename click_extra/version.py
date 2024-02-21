@@ -422,6 +422,27 @@ class ExtraVersionOption(ExtraOption):
 
         return template.format(**{v: getattr(self, v) for v in self.template_fields})
 
+    def print_debug_message(self) -> None:
+        """Render in debug logs all template fields in color.
+
+        .. todo::
+            Pretty print JSON output (easier to read in bug reports)?
+        """
+        logger = logging.getLogger("click_extra")
+        if logger.getEffectiveLevel() == logging.DEBUG:
+            all_fields = {
+                f"{{{{{field_id}}}}}": f"{{{field_id}}}"
+                for field_id in self.template_fields
+            }
+            max_len = max(map(len, all_fields))
+            raw_format = "\n".join(
+                f"{k:<{max_len}}: {v}" for k, v in all_fields.items()
+            )
+            msg = self.render_message(self.colored_template(raw_format))
+            logger.debug("Version string template variables:")
+            for line in msg.splitlines():
+                logger.debug(line)
+
     def print_and_exit(
         self,
         ctx: Context,
@@ -435,6 +456,8 @@ class ExtraVersionOption(ExtraOption):
         # Populate the context's meta dict with the version string elements.
         for var in self.template_fields:
             ctx.meta[f"click_extra.{var}"] = getattr(self, var)
+
+        self.print_debug_message()
 
         if not value or ctx.resilient_parsing:
             return

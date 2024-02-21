@@ -293,14 +293,11 @@ When the `DEBUG` level is enabled, all available variables will be printed in th
 
 ```{eval-rst}
 .. click:example::
-      from click_extra import extra_command, VerbosityOption, ExtraVersionOption, echo
+      from click_extra import command, verbosity_option, extra_version_option, echo
 
-      @extra_command(
-         params=[
-            ExtraVersionOption(),
-            VerbosityOption(),
-         ]
-      )
+      @command
+      @extra_version_option
+      @verbosity_option
       def version_in_logs():
           echo("Standard operation")
 
@@ -309,12 +306,6 @@ When the `DEBUG` level is enabled, all available variables will be printed in th
    from click_extra import __version__
    result = invoke(version_in_logs, ["--verbosity", "DEBUG"])
    assert "\n\x1b[34mdebug\x1b[0m: Version string template variables:\n" in result.output
-```
-
-```{attention}
-This feature only works with the combination of `extra_command`, `ExtraVersionOption` and `VerbosityOption`.
-
-Unless you assemble your own command with `extra_command`, or use the later with the default options, you won't see the detailed version variables in the logs.
 ```
 
 ## Get metadata values

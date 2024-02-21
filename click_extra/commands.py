@@ -22,8 +22,7 @@ leverage the mixins in here to build up your own custom variants.
 
 from __future__ import annotations
 
-import logging
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 import click
 import cloup
@@ -363,38 +362,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):  # type: ignore[misc]
     def invoke(self, ctx: click.Context) -> Any:
         """Main execution of the command, just after the context has been instantiated
         in ``main()``.
-
-        If an instance of ``ExtraVersionOption`` is found attached to the command,
-        print its output in ``DEBUG`` logs. This facilitates troubleshooting of user's
-        issues.
         """
-        logger = logging.getLogger("click_extra")
-        if logger.getEffectiveLevel() == logging.DEBUG:
-            # Look for a ``--version`` parameter.
-            version_opt = cast(
-                "ExtraVersionOption | None",
-                search_params(ctx.command.params, ExtraVersionOption),
-            )
-            if version_opt:
-                # Build a message exposing all available variables.
-                all_fields = {
-                    f"{{{{{field_id}}}}}": f"{{{field_id}}}"
-                    for field_id in ExtraVersionOption.template_fields
-                }
-                max_len = max(map(len, all_fields))
-                raw_format = "\n".join(
-                    f"{k:<{max_len}}: {v}" for k, v in all_fields.items()
-                )
-                msg = version_opt.render_message(
-                    version_opt.colored_template(
-                        raw_format,
-                    ),
-                )
-                logger.debug("Version string template variables:")
-                for line in msg.splitlines():
-                    # TODO: pretty print JSON output (easier to read in bug reports)?
-                    logger.debug(line)
-
         return super().invoke(ctx)
 
 

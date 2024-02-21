@@ -6,6 +6,7 @@
 This version is not released yet and is under active development.
 ```
 
+- Allow standalone `--version` option to output its debug messages.
 - Force callback calls in all standalone options before exiting to prevent state leaks in non-`ExtraContext`-based CLIs.
 - Run tests on `macos-14`. Remove tests on `macos-12`.
 
