@@ -6,6 +6,7 @@
 This version is not released yet and is under active development.
 ```
 
+- Force callback calls in all standalone options before exiting to prevent state leaks in non-`ExtraContext`-based CLIs.
 - Run tests on `macos-14`. Remove tests on `macos-12`.
 
 ## [4.7.3 (2024-01-06)](https://github.com/kdeldycke/click-extra/compare/v4.7.2...v4.7.3)
