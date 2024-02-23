@@ -1,10 +1,6 @@
 # Changelog
 
-## [4.7.4 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v4.7.3...main)
-
-```{important}
-This version is not released yet and is under active development.
-```
+## [4.7.4 (2024-02-23)](https://github.com/kdeldycke/click-extra/compare/v4.7.3...v4.7.4)
 
 - Allow standalone `--version` option to output its debug messages.
 - Force closing of context before exiting CLIs to provoque callback calls and prevent state leaks.
