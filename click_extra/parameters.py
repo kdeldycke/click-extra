@@ -730,10 +730,4 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         )
         echo(output, color=ctx.color)
 
-        # XXX We need to explicitly close the context before exiting, so all callbacks
-        # from options which cleans up CLI state are properly invoked.
-        # We need to perform this here so combinations of standalone options works
-        # well, and not only in our custom ExtraContext. This is a follow up on
-        # 936a8f5eff916bad5dfef1b4696c09b42a23ca61.
-        ctx.close()
         ctx.exit()

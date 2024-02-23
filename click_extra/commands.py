@@ -44,6 +44,28 @@ from .version import ExtraVersionOption
 if TYPE_CHECKING:
     from typing import NoReturn
 
+from click.exceptions import Exit
+
+
+def patched_exit(self, code: int = 0) -> NoReturn:
+    """Exits the application with a given exit code.
+
+    Forces the context to close before exiting, so callbacks attached to parameters
+    will be called to clean up their state. This is not important in normal CLI
+    execution as the Python process will just be destroyed. But it will lead to leaky
+    states in unitttests.
+
+    .. seealso::
+        This fix has been `proposed upstream to Click
+        <https://github.com/pallets/click/pull/2680>`_.
+    """
+    self.close()
+    raise Exit(code)
+
+
+cloup.Context.exit = patched_exit
+"""Monkey-patch ``cloup.Context.exit``."""
+
 
 class ExtraContext(cloup.Context):
     """Like ``cloup._context.Context``, but with the ability to populate the context's
@@ -100,18 +122,6 @@ class ExtraContext(cloup.Context):
     def color(self) -> None:
         """Reset the color value so it defaults to inheritance from parent's."""
         self._color = None
-
-    def exit(self, code: int = 0) -> NoReturn:
-        """Exits the application with a given exit code.
-
-        Forces the context to close before exiting, so callbacks attached to parameters
-        will be called to clean up their state.
-
-        .. todo::
-            Propose this fix upstream to Click.
-        """
-        self.close()
-        super().exit(code)
 
 
 def default_extra_params():

@@ -36,6 +36,7 @@ from .parameters import ExtraOption
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from types import FrameType, ModuleType
+    from typing import NoReturn
 
     from cloup.styling import IStyle
 
@@ -448,7 +449,7 @@ class ExtraVersionOption(ExtraOption):
         ctx: Context,
         param: Parameter,
         value: bool,
-    ) -> None:
+    ) -> NoReturn:
         """Print the version string and exits.
 
         Also stores all version string elements in the Context's ``meta`` `dict`.
@@ -457,18 +458,17 @@ class ExtraVersionOption(ExtraOption):
         for var in self.template_fields:
             ctx.meta[f"click_extra.{var}"] = getattr(self, var)
 
+        # Always print debug messages, even if --version is not called.
         self.print_debug_message()
 
         if not value or ctx.resilient_parsing:
+            # Do not print the version and continue normal CLI execution.
             return
 
         echo(self.render_message(), color=ctx.color)
 
-        # XXX We need to explicitly close the context before exiting, so all callbacks
-        # from options which cleans up CLI state are properly invoked.
-        # We need to perform this here so combinations of standalone options works
-        # well, and not only in our custom ExtraContext. This is a follow up on
-        # 936a8f5eff916bad5dfef1b4696c09b42a23ca61.
+        # XXX Despite monkey-patching of click.Context.exit to force closing before
+        # exit, we still need to force it here for unknown reason. 🤷
+        # See: https://github.com/pallets/click/pull/2680
         ctx.close()
         ctx.exit()
-        return  # type: ignore[unreachable]
