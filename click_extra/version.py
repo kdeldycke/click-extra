@@ -36,7 +36,6 @@ from .parameters import ExtraOption
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from types import FrameType, ModuleType
-    from typing import NoReturn
 
     from cloup.styling import IStyle
 
@@ -449,7 +448,7 @@ class ExtraVersionOption(ExtraOption):
         ctx: Context,
         param: Parameter,
         value: bool,
-    ) -> NoReturn:
+    ) -> None:
         """Print the version string and exits.
 
         Also stores all version string elements in the Context's ``meta`` `dict`.

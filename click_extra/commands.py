@@ -63,7 +63,7 @@ def patched_exit(self, code: int = 0) -> NoReturn:
     raise Exit(code)
 
 
-cloup.Context.exit = patched_exit
+cloup.Context.exit = patched_exit  # type: ignore[method-assign]
 """Monkey-patch ``cloup.Context.exit``."""
 
 
