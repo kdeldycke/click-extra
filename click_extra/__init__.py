@@ -113,15 +113,7 @@ __all__ = [  # noqa: F405
     "Choice",
     "clear",
     "ClickException",
-    # XXX Color cannot be imported from cloup. It leads to an issue in the way autodoc
-    # is trying to render it:
-    #   Exception occurred:
-    #     File ".../python3.11/site-packages/cloup/_util.py", line 128, in __setattr__
-    #       raise Exception("you can't set attributes on this class")
-    #   Exception: you can't set attributes on this class
-    # This has been reported upstream at: https://github.com/janluke/cloup/issues/177
-    # and https://github.com/sphinx-doc/sphinx/issues/11986
-    # "Color",
+    "Color",
     "color_option",
     "ColorOption",
     "Command",

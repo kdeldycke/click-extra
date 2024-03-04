@@ -75,9 +75,8 @@ boltons = "^23.0.0"
 # https://github.com/pallets/click/issues/2416
 # https://github.com/pallets/click/pull/2417
 click = "^8.1.4"
-# Cloup 3.0.0 changed HelpTheme to a dataclass: https://github.com/janluke/cloup/pull/163
-# Cloup 3.0.1 fixed copying of Constraint: https://github.com/janluke/cloup/issues/166
-cloup = "^3.0.1"
+# Cloup 3.0.5 fix incompatibility with autodoc: https://github.com/janluke/cloup/issues/177
+cloup = "^3.0.5"
 commentjson = "^0.9.0"
 mergedeep = "^1.3.4"
 # Pallets-Sphinx-Themes 2.1.1 is the first version removing old and conflicting Python 2 code.

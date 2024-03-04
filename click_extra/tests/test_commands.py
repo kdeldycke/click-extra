@@ -60,15 +60,6 @@ def test_module_root_declarations():
     click_members = fetch_root_members(click)
 
     cloup_members = {m for m in cloup.__all__ if not m.startswith("_")}
-    # XXX Color cannot be imported from cloup. It leads to an issue in the way autodoc
-    # is trying to render it:
-    #   Exception occurred:
-    #     File ".../python3.11/site-packages/cloup/_util.py", line 128, in __setattr__
-    #       raise Exception("you can't set attributes on this class")
-    #   Exception: you can't set attributes on this class
-    # This has been reported upstream at: https://github.com/janluke/cloup/issues/177
-    # and https://github.com/sphinx-doc/sphinx/issues/11986
-    cloup_members.remove("Color")
 
     tree = ast.parse(Path(__file__).parent.joinpath("../__init__.py").read_bytes())
     click_extra_members = []
