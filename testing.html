@@ -1,0 +1,669 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta property="og:title" content="CLI testing and execution" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="testing.html" />
+<meta property="og:site_name" content="Click Extra" />
+<meta property="og:description" content="click_extra.run API: CLI testing and simulation of their execution." />
+<meta name="description" content="click_extra.run API: CLI testing and simulation of their execution." />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Parameters" href="parameters.html" /><link rel="prev" title="Platform detection" href="platforms.html" />
+
+    <!-- Generated with Sphinx 7.1.2 and Furo 2024.01.29 -->
+        <title>CLI testing and execution - Click Extra</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d3572542" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=36a5483c" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<div class="announcement">
+  <aside class="announcement-content">
+     Click Extra works fine, but its sole maintainer is distracted by life 😶‍🌫️.<br/>You can influence it with purchase of <strong><a class='reference external' href='https://github.com/sponsors/kdeldycke'>business support 🤝 and sponsorship 🫶</a></strong>. 
+  </aside>
+</div>
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">Click Extra</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="_static/logo-square.svg" alt="Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">Commands &amp; groups</a></li>
+<li class="toctree-l1"><a class="reference internal" href="config.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="colorize.html">Colored help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logging.html">Logging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tabulate.html">Table</a></li>
+<li class="toctree-l1"><a class="reference internal" href="version.html">Version</a></li>
+<li class="toctree-l1"><a class="reference internal" href="timer.html">Timer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="platforms.html">Platform detection</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">CLI testing and execution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parameters.html">Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pygments.html">Pygments extensions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sphinx.html">Sphinx extensions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="issues.html">Fixed issues</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="click_extra.html">API</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of API</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="click_extra.tests.html">click_extra.tests package</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="todolist.html">Todo-list</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="code-of-conduct.html">Code of conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/kdeldycke/click-extra">GitHub Repository</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/sponsors/kdeldycke">Funding</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/kdeldycke/click-extra/edit/main/docs/testing.md" title="Edit this page">
+    <svg aria-hidden="true" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <path d="M4 20h4l10.5 -10.5a1.5 1.5 0 0 0 -4 -4l-10.5 10.5v4" />
+      <line x1="13.5" y1="6.5" x2="17.5" y2="10.5" />
+    </svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <section id="cli-testing-and-execution">
+<h1>CLI testing and execution<a class="headerlink" href="#cli-testing-and-execution" title="Permalink to this heading">#</a></h1>
+<div class="admonition-todo admonition" id="id1">
+<p class="admonition-title">Todo</p>
+<p>Write example and tutorial.</p>
+</div>
+<section id="click-extra-run-api">
+<h2><code class="docutils literal notranslate"><span class="pre">click_extra.run</span></code> API<a class="headerlink" href="#click-extra-run-api" title="Permalink to this heading">#</a></h2>
+<div class="mermaid">
+            classDiagram
+  BytesIO &lt;|-- BytesIOCopy
+  CliRunner &lt;|-- ExtraCliRunner
+  Result &lt;|-- ExtraResult
+        </div><span class="target" id="module-click_extra.testing"></span><p>CLI testing and simulation of their execution.</p>
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.testing.INDENT">
+<span class="sig-prename descclassname"><span class="pre">click_extra.testing.</span></span><span class="sig-name descname"><span class="pre">INDENT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'</span>&#160; <span class="pre">'</span></em><a class="headerlink" href="#click_extra.testing.INDENT" title="Permalink to this definition">#</a></dt>
+<dd><p>Constants for rendering of CLI execution.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.testing.EnvVars">
+<span class="sig-prename descclassname"><span class="pre">click_extra.testing.</span></span><span class="sig-name descname"><span class="pre">EnvVars</span></span><a class="headerlink" href="#click_extra.testing.EnvVars" title="Permalink to this definition">#</a></dt>
+<dd><p>Type for <code class="docutils literal notranslate"><span class="pre">dict</span></code>-like environment variables.</p>
+<p>alias of <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.testing.NestedArgs">
+<span class="sig-prename descclassname"><span class="pre">click_extra.testing.</span></span><span class="sig-name descname"><span class="pre">NestedArgs</span></span><a class="headerlink" href="#click_extra.testing.NestedArgs" title="Permalink to this definition">#</a></dt>
+<dd><p>Types for arbitrary nested CLI arguments.</p>
+<p>Arguments can be <code class="docutils literal notranslate"><span class="pre">str</span></code>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pathlib.Path</span></code></a> objects or <code class="docutils literal notranslate"><span class="pre">None</span></code> values.</p>
+<p>alias of <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Union</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<a class="reference internal" href="#click_extra.testing.NestedArgs" title="click_extra.testing.NestedArgs"><code class="xref py py-class docutils literal notranslate"><span class="pre">NestedArgs</span></code></a>]]]</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.testing.args_cleanup">
+<span class="sig-prename descclassname"><span class="pre">click_extra.testing.</span></span><span class="sig-name descname"><span class="pre">args_cleanup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/testing.html#args_cleanup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.testing.args_cleanup" title="Permalink to this definition">#</a></dt>
+<dd><p>Flatten recursive iterables, remove all <code class="docutils literal notranslate"><span class="pre">None</span></code>, and cast each element to
+strings.</p>
+<p>Helps serialize <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pathlib.Path</span></code></a> and other objects.</p>
+<p>It also allows for nested iterables and <code class="docutils literal notranslate"><span class="pre">None</span></code> values as CLI arguments for
+convenience. We just need to flatten and filters them out.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/constants.html#Ellipsis" title="(in Python v3.12)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.testing.format_cli_prompt">
+<span class="sig-prename descclassname"><span class="pre">click_extra.testing.</span></span><span class="sig-name descname"><span class="pre">format_cli_prompt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_env</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/testing.html#format_cli_prompt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.testing.format_cli_prompt" title="Permalink to this definition">#</a></dt>
+<dd><p>Simulate the console prompt used to invoke the CLI.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.testing.print_cli_run">
+<span class="sig-prename descclassname"><span class="pre">click_extra.testing.</span></span><span class="sig-name descname"><span class="pre">print_cli_run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/testing.html#print_cli_run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.testing.print_cli_run" title="Permalink to this definition">#</a></dt>
+<dd><p>Prints the full simulation of CLI execution, including output.</p>
+<p>Mostly used to print debug traces to user or in test results.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.testing.env_copy">
+<span class="sig-prename descclassname"><span class="pre">click_extra.testing.</span></span><span class="sig-name descname"><span class="pre">env_copy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">extend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/testing.html#env_copy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.testing.env_copy" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns a copy of the current environment variables and eventually <code class="docutils literal notranslate"><span class="pre">extend</span></code> it.</p>
+<p>Mimics <a class="reference external" href="https://github.com/python/cpython/blob/7b5b429/Lib/subprocess.py#L1648-L1649">Python’s original implementation</a> by
+returning <code class="docutils literal notranslate"><span class="pre">None</span></code> if no <code class="docutils literal notranslate"><span class="pre">extend</span></code> content are provided.</p>
+<p>Environment variables are expected to be a <code class="docutils literal notranslate"><span class="pre">dict</span></code> of <code class="docutils literal notranslate"><span class="pre">str:str</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>]]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.testing.run_cmd">
+<span class="sig-prename descclassname"><span class="pre">click_extra.testing.</span></span><span class="sig-name descname"><span class="pre">run_cmd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_env</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_output</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/testing.html#run_cmd"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.testing.run_cmd" title="Permalink to this definition">#</a></dt>
+<dd><p>Run a system command, print output and return results.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.testing.INVOKE_ARGS">
+<span class="sig-prename descclassname"><span class="pre">click_extra.testing.</span></span><span class="sig-name descname"><span class="pre">INVOKE_ARGS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'args',</span> <span class="pre">'catch_exceptions',</span> <span class="pre">'cli',</span> <span class="pre">'color',</span> <span class="pre">'env',</span> <span class="pre">'input',</span> <span class="pre">'self'}</span></em><a class="headerlink" href="#click_extra.testing.INVOKE_ARGS" title="Permalink to this definition">#</a></dt>
+<dd><p>Parameter IDs of <code class="docutils literal notranslate"><span class="pre">click.testing.CliRunner.invoke()</span></code>.</p>
+<p>We need to collect them to help us identify which extra parameters passed to
+<code class="docutils literal notranslate"><span class="pre">invoke()</span></code> collides with its original signature.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This has been <a class="reference external" href="https://github.com/pallets/click/issues/2110">reported upstream to Click project</a> but has been rejected and not
+considered an issue worth fixing.</p>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="click_extra.testing.BytesIOCopy">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">click_extra.testing.</span></span><span class="sig-name descname"><span class="pre">BytesIOCopy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">copy_to</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/testing.html#BytesIOCopy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.testing.BytesIOCopy" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BytesIO</span></code></p>
+<p>Patch <code class="docutils literal notranslate"><span class="pre">io.BytesIO</span></code> to let the written stream be copied to another.</p>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>This has been <a class="reference external" href="https://github.com/pallets/click/pull/2523">proposed upstream to Click project</a> but has not been merged yet.</p>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.testing.BytesIOCopy.flush">
+<span class="sig-name descname"><span class="pre">flush</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/testing.html#BytesIOCopy.flush"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.testing.BytesIOCopy.flush" title="Permalink to this definition">#</a></dt>
+<dd><p>Does nothing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.testing.BytesIOCopy.write">
+<span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/testing.html#BytesIOCopy.write"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.testing.BytesIOCopy.write" title="Permalink to this definition">#</a></dt>
+<dd><p>Write bytes to file.</p>
+<p>Return the number of bytes written.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="click_extra.testing.StreamMixer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">click_extra.testing.</span></span><span class="sig-name descname"><span class="pre">StreamMixer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mix_stderr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/testing.html#StreamMixer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.testing.StreamMixer" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Mixes <code class="docutils literal notranslate"><span class="pre">&lt;stdout&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;stderr&gt;</span></code> streams if <code class="docutils literal notranslate"><span class="pre">mix_stderr=True</span></code>.</p>
+<p>The result is available in the <code class="docutils literal notranslate"><span class="pre">output</span></code> attribute.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">mix_stderr=False</span></code>, the <code class="docutils literal notranslate"><span class="pre">&lt;stdout&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;stderr&gt;</span></code> streams are kept
+independent and the <code class="docutils literal notranslate"><span class="pre">output</span></code> is the same as the <code class="docutils literal notranslate"><span class="pre">&lt;stdout&gt;</span></code> stream.</p>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>This has been <a class="reference external" href="https://github.com/pallets/click/pull/2523">proposed upstream to Click project</a> but has not been merged yet.</p>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="click_extra.testing.ExtraResult">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">click_extra.testing.</span></span><span class="sig-name descname"><span class="pre">ExtraResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">runner</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stdout_bytes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stderr_bytes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_bytes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exit_code</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exception</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exc_info</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/testing.html#ExtraResult"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.testing.ExtraResult" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Result</span></code></p>
+<p>Like <code class="docutils literal notranslate"><span class="pre">click.testing.Result</span></code>, with finer <code class="docutils literal notranslate"><span class="pre">&lt;stdout&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;stderr&gt;</span></code> streams.</p>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>This has been <a class="reference external" href="https://github.com/pallets/click/pull/2523">proposed upstream to Click project</a> but has not been merged yet.</p>
+</div>
+<p>Same as original but adds <code class="docutils literal notranslate"><span class="pre">output_bytes</span></code> parameter.</p>
+<p>Also makes <code class="docutils literal notranslate"><span class="pre">stderr_bytes</span></code> mandatory.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.testing.ExtraResult.stderr_bytes">
+<span class="sig-name descname"><span class="pre">stderr_bytes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code></a></em><a class="headerlink" href="#click_extra.testing.ExtraResult.stderr_bytes" title="Permalink to this definition">#</a></dt>
+<dd><p>Makes <code class="docutils literal notranslate"><span class="pre">stderr_bytes</span></code> mandatory.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="click_extra.testing.ExtraResult.output">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">output</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></em><a class="headerlink" href="#click_extra.testing.ExtraResult.output" title="Permalink to this definition">#</a></dt>
+<dd><p>The terminal output as unicode string, as the user would see it.</p>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>Contrary to original <code class="docutils literal notranslate"><span class="pre">click.testing.Result.output</span></code>, it is not a proxy for
+<code class="docutils literal notranslate"><span class="pre">self.stdout</span></code>. It now possess its own stream to mix <code class="docutils literal notranslate"><span class="pre">&lt;stdout&gt;</span></code> and
+<code class="docutils literal notranslate"><span class="pre">&lt;stderr&gt;</span></code> depending on the <code class="docutils literal notranslate"><span class="pre">mix_stderr</span></code> value.</p>
+</div>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="click_extra.testing.ExtraResult.stderr">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">stderr</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></em><a class="headerlink" href="#click_extra.testing.ExtraResult.stderr" title="Permalink to this definition">#</a></dt>
+<dd><p>The standard error as unicode string.</p>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>Contrary to original <code class="docutils literal notranslate"><span class="pre">click.testing.Result.stderr</span></code>, it no longer raise an
+exception, and always returns the <code class="docutils literal notranslate"><span class="pre">&lt;stderr&gt;</span></code> string.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="click_extra.testing.ExtraCliRunner">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">click_extra.testing.</span></span><span class="sig-name descname"><span class="pre">ExtraCliRunner</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">charset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'utf-8'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">echo_stdin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mix_stderr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/testing.html#ExtraCliRunner"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.testing.ExtraCliRunner" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">CliRunner</span></code></p>
+<p>Augment <code class="docutils literal notranslate"><span class="pre">click.testing.CliRunner</span></code> with extra features and bug fixes.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.testing.ExtraCliRunner.env">
+<span class="sig-name descname"><span class="pre">env</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">t.Mapping[str,</span> <span class="pre">t.Optional[str]]</span></em><a class="headerlink" href="#click_extra.testing.ExtraCliRunner.env" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.testing.ExtraCliRunner.force_color">
+<span class="sig-name descname"><span class="pre">force_color</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#click_extra.testing.ExtraCliRunner.force_color" title="Permalink to this definition">#</a></dt>
+<dd><p>Global class attribute to override the <code class="docutils literal notranslate"><span class="pre">color</span></code> parameter in <code class="docutils literal notranslate"><span class="pre">invoke</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This was initially developed to <a class="reference external" href="sphinx#click_extra.sphinx.setup">force the initialization of the runner during
+the setup of Sphinx new directives</a>. This
+was the only way we found, as to patch some code we had to operate at the class
+level.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.testing.ExtraCliRunner.isolation">
+<span class="sig-name descname"><span class="pre">isolation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/testing.html#ExtraCliRunner.isolation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.testing.ExtraCliRunner.isolation" title="Permalink to this definition">#</a></dt>
+<dd><p>Copy of <code class="docutils literal notranslate"><span class="pre">click.testing.CliRunner.isolation()</span></code> with extra features.
+:rtype: <span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterator" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/io.html#io.BytesIO" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">BytesIO</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/io.html#io.BytesIO" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">BytesIO</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/io.html#io.BytesIO" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">BytesIO</span></code></a>]]</span></p>
+<ul class="simple">
+<li><p>An additional output stream is returned, which is a mix of <code class="docutils literal notranslate"><span class="pre">&lt;stdout&gt;</span></code> and
+<code class="docutils literal notranslate"><span class="pre">&lt;stderr&gt;</span></code> streams if <code class="docutils literal notranslate"><span class="pre">mix_stderr=True</span></code>.</p></li>
+<li><p>Always returns the <code class="docutils literal notranslate"><span class="pre">&lt;stderr&gt;</span></code> stream.</p></li>
+</ul>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>This is a hard-copy of the modified <code class="docutils literal notranslate"><span class="pre">isolation()</span></code> method <a class="reference external" href="https://github.com/pallets/click/pull/2523/files#diff-b07fd6fad9f9ea8be5cbcbeaf34c956703b929b2de95c56229e77c328a7c6010">from click#2523
+PR</a>
+which has not been merged upstream yet.</p>
+</div>
+<div class="admonition-todo admonition" id="id3">
+<p class="admonition-title">Todo</p>
+<p>Reduce the code duplication here by using clever monkeypatching?</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.testing.ExtraCliRunner.invoke2">
+<span class="sig-name descname"><span class="pre">invoke2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cli</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">catch_exceptions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">extra</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/testing.html#ExtraCliRunner.invoke2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.testing.ExtraCliRunner.invoke2" title="Permalink to this definition">#</a></dt>
+<dd><p>Copy of <code class="docutils literal notranslate"><span class="pre">click.testing.CliRunner.invoke()</span></code> with extra <code class="docutils literal notranslate"><span class="pre">&lt;output&gt;</span></code> stream.
+:rtype: <span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#click_extra.testing.ExtraResult" title="click_extra.testing.ExtraResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">ExtraResult</span></code></a></span></p>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>This is a hard-copy of the modified <code class="docutils literal notranslate"><span class="pre">invoke()</span></code> method <a class="reference external" href="https://github.com/pallets/click/pull/2523/files#diff-b07fd6fad9f9ea8be5cbcbeaf34c956703b929b2de95c56229e77c328a7c6010">from click#2523 PR</a>
+which has not been merged upstream yet.</p>
+</div>
+<div class="admonition-todo admonition" id="id5">
+<p class="admonition-title">Todo</p>
+<p>Reduce the code duplication here by using clever monkeypatching?</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.testing.ExtraCliRunner.invoke">
+<span class="sig-name descname"><span class="pre">invoke</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cli</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">catch_exceptions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">extra</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/testing.html#ExtraCliRunner.invoke"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.testing.ExtraCliRunner.invoke" title="Permalink to this definition">#</a></dt>
+<dd><p>Same as <code class="docutils literal notranslate"><span class="pre">click.testing.CliRunner.invoke()</span></code> with extra features.</p>
+<ul class="simple">
+<li><p>The first positional parameter is the CLI to invoke. The remaining positional
+parameters of the function are the CLI arguments. All other parameters are
+required to be named.</p></li>
+<li><p>The CLI arguments can be nested iterables of arbitrary depth. This is
+<a class="reference external" href="https://docs.pytest.org/en/stable/example/parametrize.html">useful for argument composition of test cases with &#64;pytest.mark.parametrize</a>.</p></li>
+<li><p>Allow forcing of the <code class="docutils literal notranslate"><span class="pre">color</span></code> property at the class-level via
+<code class="docutils literal notranslate"><span class="pre">force_color</span></code> attribute.</p></li>
+<li><p>Adds a special case in the form of <code class="docutils literal notranslate"><span class="pre">color=&quot;forced&quot;</span></code> parameter, which allows
+colored output to be kept, while forcing the initialization of
+<code class="docutils literal notranslate"><span class="pre">Context.color</span> <span class="pre">=</span> <span class="pre">True</span></code>. This is <a class="reference external" href="https://github.com/pallets/click/issues/2110">not allowed in current implementation</a> of
+<code class="docutils literal notranslate"><span class="pre">click.testing.CliRunner.invoke()</span></code> because of colliding parameters.</p></li>
+<li><p>Strips all ANSI codes from results if <code class="docutils literal notranslate"><span class="pre">color</span></code> was explicirely set to
+<code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p>Always prints a simulation of the CLI execution as the user would see it in
+its terminal. Including colors.</p></li>
+<li><p>Pretty-prints a formatted exception traceback if the command fails.</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cli</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="click_extra.html#click_extra.BaseCommand" title="click.core.BaseCommand"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseCommand</span></code></a></span>) – CLI to invoke.</p></li>
+<li><p><strong>*args</strong> – <p>can be nested iterables composed of <code class="docutils literal notranslate"><span class="pre">str</span></code>,
+<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pathlib.Path</span></code></a> objects and <code class="docutils literal notranslate"><span class="pre">None</span></code> values. The nested structure
+will be flattened and <code class="docutils literal notranslate"><span class="pre">None</span></code> values will be filtered out. Then all
+elements will be casted to <code class="docutils literal notranslate"><span class="pre">str</span></code>. See <a class="reference internal" href="#click_extra.testing.args_cleanup" title="click_extra.testing.args_cleanup"><code class="xref py py-func docutils literal notranslate"><span class="pre">args_cleanup()</span></code></a> for details.</p>
+</p></li>
+<li><p><strong>input</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.IO" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IO</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span>) – same as <code class="docutils literal notranslate"><span class="pre">click.testing.CliRunner.invoke()</span></code>.</p></li>
+<li><p><strong>env</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>]]</span>) – same as <code class="docutils literal notranslate"><span class="pre">click.testing.CliRunner.invoke()</span></code>.</p></li>
+<li><p><strong>catch_exceptions</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – same as <code class="docutils literal notranslate"><span class="pre">click.testing.CliRunner.invoke()</span></code>.</p></li>
+<li><p><strong>color</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.12)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.12)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code></a>[<code class="docutils literal notranslate"><span class="pre">'forced'</span></code>], <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>]</span>) – If a boolean, the parameter will be passed as-is to
+<code class="docutils literal notranslate"><span class="pre">click.testing.CliRunner.isolation()</span></code>. If <code class="docutils literal notranslate"><span class="pre">&quot;forced&quot;</span></code>, the parameter
+will be passed as <code class="docutils literal notranslate"><span class="pre">True</span></code> to <code class="docutils literal notranslate"><span class="pre">click.testing.CliRunner.isolation()</span></code> and
+an extra <code class="docutils literal notranslate"><span class="pre">color=True</span></code> parameter will be passed to the invoked CLI.</p></li>
+<li><p><strong>**extra</strong> – <p>same as <code class="docutils literal notranslate"><span class="pre">click.testing.CliRunner.invoke()</span></code>, but colliding
+parameters are allowed and properly passed on to the invoked CLI.</p>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Result</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="parameters.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Parameters</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="platforms.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Platform detection</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; Kevin Deldycke and contributors
+            </div>
+            Made with 
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            <div class="last-updated">
+              Last updated on 2024-03-25</div>
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">CLI testing and execution</a><ul>
+<li><a class="reference internal" href="#click-extra-run-api"><code class="docutils literal notranslate"><span class="pre">click_extra.run</span></code> API</a><ul>
+<li><a class="reference internal" href="#click_extra.testing.INDENT"><code class="docutils literal notranslate"><span class="pre">INDENT</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.testing.EnvVars"><code class="docutils literal notranslate"><span class="pre">EnvVars</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.testing.NestedArgs"><code class="docutils literal notranslate"><span class="pre">NestedArgs</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.testing.args_cleanup"><code class="docutils literal notranslate"><span class="pre">args_cleanup()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.testing.format_cli_prompt"><code class="docutils literal notranslate"><span class="pre">format_cli_prompt()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.testing.print_cli_run"><code class="docutils literal notranslate"><span class="pre">print_cli_run()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.testing.env_copy"><code class="docutils literal notranslate"><span class="pre">env_copy()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.testing.run_cmd"><code class="docutils literal notranslate"><span class="pre">run_cmd()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.testing.INVOKE_ARGS"><code class="docutils literal notranslate"><span class="pre">INVOKE_ARGS</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.testing.BytesIOCopy"><code class="docutils literal notranslate"><span class="pre">BytesIOCopy</span></code></a><ul>
+<li><a class="reference internal" href="#click_extra.testing.BytesIOCopy.flush"><code class="docutils literal notranslate"><span class="pre">BytesIOCopy.flush()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.testing.BytesIOCopy.write"><code class="docutils literal notranslate"><span class="pre">BytesIOCopy.write()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#click_extra.testing.StreamMixer"><code class="docutils literal notranslate"><span class="pre">StreamMixer</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.testing.ExtraResult"><code class="docutils literal notranslate"><span class="pre">ExtraResult</span></code></a><ul>
+<li><a class="reference internal" href="#click_extra.testing.ExtraResult.stderr_bytes"><code class="docutils literal notranslate"><span class="pre">ExtraResult.stderr_bytes</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.testing.ExtraResult.output"><code class="docutils literal notranslate"><span class="pre">ExtraResult.output</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.testing.ExtraResult.stderr"><code class="docutils literal notranslate"><span class="pre">ExtraResult.stderr</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#click_extra.testing.ExtraCliRunner"><code class="docutils literal notranslate"><span class="pre">ExtraCliRunner</span></code></a><ul>
+<li><a class="reference internal" href="#click_extra.testing.ExtraCliRunner.env"><code class="docutils literal notranslate"><span class="pre">ExtraCliRunner.env</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.testing.ExtraCliRunner.force_color"><code class="docutils literal notranslate"><span class="pre">ExtraCliRunner.force_color</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.testing.ExtraCliRunner.isolation"><code class="docutils literal notranslate"><span class="pre">ExtraCliRunner.isolation()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.testing.ExtraCliRunner.invoke2"><code class="docutils literal notranslate"><span class="pre">ExtraCliRunner.invoke2()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.testing.ExtraCliRunner.invoke"><code class="docutils literal notranslate"><span class="pre">ExtraCliRunner.invoke()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=c72c40dc"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/scripts/furo.js?v=32e29ea5"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/design-tabs.js?v=36754332"></script>
+    <script src="https://unpkg.com/mermaid@10.2.0/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad:true});</script>
+    </body>
+</html>
