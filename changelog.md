@@ -1,10 +1,6 @@
 # Changelog
 
-## [4.7.5 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v4.7.4...main)
-
-```{important}
-This version is not released yet and is under active development.
-```
+## [4.7.5 (2024-04-04)](https://github.com/kdeldycke/click-extra/compare/v4.7.4...v4.7.5)
 
 - Remove bypass of `cloup.Color` re-import.
 
