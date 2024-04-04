@@ -70,8 +70,8 @@ def test_module_root_declarations():
                     for element in node.value.elts:
                         click_extra_members.append(element.s)
 
-    assert click_members.issubset(click_extra_members)
-    assert cloup_members.issubset(click_extra_members)
+    assert click_members <= set(click_extra_members)
+    assert cloup_members <= set(click_extra_members)
 
     expected_members = sorted(
         click_members.union(cloup_members).union(click_extra_members),

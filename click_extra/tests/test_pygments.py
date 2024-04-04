@@ -142,7 +142,7 @@ def test_ansi_lexers_candidates(tmp_path):
     lexer_classes = {find_lexer_class_by_name(alias) for alias in lexer_candidates}
     # We cannot test for strict equality yet, as some ANSI-ready lexers do not
     # have any test artifacts producing ``Generic.Output`` tokens.
-    assert lexer_classes.issubset(collect_session_lexers())
+    assert lexer_classes <= collect_session_lexers()
 
 
 def collect_classes(klass, prefix="Ansi"):

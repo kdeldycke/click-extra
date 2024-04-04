@@ -77,12 +77,13 @@ from .conftest import (
 def test_theme_definition():
     """Ensure we do not leave any property we would have inherited from cloup and
     logging primitives."""
-    assert set(HelpTheme.__dataclass_fields__).issubset(
-        HelpExtraTheme.__dataclass_fields__,
+    assert (
+        set(HelpTheme.__dataclass_fields__)
+        <= HelpExtraTheme.__dataclass_fields__.keys()
     )
 
     log_levels = {level.lower() for level in LOG_LEVELS}
-    assert log_levels.issubset(HelpExtraTheme.__dataclass_fields__)
+    assert log_levels <= HelpExtraTheme.__dataclass_fields__.keys()
     assert log_levels.isdisjoint(HelpTheme.__dataclass_fields__)
 
 
