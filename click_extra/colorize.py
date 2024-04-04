@@ -20,11 +20,12 @@ from __future__ import annotations
 import dataclasses
 import os
 import re
+from collections.abc import Iterable
 from configparser import RawConfigParser
 from dataclasses import dataclass
 from gettext import gettext as _
 from operator import getitem
-from typing import Sequence, cast
+from typing import Callable, Sequence, cast
 
 import click
 import cloup
@@ -623,7 +624,7 @@ class HelpExtraFormatter(HelpFormatter):
 
         return txt
 
-    def highlight_extra_keywords(self, help_text):
+    def highlight_extra_keywords(self, help_text: str) -> str:
         """Highlight extra keywords in help screens based on the theme.
 
         It is based on regular expressions. While this is not a bullet-proof method, it
@@ -796,14 +797,19 @@ class HelpExtraFormatter(HelpFormatter):
 
         return help_text
 
-    def getvalue(self):
+    def getvalue(self) -> str:
         """Wrap original `Click.HelpFormatter.getvalue()` to force extra-colorization on
         rendering."""
         help_text = super().getvalue()
         return self.highlight_extra_keywords(help_text)
 
 
-def highlight(string, substrings, styling_method, ignore_case=False):
+def highlight(
+    string: str,
+    substrings: Iterable[str],
+    styling_method: Callable,
+    ignore_case: bool = False,
+) -> str:
     """Highlights parts of the ``string`` that matches ``substrings``.
 
     Takes care of overlapping parts within the ``string``.
@@ -820,10 +826,10 @@ def highlight(string, substrings, styling_method, ignore_case=False):
         }
 
     # Reduce ranges, compute complement ranges, transform them to list of integers.
-    ranges = ",".join(ranges)
-    highlight_ranges = int_ranges_from_int_list(ranges)
+    range_arg = ",".join(ranges)
+    highlight_ranges = int_ranges_from_int_list(range_arg)
     untouched_ranges = int_ranges_from_int_list(
-        complement_int_list(ranges, range_end=len(string)),
+        complement_int_list(range_arg, range_end=len(string)),
     )
 
     # Apply style to range of characters flagged as matching.
@@ -832,6 +838,6 @@ def highlight(string, substrings, styling_method, ignore_case=False):
         segment = getitem(string, slice(i, j + 1))
         if (i, j) in highlight_ranges:
             segment = styling_method(segment)
-        styled_str += segment
+        styled_str += str(segment)
 
     return styled_str

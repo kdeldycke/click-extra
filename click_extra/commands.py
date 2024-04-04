@@ -27,7 +27,7 @@ from typing import TYPE_CHECKING, Any
 import click
 import cloup
 
-from . import Command, Group
+from . import Command, Group, Option
 from .colorize import ColorOption, ExtraHelpColorsMixin, HelpExtraFormatter, HelpOption
 from .config import ConfigOption
 from .logging import VerbosityOption
@@ -124,7 +124,7 @@ class ExtraContext(cloup.Context):
         self._color = None
 
 
-def default_extra_params():
+def default_extra_params() -> list[Option]:
     """Default additional options added to ``extra_command`` and ``extra_group``.
 
     .. caution::

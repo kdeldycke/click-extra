@@ -32,7 +32,7 @@ import platform
 import sys
 from dataclasses import dataclass, field
 from itertools import combinations
-from typing import Iterable
+from typing import Iterable, Iterator
 
 from . import cache
 
@@ -248,7 +248,7 @@ class Group:
         # Double-check there is no duplicate platforms.
         assert len(self.platforms) == len(self.platform_ids)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Platform]:
         """Iterate over the platforms of the group."""
         yield from self.platforms
 

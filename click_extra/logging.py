@@ -235,7 +235,7 @@ class VerbosityOption(ExtraOption):
         for name in ("click_extra", self.logger_name):
             yield logging.getLogger(name)
 
-    def reset_loggers(self):
+    def reset_loggers(self) -> None:
         """Forces all loggers managed by the option to be reset to the default level.
 
         Reset loggers in reverse order to ensure the internal logger is reset last.

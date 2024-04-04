@@ -57,6 +57,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from docutils.statemachine import ViewList
 from sphinx.highlighting import PygmentsBridge
 
@@ -75,20 +77,21 @@ class PatchedViewList(ViewList):
     <https://github.com/pallets/pallets-sphinx-themes/pull/62>`_.
     """
 
-    def append(self, *args, **kwargs):
+    def append(self, *args, **kwargs) -> None:
         """Search the default code block and replace it with our own version."""
         default_code_block = ".. sourcecode:: shell-session"
         new_code_block = ".. code-block:: ansi-shell-session"
 
         if default_code_block in args:
-            args = list(args)
+            new_args = list(args)
             index = args.index(default_code_block)
-            args[index] = new_code_block
+            new_args[index] = new_code_block
+            args = tuple(new_args)
 
         return super().append(*args, **kwargs)
 
 
-def setup(app):
+def setup(app: Any) -> None:
     """Register new directives, augmented with ANSI coloring.
 
     New directives:

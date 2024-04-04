@@ -32,6 +32,7 @@ from typing import (
     Any,
     Callable,
     ContextManager,
+    Iterator,
     cast,
 )
 from unittest.mock import patch
@@ -42,7 +43,9 @@ from mergedeep import merge
 from tabulate import tabulate
 
 from . import (
+    Command,
     Option,
+    Parameter,
     ParamType,
     Style,
     echo,
@@ -303,7 +306,7 @@ class ParamStructure:
         super().__init__(*args, **kwargs)
 
     @staticmethod
-    def init_tree_dict(*path: str, leaf: Any = None):
+    def init_tree_dict(*path: str, leaf: Any = None) -> Any:
         """Utility method to recursively create a nested dict structure whose keys are
         provided by ``path`` list and at the end is populated by a copy of ``leaf``."""
 
@@ -322,7 +325,9 @@ class ParamStructure:
         except KeyError:
             return None
 
-    def _flatten_tree_dict_gen(self, tree_dict, parent_key):
+    def _flatten_tree_dict_gen(
+        self, tree_dict: MutableMapping, parent_key: str | None = None
+    ) -> Iterable[tuple[str, Any]]:
         """`Source of this snippet
         <https://www.freecodecamp.org/news/how-to-flatten-a-dictionary-in-python-in-4-different-ways/>`_.
         """
@@ -342,7 +347,12 @@ class ParamStructure:
         keys are path and values are the leaf's content."""
         return dict(self._flatten_tree_dict_gen(tree_dict, parent_key))
 
-    def _recurse_cmd(self, cmd, top_level_params, parent_keys):
+    def _recurse_cmd(
+        self,
+        cmd: Command,
+        top_level_params: Iterable[str],
+        parent_keys: tuple[str, ...],
+    ) -> Iterator[tuple[tuple[str, ...], Parameter]]:
         """Recursive generator to walk through all subcommands and their parameters."""
         if hasattr(cmd, "commands"):
             for subcmd_id, subcmd in cmd.commands.items():
@@ -362,7 +372,7 @@ class ParamStructure:
                     ((*parent_keys, subcmd.name)),
                 )
 
-    def walk_params(self):
+    def walk_params(self) -> Iterator[tuple[tuple[str, ...], Parameter]]:
         """Generates an unfiltered list of all CLI parameters.
 
         Everything is included, from top-level groups to subcommands, and from options
@@ -374,6 +384,7 @@ class ParamStructure:
         """
         ctx = get_current_context()
         cli = ctx.find_root().command
+        assert cli.name is not None
 
         # Keep track of top-level CLI parameter IDs to check conflict with command
         # IDs later.
@@ -381,6 +392,7 @@ class ParamStructure:
 
         # Global, top-level options shared by all subcommands.
         for p in cli.params:
+            assert p.name is not None
             top_level_params.add(p.name)
             yield (cli.name, p.name), p
 
@@ -410,7 +422,7 @@ class ParamStructure:
     This mapping can be seen as a reverse of the ``click.types.convert_type()`` method.
     """
 
-    def get_param_type(self, param):
+    def get_param_type(self, param: Parameter) -> type[str | int | float | bool | list]:
         """Get the Python type of a Click parameter.
 
         See the list of
@@ -447,7 +459,7 @@ class ParamStructure:
         if isinstance(param.type, ParamType):
             return str
 
-        msg = f"Can't guess the appropriate Python type of {param!r} parameter."
+        msg = f"Can't guess the appropriate Python type of {param!r} parameter."  # type:ignore[unreachable]
         raise ValueError(msg)
 
     @cached_property
@@ -491,7 +503,7 @@ class ParamStructure:
         self.params_objects = objects
 
     @cached_property
-    def params_template(self):
+    def params_template(self) -> dict[str, Any]:
         """Returns a tree-like dictionary whose keys shadows the CLI options and
         subcommands and values are ``None``.
 
@@ -501,7 +513,7 @@ class ParamStructure:
         return self.params_template
 
     @cached_property
-    def params_types(self):
+    def params_types(self) -> dict[str, Any]:
         """Returns a tree-like dictionary whose keys shadows the CLI options and
         subcommands and values are their expected Python type.
 
@@ -511,7 +523,7 @@ class ParamStructure:
         return self.params_types
 
     @cached_property
-    def params_objects(self):
+    def params_objects(self) -> dict[str, Any]:
         """Returns a tree-like dictionary whose keys shadows the CLI options and
         subcommands and values are parameter objects.
 

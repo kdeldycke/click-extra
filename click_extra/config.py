@@ -192,11 +192,11 @@ class ConfigOption(ExtraOption, ParamStructure):
             ext_pattern = f"{{{','.join(extensions)}}}"
         return f"{app_dir}{os.path.sep}*.{ext_pattern}"
 
-    def get_help_record(self, ctx):
+    def get_help_record(self, ctx: Context) -> tuple[str, str] | None:
         """Replaces the default value by the pretty version of the configuration
         matching pattern."""
         # Pre-compute pretty_path to bypass infinite recursive loop on get_default.
-        pretty_path = shrinkuser(Path(self.get_default(ctx)))
+        pretty_path = shrinkuser(Path(self.get_default(ctx)))  # type: ignore[arg-type]
         with patch.object(ConfigOption, "get_default") as mock_method:
             mock_method.return_value = pretty_path
             return super().get_help_record(ctx)
@@ -239,7 +239,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             logger.debug(f"Configuration file found at {file_path}")
             yield file_path, file_path.read_text()
 
-    def parse_conf(self, conf_text: str) -> dict | None:
+    def parse_conf(self, conf_text: str) -> dict[str, Any] | None:
         """Try to parse the provided content with each format in the order provided by
         the user.
 
@@ -295,7 +295,7 @@ class ConfigOption(ExtraOption, ParamStructure):
                 return conf_path, user_conf
         return None, None
 
-    def load_ini_config(self, content):
+    def load_ini_config(self, content: str) -> dict[str, Any]:
         """Utility method to parse INI configuration file.
 
         Internal convention is to use a dot (``.``, as set by ``self.SEP``) in
@@ -307,7 +307,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         ini_config = ConfigParser(interpolation=ExtendedInterpolation())
         ini_config.read_string(content)
 
-        conf = {}
+        conf: dict[str, Any] = {}
         for section_id in ini_config.sections():
             # Extract all options of the section.
             sub_conf = {}
@@ -317,6 +317,8 @@ class ConfigOption(ExtraOption, ParamStructure):
                     section_id,
                     option_id,
                 )
+
+                value: Any
 
                 if target_type in (None, str):
                     value = ini_config.get(section_id, option_id)
@@ -349,7 +351,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         return conf
 
-    def recursive_update(self, a, b):
+    def recursive_update(self, a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
         """Like standard ``dict.update()``, but recursive so sub-dict gets updated.
 
         Ignore elements present in ``b`` but not in ``a``.
@@ -365,7 +367,7 @@ class ConfigOption(ExtraOption, ParamStructure):
                 raise ValueError(msg)
         return a
 
-    def merge_default_map(self, ctx, user_conf):
+    def merge_default_map(self, ctx: Context, user_conf: dict) -> None:
         """Save the user configuration into the context's ``default_map``.
 
         Merge the user configuration into the pre-computed template structure, which

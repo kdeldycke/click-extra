@@ -17,6 +17,8 @@
 
 from __future__ import annotations
 
+from typing import Iterable, Iterator
+
 from pygments import lexers
 from pygments.filter import Filter
 from pygments.filters import TokenMergeFilter
@@ -36,7 +38,7 @@ from pygments.lexers.shell import ShellSessionBaseLexer
 from pygments.lexers.special import OutputLexer
 from pygments.lexers.sql import PostgresConsoleLexer, SqliteConsoleLexer
 from pygments.style import StyleMeta
-from pygments.token import Generic, string_to_tokentype
+from pygments.token import Generic, _TokenType, string_to_tokentype
 from pygments_ansi_color import (
     AnsiColorLexer,
     ExtendedColorHtmlFormatterMixin,
@@ -70,7 +72,9 @@ class AnsiFilter(Filter):
             options.get("token_type", DEFAULT_TOKEN_TYPE),
         )
 
-    def filter(self, lexer, stream):
+    def filter(
+        self, lexer: Lexer, stream: Iterable[tuple[_TokenType, str]]
+    ) -> Iterator[tuple[_TokenType, str]]:
         """Transform each token of ``token_type`` type into a stream of ANSI tokens."""
         for ttype, value in stream:
             if ttype == self.token_type:
@@ -116,7 +120,7 @@ class AnsiLexerFiltersMixin(Lexer):
         self.filters.append(AnsiFilter())
 
 
-def collect_session_lexers():
+def collect_session_lexers() -> Iterator[type[Lexer]]:
     """Retrieve all lexers producing shell-like sessions in Pygments.
 
     This function contain a manually-maintained list of lexers, to which we dynamiccaly
