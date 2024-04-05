@@ -68,7 +68,7 @@ from .commands import (  # noqa: E402
     ExtraGroup,
 )
 from .config import ConfigOption  # noqa: E402
-from .decorators import (  # type: ignore[no-redef] # noqa: E402
+from .decorators import (  # type: ignore[no-redef,has-type] # noqa: E402
     color_option,
     command,
     config_option,
@@ -76,7 +76,7 @@ from .decorators import (  # type: ignore[no-redef] # noqa: E402
     extra_group,
     extra_version_option,
     group,
-    help_option,  # type: ignore[has-type]
+    help_option,
     show_params_option,
     table_format_option,
     telemetry_option,
