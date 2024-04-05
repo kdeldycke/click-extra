@@ -76,7 +76,7 @@ from .decorators import (  # type: ignore[no-redef] # noqa: E402
     extra_group,
     extra_version_option,
     group,
-    help_option,
+    help_option,  # type: ignore[has-type]
     show_params_option,
     table_format_option,
     telemetry_option,
