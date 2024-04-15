@@ -169,7 +169,7 @@ This let you replace the preset options by your own set, tweak their order and f
 ```{eval-rst}
 .. caution:: Duplicate options
 
-   If you try to add option decorators to a command which already have them by default, you will end up with duplicate entries (as seen in issue {issue}`232`):
+   If you try to add option decorators to a command which already have them by default, you will end up with duplicate entries ([as seen in issue #232](https://github.com/kdeldycke/click-extra/issues/232)):
 
    .. click:example::
       from click_extra import extra_command, extra_version_option

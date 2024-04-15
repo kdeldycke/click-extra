@@ -154,7 +154,8 @@ def default_extra_params() -> list[Option]:
         layer to have the processing order of options (the one below) different from
         the presentation order of options in the help screen.
 
-        This is probably something that has been requested in {issue}`544`.
+        This is probably something that has been `requested in issue #544
+        <https://github.com/kdeldycke/click-extra/issues/544>`_.
 
     .. important::
         Sensitivity to order still remains to be proven. With the code of Click Extra
