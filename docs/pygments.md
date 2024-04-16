@@ -56,11 +56,11 @@ This `ansi-html` formatter is designed to only work with the `ansi-color` lexer.
 
 ### Formatter usage
 
-To test it, let's generate a `cowsay.ansi` file that is full of ANSI colors:
+To test it, let's generate a `cowsay.ans` file that is full of ANSI colors:
 
 ```ansi-shell-session
-$ fortune | cowsay | lolcat --force > ./cowsay.ansi
-$ cat ./cowsay.ansi
+$ fortune | cowsay | lolcat --force > ./cowsay.ans
+$ cat ./cowsay.ans
 [38;5;154m [39m[38;5;154m_[39m[38;5;154m_[39m[38;5;148m_[39m[38;5;184m_[39m[38;5;184m_[39m[38;5;184m_[39m[38;5;184m_[39m[38;5;184m_[39m[38;5;184m_[39m[38;5;184m_[39m[38;5;184m_[39m[38;5;184m_[39m[38;5;184m_[39m[38;5;184m_[39m[38;5;178m_[39m[38;5;214m_[39m[38;5;214m_[39m[38;5;214m_[39m[38;5;214m_[39m[38;5;214m_[39m[38;5;214m_[39m[38;5;214m_[39m[38;5;214m_[39m[38;5;214m_[39m[38;5;208m_[39m[38;5;208m_[39m[38;5;208m_[39m[38;5;208m_[39m[38;5;208m_[39m[38;5;208m_[39m[38;5;208m_[39m[38;5;208m_[39m[38;5;208m [39m[38;5;208m[39m
 [38;5;148m/[39m[38;5;184m [39m[38;5;184mR[39m[38;5;184me[39m[38;5;184ma[39m[38;5;184ml[39m[38;5;184mi[39m[38;5;184mt[39m[38;5;184my[39m[38;5;184m [39m[38;5;184mi[39m[38;5;184ms[39m[38;5;178m [39m[38;5;214mf[39m[38;5;214mo[39m[38;5;214mr[39m[38;5;214m [39m[38;5;214mp[39m[38;5;214me[39m[38;5;214mo[39m[38;5;214mp[39m[38;5;214ml[39m[38;5;208me[39m[38;5;208m [39m[38;5;208mw[39m[38;5;208mh[39m[38;5;208mo[39m[38;5;208m [39m[38;5;208ml[39m[38;5;208ma[39m[38;5;208mc[39m[38;5;208mk[39m[38;5;209m [39m[38;5;203m\[39m[38;5;203m[39m
 [38;5;184m\[39m[38;5;184m [39m[38;5;184mi[39m[38;5;184mm[39m[38;5;184ma[39m[38;5;184mg[39m[38;5;184mi[39m[38;5;184mn[39m[38;5;184ma[39m[38;5;178mt[39m[38;5;214mi[39m[38;5;214mo[39m[38;5;214mn[39m[38;5;214m.[39m[38;5;214m [39m[38;5;214m [39m[38;5;214m [39m[38;5;214m [39m[38;5;214m [39m[38;5;208m [39m[38;5;208m [39m[38;5;208m [39m[38;5;208m [39m[38;5;208m [39m[38;5;208m [39m[38;5;208m [39m[38;5;208m [39m[38;5;208m [39m[38;5;208m [39m[38;5;209m [39m[38;5;203m [39m[38;5;203m [39m[38;5;203m [39m[38;5;203m/[39m[38;5;203m[39m
@@ -84,7 +84,7 @@ from pygments.formatters import get_formatter_by_name
 lexer = get_lexer_by_name("ansi-color")
 formatter = get_formatter_by_name("ansi-html")
 
-ansi_content = Path("./cowsay.ansi").read_text()
+ansi_content = Path("./cowsay.ans").read_text()
 
 print(highlight(ansi_content, lexer, formatter))
 ```
@@ -295,10 +295,10 @@ See how the raw string is split into Pygments tokens, including the new `Token.C
 
 Because they're properly registered to Pygments, all these new components can be invoked with the [`pygmentize` CLI](https://pygments.org/docs/cmdline/).
 
-For example, here is how we can render the `cowsay.ansi` file from the [example above](<>) into a standalone HTML file:
+For example, here is how we can render the `cowsay.ans` file from the [example above](<>) into a standalone HTML file:
 
 ```ansi-shell-session
-$ pygmentize -f ansi-html -O full -o cowsay.html ./cowsay.ansi
+$ pygmentize -f ansi-html -O full -o cowsay.html ./cowsay.ans
 $ cat cowsay.html
 ```
 
