@@ -35,7 +35,7 @@ jobs:
       - name: Generate dynamic doc
         run: |
           poetry run python -m click_extra.docs_update
-      - uses: peter-evans/create-pull-request@v6.0.3
+      - uses: peter-evans/create-pull-request@v6.0.4
         with:
           assignees: ${{ github.actor }}
           commit-message: "[autofix] Regenerate documentation."
