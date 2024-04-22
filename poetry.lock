@@ -678,18 +678,18 @@ files = [
 
 [[package]]
 name = "pallets-sphinx-themes"
-version = "2.1.1"
+version = "2.1.2"
 description = "Sphinx themes for Pallets and related projects."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "Pallets-Sphinx-Themes-2.1.1.tar.gz", hash = "sha256:e5da65967bb6fae3055682a97d37c3311fe38e132c0761052c16aaacafc8d47f"},
-    {file = "Pallets_Sphinx_Themes-2.1.1-py3-none-any.whl", hash = "sha256:b690b0b89aad3dc3f02afa546cf3fa56c29406012bb2e29158a69b774c4d4a98"},
+    {file = "pallets_sphinx_themes-2.1.2-py3-none-any.whl", hash = "sha256:e2641288e8ccc310f3d4e0c9a5f39dd681c4dc68b34558c78706f57d5e78ec80"},
+    {file = "pallets_sphinx_themes-2.1.2.tar.gz", hash = "sha256:a89079fddc86e17ce460ea61d3b814203e945e2f054724ae19d4a0cb9494fca1"},
 ]
 
 [package.dependencies]
 packaging = "*"
-Sphinx = ">=3"
+sphinx = ">=3"
 
 [[package]]
 name = "pluggy"
