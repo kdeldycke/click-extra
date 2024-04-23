@@ -1361,13 +1361,13 @@ files = [
 
 [[package]]
 name = "types-regex"
-version = "2023.12.25.20240311"
+version = "2024.4.16.20240423"
 description = "Typing stubs for regex"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "types-regex-2023.12.25.20240311.tar.gz", hash = "sha256:ada8679a4c31688f580ce77eb3c2a451bd96710e30c5c5bb1be352a8f65f2cb3"},
-    {file = "types_regex-2023.12.25.20240311-py3-none-any.whl", hash = "sha256:f435815f75ad0f15c9bdbfd04ff8c06ab553b9b4b51e218a6369e01e7520b35b"},
+    {file = "types-regex-2024.4.16.20240423.tar.gz", hash = "sha256:4c4cd233014f0ee68c6e83a6155ac4cffece7ac45da98c12ad7ee254268c9b96"},
+    {file = "types_regex-2024.4.16.20240423-py3-none-any.whl", hash = "sha256:8e4050cfb932e9a6db160ed5623c756809c417b42581770137c6bb14924da97d"},
 ]
 
 [[package]]
@@ -1516,4 +1516,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "9be2686eeb5a412043ba9aa545da9552a7d55b404b80093e9d845a3499bd4013"
+content-hash = "b8eaf4d7f7f2581ba293169fea2aa38feed302b252743f76f12b73410180e668"
