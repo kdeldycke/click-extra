@@ -103,7 +103,7 @@ xmltodict = "^0.13.0"
 coverage = { extras = ["toml"], version = "^7.2.3" }
 furo = "^2024.1.29"
 mypy = "^1.2.0"
-myst-parser = "^2.0.0"
+myst-parser = "^3.0.0"
 pytest = "^8.0.0"
 # More pytest plugins at: https://docs.pytest.org/en/latest/reference/plugin_list.html
 pytest-cases = "^3.8.3"
