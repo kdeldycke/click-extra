@@ -1361,13 +1361,13 @@ files = [
 
 [[package]]
 name = "types-regex"
-version = "2024.4.16.20240423"
+version = "2024.4.28.20240506"
 description = "Typing stubs for regex"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "types-regex-2024.4.16.20240423.tar.gz", hash = "sha256:4c4cd233014f0ee68c6e83a6155ac4cffece7ac45da98c12ad7ee254268c9b96"},
-    {file = "types_regex-2024.4.16.20240423-py3-none-any.whl", hash = "sha256:8e4050cfb932e9a6db160ed5623c756809c417b42581770137c6bb14924da97d"},
+    {file = "types-regex-2024.4.28.20240506.tar.gz", hash = "sha256:6065e9d2e286c389738a233e2c72f86dad20fd579cb5168981340bb4d291e8a7"},
+    {file = "types_regex-2024.4.28.20240506-py3-none-any.whl", hash = "sha256:574fae20a1a5a06517364cc1a10938bb0b893f18e55b68320a57270d122fc6c2"},
 ]
 
 [[package]]
