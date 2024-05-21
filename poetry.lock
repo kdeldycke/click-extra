@@ -1436,4 +1436,4 @@ sphinx = ["Pallets-Sphinx-Themes", "pygments", "pygments-ansi-color", "sphinx"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "d8b98fb01af5806e3ca1c2bd1ed766cf3788369c168f9bf1dfd18a8ea28c93cd"
+content-hash = "7e7397cb19d5421975415e16d2b38213568ada9a1fcdab90de1a6e90ec3763c6"
