@@ -112,7 +112,6 @@ optional = true
 
 [tool.poetry.group.dev.dependencies]
 coverage = { extras = ["toml"], version = "^7.2.3" }
-mypy = "^1.2.0"
 pytest = "^8.0.0"
 # More pytest plugins at: https://docs.pytest.org/en/latest/reference/plugin_list.html
 pytest-cases = "^3.8.3"
