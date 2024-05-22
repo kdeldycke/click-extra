@@ -15,14 +15,6 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Helpers and utilities for Sphinx rendering of CLI based on Click Extra.
 
-.. important::
-    For these helpers to work, you need to install ``click_extra``'s additional
-    dependencies from the ``sphinx`` extra group. Like so:
-
-    .. code-block:: shell-session
-
-        $ pip install click_extra[sphinx]
-
 .. danger::
     This module is quite janky but does the job. Still, it would benefits from a total
     clean rewrite. This would require a better understanding of Sphinx, Click and MyST

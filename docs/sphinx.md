@@ -2,6 +2,14 @@
 
 [Sphinx](https://www.sphinx-doc.org) is the best way to document your Python CLI. Click Extra provides several utilities to improve the quality of life of maintainers.
 
+````{important}
+For these helpers to work, you need to install ``click_extra``'s additional dependencies from the ``sphinx`` extra group:
+
+```shell-session
+$ pip install click_extra[sphinx]
+```
+````
+
 ## Setup
 
 Once [Click Extra is installed](install.md), you can enable its [extensions](https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-extensions) in your Sphinx's `conf.py`:

@@ -1,5 +1,13 @@
 # Pytest utilities and fixtures
 
+````{important}
+For these helpers to work, you need to install ``click_extra``'s additional dependencies from the ``pytest`` extra group:
+
+```shell-session
+$ pip install click_extra[pytest]
+```
+````
+
 ```{todo}
 Write example and tutorial.
 ```

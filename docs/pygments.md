@@ -2,6 +2,14 @@
 
 Click Extra plugs into Pygments to allow for the rendering of ANSI codes in various terminal output.
 
+````{important}
+For these helpers to work, you need to install ``click_extra``'s additional dependencies from the ``pygments`` extra group:
+
+```shell-session
+$ pip install click_extra[pygments]
+```
+````
+
 ## Integration
 
 As soon as [`click-extra` is installed](install.md), all its additional components are automaticcaly registered to Pygments.
