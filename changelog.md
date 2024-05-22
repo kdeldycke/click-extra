@@ -1,5 +1,11 @@
 # Changelog
 
+## [4.8.1 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v4.8.0...main)
+
+```{important}
+This version is not released yet and is under active development.
+```
+
 ## [4.8.0 (2024-05-22)](https://github.com/kdeldycke/click-extra/compare/v4.7.5...v4.8.0)
 
 - Slim down package by moving unit tests out of the main package.
