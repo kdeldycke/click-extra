@@ -26,6 +26,14 @@
 
 from __future__ import annotations
 
+try:
+    import pygments  # noqa: F401
+except ImportError:
+    raise ImportError(
+        "You need to install click_extra[pygments] extra dependencies to use this "
+        "module."
+    )
+
 from typing import Iterable, Iterator
 
 from pygments import lexers
