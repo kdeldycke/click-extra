@@ -6,7 +6,9 @@
 This version is not released yet and is under active development.
 ```
 
-- Add optional extra dependency groups for `pygments` and `sphinx` features. Closes {issue}`836`.
+- Slim down package by moving unit tests out of the main package.
+- Allow reuse of Pytest fixures and marks by other packages.
+- Move dependencies extending `pygments`, `sphinx` and `pytest` into optional extra dependencies. Closes {issue}`836`.
 - Split `dev` dependency groups into optional `test`, `typing` and `docs` groups.
 - Remove direct dependency on `mypy`.
 - Allow running tests with Python 3.8 and 3.9 on `macos-14` runners.

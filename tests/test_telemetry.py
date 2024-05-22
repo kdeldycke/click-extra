@@ -21,8 +21,7 @@ from textwrap import dedent
 from pytest_cases import parametrize
 
 from click_extra import command, echo, pass_context, telemetry_option
-
-from .conftest import command_decorators
+from click_extra.pytest import command_decorators
 
 
 @parametrize("cmd_decorator", command_decorators(no_groups=True, no_extra=True))

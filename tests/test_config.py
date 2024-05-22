@@ -34,8 +34,7 @@ from click_extra import (
 )
 from click_extra.colorize import escape_for_help_screen
 from click_extra.decorators import config_option, extra_group
-
-from .conftest import (
+from click_extra.pytest import (
     default_debug_uncolored_log_end,
     default_debug_uncolored_log_start,
     default_debug_uncolored_logging,

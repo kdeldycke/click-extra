@@ -60,8 +60,7 @@ from click_extra.decorators import (
     verbosity_option,
 )
 from click_extra.logging import LOG_LEVELS
-
-from .conftest import (
+from click_extra.pytest import (
     command_decorators,
     default_debug_colored_log_end,
     default_debug_colored_log_start,

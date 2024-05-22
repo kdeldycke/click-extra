@@ -13,7 +13,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Helpers and utilities to allow Pygments to parse and render ANSI codes."""
+"""Helpers and utilities to allow Pygments to parse and render ANSI codes.
+
+.. important::
+    For these helpers to work, you need to install ``click_extra``'s additional
+    dependencies from the ``pygments`` extra group. Like so:
+
+    .. code-block:: shell-session
+
+        $ pip install click_extra[pygments]
+"""
 
 from __future__ import annotations
 

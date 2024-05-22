@@ -26,10 +26,7 @@ from pytest_cases import parametrize
 
 from click_extra import echo
 from click_extra.decorators import extra_group, timer_option
-
-from .conftest import (
-    command_decorators,
-)
+from click_extra.pytest import command_decorators
 
 
 @extra_group

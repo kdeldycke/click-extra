@@ -39,8 +39,7 @@ from click_extra.decorators import (
     extra_version_option,
     verbosity_option,
 )
-
-from .conftest import (
+from click_extra.pytest import (
     command_decorators,
     default_debug_colored_log_end,
     default_debug_colored_logging,

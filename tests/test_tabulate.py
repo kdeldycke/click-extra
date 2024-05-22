@@ -24,9 +24,8 @@ from pytest_cases import fixture, parametrize
 from click_extra import echo, pass_context
 from click_extra.decorators import table_format_option
 from click_extra.platforms import is_windows
+from click_extra.pytest import command_decorators
 from click_extra.tabulate import output_formats
-
-from .conftest import command_decorators
 
 
 @pytest.mark.parametrize(

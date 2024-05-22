@@ -40,7 +40,7 @@ from pygments.lexers import find_lexer_class_by_name, get_lexer_by_name
 from click_extra import pygments as extra_pygments
 from click_extra.pygments import DEFAULT_TOKEN_TYPE, collect_session_lexers
 
-PROJECT_ROOT = Path(__file__).parent.parent.parent
+PROJECT_ROOT = Path(__file__).parent.parent
 
 
 def is_relative_to(path: Path, *other: Path) -> bool:

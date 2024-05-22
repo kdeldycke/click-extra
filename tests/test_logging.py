@@ -27,8 +27,7 @@ from pytest_cases import parametrize
 from click_extra import echo
 from click_extra.decorators import extra_command, verbosity_option
 from click_extra.logging import DEFAULT_LEVEL, LOG_LEVELS
-
-from .conftest import (
+from click_extra.pytest import (
     command_decorators,
     default_debug_colored_log_end,
     default_debug_colored_log_start,

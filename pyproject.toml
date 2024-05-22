@@ -103,16 +103,19 @@ Pallets-Sphinx-Themes = { version = "^2.1.1", optional = true }
 # Sphinx 6 is the first version to drop Python 3.7.
 sphinx = { version = ">=6", optional = true }
 
+### pytest extra group - optional dependencies
+pytest = { version = ">=8", optional = true }
+
 [tool.poetry.extras]
 pygments = ["pygments", "pygments-ansi-color"]
 sphinx = ["pygments", "pygments-ansi-color", "Pallets-Sphinx-Themes", "sphinx"]
+pytest = ["pytest"]
 
 [tool.poetry.group.test]
 optional = true
 
 [tool.poetry.group.test.dependencies]
 coverage = { extras = ["toml"], version = "^7.2.3" }
-pytest = "^8.0.0"
 # More pytest plugins at: https://docs.pytest.org/en/latest/reference/plugin_list.html
 pytest-cases = "^3.8.3"
 pytest-cov = "^5.0.0"
@@ -172,6 +175,11 @@ ansi-ruby-console = "click_extra.pygments:AnsiRubyConsoleLexer"
 ansi-sqlite-console = "click_extra.pygments:AnsiSqliteConsoleLexer"
 ansi-tcsh-session = "click_extra.pygments:AnsiTcshSessionLexer"
 
+[project.entry-points.pytest11]
+# Make additional fixtures available to pytest.
+# See: https://docs.pytest.org/en/latest/how-to/writing_plugins.html#making-your-plugin-installable-by-others
+click-extra = "click_extra.pytest"
+
 [tool.mypy]
 warn_unused_configs = true
 warn_redundant_casts = true
@@ -192,11 +200,20 @@ module = [
 
 [tool.pytest.ini_options]
 # https://docs.pytest.org/en/latest/customize.html#pyproject-toml
-# --cov-config=pyproject.toml : is specified at CLI level instead of letting coverage find it because of this bug:
-#   https://github.com/nedbat/coveragepy/issues/512#issuecomment-399707938
-#   https://github.com/pytest-dev/pytest-cov/issues/168#issuecomment-327533847
-#   https://github.com/pytest-dev/pytest-cov/issues/243
-addopts = "--durations=10 --cov-report=term --cov-report=xml --cov-config=pyproject.toml --cov=click_extra"
+addopts = [
+    "--durations=10",
+    "--cov-report=term",
+    "--cov-report=xml",
+    # --cov-config=pyproject.toml : is specified at CLI level instead of letting coverage find it because of this bug:
+    #   https://github.com/nedbat/coveragepy/issues/512#issuecomment-399707938
+    #   https://github.com/pytest-dev/pytest-cov/issues/168#issuecomment-327533847
+    #   https://github.com/pytest-dev/pytest-cov/issues/243
+    "--cov-config=pyproject.toml",
+    "--cov=click_extra",
+    # See: https://docs.pytest.org/en/latest/explanation/goodpractices.html#tests-outside-application-code
+    "--import-mode=importlib",
+]
+# Make sure tests that are expected to fail do not resurect and start working all of a sudden.
 xfail_strict = true
 
 # https://coverage.readthedocs.io/en/latest/config.html

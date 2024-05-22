@@ -29,10 +29,10 @@ import cloup
 import pytest
 from pytest_cases import fixture, parametrize
 
+import click_extra
 from click_extra import echo, option, option_group, pass_context
 from click_extra.decorators import extra_command, extra_group
-
-from .conftest import (
+from click_extra.pytest import (
     command_decorators,
     default_debug_uncolored_log_end,
     default_debug_uncolored_log_start,
@@ -61,7 +61,7 @@ def test_module_root_declarations():
 
     cloup_members = {m for m in cloup.__all__ if not m.startswith("_")}
 
-    tree = ast.parse(Path(__file__).parent.joinpath("../__init__.py").read_bytes())
+    tree = ast.parse(Path(inspect.getfile(click_extra)).read_bytes())
     click_extra_members = []
     for node in tree.body:
         if isinstance(node, ast.Assign):

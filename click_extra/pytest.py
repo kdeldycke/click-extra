@@ -13,7 +13,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Fixtures, configuration and helpers for tests."""
+"""Pytest fixtures and marks to help testing Click CLIs.
+
+.. important::
+    For these helpers to work, you need to install ``click_extra``'s additional
+    dependencies from the ``pytest`` extra group. Like so:
+
+    .. code-block:: shell-session
+
+        $ pip install click_extra[pytest]
+"""
 
 from __future__ import annotations
 
@@ -63,7 +72,7 @@ See:
 """
 
 
-@pytest.fixture()
+@pytest.fixture
 def extra_runner():
     """Runner fixture for ``click.testing.ExtraCliRunner``."""
     runner = ExtraCliRunner()
@@ -71,7 +80,7 @@ def extra_runner():
         yield runner
 
 
-@pytest.fixture()
+@pytest.fixture
 def invoke(extra_runner):
     """Invoke fixture shorthand for ``click.testing.ExtraCliRunner.invoke``."""
     return extra_runner.invoke
@@ -188,7 +197,7 @@ def command_decorators(
     return tuple(decorator_params)
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_config(tmp_path):
     """A generic fixture to produce a temporary configuration file."""
 

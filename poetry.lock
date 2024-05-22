@@ -1431,9 +1431,10 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more
 
 [extras]
 pygments = ["pygments", "pygments-ansi-color"]
+pytest = ["pytest"]
 sphinx = ["Pallets-Sphinx-Themes", "pygments", "pygments-ansi-color", "sphinx"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "7e7397cb19d5421975415e16d2b38213568ada9a1fcdab90de1a6e90ec3763c6"
+content-hash = "f94a8738a4ca25e479828437775c5729991fe6607e4e325e03283b346c2f1f3d"

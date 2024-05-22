@@ -71,8 +71,7 @@ from click_extra.platforms import (
     os_label,
     reduce,
 )
-
-from .conftest import (
+from click_extra.pytest import (
     skip_linux,
     skip_macos,
     skip_windows,

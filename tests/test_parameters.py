@@ -50,8 +50,7 @@ from click_extra import (
 from click_extra.decorators import extra_command, extra_group, show_params_option
 from click_extra.parameters import ShowParamsOption, extend_envvars, normalize_envvar
 from click_extra.platforms import is_windows
-
-from .conftest import command_decorators
+from click_extra.pytest import command_decorators
 
 
 @pytest.mark.parametrize(
@@ -506,7 +505,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "show-params-cli.custom_param",
             "cloup._params.Option",
             "--custom-param CUSTOM",
-            "click_extra.tests.test_parameters.Custom",
+            "tests.test_parameters.Custom",
             "str",
             "✘",
             "✓",

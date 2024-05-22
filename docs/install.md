@@ -14,11 +14,33 @@ $ pip install click-extra
 See also
 [pip installation instructions](https://pip.pypa.io/en/stable/installing/).
 
-## Python dependencies
+## Main dependencies
 
-FYI, here is a graph of Python package dependencies:
+This is a graph of the default, main dependencies of the Python package:
 
 ```mermaid assets/dependencies.mmd
 :align: center
 :zoom:
 ```
+
+## Extra dependencies
+
+For additional features, and to facilitate integration of Click CLIs with third-party tools, you may need to install extra dependencies:
+
+* [For Pygments](pygments.md):
+
+    ```shell-session
+    $ pip install click-extra[pygments]
+    ```
+
+* [For Sphinx](sphinx.md):
+
+    ```shell-session
+    $ pip install click-extra[sphinx]
+    ```
+
+* [For Pytest](pytest.md):
+
+    ```shell-session
+    $ pip install click-extra[pytest]
+    ```

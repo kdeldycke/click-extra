@@ -20,10 +20,11 @@ tabulate
 version
 timer
 platforms
-testing
 parameters
 pygments
 sphinx
+testing
+pytest
 issues
 ```
 
