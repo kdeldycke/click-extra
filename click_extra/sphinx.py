@@ -71,7 +71,7 @@ from docutils.statemachine import ViewList
 from sphinx.highlighting import PygmentsBridge
 
 from .pygments import AnsiHtmlFormatter
-from .tests.conftest import ExtraCliRunner
+from .testing import ExtraCliRunner
 
 
 class PatchedViewList(ViewList):
