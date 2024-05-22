@@ -6,6 +6,11 @@
 This version is not released yet and is under active development.
 ```
 
+- Add optional extra dependency groups for `pygments` and `sphinx` features. Closes {issue}`836`.
+- Split `dev` dependency groups into optional `test`, `typing` and `docs` groups.
+- Remove direct dependency on `mypy`.
+- Allow running tests with Python 3.8 and 3.9 on `macos-14` runners.
+
 ## [4.7.5 (2024-04-04)](https://github.com/kdeldycke/click-extra/compare/v4.7.4...v4.7.5)
 
 - Remove bypass of `cloup.Color` re-import.
