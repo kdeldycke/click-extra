@@ -35,6 +35,7 @@ maxdepth: 2
 hidden:
 ---
 API <click_extra>
+tests
 genindex
 modindex
 todolist
