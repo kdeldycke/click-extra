@@ -6,14 +6,6 @@ click\_extra package
    :undoc-members:
    :show-inheritance:
 
-Subpackages
------------
-
-.. toctree::
-   :maxdepth: 4
-
-   click_extra.tests
-
 Submodules
 ----------
 
@@ -85,6 +77,14 @@ click\_extra.pygments module
 ----------------------------
 
 .. automodule:: click_extra.pygments
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+click\_extra.pytest module
+--------------------------
+
+.. automodule:: click_extra.pytest
    :members:
    :undoc-members:
    :show-inheritance:
