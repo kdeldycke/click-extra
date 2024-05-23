@@ -1,5 +1,11 @@
 # Changelog
 
+## [4.8.2 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v4.8.1...main)
+
+```{important}
+This version is not released yet and is under active development.
+```
+
 ## [4.8.1 (2024-05-23)](https://github.com/kdeldycke/click-extra/compare/v4.8.0...v4.8.1)
 
 - Do not fail on `docs_update` import if `pygments` is not installed.
