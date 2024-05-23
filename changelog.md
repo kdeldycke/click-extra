@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Do not fail on `docs_update` import if `pygments` is not installed.
+
 ## [4.8.0 (2024-05-22)](https://github.com/kdeldycke/click-extra/compare/v4.7.5...v4.8.0)
 
 - Slim down package by moving unit tests out of the main package.

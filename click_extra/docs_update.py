@@ -35,7 +35,6 @@ from pathlib import Path
 from textwrap import indent
 
 from .platforms import ALL_GROUPS, EXTRA_GROUPS, NON_OVERLAPPING_GROUPS, Group
-from .pygments import lexer_map
 from .tabulate import tabulate
 
 
@@ -64,7 +63,13 @@ def replace_content(
 
 def generate_lexer_table() -> str:
     """Generate a Markdown table mapping original Pygments' lexers to their new ANSI
-    variants implemented by Click Extra."""
+    variants implemented by Click Extra.
+
+    Import ``pygments.lexer_map`` on function execution, to avoid referencing the
+    optional ``pygments`` extra dependency.
+    """
+    from .pygments import lexer_map
+
     table = []
     for orig_lexer, ansi_lexer in sorted(
         lexer_map.items(),
