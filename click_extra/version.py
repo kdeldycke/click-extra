@@ -257,29 +257,20 @@ class ExtraVersionOption(ExtraOption):
 
     @cached_property
     def package_version(self) -> str | None:
-        """Returns the package version if installed.
+        """Returns the package version if installed."""
+        logger = logging.getLogger("click_extra")
 
-        Will raise an error if the package is not installed, or if the package version
-        cannot be determined from the package metadata.
-        """
         if not self.package_name:
+            logger.debug("Cannot guess version from package: no package name provided.")
             return None
 
         try:
             version = metadata.version(self.package_name)
         except metadata.PackageNotFoundError:
-            msg = (
-                f"{self.package_name!r} is not installed. Try passing "
-                "'package_name' instead."
+            logger.debug(
+                f"Cannot get version: {self.package_name!r} package not found or not installed."
             )
-            raise RuntimeError(msg) from None
-
-        if not version:
-            msg = (
-                f"Could not determine the version for {self.package_name!r} "
-                "automatically."
-            )
-            raise RuntimeError(msg)
+            return None
 
         return version
 
