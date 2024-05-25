@@ -1,10 +1,6 @@
 # Changelog
 
-## [4.8.3 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v4.8.2...main)
-
-```{important}
-This version is not released yet and is under active development.
-```
+## [4.8.3 (2024-05-25)](https://github.com/kdeldycke/click-extra/compare/v4.8.2...v4.8.3)
 
 - Fix string interpolation in log message.
 
