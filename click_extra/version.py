@@ -268,7 +268,9 @@ class ExtraVersionOption(ExtraOption):
             version = metadata.version(self.package_name)
         except metadata.PackageNotFoundError:
             logger.debug(
-                f"Cannot get version: {self.package_name!r} package not found or not installed."
+                f"Cannot get version: {
+                    self.package_name!r
+                } package not found or not installed."
             )
             return None
 
