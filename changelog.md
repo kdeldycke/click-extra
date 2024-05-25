@@ -6,6 +6,8 @@
 This version is not released yet and is under active development.
 ```
 
+- Fix string interpolation in log message.
+
 ## [4.8.2 (2024-05-25)](https://github.com/kdeldycke/click-extra/compare/v4.8.1...v4.8.2)
 
 - Do not raise error if package version cannot be fetched.
