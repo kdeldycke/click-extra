@@ -139,7 +139,7 @@ def test_set_version(invoke):
             "{prog_name}, version {version} (Python {env_info[python][version]})",
             r"\x1b\[97mcolor-cli3\x1b\[0m, "
             rf"version \x1b\[32m{re.escape(__version__)}\x1b\[0m "
-            r"\(Python \x1b\[90m3\.\d+\.\d+ .+\x1b\[0m\)\n",
+            r"\(Python \x1b\[90m3\.\d+\.\d+.+\x1b\[0m\)\n",
         ),
     ),
 )

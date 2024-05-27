@@ -72,13 +72,11 @@ jobs:
 
           # List of unstable criterions.
           unstable: list[dict[str, str]] = [
-              # Python 3.13-dev is only failing on macOS and Ubuntu, not Windows:
+              # Python 3.13-dev is only failing on macOS:
               #   Building wheel for cffi (pyproject.toml) did not run successfully.
               #   Failed to build cffi
               #   ERROR: Could not build wheels for cffi, which is required to install pyproject.toml-based projects
               # https://github.com/msgpack/msgpack-python/issues/573
-              {"python-version": "3.13-dev", "os": "ubuntu-22.04"},
-              {"python-version": "3.13-dev", "os": "ubuntu-20.04"},
               {"python-version": "3.13-dev", "os": "macos-14"},
               {"python-version": "3.13-dev", "os": "macos-13"},
               # Ignore failing tests on Click development branch, because some top-level classes (BaseCommand,
