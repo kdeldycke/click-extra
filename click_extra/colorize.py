@@ -157,11 +157,11 @@ class HelpExtraTheme(cloup.HelpTheme):
 
 
 # Populate our global theme with all default styles.
-default_theme = HelpExtraTheme.dark()
+default_theme: HelpExtraTheme = HelpExtraTheme.dark()
 
 
 # No color theme.
-nocolor_theme = HelpExtraTheme()
+nocolor_theme: HelpExtraTheme = HelpExtraTheme()
 
 
 OK = default_theme.success("✓")
