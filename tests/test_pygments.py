@@ -177,7 +177,7 @@ def test_formatter_entry_points():
         entry_id = camel2under(name).replace("_", "-")
         entry_points[entry_id] = f"click_extra.pygments:{name}"
 
-    check_entry_points(entry_points, "tool", "poetry", "plugins", "pygments.formatters")
+    check_entry_points(entry_points, "project", "entry-points", "pygments.formatters")
 
 
 def test_filter_entry_points():
@@ -186,7 +186,7 @@ def test_filter_entry_points():
         entry_id = camel2under(name).replace("_", "-")
         entry_points[entry_id] = f"click_extra.pygments:{name}"
 
-    check_entry_points(entry_points, "tool", "poetry", "plugins", "pygments.filters")
+    check_entry_points(entry_points, "project", "entry-points", "pygments.filters")
 
 
 def test_lexer_entry_points():
@@ -205,7 +205,7 @@ def test_lexer_entry_points():
         class_path = f"click_extra.pygments:{ansi_lexer_id}"
         entry_points[entry_id] = class_path
 
-    check_entry_points(entry_points, "tool", "poetry", "plugins", "pygments.lexers")
+    check_entry_points(entry_points, "project", "entry-points", "pygments.lexers")
 
 
 def test_registered_formatters():
