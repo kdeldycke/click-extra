@@ -34,7 +34,7 @@ jobs:
       - name: Install project
         run: |
           uv venv --system
-          uv pip install --all-extras ./pyproject.toml
+          uv pip install --all-extras --requirement pyproject.toml .
 
       - name: Generate dynamic doc
         run: |
