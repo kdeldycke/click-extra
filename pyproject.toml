@@ -117,7 +117,7 @@ test = [
     "pytest-randomly ~= 3.15.0",
 ]
 typing = [
-    "types-Pygments ~= 2.15.0.0",
+    "types-Pygments ~= 2.18.0.20240506",
     "types-PyYAML ~= 6.0.12.9",
     "types-regex ~= 2024.4.16.20240423",
     "types-requests ~= 2.32.0.20240622",
