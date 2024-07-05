@@ -168,25 +168,24 @@ jobs:
       - name: Install project
         run: |
           uv venv --system
-          uv pip install --all-extras --requirement pyproject.toml .
+          uv pip install --all-extras --requirement ./pyproject.toml .
 
       - name: Install click@${{ matrix.click-version }}
         if: matrix.click-version != 'released'
         run: |
-          uv pip install "git+https://github.com/pallets/click.git#${{ matrix.click-version }}"
+          echo "click @ git+https://github.com/pallets/click.git#${{ matrix.click-version }}" >> ./overrides.txt
 
       - name: Install cloup@${{ matrix.cloup-version }}
         if: matrix.cloup-version != 'released'
         run: |
-          uv pip install "git+https://github.com/janluke/cloup.git#${{ matrix.cloup-version }}"
+          echo "cloup @ git+https://github.com/janluke/cloup.git#${{ matrix.cloup-version }}" >> ./overrides.txt
 
       - name: Unittests
         # XXX We call a bare `pytest` command instead of `uv run pytest` as the latter is going to re-install the
         # stable version of click dependency as declared in the pyproject.toml file, instead of keeping the custom
-        # version we installed in the steps above.
+        # version we installed in the steps above. See: https://github.com/astral-sh/uv/issues/4824
         run: |
-          source .venv/bin/activate
-          pytest
+          uv run --override ./overrides.txt pytest
 
       - name: Codecov upload
         uses: codecov/codecov-action@v4.5.0
