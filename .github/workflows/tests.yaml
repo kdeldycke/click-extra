@@ -188,7 +188,7 @@ jobs:
         run: |
           from pathlib import Path
 
-          overrides = Path("./overrides.txt").read_text().split_lines()
+          overrides = Path("./overrides.txt").read_text().splitlines()
           pyproject = Path("./pyproject.toml")
 
           content = pyproject.read_text()
