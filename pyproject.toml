@@ -1,7 +1,7 @@
 [project]
 # Docs: https://packaging.python.org/en/latest/guides/writing-pyproject-toml/
 name = "click-extra"
-version = "4.8.4"
+version = "4.9.0"
 # Python versions and their status: https://devguide.python.org/versions/
 requires-python = ">= 3.9"
 description = "🌈 Extra colorization and configuration loading for Click"
@@ -210,7 +210,7 @@ branch = true
 precision = 2
 
 [tool.bumpversion]
-current_version = "4.8.4"
+current_version = "4.9.0"
 allow_dirty = true
 
 [[tool.bumpversion.files]]
