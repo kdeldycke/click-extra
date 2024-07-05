@@ -71,6 +71,13 @@ jobs:
 
           # List of unstable criterions.
           unstable: list[dict[str, str]] = [
+              # Python 3.13-dev fails on Windows:
+              #   error: Failed to prepare distributions
+              #   Caused by: Failed to fetch wheel: regex==2024.4.28
+              #   Caused by: Failed to build: `regex==2024.4.28`
+              #   Caused by: Build backend failed to build wheel through `build_wheel()` with exit code: 1
+              {"python-version": "3.13-dev", "os": "windows-2022"},
+              {"python-version": "3.13-dev", "os": "windows-2019"},
               # Ignore failing tests on Click development branch, because some top-level classes (BaseCommand,
               # MultiCommand and OptionParser) have been removed. See:
               # https://github.com/pallets/click/compare/8.1.x...main#diff-768bcdbbdaa3001d4905761c3eed38d5ce6a62b9127df80de90d9ca4e806cacc
