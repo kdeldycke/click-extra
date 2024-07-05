@@ -170,22 +170,40 @@ jobs:
           uv venv --system
           uv pip install --all-extras --requirement ./pyproject.toml .
 
-      - name: Install click@${{ matrix.click-version }}
+      - name: Override dependency to click@${{ matrix.click-version }}
         if: matrix.click-version != 'released'
         run: |
           echo "click @ git+https://github.com/pallets/click.git#${{ matrix.click-version }}" >> ./overrides.txt
 
-      - name: Install cloup@${{ matrix.cloup-version }}
+      - name: Override dependency to cloup@${{ matrix.cloup-version }}
         if: matrix.cloup-version != 'released'
         run: |
           echo "cloup @ git+https://github.com/janluke/cloup.git#${{ matrix.cloup-version }}" >> ./overrides.txt
 
-      - name: Unittests
-        # XXX We call a bare `pytest` command instead of `uv run pytest` as the latter is going to re-install the
-        # stable version of click dependency as declared in the pyproject.toml file, instead of keeping the custom
-        # version we installed in the steps above. See: https://github.com/astral-sh/uv/issues/4824
+      - name: Amend pyproject.toml with overrides
+        if: hashFiles('overrides.txt')
+        shell: python
+        # XXX We need to add dependencies overrides to pyproject.toml because `uv run` below does not supports the
+        # --override option. See: https://github.com/astral-sh/uv/issues/4824
         run: |
-          uv run --override ./overrides.txt pytest
+          from pathlib import Path
+
+          overrides = Path("./overrides.txt").read_text().split_lines()
+          pyproject = Path("./pyproject.toml")
+
+          content = pyproject.read_text()
+          content += (
+              "\n[tool.uv]\noverride-dependencies = [\n"
+              + ',\n'.join('"' + override +  '"' for override in overrides)
+              + "]\n"
+          )
+
+          print(f"New pyproject.toml content:\n{content}")
+          pyproject.write_text(content)
+
+      - name: Unittests
+        run: |
+          uv run pytest
 
       - name: Codecov upload
         uses: codecov/codecov-action@v4.5.0
