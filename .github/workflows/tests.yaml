@@ -193,9 +193,9 @@ jobs:
 
           content = pyproject.read_text()
           content += (
-              "\n[tool.uv]\noverride-dependencies = [\n"
-              + ',\n'.join('"' + override +  '"' for override in overrides)
-              + "]\n"
+              "\n[tool.uv]\noverride-dependencies = [\n    "
+              + ',\n    '.join('"' + override +  '"' for override in overrides)
+              + "\n]\n"
           )
 
           print(f"New pyproject.toml content:\n{content}")
