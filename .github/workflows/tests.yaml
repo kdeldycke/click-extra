@@ -173,12 +173,12 @@ jobs:
       - name: Override dependency to click@${{ matrix.click-version }}
         if: matrix.click-version != 'released'
         run: |
-          echo "click @ git+https://github.com/pallets/click.git#${{ matrix.click-version }}" >> ./overrides.txt
+          echo "click @ git+https://github.com/pallets/click.git@${{ matrix.click-version }}" >> ./overrides.txt
 
       - name: Override dependency to cloup@${{ matrix.cloup-version }}
         if: matrix.cloup-version != 'released'
         run: |
-          echo "cloup @ git+https://github.com/janluke/cloup.git#${{ matrix.cloup-version }}" >> ./overrides.txt
+          echo "cloup @ git+https://github.com/janluke/cloup.git@${{ matrix.cloup-version }}" >> ./overrides.txt
 
       - name: Amend pyproject.toml with overrides
         if: hashFiles('overrides.txt')
