@@ -173,16 +173,20 @@ jobs:
       - name: Install click@${{ matrix.click-version }}
         if: matrix.click-version != 'released'
         run: |
-          uv pip install git+https://github.com/pallets/click.git#${{ matrix.click-version }}
+          uv pip install "git+https://github.com/pallets/click.git#${{ matrix.click-version }}"
 
       - name: Install cloup@${{ matrix.cloup-version }}
         if: matrix.cloup-version != 'released'
         run: |
-          uv pip install git+https://github.com/janluke/cloup.git#${{ matrix.cloup-version }}
+          uv pip install "git+https://github.com/janluke/cloup.git#${{ matrix.cloup-version }}"
 
       - name: Unittests
+        # XXX We call a bare `pytest` command instead of `uv run pytest` as the latter is going to re-install the
+        # stable version of click dependency as declared in the pyproject.toml file, instead of keeping the custom
+        # version we installed in the steps above.
         run: |
-          uv run pytest
+          source .venv/bin/activate
+          pytest
 
       - name: Codecov upload
         uses: codecov/codecov-action@v4.5.0
