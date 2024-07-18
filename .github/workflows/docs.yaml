@@ -39,6 +39,11 @@ jobs:
       - name: Generate dynamic doc
         run: |
           uv run python -m click_extra.docs_update
+      - name: Reset uv.lock
+        # Exclude `uv.lock` file which might be auto-updated by calls to `uv run`.
+        # See: https://github.com/peter-evans/create-pull-request#controlling-committed-files
+        run: |
+          git checkout -- uv.lock
       - uses: peter-evans/create-pull-request@v6.1.0
         with:
           assignees: ${{ github.actor }}
