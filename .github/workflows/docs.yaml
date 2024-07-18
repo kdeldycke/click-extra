@@ -40,6 +40,7 @@ jobs:
       - name: Reset uv.lock
         # Exclude `uv.lock` file which might be auto-updated by calls to `uv run`.
         # See: https://github.com/peter-evans/create-pull-request#controlling-committed-files
+        # https://github.com/astral-sh/uv/issues/5185
         run: |
           git checkout -- uv.lock
       - uses: peter-evans/create-pull-request@v6.1.0
