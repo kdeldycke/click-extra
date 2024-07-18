@@ -182,7 +182,7 @@ If we put this CLI code in a ``.. click:example::`` directive, we can associate 
 
         assert result.exit_code == 0, "CLI execution failed"
         assert not result.stderr, "error message in <stderr>"
-        assert "--show-params" in result.stdout, "--show-params not found in help screeen"
+        assert "--show-params" in result.stdout, "--show-params not found in help screen"
 
 See how we collect the ``result`` of the ``invoke`` command, and inspect the ``exit_code``, ``stderr`` and ``stdout`` of the CLI with ``assert`` statements.
 
@@ -192,7 +192,7 @@ If for any reason our CLI changes and its help screen is no longer what we expec
 
     Exception occurred:
     File "<docs>", line 5, in <module>
-    AssertionError: --show-params not found in help screeen
+    AssertionError: --show-params not found in help screen
 
 Having your build fails when something unexpected happens is a great signal to catch regressions early.
 
@@ -203,7 +203,7 @@ On the other hand, if the build succeed, the ``.. click:run::`` block will rende
 
     assert result.exit_code == 0, "CLI execution failed"
     assert not result.stderr, "error message in <stderr>"
-    assert "--show-params" in result.stdout, "--show-params not found in help screeen"
+    assert "--show-params" in result.stdout, "--show-params not found in help screen"
 ```
 
 ```{tip}
