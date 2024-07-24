@@ -285,17 +285,17 @@ $ source .venv/bin/activate
 $ uv pip install --all-extras ./pyproject.toml
 (...)
 
-$ uv run python -m pip install dbt-core
+$ uv run -- python -m pip install dbt-core
 (...)
 
-$ uv run python -m pip install aws-sam-cli
+$ uv run -- python -m pip install aws-sam-cli
 (...)
 ```
 
 That way I had the latest Click Extra, `dbt` and `aws-sam-cli` installed in the same virtual environment:
 
 ```shell-session
-$ uv run dbt --version
+$ uv run -- dbt --version
 Core:
   - installed: 1.6.1
   - latest:    1.6.2 - Update available!
@@ -310,7 +310,7 @@ Plugins:
 ```
 
 ```shell-session
-$ uv run sam --version
+$ uv run -- sam --version
 SAM CLI, version 1.97.0
 ```
 ````
@@ -340,7 +340,7 @@ if __name__ == "__main__":
 And this simple script gets rendered into:
 
 ```shell-session
-$ uv run python ./wrap.py
+$ uv run -- python ./wrap.py
 Usage: wrap.py [OPTIONS] COMMAND [ARGS]...
 
 Options:
@@ -374,7 +374,7 @@ You can compare the output of the `aws_sam` subcommand with its original one:
 `````{tab-set}
 ````{tab-item} aws_sam subcommand in wrap.py
 ```shell-session
-$ uv run python ./wrap.py aws_sam --help
+$ uv run -- python ./wrap.py aws_sam --help
 Usage: wrap.py aws_sam [OPTIONS] COMMAND [ARGS]...
 
   AWS Serverless Application Model (SAM) CLI
@@ -438,7 +438,7 @@ Examples:
 
 ````{tab-item} Vanilla sam CLI
 ```shell-session
-$ uv run sam --help
+$ uv run -- sam --help
 Usage: sam [OPTIONS] COMMAND [ARGS]...
 
   AWS Serverless Application Model (SAM) CLI
@@ -505,9 +505,9 @@ Here is the highlighted differences to make them even more obvious:
 
 ```diff
 @@ -1,5 +1,5 @@
--$ uv run python ./wrap.py aws_sam --help
+-$ uv run -- python ./wrap.py aws_sam --help
 -Usage: wrap.py aws_sam [OPTIONS] COMMAND [ARGS]...
-+$ uv run sam --help
++$ uv run -- sam --help
 +Usage: sam [OPTIONS] COMMAND [ARGS]...
 
    AWS Serverless Application Model (SAM) CLI
