@@ -174,9 +174,9 @@ jobs:
         run: >
           uv --no-progress run
           ${{ matrix.click-version != 'released'
-          && format('--with "git+https://github.com/pallets/click.git@{0}"', matrix.click-version) }}
+          && format('--with "git+https://github.com/pallets/click.git@{0}"', matrix.click-version) || '' }}
           ${{ matrix.cloup-version != 'released'
-          && format('--with "git+https://github.com/janluke/cloup.git@{0}"', matrix.cloup-version) }}
+          && format('--with "git+https://github.com/janluke/cloup.git@{0}"', matrix.cloup-version) || ''}}
           --
           pytest
 
