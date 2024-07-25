@@ -29,7 +29,6 @@ from typing import Callable, Sequence, cast
 
 import click
 import cloup
-import regex as re3
 from boltons.strutils import complement_int_list, int_ranges_from_int_list
 from cloup._util import identity
 from cloup.styling import Color, IStyle
@@ -805,7 +804,7 @@ class HelpExtraFormatter(HelpFormatter):
 
 
 def highlight(
-    string: str,
+    content: str,
     substrings: Iterable[str],
     styling_method: Callable,
     ignore_case: bool = False,
@@ -813,29 +812,47 @@ def highlight(
     """Highlights parts of the ``string`` that matches ``substrings``.
 
     Takes care of overlapping parts within the ``string``.
+
+    ..todo:
+        Same as the ``ignore_case`` parameter, should we support case-folding?
+        As in "Straße" => "Strasse"? Beware, it messes with string length and
+        characters index...
     """
     # Ranges of character indices flagged for highlighting.
     ranges = set()
 
+    # Search for occurrences of query parts in original string.
     for part in set(substrings):
-        # Search for occurrences of query parts in original string.
-        flags = re3.IGNORECASE if ignore_case else 0
+        # Reduce the matching space to the lower-case realm.
+        searched_content = content
+        if ignore_case:
+            lower_part = part.lower()
+            assert len(part) == len(
+                lower_part
+            ), "Lowering case is messing with string length"
+            part = lower_part
+            searched_content = content.lower()
+            assert len(content) == len(
+                searched_content
+            ), "Lowering case is messing with string length"
+        # Lookahead assertion which is going to give the starting position of each overlapping match.
+        pattern = rf"(?={re.escape(part)})"
         ranges |= {
-            f"{match.start()}-{match.end() - 1}"
-            for match in re3.finditer(part, string, flags=flags, overlapped=True)
+            f"{match.start()}-{match.start() + len(part) - 1}"
+            for match in re.finditer(pattern, searched_content)
         }
 
     # Reduce ranges, compute complement ranges, transform them to list of integers.
     range_arg = ",".join(ranges)
     highlight_ranges = int_ranges_from_int_list(range_arg)
     untouched_ranges = int_ranges_from_int_list(
-        complement_int_list(range_arg, range_end=len(string)),
+        complement_int_list(range_arg, range_end=len(content)),
     )
 
     # Apply style to range of characters flagged as matching.
     styled_str = ""
     for i, j in sorted(highlight_ranges + untouched_ranges):
-        segment = getitem(string, slice(i, j + 1))
+        segment = getitem(content, slice(i, j + 1))
         if (i, j) in highlight_ranges:
             segment = styling_method(segment)
         styled_str += str(segment)

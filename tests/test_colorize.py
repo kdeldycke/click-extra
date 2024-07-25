@@ -696,67 +696,121 @@ def test_integrated_color_option(invoke, param, expecting_colors):
 
 
 @pytest.mark.parametrize(
-    ("substrings", "expected", "ignore_case"),
+    ("original", "substrings", "expected", "ignore_case"),
     (
         # Function input types.
-        (["hey"], "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m", False),
-        (("hey",), "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m", False),
-        ({"hey"}, "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m", False),
         (
+            "Hey-xx-xxx-heY-xXxXxxxxx-hey",
+            ["hey"],
+            "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m",
+            False,
+        ),
+        (
+            "Hey-xx-xxx-heY-xXxXxxxxx-hey",
+            ("hey",),
+            "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m",
+            False,
+        ),
+        (
+            "Hey-xx-xxx-heY-xXxXxxxxx-hey",
+            {"hey"},
+            "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m",
+            False,
+        ),
+        (
+            "Hey-xx-xxx-heY-xXxXxxxxx-hey",
             "hey",
             "H\x1b[32mey\x1b[0m-xx-xxx-\x1b[32mhe\x1b[0mY-xXxXxxxxx-\x1b[32mhey\x1b[0m",
             False,
         ),
         # Duplicate substrings.
-        (["hey", "hey"], "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m", False),
-        (("hey", "hey"), "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m", False),
-        ({"hey", "hey"}, "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m", False),
         (
+            "Hey-xx-xxx-heY-xXxXxxxxx-hey",
+            ["hey", "hey"],
+            "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m",
+            False,
+        ),
+        (
+            "Hey-xx-xxx-heY-xXxXxxxxx-hey",
+            ("hey", "hey"),
+            "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m",
+            False,
+        ),
+        (
+            "Hey-xx-xxx-heY-xXxXxxxxx-hey",
+            {"hey", "hey"},
+            "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m",
+            False,
+        ),
+        (
+            "Hey-xx-xxx-heY-xXxXxxxxx-hey",
             "heyhey",
             "H\x1b[32mey\x1b[0m-xx-xxx-\x1b[32mhe\x1b[0mY-xXxXxxxxx-\x1b[32mhey\x1b[0m",
             False,
         ),
         # Case-sensitivity and multiple matches.
-        (["hey"], "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m", False),
         (
+            "Hey-xx-xxx-heY-xXxXxxxxx-hey",
+            ["hey"],
+            "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m",
+            False,
+        ),
+        (
+            "Hey-xx-xxx-heY-xXxXxxxxx-hey",
             ["Hey"],
             "\x1b[32mHey\x1b[0m-xx-xxx-\x1b[32mheY\x1b[0m-xXxXxxxxx-\x1b[32mhey\x1b[0m",
             True,
         ),
         (
+            "Hey-xx-xxx-heY-xXxXxxxxx-hey",
             "x",
             "Hey-\x1b[32mxx\x1b[0m-\x1b[32mxxx\x1b[0m-heY-\x1b[32mx\x1b[0mX\x1b[32mx\x1b[0mX\x1b[32mxxxxx\x1b[0m-hey",
             False,
         ),
         (
+            "Hey-xx-xxx-heY-xXxXxxxxx-hey",
             "x",
             "Hey-\x1b[32mxx\x1b[0m-\x1b[32mxxx\x1b[0m-heY-\x1b[32mxXxXxxxxx\x1b[0m-hey",
             True,
         ),
         # Overlaps.
         (
+            "Hey-xx-xxx-heY-xXxXxxxxx-hey",
             ["xx"],
             "Hey-\x1b[32mxx\x1b[0m-\x1b[32mxxx\x1b[0m-heY-\x1b[32mxXxXxxxxx\x1b[0m-hey",
             True,
         ),
         (
+            "Hey-xx-xxx-heY-xXxXxxxxx-hey",
             ["xx"],
             "Hey-\x1b[32mxx\x1b[0m-\x1b[32mxxx\x1b[0m-heY-xXxX\x1b[32mxxxxx\x1b[0m-hey",
             False,
         ),
         # No match.
-        ("z", "Hey-xx-xxx-heY-xXxXxxxxx-hey", False),
-        (["XX"], "Hey-xx-xxx-heY-xXxXxxxxx-hey", False),
+        ("Hey-xx-xxx-heY-xXxXxxxxx-hey", "z", "Hey-xx-xxx-heY-xXxXxxxxx-hey", False),
+        ("Hey-xx-xxx-heY-xXxXxxxxx-hey", ["XX"], "Hey-xx-xxx-heY-xXxXxxxxx-hey", False),
+        # Special characters.
+        (
+            "(?P<quote>[']).*?(?P=quote)",
+            "[",
+            "(?P<quote>\x1b[32m[\x1b[0m']).*?(?P=quote)",
+            False,
+        ),
+        # Unicode normalization.
+        ("Straße", "ß", "Stra\x1b[32mß\x1b[0me", False),
+        # ("Straße", ["SS"], "Stra\x1b[32mß\x1b[0me", True),
     ),
 )
-def test_substring_highlighting(substrings, expected, ignore_case):
-    result = highlight(
-        "Hey-xx-xxx-heY-xXxXxxxxx-hey",
-        substrings,
-        styling_method=theme.success,
-        ignore_case=ignore_case,
+def test_substring_highlighting(original, substrings, expected, ignore_case):
+    assert (
+        highlight(
+            original,
+            substrings,
+            styling_method=theme.success,
+            ignore_case=ignore_case,
+        )
+        == expected
     )
-    assert result == expected
 
 
 @parametrize(

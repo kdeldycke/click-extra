@@ -8,6 +8,7 @@
 - Switch from Poetry to `uv`.
 - Drop support for Python 3.8.
 - Mark Python 3.13-dev tests as stable.
+- Remove dependency on `regex`.
 
 ## [4.8.3 (2024-05-25)](https://github.com/kdeldycke/click-extra/compare/v4.8.2...v4.8.3)
 
