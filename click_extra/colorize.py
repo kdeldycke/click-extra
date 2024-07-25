@@ -835,7 +835,8 @@ def highlight(
             assert len(content) == len(
                 searched_content
             ), "Lowering case is messing with string length"
-        # Lookahead assertion which is going to give the starting position of each overlapping match.
+        # Lookahead assertion which is going to give the starting position of each
+        # overlapping match.
         pattern = rf"(?={re.escape(part)})"
         ranges |= {
             f"{match.start()}-{match.start() + len(part) - 1}"
