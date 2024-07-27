@@ -196,7 +196,6 @@ test = [
 typing = [
     { name = "types-pygments" },
     { name = "types-pyyaml" },
-    { name = "types-regex" },
     { name = "types-requests" },
     { name = "types-tabulate" },
     { name = "types-xmltodict" },
@@ -925,15 +924,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/b5/c4/7d307b64d33f98c18bcddb0ed80d9f19f492cb5a849eb3d23de9555e2ea8/types-PyYAML-6.0.12.20240724.tar.gz", hash = "sha256:cf7b31ae67e0c5b2919c703d2affc415485099d3fe6666a6912f040fd05cb67f", size = 12355 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/40/cc/dc95e95c0ae920fa7e8a77185f178c09ddebaa9a1c927cc1345d0f38f65a/types_PyYAML-6.0.12.20240724-py3-none-any.whl", hash = "sha256:e5becec598f3aa3a2ddf671de4a75fa1c6856fbf73b2840286c9d50fae2d5d48", size = 15303 },
-]
-
-[[distribution]]
-name = "types-regex"
-version = "2024.4.16.20240423"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/4e/50/0a7fcb6c9e0d04fb0128d4f37e78322c986062b7d1008585b060158db0df/types-regex-2024.4.16.20240423.tar.gz", hash = "sha256:4c4cd233014f0ee68c6e83a6155ac4cffece7ac45da98c12ad7ee254268c9b96", size = 6861 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/2d/65/ec6a63e7720e7012c566de0dbdddc2614b3ae6df3a5406086f3cae031fd7/types_regex-2024.4.16.20240423-py3-none-any.whl", hash = "sha256:8e4050cfb932e9a6db160ed5623c756809c417b42581770137c6bb14924da97d", size = 5557 },
 ]
 
 [[distribution]]
