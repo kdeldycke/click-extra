@@ -1,5 +1,10 @@
 # Changelog
 
+## [4.9.2 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v4.9.1...main)
+
+> \[!IMPORTANT\]
+> This version is not released yet and is under active development.
+
 ## [4.9.1 (2024-07-27)](https://github.com/kdeldycke/click-extra/compare/v4.9.0...v4.9.1)
 
 ## [4.9.0 (2024-07-25)](https://github.com/kdeldycke/click-extra/compare/v4.8.3...v4.9.0)
