@@ -940,11 +940,11 @@ wheels = [
 
 [[distribution]]
 name = "types-setuptools"
-version = "71.1.0.20240724"
+version = "71.1.0.20240726"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/64/ce/612967ab4a93f57afe1fd83f047ce7cec35ac7a599d107378fb88140976f/types-setuptools-71.1.0.20240724.tar.gz", hash = "sha256:ae61c528111a9450e149aedbc1ab0f7874f9bb0dc8f14c3cd200a1f82457050b", size = 39287 }
+sdist = { url = "https://files.pythonhosted.org/packages/61/7e/939e6973563ee4620233baecc4bf3271d5f23fb9036b4abc30f0707ffb7f/types-setuptools-71.1.0.20240726.tar.gz", hash = "sha256:85ba28e9461bb1be86ebba4db0f1c2408f2b11115b1966334ea9dc464e29303e", size = 39687 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/93/e2/c301dbb7dfd9d73c3d66f9c7657ac966a0e970dabb22031b9bcda1a6ebee/types_setuptools-71.1.0.20240724-py3-none-any.whl", hash = "sha256:90570f0578ed67bb25ada9b3d1432e6727178d2408a7051b27e4a712731df30a", size = 63838 },
+    { url = "https://files.pythonhosted.org/packages/a8/69/b14ad1edf079e639e18da23252b09b6e62b829ce6d5b30821c3e097873a9/types_setuptools-71.1.0.20240726-py3-none-any.whl", hash = "sha256:a7775376f36e0ff09bcad236bf265777590a66b11623e48c20bfc30f1444ea36", size = 64548 },
 ]
 
 [[distribution]]
