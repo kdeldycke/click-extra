@@ -1,0 +1,1138 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta property="og:title" content="Platform detection" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="platforms.html" />
+<meta property="og:site_name" content="Click Extra" />
+<meta property="og:description" content="OS families: All platforms are grouped in sets of non-overlpaping families: click_extra.platforms.NON_OVERLAPPING_GROUPS- Non-overlapping groups., Other groups: Other groups are available for conve..." />
+<meta name="description" content="OS families: All platforms are grouped in sets of non-overlpaping families: click_extra.platforms.NON_OVERLAPPING_GROUPS- Non-overlapping groups., Other groups: Other groups are available for conve..." />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Parameters" href="parameters.html" /><link rel="prev" title="Timer" href="timer.html" />
+
+    <!-- Generated with Sphinx 7.4.7 and Furo 2024.07.18 -->
+        <title>Platform detection - Click Extra</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d3572542" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=613ab9ff" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=87e54e7c" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+<div class="announcement">
+  <aside class="announcement-content">
+     Click Extra works fine, but its sole maintainer is distracted by life 😶‍🌫️.<br/>You can influence it with purchase of <strong><a class='reference external' href='https://github.com/sponsors/kdeldycke'>business support 🤝 and sponsorship 🫶</a></strong>. 
+  </aside>
+</div>
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">Click Extra</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="_static/logo-square.svg" alt="Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">Commands &amp; groups</a></li>
+<li class="toctree-l1"><a class="reference internal" href="config.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="colorize.html">Colored help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logging.html">Logging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tabulate.html">Table</a></li>
+<li class="toctree-l1"><a class="reference internal" href="version.html">Version</a></li>
+<li class="toctree-l1"><a class="reference internal" href="timer.html">Timer</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Platform detection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parameters.html">Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pygments.html">Pygments extensions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sphinx.html">Sphinx extensions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="testing.html">CLI testing and execution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pytest.html">Pytest utilities and fixtures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="issues.html">Fixed issues</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="click_extra.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tests.html">tests package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="todolist.html">Todo-list</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="code-of-conduct.html">Code of conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/kdeldycke/click-extra">GitHub Repository</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/sponsors/kdeldycke">Funding</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/kdeldycke/click-extra/blob/main/docs/platforms.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/kdeldycke/click-extra/edit/main/docs/platforms.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="platform-detection">
+<h1>Platform detection<a class="headerlink" href="#platform-detection" title="Link to this heading">¶</a></h1>
+<section id="os-families">
+<h2>OS families<a class="headerlink" href="#os-families" title="Link to this heading">¶</a></h2>
+<p>All platforms are grouped in sets of non-overlpaping families:</p>
+<!-- NON_OVERLAPPING_GROUPS-graph-start -->
+<figure class="align-default" id="id1">
+<div id="id-9875f423-dc7d-42db-a175-5b98d451e3dd" class="mermaid">
+            flowchart
+    subgraph &lt;code&gt;click_extra.platforms.ALL_LINUX&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Any Linux&lt;/em&gt;
+        all_linux_linux(&lt;code&gt;linux&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Linux&lt;/em&gt;)
+    end
+    subgraph &lt;code&gt;click_extra.platforms.ALL_WINDOWS&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Any Windows&lt;/em&gt;
+        all_windows_windows(&lt;code&gt;windows&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Windows&lt;/em&gt;)
+    end
+    subgraph &lt;code&gt;click_extra.platforms.BSD&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Any BSD&lt;/em&gt;
+        bsd_freebsd(&lt;code&gt;freebsd&lt;/code&gt;&lt;br/&gt;&lt;em&gt;FreeBSD&lt;/em&gt;)
+        bsd_macos(&lt;code&gt;macos&lt;/code&gt;&lt;br/&gt;&lt;em&gt;macOS&lt;/em&gt;)
+        bsd_netbsd(&lt;code&gt;netbsd&lt;/code&gt;&lt;br/&gt;&lt;em&gt;NetBSD&lt;/em&gt;)
+        bsd_openbsd(&lt;code&gt;openbsd&lt;/code&gt;&lt;br/&gt;&lt;em&gt;OpenBSD&lt;/em&gt;)
+        bsd_sunos(&lt;code&gt;sunos&lt;/code&gt;&lt;br/&gt;&lt;em&gt;SunOS&lt;/em&gt;)
+    end
+    subgraph &lt;code&gt;click_extra.platforms.LINUX_LAYERS&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Any Linux compatibility layers&lt;/em&gt;
+        linux_layers_wsl1(&lt;code&gt;wsl1&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Windows Subsystem for Linux v1&lt;/em&gt;)
+        linux_layers_wsl2(&lt;code&gt;wsl2&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Windows Subsystem for Linux v2&lt;/em&gt;)
+    end
+    subgraph &lt;code&gt;click_extra.platforms.OTHER_UNIX&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Any other Unix&lt;/em&gt;
+        other_unix_hurd(&lt;code&gt;hurd&lt;/code&gt;&lt;br/&gt;&lt;em&gt;GNU/Hurd&lt;/em&gt;)
+    end
+    subgraph &lt;code&gt;click_extra.platforms.SYSTEM_V&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Any Unix derived from AT&amp;T System Five&lt;/em&gt;
+        system_v_aix(&lt;code&gt;aix&lt;/code&gt;&lt;br/&gt;&lt;em&gt;AIX&lt;/em&gt;)
+        system_v_solaris(&lt;code&gt;solaris&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Solaris&lt;/em&gt;)
+    end
+    subgraph &lt;code&gt;click_extra.platforms.UNIX_LAYERS&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Any Unix compatibility layers&lt;/em&gt;
+        unix_layers_cygwin(&lt;code&gt;cygwin&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Cygwin&lt;/em&gt;)
+    end
+        </div>
+        <figcaption>
+<p><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">click_extra.platforms.NON_OVERLAPPING_GROUPS</span></code> - Non-overlapping groups.</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<!-- NON_OVERLAPPING_GROUPS-graph-end -->
+</section>
+<section id="other-groups">
+<h2>Other groups<a class="headerlink" href="#other-groups" title="Link to this heading">¶</a></h2>
+<p>Other groups are available for convenience, but these overlaps:</p>
+<!-- EXTRA_GROUPS-graph-start -->
+<figure class="align-default" id="id2">
+<div id="id-5b967b7f-9e93-46bc-8dc9-3afd6c434cd2" class="mermaid">
+            flowchart
+    subgraph &lt;code&gt;click_extra.platforms.ALL_PLATFORMS&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Any platforms&lt;/em&gt;
+        all_platforms_aix(&lt;code&gt;aix&lt;/code&gt;&lt;br/&gt;&lt;em&gt;AIX&lt;/em&gt;)
+        all_platforms_cygwin(&lt;code&gt;cygwin&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Cygwin&lt;/em&gt;)
+        all_platforms_freebsd(&lt;code&gt;freebsd&lt;/code&gt;&lt;br/&gt;&lt;em&gt;FreeBSD&lt;/em&gt;)
+        all_platforms_hurd(&lt;code&gt;hurd&lt;/code&gt;&lt;br/&gt;&lt;em&gt;GNU/Hurd&lt;/em&gt;)
+        all_platforms_linux(&lt;code&gt;linux&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Linux&lt;/em&gt;)
+        all_platforms_macos(&lt;code&gt;macos&lt;/code&gt;&lt;br/&gt;&lt;em&gt;macOS&lt;/em&gt;)
+        all_platforms_netbsd(&lt;code&gt;netbsd&lt;/code&gt;&lt;br/&gt;&lt;em&gt;NetBSD&lt;/em&gt;)
+        all_platforms_openbsd(&lt;code&gt;openbsd&lt;/code&gt;&lt;br/&gt;&lt;em&gt;OpenBSD&lt;/em&gt;)
+        all_platforms_solaris(&lt;code&gt;solaris&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Solaris&lt;/em&gt;)
+        all_platforms_sunos(&lt;code&gt;sunos&lt;/code&gt;&lt;br/&gt;&lt;em&gt;SunOS&lt;/em&gt;)
+        all_platforms_windows(&lt;code&gt;windows&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Windows&lt;/em&gt;)
+        all_platforms_wsl1(&lt;code&gt;wsl1&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Windows Subsystem for Linux v1&lt;/em&gt;)
+        all_platforms_wsl2(&lt;code&gt;wsl2&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Windows Subsystem for Linux v2&lt;/em&gt;)
+    end
+    subgraph &lt;code&gt;click_extra.platforms.BSD_WITHOUT_MACOS&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Any BSD but macOS&lt;/em&gt;
+        bsd_without_macos_freebsd(&lt;code&gt;freebsd&lt;/code&gt;&lt;br/&gt;&lt;em&gt;FreeBSD&lt;/em&gt;)
+        bsd_without_macos_netbsd(&lt;code&gt;netbsd&lt;/code&gt;&lt;br/&gt;&lt;em&gt;NetBSD&lt;/em&gt;)
+        bsd_without_macos_openbsd(&lt;code&gt;openbsd&lt;/code&gt;&lt;br/&gt;&lt;em&gt;OpenBSD&lt;/em&gt;)
+        bsd_without_macos_sunos(&lt;code&gt;sunos&lt;/code&gt;&lt;br/&gt;&lt;em&gt;SunOS&lt;/em&gt;)
+    end
+    subgraph &lt;code&gt;click_extra.platforms.UNIX&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Any Unix&lt;/em&gt;
+        unix_aix(&lt;code&gt;aix&lt;/code&gt;&lt;br/&gt;&lt;em&gt;AIX&lt;/em&gt;)
+        unix_cygwin(&lt;code&gt;cygwin&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Cygwin&lt;/em&gt;)
+        unix_freebsd(&lt;code&gt;freebsd&lt;/code&gt;&lt;br/&gt;&lt;em&gt;FreeBSD&lt;/em&gt;)
+        unix_hurd(&lt;code&gt;hurd&lt;/code&gt;&lt;br/&gt;&lt;em&gt;GNU/Hurd&lt;/em&gt;)
+        unix_linux(&lt;code&gt;linux&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Linux&lt;/em&gt;)
+        unix_macos(&lt;code&gt;macos&lt;/code&gt;&lt;br/&gt;&lt;em&gt;macOS&lt;/em&gt;)
+        unix_netbsd(&lt;code&gt;netbsd&lt;/code&gt;&lt;br/&gt;&lt;em&gt;NetBSD&lt;/em&gt;)
+        unix_openbsd(&lt;code&gt;openbsd&lt;/code&gt;&lt;br/&gt;&lt;em&gt;OpenBSD&lt;/em&gt;)
+        unix_solaris(&lt;code&gt;solaris&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Solaris&lt;/em&gt;)
+        unix_sunos(&lt;code&gt;sunos&lt;/code&gt;&lt;br/&gt;&lt;em&gt;SunOS&lt;/em&gt;)
+        unix_wsl1(&lt;code&gt;wsl1&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Windows Subsystem for Linux v1&lt;/em&gt;)
+        unix_wsl2(&lt;code&gt;wsl2&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Windows Subsystem for Linux v2&lt;/em&gt;)
+    end
+    subgraph &lt;code&gt;click_extra.platforms.UNIX_WITHOUT_MACOS&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Any Unix but macOS&lt;/em&gt;
+        unix_without_macos_aix(&lt;code&gt;aix&lt;/code&gt;&lt;br/&gt;&lt;em&gt;AIX&lt;/em&gt;)
+        unix_without_macos_cygwin(&lt;code&gt;cygwin&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Cygwin&lt;/em&gt;)
+        unix_without_macos_freebsd(&lt;code&gt;freebsd&lt;/code&gt;&lt;br/&gt;&lt;em&gt;FreeBSD&lt;/em&gt;)
+        unix_without_macos_hurd(&lt;code&gt;hurd&lt;/code&gt;&lt;br/&gt;&lt;em&gt;GNU/Hurd&lt;/em&gt;)
+        unix_without_macos_linux(&lt;code&gt;linux&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Linux&lt;/em&gt;)
+        unix_without_macos_netbsd(&lt;code&gt;netbsd&lt;/code&gt;&lt;br/&gt;&lt;em&gt;NetBSD&lt;/em&gt;)
+        unix_without_macos_openbsd(&lt;code&gt;openbsd&lt;/code&gt;&lt;br/&gt;&lt;em&gt;OpenBSD&lt;/em&gt;)
+        unix_without_macos_solaris(&lt;code&gt;solaris&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Solaris&lt;/em&gt;)
+        unix_without_macos_sunos(&lt;code&gt;sunos&lt;/code&gt;&lt;br/&gt;&lt;em&gt;SunOS&lt;/em&gt;)
+        unix_without_macos_wsl1(&lt;code&gt;wsl1&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Windows Subsystem for Linux v1&lt;/em&gt;)
+        unix_without_macos_wsl2(&lt;code&gt;wsl2&lt;/code&gt;&lt;br/&gt;&lt;em&gt;Windows Subsystem for Linux v2&lt;/em&gt;)
+    end
+        </div>
+        <figcaption>
+<p><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">click_extra.platforms.EXTRA_GROUPS</span></code> - Overlapping groups, defined for convenience.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<!-- EXTRA_GROUPS-graph-end -->
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>All the graphs above would be better off and user-friendly if merged together. Unfortunately Graphviz is not capable of producing <a class="reference external" href="https://xkcd.com/2721/">Euler diagrams</a>. Only non-overlapping clusters can be rendered.</p>
+<p>There’s still a chance to <a class="reference external" href="https://github.com/mermaid-js/mermaid/issues/2583">have them supported by Mermaid</a> so we can switch to that if the feature materialize.</p>
+</div>
+</section>
+<section id="click-extra-platforms-api">
+<h2><code class="docutils literal notranslate"><span class="pre">click_extra.platforms</span></code> API<a class="headerlink" href="#click-extra-platforms-api" title="Link to this heading">¶</a></h2>
+<p id="module-click_extra.platforms">Helpers and utilities to identify platforms.</p>
+<p>Everything here can be aggressively cached and frozen, as it’s only compute
+platform-dependent values.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>A nice alternative would be to use the excellent <a class="reference external" href="https://github.com/python-distro/distro">distro</a> package, but it <a class="reference external" href="https://github.com/python-distro/distro/issues/177">does not yet support
+detection of macOS and Windows</a>.</p>
+</div>
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.platforms.is_aix">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">is_aix</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/platforms.html#is_aix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.platforms.is_aix" title="Link to this definition">¶</a></dt>
+<dd><p>Return <cite>True</cite> only if current platform is of the AIX family.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.platforms.is_cygwin">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">is_cygwin</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/platforms.html#is_cygwin"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.platforms.is_cygwin" title="Link to this definition">¶</a></dt>
+<dd><p>Return <cite>True</cite> only if current platform is of the Cygwin family.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.platforms.is_freebsd">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">is_freebsd</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/platforms.html#is_freebsd"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.platforms.is_freebsd" title="Link to this definition">¶</a></dt>
+<dd><p>Return <cite>True</cite> only if current platform is of the FreeBSD family.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.platforms.is_hurd">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">is_hurd</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/platforms.html#is_hurd"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.platforms.is_hurd" title="Link to this definition">¶</a></dt>
+<dd><p>Return <cite>True</cite> only if current platform is of the GNU/Hurd family.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.platforms.is_linux">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">is_linux</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/platforms.html#is_linux"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.platforms.is_linux" title="Link to this definition">¶</a></dt>
+<dd><p>Return <cite>True</cite> only if current platform is of the Linux family.</p>
+<p>Excludes WSL1 and WSL2 from this check to
+<a class="reference external" href="https://github.com/kdeldycke/meta-package-manager/issues/944">avoid false positives</a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.platforms.is_macos">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">is_macos</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/platforms.html#is_macos"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.platforms.is_macos" title="Link to this definition">¶</a></dt>
+<dd><p>Return <cite>True</cite> only if current platform is of the macOS family.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.platforms.is_netbsd">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">is_netbsd</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/platforms.html#is_netbsd"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.platforms.is_netbsd" title="Link to this definition">¶</a></dt>
+<dd><p>Return <cite>True</cite> only if current platform is of the NetBSD family.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.platforms.is_openbsd">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">is_openbsd</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/platforms.html#is_openbsd"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.platforms.is_openbsd" title="Link to this definition">¶</a></dt>
+<dd><p>Return <cite>True</cite> only if current platform is of the OpenBSD family.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.platforms.is_solaris">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">is_solaris</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/platforms.html#is_solaris"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.platforms.is_solaris" title="Link to this definition">¶</a></dt>
+<dd><p>Return <cite>True</cite> only if current platform is of the Solaris family.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.platforms.is_sunos">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">is_sunos</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/platforms.html#is_sunos"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.platforms.is_sunos" title="Link to this definition">¶</a></dt>
+<dd><p>Return <cite>True</cite> only if current platform is of the SunOS family.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.platforms.is_windows">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">is_windows</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/platforms.html#is_windows"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.platforms.is_windows" title="Link to this definition">¶</a></dt>
+<dd><p>Return <cite>True</cite> only if current platform is of the Windows family.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.platforms.is_wsl1">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">is_wsl1</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/platforms.html#is_wsl1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.platforms.is_wsl1" title="Link to this definition">¶</a></dt>
+<dd><p>Return <cite>True</cite> only if current platform is Windows Subsystem for Linux v1.
+:rtype: <span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>The only difference between WSL1 and WSL2 is <a class="reference external" href="https://github.com/andweeb/presence.nvim/pull/64#issue-1174430662">the case of the kernel release
+version</a>:</p>
+<ul>
+<li><p>WSL 1:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>uname<span class="w"> </span>-r
+<span class="go">4.4.0-22572-Microsoft</span>
+</pre></div>
+</div>
+</li>
+<li><p>WSL 2:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>uname<span class="w"> </span>-r
+<span class="go">5.10.102.1-microsoft-standard-WSL2</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.platforms.is_wsl2">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">is_wsl2</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/platforms.html#is_wsl2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.platforms.is_wsl2" title="Link to this definition">¶</a></dt>
+<dd><p>Return <cite>True</cite> only if current platform is Windows Subsystem for Linux v2.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="click_extra.platforms.Platform">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">Platform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/platforms.html#Platform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.platforms.Platform" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A platform can identify multiple distributions or OSes with the same
+characteristics.</p>
+<p>It has a unique ID, a human-readable name, and boolean to flag current platform.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.platforms.Platform.id">
+<span class="sig-name descname"><span class="pre">id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></em><a class="headerlink" href="#click_extra.platforms.Platform.id" title="Link to this definition">¶</a></dt>
+<dd><p>Unique ID of the platform.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.platforms.Platform.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></em><a class="headerlink" href="#click_extra.platforms.Platform.name" title="Link to this definition">¶</a></dt>
+<dd><p>User-friendly name of the platform.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.platforms.Platform.current">
+<span class="sig-name descname"><span class="pre">current</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></em><a class="headerlink" href="#click_extra.platforms.Platform.current" title="Link to this definition">¶</a></dt>
+<dd><p><cite>True</cite> if current environment runs on this platform.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.AIX">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">AIX</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">Platform(id='aix',</span> <span class="pre">name='AIX',</span> <span class="pre">current=False)</span></em><a class="headerlink" href="#click_extra.platforms.AIX" title="Link to this definition">¶</a></dt>
+<dd><p>Identify distributions of the AIX family.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.CYGWIN">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">CYGWIN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">Platform(id='cygwin',</span> <span class="pre">name='Cygwin',</span> <span class="pre">current=False)</span></em><a class="headerlink" href="#click_extra.platforms.CYGWIN" title="Link to this definition">¶</a></dt>
+<dd><p>Identify distributions of the Cygwin family.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.FREEBSD">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">FREEBSD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">Platform(id='freebsd',</span> <span class="pre">name='FreeBSD',</span> <span class="pre">current=False)</span></em><a class="headerlink" href="#click_extra.platforms.FREEBSD" title="Link to this definition">¶</a></dt>
+<dd><p>Identify distributions of the FreeBSD family.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.HURD">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">HURD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">Platform(id='hurd',</span> <span class="pre">name='GNU/Hurd',</span> <span class="pre">current=False)</span></em><a class="headerlink" href="#click_extra.platforms.HURD" title="Link to this definition">¶</a></dt>
+<dd><p>Identify distributions of the GNU/Hurd family.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.LINUX">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">LINUX</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">Platform(id='linux',</span> <span class="pre">name='Linux',</span> <span class="pre">current=True)</span></em><a class="headerlink" href="#click_extra.platforms.LINUX" title="Link to this definition">¶</a></dt>
+<dd><p>Identify distributions of the Linux family.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.MACOS">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">MACOS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">Platform(id='macos',</span> <span class="pre">name='macOS',</span> <span class="pre">current=False)</span></em><a class="headerlink" href="#click_extra.platforms.MACOS" title="Link to this definition">¶</a></dt>
+<dd><p>Identify distributions of the macOS family.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.NETBSD">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">NETBSD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">Platform(id='netbsd',</span> <span class="pre">name='NetBSD',</span> <span class="pre">current=False)</span></em><a class="headerlink" href="#click_extra.platforms.NETBSD" title="Link to this definition">¶</a></dt>
+<dd><p>Identify distributions of the NetBSD family.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.OPENBSD">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">OPENBSD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">Platform(id='openbsd',</span> <span class="pre">name='OpenBSD',</span> <span class="pre">current=False)</span></em><a class="headerlink" href="#click_extra.platforms.OPENBSD" title="Link to this definition">¶</a></dt>
+<dd><p>Identify distributions of the OpenBSD family.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.SOLARIS">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">SOLARIS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">Platform(id='solaris',</span> <span class="pre">name='Solaris',</span> <span class="pre">current=False)</span></em><a class="headerlink" href="#click_extra.platforms.SOLARIS" title="Link to this definition">¶</a></dt>
+<dd><p>Identify distributions of the Solaris family.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.SUNOS">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">SUNOS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">Platform(id='sunos',</span> <span class="pre">name='SunOS',</span> <span class="pre">current=False)</span></em><a class="headerlink" href="#click_extra.platforms.SUNOS" title="Link to this definition">¶</a></dt>
+<dd><p>Identify distributions of the SunOS family.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.WINDOWS">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">WINDOWS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">Platform(id='windows',</span> <span class="pre">name='Windows',</span> <span class="pre">current=False)</span></em><a class="headerlink" href="#click_extra.platforms.WINDOWS" title="Link to this definition">¶</a></dt>
+<dd><p>Identify distributions of the Windows family.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.WSL1">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">WSL1</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">Platform(id='wsl1',</span> <span class="pre">name='Windows</span> <span class="pre">Subsystem</span> <span class="pre">for</span> <span class="pre">Linux</span> <span class="pre">v1',</span> <span class="pre">current=False)</span></em><a class="headerlink" href="#click_extra.platforms.WSL1" title="Link to this definition">¶</a></dt>
+<dd><p>Identify Windows Subsystem for Linux v1.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.WSL2">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">WSL2</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">Platform(id='wsl2',</span> <span class="pre">name='Windows</span> <span class="pre">Subsystem</span> <span class="pre">for</span> <span class="pre">Linux</span> <span class="pre">v2',</span> <span class="pre">current=False)</span></em><a class="headerlink" href="#click_extra.platforms.WSL2" title="Link to this definition">¶</a></dt>
+<dd><p>Identify Windows Subsystem for Linux v2.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="click_extra.platforms.Group">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">Group</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">platforms=&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">platform_ids=&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">icon=None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/platforms.html#Group"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.platforms.Group" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A <code class="docutils literal notranslate"><span class="pre">Group</span></code> identify a collection of <code class="docutils literal notranslate"><span class="pre">Platform</span></code>.</p>
+<p>Used to group platforms of the same family.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.platforms.Group.id">
+<span class="sig-name descname"><span class="pre">id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></em><a class="headerlink" href="#click_extra.platforms.Group.id" title="Link to this definition">¶</a></dt>
+<dd><p>Unique ID of the group.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.platforms.Group.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></em><a class="headerlink" href="#click_extra.platforms.Group.name" title="Link to this definition">¶</a></dt>
+<dd><p>User-friendly description of a group.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.platforms.Group.platforms">
+<span class="sig-name descname"><span class="pre">platforms</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a><span class="pre">[</span><a class="reference internal" href="#click_extra.platforms.Platform" title="click_extra.platforms.Platform"><code class="xref py py-class docutils literal notranslate"><span class="pre">Platform</span></code></a><span class="pre">,</span> <a class="reference external" href="https://docs.python.org/3/library/constants.html#Ellipsis" title="(in Python v3.12)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a><span class="pre">]</span></em><a class="headerlink" href="#click_extra.platforms.Group.platforms" title="Link to this definition">¶</a></dt>
+<dd><p>Sorted list of platforms that belong to this group.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.platforms.Group.platform_ids">
+<span class="sig-name descname"><span class="pre">platform_ids</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#frozenset" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">frozenset</span></code></a><span class="pre">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a><span class="pre">]</span></em><a class="headerlink" href="#click_extra.platforms.Group.platform_ids" title="Link to this definition">¶</a></dt>
+<dd><p>Set of platform IDs that belong to this group.</p>
+<p>Used to test platform overlaps between groups.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.platforms.Group.icon">
+<span class="sig-name descname"><span class="pre">icon</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> <span class="pre">|</span> <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#click_extra.platforms.Group.icon" title="Link to this definition">¶</a></dt>
+<dd><p>Optional icon of the group.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.platforms.Group.isdisjoint">
+<span class="sig-name descname"><span class="pre">isdisjoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/platforms.html#Group.isdisjoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.platforms.Group.isdisjoint" title="Link to this definition">¶</a></dt>
+<dd><p>Return <cite>True</cite> if the group has no platforms in common with <code class="docutils literal notranslate"><span class="pre">other</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.platforms.Group.fullyintersects">
+<span class="sig-name descname"><span class="pre">fullyintersects</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/platforms.html#Group.fullyintersects"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.platforms.Group.fullyintersects" title="Link to this definition">¶</a></dt>
+<dd><p>Return <cite>True</cite> if the group has all platforms in common with <code class="docutils literal notranslate"><span class="pre">other</span></code>.</p>
+<p>We cannot just compare <code class="docutils literal notranslate"><span class="pre">Groups</span></code> with the <code class="docutils literal notranslate"><span class="pre">==</span></code> equality operator as the
+latter takes all attributes into account, as per <code class="docutils literal notranslate"><span class="pre">dataclass</span></code> default behavior.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.platforms.Group.issubset">
+<span class="sig-name descname"><span class="pre">issubset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/platforms.html#Group.issubset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.platforms.Group.issubset" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.platforms.Group.issuperset">
+<span class="sig-name descname"><span class="pre">issuperset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/platforms.html#Group.issuperset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.platforms.Group.issuperset" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.ALL_PLATFORMS">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">ALL_PLATFORMS</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#click_extra.platforms.Group" title="click_extra.platforms.Group"><span class="pre">Group</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">Group(id='all_platforms',</span> <span class="pre">name='Any</span> <span class="pre">platforms',</span> <span class="pre">platform_ids=frozenset({'hurd',</span> <span class="pre">'openbsd',</span> <span class="pre">'cygwin',</span> <span class="pre">'solaris',</span> <span class="pre">'sunos',</span> <span class="pre">'freebsd',</span> <span class="pre">'wsl2',</span> <span class="pre">'linux',</span> <span class="pre">'wsl1',</span> <span class="pre">'aix',</span> <span class="pre">'macos',</span> <span class="pre">'netbsd',</span> <span class="pre">'windows'}))</span></em><a class="headerlink" href="#click_extra.platforms.ALL_PLATFORMS" title="Link to this definition">¶</a></dt>
+<dd><p>All recognized platforms.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.ALL_WINDOWS">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">ALL_WINDOWS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">Group(id='all_windows',</span> <span class="pre">name='Any</span> <span class="pre">Windows',</span> <span class="pre">platform_ids=frozenset({'windows'}))</span></em><a class="headerlink" href="#click_extra.platforms.ALL_WINDOWS" title="Link to this definition">¶</a></dt>
+<dd><p>All Windows operating systems.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.UNIX">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">UNIX</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">Group(id='unix',</span> <span class="pre">name='Any</span> <span class="pre">Unix',</span> <span class="pre">platform_ids=frozenset({'hurd',</span> <span class="pre">'openbsd',</span> <span class="pre">'cygwin',</span> <span class="pre">'solaris',</span> <span class="pre">'sunos',</span> <span class="pre">'freebsd',</span> <span class="pre">'linux',</span> <span class="pre">'wsl1',</span> <span class="pre">'aix',</span> <span class="pre">'macos',</span> <span class="pre">'netbsd',</span> <span class="pre">'wsl2'}))</span></em><a class="headerlink" href="#click_extra.platforms.UNIX" title="Link to this definition">¶</a></dt>
+<dd><p>All Unix-like operating systems and compatibility layers.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.UNIX_WITHOUT_MACOS">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">UNIX_WITHOUT_MACOS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">Group(id='unix_without_macos',</span> <span class="pre">name='Any</span> <span class="pre">Unix</span> <span class="pre">but</span> <span class="pre">macOS',</span> <span class="pre">platform_ids=frozenset({'hurd',</span> <span class="pre">'openbsd',</span> <span class="pre">'cygwin',</span> <span class="pre">'solaris',</span> <span class="pre">'sunos',</span> <span class="pre">'freebsd',</span> <span class="pre">'linux',</span> <span class="pre">'wsl1',</span> <span class="pre">'aix',</span> <span class="pre">'netbsd',</span> <span class="pre">'wsl2'}))</span></em><a class="headerlink" href="#click_extra.platforms.UNIX_WITHOUT_MACOS" title="Link to this definition">¶</a></dt>
+<dd><p>All Unix platforms, without macOS.</p>
+<p>This is useful to avoid macOS-specific workarounds on Unix platforms.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.BSD">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">BSD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">Group(id='bsd',</span> <span class="pre">name='Any</span> <span class="pre">BSD',</span> <span class="pre">platform_ids=frozenset({'openbsd',</span> <span class="pre">'sunos',</span> <span class="pre">'freebsd',</span> <span class="pre">'macos',</span> <span class="pre">'netbsd'}))</span></em><a class="headerlink" href="#click_extra.platforms.BSD" title="Link to this definition">¶</a></dt>
+<dd><p>All BSD platforms.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Are considered of this family (<a class="reference external" href="https://en.wikipedia.org/wiki/Template:Unix">according Wikipedia</a>):</p>
+<ul class="simple">
+<li><p><cite>386BSD</cite> (<cite>FreeBSD</cite>, <cite>NetBSD</cite>, <cite>OpenBSD</cite>, <cite>DragonFly BSD</cite>)</p></li>
+<li><p><cite>NeXTSTEP</cite></p></li>
+<li><p><cite>Darwin</cite> (<cite>macOS</cite>, <cite>iOS</cite>, <cite>audioOS</cite>, <cite>iPadOS</cite>, <cite>tvOS</cite>, <cite>watchOS</cite>, <cite>bridgeOS</cite>)</p></li>
+<li><p><cite>SunOS</cite></p></li>
+<li><p><cite>Ultrix</cite></p></li>
+</ul>
+</div>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.BSD_WITHOUT_MACOS">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">BSD_WITHOUT_MACOS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">Group(id='bsd_without_macos',</span> <span class="pre">name='Any</span> <span class="pre">BSD</span> <span class="pre">but</span> <span class="pre">macOS',</span> <span class="pre">platform_ids=frozenset({'freebsd',</span> <span class="pre">'netbsd',</span> <span class="pre">'openbsd',</span> <span class="pre">'sunos'}))</span></em><a class="headerlink" href="#click_extra.platforms.BSD_WITHOUT_MACOS" title="Link to this definition">¶</a></dt>
+<dd><p>All BSD platforms, without macOS.</p>
+<p>This is useful to avoid macOS-specific workarounds on BSD platforms.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.ALL_LINUX">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">ALL_LINUX</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">Group(id='all_linux',</span> <span class="pre">name='Any</span> <span class="pre">Linux',</span> <span class="pre">platform_ids=frozenset({'linux'}))</span></em><a class="headerlink" href="#click_extra.platforms.ALL_LINUX" title="Link to this definition">¶</a></dt>
+<dd><p>All Unix platforms based on a Linux kernel.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Are considered of this family (<a class="reference external" href="https://en.wikipedia.org/wiki/Template:Unix">according Wikipedia</a>):</p>
+<ul class="simple">
+<li><p><cite>Android</cite></p></li>
+<li><p><cite>ChromeOS</cite></p></li>
+<li><p>any other distribution</p></li>
+</ul>
+</div>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.LINUX_LAYERS">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">LINUX_LAYERS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">Group(id='linux_layers',</span> <span class="pre">name='Any</span> <span class="pre">Linux</span> <span class="pre">compatibility</span> <span class="pre">layers',</span> <span class="pre">platform_ids=frozenset({'wsl1',</span> <span class="pre">'wsl2'}))</span></em><a class="headerlink" href="#click_extra.platforms.LINUX_LAYERS" title="Link to this definition">¶</a></dt>
+<dd><p>Interfaces that allows Linux binaries to run on a different host system.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Are considered of this family (<a class="reference external" href="https://en.wikipedia.org/wiki/Template:Unix">according Wikipedia</a>):</p>
+<ul class="simple">
+<li><p><cite>Windows Subsystem for Linux</cite></p></li>
+</ul>
+</div>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.SYSTEM_V">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">SYSTEM_V</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">Group(id='system_v',</span> <span class="pre">name='Any</span> <span class="pre">Unix</span> <span class="pre">derived</span> <span class="pre">from</span> <span class="pre">AT&amp;T</span> <span class="pre">System</span> <span class="pre">Five',</span> <span class="pre">platform_ids=frozenset({'solaris',</span> <span class="pre">'aix'}))</span></em><a class="headerlink" href="#click_extra.platforms.SYSTEM_V" title="Link to this definition">¶</a></dt>
+<dd><p>All Unix platforms derived from AT&amp;T System Five.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Are considered of this family (<a class="reference external" href="https://en.wikipedia.org/wiki/Template:Unix">according Wikipedia</a>):</p>
+<ul class="simple">
+<li><p><cite>A/UX</cite></p></li>
+<li><p><cite>AIX</cite></p></li>
+<li><p><cite>HP-UX</cite></p></li>
+<li><p><cite>IRIX</cite></p></li>
+<li><p><cite>OpenServer</cite></p></li>
+<li><p><cite>Solaris</cite></p></li>
+<li><p><cite>OpenSolaris</cite></p></li>
+<li><p><cite>Illumos</cite></p></li>
+<li><p><cite>Tru64</cite></p></li>
+<li><p><cite>UNIX</cite></p></li>
+<li><p><cite>UnixWare</cite></p></li>
+</ul>
+</div>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.UNIX_LAYERS">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">UNIX_LAYERS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">Group(id='unix_layers',</span> <span class="pre">name='Any</span> <span class="pre">Unix</span> <span class="pre">compatibility</span> <span class="pre">layers',</span> <span class="pre">platform_ids=frozenset({'cygwin'}))</span></em><a class="headerlink" href="#click_extra.platforms.UNIX_LAYERS" title="Link to this definition">¶</a></dt>
+<dd><p>Interfaces that allows Unix binaries to run on a different host system.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Are considered of this family (<a class="reference external" href="https://en.wikipedia.org/wiki/Template:Unix">according Wikipedia</a>):</p>
+<ul class="simple">
+<li><p><cite>Cygwin</cite></p></li>
+<li><p><cite>Darling</cite></p></li>
+<li><p><cite>Eunice</cite></p></li>
+<li><p><cite>GNV</cite></p></li>
+<li><p><cite>Interix</cite></p></li>
+<li><p><cite>MachTen</cite></p></li>
+<li><p><cite>Microsoft POSIX subsystem</cite></p></li>
+<li><p><cite>MKS Toolkit</cite></p></li>
+<li><p><cite>PASE</cite></p></li>
+<li><p><cite>P.I.P.S.</cite></p></li>
+<li><p><cite>PWS/VSE-AF</cite></p></li>
+<li><p><cite>UNIX System Services</cite></p></li>
+<li><p><cite>UserLAnd Technologies</cite></p></li>
+<li><p><cite>Windows Services for UNIX</cite></p></li>
+</ul>
+</div>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.OTHER_UNIX">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">OTHER_UNIX</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">Group(id='other_unix',</span> <span class="pre">name='Any</span> <span class="pre">other</span> <span class="pre">Unix',</span> <span class="pre">platform_ids=frozenset({'hurd'}))</span></em><a class="headerlink" href="#click_extra.platforms.OTHER_UNIX" title="Link to this definition">¶</a></dt>
+<dd><p>All other Unix platforms.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Are considered of this family (<a class="reference external" href="https://en.wikipedia.org/wiki/Template:Unix">according Wikipedia</a>):</p>
+<ul class="simple">
+<li><p><cite>Coherent</cite></p></li>
+<li><p><cite>GNU/Hurd</cite></p></li>
+<li><p><cite>HarmonyOS</cite></p></li>
+<li><p><cite>LiteOS</cite></p></li>
+<li><p><cite>LynxOS</cite></p></li>
+<li><p><cite>Minix</cite></p></li>
+<li><p><cite>MOS</cite></p></li>
+<li><p><cite>OSF/1</cite></p></li>
+<li><p><cite>QNX</cite></p></li>
+<li><p><cite>BlackBerry 10</cite></p></li>
+<li><p><cite>Research Unix</cite></p></li>
+<li><p><cite>SerenityOS</cite></p></li>
+</ul>
+</div>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.NON_OVERLAPPING_GROUPS">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">NON_OVERLAPPING_GROUPS</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#frozenset" title="(in Python v3.12)"><span class="pre">frozenset</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#click_extra.platforms.Group" title="click_extra.platforms.Group"><span class="pre">Group</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">frozenset({Group(id='all_linux',</span> <span class="pre">name='Any</span> <span class="pre">Linux',</span> <span class="pre">platform_ids=frozenset({'linux'})),</span> <span class="pre">Group(id='all_windows',</span> <span class="pre">name='Any</span> <span class="pre">Windows',</span> <span class="pre">platform_ids=frozenset({'windows'})),</span> <span class="pre">Group(id='bsd',</span> <span class="pre">name='Any</span> <span class="pre">BSD',</span> <span class="pre">platform_ids=frozenset({'openbsd',</span> <span class="pre">'sunos',</span> <span class="pre">'freebsd',</span> <span class="pre">'macos',</span> <span class="pre">'netbsd'})),</span> <span class="pre">Group(id='linux_layers',</span> <span class="pre">name='Any</span> <span class="pre">Linux</span> <span class="pre">compatibility</span> <span class="pre">layers',</span> <span class="pre">platform_ids=frozenset({'wsl1',</span> <span class="pre">'wsl2'})),</span> <span class="pre">Group(id='other_unix',</span> <span class="pre">name='Any</span> <span class="pre">other</span> <span class="pre">Unix',</span> <span class="pre">platform_ids=frozenset({'hurd'})),</span> <span class="pre">Group(id='system_v',</span> <span class="pre">name='Any</span> <span class="pre">Unix</span> <span class="pre">derived</span> <span class="pre">from</span> <span class="pre">AT&amp;T</span> <span class="pre">System</span> <span class="pre">Five',</span> <span class="pre">platform_ids=frozenset({'solaris',</span> <span class="pre">'aix'})),</span> <span class="pre">Group(id='unix_layers',</span> <span class="pre">name='Any</span> <span class="pre">Unix</span> <span class="pre">compatibility</span> <span class="pre">layers',</span> <span class="pre">platform_ids=frozenset({'cygwin'}))})</span></em><a class="headerlink" href="#click_extra.platforms.NON_OVERLAPPING_GROUPS" title="Link to this definition">¶</a></dt>
+<dd><p>Non-overlapping groups.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.EXTRA_GROUPS">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">EXTRA_GROUPS</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#frozenset" title="(in Python v3.12)"><span class="pre">frozenset</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#click_extra.platforms.Group" title="click_extra.platforms.Group"><span class="pre">Group</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">frozenset({Group(id='all_platforms',</span> <span class="pre">name='Any</span> <span class="pre">platforms',</span> <span class="pre">platform_ids=frozenset({'hurd',</span> <span class="pre">'openbsd',</span> <span class="pre">'cygwin',</span> <span class="pre">'solaris',</span> <span class="pre">'sunos',</span> <span class="pre">'freebsd',</span> <span class="pre">'wsl2',</span> <span class="pre">'linux',</span> <span class="pre">'wsl1',</span> <span class="pre">'aix',</span> <span class="pre">'macos',</span> <span class="pre">'netbsd',</span> <span class="pre">'windows'})),</span> <span class="pre">Group(id='bsd_without_macos',</span> <span class="pre">name='Any</span> <span class="pre">BSD</span> <span class="pre">but</span> <span class="pre">macOS',</span> <span class="pre">platform_ids=frozenset({'freebsd',</span> <span class="pre">'netbsd',</span> <span class="pre">'openbsd',</span> <span class="pre">'sunos'})),</span> <span class="pre">Group(id='unix',</span> <span class="pre">name='Any</span> <span class="pre">Unix',</span> <span class="pre">platform_ids=frozenset({'hurd',</span> <span class="pre">'openbsd',</span> <span class="pre">'cygwin',</span> <span class="pre">'solaris',</span> <span class="pre">'sunos',</span> <span class="pre">'freebsd',</span> <span class="pre">'linux',</span> <span class="pre">'wsl1',</span> <span class="pre">'aix',</span> <span class="pre">'macos',</span> <span class="pre">'netbsd',</span> <span class="pre">'wsl2'})),</span> <span class="pre">Group(id='unix_without_macos',</span> <span class="pre">name='Any</span> <span class="pre">Unix</span> <span class="pre">but</span> <span class="pre">macOS',</span> <span class="pre">platform_ids=frozenset({'hurd',</span> <span class="pre">'openbsd',</span> <span class="pre">'cygwin',</span> <span class="pre">'solaris',</span> <span class="pre">'sunos',</span> <span class="pre">'freebsd',</span> <span class="pre">'linux',</span> <span class="pre">'wsl1',</span> <span class="pre">'aix',</span> <span class="pre">'netbsd',</span> <span class="pre">'wsl2'}))})</span></em><a class="headerlink" href="#click_extra.platforms.EXTRA_GROUPS" title="Link to this definition">¶</a></dt>
+<dd><p>Overlapping groups, defined for convenience.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.ALL_GROUPS">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">ALL_GROUPS</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#frozenset" title="(in Python v3.12)"><span class="pre">frozenset</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#click_extra.platforms.Group" title="click_extra.platforms.Group"><span class="pre">Group</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">frozenset({Group(id='all_linux',</span> <span class="pre">name='Any</span> <span class="pre">Linux',</span> <span class="pre">platform_ids=frozenset({'linux'})),</span> <span class="pre">Group(id='all_platforms',</span> <span class="pre">name='Any</span> <span class="pre">platforms',</span> <span class="pre">platform_ids=frozenset({'hurd',</span> <span class="pre">'openbsd',</span> <span class="pre">'cygwin',</span> <span class="pre">'solaris',</span> <span class="pre">'sunos',</span> <span class="pre">'freebsd',</span> <span class="pre">'wsl2',</span> <span class="pre">'linux',</span> <span class="pre">'wsl1',</span> <span class="pre">'aix',</span> <span class="pre">'macos',</span> <span class="pre">'netbsd',</span> <span class="pre">'windows'})),</span> <span class="pre">Group(id='all_windows',</span> <span class="pre">name='Any</span> <span class="pre">Windows',</span> <span class="pre">platform_ids=frozenset({'windows'})),</span> <span class="pre">Group(id='bsd',</span> <span class="pre">name='Any</span> <span class="pre">BSD',</span> <span class="pre">platform_ids=frozenset({'openbsd',</span> <span class="pre">'sunos',</span> <span class="pre">'freebsd',</span> <span class="pre">'macos',</span> <span class="pre">'netbsd'})),</span> <span class="pre">Group(id='bsd_without_macos',</span> <span class="pre">name='Any</span> <span class="pre">BSD</span> <span class="pre">but</span> <span class="pre">macOS',</span> <span class="pre">platform_ids=frozenset({'freebsd',</span> <span class="pre">'netbsd',</span> <span class="pre">'openbsd',</span> <span class="pre">'sunos'})),</span> <span class="pre">Group(id='linux_layers',</span> <span class="pre">name='Any</span> <span class="pre">Linux</span> <span class="pre">compatibility</span> <span class="pre">layers',</span> <span class="pre">platform_ids=frozenset({'wsl1',</span> <span class="pre">'wsl2'})),</span> <span class="pre">Group(id='other_unix',</span> <span class="pre">name='Any</span> <span class="pre">other</span> <span class="pre">Unix',</span> <span class="pre">platform_ids=frozenset({'hurd'})),</span> <span class="pre">Group(id='system_v',</span> <span class="pre">name='Any</span> <span class="pre">Unix</span> <span class="pre">derived</span> <span class="pre">from</span> <span class="pre">AT&amp;T</span> <span class="pre">System</span> <span class="pre">Five',</span> <span class="pre">platform_ids=frozenset({'solaris',</span> <span class="pre">'aix'})),</span> <span class="pre">Group(id='unix',</span> <span class="pre">name='Any</span> <span class="pre">Unix',</span> <span class="pre">platform_ids=frozenset({'hurd',</span> <span class="pre">'openbsd',</span> <span class="pre">'cygwin',</span> <span class="pre">'solaris',</span> <span class="pre">'sunos',</span> <span class="pre">'freebsd',</span> <span class="pre">'linux',</span> <span class="pre">'wsl1',</span> <span class="pre">'aix',</span> <span class="pre">'macos',</span> <span class="pre">'netbsd',</span> <span class="pre">'wsl2'})),</span> <span class="pre">Group(id='unix_layers',</span> <span class="pre">name='Any</span> <span class="pre">Unix</span> <span class="pre">compatibility</span> <span class="pre">layers',</span> <span class="pre">platform_ids=frozenset({'cygwin'})),</span> <span class="pre">Group(id='unix_without_macos',</span> <span class="pre">name='Any</span> <span class="pre">Unix</span> <span class="pre">but</span> <span class="pre">macOS',</span> <span class="pre">platform_ids=frozenset({'hurd',</span> <span class="pre">'openbsd',</span> <span class="pre">'cygwin',</span> <span class="pre">'solaris',</span> <span class="pre">'sunos',</span> <span class="pre">'freebsd',</span> <span class="pre">'linux',</span> <span class="pre">'wsl1',</span> <span class="pre">'aix',</span> <span class="pre">'netbsd',</span> <span class="pre">'wsl2'}))})</span></em><a class="headerlink" href="#click_extra.platforms.ALL_GROUPS" title="Link to this definition">¶</a></dt>
+<dd><p>All groups.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.ALL_OS_LABELS">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">ALL_OS_LABELS</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#frozenset" title="(in Python v3.12)"><span class="pre">frozenset</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">frozenset({'AIX',</span> <span class="pre">'Cygwin',</span> <span class="pre">'FreeBSD',</span> <span class="pre">'GNU/Hurd',</span> <span class="pre">'Linux',</span> <span class="pre">'NetBSD',</span> <span class="pre">'OpenBSD',</span> <span class="pre">'Solaris',</span> <span class="pre">'SunOS',</span> <span class="pre">'Windows',</span> <span class="pre">'Windows</span> <span class="pre">Subsystem</span> <span class="pre">for</span> <span class="pre">Linux</span> <span class="pre">v1',</span> <span class="pre">'Windows</span> <span class="pre">Subsystem</span> <span class="pre">for</span> <span class="pre">Linux</span> <span class="pre">v2',</span> <span class="pre">'macOS'})</span></em><a class="headerlink" href="#click_extra.platforms.ALL_OS_LABELS" title="Link to this definition">¶</a></dt>
+<dd><p>Sets of all recognized labels.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.platforms.reduce">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">reduce</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">items</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/platforms.html#reduce"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.platforms.reduce" title="Link to this definition">¶</a></dt>
+<dd><p>Reduce a collection of <code class="docutils literal notranslate"><span class="pre">Group</span></code> and <code class="docutils literal notranslate"><span class="pre">Platform</span></code> to a minimal set.</p>
+<p>Returns a deduplicated set of <code class="docutils literal notranslate"><span class="pre">Group</span></code> and <code class="docutils literal notranslate"><span class="pre">Platform</span></code> that covers the same exact
+platforms as the original input, but group as much platforms as possible, to reduce
+the number of items.
+:rtype: <span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#set" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">set</span></code></a>[<a class="reference internal" href="#click_extra.platforms.Group" title="click_extra.platforms.Group"><code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code></a> | <a class="reference internal" href="#click_extra.platforms.Platform" title="click_extra.platforms.Platform"><code class="xref py py-class docutils literal notranslate"><span class="pre">Platform</span></code></a>]</span></p>
+<div class="admonition hint">
+<p class="admonition-title">Hint</p>
+<p>Maybe this could be solved with some <a class="reference external" href="https://en.wikipedia.org/wiki/Euler_diagram">Euler diagram</a> algorithms, like those
+implemented in <a class="reference external" href="https://github.com/trouchet/eule">eule</a>.</p>
+<p>This is being discussed upstream at <a class="reference external" href="https://github.com/trouchet/eule/issues/120">trouchet/eule#120</a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.platforms.os_label">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">os_label</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">os_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/platforms.html#os_label"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.platforms.os_label" title="Link to this definition">¶</a></dt>
+<dd><p>Return platform label for user-friendly output.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.platforms.current_os">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">current_os</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/platforms.html#current_os"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.platforms.current_os" title="Link to this definition">¶</a></dt>
+<dd><p>Return the current platform.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#click_extra.platforms.Platform" title="click_extra.platforms.Platform"><code class="xref py py-class docutils literal notranslate"><span class="pre">Platform</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.platforms.CURRENT_OS_LABEL">
+<span class="sig-prename descclassname"><span class="pre">click_extra.platforms.</span></span><span class="sig-name descname"><span class="pre">CURRENT_OS_LABEL</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Linux'</span></em><a class="headerlink" href="#click_extra.platforms.CURRENT_OS_LABEL" title="Link to this definition">¶</a></dt>
+<dd><p>Constants about the current platform.</p>
+</dd></dl>
+
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="parameters.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Parameters</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="timer.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Timer</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; Kevin Deldycke and contributors
+            </div>
+            Made with 
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            <div class="last-updated">
+              Last updated on 2024-07-27</div>
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Platform detection</a><ul>
+<li><a class="reference internal" href="#os-families">OS families</a></li>
+<li><a class="reference internal" href="#other-groups">Other groups</a></li>
+<li><a class="reference internal" href="#click-extra-platforms-api"><code class="docutils literal notranslate"><span class="pre">click_extra.platforms</span></code> API</a><ul>
+<li><a class="reference internal" href="#click_extra.platforms.is_aix"><code class="docutils literal notranslate"><span class="pre">is_aix()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.is_cygwin"><code class="docutils literal notranslate"><span class="pre">is_cygwin()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.is_freebsd"><code class="docutils literal notranslate"><span class="pre">is_freebsd()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.is_hurd"><code class="docutils literal notranslate"><span class="pre">is_hurd()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.is_linux"><code class="docutils literal notranslate"><span class="pre">is_linux()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.is_macos"><code class="docutils literal notranslate"><span class="pre">is_macos()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.is_netbsd"><code class="docutils literal notranslate"><span class="pre">is_netbsd()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.is_openbsd"><code class="docutils literal notranslate"><span class="pre">is_openbsd()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.is_solaris"><code class="docutils literal notranslate"><span class="pre">is_solaris()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.is_sunos"><code class="docutils literal notranslate"><span class="pre">is_sunos()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.is_windows"><code class="docutils literal notranslate"><span class="pre">is_windows()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.is_wsl1"><code class="docutils literal notranslate"><span class="pre">is_wsl1()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.is_wsl2"><code class="docutils literal notranslate"><span class="pre">is_wsl2()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.Platform"><code class="docutils literal notranslate"><span class="pre">Platform</span></code></a><ul>
+<li><a class="reference internal" href="#click_extra.platforms.Platform.id"><code class="docutils literal notranslate"><span class="pre">Platform.id</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.Platform.name"><code class="docutils literal notranslate"><span class="pre">Platform.name</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.Platform.current"><code class="docutils literal notranslate"><span class="pre">Platform.current</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#click_extra.platforms.AIX"><code class="docutils literal notranslate"><span class="pre">AIX</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.CYGWIN"><code class="docutils literal notranslate"><span class="pre">CYGWIN</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.FREEBSD"><code class="docutils literal notranslate"><span class="pre">FREEBSD</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.HURD"><code class="docutils literal notranslate"><span class="pre">HURD</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.LINUX"><code class="docutils literal notranslate"><span class="pre">LINUX</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.MACOS"><code class="docutils literal notranslate"><span class="pre">MACOS</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.NETBSD"><code class="docutils literal notranslate"><span class="pre">NETBSD</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.OPENBSD"><code class="docutils literal notranslate"><span class="pre">OPENBSD</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.SOLARIS"><code class="docutils literal notranslate"><span class="pre">SOLARIS</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.SUNOS"><code class="docutils literal notranslate"><span class="pre">SUNOS</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.WINDOWS"><code class="docutils literal notranslate"><span class="pre">WINDOWS</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.WSL1"><code class="docutils literal notranslate"><span class="pre">WSL1</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.WSL2"><code class="docutils literal notranslate"><span class="pre">WSL2</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.Group"><code class="docutils literal notranslate"><span class="pre">Group</span></code></a><ul>
+<li><a class="reference internal" href="#click_extra.platforms.Group.id"><code class="docutils literal notranslate"><span class="pre">Group.id</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.Group.name"><code class="docutils literal notranslate"><span class="pre">Group.name</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.Group.platforms"><code class="docutils literal notranslate"><span class="pre">Group.platforms</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.Group.platform_ids"><code class="docutils literal notranslate"><span class="pre">Group.platform_ids</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.Group.icon"><code class="docutils literal notranslate"><span class="pre">Group.icon</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.Group.isdisjoint"><code class="docutils literal notranslate"><span class="pre">Group.isdisjoint()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.Group.fullyintersects"><code class="docutils literal notranslate"><span class="pre">Group.fullyintersects()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.Group.issubset"><code class="docutils literal notranslate"><span class="pre">Group.issubset()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.Group.issuperset"><code class="docutils literal notranslate"><span class="pre">Group.issuperset()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#click_extra.platforms.ALL_PLATFORMS"><code class="docutils literal notranslate"><span class="pre">ALL_PLATFORMS</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.ALL_WINDOWS"><code class="docutils literal notranslate"><span class="pre">ALL_WINDOWS</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.UNIX"><code class="docutils literal notranslate"><span class="pre">UNIX</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.UNIX_WITHOUT_MACOS"><code class="docutils literal notranslate"><span class="pre">UNIX_WITHOUT_MACOS</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.BSD"><code class="docutils literal notranslate"><span class="pre">BSD</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.BSD_WITHOUT_MACOS"><code class="docutils literal notranslate"><span class="pre">BSD_WITHOUT_MACOS</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.ALL_LINUX"><code class="docutils literal notranslate"><span class="pre">ALL_LINUX</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.LINUX_LAYERS"><code class="docutils literal notranslate"><span class="pre">LINUX_LAYERS</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.SYSTEM_V"><code class="docutils literal notranslate"><span class="pre">SYSTEM_V</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.UNIX_LAYERS"><code class="docutils literal notranslate"><span class="pre">UNIX_LAYERS</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.OTHER_UNIX"><code class="docutils literal notranslate"><span class="pre">OTHER_UNIX</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.NON_OVERLAPPING_GROUPS"><code class="docutils literal notranslate"><span class="pre">NON_OVERLAPPING_GROUPS</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.EXTRA_GROUPS"><code class="docutils literal notranslate"><span class="pre">EXTRA_GROUPS</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.ALL_GROUPS"><code class="docutils literal notranslate"><span class="pre">ALL_GROUPS</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.ALL_OS_LABELS"><code class="docutils literal notranslate"><span class="pre">ALL_OS_LABELS</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.reduce"><code class="docutils literal notranslate"><span class="pre">reduce()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.os_label"><code class="docutils literal notranslate"><span class="pre">os_label()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.current_os"><code class="docutils literal notranslate"><span class="pre">current_os()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.platforms.CURRENT_OS_LABEL"><code class="docutils literal notranslate"><span class="pre">CURRENT_OS_LABEL</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=dee169ee"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/scripts/furo.js?v=5fa4622c"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script src="https://unpkg.com/mermaid@10.2.0/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad:true});</script>
+    <script src="https://unpkg.com/d3/dist/d3.min.js"></script>
+    <script>
+                window.addEventListener("load", function () {
+                  var svgs = d3.selectAll(".mermaid#id-9875f423-dc7d-42db-a175-5b98d451e3dd svg, .mermaid#id-5b967b7f-9e93-46bc-8dc9-3afd6c434cd2 svg");
+                  svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                      inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                  });
+                });
+                </script>
+    </body>
+</html>
