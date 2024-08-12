@@ -110,7 +110,7 @@ test = [
     "pytest-cases ~= 3.8.3",
     "pytest-cov ~= 5.0.0",
     "pytest-github-actions-annotate-failures ~= 0.2.0",
-    "pytest-httpserver ~= 1.0.6",
+    "pytest-httpserver ~= 1.1.0",
     "pytest-randomly ~= 3.15.0",
 ]
 typing = [
