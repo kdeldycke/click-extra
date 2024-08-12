@@ -96,6 +96,22 @@ def generate_lexer_table() -> str:
     )
 
 
+def generate_platform_sankey() -> str:
+    """Produce a Sankey diagram to map all platforms to their platforms."""
+    table = []
+
+    # Display biggest groups first
+    for group in sorted(ALL_GROUPS, key=lambda g: len(g.platform_ids), reverse=True):
+        for platform in group.platforms:
+            line = f"{group.id},{platform.id},1"
+            table.append(line)
+
+    output = "```mermaid\nsankey-beta\n\n"
+    output += "\n".join(table)
+    output += "\n```"
+    return output
+
+
 def generate_platforms_graph(
     graph_id: str,
     description: str,
@@ -171,7 +187,14 @@ def update_docs() -> None:
     )
     assert frozenset(g for groups in all_groups for g in groups["groups"]) == ALL_GROUPS
 
-    # Update the platform diagram in Sphinx's documentation.
+    # Update the platform diagrams in Sphinx's documentation.
+    replace_content(
+        project_root.joinpath("docs/platforms.md"),
+        "<!-- platform-sankey-start -->\n\n",
+        "\n\n<!-- platform-sankey-end -->",
+        generate_platform_sankey(),
+    )
+
     platform_doc = project_root.joinpath("docs/platforms.md")
     for top_groups in all_groups:
         replace_content(

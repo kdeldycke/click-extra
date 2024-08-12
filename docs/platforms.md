@@ -1,5 +1,67 @@
 # Platform detection
 
+<!-- platform-sankey-start -->
+
+```mermaid
+sankey-beta
+
+all_platforms,aix,1
+all_platforms,cygwin,1
+all_platforms,freebsd,1
+all_platforms,hurd,1
+all_platforms,linux,1
+all_platforms,macos,1
+all_platforms,netbsd,1
+all_platforms,openbsd,1
+all_platforms,solaris,1
+all_platforms,sunos,1
+all_platforms,windows,1
+all_platforms,wsl1,1
+all_platforms,wsl2,1
+unix,aix,1
+unix,cygwin,1
+unix,freebsd,1
+unix,hurd,1
+unix,linux,1
+unix,macos,1
+unix,netbsd,1
+unix,openbsd,1
+unix,solaris,1
+unix,sunos,1
+unix,wsl1,1
+unix,wsl2,1
+unix_without_macos,aix,1
+unix_without_macos,cygwin,1
+unix_without_macos,freebsd,1
+unix_without_macos,hurd,1
+unix_without_macos,linux,1
+unix_without_macos,netbsd,1
+unix_without_macos,openbsd,1
+unix_without_macos,solaris,1
+unix_without_macos,sunos,1
+unix_without_macos,wsl1,1
+unix_without_macos,wsl2,1
+bsd,freebsd,1
+bsd,macos,1
+bsd,netbsd,1
+bsd,openbsd,1
+bsd,sunos,1
+bsd_without_macos,freebsd,1
+bsd_without_macos,netbsd,1
+bsd_without_macos,openbsd,1
+bsd_without_macos,sunos,1
+system_v,aix,1
+system_v,solaris,1
+linux_layers,wsl1,1
+linux_layers,wsl2,1
+unix_layers,cygwin,1
+other_unix,hurd,1
+all_windows,windows,1
+all_linux,linux,1
+```
+
+<!-- platform-sankey-end -->
+
 ## OS families
 
 All platforms are grouped in sets of non-overlpaping families:

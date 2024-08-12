@@ -5,6 +5,8 @@
 > \[!IMPORTANT\]
 > This version is not released yet and is under active development.
 
+- Map all platforms to their groups with a Sankey diagram in documentation.
+
 ## [4.9.0 (2024-07-25)](https://github.com/kdeldycke/click-extra/compare/v4.8.3...v4.9.0)
 
 - Switch from Poetry to `uv`.
