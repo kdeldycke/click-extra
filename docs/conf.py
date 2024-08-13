@@ -57,6 +57,7 @@ myst_fence_as_directive = ["mermaid"]
 
 # Always use the latest version of Mermaid.
 mermaid_version = "latest"
+mermaid_d3_zoom = True
 
 master_doc = "index"
 

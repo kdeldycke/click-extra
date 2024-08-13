@@ -20,7 +20,6 @@ This is a graph of the default, main dependencies of the Python package:
 
 ```mermaid assets/dependencies.mmd
 :align: center
-:zoom:
 ```
 
 ## Extra dependencies
