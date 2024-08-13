@@ -24,6 +24,12 @@ platform-dependent values.
     <https://github.com/python-distro/distro>`_ package, but it `does not yet support
     detection of macOS and Windows
     <https://github.com/python-distro/distro/issues/177>`_.
+
+.. note::
+
+    Default icons are inspired from Starship project:
+    - https://starship.rs/config/#os
+    - https://github.com/davidkna/starship/blob/e9faf17/.github/config-schema.json#L1221-L1269
 """
 
 from __future__ import annotations
@@ -158,6 +164,9 @@ class Platform:
     name: str
     """User-friendly name of the platform."""
 
+    icon: str = field(repr=False, default="❓")
+    """Icon of the platform."""
+
     current: bool = field(init=False)
     """`True` if current environment runs on this platform."""
 
@@ -168,43 +177,43 @@ class Platform:
         object.__setattr__(self, "current", globals()[check_func_id]())
 
 
-AIX = Platform("aix", "AIX")
+AIX = Platform("aix", "AIX", "➿")
 """Identify distributions of the AIX family."""
 
-CYGWIN = Platform("cygwin", "Cygwin")
+CYGWIN = Platform("cygwin", "Cygwin", "Ͼ")
 """Identify distributions of the Cygwin family."""
 
-FREEBSD = Platform("freebsd", "FreeBSD")
+FREEBSD = Platform("freebsd", "FreeBSD", "😈")
 """Identify distributions of the FreeBSD family."""
 
-HURD = Platform("hurd", "GNU/Hurd")
+HURD = Platform("hurd", "GNU/Hurd", "🐃")
 """Identify distributions of the GNU/Hurd family."""
 
-LINUX = Platform("linux", "Linux")
+LINUX = Platform("linux", "Linux", "🐧")
 """Identify distributions of the Linux family."""
 
-MACOS = Platform("macos", "macOS")
+MACOS = Platform("macos", "macOS", "🍎")
 """Identify distributions of the macOS family."""
 
-NETBSD = Platform("netbsd", "NetBSD")
+NETBSD = Platform("netbsd", "NetBSD", "🚩")
 """Identify distributions of the NetBSD family."""
 
-OPENBSD = Platform("openbsd", "OpenBSD")
+OPENBSD = Platform("openbsd", "OpenBSD", "🐡")
 """Identify distributions of the OpenBSD family."""
 
-SOLARIS = Platform("solaris", "Solaris")
+SOLARIS = Platform("solaris", "Solaris", "🌞")
 """Identify distributions of the Solaris family."""
 
-SUNOS = Platform("sunos", "SunOS")
+SUNOS = Platform("sunos", "SunOS", "☀️")
 """Identify distributions of the SunOS family."""
 
-WINDOWS = Platform("windows", "Windows")
+WINDOWS = Platform("windows", "Windows", "🪟")
 """Identify distributions of the Windows family."""
 
-WSL1 = Platform("wsl1", "Windows Subsystem for Linux v1")
+WSL1 = Platform("wsl1", "Windows Subsystem for Linux v1", "⊞")
 """Identify Windows Subsystem for Linux v1."""
 
-WSL2 = Platform("wsl2", "Windows Subsystem for Linux v2")
+WSL2 = Platform("wsl2", "Windows Subsystem for Linux v2", "⊞")
 """Identify Windows Subsystem for Linux v2."""
 
 
@@ -221,6 +230,9 @@ class Group:
     name: str
     """User-friendly description of a group."""
 
+    icon: str = field(repr=False, default="❓")
+    """Icon of the group."""
+
     platforms: tuple[Platform, ...] = field(repr=False, default_factory=tuple)
     """Sorted list of platforms that belong to this group."""
 
@@ -229,9 +241,6 @@ class Group:
 
     Used to test platform overlaps between groups.
     """
-
-    icon: str | None = field(repr=False, default=None)
-    """Optional icon of the group."""
 
     def __post_init__(self):
         """Keep the platforms sorted by IDs."""
@@ -285,6 +294,7 @@ class Group:
 ALL_PLATFORMS: Group = Group(
     "all_platforms",
     "Any platforms",
+    "🖥️",
     (
         AIX,
         CYGWIN,
@@ -304,13 +314,14 @@ ALL_PLATFORMS: Group = Group(
 """All recognized platforms."""
 
 
-ALL_WINDOWS = Group("all_windows", "Any Windows", (WINDOWS,))
+ALL_WINDOWS = Group("all_windows", "Any Windows", "🪟", (WINDOWS,))
 """All Windows operating systems."""
 
 
 UNIX = Group(
     "unix",
     "Any Unix",
+    "⨷",
     tuple(p for p in ALL_PLATFORMS.platforms if p not in ALL_WINDOWS),
 )
 """All Unix-like operating systems and compatibility layers."""
@@ -319,6 +330,7 @@ UNIX = Group(
 UNIX_WITHOUT_MACOS = Group(
     "unix_without_macos",
     "Any Unix but macOS",
+    "⨂",
     tuple(p for p in UNIX if p is not MACOS),
 )
 """All Unix platforms, without macOS.
@@ -327,7 +339,7 @@ This is useful to avoid macOS-specific workarounds on Unix platforms.
 """
 
 
-BSD = Group("bsd", "Any BSD", (FREEBSD, MACOS, NETBSD, OPENBSD, SUNOS))
+BSD = Group("bsd", "Any BSD", "🅱️", (FREEBSD, MACOS, NETBSD, OPENBSD, SUNOS))
 """All BSD platforms.
 
 .. note::
@@ -345,6 +357,7 @@ BSD = Group("bsd", "Any BSD", (FREEBSD, MACOS, NETBSD, OPENBSD, SUNOS))
 BSD_WITHOUT_MACOS = Group(
     "bsd_without_macos",
     "Any BSD but macOS",
+    "🅱️",
     tuple(p for p in BSD if p is not MACOS),
 )
 """All BSD platforms, without macOS.
@@ -353,7 +366,7 @@ This is useful to avoid macOS-specific workarounds on BSD platforms.
 """
 
 
-ALL_LINUX = Group("all_linux", "Any Linux", (LINUX,))
+ALL_LINUX = Group("all_linux", "Any Linux", "🐧", (LINUX,))
 """All Unix platforms based on a Linux kernel.
 
 .. note::
@@ -366,7 +379,9 @@ ALL_LINUX = Group("all_linux", "Any Linux", (LINUX,))
 """
 
 
-LINUX_LAYERS = Group("linux_layers", "Any Linux compatibility layers", (WSL1, WSL2))
+LINUX_LAYERS = Group(
+    "linux_layers", "Any Linux compatibility layers", "≚", (WSL1, WSL2)
+)
 """Interfaces that allows Linux binaries to run on a different host system.
 
 .. note::
@@ -377,7 +392,9 @@ LINUX_LAYERS = Group("linux_layers", "Any Linux compatibility layers", (WSL1, WS
 """
 
 
-SYSTEM_V = Group("system_v", "Any Unix derived from AT&T System Five", (AIX, SOLARIS))
+SYSTEM_V = Group(
+    "system_v", "Any Unix derived from AT&T System Five", "Ⅴ", (AIX, SOLARIS)
+)
 """All Unix platforms derived from AT&T System Five.
 
 .. note::
@@ -398,7 +415,12 @@ SYSTEM_V = Group("system_v", "Any Unix derived from AT&T System Five", (AIX, SOL
 """
 
 
-UNIX_LAYERS = Group("unix_layers", "Any Unix compatibility layers", (CYGWIN,))
+UNIX_LAYERS = Group(
+    "unix_layers",
+    "Any Unix compatibility layers",
+    "≛",
+    (CYGWIN,),
+)
 """Interfaces that allows Unix binaries to run on a different host system.
 
 .. note::
@@ -425,6 +447,7 @@ UNIX_LAYERS = Group("unix_layers", "Any Unix compatibility layers", (CYGWIN,))
 OTHER_UNIX = Group(
     "other_unix",
     "Any other Unix",
+    "⊎",
     tuple(
         p
         for p in UNIX

@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import functools
 from itertools import combinations
+from string import ascii_lowercase, digits
 
 import pytest
 
@@ -143,6 +144,9 @@ def test_platform_definitions():
         assert platform.name.isascii()
         assert platform.name.isprintable()
         assert platform.name in ALL_OS_LABELS
+        # Icon.
+        assert platform.icon
+        assert 2 >= len(platform.icon) >= 1
         # Identification function.
         check_func_id = f"is_{platform.id}"
         assert check_func_id in globals()
@@ -150,6 +154,24 @@ def test_platform_definitions():
         assert isinstance(check_func, functools._lru_cache_wrapper)
         assert isinstance(check_func(), bool)
         assert check_func() == platform.current
+
+
+def test_group_definitions():
+    for group in ALL_GROUPS:
+        # ID.
+        assert group.id
+        assert group.id.isascii()
+        assert group.id[0] in ascii_lowercase
+        assert group.id[-1] in ascii_lowercase + digits
+        assert set(group.id).issubset(ascii_lowercase + digits + "_")
+        assert group.id.islower()
+        # Name.
+        assert group.name
+        assert group.name.isascii()
+        assert group.name.isprintable()
+        # Icon.
+        assert group.icon
+        assert 2 >= len(group.icon) >= 1
 
 
 def test_unique_ids():
