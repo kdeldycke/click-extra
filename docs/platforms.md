@@ -5,6 +5,11 @@ Relationships between groups and platforms:
 <!-- platform-sankey-start -->
 
 ```mermaid
+---
+config:
+  sankey:
+    showValues: false
+---
 sankey-beta
 
 all_platforms,aix,1
