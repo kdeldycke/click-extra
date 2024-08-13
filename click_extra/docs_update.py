@@ -100,8 +100,11 @@ def generate_platform_sankey() -> str:
     """Produce a Sankey diagram to map all platforms to their platforms."""
     table = []
 
-    # Display biggest groups first
-    for group in sorted(ALL_GROUPS, key=lambda g: len(g.platform_ids), reverse=True):
+    # Display biggest groups first. Add ID in the sorting key to get stable sorting on
+    # tie.
+    for group in sorted(
+        ALL_GROUPS, key=lambda g: (len(g.platform_ids), g.id), reverse=True
+    ):
         for platform in group.platforms:
             line = f"{group.id},{platform.id},1"
             table.append(line)
