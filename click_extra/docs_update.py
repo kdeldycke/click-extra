@@ -142,9 +142,9 @@ def generate_platforms_graph(
                 f"(<code>{platform.id}</code><br/><em>{html.escape(platform.name)}</em>)",
             )
         subgraphs.add(
-            f"subgraph <code>click_extra.platforms.{group.id.upper()}</code>"
+            f'subgraph "<code>click_extra.platforms.{group.id.upper()}</code>'
             "<br/>"
-            f"<em>{group.name}</em>"
+            f'<em>{group.name}</em>"'
             "\n" + indent("\n".join(sorted(nodes)), INDENT) + "\nend",
         )
 
