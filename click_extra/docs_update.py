@@ -139,12 +139,13 @@ def generate_platforms_graph(
             # Make the node ID unique for overlapping groups.
             nodes.add(
                 f"{group.id}_{platform.id}"
-                f"(<code>{platform.id}</code><br/><em>{html.escape(platform.name)}</em>)",
+                f"(<code>{platform.id}</code><br/>"
+                f"{html.escape(platform.icon)} <em>{html.escape(platform.name)}</em>)",
             )
         subgraphs.add(
             f'subgraph "<code>click_extra.platforms.{group.id.upper()}</code>'
             "<br/>"
-            f'<em>{group.name}</em>"'
+            f'{html.escape(group.icon)} <em>{html.escape(group.name)}</em>"'
             "\n" + indent("\n".join(sorted(nodes)), INDENT) + "\nend",
         )
 
