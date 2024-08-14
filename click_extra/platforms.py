@@ -61,31 +61,31 @@ systems at the same time.
 
 @cache
 def is_aix() -> bool:
-    """Return `True` only if current platform is of the AIX family."""
     return sys.platform.startswith("aix")
+    """Return `True` only if current platform is AIX."""
 
 
 @cache
 def is_cygwin() -> bool:
-    """Return `True` only if current platform is of the Cygwin family."""
+    """Return `True` only if current platform is Cygwin."""
     return sys.platform.startswith("cygwin")
 
 
 @cache
 def is_freebsd() -> bool:
-    """Return `True` only if current platform is of the FreeBSD family."""
+    """Return `True` only if current platform is FreeBSD."""
     return sys.platform.startswith(("freebsd", "midnightbsd"))
 
 
 @cache
 def is_hurd() -> bool:
-    """Return `True` only if current platform is of the GNU/Hurd family."""
+    """Return `True` only if current platform is GNU/Hurd."""
     return sys.platform.startswith("GNU")
 
 
 @cache
 def is_linux() -> bool:
-    """Return `True` only if current platform is of the Linux family.
+    """Return `True` only if current platform is Linux.
 
     Excludes WSL1 and WSL2 from this check to
     `avoid false positives <https://github.com/kdeldycke/meta-package-manager/issues/944>`_.
@@ -95,37 +95,37 @@ def is_linux() -> bool:
 
 @cache
 def is_macos() -> bool:
-    """Return `True` only if current platform is of the macOS family."""
+    """Return `True` only if current platform is macOS."""
     return platform.platform(terse=True).startswith(("macOS", "Darwin"))
 
 
 @cache
 def is_netbsd() -> bool:
-    """Return `True` only if current platform is of the NetBSD family."""
+    """Return `True` only if current platform is NetBSD."""
     return sys.platform.startswith("netbsd")
 
 
 @cache
 def is_openbsd() -> bool:
-    """Return `True` only if current platform is of the OpenBSD family."""
+    """Return `True` only if current platform is OpenBSD."""
     return sys.platform.startswith("openbsd")
 
 
 @cache
 def is_solaris() -> bool:
-    """Return `True` only if current platform is of the Solaris family."""
+    """Return `True` only if current platform is Solaris."""
     return platform.platform(aliased=True, terse=True).startswith("Solaris")
 
 
 @cache
 def is_sunos() -> bool:
-    """Return `True` only if current platform is of the SunOS family."""
+    """Return `True` only if current platform is SunOS."""
     return platform.platform(aliased=True, terse=True).startswith("SunOS")
 
 
 @cache
 def is_windows() -> bool:
-    """Return `True` only if current platform is of the Windows family."""
+    """Return `True` only if current platform is Windows."""
     return sys.platform.startswith("win32")
 
 
@@ -257,37 +257,37 @@ class Platform:
 
 
 AIX = Platform("aix", "AIX", "➿")
-"""Identify distributions of the AIX family."""
+"""Identify AIX."""
 
 CYGWIN = Platform("cygwin", "Cygwin", "Ͼ")
-"""Identify distributions of the Cygwin family."""
+"""Identify Cygwin."""
 
 FREEBSD = Platform("freebsd", "FreeBSD", "😈")
-"""Identify distributions of the FreeBSD family."""
+"""Identify FreeBSD."""
 
 HURD = Platform("hurd", "GNU/Hurd", "🐃")
-"""Identify distributions of the GNU/Hurd family."""
+"""Identify GNU/Hurd."""
 
 LINUX = Platform("linux", "Linux", "🐧")
-"""Identify distributions of the Linux family."""
+"""Identify Linux."""
 
 MACOS = Platform("macos", "macOS", "🍎")
-"""Identify distributions of the macOS family."""
+"""Identify macOS."""
 
 NETBSD = Platform("netbsd", "NetBSD", "🚩")
-"""Identify distributions of the NetBSD family."""
+"""Identify NetBSD."""
 
 OPENBSD = Platform("openbsd", "OpenBSD", "🐡")
-"""Identify distributions of the OpenBSD family."""
+"""Identify OpenBSD."""
 
 SOLARIS = Platform("solaris", "Solaris", "🌞")
-"""Identify distributions of the Solaris family."""
+"""Identify Solaris."""
 
 SUNOS = Platform("sunos", "SunOS", "☀️")
-"""Identify distributions of the SunOS family."""
+"""Identify SunOS."""
 
 WINDOWS = Platform("windows", "Windows", "🪟")
-"""Identify distributions of the Windows family."""
+"""Identify Windows."""
 
 WSL1 = Platform("wsl1", "Windows Subsystem for Linux v1", "⊞")
 """Identify Windows Subsystem for Linux v1."""
