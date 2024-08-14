@@ -5,8 +5,10 @@
 > \[!IMPORTANT\]
 > This version is not released yet and is under active development.
 
-- Map all platforms to their groups with a Sankey diagram in documentation.
+- Augment platform metadata with parsed version, likeness and codename.
+- Add dependency on `distro`.
 - Add icons to all platforms and groups.
+- Map all platforms to their groups with a Sankey diagram in documentation.
 
 ## [4.9.0 (2024-07-25)](https://github.com/kdeldycke/click-extra/compare/v4.8.3...v4.9.0)
 
