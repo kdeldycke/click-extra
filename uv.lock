@@ -141,7 +141,7 @@ wheels = [
 
 [[package]]
 name = "click-extra"
-version = "4.9.1"
+version = "4.10.0"
 source = { editable = "." }
 dependencies = [
     { name = "boltons" },
@@ -745,11 +745,11 @@ wheels = [
 
 [[package]]
 name = "soupsieve"
-version = "2.5"
+version = "2.6"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ce/21/952a240de1c196c7e3fbcd4e559681f0419b1280c617db21157a0390717b/soupsieve-2.5.tar.gz", hash = "sha256:5663d5a7b3bfaeee0bc4372e7fc48f9cff4940b3eec54a6451cc5299f1097690", size = 100943 }
+sdist = { url = "https://files.pythonhosted.org/packages/d7/ce/fbaeed4f9fb8b2daa961f90591662df6a86c1abf25c548329a86920aedfb/soupsieve-2.6.tar.gz", hash = "sha256:e2e68417777af359ec65daac1057404a3c8a5455bb8abc36f1a9866ab1a51abb", size = 101569 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4c/f3/038b302fdfbe3be7da016777069f26ceefe11a681055ea1f7817546508e3/soupsieve-2.5-py3-none-any.whl", hash = "sha256:eaa337ff55a1579b6549dc679565eac1e3d000563bcb1c8ab0d0fefbc0c2cdc7", size = 36131 },
+    { url = "https://files.pythonhosted.org/packages/d1/c2/fe97d779f3ef3b15f05c94a2f1e3d21732574ed441687474db9d342a7315/soupsieve-2.6-py3-none-any.whl", hash = "sha256:e72c4ff06e4fb6e4b5a9f0f55fe6e81514581fca1515028625d0f299c602ccc9", size = 36186 },
 ]
 
 [[package]]
@@ -984,11 +984,11 @@ wheels = [
 
 [[package]]
 name = "types-setuptools"
-version = "71.1.0.20240806"
+version = "71.1.0.20240813"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ec/1b/7f0a5ca380dc4743e00460bac8dd4f3fd921826cc1654bd75303561e54e8/types-setuptools-71.1.0.20240806.tar.gz", hash = "sha256:ae5e7b4d643ab9e99fc00ac00041804118cabe72a56183c30d524fb064897ad6", size = 39681 }
+sdist = { url = "https://files.pythonhosted.org/packages/b8/86/aecc6fc3895d32ead5c5b412bbc0821a804e05a70eb1d19a6e34d79992af/types-setuptools-71.1.0.20240813.tar.gz", hash = "sha256:94ff4f0af18c7c24ac88932bcb0f5655fb7187a001b7c61e53a1bfdaf9877b54", size = 42178 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/17/91/69c62223c0d6659414e9e126eee77902b83ac0444f92f475b84409953612/types_setuptools-71.1.0.20240806-py3-none-any.whl", hash = "sha256:3bd8dd02039be0bb79ad880d8893b8eefcb022fabbeeb61245c61b20c9ab1ed0", size = 64513 },
+    { url = "https://files.pythonhosted.org/packages/ce/48/ba3ae5c2f9dd4e842e2736194fde1ff20d856d1fc38486c230d2a252ca44/types_setuptools-71.1.0.20240813-py3-none-any.whl", hash = "sha256:d9d9ba2936f5d3b47b59ae9bf65942a60063ac1d6bbee180a8a79fbb43f22ce5", size = 66855 },
 ]
 
 [[package]]
