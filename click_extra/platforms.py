@@ -180,17 +180,32 @@ def recursive_update(
     return a
 
 
-def remove_blanks(tree: dict) -> dict:
-    """Returns a copy of a dict without items whose values are `None` or empty `dict`.
+def remove_blanks(
+    tree: dict,
+    remove_none: bool = True,
+    remove_dicts: bool = True,
+    remove_str: bool = True,
+) -> dict:
+    """Returns a copy of a dict without items whose values blanks.
 
-    Works recusively.
+    Are considered blanks:
+    - `None` values
+    - empty strings
+    - empty `dict`
+
+    The removal of each of these class can be skipped by setting ``remove_*``
+    parameters.
+
+    Dictionarries are inspected recusively and their own blank values are removed.
     """
 
     def visit(path, key, value) -> bool:
-        """Skip `None` values and empty `dict`."""
-        if value is None:
+        """Ignore some class of blank values depending on configuration."""
+        if remove_none and value is None:
             return False
-        if isinstance(value, dict) and not len(value):
+        if remove_dicts and isinstance(value, dict) and not len(value):
+            return False
+        if remove_str and isinstance(value, str) and not len(value):
             return False
         return True
 
@@ -232,7 +247,7 @@ class Platform:
             "like": None,
             "codename": None,
         }
-        # Get that extra info from distro.
+        # Get extra info from distro.
         if distro.id() == self.id:
             cleaned_info = remove_blanks(distro.info())
             info = recursive_update(info, cleaned_info)

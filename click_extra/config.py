@@ -362,7 +362,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         # Clean-up the conf by removing all blank values left-over by the template
         # structure.
-        clean_conf = remove_blanks(filtered_conf)
+        clean_conf = remove_blanks(filtered_conf, remove_str=False)
 
         # Update the default_map.
         if ctx.default_map is None:
