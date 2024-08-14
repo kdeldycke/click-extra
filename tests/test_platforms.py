@@ -139,14 +139,17 @@ def test_platform_definitions():
         assert platform.id.isascii()
         assert platform.id.isalnum()
         assert platform.id.islower()
+
         # Name.
         assert platform.name
         assert platform.name.isascii()
         assert platform.name.isprintable()
         assert platform.name in ALL_OS_LABELS
+
         # Icon.
         assert platform.icon
         assert 2 >= len(platform.icon) >= 1
+
         # Identification function.
         check_func_id = f"is_{platform.id}"
         assert check_func_id in globals()
@@ -154,6 +157,20 @@ def test_platform_definitions():
         assert isinstance(check_func, functools._lru_cache_wrapper)
         assert isinstance(check_func(), bool)
         assert check_func() == platform.current
+
+        # Info.
+        assert platform.info()
+        for k, v in platform.info().items():
+            assert set(k).issubset(ascii_lowercase + "_")
+            if v is not None:
+                assert isinstance(v, (str, dict))
+                assert v
+                if isinstance(v, dict):
+                    for k1, v1 in v.items():
+                        assert set(k1).issubset(ascii_lowercase + "_")
+                        if v1 is not None:
+                            assert v1
+        assert platform.info()["id"] == platform.id
 
 
 def test_group_definitions():
@@ -165,10 +182,12 @@ def test_group_definitions():
         assert group.id[-1] in ascii_lowercase + digits
         assert set(group.id).issubset(ascii_lowercase + digits + "_")
         assert group.id.islower()
+
         # Name.
         assert group.name
         assert group.name.isascii()
         assert group.name.isprintable()
+
         # Icon.
         assert group.icon
         assert 2 >= len(group.icon) >= 1

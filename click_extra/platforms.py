@@ -38,7 +38,10 @@ import platform
 import sys
 from dataclasses import dataclass, field
 from itertools import combinations
-from typing import Iterable, Iterator
+from typing import Any, Iterable, Iterator
+
+import distro
+from boltons.iterutils import remap
 
 from . import cache
 
@@ -46,6 +49,13 @@ from . import cache
 
 All these heuristics can be hard-cached as the underlying system is not suppose to
 change between code execution.
+
+We mostly rely on ``sys.platform`` first as it seems to be the lowest-level primitive
+available to identify systems.
+
+We choose to have separate function to detect each platform so we can easely check
+consistency. It helps ensure there is no heuristics conflicting and matching multiple
+systems at the same time.
 """
 
 
@@ -150,6 +160,23 @@ def is_wsl2() -> bool:
     return "microsoft" in platform.release()
 
 
+def remove_blanks(tree: dict) -> dict:
+    """Returns a copy of a dict without items whose values are `None` or empty `dict`.
+
+    Works recusively.
+    """
+
+    def visit(path, key, value) -> bool:
+        """Skip `None` values and empty `dict`."""
+        if value is None:
+            return False
+        if isinstance(value, dict) and not len(value):
+            return False
+        return True
+
+    return remap(tree, visit=visit)
+
+
 @dataclass(frozen=True)
 class Platform:
     """A platform can identify multiple distributions or OSes with the same
@@ -175,6 +202,37 @@ class Platform:
         check_func_id = f"is_{self.id}"
         assert check_func_id in globals()
         object.__setattr__(self, "current", globals()[check_func_id]())
+
+    @staticmethod
+    def recursive_update(a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
+        """Like standard ``dict.update()``, but recursive so sub-dict gets updated.
+
+        Ignore elements present in ``b`` but not in ``a``.
+        """
+        for k, v in b.items():
+            if isinstance(v, dict) and isinstance(a.get(k), dict):
+                a[k] = Platform.recursive_update(a[k], v)
+            # Ignore elements unregistered in the template structure.
+            elif k in a:
+                a[k] = b[k]
+        return a
+
+    def info(self) -> dict[str, str | None | dict[str, str | None]]:
+        """Takes the same structure as ``distro.info`` and extends it."""
+        info = {
+            "id": self.id,
+            "version": None,
+            "version_parts": {"major": None, "minor": None, "build_number": None},
+            "like": None,
+            "codename": None,
+        }
+        # Get that extra info from distro.
+        if distro.id() == self.id:
+            cleaned_info = remove_blanks(distro.info())
+            info = self.recursive_update(info, cleaned_info)
+            # Make sure distro is not overwriting with a differetn ID.
+            assert info["id"] == self.id
+        return info
 
 
 AIX = Platform("aix", "AIX", "➿")

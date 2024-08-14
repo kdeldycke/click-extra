@@ -36,7 +36,7 @@ import commentjson as json
 import requests
 import xmltodict
 import yaml
-from boltons.iterutils import flatten, remap
+from boltons.iterutils import flatten
 from boltons.pathutils import shrinkuser
 from boltons.urlutils import URL
 from mergedeep import merge
@@ -61,7 +61,7 @@ from . import (
     get_current_context,
 )
 from .parameters import ExtraOption, ParamStructure
-from .platforms import is_windows
+from .platforms import is_windows, remove_blanks
 
 
 class Formats(Enum):
@@ -376,17 +376,9 @@ class ConfigOption(ExtraOption, ParamStructure):
         """
         filtered_conf = self.recursive_update(self.params_template, user_conf)
 
-        def visit(path, key, value):
-            """Skip `None` values and empty `dict`."""
-            if value is None:
-                return False
-            if isinstance(value, dict) and not len(value):
-                return False
-            return True
-
         # Clean-up the conf by removing all blank values left-over by the template
         # structure.
-        clean_conf = remap(filtered_conf, visit=visit)
+        clean_conf = remove_blanks(filtered_conf)
 
         # Update the default_map.
         if ctx.default_map is None:
