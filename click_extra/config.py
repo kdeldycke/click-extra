@@ -61,7 +61,7 @@ from . import (
     get_current_context,
 )
 from .parameters import ExtraOption, ParamStructure
-from .platforms import is_windows, remove_blanks
+from .platforms import is_windows, recursive_update, remove_blanks
 
 
 class Formats(Enum):
@@ -351,22 +351,6 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         return conf
 
-    def recursive_update(self, a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
-        """Like standard ``dict.update()``, but recursive so sub-dict gets updated.
-
-        Ignore elements present in ``b`` but not in ``a``.
-        """
-        for k, v in b.items():
-            if isinstance(v, dict) and isinstance(a.get(k), dict):
-                a[k] = self.recursive_update(a[k], v)
-            # Ignore elements unregistered in the template structure.
-            elif k in a:
-                a[k] = b[k]
-            elif self.strict:
-                msg = f"Parameter {k!r} is not allowed in configuration file."
-                raise ValueError(msg)
-        return a
-
     def merge_default_map(self, ctx: Context, user_conf: dict) -> None:
         """Save the user configuration into the context's ``default_map``.
 
@@ -374,7 +358,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         will filter out all unrecognized options not supported by the command. Then
         cleans up blank values and update the context's ``default_map``.
         """
-        filtered_conf = self.recursive_update(self.params_template, user_conf)
+        filtered_conf = recursive_update(self.params_template, user_conf, self.strict)
 
         # Clean-up the conf by removing all blank values left-over by the template
         # structure.

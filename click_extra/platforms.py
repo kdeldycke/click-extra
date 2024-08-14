@@ -160,6 +160,26 @@ def is_wsl2() -> bool:
     return "microsoft" in platform.release()
 
 
+def recursive_update(
+    a: dict[str, Any], b: dict[str, Any], strict: bool = False
+) -> dict[str, Any]:
+    """Like standard ``dict.update()``, but recursive so sub-dict gets updated.
+
+    Ignore elements present in ``b`` but not in ``a``. Unless ``strict`` is set to
+    `True`, in which case a `ValueError` exception will be raised.
+    """
+    for k, v in b.items():
+        if isinstance(v, dict) and isinstance(a.get(k), dict):
+            a[k] = recursive_update(a[k], v, strict=strict)
+        # Ignore elements unregistered in the template structure.
+        elif k in a:
+            a[k] = b[k]
+        elif strict:
+            msg = f"Parameter {k!r} found in second dict but not in firt."
+            raise ValueError(msg)
+    return a
+
+
 def remove_blanks(tree: dict) -> dict:
     """Returns a copy of a dict without items whose values are `None` or empty `dict`.
 
@@ -203,20 +223,6 @@ class Platform:
         assert check_func_id in globals()
         object.__setattr__(self, "current", globals()[check_func_id]())
 
-    @staticmethod
-    def recursive_update(a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
-        """Like standard ``dict.update()``, but recursive so sub-dict gets updated.
-
-        Ignore elements present in ``b`` but not in ``a``.
-        """
-        for k, v in b.items():
-            if isinstance(v, dict) and isinstance(a.get(k), dict):
-                a[k] = Platform.recursive_update(a[k], v)
-            # Ignore elements unregistered in the template structure.
-            elif k in a:
-                a[k] = b[k]
-        return a
-
     def info(self) -> dict[str, str | None | dict[str, str | None]]:
         """Takes the same structure as ``distro.info`` and extends it."""
         info = {
@@ -229,7 +235,7 @@ class Platform:
         # Get that extra info from distro.
         if distro.id() == self.id:
             cleaned_info = remove_blanks(distro.info())
-            info = self.recursive_update(info, cleaned_info)
+            info = recursive_update(info, cleaned_info)
             # Make sure distro is not overwriting with a differetn ID.
             assert info["id"] == self.id
         return info
