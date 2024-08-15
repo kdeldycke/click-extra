@@ -195,7 +195,7 @@ def recursive_update(
         elif k in a:
             a[k] = b[k]
         elif strict:
-            msg = f"Parameter {k!r} found in second dict but not in firt."
+            msg = f"Parameter {k!r} found in second dict but not in first."
             raise ValueError(msg)
     return a
 
@@ -216,7 +216,7 @@ def remove_blanks(
     The removal of each of these class can be skipped by setting ``remove_*``
     parameters.
 
-    Dictionarries are inspected recusively and their own blank values are removed.
+    Dictionarries are inspected recursively and their own blank values are removed.
     """
 
     def visit(path, key, value) -> bool:

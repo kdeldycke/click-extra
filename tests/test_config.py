@@ -420,7 +420,7 @@ def test_strict_conf(invoke, create_config):
     assert type(result.exception) is ValueError
     assert (
         str(result.exception)
-        == "Parameter 'random_stuff' found in second dict but not in firt."
+        == "Parameter 'random_stuff' found in second dict but not in first."
     )
 
     assert result.exit_code == 1
