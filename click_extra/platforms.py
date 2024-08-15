@@ -238,21 +238,26 @@ class Platform:
         assert check_func_id in globals()
         object.__setattr__(self, "current", globals()[check_func_id]())
 
-    def info(self) -> dict[str, str | None | dict[str, str | None]]:
-        """Takes the same structure as ``distro.info`` and extends it."""
+    def info(self) -> dict[str, str | bool | None | dict[str, str | None]]:
+        """Returns all platform attributes we can gather."""
         info = {
             "id": self.id,
+            "name": self.name,
+            "icon": self.icon,
+            "current": self.current,
+            # Extra fields from distro.info().
+            "distro_id": None,
             "version": None,
             "version_parts": {"major": None, "minor": None, "build_number": None},
             "like": None,
             "codename": None,
         }
         # Get extra info from distro.
-        if distro.id() == self.id:
-            cleaned_info = remove_blanks(distro.info())
-            info = recursive_update(info, cleaned_info)
-            # Make sure distro is not overwriting with a differetn ID.
-            assert info["id"] == self.id
+        if self.current:
+            distro_info = distro.info()
+            # Rename distro ID to avoid conflict with our own ID.
+            distro_info["distro_id"] = distro_info.pop("id")
+            info = recursive_update(info, remove_blanks(distro_info))
         return info
 
 

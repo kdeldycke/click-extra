@@ -165,9 +165,11 @@ def test_platform_definitions():
         for k, v in platform.info().items():
             assert set(k).issubset(ascii_lowercase + "_")
             if v is not None:
-                assert isinstance(v, (str, dict))
-                assert v
-                if isinstance(v, dict):
+                assert isinstance(v, (str, bool, dict))
+                if isinstance(v, str):
+                    assert v
+                elif isinstance(v, dict):
+                    assert v
                     for k1, v1 in v.items():
                         assert set(k1).issubset(ascii_lowercase + "_")
                         if v1 is not None:
