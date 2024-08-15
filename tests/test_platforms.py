@@ -16,8 +16,11 @@
 
 from __future__ import annotations
 
+import ast
 import functools
+import inspect
 from itertools import combinations
+from pathlib import Path
 from string import ascii_lowercase, digits
 
 import pytest
@@ -190,6 +193,41 @@ def test_group_definitions():
         # Icon.
         assert group.icon
         assert 2 >= len(group.icon) >= 1
+
+
+def test_code_sorting():
+    """Implementation must have all its methods and objects sorted."""
+    heuristic_instance_ids = []
+    platform_instance_ids = []
+    group_instance_ids = []
+
+    tree = ast.parse(Path(inspect.getfile(platforms_module)).read_bytes())
+
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef) and node.name.startswith("is_"):
+            func_id = node.name
+            assert func_id.islower()
+            heuristic_instance_ids.append(func_id)
+        elif isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
+            func_id = node.value.func.id
+            if func_id in ("Platform", "Group"):
+                assert len(node.targets) == 1
+                instance_id = node.targets[0].id
+                assert instance_id.isupper()
+                if func_id == "Platform":
+                    platform_instance_ids.append(instance_id)
+                elif func_id == "Group":
+                    group_instance_ids.append(instance_id)
+
+    # Check there is no extra "is_" function.
+    assert {f"is_{p.id}" for p in ALL_PLATFORMS.platforms} == set(
+        heuristic_instance_ids
+    ) - {"is_linux"}
+
+    assert heuristic_instance_ids == sorted(heuristic_instance_ids)
+    assert platform_instance_ids == sorted(platform_instance_ids)
+    # XXX Group order is logical, not alphabetical.
+    # assert group_instance_ids == sorted(group_instance_ids)
 
 
 def test_unique_ids():
