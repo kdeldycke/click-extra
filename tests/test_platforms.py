@@ -41,7 +41,6 @@ from click_extra.platforms import (
     EXTRA_GROUPS,
     FREEBSD,
     HURD,
-    LINUX,
     LINUX_LAYERS,
     MACOS,
     NETBSD,
@@ -51,9 +50,11 @@ from click_extra.platforms import (
     SOLARIS,
     SUNOS,
     SYSTEM_V,
+    UBUNTU,
     UNIX,
     UNIX_LAYERS,
     UNIX_WITHOUT_MACOS,
+    UNKNOWN_LINUX,
     WINDOWS,
     WSL1,
     WSL2,
@@ -69,6 +70,8 @@ from click_extra.platforms import (
     is_openbsd,
     is_solaris,
     is_sunos,
+    is_ubuntu,
+    is_unknown_linux,
     is_windows,
     is_wsl1,
     is_wsl2,
@@ -90,6 +93,7 @@ def test_mutual_exclusion():
     if is_linux():
         assert CURRENT_OS_ID in ALL_LINUX.platform_ids
         assert CURRENT_OS_LABEL in {p.name for p in ALL_LINUX.platforms}
+        assert is_ubuntu() or is_unknown_linux()
         assert not is_aix()
         assert not is_cygwin()
         assert not is_freebsd()
@@ -99,6 +103,23 @@ def test_mutual_exclusion():
         assert not is_openbsd()
         assert not is_solaris()
         assert not is_sunos()
+        assert not is_windows()
+        assert not is_wsl1()
+        assert not is_wsl2()
+    if is_ubuntu():
+        assert CURRENT_OS_ID == UBUNTU.id
+        assert CURRENT_OS_LABEL == UBUNTU.name
+        assert not is_aix()
+        assert not is_cygwin()
+        assert not is_freebsd()
+        assert not is_hurd()
+        assert not is_linux()
+        assert not is_macos()
+        assert not is_netbsd()
+        assert not is_openbsd()
+        assert not is_solaris()
+        assert not is_sunos()
+        assert not is_unknown_linux()
         assert not is_windows()
         assert not is_wsl1()
         assert not is_wsl2()
@@ -114,6 +135,8 @@ def test_mutual_exclusion():
         assert not is_openbsd()
         assert not is_solaris()
         assert not is_sunos()
+        assert not is_ubuntu()
+        assert not is_unknown_linux()
         assert not is_windows()
         assert not is_wsl1()
         assert not is_wsl2()
@@ -130,6 +153,8 @@ def test_mutual_exclusion():
         assert not is_openbsd()
         assert not is_solaris()
         assert not is_sunos()
+        assert not is_ubuntu()
+        assert not is_unknown_linux()
         assert not is_wsl1()
         assert not is_wsl2()
 
@@ -139,7 +164,9 @@ def test_platform_definitions():
         # ID.
         assert platform.id
         assert platform.id.isascii()
-        assert platform.id.isalnum()
+        assert platform.id[0] in ascii_lowercase
+        assert platform.id[-1] in ascii_lowercase + digits
+        assert set(platform.id).issubset(ascii_lowercase + digits + "_")
         assert platform.id.islower()
 
         # Name.
@@ -384,12 +411,13 @@ def test_overlapping_groups():
                 CYGWIN,
                 FREEBSD,
                 HURD,
-                LINUX,
                 MACOS,
                 NETBSD,
                 OPENBSD,
                 SOLARIS,
                 SUNOS,
+                UBUNTU,
+                UNKNOWN_LINUX,
                 WINDOWS,
                 WSL1,
                 WSL2,

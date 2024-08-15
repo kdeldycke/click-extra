@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import platform
 import sys
+import warnings
 from dataclasses import dataclass, field
 from itertools import combinations
 from typing import Any, Iterable, Iterator
@@ -85,12 +86,13 @@ def is_hurd() -> bool:
 
 @cache
 def is_linux() -> bool:
-    """Return `True` only if current platform is Linux.
-
-    Excludes WSL1 and WSL2 from this check to
-    `avoid false positives <https://github.com/kdeldycke/meta-package-manager/issues/944>`_.
-    """
-    return sys.platform.startswith("linux") and not is_wsl1() and not is_wsl2()
+    """ """
+    warnings.warn(
+        "is_linux() is a covenient method that has been deprecated by the recent "
+        "introduction of fine-grained distribution identification",
+        DeprecationWarning,
+    )
+    return CURRENT_OS_ID in ALL_LINUX.platform_ids
 
 
 @cache
@@ -121,6 +123,24 @@ def is_solaris() -> bool:
 def is_sunos() -> bool:
     """Return `True` only if current platform is SunOS."""
     return platform.platform(aliased=True, terse=True).startswith("SunOS")
+
+
+@cache
+def is_ubuntu() -> bool:
+    """Return `True` only if current platform is Ubuntu."""
+    return distro.id() == "ubuntu"
+
+
+@cache
+def is_unknown_linux() -> bool:
+    """Return `True` only if current platform is an unknown Linux.
+
+    Excludes WSL1 and WSL2 from this check to
+    `avoid false positives <https://github.com/kdeldycke/meta-package-manager/issues/944>`_.
+    """
+    return sys.platform.startswith("linux") and not (
+        is_ubuntu() or is_wsl1() or is_wsl2()
+    )
 
 
 @cache
@@ -273,9 +293,6 @@ FREEBSD = Platform("freebsd", "FreeBSD", "😈")
 HURD = Platform("hurd", "GNU/Hurd", "🐃")
 """Identify GNU/Hurd."""
 
-LINUX = Platform("linux", "Linux", "🐧")
-"""Identify Linux."""
-
 MACOS = Platform("macos", "macOS", "🍎")
 """Identify macOS."""
 
@@ -290,6 +307,12 @@ SOLARIS = Platform("solaris", "Solaris", "🌞")
 
 SUNOS = Platform("sunos", "SunOS", "☀️")
 """Identify SunOS."""
+
+UBUNTU = Platform("ubuntu", "Ubuntu", "🎯")
+"""Identify Ubuntu."""
+
+UNKNOWN_LINUX = Platform("unknown_linux", "Unknown Linux", "🐧")
+"""Identify a generic unknown Linux."""
 
 WINDOWS = Platform("windows", "Windows", "🪟")
 """Identify Windows."""
@@ -384,7 +407,8 @@ ALL_PLATFORMS: Group = Group(
         CYGWIN,
         FREEBSD,
         HURD,
-        LINUX,
+        UBUNTU,
+        UNKNOWN_LINUX,
         MACOS,
         NETBSD,
         OPENBSD,
@@ -450,7 +474,15 @@ This is useful to avoid macOS-specific workarounds on BSD platforms.
 """
 
 
-ALL_LINUX = Group("all_linux", "Any Linux", "🐧", (LINUX,))
+ALL_LINUX = Group(
+    "all_linux",
+    "Any Linux",
+    "🐧",
+    (
+        UBUNTU,
+        UNKNOWN_LINUX,
+    ),
+)
 """All Unix platforms based on a Linux kernel.
 
 .. note::
