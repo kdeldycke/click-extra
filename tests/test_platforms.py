@@ -445,38 +445,38 @@ def test_os_labels():
 
 @skip_linux
 def test_skip_linux():
-    assert not is_linux()
+    assert CURRENT_OS_ID not in ALL_LINUX.platform_ids
     assert is_macos() or is_windows()
 
 
 @skip_macos
 def test_skip_macos():
     assert not is_macos()
-    assert is_linux() or is_windows()
+    assert CURRENT_OS_ID in ALL_LINUX.platform_ids or is_windows()
 
 
 @skip_windows
 def test_skip_windows():
     assert not is_windows()
-    assert is_linux() or is_macos()
+    assert CURRENT_OS_ID in ALL_LINUX.platform_ids or is_macos()
 
 
 @unless_linux
 def test_unless_linux():
-    assert is_linux()
+    assert CURRENT_OS_ID in ALL_LINUX.platform_ids
     assert not is_macos()
     assert not is_windows()
 
 
 @unless_macos
 def test_unless_macos():
-    assert not is_linux()
+    assert CURRENT_OS_ID not in ALL_LINUX.platform_ids
     assert is_macos()
     assert not is_windows()
 
 
 @unless_windows
 def test_unless_windows():
-    assert not is_linux()
+    assert CURRENT_OS_ID not in ALL_LINUX.platform_ids
     assert not is_macos()
     assert is_windows()
