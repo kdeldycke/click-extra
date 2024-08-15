@@ -257,6 +257,7 @@ class Platform:
         check_func_id = f"is_{self.id}"
         assert check_func_id in globals()
         object.__setattr__(self, "current", globals()[check_func_id]())
+        object.__setattr__(self, "__doc__", f"Identify {self.name}.")
 
     def info(self) -> dict[str, str | bool | None | dict[str, str | None]]:
         """Returns all platform attributes we can gather."""
@@ -282,46 +283,32 @@ class Platform:
 
 
 AIX = Platform("aix", "AIX", "➿")
-"""Identify AIX."""
 
 CYGWIN = Platform("cygwin", "Cygwin", "Ͼ")
-"""Identify Cygwin."""
 
 FREEBSD = Platform("freebsd", "FreeBSD", "😈")
-"""Identify FreeBSD."""
 
 HURD = Platform("hurd", "GNU/Hurd", "🐃")
-"""Identify GNU/Hurd."""
 
 MACOS = Platform("macos", "macOS", "🍎")
-"""Identify macOS."""
 
 NETBSD = Platform("netbsd", "NetBSD", "🚩")
-"""Identify NetBSD."""
 
 OPENBSD = Platform("openbsd", "OpenBSD", "🐡")
-"""Identify OpenBSD."""
 
 SOLARIS = Platform("solaris", "Solaris", "🌞")
-"""Identify Solaris."""
 
 SUNOS = Platform("sunos", "SunOS", "☀️")
-"""Identify SunOS."""
 
 UBUNTU = Platform("ubuntu", "Ubuntu", "🎯")
-"""Identify Ubuntu."""
 
 UNKNOWN_LINUX = Platform("unknown_linux", "Unknown Linux", "🐧")
-"""Identify a generic unknown Linux."""
 
 WINDOWS = Platform("windows", "Windows", "🪟")
-"""Identify Windows."""
 
 WSL1 = Platform("wsl1", "Windows Subsystem for Linux v1", "⊞")
-"""Identify Windows Subsystem for Linux v1."""
 
 WSL2 = Platform("wsl2", "Windows Subsystem for Linux v2", "⊞")
-"""Identify Windows Subsystem for Linux v2."""
 
 
 @dataclass(frozen=True)
