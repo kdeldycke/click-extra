@@ -69,7 +69,6 @@ from click_extra.platforms import (
     is_windows,
     is_wsl1,
     is_wsl2,
-    os_label,
     reduce,
 )
 from click_extra.pytest import (
@@ -86,8 +85,8 @@ def test_mutual_exclusion():
     """Only directly tests OSes on which the test suite is running via GitHub
     actions."""
     if is_linux():
-        assert LINUX.id == CURRENT_OS_ID
-        assert os_label(LINUX.id) == CURRENT_OS_LABEL
+        assert CURRENT_OS_ID in ALL_LINUX.platform_ids
+        assert CURRENT_OS_LABEL in {p.name for p in ALL_LINUX.platforms}
         assert not is_aix()
         assert not is_cygwin()
         assert not is_freebsd()
@@ -101,8 +100,8 @@ def test_mutual_exclusion():
         assert not is_wsl1()
         assert not is_wsl2()
     if is_macos():
-        assert MACOS.id == CURRENT_OS_ID
-        assert os_label(MACOS.id) == CURRENT_OS_LABEL
+        assert CURRENT_OS_ID == MACOS.id
+        assert CURRENT_OS_LABEL == MACOS.name
         assert not is_aix()
         assert not is_cygwin()
         assert not is_freebsd()
@@ -116,8 +115,8 @@ def test_mutual_exclusion():
         assert not is_wsl1()
         assert not is_wsl2()
     if is_windows():
-        assert WINDOWS.id == CURRENT_OS_ID
-        assert os_label(WINDOWS.id) == CURRENT_OS_LABEL
+        assert CURRENT_OS_ID == WINDOWS.id
+        assert CURRENT_OS_LABEL == WINDOWS.name
         assert not is_aix()
         assert not is_cygwin()
         assert not is_freebsd()
@@ -374,8 +373,6 @@ def test_current_os_func():
 
 def test_os_labels():
     assert len(ALL_OS_LABELS) == len(ALL_PLATFORMS)
-    current_platform = current_os()
-    assert os_label(current_platform.id) == current_platform.name
 
 
 @skip_linux

@@ -669,15 +669,6 @@ def reduce(items: Iterable[Group | Platform]) -> set[Group | Platform]:
 
 
 @cache
-def os_label(os_id: str) -> str | None:
-    """Return platform label for user-friendly output."""
-    for p in ALL_PLATFORMS.platforms:
-        if p.id == os_id:
-            return p.name
-    return None
-
-
-@cache
 def current_os() -> Platform:
     """Return the current platform."""
     matching = []
