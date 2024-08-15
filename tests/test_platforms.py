@@ -33,20 +33,48 @@ from click_extra.platforms import (
     ALL_OS_LABELS,
     ALL_PLATFORMS,
     ALL_WINDOWS,
+    ALTLINUX,
+    AMZN,
+    ANDROID,
+    ARCH,
     BSD,
     BSD_WITHOUT_MACOS,
+    BUILDROOT,
+    CENTOS,
+    CLOUDLINUX,
     CURRENT_OS_ID,
     CURRENT_OS_LABEL,
     CYGWIN,
+    DEBIAN,
+    EXHERBO,
     EXTRA_GROUPS,
+    FEDORA,
     FREEBSD,
+    GENTOO,
+    GUIX,
     HURD,
+    IBM_POWERKVM,
+    KVMIBM,
     LINUX_LAYERS,
+    LINUXMINT,
     MACOS,
+    MAGEIA,
+    MANDRIVA,
+    MIDNIGHTBSD,
     NETBSD,
     NON_OVERLAPPING_GROUPS,
     OPENBSD,
+    OPENSUSE,
+    ORACLE,
     OTHER_UNIX,
+    PARALLELS,
+    PIDORA,
+    RASPBIAN,
+    RHEL,
+    ROCKY,
+    SCIENTIFIC,
+    SLACKWARE,
+    SLES,
     SOLARIS,
     SUNOS,
     SYSTEM_V,
@@ -58,16 +86,45 @@ from click_extra.platforms import (
     WINDOWS,
     WSL1,
     WSL2,
+    XENSERVER,
     Group,
     current_os,
     is_aix,
+    is_altlinux,
+    is_amzn,
+    is_android,
+    is_arch,
+    is_buildroot,
+    is_centos,
+    is_cloudlinux,
     is_cygwin,
+    is_debian,
+    is_exherbo,
+    is_fedora,
     is_freebsd,
+    is_gentoo,
+    is_guix,
     is_hurd,
+    is_ibm_powerkvm,
+    is_kvmibm,
     is_linux,
+    is_linuxmint,
     is_macos,
+    is_mageia,
+    is_mandriva,
+    is_midnightbsd,
     is_netbsd,
     is_openbsd,
+    is_opensuse,
+    is_oracle,
+    is_parallels,
+    is_pidora,
+    is_raspbian,
+    is_rhel,
+    is_rocky,
+    is_scientific,
+    is_slackware,
+    is_sles,
     is_solaris,
     is_sunos,
     is_ubuntu,
@@ -75,6 +132,7 @@ from click_extra.platforms import (
     is_windows,
     is_wsl1,
     is_wsl2,
+    is_xenserver,
     reduce,
 )
 from click_extra.pytest import (
@@ -93,46 +151,124 @@ def test_mutual_exclusion():
     if is_linux():
         assert CURRENT_OS_ID in ALL_LINUX.platform_ids
         assert CURRENT_OS_LABEL in {p.name for p in ALL_LINUX.platforms}
-        assert is_ubuntu() or is_unknown_linux()
-        assert not is_aix()
-        assert not is_cygwin()
-        assert not is_freebsd()
-        assert not is_hurd()
-        assert not is_macos()
-        assert not is_netbsd()
-        assert not is_openbsd()
-        assert not is_solaris()
-        assert not is_sunos()
-        assert not is_windows()
-        assert not is_wsl1()
-        assert not is_wsl2()
+        assert (
+            is_altlinux()
+            or is_amzn()
+            or is_android()
+            or is_arch()
+            or is_buildroot()
+            or is_centos()
+            or is_cloudlinux()
+            or is_debian()
+            or is_exherbo()
+            or is_fedora()
+            or is_gentoo()
+            or is_guix()
+            or is_ibm_powerkvm()
+            or is_kvmibm()
+            or is_linuxmint()
+            or is_mageia()
+            or is_mandriva()
+            or is_opensuse()
+            or is_oracle()
+            or is_parallels()
+            or is_pidora()
+            or is_raspbian()
+            or is_rhel()
+            or is_rocky()
+            or is_scientific()
+            or is_slackware()
+            or is_sles()
+            or is_ubuntu()
+            or is_unknown_linux()
+            or is_xenserver()
+        )
+
     if is_ubuntu():
         assert CURRENT_OS_ID == UBUNTU.id
         assert CURRENT_OS_LABEL == UBUNTU.name
         assert not is_aix()
+        assert not is_altlinux()
+        assert not is_amzn()
+        assert not is_android()
+        assert not is_arch()
+        assert not is_buildroot()
+        assert not is_centos()
+        assert not is_cloudlinux()
         assert not is_cygwin()
+        assert not is_debian()
+        assert not is_exherbo()
+        assert not is_fedora()
         assert not is_freebsd()
+        assert not is_gentoo()
+        assert not is_guix()
         assert not is_hurd()
-        assert not is_linux()
+        assert not is_ibm_powerkvm()
+        assert not is_kvmibm()
+        assert not is_linuxmint()
         assert not is_macos()
+        assert not is_mageia()
+        assert not is_mandriva()
+        assert not is_midnightbsd()
         assert not is_netbsd()
         assert not is_openbsd()
+        assert not is_opensuse()
+        assert not is_oracle()
+        assert not is_parallels()
+        assert not is_pidora()
+        assert not is_raspbian()
+        assert not is_rhel()
+        assert not is_rocky()
+        assert not is_scientific()
+        assert not is_slackware()
+        assert not is_sles()
         assert not is_solaris()
         assert not is_sunos()
+        # assert not is_ubuntu()
         assert not is_unknown_linux()
         assert not is_windows()
         assert not is_wsl1()
         assert not is_wsl2()
+        assert not is_xenserver()
+
     if is_macos():
         assert CURRENT_OS_ID == MACOS.id
         assert CURRENT_OS_LABEL == MACOS.name
         assert not is_aix()
+        assert not is_altlinux()
+        assert not is_amzn()
+        assert not is_android()
+        assert not is_arch()
+        assert not is_buildroot()
+        assert not is_centos()
+        assert not is_cloudlinux()
         assert not is_cygwin()
+        assert not is_debian()
+        assert not is_exherbo()
+        assert not is_fedora()
         assert not is_freebsd()
+        assert not is_gentoo()
+        assert not is_guix()
         assert not is_hurd()
-        assert not is_linux()
+        assert not is_ibm_powerkvm()
+        assert not is_kvmibm()
+        assert not is_linuxmint()
+        # assert not is_macos()
+        assert not is_mageia()
+        assert not is_mandriva()
+        assert not is_midnightbsd()
         assert not is_netbsd()
         assert not is_openbsd()
+        assert not is_opensuse()
+        assert not is_oracle()
+        assert not is_parallels()
+        assert not is_pidora()
+        assert not is_raspbian()
+        assert not is_rhel()
+        assert not is_rocky()
+        assert not is_scientific()
+        assert not is_slackware()
+        assert not is_sles()
         assert not is_solaris()
         assert not is_sunos()
         assert not is_ubuntu()
@@ -140,23 +276,54 @@ def test_mutual_exclusion():
         assert not is_windows()
         assert not is_wsl1()
         assert not is_wsl2()
+        assert not is_xenserver()
+
     if is_windows():
         assert CURRENT_OS_ID == WINDOWS.id
         assert CURRENT_OS_LABEL == WINDOWS.name
         assert not is_aix()
+        assert not is_altlinux()
+        assert not is_amzn()
+        assert not is_android()
+        assert not is_arch()
+        assert not is_buildroot()
+        assert not is_centos()
+        assert not is_cloudlinux()
         assert not is_cygwin()
+        assert not is_debian()
+        assert not is_exherbo()
+        assert not is_fedora()
         assert not is_freebsd()
+        assert not is_gentoo()
+        assert not is_guix()
         assert not is_hurd()
-        assert not is_linux()
+        assert not is_ibm_powerkvm()
+        assert not is_kvmibm()
+        assert not is_linuxmint()
         assert not is_macos()
+        assert not is_mageia()
+        assert not is_mandriva()
+        assert not is_midnightbsd()
         assert not is_netbsd()
         assert not is_openbsd()
+        assert not is_opensuse()
+        assert not is_oracle()
+        assert not is_parallels()
+        assert not is_pidora()
+        assert not is_raspbian()
+        assert not is_rhel()
+        assert not is_rocky()
+        assert not is_scientific()
+        assert not is_slackware()
+        assert not is_sles()
         assert not is_solaris()
         assert not is_sunos()
         assert not is_ubuntu()
         assert not is_unknown_linux()
+        # assert not is_windows()
         assert not is_wsl1()
         assert not is_wsl2()
+        assert not is_xenserver()
 
 
 def test_platform_definitions():
@@ -408,12 +575,40 @@ def test_overlapping_groups():
         (
             [
                 AIX,
+                ALTLINUX,
+                AMZN,
+                ANDROID,
+                ARCH,
+                BUILDROOT,
+                CENTOS,
+                CLOUDLINUX,
                 CYGWIN,
+                DEBIAN,
+                EXHERBO,
+                FEDORA,
                 FREEBSD,
+                GENTOO,
+                GUIX,
                 HURD,
+                IBM_POWERKVM,
+                KVMIBM,
+                LINUXMINT,
                 MACOS,
+                MAGEIA,
+                MANDRIVA,
+                MIDNIGHTBSD,
                 NETBSD,
                 OPENBSD,
+                OPENSUSE,
+                ORACLE,
+                PARALLELS,
+                PIDORA,
+                RASPBIAN,
+                RHEL,
+                ROCKY,
+                SCIENTIFIC,
+                SLACKWARE,
+                SLES,
                 SOLARIS,
                 SUNOS,
                 UBUNTU,
@@ -421,6 +616,7 @@ def test_overlapping_groups():
                 WINDOWS,
                 WSL1,
                 WSL2,
+                XENSERVER,
             ],
             {ALL_PLATFORMS},
         ),

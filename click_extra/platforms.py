@@ -18,18 +18,17 @@
 Everything here can be aggressively cached and frozen, as it's only compute
 platform-dependent values.
 
-.. seealso::
-
-    A nice alternative would be to use the excellent `distro
-    <https://github.com/python-distro/distro>`_ package, but it `does not yet support
-    detection of macOS and Windows
-    <https://github.com/python-distro/distro/issues/177>`_.
-
 .. note::
 
     Default icons are inspired from Starship project:
     - https://starship.rs/config/#os
     - https://github.com/davidkna/starship/blob/e9faf17/.github/config-schema.json#L1221-L1269
+
+
+.. note::
+
+    Heuristics for unrecognized platforms can be found in `Rust's sysinfo crate
+    <https://github.com/stanislav-tkach/os_info/tree/master/os_info/src>`_.
 """
 
 from __future__ import annotations
@@ -39,6 +38,7 @@ import sys
 import warnings
 from dataclasses import dataclass, field
 from itertools import combinations
+from os import environ
 from typing import Any, Iterable, Iterator
 
 import distro
@@ -63,7 +63,52 @@ systems at the same time.
 @cache
 def is_aix() -> bool:
     """Return `True` only if current platform is AIX."""
-    return distro.id() == "aix"
+    return sys.platform.startswith("aix") or distro.id() == "aix"
+
+
+@cache
+def is_altlinux() -> bool:
+    """Return `True` only if current platform is ALT Linux."""
+    return distro.id() == "altlinux"
+
+
+@cache
+def is_amzn() -> bool:
+    """Return `True` only if current platform is Amazon Linux."""
+    return distro.id() == "amzn"
+
+
+@cache
+def is_android() -> bool:
+    """Return `True` only if current platform is Android.
+
+    Source: https://github.com/kivy/kivy/blob/master/kivy/utils.py#L429
+    """
+    return "ANDROID_ROOT" in environ or "P4A_BOOTSTRAP" in environ
+
+
+@cache
+def is_arch() -> bool:
+    """Return `True` only if current platform is Arch Linux."""
+    return distro.id() == "arch"
+
+
+@cache
+def is_buildroot() -> bool:
+    """Return `True` only if current platform is Buildroot."""
+    return distro.id() == "buildroot"
+
+
+@cache
+def is_centos() -> bool:
+    """Return `True` only if current platform is CentOS."""
+    return distro.id() == "centos"
+
+
+@cache
+def is_cloudlinux() -> bool:
+    """Return `True` only if current platform is CloudLinux OS."""
+    return distro.id() == "cloudlinux"
 
 
 @cache
@@ -73,15 +118,57 @@ def is_cygwin() -> bool:
 
 
 @cache
+def is_debian() -> bool:
+    """Return `True` only if current platform is Debian."""
+    return distro.id() == "debian"
+
+
+@cache
+def is_exherbo() -> bool:
+    """Return `True` only if current platform is Exherbo Linux."""
+    return distro.id() == "exherbo"
+
+
+@cache
+def is_fedora() -> bool:
+    """Return `True` only if current platform is Fedora."""
+    return distro.id() == "fedora"
+
+
+@cache
 def is_freebsd() -> bool:
     """Return `True` only if current platform is FreeBSD."""
-    return sys.platform.startswith(("freebsd", "midnightbsd"))
+    return sys.platform.startswith("freebsd") or distro.id() == "freebsd"
+
+
+@cache
+def is_gentoo() -> bool:
+    """Return `True` only if current platform is GenToo Linux."""
+    return distro.id() == "gentoo"
+
+
+@cache
+def is_guix() -> bool:
+    """Return `True` only if current platform is Guix System."""
+    return distro.id() == "guix"
 
 
 @cache
 def is_hurd() -> bool:
     """Return `True` only if current platform is GNU/Hurd."""
     return sys.platform.startswith("GNU")
+
+
+@cache
+def is_ibm_powerkvm() -> bool:
+    """Return `True` only if current platform is IBM PowerKVM."""
+    return distro.id() == "ibm_powerkvm"
+
+
+@cache
+def is_kvmibm() -> bool:
+    """Return `True` only if current platform is KVM for IBM z Systems."""
+    return distro.id() == "kvmibm"
 
 
 @cache
@@ -96,21 +183,105 @@ def is_linux() -> bool:
 
 
 @cache
+def is_linuxmint() -> bool:
+    """Return `True` only if current platform is Linux Mint."""
+    return distro.id() == "linuxmint"
+
+
+@cache
 def is_macos() -> bool:
     """Return `True` only if current platform is macOS."""
     return platform.platform(terse=True).startswith(("macOS", "Darwin"))
 
 
 @cache
+def is_mageia() -> bool:
+    """Return `True` only if current platform is Mageia."""
+    return distro.id() == "mageia"
+
+
+@cache
+def is_mandriva() -> bool:
+    """Return `True` only if current platform is Mandriva Linux."""
+    return distro.id() == "mandriva"
+
+
+@cache
+def is_midnightbsd() -> bool:
+    """Return `True` only if current platform is MidnightBSD."""
+    return sys.platform.startswith("midnightbsd") or distro.id() == "midnightbsd"
+
+
+@cache
 def is_netbsd() -> bool:
     """Return `True` only if current platform is NetBSD."""
-    return sys.platform.startswith("netbsd")
+    return sys.platform.startswith("netbsd") or distro.id() == "netbsd"
 
 
 @cache
 def is_openbsd() -> bool:
     """Return `True` only if current platform is OpenBSD."""
-    return sys.platform.startswith("openbsd")
+    return sys.platform.startswith("openbsd") or distro.id() == "openbsd"
+
+
+@cache
+def is_opensuse() -> bool:
+    """Return `True` only if current platform is openSUSE."""
+    return distro.id() == "opensuse"
+
+
+@cache
+def is_oracle() -> bool:
+    """Return `True` only if current platform is Oracle Linux (and Oracle Enterprise Linux)."""
+    return distro.id() == "oracle"
+
+
+@cache
+def is_parallels() -> bool:
+    """Return `True` only if current platform is Parallels."""
+    return distro.id() == "parallels"
+
+
+@cache
+def is_pidora() -> bool:
+    """Return `True` only if current platform is Pidora."""
+    return distro.id() == "pidora"
+
+
+@cache
+def is_raspbian() -> bool:
+    """Return `True` only if current platform is Raspbian."""
+    return distro.id() == "raspbian"
+
+
+@cache
+def is_rhel() -> bool:
+    """Return `True` only if current platform is RedHat Enterprise Linux."""
+    return distro.id() == "rhel"
+
+
+@cache
+def is_rocky() -> bool:
+    """Return `True` only if current platform is Rocky Linux."""
+    return distro.id() == "rocky"
+
+
+@cache
+def is_scientific() -> bool:
+    """Return `True` only if current platform is Scientific Linux."""
+    return distro.id() == "scientific"
+
+
+@cache
+def is_slackware() -> bool:
+    """Return `True` only if current platform is Slackware."""
+    return distro.id() == "slackware"
+
+
+@cache
+def is_sles() -> bool:
+    """Return `True` only if current platform is SUSE Linux Enterprise Server."""
+    return distro.id() == "sles"
 
 
 @cache
@@ -178,6 +349,12 @@ def is_wsl1() -> bool:
 def is_wsl2() -> bool:
     """Return `True` only if current platform is Windows Subsystem for Linux v2."""
     return "microsoft" in platform.release()
+
+
+@cache
+def is_xenserver() -> bool:
+    """Return `True` only if current platform is XenServer."""
+    return distro.id() == "xenserver"
 
 
 def recursive_update(
@@ -282,33 +459,49 @@ class Platform:
         return info
 
 
-AIX = Platform("aix", "AIX", "➿")
-
+AIX = Platform("aix", "IBM AIX", "➿")
+ALTLINUX = Platform("altlinux", "ALT Linux")
+AMZN = Platform("amzn", "Amazon Linux", "🙂")
+ANDROID = Platform("android", "Android", "🤖")
+ARCH = Platform("arch", "Arch Linux", "🎗️")
+BUILDROOT = Platform("buildroot", "Buildroot")
+CENTOS = Platform("centos", "CentOS", "💠")
+CLOUDLINUX = Platform("cloudlinux", "CloudLinux OS")
 CYGWIN = Platform("cygwin", "Cygwin", "Ͼ")
-
+DEBIAN = Platform("debian", "Debian", "🌀")
+EXHERBO = Platform("exherbo", "Exherbo Linux")
+FEDORA = Platform("fedora", "Fedora", "🎩")
 FREEBSD = Platform("freebsd", "FreeBSD", "😈")
-
+GENTOO = Platform("gentoo", "Gentoo Linux", "🗜️")
+GUIX = Platform("guix", "Guix System")
 HURD = Platform("hurd", "GNU/Hurd", "🐃")
-
+IBM_POWERKVM = Platform("ibm_powerkvm", "IBM PowerKVM")
+KVMIBM = Platform("kvmibm", "KVM for IBM z Systems")
+LINUXMINT = Platform("linuxmint", "Linux Mint", "🌿")
 MACOS = Platform("macos", "macOS", "🍎")
-
+MAGEIA = Platform("mageia", "Mageia")
+MANDRIVA = Platform("mandriva", "Mandriva Linux")
+MIDNIGHTBSD = Platform("midnightbsd", "MidnightBSD", "🌘")
 NETBSD = Platform("netbsd", "NetBSD", "🚩")
-
 OPENBSD = Platform("openbsd", "OpenBSD", "🐡")
-
+OPENSUSE = Platform("opensuse", "openSUSE", "🦎")
+ORACLE = Platform("oracle", "Oracle Linux", "🦴")
+PARALLELS = Platform("parallels", "Parallels")
+PIDORA = Platform("pidora", "Pidora")
+RASPBIAN = Platform("raspbian", "Raspbian", "🍓")
+RHEL = Platform("rhel", "RedHat Enterprise Linux", "🎩")
+ROCKY = Platform("rocky", "Rocky Linux", "💠")
+SCIENTIFIC = Platform("scientific", "Scientific Linux")
+SLACKWARE = Platform("slackware", "Slackware")
+SLES = Platform("sles", "SUSE Linux Enterprise Server", "🦎")
 SOLARIS = Platform("solaris", "Solaris", "🌞")
-
 SUNOS = Platform("sunos", "SunOS", "☀️")
-
 UBUNTU = Platform("ubuntu", "Ubuntu", "🎯")
-
 UNKNOWN_LINUX = Platform("unknown_linux", "Unknown Linux", "🐧")
-
 WINDOWS = Platform("windows", "Windows", "🪟")
-
 WSL1 = Platform("wsl1", "Windows Subsystem for Linux v1", "⊞")
-
 WSL2 = Platform("wsl2", "Windows Subsystem for Linux v2", "⊞")
+XENSERVER = Platform("xenserver", "XenServer")
 
 
 @dataclass(frozen=True)
@@ -391,19 +584,48 @@ ALL_PLATFORMS: Group = Group(
     "🖥️",
     (
         AIX,
+        ALTLINUX,
+        AMZN,
+        ANDROID,
+        ARCH,
+        BUILDROOT,
+        CENTOS,
+        CLOUDLINUX,
         CYGWIN,
+        DEBIAN,
+        EXHERBO,
+        FEDORA,
         FREEBSD,
+        GENTOO,
+        GUIX,
         HURD,
-        UBUNTU,
-        UNKNOWN_LINUX,
+        IBM_POWERKVM,
+        KVMIBM,
+        LINUXMINT,
         MACOS,
+        MAGEIA,
+        MANDRIVA,
+        MIDNIGHTBSD,
         NETBSD,
         OPENBSD,
+        OPENSUSE,
+        ORACLE,
+        PARALLELS,
+        PIDORA,
+        RASPBIAN,
+        RHEL,
+        ROCKY,
+        SCIENTIFIC,
+        SLACKWARE,
+        SLES,
         SOLARIS,
         SUNOS,
+        UBUNTU,
+        UNKNOWN_LINUX,
         WINDOWS,
         WSL1,
         WSL2,
+        XENSERVER,
     ),
 )
 """All recognized platforms."""
@@ -434,7 +656,9 @@ This is useful to avoid macOS-specific workarounds on Unix platforms.
 """
 
 
-BSD = Group("bsd", "Any BSD", "🅱️", (FREEBSD, MACOS, NETBSD, OPENBSD, SUNOS))
+BSD = Group(
+    "bsd", "Any BSD", "🅱️", (FREEBSD, MACOS, MIDNIGHTBSD, NETBSD, OPENBSD, SUNOS)
+)
 """All BSD platforms.
 
 .. note::
@@ -466,8 +690,36 @@ ALL_LINUX = Group(
     "Any Linux",
     "🐧",
     (
+        ALTLINUX,
+        AMZN,
+        ANDROID,
+        ARCH,
+        BUILDROOT,
+        CENTOS,
+        CLOUDLINUX,
+        DEBIAN,
+        EXHERBO,
+        FEDORA,
+        GENTOO,
+        GUIX,
+        IBM_POWERKVM,
+        KVMIBM,
+        LINUXMINT,
+        MAGEIA,
+        MANDRIVA,
+        OPENSUSE,
+        ORACLE,
+        PARALLELS,
+        PIDORA,
+        RASPBIAN,
+        RHEL,
+        ROCKY,
+        SCIENTIFIC,
+        SLACKWARE,
+        SLES,
         UBUNTU,
         UNKNOWN_LINUX,
+        XENSERVER,
     ),
 )
 """All Unix platforms based on a Linux kernel.
