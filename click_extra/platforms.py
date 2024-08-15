@@ -62,8 +62,8 @@ systems at the same time.
 
 @cache
 def is_aix() -> bool:
-    return sys.platform.startswith("aix")
     """Return `True` only if current platform is AIX."""
+    return distro.id() == "aix"
 
 
 @cache
