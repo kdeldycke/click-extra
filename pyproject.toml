@@ -4,7 +4,7 @@ name = "click-extra"
 version = "4.10.0"
 # Python versions and their status: https://devguide.python.org/versions/
 requires-python = ">= 3.9"
-description = "🌈 Extra colorization and configuration loading for Click"
+description = "🌈 Drop-in replacement for Click to make user-friendly and colorful CLI"
 authors = [{ name = "Kevin Deldycke", email = "kevin@deldycke.com" }]
 readme = "readme.md"
 keywords = [
