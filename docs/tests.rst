@@ -57,14 +57,6 @@ tests.test\_parameters module
    :undoc-members:
    :show-inheritance:
 
-tests.test\_platforms module
-----------------------------
-
-.. automodule:: tests.test_platforms
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 tests.test\_pygments module
 ---------------------------
 
