@@ -23,6 +23,7 @@ from textwrap import dedent
 
 import click
 import pytest
+from extra_platforms import is_windows
 from pytest_cases import parametrize
 from tabulate import tabulate
 
@@ -49,7 +50,6 @@ from click_extra import (
 )
 from click_extra.decorators import extra_command, extra_group, show_params_option
 from click_extra.parameters import ShowParamsOption, extend_envvars, normalize_envvar
-from click_extra.platforms import is_windows
 from click_extra.pytest import command_decorators
 
 

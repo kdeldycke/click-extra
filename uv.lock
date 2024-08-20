@@ -148,12 +148,12 @@ dependencies = [
     { name = "click" },
     { name = "cloup" },
     { name = "commentjson" },
-    { name = "distro" },
+    { name = "extra-platforms", extra = ["pytest"] },
     { name = "mergedeep" },
     { name = "pyyaml" },
     { name = "requests" },
     { name = "tabulate", extra = ["widechars"] },
-    { name = "tomli", marker = "python_version < '3.11'" },
+    { name = "tomli", marker = "python_full_version < '3.11'" },
     { name = "wcmatch" },
     { name = "xmltodict" },
 ]
@@ -169,7 +169,7 @@ docs = [
     { name = "sphinx-issues" },
     { name = "sphinxcontrib-mermaid" },
     { name = "sphinxext-opengraph" },
-    { name = "tomli", marker = "python_version < '3.11'" },
+    { name = "tomli", marker = "python_full_version < '3.11'" },
 ]
 pygments = [
     { name = "pygments" },
@@ -200,6 +200,51 @@ typing = [
     { name = "types-requests" },
     { name = "types-tabulate" },
     { name = "types-xmltodict" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "boltons", specifier = "~=24.0.0" },
+    { name = "click", specifier = "~=8.1.4" },
+    { name = "cloup", specifier = "~=3.0.5" },
+    { name = "commentjson", specifier = "~=0.9.0" },
+    { name = "coverage", extras = ["toml"], marker = "extra == 'test'", specifier = "~=7.6.0" },
+    { name = "extra-platforms", extras = ["pytest"], specifier = "~=1.1.0" },
+    { name = "furo", marker = "extra == 'docs'", specifier = "~=2024.8.6" },
+    { name = "mergedeep", specifier = "~=1.3.4" },
+    { name = "myst-parser", marker = "extra == 'docs'", specifier = "~=3.0.0" },
+    { name = "pallets-sphinx-themes", marker = "extra == 'sphinx'", specifier = "~=2.1.1" },
+    { name = "pygments", marker = "extra == 'pygments'", specifier = "~=2.14" },
+    { name = "pygments", marker = "extra == 'sphinx'", specifier = "~=2.14" },
+    { name = "pygments-ansi-color", marker = "extra == 'pygments'", specifier = "~=0.3.0" },
+    { name = "pygments-ansi-color", marker = "extra == 'sphinx'", specifier = "~=0.3.0" },
+    { name = "pytest", marker = "extra == 'pytest'", specifier = ">=8" },
+    { name = "pytest", marker = "extra == 'test'", specifier = "~=8.3.1" },
+    { name = "pytest-cases", marker = "extra == 'test'", specifier = "~=3.8.3" },
+    { name = "pytest-cov", marker = "extra == 'test'", specifier = "~=5.0.0" },
+    { name = "pytest-github-actions-annotate-failures", marker = "extra == 'test'", specifier = "~=0.2.0" },
+    { name = "pytest-httpserver", marker = "extra == 'test'", specifier = "~=1.1.0" },
+    { name = "pytest-randomly", marker = "extra == 'test'", specifier = "~=3.15.0" },
+    { name = "pyyaml", specifier = "~=6.0.0" },
+    { name = "requests", specifier = "~=2.32.3" },
+    { name = "sphinx", marker = "extra == 'sphinx'", specifier = ">=7.2.0" },
+    { name = "sphinx", marker = "extra == 'docs'", specifier = ">=7.2.0" },
+    { name = "sphinx-autodoc-typehints", marker = "extra == 'docs'", specifier = "~=2.2.2" },
+    { name = "sphinx-copybutton", marker = "extra == 'docs'", specifier = "~=0.5.2" },
+    { name = "sphinx-design", marker = "extra == 'docs'", specifier = "~=0.6.0" },
+    { name = "sphinx-issues", marker = "extra == 'docs'", specifier = "~=4.1.0" },
+    { name = "sphinxcontrib-mermaid", marker = "extra == 'docs'", specifier = "~=0.9.2" },
+    { name = "sphinxext-opengraph", marker = "extra == 'docs'", specifier = "~=0.9.0" },
+    { name = "tabulate", extras = ["widechars"], specifier = "~=0.9" },
+    { name = "tomli", marker = "python_full_version < '3.11'", specifier = "~=2.0.1" },
+    { name = "tomli", marker = "python_full_version < '3.11' and extra == 'docs'", specifier = "~=2.0.1" },
+    { name = "types-pygments", marker = "extra == 'typing'", specifier = "~=2.18.0.20240506" },
+    { name = "types-pyyaml", marker = "extra == 'typing'", specifier = "~=6.0.12.9" },
+    { name = "types-requests", marker = "extra == 'typing'", specifier = "~=2.32.0.20240622" },
+    { name = "types-tabulate", marker = "extra == 'typing'", specifier = "~=0.9.0.2" },
+    { name = "types-xmltodict", marker = "extra == 'typing'", specifier = "~=0.13.0.2" },
+    { name = "wcmatch", specifier = "~=9.0" },
+    { name = "xmltodict", specifier = "~=0.13.0" },
 ]
 
 [[package]]
@@ -303,7 +348,7 @@ wheels = [
 
 [package.optional-dependencies]
 toml = [
-    { name = "tomli", marker = "python_full_version <= '3.11.0'" },
+    { name = "tomli", marker = "python_full_version <= '3.11'" },
 ]
 
 [[package]]
@@ -346,6 +391,24 @@ wheels = [
 ]
 
 [[package]]
+name = "extra-platforms"
+version = "1.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "boltons" },
+    { name = "distro" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/63/45/2a9a37e4ada768a536c2eed63007a1cb3c9c72d4d354474a9d110bd93885/extra_platforms-1.1.0.tar.gz", hash = "sha256:59fcabd66ace075f8ad57cc0777b0843f5ba2bfc1e7cd809eecba5dc1a0e26b7", size = 33600 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1f/db/32ecc2be58ceda4a56fad25b83c999f11a76e12eb36fe4878de0f80e343c/extra_platforms-1.1.0-py3-none-any.whl", hash = "sha256:25708adcdec146606ef8d48c2b874e2a2d58e8fc4971a3d38cd585c6105e1994", size = 23213 },
+]
+
+[package.optional-dependencies]
+pytest = [
+    { name = "pytest" },
+]
+
+[[package]]
 name = "furo"
 version = "2024.8.6"
 source = { registry = "https://pypi.org/simple" }
@@ -380,14 +443,14 @@ wheels = [
 
 [[package]]
 name = "importlib-metadata"
-version = "8.2.0"
+version = "8.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "zipp" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f6/a1/db39a513aa99ab3442010a994eef1cb977a436aded53042e69bee6959f74/importlib_metadata-8.2.0.tar.gz", hash = "sha256:72e8d4399996132204f9a16dcc751af254a48f8d1b20b9ff0f98d4a8f901e73d", size = 53907 }
+sdist = { url = "https://files.pythonhosted.org/packages/c0/bd/fa8ce65b0a7d4b6d143ec23b0f5fd3f7ab80121078c465bc02baeaab22dc/importlib_metadata-8.4.0.tar.gz", hash = "sha256:9a547d3bc3608b025f93d403fdd1aae741c24fbb8314df4b155675742ce303c5", size = 54320 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/82/47/bb25ec04985d0693da478797c3d8c1092b140f3a53ccb984fbbd38affa5b/importlib_metadata-8.2.0-py3-none-any.whl", hash = "sha256:11901fa0c2f97919b288679932bb64febaeacf289d18ac84dd68cb2e74213369", size = 25920 },
+    { url = "https://files.pythonhosted.org/packages/c0/14/362d31bf1076b21e1bcdcb0dc61944822ff263937b804a79231df2774d28/importlib_metadata-8.4.0-py3-none-any.whl", hash = "sha256:66f342cc6ac9818fc6ff340576acd24d65ba0b3efabb2b4ac08b598965a4a2f1", size = 26269 },
 ]
 
 [[package]]
@@ -591,11 +654,11 @@ version = "8.3.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
-    { name = "exceptiongroup", marker = "python_version < '3.11'" },
+    { name = "exceptiongroup", marker = "python_full_version < '3.11'" },
     { name = "iniconfig" },
     { name = "packaging" },
     { name = "pluggy" },
-    { name = "tomli", marker = "python_version < '3.11'" },
+    { name = "tomli", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/b4/8c/9862305bdcd6020bc7b45b1b5e7397a6caf1a33d3025b9a003b39075ffb2/pytest-8.3.2.tar.gz", hash = "sha256:c132345d12ce551242c87269de812483f5bcc87cdbb4722e48487ba194f9fdce", size = 1439314 }
 wheels = [
@@ -658,7 +721,7 @@ name = "pytest-randomly"
 version = "3.15.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "importlib-metadata", marker = "python_version < '3.10'" },
+    { name = "importlib-metadata", marker = "python_full_version < '3.10'" },
     { name = "pytest" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/c9/d4/6e924a0b2855736d942703dec88dfc98b4fe0881c8fa849b6b0fbb9182fa/pytest_randomly-3.15.0.tar.gz", hash = "sha256:b908529648667ba5e54723088edd6f82252f540cc340d748d1fa985539687047", size = 21743 }
@@ -762,7 +825,7 @@ dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
     { name = "docutils" },
     { name = "imagesize" },
-    { name = "importlib-metadata", marker = "python_version < '3.10'" },
+    { name = "importlib-metadata", marker = "python_full_version < '3.10'" },
     { name = "jinja2" },
     { name = "packaging" },
     { name = "pygments" },
@@ -774,7 +837,7 @@ dependencies = [
     { name = "sphinxcontrib-jsmath" },
     { name = "sphinxcontrib-qthelp" },
     { name = "sphinxcontrib-serializinghtml" },
-    { name = "tomli", marker = "python_version < '3.11'" },
+    { name = "tomli", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/5b/be/50e50cb4f2eff47df05673d361095cafd95521d2a22521b920c67a372dcb/sphinx-7.4.7.tar.gz", hash = "sha256:242f92a7ea7e6c5b406fdc2615413890ba9f699114a9c09192d7dfead2ee9cfe", size = 8067911 }
 wheels = [
@@ -984,11 +1047,11 @@ wheels = [
 
 [[package]]
 name = "types-setuptools"
-version = "71.1.0.20240813"
+version = "71.1.0.20240818"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/b8/86/aecc6fc3895d32ead5c5b412bbc0821a804e05a70eb1d19a6e34d79992af/types-setuptools-71.1.0.20240813.tar.gz", hash = "sha256:94ff4f0af18c7c24ac88932bcb0f5655fb7187a001b7c61e53a1bfdaf9877b54", size = 42178 }
+sdist = { url = "https://files.pythonhosted.org/packages/a8/83/8d5e04e8b08f70752489809fa7a9b18b7fb20554dff633293b11cdf0b5bc/types-setuptools-71.1.0.20240818.tar.gz", hash = "sha256:f62eaffaa39774462c65fbb49368c4dc1d91a90a28371cb14e1af090ff0e41e3", size = 42224 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ce/48/ba3ae5c2f9dd4e842e2736194fde1ff20d856d1fc38486c230d2a252ca44/types_setuptools-71.1.0.20240813-py3-none-any.whl", hash = "sha256:d9d9ba2936f5d3b47b59ae9bf65942a60063ac1d6bbee180a8a79fbb43f22ce5", size = 66855 },
+    { url = "https://files.pythonhosted.org/packages/5f/8b/96a7ad4a355aab5688f58517d946a37975e3baa8b71d4cd3b5f87ff77b23/types_setuptools-71.1.0.20240818-py3-none-any.whl", hash = "sha256:c4f95302f88369ac0ac46c67ddbfc70c6c4dbbb184d9fed356244217a2934025", size = 66865 },
 ]
 
 [[package]]

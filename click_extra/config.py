@@ -39,6 +39,8 @@ import yaml
 from boltons.iterutils import flatten
 from boltons.pathutils import shrinkuser
 from boltons.urlutils import URL
+from extra_platforms import is_windows
+from extra_platforms.platforms import _recursive_update, _remove_blanks
 from mergedeep import merge
 from wcmatch.glob import (
     BRACE,
@@ -61,7 +63,6 @@ from . import (
     get_current_context,
 )
 from .parameters import ExtraOption, ParamStructure
-from .platforms import is_windows, recursive_update, remove_blanks
 
 
 class Formats(Enum):
@@ -358,11 +359,11 @@ class ConfigOption(ExtraOption, ParamStructure):
         will filter out all unrecognized options not supported by the command. Then
         cleans up blank values and update the context's ``default_map``.
         """
-        filtered_conf = recursive_update(self.params_template, user_conf, self.strict)
+        filtered_conf = _recursive_update(self.params_template, user_conf, self.strict)
 
         # Clean-up the conf by removing all blank values left-over by the template
         # structure.
-        clean_conf = remove_blanks(filtered_conf, remove_str=False)
+        clean_conf = _remove_blanks(filtered_conf, remove_str=False)
 
         # Update the default_map.
         if ctx.default_map is None:

@@ -29,12 +29,9 @@
 
 from __future__ import annotations
 
-import html
 import sys
 from pathlib import Path
-from textwrap import indent
 
-from .platforms import ALL_GROUPS, EXTRA_GROUPS, NON_OVERLAPPING_GROUPS, Group
 from .tabulate import tabulate
 
 
@@ -96,72 +93,6 @@ def generate_lexer_table() -> str:
     )
 
 
-def generate_platform_sankey() -> str:
-    """Produce a Sankey diagram to map all platforms to their platforms."""
-    table = []
-
-    # Display biggest groups first. Add ID in the sorting key to get stable sorting on
-    # tie.
-    for group in sorted(
-        ALL_GROUPS, key=lambda g: (len(g.platform_ids), g.id), reverse=True
-    ):
-        for platform in group.platforms:
-            line = f"{group.id},{platform.id},1"
-            table.append(line)
-
-    output = "```mermaid\nsankey-beta\n\n"
-    output += "\n".join(table)
-    output += "\n```"
-    return output
-
-
-def generate_platforms_graph(
-    graph_id: str,
-    description: str,
-    groups: frozenset[Group],
-) -> str:
-    """Generates an `Euler diagram <https://xkcd.com/2721/>`_ of platform and their
-    grouping.
-
-    Euler diagrams are
-    `not supported by mermaid yet <https://github.com/mermaid-js/mermaid/issues/2583>`_
-    so we fallback on a flowchart without arrows.
-
-    Returns a ready to use and properly indented MyST block.
-    """
-    INDENT = " " * 4
-    subgraphs = set()
-
-    # Create one subgraph per group.
-    for group in sorted(groups, key=lambda g: g.id):
-        nodes = set()
-        for platform in group:
-            # Make the node ID unique for overlapping groups.
-            nodes.add(
-                f"{group.id}_{platform.id}"
-                f"(<code>{platform.id}</code><br/>"
-                f"{html.escape(platform.icon)} <em>{html.escape(platform.name)}</em>)",
-            )
-        subgraphs.add(
-            f'subgraph "<code>click_extra.platforms.{group.id.upper()}</code>'
-            "<br/>"
-            f'{html.escape(group.icon)} <em>{html.escape(group.name)}</em>"'
-            "\n" + indent("\n".join(sorted(nodes)), INDENT) + "\nend",
-        )
-
-    # Wrap the Mermaid code into a MyST block.
-    return "\n".join(
-        (
-            # Use attributes blocks extension to add a title.
-            f'{{caption="`click_extra.platforms.{graph_id}` - {description}"}}',
-            "```mermaid",
-            "flowchart",
-            indent("\n".join(sorted(subgraphs)), INDENT),
-            "```",
-        ),
-    )
-
-
 def update_docs() -> None:
     """Update documentation with dynamic content."""
     project_root = Path(__file__).parent.parent
@@ -173,43 +104,6 @@ def update_docs() -> None:
         "\n\n<!-- lexer-table-end -->",
         generate_lexer_table(),
     )
-
-    # TODO: Replace this hard-coded dict by allowing Group dataclass to group
-    # other groups.
-    all_groups = (
-        {
-            "id": "NON_OVERLAPPING_GROUPS",
-            "description": "Non-overlapping groups.",
-            "groups": NON_OVERLAPPING_GROUPS,
-        },
-        {
-            "id": "EXTRA_GROUPS",
-            "description": "Overlapping groups, defined for convenience.",
-            "groups": EXTRA_GROUPS,
-        },
-    )
-    assert frozenset(g for groups in all_groups for g in groups["groups"]) == ALL_GROUPS
-
-    # Update the platform diagrams in Sphinx's documentation.
-    replace_content(
-        project_root.joinpath("docs/platforms.md"),
-        "<!-- platform-sankey-start -->\n\n",
-        "\n\n<!-- platform-sankey-end -->",
-        generate_platform_sankey(),
-    )
-
-    platform_doc = project_root.joinpath("docs/platforms.md")
-    for top_groups in all_groups:
-        replace_content(
-            platform_doc,
-            f"<!-- {top_groups['id']}-graph-start -->\n\n",
-            f"\n\n<!-- {top_groups['id']}-graph-end -->",
-            generate_platforms_graph(
-                top_groups["id"],  # type: ignore[arg-type]
-                top_groups["description"],  # type: ignore[arg-type]
-                top_groups["groups"],  # type: ignore[arg-type]
-            ),
-        )
 
 
 if __name__ == "__main__":

@@ -31,9 +31,9 @@ import click
 import click.testing
 import cloup
 import pytest
+from extra_platforms.pytest import skip_windows
 
 from click_extra.decorators import command, extra_command, extra_group, group
-from click_extra.platforms import ALL_LINUX, CURRENT_OS_ID, is_macos, is_windows
 from click_extra.testing import ExtraCliRunner
 
 if TYPE_CHECKING:
@@ -41,29 +41,6 @@ if TYPE_CHECKING:
 
     from _pytest.mark import MarkDecorator
     from _pytest.mark.structures import ParameterSet
-
-skip_linux = pytest.mark.skipif(
-    CURRENT_OS_ID in ALL_LINUX.platform_ids, reason="Skip Linux"
-)
-"""Pytest mark to skip a test if run on a Linux system."""
-
-skip_macos = pytest.mark.skipif(is_macos(), reason="Skip macOS")
-"""Pytest mark to skip a test if run on a macOS system."""
-
-skip_windows = pytest.mark.skipif(is_windows(), reason="Skip Windows")
-"""Pytest mark to skip a test if run on a Windows system."""
-
-
-unless_linux = pytest.mark.skipif(
-    CURRENT_OS_ID not in ALL_LINUX.platform_ids, reason="Linux required"
-)
-"""Pytest mark to skip a test unless it is run on a Linux system."""
-
-unless_macos = pytest.mark.skipif(not is_macos(), reason="macOS required")
-"""Pytest mark to skip a test unless it is run on a macOS system."""
-
-unless_windows = pytest.mark.skipif(not is_windows(), reason="Windows required")
-"""Pytest mark to skip a test unless it is run on a Windows system."""
 
 
 skip_windows_colors = skip_windows(reason="Click overstrip colors on Windows")
