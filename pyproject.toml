@@ -142,7 +142,7 @@ docs = [
 "Repository" = 'https://github.com/kdeldycke/click-extra'
 "Funding" = "https://github.com/sponsors/kdeldycke"
 "Issues" = "https://github.com/kdeldycke/click-extra/issues"
-"Changelog" = "https://kdeldycke.github.io/click-extra/changelog.html"
+"Changelog" = "https://github.com/kdeldycke/click-extra/blob/main/changelog.md"
 
 [project.entry-points."pygments.formatters"]
 ansi-html-formatter = "click_extra.pygments:AnsiHtmlFormatter"
