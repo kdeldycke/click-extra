@@ -5,7 +5,7 @@
 > \[!IMPORTANT\]
 > This version is not released yet and is under active development.
 
-- Move all platform detection utilies to its own standalone [Extra Platforms project](https://github.com/kdeldycke/extra-platforms).
+- Move all platform detection utilities to its own standalone [Extra Platforms project](https://github.com/kdeldycke/extra-platforms).
 - Add dependency on `extra-platforms`.
 
 ## [4.9.0 (2024-07-25)](https://github.com/kdeldycke/click-extra/compare/v4.8.3...v4.9.0)
