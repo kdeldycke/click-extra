@@ -26,20 +26,20 @@ This is a graph of the default, main dependencies of the Python package:
 
 For additional features, and to facilitate integration of Click CLIs with third-party tools, you may need to install extra dependencies:
 
-* [For Pygments](pygments.md):
+- [For Pygments](pygments.md):
 
-    ```shell-session
-    $ pip install click-extra[pygments]
-    ```
+  ```shell-session
+  $ pip install click-extra[pygments]
+  ```
 
-* [For Sphinx](sphinx.md):
+- [For Sphinx](sphinx.md):
 
-    ```shell-session
-    $ pip install click-extra[sphinx]
-    ```
+  ```shell-session
+  $ pip install click-extra[sphinx]
+  ```
 
-* [For Pytest](pytest.md):
+- [For Pytest](pytest.md):
 
-    ```shell-session
-    $ pip install click-extra[pytest]
-    ```
+  ```shell-session
+  $ pip install click-extra[pytest]
+  ```
