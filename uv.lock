@@ -185,7 +185,6 @@ sphinx = [
     { name = "sphinx" },
 ]
 test = [
-    { name = "coverage" },
     { name = "coverage", extra = ["toml"] },
     { name = "pytest" },
     { name = "pytest-cases" },
@@ -425,11 +424,11 @@ wheels = [
 
 [[package]]
 name = "idna"
-version = "3.7"
+version = "3.8"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/21/ed/f86a79a07470cb07819390452f178b3bef1d375f2ec021ecfc709fc7cf07/idna-3.7.tar.gz", hash = "sha256:028ff3aadf0609c1fd278d8ea3089299412a7a8b9bd005dd08b9f8285bcb5cfc", size = 189575 }
+sdist = { url = "https://files.pythonhosted.org/packages/e8/ac/e349c5e6d4543326c6883ee9491e3921e0d07b55fdf3cce184b40d63e72a/idna-3.8.tar.gz", hash = "sha256:d838c2c0ed6fced7693d5e8ab8e734d5f8fda53a039c0164afb0b82e771e3603", size = 189467 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e5/3e/741d8c82801c347547f8a2a06aa57dbb1992be9e948df2ea0eda2c8b79e8/idna-3.7-py3-none-any.whl", hash = "sha256:82fee1fc78add43492d3a1898bfa6d8a904cc97d8427f683ed8e798d07761aa0", size = 66836 },
+    { url = "https://files.pythonhosted.org/packages/22/7e/d71db821f177828df9dea8c42ac46473366f191be53080e552e628aad991/idna-3.8-py3-none-any.whl", hash = "sha256:050b4e5baadcd44d760cedbd2b8e639f2ff89bbc7a5730fcc662954303377aac", size = 66894 },
 ]
 
 [[package]]
@@ -1047,11 +1046,11 @@ wheels = [
 
 [[package]]
 name = "types-setuptools"
-version = "72.2.0.20240821"
+version = "73.0.0.20240822"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/2c/db/7b2c5190db1c74e42aebefa081f1f82741a2591a77e4e6471d52938ea15a/types-setuptools-72.2.0.20240821.tar.gz", hash = "sha256:e349b8015608879939f27ee370672f801287c46f5caa2d188d416336172c4965", size = 42123 }
+sdist = { url = "https://files.pythonhosted.org/packages/44/a8/5b26af1117daf328f3420fce5ad36f9331a2bbc689862923789402eb83d6/types-setuptools-73.0.0.20240822.tar.gz", hash = "sha256:3a060681098eb3fbc2fea0a86f7f6af6aa1ca71906039d88d891ea2cecdd4dbf", size = 42177 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/af/d0/ff619a3202824e54d3b048fe7c34e5904b8e985196c6bcd5496e843e01b7/types_setuptools-72.2.0.20240821-py3-none-any.whl", hash = "sha256:260e89d6d3b42cc35f9f0f382d030713b7b547344a664c05c9175e6ba124fac7", size = 66596 },
+    { url = "https://files.pythonhosted.org/packages/57/76/ec2cf632452154ecceaed2075707ca09719238e8ba53b3027f47ba78b90c/types_setuptools-73.0.0.20240822-py3-none-any.whl", hash = "sha256:b9eba9b68546031317a0fa506d4973641d987d74f79e7dd8369ad4f7a93dea17", size = 67135 },
 ]
 
 [[package]]
@@ -1104,14 +1103,14 @@ wheels = [
 
 [[package]]
 name = "werkzeug"
-version = "3.0.3"
+version = "3.0.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "markupsafe" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/02/51/2e0fc149e7a810d300422ab543f87f2bcf64d985eb6f1228c4efd6e4f8d4/werkzeug-3.0.3.tar.gz", hash = "sha256:097e5bfda9f0aba8da6b8545146def481d06aa7d3266e7448e2cccf67dd8bd18", size = 803342 }
+sdist = { url = "https://files.pythonhosted.org/packages/0f/e2/6dbcaab07560909ff8f654d3a2e5a60552d937c909455211b1b36d7101dc/werkzeug-3.0.4.tar.gz", hash = "sha256:34f2371506b250df4d4f84bfe7b0921e4762525762bbd936614909fe25cd7306", size = 803966 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9d/6e/e792999e816d19d7fcbfa94c730936750036d65656a76a5a688b57a656c4/werkzeug-3.0.3-py3-none-any.whl", hash = "sha256:fc9645dc43e03e4d630d23143a04a7f947a9a3b5727cd535fdfe155a17cc48c8", size = 227274 },
+    { url = "https://files.pythonhosted.org/packages/4b/84/997bbf7c2bf2dc3f09565c6d0b4959fefe5355c18c4096cfd26d83e0785b/werkzeug-3.0.4-py3-none-any.whl", hash = "sha256:02c9eb92b7d6c06f31a782811505d2157837cea66aaede3e217c7c27c039476c", size = 227554 },
 ]
 
 [[package]]
