@@ -34,8 +34,9 @@ from click_extra.pytest import (
     default_debug_colored_logging,
     default_debug_uncolored_log_end,
     default_debug_uncolored_logging,
-    skip_windows_colors,
 )
+
+from .conftest import skip_windows_colors
 
 
 def test_level_default_order():

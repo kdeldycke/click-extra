@@ -27,8 +27,10 @@ from extra_platforms import is_windows
 from pytest_cases import fixture, parametrize
 
 from click_extra import Style, command, echo, pass_context, secho, style
-from click_extra.pytest import command_decorators, skip_windows_colors
+from click_extra.pytest import command_decorators
 from click_extra.testing import ExtraCliRunner, env_copy
+
+from .conftest import skip_windows_colors
 
 
 def test_real_fs():

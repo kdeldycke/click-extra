@@ -69,8 +69,9 @@ from click_extra.pytest import (
     default_debug_uncolored_log_start,
     default_debug_uncolored_logging,
     default_options_colored_help,
-    skip_windows_colors,
 )
+
+from .conftest import skip_windows_colors
 
 
 def test_theme_definition():

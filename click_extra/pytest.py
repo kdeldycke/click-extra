@@ -31,7 +31,6 @@ import click
 import click.testing
 import cloup
 import pytest
-from extra_platforms.pytest import skip_windows
 
 from click_extra.decorators import command, extra_command, extra_group, group
 from click_extra.testing import ExtraCliRunner
@@ -41,15 +40,6 @@ if TYPE_CHECKING:
 
     from _pytest.mark import MarkDecorator
     from _pytest.mark.structures import ParameterSet
-
-
-skip_windows_colors = skip_windows(reason="Click overstrip colors on Windows")
-"""Skips color tests on Windows as ``click.testing.invoke`` overzealously strips colors.
-
-See:
-- https://github.com/pallets/click/issues/2111
-- https://github.com/pallets/click/issues/2110
-"""
 
 
 @pytest.fixture
@@ -66,9 +56,13 @@ def invoke(extra_runner):
     return extra_runner.invoke
 
 
-# XXX Support for decorator without parenthesis in Cloup has been reported upstream:
-# https://github.com/janluke/cloup/issues/127
 skip_naked = pytest.mark.skip(reason="Naked decorator not supported yet.")
+"""Mark to skip Cloup decorators without parenthesis.
+
+.. warning::
+    `Cloup does not yet support decorators without parenthesis
+    <https://github.com/janluke/cloup/issues/127>`_.
+"""
 
 
 def command_decorators(

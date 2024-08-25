@@ -148,7 +148,7 @@ dependencies = [
     { name = "click" },
     { name = "cloup" },
     { name = "commentjson" },
-    { name = "extra-platforms", extra = ["pytest"] },
+    { name = "extra-platforms" },
     { name = "mergedeep" },
     { name = "pyyaml" },
     { name = "requests" },
@@ -186,6 +186,7 @@ sphinx = [
 ]
 test = [
     { name = "coverage", extra = ["toml"] },
+    { name = "extra-platforms", extra = ["pytest"] },
     { name = "pytest" },
     { name = "pytest-cases" },
     { name = "pytest-cov" },
@@ -208,7 +209,8 @@ requires-dist = [
     { name = "cloup", specifier = "~=3.0.5" },
     { name = "commentjson", specifier = "~=0.9.0" },
     { name = "coverage", extras = ["toml"], marker = "extra == 'test'", specifier = "~=7.6.0" },
-    { name = "extra-platforms", extras = ["pytest"], specifier = "~=1.2.0" },
+    { name = "extra-platforms", specifier = "~=1.2.0" },
+    { name = "extra-platforms", extras = ["pytest"], marker = "extra == 'test'", specifier = "~=1.2.0" },
     { name = "furo", marker = "extra == 'docs'", specifier = "~=2024.8.6" },
     { name = "mergedeep", specifier = "~=1.3.4" },
     { name = "myst-parser", marker = "extra == 'docs'", specifier = "~=3.0.0" },
