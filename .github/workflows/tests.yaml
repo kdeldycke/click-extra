@@ -161,7 +161,7 @@ jobs:
       - name: Install project
         run: |
           uv --no-progress venv
-          uv --no-progress pip install --all-extras --requirement ./pyproject.toml .
+          uv --no-progress sync --all-extras --dev
 
       - name: Unittests
         run: >

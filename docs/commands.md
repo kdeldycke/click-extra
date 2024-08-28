@@ -282,7 +282,7 @@ $ uv venv
 $ source .venv/bin/activate
 (...)
 
-$ uv pip install --all-extras ./pyproject.toml
+$ uv sync --all-extras --dev
 (...)
 
 $ uv run -- python -m pip install dbt-core

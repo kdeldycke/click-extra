@@ -33,7 +33,7 @@ jobs:
       - name: Install project
         run: |
           uv --no-progress venv
-          uv --no-progress pip install --all-extras --requirement pyproject.toml .
+          uv --no-progress sync --all-extras --dev
       - name: Generate dynamic doc
         run: |
           uv --no-progress run --frozen -- python -m click_extra.docs_update
