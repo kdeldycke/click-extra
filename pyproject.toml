@@ -124,7 +124,7 @@ typing = [
 ]
 docs = [
     "furo ~= 2024.8.6",
-    "myst-parser ~= 3.0.0",
+    "myst-parser ~= 4.0.0",
     # Sphinx 7.2.0 is the first version to drop Python 3.8.
     "sphinx >= 7.2.0",
     "sphinx-autodoc-typehints ~= 2.3.0",
