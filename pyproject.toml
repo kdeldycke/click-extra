@@ -145,6 +145,9 @@ docs = [
 "Issues" = "https://github.com/kdeldycke/click-extra/issues"
 "Changelog" = "https://github.com/kdeldycke/click-extra/blob/main/changelog.md"
 
+[tool.uv]
+package = true
+
 [project.entry-points."pygments.formatters"]
 ansi-html-formatter = "click_extra.pygments:AnsiHtmlFormatter"
 
