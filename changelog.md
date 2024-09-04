@@ -1,9 +1,6 @@
 # Changelog
 
-## [4.10.0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v4.9.0...main)
-
-> [!IMPORTANT]
-> This version is not released yet and is under active development.
+## [4.10.0 (2024-09-04)](https://github.com/kdeldycke/click-extra/compare/v4.9.0...v4.10.0)
 
 - Move all platform detection utilities to its own standalone [Extra Platforms project](https://github.com/kdeldycke/extra-platforms).
 - Add dependency on `extra-platforms`.
