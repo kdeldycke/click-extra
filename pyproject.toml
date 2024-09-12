@@ -200,7 +200,12 @@ module = [
 
 [tool.pytest.ini_options]
 # https://docs.pytest.org/en/latest/customize.html#pyproject-toml
-addopts = ["--durations=10", "--cov-report=term", "--cov-report=xml"]
+addopts = [
+    "--durations=10",
+    "--cov=click_extra",
+    "--cov-report=term",
+    "--cov-report=xml",
+]
 # Make sure tests that are expected to fail do not resurect and start working all of a sudden.
 xfail_strict = true
 
