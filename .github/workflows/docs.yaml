@@ -33,7 +33,7 @@ jobs:
       - name: Install project
         run: |
           uv --no-progress venv
-          uv --no-progress sync --all-extras --dev
+          uv --no-progress sync
       - name: Generate dynamic doc
         run: |
           uv --no-progress run --frozen -- python -m click_extra.docs_update

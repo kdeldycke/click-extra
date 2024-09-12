@@ -282,7 +282,7 @@ $ uv venv
 $ source .venv/bin/activate
 (...)
 
-$ uv sync --all-extras --dev
+$ uv sync --all-extras
 (...)
 
 $ uv run -- python -m pip install dbt-core
