@@ -43,18 +43,6 @@ from click_extra.pygments import DEFAULT_TOKEN_TYPE, collect_session_lexers
 PROJECT_ROOT = Path(__file__).parent.parent
 
 
-def is_relative_to(path: Path, *other: Path) -> bool:
-    """Return `True` if the path is relative to another path or `False`.
-
-    This is a backport of `pathlib.Path.is_relative_to` from Python 3.9.
-    """
-    try:
-        path.relative_to(*other)
-        return True
-    except ValueError:
-        return False
-
-
 def test_ansi_lexers_candidates(tmp_path):
     """Look into Pygments test suite to find all ANSI lexers candidates.
 
@@ -110,10 +98,7 @@ def test_ansi_lexers_candidates(tmp_path):
 
             # XXX Security check of relative ``..`` or ``.`` path attacks.
             filename = tmp_path.joinpath(member.name).resolve()
-            if sys.version_info >= (3, 9):
-                assert filename.is_relative_to(tmp_path)
-            else:
-                assert is_relative_to(filename, tmp_path)
+            assert filename.is_relative_to(tmp_path)
 
             # Skip files that are not part of the test suite data.
             match = False

@@ -15,8 +15,6 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Expose package-wide elements."""
 
-import sys
-
 __version__ = "4.10.1"
 """Examples of valid version strings according :pep:`440#version-scheme`:
 
@@ -29,24 +27,6 @@ __version__ = "4.10.1"
     __version__ = "1.2.3"  # Final Release
     __version__ = "1.2.3.post1"  # Post Release 1
 """
-
-if sys.version_info >= (3, 9):
-    from functools import cache
-else:
-    from functools import lru_cache
-
-    def cache(user_function):
-        """Simple lightweight unbounded cache. Sometimes called "memoize".
-
-        .. important::
-
-            This is a straight `copy of the functools.cache implementation
-            <https://github.com/python/cpython/blob/55a26de/Lib/functools.py#L647-L653>`_,
-            which is only `available in the standard library starting with Python v3.9
-            <https://docs.python.org/3/library/functools.html?highlight=caching#functools.cache>`.
-        """
-        return lru_cache(maxsize=None)(user_function)
-
 
 # Import all click's module-level content to allow for drop-in replacement.
 # XXX Star import is really badly supported by mypy for now and leads to lots of

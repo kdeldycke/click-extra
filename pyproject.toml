@@ -3,7 +3,7 @@
 name = "click-extra"
 version = "4.10.1"
 # Python versions and their status: https://devguide.python.org/versions/
-requires-python = ">= 3.9"
+requires-python = ">= 3.10"
 description = "🌈 Drop-in replacement for Click to make user-friendly and colorful CLI"
 authors = [{ name = "Kevin Deldycke", email = "kevin@deldycke.com" }]
 readme = "readme.md"
@@ -43,7 +43,6 @@ classifiers = [
     'Operating System :: Microsoft :: Windows',
     'Operating System :: POSIX :: Linux',
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -100,8 +99,8 @@ sphinx = [
     "pygments-ansi-color ~= 0.3.0",
     # Pallets-Sphinx-Themes 2.1.1 is the first version removing old and conflicting Python 2 code.
     "Pallets-Sphinx-Themes ~= 2.1.1",
-    # Sphinx 7.2.0 is the first version to drop Python 3.8.
-    "sphinx >= 7.2.0",
+    # Sphinx 8 is the first version to drop Python 3.9.
+    "sphinx ~= 8.0.2",
 ]
 pytest = ["pytest >= 8"]
 test = [
@@ -124,9 +123,9 @@ typing = [
 ]
 docs = [
     "furo ~= 2024.8.6",
-    "myst-parser ~= 3.0.0",
-    # Sphinx 7.2.0 is the first version to drop Python 3.8.
-    "sphinx >= 7.2.0",
+    "myst-parser ~= 4.0.0",
+    # Sphinx 8 is the first version to drop Python 3.9.
+    "sphinx ~= 8.0.2",
     "sphinx-autodoc-typehints ~= 2.3.0",
     "sphinx-copybutton ~= 0.5.2",
     # sphinx-design 0.5.0 is the first to allow Sphinx 7.

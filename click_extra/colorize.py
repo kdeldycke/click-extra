@@ -23,6 +23,7 @@ import re
 from collections.abc import Iterable
 from configparser import RawConfigParser
 from dataclasses import dataclass
+from functools import cache
 from gettext import gettext as _
 from operator import getitem
 from typing import Callable, Sequence, cast
@@ -41,7 +42,6 @@ from . import (
     Parameter,
     ParameterSource,
     Style,
-    cache,
     echo,
     get_current_context,
 )

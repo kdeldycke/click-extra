@@ -18,7 +18,6 @@
 from __future__ import annotations
 
 import logging
-import sys
 from gettext import gettext as _
 from logging import (
     WARNING,
@@ -38,28 +37,6 @@ from .parameters import ExtraOption
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterable, Sequence
-
-_original_get_logger = logging.getLogger
-
-
-def _patched_get_logger(name: str | None = None) -> Logger:
-    """Patch ``logging.getLogger`` to return the right root logger object.
-
-    .. warning::
-        This is a bugfix for Python 3.8 and earlier for which the ``root`` logger
-        cannot be fetched with its plain ``root`` name.
-
-        See:
-        - `cpython#81923 <https://github.com/python/cpython/issues/81923>`_
-        - `cpython@cb65b3a <https://github.com/python/cpython/commit/cb65b3a>`_
-    """
-    if name == "root":
-        name = None
-    return _original_get_logger(name)
-
-
-if sys.version_info < (3, 9):
-    logging.getLogger = _patched_get_logger
 
 
 LOG_LEVELS: dict[str, int] = {

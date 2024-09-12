@@ -47,7 +47,6 @@ jobs:
                   "windows-2019",
               },
               "python-version": {
-                  "3.9",
                   "3.10",
                   "3.11",
                   "3.12",
@@ -93,8 +92,6 @@ jobs:
                   # Exclude Python's dev version.
                   {"python-version": "3.13-dev"},
                   # Exclude intermediate Python version. Only test on oldest and newest released Python versions.
-                  {"python-version": "3.9"},
-                  {"python-version": "3.10"},
                   {"python-version": "3.11"},
               ):
                   exclude.append({**dev_version, **criterion})
