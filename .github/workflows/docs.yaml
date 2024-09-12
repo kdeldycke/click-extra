@@ -37,7 +37,7 @@ jobs:
       - name: Generate dynamic doc
         run: |
           uv --no-progress run --frozen -- python -m click_extra.docs_update
-      - uses: peter-evans/create-pull-request@v7.0.1
+      - uses: peter-evans/create-pull-request@v7.0.2
         with:
           assignees: ${{ github.actor }}
           commit-message: "[autofix] Regenerate documentation."
