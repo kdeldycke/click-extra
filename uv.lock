@@ -126,7 +126,7 @@ wheels = [
 
 [[package]]
 name = "click-extra"
-version = "4.10.1"
+version = "4.11.0"
 source = { editable = "." }
 dependencies = [
     { name = "boltons" },
@@ -194,8 +194,8 @@ requires-dist = [
     { name = "cloup", specifier = "~=3.0.5" },
     { name = "commentjson", specifier = "~=0.9.0" },
     { name = "coverage", extras = ["toml"], marker = "extra == 'test'", specifier = "~=7.6.0" },
-    { name = "extra-platforms", specifier = "~=1.2.0" },
-    { name = "extra-platforms", extras = ["pytest"], marker = "extra == 'test'", specifier = "~=1.2.0" },
+    { name = "extra-platforms", specifier = "~=1.3.0" },
+    { name = "extra-platforms", extras = ["pytest"], marker = "extra == 'test'", specifier = "~=1.3.0" },
     { name = "furo", marker = "extra == 'docs'", specifier = "~=2024.8.6" },
     { name = "mergedeep", specifier = "~=1.3.4" },
     { name = "myst-parser", marker = "extra == 'docs'", specifier = "~=4.0.0" },
@@ -215,7 +215,7 @@ requires-dist = [
     { name = "requests", specifier = "~=2.32.3" },
     { name = "sphinx", marker = "extra == 'docs'", specifier = "~=8.0.2" },
     { name = "sphinx", marker = "extra == 'sphinx'", specifier = "~=8.0.2" },
-    { name = "sphinx-autodoc-typehints", marker = "extra == 'docs'", specifier = "~=2.3.0" },
+    { name = "sphinx-autodoc-typehints", marker = "extra == 'docs'", specifier = "~=2.4.0" },
     { name = "sphinx-copybutton", marker = "extra == 'docs'", specifier = "~=0.5.2" },
     { name = "sphinx-design", marker = "extra == 'docs'", specifier = "~=0.6.0" },
     { name = "sphinx-issues", marker = "extra == 'docs'", specifier = "~=4.1.0" },
@@ -368,15 +368,15 @@ wheels = [
 
 [[package]]
 name = "extra-platforms"
-version = "1.2.1"
+version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "boltons" },
     { name = "distro" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b6/2f/90a25f5c03e7ea3e89600714b165662dbc12d94f3afc72b0b3d58f4f2bb4/extra_platforms-1.2.1.tar.gz", hash = "sha256:e09749bac683fb65b0e5acf332ef1c0aedff96ae11480fbb15978b4816dc8f6c", size = 35110 }
+sdist = { url = "https://files.pythonhosted.org/packages/ff/d9/474acb5375aaf79f19cc6376ca1b7eb60add8fa23868d0d0b6b1d1fee51c/extra_platforms-1.3.0.tar.gz", hash = "sha256:557ea0f399ff07ee03d4979db4502ab6de62df97b893f5cb4882c67dd3314c8e", size = 36141 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0d/c8/372dae1083ec8b250bdc675901bcd6e56c36eb35f30f7fdce6049a8aadf1/extra_platforms-1.2.1-py3-none-any.whl", hash = "sha256:1af952d2d699ae3210c8178e63c5a6cfa537356cb2ead29c1c09bf62fca41a93", size = 23678 },
+    { url = "https://files.pythonhosted.org/packages/09/9a/1379de82b8e9404654068f53992724443b1318b12899c19c440f87465196/extra_platforms-1.3.0-py3-none-any.whl", hash = "sha256:6a423c0398f785237d820f67771dcdf75febe9b1653026c568763235dd06e690", size = 24628 },
 ]
 
 [package.optional-dependencies]
@@ -789,14 +789,14 @@ wheels = [
 
 [[package]]
 name = "sphinx-autodoc-typehints"
-version = "2.3.0"
+version = "2.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "sphinx" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/74/cd/03e7b917230dc057922130a79ba0240df1693bfd76727ea33fae84b39138/sphinx_autodoc_typehints-2.3.0.tar.gz", hash = "sha256:535c78ed2d6a1bad393ba9f3dfa2602cf424e2631ee207263e07874c38fde084", size = 40709 }
+sdist = { url = "https://files.pythonhosted.org/packages/ef/58/efd6584ddadf3897db8b4ca2cc05079360285d18cf3088ce8cd34800b1fe/sphinx_autodoc_typehints-2.4.0.tar.gz", hash = "sha256:8f8281654ddf5709875429b7120d367f4edee39a131e13d5806e4f779a81bf0f", size = 40568 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a0/f3/e0a4ce49da4b6f4e4ce84b3c39a0677831884cb9d8a87ccbf1e9e56e53ac/sphinx_autodoc_typehints-2.3.0-py3-none-any.whl", hash = "sha256:3098e2c6d0ba99eacd013eb06861acc9b51c6e595be86ab05c08ee5506ac0c67", size = 19836 },
+    { url = "https://files.pythonhosted.org/packages/45/31/489ac5aca718b11fb97e4d6acea6aa640bed9d3092a9a229c331146ae13d/sphinx_autodoc_typehints-2.4.0-py3-none-any.whl", hash = "sha256:c9774d47e7d304cf975e073df49ebf19763dca94ac0295e7013b522b26cb18de", size = 19822 },
 ]
 
 [[package]]
