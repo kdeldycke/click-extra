@@ -81,7 +81,7 @@ dependencies = [
     # tabulate 0.9 is the first to add `*grid` and `*outline` formats.
     "tabulate [widechars] ~= 0.9",
     "tomli ~= 2.0.1 ; python_version < '3.11'",
-    "wcmatch ~= 9.0",
+    "wcmatch ~= 10.0",
     "xmltodict ~= 0.13.0",
 ]
 
