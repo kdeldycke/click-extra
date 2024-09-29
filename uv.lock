@@ -42,11 +42,11 @@ wheels = [
 
 [[package]]
 name = "bracex"
-version = "2.5"
+version = "2.5.post1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ac/f1/ac657fd234f4ee61da9d90f2bae7d6078074de2f97cb911743faa8d10a91/bracex-2.5.tar.gz", hash = "sha256:0725da5045e8d37ea9592ab3614d8b561e22c3c5fde3964699be672e072ab611", size = 26622 }
+sdist = { url = "https://files.pythonhosted.org/packages/d6/6c/57418c4404cd22fe6275b8301ca2b46a8cdaa8157938017a9ae0b3edf363/bracex-2.5.post1.tar.gz", hash = "sha256:12c50952415bfa773d2d9ccb8e79651b8cdb1f31a42f6091b804f6ba2b4a66b6", size = 26641 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/05/4f/54d324c35221c027ca77e9aae418f525003bd0cc2613eea162a1246b5a92/bracex-2.5-py3-none-any.whl", hash = "sha256:d2fcf4b606a82ac325471affe1706dd9bbaa3536c91ef86a31f6b766f3dad1d0", size = 11509 },
+    { url = "https://files.pythonhosted.org/packages/4b/02/8db98cdc1a58e0abd6716d5e63244658e6e63513c65f469f34b6f1053fd0/bracex-2.5.post1-py3-none-any.whl", hash = "sha256:13e5732fec27828d6af308628285ad358047cec36801598368cb28bc631dbaf6", size = 11558 },
 ]
 
 [[package]]
@@ -229,7 +229,7 @@ requires-dist = [
     { name = "types-requests", marker = "extra == 'typing'", specifier = "~=2.32.0.20240622" },
     { name = "types-tabulate", marker = "extra == 'typing'", specifier = "~=0.9.0.2" },
     { name = "types-xmltodict", marker = "extra == 'typing'", specifier = "~=0.13.0.2" },
-    { name = "wcmatch", specifier = "~=9.0" },
+    { name = "wcmatch", specifier = "~=10.0" },
     { name = "xmltodict", specifier = "~=0.13.0" },
 ]
 
@@ -446,11 +446,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/34/b8/aa7d6cf2d5efdd2fc
 
 [[package]]
 name = "makefun"
-version = "1.15.4"
+version = "1.15.6"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/a9/97/cf52b3ae6c9ab4e8f7786f483abdc7da0f02785ea78f835a0b2e75f868a7/makefun-1.15.4.tar.gz", hash = "sha256:9f9b9904e7c397759374a88f4c57781fbab2a458dec78df4b3ee6272cd9fb010", size = 72160 }
+sdist = { url = "https://files.pythonhosted.org/packages/6f/00/62966769824620717a3c2d76b1d442489648398b599bdcd490af13bff101/makefun-1.15.6.tar.gz", hash = "sha256:26bc63442a6182fb75efed8b51741dd2d1db2f176bec8c64e20a586256b8f149", size = 72583 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7a/9d/655cbedbe6df11126bae5752ca41bd8cf5180a01c4148577fc547a4c0b14/makefun-1.15.4-py2.py3-none-any.whl", hash = "sha256:945d078a7e01a903f2cbef738b33e0ebc52b8d35fb7e20c528ed87b5c80db5b7", size = 23057 },
+    { url = "https://files.pythonhosted.org/packages/89/a1/3e145759e776c8866488a71270c399bf7c4e554551ac2e247aa0a18a0596/makefun-1.15.6-py2.py3-none-any.whl", hash = "sha256:e69b870f0bb60304765b1e3db576aaecf2f9b3e5105afe8cfeff8f2afe6ad067", size = 22946 },
 ]
 
 [[package]]
@@ -621,16 +621,16 @@ wheels = [
 
 [[package]]
 name = "pytest-cases"
-version = "3.8.5"
+version = "3.8.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "decopatch" },
     { name = "makefun" },
     { name = "packaging" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a9/13/9f07854b636403d9eadaacd602cb23b07cf86d1420af6d44100c4fbf9cf3/pytest-cases-3.8.5.tar.gz", hash = "sha256:c92054187847a7d30d8ab6709fb1670a830e4e19234be700c85c96b6d7102c16", size = 1096408 }
+sdist = { url = "https://files.pythonhosted.org/packages/15/cb/d0d0810f9771b7daf35be7f283035c7a24c8c53b0272be458aebc2169ced/pytest_cases-3.8.6.tar.gz", hash = "sha256:5c24e0ab0cb6f8e802a469b7965906a333d3babb874586ebc56f7e2cbe1a7c44", size = 1092150 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ad/4f/9a0f678d1e3ba7787580fe2a244fa05e39bd4b9be3dcea24ec51890027d4/pytest_cases-3.8.5-py2.py3-none-any.whl", hash = "sha256:0c8e3727f6494e65b47321adbd94c767277c7b5de1bd40dd518a13f7443b1fff", size = 107391 },
+    { url = "https://files.pythonhosted.org/packages/78/63/965396a32be6f2cd6d16650ef1e103caf5df92a530087bb0cf0b2509a04e/pytest_cases-3.8.6-py2.py3-none-any.whl", hash = "sha256:564c722492ea7e7ec3ac433fd14070180e65866f49fa35bfe938c0d5d9afba67", size = 107283 },
 ]
 
 [[package]]
@@ -1026,14 +1026,14 @@ wheels = [
 
 [[package]]
 name = "wcmatch"
-version = "9.0"
+version = "10.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bracex" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/55/90/a29d5b359c128c48e32a2dc161464d6aab822df82d3bf1c1286231eda3c2/wcmatch-9.0.tar.gz", hash = "sha256:567d66b11ad74384954c8af86f607857c3bdf93682349ad32066231abd556c92", size = 113625 }
+sdist = { url = "https://files.pythonhosted.org/packages/41/ab/b3a52228538ccb983653c446c1656eddf1d5303b9cb8b9aef6a91299f862/wcmatch-10.0.tar.gz", hash = "sha256:e72f0de09bba6a04e0de70937b0cf06e55f36f37b3deb422dfaf854b867b840a", size = 115578 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ea/da/0633223f30f5db6e52236567e09c28e37ff455b3dfbe0843029206e609e6/wcmatch-9.0-py3-none-any.whl", hash = "sha256:af25922e2b6dbd1550fa37a4c8de7dd558d6c1bb330c641de9b907b9776cb3c4", size = 39139 },
+    { url = "https://files.pythonhosted.org/packages/ab/df/4ee467ab39cc1de4b852c212c1ed3becfec2e486a51ac1ce0091f85f38d7/wcmatch-10.0-py3-none-any.whl", hash = "sha256:0dd927072d03c0a6527a20d2e6ad5ba8d0380e60870c383bc533b71744df7b7a", size = 39347 },
 ]
 
 [[package]]
