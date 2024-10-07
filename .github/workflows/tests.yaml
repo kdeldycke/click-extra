@@ -69,12 +69,7 @@ jobs:
           exclude: list[dict[str, str]] = []
 
           # List of unstable criterions.
-          unstable: list[dict[str, str]] = [
-              # Ignore failing tests on Click development branch, because some top-level classes (BaseCommand,
-              # MultiCommand and OptionParser) have been removed. See:
-              # https://github.com/pallets/click/compare/8.1.x...main#diff-768bcdbbdaa3001d4905761c3eed38d5ce6a62b9127df80de90d9ca4e806cacc
-              {"click-version": "main"},
-          ]
+          unstable: list[dict[str, str]] = []
 
           # Removes from the matrix some combinations for development versions of Click and Cloup. This reduce the size
           # of the matrix for tests on non-released versions. While keeping the full exhaustive tests on the released
