@@ -6,8 +6,9 @@
 > This version is not released yet and is under active development.
 
 - Drop supports for Python 3.9.
+- Run tests on Python 3.14-dev.
 - Add tests on `ubuntu-24.04`. Remove tests on `ubuntu-20.04`.
-- Add tests on `macos-15`. Remove tests on `macos-13`.
+- Upgrade tests from `macos-14` to `macos-15`.
 
 ## [4.10.0 (2024-09-04)](https://github.com/kdeldycke/click-extra/compare/v4.9.0...v4.10.0)
 

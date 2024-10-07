@@ -41,8 +41,8 @@ jobs:
                   # Available OSes: https://github.com/actions/runner-images#available-images
                   "ubuntu-24.04",
                   "ubuntu-22.04",
-                  "macos-15",
-                  "macos-14",
+                  "macos-15",  # arm64
+                  "macos-13",  # x86
                   "windows-2022",
                   "windows-2019",
               },
@@ -51,6 +51,7 @@ jobs:
                   "3.11",
                   "3.12",
                   "3.13-dev",
+                  "3.14-dev",
               },
               "click-version": {
                   "released",
@@ -82,10 +83,11 @@ jobs:
               for criterion in (
                   # Exclude old OSes. Only keeps the latest OSes of each family.
                   {"os": "ubuntu-22.04"},
-                  {"os": "macos-14"},
+                  {"os": "macos-13"},
                   {"os": "windows-2019"},
                   # Exclude Python's dev version.
                   {"python-version": "3.13-dev"},
+                  {"python-version": "3.14-dev"},
                   # Exclude intermediate Python version. Only test on oldest and newest released Python versions.
                   {"python-version": "3.11"},
               ):
