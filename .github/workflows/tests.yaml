@@ -23,7 +23,7 @@ jobs:
     # This will became unmaintainable and tedious so we use this job to pre-compute which jobs is going to get our
     # "stable" flag.
     name: "OS/Python/stable matrix pre-compute"
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       test_matrix: ${{ steps.create_matrix.outputs.matrix }}
     steps:
@@ -39,10 +39,10 @@ jobs:
           variants: dict[str, set[str]] = {
               "os": {
                   # Available OSes: https://github.com/actions/runner-images#available-images
+                  "ubuntu-24.04",
                   "ubuntu-22.04",
-                  "ubuntu-20.04",
+                  "macos-15",
                   "macos-14",
-                  "macos-13",
                   "windows-2022",
                   "windows-2019",
               },
@@ -81,8 +81,8 @@ jobs:
           ):
               for criterion in (
                   # Exclude old OSes. Only keeps the latest OSes of each family.
-                  {"os": "ubuntu-20.04"},
-                  {"os": "macos-13"},
+                  {"os": "ubuntu-22.04"},
+                  {"os": "macos-14"},
                   {"os": "windows-2019"},
                   # Exclude Python's dev version.
                   {"python-version": "3.13-dev"},
