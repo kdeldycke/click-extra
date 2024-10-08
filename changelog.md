@@ -5,6 +5,7 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Add support for Python 3.13.
 - Drop supports for Python 3.9.
 - Run tests on Python 3.14-dev.
 - Add tests on `ubuntu-24.04`. Remove tests on `ubuntu-20.04`.

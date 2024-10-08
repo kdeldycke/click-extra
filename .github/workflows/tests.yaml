@@ -50,7 +50,7 @@ jobs:
                   "3.10",
                   "3.11",
                   "3.12",
-                  "3.13-dev",
+                  "3.13",
                   "3.14-dev",
               },
               "click-version": {
@@ -94,10 +94,10 @@ jobs:
                   {"os": "macos-13"},
                   {"os": "windows-2019"},
                   # Exclude Python's dev version.
-                  {"python-version": "3.13-dev"},
                   {"python-version": "3.14-dev"},
                   # Exclude intermediate Python version. Only test on oldest and newest released Python versions.
                   {"python-version": "3.11"},
+                  {"python-version": "3.12"},
               ):
                   exclude.append({**dev_version, **criterion})
 
