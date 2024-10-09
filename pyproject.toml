@@ -83,7 +83,7 @@ dependencies = [
     "tabulate [widechars] ~= 0.9",
     "tomli ~= 2.0.1 ; python_version < '3.11'",
     "wcmatch ~= 10.0",
-    "xmltodict ~= 0.13.0",
+    "xmltodict ~= 0.14.0",
 ]
 
 [project.optional-dependencies]
