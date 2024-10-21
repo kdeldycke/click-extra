@@ -99,7 +99,7 @@ sphinx = [
     # pygments-ansi-color 0.3.0 is the first version to set the default theme of ANSI colors.
     "pygments-ansi-color ~= 0.3.0",
     # Pallets-Sphinx-Themes 2.1.1 is the first version removing old and conflicting Python 2 code.
-    "Pallets-Sphinx-Themes ~= 2.1.1",
+    "Pallets-Sphinx-Themes ~= 2.2.0",
     # Sphinx 8 is the first version to drop Python 3.9.
     "sphinx ~= 8.1.3",
 ]
