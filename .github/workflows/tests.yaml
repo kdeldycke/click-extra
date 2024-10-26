@@ -55,7 +55,7 @@ jobs:
               },
               "click-version": {
                   "released",
-                  "8.1.x",
+                  "stable",
                   "main",
               },
               "cloup-version": {
@@ -84,7 +84,7 @@ jobs:
           # of the matrix for tests on non-released versions. While keeping the full exhaustive tests on the released
           # versions of Click and Cloup.
           for dev_version in (
-              {"click-version": "8.1.x"},
+              {"click-version": "stable"},
               {"click-version": "main"},
               {"cloup-version": "master"},
           ):
