@@ -87,7 +87,8 @@ jobs:
                   {"os": "windows-2019"},
                   # Exclude Python's dev version.
                   {"python-version": "3.14-dev"},
-                  # Exclude intermediate Python version. Only test on oldest and newest released Python versions.
+                  # Exclude old Python version. Only test on latest stable release.
+                  {"python-version": "3.10"},
                   {"python-version": "3.11"},
                   {"python-version": "3.12"},
               ):
