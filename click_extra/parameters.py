@@ -426,7 +426,7 @@ class ParamStructure:
         """Get the Python type of a Click parameter.
 
         See the list of
-        `custom types provided by Click <https://click.palletsprojects.com/en/8.1.x/api/#types>`_.
+        `custom types provided by Click <https://click.palletsprojects.com/en/stable/api/#types>`_.
         """
         if param.multiple or param.nargs != 1:
             return list
@@ -455,7 +455,7 @@ class ParamStructure:
 
         # Custom parameters are expected to convert from strings, as that's the default
         # type of command lines.
-        # See: https://click.palletsprojects.com/en/8.1.x/api/#click.ParamType
+        # See: https://click.palletsprojects.com/en/stable/api/#click.ParamType
         if isinstance(param.type, ParamType):
             return str
 

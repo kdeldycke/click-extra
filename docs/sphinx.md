@@ -213,7 +213,7 @@ Look around in the sources of Click Extra's documentation for more examples of i
 ```
 
 ```{hint}
-The CLI runner used by `.. click:run::` is a custom version [derived from the original `click.testing.CliRunner`](https://click.palletsprojects.com/en/8.1.x/api/#click.testing.CliRunner).
+The CLI runner used by `.. click:run::` is a custom version [derived from the original `click.testing.CliRunner`](https://click.palletsprojects.com/en/stable/api/#click.testing.CliRunner).
 
 It is [called `ExtraCliRunner`](testing.md#click_extra.testing.ExtraCliRunner) and is patched so you can refine your tests by inspecting both `<stdout>` and `<stderr>` independently. It also provides an additional `<output>` stream which simulates what the user sees in its terminal.
 ```

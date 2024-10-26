@@ -51,7 +51,7 @@ For example:
 
 Here are few other examples on how Click Extra proxies the main elements from Click and Cloup:
 
-| Click Extra element           | Target                | [Click's original](https://click.palletsprojects.com/en/8.1.x/api/) |
+| Click Extra element           | Target                | [Click's original](https://click.palletsprojects.com/en/stable/api/) |
 | ----------------------------- | --------------------- | ----------------------------------------------------------- |
 | `@click_extra.command`        | `@cloup.command`      | `@click.command`                                            |
 | `@click_extra.group`          | `@cloup.group`        | `@click.group`                                              |
@@ -87,7 +87,7 @@ You can inspect the implementation details by looking at:
 
 Now if you want to benefit from all the [wonderful features of Click Extra](index.md#features), you have to use the `extra`-prefixed variants:
 
-| [Original](https://click.palletsprojects.com/en/8.1.x/api/) | Extra variant                       |
+| [Original](https://click.palletsprojects.com/en/stable/api/) | Extra variant                       |
 | ----------------------------------------------------------- | ----------------------------------- |
 | `@click.command`                                            | `@click_extra.extra_command`        |
 | `@click.group`                                              | `@click_extra.extra_group`          |
@@ -203,7 +203,7 @@ After that, there is a final [sorting step applied to options](https://kdeldycke
 
 ### Option's defaults
 
-Because Click Extra commands and groups inherits from Click, you can [override the defaults the way Click allows you to](https://click.palletsprojects.com/en/8.1.x/commands/#context-defaults). Here is a reminder on how to do it.
+Because Click Extra commands and groups inherits from Click, you can [override the defaults the way Click allows you to](https://click.palletsprojects.com/en/stable/commands/#context-defaults). Here is a reminder on how to do it.
 
 For example, the [`--verbosity` option defaults to the `WARNING` level](logging.md#click_extra.logging.DEFAULT_LEVEL_NAME). Now we'd like to change this default to `INFO`.
 

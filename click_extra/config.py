@@ -120,7 +120,7 @@ class ConfigOption(ExtraOption, ParamStructure):
           file will be tried to be read with. Can be a single one.
 
         - ``roaming`` and ``force_posix`` are `fed to click.get_app_dir()
-          <https://click.palletsprojects.com/en/8.1.x/api/#click.get_app_dir>`_
+          <https://click.palletsprojects.com/en/stable/api/#click.get_app_dir>`_
           to setup the default configuration folder.
 
         - ``excluded_params`` is a list of options to ignore by the
@@ -167,7 +167,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         Defaults to ``/<app_dir>/*.{toml,yaml,yml,json,ini,xml}``. Where
         ``<app_dir>`` is produced by the `clickget_app_dir() method
-        <https://click.palletsprojects.com/en/8.1.x/api/#click.get_app_dir>`_.
+        <https://click.palletsprojects.com/en/stable/api/#click.get_app_dir>`_.
         The result depends on OS and is influenced by the ``roaming`` and
         ``force_posix`` properties of this instance.
 
@@ -374,8 +374,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         """Fetch parameters values from configuration file and sets them as defaults.
 
         User configuration is merged to the `context's default_map
-        <https://click.palletsprojects.com/en/8.1.x/commands/#overriding-defaults>`_,
-        `like Click does <https://click.palletsprojects.com/en/8.1.x/commands/#context-defaults>`_.
+        <https://click.palletsprojects.com/en/stable/commands/#overriding-defaults>`_,
+        `like Click does <https://click.palletsprojects.com/en/stable/commands/#context-defaults>`_.
 
         By relying on Click's default_map, we make sure that precedence is respected.
         And direct CLI parameters, environment variables or interactive prompts takes

@@ -1,6 +1,6 @@
 # Version
 
-Click Extra provides its own version option which, compared to [Click's built-in](https://click.palletsprojects.com/en/8.1.x/api/?highlight=version#click.version_option):
+Click Extra provides its own version option which, compared to [Click's built-in](https://click.palletsprojects.com/en/stable/api/?highlight=version#click.version_option):
 
 - adds [new variable](#variables) to compose your version string
 - adds [colors](#colors)

@@ -202,7 +202,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):  # type: ignore[misc]
             fixing `click#2483 issue <https://github.com/pallets/click/issues/2483>`_.
 
         By default, these `Click context settings
-        <https://click.palletsprojects.com/en/8.1.x/api/#click.Context>`_ are applied:
+        <https://click.palletsprojects.com/en/stable/api/#click.Context>`_ are applied:
 
         - ``auto_envvar_prefix = self.name`` (*Click feature*)
 
@@ -213,12 +213,12 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):  # type: ignore[misc]
         - ``help_option_names = ("--help", "-h")`` (*Click feature*)
 
           `Allow help screen to be invoked with either --help or -h options
-          <https://click.palletsprojects.com/en/8.1.x/documentation/#help-parameter-customization>`_.
+          <https://click.palletsprojects.com/en/stable/documentation/#help-parameter-customization>`_.
 
         - ``show_default = True`` (*Click feature*)
 
           `Show all default values
-          <https://click.palletsprojects.com/en/8.1.x/api/#click.Context.show_default>`_
+          <https://click.palletsprojects.com/en/stable/api/#click.Context.show_default>`_
           in help screen.
 
         Additionally, these `Cloup context settings
@@ -386,11 +386,11 @@ class ExtraGroup(ExtraCommand, Group):  # type: ignore[misc]
     That way all subcommands created from an ``ExtraGroup`` benefits from the same
     defaults and extra help screen colorization.
 
-    See: https://click.palletsprojects.com/en/8.1.x/api/#click.Group.command_class
+    See: https://click.palletsprojects.com/en/stable/api/#click.Group.command_class
     """
 
     group_class = type
     """Let ``ExtraGroup`` produce sub-groups that are also of ``ExtraGroup`` type.
 
-    See: https://click.palletsprojects.com/en/8.1.x/api/#click.Group.group_class
+    See: https://click.palletsprojects.com/en/stable/api/#click.Group.group_class
     """

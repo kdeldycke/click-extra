@@ -347,7 +347,7 @@ But there is still a lot of cases for which the XDG doesn't cut it, like on othe
 
 ### Default folder
 
-The configuration file is searched in the default application path, as defined by [`click.get_app_dir()`](https://click.palletsprojects.com/en/8.1.x/api/#click.get_app_dir).
+The configuration file is searched in the default application path, as defined by [`click.get_app_dir()`](https://click.palletsprojects.com/en/stable/api/#click.get_app_dir).
 
 Like the latter, the `@config_option` decorator and `ConfigOption` class accept a `roaming` and `force_posix` argument to alter the default path:
 
