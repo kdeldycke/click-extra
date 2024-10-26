@@ -70,15 +70,7 @@ jobs:
           exclude: list[dict[str, str]] = []
 
           # List of unstable criterions.
-          unstable: list[dict[str, str]] = [
-              # XXX 3.14-dev is only available for Ubuntu right now. Check:
-              # https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
-              {"os": "macos-15", "python-version": "3.14-dev"},
-              {"os": "macos-14", "python-version": "3.14-dev"},
-              {"os": "macos-13", "python-version": "3.14-dev"},
-              {"os": "windows-2022", "python-version": "3.14-dev"},
-              {"os": "windows-2019", "python-version": "3.14-dev"},
-          ]
+          unstable: list[dict[str, str]] = []
 
           # Removes from the matrix some combinations for development versions of Click and Cloup. This reduce the size
           # of the matrix for tests on non-released versions. While keeping the full exhaustive tests on the released
