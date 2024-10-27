@@ -5,6 +5,8 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Fix tests against development version of Click.
+
 ## [4.11.0 (2024-10-08)](https://github.com/kdeldycke/click-extra/compare/v4.10.0...v4.11.0)
 
 - Add support for Python 3.13.
