@@ -209,8 +209,8 @@ requires-dist = [
     { name = "cloup", specifier = "~=3.0.5" },
     { name = "commentjson", specifier = "~=0.9.0" },
     { name = "coverage", extras = ["toml"], marker = "extra == 'test'", specifier = "~=7.6.0" },
-    { name = "extra-platforms", specifier = "~=1.3.1" },
-    { name = "extra-platforms", extras = ["pytest"], marker = "extra == 'test'", specifier = "~=1.3.0" },
+    { name = "extra-platforms", specifier = "~=1.4.0" },
+    { name = "extra-platforms", extras = ["pytest"], marker = "extra == 'test'", specifier = "~=1.4.0" },
     { name = "furo", marker = "extra == 'docs'", specifier = "~=2024.8.6" },
     { name = "mergedeep", specifier = "~=1.3.4" },
     { name = "myst-parser", marker = "extra == 'docs'", specifier = "~=4.0.0" },
@@ -383,15 +383,15 @@ wheels = [
 
 [[package]]
 name = "extra-platforms"
-version = "1.3.1"
+version = "1.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "boltons" },
     { name = "distro" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/34/42/98f5510cd5f2da57c8b8538dfd159098ac2855664955af304b5e3d742cc7/extra_platforms-1.3.1.tar.gz", hash = "sha256:9db54044d242d604f2e6c7cf781f48f4c296c24be301714afc177a05c8f410e8", size = 36386 }
+sdist = { url = "https://files.pythonhosted.org/packages/11/f1/58ec684dda5706076479e575ab55349995fa43ffa9f6ca41c09a3dab32a1/extra_platforms-1.4.0.tar.gz", hash = "sha256:846d8c88b8a1412fc2648b01496337036f2131c101a0564619441005e72c8751", size = 37297 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/df/d5/b58cb75b37f4b235aea83a64504cd43146faaa90443fff175ef9a5c8eca9/extra_platforms-1.3.1-py3-none-any.whl", hash = "sha256:6d1cd10b58d04c082fda187809cadbd1d97b7e6ceeb61e7b5de6a9301b404efc", size = 24925 },
+    { url = "https://files.pythonhosted.org/packages/a2/39/6927c44dc28e9ef5d107c468bd68c818732ec61f33dca02792fa82bc02a3/extra_platforms-1.4.0-py3-none-any.whl", hash = "sha256:7d418a8212811defc6e620f0cd4cb57eeaa8f8945644ef6af5e5631c27de23af", size = 25292 },
 ]
 
 [package.optional-dependencies]
