@@ -164,9 +164,7 @@ def test_extra_theme():
             ExtraOption(["--x"], required=True, type=int),
             (
                 f" {theme.option('--x')} {theme.metavar('INTEGER')} ",
-                f" {theme.bracket('[')}"
-                f"{theme.bracket('required')}"
-                f"{theme.bracket(']')}",
+                f" {theme.bracket('[')}{theme.bracket('required')}{theme.bracket(']')}",
             ),
         ),
         # Required and default value.
@@ -187,9 +185,7 @@ def test_extra_theme():
             ExtraOption(["--digit"], type=IntRange(0, 9)),
             (
                 f" {theme.option('--digit')} {theme.metavar('INTEGER RANGE')} ",
-                f" {theme.bracket('[')}"
-                f"{theme.bracket('0<=x<=9')}"
-                f"{theme.bracket(']')}",
+                f" {theme.bracket('[')}{theme.bracket('0<=x<=9')}{theme.bracket(']')}",
             ),
         ),
         # Boolean flags.
