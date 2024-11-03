@@ -60,7 +60,7 @@ top_level_param = "is_ignored"
 
 [my-cli]
 extra_value = "is ignored too"
-dummy_flag = true   # New boolean default.
+dummy_flag = true                                  # New boolean default.
 my_list = ["item 1", "item #2", "Very Last Item!"]
 
 [garbage]

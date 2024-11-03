@@ -53,7 +53,7 @@ Now if we feed the following `~/configuration.toml` configuration file:
 [my-cli]
 verbosity = "DEBUG"
 dummy_flag = true
-my_list = [ "item 1", "item #2", "Very Last Item!",]
+my_list = ["item 1", "item #2", "Very Last Item!"]
 
 [my-cli.subcommand]
 int_param = 3

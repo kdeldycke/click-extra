@@ -123,7 +123,6 @@ The code above prints the following HTML:
       …
    </pre>
 </div>
-
 ```
 
 And here is how to obtain the corresponding CSS style:
@@ -364,7 +363,6 @@ Licensed under the BSD license, see LICENSE for details.
   </div>
  </body>
 </html>
-
 ```
 
 ## `click_extra.pygments` API
