@@ -827,14 +827,14 @@ def highlight(
         searched_content = content
         if ignore_case:
             lower_part = part.lower()
-            assert len(part) == len(
-                lower_part
-            ), "Lowering case is messing with string length"
+            assert len(part) == len(lower_part), (
+                "Lowering case is messing with string length"
+            )
             part = lower_part
             searched_content = content.lower()
-            assert len(content) == len(
-                searched_content
-            ), "Lowering case is messing with string length"
+            assert len(content) == len(searched_content), (
+                "Lowering case is messing with string length"
+            )
         # Lookahead assertion which is going to give the starting position of each
         # overlapping match.
         pattern = rf"(?={re.escape(part)})"

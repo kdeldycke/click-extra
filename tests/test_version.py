@@ -62,9 +62,7 @@ def test_standalone_version_option(invoke, cmd_decorator, option_decorator):
     assert result.exit_code == 0
     assert not result.stderr
     assert result.output == (
-        "\x1b[97mstandalone-option\x1b[0m, "
-        f"version \x1b[32m{__version__}"
-        "\x1b[0m\n"
+        f"\x1b[97mstandalone-option\x1b[0m, version \x1b[32m{__version__}\x1b[0m\n"
     )
 
 
