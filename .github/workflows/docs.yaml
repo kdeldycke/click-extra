@@ -36,7 +36,7 @@ jobs:
           uv --no-progress sync --extra pygments
       - name: Generate dynamic doc
         run: |
-          uv --no-progress run --frozen -- python -m click_extra.docs_update
+          uv --no-progress run --frozen -m click_extra.docs_update
       - uses: peter-evans/create-pull-request@v7.0.5
         with:
           assignees: ${{ github.actor }}

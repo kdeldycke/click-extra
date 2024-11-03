@@ -285,10 +285,10 @@ $ source .venv/bin/activate
 $ uv sync --all-extras
 (...)
 
-$ uv run -- python -m pip install dbt-core
+$ uv pip install dbt-core
 (...)
 
-$ uv run -- python -m pip install aws-sam-cli
+$ uv pip install aws-sam-cli
 (...)
 ```
 
