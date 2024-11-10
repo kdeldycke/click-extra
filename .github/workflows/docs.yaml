@@ -17,7 +17,7 @@ name: Docs
 jobs:
 
   docs:
-    uses: kdeldycke/workflows/.github/workflows/docs.yaml@v4.7.1
+    uses: kdeldycke/workflows/.github/workflows/docs.yaml@v4.7.2
 
   update-docs:
     needs: docs
@@ -29,7 +29,7 @@ jobs:
           python-version: "3.12"
       - name: Install uv
         run: |
-          python -m pip install -r https://raw.githubusercontent.com/kdeldycke/workflows/v4.7.1/requirements/uv.txt
+          python -m pip install -r https://raw.githubusercontent.com/kdeldycke/workflows/v4.7.2/requirements/uv.txt
       - name: Install project
         run: |
           uv --no-progress venv
