@@ -40,7 +40,7 @@ from boltons.iterutils import flatten
 from boltons.pathutils import shrinkuser
 from boltons.urlutils import URL
 from extra_platforms import is_windows
-from extra_platforms.platforms import _recursive_update, _remove_blanks
+from extra_platforms.platform import _recursive_update, _remove_blanks
 from mergedeep import merge
 from wcmatch.glob import (
     BRACE,
