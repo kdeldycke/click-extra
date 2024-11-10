@@ -5,6 +5,8 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Aligns dependencies.
+
 ## [4.11.1 (2024-10-27)](https://github.com/kdeldycke/click-extra/compare/v4.11.0...v4.11.1)
 
 - Fix tests against development version of Click.
