@@ -1,9 +1,6 @@
 # Changelog
 
-## [4.11.2 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v4.11.1...main)
-
-> [!IMPORTANT]
-> This version is not released yet and is under active development.
+## [4.11.2 (2024-11-10)](https://github.com/kdeldycke/click-extra/compare/v4.11.1...v4.11.2)
 
 - Aligns dependencies.
 
