@@ -141,7 +141,7 @@ wheels = [
 
 [[package]]
 name = "click-extra"
-version = "4.11.2"
+version = "4.11.3"
 source = { editable = "." }
 dependencies = [
     { name = "boltons" },
@@ -209,8 +209,8 @@ requires-dist = [
     { name = "cloup", specifier = "~=3.0.5" },
     { name = "commentjson", specifier = "~=0.9.0" },
     { name = "coverage", extras = ["toml"], marker = "extra == 'test'", specifier = "~=7.6.0" },
-    { name = "extra-platforms", specifier = "~=1.5.0" },
-    { name = "extra-platforms", extras = ["pytest"], marker = "extra == 'test'", specifier = "~=1.5.0" },
+    { name = "extra-platforms", specifier = "~=1.6.0" },
+    { name = "extra-platforms", extras = ["pytest"], marker = "extra == 'test'", specifier = "~=1.6.0" },
     { name = "furo", marker = "extra == 'docs'", specifier = "~=2024.8.6" },
     { name = "mergedeep", specifier = "~=1.3.4" },
     { name = "myst-parser", marker = "extra == 'docs'", specifier = "~=4.0.0" },
@@ -383,15 +383,15 @@ wheels = [
 
 [[package]]
 name = "extra-platforms"
-version = "1.5.0"
+version = "1.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "boltons" },
     { name = "distro" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0c/93/0d8ebe07ba36b656fc9a1f44a6a5d22ad9e3aa5eae8733a6aec1670033e9/extra_platforms-1.5.0.tar.gz", hash = "sha256:f5a2929b2bb4613a8516a6dfae8a05bf54436f5fc0b0011a7c6f6589a3906630", size = 40261 }
+sdist = { url = "https://files.pythonhosted.org/packages/e0/a7/7fb81009b351e4f3194806cad083515bc11d9df0c86d731c7913840598fa/extra_platforms-1.6.0.tar.gz", hash = "sha256:dbef8d68019362690bd87fcb98ea287e7d381d7b1758a500d66abea320485234", size = 40464 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/53/68/8776d087b482a6572bd8e299dba28292606f033ee29f58e4175f54a56c13/extra_platforms-1.5.0-py3-none-any.whl", hash = "sha256:bf772fda836c111d9772ac754059db96c913cf82b1eef33b380fa9bcd6dd4171", size = 27383 },
+    { url = "https://files.pythonhosted.org/packages/e5/1c/205a8e36650ac5984b55493453dbb80283c55b2fe5c9f66f87d104a5951b/extra_platforms-1.6.0-py3-none-any.whl", hash = "sha256:fdd27b0babec649dda212f9a16ddd9edd12f8288996de729422c6fe60fd1c588", size = 27510 },
 ]
 
 [package.optional-dependencies]
