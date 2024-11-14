@@ -341,6 +341,22 @@ def test_option_highlight(opt, expected_outputs):
         assert expected in help
 
 
+def test_skip_hidden_option():
+    """Ensure hidden options are not highlighted."""
+    opt1 = ExtraOption(["--hidden"], hidden=True, help="Invisible --hidden option.")
+    opt2 = ExtraOption(
+        ["--visible"], help="Visible option referencing --hidden option."
+    )
+    cli = ExtraCommand("test", params=[opt1, opt2])
+    ctx = ExtraContext(cli)
+
+    help = cli.get_help(ctx)
+
+    assert "Invisible --hidden option." not in help
+    # Check that the option is not highlighted.
+    assert "Visible option referencing --hidden option." in help
+
+
 def test_only_full_word_highlight():
     formatter = HelpExtraFormatter()
     formatter.write("package snapshot")

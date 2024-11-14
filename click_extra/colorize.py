@@ -404,6 +404,10 @@ class ExtraHelpColorsMixin:  # (Command)??
 
         # Collect all options, choices, metavars, envvars and default values.
         for param in command.params:
+            # Ignore hidden options that are not meant to be displayed in help screens.
+            if isinstance(param, click.Option) and param.hidden:
+                continue
+
             options.update(param.opts)
             options.update(param.secondary_opts)
 
