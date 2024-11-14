@@ -1,9 +1,6 @@
 # Changelog
 
-## [4.11.4 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v4.11.3...main)
-
-> [!IMPORTANT]
-> This version is not released yet and is under active development.
+## [4.11.4 (2024-11-14)](https://github.com/kdeldycke/click-extra/compare/v4.11.3...v4.11.4)
 
 - Ignore hidden options when coloring help screen.
 
