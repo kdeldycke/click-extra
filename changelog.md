@@ -1,5 +1,10 @@
 # Changelog
 
+## [4.11.6 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v4.11.5...main)
+
+> [!IMPORTANT]
+> This version is not released yet and is under active development.
+
 ## [4.11.5 (2024-11-18)](https://github.com/kdeldycke/click-extra/compare/v4.11.4...v4.11.5)
 
 - Allow `replace_content()` utility method to replace any content found after the start tag.
