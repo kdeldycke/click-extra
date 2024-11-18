@@ -5,6 +5,8 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Allow `replace_content()` utility method to replace any content found after the start tag.
+
 ## [4.11.4 (2024-11-14)](https://github.com/kdeldycke/click-extra/compare/v4.11.3...v4.11.4)
 
 - Ignore hidden options when coloring help screen.

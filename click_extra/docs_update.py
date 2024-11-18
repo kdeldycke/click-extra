@@ -37,20 +37,34 @@ from .tabulate import tabulate
 
 def replace_content(
     filepath: Path,
-    start_tag: str,
-    end_tag: str,
     new_content: str,
+    start_tag: str,
+    end_tag: str | None = None,
 ) -> None:
-    """Replace in the provided file the content surrounded by the provided tags."""
+    """Replace in a file the content surrounded by the provided start end end tags.
+
+    If no end tag is provided, the whole content found after the start tag will be
+    replaced.
+    """
     filepath = filepath.resolve()
     assert filepath.exists(), f"File {filepath} does not exist."
     assert filepath.is_file(), f"File {filepath} is not a file."
 
     orig_content = filepath.read_text()
 
-    # Extract pre- and post-content surrounding the tags.
+    # Extract pre-content before the start tag.
+    assert start_tag, "Start tag must be empty."
+    assert start_tag in orig_content, f"Start tag {start_tag!r} not found in content."
     pre_content, table_start = orig_content.split(start_tag, 1)
-    _, post_content = table_start.split(end_tag, 1)
+
+    # Extract the post-content after the end tag.
+    if end_tag:
+        _, post_content = table_start.split(end_tag, 1)
+    # If no end tag is provided, we're going to replace the whole content found after
+    # the start tag.
+    else:
+        end_tag = ""
+        post_content = ""
 
     # Reconstruct the content with our updated table.
     filepath.write_text(
@@ -100,9 +114,9 @@ def update_docs() -> None:
     # Update the lexer table in Sphinx's documentation.
     replace_content(
         project_root.joinpath("docs/pygments.md"),
+        generate_lexer_table(),
         "<!-- lexer-table-start -->\n\n",
         "\n\n<!-- lexer-table-end -->",
-        generate_lexer_table(),
     )
 
 
