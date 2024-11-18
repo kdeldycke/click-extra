@@ -1,7 +1,7 @@
 [project]
 # Docs: https://packaging.python.org/en/latest/guides/writing-pyproject-toml/
 name = "click-extra"
-version = "4.11.5"
+version = "4.11.6"
 # Python versions and their status: https://devguide.python.org/versions/
 requires-python = ">= 3.10"
 description = "🌈 Drop-in replacement for Click to make user-friendly and colorful CLI"
@@ -215,7 +215,7 @@ branch = true
 precision = 2
 
 [tool.bumpversion]
-current_version = "4.11.5"
+current_version = "4.11.6"
 allow_dirty = true
 
 [[tool.bumpversion.files]]
