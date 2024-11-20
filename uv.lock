@@ -141,7 +141,7 @@ wheels = [
 
 [[package]]
 name = "click-extra"
-version = "4.11.5"
+version = "4.11.6"
 source = { editable = "." }
 dependencies = [
     { name = "boltons" },
@@ -1042,11 +1042,11 @@ wheels = [
 
 [[package]]
 name = "types-setuptools"
-version = "75.5.0.20241116"
+version = "75.5.0.20241122"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/b8/6f/8d39850aec06b89818c114edb52d61f54a3fb853aa5128273177906f6101/types-setuptools-75.5.0.20241116.tar.gz", hash = "sha256:b6939ffdbc50ffdc0bcfbf14f7a6de1ddc5510906c1ca2bd62c23646e5798b1a", size = 43675 }
+sdist = { url = "https://files.pythonhosted.org/packages/f5/98/de2e82c19552d10901ded893dc182ccfbd87bc7e5a32e90644d45010218b/types_setuptools-75.5.0.20241122.tar.gz", hash = "sha256:196aaf1811cbc1c77ac1d4c4879d5308b6fdf426e56b73baadbca2a1827dadef", size = 48541 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2f/f3/bfaa1d19539c3af4bdae6c042dce07a2661019460aac8c4656243ed68284/types_setuptools-75.5.0.20241116-py3-none-any.whl", hash = "sha256:1144b2ab8fa986061f963391fdbde16df20582e3cc39c94340e71aa61cc7203f", size = 67442 },
+    { url = "https://files.pythonhosted.org/packages/29/98/5690400593952e3a77d9749416f75faf48af999291c615164062a40293be/types_setuptools-75.5.0.20241122-py3-none-any.whl", hash = "sha256:d69c445f7bdd5e49d1b2441aadcee1388febcc9ad9d9d5fd33648b555e0b1c31", size = 72739 },
 ]
 
 [[package]]
