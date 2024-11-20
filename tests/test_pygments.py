@@ -212,6 +212,6 @@ def test_registered_lexers():
 
 
 def test_ansi_lexers_doc():
-    doc_content = PROJECT_ROOT.joinpath("docs/pygments.md").read_text()
+    doc_content = PROJECT_ROOT.joinpath("docs/pygments.md").read_text(encoding="utf-8")
     for lexer in collect_session_lexers():
         assert lexer.__name__ in doc_content

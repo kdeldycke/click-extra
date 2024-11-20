@@ -238,7 +238,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         ):
             file_path = Path(file).resolve()
             logger.debug(f"Configuration file found at {file_path}")
-            yield file_path, file_path.read_text()
+            yield file_path, file_path.read_text(encoding="utf-8")
 
     def parse_conf(self, conf_text: str) -> dict[str, Any] | None:
         """Try to parse the provided content with each format in the order provided by

@@ -184,7 +184,7 @@ def create_config(tmp_path):
 
         # Create the missing folder structure, like "mkdir -p" does.
         config_path.parent.mkdir(parents=True, exist_ok=True)
-        config_path.write_text(content)
+        config_path.write_text(content, encoding="utf-8")
 
         return config_path
 
