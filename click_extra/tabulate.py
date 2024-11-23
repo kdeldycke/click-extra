@@ -88,12 +88,14 @@ def render_csv(
     headers: Sequence[str] = (),
     **kwargs,
 ) -> None:
+    # StringIO is used to capture CSV output in memory. Hard-coded to default to UTF-8:
+    # https://github.com/python/cpython/blob/9291095a746cbd266a3681a26e10989def6f8629/Lib/_pyio.py#L2652
     with StringIO(newline="") as output:
         writer = csv.writer(output, **kwargs)
         writer.writerow(headers)
         writer.writerows(tabular_data)
         # Use print instead of echo to conserve CSV dialect's line termination,
-        # avoid extra line returns and ANSI coloring.
+        # avoid extra line returns and keep ANSI coloring.
         print(output.getvalue(), end="")
 
 
