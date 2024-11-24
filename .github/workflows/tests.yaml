@@ -160,7 +160,7 @@ jobs:
 
       - name: Unittests
         run: >
-          uv --no-progress run
+          uv --no-progress run --frozen
           ${{ matrix.click-version != 'released'
           && format('--with "git+https://github.com/pallets/click.git@{0}"', matrix.click-version) || '' }}
           ${{ matrix.cloup-version != 'released'
