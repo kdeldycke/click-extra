@@ -176,8 +176,8 @@ def test_group_help(invoke, all_command_cli, param):
     ("--version", "blah", ("--verbosity", "DEBUG"), ("--config", "random.toml")),
 )
 def test_help_eagerness(invoke, all_command_cli, params):
-    """See: https://click.palletsprojects.com/en/8.0.x/advanced/#callback-evaluation-
-    order.
+    """See:
+    https://click.palletsprojects.com/en/stable/advanced/#callback-evaluation-order
     """
     result = invoke(all_command_cli, "--help", params, color=False)
     assert result.exit_code == 0
