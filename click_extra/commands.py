@@ -161,6 +161,10 @@ def default_extra_params() -> list[Option]:
             <https://click.palletsprojects.com/en/stable/documentation/#help-parameter-customization>`_
             setting.
 
+    .. important::
+        Sensitivity to order still remains to be proven. With the code of Click Extra
+        and its dependencies moving fast, there is a non-zero chance that all the
+        options are now sound enough to be re-ordered in a more natural way.
 
     .. todo::
         For bullet-proof handling of edge-cases, we should probably add an indirection
@@ -169,11 +173,6 @@ def default_extra_params() -> list[Option]:
 
         This is probably something that has been `requested in issue #544
         <https://github.com/kdeldycke/click-extra/issues/544>`_.
-
-    .. important::
-        Sensitivity to order still remains to be proven. With the code of Click Extra
-        and its dependencies moving fast, there is a non-zero chance that all the
-        options are now sound enough to be re-ordered in a more natural way.
     """
     return [
         TimerOption(),
