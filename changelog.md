@@ -1,5 +1,10 @@
 # Changelog
 
+## [4.11.7 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v4.11.6...main)
+
+> [!IMPORTANT]
+> This version is not released yet and is under active development.
+
 ## [4.11.6 (2024-11-28)](https://github.com/kdeldycke/click-extra/compare/v4.11.5...v4.11.6)
 
 - Make `--timer` option eager so it can jumps the queue of processing order.
