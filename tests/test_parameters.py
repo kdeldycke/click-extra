@@ -356,6 +356,7 @@ def test_params_auto_types(invoke, option_decorator):
             "hidden_param": None,
             "file_arg1": None,
             "file_arg2": None,
+            "help": None,
         },
     }
     assert show_param_option.params_types == {
@@ -386,6 +387,7 @@ def test_params_auto_types(invoke, option_decorator):
             "hidden_param": str,
             "file_arg1": str,
             "file_arg2": list,
+            "help": bool,
         },
     }
 
@@ -403,6 +405,20 @@ def test_standalone_show_params_option(invoke, cmd_decorator, option_decorator):
     assert result.exit_code == 0
 
     table = [
+        (
+            "show-params.help",
+            "click.core.Option",
+            "--help",
+            "click.types.BoolParamType",
+            "bool",
+            "✘",
+            "✘",
+            "",
+            "",
+            False,
+            "",
+            "",
+        ),
         (
             "show-params.show_params",
             "click_extra.parameters.ShowParamsOption",
@@ -655,6 +671,20 @@ def test_recurse_subcommands(invoke):
 
     table = [
         (
+            "show-params-cli-main.help",
+            "click_extra.colorize.HelpOption",
+            "-h, --help",
+            "click.types.BoolParamType",
+            "bool",
+            "✘",
+            "✘",
+            "",
+            "SHOW_PARAMS_CLI_MAIN_HELP",
+            False,
+            False,
+            "DEFAULT",
+        ),
+        (
             "show-params-cli-main.show_params",
             "click_extra.parameters.ShowParamsOption",
             "--show-params",
@@ -667,6 +697,34 @@ def test_recurse_subcommands(invoke):
             False,
             True,
             "COMMANDLINE",
+        ),
+        (
+            "show-params-cli-main.show-params-sub-cmd.help",
+            "click_extra.colorize.HelpOption",
+            "-h, --help",
+            "click.types.BoolParamType",
+            "bool",
+            "✘",
+            "✘",
+            "",
+            "SHOW_PARAMS_CLI_MAIN_HELP",
+            False,
+            False,
+            "DEFAULT",
+        ),
+        (
+            "show-params-cli-main.show-params-sub-cmd.show-params-sub-sub-cmd.help",
+            "click_extra.colorize.HelpOption",
+            "-h, --help",
+            "click.types.BoolParamType",
+            "bool",
+            "✘",
+            "✘",
+            "",
+            "SHOW_PARAMS_CLI_MAIN_HELP",
+            False,
+            False,
+            "DEFAULT",
         ),
         (
             "show-params-cli-main.show-params-sub-cmd.show-params-sub-sub-cmd.int_param",

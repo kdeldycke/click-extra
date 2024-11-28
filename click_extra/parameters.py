@@ -355,6 +355,8 @@ class ParamStructure:
     ) -> Iterator[tuple[tuple[str, ...], Parameter]]:
         """Recursive generator to walk through all subcommands and their parameters."""
         if hasattr(cmd, "commands"):
+            ctx = get_current_context()
+
             for subcmd_id, subcmd in cmd.commands.items():
                 if subcmd_id in top_level_params:
                     msg = (
@@ -363,7 +365,7 @@ class ParamStructure:
                     )
                     raise ValueError(msg)
 
-                for p in subcmd.params:
+                for p in subcmd.get_params(ctx):
                     yield ((*parent_keys, subcmd_id, p.name)), p
 
                 yield from self._recurse_cmd(
@@ -391,7 +393,7 @@ class ParamStructure:
         top_level_params = set()
 
         # Global, top-level options shared by all subcommands.
-        for p in cli.params:
+        for p in cli.get_params(ctx):
             assert p.name is not None
             top_level_params.add(p.name)
             yield (cli.name, p.name), p
@@ -649,7 +651,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         # Inspect the CLI to search for any --config option.
         config_option = cast(
             "ConfigOption",
-            search_params(ctx.command.params, ConfigOption),
+            search_params(ctx.command.get_params(ctx), ConfigOption),
         )
 
         table: list[
