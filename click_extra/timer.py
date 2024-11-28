@@ -63,6 +63,7 @@ class TimerOption(ExtraOption):
         param_decls: Sequence[str] | None = None,
         default=False,
         expose_value=False,
+        is_eager=True,
         help=_("Measure and print elapsed execution time."),
         **kwargs,
     ) -> None:
@@ -75,6 +76,7 @@ class TimerOption(ExtraOption):
             param_decls=param_decls,
             default=default,
             expose_value=expose_value,
+            is_eager=is_eager,
             help=help,
             **kwargs,
         )
