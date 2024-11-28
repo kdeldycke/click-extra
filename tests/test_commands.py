@@ -186,6 +186,22 @@ def test_help_eagerness(invoke, all_command_cli, params):
     assert not result.stderr
 
 
+def test_help_custom_name(invoke):
+    """Removes the ``-h`` short option as we reserve it for a custom ``-h/--header`` option."""
+
+    @extra_command(context_settings={"help_option_names": ("--help",)})
+    @option("-h", "--header", is_flag=True)
+    def cli(header):
+        echo(f"--header is {header}")
+
+    result = invoke(cli, "--help", color=False)
+    assert result.exit_code == 0
+    assert "-h, --header" in result.stdout
+    assert "-h, --help" not in result.stdout
+    assert "--help" in result.stdout
+    assert not result.stderr
+
+
 @skip_windows_colors
 @pytest.mark.parametrize("cmd_id", ("default", "click-extra", "cloup", "click"))
 @pytest.mark.parametrize("param", ("-h", "--help"))

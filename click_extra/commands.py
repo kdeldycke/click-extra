@@ -28,7 +28,7 @@ import click
 import cloup
 
 from . import Command, Group, Option
-from .colorize import ColorOption, ExtraHelpColorsMixin, HelpExtraFormatter, HelpOption
+from .colorize import ColorOption, ExtraHelpColorsMixin, HelpExtraFormatter
 from .config import ConfigOption
 from .logging import VerbosityOption
 from .parameters import (
@@ -148,6 +148,18 @@ def default_extra_params() -> list[Option]:
     #. ``-v``, ``--verbosity LEVEL``
     #. ``--version``
     #. ``-h``, ``--help``
+        .. attention::
+            This is an instance of `Click Extra's own HelpOption
+            <https://kdeldycke.github.io/click-extra/colorize.html#click_extra.colorize.HelpOption>`_.
+            It is not explicitly added in the implementation of this function.
+
+            That's because it's `going to be added by Click itself
+            <https://github.com/pallets/click/blob/874ca2b/src/click/core.py#L1257>`_,
+            at the end of the list of options. By letting Click handle this, we ensure
+            that the help option will take into account the `help_option_names
+            <https://click.palletsprojects.com/en/stable/documentation/#help-parameter-customization>`_
+            setting.
+
 
     .. todo::
         For bullet-proof handling of edge-cases, we should probably add an indirection
@@ -169,7 +181,7 @@ def default_extra_params() -> list[Option]:
         ShowParamsOption(),
         VerbosityOption(),
         ExtraVersionOption(),
-        HelpOption(),
+        # HelpOption(),
     ]
 
 
