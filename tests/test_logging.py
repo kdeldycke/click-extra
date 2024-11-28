@@ -72,12 +72,9 @@ def test_unrecognized_verbosity(invoke, cmd_decorator, cmd_type):
     assert not result.stdout
 
     group_help = " COMMAND [ARGS]..." if "group" in cmd_type else ""
-    extra_suggest = (
-        "Try 'logging-cli1 --help' for help.\n" if "extra" not in cmd_type else ""
-    )
     assert result.stderr == (
         f"Usage: logging-cli1 [OPTIONS]{group_help}\n"
-        f"{extra_suggest}\n"
+        "Try 'logging-cli1 --help' for help.\n\n"
         "Error: Invalid value for '--verbosity' / '-v': "
         "'random' is not one of 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'.\n"
     )

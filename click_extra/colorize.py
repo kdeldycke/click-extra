@@ -403,7 +403,7 @@ class ExtraHelpColorsMixin:  # (Command)??
         options.update(ctx.help_option_names)
 
         # Collect all options, choices, metavars, envvars and default values.
-        for param in command.params:
+        for param in command.get_params(ctx):
             # Ignore hidden options that are not meant to be displayed in help screens.
             if isinstance(param, click.Option) and param.hidden:
                 continue
@@ -457,14 +457,29 @@ class ExtraHelpColorsMixin:  # (Command)??
         )
 
     def get_help_option(self, ctx: Context) -> Option | None:
-        """Returns our custom help option object instead of Click's default one."""
-        # Let Click generate the default help option or not.
+        """Returns our custom help option object instead of Click's default one.
+
+        Cache the help option generated from the `help_option_names` setting.
+
+        Fixes the eargerness of the help option, and `respect the evaluation order
+        as described in the documentation
+        <https://click.palletsprojects.com/en/stable/advanced/#callback-evaluation-order>`_.
+
+        This is a backport of the fix proposed in `click#2811
+        <https://github.com/pallets/click/pull/2811/files>`_.
+        """
+        # Let Click generate the default help option.
         help_option = super().get_help_option(ctx)  # type: ignore[misc]
         # If Click decided to not add a default help option, we don't either.
-        if not help_option:
+        if help_option is None:
             return None
-        # Return our own help option.
-        return HelpOption(param_decls=help_option.opts)
+
+        # Generate our own help option, and cache it.
+        if getattr(self, "_cached_help_option", None) is None:
+            # Return our own help option.
+            self._cached_help_option = HelpOption(param_decls=help_option.opts)
+
+        return self._cached_help_option
 
     def get_help(self, ctx: Context) -> str:
         """Replace default formatter by our own."""

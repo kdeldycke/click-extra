@@ -155,6 +155,7 @@ def test_required_command(invoke, all_command_cli):
             rf"{default_debug_uncolored_log_start}"
             rf"{default_debug_uncolored_log_end}"
             r"Usage: command-cli1 \[OPTIONS\] COMMAND \[ARGS\]...\n"
+            r"Try 'command-cli1 --help' for help.\n"
             r"\n"
             r"Error: Missing command.\n"
         ),
