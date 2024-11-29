@@ -39,6 +39,7 @@ from click_extra.pytest import (
     default_options_colored_help,
     default_options_uncolored_help,
 )
+from click_extra import extra_command, extra_version_option
 
 from .conftest import skip_windows_colors
 
