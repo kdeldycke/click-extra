@@ -305,6 +305,30 @@ def test_colored_bare_help(invoke, cmd_decorator, param):
     ) in result.stdout
 
 
+def test_duplicate_option(invoke):
+    """
+    See:
+    - https://kdeldycke.github.io/click-extra/commands.html#change-default-options
+    - https://github.com/kdeldycke/click-extra/issues/232
+    """
+
+    @extra_command
+    @extra_version_option(version="0.1")
+    def cli():
+        pass
+
+    result = invoke(cli, "--help", color=False)
+    assert result.exit_code == 0
+    assert result.stdout.endswith(
+        "  -v, --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.\n"
+        "                            [default: WARNING]\n"
+        "  --version                 Show the version and exit.\n"
+        "  --version                 Show the version and exit.\n"
+        "  -h, --help                Show this message and exit.\n"
+    )
+    assert not result.stderr
+
+
 def test_no_option_leaks_between_subcommands(invoke):
     """As reported in https://github.com/kdeldycke/click-extra/issues/489."""
 

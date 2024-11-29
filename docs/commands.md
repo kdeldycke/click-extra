@@ -186,11 +186,13 @@ This let you replace the preset options by your own set, tweak their order and f
       result = invoke(cli, args=["--help"])
       assert (
          "  \x1b[36m--version\x1b[0m                 Show the version and exit.\n"
-         "  \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m                Show this message and exit.\n"
          "  \x1b[36m--version\x1b[0m                 Show the version and exit.\n"
+         "  \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m                Show this message and exit.\n"
       ) in result.output
 
    This is by design: decorators are cumulative, to allow you to add your own options to the preset of `@extra_command` and `@extra_group`.
+
+   And if the second ``--version`` option is placed right before the ``--help`` option, it is because Click is adding its own generated ``--help`` option at the end of the list: https://kdeldycke.github.io/click-extra/commands.html#click_extra.commands.default_extra_params
 ```
 
 ### Option order
