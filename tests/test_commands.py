@@ -188,7 +188,10 @@ def test_help_eagerness(invoke, all_command_cli, params):
 
 
 def test_help_custom_name(invoke):
-    """Removes the ``-h`` short option as we reserve it for a custom ``-h/--header`` option."""
+    """Removes the ``-h`` short option as we reserve it for a custom ``-h/--header`` option.
+
+    See: https://github.com/kdeldycke/mail-deduplicate/issues/762
+    """
 
     @extra_command(context_settings={"help_option_names": ("--help",)})
     @option("-h", "--header", is_flag=True)
