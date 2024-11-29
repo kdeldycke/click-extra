@@ -31,7 +31,7 @@ from pytest_cases import fixture, parametrize
 
 import click_extra
 from click_extra import echo, option, option_group, pass_context
-from click_extra.decorators import extra_command, extra_group
+from click_extra.decorators import extra_command, extra_group, extra_version_option
 from click_extra.pytest import (
     command_decorators,
     default_debug_uncolored_log_end,
@@ -39,7 +39,6 @@ from click_extra.pytest import (
     default_options_colored_help,
     default_options_uncolored_help,
 )
-from click_extra import extra_command, extra_version_option
 
 from .conftest import skip_windows_colors
 
