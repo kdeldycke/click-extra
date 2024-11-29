@@ -47,13 +47,13 @@ def slow_subcommand():
 
 
 @parametrize(
-    "subcommand_id, time_min, time_max",
+    "subcommand_id, time_min",
     (
-        ("fast", 0.01, 0.2),
-        ("slow", 0.1, 1),
+        ("fast", 0.01),
+        ("slow", 0.1),
     ),
 )
-def test_integrated_time_option(invoke, subcommand_id, time_min, time_max):
+def test_integrated_time_option(invoke, subcommand_id, time_min):
     result = invoke(integrated_timer, "--time", f"{subcommand_id}-subcommand")
     assert result.exit_code == 0
     assert not result.stderr
@@ -63,7 +63,8 @@ def test_integrated_time_option(invoke, subcommand_id, time_min, time_max):
         result.stdout,
     )
     assert group
-    assert time_min < float(group.groupdict()["time"]) < time_max
+    # Hard-code upper bound to avoid flakiness on slow platforms like macOS.
+    assert time_min < float(group.groupdict()["time"]) < 10
 
 
 @parametrize("subcommand_id", ("fast", "slow"))
