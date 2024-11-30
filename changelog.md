@@ -1,9 +1,6 @@
 # Changelog
 
-## [4.11.7 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v4.11.6...main)
-
-> [!IMPORTANT]
-> This version is not released yet and is under active development.
+## [4.11.7 (2024-11-30)](https://github.com/kdeldycke/click-extra/compare/v4.11.6...v4.11.7)
 
 - Remove support for comments in JSON configuration files. Remove dependency on unmaintained `commentjson`. Closes [`click-extra#1152`](https://github.com/kdeldycke/click-extra/issues/1152).
 
