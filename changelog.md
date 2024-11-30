@@ -5,6 +5,8 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Remove support for comments in JSON configuration files. Remove dependency on unmaintained `commentjson`. Closes [`click-extra#1152`](https://github.com/kdeldycke/click-extra/issues/1152).
+
 ## [4.11.6 (2024-11-28)](https://github.com/kdeldycke/click-extra/compare/v4.11.5...v4.11.6)
 
 - Make `--timer` option eager so it can jumps the queue of processing order.

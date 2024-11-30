@@ -141,13 +141,12 @@ wheels = [
 
 [[package]]
 name = "click-extra"
-version = "4.11.6"
+version = "4.11.7"
 source = { editable = "." }
 dependencies = [
     { name = "boltons" },
     { name = "click" },
     { name = "cloup" },
-    { name = "commentjson" },
     { name = "extra-platforms" },
     { name = "mergedeep" },
     { name = "pyyaml" },
@@ -207,7 +206,6 @@ requires-dist = [
     { name = "boltons", specifier = "~=24.1.0" },
     { name = "click", specifier = "~=8.1.4" },
     { name = "cloup", specifier = "~=3.0.5" },
-    { name = "commentjson", specifier = "~=0.9.0" },
     { name = "coverage", extras = ["toml"], marker = "extra == 'test'", specifier = "~=7.6.0" },
     { name = "extra-platforms", specifier = "~=1.6.0" },
     { name = "extra-platforms", extras = ["pytest"], marker = "extra == 'test'", specifier = "~=1.6.0" },
@@ -268,15 +266,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/d8/53/6f443c9a4a8358a93
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6", size = 25335 },
 ]
-
-[[package]]
-name = "commentjson"
-version = "0.9.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "lark-parser" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/c0/76/c4aa9e408dbacee3f4de8e6c5417e5f55de7e62fb5a50300e1233a2c9cb5/commentjson-0.9.0.tar.gz", hash = "sha256:42f9f231d97d93aff3286a4dc0de39bfd91ae823d1d9eba9fa901fe0c7113dd4", size = 8653 }
 
 [[package]]
 name = "coverage"
@@ -452,12 +441,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/ed/55/39036716d19cab074
 wheels = [
     { url = "https://files.pythonhosted.org/packages/31/80/3a54838c3fb461f6fec263ebf3a3a41771bd05190238de3486aae8540c36/jinja2-3.1.4-py3-none-any.whl", hash = "sha256:bc5dd2abb727a5319567b7a813e6a2e7318c39f4f487cfe6c89c6f9c7d25197d", size = 133271 },
 ]
-
-[[package]]
-name = "lark-parser"
-version = "0.7.8"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/34/b8/aa7d6cf2d5efdd2fcd85cf39b33584fe12a0f7086ed451176ceb7fb510eb/lark-parser-0.7.8.tar.gz", hash = "sha256:26215ebb157e6fb2ee74319aa4445b9f3b7e456e26be215ce19fdaaa901c20a4", size = 276204 }
 
 [[package]]
 name = "makefun"

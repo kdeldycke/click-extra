@@ -37,7 +37,7 @@ To undestrand how we ended up with the result above, [go read the tutorial](http
 - [Configuration file](https://kdeldycke.github.io/click-extra/config.html) loader for:
   - `TOML`
   - `YAML`
-  - `JSON`, with inline and block comments (Python-style `#` and Javascript-style `//`)
+  - `JSON`
   - `INI`, with extended interpolation, multi-level sections and non-native types (`list`, `set`, …)
   - `XML`
 - Automatic inference of the configuration file structure from your CLI's options

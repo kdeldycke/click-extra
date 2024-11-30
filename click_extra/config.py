@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import logging
+import json
 import os
 import sys
 from configparser import ConfigParser, ExtendedInterpolation
@@ -32,7 +33,6 @@ if sys.version_info >= (3, 11):
 else:
     import tomli as tomllib  # type: ignore[import-not-found]
 
-import commentjson as json
 import requests
 import xmltodict
 import yaml
