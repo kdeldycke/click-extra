@@ -156,7 +156,7 @@ jobs:
       - name: Install project
         run: |
           uv --no-progress venv
-          uv --no-progress sync --extra test --extra pygments --extra sphinx --extra pytest
+          uv --no-progress sync --frozen --extra test --extra pygments --extra sphinx --extra pytest
 
       - name: Unittests
         run: >
