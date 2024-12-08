@@ -1,0 +1,782 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+
+    <!-- Generated with Sphinx 8.1.3 and Furo 2024.08.06 -->
+        <title>click_extra.commands - Click Extra</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d3572542" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+<div class="announcement">
+  <aside class="announcement-content">
+     Click Extra works fine, but its sole maintainer is distracted by life 😶‍🌫️.<br/>You can influence it with purchase of <strong><a class='reference external' href='https://github.com/sponsors/kdeldycke'>business support 🤝 and sponsorship 🫶</a></strong>. 
+  </aside>
+</div>
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">Click Extra</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../_static/logo-square.svg" alt="Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../commands.html">Commands &amp; groups</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../config.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../colorize.html">Colored help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../logging.html">Logging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tabulate.html">Table</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../version.html">Version</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../timer.html">Timer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../platforms.html">Platform detection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../parameters.html">Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../pygments.html">Pygments extensions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../sphinx.html">Sphinx extensions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../testing.html">CLI testing and execution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../pytest.html">Pytest utilities and fixtures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../issues.html">Fixed issues</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../click_extra.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tests.html">tests package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../todolist.html">Todo-list</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../code-of-conduct.html">Code of conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/kdeldycke/click-extra">GitHub Repository</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/sponsors/kdeldycke">Funding</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <h1>Source code for click_extra.commands</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright Kevin Deldycke &lt;kevin@deldycke.com&gt; and contributors.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is Free Software; you can redistribute it and/or</span>
+<span class="c1"># modify it under the terms of the GNU General Public License</span>
+<span class="c1"># as published by the Free Software Foundation; either version 2</span>
+<span class="c1"># of the License, or (at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU General Public License</span>
+<span class="c1"># along with this program; if not, write to the Free Software</span>
+<span class="c1"># Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.</span>
+<span class="sd">&quot;&quot;&quot;Wraps vanilla Click and Cloup commands with extra features.</span>
+
+<span class="sd">Our flavor of commands, groups and context are all subclasses of their vanilla</span>
+<span class="sd">counterparts, but are pre-configured with good and common defaults. You can still</span>
+<span class="sd">leverage the mixins in here to build up your own custom variants.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span>
+
+<span class="kn">import</span> <span class="nn">click</span>
+<span class="kn">import</span> <span class="nn">cloup</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">Command</span><span class="p">,</span> <span class="n">Group</span><span class="p">,</span> <span class="n">Option</span>
+<span class="kn">from</span> <span class="nn">.colorize</span> <span class="kn">import</span> <span class="n">ColorOption</span><span class="p">,</span> <span class="n">ExtraHelpColorsMixin</span><span class="p">,</span> <span class="n">HelpExtraFormatter</span>
+<span class="kn">from</span> <span class="nn">.config</span> <span class="kn">import</span> <span class="n">ConfigOption</span>
+<span class="kn">from</span> <span class="nn">.logging</span> <span class="kn">import</span> <span class="n">VerbosityOption</span>
+<span class="kn">from</span> <span class="nn">.parameters</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ExtraOption</span><span class="p">,</span>
+    <span class="n">ShowParamsOption</span><span class="p">,</span>
+    <span class="n">all_envvars</span><span class="p">,</span>
+    <span class="n">normalize_envvar</span><span class="p">,</span>
+    <span class="n">search_params</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">.timer</span> <span class="kn">import</span> <span class="n">TimerOption</span>
+<span class="kn">from</span> <span class="nn">.version</span> <span class="kn">import</span> <span class="n">ExtraVersionOption</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">NoReturn</span>
+
+<span class="kn">from</span> <span class="nn">click.exceptions</span> <span class="kn">import</span> <span class="n">Exit</span>
+
+
+<div class="viewcode-block" id="patched_exit">
+<a class="viewcode-back" href="../../commands.html#click_extra.patched_exit">[docs]</a>
+<span class="k">def</span> <span class="nf">patched_exit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">code</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NoReturn</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Exits the application with a given exit code.</span>
+
+<span class="sd">    Forces the context to close before exiting, so callbacks attached to parameters</span>
+<span class="sd">    will be called to clean up their state. This is not important in normal CLI</span>
+<span class="sd">    execution as the Python process will just be destroyed. But it will lead to leaky</span>
+<span class="sd">    states in unitttests.</span>
+
+<span class="sd">    .. seealso::</span>
+<span class="sd">        This fix has been `proposed upstream to Click</span>
+<span class="sd">        &lt;https://github.com/pallets/click/pull/2680&gt;`_.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">raise</span> <span class="n">Exit</span><span class="p">(</span><span class="n">code</span><span class="p">)</span></div>
+
+
+
+<span class="n">cloup</span><span class="o">.</span><span class="n">Context</span><span class="o">.</span><span class="n">exit</span> <span class="o">=</span> <span class="n">patched_exit</span>  <span class="c1"># type: ignore[method-assign]</span>
+<span class="sd">&quot;&quot;&quot;Monkey-patch ``cloup.Context.exit``.&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="ExtraContext">
+<a class="viewcode-back" href="../../commands.html#click_extra.ExtraContext">[docs]</a>
+<span class="k">class</span> <span class="nc">ExtraContext</span><span class="p">(</span><span class="n">cloup</span><span class="o">.</span><span class="n">Context</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Like ``cloup._context.Context``, but with the ability to populate the context&#39;s</span>
+<span class="sd">    ``meta`` property at instantiation.</span>
+
+<span class="sd">    Also inherits ``color`` property from parent context. And sets it to `True` for</span>
+<span class="sd">    parentless contexts at instantiatiom, so we can always have colorized output.</span>
+
+<span class="sd">    .. todo::</span>
+<span class="sd">        Propose addition of ``meta`` keyword upstream to Click.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">formatter_class</span> <span class="o">=</span> <span class="n">HelpExtraFormatter</span>  <span class="c1"># type: ignore[assignment]</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Use our own formatter to colorize the help screen.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">meta</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Like parent&#39;s context but with an extra ``meta`` keyword-argument.</span>
+
+<span class="sd">        Also force ``color`` property default to `True` if not provided by user and</span>
+<span class="sd">        this context has no parent.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Update the context&#39;s meta property with the one provided by user.</span>
+        <span class="k">if</span> <span class="n">meta</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_meta</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">meta</span><span class="p">)</span>
+
+        <span class="c1"># Transfer user color setting to our internally managed value.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_color</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="c1"># A Context created from scratch, i.e. without a parent, and whose color</span>
+        <span class="c1"># setting is set to auto-detect (i.e. is None), will defaults to forced</span>
+        <span class="c1"># colorized output.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_color</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_color</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">color</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Overrides ``Context.color`` to allow inheritance from parent context.</span>
+
+<span class="sd">        Returns the color setting of the parent context if it exists and the color is</span>
+<span class="sd">        not set on the current context.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_color</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">color</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_color</span>
+
+    <span class="nd">@color</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">color</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the color value of the current context.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_color</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@color</span><span class="o">.</span><span class="n">deleter</span>
+    <span class="k">def</span> <span class="nf">color</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the color value so it defaults to inheritance from parent&#39;s.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_color</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="default_extra_params">
+<a class="viewcode-back" href="../../commands.html#click_extra.default_extra_params">[docs]</a>
+<span class="k">def</span> <span class="nf">default_extra_params</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Option</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Default additional options added to ``extra_command`` and ``extra_group``.</span>
+
+<span class="sd">    .. caution::</span>
+<span class="sd">        The order of options has been carefully crafted to handle subtle edge-cases and</span>
+<span class="sd">        avoid leaky states in unittests.</span>
+
+<span class="sd">        You can still override this hard-coded order for easthetic reasons and it</span>
+<span class="sd">        should be fine. Your end-users are unlikely to be affected by these sneaky</span>
+<span class="sd">        bugs, as the CLI context is going to be naturraly reset after each</span>
+<span class="sd">        invocation (which is not the case in unitests).</span>
+
+<span class="sd">    #. ``--time`` / ``--no-time``</span>
+<span class="sd">        .. hint::</span>
+<span class="sd">            ``--time`` is placed at the top of all other eager options so all other</span>
+<span class="sd">            options&#39; processing time can be measured.</span>
+<span class="sd">    #. ``-C``, ``--config CONFIG_PATH``</span>
+<span class="sd">        .. hint::</span>
+<span class="sd">            ``--config`` is at the top so it can have a direct influence on the default</span>
+<span class="sd">            behavior and value of the other options.</span>
+<span class="sd">    #. ``--color``, ``--ansi`` / ``--no-color``, ``--no-ansi``</span>
+<span class="sd">    #. ``--show-params``</span>
+<span class="sd">    #. ``-v``, ``--verbosity LEVEL``</span>
+<span class="sd">    #. ``--version``</span>
+<span class="sd">    #. ``-h``, ``--help``</span>
+<span class="sd">        .. attention::</span>
+<span class="sd">            This is an instance of `Click Extra&#39;s own HelpOption</span>
+<span class="sd">            &lt;https://kdeldycke.github.io/click-extra/colorize.html#click_extra.colorize.HelpOption&gt;`_.</span>
+<span class="sd">            It is not explicitly added in the implementation of this function.</span>
+
+<span class="sd">            That&#39;s because it&#39;s `going to be added by Click itself</span>
+<span class="sd">            &lt;https://github.com/pallets/click/blob/874ca2b/src/click/core.py#L1257&gt;`_,</span>
+<span class="sd">            at the end of the list of options. By letting Click handle this, we ensure</span>
+<span class="sd">            that the help option will take into account the `help_option_names</span>
+<span class="sd">            &lt;https://click.palletsprojects.com/en/stable/documentation/#help-parameter-customization&gt;`_</span>
+<span class="sd">            setting.</span>
+
+<span class="sd">    .. important::</span>
+<span class="sd">        Sensitivity to order still remains to be proven. With the code of Click Extra</span>
+<span class="sd">        and its dependencies moving fast, there is a non-zero chance that all the</span>
+<span class="sd">        options are now sound enough to be re-ordered in a more natural way.</span>
+
+<span class="sd">    .. todo::</span>
+<span class="sd">        For bullet-proof handling of edge-cases, we should probably add an indirection</span>
+<span class="sd">        layer to have the processing order of options (the one below) different from</span>
+<span class="sd">        the presentation order of options in the help screen.</span>
+
+<span class="sd">        This is probably something that has been `requested in issue #544</span>
+<span class="sd">        &lt;https://github.com/kdeldycke/click-extra/issues/544&gt;`_.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="n">TimerOption</span><span class="p">(),</span>
+        <span class="n">ColorOption</span><span class="p">(),</span>
+        <span class="n">ConfigOption</span><span class="p">(),</span>
+        <span class="n">ShowParamsOption</span><span class="p">(),</span>
+        <span class="n">VerbosityOption</span><span class="p">(),</span>
+        <span class="n">ExtraVersionOption</span><span class="p">(),</span>
+        <span class="c1"># HelpOption(),</span>
+    <span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="ExtraCommand">
+<a class="viewcode-back" href="../../commands.html#click_extra.ExtraCommand">[docs]</a>
+<span class="k">class</span> <span class="nc">ExtraCommand</span><span class="p">(</span><span class="n">ExtraHelpColorsMixin</span><span class="p">,</span> <span class="n">Command</span><span class="p">):</span>  <span class="c1"># type: ignore[misc]</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Like ``cloup.command``, with sane defaults and extra help screen colorization.&quot;&quot;&quot;</span>
+
+    <span class="n">context_class</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">cloup</span><span class="o">.</span><span class="n">Context</span><span class="p">]</span> <span class="o">=</span> <span class="n">ExtraContext</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="n">version</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">extra_option_at_end</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">populate_auto_envvars</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;List of extra parameters:</span>
+
+<span class="sd">        :param version: allows a version string to be set directly on the command. Will</span>
+<span class="sd">            be passed to the first instance of ``ExtraVersionOption`` parameter</span>
+<span class="sd">            attached to the command.</span>
+<span class="sd">        :param extra_option_at_end: `reorders all parameters attached to the command</span>
+<span class="sd">            &lt;https://kdeldycke.github.io/click-extra/commands.html#option-order&gt;`_, by</span>
+<span class="sd">            moving all instances of ``ExtraOption`` at the end of the parameter list.</span>
+<span class="sd">            The original order of the options is preserved among themselves.</span>
+<span class="sd">        :param populate_auto_envvars: forces all parameters to have their auto-generated</span>
+<span class="sd">            environment variables registered. This address the shortcoming of ``click``</span>
+<span class="sd">            which only evaluates them dynamiccaly. By forcing their registration, the</span>
+<span class="sd">            auto-generated environment variables gets displayed in the help screen,</span>
+<span class="sd">            fixing `click#2483 issue &lt;https://github.com/pallets/click/issues/2483&gt;`_.</span>
+
+<span class="sd">        By default, these `Click context settings</span>
+<span class="sd">        &lt;https://click.palletsprojects.com/en/stable/api/#click.Context&gt;`_ are applied:</span>
+
+<span class="sd">        - ``auto_envvar_prefix = self.name`` (*Click feature*)</span>
+
+<span class="sd">          Auto-generate environment variables for all options, using the command ID as</span>
+<span class="sd">          prefix. The prefix is normalized to be uppercased and all non-alphanumerics</span>
+<span class="sd">          replaced by underscores.</span>
+
+<span class="sd">        - ``help_option_names = (&quot;--help&quot;, &quot;-h&quot;)`` (*Click feature*)</span>
+
+<span class="sd">          `Allow help screen to be invoked with either --help or -h options</span>
+<span class="sd">          &lt;https://click.palletsprojects.com/en/stable/documentation/#help-parameter-customization&gt;`_.</span>
+
+<span class="sd">        - ``show_default = True`` (*Click feature*)</span>
+
+<span class="sd">          `Show all default values</span>
+<span class="sd">          &lt;https://click.palletsprojects.com/en/stable/api/#click.Context.show_default&gt;`_</span>
+<span class="sd">          in help screen.</span>
+
+<span class="sd">        Additionally, these `Cloup context settings</span>
+<span class="sd">        &lt;https://cloup.readthedocs.io/en/stable/pages/formatting.html#formatting-settings&gt;`_</span>
+<span class="sd">        are set:</span>
+
+<span class="sd">        - ``align_option_groups = False`` (*Cloup feature*)</span>
+
+<span class="sd">          `Aligns option groups in help screen</span>
+<span class="sd">          &lt;https://cloup.readthedocs.io/en/stable/pages/option-groups.html#aligned-vs-non-aligned-groups&gt;`_.</span>
+
+<span class="sd">        - ``show_constraints = True`` (*Cloup feature*)</span>
+
+<span class="sd">          `Show all constraints in help screen</span>
+<span class="sd">          &lt;https://cloup.readthedocs.io/en/stable/pages/constraints.html#the-constraint-decorator&gt;`_.</span>
+
+<span class="sd">        - ``show_subcommand_aliases = True`` (*Cloup feature*)</span>
+
+<span class="sd">          `Show all subcommand aliases in help screen</span>
+<span class="sd">          &lt;https://cloup.readthedocs.io/en/stable/pages/aliases.html?highlight=show_subcommand_aliases#help-output-of-the-group&gt;`_.</span>
+
+<span class="sd">        Click Extra also adds its own ``context_settings``:</span>
+
+<span class="sd">        - ``show_choices = None`` (*Click Extra feature*)</span>
+
+<span class="sd">          If set to ``True`` or ``False``, will force that value on all options, so we</span>
+<span class="sd">          can globally show or hide choices when prompting a user for input. Only makes</span>
+<span class="sd">          sense for options whose ``prompt`` property is set.</span>
+
+<span class="sd">          Defaults to ``None``, which will leave all options untouched, and let them</span>
+<span class="sd">          decide of their own ``show_choices`` setting.</span>
+
+<span class="sd">        - ``show_envvar = None`` (*Click Extra feature*)</span>
+
+<span class="sd">          If set to ``True`` or ``False``, will force that value on all options, so we</span>
+<span class="sd">          can globally enable or disable the display of environment variables in help</span>
+<span class="sd">          screen.</span>
+
+<span class="sd">          Defaults to ``None``, which will leave all options untouched, and let them</span>
+<span class="sd">          decide of their own ``show_envvar`` setting. The rationale being that</span>
+<span class="sd">          discoverability of environment variables is enabled by the ``--show-params``</span>
+<span class="sd">          option, which is active by default on extra commands. So there is no need to</span>
+<span class="sd">          surcharge the help screen.</span>
+
+<span class="sd">          This addresses the</span>
+<span class="sd">          `click#2313 issue &lt;https://github.com/pallets/click/issues/2313&gt;`_.</span>
+
+<span class="sd">        To override these defaults, you can pass your own settings with the</span>
+<span class="sd">        ``context_settings`` parameter:</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            @extra_command(</span>
+<span class="sd">                context_settings={</span>
+<span class="sd">                    &quot;show_default&quot;: False,</span>
+<span class="sd">                    ...</span>
+<span class="sd">                }</span>
+<span class="sd">            )</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># List of additional global settings for options.</span>
+        <span class="n">extra_option_settings</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;show_choices&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;show_envvar&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+
+        <span class="n">default_ctx_settings</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="c1"># Click settings:</span>
+            <span class="c1"># &quot;default_map&quot;: {&quot;verbosity&quot;: &quot;DEBUG&quot;},</span>
+            <span class="s2">&quot;help_option_names&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;--help&quot;</span><span class="p">,</span> <span class="s2">&quot;-h&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;show_default&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="c1"># Cloup settings:</span>
+            <span class="s2">&quot;align_option_groups&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s2">&quot;show_constraints&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">&quot;show_subcommand_aliases&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="c1"># Click Extra settings:</span>
+            <span class="s2">&quot;show_choices&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;show_envvar&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="c1"># Generate environment variables for all options based on the command name.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+            <span class="n">default_ctx_settings</span><span class="p">[</span><span class="s2">&quot;auto_envvar_prefix&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">normalize_envvar</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="c1"># Merge defaults and user settings.</span>
+        <span class="n">default_ctx_settings</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">context_settings</span><span class="p">)</span>
+
+        <span class="c1"># If set, force extra settings on all options.</span>
+        <span class="k">for</span> <span class="n">setting</span> <span class="ow">in</span> <span class="n">extra_option_settings</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">default_ctx_settings</span><span class="p">[</span><span class="n">setting</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">:</span>
+                    <span class="c1"># These attributes are specific to options.</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">click</span><span class="o">.</span><span class="n">Option</span><span class="p">):</span>
+                        <span class="n">param</span><span class="o">.</span><span class="n">show_envvar</span> <span class="o">=</span> <span class="n">default_ctx_settings</span><span class="p">[</span><span class="n">setting</span><span class="p">]</span>
+
+        <span class="c1"># Remove Click Extra-specific settings, before passing it to Cloup and Click.</span>
+        <span class="k">for</span> <span class="n">setting</span> <span class="ow">in</span> <span class="n">extra_option_settings</span><span class="p">:</span>
+            <span class="k">del</span> <span class="n">default_ctx_settings</span><span class="p">[</span><span class="n">setting</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">context_settings</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">default_ctx_settings</span>
+
+        <span class="k">if</span> <span class="n">populate_auto_envvars</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">:</span>
+                <span class="n">param</span><span class="o">.</span><span class="n">envvar</span> <span class="o">=</span> <span class="n">all_envvars</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">context_settings</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">version</span><span class="p">:</span>
+            <span class="n">version_param</span> <span class="o">=</span> <span class="n">search_params</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">ExtraVersionOption</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">version_param</span><span class="p">:</span>
+                <span class="n">version_param</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="n">version</span>  <span class="c1"># type: ignore[union-attr]</span>
+
+        <span class="k">if</span> <span class="n">extra_option_at_end</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">ExtraOption</span><span class="p">))</span>
+
+        <span class="c1"># Forces re-identification of grouped and non-grouped options as we re-ordered</span>
+        <span class="c1"># them above and added our own extra options since initialization.</span>
+        <span class="n">_grouped_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_group_params</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>  <span class="c1"># type: ignore[attr-defined]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">arguments</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">option_groups</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ungrouped_options</span> <span class="o">=</span> <span class="n">_grouped_params</span>
+
+<div class="viewcode-block" id="ExtraCommand.main">
+<a class="viewcode-back" href="../../commands.html#click_extra.ExtraCommand.main">[docs]</a>
+    <span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Pre-invocation step that is instantiating the context, then call ``invoke()``</span>
+<span class="sd">        within it.</span>
+
+<span class="sd">        During context instantiation, each option&#39;s callbacks are called. Beware that</span>
+<span class="sd">        these might break the execution flow (like ``--help`` or ``--version``).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">main</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ExtraCommand.make_context">
+<a class="viewcode-back" href="../../commands.html#click_extra.ExtraCommand.make_context">[docs]</a>
+    <span class="k">def</span> <span class="nf">make_context</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">info_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">args</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="n">parent</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Context</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">extra</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Intercept the call to the original ``click.core.BaseCommand.make_context`` so</span>
+<span class="sd">        we can keep a copy of the raw, pre-parsed arguments provided to the CLI.</span>
+
+<span class="sd">        The result are passed to our own ``ExtraContext`` constructor which is able to</span>
+<span class="sd">        initialize the context&#39;s ``meta`` property under our own</span>
+<span class="sd">        ``click_extra.raw_args`` entry. This will be used in</span>
+<span class="sd">        ``ShowParamsOption.print_params()`` to print the table of parameters fed to the</span>
+<span class="sd">        CLI.</span>
+
+<span class="sd">        .. seealso::</span>
+<span class="sd">            This workaround is being discussed upstream in `click#1279</span>
+<span class="sd">            &lt;https://github.com/pallets/click/issues/1279#issuecomment-1493348208&gt;`_.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># ``args`` needs to be copied: its items are consumed by the parsing process.</span>
+        <span class="n">extra</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;meta&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;click_extra.raw_args&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">copy</span><span class="p">()}})</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">make_context</span><span class="p">(</span><span class="n">info_name</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ExtraCommand.invoke">
+<a class="viewcode-back" href="../../commands.html#click_extra.ExtraCommand.invoke">[docs]</a>
+    <span class="k">def</span> <span class="nf">invoke</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Main execution of the command, just after the context has been instantiated</span>
+<span class="sd">        in ``main()``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ExtraGroup">
+<a class="viewcode-back" href="../../commands.html#click_extra.ExtraGroup">[docs]</a>
+<span class="k">class</span> <span class="nc">ExtraGroup</span><span class="p">(</span><span class="n">ExtraCommand</span><span class="p">,</span> <span class="n">Group</span><span class="p">):</span>  <span class="c1"># type: ignore[misc]</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Like``cloup.Group``, with sane defaults and extra help screen colorization.&quot;&quot;&quot;</span>
+
+    <span class="n">command_class</span> <span class="o">=</span> <span class="n">ExtraCommand</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Makes commands of an ``ExtraGroup`` be instances of ``ExtraCommand``.</span>
+
+<span class="sd">    That way all subcommands created from an ``ExtraGroup`` benefits from the same</span>
+<span class="sd">    defaults and extra help screen colorization.</span>
+
+<span class="sd">    See: https://click.palletsprojects.com/en/stable/api/#click.Group.command_class</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">group_class</span> <span class="o">=</span> <span class="nb">type</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Let ``ExtraGroup`` produce sub-groups that are also of ``ExtraGroup`` type.</span>
+
+<span class="sd">    See: https://click.palletsprojects.com/en/stable/api/#click.Group.group_class</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+</pre></div>
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; Kevin Deldycke and contributors
+            </div>
+            Made with 
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            <div class="last-updated">
+              Last updated on 2024-12-08</div>
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script src="../../_static/documentation_options.js?v=c0b904be"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/scripts/furo.js?v=5fa4622c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs"></script>
+    <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs";import elkLayouts from "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs";mermaid.registerLayoutLoaders(elkLayouts);mermaid.initialize({startOnLoad:false});</script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+    <script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs";
+const load = async () => {
+    await mermaid.run();
+    const all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+    if(mermaids_to_add_zoom > 0) {
+        var svgs = d3.selectAll(".mermaid svg");
+        if(all_mermaids.length !== mermaids_processed.length) {
+            // try again in a sec, wait for mermaids to load
+            setTimeout(load, 200);
+            return;
+        } else if(svgs.size() !== mermaids_to_add_zoom) {
+            // try again in a sec, wait for mermaids to load
+            setTimeout(load, 200);
+            return;
+        } else {
+            svgs.each(function() {
+                var svg = d3.select(this);
+                svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                var inner = svg.select("g");
+                var zoom = d3.zoom().on("zoom", function(event) {
+                    inner.attr("transform", event.transform);
+                });
+                svg.call(zoom);
+            });
+        }
+    }
+};
+
+window.addEventListener("load", load);
+</script>
+    </body>
+</html>

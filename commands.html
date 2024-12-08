@@ -1,0 +1,1404 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta property="og:title" content="Commands & groups" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="commands.html" />
+<meta property="og:site_name" content="Click Extra" />
+<meta property="og:description" content="Drop-in replacement: Click Extra aims to be a drop-in replacement for Click. The vast majority of Click Extra’s decorators, functions and classes are direct proxies of their Click counterparts. Thi..." />
+<meta name="description" content="Drop-in replacement: Click Extra aims to be a drop-in replacement for Click. The vast majority of Click Extra’s decorators, functions and classes are direct proxies of their Click counterparts. Thi..." />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Configuration" href="config.html" /><link rel="prev" title="Tutorial" href="tutorial.html" />
+
+    <!-- Generated with Sphinx 8.1.3 and Furo 2024.08.06 -->
+        <title>Commands &amp; groups - Click Extra</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d3572542" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+<div class="announcement">
+  <aside class="announcement-content">
+     Click Extra works fine, but its sole maintainer is distracted by life 😶‍🌫️.<br/>You can influence it with purchase of <strong><a class='reference external' href='https://github.com/sponsors/kdeldycke'>business support 🤝 and sponsorship 🫶</a></strong>. 
+  </aside>
+</div>
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">Click Extra</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="_static/logo-square.svg" alt="Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Commands &amp; groups</a></li>
+<li class="toctree-l1"><a class="reference internal" href="config.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="colorize.html">Colored help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logging.html">Logging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tabulate.html">Table</a></li>
+<li class="toctree-l1"><a class="reference internal" href="version.html">Version</a></li>
+<li class="toctree-l1"><a class="reference internal" href="timer.html">Timer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="platforms.html">Platform detection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parameters.html">Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pygments.html">Pygments extensions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sphinx.html">Sphinx extensions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="testing.html">CLI testing and execution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pytest.html">Pytest utilities and fixtures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="issues.html">Fixed issues</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="click_extra.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tests.html">tests package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="todolist.html">Todo-list</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="code-of-conduct.html">Code of conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/kdeldycke/click-extra">GitHub Repository</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/sponsors/kdeldycke">Funding</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/kdeldycke/click-extra/blob/main/docs/commands.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/kdeldycke/click-extra/edit/main/docs/commands.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="commands-groups">
+<h1>Commands &amp; groups<a class="headerlink" href="#commands-groups" title="Link to this heading">¶</a></h1>
+<section id="drop-in-replacement">
+<h2>Drop-in replacement<a class="headerlink" href="#drop-in-replacement" title="Link to this heading">¶</a></h2>
+<p>Click Extra aims to be a drop-in replacement for Click. The vast majority of Click Extra’s decorators, functions and classes are direct proxies of their Click counterparts. This means that you can replace, in your code, imports of the <code class="docutils literal notranslate"><span class="pre">click</span></code> namespace by <code class="docutils literal notranslate"><span class="pre">click_extra</span></code> and it will work as expected.</p>
+<p>Here is for instance the <a class="reference external" href="https://github.com/pallets/click#a-simple-example">canonical <code class="docutils literal notranslate"><span class="pre">click</span></code> example</a> with all original imports replaced with <code class="docutils literal notranslate"><span class="pre">click_extra</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">click_extra</span> <span class="kn">import</span> <span class="n">command</span><span class="p">,</span> <span class="n">echo</span><span class="p">,</span> <span class="n">option</span>
+
+<span class="nd">@command</span>
+<span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--count&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of greetings.&quot;</span><span class="p">)</span>
+<span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--name&quot;</span><span class="p">,</span> <span class="n">prompt</span><span class="o">=</span><span class="s2">&quot;Your name&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The person to greet.&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">hello</span><span class="p">(</span><span class="n">count</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Simple program that greets NAME for a total of COUNT times.&quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">count</span><span class="p">):</span>
+        <span class="n">echo</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Hello, </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">!&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>As you can see the result does not deviates from the original Click-based output:</p>
+<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>hello<span class="w"> </span>--help
+Usage: hello [OPTIONS]
+
+  Simple program that greets NAME for a total of COUNT times.
+
+Options:
+  --count INTEGER  Number of greetings.
+  --name TEXT      The person to greet.
+  --help           Show this message and exit.
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Click and Cloup inheritance</p>
+<p>At the module level, <code class="docutils literal notranslate"><span class="pre">click_extra</span></code> imports all elements from <code class="docutils literal notranslate"><span class="pre">click.*</span></code>, then all elements from the <code class="docutils literal notranslate"><span class="pre">cloup.*</span></code> namespace.</p>
+<p>Which means all elements not redefined by Click Extra fallback to Cloup. And if Cloup itself does not redefine them, they fallback to Click.</p>
+<p>For example:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">click_extra.echo</span></code> is a direct proxy to <code class="docutils literal notranslate"><span class="pre">click.echo</span></code> because Cloup does not re-implement an <code class="docutils literal notranslate"><span class="pre">echo</span></code> helper.</p></li>
+<li><p>On the other hand, <code class="docutils literal notranslate"><span class="pre">&#64;click_extra.option</span></code> is a proxy of <code class="docutils literal notranslate"><span class="pre">&#64;cloup.option</span></code>, because Cloup adds the <a class="reference external" href="https://cloup.readthedocs.io/en/stable/pages/option-groups.html">possibility for options to be grouped</a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;click_extra.timer</span></code> is not a proxy of anything, because it is a new decorator implemented by Click Extra.</p></li>
+<li><p>As for <code class="docutils literal notranslate"><span class="pre">&#64;click_extra.extra_version_option</span></code>, it is a re-implementation of <code class="docutils literal notranslate"><span class="pre">&#64;click.version_option</span></code>. Because it adds new features and breaks the original API, it was prefixed with <code class="docutils literal notranslate"><span class="pre">extra_</span></code> to become its own thing. And <code class="docutils literal notranslate"><span class="pre">&#64;click_extra.version_option</span></code> still proxy the original from Click.</p></li>
+</ul>
+<p>Here are few other examples on how Click Extra proxies the main elements from Click and Cloup:</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Click Extra element</p></th>
+<th class="head"><p>Target</p></th>
+<th class="head"><p><a class="reference external" href="https://click.palletsprojects.com/en/stable/api/">Click’s original</a></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&#64;click_extra.command</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;cloup.command</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;click.command</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&#64;click_extra.group</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;cloup.group</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;click.group</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&#64;click_extra.argument</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;cloup.argument</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;click.argument</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&#64;click_extra.option</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;cloup.option</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;click.option</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&#64;click_extra.option_group</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;cloup.option_group</span></code></p></td>
+<td><p><em>Not implemented</em></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&#64;click_extra.pass_context</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;click.pass_context</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;click.pass_context</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&#64;click_extra.version_option</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;click.version_option</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;click.version_option</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&#64;click_extra.extra_version_option</span></code></p></td>
+<td><p><em>Itself</em></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;click.version_option</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&#64;click_extra.help_option</span></code></p></td>
+<td><p><em>Itself</em></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;click.help_option</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&#64;click_extra.timer_option</span></code></p></td>
+<td><p><em>Itself</em></p></td>
+<td><p><em>Not implemented</em></p></td>
+</tr>
+<tr class="row-even"><td><p>…</p></td>
+<td><p>…</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">click_extra.Argument</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cloup.Argument</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">click.Argument</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">click_extra.Command</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cloup.Command</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">click.Command</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">click_extra.Group</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cloup.Group</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">click.Group</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">click_extra.HelpFormatter</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cloup.HelpFormatter</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">click.HelpFormatter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">click_extra.HelpTheme</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cloup.HelpThene</span></code></p></td>
+<td><p><em>Not implemented</em></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">click_extra.Option</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cloup.Option</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">click.Option</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">click_extra.ExtraVersionOption</span></code></p></td>
+<td><p><em>Itself</em></p></td>
+<td><p><em>Not implemented</em></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">click_extra.Style</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cloup.Style</span></code></p></td>
+<td><p><em>Not implemented</em></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">click_extra.echo</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">click.echo</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">click.echo</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">click_extra.ParameterSource</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">click.core.ParameterSource</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">click.core.ParameterSource</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>…</p></td>
+<td><p>…</p></td>
+<td><p>…</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>You can inspect the implementation details by looking at:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/kdeldycke/click-extra/blob/main/click_extra/__init__.py"><code class="docutils literal notranslate"><span class="pre">click_extra.__init__</span></code></a></p></li>
+<li><p><a class="reference external" href="https://github.com/janluke/cloup/blob/master/cloup/__init__.py"><code class="docutils literal notranslate"><span class="pre">cloup.__init__</span></code></a></p></li>
+<li><p><a class="reference external" href="https://github.com/pallets/click/blob/main/src/click/__init__.py"><code class="docutils literal notranslate"><span class="pre">click.__init__</span></code></a></p></li>
+</ul>
+</div>
+</section>
+<section id="extra-variants">
+<h2>Extra variants<a class="headerlink" href="#extra-variants" title="Link to this heading">¶</a></h2>
+<p>Now if you want to benefit from all the <a class="reference internal" href="index.html#features"><span class="std std-ref">wonderful features of Click Extra</span></a>, you have to use the <code class="docutils literal notranslate"><span class="pre">extra</span></code>-prefixed variants:</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p><a class="reference external" href="https://click.palletsprojects.com/en/stable/api/">Original</a></p></th>
+<th class="head"><p>Extra variant</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&#64;click.command</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;click_extra.extra_command</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&#64;click.group</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;click_extra.extra_group</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">click.Command</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">click_extra.ExtraCommand</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">click.Group</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">click_extra.ExtraGroup</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">click.Context</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">click_extra.ExtraContext</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">click.Option</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">click_extra.ExtraOption</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&#64;click.version_option</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;click_extra.extra_version_option</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">click.testing.CliRunner</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">click_extra.ExtraCliRunner</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>You can see how to use some of these <code class="docutils literal notranslate"><span class="pre">extra</span></code> variants in the <a class="reference internal" href="tutorial.html"><span class="std std-doc">tutorial</span></a>.</p>
+</section>
+<section id="default-options">
+<h2>Default options<a class="headerlink" href="#default-options" title="Link to this heading">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">&#64;extra_command</span></code> and <code class="docutils literal notranslate"><span class="pre">&#64;extra_group</span></code> decorators are <a class="reference internal" href="#click_extra.commands.default_extra_params"><span class="std std-ref">pre-configured with a set of default options</span></a>.</p>
+<section id="remove-default-options">
+<h3>Remove default options<a class="headerlink" href="#remove-default-options" title="Link to this heading">¶</a></h3>
+<p>You can remove all default options by resetting the <code class="docutils literal notranslate"><span class="pre">params</span></code> argument to <code class="docutils literal notranslate"><span class="pre">None</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">click_extra</span> <span class="kn">import</span> <span class="n">extra_command</span>
+
+<span class="nd">@extra_command</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">bare_cli</span><span class="p">():</span>
+   <span class="k">pass</span>
+</pre></div>
+</div>
+<p>Which results in:</p>
+<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>bare-cli<span class="w"> </span>--help
+<span class=" -Color -Color-Bold -Color-Bold-BrightBlue -C-Bold -C-BrightBlue">Usage:</span> <span class=" -Color -Color-BrightWhite -C-BrightWhite">bare-cli</span> <span class=" -Color -Color-Faint -Color-Faint-Cyan -C-Faint -C-Cyan">[OPTIONS]</span>
+
+<span class=" -Color -Color-Bold -Color-Bold-BrightBlue -C-Bold -C-BrightBlue">Options:</span>
+  <span class=" -Color -Color-Cyan -C-Cyan">-h</span>, <span class=" -Color -Color-Cyan -C-Cyan">--help</span>  Show this message and exit.
+</pre></div>
+</div>
+<p>As you can see, all options are stripped out, but the colouring and formatting of the help message is preserved.</p>
+</section>
+<section id="change-default-options">
+<h3>Change default options<a class="headerlink" href="#change-default-options" title="Link to this heading">¶</a></h3>
+<p>To override the default options, you can provide the <code class="docutils literal notranslate"><span class="pre">params=</span></code> argument to the command. But note how we use classes instead of option decorators:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">click_extra</span> <span class="kn">import</span> <span class="n">extra_command</span><span class="p">,</span> <span class="n">ConfigOption</span><span class="p">,</span> <span class="n">VerbosityOption</span>
+
+<span class="nd">@extra_command</span><span class="p">(</span>
+   <span class="n">params</span><span class="o">=</span><span class="p">[</span>
+      <span class="n">ConfigOption</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="s2">&quot;ex.yml&quot;</span><span class="p">),</span>
+      <span class="n">VerbosityOption</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="s2">&quot;DEBUG&quot;</span><span class="p">),</span>
+   <span class="p">]</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">cli</span><span class="p">():</span>
+   <span class="k">pass</span>
+</pre></div>
+</div>
+<p>And now you get:</p>
+<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>cli<span class="w"> </span>--help
+<span class=" -Color -Color-Bold -Color-Bold-BrightBlue -C-Bold -C-BrightBlue">Usage:</span> <span class=" -Color -Color-BrightWhite -C-BrightWhite">cli</span> <span class=" -Color -Color-Faint -Color-Faint-Cyan -C-Faint -C-Cyan">[OPTIONS]</span>
+
+<span class=" -Color -Color-Bold -Color-Bold-BrightBlue -C-Bold -C-BrightBlue">Options:</span>
+  <span class=" -Color -Color-Cyan -C-Cyan">-C</span>, <span class=" -Color -Color-Cyan -C-Cyan">--config</span> <span class=" -Color -Color-Faint -Color-Faint-Cyan -C-Faint -C-Cyan">CONFIG_PATH</span>  Location of the configuration file. Supports glob
+                            pattern of local path and remote URL.  <span class=" -Color -Color-Faint -C-Faint">[default:</span>
+<span class=" -Color -Color-Faint -C-Faint">                            </span><span class=" -Color -Color-Faint -Color-Faint-Green -C-Faint -C-Green">ex.yml</span><span class=" -Color -Color-Faint -C-Faint">]</span>
+  <span class=" -Color -Color-Cyan -C-Cyan">-v</span>, <span class=" -Color -Color-Cyan -C-Cyan">--verbosity</span> <span class=" -Color -Color-Faint -Color-Faint-Cyan -C-Faint -C-Cyan">LEVEL</span>     Either <span class=" -Color -Color-Magenta -C-Magenta">CRITICAL</span>, <span class=" -Color -Color-Magenta -C-Magenta">ERROR</span>, <span class=" -Color -Color-Magenta -C-Magenta">WARNING</span>, <span class=" -Color -Color-Magenta -C-Magenta">INFO</span>, <span class=" -Color -Color-Magenta -C-Magenta">DEBUG</span>.
+                            <span class=" -Color -Color-Faint -C-Faint">[default: </span><span class=" -Color -Color-Faint -Color-Faint-Green -C-Faint -C-Green">DEBUG</span><span class=" -Color -Color-Faint -C-Faint">]</span>
+  <span class=" -Color -Color-Cyan -C-Cyan">-h</span>, <span class=" -Color -Color-Cyan -C-Cyan">--help</span>                Show this message and exit.
+</pre></div>
+</div>
+<p>This let you replace the preset options by your own set, tweak their order and fine-tune their defaults.</p>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>Duplicate options</p>
+<p>If you try to add option decorators to a command which already have them by default, you will end up with duplicate entries ([as seen in issue #232](<a class="reference external" href="https://github.com/kdeldycke/click-extra/issues/232">https://github.com/kdeldycke/click-extra/issues/232</a>)):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">click_extra</span> <span class="kn">import</span> <span class="n">extra_command</span><span class="p">,</span> <span class="n">extra_version_option</span>
+
+<span class="nd">@extra_command</span>
+<span class="nd">@extra_version_option</span><span class="p">(</span><span class="n">version</span><span class="o">=</span><span class="s2">&quot;0.1&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">cli</span><span class="p">():</span>
+   <span class="k">pass</span>
+</pre></div>
+</div>
+<p>See how the <code class="docutils literal notranslate"><span class="pre">--version</span></code> option gets duplicated at the end:</p>
+<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>cli<span class="w"> </span>--help
+<span class=" -Color -Color-Bold -Color-Bold-BrightBlue -C-Bold -C-BrightBlue">Usage:</span> <span class=" -Color -Color-BrightWhite -C-BrightWhite">cli</span> <span class=" -Color -Color-Faint -Color-Faint-Cyan -C-Faint -C-Cyan">[OPTIONS]</span>
+
+<span class=" -Color -Color-Bold -Color-Bold-BrightBlue -C-Bold -C-BrightBlue">Options:</span>
+  <span class=" -Color -Color-Cyan -C-Cyan">--time</span> / <span class=" -Color -Color-Cyan -C-Cyan">--no-time</span>        Measure and print elapsed execution time.  <span class=" -Color -Color-Faint -C-Faint">[default:</span>
+<span class=" -Color -Color-Faint -C-Faint">                            </span><span class=" -Color -Color-Faint -Color-Faint-Green -C-Faint -C-Green">no-time</span><span class=" -Color -Color-Faint -C-Faint">]</span>
+  <span class=" -Color -Color-Cyan -C-Cyan">--color</span>, <span class=" -Color -Color-Cyan -C-Cyan">--ansi</span> / <span class=" -Color -Color-Cyan -C-Cyan">--no-color</span>, <span class=" -Color -Color-Cyan -C-Cyan">--no-ansi</span>
+                            Strip out all colors and all ANSI codes from output.
+                            <span class=" -Color -Color-Faint -C-Faint">[default: </span><span class=" -Color -Color-Faint -Color-Faint-Green -C-Faint -C-Green">color</span><span class=" -Color -Color-Faint -C-Faint">]</span>
+  <span class=" -Color -Color-Cyan -C-Cyan">-C</span>, <span class=" -Color -Color-Cyan -C-Cyan">--config</span> <span class=" -Color -Color-Faint -Color-Faint-Cyan -C-Faint -C-Cyan">CONFIG_PATH</span>  Location of the configuration file. Supports glob
+                            pattern of local path and remote URL.  <span class=" -Color -Color-Faint -C-Faint">[default:</span>
+<span class=" -Color -Color-Faint -C-Faint">                            </span><span class=" -Color -Color-Faint -Color-Faint-Green -C-Faint -C-Green">~/.config/cli/*.{toml,yaml,yml,json,ini,xml}</span><span class=" -Color -Color-Faint -C-Faint">]</span>
+  <span class=" -Color -Color-Cyan -C-Cyan">--show-params</span>             Show all CLI parameters, their provenance, defaults
+                            and value, then exit.
+  <span class=" -Color -Color-Cyan -C-Cyan">-v</span>, <span class=" -Color -Color-Cyan -C-Cyan">--verbosity</span> <span class=" -Color -Color-Faint -Color-Faint-Cyan -C-Faint -C-Cyan">LEVEL</span>     Either <span class=" -Color -Color-Magenta -C-Magenta">CRITICAL</span>, <span class=" -Color -Color-Magenta -C-Magenta">ERROR</span>, <span class=" -Color -Color-Magenta -C-Magenta">WARNING</span>, <span class=" -Color -Color-Magenta -C-Magenta">INFO</span>, <span class=" -Color -Color-Magenta -C-Magenta">DEBUG</span>.
+                            <span class=" -Color -Color-Faint -C-Faint">[default: </span><span class=" -Color -Color-Faint -Color-Faint-Green -C-Faint -C-Green">WARNING</span><span class=" -Color -Color-Faint -C-Faint">]</span>
+  <span class=" -Color -Color-Cyan -C-Cyan">--version</span>                 Show the version and exit.
+  <span class=" -Color -Color-Cyan -C-Cyan">--version</span>                 Show the version and exit.
+  <span class=" -Color -Color-Cyan -C-Cyan">-h</span>, <span class=" -Color -Color-Cyan -C-Cyan">--help</span>                Show this message and exit.
+</pre></div>
+</div>
+<p>This is by design: decorators are cumulative, to allow you to add your own options to the preset of <cite>&#64;extra_command</cite> and <cite>&#64;extra_group</cite>.</p>
+<p>And if the second <code class="docutils literal notranslate"><span class="pre">--version</span></code> option is placed right before the <code class="docutils literal notranslate"><span class="pre">--help</span></code> option, it is because Click is adding its own generated <code class="docutils literal notranslate"><span class="pre">--help</span></code> option at the end of the list: <a class="reference external" href="https://kdeldycke.github.io/click-extra/commands.html#click_extra.commands.default_extra_params">https://kdeldycke.github.io/click-extra/commands.html#click_extra.commands.default_extra_params</a></p>
+</div>
+</section>
+<section id="option-order">
+<h3>Option order<a class="headerlink" href="#option-order" title="Link to this heading">¶</a></h3>
+<p>Notice how the options above are ordered in the help message.</p>
+<p>The default behavior of <code class="docutils literal notranslate"><span class="pre">&#64;extra_command</span></code> (and its derivates decorators) is to order options in the way they are provided to the <code class="docutils literal notranslate"><span class="pre">params=</span></code> argument of the decorator. Then adds to that list the additional option decorators positioned after the <code class="docutils literal notranslate"><span class="pre">&#64;extra_command</span></code> decorator.</p>
+<p>After that, there is a final <a class="reference external" href="https://kdeldycke.github.io/click-extra/commands.html#click_extra.commands.ExtraCommand">sorting step applied to options</a>. This is done by the <code class="docutils literal notranslate"><span class="pre">extra_option_at_end</span></code> option, which is <code class="docutils literal notranslate"><span class="pre">True</span></code> by default.</p>
+</section>
+<section id="options-defaults">
+<h3>Option’s defaults<a class="headerlink" href="#options-defaults" title="Link to this heading">¶</a></h3>
+<p>Because Click Extra commands and groups inherits from Click, you can <a class="reference external" href="https://click.palletsprojects.com/en/stable/commands/#context-defaults">override the defaults the way Click allows you to</a>. Here is a reminder on how to do it.</p>
+<p>For example, the <a class="reference internal" href="logging.html#click_extra.logging.DEFAULT_LEVEL_NAME"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">--verbosity</span></code> option defaults to the <code class="docutils literal notranslate"><span class="pre">WARNING</span></code> level</span></a>. Now we’d like to change this default to <code class="docutils literal notranslate"><span class="pre">INFO</span></code>.</p>
+<p>If you manage your own <code class="docutils literal notranslate"><span class="pre">--verbosity</span></code> option, you can <a class="reference internal" href="#change-default-options"><span class="xref myst">pass the <code class="docutils literal notranslate"><span class="pre">default</span></code> argument to its decorator like we did above</span></a>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">click_extra</span> <span class="kn">import</span> <span class="n">command</span><span class="p">,</span> <span class="n">verbosity_option</span>
+
+
+<span class="nd">@command</span>
+<span class="nd">@verbosity_option</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="s2">&quot;INFO&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">cli</span><span class="p">():</span>
+    <span class="k">pass</span>
+</pre></div>
+</div>
+<p>This also works in its class form:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">click_extra</span> <span class="kn">import</span> <span class="n">command</span><span class="p">,</span> <span class="n">VerbosityOption</span>
+
+
+<span class="nd">@command</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="p">[</span><span class="n">VerbosityOption</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="s2">&quot;INFO&quot;</span><span class="p">)])</span>
+<span class="k">def</span> <span class="nf">cli</span><span class="p">():</span>
+    <span class="k">pass</span>
+</pre></div>
+</div>
+<p>But you also have the alternative to pass a <code class="docutils literal notranslate"><span class="pre">default_map</span></code> via the <code class="docutils literal notranslate"><span class="pre">context_settings</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">click_extra</span> <span class="kn">import</span> <span class="n">extra_command</span>
+
+<span class="nd">@extra_command</span><span class="p">(</span><span class="n">context_settings</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default_map&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;verbosity&quot;</span><span class="p">:</span> <span class="s2">&quot;INFO&quot;</span><span class="p">}})</span>
+<span class="k">def</span> <span class="nf">cli</span><span class="p">():</span>
+   <span class="k">pass</span>
+</pre></div>
+</div>
+<p>Which results in <code class="docutils literal notranslate"><span class="pre">[default:</span> <span class="pre">INFO]</span></code> being featured in the help message:</p>
+<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>cli<span class="w"> </span>--help
+<span class=" -Color -Color-Bold -Color-Bold-BrightBlue -C-Bold -C-BrightBlue">Usage:</span> <span class=" -Color -Color-BrightWhite -C-BrightWhite">cli</span> <span class=" -Color -Color-Faint -Color-Faint-Cyan -C-Faint -C-Cyan">[OPTIONS]</span>
+
+<span class=" -Color -Color-Bold -Color-Bold-BrightBlue -C-Bold -C-BrightBlue">Options:</span>
+  <span class=" -Color -Color-Cyan -C-Cyan">--time</span> / <span class=" -Color -Color-Cyan -C-Cyan">--no-time</span>        Measure and print elapsed execution time.  <span class=" -Color -Color-Faint -C-Faint">[default:</span>
+<span class=" -Color -Color-Faint -C-Faint">                            </span><span class=" -Color -Color-Faint -Color-Faint-Green -C-Faint -C-Green">no-time</span><span class=" -Color -Color-Faint -C-Faint">]</span>
+  <span class=" -Color -Color-Cyan -C-Cyan">--color</span>, <span class=" -Color -Color-Cyan -C-Cyan">--ansi</span> / <span class=" -Color -Color-Cyan -C-Cyan">--no-color</span>, <span class=" -Color -Color-Cyan -C-Cyan">--no-ansi</span>
+                            Strip out all colors and all ANSI codes from output.
+                            <span class=" -Color -Color-Faint -C-Faint">[default: </span><span class=" -Color -Color-Faint -Color-Faint-Green -C-Faint -C-Green">color</span><span class=" -Color -Color-Faint -C-Faint">]</span>
+  <span class=" -Color -Color-Cyan -C-Cyan">-C</span>, <span class=" -Color -Color-Cyan -C-Cyan">--config</span> <span class=" -Color -Color-Faint -Color-Faint-Cyan -C-Faint -C-Cyan">CONFIG_PATH</span>  Location of the configuration file. Supports glob
+                            pattern of local path and remote URL.  <span class=" -Color -Color-Faint -C-Faint">[default:</span>
+<span class=" -Color -Color-Faint -C-Faint">                            </span><span class=" -Color -Color-Faint -Color-Faint-Green -C-Faint -C-Green">~/.config/cli/*.{toml,yaml,yml,json,ini,xml}</span><span class=" -Color -Color-Faint -C-Faint">]</span>
+  <span class=" -Color -Color-Cyan -C-Cyan">--show-params</span>             Show all CLI parameters, their provenance, defaults
+                            and value, then exit.
+  <span class=" -Color -Color-Cyan -C-Cyan">-v</span>, <span class=" -Color -Color-Cyan -C-Cyan">--verbosity</span> <span class=" -Color -Color-Faint -Color-Faint-Cyan -C-Faint -C-Cyan">LEVEL</span>     Either <span class=" -Color -Color-Magenta -C-Magenta">CRITICAL</span>, <span class=" -Color -Color-Magenta -C-Magenta">ERROR</span>, <span class=" -Color -Color-Magenta -C-Magenta">WARNING</span>, <span class=" -Color -Color-Magenta -C-Magenta">INFO</span>, <span class=" -Color -Color-Magenta -C-Magenta">DEBUG</span>.
+                            <span class=" -Color -Color-Faint -C-Faint">[default: </span><span class=" -Color -Color-Faint -Color-Faint-Green -C-Faint -C-Green">INFO</span><span class=" -Color -Color-Faint -C-Faint">]</span>
+  <span class=" -Color -Color-Cyan -C-Cyan">--version</span>                 Show the version and exit.
+  <span class=" -Color -Color-Cyan -C-Cyan">-h</span>, <span class=" -Color -Color-Cyan -C-Cyan">--help</span>                Show this message and exit.
+</pre></div>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>The advantage of the <code class="docutils literal notranslate"><span class="pre">context_settings</span></code> method we demonstrated last, is that it let you change the default of the <code class="docutils literal notranslate"><span class="pre">--verbosity</span></code> option provided by Click Extra, without having to <a class="reference internal" href="#change-default-options"><span class="xref myst">re-list the whole set of default options</span></a>.</p>
+</div>
+</section>
+</section>
+<section id="third-party-commands-composition">
+<h2>Third-party commands composition<a class="headerlink" href="#third-party-commands-composition" title="Link to this heading">¶</a></h2>
+<p>Click Extra is capable of composing with existing Click CLI in various situation.</p>
+<section id="wrap-other-commands">
+<h3>Wrap other commands<a class="headerlink" href="#wrap-other-commands" title="Link to this heading">¶</a></h3>
+<p>Click allows you to build up a hierarchy of command and subcommands. Click Extra inherits this behavior, which means we are free to assemble multiple third-party subcommands into a top-level one.</p>
+<p>For this example, let’s imagine you are working for an operation team that is relying daily on a couple of CLIs. Like <a class="reference external" href="https://github.com/dbt-labs/dbt-core"><code class="docutils literal notranslate"><span class="pre">dbt</span></code></a> to manage your data workflows, and <a class="reference external" href="https://github.com/aws/aws-sam-cli"><code class="docutils literal notranslate"><span class="pre">aws-sam-cli</span></code></a> to deploy them in the cloud.</p>
+<p>For some practical reasons, you’d like to wrap all these commands into a big one. This is how to do it.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Here is how I initialized this example on my machine:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/kdeldycke/click-extra
+<span class="gp gp-VirtualEnv">(...)</span>
+
+<span class="gp">$ </span><span class="nb">cd</span><span class="w"> </span>click-extra
+<span class="gp gp-VirtualEnv">(...)</span>
+
+<span class="gp">$ </span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>uv
+<span class="gp gp-VirtualEnv">(...)</span>
+
+<span class="gp">$ </span>uv<span class="w"> </span>venv
+<span class="gp gp-VirtualEnv">(...)</span>
+
+<span class="gp">$ </span><span class="nb">source</span><span class="w"> </span>.venv/bin/activate
+<span class="gp gp-VirtualEnv">(...)</span>
+
+<span class="gp">$ </span>uv<span class="w"> </span>sync<span class="w"> </span>--all-extras
+<span class="gp gp-VirtualEnv">(...)</span>
+
+<span class="gp">$ </span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>dbt-core
+<span class="gp gp-VirtualEnv">(...)</span>
+
+<span class="gp">$ </span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>aws-sam-cli
+<span class="gp gp-VirtualEnv">(...)</span>
+</pre></div>
+</div>
+<p>That way I had the latest Click Extra, <code class="docutils literal notranslate"><span class="pre">dbt</span></code> and <code class="docutils literal notranslate"><span class="pre">aws-sam-cli</span></code> installed in the same virtual environment:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>uv<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>dbt<span class="w"> </span>--version
+<span class="go">Core:</span>
+<span class="go">  - installed: 1.6.1</span>
+<span class="go">  - latest:    1.6.2 - Update available!</span>
+
+<span class="go">  Your version of dbt-core is out of date!</span>
+<span class="go">  You can find instructions for upgrading here:</span>
+<span class="go">  https://docs.getdbt.com/docs/installation</span>
+
+<span class="go">Plugins:</span>
+</pre></div>
+</div>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>uv<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>sam<span class="w"> </span>--version
+<span class="go">SAM CLI, version 1.97.0</span>
+</pre></div>
+</div>
+</div>
+<p>Once you identified the entry points of each commands, you can easily wrap them into a top-level Click Extra CLI. Here is for instance the content of a <code class="docutils literal notranslate"><span class="pre">wrap.py</span></code> script:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">click_extra</span> <span class="kn">import</span> <span class="n">extra_group</span>
+
+<span class="kn">from</span> <span class="nn">samcli.cli.main</span> <span class="kn">import</span> <span class="n">cli</span> <span class="k">as</span> <span class="n">sam_cli</span>
+<span class="kn">from</span> <span class="nn">dbt.cli.main</span> <span class="kn">import</span> <span class="n">cli</span> <span class="k">as</span> <span class="n">dbt_cli</span>
+
+
+<span class="nd">@extra_group</span>
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="k">pass</span>
+
+
+<span class="n">main</span><span class="o">.</span><span class="n">add_command</span><span class="p">(</span><span class="n">cmd</span><span class="o">=</span><span class="n">sam_cli</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;aws_sam&quot;</span><span class="p">)</span>
+<span class="n">main</span><span class="o">.</span><span class="n">add_command</span><span class="p">(</span><span class="n">cmd</span><span class="o">=</span><span class="n">dbt_cli</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;dbt&quot;</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>And this simple script gets rendered into:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>uv<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>python<span class="w"> </span>./wrap.py
+<span class="go">Usage: wrap.py [OPTIONS] COMMAND [ARGS]...</span>
+
+<span class="go">Options:</span>
+<span class="go">  --time / --no-time        Measure and print elapsed execution time.  [default:</span>
+<span class="go">                            no-time]</span>
+<span class="go">  --color, --ansi / --no-color, --no-ansi</span>
+<span class="go">                            Strip out all colors and all ANSI codes from output.</span>
+<span class="go">                            [default: color]</span>
+<span class="go">  -C, --config CONFIG_PATH  Location of the configuration file. Supports glob</span>
+<span class="go">                            pattern of local path and remote URL.  [default:</span>
+<span class="go">                            ~/Library/Application</span>
+<span class="go">                            Support/wrap.py/*.{toml,yaml,yml,json,ini,xml}]</span>
+<span class="go">  --show-params             Show all CLI parameters, their provenance, defaults</span>
+<span class="go">                            and value, then exit.</span>
+<span class="go">  -v, --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.</span>
+<span class="go">                            [default: WARNING]</span>
+<span class="go">  --version                 Show the version and exit.</span>
+<span class="go">  -h, --help                Show this message and exit.</span>
+
+<span class="go">Commands:</span>
+<span class="go">  aws_sam  AWS Serverless Application Model (SAM) CLI</span>
+<span class="go">  dbt      An ELT tool for managing your SQL transformations and data models.</span>
+</pre></div>
+</div>
+<p>Here you can see that the top-level CLI gets <a class="reference internal" href="tutorial.html#all-bells-and-whistles"><span class="std std-ref">all the default options and behavior (including coloring)</span></a> of <code class="docutils literal notranslate"><span class="pre">&#64;extra_group</span></code>. But it also made available the standalone <code class="docutils literal notranslate"><span class="pre">aws_sam</span></code> and <code class="docutils literal notranslate"><span class="pre">dbt</span></code> CLI as standard subcommands.</p>
+<p>And they are perfectly functional as-is.</p>
+<p>You can compare the output of the <code class="docutils literal notranslate"><span class="pre">aws_sam</span></code> subcommand with its original one:</p>
+<div class="sd-tab-set docutils">
+<input checked="checked" id="sd-tab-item-0" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-0">
+aws_sam subcommand in wrap.py</label><div class="sd-tab-content docutils">
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>uv<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>python<span class="w"> </span>./wrap.py<span class="w"> </span>aws_sam<span class="w"> </span>--help
+<span class="go">Usage: wrap.py aws_sam [OPTIONS] COMMAND [ARGS]...</span>
+
+<span class="go">  AWS Serverless Application Model (SAM) CLI</span>
+
+<span class="go">  The AWS Serverless Application Model Command Line Interface (AWS SAM CLI) is</span>
+<span class="go">  a command line tool that you can use with AWS SAM templates and supported</span>
+<span class="go">  third-party integrations to build and run your serverless applications.</span>
+
+<span class="go">  Learn more: https://docs.aws.amazon.com/serverless-application-model/</span>
+
+<span class="go">Commands:</span>
+
+<span class="go">  Learn:</span>
+<span class="go">    docs NEW!           Launch the AWS SAM CLI documentation in a browser.</span>
+
+<span class="go">  Create an App:</span>
+<span class="go">    init                Initialize an AWS SAM application.</span>
+
+<span class="go">  Develop your App:</span>
+<span class="go">    build               Build your AWS serverless function code.</span>
+<span class="go">    local               Run your AWS serverless function locally.</span>
+<span class="go">    validate            Validate an AWS SAM template.</span>
+<span class="go">    sync NEW!           Sync an AWS SAM project to AWS.</span>
+<span class="go">    remote NEW!         Invoke or send an event to cloud resources in your AWS</span>
+<span class="go">                        Cloudformation stack.</span>
+
+<span class="go">  Deploy your App:</span>
+<span class="go">    package             Package an AWS SAM application.</span>
+<span class="go">    deploy              Deploy an AWS SAM application.</span>
+
+<span class="go">  Monitor your App:</span>
+<span class="go">    logs                Fetch AWS Cloudwatch logs for AWS Lambda Functions or</span>
+<span class="go">                        Cloudwatch Log groups.</span>
+<span class="go">    traces              Fetch AWS X-Ray traces.</span>
+
+<span class="go">  And More:</span>
+<span class="go">    list NEW!           Fetch the state of your AWS serverless application.</span>
+<span class="go">    delete              Delete an AWS SAM application and the artifacts created</span>
+<span class="go">                        by sam deploy.</span>
+<span class="go">    pipeline            Manage the continuous delivery of your AWS serverless</span>
+<span class="go">                        application.</span>
+<span class="go">    publish             Publish a packaged AWS SAM template to AWS Serverless</span>
+<span class="go">                        Application Repository for easy sharing.</span>
+
+<span class="go">Options:</span>
+
+<span class="go">    --beta-features / --no-beta-features</span>
+<span class="go">                                    Enable/Disable beta features.</span>
+<span class="go">    --debug                         Turn on debug logging to print debug message</span>
+<span class="go">                                    generated by AWS SAM CLI and display</span>
+<span class="go">                                    timestamps.</span>
+<span class="go">    --version                       Show the version and exit.</span>
+<span class="go">    --info                          Show system and dependencies information.</span>
+<span class="go">    -h, --help                      Show this message and exit.</span>
+
+<span class="go">Examples:</span>
+
+<span class="go">    Get Started:        $wrap.py aws_sam init</span>
+</pre></div>
+</div>
+</div>
+<input id="sd-tab-item-1" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-1">
+Vanilla sam CLI</label><div class="sd-tab-content docutils">
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>uv<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>sam<span class="w"> </span>--help
+<span class="go">Usage: sam [OPTIONS] COMMAND [ARGS]...</span>
+
+<span class="go">  AWS Serverless Application Model (SAM) CLI</span>
+
+<span class="go">  The AWS Serverless Application Model Command Line Interface (AWS SAM CLI) is</span>
+<span class="go">  a command line tool that you can use with AWS SAM templates and supported</span>
+<span class="go">  third-party integrations to build and run your serverless applications.</span>
+
+<span class="go">  Learn more: https://docs.aws.amazon.com/serverless-application-model/</span>
+
+<span class="go">Commands:</span>
+
+<span class="go">  Learn:</span>
+<span class="go">    docs NEW!           Launch the AWS SAM CLI documentation in a browser.</span>
+
+<span class="go">  Create an App:</span>
+<span class="go">    init                Initialize an AWS SAM application.</span>
+
+<span class="go">  Develop your App:</span>
+<span class="go">    build               Build your AWS serverless function code.</span>
+<span class="go">    local               Run your AWS serverless function locally.</span>
+<span class="go">    validate            Validate an AWS SAM template.</span>
+<span class="go">    sync NEW!           Sync an AWS SAM project to AWS.</span>
+<span class="go">    remote NEW!         Invoke or send an event to cloud resources in your AWS</span>
+<span class="go">                        Cloudformation stack.</span>
+
+<span class="go">  Deploy your App:</span>
+<span class="go">    package             Package an AWS SAM application.</span>
+<span class="go">    deploy              Deploy an AWS SAM application.</span>
+
+<span class="go">  Monitor your App:</span>
+<span class="go">    logs                Fetch AWS Cloudwatch logs for AWS Lambda Functions or</span>
+<span class="go">                        Cloudwatch Log groups.</span>
+<span class="go">    traces              Fetch AWS X-Ray traces.</span>
+
+<span class="go">  And More:</span>
+<span class="go">    list NEW!           Fetch the state of your AWS serverless application.</span>
+<span class="go">    delete              Delete an AWS SAM application and the artifacts created</span>
+<span class="go">                        by sam deploy.</span>
+<span class="go">    pipeline            Manage the continuous delivery of your AWS serverless</span>
+<span class="go">                        application.</span>
+<span class="go">    publish             Publish a packaged AWS SAM template to AWS Serverless</span>
+<span class="go">                        Application Repository for easy sharing.</span>
+
+<span class="go">Options:</span>
+
+<span class="go">    --beta-features / --no-beta-features</span>
+<span class="go">                                    Enable/Disable beta features.</span>
+<span class="go">    --debug                         Turn on debug logging to print debug message</span>
+<span class="go">                                    generated by AWS SAM CLI and display</span>
+<span class="go">                                    timestamps.</span>
+<span class="go">    --version                       Show the version and exit.</span>
+<span class="go">    --info                          Show system and dependencies information.</span>
+<span class="go">    -h, --help                      Show this message and exit.</span>
+
+<span class="go">Examples:</span>
+
+<span class="go">    Get Started:        $sam init</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Here is the highlighted differences to make them even more obvious:</p>
+<div class="highlight-diff notranslate"><div class="highlight"><pre><span></span><span class="gu">@@ -1,5 +1,5 @@</span>
+<span class="gd">-$ uv run -- python ./wrap.py aws_sam --help</span>
+<span class="gd">-Usage: wrap.py aws_sam [OPTIONS] COMMAND [ARGS]...</span>
+<span class="gi">+$ uv run -- sam --help</span>
+<span class="gi">+Usage: sam [OPTIONS] COMMAND [ARGS]...</span>
+
+<span class="w"> </span>  AWS Serverless Application Model (SAM) CLI
+
+<span class="gu">@@ -56,4 +56,4 @@</span>
+
+<span class="w"> </span>Examples:
+
+<span class="gd">-    Get Started:        $wrap.py aws_sam init</span>
+<span class="gi">+    Get Started:        $sam init</span>
+</pre></div>
+</div>
+<p>Now that all commands are under the same umbrella, there is no limit to your imagination!</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This might looks janky, but this franken-CLI might be a great way to solve practical problems in your situation.</p>
+<p>You can augment them with your custom glue code. Or maybe mashing them up will simplify the re-distribution of these CLIs on your production machines. Or control their common dependencies. Or freeze their versions. Or hard-code some parameters. Or apply monkey-patches. Or chain these commands to create new kind of automation…</p>
+<p>There is a miriad of possibilities. If you have some other examples in the same vein, please share them in an issue or even directly via a PR. I’d love to complement this documentation with creative use-cases.</p>
+</div>
+</section>
+</section>
+<section id="click-extra-commands-api">
+<h2><code class="docutils literal notranslate"><span class="pre">click_extra.commands</span></code> API<a class="headerlink" href="#click-extra-commands-api" title="Link to this heading">¶</a></h2>
+<pre  class="mermaid">
+        classDiagram
+  Command &lt;|-- ExtraCommand
+  Context &lt;|-- ExtraContext
+  ExtraCommand &lt;|-- ExtraGroup
+  ExtraHelpColorsMixin &lt;|-- ExtraCommand
+  Group &lt;|-- ExtraGroup
+    </pre><p id="module-click_extra.commands">Wraps vanilla Click and Cloup commands with extra features.</p>
+<p>Our flavor of commands, groups and context are all subclasses of their vanilla
+counterparts, but are pre-configured with good and common defaults. You can still
+leverage the mixins in here to build up your own custom variants.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.commands.patched_exit">
+<span class="sig-prename descclassname"><span class="pre">click_extra.commands.</span></span><span class="sig-name descname"><span class="pre">patched_exit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">code</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/commands.html#patched_exit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.commands.patched_exit" title="Link to this definition">¶</a></dt>
+<dd><p>Exits the application with a given exit code.</p>
+<p>Forces the context to close before exiting, so callbacks attached to parameters
+will be called to clean up their state. This is not important in normal CLI
+execution as the Python process will just be destroyed. But it will lead to leaky
+states in unitttests.
+:rtype: <span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.NoReturn" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">NoReturn</span></code></a></span></p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>This fix has been <a class="reference external" href="https://github.com/pallets/click/pull/2680">proposed upstream to Click</a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="click_extra.commands.ExtraContext">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">click_extra.commands.</span></span><span class="sig-name descname"><span class="pre">ExtraContext</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">meta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/commands.html#ExtraContext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.commands.ExtraContext" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="click_extra.html#click_extra.Context" title="cloup._context.Context"><code class="xref py py-class docutils literal notranslate"><span class="pre">Context</span></code></a></p>
+<p>Like <code class="docutils literal notranslate"><span class="pre">cloup._context.Context</span></code>, but with the ability to populate the context’s
+<code class="docutils literal notranslate"><span class="pre">meta</span></code> property at instantiation.</p>
+<p>Also inherits <code class="docutils literal notranslate"><span class="pre">color</span></code> property from parent context. And sets it to <cite>True</cite> for
+parentless contexts at instantiatiom, so we can always have colorized output.</p>
+<div class="admonition-todo admonition" id="id1">
+<p class="admonition-title">Todo</p>
+<p>Propose addition of <code class="docutils literal notranslate"><span class="pre">meta</span></code> keyword upstream to Click.</p>
+</div>
+<p>Like parent’s context but with an extra <code class="docutils literal notranslate"><span class="pre">meta</span></code> keyword-argument.</p>
+<p>Also force <code class="docutils literal notranslate"><span class="pre">color</span></code> property default to <cite>True</cite> if not provided by user and
+this context has no parent.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.commands.ExtraContext.formatter_class">
+<span class="sig-name descname"><span class="pre">formatter_class</span></span><a class="headerlink" href="#click_extra.commands.ExtraContext.formatter_class" title="Link to this definition">¶</a></dt>
+<dd><p>Use our own formatter to colorize the help screen.</p>
+<p>alias of <a class="reference internal" href="colorize.html#click_extra.colorize.HelpExtraFormatter" title="click_extra.colorize.HelpExtraFormatter"><code class="xref py py-class docutils literal notranslate"><span class="pre">HelpExtraFormatter</span></code></a></p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="click_extra.commands.ExtraContext.color">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">color</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></em><a class="headerlink" href="#click_extra.commands.ExtraContext.color" title="Link to this definition">¶</a></dt>
+<dd><p>Overrides <code class="docutils literal notranslate"><span class="pre">Context.color</span></code> to allow inheritance from parent context.</p>
+<p>Returns the color setting of the parent context if it exists and the color is
+not set on the current context.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.commands.default_extra_params">
+<span class="sig-prename descclassname"><span class="pre">click_extra.commands.</span></span><span class="sig-name descname"><span class="pre">default_extra_params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/commands.html#default_extra_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.commands.default_extra_params" title="Link to this definition">¶</a></dt>
+<dd><p>Default additional options added to <code class="docutils literal notranslate"><span class="pre">extra_command</span></code> and <code class="docutils literal notranslate"><span class="pre">extra_group</span></code>.
+:rtype: <span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference internal" href="click_extra.html#click_extra.Option" title="cloup._params.Option"><code class="xref py py-class docutils literal notranslate"><span class="pre">Option</span></code></a>]</span></p>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>The order of options has been carefully crafted to handle subtle edge-cases and
+avoid leaky states in unittests.</p>
+<p>You can still override this hard-coded order for easthetic reasons and it
+should be fine. Your end-users are unlikely to be affected by these sneaky
+bugs, as the CLI context is going to be naturraly reset after each
+invocation (which is not the case in unitests).</p>
+</div>
+<ol class="arabic">
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">--time</span></code> / <code class="docutils literal notranslate"><span class="pre">--no-time</span></code></dt><dd><div class="admonition hint">
+<p class="admonition-title">Hint</p>
+<p><code class="docutils literal notranslate"><span class="pre">--time</span></code> is placed at the top of all other eager options so all other
+options’ processing time can be measured.</p>
+</div>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">-C</span></code>, <code class="docutils literal notranslate"><span class="pre">--config</span> <span class="pre">CONFIG_PATH</span></code></dt><dd><div class="admonition hint">
+<p class="admonition-title">Hint</p>
+<p><code class="docutils literal notranslate"><span class="pre">--config</span></code> is at the top so it can have a direct influence on the default
+behavior and value of the other options.</p>
+</div>
+</dd>
+</dl>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--color</span></code>, <code class="docutils literal notranslate"><span class="pre">--ansi</span></code> / <code class="docutils literal notranslate"><span class="pre">--no-color</span></code>, <code class="docutils literal notranslate"><span class="pre">--no-ansi</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--show-params</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-v</span></code>, <code class="docutils literal notranslate"><span class="pre">--verbosity</span> <span class="pre">LEVEL</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--version</span></code></p></li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">-h</span></code>, <code class="docutils literal notranslate"><span class="pre">--help</span></code></dt><dd><div class="admonition attention">
+<p class="admonition-title">Attention</p>
+<p>This is an instance of <a class="reference external" href="https://kdeldycke.github.io/click-extra/colorize.html#click_extra.colorize.HelpOption">Click Extra’s own HelpOption</a>.
+It is not explicitly added in the implementation of this function.</p>
+<p>That’s because it’s <a class="reference external" href="https://github.com/pallets/click/blob/874ca2b/src/click/core.py#L1257">going to be added by Click itself</a>,
+at the end of the list of options. By letting Click handle this, we ensure
+that the help option will take into account the <a class="reference external" href="https://click.palletsprojects.com/en/stable/documentation/#help-parameter-customization">help_option_names</a>
+setting.</p>
+</div>
+</dd>
+</dl>
+</li>
+</ol>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Sensitivity to order still remains to be proven. With the code of Click Extra
+and its dependencies moving fast, there is a non-zero chance that all the
+options are now sound enough to be re-ordered in a more natural way.</p>
+</div>
+<div class="admonition-todo admonition" id="id2">
+<p class="admonition-title">Todo</p>
+<p>For bullet-proof handling of edge-cases, we should probably add an indirection
+layer to have the processing order of options (the one below) different from
+the presentation order of options in the help screen.</p>
+<p>This is probably something that has been <a class="reference external" href="https://github.com/kdeldycke/click-extra/issues/544">requested in issue #544</a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="click_extra.commands.ExtraCommand">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">click_extra.commands.</span></span><span class="sig-name descname"><span class="pre">ExtraCommand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_option_at_end</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">populate_auto_envvars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/commands.html#ExtraCommand"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.commands.ExtraCommand" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="colorize.html#click_extra.colorize.ExtraHelpColorsMixin" title="click_extra.colorize.ExtraHelpColorsMixin"><code class="xref py py-class docutils literal notranslate"><span class="pre">ExtraHelpColorsMixin</span></code></a>, <a class="reference internal" href="click_extra.html#click_extra.Command" title="cloup._commands.Command"><code class="xref py py-class docutils literal notranslate"><span class="pre">Command</span></code></a></p>
+<p>Like <code class="docutils literal notranslate"><span class="pre">cloup.command</span></code>, with sane defaults and extra help screen colorization.</p>
+<p>List of extra parameters:</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>version</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span>) – allows a version string to be set directly on the command. Will
+be passed to the first instance of <code class="docutils literal notranslate"><span class="pre">ExtraVersionOption</span></code> parameter
+attached to the command.</p></li>
+<li><p><strong>extra_option_at_end</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – <a class="reference external" href="https://kdeldycke.github.io/click-extra/commands.html#option-order">reorders all parameters attached to the command</a>, by
+moving all instances of <code class="docutils literal notranslate"><span class="pre">ExtraOption</span></code> at the end of the parameter list.
+The original order of the options is preserved among themselves.</p></li>
+<li><p><strong>populate_auto_envvars</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – forces all parameters to have their auto-generated
+environment variables registered. This address the shortcoming of <code class="docutils literal notranslate"><span class="pre">click</span></code>
+which only evaluates them dynamiccaly. By forcing their registration, the
+auto-generated environment variables gets displayed in the help screen,
+fixing <a class="reference external" href="https://github.com/pallets/click/issues/2483">click#2483 issue</a>.</p></li>
+</ul>
+</dd>
+</dl>
+<p>By default, these <a class="reference external" href="https://click.palletsprojects.com/en/stable/api/#click.Context">Click context settings</a> are applied:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">auto_envvar_prefix</span> <span class="pre">=</span> <span class="pre">self.name</span></code> (<em>Click feature</em>)</p>
+<p>Auto-generate environment variables for all options, using the command ID as
+prefix. The prefix is normalized to be uppercased and all non-alphanumerics
+replaced by underscores.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">help_option_names</span> <span class="pre">=</span> <span class="pre">(&quot;--help&quot;,</span> <span class="pre">&quot;-h&quot;)</span></code> (<em>Click feature</em>)</p>
+<p><a class="reference external" href="https://click.palletsprojects.com/en/stable/documentation/#help-parameter-customization">Allow help screen to be invoked with either –help or -h options</a>.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">show_default</span> <span class="pre">=</span> <span class="pre">True</span></code> (<em>Click feature</em>)</p>
+<p><a class="reference external" href="https://click.palletsprojects.com/en/stable/api/#click.Context.show_default">Show all default values</a>
+in help screen.</p>
+</li>
+</ul>
+<p>Additionally, these <a class="reference external" href="https://cloup.readthedocs.io/en/stable/pages/formatting.html#formatting-settings">Cloup context settings</a>
+are set:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">align_option_groups</span> <span class="pre">=</span> <span class="pre">False</span></code> (<em>Cloup feature</em>)</p>
+<p><a class="reference external" href="https://cloup.readthedocs.io/en/stable/pages/option-groups.html#aligned-vs-non-aligned-groups">Aligns option groups in help screen</a>.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">show_constraints</span> <span class="pre">=</span> <span class="pre">True</span></code> (<em>Cloup feature</em>)</p>
+<p><a class="reference external" href="https://cloup.readthedocs.io/en/stable/pages/constraints.html#the-constraint-decorator">Show all constraints in help screen</a>.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">show_subcommand_aliases</span> <span class="pre">=</span> <span class="pre">True</span></code> (<em>Cloup feature</em>)</p>
+<p><a class="reference external" href="https://cloup.readthedocs.io/en/stable/pages/aliases.html?highlight=show_subcommand_aliases#help-output-of-the-group">Show all subcommand aliases in help screen</a>.</p>
+</li>
+</ul>
+<p>Click Extra also adds its own <code class="docutils literal notranslate"><span class="pre">context_settings</span></code>:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">show_choices</span> <span class="pre">=</span> <span class="pre">None</span></code> (<em>Click Extra feature</em>)</p>
+<p>If set to <code class="docutils literal notranslate"><span class="pre">True</span></code> or <code class="docutils literal notranslate"><span class="pre">False</span></code>, will force that value on all options, so we
+can globally show or hide choices when prompting a user for input. Only makes
+sense for options whose <code class="docutils literal notranslate"><span class="pre">prompt</span></code> property is set.</p>
+<p>Defaults to <code class="docutils literal notranslate"><span class="pre">None</span></code>, which will leave all options untouched, and let them
+decide of their own <code class="docutils literal notranslate"><span class="pre">show_choices</span></code> setting.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">show_envvar</span> <span class="pre">=</span> <span class="pre">None</span></code> (<em>Click Extra feature</em>)</p>
+<p>If set to <code class="docutils literal notranslate"><span class="pre">True</span></code> or <code class="docutils literal notranslate"><span class="pre">False</span></code>, will force that value on all options, so we
+can globally enable or disable the display of environment variables in help
+screen.</p>
+<p>Defaults to <code class="docutils literal notranslate"><span class="pre">None</span></code>, which will leave all options untouched, and let them
+decide of their own <code class="docutils literal notranslate"><span class="pre">show_envvar</span></code> setting. The rationale being that
+discoverability of environment variables is enabled by the <code class="docutils literal notranslate"><span class="pre">--show-params</span></code>
+option, which is active by default on extra commands. So there is no need to
+surcharge the help screen.</p>
+<p>This addresses the
+<a class="reference external" href="https://github.com/pallets/click/issues/2313">click#2313 issue</a>.</p>
+</li>
+</ul>
+<p>To override these defaults, you can pass your own settings with the
+<code class="docutils literal notranslate"><span class="pre">context_settings</span></code> parameter:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@extra_command</span><span class="p">(</span>
+    <span class="n">context_settings</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">&quot;show_default&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">...</span>
+    <span class="p">}</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.commands.ExtraCommand.context_class">
+<span class="sig-name descname"><span class="pre">context_class</span></span><a class="headerlink" href="#click_extra.commands.ExtraCommand.context_class" title="Link to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#click_extra.commands.ExtraContext" title="click_extra.commands.ExtraContext"><code class="xref py py-class docutils literal notranslate"><span class="pre">ExtraContext</span></code></a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.commands.ExtraCommand.main">
+<span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/commands.html#ExtraCommand.main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.commands.ExtraCommand.main" title="Link to this definition">¶</a></dt>
+<dd><p>Pre-invocation step that is instantiating the context, then call <code class="docutils literal notranslate"><span class="pre">invoke()</span></code>
+within it.</p>
+<p>During context instantiation, each option’s callbacks are called. Beware that
+these might break the execution flow (like <code class="docutils literal notranslate"><span class="pre">--help</span></code> or <code class="docutils literal notranslate"><span class="pre">--version</span></code>).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.commands.ExtraCommand.make_context">
+<span class="sig-name descname"><span class="pre">make_context</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">info_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">extra</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/commands.html#ExtraCommand.make_context"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.commands.ExtraCommand.make_context" title="Link to this definition">¶</a></dt>
+<dd><p>Intercept the call to the original <code class="docutils literal notranslate"><span class="pre">click.core.BaseCommand.make_context</span></code> so
+we can keep a copy of the raw, pre-parsed arguments provided to the CLI.</p>
+<p>The result are passed to our own <code class="docutils literal notranslate"><span class="pre">ExtraContext</span></code> constructor which is able to
+initialize the context’s <code class="docutils literal notranslate"><span class="pre">meta</span></code> property under our own
+<code class="docutils literal notranslate"><span class="pre">click_extra.raw_args</span></code> entry. This will be used in
+<code class="docutils literal notranslate"><span class="pre">ShowParamsOption.print_params()</span></code> to print the table of parameters fed to the
+CLI.
+:rtype: <span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a></span></p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>This workaround is being discussed upstream in <a class="reference external" href="https://github.com/pallets/click/issues/1279#issuecomment-1493348208">click#1279</a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.commands.ExtraCommand.invoke">
+<span class="sig-name descname"><span class="pre">invoke</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/commands.html#ExtraCommand.invoke"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.commands.ExtraCommand.invoke" title="Link to this definition">¶</a></dt>
+<dd><p>Main execution of the command, just after the context has been instantiated
+in <code class="docutils literal notranslate"><span class="pre">main()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="click_extra.commands.ExtraGroup">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">click_extra.commands.</span></span><span class="sig-name descname"><span class="pre">ExtraGroup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_option_at_end</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">populate_auto_envvars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/commands.html#ExtraGroup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.commands.ExtraGroup" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#click_extra.commands.ExtraCommand" title="click_extra.commands.ExtraCommand"><code class="xref py py-class docutils literal notranslate"><span class="pre">ExtraCommand</span></code></a>, <a class="reference internal" href="click_extra.html#click_extra.Group" title="cloup._commands.Group"><code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code></a></p>
+<p>Like``cloup.Group``, with sane defaults and extra help screen colorization.</p>
+<p>List of extra parameters:</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>version</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span>) – allows a version string to be set directly on the command. Will
+be passed to the first instance of <code class="docutils literal notranslate"><span class="pre">ExtraVersionOption</span></code> parameter
+attached to the command.</p></li>
+<li><p><strong>extra_option_at_end</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – <p><a class="reference external" href="https://kdeldycke.github.io/click-extra/commands.html#option-order">reorders all parameters attached to the command</a>, by
+moving all instances of <code class="docutils literal notranslate"><span class="pre">ExtraOption</span></code> at the end of the parameter list.
+The original order of the options is preserved among themselves.</p>
+</p></li>
+<li><p><strong>populate_auto_envvars</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – <p>forces all parameters to have their auto-generated
+environment variables registered. This address the shortcoming of <code class="docutils literal notranslate"><span class="pre">click</span></code>
+which only evaluates them dynamiccaly. By forcing their registration, the
+auto-generated environment variables gets displayed in the help screen,
+fixing <a class="reference external" href="https://github.com/pallets/click/issues/2483">click#2483 issue</a>.</p>
+</p></li>
+</ul>
+</dd>
+</dl>
+<p>By default, these <a class="reference external" href="https://click.palletsprojects.com/en/stable/api/#click.Context">Click context settings</a> are applied:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">auto_envvar_prefix</span> <span class="pre">=</span> <span class="pre">self.name</span></code> (<em>Click feature</em>)</p>
+<p>Auto-generate environment variables for all options, using the command ID as
+prefix. The prefix is normalized to be uppercased and all non-alphanumerics
+replaced by underscores.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">help_option_names</span> <span class="pre">=</span> <span class="pre">(&quot;--help&quot;,</span> <span class="pre">&quot;-h&quot;)</span></code> (<em>Click feature</em>)</p>
+<p><a class="reference external" href="https://click.palletsprojects.com/en/stable/documentation/#help-parameter-customization">Allow help screen to be invoked with either –help or -h options</a>.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">show_default</span> <span class="pre">=</span> <span class="pre">True</span></code> (<em>Click feature</em>)</p>
+<p><a class="reference external" href="https://click.palletsprojects.com/en/stable/api/#click.Context.show_default">Show all default values</a>
+in help screen.</p>
+</li>
+</ul>
+<p>Additionally, these <a class="reference external" href="https://cloup.readthedocs.io/en/stable/pages/formatting.html#formatting-settings">Cloup context settings</a>
+are set:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">align_option_groups</span> <span class="pre">=</span> <span class="pre">False</span></code> (<em>Cloup feature</em>)</p>
+<p><a class="reference external" href="https://cloup.readthedocs.io/en/stable/pages/option-groups.html#aligned-vs-non-aligned-groups">Aligns option groups in help screen</a>.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">show_constraints</span> <span class="pre">=</span> <span class="pre">True</span></code> (<em>Cloup feature</em>)</p>
+<p><a class="reference external" href="https://cloup.readthedocs.io/en/stable/pages/constraints.html#the-constraint-decorator">Show all constraints in help screen</a>.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">show_subcommand_aliases</span> <span class="pre">=</span> <span class="pre">True</span></code> (<em>Cloup feature</em>)</p>
+<p><a class="reference external" href="https://cloup.readthedocs.io/en/stable/pages/aliases.html?highlight=show_subcommand_aliases#help-output-of-the-group">Show all subcommand aliases in help screen</a>.</p>
+</li>
+</ul>
+<p>Click Extra also adds its own <code class="docutils literal notranslate"><span class="pre">context_settings</span></code>:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">show_choices</span> <span class="pre">=</span> <span class="pre">None</span></code> (<em>Click Extra feature</em>)</p>
+<p>If set to <code class="docutils literal notranslate"><span class="pre">True</span></code> or <code class="docutils literal notranslate"><span class="pre">False</span></code>, will force that value on all options, so we
+can globally show or hide choices when prompting a user for input. Only makes
+sense for options whose <code class="docutils literal notranslate"><span class="pre">prompt</span></code> property is set.</p>
+<p>Defaults to <code class="docutils literal notranslate"><span class="pre">None</span></code>, which will leave all options untouched, and let them
+decide of their own <code class="docutils literal notranslate"><span class="pre">show_choices</span></code> setting.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">show_envvar</span> <span class="pre">=</span> <span class="pre">None</span></code> (<em>Click Extra feature</em>)</p>
+<p>If set to <code class="docutils literal notranslate"><span class="pre">True</span></code> or <code class="docutils literal notranslate"><span class="pre">False</span></code>, will force that value on all options, so we
+can globally enable or disable the display of environment variables in help
+screen.</p>
+<p>Defaults to <code class="docutils literal notranslate"><span class="pre">None</span></code>, which will leave all options untouched, and let them
+decide of their own <code class="docutils literal notranslate"><span class="pre">show_envvar</span></code> setting. The rationale being that
+discoverability of environment variables is enabled by the <code class="docutils literal notranslate"><span class="pre">--show-params</span></code>
+option, which is active by default on extra commands. So there is no need to
+surcharge the help screen.</p>
+<p>This addresses the
+<a class="reference external" href="https://github.com/pallets/click/issues/2313">click#2313 issue</a>.</p>
+</li>
+</ul>
+<p>To override these defaults, you can pass your own settings with the
+<code class="docutils literal notranslate"><span class="pre">context_settings</span></code> parameter:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@extra_command</span><span class="p">(</span>
+    <span class="n">context_settings</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">&quot;show_default&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">...</span>
+    <span class="p">}</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.commands.ExtraGroup.command_class">
+<span class="sig-name descname"><span class="pre">command_class</span></span><a class="headerlink" href="#click_extra.commands.ExtraGroup.command_class" title="Link to this definition">¶</a></dt>
+<dd><p>Makes commands of an <code class="docutils literal notranslate"><span class="pre">ExtraGroup</span></code> be instances of <code class="docutils literal notranslate"><span class="pre">ExtraCommand</span></code>.</p>
+<p>That way all subcommands created from an <code class="docutils literal notranslate"><span class="pre">ExtraGroup</span></code> benefits from the same
+defaults and extra help screen colorization.</p>
+<p>See: <a class="reference external" href="https://click.palletsprojects.com/en/stable/api/#click.Group.command_class">https://click.palletsprojects.com/en/stable/api/#click.Group.command_class</a></p>
+<p>alias of <a class="reference internal" href="#click_extra.commands.ExtraCommand" title="click_extra.commands.ExtraCommand"><code class="xref py py-class docutils literal notranslate"><span class="pre">ExtraCommand</span></code></a></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.commands.ExtraGroup.group_class">
+<span class="sig-name descname"><span class="pre">group_class</span></span><a class="headerlink" href="#click_extra.commands.ExtraGroup.group_class" title="Link to this definition">¶</a></dt>
+<dd><p>Let <code class="docutils literal notranslate"><span class="pre">ExtraGroup</span></code> produce sub-groups that are also of <code class="docutils literal notranslate"><span class="pre">ExtraGroup</span></code> type.</p>
+<p>See: <a class="reference external" href="https://click.palletsprojects.com/en/stable/api/#click.Group.group_class">https://click.palletsprojects.com/en/stable/api/#click.Group.group_class</a></p>
+<p>alias of <a class="reference external" href="https://docs.python.org/3/library/functions.html#type" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">type</span></code></a></p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="config.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Configuration</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="tutorial.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Tutorial</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; Kevin Deldycke and contributors
+            </div>
+            Made with 
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            <div class="last-updated">
+              Last updated on 2024-12-08</div>
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Commands &amp; groups</a><ul>
+<li><a class="reference internal" href="#drop-in-replacement">Drop-in replacement</a></li>
+<li><a class="reference internal" href="#extra-variants">Extra variants</a></li>
+<li><a class="reference internal" href="#default-options">Default options</a><ul>
+<li><a class="reference internal" href="#remove-default-options">Remove default options</a></li>
+<li><a class="reference internal" href="#change-default-options">Change default options</a></li>
+<li><a class="reference internal" href="#option-order">Option order</a></li>
+<li><a class="reference internal" href="#options-defaults">Option’s defaults</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#third-party-commands-composition">Third-party commands composition</a><ul>
+<li><a class="reference internal" href="#wrap-other-commands">Wrap other commands</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#click-extra-commands-api"><code class="docutils literal notranslate"><span class="pre">click_extra.commands</span></code> API</a><ul>
+<li><a class="reference internal" href="#click_extra.commands.patched_exit"><code class="docutils literal notranslate"><span class="pre">patched_exit()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.commands.ExtraContext"><code class="docutils literal notranslate"><span class="pre">ExtraContext</span></code></a><ul>
+<li><a class="reference internal" href="#click_extra.commands.ExtraContext.formatter_class"><code class="docutils literal notranslate"><span class="pre">ExtraContext.formatter_class</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.commands.ExtraContext.color"><code class="docutils literal notranslate"><span class="pre">ExtraContext.color</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#click_extra.commands.default_extra_params"><code class="docutils literal notranslate"><span class="pre">default_extra_params()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.commands.ExtraCommand"><code class="docutils literal notranslate"><span class="pre">ExtraCommand</span></code></a><ul>
+<li><a class="reference internal" href="#click_extra.commands.ExtraCommand.context_class"><code class="docutils literal notranslate"><span class="pre">ExtraCommand.context_class</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.commands.ExtraCommand.main"><code class="docutils literal notranslate"><span class="pre">ExtraCommand.main()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.commands.ExtraCommand.make_context"><code class="docutils literal notranslate"><span class="pre">ExtraCommand.make_context()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.commands.ExtraCommand.invoke"><code class="docutils literal notranslate"><span class="pre">ExtraCommand.invoke()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#click_extra.commands.ExtraGroup"><code class="docutils literal notranslate"><span class="pre">ExtraGroup</span></code></a><ul>
+<li><a class="reference internal" href="#click_extra.commands.ExtraGroup.command_class"><code class="docutils literal notranslate"><span class="pre">ExtraGroup.command_class</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.commands.ExtraGroup.group_class"><code class="docutils literal notranslate"><span class="pre">ExtraGroup.group_class</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=c0b904be"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/scripts/furo.js?v=5fa4622c"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs"></script>
+    <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs";import elkLayouts from "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs";mermaid.registerLayoutLoaders(elkLayouts);mermaid.initialize({startOnLoad:false});</script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+    <script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs";
+const load = async () => {
+    await mermaid.run();
+    const all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+    if(mermaids_to_add_zoom > 0) {
+        var svgs = d3.selectAll(".mermaid svg");
+        if(all_mermaids.length !== mermaids_processed.length) {
+            // try again in a sec, wait for mermaids to load
+            setTimeout(load, 200);
+            return;
+        } else if(svgs.size() !== mermaids_to_add_zoom) {
+            // try again in a sec, wait for mermaids to load
+            setTimeout(load, 200);
+            return;
+        } else {
+            svgs.each(function() {
+                var svg = d3.select(this);
+                svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                var inner = svg.select("g");
+                var zoom = d3.zoom().on("zoom", function(event) {
+                    inner.attr("transform", event.transform);
+                });
+                svg.call(zoom);
+            });
+        }
+    }
+};
+
+window.addEventListener("load", load);
+</script>
+    </body>
+</html>
