@@ -61,15 +61,15 @@ The verbosity option can be used independently of `@extra_command`, and you can 
    assert "We're printing stuff." in result.stderr
 ```
 
-```{tip}
-Note in the output above how the verbosity option is automatticcaly printing its own log level as a debug message.
+```{hint}
+See in the output above how the verbosity option is automatticcaly printing its own log level as a debug message.
 ```
 
 ### Default logger
 
-By default the `--verbosity` option is setting the log level of [Python's global `root` logger](https://github.com/python/cpython/blob/a59dc1fb4324589427c5c84229eb2c0872f29ca0/Lib/logging/__init__.py#L1945).
+The `--verbosity` option force its value to the [Python's global `root` logger](https://github.com/python/cpython/blob/a59dc1fb4324589427c5c84229eb2c0872f29ca0/Lib/logging/__init__.py#L1945).
 
-That way you can simply use the module helpers like [`logging.debug`](https://docs.python.org/3/library/logging.html?highlight=logging#logging.Logger.debug):
+This is a quality of life behavior that allows you to use module helpers like [`logging.debug`](https://docs.python.org/3/library/logging.html?highlight=logging#logging.Logger.debug). That way you don't have to worry about setting up your own logger, and logging messages can be easily produced with minimal boilerplate:
 
 ```{eval-rst}
 .. click:example::
@@ -86,15 +86,6 @@ That way you can simply use the module helpers like [`logging.debug`](https://do
         logging.warning("Mad scientist at work!")
         logging.error("Does not compute.")
         logging.critical("Complete meltdown!")
-
-.. hint::
-
-   By default, the ``root`` logger is preconfigured to:
-
-   - output to ``<stderr>``,
-   - render log records with the ``%(levelname)s: %(message)s`` format,
-   - color the log level name in the ``%(levelname)s`` variable,
-   - default to the ``INFO`` level.
 
 You can check these defaults by running the CLI without the ``--verbosity`` option:
 
@@ -162,10 +153,20 @@ And then see how each level selectively print messages and renders with colors:
    )
 ```
 
+```{hint}
+`--verbosity` defaults to:
+
+- send messages via the `root` logger,
+- output to `<stderr>`,
+- render log records with the `%(levelname)s: %(message)s` format,
+- color the log level name in the `%(levelname)s` variable,
+- default to the `WARNING` level.
+```
+
 ```{eval-rst}
 .. attention:: Level propagation
 
-   Because the default logger is ``root``, its level is by default propagated to all other loggers:
+   Because the default logger is ``root``, its level is propagated to all other loggers:
 
    .. click:example::
       import logging
@@ -177,21 +178,45 @@ And then see how each level selectively print messages and renders with colors:
       def multiple_loggers():
          # Print to default root logger.
          root_logger = logging.getLogger()
-         root_logger.info("Default informative message")
+         root_logger.warning("Default informative message")
          root_logger.debug("Default debug message")
 
          # Print to a random logger.
          random_logger = logging.getLogger("my_random_logger")
-         random_logger.info("Random informative message")
+         random_logger.warning("Random informative message")
          random_logger.debug("Random debug message")
 
          echo("It works!")
 
-   .. click:run::
-      invoke(multiple_loggers)
+   So a normal invocation will only print the default warning messages:
 
    .. click:run::
-      invoke(multiple_loggers, args=["--verbosity", "DEBUG"])
+      from textwrap import dedent
+      result = invoke(multiple_loggers)
+      assert result.stdout == "It works!\n"
+      assert result.stderr == dedent("""\
+         \x1b[33mwarning\x1b[0m: Default informative message
+         \x1b[33mwarning\x1b[0m: Random informative message
+         """
+      )
+
+   And setting verbosity to ``DEBUG`` will print debug messages both from the ``root`` and the ``my_random_logger`` loggers:
+
+   .. click:run::
+      from textwrap import dedent
+      result = invoke(multiple_loggers, args=["--verbosity", "DEBUG"])
+      assert result.stdout == "It works!\n"
+      assert result.stderr == dedent("""\
+         \x1b[34mdebug\x1b[0m: Set <Logger click_extra (DEBUG)> to DEBUG.
+         \x1b[34mdebug\x1b[0m: Set <RootLogger root (DEBUG)> to DEBUG.
+         \x1b[33mwarning\x1b[0m: Default informative message
+         \x1b[34mdebug\x1b[0m: Default debug message
+         \x1b[33mwarning\x1b[0m: Random informative message
+         \x1b[34mdebug\x1b[0m: Random debug message
+         \x1b[34mdebug\x1b[0m: Reset <RootLogger root (DEBUG)> to WARNING.
+         \x1b[34mdebug\x1b[0m: Reset <Logger click_extra (DEBUG)> to WARNING.
+         """
+      )
 ```
 
 ### Custom logger
