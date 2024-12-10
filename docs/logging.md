@@ -286,6 +286,7 @@ def custom_logger():
     ...
 ```
 ````
+
 ### Custom logger
 
 If you'd like to target another logger than the default `root` logger, you can pass [your own logger](https://docs.python.org/3/library/logging.html?#logging.getLogger)'s ID to the option parameter:
