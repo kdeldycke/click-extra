@@ -280,10 +280,10 @@ Make the passing of the logger object to the verbosity option optional if it tar
 ```python
 extra_basic_config(...)
 
+
 @command
 @verbosity_option
-def custom_logger():
-    ...
+def custom_logger(): ...
 ```
 ````
 
