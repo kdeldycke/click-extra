@@ -6,7 +6,7 @@ Click Extra provides a pre-configured option which adds a `--verbosity`/`-v` fla
 
 ### Integrated extra option
 
-This option is added by default to `@extra_command` and `@extra_group`:
+This option is by default part of `@extra_command` and `@extra_group`:
 
 ```{eval-rst}
 .. click:example::
@@ -16,13 +16,13 @@ This option is added by default to `@extra_command` and `@extra_group`:
     def my_cli():
         echo("It works!")
 
-See the default ``--verbosity``/``-v`` option in the help screen:
+See how ``--verbosity``/``-v`` option in featured in the help screen:
 
 .. click:run::
    result = invoke(my_cli, args=["--help"])
    assert "--verbosity" in result.stdout, "missing --verbosity option"
 
-Which can be invoked to display all the gory details of your CLI with the ``DEBUG`` level:
+This option can be invoked to display all the gory details of your CLI with the ``DEBUG`` level:
 
 .. click:run::
    result = invoke(my_cli, args=["--verbosity", "DEBUG"])
@@ -32,7 +32,7 @@ Which can be invoked to display all the gory details of your CLI with the ``DEBU
 
 ### Standalone option
 
-The verbosity option can be used independently of `@extra_command`, and you can attach it to a vanilla commands:
+The verbosity option can be used independently of `@extra_command`, and you can attach it to a vanilla Click commands:
 
 ```{eval-rst}
 .. click:example::
@@ -62,14 +62,14 @@ The verbosity option can be used independently of `@extra_command`, and you can 
 ```
 
 ```{hint}
-See in the output above how the verbosity option is automatticcaly printing its own log level as a debug message.
+Notice how, in the output above, the verbosity option is automatticcaly printing its own log level as a debug message.
 ```
 
 ### Default logger
 
 The `--verbosity` option force its value to the [Python's global `root` logger](https://github.com/python/cpython/blob/a59dc1fb4324589427c5c84229eb2c0872f29ca0/Lib/logging/__init__.py#L1945).
 
-This is a quality of life behavior that allows you to use module helpers like [`logging.debug`](https://docs.python.org/3/library/logging.html?highlight=logging#logging.Logger.debug). That way you don't have to worry about setting up your own logger, and logging messages can be easily produced with minimal boilerplate:
+This is a quality-of-life behavior that allows you to use module-level helpers like [`logging.debug`](https://docs.python.org/3/library/logging.html?highlight=logging#logging.Logger.debug). That way you don't have to worry about setting up your own logger. And logging messages can be easily produced with minimal code:
 
 ```{eval-rst}
 .. click:example::
@@ -80,14 +80,14 @@ This is a quality of life behavior that allows you to use module helpers like [`
     @command
     @verbosity_option
     def my_cli():
-        # Print a messages for each level.
+        # Print a message for each level.
         logging.debug("We're printing stuff.")
         logging.info("This is a message.")
         logging.warning("Mad scientist at work!")
         logging.error("Does not compute.")
         logging.critical("Complete meltdown!")
 
-You can check these defaults by running the CLI without the ``--verbosity`` option:
+By default the ``--verbosity`` option print all ``WARNING`` messages and levels above:
 
 .. click:run::
    from textwrap import dedent
@@ -99,7 +99,7 @@ You can check these defaults by running the CLI without the ``--verbosity`` opti
       """
    )
 
-And then see how each level selectively print messages and renders with colors:
+And now see how each level selectively print messages and renders them with colors:
 
 .. click:run::
    from textwrap import dedent
@@ -154,19 +154,19 @@ And then see how each level selectively print messages and renders with colors:
 ```
 
 ```{hint}
-`--verbosity` defaults to:
+`--verbosity` default behavior is to:
 
-- send messages via the `root` logger,
 - output to `<stderr>`,
-- render log records with the `%(levelname)s: %(message)s` format,
-- color the log level name in the `%(levelname)s` variable,
-- default to the `WARNING` level.
+- send messages via the `root` logger,
+- show `WARNING`-level messages and above,
+- render logs with the `%(levelname)s: %(message)s` format,
+- color the log's level name in the `%(levelname)s` variable,
 ```
 
 ```{eval-rst}
 .. attention:: Level propagation
 
-   Because the default logger is ``root``, its level is propagated to all other loggers:
+   Because the default logger associated to the ``--verbosity`` option is ``root``, its level is propagated to all other loggers, including those you may have created yourself:
 
    .. click:example::
       import logging
@@ -176,19 +176,19 @@ And then see how each level selectively print messages and renders with colors:
       @command
       @verbosity_option
       def multiple_loggers():
-         # Print to default root logger.
+         # Use the root default logger.
          root_logger = logging.getLogger()
          root_logger.warning("Default informative message")
          root_logger.debug("Default debug message")
 
-         # Print to a random logger.
-         random_logger = logging.getLogger("my_random_logger")
-         random_logger.warning("Random informative message")
-         random_logger.debug("Random debug message")
+         # Use my custom standalone logger.
+         my_logger = logging.getLogger("my_logger")
+         my_logger.warning("Random informative message")
+         my_logger.debug("Random debug message")
 
          echo("It works!")
 
-   So a normal invocation will only print the default warning messages:
+   A normal invocation will only print the default ``WARNING`` messages:
 
    .. click:run::
       from textwrap import dedent
@@ -200,7 +200,7 @@ And then see how each level selectively print messages and renders with colors:
          """
       )
 
-   And setting verbosity to ``DEBUG`` will print debug messages both from the ``root`` and the ``my_random_logger`` loggers:
+   And setting verbosity to ``DEBUG`` will print debug messages both from ``root`` and ``my_logger``:
 
    .. click:run::
       from textwrap import dedent
@@ -217,8 +217,75 @@ And then see how each level selectively print messages and renders with colors:
          \x1b[34mdebug\x1b[0m: Reset <Logger click_extra (DEBUG)> to WARNING.
          """
       )
+
+   To prevent this behavior, you can setup the verbosity option to target a custom logger, other than the default ``root`` logger. This is explained in the next section.
 ```
 
+### Customize default logger
+
+You can generate a new `root` logger in the style of Click Extra with the [`extra_basic_config()` helper](#click_extra.logging.extra_basic_config).
+
+So if you want to change the default logger's configuration, you can create a custom logger and pass it to the verbosity option:
+
+```{eval-rst}
+.. click:example::
+    import logging
+    from click import command
+    from click_extra import extra_basic_config, verbosity_option
+
+    custom_root_logger = extra_basic_config(
+        format="{levelname} | {name} | {message}",
+    )
+
+    @command
+    @verbosity_option(default_logger=custom_root_logger)
+    def custom_root_logger_cli():
+        # Call the root logger directly.
+        logging.warning("Root logger warning")
+        logging.debug("Root logger debug")
+        logging.info("Root logger info")
+        # Use our custom logger object.
+        custom_root_logger.warning("Logger object warning")
+        custom_root_logger.debug("Logger object debug")
+        custom_root_logger.info("Logger object info")
+
+And see how logs messages are rendered with the custom format, whichever calling method you use:
+
+.. click:run::
+   from textwrap import dedent
+   result = invoke(custom_root_logger_cli)
+   assert dedent("""\
+      \x1b[33mwarning\x1b[0m | root | Root logger warning
+      \x1b[33mwarning\x1b[0m | root | Logger object warning
+      """
+   ) in result.output
+
+.. click:run::
+   from textwrap import dedent
+   result = invoke(custom_root_logger_cli, args=["--verbosity", "DEBUG"])
+   assert dedent("""\
+      \x1b[33mwarning\x1b[0m | root | Root logger warning
+      \x1b[34mdebug\x1b[0m | root | Root logger debug
+      info | root | Root logger info
+      \x1b[33mwarning\x1b[0m | root | Logger object warning
+      \x1b[34mdebug\x1b[0m | root | Logger object debug
+      info | root | Logger object info
+      """
+   ) in result.output
+```
+
+````{todo}
+Make the passing of the logger object to the verbosity option optional if it targets the root logger, so we can do:
+
+```python
+extra_basic_config(...)
+
+@command
+@verbosity_option
+def custom_logger():
+    ...
+```
+````
 ### Custom logger
 
 If you'd like to target another logger than the default `root` logger, you can pass [your own logger](https://docs.python.org/3/library/logging.html?#logging.getLogger)'s ID to the option parameter:
