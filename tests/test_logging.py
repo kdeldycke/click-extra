@@ -90,7 +90,7 @@ def test_unrecognized_verbosity(invoke, cmd_decorator, cmd_type):
 @pytest.mark.parametrize("level", LOG_LEVELS.keys())
 def test_default_root_logger(invoke, cmd_decorator, option_decorator, level):
     """Checks:
-    - the default logger is ``<root>``
+    - the default logger is ``root``
     - the default logger message format
     - level names are colored
     - log level is propagated to all other loggers.
@@ -155,7 +155,8 @@ def test_integrated_verbosity_option(invoke, level):
         assert not result.stderr
 
 
-def test_extra_basic_config(invoke):
+def test_explicit_extra_basic_config(invoke):
+    """Create a new root logger with ``extra_basic_config()`` and pass it to the ``@verbosity_option`` decorator."""
     custom_root_logger = extra_basic_config(
         format="{levelname} | {name} | {message}",
     )
@@ -194,6 +195,38 @@ def test_extra_basic_config(invoke):
         debug | click_extra | Reset <Logger click_extra (DEBUG)> to WARNING.
         """)
 
+
+@pytest.mark.skip("Doesn't work but would be cool if it does")
+def test_implicit_extra_basic_config(invoke):
+    """Create a new root logger with ``extra_basic_config()``, but let it be discovered automaticcaly by ``@verbosity_option``."""
+
+    extra_basic_config(format="{levelname} | {name} | {message}")
+
+    @click.command
+    @verbosity_option
+    def custom_root_logger_cli():
+        # Call the root logger directly.
+        logging.warning("Root logger warning")
+        logging.debug("Root logger debug")
+        logging.info("Root logger info")
+
+    result = invoke(custom_root_logger_cli, color=False)
+    assert result.exit_code == 0
+    assert result.output == dedent("""\
+        warning | root | Root logger warning
+        """)
+
+    result = invoke(custom_root_logger_cli, ("--verbosity", "DEBUG"), color=False)
+    assert result.exit_code == 0
+    assert result.output == dedent("""\
+        debug | click_extra | Set <Logger click_extra (DEBUG)> to DEBUG.
+        debug | click_extra | Set <RootLogger root (DEBUG)> to DEBUG.
+        warning | root | Root logger warning
+        debug | root | Root logger debug
+        info | root | Root logger info
+        debug | click_extra | Reset <RootLogger root (DEBUG)> to WARNING.
+        debug | click_extra | Reset <Logger click_extra (DEBUG)> to WARNING.
+        """)
 
 @pytest.mark.parametrize(
     "logger_param",
