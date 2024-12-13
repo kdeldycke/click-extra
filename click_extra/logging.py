@@ -218,7 +218,7 @@ class VerbosityOption(ExtraOption):
         Reset loggers in reverse order to ensure the internal logger is reset last.
 
         .. danger::
-            Resseting loggers is extremely important for unittests. Because they're
+            Resetting loggers is extremely important for unittests. Because they're
             global, loggers have tendency to leak and pollute their state between
             multiple test calls.
         """
