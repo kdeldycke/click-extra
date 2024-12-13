@@ -27,7 +27,7 @@ from pytest_cases import parametrize
 
 from click_extra import echo
 from click_extra.decorators import extra_command, verbosity_option
-from click_extra.logging import DEFAULT_LEVEL, LOG_LEVELS
+from click_extra.logging import DEFAULT_LEVEL, LOG_LEVELS, extra_basic_config
 from click_extra.pytest import (
     command_decorators,
     default_debug_colored_log_end,
@@ -154,6 +154,46 @@ def test_integrated_verbosity_option(invoke, level):
         )
     else:
         assert not result.stderr
+
+
+def test_extra_basic_config(invoke):
+    custom_root_logger = extra_basic_config(
+        format="{levelname} | {name} | {message}",
+    )
+
+    @click.command
+    @verbosity_option(default_logger=custom_root_logger)
+    def custom_root_logger_cli():
+        # Call the root logger directly.
+        logging.warning("Root logger warning")
+        logging.debug("Root logger debug")
+        logging.info("Root logger info")
+        # Use our custom logger object.
+        custom_root_logger.warning("Logger object warning")
+        custom_root_logger.debug("Logger object debug")
+        custom_root_logger.info("Logger object info")
+
+    result = invoke(custom_root_logger_cli, color=False)
+    assert result.exit_code == 0
+    assert result.output == dedent("""\
+        warning | root | Root logger warning
+        warning | root | Logger object warning
+        """)
+
+    result = invoke(custom_root_logger_cli, ("--verbosity", "DEBUG"), color=False)
+    assert result.exit_code == 0
+    assert result.output == dedent("""\
+        debug | click_extra | Set <Logger click_extra (DEBUG)> to DEBUG.
+        debug | click_extra | Set <RootLogger root (DEBUG)> to DEBUG.
+        warning | root | Root logger warning
+        debug | root | Root logger debug
+        info | root | Root logger info
+        warning | root | Logger object warning
+        debug | root | Logger object debug
+        info | root | Logger object info
+        debug | click_extra | Reset <RootLogger root (DEBUG)> to WARNING.
+        debug | click_extra | Reset <Logger click_extra (DEBUG)> to WARNING.
+        """)
 
 
 @pytest.mark.parametrize(
