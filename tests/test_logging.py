@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 import random
 import re
+from textwrap import dedent
 
 import click
 import pytest
@@ -173,16 +174,13 @@ def test_custom_logger_param(invoke, logger_param, params):
     assert result.exit_code == 0
     assert result.stdout == "Starting Awesome App...\n"
     if params:
-        assert re.fullmatch(
-            (
-                r"debug: Set <Logger click_extra \(DEBUG\)> to DEBUG.\n"
-                r"debug: Set <Logger awesome_app \(DEBUG\)> to DEBUG.\n"
-                r"debug: Awesome App has started\.\n"
-                r"debug: Reset <Logger awesome_app \(DEBUG\)> to WARNING.\n"
-                r"debug: Reset <Logger click_extra \(DEBUG\)> to WARNING.\n"
-            ),
-            result.stderr,
-        )
+        assert result.stderr == dedent("""\
+            debug: Set <Logger click_extra (DEBUG)> to DEBUG.
+            debug: Set <Logger awesome_app (DEBUG)> to DEBUG.
+            debug: Awesome App has started.
+            debug: Reset <Logger awesome_app (DEBUG)> to WARNING.
+            debug: Reset <Logger click_extra (DEBUG)> to WARNING.
+            """)
     else:
         assert not result.stderr
 
