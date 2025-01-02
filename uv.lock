@@ -207,8 +207,8 @@ requires-dist = [
     { name = "click", specifier = "~=8.1.4" },
     { name = "cloup", specifier = "~=3.0.5" },
     { name = "coverage", extras = ["toml"], marker = "extra == 'test'", specifier = "~=7.6.0" },
-    { name = "extra-platforms", specifier = "~=1.6.0" },
-    { name = "extra-platforms", extras = ["pytest"], marker = "extra == 'test'", specifier = "~=1.6.0" },
+    { name = "extra-platforms", specifier = "~=2.0.0" },
+    { name = "extra-platforms", extras = ["pytest"], marker = "extra == 'test'", specifier = "~=2.0.0" },
     { name = "furo", marker = "extra == 'docs'", specifier = "~=2024.8.6" },
     { name = "mergedeep", specifier = "~=1.3.4" },
     { name = "myst-parser", marker = "extra == 'docs'", specifier = "~=4.0.0" },
@@ -372,15 +372,15 @@ wheels = [
 
 [[package]]
 name = "extra-platforms"
-version = "1.6.0"
+version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "boltons" },
     { name = "distro" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e0/a7/7fb81009b351e4f3194806cad083515bc11d9df0c86d731c7913840598fa/extra_platforms-1.6.0.tar.gz", hash = "sha256:dbef8d68019362690bd87fcb98ea287e7d381d7b1758a500d66abea320485234", size = 40464 }
+sdist = { url = "https://files.pythonhosted.org/packages/7d/5e/445afff9427d74e72703aaac8fc7245758f3060036a413f317b638eaba92/extra_platforms-2.0.0.tar.gz", hash = "sha256:f26d83800eaa71ef70ba61e338ef0065c34e817746f15cbd35912c1315821f52", size = 47029 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e5/1c/205a8e36650ac5984b55493453dbb80283c55b2fe5c9f66f87d104a5951b/extra_platforms-1.6.0-py3-none-any.whl", hash = "sha256:fdd27b0babec649dda212f9a16ddd9edd12f8288996de729422c6fe60fd1c588", size = 27510 },
+    { url = "https://files.pythonhosted.org/packages/03/06/1289c053365d89598f272db2d7698aa3497abe0ce2d7febd1e19a0d3d420/extra_platforms-2.0.0-py3-none-any.whl", hash = "sha256:5899b1f6e8d06274e7982239b7f49c86a74e42ddd86c362fd11bae106823d93c", size = 32232 },
 ]
 
 [package.optional-dependencies]
