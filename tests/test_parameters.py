@@ -533,7 +533,7 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.help",
-            "click_extra.colorize.HelpOption",
+            "click.decorators.HelpOption",
             "-h, --help",
             "click.types.BoolParamType",
             "bool",
@@ -672,7 +672,7 @@ def test_recurse_subcommands(invoke):
     table = [
         (
             "show-params-cli-main.help",
-            "click_extra.colorize.HelpOption",
+            "click.decorators.HelpOption",
             "-h, --help",
             "click.types.BoolParamType",
             "bool",
@@ -700,7 +700,7 @@ def test_recurse_subcommands(invoke):
         ),
         (
             "show-params-cli-main.show-params-sub-cmd.help",
-            "click_extra.colorize.HelpOption",
+            "click.decorators.HelpOption",
             "-h, --help",
             "click.types.BoolParamType",
             "bool",
@@ -714,7 +714,7 @@ def test_recurse_subcommands(invoke):
         ),
         (
             "show-params-cli-main.show-params-sub-cmd.show-params-sub-sub-cmd.help",
-            "click_extra.colorize.HelpOption",
+            "click.decorators.HelpOption",
             "-h, --help",
             "click.types.BoolParamType",
             "bool",

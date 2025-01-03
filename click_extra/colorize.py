@@ -38,11 +38,9 @@ from . import (
     Choice,
     Context,
     HelpFormatter,
-    Option,
     Parameter,
     ParameterSource,
     Style,
-    echo,
     get_current_context,
 )
 from .parameters import ExtraOption
@@ -293,56 +291,21 @@ class ColorOption(ExtraOption):
         )
 
 
-class HelpOption(ExtraOption):
-    """Like Click's @help_option but made into a reusable class-based option.
+class HelpOption(click.HelpOption):
+    """Same defaults as Click's @help_option but with ``-h`` short option.
 
-    .. note::
-        Keep implementation in sync with upstream for drop-in replacement
-        compatibility.
-
-    .. todo::
-        Reuse Click's ``HelpOption`` once this PR is merged:
-        https://github.com/pallets/click/pull/2563
+    See: https://github.com/pallets/click/blob/934813e/src/click/decorators.py#L536
     """
 
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        is_flag=True,
-        expose_value=False,
-        is_eager=True,
-        help=_("Show this message and exit."),
         **kwargs,
     ) -> None:
-        """Same defaults as Click's @help_option but with ``-h`` short option.
-
-        See: https://github.com/pallets/click/blob/d9af5cf/src/click/decorators.py#L563C23-L563C34
-        """
         if not param_decls:
             param_decls = ("--help", "-h")
 
-        kwargs.setdefault("callback", self.print_help)
-
-        super().__init__(
-            param_decls=param_decls,
-            is_flag=is_flag,
-            expose_value=expose_value,
-            is_eager=is_eager,
-            help=help,
-            **kwargs,
-        )
-
-    @staticmethod
-    def print_help(ctx: Context, param: Parameter, value: bool) -> None:
-        """Prints help text and exits.
-
-        Exact same behavior as `Click's original @help_option callback
-        <https://github.com/pallets/click/blob/d9af5cf/src/click/decorators.py#L555-L560>`_,
-        but forces the closing of the context before exiting.
-        """
-        if value and not ctx.resilient_parsing:
-            echo(ctx.get_help(), color=ctx.color)
-            ctx.exit()
+        super().__init__(param_decls, **kwargs)
 
 
 class ExtraHelpColorsMixin:  # (Command)??
@@ -455,31 +418,6 @@ class ExtraHelpColorsMixin:  # (Command)??
             envvars,
             defaults,
         )
-
-    def get_help_option(self, ctx: Context) -> Option | None:
-        """Returns our custom help option object instead of Click's default one.
-
-        Cache the help option generated from the `help_option_names` setting.
-
-        Fixes the eargerness of the help option, and `respect the evaluation order
-        as described in the documentation
-        <https://click.palletsprojects.com/en/stable/advanced/#callback-evaluation-order>`_.
-
-        This is a backport of the fix proposed in `click#2811
-        <https://github.com/pallets/click/pull/2811/files>`_.
-        """
-        # Let Click generate the default help option.
-        help_option = super().get_help_option(ctx)  # type: ignore[misc]
-        # If Click decided to not add a default help option, we don't either.
-        if help_option is None:
-            return None
-
-        # Generate our own help option, and cache it.
-        if getattr(self, "_cached_help_option", None) is None:
-            # Return our own help option.
-            self._cached_help_option = HelpOption(param_decls=help_option.opts)
-
-        return self._cached_help_option
 
     def get_help(self, ctx: Context) -> str:
         """Replace default formatter by our own."""
