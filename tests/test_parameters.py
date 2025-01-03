@@ -407,7 +407,7 @@ def test_standalone_show_params_option(invoke, cmd_decorator, option_decorator):
     table = [
         (
             "show-params.help",
-            "click.core.Option",
+            "click.decorators.HelpOption",
             "--help",
             "click.types.BoolParamType",
             "bool",

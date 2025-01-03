@@ -67,10 +67,7 @@ dependencies = [
     # Investigation of the root cause is being discussed upstream at:
     # https://github.com/mahmoud/boltons/issues/334
     "boltons ~= 24.1.0",
-    # Click 8.1.4 fix @group.command calls with a custom command_class. See:
-    # https://github.com/pallets/click/issues/2416
-    # https://github.com/pallets/click/pull/2417
-    "click ~= 8.1.4",
+    "click ~= 8.1.8",
     # Cloup 3.0.5 fix incompatibility with autodoc: https://github.com/janluke/cloup/issues/177
     "cloup ~= 3.0.5",
     "extra-platforms ~= 2.0.0",
