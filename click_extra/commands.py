@@ -186,6 +186,9 @@ def default_extra_params() -> list[Option]:
     ]
 
 
+DEFAULT_HELP_NAMES = ("--help", "-h")
+
+
 class ExtraCommand(ExtraHelpColorsMixin, Command):  # type: ignore[misc]
     """Like ``cloup.command``, with sane defaults and extra help screen colorization."""
 
@@ -302,7 +305,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):  # type: ignore[misc]
         default_ctx_settings: dict[str, Any] = {
             # Click settings:
             # "default_map": {"verbosity": "DEBUG"},
-            "help_option_names": ("--help", "-h"),
+            "help_option_names": DEFAULT_HELP_NAMES,
             "show_default": True,
             # Cloup settings:
             "align_option_groups": False,

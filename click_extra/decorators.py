@@ -21,7 +21,7 @@ import click
 import cloup
 
 from .colorize import ColorOption
-from .commands import ExtraCommand, ExtraGroup, default_extra_params
+from .commands import DEFAULT_HELP_NAMES, ExtraCommand, ExtraGroup, default_extra_params
 from .config import ConfigOption
 from .logging import VerbosityOption
 from .parameters import ShowParamsOption
@@ -95,10 +95,9 @@ help_option = decorator_factory(
     # TODO: try the following instead once https://github.com/pallets/click/pull/2840
     # is merged:
     #   dec=click.decorators.help_option,
-    #   param_decls=("--help", "-h"),
+    #   param_decls=DEFAULT_HELP_NAMES,
     click.decorators.help_option,
-    "--help",
-    "-h",
+    *DEFAULT_HELP_NAMES,
 )
 
 # Copy Click and Cloup decorators with better defaults, and prefix them with "extra_".
