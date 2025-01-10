@@ -291,23 +291,6 @@ class ColorOption(ExtraOption):
         )
 
 
-class HelpOption(click.HelpOption):
-    """Same defaults as Click's @help_option but with ``-h`` short option.
-
-    See: https://github.com/pallets/click/blob/934813e/src/click/decorators.py#L536
-    """
-
-    def __init__(
-        self,
-        param_decls: Sequence[str] | None = None,
-        **kwargs,
-    ) -> None:
-        if not param_decls:
-            param_decls = ("--help", "-h")
-
-        super().__init__(param_decls, **kwargs)
-
-
 class ExtraHelpColorsMixin:  # (Command)??
     """Adds extra-keywords highlighting to Click commands.
 

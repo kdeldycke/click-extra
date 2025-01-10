@@ -40,7 +40,6 @@ from .colorize import (  # noqa: E402
     ColorOption,
     HelpExtraFormatter,
     HelpExtraTheme,
-    HelpOption,
 )
 from .commands import (  # noqa: E402
     ExtraCommand,

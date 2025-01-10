@@ -17,9 +17,10 @@
 
 from functools import wraps
 
+import click
 import cloup
 
-from .colorize import ColorOption, HelpOption
+from .colorize import ColorOption
 from .commands import ExtraCommand, ExtraGroup, default_extra_params
 from .config import ConfigOption
 from .logging import VerbosityOption
@@ -46,7 +47,7 @@ def allow_missing_parenthesis(dec_factory):
     return new_factory
 
 
-def decorator_factory(dec, **new_defaults):
+def decorator_factory(dec, *new_args, **new_defaults):
     """Clone decorator with a set of new defaults.
 
     Used to create our own collection of decorators for our custom options, based on
@@ -64,6 +65,9 @@ def decorator_factory(dec, **new_defaults):
 
         This decorator can be used with or without arguments.
         """
+        if not args:
+            args = new_args
+
         # Use a copy of the defaults to avoid modifying the original dict.
         new_kwargs = new_defaults.copy()
         new_kwargs.update(kwargs)
@@ -80,11 +84,24 @@ def decorator_factory(dec, **new_defaults):
     return decorator
 
 
-# Redefine cloup decorators to allow them to be used with or without parenthesis.
+# Redefine Cloup decorators to allow them to be used with or without parenthesis.
 command = decorator_factory(dec=cloup.command)
 group = decorator_factory(dec=cloup.group)
 
-# Extra-prefixed decorators augments the default Cloup and Click ones.
+# Customize existing Click decorators with better default parameters.
+help_option = decorator_factory(
+    # XXX parameters are not named because of the way the default option names are
+    # passed to HelpOption.
+    # TODO: try the following instead once https://github.com/pallets/click/pull/2840
+    # is merged:
+    #   dec=click.decorators.help_option,
+    #   param_decls=("--help", "-h"),
+    click.decorators.help_option,
+    "--help",
+    "-h",
+)
+
+# Copy Click and Cloup decorators with better defaults, and prefix them with "extra_".
 extra_command = decorator_factory(
     dec=cloup.command,
     cls=ExtraCommand,
@@ -100,7 +117,6 @@ extra_version_option = decorator_factory(dec=cloup.option, cls=ExtraVersionOptio
 # New option decorators provided by Click Extra.
 color_option = decorator_factory(dec=cloup.option, cls=ColorOption)
 config_option = decorator_factory(dec=cloup.option, cls=ConfigOption)
-help_option = decorator_factory(dec=cloup.option, cls=HelpOption)
 show_params_option = decorator_factory(dec=cloup.option, cls=ShowParamsOption)
 table_format_option = decorator_factory(dec=cloup.option, cls=TableFormatOption)
 telemetry_option = decorator_factory(dec=cloup.option, cls=TelemetryOption)
