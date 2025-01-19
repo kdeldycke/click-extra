@@ -39,12 +39,14 @@ jobs:
           variants: dict[str, set[str]] = {
               "os": {
                   # Available OSes: https://github.com/actions/runner-images#available-images
-                  "ubuntu-24.04", # x86
-                  "ubuntu-22.04", # x86
-                  "macos-15",     # arm64
-                  "macos-13",     # x86
-                  "windows-2022", # x86
-                  "windows-2019", # x86
+                  "ubuntu-24.04",     # x86
+                  "ubuntu-24.04-arm", # arm64
+                  "ubuntu-22.04",     # x86
+                  "ubuntu-22.04-arm", # arm64
+                  "macos-15",         # arm64
+                  "macos-13",         # x86
+                  "windows-2022",     # x86
+                  "windows-2019",     # x86
               },
               "python-version": {
                   "3.10",
@@ -83,6 +85,7 @@ jobs:
               for criterion in (
                   # Exclude old OSes. Only keeps the latest OSes of each family.
                   {"os": "ubuntu-22.04"},
+                  {"os": "ubuntu-22.04-arm"},
                   {"os": "macos-13"},
                   {"os": "windows-2019"},
                   # Exclude Python's dev version.
