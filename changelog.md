@@ -7,6 +7,7 @@
 
 - Remove Click Extra's own implementation of `HelpOption` class now that fixes have reached Click's upstream.
 - Redefine `@help_option` decorator to default to  `--help`/`-h` options.
+- Add more logging examples in documentation.
 
 ## [4.11.7 (2024-11-30)](https://github.com/kdeldycke/click-extra/compare/v4.11.6...v4.11.7)
 
