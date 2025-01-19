@@ -6,7 +6,7 @@
 > This version is not released yet and is under active development.
 
 - Remove Click Extra's own implementation of `HelpOption` class now that fixes have reached Click's upstream.
-- Redefine `@help_option` decorator to default to  `--help`/`-h` options.
+- Redefine `@help_option` decorator to default to `--help`/`-h` options.
 - Add more logging examples in documentation.
 - Add tests on `ubuntu-24.04-arm` and `ubuntu-22.04-arm`.
 - Use `uv` to install specific versions of Python.
