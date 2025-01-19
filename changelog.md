@@ -1,6 +1,6 @@
 # Changelog
 
-## [4.11.8 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v4.11.7...main)
+## [4.12.0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v4.11.7...main)
 
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
