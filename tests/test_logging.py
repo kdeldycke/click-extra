@@ -228,6 +228,7 @@ def test_implicit_extra_basic_config(invoke):
         debug | click_extra | Reset <Logger click_extra (DEBUG)> to WARNING.
         """)
 
+
 @pytest.mark.parametrize(
     "logger_param",
     (logging.getLogger("awesome_app"), "awesome_app"),
