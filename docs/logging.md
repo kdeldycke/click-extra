@@ -223,9 +223,9 @@ And now see how each level selectively print messages and renders them with colo
 
 ### Customize default logger
 
-You can generate a new `root` logger in the style of Click Extra with the [`extra_basic_config()` helper](#click_extra.logging.extra_basic_config).
+You can generate a new `root` logger with Click Extra's own [`extra_basic_config()` helper](#click_extra.logging.extra_basic_config).
 
-So if you want to change the default logger's configuration, you can create a custom logger and pass it to the verbosity option:
+This will allow you to change the default logger's configuration, like the message format. All you have to do is to pass it to the verbosity option:
 
 ```{eval-rst}
 .. click:example::
@@ -272,6 +272,9 @@ And see how logs messages are rendered with the custom format, whichever calling
       info | root | Logger object info
       """
    ) in result.output
+
+   # XXX Reset root logger because ".. click:run::" directives are not isolated and custom config polute the next examples.
+   extra_basic_config()
 ```
 
 ````{todo}
@@ -319,25 +322,79 @@ You can now check that the ``--verbosity`` option influence the log level of you
    from textwrap import dedent
    result = invoke(awesome_app, args=["--verbosity", "DEBUG"])
    assert dedent("""\
+      \x1b[34mdebug\x1b[0m: Set <Logger app_logger (DEBUG)> to DEBUG.
       Awesome App started
       \x1b[34mdebug\x1b[0m | app_logger | Awesome App has started.
       \x1b[34mdebug\x1b[0m: Awesome App has started.
+      \x1b[34mdebug\x1b[0m: Reset <Logger app_logger (DEBUG)> to WARNING.
       """
       ) in result.output
+
+   # XXX Reset root logger because ".. click:run::" directives are not isolated and custom config polute the next examples.
+   extra_basic_config(logger_name="app_logger")
 ```
 
-You can also pass the default logger object to the option:
+````{attention}
+If the debug message of our custom logger is printed in the example above, you can right away notice an issue: it is displayed twice.
+
+That's because of a custom name, `app_logger` is created as a sub-logger of the `root` logger. And as such, its [messages are propagated to its parent](https://docs.python.org/3/library/logging.html#logging.Logger.propagate) by default.
+
+To fix this issue, you have to explicitely disable the upward propagation of messages of `app_logger` to `root`:
 
 ```{eval-rst}
 .. click:example::
     import logging
     from click import command, echo
-    from click_extra import verbosity_option
+    from click_extra import extra_basic_config, verbosity_option
 
-    my_app_logger = logging.getLogger("app_logger")
+    my_logger = extra_basic_config(
+        logger_name="app_logger",
+        format="{levelname} | {name} | {message}",
+    )
+    my_logger.propagate = False
 
     @command
-    @verbosity_option(default_logger=my_app_logger)
+    @verbosity_option(default_logger="app_logger")
+    def awesome_app():
+        echo("Awesome App started")
+        logger = logging.getLogger("app_logger")
+        logger.debug("Awesome App has started.")
+
+Which get rids of duplicate messages:
+
+.. click:run::
+   from textwrap import dedent
+   result = invoke(awesome_app, args=["--verbosity", "DEBUG"])
+   assert dedent("""\
+      \x1b[34mdebug\x1b[0m: Set <Logger app_logger (DEBUG)> to DEBUG.
+      Awesome App started
+      \x1b[34mdebug\x1b[0m | app_logger | Awesome App has started.
+      \x1b[34mdebug\x1b[0m: Reset <Logger app_logger (DEBUG)> to WARNING.
+      """
+      ) in result.output
+
+   # XXX Reset root logger because ".. click:run::" directives are not isolated and custom config polute the next examples.
+   extra_basic_config(logger_name="app_logger")
+```
+````
+
+````{hint}
+As an alternative, you can also pass the default logger object directly to the option:
+
+```{eval-rst}
+.. click:example::
+    import logging
+    from click import command, echo
+    from click_extra import extra_basic_config, verbosity_option
+
+    my_logger = extra_basic_config(
+        logger_name="app_logger",
+        format="{levelname} | {name} | {message}",
+    )
+    my_logger.propagate = False
+
+    @command
+    @verbosity_option(default_logger=my_logger)
     def awesome_app():
         echo("Awesome App started")
         logger = logging.getLogger("app_logger")
@@ -347,12 +404,17 @@ You can also pass the default logger object to the option:
    from textwrap import dedent
    result = invoke(awesome_app, args=["--verbosity", "DEBUG"])
    assert dedent("""\
+      \x1b[34mdebug\x1b[0m: Set <Logger app_logger (DEBUG)> to DEBUG.
       Awesome App started
       \x1b[34mdebug\x1b[0m | app_logger | Awesome App has started.
-      \x1b[34mdebug\x1b[0m: Awesome App has started.
+      \x1b[34mdebug\x1b[0m: Reset <Logger app_logger (DEBUG)> to WARNING.
       """
       ) in result.output
+
+   # XXX Reset root logger because ".. click:run::" directives are not isolated and custom config polute the next examples.
+   extra_basic_config(logger_name="app_logger")
 ```
+````
 
 ### Custom configuration
 
