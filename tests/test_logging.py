@@ -155,7 +155,7 @@ def test_integrated_verbosity_option(invoke, level):
         assert not result.stderr
 
 
-def test_explicit_extra_basic_config(invoke):
+def test_explicit_extra_basic_config_custom_format(invoke):
     """Create a new root logger with ``extra_basic_config()`` and pass it to the ``@verbosity_option`` decorator."""
     custom_root_logger = extra_basic_config(
         format="{levelname} | {name} | {message}",
@@ -193,6 +193,78 @@ def test_explicit_extra_basic_config(invoke):
         info | root | Logger object info
         debug | click_extra | Reset <RootLogger root (DEBUG)> to WARNING.
         debug | click_extra | Reset <Logger click_extra (DEBUG)> to WARNING.
+        """)
+
+
+def test_explicit_extra_basic_config_custom_propagation(invoke):
+    """A logger with its own name is going to be considered a sub-logger of the root logger."""
+    extra_basic_config(
+        logger_name="my_logger",
+        format="{levelname} | {name} | {message}",
+    )
+
+    @click.command
+    @verbosity_option(default_logger="my_logger")
+    def custom_root_logger_cli():
+        # Call the root logger directly.
+        logging.warning("Root logger warning")
+        logging.debug("Root logger debug")
+        logging.info("Root logger info")
+        # Use our custom logger object.
+        my_logger = logging.getLogger("my_logger")
+        my_logger.warning("My logger warning")
+        my_logger.debug("My logger debug")
+        my_logger.info("My logger info")
+
+    result = invoke(custom_root_logger_cli, color=False)
+    assert result.exit_code == 0
+    # my_logger is a sub-logger of root, so it inherits its format message, leading to duplicate records.
+    assert result.output == dedent("""\
+        warning: Root logger warning
+        warning | my_logger | My logger warning
+        warning: My logger warning
+        """)
+
+    result = invoke(custom_root_logger_cli, ("--verbosity", "DEBUG"), color=False)
+    assert result.exit_code == 0
+    # Still duplicate records, but the --verbosity option only affects the custom my_logger it is attached to.
+    assert result.output == dedent("""\
+        debug: Set <Logger click_extra (DEBUG)> to DEBUG.
+        debug: Set <Logger my_logger (DEBUG)> to DEBUG.
+        warning: Root logger warning
+        warning | my_logger | My logger warning
+        warning: My logger warning
+        debug | my_logger | My logger debug
+        debug: My logger debug
+        info | my_logger | My logger info
+        info: My logger info
+        debug: Reset <Logger my_logger (DEBUG)> to WARNING.
+        debug: Reset <Logger click_extra (DEBUG)> to WARNING.
+        """)
+
+    # Deactivates propagation.
+    logging.getLogger("my_logger").propagate = False
+
+    result = invoke(custom_root_logger_cli, color=False)
+    assert result.exit_code == 0
+    # my_logger is now breaking its inheritance from the root logger.
+    assert result.output == dedent("""\
+        warning: Root logger warning
+        warning | my_logger | My logger warning
+        """)
+
+    result = invoke(custom_root_logger_cli, ("--verbosity", "DEBUG"), color=False)
+    assert result.exit_code == 0
+    # The root logger is unaffected by the --verbosity option.
+    assert result.output == dedent("""\
+        debug: Set <Logger click_extra (DEBUG)> to DEBUG.
+        debug: Set <Logger my_logger (DEBUG)> to DEBUG.
+        warning: Root logger warning
+        warning | my_logger | My logger warning
+        debug | my_logger | My logger debug
+        info | my_logger | My logger info
+        debug: Reset <Logger my_logger (DEBUG)> to WARNING.
+        debug: Reset <Logger click_extra (DEBUG)> to WARNING.
         """)
 
 
