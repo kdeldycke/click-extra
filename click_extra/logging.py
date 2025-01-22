@@ -81,10 +81,15 @@ THandler = TypeVar("THandler", bound=Handler)
 
 
 class ExtraLogHandler(Handler):
-    """A handler to output logs to console's ``<stderr>``."""
+    """A handler to output logs to console's ``<stderr>``.
+
+    Differs to the default `logging.StreamHandler
+    <https://docs.python.org/3/library/logging.handlers.html#streamhandler>`_ by
+    using ``click.echo`` to support color printing to ``<stderr>``.
+    """
 
     def emit(self, record: LogRecord) -> None:
-        """Use ``click.echo`` to print to ``<stderr>`` and supports colors."""
+        """Use ``click.echo`` to print to ``<stderr>``."""
         try:
             msg = self.format(record)
             click.echo(msg, err=True)
