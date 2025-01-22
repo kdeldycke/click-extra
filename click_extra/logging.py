@@ -17,7 +17,6 @@
 
 from __future__ import annotations
 
-import logging
 from gettext import gettext as _
 from logging import (
     NOTSET,
@@ -27,6 +26,7 @@ from logging import (
     Logger,
     LogRecord,
     _levelToName,
+    getLogger,
 )
 from typing import TYPE_CHECKING, Literal, TypeVar
 
@@ -151,7 +151,7 @@ def extra_basic_config(
         re-implementing those supported by ``logging.basicConfig``.
     """
     # Fetch the logger or create a new one.
-    logger = logging.getLogger(logger_name)
+    logger = getLogger(logger_name)
 
     # Remove and close any existing handlers. Copy of:
     # https://github.com/python/cpython/blob/2b5dbd1/Lib/logging/__init__.py#L2028-L2031
@@ -215,7 +215,7 @@ class VerbosityOption(ExtraOption):
         logger.
         """
         for name in ("click_extra", self.logger_name):
-            yield logging.getLogger(name)
+            yield getLogger(name)
 
     def reset_loggers(self) -> None:
         """Forces all loggers managed by the option to be reset to the default level.
@@ -228,9 +228,7 @@ class VerbosityOption(ExtraOption):
             multiple test calls.
         """
         for logger in list(self.all_loggers)[::-1]:
-            logging.getLogger("click_extra").debug(
-                f"Reset {logger} to {DEFAULT_LEVEL_NAME}.",
-            )
+            getLogger("click_extra").debug(f"Reset {logger} to {DEFAULT_LEVEL_NAME}.")
             logger.setLevel(DEFAULT_LEVEL)
 
     def set_levels(self, ctx: Context, param: Parameter, value: str) -> None:
@@ -245,7 +243,7 @@ class VerbosityOption(ExtraOption):
 
         for logger in self.all_loggers:
             logger.setLevel(LOG_LEVELS[value])
-            logging.getLogger("click_extra").debug(f"Set {logger} to {value}.")
+            getLogger("click_extra").debug(f"Set {logger} to {value}.")
 
         ctx.call_on_close(self.reset_loggers)
 
@@ -283,7 +281,7 @@ class VerbosityOption(ExtraOption):
             logger = default_logger
         # Retrieves the logger object as it is from the registry, if it exists.
         elif default_logger in logging.Logger.manager.loggerDict:
-            logger = logging.getLogger(default_logger)
+            logger = getLogger(default_logger)
         # Create a new logger with Click Extra's default configuration.
         else:
             logger = extra_basic_config(default_logger)
