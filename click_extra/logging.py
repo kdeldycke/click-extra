@@ -111,6 +111,7 @@ class ExtraLogFormatter(Formatter):
 
 
 def extra_basic_config(
+    *,
     logger_name: str | None = None,
     format: str | None = "{levelname}: {message}",
     datefmt: str | None = None,
@@ -289,7 +290,7 @@ class VerbosityOption(ExtraOption):
             logger = getLogger(default_logger)
         # Create a new logger with Click Extra's default configuration.
         else:
-            logger = extra_basic_config(default_logger)
+            logger = extra_basic_config(logger_name=default_logger)
 
         # Store the logger name for later use.
         self.logger_name = logger.name
