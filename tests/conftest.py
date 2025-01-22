@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-from extra_platforms.pytest import skip_windows
+from extra_platforms.pytest import skip_windows  # type: ignore[attr-defined]
 
 from click_extra.pytest import create_config, extra_runner, invoke  # noqa: F401
 
