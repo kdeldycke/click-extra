@@ -146,39 +146,38 @@ def extra_basic_config(
         Add more parameters for even greater configurability of the logger, by
         re-implementing those supported by ``logging.basicConfig``.
     """
-    with logging._lock:
-        # Fetch the logger or create a new one.
-        logger = logging.getLogger(logger_name)
+    # Fetch the logger or create a new one.
+    logger = logging.getLogger(logger_name)
 
-        # Remove and close any existing handlers. Copy of:
-        # https://github.com/python/cpython/blob/2b5dbd1/Lib/logging/__init__.py#L2028-L2031
-        # https://loguru.readthedocs.io/en/stable/resources/recipes.html#avoiding-logs-to-be-printed-twice-on-the-terminal
-        if force:
-            for h in logger.handlers[:]:
-                logger.removeHandler(h)
-                h.close()
+    # Remove and close any existing handlers. Copy of:
+    # https://github.com/python/cpython/blob/2b5dbd1/Lib/logging/__init__.py#L2028-L2031
+    # https://loguru.readthedocs.io/en/stable/resources/recipes.html#avoiding-logs-to-be-printed-twice-on-the-terminal
+    if force:
+        for h in logger.handlers[:]:
+            logger.removeHandler(h)
+            h.close()
 
-        # If no handlers provided, create a new one with the default handler class.
-        if not handlers:
-            handlers = (handler_class(),)
+    # If no handlers provided, create a new one with the default handler class.
+    if not handlers:
+        handlers = (handler_class(),)
 
-        # Set up the formatter with a default message format.
-        formatter = formatter_class(
-            fmt=format,
-            datefmt=datefmt,
-            style=style,
-        )
+    # Set up the formatter with a default message format.
+    formatter = formatter_class(
+        fmt=format,
+        datefmt=datefmt,
+        style=style,
+    )
 
-        # Attach handlers to the loggers.
-        for h in handlers:
-            if h.formatter is None:
-                h.setFormatter(formatter)
-            logger.addHandler(h)
+    # Attach handlers to the loggers.
+    for h in handlers:
+        if h.formatter is None:
+            h.setFormatter(formatter)
+        logger.addHandler(h)
 
-        if level is not None:
-            logger.setLevel(level)
+    if level is not None:
+        logger.setLevel(level)
 
-        return logger
+    return logger
 
 
 class VerbosityOption(ExtraOption):
@@ -275,16 +274,15 @@ class VerbosityOption(ExtraOption):
         if not param_decls:
             param_decls = ("--verbosity", "-v")
 
-        with logging._lock:
-            # A logger object has been provided, use it as-is.
-            if isinstance(default_logger, Logger):
-                logger = default_logger
-            # Retrieves the logger object as it is from the registry, if it exists.
-            elif default_logger in logging.Logger.manager.loggerDict:
-                logger = logging.getLogger(default_logger)
-            # Create a new logger with Click Extra's default configuration.
-            else:
-                logger = extra_basic_config(default_logger)
+        # A logger object has been provided, use it as-is.
+        if isinstance(default_logger, Logger):
+            logger = default_logger
+        # Retrieves the logger object as it is from the registry, if it exists.
+        elif default_logger in logging.Logger.manager.loggerDict:
+            logger = logging.getLogger(default_logger)
+        # Create a new logger with Click Extra's default configuration.
+        else:
+            logger = extra_basic_config(default_logger)
 
         # Store the logger name for later use.
         self.logger_name = logger.name
