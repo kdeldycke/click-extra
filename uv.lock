@@ -213,7 +213,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'test'", specifier = "~=8.3.1" },
     { name = "pytest-cases", marker = "extra == 'test'", specifier = "~=3.8.3" },
     { name = "pytest-cov", marker = "extra == 'test'", specifier = "~=6.0.0" },
-    { name = "pytest-github-actions-annotate-failures", marker = "extra == 'test'", specifier = "~=0.2.0" },
+    { name = "pytest-github-actions-annotate-failures", marker = "extra == 'test'", specifier = "~=0.3.0" },
     { name = "pytest-httpserver", marker = "extra == 'test'", specifier = "~=1.1.0" },
     { name = "pytest-randomly", marker = "extra == 'test'", specifier = "~=3.16.0" },
     { name = "pyyaml", specifier = "~=6.0.0" },
@@ -659,26 +659,26 @@ wheels = [
 
 [[package]]
 name = "pytest-github-actions-annotate-failures"
-version = "0.2.0"
+version = "0.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pytest" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a8/d6/76d074e1e4d78c5144397e6061af29bcc218dbf19bb64b39e5c296bf42f1/pytest-github-actions-annotate-failures-0.2.0.tar.gz", hash = "sha256:844ab626d389496e44f960b42f0a72cce29ae06d363426d17ea9ae1b4bef2288", size = 9450 }
+sdist = { url = "https://files.pythonhosted.org/packages/39/d4/c54ee6a871eee4a7468e3a8c0dead28e634c0bc2110c694309dcb7563a66/pytest_github_actions_annotate_failures-0.3.0.tar.gz", hash = "sha256:d4c3177c98046c3900a7f8ddebb22ea54b9f6822201b5d3ab8fcdea51e010db7", size = 11248 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/eb/86/9ffd9f10a7ba7387ce4ef4362505d739a48dd988051b41d255eb7f102c17/pytest_github_actions_annotate_failures-0.2.0-py3-none-any.whl", hash = "sha256:8bcef65fed503faaa0524b59cfeccc8995130972dd7b008d64193cc41b9cde85", size = 5496 },
+    { url = "https://files.pythonhosted.org/packages/6d/73/7b0b15cb8605ee967b34aa1d949737ab664f94e6b0f1534e8339d9e64ab2/pytest_github_actions_annotate_failures-0.3.0-py3-none-any.whl", hash = "sha256:41ea558ba10c332c0bfc053daeee0c85187507b2034e990f21e4f7e5fef044cf", size = 6030 },
 ]
 
 [[package]]
 name = "pytest-httpserver"
-version = "1.1.0"
+version = "1.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "werkzeug" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/12/53/aa5aa8518246848251243a21440f167b812bd40896546061c1fda814c10c/pytest_httpserver-1.1.0.tar.gz", hash = "sha256:6b1cb0199e2ed551b1b94d43f096863bbf6ae5bcd7c75c2c06845e5ce2dc8701", size = 67210 }
+sdist = { url = "https://files.pythonhosted.org/packages/50/8a/98d9f2dc6a7f486bc3467935db766255509ffd47efc6b47bd2231b2bf009/pytest_httpserver-1.1.1.tar.gz", hash = "sha256:e5c46c62c0aa65e5d4331228cb2cb7db846c36e429c3e74ca806f284806bf7c6", size = 68190 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1d/29/c5dfce47d5f575e46e2d4a4257cd43cc199a8014f506d14d808e03d6f8cd/pytest_httpserver-1.1.0-py3-none-any.whl", hash = "sha256:7ef88be8ed3354b6784daa3daa75a422370327c634053cefb124903fa8d73a41", size = 20671 },
+    { url = "https://files.pythonhosted.org/packages/08/52/b9148e455166fba9bc2f6a5293d7d01e305155231d9863f10cb4e968c4fb/pytest_httpserver-1.1.1-py3-none-any.whl", hash = "sha256:aadc744bfac773a2ea93d05c2ef51fa23c087e3cc5dace3ea9d45cdd4bfe1fe8", size = 20723 },
 ]
 
 [[package]]
