@@ -159,8 +159,9 @@ But each level can be selected with the option:
 - output to `<stderr>`,
 - send messages via the `root` logger,
 - show `WARNING`-level messages and above,
-- render logs with the `%(levelname)s: %(message)s` format,
-- color the log's level name in the `%(levelname)s` variable,
+- use `{`-style (curly braces) for format strings,
+- render logs with the `{levelname}: {message}` format,
+- color the log's level name in the `{levelname}` variable,
 ```
 
 ```{eval-rst}
