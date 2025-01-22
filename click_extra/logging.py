@@ -20,6 +20,7 @@ from __future__ import annotations
 import logging
 from gettext import gettext as _
 from logging import (
+    NOTSET,
     WARNING,
     Formatter,
     Handler,
@@ -42,20 +43,23 @@ if TYPE_CHECKING:
 LOG_LEVELS: dict[str, int] = {
     name: value
     for value, name in sorted(_levelToName.items(), reverse=True)
-    if name != "NOTSET"
+    if value != NOTSET
 }
-"""Mapping of canonical log level names to their IDs.
+"""Mapping of canonical log level names to their integer level.
 
-Sorted from lowest to highest verbosity.
+That's our own version of `logging._nameToLevel
+<https://github.com/python/cpython/blob/a3797492179c249417a06d2499a7d535d453ac2c/Lib/logging/__init__.py#L115-L123>`_,
+but:
 
-Are ignored:
+- sorted from lowest to highest verbosity,
+- without the following levels:
 
-- ``NOTSET``, which is considered internal
-- ``WARN``, which `is obsolete
-  <https://docs.python.org/3/library/logging.html?highlight=warn#logging.Logger.warning>`_
-- ``FATAL``, which `shouldn't be used <https://github.com/python/cpython/issues/85013>`_
-  and `replaced by CRITICAL
-  <https://github.com/python/cpython/blob/0df7c3a/Lib/logging/__init__.py#L1538-L1541>`_
+    - ``NOTSET``, which is considered internal
+    - ``WARN``, which `is obsolete
+      <https://docs.python.org/3/library/logging.html?highlight=warn#logging.Logger.warning>`_
+    - ``FATAL``, which `shouldn't be used <https://github.com/python/cpython/issues/85013>`_
+      and `replaced by CRITICAL
+      <https://github.com/python/cpython/blob/0df7c3a/Lib/logging/__init__.py#L1538-L1541>`_
 """
 
 
