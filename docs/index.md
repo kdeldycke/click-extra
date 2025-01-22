@@ -19,7 +19,6 @@ logging
 tabulate
 version
 timer
-platforms
 parameters
 pygments
 sphinx
