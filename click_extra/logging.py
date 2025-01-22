@@ -285,7 +285,7 @@ class VerbosityOption(ExtraOption):
         if isinstance(default_logger, Logger):
             logger = default_logger
         # Retrieves the logger object as it is from the registry, if it exists.
-        elif default_logger in logging.Logger.manager.loggerDict:
+        elif default_logger in Logger.manager.loggerDict:
             logger = getLogger(default_logger)
         # Create a new logger with Click Extra's default configuration.
         else:
