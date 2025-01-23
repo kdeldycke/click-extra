@@ -47,19 +47,18 @@ LOG_LEVELS: dict[str, int] = {
     for value, name in sorted(_levelToName.items(), reverse=True)
     if value != NOTSET
 }
-"""Mapping of canonical log level names to their integer level.
+"""Mapping of :ref:`canonical log level names <levels>` to their integer level.
 
 That's our own version of `logging._nameToLevel
-<https://github.com/python/cpython/blob/a3797492179c249417a06d2499a7d535d453ac2c/Lib/logging/__init__.py#L115-L123>`_,
-but:
+<https://github.com/python/cpython/blob/a379749/Lib/logging/__init__.py#L115-L123>`_,
+with a twist:
 
 - sorted from lowest to highest verbosity,
-- without the following levels:
-    - ``NOTSET``: which is considered internal
-    - ``WARN``: which `is obsolete
-      <https://docs.python.org/3/library/logging.html?highlight=warn#logging.Logger.warning>`_
-    - ``FATAL``: which `shouldn't be used <https://github.com/python/cpython/issues/85013>`_
-      and `replaced by CRITICAL
+- excludes the following levels:
+    - ``NOTSET``, which is considered internal
+    - ``WARN``, which :meth:`is obsolete <logging.Logger.warning>`
+    - ``FATAL``, which `shouldn't be used <https://github.com/python/cpython/issues/85013>`_
+      and has been `replaced by CRITICAL
       <https://github.com/python/cpython/blob/0df7c3a/Lib/logging/__init__.py#L1538-L1541>`_
 """
 
