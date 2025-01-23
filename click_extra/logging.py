@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from gettext import gettext as _
 from logging import (
+    _STYLES,
     NOTSET,
     WARNING,
     Formatter,
@@ -26,9 +27,10 @@ from logging import (
     Logger,
     LogRecord,
     _levelToName,
+    basicConfig,
     getLogger,
 )
-from typing import TYPE_CHECKING, Literal, TypeVar
+from typing import IO, TYPE_CHECKING, Any, Literal, TypeVar
 
 import click
 
@@ -108,6 +110,93 @@ class ExtraLogFormatter(Formatter):
         if level_style:
             record.levelname = level_style(level)
         return super().formatMessage(record)
+
+
+def extraBasicConfig(
+    *,
+    filename: str | None = None,
+    filemode: str = "a",
+    format: str | None = "{levelname}: {message}",
+    datefmt: str | None = None,
+    style: Literal["%", "{", "$"] = "{",
+    level: int | str | None = None,
+    stream: IO[Any] | None = None,
+    handlers: Iterable[Handler] | None = None,
+    force: bool = False,
+    encoding: str | None = None,
+    errors: str = "backslashreplace",
+):
+    """Configure the global ``root`` logger.
+
+    Same as Python standard library's :func:`logging.basicConfig` but with better
+    defaults:
+
+    ============  ========================================  ======================================
+    Argument      :func:`extraBasicConfig` default          :func:`logging.basicConfig` default
+    ============  ========================================  ======================================
+    ``handlers``  A single instance of ``ExtraLogHandler``  False
+    ``style``     ``{``                                     ``%``
+    ``format``    ``{levelname}: {message}``                ``%(levelname)s:%(name)s:%(message)s``
+    ============  ========================================  ======================================
+
+    :param filename: Specifies that a :class:`logging.FileHandler` be created, using the
+        specified filename, rather than a :class:`logging.StreamHandler`.
+    :param filemode: If *filename* is specified, open the file in this mode. Defaults
+        to ``a``.
+    :param format: Use the specified format string for the handler. Defaults to
+        ``{levelname}: {message}``.
+    :param datefmt: Use the specified date/time format, as accepted by
+        :func:`time.strftime`.
+    :param style: If format is specified, use this style for the format string. One of
+        ``%``, ``{`` or ``$`` for :ref:`printf-style <old-string-formatting>`,
+        :meth:`str.format` or :class:`string.Template` respectively. Defaults to ``{`` .
+    :param level: Set the ``root`` logger level to the specified :ref:`level <levels>`.
+    :param stream: Use the specified stream to initialize the
+        :class:`logging.StreamHandler`. Note that this argument is incompatible with
+        *filename* - if both are present, a ``ValueError`` is raised.
+    :param handlers: If specified, this should be an iterable of already created
+        handlers to add to the ``root`` logger. Any handlers which don't already have a
+        formatter set will be assigned the default formatter created in this function.
+        Note that this argument is incompatible with *filename* or *stream* - if both
+        are present, a ``ValueError`` is raised.
+    :param force: If this keyword argument is specified as true, any existing handlers
+        attached to the ``root`` logger are removed and closed, before carrying out the
+        configuration as specified by the other arguments.
+    :param encoding: If this keyword argument is specified along with *filename*, its
+        value is used when the :class:`logging.FileHandler` is created, and thus used
+        when opening the output file.
+    :param errors: If this keyword argument is specified along with *filename*, its
+        value is used when the :class:`logging.FileHandler` is created, and thus used
+        when opening the output file. If not specified, the value ``backslashreplace``
+        is used. Note that if ``None`` is specified, it will be passed as such to
+        :func:`open`, which means that it will be treated the same as passing
+        ``errors``.
+
+    .. note::
+        I don't like the camel-cased name of this function and would have called it
+        ``extra_basic_config()``, but it's kept this way for consistency with Python's
+        standard library.
+    """
+    if handlers is None and filename is None and stream is None:
+        # TODO: use click.echo() build-in support of file and stream writing.
+        handlers = (ExtraLogHandler(),)
+
+    if format is None:
+        format = _STYLES[style][1]
+
+    basicConfig(
+        filename=filename,
+        filemode=filemode,
+        format=format,
+        datefmt=datefmt,
+        style=style,
+        level=level,
+        stream=stream,
+        handlers=handlers,
+        force=force,
+        encoding=encoding,
+        errors=errors,
+    )
 
 
 def extra_basic_config(
