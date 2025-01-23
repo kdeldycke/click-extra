@@ -55,11 +55,10 @@ but:
 
 - sorted from lowest to highest verbosity,
 - without the following levels:
-
-    - ``NOTSET``, which is considered internal
-    - ``WARN``, which `is obsolete
+    - ``NOTSET``: which is considered internal
+    - ``WARN``: which `is obsolete
       <https://docs.python.org/3/library/logging.html?highlight=warn#logging.Logger.warning>`_
-    - ``FATAL``, which `shouldn't be used <https://github.com/python/cpython/issues/85013>`_
+    - ``FATAL``: which `shouldn't be used <https://github.com/python/cpython/issues/85013>`_
       and `replaced by CRITICAL
       <https://github.com/python/cpython/blob/0df7c3a/Lib/logging/__init__.py#L1538-L1541>`_
 """
@@ -73,7 +72,7 @@ DEFAULT_LEVEL_NAME: str = _levelToName[DEFAULT_LEVEL]
 root logger is set up
 <https://github.com/python/cpython/blob/0df7c3a/Lib/logging/__init__.py#L1945>`_.
 
-This value is also used as the default level of the ``--verbosity`` option below.
+This value is also used as the default level for the ``--verbosity`` option below.
 """
 
 
@@ -296,8 +295,8 @@ class VerbosityOption(ExtraOption):
     logger_name: str
     """The ID of the logger to set the level to.
 
-    This will be provided to
-    `logging.getLogger <https://docs.python.org/3/library/logging.html?highlight=getlogger#logging.getLogger>`_
+    This will be provided to `logging.getLogger
+    <https://docs.python.org/3/library/logging.html?highlight=getlogger#logging.getLogger>`_
     method to fetch the logger object, and as such, can be a dot-separated string to
     build hierarchical loggers.
     """

@@ -6,7 +6,7 @@ Click Extra provides a pre-configured option which adds a `--verbosity`/`-v` fla
 
 ### Integrated extra option
 
-This option is by default part of `@extra_command` and `@extra_group`:
+This option is part of `@extra_command` and `@extra_group` by default:
 
 ```{eval-rst}
 .. click:example::
@@ -16,7 +16,7 @@ This option is by default part of `@extra_command` and `@extra_group`:
     def my_cli():
         echo("It works!")
 
-See how ``--verbosity``/``-v`` option in featured in the help screen:
+See how ``--verbosity``/``-v`` option is featured in the help screen:
 
 .. click:run::
    result = invoke(my_cli, args=["--help"])
@@ -161,7 +161,7 @@ But each level can be selected with the option:
 - show `WARNING`-level messages and above,
 - use `{`-style (curly braces) for format strings,
 - render logs with the `{levelname}: {message}` format,
-- color the log's level name in the `{levelname}` variable,
+- color the log's level name in the `{levelname}` variable.
 ```
 
 ```{eval-rst}
@@ -182,7 +182,7 @@ But each level can be selected with the option:
          root_logger.warning("Root warning message")
          root_logger.info("Root info message")
 
-         # Use my custom logger.
+         # Create a custom logger and use it.
          my_logger = logging.getLogger("my_logger")
          my_logger.warning("My warning message")
          my_logger.info("My info message")
@@ -337,11 +337,11 @@ You can now check that ``--verbosity`` only influence the level of ``app_logger`
 
 ### Logger configuration
 
-The Python standard library provides the [`logging.basicConfig`](https://docs.python.org/3/library/logging.html?#logging.basicConfig) function, which is a helper to simplify the configuration of loggers and covers most use cases.
+The Python standard library provides the [`logging.basicConfig`](https://docs.python.org/3/library/logging.html?#logging.basicConfig) function, which is a helper to simplify the global logging configuration and covers most use cases.
 
 Click Extra has a similar helper: [`click_extra.logging.extra_basic_config`](#click_extra.logging.extra_basic_config).
 
-This will allow you to change the default logger's configuration, like the message format. All you have to do is to pass it to the verbosity option:
+This will allow you to change the ``root`` logger configuration, like the message format. All you have to do is to pass it to the verbosity option:
 
 ```{eval-rst}
 .. click:example::
