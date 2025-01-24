@@ -167,7 +167,7 @@ jobs:
           pytest
 
       - name: Codecov - coverage
-        uses: codecov/codecov-action@v5.1.2
+        uses: codecov/codecov-action@v5.3.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
       - name: Codecov - test results
