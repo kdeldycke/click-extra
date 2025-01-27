@@ -362,7 +362,7 @@ But changing the verbosity level only affects ``root``, in the opposite of the p
          """
       ) in result.output
 
-   Here you can immediatly spot the issue with propagation: ``app_logger``'s **messages are displayed twice**. Once in their custom format, and once in the format of the ``root`` logger.
+   Here you can immediately spot the issue with propagation: ``app_logger``'s **messages are displayed twice**. Once in their custom format, and once in the format of the ``root`` logger.
 
    .. seealso::
 
@@ -400,7 +400,7 @@ But changing the verbosity level only affects ``root``, in the opposite of the p
 ```{eval-rst}
 .. hint::
 
-   Becasue loggers are registered in a global registry, you can set them up in one place and use them in another. That is the idiomatic approach, which consist in `always referring to them by name <https://docs.python.org/3/library/logging.html#logging.getLogger>`_, as in all examples above.
+   Because loggers are registered in a global registry, you can set them up in one place and use them in another. That is the idiomatic approach, which consist in `always referring to them by name <https://docs.python.org/3/library/logging.html#logging.getLogger>`_, as in all examples above.
 
    But for convenience, you can pass the logger object directly to the option:
 
