@@ -1,10 +1,12 @@
 # Logging
 
-## Colored verbosity option
+The Python's standard library logging module is a bit tricky to use. Click Extra provides pre-configured helpers with sane defaults to simplify the logging configuration.
+
+## Colored `--verbosity` option
 
 Click Extra provides a pre-configured option which adds a `--verbosity`/`-v` flag to your CLI. It allow users of your CLI to set the log level of a [`logging.Logger` instance](https://docs.python.org/3/library/logging.html#logger-objects).
 
-### Integrated extra option
+### Integrated option
 
 This option is part of `@extra_command` and `@extra_group` by default:
 
@@ -167,7 +169,7 @@ But each level can be selected with the option:
 ```{eval-rst}
 .. caution::
 
-   Because ``root`` is the default logger associated with ``--verbosity``, its **level is propagated to all other loggers**. Including those you may have created yourself:
+   Because ``root`` is the default logger associated with ``--verbosity``, its **display level is inherited by other loggers**. Including those you may have independently created yourself:
 
    .. click:example::
       import logging
@@ -216,179 +218,105 @@ But each level can be selected with the option:
 
 ### Custom logger
 
-If you'd like to target another logger than the default `root`, you can pass [your own logger](https://docs.python.org/3/library/logging.html?#logging.getLogger)'s ID to the option parameter:
+The preferred way to customize log messages is to create your own logger and attach the `--verbosity` option to it.
+
+This can be done with [`click_extra.logging.new_extra_logger`](#click_extra.logging.new_extra_logger). Here is how we can for example change the format of the log messages:
 
 ```{eval-rst}
 .. click:example::
     import logging
     from click import command
-    from click_extra import verbosity_option
+    from click_extra import new_extra_logger, verbosity_option
+
+    new_extra_logger(
+      name="app_logger",
+      format="{levelname} | {name} | {message}"
+    )
 
     @command
     @verbosity_option(default_logger="app_logger")
-    def custom_logger():
-        # Default root logger.
-        logging.warning("Root warning message")
-        logging.info("Root info message")
-
-        # My custom logger.
-        my_logger = logging.getLogger("app_logger")
-        my_logger.warning("My warning message")
-        my_logger.info("My info message")
-
-You can now check that ``--verbosity`` only influence the level of ``app_logger``. See how the ``root`` logger is only printing at its default ``WARNING`` level, while ``app_logger``'s level is set to ``INFO``:
-
-.. click:run::
-   from textwrap import dedent
-   result = invoke(custom_logger)
-   assert dedent("""\
-      \x1b[33mwarning\x1b[0m: Root warning message
-      \x1b[33mwarning\x1b[0m: My warning message
-      \x1b[33mwarning\x1b[0m: My warning message
-      """
-      ) in result.output
-
-.. click:run::
-   from textwrap import dedent
-   result = invoke(custom_logger, args=["--verbosity", "INFO"])
-   assert dedent("""\
-      \x1b[33mwarning\x1b[0m: Root warning message
-      \x1b[33mwarning\x1b[0m: My warning message
-      \x1b[33mwarning\x1b[0m: My warning message
-      info: My info message
-      info: My info message
-      """
-      ) in result.output
-```
-
-```{eval-rst}
-.. danger::
-
-   In the example above, you can right away notice an issue: ``app_logger``'s **messages are displayed twice**.
-
-   That's because `new logger are always created as a sub-logger <https://github.com/python/cpython/blob/a3797492179c249417a06d2499a7d535d453ac2c/Doc/library/logging.rst?plain=1#L70-L71>`_ of ``root``. And as such, their messages are propagated to it.
-
-   To fix this issue, you have to explicitely `disable the propagation of messages <https://docs.python.org/3/library/logging.html#logging.Logger.propagate>`_:
-
-   .. click:example::
-      import logging
-      from click import command
-      from click_extra import verbosity_option
-
-      @command
-      @verbosity_option(default_logger="app_logger")
-      def custom_logger():
-         # Default root logger.
-         logging.warning("Root warning message")
-         logging.info("Root info message")
-
-         # My custom logger.
-         my_logger = logging.getLogger("app_logger")
-         my_logger.propagate = False
-         my_logger.warning("My warning message")
-         my_logger.info("My info message")
-
-   Which get rids of the duplicate messages:
-
-   .. click:run::
-      from textwrap import dedent
-      result = invoke(custom_logger, args=["--verbosity", "INFO"])
-      assert dedent("""\
-         \x1b[33mwarning\x1b[0m: Root warning message
-         \x1b[33mwarning\x1b[0m: My warning message
-         info: My info message
-         """
-         ) in result.output
-```
-
-```{eval-rst}
-.. tip::
-   As an alternative, you can pass the logger object directly to the option:
-
-   .. click:example::
-      import logging
-      from click import command
-      from click_extra import verbosity_option
-
-      my_logger = logging.getLogger("app_logger")
-      my_logger.propagate = False
-
-      @command
-      @verbosity_option(default_logger=my_logger)
-      def custom_logger():
-         # Default root logger.
-         logging.warning("Root warning message")
-         logging.info("Root info message")
-
-         # My custom logger.
-         my_logger.warning("My warning message")
-         my_logger.info("My info message")
-
-   .. click:run::
-      from textwrap import dedent
-      result = invoke(custom_logger, args=["--verbosity", "INFO"])
-      assert dedent("""\
-         \x1b[33mwarning\x1b[0m: Root warning message
-         \x1b[33mwarning\x1b[0m: My warning message
-         info: My info message
-         """
-         ) in result.output
-```
-
-### Logger configuration
-
-The Python standard library provides the [`logging.basicConfig`](https://docs.python.org/3/library/logging.html?#logging.basicConfig) function, which is a helper to simplify the global logging configuration and covers most use cases.
-
-Click Extra has a similar helper: [`click_extra.logging.extra_basic_config`](#click_extra.logging.extra_basic_config).
-
-This will allow you to change the ``root`` logger configuration, like the message format. All you have to do is to pass it to the verbosity option:
-
-```{eval-rst}
-.. click:example::
-    import logging
-    from click import command
-    from click_extra import extra_basic_config, verbosity_option
-
-    custom_logger = extra_basic_config(format="{levelname} | {name} | {message}")
-
-    @command
-    @verbosity_option(default_logger=custom_logger)
-    def custom_root_logger_cli():
+    def custom_logger_cli():
         # Call the root logger directly.
         logging.warning("Root logger warning")
         logging.info("Root logger info")
 
         # Use our custom logger.
-        custom_logger.warning("Custom warning")
-        custom_logger.info("Custom info")
+        my_logger = logging.getLogger("app_logger")
+        my_logger.warning("Custom warning")
+        my_logger.info("Custom info")
 
-And see how logs messages are rendered with the new format:
-
-.. click:run::
-   from textwrap import dedent
-   result = invoke(custom_root_logger_cli)
-   assert dedent("""\
-      \x1b[33mwarning\x1b[0m | root | Root logger warning
-      \x1b[33mwarning\x1b[0m | root | Custom warning
-      """
-   ) in result.output
+And so by default, the ``root`` logger keeps its default format, while the custom logger uses the new one:
 
 .. click:run::
    from textwrap import dedent
-   result = invoke(custom_root_logger_cli, args=["--verbosity", "INFO"])
+   result = invoke(custom_logger_cli)
    assert dedent("""\
-      \x1b[33mwarning\x1b[0m | root | Root logger warning
-      info | root | Root logger info
-      \x1b[33mwarning\x1b[0m | root | Custom warning
-      info | root | Custom info
+      \x1b[33mwarning\x1b[0m: Root logger warning
+      \x1b[33mwarning\x1b[0m | app_logger | Custom warning
       """
    ) in result.output
 
-   # XXX Reset root logger because "click:run" directives are not isolated and custom config polute the next examples.
-   extra_basic_config()
+And changing the verbosity level will only affect the custom logger:
+
+.. click:run::
+   from textwrap import dedent
+   result = invoke(custom_logger_cli, args=["--verbosity", "INFO"])
+   assert dedent("""\
+      \x1b[33mwarning\x1b[0m: Root logger warning
+      \x1b[33mwarning\x1b[0m | app_logger | Custom warning
+      info | app_logger | Custom info
+      """
+   ) in result.output
 ```
 
-Now the reason all messages are rendered with the new format is that `extra_basic_config` is a global configuration. It affects the default `root` logger by default, and all loggers that inherit from it.
+This is because we explicitely passed the custom logger to the `--verbosity` option. If we didn't passed it, the default `root` logger would have been tied to the `--verbosity` option:
+
+```{eval-rst}
+.. click:example::
+    import logging
+    from click import command
+    from click_extra import new_extra_logger, verbosity_option
+
+    new_extra_logger(
+      name="app_logger",
+      format="{levelname} | {name} | {message}"
+    )
+
+    @command
+    @verbosity_option
+    def root_logger_verbosity():
+        # Call the root logger directly.
+        logging.warning("Root logger warning")
+        logging.info("Root logger info")
+
+        # Use our custom logger.
+        my_logger = logging.getLogger("app_logger")
+        my_logger.warning("Custom warning")
+        my_logger.info("Custom info")
+
+In that case the default behavior doesn't change and messages are rendered in their own logger's format, at the default ``WARNING`` level:
+
+.. click:run::
+   from textwrap import dedent
+   result = invoke(root_logger_verbosity)
+   assert dedent("""\
+      \x1b[33mwarning\x1b[0m: Root logger warning
+      \x1b[33mwarning\x1b[0m | app_logger | Custom warning
+      """
+   ) in result.output
+
+And changing the verbosity level only affects the logger attached to ``--verbosity`` (i.e. ``root``), in the opposite of the previous example:
+
+.. click:run::
+   from textwrap import dedent
+   result = invoke(root_logger_verbosity, args=["--verbosity", "INFO"])
+   assert dedent("""\
+      \x1b[33mwarning\x1b[0m: Root logger warning
+      info: Root logger info
+      \x1b[33mwarning\x1b[0m | app_logger | Custom warning
+      """
+   ) in result.output
+```
 
 ```{eval-rst}
 .. hint::
@@ -397,39 +325,117 @@ Now the reason all messages are rendered with the new format is that `extra_basi
    .. click:example::
       import logging
       from click import command
-      from click_extra import extra_basic_config, verbosity_option
+      from click_extra import new_extra_logger, verbosity_option
 
-      json_logger = extra_basic_config(
+      new_extra_logger(
+         name="json_logger",
          format='{{"time": "{asctime}", "name": "{name}", "level": "{levelname}", "msg": "{message}"}}',
       )
 
       @command
-      @verbosity_option(default_logger=json_logger)
+      @verbosity_option(default_logger="json_logger")
       def json_logs():
-         logging.info("This is an info message from the root logger.")
+         my_logger = logging.getLogger("json_logger")
+         my_logger.info("This is an info message.")
 
    .. click:run::
       from textwrap import dedent
       result = invoke(json_logs, args=["--verbosity", "INFO"])
       assert result.output.endswith(
-         '", "name": "root", "level": "info", "msg": "This is an info message from the root logger."}\n'
+         '", "name": "json_logger", "level": "info", "msg": "This is an info message."}\n'
+      )
+```
+
+```{eval-rst}
+.. important::
+
+   By design, `new loggers are always created as sub-loggers <https://github.com/python/cpython/blob/a3797492179c249417a06d2499a7d535d453ac2c/Doc/library/logging.rst?plain=1#L70-L71>`_ of ``root``. And as such, their messages are propagated back to it.
+
+   But [`new_extra_logger`](#click_extra.logging.new_extra_logger) is creating new loggers by setting their ``propagate`` attribute to ``False``. This means that messages of new loggers won't be propagated to their parents.
+
+   This is the reason why, in the example above, the ``root`` and ``app_logger`` loggers are independent.
+
+   Let's experiment with that property and set the ``propagate`` attribute to ``True``:
+
+   .. click:example::
+      import logging
+      from click import command
+      from click_extra import new_extra_logger, verbosity_option
+
+      new_extra_logger(
+         name="app_logger",
+         propagate=True,
+         format="{levelname} | {name} | {message}"
       )
 
-      # XXX Reset root logger because "click:run" directives are not isolated and custom config polute the next examples.
-      extra_basic_config()
+      @command
+      @verbosity_option
+      def custom_logger_propagation():
+         # Call the root logger directly.
+         logging.warning("Root logger warning")
+         logging.info("Root logger info")
+
+         # Use our custom logger.
+         my_logger = logging.getLogger("app_logger")
+         my_logger.warning("Custom warning")
+         my_logger.info("Custom info")
+
+   Here you can immediatly spot the issue with propagation: ``app_logger``'s **messages are displayed twice**. Once in their custom format, and once in the format of the ``root`` logger:
+
+   .. click:run::
+      from textwrap import dedent
+      result = invoke(custom_logger_propagation)
+      assert dedent("""\
+         \x1b[33mwarning\x1b[0m: Root logger warning
+         \x1b[33mwarning\x1b[0m | app_logger | Custom warning
+         \x1b[33mwarning\x1b[0m: Custom warning
+         """
+      ) in result.output
+
+   .. seealso::
+
+      The reason for that hierarchycal design is to allow for `dot-separated logger names <https://docs.python.org/3/library/logging.html#logger-objects>`_, like ``foo.bar.baz``. Which allows for even more `granular control of loggers by filtering <https://docs.python.org/3/library/logging.html#filter-objects>`_.
 ```
 
-````{todo}
-Make the passing of the logger object to the verbosity option optional if it targets the `root` logger, so we can do:
+```{eval-rst}
+.. tip::
 
-```python
-extra_basic_config(...)
+   Becasue loggers are registered in a global registry, you can set them up in one place and use them in another. The idiomatic approach is to `always refer to them by name <https://docs.python.org/3/library/logging.html#logging.getLogger>`_, like in all examples above.
 
-@command
-@verbosity_option
-def custom_logger(): ...
+   But for convenience, you can pass the logger object directly to the option:
+
+   .. click:example::
+      import logging
+      from click import command
+      from click_extra import new_extra_logger, verbosity_option
+
+      my_logger = new_extra_logger(name="app_logger")
+
+      @command
+      @verbosity_option(default_logger=my_logger)
+      def logger_object():
+         # Default root logger.
+         logging.warning("Root warning message")
+         logging.info("Root info message")
+
+         # My custom logger.
+         my_logger.warning("My warning message")
+         my_logger.info("My info message")
+
+   .. click:run::
+      from textwrap import dedent
+      result = invoke(logger_object, args=["--verbosity", "INFO"])
+      assert dedent("""\
+         \x1b[33mwarning\x1b[0m: Root warning message
+         \x1b[33mwarning\x1b[0m: My warning message
+         info: My info message
+         """
+         ) in result.output
 ```
-````
+
+
+
+
 
 ### Get verbosity level
 
