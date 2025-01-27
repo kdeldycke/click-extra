@@ -1,9 +1,6 @@
 # Changelog
 
-## [4.13.0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v4.12.0...main)
-
-> [!IMPORTANT]
-> This version is not released yet and is under active development.
+## [4.13.0 (2025-01-27)](https://github.com/kdeldycke/click-extra/compare/v4.12.0...v4.13.0)
 
 - Revamps logging helpers and aligns them with Python's `logging` module.
 - Remove `extra_basic_config`.
