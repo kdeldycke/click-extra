@@ -5,7 +5,14 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
-- Add even more documentation for customizing the logging. Closes {issue}`989`.
+- Revamps logging helpers and aligns them with Python's `logging` module.
+- Remove `extra_basic_config`.
+- Adds new `extraBasicConfig`, and aligns it with Python's `basicConfig`.
+- Replace `ExtraLogFormatter` with `ExtraFormatter`.
+- Replace `ExtraLogHandler` with `ExtraStreamHandler`.
+- Add new `new_extra_logger` helper.
+- Rewrite the logging documentation with all use-cases and custom configuration examples. Closes {issue}`989`.
+- Removes old platforms page from documentation.
 
 ## [4.12.0 (2025-01-20)](https://github.com/kdeldycke/click-extra/compare/v4.11.7...v4.12.0)
 
