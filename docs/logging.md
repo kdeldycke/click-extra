@@ -369,7 +369,6 @@ But changing the verbosity level only affects ``root``, in the opposite of the p
       The reason for that hierarchycal design is to allow for `dot-separated logger names <https://docs.python.org/3/library/logging.html#logger-objects>`_, like ``foo.bar.baz``. Which allows for even more `granular control of loggers by filtering <https://docs.python.org/3/library/logging.html#filter-objects>`_.
 ```
 
-
 ```{eval-rst}
 .. tip::
    You can creatively configure loggers to produce any kind of messages, like this JSON-like format:
@@ -477,9 +476,6 @@ If you want to change the global configuration of all loggers, you can rely on `
       """
    ) in result.output
 ```
-
-
-
 
 ### Get verbosity level
 
