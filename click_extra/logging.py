@@ -202,9 +202,8 @@ def extraBasicConfig(
         if arg_id in locals() and locals()[arg_id] is not None:
             kwargs[arg_id] = locals()[arg_id]
 
-    getLogger("click_extra").debug(
-        f"Call basicConfig({', '.join(f"{k}={v!r}" for k, v in kwargs.items())})"
-    )
+    call_str = ", ".join(f"{k}={v!r}" for k, v in kwargs.items())
+    getLogger("click_extra").debug(f"Call basicConfig({call_str})")
 
     with patch.object(logging, "StreamHandler", ExtraStreamHandler):
         with patch.object(logging, "Formatter", ExtraFormatter):
