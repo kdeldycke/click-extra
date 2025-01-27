@@ -83,7 +83,7 @@ THandler = TypeVar("THandler", bound=Handler)
 """Custom types to be used in type hints below."""
 
 
-class ExtraStreamHandler(logging.Handler):
+class ExtraStreamHandler(Handler):
     """A handler to output logs to console's ``<stderr>``.
 
     Differs to the default `logging.StreamHandler
@@ -113,7 +113,7 @@ class ExtraStreamHandler(logging.Handler):
             self.handleError(record)
 
 
-class ExtraFormatter(logging.Formatter):
+class ExtraFormatter(Formatter):
     def formatMessage(self, record: LogRecord) -> str:
         """Colorize the record's log level name before calling the strandard
         formatter."""
