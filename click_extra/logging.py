@@ -259,10 +259,6 @@ def new_extra_logger(
     return logger
 
 
-getExtraLogger = new_extra_logger
-
-extra_basic_config = new_extra_logger
-"""Backward compatibility alias for :func:`new_extra_logger`."""
 
 
 class VerbosityOption(ExtraOption):

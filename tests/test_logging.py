@@ -27,7 +27,7 @@ from pytest_cases import parametrize
 
 from click_extra import echo
 from click_extra.decorators import extra_command, verbosity_option
-from click_extra.logging import DEFAULT_LEVEL, LOG_LEVELS, extra_basic_config
+from click_extra.logging import DEFAULT_LEVEL, LOG_LEVELS, new_extra_logger
 from click_extra.pytest import (
     command_decorators,
     default_debug_colored_log_end,
@@ -155,9 +155,9 @@ def test_integrated_verbosity_option(invoke, level):
         assert not result.stderr
 
 
-def test_explicit_extra_basic_config_custom_format(invoke):
-    """Create a new root logger with ``extra_basic_config()`` and pass it to the ``@verbosity_option`` decorator."""
-    custom_root_logger = extra_basic_config(
+def test_explicit_new_extra_logger_custom_format(invoke):
+    """Create a new root logger with ``new_extra_logger()`` and pass it to the ``@verbosity_option`` decorator."""
+    custom_root_logger = new_extra_logger(
         format="{levelname} | {name} | {message}",
     )
 
@@ -196,10 +196,10 @@ def test_explicit_extra_basic_config_custom_format(invoke):
         """)
 
 
-def test_explicit_extra_basic_config_custom_propagation(invoke):
+def test_explicit_new_extra_logger_custom_propagation(invoke):
     """A logger with its own name is going to be considered a sub-logger of the root logger."""
-    extra_basic_config(
-        logger_name="my_logger",
+    new_extra_logger(
+        name="my_logger",
         format="{levelname} | {name} | {message}",
     )
 
@@ -218,26 +218,21 @@ def test_explicit_extra_basic_config_custom_propagation(invoke):
 
     result = invoke(custom_root_logger_cli, color=False)
     assert result.exit_code == 0
-    # my_logger is a sub-logger of root, so it inherits its format message, leading to duplicate records.
     assert result.output == dedent("""\
         warning: Root logger warning
         warning | my_logger | My logger warning
-        warning: My logger warning
         """)
 
     result = invoke(custom_root_logger_cli, ("--verbosity", "DEBUG"), color=False)
     assert result.exit_code == 0
-    # Still duplicate records, but the --verbosity option only affects the custom my_logger it is attached to.
+    # The --verbosity option only affects the custom my_logger it is attached to.
     assert result.output == dedent("""\
         debug: Set <Logger click_extra (DEBUG)> to DEBUG.
         debug: Set <Logger my_logger (DEBUG)> to DEBUG.
         warning: Root logger warning
         warning | my_logger | My logger warning
-        warning: My logger warning
         debug | my_logger | My logger debug
-        debug: My logger debug
         info | my_logger | My logger info
-        info: My logger info
         debug: Reset <Logger my_logger (DEBUG)> to WARNING.
         debug: Reset <Logger click_extra (DEBUG)> to WARNING.
         """)
@@ -269,10 +264,10 @@ def test_explicit_extra_basic_config_custom_propagation(invoke):
 
 
 @pytest.mark.skip("Doesn't work but would be cool if it does")
-def test_implicit_extra_basic_config(invoke):
-    """Create a new root logger with ``extra_basic_config()``, but let it be discovered automaticcaly by ``@verbosity_option``."""
+def test_implicit_new_extra_logger(invoke):
+    """Create a new root logger with ``new_extra_logger()``, but let it be discovered automaticcaly by ``@verbosity_option``."""
 
-    extra_basic_config(format="{levelname} | {name} | {message}")
+    new_extra_logger(format="{levelname} | {name} | {message}")
 
     @click.command
     @verbosity_option

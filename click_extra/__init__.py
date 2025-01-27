@@ -63,10 +63,11 @@ from .decorators import (  # type: ignore[no-redef, has-type, unused-ignore] # n
     verbosity_option,
 )
 from .logging import (  # noqa: E402
-    ExtraLogFormatter,
-    ExtraLogHandler,
+    ExtraFormatter,
+    ExtraStreamHandler,
     VerbosityOption,
-    extra_basic_config,
+    extraBasicConfig,
+    new_extra_logger,
 )
 from .parameters import (  # noqa: E402
     ExtraOption,
@@ -111,17 +112,17 @@ __all__ = [
     "echo",  # noqa: F405
     "echo_via_pager",  # noqa: F405
     "edit",  # noqa: F405
-    "extra_basic_config",  # noqa: F405
     "extra_command",  # noqa: F405
     "extra_group",  # noqa: F405
     "extra_version_option",  # noqa: F405
+    "extraBasicConfig",  # noqa: F405
     "ExtraCliRunner",  # noqa: F405
     "ExtraCommand",  # noqa: F405
     "ExtraContext",  # noqa: F405
+    "ExtraFormatter",  # noqa: F405
     "ExtraGroup",  # noqa: F405
-    "ExtraLogFormatter",  # noqa: F405
-    "ExtraLogHandler",  # noqa: F405
     "ExtraOption",  # noqa: F405
+    "ExtraStreamHandler",  # noqa: F405
     "ExtraVersionOption",  # noqa: F405
     "File",  # noqa: F405
     "file_path",  # noqa: F405
@@ -149,6 +150,7 @@ __all__ = [
     "make_pass_decorator",  # noqa: F405
     "MissingParameter",  # noqa: F405
     "MultiCommand",  # noqa: F405
+    "new_extra_logger",  # noqa: F405
     "NoSuchOption",  # noqa: F405
     "open_file",  # noqa: F405
     "Option",  # noqa: F405
