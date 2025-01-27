@@ -20,6 +20,7 @@ from __future__ import annotations
 import inspect
 import logging
 import sys
+from contextlib import nullcontext
 from gettext import gettext as _
 from logging import (
     NOTSET,
@@ -211,7 +212,7 @@ def extraBasicConfig(
 
 
 def new_extra_logger(
-    name: str | None = None,
+    name: str = logging.root.name,
     *,
     handler_class: type[THandler] = ExtraStreamHandler,  # type: ignore[assignment]
     formatter_class: type[TFormatter] = ExtraFormatter,  # type: ignore[assignment]
@@ -248,11 +249,16 @@ def new_extra_logger(
     :param force: same as :param:`basicConfig.force` and :param:`extraBasicConfig.force`. Defaults to ``True``.
     :param kwargs: Any other keyword parameters supported by :func:`basicConfig` and :func:`extraBasicConfig`.
     """
-    # Fetch the logger or create a new one.
-    logger = getLogger(name)
-    logger.propagate = propagate
+    if name == logging.root.name:
+        logger = logging.root
+        root_logger_patch = nullcontext()
 
-    with patch.object(logging, "root", logger):
+    else:
+        logger = getLogger(name)
+        logger.propagate = propagate
+        root_logger_patch = patch.object(logging, "root", logger)
+
+    with root_logger_patch:
         extraBasicConfig(force=force, **kwargs)
 
     return logger
@@ -326,7 +332,7 @@ class VerbosityOption(ExtraOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        default_logger: Logger | str | None = None,
+        default_logger: Logger | str = logging.root.name,
         default: str = DEFAULT_LEVEL_NAME,
         metavar="LEVEL",
         type=Choice(LOG_LEVELS, case_sensitive=False),  # type: ignore[arg-type]
@@ -337,18 +343,16 @@ class VerbosityOption(ExtraOption):
     ) -> None:
         """Set up the verbosity option.
 
-        :param default_logger: If an instance of ``logging.Logger`` is provided, that's
-            the instance to which we will set the level set via the option. If the
-            parameter is a string, we use that to fetch it from the global registry with
-            `logging.getLogger
-            <https://docs.python.org/3/library/logging.html?highlight=getlogger#logging.getLogger>`_.
-            If no logger with that ID already exist or if the parameter is ``None``, we
-            will create a new logger with Click Extra's default configuration.
+        :param default_logger: If a ``logging.Logger`` object is provided, that's
+            the instance to which we will set the level to. If the parameter is a string
+            and is found in the global registry, we will use it as the logger's ID.
+            Otherwise, we will create a new logger with Click Extra's ``new_extra_logger``
+            Default to the global ``root`` logger.
         """
         if not param_decls:
             param_decls = ("--verbosity", "-v")
 
-        # A logger object has been provided, getch its name.
+        # A logger object has been provided, fetch its name.
         if isinstance(default_logger, Logger):
             self.logger_name = default_logger.name
         # Use the provided string if it is found in the registry.

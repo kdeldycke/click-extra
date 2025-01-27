@@ -434,6 +434,49 @@ But changing the verbosity level only affects ``root``, in the opposite of the p
          ) in result.output
 ```
 
+### Global configuration
+
+If you want to change the global configuration of all loggers, you can rely on `new_extra_logger`. Because the latter defaults to the `root` logger, any default logger propagating their messages to it will be affected:
+
+```{eval-rst}
+.. click:example::
+    import logging
+    from click import command
+    from click_extra import new_extra_logger, verbosity_option
+
+    root_logger = new_extra_logger(format="{levelname} | {name} | {message}")
+
+    @command
+    @verbosity_option(default_logger=root_logger)
+    def root_format_cli():
+         # Default root logger.
+        logging.warning("Root logger warning")
+        logging.info("Root logger info")
+
+        # Use our custom logger.
+        my_logger = logging.getLogger("my_logger")
+        my_logger.warning("Custom warning")
+        my_logger.info("Custom info")
+
+.. click:run::
+   from textwrap import dedent
+   result = invoke(root_format_cli)
+   assert dedent("""\
+      \x1b[33mwarning\x1b[0m | root | Root logger warning
+      \x1b[33mwarning\x1b[0m | my_logger | Custom warning
+      """
+   ) in result.output
+
+.. click:run::
+   from textwrap import dedent
+   result = invoke(root_format_cli, args=["--verbosity", "INFO"])
+   assert dedent("""\
+      \x1b[33mwarning\x1b[0m | root | Root logger warning
+      info | root | Root logger info
+      \x1b[33mwarning\x1b[0m | my_logger | Custom warning
+      """
+   ) in result.output
+```
 
 
 

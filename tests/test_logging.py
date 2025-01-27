@@ -27,7 +27,14 @@ from pytest_cases import parametrize
 
 from click_extra import echo
 from click_extra.decorators import extra_command, verbosity_option
-from click_extra.logging import DEFAULT_LEVEL, LOG_LEVELS, new_extra_logger
+from click_extra.logging import (
+    DEFAULT_LEVEL,
+    DEFAULT_LEVEL_NAME,
+    LOG_LEVELS,
+    ExtraFormatter,
+    ExtraStreamHandler,
+    new_extra_logger,
+)
 from click_extra.pytest import (
     command_decorators,
     default_debug_colored_log_end,
@@ -52,8 +59,53 @@ def test_root_logger_defaults():
 
     # Check root logger's level.
     assert logging.root.getEffectiveLevel() == logging.WARNING
-    assert logging._levelToName[logging.root.level] == "WARNING"
+    assert logging.root.level == logging.WARNING
     assert logging.root.level == DEFAULT_LEVEL
+    assert logging._levelToName[logging.root.level] == "WARNING"
+    assert logging._levelToName[logging.root.level] == DEFAULT_LEVEL_NAME
+
+
+@skip_windows_colors
+@pytest.mark.parametrize("level", LOG_LEVELS.keys())
+# TODO: test extra_group
+def test_integrated_verbosity_option(invoke, level):
+    @extra_command
+    def logging_cli3():
+        echo("It works!")
+
+    result = invoke(logging_cli3, "--verbosity", level, color=True)
+    assert result.exit_code == 0
+    assert result.stdout == "It works!\n"
+    if level == "DEBUG":
+        assert re.fullmatch(
+            default_debug_colored_log_start + default_debug_colored_log_end,
+            result.stderr,
+        )
+    else:
+        assert not result.stderr
+
+
+def test_custom_option_name(invoke):
+    param_names = ("--blah", "-B")
+
+    @click.command
+    @verbosity_option(*param_names)
+    def awesome_app():
+        root_logger = logging.getLogger()
+        root_logger.debug("my debug message.")
+
+    for name in param_names:
+        result = invoke(awesome_app, name, "DEBUG", color=False)
+        assert result.exit_code == 0
+        assert not result.stdout
+        assert re.fullmatch(
+            (
+                rf"{default_debug_uncolored_logging}"
+                r"debug: my debug message\.\n"
+                rf"{default_debug_uncolored_log_end}"
+            ),
+            result.stderr,
+        )
 
 
 @pytest.mark.parametrize(
@@ -88,7 +140,7 @@ def test_unrecognized_verbosity(invoke, cmd_decorator, cmd_type):
 )
 @parametrize("option_decorator", (verbosity_option, verbosity_option()))
 @pytest.mark.parametrize("level", LOG_LEVELS.keys())
-def test_default_root_logger(invoke, cmd_decorator, option_decorator, level):
+def test_default_logger(invoke, cmd_decorator, option_decorator, level):
     """Checks:
     - the default logger is ``root``
     - the default logger message format
@@ -116,6 +168,21 @@ def test_default_root_logger(invoke, cmd_decorator, option_decorator, level):
     assert result.exit_code == 0
     assert result.stdout == "It works!\n"
 
+    root_logger = logging.getLogger()
+
+    assert root_logger is logging.getLogger("root")
+    assert root_logger is logging.root
+
+    assert root_logger.getEffectiveLevel() == logging.WARNING
+    assert root_logger.level == DEFAULT_LEVEL
+
+    assert root_logger.parent is None
+    assert root_logger.propagate is True
+
+    assert len(root_logger.handlers) == 1
+    assert isinstance(root_logger.handlers[0], ExtraStreamHandler)
+    assert isinstance(root_logger.handlers[0].formatter, ExtraFormatter)
+
     messages = (
         (
             rf"{default_debug_colored_logging}"
@@ -135,173 +202,16 @@ def test_default_root_logger(invoke, cmd_decorator, option_decorator, level):
     assert re.fullmatch(log_records, result.stderr)
 
 
-@skip_windows_colors
-@pytest.mark.parametrize("level", LOG_LEVELS.keys())
-# TODO: test extra_group
-def test_integrated_verbosity_option(invoke, level):
-    @extra_command
-    def logging_cli3():
-        echo("It works!")
-
-    result = invoke(logging_cli3, "--verbosity", level, color=True)
-    assert result.exit_code == 0
-    assert result.stdout == "It works!\n"
-    if level == "DEBUG":
-        assert re.fullmatch(
-            default_debug_colored_log_start + default_debug_colored_log_end,
-            result.stderr,
-        )
-    else:
-        assert not result.stderr
-
-
-def test_explicit_new_extra_logger_custom_format(invoke):
-    """Create a new root logger with ``new_extra_logger()`` and pass it to the ``@verbosity_option`` decorator."""
-    custom_root_logger = new_extra_logger(
-        format="{levelname} | {name} | {message}",
-    )
-
-    @click.command
-    @verbosity_option(default_logger=custom_root_logger)
-    def custom_root_logger_cli():
-        # Call the root logger directly.
-        logging.warning("Root logger warning")
-        logging.debug("Root logger debug")
-        logging.info("Root logger info")
-        # Use our custom logger object.
-        custom_root_logger.warning("Logger object warning")
-        custom_root_logger.debug("Logger object debug")
-        custom_root_logger.info("Logger object info")
-
-    result = invoke(custom_root_logger_cli, color=False)
-    assert result.exit_code == 0
-    assert result.output == dedent("""\
-        warning | root | Root logger warning
-        warning | root | Logger object warning
-        """)
-
-    result = invoke(custom_root_logger_cli, ("--verbosity", "DEBUG"), color=False)
-    assert result.exit_code == 0
-    assert result.output == dedent("""\
-        debug | click_extra | Set <Logger click_extra (DEBUG)> to DEBUG.
-        debug | click_extra | Set <RootLogger root (DEBUG)> to DEBUG.
-        warning | root | Root logger warning
-        debug | root | Root logger debug
-        info | root | Root logger info
-        warning | root | Logger object warning
-        debug | root | Logger object debug
-        info | root | Logger object info
-        debug | click_extra | Reset <RootLogger root (DEBUG)> to WARNING.
-        debug | click_extra | Reset <Logger click_extra (DEBUG)> to WARNING.
-        """)
-
-
-def test_explicit_new_extra_logger_custom_propagation(invoke):
-    """A logger with its own name is going to be considered a sub-logger of the root logger."""
-    new_extra_logger(
-        name="my_logger",
-        format="{levelname} | {name} | {message}",
-    )
-
-    @click.command
-    @verbosity_option(default_logger="my_logger")
-    def custom_root_logger_cli():
-        # Call the root logger directly.
-        logging.warning("Root logger warning")
-        logging.debug("Root logger debug")
-        logging.info("Root logger info")
-        # Use our custom logger object.
-        my_logger = logging.getLogger("my_logger")
-        my_logger.warning("My logger warning")
-        my_logger.debug("My logger debug")
-        my_logger.info("My logger info")
-
-    result = invoke(custom_root_logger_cli, color=False)
-    assert result.exit_code == 0
-    assert result.output == dedent("""\
-        warning: Root logger warning
-        warning | my_logger | My logger warning
-        """)
-
-    result = invoke(custom_root_logger_cli, ("--verbosity", "DEBUG"), color=False)
-    assert result.exit_code == 0
-    # The --verbosity option only affects the custom my_logger it is attached to.
-    assert result.output == dedent("""\
-        debug: Set <Logger click_extra (DEBUG)> to DEBUG.
-        debug: Set <Logger my_logger (DEBUG)> to DEBUG.
-        warning: Root logger warning
-        warning | my_logger | My logger warning
-        debug | my_logger | My logger debug
-        info | my_logger | My logger info
-        debug: Reset <Logger my_logger (DEBUG)> to WARNING.
-        debug: Reset <Logger click_extra (DEBUG)> to WARNING.
-        """)
-
-    # Deactivates propagation.
-    logging.getLogger("my_logger").propagate = False
-
-    result = invoke(custom_root_logger_cli, color=False)
-    assert result.exit_code == 0
-    # my_logger is now breaking its inheritance from the root logger.
-    assert result.output == dedent("""\
-        warning: Root logger warning
-        warning | my_logger | My logger warning
-        """)
-
-    result = invoke(custom_root_logger_cli, ("--verbosity", "DEBUG"), color=False)
-    assert result.exit_code == 0
-    # The root logger is unaffected by the --verbosity option.
-    assert result.output == dedent("""\
-        debug: Set <Logger click_extra (DEBUG)> to DEBUG.
-        debug: Set <Logger my_logger (DEBUG)> to DEBUG.
-        warning: Root logger warning
-        warning | my_logger | My logger warning
-        debug | my_logger | My logger debug
-        info | my_logger | My logger info
-        debug: Reset <Logger my_logger (DEBUG)> to WARNING.
-        debug: Reset <Logger click_extra (DEBUG)> to WARNING.
-        """)
-
-
-@pytest.mark.skip("Doesn't work but would be cool if it does")
-def test_implicit_new_extra_logger(invoke):
-    """Create a new root logger with ``new_extra_logger()``, but let it be discovered automaticcaly by ``@verbosity_option``."""
-
-    new_extra_logger(format="{levelname} | {name} | {message}")
-
-    @click.command
-    @verbosity_option
-    def custom_root_logger_cli():
-        # Call the root logger directly.
-        logging.warning("Root logger warning")
-        logging.debug("Root logger debug")
-        logging.info("Root logger info")
-
-    result = invoke(custom_root_logger_cli, color=False)
-    assert result.exit_code == 0
-    assert result.output == dedent("""\
-        warning | root | Root logger warning
-        """)
-
-    result = invoke(custom_root_logger_cli, ("--verbosity", "DEBUG"), color=False)
-    assert result.exit_code == 0
-    assert result.output == dedent("""\
-        debug | click_extra | Set <Logger click_extra (DEBUG)> to DEBUG.
-        debug | click_extra | Set <RootLogger root (DEBUG)> to DEBUG.
-        warning | root | Root logger warning
-        debug | root | Root logger debug
-        info | root | Root logger info
-        debug | click_extra | Reset <RootLogger root (DEBUG)> to WARNING.
-        debug | click_extra | Reset <Logger click_extra (DEBUG)> to WARNING.
-        """)
-
-
 @pytest.mark.parametrize(
     "logger_param",
-    (logging.getLogger("awesome_app"), "awesome_app"),
+    (
+        logging.getLogger("awesome_app"),
+        "awesome_app",
+        new_extra_logger("awesome_app"),
+    ),
 )
 @pytest.mark.parametrize("params", (("--verbosity", "DEBUG"), None))
-def test_custom_logger_param(invoke, logger_param, params):
+def test_default_logger_param(invoke, logger_param, params):
     """Passing a logger instance or name to the ``default_logger`` parameter works."""
 
     @click.command
@@ -325,24 +235,169 @@ def test_custom_logger_param(invoke, logger_param, params):
         assert not result.stderr
 
 
-def test_custom_option_name(invoke):
-    param_names = ("--blah", "-B")
+def test_new_extra_logger_name_passing(invoke):
+    """Test extra logger with custom format, passed to the option by its name."""
+    new_extra_logger(
+        name="my_logger",
+        format="{levelname} | {name} | {message}",
+    )
 
     @click.command
-    @verbosity_option(*param_names)
-    def awesome_app():
-        root_logger = logging.getLogger()
-        root_logger.debug("my debug message.")
+    @verbosity_option(default_logger="my_logger")
+    def logger_as_name():
+        # Call the root logger directly.
+        logging.warning("Root logger warning")
+        logging.debug("Root logger debug")
+        logging.info("Root logger info")
+        # Fetch our custom logger object.
+        my_logger = logging.getLogger("my_logger")
+        my_logger.warning("My logger warning")
+        my_logger.debug("My logger debug")
+        my_logger.info("My logger info")
 
-    for name in param_names:
-        result = invoke(awesome_app, name, "DEBUG", color=False)
-        assert result.exit_code == 0
-        assert not result.stdout
-        assert re.fullmatch(
-            (
-                rf"{default_debug_uncolored_logging}"
-                r"debug: my debug message\.\n"
-                rf"{default_debug_uncolored_log_end}"
-            ),
-            result.stderr,
-        )
+    result = invoke(logger_as_name, color=False)
+    assert result.exit_code == 0
+    assert result.output == dedent("""\
+        warning: Root logger warning
+        warning | my_logger | My logger warning
+        """)
+
+    result = invoke(logger_as_name, ("--verbosity", "DEBUG"), color=False)
+    assert result.exit_code == 0
+    # The --verbosity option only affects the logger it is attached to.
+    assert result.output == dedent("""\
+        debug: Set <Logger click_extra (DEBUG)> to DEBUG.
+        debug: Set <Logger my_logger (DEBUG)> to DEBUG.
+        warning: Root logger warning
+        warning | my_logger | My logger warning
+        debug | my_logger | My logger debug
+        info | my_logger | My logger info
+        debug: Reset <Logger my_logger (DEBUG)> to WARNING.
+        debug: Reset <Logger click_extra (DEBUG)> to WARNING.
+        """)
+
+
+def test_new_extra_logger_object_passing(invoke):
+    """Test extra logger with custom format, passed as an object to the option."""
+    custom_logger = new_extra_logger(
+        name="my_logger",
+        format="{levelname} | {name} | {message}",
+    )
+
+    @click.command
+    @verbosity_option(default_logger=custom_logger)
+    def logger_as_object():
+        # Call the root logger directly.
+        logging.warning("Root logger warning")
+        logging.debug("Root logger debug")
+        logging.info("Root logger info")
+        # Use our custom logger object.
+        custom_logger.warning("Logger object warning")
+        custom_logger.debug("Logger object debug")
+        custom_logger.info("Logger object info")
+
+    result = invoke(logger_as_object, color=False)
+    assert result.exit_code == 0
+    assert result.output == dedent("""\
+        warning: Root logger warning
+        warning | my_logger | Logger object warning
+        """)
+
+    result = invoke(logger_as_object, ("--verbosity", "DEBUG"), color=False)
+    assert result.exit_code == 0
+    assert result.output == dedent("""\
+        debug: Set <Logger click_extra (DEBUG)> to DEBUG.
+        debug: Set <Logger my_logger (DEBUG)> to DEBUG.
+        warning: Root logger warning
+        warning | my_logger | Logger object warning
+        debug | my_logger | Logger object debug
+        info | my_logger | Logger object info
+        debug: Reset <Logger my_logger (DEBUG)> to WARNING.
+        debug: Reset <Logger click_extra (DEBUG)> to WARNING.
+        """)
+
+
+def test_new_extra_logger_root_config(invoke):
+    """Modify the root logger via ``new_extra_logger()``"""
+
+    root_logger = new_extra_logger(format="{levelname} | {name} | {message}")
+
+    @click.command
+    @verbosity_option(default_logger=root_logger)
+    def custom_root_logger_cli():
+        # Call the root logger directly.
+        logging.warning("Root logger warning")
+        logging.debug("Root logger debug")
+        logging.info("Root logger info")
+        # Create a new custom logger object.
+        my_logger = logging.getLogger("my_logger")
+        my_logger.warning("My logger warning")
+        my_logger.debug("My logger debug")
+        my_logger.info("My logger info")
+
+    result = invoke(custom_root_logger_cli, color=False)
+    assert result.exit_code == 0
+    assert result.output == dedent("""\
+        warning | root | Root logger warning
+        warning | my_logger | My logger warning
+        """)
+
+    result = invoke(custom_root_logger_cli, ("--verbosity", "DEBUG"), color=False)
+    assert result.exit_code == 0
+    assert result.output == dedent("""\
+        debug | click_extra | Set <Logger click_extra (DEBUG)> to DEBUG.
+        debug | click_extra | Set <RootLogger root (DEBUG)> to DEBUG.
+        warning | root | Root logger warning
+        debug | root | Root logger debug
+        info | root | Root logger info
+        warning | my_logger | My logger warning
+        debug | click_extra | Reset <RootLogger root (DEBUG)> to WARNING.
+        debug | click_extra | Reset <Logger click_extra (DEBUG)> to WARNING.
+        """)
+
+
+def test_logger_propagation(invoke):
+    new_extra_logger(
+        name="my_logger",
+        propagate=True,
+        format="{levelname} | {name} | {message}",
+    )
+
+    @click.command
+    @verbosity_option(default_logger="my_logger")
+    def logger_as_name():
+        # Call the root logger directly.
+        logging.warning("Root logger warning")
+        logging.debug("Root logger debug")
+        logging.info("Root logger info")
+        # Fetch our custom logger object.
+        my_logger = logging.getLogger("my_logger")
+        my_logger.warning("My logger warning")
+        my_logger.debug("My logger debug")
+        my_logger.info("My logger info")
+
+    result = invoke(logger_as_name, color=False)
+    assert result.exit_code == 0
+    # my_logger is now breaking its inheritance from the root logger.
+    assert result.output == dedent("""\
+        warning: Root logger warning
+        warning | my_logger | My logger warning
+        warning: My logger warning
+        """)
+
+    result = invoke(logger_as_name, ("--verbosity", "DEBUG"), color=False)
+    assert result.exit_code == 0
+    # The root logger is unaffected by the --verbosity option.
+    assert result.output == dedent("""\
+        debug: Set <Logger click_extra (DEBUG)> to DEBUG.
+        debug: Set <Logger my_logger (DEBUG)> to DEBUG.
+        warning: Root logger warning
+        warning | my_logger | My logger warning
+        warning: My logger warning
+        debug | my_logger | My logger debug
+        debug: My logger debug
+        info | my_logger | My logger info
+        info: My logger info
+        debug: Reset <Logger my_logger (DEBUG)> to WARNING.
+        debug: Reset <Logger click_extra (DEBUG)> to WARNING.
+        """)
