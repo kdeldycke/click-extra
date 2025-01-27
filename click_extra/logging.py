@@ -254,9 +254,13 @@ def new_extra_logger(
         root_logger_patch = nullcontext()
 
     else:
-        logger = getLogger(name)
+        logger = getLogger(name)  # type: ignore[assignment]
         logger.propagate = propagate
-        root_logger_patch = patch.object(logging, "root", logger)
+        root_logger_patch = patch.object(  # type: ignore[assignment]
+            logging,
+            "root",
+            logger,
+        )
 
     with root_logger_patch:
         extraBasicConfig(force=force, **kwargs)

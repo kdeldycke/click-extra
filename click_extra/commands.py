@@ -186,7 +186,7 @@ def default_extra_params() -> list[Option]:
     ]
 
 
-DEFAULT_HELP_NAMES = ("--help", "-h")
+DEFAULT_HELP_NAMES: tuple[str, ...] = ("--help", "-h")
 
 
 class ExtraCommand(ExtraHelpColorsMixin, Command):  # type: ignore[misc]
