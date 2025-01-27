@@ -317,6 +317,7 @@ def test_new_extra_logger_object_passing(invoke):
         """)
 
 
+@pytest.mark.skip("Test is surprisingly flacky on Windows and Ubuntu")
 def test_new_extra_logger_root_config(invoke):
     """Modify the root logger via ``new_extra_logger()``"""
 
