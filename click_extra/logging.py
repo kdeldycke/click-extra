@@ -264,8 +264,6 @@ def new_extra_logger(
     return logger
 
 
-
-
 class VerbosityOption(ExtraOption):
     """A pre-configured ``--verbosity``/``-v`` option.
 
