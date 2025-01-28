@@ -218,11 +218,23 @@ def test_invoke_forced_color_stripping(invoke):
 
 
 def test_invoke_color_keep(invoke):
-    """On Windows Click ends up deciding it is not running in an interactive terminal
-    and forces the stripping of all colors."""
     result = invoke(run_cli1, color=True)
     if is_windows():
-        check_default_uncolored_rendering(result)
+        # XXX On Windows Click ends up deciding it is not running in an interactive
+        # terminal and forces the stripping of all colors.
+        assert result.exit_code == 0
+        assert result.stdout.startswith(
+            "echo()\n"
+            "echo(color=None)\n"
+            "echo(color=True) bypass invoke.color = False\n"
+            "echo(color=False)\n"
+            "secho()\n"
+            "secho(color=None)\n"
+            "secho(color=True) bypass invoke.color = False\n"
+            "secho(color=False)\n"
+            "\x1b[34mprint() bypass Click.\x1b[0m\n",
+        )
+        assert result.stderr == "warning: Is the logger colored?\n"
     else:
         check_default_colored_rendering(result)
     assert result.stdout.endswith(
