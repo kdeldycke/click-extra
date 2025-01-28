@@ -5,6 +5,8 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Re-release to fix Github publishing.
+
 ## [4.13.0 (2025-01-27)](https://github.com/kdeldycke/click-extra/compare/v4.12.0...v4.13.0)
 
 - Revamps logging helpers and aligns them with Python's `logging` module.
