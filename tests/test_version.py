@@ -46,7 +46,10 @@ from click_extra.pytest import (
     default_debug_colored_version_details,
 )
 
+from .conftest import skip_windows_colors
 
+
+@skip_windows_colors
 @parametrize("cmd_decorator", command_decorators())
 @parametrize("option_decorator", (extra_version_option, extra_version_option()))
 def test_standalone_version_option(invoke, cmd_decorator, option_decorator):
@@ -63,6 +66,7 @@ def test_standalone_version_option(invoke, cmd_decorator, option_decorator):
     )
 
 
+@skip_windows_colors
 @parametrize("cmd_decorator", command_decorators())
 @parametrize("option_decorator", (extra_version_option, extra_version_option()))
 def test_debug_output(invoke, cmd_decorator, option_decorator):
@@ -87,6 +91,7 @@ def test_debug_output(invoke, cmd_decorator, option_decorator):
     )
 
 
+@skip_windows_colors
 def test_set_version(invoke):
     @click.group
     @extra_version_option(version="1.2.3.4")
@@ -102,6 +107,7 @@ def test_set_version(invoke):
     )
 
 
+@skip_windows_colors
 @parametrize("cmd_decorator", command_decorators(no_groups=True))
 @parametrize(
     "message, regex_stdout",
@@ -165,6 +171,7 @@ def test_style_reset(invoke, cmd_decorator):
     assert result.output == strip_ansi(result.output)
 
 
+@skip_windows_colors
 @parametrize("cmd_decorator", command_decorators(no_groups=True))
 def test_custom_message_style(invoke, cmd_decorator):
     @cmd_decorator
@@ -236,6 +243,7 @@ def test_integrated_version_option_precedence(invoke, params):
     )
 
 
+@skip_windows_colors
 def test_color_option_precedence(invoke):
     """--no-color has an effect on --version, if placed in the right order.
 

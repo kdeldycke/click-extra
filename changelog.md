@@ -6,6 +6,7 @@
 > This version is not released yet and is under active development.
 
 - Re-release to fix Github publishing.
+- Reactivates some color tests on Windows.
 
 ## [4.13.1 (2025-01-28)](https://github.com/kdeldycke/click-extra/compare/v4.13.0...v4.13.1)
 

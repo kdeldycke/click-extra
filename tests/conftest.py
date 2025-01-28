@@ -17,4 +17,14 @@
 
 from __future__ import annotations
 
+from extra_platforms.pytest import skip_windows  # type: ignore[attr-defined]
+
 from click_extra.pytest import create_config, extra_runner, invoke  # noqa: F401
+
+skip_windows_colors = skip_windows(reason="Click overstrip colors on Windows")
+"""Skips color tests on Windows as ``click.testing.invoke`` overzealously strips colors.
+
+See:
+- https://github.com/pallets/click/issues/2111
+- https://github.com/pallets/click/issues/2110
+"""
