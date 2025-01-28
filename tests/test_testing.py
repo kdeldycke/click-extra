@@ -23,6 +23,7 @@ from pathlib import Path
 
 import click
 import pytest
+from extra_platforms import is_windows
 from pytest_cases import fixture, parametrize
 
 from click_extra import Style, command, echo, pass_context, secho, style
@@ -220,7 +221,10 @@ def test_invoke_color_keep(invoke):
     """On Windows Click ends up deciding it is not running in an interactive terminal
     and forces the stripping of all colors."""
     result = invoke(run_cli1, color=True)
-    check_default_colored_rendering(result)
+    if is_windows():
+        check_default_uncolored_rendering(result)
+    else:
+        check_default_colored_rendering(result)
     assert result.stdout.endswith(
         "Context.color = None\nclick.utils.should_strip_ansi = False\n",
     )
