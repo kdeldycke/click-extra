@@ -368,7 +368,6 @@ def test_only_full_word_highlight():
     assert strip_ansi(output) == output
 
 
-@skip_windows_colors
 def test_keyword_collection(invoke):
     # Create a dummy Click CLI.
     @extra_group
