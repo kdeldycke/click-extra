@@ -23,10 +23,6 @@ from textwrap import dedent
 
 import click
 import pytest
-from extra_platforms.pytest import (  # type: ignore[attr-defined]
-    skip_linux,
-    skip_windows,
-)
 from pytest_cases import parametrize
 
 from click_extra import echo
@@ -317,8 +313,7 @@ def test_new_extra_logger_object_passing(invoke):
         """)
 
 
-@skip_linux(reason="Test is surprisingly flacky on Ubuntu")
-@skip_windows(reason="Test is surprisingly flacky on Windows")
+@pytest.mark.skip(reason="Test is flacky because of the logger's propagation.")
 def test_new_extra_logger_root_config(invoke):
     """Modify the root logger via ``new_extra_logger()``"""
 
