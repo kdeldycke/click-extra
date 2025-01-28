@@ -321,8 +321,8 @@ def test_new_extra_logger_object_passing(invoke):
         """)
 
 
-@skip_linux("Test is surprisingly flacky on Ubuntu")
-@skip_windows("Test is surprisingly flacky on Windows")
+@skip_linux(reason="Test is surprisingly flacky on Ubuntu")
+@skip_windows(reason="Test is surprisingly flacky on Windows")
 def test_new_extra_logger_root_config(invoke):
     """Modify the root logger via ``new_extra_logger()``"""
 
