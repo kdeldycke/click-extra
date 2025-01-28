@@ -40,8 +40,6 @@ from click_extra.pytest import (
     default_options_uncolored_help,
 )
 
-from .conftest import skip_windows_colors
-
 
 def test_module_root_declarations():
     def fetch_root_members(module):
@@ -206,7 +204,6 @@ def test_help_custom_name(invoke):
     assert not result.stderr
 
 
-@skip_windows_colors
 @pytest.mark.parametrize("cmd_id", ("default", "click-extra", "cloup", "click"))
 @pytest.mark.parametrize("param", ("-h", "--help"))
 def test_subcommand_help(invoke, all_command_cli, cmd_id, param):
@@ -275,7 +272,6 @@ def test_integrated_version_value(invoke, all_command_cli):
     assert result.stdout == "command-cli1, version 2021.10.08\n"
 
 
-@skip_windows_colors
 @parametrize(
     "cmd_decorator",
     command_decorators(

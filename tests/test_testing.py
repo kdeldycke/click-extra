@@ -30,8 +30,6 @@ from click_extra import Style, command, echo, pass_context, secho, style
 from click_extra.pytest import command_decorators
 from click_extra.testing import ExtraCliRunner, env_copy
 
-from .conftest import skip_windows_colors
-
 
 def test_real_fs():
     """Check a simple test is not caught into the CLI runner fixture which is
@@ -195,7 +193,6 @@ def check_forced_uncolored_rendering(result):
     assert result.stderr == "warning: Is the logger colored?\n"
 
 
-@skip_windows_colors
 def test_invoke_optional_color(invoke):
     result = invoke(run_cli1, color=None)
     check_default_uncolored_rendering(result)
@@ -204,7 +201,6 @@ def test_invoke_optional_color(invoke):
     )
 
 
-@skip_windows_colors
 def test_invoke_default_color(invoke):
     result = invoke(run_cli1)
     check_default_uncolored_rendering(result)
@@ -213,7 +209,6 @@ def test_invoke_default_color(invoke):
     )
 
 
-@skip_windows_colors
 def test_invoke_forced_color_stripping(invoke):
     result = invoke(run_cli1, color=False)
     check_forced_uncolored_rendering(result)
@@ -222,7 +217,6 @@ def test_invoke_forced_color_stripping(invoke):
     )
 
 
-@skip_windows_colors
 def test_invoke_color_keep(invoke):
     """On Windows Click ends up deciding it is not running in an interactive terminal
     and forces the stripping of all colors."""
@@ -236,7 +230,6 @@ def test_invoke_color_keep(invoke):
     )
 
 
-@skip_windows_colors
 def test_invoke_color_forced(invoke):
     """Test colors are preserved while invoking, and forced to be rendered on
     Windows."""

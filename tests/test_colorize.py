@@ -71,7 +71,6 @@ from click_extra.pytest import (
     default_options_colored_help,
 )
 
-from .conftest import skip_windows_colors
 
 
 def test_theme_definition():
@@ -507,7 +506,6 @@ def test_keyword_collection(invoke):
         assert not result.stderr
 
 
-@skip_windows_colors
 @parametrize("option_decorator", (color_option, color_option()))
 @pytest.mark.parametrize(
     ("param", "expecting_colors"),
@@ -571,7 +569,6 @@ def test_standalone_color_option(invoke, option_decorator, param, expecting_colo
         )
 
 
-@skip_windows_colors
 @pytest.mark.parametrize(
     ("env", "env_expect_colors"),
     (
@@ -632,7 +629,6 @@ def test_no_color_env_convention(
 # TODO: test with  configuration file
 
 
-@skip_windows_colors
 @pytest.mark.parametrize(
     ("param", "expecting_colors"),
     (

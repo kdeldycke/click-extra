@@ -48,8 +48,6 @@ from click_extra.pytest import (
     default_debug_uncolored_logging,
 )
 
-from .conftest import skip_windows_colors
-
 
 def test_level_default_order():
     assert tuple(LOG_LEVELS) == ("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG")
@@ -69,7 +67,6 @@ def test_root_logger_defaults():
     assert logging._levelToName[logging.root.level] == DEFAULT_LEVEL_NAME
 
 
-@skip_windows_colors
 @pytest.mark.parametrize("level", LOG_LEVELS.keys())
 # TODO: test extra_group
 def test_integrated_verbosity_option(invoke, level):
@@ -136,7 +133,6 @@ def test_unrecognized_verbosity(invoke, cmd_decorator, cmd_type):
     )
 
 
-@skip_windows_colors
 @pytest.mark.parametrize(
     "cmd_decorator",
     # Skip click extra's commands, as verbosity option is already part of the default.
