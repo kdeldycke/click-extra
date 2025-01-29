@@ -5,6 +5,12 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Improve logging documentation.
+- Align `ExtraStreamHandler` behavior to `logging.StreamHandler`.
+- Move `stream_handler_class` and `formatter_class` arguments from `new_extra_logger` to `extraBasicConfig`.
+- Add new `file_handler_class` argument to `extraBasicConfig`.
+- Fix upload of Python package to GitHub release on tagging.
+
 ## [4.13.2 (2025-01-28)](https://github.com/kdeldycke/click-extra/compare/v4.13.1...v4.13.2)
 
 - Re-release to fix Github publishing.
