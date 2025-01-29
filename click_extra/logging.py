@@ -29,6 +29,7 @@ from logging import (
     Handler,
     Logger,
     LogRecord,
+    StreamHandler,
     _levelToName,
     basicConfig,
     getLogger,
@@ -54,28 +55,27 @@ LOG_LEVELS: dict[str, int] = {
 """Mapping of :ref:`canonical log level names <levels>` to their integer level.
 
 That's our own version of `logging._nameToLevel
-<https://github.com/python/cpython/blob/a379749/Lib/logging/__init__.py#L115-L123>`_,
-with a twist:
+<https://github.com/python/cpython/blob/a379749/Lib/logging/__init__.py#L115-L124>`_,
+but:
 
 - sorted from lowest to highest verbosity,
 - excludes the following levels:
-    - ``NOTSET``, which is considered internal
+    - :data:`WARNING <logging.NOTSET>`, which is considered internal
     - ``WARN``, which :meth:`is obsolete <logging.Logger.warning>`
     - ``FATAL``, which `shouldn't be used <https://github.com/python/cpython/issues/85013>`_
       and has been `replaced by CRITICAL
-      <https://github.com/python/cpython/blob/0df7c3a/Lib/logging/__init__.py#L1538-L1541>`_
+      <https://github.com/python/cpython/blob/8597be46135a0f4a53e99dade67724bbb8e3c1c9/Lib/logging/__init__.py#L2148-L2152>`_
 """
 
 
 DEFAULT_LEVEL: int = WARNING
 DEFAULT_LEVEL_NAME: str = _levelToName[DEFAULT_LEVEL]
-"""``WARNING`` is the default level we expect any loggers to starts their lives at.
+""":data:`WARNING <logging.WARNING>` is the default level we expect any loggers to starts their lives at.
 
-``WARNING`` has been chosen as it is `the level at which the default Python's global
-root logger is set up
-<https://github.com/python/cpython/blob/0df7c3a/Lib/logging/__init__.py#L1945>`_.
+:data:`WARNING <logging.WARNING>` has been chosen as it is `the level at which the default Python's
+global root logger is set up <https://github.com/python/cpython/blob/0df7c3a/Lib/logging/__init__.py#L1945>`_.
 
-This value is also used as the default level for the ``--verbosity`` option below.
+This value is also used as the default level for :class:`VerbosityOption` .
 """
 
 
@@ -84,40 +84,65 @@ THandler = TypeVar("THandler", bound=Handler)
 """Custom types to be used in type hints below."""
 
 
-class ExtraStreamHandler(Handler):
-    """A handler to output logs to console's ``<stderr>``.
+class ExtraStreamHandler(StreamHandler):
+    """A handler to output logs to the console.
 
-    Differs to the default `logging.StreamHandler
-    <https://docs.python.org/3/library/logging.handlers.html#streamhandler>`_ by
-    using ``click.echo`` to support color printing to ``<stderr>``.
+    Wraps :class:`logging.StreamHandler`, but use :func:`click.echo` to support color printing.
+
+    Only :py:data:`<stderr> <sys.stderr>` or :py:data:`<stdout> <sys.stdout>` are allowed as output stream.
+
+    If stream is not specified, :py:data:`<stderr> <sys.stderr>` is used by default
     """
 
-    def __init__(self, stream=None):
-        """
-        Initialize the handler.
+    _stderr_output: bool = True
+    """:func:`click.echo`'s ``err`` parameter to be used at printing time."""
 
-        If stream is not specified, sys.stderr is used.
+    _stream: IO[Any] = sys.stderr
+
+    @property
+    def stream(self) -> IO[Any]:
+        """The stream to which logs are written.
+
+        A proxy of the parent :class:`logging.StreamHandler`'s `stream attribute
+        <https://github.com/python/cpython/blob/eed7865ceea83f56e46307c9dc78cb53526071f6/Lib/logging/__init__.py#L1128>`_.
+
+        Redefined here to enforce checks on the stream value.
         """
-        Handler.__init__(self)
-        if stream is None:
-            stream = sys.stderr
-        self.stream = stream
+        return self._stream
+
+    @stream.setter
+    def stream(self, stream: IO[Any]) -> None:
+        if stream not in (sys.stderr, sys.stdout):
+            raise ValueError("Only <stderr> or <stdout> are allowed as output stream.")
+
+        self._stream = stream
+
+        # Sync click.echo()'s err parameter with the target stream.
+        self._stderr_output = stream == sys.stderr
 
     def emit(self, record: LogRecord) -> None:
-        """Use ``click.echo`` to print to ``<stderr>``."""
+        """Use :func:`click.echo` to print to the console."""
         try:
             msg = self.format(record)
-            click.echo(msg, err=True)
+            click.echo(msg, err=self._stderr_output)
+        except RecursionError:
+            raise
 
-        # If exception occurs format it to the stream.
+        # If exception occurs, dump the traceback to stderr.
         except Exception:
             self.handleError(record)
 
 
 class ExtraFormatter(Formatter):
+    """Click extra's default log formatter."""
+
     def formatMessage(self, record: LogRecord) -> str:
         """Colorize the record's log level name before calling the strandard
-        formatter."""
+        formatter.
+
+        Colors are sourced from a :class:`click_extra.colorize.HelpExtraTheme`, who's
+        default colors are configured on :const:`click_extra.colorize.default_theme`.
+        """
         level = record.levelname.lower()
         level_style = getattr(default_theme, level, None)
         if level_style:
@@ -127,6 +152,7 @@ class ExtraFormatter(Formatter):
 
 def extraBasicConfig(
     *,
+    # Arguments from Python's standard library's basicConfig:
     filename: str | None = None,
     filemode: str = "a",
     format: str | None = "{levelname}: {message}",
@@ -138,34 +164,48 @@ def extraBasicConfig(
     force: bool = False,
     encoding: str | None = None,
     errors: str | None = "backslashreplace",
+    # New arguments specific to this function:
+    stream_handler_class: type[THandler] = ExtraStreamHandler,  # type: ignore[assignment]
+    formatter_class: type[TFormatter] = ExtraFormatter,  # type: ignore[assignment]
 ) -> None:
     """Configure the global ``root`` logger.
 
-    Same as Python standard library's :func:`logging.basicConfig` but with better
-    defaults:
+    This function is a wrapper around Python standard library's :func:`logging.basicConfig`,
+    but with additional parameters and tweaked defaults.
 
-    ============  ===========================================  ======================================
-    Argument      :func:`extraBasicConfig` default             :func:`logging.basicConfig` default
-    ============  ===========================================  ======================================
-    ``handlers``  A single instance of ``ExtraStreamHandler``  False
-    ``style``     ``{``                                        ``%``
-    ``format``    ``{levelname}: {message}``                   ``%(levelname)s:%(name)s:%(message)s``
-    ============  ===========================================  ======================================
+    It sets up the global ``root`` logger, and optionally adds a file or stream handler to it.
+
+    Differences in default values:
+
+    ==========  ================================  ======================================
+    Argument    :func:`extraBasicConfig` default  :func:`logging.basicConfig` default
+    ==========  ================================  ======================================
+    ``style``   ``{``                             ``%``
+    ``format``  ``{levelname}: {message}``        ``%(levelname)s:%(name)s:%(message)s``
+    ==========  ================================  ======================================
+
+    This function takes the same arguments as :func:`logging.basicConfig`:
 
     :param filename: Specifies that a :class:`logging.FileHandler` be created, using the
-        specified filename, rather than a :class:`logging.StreamHandler`.
-    :param filemode: If *filename* is specified, open the file in this mode. Defaults
-        to ``a``.
-    :param format: Use the specified format string for the handler. Defaults to
-        ``{levelname}: {message}``.
+        specified filename, rather than an :py:class:`ExtraStreamHandler`.
+    :param filemode: If *filename* is specified, open the file in this :func:`mode <.open>`.
+
+        Defaults to ``a``.
+    :param format: Use the specified format string for the handler.
+
+        Defaults to ``{levelname}: {message}``.
     :param datefmt: Use the specified date/time format, as accepted by
         :func:`time.strftime`.
-    :param style: If format is specified, use this style for the format string. One of
-        ``%``, ``{`` or ``$`` for :ref:`printf-style <old-string-formatting>`,
-        :meth:`str.format` or :class:`string.Template` respectively. Defaults to ``{`` .
+    :param style: If format is specified, use this style for the format string:
+
+        - ``%`` for :ref:`printf-style <old-string-formatting>`,
+        - ``{`` for :meth:`str.format`,
+        - ``$`` for :class:`string.Template`.
+
+        Defaults to ``{``.
     :param level: Set the ``root`` logger level to the specified :ref:`level <levels>`.
     :param stream: Use the specified stream to initialize the
-        :class:`logging.StreamHandler`. Note that this argument is incompatible with
+        :py:class:`ExtraStreamHandler`. Note that this argument is incompatible with
         *filename* - if both are present, a ``ValueError`` is raised.
     :param handlers: If specified, this should be an iterable of already created
         handlers to add to the ``root`` logger. Any handlers which don't already have a
@@ -190,6 +230,15 @@ def extraBasicConfig(
         parameters and its documentation in sync with the one from Python's standard
         library.
 
+    These new arguments are available for better configurability:
+
+    :param stream_handler_class: A :py:class:`logging.Handler` class that will be used in
+        :func:`basicConfig` to create new handlers. Defaults to
+        :py:class:`ExtraStreamHandler`.
+    :param formatter_class: A :py:class:`logging.Formatter` class of the formatter that
+        will be used in :func:`basicConfig` to setup handlers. Defaults to
+        :py:class:`ExtraFormatter`.
+
     .. note::
         I don't like the camel-cased name of this function and would have called it
         ``extra_basic_config()``, but it's kept this way for consistency with Python's
@@ -206,31 +255,25 @@ def extraBasicConfig(
     call_str = ", ".join(f"{k}={v!r}" for k, v in kwargs.items())
     getLogger("click_extra").debug(f"Call basicConfig({call_str})")
 
-    with patch.object(logging, "StreamHandler", ExtraStreamHandler):
-        with patch.object(logging, "Formatter", ExtraFormatter):
-            basicConfig(**kwargs)
+    with patch.object(logging, "StreamHandler", kwargs.pop("stream_handler_class")):
+            with patch.object(logging, "Formatter", kwargs.pop("formatter_class")):
+                basicConfig(**kwargs)
 
 
 def new_extra_logger(
     name: str = logging.root.name,
     *,
-    handler_class: type[THandler] = ExtraStreamHandler,  # type: ignore[assignment]
-    formatter_class: type[TFormatter] = ExtraFormatter,  # type: ignore[assignment]
     propagate: bool = False,
     force: bool = True,
     **kwargs,
 ) -> Logger:
     """Setup a logger in the style of Click Extra.
 
-    It is a wrapper around :func:`extraBasicConfig`, and takes the same keywords arguments.
+    This helper:
 
-    But it also:
-
-    - Fetches the logger to configure or creates a new one if none is provided, by the
-        ``name`` parameter.
-    - Sets the `logger's propagate
-        <https://docs.python.org/3/library/logging.html#logging.Logger.propagate>`_
-        attribute to ``False``.
+    - Fetches the logger registered under the ``name`` parameter, or creates a new one if
+      it doesn't exist.
+    - Sets the :ref:`logger's propagate <logging.Logger.propagate>` attribute to ``False``.
     - Force removal of any existing handlers and formatters attached to the logger
         before adding the new default ones. I.e. same as setting
         ``basicConfig(force=True)``.
@@ -239,12 +282,6 @@ def new_extra_logger(
     :param name: ID of the logger to setup. If ``None``, Python's ``root``
         logger will be used. If a logger with the provided name is not found in the
         global registry, a new logger with that name will be created.
-    :param handler_class: :py:class:`logging.Handler` class that will be used by
-        :func:`basicConfig` to create new handlers. Defaults to
-        :py:class:`ExtraStreamHandler`.
-    :param formatter_class: :py:class:`logging.Formatter` class of the formatter that
-        will be used by :func:`basicConfig` to setup handlers. Defaults to
-        :py:class:`ExtraFormatter`.
     :param propagate: same as :param:`basicConfig.propagate` and :param:`extraBasicConfig.propagate`. Defaults to ``False``.
     :param force: same as :param:`basicConfig.force` and :param:`extraBasicConfig.force`. Defaults to ``True``.
     :param kwargs: Any other keyword parameters supported by :func:`basicConfig` and :func:`extraBasicConfig`.

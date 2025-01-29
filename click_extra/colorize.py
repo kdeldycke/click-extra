@@ -153,12 +153,12 @@ class HelpExtraTheme(cloup.HelpTheme):
         return HelpExtraTheme.dark()
 
 
-# Populate our global theme with all default styles.
 default_theme: HelpExtraTheme = HelpExtraTheme.dark()
+"""Default color theme for Click Extra."""
 
 
-# No color theme.
 nocolor_theme: HelpExtraTheme = HelpExtraTheme()
+"""Color theme for Click Extra to force no colors."""
 
 
 OK = default_theme.success("✓")
