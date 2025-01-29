@@ -25,6 +25,7 @@ from gettext import gettext as _
 from logging import (
     NOTSET,
     WARNING,
+    FileHandler,
     Formatter,
     Handler,
     Logger,
@@ -69,7 +70,6 @@ but:
 
 
 DEFAULT_LEVEL: int = WARNING
-DEFAULT_LEVEL_NAME: str = _levelToName[DEFAULT_LEVEL]
 """:data:`WARNING <logging.WARNING>` is the default level we expect any loggers to starts their lives at.
 
 :data:`WARNING <logging.WARNING>` has been chosen as it is `the level at which the default Python's
@@ -77,6 +77,9 @@ global root logger is set up <https://github.com/python/cpython/blob/0df7c3a/Lib
 
 This value is also used as the default level for :class:`VerbosityOption` .
 """
+
+DEFAULT_LEVEL_NAME: str = _levelToName[DEFAULT_LEVEL]
+"""Name of the :const:`DEFAULT_LEVEL`."""
 
 
 TFormatter = TypeVar("TFormatter", bound=Formatter)
@@ -133,15 +136,25 @@ class ExtraStreamHandler(StreamHandler):
             self.handleError(record)
 
 
+class ExtraFileHandler(FileHandler):
+    """A handler to output logs to a file.
+
+    .. todo::
+        Reuse click.echo() to output to file.
+    """
+
+    pass
+
+
 class ExtraFormatter(Formatter):
-    """Click extra's default log formatter."""
+    """Click Extra's default log formatter."""
 
     def formatMessage(self, record: LogRecord) -> str:
-        """Colorize the record's log level name before calling the strandard
+        """Colorize the record's log level name before calling the standard
         formatter.
 
-        Colors are sourced from a :class:`click_extra.colorize.HelpExtraTheme`, who's
-        default colors are configured on :const:`click_extra.colorize.default_theme`.
+        Colors are sourced from a :class:`click_extra.colorize.HelpExtraTheme`. Default
+        colors are configured on :const:`click_extra.colorize.default_theme`.
         """
         level = record.levelname.lower()
         level_style = getattr(default_theme, level, None)
@@ -166,6 +179,7 @@ def extraBasicConfig(
     errors: str | None = "backslashreplace",
     # New arguments specific to this function:
     stream_handler_class: type[THandler] = ExtraStreamHandler,  # type: ignore[assignment]
+    file_handler_class: type[THandler] = ExtraFileHandler,  # type: ignore[assignment]
     formatter_class: type[TFormatter] = ExtraFormatter,  # type: ignore[assignment]
 ) -> None:
     """Configure the global ``root`` logger.
@@ -184,7 +198,8 @@ def extraBasicConfig(
     ``format``  ``{levelname}: {message}``        ``%(levelname)s:%(name)s:%(message)s``
     ==========  ================================  ======================================
 
-    This function takes the same arguments as :func:`logging.basicConfig`:
+    This function takes the same parameters as :func:`logging.basicConfig`, but require them
+    to be all passed as explicit keywords arguments.
 
     :param filename: Specifies that a :class:`logging.FileHandler` be created, using the
         specified filename, rather than an :py:class:`ExtraStreamHandler`.
@@ -212,18 +227,16 @@ def extraBasicConfig(
         formatter set will be assigned the default formatter created in this function.
         Note that this argument is incompatible with *filename* or *stream* - if both
         are present, a ``ValueError`` is raised.
-    :param force: If this keyword argument is specified as ``True``, any existing
+    :param force: If this argument is specified as ``True``, any existing
         handlers attached to the ``root`` logger are removed and closed, before carrying
         out the configuration as specified by the other arguments.
-    :param encoding: If this keyword argument is specified along with *filename*, its
-        value is used when the :class:`logging.FileHandler` is created, and thus used
-        when opening the output file.
-    :param errors: If this keyword argument is specified along with *filename*, its
-        value is used when the :class:`logging.FileHandler` is created, and thus used
-        when opening the output file. If not specified, the value ``backslashreplace``
-        is used. Note that if ``None`` is specified, it will be passed as such to
-        :func:`open`, which means that it will be treated the same as passing
-        ``errors``.
+    :param encoding: :ref:`Name of the encoding <standard-encodings>` used to decode or
+        encode the file. To be specified along with *filename*, and passed to
+        :class:`logging.FileHandler` for opening the output file.
+    :param errors: Optional string that specifies :ref:`how encoding and decoding errors
+        are to be handled <error-handlers>` by the :class:`logging.FileHandler`. Defaults
+        to ``backslashreplace``. Note that if ``None`` is specified, it will be passed as
+        such to :func:`open`.
 
     .. important::
         Always keep the signature of this function, the default values of its
@@ -233,10 +246,13 @@ def extraBasicConfig(
     These new arguments are available for better configurability:
 
     :param stream_handler_class: A :py:class:`logging.Handler` class that will be used in
-        :func:`basicConfig` to create new handlers. Defaults to
+        :func:`logging.basicConfig` to create a default stream-based handler. Defaults to
         :py:class:`ExtraStreamHandler`.
+    :param file_handler_class: A :py:class:`logging.Handler` class that will be used in
+        :func:`logging.basicConfig` to create a default file-based handler. Defaults to
+        :py:class:`ExtraFileHandler`.
     :param formatter_class: A :py:class:`logging.Formatter` class of the formatter that
-        will be used in :func:`basicConfig` to setup handlers. Defaults to
+        will be used in :func:`logging.basicConfig` to setup the default formatter. Defaults to
         :py:class:`ExtraFormatter`.
 
     .. note::
@@ -255,7 +271,9 @@ def extraBasicConfig(
     call_str = ", ".join(f"{k}={v!r}" for k, v in kwargs.items())
     getLogger("click_extra").debug(f"Call basicConfig({call_str})")
 
+    # Consume along the way each kwargs' parameter not recognized by basicConfig.
     with patch.object(logging, "StreamHandler", kwargs.pop("stream_handler_class")):
+        with patch.object(logging, "FileHandler", kwargs.pop("file_handler_class")):
             with patch.object(logging, "Formatter", kwargs.pop("formatter_class")):
                 basicConfig(**kwargs)
 
@@ -269,22 +287,23 @@ def new_extra_logger(
 ) -> Logger:
     """Setup a logger in the style of Click Extra.
 
-    This helper:
+    By default, this helper will:
 
-    - Fetches the logger registered under the ``name`` parameter, or creates a new one if
-      it doesn't exist.
-    - Sets the :ref:`logger's propagate <logging.Logger.propagate>` attribute to ``False``.
-    - Force removal of any existing handlers and formatters attached to the logger
-        before adding the new default ones. I.e. same as setting
-        ``basicConfig(force=True)``.
-    - Returns the logger object.
+    - :func:`Fetch the logger <logging.getLogger>` registered under the ``name`` parameter, or creates a new one
+      with that name if it doesn't exist,
+    - Set the logger's :attr:`propagate <logging.Logger.propagate>` attribute to ``False``,
+    - Force removal of any existing handlers and formatters attached to the logger,
+    - Attach a new :py:class:`ExtraStreamHandler` with :py:class:`ExtraFormatter`,
+    - Return the logger object.
+
+    This function is a wrapper around :func:`extraBasicConfig` and takes the same keywords arguments.
 
     :param name: ID of the logger to setup. If ``None``, Python's ``root``
         logger will be used. If a logger with the provided name is not found in the
         global registry, a new logger with that name will be created.
-    :param propagate: same as :param:`basicConfig.propagate` and :param:`extraBasicConfig.propagate`. Defaults to ``False``.
-    :param force: same as :param:`basicConfig.force` and :param:`extraBasicConfig.force`. Defaults to ``True``.
-    :param kwargs: Any other keyword parameters supported by :func:`basicConfig` and :func:`extraBasicConfig`.
+    :param propagate: Sets the logger's :attr:`propagate <logging.Logger.propagate>` attribute. Defaults to ``False``.
+    :param force: Same as the *force* parameter from :func:`logging.basicConfig` and :func:`extraBasicConfig`. Defaults to ``True``.
+    :param kwargs: Any other keyword parameters supported by :func:`logging.basicConfig` and :func:`extraBasicConfig`.
     """
     if name == logging.root.name:
         logger = logging.root
@@ -322,26 +341,24 @@ class VerbosityOption(ExtraOption):
     logger_name: str
     """The ID of the logger to set the level to.
 
-    This will be provided to `logging.getLogger
-    <https://docs.python.org/3/library/logging.html?highlight=getlogger#logging.getLogger>`_
-    method to fetch the logger object, and as such, can be a dot-separated string to
-    build hierarchical loggers.
+    This will be provided to :func:`logging.getLogger` to fetch the logger object, and
+    as such, can be a dot-separated string to build hierarchical loggers.
     """
 
     @property
     def all_loggers(self) -> Generator[Logger, None, None]:
         """Returns the list of logger IDs affected by the verbosity option.
 
-        Will returns Click Extra's internal logger first, then the option's custom
-        logger.
+        Will returns ``click_extra`` internal logger first, then the option's
+        :attr:`logger_name`.
         """
         for name in ("click_extra", self.logger_name):
             yield getLogger(name)
 
     def reset_loggers(self) -> None:
-        """Forces all loggers managed by the option to be reset to the default level.
+        """Forces all loggers managed by the option to be reset to :const:`DEFAULT_LEVEL`.
 
-        Reset loggers in reverse order to ensure the internal logger is reset last.
+        Loggers are reset in reverse order to ensure the internal logger is reset last.
 
         .. danger::
             Resetting loggers is extremely important for unittests. Because they're
@@ -382,10 +399,10 @@ class VerbosityOption(ExtraOption):
     ) -> None:
         """Set up the verbosity option.
 
-        :param default_logger: If a ``logging.Logger`` object is provided, that's
+        :param default_logger: If a :class:`logging.Logger` object is provided, that's
             the instance to which we will set the level to. If the parameter is a string
             and is found in the global registry, we will use it as the logger's ID.
-            Otherwise, we will create a new logger with Click Extra's ``new_extra_logger``
+            Otherwise, we will create a new logger with :func:`new_extra_logger`
             Default to the global ``root`` logger.
         """
         if not param_decls:
@@ -398,6 +415,8 @@ class VerbosityOption(ExtraOption):
         elif default_logger in Logger.manager.loggerDict:
             self.logger_name = default_logger
         # Create a new logger with Click Extra's default configuration.
+        # XXX That's also the case in which the root logger will fall into, because as
+        # a special case, it is not registered in Logger.manager.loggerDict.
         else:
             logger = new_extra_logger(name=default_logger)
             self.logger_name = logger.name
