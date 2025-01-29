@@ -82,6 +82,7 @@ issues_github_path = f"{github_user}/{project_id}"
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
+    "click": ("https://click.palletsprojects.com", None),
 }
 
 # Prefix document path to section labels, to use:
