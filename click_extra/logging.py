@@ -136,16 +136,6 @@ class ExtraStreamHandler(StreamHandler):
             self.handleError(record)
 
 
-class ExtraFileHandler(FileHandler):
-    """A handler to output logs to a file.
-
-    .. todo::
-        Reuse click.echo() to output to file.
-    """
-
-    pass
-
-
 class ExtraFormatter(Formatter):
     """Click Extra's default log formatter."""
 
@@ -179,7 +169,7 @@ def extraBasicConfig(
     errors: str | None = "backslashreplace",
     # New arguments specific to this function:
     stream_handler_class: type[THandler] = ExtraStreamHandler,  # type: ignore[assignment]
-    file_handler_class: type[THandler] = ExtraFileHandler,  # type: ignore[assignment]
+    file_handler_class: type[THandler] = FileHandler,  # type: ignore[assignment]
     formatter_class: type[TFormatter] = ExtraFormatter,  # type: ignore[assignment]
 ) -> None:
     """Configure the global ``root`` logger.
@@ -250,7 +240,7 @@ def extraBasicConfig(
         :py:class:`ExtraStreamHandler`.
     :param file_handler_class: A :py:class:`logging.Handler` class that will be used in
         :func:`logging.basicConfig` to create a default file-based handler. Defaults to
-        :py:class:`ExtraFileHandler`.
+        :py:class:`FileHandler`.
     :param formatter_class: A :py:class:`logging.Formatter` class of the formatter that
         will be used in :func:`logging.basicConfig` to setup the default formatter. Defaults to
         :py:class:`ExtraFormatter`.
