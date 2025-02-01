@@ -206,8 +206,11 @@ default_options_uncolored_help = (
     r"                            \S+\.{toml,yaml,yml,json,ini,xml}\]\n"
     r"  --show-params             Show all CLI parameters, their provenance, defaults\n"
     r"                            and value, then exit.\n"
-    r"  -v, --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.\n"
+    r"  --verbosity LEVEL         Either CRITICAL, ERROR, WARNING, INFO, DEBUG.\n"
     r"                            \[default: WARNING\]\n"
+    r"  -v, --verbose             Increase the default WARNING verbosity by one level\n"
+    r"                            for each additional repetition of the option.\n"
+    r"                            \[default: 0\]\n"
     r"  --version                 Show the version and exit.\n"
     r"  -h, --help                Show this message and exit.\n"
 )
@@ -236,12 +239,17 @@ default_options_colored_help = (
     r"  \x1b\[36m--show-params\x1b\[0m"
     r"             Show all CLI parameters, their provenance, defaults\n"
     r"                            and value, then exit.\n"
-    r"  \x1b\[36m-v\x1b\[0m, \x1b\[36m--verbosity\x1b\[0m"
-    r" \x1b\[36m\x1b\[2mLEVEL\x1b\[0m"
+    r"  \x1b\[36m--verbosity\x1b\[0m"
+    r" \x1b\[36m\x1b\[2mLEVEL\x1b\[0m    "
     r"     Either \x1b\[35mCRITICAL\x1b\[0m, \x1b\[35mERROR\x1b\[0m, "
     r"\x1b\[35mWARNING\x1b\[0m, \x1b\[35mINFO\x1b\[0m, \x1b\[35mDEBUG\x1b\[0m.\n"
     r"                            \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: "
     r"\x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mWARNING\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
+    r"  \x1b\[36m-v\x1b\[0m, \x1b\[36m--verbose\x1b\[0m"
+    r"             Increase the default \x1b\[35mWARNING\x1b\[0m verbosity by one level\n"
+    r"                            for each additional repetition of the option.\n"
+    r"                            \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: "
+    r"\x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3m0\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
     r"  \x1b\[36m--version\x1b\[0m                 Show the version and exit.\n"
     r"  \x1b\[36m-h\x1b\[0m, \x1b\[36m--help\x1b\[0m"
     r"                Show this message and exit.\n"
@@ -255,6 +263,15 @@ default_debug_uncolored_logging = (
 default_debug_colored_logging = (
     r"\x1b\[34mdebug\x1b\[0m: Set <Logger click_extra \(DEBUG\)> to DEBUG.\n"
     r"\x1b\[34mdebug\x1b\[0m: Set <RootLogger root \(DEBUG\)> to DEBUG.\n"
+)
+
+
+default_debug_colored_verbose_log = (
+    r"\x1b\[34mdebug\x1b\[0m: Increased log verbosity "
+    r"by \d+ levels: from WARNING to [A-Z]+.\n"
+)
+default_debug_uncolored_verbose_log = (
+    r"debug: Increased log verbosity by \d+ levels: from WARNING to [A-Z]+.\n"
 )
 
 

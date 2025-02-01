@@ -5,6 +5,9 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Add a new `--verbose` option on `@extra_command` and `@extra_group` to increase the verbosity level for each additional repetition.
+- Add new `@verbose_option` pre-configured decorator.
+- Reassign the short `-v` option from `--verbosity` to `--verbose`.
 - Improve logging documentation.
 - Align `ExtraStreamHandler` behavior to `logging.StreamHandler`.
 - Move `stream_handler_class` and `formatter_class` arguments from `new_extra_logger` to `extraBasicConfig`.

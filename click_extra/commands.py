@@ -30,7 +30,7 @@ import cloup
 from . import Command, Group, Option
 from .colorize import ColorOption, ExtraHelpColorsMixin, HelpExtraFormatter
 from .config import ConfigOption
-from .logging import VerbosityOption
+from .logging import VerboseOption, VerbosityOption
 from .parameters import (
     ExtraOption,
     ShowParamsOption,
@@ -146,7 +146,8 @@ def default_extra_params() -> list[Option]:
             behavior and value of the other options.
     #. ``--color``, ``--ansi`` / ``--no-color``, ``--no-ansi``
     #. ``--show-params``
-    #. ``-v``, ``--verbosity LEVEL``
+    #. ``--verbosity LEVEL``
+    #. ``-v``, ``--verbose``
     #. ``--version``
     #. ``-h``, ``--help``
         .. attention::
@@ -181,6 +182,7 @@ def default_extra_params() -> list[Option]:
         ConfigOption(),
         ShowParamsOption(),
         VerbosityOption(),
+        VerboseOption(),
         ExtraVersionOption(),
         # click.decorators.HelpOption(),
     ]

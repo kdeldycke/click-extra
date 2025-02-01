@@ -319,8 +319,11 @@ def test_duplicate_option(invoke):
     result = invoke(cli, "--help", color=False)
     assert result.exit_code == 0
     assert result.stdout.endswith(
-        "  -v, --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.\n"
+        "  --verbosity LEVEL         Either CRITICAL, ERROR, WARNING, INFO, DEBUG.\n"
         "                            [default: WARNING]\n"
+        "  -v, --verbose             Increase the default WARNING verbosity by one level\n"
+        "                            for each additional repetition of the option.\n"
+        "                            [default: 0]\n"
         "  --version                 Show the version and exit.\n"
         "  --version                 Show the version and exit.\n"
         "  -h, --help                Show this message and exit.\n"

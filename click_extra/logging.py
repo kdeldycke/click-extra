@@ -39,10 +39,11 @@ from typing import IO, TYPE_CHECKING, Any, Literal, TypeVar
 from unittest.mock import patch
 
 import click
+from click.types import IntRange
 
 from . import Choice, Context, Parameter
 from .colorize import default_theme
-from .parameters import ExtraOption
+from .parameters import ExtraOption, search_params
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterable, Sequence
@@ -314,18 +315,14 @@ def new_extra_logger(
     return logger
 
 
-class VerbosityOption(ExtraOption):
-    """A pre-configured ``--verbosity``/``-v`` option.
+class ExtraVerbosity(ExtraOption):
+    """A base class implementing all the common halpers to manipulated logger's verbosity.
 
-    Sets the level of the provided logger. If no logger is provided, sets the level of
-    the global ``root`` logger.
+    It is not intended to be used as-is, but is a central place to reconcile the verbosity level
+    to be set by the competing verbosity options implemented below:
 
-    The selected verbosity level name is made available in the context in
-    ``ctx.meta["click_extra.verbosity"]``.
-
-    .. important::
-        The internal ``click_extra`` logger level will be aligned to the value set via
-        this option.
+    - ``--verbosity``
+    - ``--verbose``/``-v``
     """
 
     logger_name: str
@@ -367,6 +364,19 @@ class VerbosityOption(ExtraOption):
         Also prints the chosen value as a debug message via the internal
         ``click_extra`` logger.
         """
+        # If any of the verbosity-related option has already set the level, do not alter it.
+        # So in a way, this property in the context serves as a kind of global state shared by
+        # all verbosity options.
+
+        current_level = ctx.meta.get("click_extra.verbosity")
+
+        if current_level:
+            levels = tuple(LOG_LEVELS)
+            current_level_index = levels.index(current_level)
+            new_level_index = levels.index(value)
+            if new_level_index <= current_level_index:
+                return
+
         ctx.meta["click_extra.verbosity"] = value
 
         for logger in self.all_loggers:
@@ -374,6 +384,47 @@ class VerbosityOption(ExtraOption):
             getLogger("click_extra").debug(f"Set {logger} to {value}.")
 
         ctx.call_on_close(self.reset_loggers)
+
+    def __init__(
+        self,
+        param_decls: Sequence[str] | None = None,
+        default_logger: Logger | str = logging.root.name,
+        **kwargs,
+    ) -> None:
+        # A logger object has been provided, fetch its name.
+        if isinstance(default_logger, Logger):
+            self.logger_name = default_logger.name
+        # Use the provided string if it is found in the registry.
+        elif default_logger in Logger.manager.loggerDict:
+            self.logger_name = default_logger
+        # Create a new logger with Click Extra's default configuration.
+        # XXX That's also the case in which the root logger will fall into, because as
+        # a special case, it is not registered in Logger.manager.loggerDict.
+        else:
+            logger = new_extra_logger(name=default_logger)
+            self.logger_name = logger.name
+
+        kwargs.setdefault("callback", self.set_levels)
+
+        super().__init__(
+            param_decls=param_decls,
+            **kwargs,
+        )
+
+
+class VerbosityOption(ExtraVerbosity):
+    """A pre-configured ``--verbosity``/``-v`` option.
+
+    Sets the level of the provided logger. If no logger is provided, sets the level of
+    the global ``root`` logger.
+
+    The selected verbosity level name is made available in the context in
+    ``ctx.meta["click_extra.verbosity"]``.
+
+    .. important::
+        The internal ``click_extra`` logger level will be aligned to the value set via
+        this option.
+    """
 
     def __init__(
         self,
@@ -396,28 +447,92 @@ class VerbosityOption(ExtraOption):
             Default to the global ``root`` logger.
         """
         if not param_decls:
-            param_decls = ("--verbosity", "-v")
-
-        # A logger object has been provided, fetch its name.
-        if isinstance(default_logger, Logger):
-            self.logger_name = default_logger.name
-        # Use the provided string if it is found in the registry.
-        elif default_logger in Logger.manager.loggerDict:
-            self.logger_name = default_logger
-        # Create a new logger with Click Extra's default configuration.
-        # XXX That's also the case in which the root logger will fall into, because as
-        # a special case, it is not registered in Logger.manager.loggerDict.
-        else:
-            logger = new_extra_logger(name=default_logger)
-            self.logger_name = logger.name
-
-        kwargs.setdefault("callback", self.set_levels)
+            param_decls = ("--verbosity",)
 
         super().__init__(
             param_decls=param_decls,
+            default_logger=default_logger,
             default=default,
             metavar=metavar,
             type=type,
+            expose_value=expose_value,
+            help=help,
+            is_eager=is_eager,
+            **kwargs,
+        )
+
+
+class VerboseOption(ExtraVerbosity):
+    """Increase the log level of :class:`VerbosityOption` by a number of step levels.
+
+    By default, it will not affect the level set by the ``--verbosity`` parameter.
+
+    But if ``-v`` is passed, then it will increase the ``--verbosity``'s level by one level.
+    The option can be provided multiple times by the user. So if ``-vv`` is passed, then the level
+    of ``--verbosity`` will be increase by 2 steps.
+
+    With ``--verbosity`` defaults set to ``WARNING``:
+
+    - ``-v`` will increase the level to ``INFO``.
+    - ``-vv`` will increase the level to ``DEBUG``.
+    - Any number of repetition above that point will be set to the maximum level, so for example ``-vvvvv`` will be capped at ``DEBUG``.
+
+    If default's ``--verbosity`` is changed to a lower level than ``WARNING``, ``-v`` effect will change its base level accordingly.
+    """
+
+    def set_levels(self, ctx: Context, param: Parameter, value: int) -> None:
+        ctx.meta["click_extra.verbose"] = value
+
+        # No -v option has been called, skip meddling with log levels.
+        if value == 0:
+            return
+
+        levels = tuple(LOG_LEVELS)
+
+        # Get default verbosity from the --verbosity option.
+        verbosity_option = search_params(
+            ctx.command.params, VerbosityOption, include_subclasses=False
+        )
+        # If no --verbosity option found, it's because we are use the --verbose option alone. So defaults to
+        # the global default.
+        default_level = (
+            verbosity_option.default if verbosity_option else DEFAULT_LEVEL_NAME
+        )
+
+        default_level_index = levels.index(default_level)
+
+        # Cap new index to the last, verbosier level.
+        new_level_index = min(default_level_index + value, len(levels) - 1)
+        new_level = levels[new_level_index]
+
+        super().set_levels(ctx, param, new_level)
+
+        getLogger("click_extra").debug(
+            f"Increased log verbosity by {value} levels: from {default_level} to {new_level}."
+        )
+
+    def __init__(
+        self,
+        param_decls: Sequence[str] | None = None,
+        count: bool = True,
+        expose_value=False,
+        help=_(
+            f"Increase the default {DEFAULT_LEVEL_NAME} verbosity by one level for each additional repetition of the option."
+        ),
+        is_eager=True,
+        **kwargs,
+    ) -> None:
+        if not param_decls:
+            param_decls = ("--verbose", "-v")
+
+        # Force type and default to align them with counting option original behavior:
+        # https://github.com/pallets/click/blob/5dd628854c0b61bbdc07f22004c5da8fa8ee9481/src/click/core.py#L2612-L2618
+        kwargs["type"] = IntRange(min=0)
+        kwargs["default"] = 0
+
+        super().__init__(
+            param_decls=param_decls,
+            count=count,
             expose_value=expose_value,
             help=help,
             is_eager=is_eager,

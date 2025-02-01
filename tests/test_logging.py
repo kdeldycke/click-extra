@@ -26,7 +26,7 @@ import pytest
 from pytest_cases import parametrize
 
 from click_extra import echo
-from click_extra.decorators import extra_command, verbosity_option
+from click_extra.decorators import extra_command, verbose_option, verbosity_option
 from click_extra.logging import (
     DEFAULT_LEVEL,
     DEFAULT_LEVEL_NAME,
@@ -37,11 +37,14 @@ from click_extra.logging import (
 )
 from click_extra.pytest import (
     command_decorators,
+    default_debug_colored_config,
     default_debug_colored_log_end,
-    default_debug_colored_log_start,
     default_debug_colored_logging,
+    default_debug_colored_verbose_log,
+    default_debug_colored_version_details,
     default_debug_uncolored_log_end,
     default_debug_uncolored_logging,
+    default_debug_uncolored_verbose_log,
 )
 
 from .conftest import skip_windows_colors
@@ -65,26 +68,82 @@ def test_root_logger_defaults():
     assert logging._levelToName[logging.root.level] == DEFAULT_LEVEL_NAME
 
 
-@pytest.mark.parametrize("level", LOG_LEVELS.keys())
+@pytest.mark.parametrize(
+    ("args", "expected_level"),
+    (
+        # Default level when no option is provided.
+        (None, "WARNING"),
+        # Test all --verbosity levels.
+        (("--verbosity", "CRITICAL"), "CRITICAL"),
+        (("--verbosity", "ERROR"), "ERROR"),
+        (("--verbosity", "WARNING"), "WARNING"),
+        (("--verbosity", "INFO"), "INFO"),
+        (("--verbosity", "DEBUG"), "DEBUG"),
+        # Repeating -v options increases the default level.
+        (("-v",), "INFO"),
+        (("--verbose",), "INFO"),
+        (("-vv",), "DEBUG"),
+        (("-v", "-v"), "DEBUG"),
+        (("--verbose", "--verbose"), "DEBUG"),
+        (("-vvv",), "DEBUG"),
+        (("-v", "-v", "-v"), "DEBUG"),
+        (("--verbose", "--verbose", "--verbose"), "DEBUG"),
+        (("-vvvvvvvvvvvvvv",), "DEBUG"),
+        (("-vv", "-v", "-vvvvvvvvvvv"), "DEBUG"),
+        (("-vv", "-v", "--verbose", "-vvvvvvvvvvv"), "DEBUG"),
+        # Equivalent levels don't conflicts.
+        (("--verbosity", "INFO", "-v"), "INFO"),
+        (("--verbosity", "DEBUG", "-vv"), "DEBUG"),
+        # -v is higher level and takes precedence.
+        (("--verbosity", "CRITICAL", "-v"), "INFO"),
+        (("--verbosity", "CRITICAL", "-vv"), "DEBUG"),
+        # --verbosity is higher level and takes precedence.
+        (("--verbosity", "DEBUG", "-v"), "DEBUG"),
+    ),
+)
 # TODO: test extra_group
-def test_integrated_verbosity_option(invoke, level):
+def test_integrated_verbosity_options(invoke, args, expected_level):
     @extra_command
     def logging_cli3():
         echo("It works!")
 
-    result = invoke(logging_cli3, "--verbosity", level, color=True)
+    result = invoke(logging_cli3, args, color=True)
     assert result.exit_code == 0
     assert result.stdout == "It works!\n"
-    if level == "DEBUG":
-        assert re.fullmatch(
-            default_debug_colored_log_start + default_debug_colored_log_end,
-            result.stderr,
+    if expected_level == "DEBUG":
+        debug_log = default_debug_colored_logging
+        if any(a for a in args if a.startswith("-v") or a == "--verbose"):
+            debug_log += default_debug_colored_verbose_log
+        debug_log += (
+            default_debug_colored_config
+            + default_debug_colored_version_details
+            + default_debug_colored_log_end
         )
+        assert re.fullmatch(debug_log, result.stderr)
     else:
         assert not result.stderr
 
 
-def test_custom_option_name(invoke):
+@pytest.mark.parametrize(
+    "args",
+    (
+        # Long option.
+        ("--blah", "DEBUG"),
+        # Short option.
+        ("-B", "DEBUG"),
+        # Duplicate options.
+        ("--blah", "DEBUG", "--blah", "DEBUG"),
+        ("-B", "DEBUG", "-B", "DEBUG"),
+        ("--blah", "DEBUG", "-B", "DEBUG"),
+        ("-B", "DEBUG", "--blah", "DEBUG"),
+        # Duplicate options with different levels: the last always win.
+        ("--blah", "INFO", "-B", "DEBUG"),
+        ("-B", "INFO", "--blah", "DEBUG"),
+        # ("--blah", "DEBUG", "-B", "INFO"),
+        # ("-B", "DEBUG", "--blah", "INFO"),
+    ),
+)
+def test_custom_verbosity_option_name(invoke, args):
     param_names = ("--blah", "-B")
 
     @click.command
@@ -93,25 +152,56 @@ def test_custom_option_name(invoke):
         root_logger = logging.getLogger()
         root_logger.debug("my debug message.")
 
-    for name in param_names:
-        result = invoke(awesome_app, name, "DEBUG", color=False)
-        assert result.exit_code == 0
-        assert not result.stdout
-        assert re.fullmatch(
-            (
-                rf"{default_debug_uncolored_logging}"
-                r"debug: my debug message\.\n"
-                rf"{default_debug_uncolored_log_end}"
-            ),
-            result.stderr,
-        )
+    result = invoke(awesome_app, args, color=False)
+    assert result.exit_code == 0
+    assert not result.stdout
+    assert re.fullmatch(
+        default_debug_uncolored_logging
+        + r"debug: my debug message\.\n"
+        + default_debug_uncolored_log_end,
+        result.stderr,
+    )
+
+
+@pytest.mark.parametrize(
+    "args",
+    (
+        # Short option.
+        ("-BB",),
+        ("-B", "-B"),
+        # Long option.
+        ("--blah", "--blah"),
+        # Duplicate options.
+        ("--blah", "-B"),
+        ("-B", "--blah"),
+    ),
+)
+def test_custom_verbose_option_name(invoke, args):
+    param_names = ("--blah", "-B")
+
+    @click.command
+    @verbose_option(*param_names)
+    def awesome_app():
+        root_logger = logging.getLogger()
+        root_logger.debug("my debug message.")
+
+    result = invoke(awesome_app, args, color=False)
+    assert result.exit_code == 0
+    assert not result.stdout
+    assert re.fullmatch(
+        default_debug_uncolored_logging
+        + default_debug_uncolored_verbose_log
+        + r"debug: my debug message\.\n"
+        + default_debug_uncolored_log_end,
+        result.stderr,
+    )
 
 
 @pytest.mark.parametrize(
     ("cmd_decorator", "cmd_type"),
     command_decorators(with_types=True),
 )
-def test_unrecognized_verbosity(invoke, cmd_decorator, cmd_type):
+def test_unrecognized_verbosity_level(invoke, cmd_decorator, cmd_type):
     @cmd_decorator
     @verbosity_option
     def logging_cli1():
@@ -126,7 +216,7 @@ def test_unrecognized_verbosity(invoke, cmd_decorator, cmd_type):
     assert result.stderr == (
         f"Usage: logging-cli1 [OPTIONS]{group_help}\n"
         "Try 'logging-cli1 --help' for help.\n\n"
-        "Error: Invalid value for '--verbosity' / '-v': "
+        "Error: Invalid value for '--verbosity': "
         "'random' is not one of 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'.\n"
     )
 
@@ -138,13 +228,26 @@ def test_unrecognized_verbosity(invoke, cmd_decorator, cmd_type):
     command_decorators(no_groups=True, no_extra=True),
 )
 @parametrize("option_decorator", (verbosity_option, verbosity_option()))
-@pytest.mark.parametrize("level", LOG_LEVELS.keys())
-def test_default_logger(invoke, cmd_decorator, option_decorator, level):
+@pytest.mark.parametrize(
+    ("args", "expected_level"),
+    (
+        (None, "WARNING"),
+        (("--verbosity", "CRITICAL"), "CRITICAL"),
+        (("--verbosity", "ERROR"), "ERROR"),
+        (("--verbosity", "WARNING"), "WARNING"),
+        (("--verbosity", "INFO"), "INFO"),
+        (("--verbosity", "DEBUG"), "DEBUG"),
+    ),
+)
+def test_standalone_option_default_logger(
+    invoke, cmd_decorator, option_decorator, args, expected_level
+):
     """Checks:
+    - option affect log level
     - the default logger is ``root``
     - the default logger message format
     - level names are colored
-    - log level is propagated to all other loggers.
+    - log level is propagated to all other loggers
     """
 
     @cmd_decorator
@@ -163,7 +266,7 @@ def test_default_logger(invoke, cmd_decorator, option_decorator, level):
         logging.error("my error message.")
         logging.critical("my critical message.")
 
-    result = invoke(logging_cli2, "--verbosity", level, color=True)
+    result = invoke(logging_cli2, args, color=True)
     assert result.exit_code == 0
     assert result.stdout == "It works!\n"
 
@@ -193,10 +296,12 @@ def test_default_logger(invoke, cmd_decorator, option_decorator, level):
         r"\x1b\[31merror\x1b\[0m: my error message.\n",
         r"\x1b\[31m\x1b\[1mcritical\x1b\[0m: my critical message.\n",
     )
-    level_index = {index: level for level, index in enumerate(LOG_LEVELS)}[level]
+    level_index = {index: level for level, index in enumerate(LOG_LEVELS)}[
+        expected_level
+    ]
     log_records = r"".join(messages[-level_index - 1 :])
 
-    if level == "DEBUG":
+    if expected_level == "DEBUG":
         log_records += default_debug_colored_log_end
     assert re.fullmatch(log_records, result.stderr)
 

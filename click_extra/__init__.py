@@ -60,11 +60,13 @@ from .decorators import (  # type: ignore[no-redef, has-type, unused-ignore] # n
     table_format_option,
     telemetry_option,
     timer_option,
+    verbose_option,
     verbosity_option,
 )
 from .logging import (  # noqa: E402
     ExtraFormatter,
     ExtraStreamHandler,
+    VerboseOption,
     VerbosityOption,
     extraBasicConfig,
     new_extra_logger,
@@ -191,6 +193,8 @@ __all__ = [
     "unstyle",  # noqa: F405
     "UsageError",  # noqa: F405
     "UUID",  # noqa: F405
+    "verbose_option",  # noqa: F405
+    "VerboseOption",  # noqa: F405
     "verbosity_option",  # noqa: F405
     "VerbosityOption",  # noqa: F405
     "version_option",  # noqa: F405

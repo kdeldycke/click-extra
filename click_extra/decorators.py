@@ -23,7 +23,7 @@ import cloup
 from .colorize import ColorOption
 from .commands import DEFAULT_HELP_NAMES, ExtraCommand, ExtraGroup, default_extra_params
 from .config import ConfigOption
-from .logging import VerbosityOption
+from .logging import VerboseOption, VerbosityOption
 from .parameters import ShowParamsOption
 from .tabulate import TableFormatOption
 from .telemetry import TelemetryOption
@@ -120,4 +120,5 @@ show_params_option = decorator_factory(dec=cloup.option, cls=ShowParamsOption)
 table_format_option = decorator_factory(dec=cloup.option, cls=TableFormatOption)
 telemetry_option = decorator_factory(dec=cloup.option, cls=TelemetryOption)
 timer_option = decorator_factory(dec=cloup.option, cls=TimerOption)
+verbose_option = decorator_factory(dec=cloup.option, cls=VerboseOption)
 verbosity_option = decorator_factory(dec=cloup.option, cls=VerbosityOption)

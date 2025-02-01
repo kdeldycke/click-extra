@@ -142,16 +142,25 @@ def all_envvars(
 def search_params(
     params: Iterable[click.Parameter],
     klass: type[click.Parameter],
+    include_subclasses: bool = True,
     unique: bool = True,
 ) -> list[click.Parameter] | click.Parameter | None:
     """Search a particular class of parameter in a list and return them.
 
     :param params: list of parameter instances to search in.
     :param klass: the class of the parameters to look for.
+    :param include_subclasses: if ``True``, includes in the results all parameters subclassing
+        the provided ``klass``. If ``False``, only matches parameters which are strictly instances of ``klass``.
+        Defaults to ``True``.
     :param unique: if ``True``, raise an error if more than one parameter of the
-        provided ``klass`` is found.
+        provided ``klass`` is found. Defaults to ``True``.
     """
-    param_list = [p for p in params if isinstance(p, klass)]
+    param_list = [
+        p
+        for p in params
+        if (include_subclasses and isinstance(p, klass))
+        or (not include_subclasses and p.__class__ is klass)
+    ]
     if not param_list:
         return None
     if unique:
