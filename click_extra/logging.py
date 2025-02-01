@@ -501,7 +501,11 @@ class VerboseOption(ExtraVerbosity):
         verbosity_option = search_params(
             ctx.command.params, VerbosityOption, include_subclasses=False
         )
-        return verbosity_option.default if verbosity_option else DEFAULT_LEVEL_NAME
+        return (
+            verbosity_option.default  # type: ignore[union-attr, return-value]
+            if verbosity_option
+            else DEFAULT_LEVEL_NAME
+        )
 
     def get_help_record(self, ctx: Context) -> tuple[str, str] | None:
         """Dynamiccaly generates the default help message.
@@ -511,7 +515,7 @@ class VerboseOption(ExtraVerbosity):
         """
         help_message_patch = nullcontext()
         if self.help is None:
-            help_message_patch = patch.object(
+            help_message_patch = patch.object(  # type:ignore[assignment]
                 self,
                 "help",
                 (
@@ -523,7 +527,12 @@ class VerboseOption(ExtraVerbosity):
         with help_message_patch:
             return super().get_help_record(ctx)
 
-    def set_level(self, ctx: Context, param: Parameter, value: int) -> None:
+    def set_level(
+        self,
+        ctx: Context,
+        param: Parameter,
+        value: int,  # type: ignore[override]
+    ) -> None:
         """Translate the number of steps to the target log level.
 
         The value passed to ``--verbose``/``-v`` will be saved in
