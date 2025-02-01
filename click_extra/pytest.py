@@ -266,12 +266,12 @@ default_debug_colored_logging = (
 )
 
 
+default_debug_uncolored_verbose_log = (
+    r"debug: Increased log verbosity by \d+ levels: from WARNING to [A-Z]+.\n"
+)
 default_debug_colored_verbose_log = (
     r"\x1b\[34mdebug\x1b\[0m: Increased log verbosity "
     r"by \d+ levels: from WARNING to [A-Z]+.\n"
-)
-default_debug_uncolored_verbose_log = (
-    r"debug: Increased log verbosity by \d+ levels: from WARNING to [A-Z]+.\n"
 )
 
 

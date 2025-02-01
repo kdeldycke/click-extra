@@ -138,8 +138,15 @@ def test_integrated_verbosity_options(invoke, args, expected_level):
         # Duplicate options with different levels: the last always win.
         ("--blah", "INFO", "-B", "DEBUG"),
         ("-B", "INFO", "--blah", "DEBUG"),
-        # ("--blah", "DEBUG", "-B", "INFO"),
-        # ("-B", "DEBUG", "--blah", "INFO"),
+        # Click's argument parser deduplicate options before invoking the callback, so the following cases fails.
+        pytest.param(
+            ("--blah", "DEBUG", "-B", "INFO"),
+            marks=pytest.mark.xfail(reason="Last value of the same option wins"),
+        ),
+        pytest.param(
+            ("-B", "DEBUG", "--blah", "INFO"),
+            marks=pytest.mark.xfail(reason="Last value of the same option wins"),
+        ),
     ),
 )
 def test_custom_verbosity_option_name(invoke, args):
@@ -226,7 +233,15 @@ def test_unrecognized_verbosity_level(invoke, cmd_decorator, cmd_type):
     # Skip click extra's commands, as verbosity option is already part of the default.
     command_decorators(no_groups=True, no_extra=True),
 )
-@pytest.mark.parametrize("option_decorator", (verbosity_option, verbosity_option()))
+@pytest.mark.parametrize(
+    "option_decorator",
+    (
+        verbosity_option,
+        verbosity_option(),
+        verbose_option,
+        verbose_option(),
+    ),
+)
 @pytest.mark.parametrize(
     ("args", "expected_level"),
     (
@@ -236,6 +251,10 @@ def test_unrecognized_verbosity_level(invoke, cmd_decorator, cmd_type):
         (("--verbosity", "WARNING"), "WARNING"),
         (("--verbosity", "INFO"), "INFO"),
         (("--verbosity", "DEBUG"), "DEBUG"),
+        (("-v",), "INFO"),
+        (("-v", "-v"), "DEBUG"),
+        (("-v", "-v", "-v"), "DEBUG"),
+        (("-v", "-v", "-v", "-v", "-v", "-v"), "DEBUG"),
     ),
 )
 def test_standalone_option_default_logger(
@@ -265,6 +284,12 @@ def test_standalone_option_default_logger(
         logging.error("my error message.")
         logging.critical("my critical message.")
 
+    logging_option = logging_cli2.params[0]
+    if args and not set(logging_option.opts).intersection(args):
+        pytest.skip(
+            reason=f"Test case for {' '.join(args)!r} does not apply to {logging_option}"
+        )
+
     result = invoke(logging_cli2, args, color=True)
     assert result.exit_code == 0
     assert result.stdout == "It works!\n"
@@ -286,7 +311,6 @@ def test_standalone_option_default_logger(
 
     messages = (
         (
-            rf"{default_debug_colored_logging}"
             r"\x1b\[34mdebug\x1b\[0m: my random message.\n"
             r"\x1b\[34mdebug\x1b\[0m: my debug message.\n"
         ),
@@ -301,7 +325,10 @@ def test_standalone_option_default_logger(
     log_records = r"".join(messages[-level_index - 1 :])
 
     if expected_level == "DEBUG":
-        log_records += default_debug_colored_log_end
+        log_start = default_debug_colored_logging
+        if "-v" in args:
+            log_start += default_debug_colored_verbose_log
+        log_records = log_start + log_records + default_debug_colored_log_end
     assert re.fullmatch(log_records, result.stderr)
 
 
