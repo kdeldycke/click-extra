@@ -331,8 +331,8 @@ class ExtraVerbosity(ExtraOption):
         reconcile the verbosity level selected by the competing logger options
         implemented below:
 
-            - ``--verbosity``
-            - ``--verbose``/``-v``
+        - ``--verbosity``
+        - ``--verbose``/``-v``
     """
 
     logger_name: str
@@ -377,9 +377,9 @@ class ExtraVerbosity(ExtraOption):
         reconcile the multiple values provided by different options. In case of a
         conflict, the highest versbosity level always takes precedence.
 
-        Save in ``ctx.meta["click_extra.verbosity_level"]`` the final reconciled level
-        chosen for the logger. This context property served as a kind of global state
-        shared by all verbosity-related options.
+        The final reconciled level chosen for the logger will be saved in
+        ``ctx.meta["click_extra.verbosity_level"]``. This context property served as a
+        kind of global state shared by all verbosity-related options.
         """
         # Skip setting the level if another option has already sets it or is at an equal
         # or lower level.
@@ -442,7 +442,9 @@ class VerbosityOption(ExtraVerbosity):
     """``--verbosity`` option to set the the log level of :class:`ExtraVerbosity`."""
 
     def set_level(self, ctx: Context, param: Parameter, value: str) -> None:
-        """Save in ``ctx.meta["click_extra.verbosity"]`` the value passed to ``--verbosity``."""
+        """The value passed to ``--verbosity`` will be saved in
+        ``ctx.meta["click_extra.verbosity"]``.
+        """
         ctx.meta["click_extra.verbosity"] = value
         super().set_level(ctx, param, value)
 
@@ -471,14 +473,16 @@ class VerbosityOption(ExtraVerbosity):
 
 
 class VerboseOption(ExtraVerbosity):
-    """``--verbose``/``-v``` option to increase the log level of :class:`ExtraVerbosity` by a number of steps.
+    """``--verbose``/``-v``` option to increase the log level of :class:`ExtraVerbosity`
+    by a number of steps.
 
     If ``-v`` is passed to a CLI, then it will increase the verbosity level by one
     step. The option can be provided multiple times by the user. So if ``-vv`` (or
     `-v -v`) is passed, the verbosity will be increase by 2 levels.
 
     The default base-level from which we start incrementing is sourced from
-    :attr:`VerbosityOption.default`. So with ``--verbosity`` default set to ``WARNING``:
+    :attr:`VerbosityOption.default`. So with ``--verbosity``'s default set to
+    ``WARNING``:
 
     - ``-v`` will increase the level to ``INFO``,
     - ``-vv`` will increase the level to ``DEBUG``,
@@ -522,7 +526,8 @@ class VerboseOption(ExtraVerbosity):
     def set_level(self, ctx: Context, param: Parameter, value: int) -> None:
         """Translate the number of steps to the target log level.
 
-        Save in ``ctx.meta["click_extra.verbose"]`` the value passed to ``--verbose``/``-v``.
+        The value passed to ``--verbose``/``-v`` will be saved in
+        ``ctx.meta["click_extra.verbose"]``.
         """
         ctx.meta["click_extra.verbose"] = value
 

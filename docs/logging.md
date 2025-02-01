@@ -47,6 +47,12 @@ Notice how, in the output above, each logger's own level is printed as debug mes
 And how they're all first set to `DEBUG` at the beginning of the command, then reset back to their default `WARNING` at the end.
 ```
 
+```{important}
+Besides `--verbosity`, there is another [`-v`/`--verbose` option](#click_extra.logging.VerboseOption). The later works relative to `--verbosity`, and can be used to increase the level in steps, simply by repeating it.
+
+In the rest of this documentation, we will mainly focus on the canonical `--verbosity` option to keep things simple (logging is already complicated enough...).
+```
+
 ### Standalone option
 
 The verbosity option can be used independently of `@extra_command`, and you can attach it to a vanilla Click command:
@@ -490,7 +496,7 @@ You can get the name of the current verbosity level from the context or the logg
     @verbosity_option
     @pass_context
     def vanilla_command(ctx):
-        level_from_context = ctx.meta["click_extra.verbosity"]
+        level_from_context = ctx.meta["click_extra.verbosity_level"]
 
         level_from_logger = logging._levelToName[logging.getLogger().getEffectiveLevel()]
 
