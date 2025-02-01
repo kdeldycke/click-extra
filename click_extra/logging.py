@@ -316,13 +316,23 @@ def new_extra_logger(
 
 
 class ExtraVerbosity(ExtraOption):
-    """A base class implementing all the common halpers to manipulated logger's verbosity.
+    """A base class implementing all the common halpers to manipulated logger's
+    verbosity.
 
-    It is not intended to be used as-is, but is a central place to reconcile the verbosity level
-    to be set by the competing verbosity options implemented below:
+    Sets the level of the provided logger. If no logger is provided, sets the level of
+    the global ``root`` logger.
 
-    - ``--verbosity``
-    - ``--verbose``/``-v``
+    .. important::
+        The internal ``click_extra`` logger will be aligned to the level set through
+        this class.
+
+    .. caution::
+        This class is not intended to be used as-is. It is an internal place to
+        reconcile the verbosity level selected by the competing logger options
+        implemented below:
+
+            - ``--verbosity``
+            - ``--verbose``/``-v``
     """
 
     logger_name: str
@@ -343,9 +353,13 @@ class ExtraVerbosity(ExtraOption):
             yield getLogger(name)
 
     def reset_loggers(self) -> None:
-        """Forces all loggers managed by the option to be reset to :const:`DEFAULT_LEVEL`.
+        """Forces all loggers managed by the option to be reset to
+        :const:`DEFAULT_LEVEL`.
 
-        Loggers are reset in reverse order to ensure the internal logger is reset last.
+        .. important::
+            Loggers are reset in reverse order to ensure the internal logger is changed
+            last. That way the internal ``click_extra`` logger can report its ongoing
+            logger-altering operations while using the logging facilities itself.
 
         .. danger::
             Resetting loggers is extremely important for unittests. Because they're
@@ -356,20 +370,20 @@ class ExtraVerbosity(ExtraOption):
             getLogger("click_extra").debug(f"Reset {logger} to {DEFAULT_LEVEL_NAME}.")
             logger.setLevel(DEFAULT_LEVEL)
 
-    def set_levels(self, ctx: Context, param: Parameter, value: str) -> None:
+    def set_level(self, ctx: Context, param: Parameter, value: str) -> None:
         """Set level of all loggers configured on the option.
 
-        Save the verbosity level name in the context.
+        All verbosity-related options are attached to this callback, so that's where we
+        reconcile the multiple values provided by different options. In case of a
+        conflict, the highest versbosity level always takes precedence.
 
-        Also prints the chosen value as a debug message via the internal
-        ``click_extra`` logger.
+        Save in ``ctx.meta["click_extra.verbosity_level"]`` the final reconciled level
+        chosen for the logger. This context property served as a kind of global state
+        shared by all verbosity-related options.
         """
-        # If any of the verbosity-related option has already set the level, do not alter it.
-        # So in a way, this property in the context serves as a kind of global state shared by
-        # all verbosity options.
-
-        current_level = ctx.meta.get("click_extra.verbosity")
-
+        # Skip setting the level if another option has already sets it or is at an equal
+        # or lower level.
+        current_level = ctx.meta.get("click_extra.verbosity_level")
         if current_level:
             levels = tuple(LOG_LEVELS)
             current_level_index = levels.index(current_level)
@@ -377,7 +391,7 @@ class ExtraVerbosity(ExtraOption):
             if new_level_index <= current_level_index:
                 return
 
-        ctx.meta["click_extra.verbosity"] = value
+        ctx.meta["click_extra.verbosity_level"] = value
 
         for logger in self.all_loggers:
             logger.setLevel(LOG_LEVELS[value])
@@ -389,8 +403,18 @@ class ExtraVerbosity(ExtraOption):
         self,
         param_decls: Sequence[str] | None = None,
         default_logger: Logger | str = logging.root.name,
+        expose_value=False,
+        is_eager=True,
         **kwargs,
     ) -> None:
+        """Set up a verbosity-altering option.
+
+        :param default_logger: If a :class:`logging.Logger` object is provided, that's
+            the instance to which we will set the level to. If the parameter is a string
+            and is found in the global registry, we will use it as the logger's ID.
+            Otherwise, we will create a new logger with :func:`new_extra_logger`
+            Default to the global ``root`` logger.
+        """
         # A logger object has been provided, fetch its name.
         if isinstance(default_logger, Logger):
             self.logger_name = default_logger.name
@@ -404,27 +428,23 @@ class ExtraVerbosity(ExtraOption):
             logger = new_extra_logger(name=default_logger)
             self.logger_name = logger.name
 
-        kwargs.setdefault("callback", self.set_levels)
+        kwargs.setdefault("callback", self.set_level)
 
         super().__init__(
             param_decls=param_decls,
+            expose_value=expose_value,
+            is_eager=is_eager,
             **kwargs,
         )
 
 
 class VerbosityOption(ExtraVerbosity):
-    """A pre-configured ``--verbosity``/``-v`` option.
+    """``--verbosity`` option to set the the log level of :class:`ExtraVerbosity`."""
 
-    Sets the level of the provided logger. If no logger is provided, sets the level of
-    the global ``root`` logger.
-
-    The selected verbosity level name is made available in the context in
-    ``ctx.meta["click_extra.verbosity"]``.
-
-    .. important::
-        The internal ``click_extra`` logger level will be aligned to the value set via
-        this option.
-    """
+    def set_level(self, ctx: Context, param: Parameter, value: str) -> None:
+        """Save in ``ctx.meta["click_extra.verbosity"]`` the value passed to ``--verbosity``."""
+        ctx.meta["click_extra.verbosity"] = value
+        super().set_level(ctx, param, value)
 
     def __init__(
         self,
@@ -433,19 +453,9 @@ class VerbosityOption(ExtraVerbosity):
         default: str = DEFAULT_LEVEL_NAME,
         metavar="LEVEL",
         type=Choice(LOG_LEVELS, case_sensitive=False),  # type: ignore[arg-type]
-        expose_value=False,
         help=_("Either {log_levels}.").format(log_levels=", ".join(LOG_LEVELS)),
-        is_eager=True,
         **kwargs,
     ) -> None:
-        """Set up the verbosity option.
-
-        :param default_logger: If a :class:`logging.Logger` object is provided, that's
-            the instance to which we will set the level to. If the parameter is a string
-            and is found in the global registry, we will use it as the logger's ID.
-            Otherwise, we will create a new logger with :func:`new_extra_logger`
-            Default to the global ``root`` logger.
-        """
         if not param_decls:
             param_decls = ("--verbosity",)
 
@@ -455,32 +465,65 @@ class VerbosityOption(ExtraVerbosity):
             default=default,
             metavar=metavar,
             type=type,
-            expose_value=expose_value,
             help=help,
-            is_eager=is_eager,
             **kwargs,
         )
 
 
 class VerboseOption(ExtraVerbosity):
-    """Increase the log level of :class:`VerbosityOption` by a number of step levels.
+    """``--verbose``/``-v``` option to increase the log level of :class:`ExtraVerbosity` by a number of steps.
 
-    By default, it will not affect the level set by the ``--verbosity`` parameter.
+    If ``-v`` is passed to a CLI, then it will increase the verbosity level by one
+    step. The option can be provided multiple times by the user. So if ``-vv`` (or
+    `-v -v`) is passed, the verbosity will be increase by 2 levels.
 
-    But if ``-v`` is passed, then it will increase the ``--verbosity``'s level by one level.
-    The option can be provided multiple times by the user. So if ``-vv`` is passed, then the level
-    of ``--verbosity`` will be increase by 2 steps.
+    The default base-level from which we start incrementing is sourced from
+    :attr:`VerbosityOption.default`. So with ``--verbosity`` default set to ``WARNING``:
 
-    With ``--verbosity`` defaults set to ``WARNING``:
-
-    - ``-v`` will increase the level to ``INFO``.
-    - ``-vv`` will increase the level to ``DEBUG``.
-    - Any number of repetition above that point will be set to the maximum level, so for example ``-vvvvv`` will be capped at ``DEBUG``.
-
-    If default's ``--verbosity`` is changed to a lower level than ``WARNING``, ``-v`` effect will change its base level accordingly.
+    - ``-v`` will increase the level to ``INFO``,
+    - ``-vv`` will increase the level to ``DEBUG``,
+    - any number of repetition above that point will be set to the maximum level, so for
+      ``-vvvvv`` for example will be capped at ``DEBUG``.
     """
 
-    def set_levels(self, ctx: Context, param: Parameter, value: int) -> None:
+    def get_base_level(self, ctx: Context) -> str:
+        """Returns the default base-level from which the option will start incrementing.
+
+        We try first to get the default level from any instance of
+        :class:`VerbosityOption` defined on the current command. If none is found, it's
+        because the ``--verbose`` option is used standalone. In which case we defaults to
+        :const:`DEFAULT_LEVEL_NAME`.
+        """
+        verbosity_option = search_params(
+            ctx.command.params, VerbosityOption, include_subclasses=False
+        )
+        return verbosity_option.default if verbosity_option else DEFAULT_LEVEL_NAME
+
+    def get_help_record(self, ctx: Context) -> tuple[str, str] | None:
+        """Dynamiccaly generates the default help message.
+
+        We need that patch because :meth:`get_base_level` depends on the context, so we
+        cannot hard-code the help message as :meth:`VerboseOption.__init__` default.
+        """
+        help_message_patch = nullcontext()
+        if self.help is None:
+            help_message_patch = patch.object(
+                self,
+                "help",
+                (
+                    f"Increase the default {self.get_base_level(ctx)} verbosity by one "
+                    "level for each additional repetition of the option."
+                ),
+            )
+
+        with help_message_patch:
+            return super().get_help_record(ctx)
+
+    def set_level(self, ctx: Context, param: Parameter, value: int) -> None:
+        """Translate the number of steps to the target log level.
+
+        Save in ``ctx.meta["click_extra.verbose"]`` the value passed to ``--verbose``/``-v``.
+        """
         ctx.meta["click_extra.verbose"] = value
 
         # No -v option has been called, skip meddling with log levels.
@@ -488,53 +531,39 @@ class VerboseOption(ExtraVerbosity):
             return
 
         levels = tuple(LOG_LEVELS)
-
-        # Get default verbosity from the --verbosity option.
-        verbosity_option = search_params(
-            ctx.command.params, VerbosityOption, include_subclasses=False
-        )
-        # If no --verbosity option found, it's because we are use the --verbose option alone. So defaults to
-        # the global default.
-        default_level = (
-            verbosity_option.default if verbosity_option else DEFAULT_LEVEL_NAME
-        )
-
-        default_level_index = levels.index(default_level)
+        base_level = self.get_base_level(ctx)
+        default_level_index = levels.index(base_level)
 
         # Cap new index to the last, verbosier level.
         new_level_index = min(default_level_index + value, len(levels) - 1)
         new_level = levels[new_level_index]
 
-        super().set_levels(ctx, param, new_level)
+        super().set_level(ctx, param, new_level)
 
+        # Print the message after effectively altering the log level so we have a chance
+        # to see it at DEBUG-level.
         getLogger("click_extra").debug(
-            f"Increased log verbosity by {value} levels: from {default_level} to {new_level}."
+            f"Increased log verbosity by {value} levels: "
+            f"from {base_level} to {new_level}."
         )
 
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
         count: bool = True,
-        expose_value=False,
-        help=_(
-            f"Increase the default {DEFAULT_LEVEL_NAME} verbosity by one level for each additional repetition of the option."
-        ),
-        is_eager=True,
         **kwargs,
     ) -> None:
         if not param_decls:
             param_decls = ("--verbose", "-v")
 
-        # Force type and default to align them with counting option original behavior:
-        # https://github.com/pallets/click/blob/5dd628854c0b61bbdc07f22004c5da8fa8ee9481/src/click/core.py#L2612-L2618
+        # Force type and default to have them aligned with the counting option's
+        # original behavior:
+        # https://github.com/pallets/click/blob/5dd6288/src/click/core.py#L2612-L2618
         kwargs["type"] = IntRange(min=0)
         kwargs["default"] = 0
 
         super().__init__(
             param_decls=param_decls,
             count=count,
-            expose_value=expose_value,
-            help=help,
-            is_eager=is_eager,
             **kwargs,
         )
