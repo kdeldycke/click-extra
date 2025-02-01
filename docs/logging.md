@@ -4,7 +4,7 @@ The Python's standard library [`logging` module](https://docs.python.org/3/libra
 
 ## Colored verbosity
 
-`--verbosity`/`-v` is a pre-configured option which allow users of your CLI to set the log level of a [`logging.Logger` instance](https://docs.python.org/3/library/logging.html#logger-objects).
+`--verbosity` is a pre-configured option which allow users of your CLI to set the log level of a [`logging.Logger` instance](https://docs.python.org/3/library/logging.html#logger-objects).
 
 Default behavior is to:
 
@@ -27,7 +27,7 @@ This option is part of `@extra_command` and `@extra_group` by default:
     def my_cli():
         echo("It works!")
 
-See that ``--verbosity``/``-v`` is featured in the help screen:
+See that ``--verbosity`` is featured in the help screen:
 
 .. click:run::
    result = invoke(my_cli, args=["--help"])
@@ -65,7 +65,7 @@ The verbosity option can be used independently of `@extra_command`, and you can 
 
 .. click:run::
    result = invoke(vanilla_command, args=["--help"])
-   assert "-v, --verbosity LEVEL  Either CRITICAL, ERROR, WARNING, INFO, DEBUG." in result.stdout, "missing --verbosity option"
+   assert "--verbosity LEVEL  Either CRITICAL, ERROR, WARNING, INFO, DEBUG." in result.stdout, "missing --verbosity option"
 
 .. click:run::
    result = invoke(vanilla_command)
