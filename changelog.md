@@ -1,9 +1,6 @@
 # Changelog
 
-## [4.14.0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v4.13.2...main)
-
-> [!IMPORTANT]
-> This version is not released yet and is under active development.
+## [4.14.0 (2025-02-01)](https://github.com/kdeldycke/click-extra/compare/v4.13.2...v4.14.0)
 
 - Add a new `--verbose` option on `@extra_command` and `@extra_group` to increase the verbosity level for each additional repetition.
 - Add new `@verbose_option` pre-configured decorator.
