@@ -24,10 +24,8 @@ from pathlib import Path
 import click
 import pytest
 from extra_platforms import is_windows
-from pytest_cases import fixture
 
 from click_extra import Style, command, echo, pass_context, secho, style
-from click_extra.pytest import command_decorators
 from click_extra.testing import ExtraCliRunner, env_copy
 
 
@@ -115,34 +113,6 @@ def run_cli1(ctx):
     echo(f"click.utils.should_strip_ansi = {click.utils.should_strip_ansi()!r}")
 
 
-@fixture
-@pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
-def color_cli(cmd_decorator):
-    @cmd_decorator
-    @pass_context
-    def run_cli2(ctx):
-        """https://github.com/pallets/click/issues/2111."""
-        echo(Style(fg="green")("echo()"))
-        echo(Style(fg="green")("echo(color=None)"), color=None)
-        echo(
-            Style(fg="red")("echo(color=True) bypass invoke.color = False"),
-            color=True,
-        )
-        echo(Style(fg="green")("echo(color=False)"), color=False)
-
-        secho("secho()", fg="green")
-        secho("secho(color=None)", fg="green", color=None)
-        secho("secho(color=True) bypass invoke.color = False", fg="red", color=True)
-        secho("secho(color=False)", fg="green", color=False)
-
-        logging.getLogger("click_extra").warning("Is the logger colored?")
-
-        print(style("print() bypass Click.", fg="blue"))
-
-        echo(f"Context.color = {ctx.color!r}")
-        echo(f"click.utils.should_strip_ansi = {click.utils.should_strip_ansi()!r}")
-
-    return run_cli2
 
 
 def check_default_colored_rendering(result):
