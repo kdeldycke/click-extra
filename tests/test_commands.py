@@ -27,7 +27,6 @@ from textwrap import dedent
 import click
 import cloup
 import pytest
-from pytest_cases import fixture
 
 import click_extra
 from click_extra import echo, option, option_group, pass_context
@@ -79,7 +78,7 @@ def test_module_root_declarations():
     assert expected_members == click_extra_members
 
 
-@fixture
+@pytest.fixture
 def all_command_cli():
     """A CLI that is mixing all variations and flavors of subcommands."""
 
