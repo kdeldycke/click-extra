@@ -13,6 +13,7 @@
 - Move `stream_handler_class` and `formatter_class` arguments from `new_extra_logger` to `extraBasicConfig`.
 - Add new `file_handler_class` argument to `extraBasicConfig`.
 - Fix upload of Python package to GitHub release on tagging.
+- Remove dependency on `pytest-cases`.
 
 ## [4.13.2 (2025-01-28)](https://github.com/kdeldycke/click-extra/compare/v4.13.1...v4.13.2)
 

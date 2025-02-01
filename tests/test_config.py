@@ -23,7 +23,6 @@ from textwrap import dedent
 import click
 import pytest
 from boltons.pathutils import shrinkuser
-from pytest_cases import fixture
 
 from click_extra import (
     command,
@@ -291,7 +290,7 @@ all_config_formats = pytest.mark.parametrize(
 )
 
 
-@fixture
+@pytest.fixture
 def simple_config_cli():
     @extra_group(context_settings={"show_envvar": True})
     @option("--dummy-flag/--no-flag")
