@@ -23,7 +23,6 @@ from textwrap import dedent
 
 import click
 import pytest
-from pytest_cases import parametrize
 
 from click_extra import echo
 from click_extra.decorators import extra_command, verbose_option, verbosity_option
@@ -227,7 +226,7 @@ def test_unrecognized_verbosity_level(invoke, cmd_decorator, cmd_type):
     # Skip click extra's commands, as verbosity option is already part of the default.
     command_decorators(no_groups=True, no_extra=True),
 )
-@parametrize("option_decorator", (verbosity_option, verbosity_option()))
+@pytest.mark.parametrize("option_decorator", (verbosity_option, verbosity_option()))
 @pytest.mark.parametrize(
     ("args", "expected_level"),
     (

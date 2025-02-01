@@ -24,7 +24,6 @@ from textwrap import dedent
 import click
 import pytest
 from extra_platforms import is_windows
-from pytest_cases import parametrize
 from tabulate import tabulate
 
 from click_extra import (
@@ -220,7 +219,7 @@ def envvars_test_cases():
     return params
 
 
-@parametrize("cmd_decorator, envvars, expected_flag", envvars_test_cases())
+@pytest.mark.parametrize("cmd_decorator, envvars, expected_flag", envvars_test_cases())
 def test_auto_envvar_parsing(invoke, cmd_decorator, envvars, expected_flag):
     """This test highlights the way Click recognize and parse envvars.
 
@@ -255,7 +254,7 @@ class Custom(ParamType):
         return value
 
 
-@parametrize("option_decorator", (show_params_option, show_params_option()))
+@pytest.mark.parametrize("option_decorator", (show_params_option, show_params_option()))
 def test_params_auto_types(invoke, option_decorator):
     """Check parameters types and structure are properly derived from CLI."""
 
@@ -393,8 +392,8 @@ def test_params_auto_types(invoke, option_decorator):
 
 
 # Skip click extra's commands, as show_params option is already part of the default.
-@parametrize("cmd_decorator", command_decorators(no_extra=True))
-@parametrize("option_decorator", (show_params_option, show_params_option()))
+@pytest.mark.parametrize("cmd_decorator", command_decorators(no_extra=True))
+@pytest.mark.parametrize("option_decorator", (show_params_option, show_params_option()))
 def test_standalone_show_params_option(invoke, cmd_decorator, option_decorator):
     @cmd_decorator
     @option_decorator

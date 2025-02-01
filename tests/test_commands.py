@@ -27,7 +27,7 @@ from textwrap import dedent
 import click
 import cloup
 import pytest
-from pytest_cases import fixture, parametrize
+from pytest_cases import fixture
 
 import click_extra
 from click_extra import echo, option, option_group, pass_context
@@ -272,7 +272,7 @@ def test_integrated_version_value(invoke, all_command_cli):
     assert result.stdout == "command-cli1, version 2021.10.08\n"
 
 
-@parametrize(
+@pytest.mark.parametrize(
     "cmd_decorator",
     command_decorators(
         no_click=True,

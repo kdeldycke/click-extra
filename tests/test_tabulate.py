@@ -19,7 +19,7 @@ from __future__ import annotations
 import pytest
 import tabulate
 from extra_platforms import is_windows
-from pytest_cases import fixture, parametrize
+from pytest_cases import fixture
 
 # We use vanilla click primitives here to demonstrate the full-compatibility.
 from click_extra import echo, pass_context
@@ -514,8 +514,10 @@ def test_recognized_modes():
 
 
 @fixture
-@parametrize("cmd_decorator", command_decorators(no_groups=True))
-@parametrize("option_decorator", (table_format_option, table_format_option()))
+@pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
+@pytest.mark.parametrize(
+    "option_decorator", (table_format_option, table_format_option())
+)
 def table_cli(cmd_decorator, option_decorator):
     @cmd_decorator
     @option_decorator

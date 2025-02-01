@@ -22,7 +22,7 @@ import re
 from textwrap import dedent
 from time import sleep
 
-from pytest_cases import parametrize
+import pytest
 
 from click_extra import echo
 from click_extra.decorators import extra_group, timer_option
@@ -46,7 +46,7 @@ def slow_subcommand():
     echo("End of slow subcommand")
 
 
-@parametrize(
+@pytest.mark.parametrize(
     "subcommand_id, time_min",
     (
         ("fast", 0.01),
@@ -67,7 +67,7 @@ def test_integrated_time_option(invoke, subcommand_id, time_min):
     assert time_min < float(group.groupdict()["time"]) < 40
 
 
-@parametrize("subcommand_id", ("fast", "slow"))
+@pytest.mark.parametrize("subcommand_id", ("fast", "slow"))
 def test_integrated_notime_option(invoke, subcommand_id):
     result = invoke(integrated_timer, "--no-time", f"{subcommand_id}-subcommand")
     assert result.exit_code == 0
@@ -75,12 +75,12 @@ def test_integrated_notime_option(invoke, subcommand_id):
     assert result.stdout == f"Start of CLI\nEnd of {subcommand_id} subcommand\n"
 
 
-@parametrize(
+@pytest.mark.parametrize(
     "cmd_decorator",
     # Skip click extra's commands, as timer option is already part of the default.
     command_decorators(no_groups=True, no_extra=True),
 )
-@parametrize("option_decorator", (timer_option, timer_option()))
+@pytest.mark.parametrize("option_decorator", (timer_option, timer_option()))
 def test_standalone_timer_option(invoke, cmd_decorator, option_decorator):
     @cmd_decorator
     @option_decorator

@@ -30,7 +30,6 @@ import re
 import click
 import pytest
 from boltons.strutils import strip_ansi
-from pytest_cases import parametrize
 
 from click_extra import ExtraVersionOption, Style, __version__, echo, pass_context
 from click_extra.decorators import (
@@ -50,8 +49,10 @@ from .conftest import skip_windows_colors
 
 
 @skip_windows_colors
-@parametrize("cmd_decorator", command_decorators())
-@parametrize("option_decorator", (extra_version_option, extra_version_option()))
+@pytest.mark.parametrize("cmd_decorator", command_decorators())
+@pytest.mark.parametrize(
+    "option_decorator", (extra_version_option, extra_version_option())
+)
 def test_standalone_version_option(invoke, cmd_decorator, option_decorator):
     @cmd_decorator
     @option_decorator
@@ -67,8 +68,10 @@ def test_standalone_version_option(invoke, cmd_decorator, option_decorator):
 
 
 @skip_windows_colors
-@parametrize("cmd_decorator", command_decorators())
-@parametrize("option_decorator", (extra_version_option, extra_version_option()))
+@pytest.mark.parametrize("cmd_decorator", command_decorators())
+@pytest.mark.parametrize(
+    "option_decorator", (extra_version_option, extra_version_option())
+)
 def test_debug_output(invoke, cmd_decorator, option_decorator):
     @cmd_decorator
     @verbosity_option
@@ -108,8 +111,8 @@ def test_set_version(invoke):
 
 
 @skip_windows_colors
-@parametrize("cmd_decorator", command_decorators(no_groups=True))
-@parametrize(
+@pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
+@pytest.mark.parametrize(
     "message, regex_stdout",
     (
         (
@@ -154,7 +157,7 @@ def test_custom_message(invoke, cmd_decorator, message, regex_stdout):
     assert re.fullmatch(regex_stdout, result.output)
 
 
-@parametrize("cmd_decorator", command_decorators(no_groups=True))
+@pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
 def test_style_reset(invoke, cmd_decorator):
     @cmd_decorator
     @extra_version_option(
@@ -172,7 +175,7 @@ def test_style_reset(invoke, cmd_decorator):
 
 
 @skip_windows_colors
-@parametrize("cmd_decorator", command_decorators(no_groups=True))
+@pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
 def test_custom_message_style(invoke, cmd_decorator):
     @cmd_decorator
     @extra_version_option(
@@ -195,7 +198,7 @@ def test_custom_message_style(invoke, cmd_decorator):
     )
 
 
-@parametrize("cmd_decorator", command_decorators(no_groups=True))
+@pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
 def test_context_meta(invoke, cmd_decorator):
     @cmd_decorator
     @extra_version_option

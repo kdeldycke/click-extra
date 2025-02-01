@@ -24,7 +24,7 @@ from pathlib import Path
 import click
 import pytest
 from extra_platforms import is_windows
-from pytest_cases import fixture, parametrize
+from pytest_cases import fixture
 
 from click_extra import Style, command, echo, pass_context, secho, style
 from click_extra.pytest import command_decorators
@@ -116,7 +116,7 @@ def run_cli1(ctx):
 
 
 @fixture
-@parametrize("cmd_decorator", command_decorators(no_groups=True))
+@pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
 def color_cli(cmd_decorator):
     @cmd_decorator
     @pass_context

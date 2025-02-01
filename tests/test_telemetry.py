@@ -18,14 +18,16 @@ from __future__ import annotations
 
 from textwrap import dedent
 
-from pytest_cases import parametrize
+import pytest
 
 from click_extra import command, echo, pass_context, telemetry_option
 from click_extra.pytest import command_decorators
 
 
-@parametrize("cmd_decorator", command_decorators(no_groups=True, no_extra=True))
-@parametrize("option_decorator", (telemetry_option, telemetry_option()))
+@pytest.mark.parametrize(
+    "cmd_decorator", command_decorators(no_groups=True, no_extra=True)
+)
+@pytest.mark.parametrize("option_decorator", (telemetry_option, telemetry_option()))
 def test_standalone_telemetry_option(invoke, cmd_decorator, option_decorator):
     @cmd_decorator
     @option_decorator

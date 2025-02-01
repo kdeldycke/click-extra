@@ -25,7 +25,6 @@ import click
 import cloup
 import pytest
 from boltons.strutils import strip_ansi
-from pytest_cases import parametrize
 
 from click_extra import (
     Color,
@@ -508,7 +507,7 @@ def test_keyword_collection(invoke):
 
 
 @skip_windows_colors
-@parametrize("option_decorator", (color_option, color_option()))
+@pytest.mark.parametrize("option_decorator", (color_option, color_option()))
 @pytest.mark.parametrize(
     ("param", "expecting_colors"),
     (
@@ -823,12 +822,12 @@ def test_substring_highlighting(original, substrings, expected, ignore_case):
     )
 
 
-@parametrize(
+@pytest.mark.parametrize(
     "cmd_decorator, cmd_type",
     # Skip click extra's commands, as help option is already part of the default.
     command_decorators(no_extra=True, with_types=True),
 )
-@parametrize("option_decorator", (help_option, help_option()))
+@pytest.mark.parametrize("option_decorator", (help_option, help_option()))
 def test_standalone_help_option(invoke, cmd_decorator, cmd_type, option_decorator):
     @cmd_decorator
     @option_decorator

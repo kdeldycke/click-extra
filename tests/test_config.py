@@ -23,7 +23,7 @@ from textwrap import dedent
 import click
 import pytest
 from boltons.pathutils import shrinkuser
-from pytest_cases import fixture, parametrize
+from pytest_cases import fixture
 
 from click_extra import (
     command,
@@ -276,7 +276,7 @@ DUMMY_XML_FILE, DUMMY_XML_DATA = (
     },
 )
 
-all_config_formats = parametrize(
+all_config_formats = pytest.mark.parametrize(
     ("conf_name, conf_text, conf_data"),
     (
         pytest.param(f"configuration.{ext}", content, data, id=ext)
