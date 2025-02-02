@@ -1,5 +1,10 @@
 # Changelog
 
+## [4.14.2 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v4.14.1...main)
+
+> [!IMPORTANT]
+> This version is not released yet and is under active development.
+
 ## [4.14.1 (2025-02-02)](https://github.com/kdeldycke/click-extra/compare/v4.14.0...v4.14.1)
 
 - Fix upload of Python package to GitHub release on tagging.
