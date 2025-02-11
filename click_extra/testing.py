@@ -169,23 +169,6 @@ def env_copy(extend: EnvVars | None = None) -> EnvVars | None:
     return env_copy
 
 
-def run_cmd(
-    *args: str,
-    extra_env: EnvVars | None = None,
-    print_output: bool = True,
-) -> tuple[int, str, str]:
-    """Run a system command, print output and return results."""
-    result = subprocess.run(
-        args,
-        capture_output=True,
-        encoding="utf-8",
-        env=cast("subprocess._ENV", env_copy(extra_env)),
-    )
-    if print_output:
-        print_cli_run(args, result, env=extra_env)
-    return result.returncode, result.stdout, result.stderr
-
-
 INVOKE_ARGS = set(inspect.getfullargspec(click.testing.CliRunner.invoke).args)
 """Parameter IDs of ``click.testing.CliRunner.invoke()``.
 
