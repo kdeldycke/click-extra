@@ -5,6 +5,8 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Remove unused `click_extra.testing.run_cmd`.
+
 ## [4.14.1 (2025-02-02)](https://github.com/kdeldycke/click-extra/compare/v4.14.0...v4.14.1)
 
 - Fix upload of Python package to GitHub release on tagging.
