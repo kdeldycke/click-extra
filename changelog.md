@@ -5,6 +5,7 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Extract rendering part of the `print_cli_run()` helper to `render_cli_run()`.
 - Remove unused `click_extra.testing.run_cmd`.
 
 ## [4.14.1 (2025-02-02)](https://github.com/kdeldycke/click-extra/compare/v4.14.0...v4.14.1)

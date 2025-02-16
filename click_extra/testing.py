@@ -100,12 +100,12 @@ def format_cli_prompt(cmd_args: Iterable[str], extra_env: EnvVars | None = None)
     return f"{PROMPT}{extra_env_string}{cmd_str}"
 
 
-def print_cli_run(
+def render_cli_run(
     args: Iterable[str],
     result: click.testing.Result | subprocess.CompletedProcess,
     env: EnvVars | None = None,
-) -> None:
-    """Prints the full simulation of CLI execution, including output.
+) -> str:
+    """Generates the full simulation of CLI execution, including output.
 
     Mostly used to print debug traces to user or in test results.
     """
@@ -129,20 +129,28 @@ def print_cli_run(
         exit_code = result.returncode
 
     # Render the execution trace.
-    print()
-    print(prompt)
+    trace = prompt
     if output:
-        print(f"{PROMPT}{Style(fg=Color.blue)('<output>')} stream:")
-        print(indent(output, INDENT))
+        trace += f"{PROMPT}{Style(fg=Color.blue)('<output>')} stream:"
+        trace += indent(output, INDENT)
     if stdout:
-        print(f"{PROMPT}{Style(fg=Color.green)('<stdout>')} stream:")
-        print(indent(stdout, INDENT))
+        trace += f"{PROMPT}{Style(fg=Color.green)('<stdout>')} stream:"
+        trace += indent(stdout, INDENT)
     if stderr:
-        print(f"{PROMPT}{Style(fg=Color.red)('<stderr>')} stream:")
-        print(indent(stderr, INDENT))
+        trace += f"{PROMPT}{Style(fg=Color.red)('<stderr>')} stream:"
+        trace += indent(stderr, INDENT)
     if exit_code is not None:
-        print(f"{PROMPT}{Style(fg=Color.yellow)('Exit code:')} {exit_code}")
-    print()
+        trace += f"{PROMPT}{Style(fg=Color.yellow)('Exit code:')} {exit_code}"
+    return trace
+
+
+def print_cli_run(
+    args: Iterable[str],
+    result: click.testing.Result | subprocess.CompletedProcess,
+    env: EnvVars | None = None,
+) -> None:
+    """Prints the full simulation of CLI execution, including output."""
+    print(render_cli_run(args, result, env))
 
 
 def env_copy(extend: EnvVars | None = None) -> EnvVars | None:
