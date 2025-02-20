@@ -103,7 +103,7 @@ class ExtraStreamHandler(StreamHandler):
 
     _stream: IO[Any] = sys.stderr
 
-    @property  # type: ignore[override]
+    @property
     def stream(self) -> IO[Any]:
         """The stream to which logs are written.
 
