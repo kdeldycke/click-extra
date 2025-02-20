@@ -6,18 +6,13 @@ name: Changelog & versions
       - main
     paths:
       - changelog.md
-      - pyproject.toml
-      - .github/workflows/changelog.yaml
-      - .github/workflows/release.yaml
-
-# XXX Concurrency detection sucks and jobs gets killed randonmly.
-# concurrency:
-#   # Group workflow jobs so new commits cancels in-progress execution triggered by previous commits.
-#   # Source: https://mail.python.org/archives/list/pypa-committers@python.org/thread/PCBCQMJF64JGRBOX7E2EE4YLKHT4DI55/
-#   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
-#   cancel-in-progress: true
+      - "**/pyproject.toml"
+      - "*requirements.txt"
+      - "requirements/*.txt"
+      # Trigger on any workflow change to make sure version gets hard-coded everywhere.
+      - .github/workflows/*.yaml
 
 jobs:
 
   changelog:
-    uses: kdeldycke/workflows/.github/workflows/changelog.yaml@v4.13.4
+    uses: kdeldycke/workflows/.github/workflows/changelog.yaml@v4.14.2

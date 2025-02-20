@@ -7,17 +7,10 @@ name: Docs
     branches:
       - main
 
-# XXX Concurrency detection sucks and jobs gets killed randonmly.
-# concurrency:
-#   # Group workflow jobs so new commits cancels in-progress execution triggered by previous commits.
-#   # Source: https://mail.python.org/archives/list/pypa-committers@python.org/thread/PCBCQMJF64JGRBOX7E2EE4YLKHT4DI55/
-#   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
-#   cancel-in-progress: true
-
 jobs:
 
   docs:
-    uses: kdeldycke/workflows/.github/workflows/docs.yaml@v4.13.4
+    uses: kdeldycke/workflows/.github/workflows/docs.yaml@v4.14.2
 
   update-docs:
     needs: docs
@@ -26,14 +19,14 @@ jobs:
       - uses: actions/checkout@v4.2.2
       - name: Install uv
         run: |
-          python -m pip install -r https://raw.githubusercontent.com/kdeldycke/workflows/v4.13.4/requirements/uv.txt
+          python -m pip install -r https://raw.githubusercontent.com/kdeldycke/workflows/v4.14.2/requirements/uv.txt
       - name: Generate dynamic doc
         run: |
           uv --no-progress run --frozen --extra pygments -m click_extra.docs_update
       - uses: peter-evans/create-pull-request@v7.0.6
         with:
           assignees: ${{ github.actor }}
-          commit-message: "[autofix] Regenerate documentation."
+          commit-message: "[autofix] Regenerate documentation"
           title: "[autofix] Regenerate documentation"
           body: >
             <details><summary><code>Workflow metadata</code></summary>
