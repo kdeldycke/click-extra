@@ -519,3 +519,6 @@ $RECYCLE.BIN/
 *.lnk
 
 # End of https://www.toptal.com/developers/gitignore/api/certificates,emacs,git,gpg,linux,macos,node,nohup,python,ssh,vim,virtualenv,visualstudiocode,windows
+
+junit.xml
+
