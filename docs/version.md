@@ -42,7 +42,7 @@ The default version message is the same as Click's default, but colored:
 ```
 
 ```{hint}
-In this example I have hard-coded the version to `1.2.3` for the sake of demonstration. In most cases, you do not need to force it. By default, the version will be automattically fetched from the `__version__` attribute of the module where the command is defined.
+In this example I have hard-coded the version to `1.2.3` for the sake of demonstration. In most cases, you do not need to force it. By default, the version will be automatically fetched from the `__version__` attribute of the module where the command is defined.
 ```
 
 ## Variables
