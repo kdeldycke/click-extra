@@ -1,9 +1,11 @@
 # Changelog
 
-## [4.14.3 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v4.14.2...main)
+## [4.14.4 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v4.14.3...main)
 
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
+
+## [4.14.3 (2025-02-23)](https://github.com/kdeldycke/click-extra/compare/v4.14.2...v4.14.3)
 
 ## [4.14.2 (2025-02-23)](https://github.com/kdeldycke/click-extra/compare/v4.14.1...v4.14.2)
 
