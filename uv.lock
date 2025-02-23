@@ -35,11 +35,11 @@ wheels = [
 
 [[package]]
 name = "boltons"
-version = "24.1.0"
+version = "25.0.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/84/76/dfc34232b3e88634025563f52a430be0838182647c063f99569086922554/boltons-24.1.0.tar.gz", hash = "sha256:4a49b7d57ee055b83a458c8682a2a6f199d263a8aa517098bda9bab813554b87", size = 240916 }
+sdist = { url = "https://files.pythonhosted.org/packages/63/54/71a94d8e02da9a865587fb3fff100cb0fc7aa9f4d5ed9ed3a591216ddcc7/boltons-25.0.0.tar.gz", hash = "sha256:e110fbdc30b7b9868cb604e3f71d4722dd8f4dcb4a5ddd06028ba8f1ab0b5ace", size = 246294 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b8/96/e44606e60a0c005ac5f2a641960a93ca8f449ebdce7479f9bc4f10bead6d/boltons-24.1.0-py3-none-any.whl", hash = "sha256:a1776d47fdc387fb730fba1fe245f405ee184ee0be2fb447dd289773a84aed3b", size = 192196 },
+    { url = "https://files.pythonhosted.org/packages/45/7f/0e961cf3908bc4c1c3e027de2794f867c6c89fb4916fc7dba295a0e80a2d/boltons-25.0.0-py3-none-any.whl", hash = "sha256:dc9fb38bf28985715497d1b54d00b62ea866eca3938938ea9043e254a3a6ca62", size = 194210 },
 ]
 
 [[package]]
@@ -196,7 +196,7 @@ typing = [
 
 [package.metadata]
 requires-dist = [
-    { name = "boltons", specifier = "~=24.1.0" },
+    { name = "boltons", specifier = "~=25.0.0" },
     { name = "click", specifier = "~=8.1.8" },
     { name = "cloup", specifier = "~=3.0.5" },
     { name = "coverage", extras = ["toml"], marker = "extra == 'test'", specifier = "~=7.6.0" },
@@ -241,14 +241,15 @@ provides-extras = ["pygments", "sphinx", "pytest", "test", "typing", "docs"]
 
 [[package]]
 name = "cloup"
-version = "3.0.5"
+version = "3.0.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/cf/71/608e4546208e5a421ef00b484f582e58ce0f17da05459b915c8ba22dfb78/cloup-3.0.5.tar.gz", hash = "sha256:c92b261c7bb7e13004930f3fb4b3edad8de2d1f12994dcddbe05bc21990443c5", size = 225806 }
+sdist = { url = "https://files.pythonhosted.org/packages/48/59/8d1b7913dd0a4df06b864455db59da53bcc6cc99f14b84f486c170e29029/cloup-3.0.6.tar.gz", hash = "sha256:7a43e1b611b9f1e9cb3e1e0e02247154cb530df3d909fa184e377cdee6834b98", size = 229337 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/96/1a/5a2a4fbf6c95f11b079f02d7b191377ea4509f5e442887e4c7c026bc56d3/cloup-3.0.5-py2.py3-none-any.whl", hash = "sha256:bf122036066584eb0db113561167c29969cc015972b7b7ee03158d9bc7de87f8", size = 54431 },
+    { url = "https://files.pythonhosted.org/packages/96/df/cce3c4b562845db6741abb520619a8b38d817a3ab4b82f2b6df3be7a7dfc/cloup-3.0.6-py2.py3-none-any.whl", hash = "sha256:ce46566204318e32b3e02d97d5e89bcaa9d9c3d0b8f94d1d060bc8b7a6be9179", size = 54446 },
 ]
 
 [[package]]
@@ -354,15 +355,15 @@ wheels = [
 
 [[package]]
 name = "extra-platforms"
-version = "2.0.0"
+version = "2.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "boltons" },
     { name = "distro" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/7d/5e/445afff9427d74e72703aaac8fc7245758f3060036a413f317b638eaba92/extra_platforms-2.0.0.tar.gz", hash = "sha256:f26d83800eaa71ef70ba61e338ef0065c34e817746f15cbd35912c1315821f52", size = 47029 }
+sdist = { url = "https://files.pythonhosted.org/packages/51/7e/a95d33f53ce732457ae2235ce8d0e6b784526466f79ef72d0ebaf9fb9730/extra_platforms-2.1.0.tar.gz", hash = "sha256:6dda2f806a255c98702291220716becf08a00d3754c1422460f4ff9f724744a9", size = 47724 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/03/06/1289c053365d89598f272db2d7698aa3497abe0ce2d7febd1e19a0d3d420/extra_platforms-2.0.0-py3-none-any.whl", hash = "sha256:5899b1f6e8d06274e7982239b7f49c86a74e42ddd86c362fd11bae106823d93c", size = 32232 },
+    { url = "https://files.pythonhosted.org/packages/7d/e9/4c9256c496cbfe172a62418611a02e9ab57e0fbfab0c1339ce6daf2fe351/extra_platforms-2.1.0-py3-none-any.whl", hash = "sha256:7dcef4e8a0ef6e45b1cfe06b8bc3fac05edd4b3df66417414e040a3e3055cdc1", size = 32884 },
 ]
 
 [package.optional-dependencies]
