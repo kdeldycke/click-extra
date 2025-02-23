@@ -169,7 +169,8 @@ def extraBasicConfig(
     encoding: str | None = None,
     errors: str | None = "backslashreplace",
     # New arguments specific to this function:
-    stream_handler_class: type[THandler] = ExtraStreamHandler,  # type: ignore[assignment]
+    # type: ignore[assignment]
+    stream_handler_class: type[THandler] = ExtraStreamHandler,
     file_handler_class: type[THandler] = FileHandler,  # type: ignore[assignment]
     formatter_class: type[TFormatter] = ExtraFormatter,  # type: ignore[assignment]
 ) -> None:
