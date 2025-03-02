@@ -113,8 +113,6 @@ def run_cli1(ctx):
     echo(f"click.utils.should_strip_ansi = {click.utils.should_strip_ansi()!r}")
 
 
-
-
 def check_default_colored_rendering(result):
     assert result.exit_code == 0
     assert result.stdout.startswith(

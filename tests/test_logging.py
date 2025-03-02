@@ -138,7 +138,8 @@ def test_integrated_verbosity_options(invoke, args, expected_level):
         # Duplicate options with different levels: the last always win.
         ("--blah", "INFO", "-B", "DEBUG"),
         ("-B", "INFO", "--blah", "DEBUG"),
-        # Click's argument parser deduplicate options before invoking the callback, so the following cases fails.
+        # Click's argument parser deduplicate options before invoking the
+        # callback, so the following cases fails.
         pytest.param(
             ("--blah", "DEBUG", "-B", "INFO"),
             marks=pytest.mark.xfail(reason="Last value of the same option wins"),
@@ -287,7 +288,8 @@ def test_standalone_option_default_logger(
     logging_option = logging_cli2.params[0]
     if args and not set(logging_option.opts).intersection(args):
         pytest.skip(
-            reason=f"Test case for {' '.join(args)!r} does not apply to {logging_option}"
+            reason=f"Test case for {' '.join(args)!r} "
+            f"does not apply to {logging_option}"
         )
 
     result = invoke(logging_cli2, args, color=True)
