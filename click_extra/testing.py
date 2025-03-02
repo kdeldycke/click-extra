@@ -131,17 +131,17 @@ def render_cli_run(
     # Render the execution trace.
     trace = prompt
     if output:
-        trace += f"{PROMPT}{Style(fg=Color.blue)('<output>')} stream:"
-        trace += indent(output, INDENT)
+        trace += f"{PROMPT}{Style(fg=Color.blue)('<output>')} stream:\n"
+        trace += indent(output, INDENT) + "\n"
     if stdout:
-        trace += f"{PROMPT}{Style(fg=Color.green)('<stdout>')} stream:"
-        trace += indent(stdout, INDENT)
+        trace += f"{PROMPT}{Style(fg=Color.green)('<stdout>')} stream:\n"
+        trace += indent(stdout, INDENT) + "\n"
     if stderr:
-        trace += f"{PROMPT}{Style(fg=Color.red)('<stderr>')} stream:"
-        trace += indent(stderr, INDENT)
+        trace += f"{PROMPT}{Style(fg=Color.red)('<stderr>')} stream:\n"
+        trace += indent(stderr, INDENT) + "\n"
     if exit_code is not None:
-        trace += f"{PROMPT}{Style(fg=Color.yellow)('Exit code:')} {exit_code}"
-    return trace
+        trace += f"{PROMPT}{Style(fg=Color.yellow)('Exit code:')} {exit_code}\n"
+    return trace + "\n"
 
 
 def print_cli_run(
