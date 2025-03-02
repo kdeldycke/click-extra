@@ -1,9 +1,11 @@
 # Changelog
 
-## [4.14.3 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v4.14.2...main)
+## [4.14.4 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v4.14.3...main)
 
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
+
+## [4.14.3 (2025-03-02)](https://github.com/kdeldycke/click-extra/compare/v4.14.2...v4.14.3)
 
 - Add missing line returns in `render_cli_run()`.
 
