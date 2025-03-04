@@ -172,7 +172,7 @@ def extraBasicConfig(
     stream_handler_class: type[THandler] = (  # type: ignore[assignment]
         # XXX This funky code format is a workaround for autopep8 unstable long-line
         # wrapping.
-        ExtraStreamHandler,
+        ExtraStreamHandler
     ),
     file_handler_class: type[THandler] = FileHandler,  # type: ignore[assignment]
     formatter_class: type[TFormatter] = ExtraFormatter,  # type: ignore[assignment]
