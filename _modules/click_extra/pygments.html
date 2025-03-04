@@ -1,0 +1,577 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+
+    <!-- Generated with Sphinx 8.1.3 and Furo 2024.08.06 -->
+        <title>click_extra.pygments - Click Extra</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=060664ba" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+<div class="announcement">
+  <aside class="announcement-content">
+     Click Extra works fine, but its sole maintainer is distracted by life 😶‍🌫️.<br/>You can influence it with purchase of <strong><a class='reference external' href='https://github.com/sponsors/kdeldycke'>business support 🤝 and sponsorship 🫶</a></strong>. 
+  </aside>
+</div>
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">Click Extra</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../_static/logo-square.svg" alt="Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../commands.html">Commands &amp; groups</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../config.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../colorize.html">Colored help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../logging.html">Logging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tabulate.html">Table</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../version.html">Version</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../timer.html">Timer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../parameters.html">Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../pygments.html">Pygments extensions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../sphinx.html">Sphinx extensions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../testing.html">CLI testing and execution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../pytest.html">Pytest utilities and fixtures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../issues.html">Fixed issues</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../click_extra.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tests.html">tests package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../todolist.html">Todo-list</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../code-of-conduct.html">Code of conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/kdeldycke/click-extra">GitHub Repository</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/sponsors/kdeldycke">Funding</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <h1>Source code for click_extra.pygments</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright Kevin Deldycke &lt;kevin@deldycke.com&gt; and contributors.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is Free Software; you can redistribute it and/or</span>
+<span class="c1"># modify it under the terms of the GNU General Public License</span>
+<span class="c1"># as published by the Free Software Foundation; either version 2</span>
+<span class="c1"># of the License, or (at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU General Public License</span>
+<span class="c1"># along with this program; if not, write to the Free Software</span>
+<span class="c1"># Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.</span>
+<span class="sd">&quot;&quot;&quot;Helpers and utilities to allow Pygments to parse and render ANSI codes.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pygments</span>  <span class="c1"># noqa: F401</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+        <span class="s2">&quot;You need to install click_extra[pygments] extra dependencies to use this &quot;</span>
+        <span class="s2">&quot;module.&quot;</span>
+    <span class="p">)</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Iterator</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pygments</span><span class="w"> </span><span class="kn">import</span> <span class="n">lexers</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pygments.filter</span><span class="w"> </span><span class="kn">import</span> <span class="n">Filter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pygments.filters</span><span class="w"> </span><span class="kn">import</span> <span class="n">TokenMergeFilter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pygments.formatter</span><span class="w"> </span><span class="kn">import</span> <span class="n">_lookup_style</span>  <span class="c1"># type: ignore[attr-defined]</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pygments.formatters</span><span class="w"> </span><span class="kn">import</span> <span class="n">HtmlFormatter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pygments.lexer</span><span class="w"> </span><span class="kn">import</span> <span class="n">Lexer</span><span class="p">,</span> <span class="n">LexerMeta</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pygments.lexers.algebra</span><span class="w"> </span><span class="kn">import</span> <span class="n">GAPConsoleLexer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pygments.lexers.dylan</span><span class="w"> </span><span class="kn">import</span> <span class="n">DylanConsoleLexer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pygments.lexers.erlang</span><span class="w"> </span><span class="kn">import</span> <span class="n">ElixirConsoleLexer</span><span class="p">,</span> <span class="n">ErlangShellLexer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pygments.lexers.julia</span><span class="w"> </span><span class="kn">import</span> <span class="n">JuliaConsoleLexer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pygments.lexers.matlab</span><span class="w"> </span><span class="kn">import</span> <span class="n">MatlabSessionLexer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pygments.lexers.php</span><span class="w"> </span><span class="kn">import</span> <span class="n">PsyshConsoleLexer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pygments.lexers.python</span><span class="w"> </span><span class="kn">import</span> <span class="n">PythonConsoleLexer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pygments.lexers.r</span><span class="w"> </span><span class="kn">import</span> <span class="n">RConsoleLexer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pygments.lexers.ruby</span><span class="w"> </span><span class="kn">import</span> <span class="n">RubyConsoleLexer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pygments.lexers.shell</span><span class="w"> </span><span class="kn">import</span> <span class="n">ShellSessionBaseLexer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pygments.lexers.special</span><span class="w"> </span><span class="kn">import</span> <span class="n">OutputLexer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pygments.lexers.sql</span><span class="w"> </span><span class="kn">import</span> <span class="n">PostgresConsoleLexer</span><span class="p">,</span> <span class="n">SqliteConsoleLexer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pygments.style</span><span class="w"> </span><span class="kn">import</span> <span class="n">StyleMeta</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pygments.token</span><span class="w"> </span><span class="kn">import</span> <span class="n">Generic</span><span class="p">,</span> <span class="n">_TokenType</span><span class="p">,</span> <span class="n">string_to_tokentype</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pygments_ansi_color</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">AnsiColorLexer</span><span class="p">,</span>
+    <span class="n">ExtendedColorHtmlFormatterMixin</span><span class="p">,</span>
+    <span class="n">color_tokens</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">DEFAULT_TOKEN_TYPE</span> <span class="o">=</span> <span class="n">Generic</span><span class="o">.</span><span class="n">Output</span>
+<span class="sd">&quot;&quot;&quot;Default Pygments&#39; token type to render with ANSI support.</span>
+
+<span class="sd">We defaults to ``Generic.Output`` tokens, as this is the token type used by all REPL-</span>
+<span class="sd">like and terminal lexers.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="AnsiFilter">
+<a class="viewcode-back" href="../../pygments.html#click_extra.pygments.AnsiFilter">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AnsiFilter</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Custom filter transforming a particular kind of token (``Generic.Output`` by</span>
+<span class="sd">    defaults) into ANSI tokens.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">options</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize a ``AnsiColorLexer`` and configure the ``token_type`` to be</span>
+<span class="sd">        colorized.</span>
+
+<span class="sd">        .. todo::</span>
+
+<span class="sd">            Allow multiple ``token_type`` to be configured for colorization (if</span>
+<span class="sd">            traditions are changed on Pygments&#39; side).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">options</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ansi_lexer</span> <span class="o">=</span> <span class="n">AnsiColorLexer</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">token_type</span> <span class="o">=</span> <span class="n">string_to_tokentype</span><span class="p">(</span>
+            <span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;token_type&quot;</span><span class="p">,</span> <span class="n">DEFAULT_TOKEN_TYPE</span><span class="p">),</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="AnsiFilter.filter">
+<a class="viewcode-back" href="../../pygments.html#click_extra.pygments.AnsiFilter.filter">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">filter</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">lexer</span><span class="p">:</span> <span class="n">Lexer</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">_TokenType</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">_TokenType</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Transform each token of ``token_type`` type into a stream of ANSI tokens.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">ttype</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">stream</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ttype</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">token_type</span><span class="p">:</span>
+                <span class="c1"># TODO: Should we re-wrap the resulting list of token into their</span>
+                <span class="c1"># original Generic.Output?</span>
+                <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">ansi_lexer</span><span class="o">.</span><span class="n">get_tokens</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">ttype</span><span class="p">,</span> <span class="n">value</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="AnsiSessionLexer">
+<a class="viewcode-back" href="../../pygments.html#click_extra.pygments.AnsiSessionLexer">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AnsiSessionLexer</span><span class="p">(</span><span class="n">LexerMeta</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Custom metaclass used as a class factory to derive an ANSI variant of default</span>
+<span class="sd">    shell session lexers.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">dct</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Setup class properties&#39; defaults for new ANSI-capable lexers.</span>
+
+<span class="sd">        - Adds an ``ANSI`` prefix to the lexer&#39;s name.</span>
+<span class="sd">        - Replaces all ``aliases`` IDs from the parent lexer with variants prefixed with</span>
+<span class="sd">            ``ansi-``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">new_cls</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">dct</span><span class="p">)</span>
+        <span class="n">new_cls</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;ANSI </span><span class="si">{</span><span class="n">new_cls</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">new_cls</span><span class="o">.</span><span class="n">aliases</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ansi-</span><span class="si">{</span><span class="n">alias</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">alias</span> <span class="ow">in</span> <span class="n">new_cls</span><span class="o">.</span><span class="n">aliases</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">new_cls</span></div>
+
+
+
+<div class="viewcode-block" id="AnsiLexerFiltersMixin">
+<a class="viewcode-back" href="../../pygments.html#click_extra.pygments.AnsiLexerFiltersMixin">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AnsiLexerFiltersMixin</span><span class="p">(</span><span class="n">Lexer</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Adds a ``TokenMergeFilter`` and ``AnsiOutputFilter`` to the list of filters.</span>
+
+<span class="sd">        The session lexers we inherits from are parsing the code block line by line so</span>
+<span class="sd">        they can differentiate inputs and outputs. Each output line ends up</span>
+<span class="sd">        encapsulated into a ``Generic.Output`` token. We apply the ``TokenMergeFilter``</span>
+<span class="sd">        filter to reduce noise and have each contiguous output lines part of the same</span>
+<span class="sd">        single token.</span>
+
+<span class="sd">        Then we apply our custom ``AnsiOutputFilter`` to transform any</span>
+<span class="sd">        ``Generic.Output`` monoblocks into ANSI tokens.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TokenMergeFilter</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">AnsiFilter</span><span class="p">())</span></div>
+
+
+
+<div class="viewcode-block" id="collect_session_lexers">
+<a class="viewcode-back" href="../../pygments.html#click_extra.pygments.collect_session_lexers">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">collect_session_lexers</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">Lexer</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Retrieve all lexers producing shell-like sessions in Pygments.</span>
+
+<span class="sd">    This function contain a manually-maintained list of lexers, to which we dynamiccaly</span>
+<span class="sd">    adds lexers inheriting from ``ShellSessionBaseLexer``.</span>
+
+<span class="sd">    .. hint::</span>
+
+<span class="sd">        To help maintain this list, there is `a test that will fail</span>
+<span class="sd">        &lt;https://github.com/kdeldycke/click-extra/blob/main/click_extra/tests/test_pygments.py&gt;`_</span>
+<span class="sd">        if a new REPL/terminal-like lexer is added to Pygments but not referenced here.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">yield from</span> <span class="p">[</span>
+        <span class="n">DylanConsoleLexer</span><span class="p">,</span>
+        <span class="n">ElixirConsoleLexer</span><span class="p">,</span>
+        <span class="n">ErlangShellLexer</span><span class="p">,</span>
+        <span class="n">GAPConsoleLexer</span><span class="p">,</span>
+        <span class="n">JuliaConsoleLexer</span><span class="p">,</span>
+        <span class="n">MatlabSessionLexer</span><span class="p">,</span>
+        <span class="n">OutputLexer</span><span class="p">,</span>
+        <span class="n">PostgresConsoleLexer</span><span class="p">,</span>
+        <span class="n">PsyshConsoleLexer</span><span class="p">,</span>
+        <span class="n">PythonConsoleLexer</span><span class="p">,</span>
+        <span class="n">RConsoleLexer</span><span class="p">,</span>
+        <span class="n">RubyConsoleLexer</span><span class="p">,</span>
+        <span class="n">SqliteConsoleLexer</span><span class="p">,</span>
+    <span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">lexer</span> <span class="ow">in</span> <span class="n">lexers</span><span class="o">.</span><span class="n">_iter_lexerclasses</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">ShellSessionBaseLexer</span> <span class="ow">in</span> <span class="n">lexer</span><span class="o">.</span><span class="vm">__bases__</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">lexer</span></div>
+
+
+
+<span class="n">lexer_map</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="sd">&quot;&quot;&quot;Map original lexer to their ANSI variant.&quot;&quot;&quot;</span>
+
+
+<span class="c1"># Auto-generate the ANSI variant of all lexers we collected.</span>
+<span class="k">for</span> <span class="n">original_lexer</span> <span class="ow">in</span> <span class="n">collect_session_lexers</span><span class="p">():</span>
+    <span class="n">new_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Ansi</span><span class="si">{</span><span class="n">original_lexer</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">new_lexer</span> <span class="o">=</span> <span class="n">AnsiSessionLexer</span><span class="p">(</span><span class="n">new_name</span><span class="p">,</span> <span class="p">(</span><span class="n">AnsiLexerFiltersMixin</span><span class="p">,</span> <span class="n">original_lexer</span><span class="p">),</span> <span class="p">{})</span>
+    <span class="nb">locals</span><span class="p">()[</span><span class="n">new_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_lexer</span>
+    <span class="n">lexer_map</span><span class="p">[</span><span class="n">original_lexer</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_lexer</span>
+
+
+<div class="viewcode-block" id="AnsiHtmlFormatter">
+<a class="viewcode-back" href="../../pygments.html#click_extra.pygments.AnsiHtmlFormatter">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AnsiHtmlFormatter</span><span class="p">(</span><span class="n">ExtendedColorHtmlFormatterMixin</span><span class="p">,</span> <span class="n">HtmlFormatter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extend standard Pygments&#39; ``HtmlFormatter``.</span>
+
+<span class="sd">    `Adds support for ANSI 256 colors &lt;https://github.com/chriskuehl/pygments-ansi-color#optional-enable-256-color-support&gt;`_.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;ANSI HTML&quot;</span>
+    <span class="n">aliases</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;ansi-html&quot;</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Intercept the ``style`` argument to augment it with ANSI colors support.</span>
+
+<span class="sd">        Creates a new style instance that inherits from the one provided by the user,</span>
+<span class="sd">        but updates its ``styles`` attribute to add ANSI colors support from</span>
+<span class="sd">        ``pygments_ansi_color``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># XXX Same default style as in Pygments&#39; HtmlFormatter, which is... `default`:</span>
+        <span class="c1"># https://github.com/pygments/pygments/blob/1d83928/pygments/formatter.py#LL89C33-L89C33</span>
+        <span class="n">base_style_id</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;style&quot;</span><span class="p">,</span> <span class="s2">&quot;default&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Fetch user-provided style.</span>
+        <span class="n">base_style</span> <span class="o">=</span> <span class="n">_lookup_style</span><span class="p">(</span><span class="n">base_style_id</span><span class="p">)</span>
+
+        <span class="c1"># Augment the style with ANSI colors support.</span>
+        <span class="n">augmented_styles</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">base_style</span><span class="o">.</span><span class="n">styles</span><span class="p">)</span>
+        <span class="n">augmented_styles</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">color_tokens</span><span class="p">(</span><span class="n">enable_256color</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+
+        <span class="c1"># Prefix the style name with `Ansi` to avoid name collision with the original</span>
+        <span class="c1"># and ease debugging.</span>
+        <span class="n">new_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Ansi</span><span class="si">{</span><span class="n">base_style</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">new_lexer</span> <span class="o">=</span> <span class="n">StyleMeta</span><span class="p">(</span><span class="n">new_name</span><span class="p">,</span> <span class="p">(</span><span class="n">base_style</span><span class="p">,),</span> <span class="p">{</span><span class="s2">&quot;styles&quot;</span><span class="p">:</span> <span class="n">augmented_styles</span><span class="p">})</span>
+
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;style&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_lexer</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+</pre></div>
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; Kevin Deldycke and contributors
+            </div>
+            Made with 
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            <div class="last-updated">
+              Last updated on 2025-03-04</div>
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script src="../../_static/documentation_options.js?v=b923d8a7"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/scripts/furo.js?v=5fa4622c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs"></script>
+    <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs";import elkLayouts from "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs";mermaid.registerLayoutLoaders(elkLayouts);mermaid.initialize({startOnLoad:false});</script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+    <script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs";
+const load = async () => {
+    await mermaid.run();
+    const all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+    if(mermaids_to_add_zoom > 0) {
+        var svgs = d3.selectAll(".mermaid svg");
+        if(all_mermaids.length !== mermaids_processed.length) {
+            // try again in a sec, wait for mermaids to load
+            setTimeout(load, 200);
+            return;
+        } else if(svgs.size() !== mermaids_to_add_zoom) {
+            // try again in a sec, wait for mermaids to load
+            setTimeout(load, 200);
+            return;
+        } else {
+            svgs.each(function() {
+                var svg = d3.select(this);
+                svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                var inner = svg.select("g");
+                var zoom = d3.zoom().on("zoom", function(event) {
+                    inner.attr("transform", event.transform);
+                });
+                svg.call(zoom);
+            });
+        }
+    }
+};
+
+window.addEventListener("load", load);
+</script>
+    </body>
+</html>
