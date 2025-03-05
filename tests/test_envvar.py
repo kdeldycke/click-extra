@@ -219,15 +219,15 @@ def test_auto_envvar_parsing(invoke, cmd_decorator, envvars, expected_flag):
         echo(f"Flag value: {flag}")
 
     registered_envvars = ["Magic", "sUper"]
-    # @extra_command forces registration of auto-generated envvar.
+    # Specific behavior of @extra_command that is not present in vanilla Click.
     if cmd_decorator == extra_command:
+        # @extra_command forces registration of auto-generated envvar.
         registered_envvars = [*registered_envvars, "yo_FLAG"]
-    # On Windows, envvars are normalizes to uppercase.
-    if os.name == "nt":
-        registered_envvars = [envvar.upper() for envvar in registered_envvars]
-    # @extra_command parameters returns envvar property as tuple, while vanilla Click
-    # returns a list.
-    if cmd_decorator == extra_command:
+        # On Windows, envvars are normalizes to uppercase.
+        if os.name == "nt":
+            registered_envvars = [envvar.upper() for envvar in registered_envvars]
+        # @extra_command parameters returns envvar property as tuple, while vanilla Click
+        # returns a list.
         registered_envvars = tuple(registered_envvars)
     assert my_cli.params[0].envvar == registered_envvars
 
