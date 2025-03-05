@@ -6,6 +6,11 @@
 > This version is not released yet and is under active development.
 
 - Add missing line returns in `render_cli_run()`.
+- Rename `extend_envvars()` to `merge_envvar_ids()` and allow it to merge arbitrary-nested structures. Normalize names to uppercase on Windows.
+- Rename `normalize_envvar()` to `clean_envvar_id()`.
+- Rename `all_envvars()` to `param_envvar_ids()`.
+- Rename `auto_envvar()` to `param_auto_envvar_id()`.
+- Remove unused `normalize` parameter on `all_envvars()`.
 
 ## [4.14.2 (2025-02-23)](https://github.com/kdeldycke/click-extra/compare/v4.14.1...v4.14.2)
 

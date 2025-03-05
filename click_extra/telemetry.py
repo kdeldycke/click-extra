@@ -20,7 +20,7 @@ from __future__ import annotations
 from gettext import gettext as _
 from typing import TYPE_CHECKING, Sequence
 
-from .parameters import ExtraOption, extend_envvars
+from .parameters import ExtraOption, merge_envvar_ids
 
 if TYPE_CHECKING:
     from . import Context, Parameter
@@ -67,7 +67,7 @@ class TelemetryOption(ExtraOption):
         if not param_decls:
             param_decls = ("--telemetry/--no-telemetry",)
 
-        envvar = extend_envvars(["DO_NOT_TRACK"], envvar)
+        envvar = merge_envvar_ids("DO_NOT_TRACK", envvar)
 
         kwargs.setdefault("callback", self.save_telemetry)
 

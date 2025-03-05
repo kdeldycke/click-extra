@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import inspect
 import logging
+import os
 import re
 from collections.abc import Iterable, MutableMapping, Sequence
 from contextlib import nullcontext
@@ -38,7 +39,7 @@ from typing import (
 from unittest.mock import patch
 
 import click
-from boltons.iterutils import unique
+from boltons.iterutils import flatten_iter
 from mergedeep import merge
 from tabulate import tabulate
 
@@ -52,8 +53,12 @@ from . import (
     get_current_context,
 )
 
+TEnvVarID = str | None
+TEnvVarIDs = Iterable[TEnvVarID]
+TNestedEnvVarIDs = Iterable[TEnvVarID | Iterable["TNestedEnvVarIDs"]]
 
-def auto_envvar(
+
+def param_auto_envvar_id(
     param: click.Parameter,
     ctx: click.Context | dict[str, Any],
 ) -> str | None:
@@ -78,46 +83,50 @@ def auto_envvar(
     return f"{prefix}_{param.name.upper()}"
 
 
-def extend_envvars(
-    envvars_1: str | Sequence[str] | None,
-    envvars_2: str | Sequence[str] | None,
-) -> tuple[str, ...]:
-    """Utility to build environment variables value to be fed to options.
+def merge_envvar_ids(*envvar_ids: TEnvVarID | TNestedEnvVarIDs) -> tuple[str, ...]:
+    """Merge and deduplicate environment variables.
+
+    Multiple parameters are accepted and can be single strings or arbitraryly-nested
+    iterables of strings. ``None`` values are ignored.
 
     Variable names are deduplicated while preserving their initial order.
 
-    Returns a tuple of environment variable strings. The result is ready to be used as
-    the ``envvar`` parameter for options or arguments.
+    On Windows, environment variable names are case-insensitive, so we normalize them
+    to uppercase. See:
+    - https://docs.python.org/3/library/os.html#os.environ
+    - https://github.com/python/cpython/blob/ffef9b0440e4391cbad69dbb11716f54cb8539ab/Lib/os.py#L777-L786
+
+    Returns a tuple of strings. The result is ready to be used as the ``envvar``
+    parameter for Click's options or arguments.
     """
-    # Make the fist argument into a list of string.
-    envvars = []
-    if envvars_1:
-        envvars = [envvars_1] if isinstance(envvars_1, str) else list(envvars_1)
-
-    # Merge the second argument into the list.
-    if envvars_2:
-        if isinstance(envvars_2, str):
-            envvars.append(envvars_2)
-        else:
-            envvars.extend(envvars_2)
-
-    # Deduplicate the list and cast it into an immutable tuple.
-    return tuple(unique(envvars))
+    ids = []
+    for envvar in flatten_iter(envvar_ids):
+        if envvar:
+            if os.name == "nt":
+                envvar = envvar.upper()
+            # Deduplicate names.
+            if envvar not in ids:
+                ids.append(envvar)
+    return tuple(ids)
 
 
-def normalize_envvar(envvar: str) -> str:
-    """Utility to normalize an environment variable name.
+def clean_envvar_id(envvar_id: str) -> str:
+    """Utility to produce a user-friendly environment variable name from a string.
 
-    The normalization process separates all contiguous alphanumeric string segments,
-    eliminate empty strings, join them with an underscore and uppercase the result.
+    Separates all contiguous alphanumeric string segments, eliminate empty strings,
+    join them with an underscore and uppercase the result.
+
+    .. attention::
+        We do not rely too much on this utility to try to reproduce the `current
+        behavior of Click, which is is not consistent regarding case-handling of
+        environment variable <https://github.com/pallets/click/issues/2483>`_.
     """
-    return "_".join(p for p in re.split(r"[^a-zA-Z0-9]+", envvar) if p).upper()
+    return "_".join(p for p in re.split(r"[^a-zA-Z0-9]+", envvar_id) if p).upper()
 
 
-def all_envvars(
+def param_envvar_ids(
     param: click.Parameter,
     ctx: click.Context | dict[str, Any],
-    normalize: bool = False,
 ) -> tuple[str, ...]:
     """Returns the deduplicated, ordered list of environment variables for an option or
     argument, including the auto-generated one.
@@ -125,18 +134,8 @@ def all_envvars(
     The auto-generated environment variable is added at the end of the list, so that
     user-defined envvars takes precedence. This respects the current implementation
     of ``click.core.Option.resolve_envvar_value()``.
-
-    If ``normalize`` is `True`, the returned value is normalized. By default it is
-    `False` to perfectly reproduce the `current behavior of Click, which is subject to
-    discussions <https://github.com/pallets/click/issues/2483>`_.
     """
-    auto_envvar_id = auto_envvar(param, ctx)
-    envvars = extend_envvars(param.envvar, auto_envvar_id)
-
-    if normalize:
-        envvars = tuple(normalize_envvar(var) for var in envvars)
-
-    return envvars
+    return merge_envvar_ids(param.envvar, param_auto_envvar_id(param, ctx))
 
 
 def search_params(
@@ -728,7 +727,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 hidden,
                 OK if instance.expose_value is True else KO,
                 allowed_in_conf,
-                ", ".join(map(default_theme.envvar, all_envvars(instance, ctx))),
+                ", ".join(map(default_theme.envvar, param_envvar_ids(instance, ctx))),
                 default_theme.default(str(instance.get_default(ctx))),
                 param_value,
                 source._name_ if source else None,

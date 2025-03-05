@@ -48,42 +48,46 @@ from click_extra import (
     search_params,
 )
 from click_extra.decorators import extra_command, extra_group, show_params_option
-from click_extra.parameters import ShowParamsOption, extend_envvars, normalize_envvar
+from click_extra.parameters import ShowParamsOption, clean_envvar_id, merge_envvar_ids
 from click_extra.pytest import command_decorators
 
 
 @pytest.mark.parametrize(
-    ("envvars_1", "envvars_2", "result"),
+    ("envvars", "result"),
     (
-        ("MY_VAR", "MY_VAR", ("MY_VAR",)),
-        (None, "MY_VAR", ("MY_VAR",)),
-        ("MY_VAR", None, ("MY_VAR",)),
-        (["MY_VAR"], "MY_VAR", ("MY_VAR",)),
-        (["MY_VAR"], None, ("MY_VAR",)),
-        ("MY_VAR", ["MY_VAR"], ("MY_VAR",)),
-        (None, ["MY_VAR"], ("MY_VAR",)),
-        (["MY_VAR"], ["MY_VAR"], ("MY_VAR",)),
-        (["MY_VAR1"], ["MY_VAR2"], ("MY_VAR1", "MY_VAR2")),
-        (["MY_VAR1", "MY_VAR2"], ["MY_VAR2"], ("MY_VAR1", "MY_VAR2")),
-        (["MY_VAR1"], ["MY_VAR1", "MY_VAR2"], ("MY_VAR1", "MY_VAR2")),
-        (["MY_VAR1"], ["MY_VAR2", "MY_VAR2"], ("MY_VAR1", "MY_VAR2")),
-        (["MY_VAR1", "MY_VAR1"], ["MY_VAR2"], ("MY_VAR1", "MY_VAR2")),
+        (("MY_VAR", "MY_VAR"), ("MY_VAR",)),
+        ((None, "MY_VAR"), ("MY_VAR",)),
+        (("MY_VAR", None), ("MY_VAR",)),
+        ((["MY_VAR"], "MY_VAR"), ("MY_VAR",)),
+        ((["MY_VAR"], None), ("MY_VAR",)),
+        (("MY_VAR", ["MY_VAR"]), ("MY_VAR",)),
+        ((None, ["MY_VAR"]), ("MY_VAR",)),
+        ((["MY_VAR"], ["MY_VAR"]), ("MY_VAR",)),
+        ((["MY_VAR1"], ["MY_VAR2"]), ("MY_VAR1", "MY_VAR2")),
+        ((["MY_VAR1", "MY_VAR2"], ["MY_VAR2"]), ("MY_VAR1", "MY_VAR2")),
+        ((["MY_VAR1"], ["MY_VAR1", "MY_VAR2"]), ("MY_VAR1", "MY_VAR2")),
+        ((["MY_VAR1"], ["MY_VAR2", "MY_VAR2"]), ("MY_VAR1", "MY_VAR2")),
+        ((["MY_VAR1", "MY_VAR1"], ["MY_VAR2"]), ("MY_VAR1", "MY_VAR2")),
+        (
+            (["MY_VAR1", ["MY_VAR1", None, "MY_VAR1"]], ["MY_VAR2"]),
+            ("MY_VAR1", "MY_VAR2"),
+        ),
     ),
 )
-def test_extend_envvars(envvars_1, envvars_2, result):
-    assert extend_envvars(envvars_1, envvars_2) == result
+def test_merge_envvar_ids(envvars, result):
+    assert merge_envvar_ids(*envvars) == result
 
 
 @pytest.mark.parametrize(
-    ("env_name", "normalized_env"),
+    ("env_name", "clean_name"),
     (
         ("show-params-cli_VERSION", "SHOW_PARAMS_CLI_VERSION"),
         ("show---params-cli___VERSION", "SHOW_PARAMS_CLI_VERSION"),
         ("__show-__params-_-_-", "SHOW_PARAMS"),
     ),
 )
-def test_normalize_envvar(env_name, normalized_env):
-    assert normalize_envvar(env_name) == normalized_env
+def test_clean_envvar_id(env_name, clean_name):
+    assert clean_envvar_id(env_name) == clean_name
 
 
 @pytest.mark.parametrize(

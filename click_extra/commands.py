@@ -34,8 +34,8 @@ from .logging import VerboseOption, VerbosityOption
 from .parameters import (
     ExtraOption,
     ShowParamsOption,
-    all_envvars,
-    normalize_envvar,
+    clean_envvar_id,
+    param_envvar_ids,
     search_params,
 )
 from .timer import TimerOption
@@ -320,7 +320,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):  # type: ignore[misc]
 
         # Generate environment variables for all options based on the command name.
         if self.name:
-            default_ctx_settings["auto_envvar_prefix"] = normalize_envvar(self.name)
+            default_ctx_settings["auto_envvar_prefix"] = clean_envvar_id(self.name)
 
         # Merge defaults and user settings.
         default_ctx_settings.update(self.context_settings)
@@ -340,7 +340,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):  # type: ignore[misc]
 
         if populate_auto_envvars:
             for param in self.params:
-                param.envvar = all_envvars(param, self.context_settings)
+                param.envvar = param_envvar_ids(param, self.context_settings)
 
         if version:
             version_param = search_params(self.params, ExtraVersionOption)
