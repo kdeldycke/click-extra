@@ -64,16 +64,16 @@ INDENT = " " * len(PROMPT)
 """Constants for rendering of CLI execution."""
 
 
-Arg = str | Path | None
-Args = Iterable[Arg]
-NestedArgs = Iterable[Arg | Iterable["NestedArgs"]]
+TArg = str | Path | None
+TArgs = Iterable[TArg]
+TNestedArgs = Iterable[TArg | Iterable["TNestedArgs"]]
 """Types for arbitrary nested CLI arguments.
 
 Arguments can be ``str``, :py:class:`pathlib.Path` objects or ``None`` values.
 """
 
 
-def args_cleanup(*args: Arg | NestedArgs) -> tuple[str, ...]:
+def args_cleanup(*args: TArg | TNestedArgs) -> tuple[str, ...]:
     """Flatten recursive iterables, remove all ``None``, and cast each element to
     strings.
 
@@ -511,9 +511,9 @@ class ExtraCliRunner(click.testing.CliRunner):
     def invoke(  # type: ignore[override]
         self,
         cli: click.core.BaseCommand,
-        *args: Arg | NestedArgs,
+        *args: TArg | TNestedArgs,
         input: str | bytes | IO | None = None,
-        env: EnvVars | None = None,
+        env: TEnvVars | None = None,
         catch_exceptions: bool = True,
         color: bool | Literal["forced"] | None = None,
         **extra: Any,
