@@ -30,14 +30,9 @@ import cloup
 from . import Command, Group, Option
 from .colorize import ColorOption, ExtraHelpColorsMixin, HelpExtraFormatter
 from .config import ConfigOption
+from .envvar import clean_envvar_id, param_envvar_ids
 from .logging import VerboseOption, VerbosityOption
-from .parameters import (
-    ExtraOption,
-    ShowParamsOption,
-    clean_envvar_id,
-    param_envvar_ids,
-    search_params,
-)
+from .parameters import ExtraOption, ShowParamsOption, search_params
 from .timer import TimerOption
 from .version import ExtraVersionOption
 

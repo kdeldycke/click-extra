@@ -54,6 +54,7 @@ from click import formatting, termui, utils
 
 from . import Color, Style
 from .colorize import default_theme
+from .envvar import TEnvVars
 
 if TYPE_CHECKING:
     from types import TracebackType
@@ -62,9 +63,6 @@ PROMPT = "► "
 INDENT = " " * len(PROMPT)
 """Constants for rendering of CLI execution."""
 
-
-EnvVars = Mapping[str, str | None]
-"""Type for ``dict``-like environment variables."""
 
 Arg = str | Path | None
 Args = Iterable[Arg]
@@ -87,7 +85,10 @@ def args_cleanup(*args: Arg | NestedArgs) -> tuple[str, ...]:
     return tuple(str(arg) for arg in flatten(args) if arg is not None)
 
 
-def format_cli_prompt(cmd_args: Iterable[str], extra_env: EnvVars | None = None) -> str:
+def format_cli_prompt(
+    cmd_args: Iterable[str],
+    extra_env: TEnvVars | None = None,
+) -> str:
     """Simulate the console prompt used to invoke the CLI."""
     extra_env_string = ""
     if extra_env:
@@ -103,7 +104,7 @@ def format_cli_prompt(cmd_args: Iterable[str], extra_env: EnvVars | None = None)
 def render_cli_run(
     args: Iterable[str],
     result: click.testing.Result | subprocess.CompletedProcess,
-    env: EnvVars | None = None,
+    env: TEnvVars | None = None,
 ) -> str:
     """Generates the full simulation of CLI execution, including output.
 
@@ -147,34 +148,10 @@ def render_cli_run(
 def print_cli_run(
     args: Iterable[str],
     result: click.testing.Result | subprocess.CompletedProcess,
-    env: EnvVars | None = None,
+    env: TEnvVars | None = None,
 ) -> None:
     """Prints the full simulation of CLI execution, including output."""
     print(render_cli_run(args, result, env))
-
-
-def env_copy(extend: EnvVars | None = None) -> EnvVars | None:
-    """Returns a copy of the current environment variables and eventually ``extend`` it.
-
-    Mimics `Python's original implementation
-    <https://github.com/python/cpython/blob/7b5b429/Lib/subprocess.py#L1648-L1649>`_ by
-    returning ``None`` if no ``extend`` content are provided.
-
-    Environment variables are expected to be a ``dict`` of ``str:str``.
-    """
-    if isinstance(extend, dict):
-        for k, v in extend.items():
-            assert isinstance(k, str)
-            assert isinstance(v, str)
-    else:
-        assert not extend
-    env_copy: EnvVars | None = None
-    if extend:
-        # By casting to dict we make a copy and prevent the modification of the
-        # global environment.
-        env_copy = dict(os.environ)
-        env_copy.update(extend)
-    return env_copy
 
 
 INVOKE_ARGS = set(inspect.getfullargspec(click.testing.CliRunner.invoke).args)

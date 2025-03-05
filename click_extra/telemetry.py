@@ -20,7 +20,8 @@ from __future__ import annotations
 from gettext import gettext as _
 from typing import TYPE_CHECKING, Sequence
 
-from .parameters import ExtraOption, merge_envvar_ids
+from .envvar import merge_envvar_ids
+from .parameters import ExtraOption
 
 if TYPE_CHECKING:
     from . import Context, Parameter

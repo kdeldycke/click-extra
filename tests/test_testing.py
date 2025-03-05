@@ -18,7 +18,6 @@
 from __future__ import annotations
 
 import logging
-import os
 from pathlib import Path
 
 import click
@@ -26,7 +25,7 @@ import pytest
 from extra_platforms import is_windows
 
 from click_extra import Style, command, echo, pass_context, secho, style
-from click_extra.testing import ExtraCliRunner, env_copy
+from click_extra.testing import ExtraCliRunner
 
 
 def test_real_fs():
@@ -39,19 +38,6 @@ def test_temporary_fs(extra_runner):
     """Check the CLI runner fixture properly encapsulated the filesystem in temporary
     directory."""
     assert not str(Path(__file__)).startswith(str(Path.cwd()))
-
-
-def test_env_copy():
-    env_var = "MPM_DUMMY_ENV_VAR_93725"
-    assert env_var not in os.environ
-
-    no_env = env_copy()
-    assert no_env is None
-
-    extended_env = env_copy({env_var: "yo"})
-    assert env_var in extended_env
-    assert extended_env[env_var] == "yo"
-    assert env_var not in os.environ
 
 
 def test_runner_output():
