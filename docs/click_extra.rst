@@ -49,6 +49,14 @@ click\_extra.docs\_update module
    :undoc-members:
    :show-inheritance:
 
+click\_extra.envvar module
+--------------------------
+
+.. automodule:: click_extra.envvar
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 click\_extra.logging module
 ---------------------------
 
