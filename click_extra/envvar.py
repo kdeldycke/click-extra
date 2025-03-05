@@ -62,7 +62,7 @@ def param_auto_envvar_id(
 def merge_envvar_ids(*envvar_ids: TEnvVarID | TNestedEnvVarIDs) -> tuple[str, ...]:
     """Merge and deduplicate environment variables.
 
-    Multiple parameters are accepted and can be single strings or arbitraryly-nested
+    Multiple parameters are accepted and can be single strings or arbitrary-nested
     iterables of strings. ``None`` values are ignored.
 
     Variable names are deduplicated while preserving their initial order.
