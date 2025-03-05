@@ -71,9 +71,7 @@ def test_clean_envvar_id(env_name, clean_name):
         # Click does not show the auto-generated envvar in the help screen.
         (
             click.command,
-            "  --flag / --no-flag  [env var: "
-            + ("CUSTOM" if os.name == "nt" else "custom")
-            + "]\n",
+            "  --flag / --no-flag  [env var: custom]\n",
         ),
         # Click Extra always adds the auto-generated envvar to the help screen
         # (and show the defaults).

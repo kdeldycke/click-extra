@@ -448,11 +448,7 @@ def test_option_group_integration(invoke):
         (
             click.command,
             {},
-            "  --flag1\n"
-            "  --flag2  [env var: "
-            + ("CUSTOM2" if os.name == "nt" else "custom2")
-            + "]\n"
-            "  --flag3\n",
+            "  --flag1\n  --flag2  [env var: custom2]\n  --flag3\n",
         ),
         # Click Extra defaults to let each option choose its own show_envvar value.
         (
