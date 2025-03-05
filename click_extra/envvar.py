@@ -34,31 +34,6 @@ TEnvVars = Mapping[str, str | None]
 """Type for ``dict``-like environment variables."""
 
 
-def param_auto_envvar_id(
-    param: click.Parameter,
-    ctx: click.Context | dict[str, Any],
-) -> str | None:
-    """Compute the auto-generated environment variable of an option or argument.
-
-    Returns the auto envvar as it is exactly computed within Click's internals, i.e.
-    ``click.core.Parameter.resolve_envvar_value()`` and
-    ``click.core.Option.resolve_envvar_value()``.
-    """
-    # Skip parameters that have their auto-envvar explicitly disabled.
-    if not getattr(param, "allow_from_autoenv", None):
-        return None
-
-    if isinstance(ctx, click.Context):
-        prefix = ctx.auto_envvar_prefix
-    else:
-        prefix = ctx.get("auto_envvar_prefix")
-    if not prefix or not param.name:
-        return None
-
-    # Mimics Click's internals.
-    return f"{prefix}_{param.name.upper()}"
-
-
 def merge_envvar_ids(*envvar_ids: TEnvVarID | TNestedEnvVarIDs) -> tuple[str, ...]:
     """Merge and deduplicate environment variables.
 
@@ -98,6 +73,31 @@ def clean_envvar_id(envvar_id: str) -> str:
         environment variable <https://github.com/pallets/click/issues/2483>`_.
     """
     return "_".join(p for p in re.split(r"[^a-zA-Z0-9]+", envvar_id) if p).upper()
+
+
+def param_auto_envvar_id(
+    param: click.Parameter,
+    ctx: click.Context | dict[str, Any],
+) -> str | None:
+    """Compute the auto-generated environment variable of an option or argument.
+
+    Returns the auto envvar as it is exactly computed within Click's internals, i.e.
+    ``click.core.Parameter.resolve_envvar_value()`` and
+    ``click.core.Option.resolve_envvar_value()``.
+    """
+    # Skip parameters that have their auto-envvar explicitly disabled.
+    if not getattr(param, "allow_from_autoenv", None):
+        return None
+
+    if isinstance(ctx, click.Context):
+        prefix = ctx.auto_envvar_prefix
+    else:
+        prefix = ctx.get("auto_envvar_prefix")
+    if not prefix or not param.name:
+        return None
+
+    # Mimics Click's internals.
+    return f"{prefix}_{param.name.upper()}"
 
 
 def param_envvar_ids(
