@@ -350,7 +350,10 @@ def test_extra_theme():
                 " "
                 + theme.bracket("[")
                 + theme.bracket("env var: ")
-                + theme.envvar("custom1, FLAG1, TEST_FLAG1")
+                + theme.envvar(
+                    ("CUSTOM1" if os.name == "nt" else "custom1")
+                    + ", FLAG1, TEST_FLAG1"
+                )
                 + theme.bracket("]"),
             ),
         ),
@@ -368,7 +371,9 @@ def test_extra_theme():
                 " "
                 + theme.bracket("[")
                 + theme.bracket("env var: ")
-                + theme.envvar("custom1, TEST_FLAG1")
+                + theme.envvar(
+                    ("CUSTOM1" if os.name == "nt" else "custom1") + ", TEST_FLAG1"
+                )
                 + theme.bracket("; ")
                 + theme.bracket("default: ")
                 + theme.default("1")

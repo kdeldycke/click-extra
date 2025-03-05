@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import ast
 import inspect
+import os
 import re
 from pathlib import Path
 from textwrap import dedent
@@ -447,14 +448,20 @@ def test_option_group_integration(invoke):
         (
             click.command,
             {},
-            "  --flag1\n  --flag2  [env var: custom2]\n  --flag3\n",
+            "  --flag1\n"
+            "  --flag2  [env var: "
+            + ("CUSTOM2" if os.name == "nt" else "custom2")
+            + "]\n"
+            "  --flag3\n",
         ),
         # Click Extra defaults to let each option choose its own show_envvar value.
         (
             extra_command,
             {},
             "  --flag1\n"
-            "  --flag2                   [env var: custom2, CLI_FLAG2]\n"
+            "  --flag2                   [env var: "
+            + ("CUSTOM2" if os.name == "nt" else "custom2")
+            + ", CLI_FLAG2]\n"
             "  --flag3\n",
         ),
         # Click Extra allow bypassing its global show_envvar setting.
@@ -462,16 +469,24 @@ def test_option_group_integration(invoke):
             extra_command,
             {"show_envvar": None},
             "  --flag1\n"
-            "  --flag2                   [env var: custom2, CLI_FLAG2]\n"
+            "  --flag2                   [env var: "
+            + ("CUSTOM2" if os.name == "nt" else "custom2")
+            + ", CLI_FLAG2]\n"
             "  --flag3\n",
         ),
         # Click Extra force the show_envvar value on all options.
         (
             extra_command,
             {"show_envvar": True},
-            "  --flag1                   [env var: custom1, CLI_FLAG1]\n"
-            "  --flag2                   [env var: custom2, CLI_FLAG2]\n"
-            "  --flag3                   [env var: custom3, CLI_FLAG3]\n",
+            "  --flag1                   [env var: "
+            + ("CUSTOM1" if os.name == "nt" else "custom1")
+            + ", CLI_FLAG1]\n"
+            "  --flag2                   [env var: "
+            + ("CUSTOM2" if os.name == "nt" else "custom2")
+            + ", CLI_FLAG2]\n"
+            "  --flag3                   [env var: "
+            + ("CUSTOM3" if os.name == "nt" else "custom3")
+            + ", CLI_FLAG3]\n",
         ),
         (
             extra_command,

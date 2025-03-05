@@ -69,13 +69,20 @@ def test_clean_envvar_id(env_name, clean_name):
     ("cmd_decorator", "option_help"),
     (
         # Click does not show the auto-generated envvar in the help screen.
-        (click.command, "  --flag / --no-flag  [env var: custom]\n"),
+        (
+            click.command,
+            "  --flag / --no-flag  [env var: "
+            + ("CUSTOM" if os.name == "nt" else "custom")
+            + "]\n",
+        ),
         # Click Extra always adds the auto-generated envvar to the help screen
         # (and show the defaults).
         (
             extra_command,
             "  --flag / --no-flag        "
-            "[env var: custom, yo_FLAG; default: no-flag]\n",
+            "[env var: "
+            + ("CUSTOM, YO_FLAG" if os.name == "nt" else "custom, yo_FLAG")
+            + "; default: no-flag]\n",
         ),
     ),
 )
@@ -215,6 +222,9 @@ def test_auto_envvar_parsing(invoke, cmd_decorator, envvars, expected_flag):
     # @extra_command forces registration of auto-generated envvar.
     if cmd_decorator == extra_command:
         registered_envvars = (*registered_envvars, "yo_FLAG")
+    # On Windows, envvars are normalizes to uppercase.
+    if os.name == "nt":
+        registered_envvars = [envvar.upper() for envvar in registered_envvars]
     assert my_cli.params[0].envvar == registered_envvars
 
     result = invoke(my_cli, env=envvars)

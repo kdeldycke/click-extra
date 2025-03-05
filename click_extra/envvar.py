@@ -42,10 +42,11 @@ def merge_envvar_ids(*envvar_ids: TEnvVarID | TNestedEnvVarIDs) -> tuple[str, ..
 
     Variable names are deduplicated while preserving their initial order.
 
-    On Windows, environment variable names are case-insensitive, so we normalize them
-    to uppercase. See:
-    - https://docs.python.org/3/library/os.html#os.environ
-    - https://github.com/python/cpython/blob/ffef9b0440e4391cbad69dbb11716f54cb8539ab/Lib/os.py#L777-L786
+    .. caution::
+        `On Windows, environment variable names are case-insensitive
+        <https://docs.python.org/3/library/os.html#os.environ>`_, so we `normalize them
+        to uppercase as the standard library does
+        <https://github.com/python/cpython/blob/ffef9b0/Lib/os.py#L777-L786>`_.
 
     Returns a tuple of strings. The result is ready to be used as the ``envvar``
     parameter for Click's options or arguments.
@@ -110,6 +111,12 @@ def param_envvar_ids(
     The auto-generated environment variable is added at the end of the list, so that
     user-defined envvars takes precedence. This respects the current implementation
     of ``click.core.Option.resolve_envvar_value()``.
+
+    .. caution::
+        `On Windows, environment variable names are case-insensitive
+        <https://docs.python.org/3/library/os.html#os.environ>`_, so we `normalize them
+        to uppercase as the standard library does
+        <https://github.com/python/cpython/blob/ffef9b0/Lib/os.py#L777-L786>`_.
     """
     return merge_envvar_ids(param.envvar, param_auto_envvar_id(param, ctx))
 
