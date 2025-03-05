@@ -63,12 +63,12 @@ INDENT = " " * len(PROMPT)
 """Constants for rendering of CLI execution."""
 
 
-EnvVars = Mapping[str, Optional[str]]
+EnvVars = Mapping[str, str | None]
 """Type for ``dict``-like environment variables."""
 
-Arg = Union[str, Path, None]
+Arg = str | Path | None
 Args = Iterable[Arg]
-NestedArgs = Iterable[Union[Arg, Iterable["NestedArgs"]]]
+NestedArgs = Iterable[Arg | Iterable["NestedArgs"]]
 """Types for arbitrary nested CLI arguments.
 
 Arguments can be ``str``, :py:class:`pathlib.Path` objects or ``None`` values.
