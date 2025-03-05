@@ -1,9 +1,6 @@
 # Changelog
 
-## [4.15.0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v4.14.2...main)
-
-> [!IMPORTANT]
-> This version is not released yet and is under active development.
+## [4.15.0 (2025-03-05)](https://github.com/kdeldycke/click-extra/compare/v4.14.2...v4.15.0)
 
 - Regroup all envronment variables-related code.
 - Rename `extend_envvars()` to `merge_envvar_ids()` and allow it to merge arbitrary-nested structures. Normalize names to uppercase on Windows.
