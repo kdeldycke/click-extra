@@ -221,10 +221,14 @@ def test_auto_envvar_parsing(invoke, cmd_decorator, envvars, expected_flag):
     registered_envvars = ["Magic", "sUper"]
     # @extra_command forces registration of auto-generated envvar.
     if cmd_decorator == extra_command:
-        registered_envvars = (*registered_envvars, "yo_FLAG")
+        registered_envvars = [*registered_envvars, "yo_FLAG"]
     # On Windows, envvars are normalizes to uppercase.
     if os.name == "nt":
         registered_envvars = [envvar.upper() for envvar in registered_envvars]
+    # @extra_command parameters returns envvar property as tuple, while vanilla Click
+    # returns a list.
+    if cmd_decorator == extra_command:
+        registered_envvars = tuple(registered_envvars)
     assert my_cli.params[0].envvar == registered_envvars
 
     result = invoke(my_cli, env=envvars)
