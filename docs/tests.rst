@@ -41,6 +41,14 @@ tests.test\_config module
    :undoc-members:
    :show-inheritance:
 
+tests.test\_envvar module
+-------------------------
+
+.. automodule:: tests.test_envvar
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 tests.test\_logging module
 --------------------------
 
