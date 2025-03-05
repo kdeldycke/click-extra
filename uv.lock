@@ -1,6 +1,10 @@
 version = 1
 revision = 1
 requires-python = ">=3.10"
+resolution-markers = [
+    "python_full_version >= '3.11'",
+    "python_full_version < '3.11'",
+]
 
 [[package]]
 name = "alabaster"
@@ -135,13 +139,14 @@ wheels = [
 
 [[package]]
 name = "click-extra"
-version = "4.14.3"
+version = "4.15.0"
 source = { editable = "." }
 dependencies = [
     { name = "boltons" },
     { name = "click" },
     { name = "cloup" },
-    { name = "extra-platforms" },
+    { name = "extra-platforms", version = "2.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "extra-platforms", version = "3.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "mergedeep" },
     { name = "pyyaml" },
     { name = "requests" },
@@ -179,7 +184,8 @@ sphinx = [
 ]
 test = [
     { name = "coverage", extra = ["toml"] },
-    { name = "extra-platforms", extra = ["pytest"] },
+    { name = "extra-platforms", version = "2.1.0", source = { registry = "https://pypi.org/simple" }, extra = ["pytest"], marker = "python_full_version < '3.11'" },
+    { name = "extra-platforms", version = "3.1.0", source = { registry = "https://pypi.org/simple" }, extra = ["pytest"], marker = "python_full_version >= '3.11'" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-github-actions-annotate-failures" },
@@ -357,9 +363,12 @@ wheels = [
 name = "extra-platforms"
 version = "2.1.0"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version < '3.11'",
+]
 dependencies = [
-    { name = "boltons" },
-    { name = "distro" },
+    { name = "boltons", marker = "python_full_version < '3.11'" },
+    { name = "distro", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/51/7e/a95d33f53ce732457ae2235ce8d0e6b784526466f79ef72d0ebaf9fb9730/extra_platforms-2.1.0.tar.gz", hash = "sha256:6dda2f806a255c98702291220716becf08a00d3754c1422460f4ff9f724744a9", size = 47724 }
 wheels = [
@@ -368,7 +377,28 @@ wheels = [
 
 [package.optional-dependencies]
 pytest = [
-    { name = "pytest" },
+    { name = "pytest", marker = "python_full_version < '3.11'" },
+]
+
+[[package]]
+name = "extra-platforms"
+version = "3.1.0"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.11'",
+]
+dependencies = [
+    { name = "boltons", marker = "python_full_version >= '3.11'" },
+    { name = "distro", marker = "python_full_version >= '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3b/79/47d9a71e0f97172c5c4b63c3aae66af4cc8e2b4a81473c840b1aa6e18da5/extra_platforms-3.1.0.tar.gz", hash = "sha256:60b6da2d0976aae1f88e6176516d46a5230861b24b5d20c14d1dee788c801690", size = 48932 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a9/7c/486291846d57e421b1ed01aac4e1ecc5ea61b00da0d7aeb30dc2208f0d99/extra_platforms-3.1.0-py3-none-any.whl", hash = "sha256:16ac650a176c212101995f42cc0fde12c50682b351cc64c23683e0d1ee823d2e", size = 34262 },
+]
+
+[package.optional-dependencies]
+pytest = [
+    { name = "pytest", marker = "python_full_version >= '3.11'" },
 ]
 
 [[package]]
@@ -597,7 +627,7 @@ wheels = [
 
 [[package]]
 name = "pytest"
-version = "8.3.4"
+version = "8.3.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
@@ -607,9 +637,9 @@ dependencies = [
     { name = "pluggy" },
     { name = "tomli", marker = "python_full_version < '3.11'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/05/35/30e0d83068951d90a01852cb1cef56e5d8a09d20c7f511634cc2f7e0372a/pytest-8.3.4.tar.gz", hash = "sha256:965370d062bce11e73868e0335abac31b4d3de0e82f4007408d242b4f8610761", size = 1445919 }
+sdist = { url = "https://files.pythonhosted.org/packages/ae/3c/c9d525a414d506893f0cd8a8d0de7706446213181570cdbd766691164e40/pytest-8.3.5.tar.gz", hash = "sha256:f4efe70cc14e511565ac476b57c279e12a855b11f48f212af1080ef2263d3845", size = 1450891 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/11/92/76a1c94d3afee238333bc0a42b82935dd8f9cf8ce9e336ff87ee14d9e1cf/pytest-8.3.4-py3-none-any.whl", hash = "sha256:50e16d954148559c9a74109af1eaf0c945ba2d8f30f0a3d3335edde19788b6f6", size = 343083 },
+    { url = "https://files.pythonhosted.org/packages/30/3d/64ad57c803f1fa1e963a7946b6e0fea4a70df53c1a7fed304586539c2bac/pytest-8.3.5-py3-none-any.whl", hash = "sha256:c69214aa47deac29fad6c2a4f590b9c4a9fdb16a403176fe154b79c0b4d4d820", size = 343634 },
 ]
 
 [[package]]
@@ -951,15 +981,14 @@ wheels = [
 
 [[package]]
 name = "types-pygments"
-version = "2.19.0.20250219"
+version = "2.19.0.20250305"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "types-docutils" },
-    { name = "types-setuptools" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/54/7a/04c95c518bf90f38645e24b2d6d8e0c85a8cfb8735bfb3756e10a506c687/types_pygments-2.19.0.20250219.tar.gz", hash = "sha256:a4a279338c96f3d4f2eb2c4d7c6c5593c88108b185bb5c664f943f781170cd14", size = 18463 }
+sdist = { url = "https://files.pythonhosted.org/packages/e6/be/88f777c75022b111f9e9fe4cdb430bf92892fe90188b0fd037601ded2ea1/types_pygments-2.19.0.20250305.tar.gz", hash = "sha256:044c50e80ecd4128c00a7268f20355e16f5c55466d3d49dfda09be920af40b4b", size = 18521 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ba/7f/c5d2558a29d675fbf146e48879cd3e179a9bfd3c34a54c1954bf6940d749/types_Pygments-2.19.0.20250219-py3-none-any.whl", hash = "sha256:5e3e1f660665b3a2ea946dda794b8d5b05772d789181704b523d646e8a7f4382", size = 25599 },
+    { url = "https://files.pythonhosted.org/packages/6f/c6/b6d3ad345b76425e46d25a2da1758603d80c3a59405bdcbbbaa86d8c8070/types_pygments-2.19.0.20250305-py3-none-any.whl", hash = "sha256:ca88aae5ec426f9b107c0f7adc36dc096d2882d930a49f679eaf4b8b643db35d", size = 25638 },
 ]
 
 [[package]]
@@ -981,15 +1010,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/87/88/365d6b46f1088ddeccbc89c26190c3180088ef6e7c8d162fc619496aab96/types_requests-2.32.0.20250301.tar.gz", hash = "sha256:3d909dc4eaab159c0d964ebe8bfa326a7afb4578d8706408d417e17d61b0c500", size = 22977 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b9/c2/e44564e8995dbc1738c2acacb8009d59c8cb19327da95a1b5c5d9cb68364/types_requests-2.32.0.20250301-py3-none-any.whl", hash = "sha256:0003e0124e2cbefefb88222ff822b48616af40c74df83350f599a650c8de483b", size = 20671 },
-]
-
-[[package]]
-name = "types-setuptools"
-version = "75.8.2.20250301"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f6/02/5f476d1a4f2bb23ba47c3aac6246cae1159d430937171e58860a9f1f47f8/types_setuptools-75.8.2.20250301.tar.gz", hash = "sha256:c900bceebfffc92a4abc3cfd4b3c39ead1a2298a73dae37e6bc09da7baf797a0", size = 48468 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/f3/d8/aba63d60951fbec2917a9d2c8673605a57fdbfc9134268802988c99c7a4c/types_setuptools-75.8.2.20250301-py3-none-any.whl", hash = "sha256:3cc3e751db9e84eddf1e6d4f8c46bef2c77e6c25b0cd096f729ffa57d3d6a83a", size = 71841 },
 ]
 
 [[package]]
