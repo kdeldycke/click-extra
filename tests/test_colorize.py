@@ -118,8 +118,12 @@ def test_extra_theme():
             # Short option name is highlighted in both the synopsis and the description.
             ExtraOption(["-e"], help="Option -e (-e), not -ee or --e."),
             (
-                f" {theme.option('-e')} {theme.metavar('TEXT')} ",
-                f" Option {theme.option('-e')} ({theme.option('-e')}), not -ee or --e.",
+                " " + theme.option("-e") + " " + theme.metavar("TEXT") + " ",
+                " Option "
+                + theme.option("-e")
+                + " ("
+                + theme.option("-e")
+                + "), not -ee or --e.",
             ),
         ),
         # Long option.
@@ -127,19 +131,20 @@ def test_extra_theme():
             # Long option name is highlighted in both the synopsis and the description.
             ExtraOption(["--exclude"], help="Option named --exclude."),
             (
-                f" {theme.option('--exclude')} {theme.metavar('TEXT')} ",
-                f" Option named {theme.option('--exclude')}.",
+                " " + theme.option("--exclude") + " " + theme.metavar("TEXT") + " ",
+                " Option named " + theme.option("--exclude") + ".",
             ),
         ),
         # Default value.
         (
             ExtraOption(["--n"], default=1, show_default=True),
             (
-                f" {theme.option('--n')} {theme.metavar('INTEGER')} ",
-                f" {theme.bracket('[')}"
-                f"{theme.bracket('default: ')}"
-                f"{theme.default('1')}"
-                f"{theme.bracket(']')}",
+                " " + theme.option("--n") + " " + theme.metavar("INTEGER") + " ",
+                " "
+                + theme.bracket("[")
+                + theme.bracket("default: ")
+                + theme.default("1")
+                + theme.bracket("]"),
             ),
         ),
         # Dynamic default.
@@ -151,40 +156,52 @@ def test_extra_theme():
                 show_default="current user",
             ),
             (
-                f" {theme.option('--username')} {theme.metavar('TEXT')} ",
-                f" {theme.bracket('[')}"
-                f"{theme.bracket('default: ')}"
-                f"{theme.default('(current user)')}"
-                f"{theme.bracket(']')}",
+                " " + theme.option("--username") + " " + theme.metavar("TEXT") + " ",
+                " "
+                + theme.bracket("[")
+                + theme.bracket("default: ")
+                + theme.default("(current user)")
+                + theme.bracket("]"),
             ),
         ),
         # Required option.
         (
             ExtraOption(["--x"], required=True, type=int),
             (
-                f" {theme.option('--x')} {theme.metavar('INTEGER')} ",
-                f" {theme.bracket('[')}{theme.bracket('required')}{theme.bracket(']')}",
+                " " + theme.option("--x") + " " + theme.metavar("INTEGER") + " ",
+                " "
+                + theme.bracket("[")
+                + theme.bracket("required")
+                + theme.bracket("]"),
             ),
         ),
         # Required and default value.
         (
             ExtraOption(["--y"], default=1, required=True, show_default=True),
             (
-                f" {theme.option('--y')} {theme.metavar('INTEGER')} ",
-                f" {theme.bracket('[')}"
-                f"{theme.bracket('default: ')}"
-                f"{theme.default('1')}"
-                f"{theme.bracket('; ')}"
-                f"{theme.bracket('required')}"
-                f"{theme.bracket(']')}",
+                " " + theme.option("--y") + " " + theme.metavar("INTEGER") + " ",
+                " "
+                + theme.bracket("[")
+                + theme.bracket("default: ")
+                + theme.default("1")
+                + theme.bracket("; ")
+                + theme.bracket("required")
+                + theme.bracket("]"),
             ),
         ),
         # Range option.
         (
             ExtraOption(["--digit"], type=IntRange(0, 9)),
             (
-                f" {theme.option('--digit')} {theme.metavar('INTEGER RANGE')} ",
-                f" {theme.bracket('[')}{theme.bracket('0<=x<=9')}{theme.bracket(']')}",
+                " "
+                + theme.option("--digit")
+                + " "
+                + theme.metavar("INTEGER RANGE")
+                + " ",
+                " "
+                + theme.bracket("[")
+                + theme.bracket("0<=x<=9")
+                + theme.bracket("]"),
             ),
         ),
         # Boolean flags.
@@ -197,9 +214,12 @@ def test_extra_theme():
                 help="Auto --no-flag and --flag options.",
             ),
             (
-                f" {theme.option('--flag')} / {theme.option('--no-flag')} ",
-                f" Auto {theme.option('--no-flag')}"
-                f" and {theme.option('--flag')} options.",
+                " " + theme.option("--flag") + " / " + theme.option("--no-flag") + " ",
+                " Auto "
+                + theme.option("--no-flag")
+                + " and "
+                + theme.option("--flag")
+                + " options.",
             ),
         ),
         (
@@ -210,8 +230,8 @@ def test_extra_theme():
                 help="Auto --shout but no --no-shout.",
             ),
             (
-                f" {theme.option('--shout')} ",
-                f" Auto {theme.option('--shout')} but no --no-shout.",
+                " " + theme.option("--shout") + " ",
+                " Auto " + theme.option("--shout") + " but no --no-shout.",
             ),
         ),
         (
@@ -221,18 +241,24 @@ def test_extra_theme():
                 help="Auto /no-debug and /debug options.",
             ),
             (
-                f" {theme.option('/debug')}; {theme.option('/no-debug')} ",
-                f" Auto {theme.option('/no-debug')}"
-                f" and {theme.option('/debug')} options.",
+                " " + theme.option("/debug") + "; " + theme.option("/no-debug") + " ",
+                " Auto "
+                + theme.option("/no-debug")
+                + " and "
+                + theme.option("/debug")
+                + " options.",
             ),
         ),
         (
             # Option flag with alternative leading symbol.
             ExtraOption(["+w/-w"], help="Auto +w, and -w. Not ++w or -woo."),
             (
-                f" {theme.option('+w')} / {theme.option('-w')} ",
-                f" Auto {theme.option('+w')}, and {theme.option('-w')}."
-                " Not ++w or -woo.",
+                " " + theme.option("+w") + " / " + theme.option("-w") + " ",
+                " Auto "
+                + theme.option("+w")
+                + ", and "
+                + theme.option("-w")
+                + ". Not ++w or -woo.",
             ),
         ),
         (
@@ -243,10 +269,20 @@ def test_extra_theme():
                 help="Auto --shout, --no-shout and -S.",
             ),
             (
-                f" {theme.option('--shout')} / {theme.option('-S')},"
-                f" {theme.option('--no-shout')} ",
-                f" Auto {theme.option('--shout')}, {theme.option('--no-shout')}"
-                f" and {theme.option('-S')}.",
+                " "
+                + theme.option("--shout")
+                + " / "
+                + theme.option("-S")
+                + ", "
+                + theme.option("--no-shout")
+                + " ",
+                " Auto "
+                + theme.option("--shout")
+                + ", "
+                + theme.option("--no-shout")
+                + " and "
+                + theme.option("-S")
+                + ".",
             ),
         ),
         # Choices.
@@ -258,17 +294,34 @@ def test_extra_theme():
                 help="apt, APT (not aptitude or apt_mint) and brew.",
             ),
             (
-                f" {theme.option('--manager')} "
-                f"[{theme.choice('apm')}|{theme.choice('apt')}"
-                f"|{theme.choice('brew')}] ",
-                f" {theme.choice('apt')}, APT (not aptitude or apt_mint) and"
-                f" {theme.choice('brew')}.",
+                " "
+                + theme.option("--manager")
+                + " "
+                + "["
+                + theme.choice("apm")
+                + "|"
+                + theme.choice("apt")
+                + "|"
+                + theme.choice("brew")
+                + "] ",
+                " "
+                + theme.choice("apt")
+                + ", APT (not aptitude or apt_mint) and"
+                + " "
+                + theme.choice("brew")
+                + ".",
             ),
         ),
         # Tuple option.
         (
             ExtraOption(["--item"], type=(str, int), help="Option with tuple type."),
-            (f" {theme.option('--item')} {theme.metavar('<TEXT INTEGER>...')} ",),
+            (
+                " "
+                + theme.option("--item")
+                + " "
+                + theme.metavar("<TEXT INTEGER>...")
+                + " ",
+            ),
         ),
         # Metavar.
         (
@@ -279,8 +332,8 @@ def test_extra_theme():
                 help="Option with SPECIAL metavar.",
             ),
             (
-                f" {theme.option('--special')} {theme.metavar('SPECIAL')} ",
-                f" Option with {theme.metavar('SPECIAL')} metavar.",
+                " " + theme.option("--special") + " " + theme.metavar("SPECIAL") + " ",
+                " Option with " + theme.metavar("SPECIAL") + " metavar.",
             ),
         ),
         # Envvars.
@@ -293,11 +346,12 @@ def test_extra_theme():
                 show_envvar=True,
             ),
             (
-                f" {theme.option('--flag1')} ",
-                f" {theme.bracket('[')}"
-                f"{theme.bracket('env var: ')}"
-                f"{theme.envvar('custom1, FLAG1, TEST_FLAG1')}"
-                f"{theme.bracket(']')}",
+                " " + theme.option("--flag1") + " ",
+                " "
+                + theme.bracket("[")
+                + theme.bracket("env var: ")
+                + theme.envvar("custom1, FLAG1, TEST_FLAG1")
+                + theme.bracket("]"),
             ),
         ),
         (
@@ -310,14 +364,15 @@ def test_extra_theme():
                 show_default=True,
             ),
             (
-                f" {theme.option('--flag1')} ",
-                f" {theme.bracket('[')}"
-                f"{theme.bracket('env var: ')}"
-                f"{theme.envvar('custom1, TEST_FLAG1')}"
-                f"{theme.bracket('; ')}"
-                f"{theme.bracket('default: ')}"
-                f"{theme.default('1')}"
-                f"{theme.bracket(']')}",
+                " " + theme.option("--flag1") + " ",
+                " "
+                + theme.bracket("[")
+                + theme.bracket("env var: ")
+                + theme.envvar("custom1, TEST_FLAG1")
+                + theme.bracket("; ")
+                + theme.bracket("default: ")
+                + theme.default("1")
+                + theme.bracket("]"),
             ),
         ),
     ),
