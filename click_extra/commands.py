@@ -213,6 +213,8 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):  # type: ignore[misc]
             which only evaluates them dynamiccaly. By forcing their registration, the
             auto-generated environment variables gets displayed in the help screen,
             fixing `click#2483 issue <https://github.com/pallets/click/issues/2483>`_.
+            On Windows, environment variable names are case-insensitive, so we normalize
+            them to uppercase.
 
         By default, these `Click context settings
         <https://click.palletsprojects.com/en/stable/api/#click.Context>`_ are applied:
