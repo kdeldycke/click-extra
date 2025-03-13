@@ -10,7 +10,7 @@ name: Docs
 jobs:
 
   docs:
-    uses: kdeldycke/workflows/.github/workflows/docs.yaml@v4.14.2
+    uses: kdeldycke/workflows/.github/workflows/docs.yaml@v4.15.4
 
   update-docs:
     needs: docs
