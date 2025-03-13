@@ -5,6 +5,8 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Drop supports for Python 3.10.
+
 ## [4.15.0 (2025-03-05)](https://github.com/kdeldycke/click-extra/compare/v4.14.2...v4.15.0)
 
 - Regroup all envronment variables-related code.

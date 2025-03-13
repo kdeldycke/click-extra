@@ -20,7 +20,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import sys
 from configparser import ConfigParser, ExtendedInterpolation
 from enum import Enum
 from gettext import gettext as _
@@ -28,12 +27,8 @@ from pathlib import Path
 from typing import Any, Iterable, Sequence
 from unittest.mock import patch
 
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib  # type: ignore[import-not-found]
-
 import requests
+import tomllib
 import xmltodict
 import yaml
 from boltons.iterutils import flatten
