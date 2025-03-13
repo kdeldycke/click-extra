@@ -53,6 +53,16 @@
     Fix the need to have both ``.. click:example::`` and ``.. click:run::`` directives
     in the same ``{eval-rst}`` block in MyST. This is required to have both directives
     shares states and context.
+
+.. seealso::
+    This is based on `Pallets' Sphinx Themes
+    <https://github.com/pallets/pallets-sphinx-themes/blob/main/src/pallets_sphinx_themes/themes/click/domain.py>`_,
+    `released under a BSD-3-Clause license
+    <https://github.com/pallets/pallets-sphinx-themes/tree/main?tab=BSD-3-Clause-1-ov-file#readme>`_.
+
+    Compared to the latter, it:
+    - Forces the rendering of CLI results into ANSI shell sessions, via the
+      ``.. code-block:: ansi-shell-session`` directive.
 """
 
 from __future__ import annotations
@@ -64,75 +74,316 @@ except ImportError:
         "You need to install click_extra[sphinx] extra dependencies to use this module."
     )
 
+import contextlib
+import shlex
+import subprocess
+import sys
+import tempfile
+from functools import partial
 from typing import Any
 
+import click
+from click.testing import EchoingStdin
+from docutils import nodes
+from docutils.parsers.rst import Directive
 from docutils.statemachine import ViewList
+from sphinx.domains import Domain
 from sphinx.highlighting import PygmentsBridge
 
 from .pygments import AnsiHtmlFormatter
 from .testing import ExtraCliRunner
 
 
-class PatchedViewList(ViewList):
-    """Force the rendering of ANSI shell session.
+class EofEchoingStdin(EchoingStdin):
+    """Like :class:`click.testing.EchoingStdin` but adds a visible
+    ``^D`` in place of the EOT character (``\x04``).
 
-    Replaces the ``.. sourcecode:: shell-session`` code block produced by
-    ``.. click:run::`` directive with an ANSI Shell Session:
-    ``.. code-block:: ansi-shell-session``.
-
-    ``.. sourcecode:: shell-session`` has been `released in Pallets-Sphinx-Themes 2.1.0
-    <https://github.com/pallets/pallets-sphinx-themes/pull/62>`_.
+    :meth:`ExampleRunner.invoke` adds ``\x04`` when
+    ``terminate_input=True``.
     """
 
-    def append(self, *args, **kwargs) -> None:
-        """Search the default code block and replace it with our own version."""
-        default_code_block = ".. sourcecode:: shell-session"
-        new_code_block = ".. code-block:: ansi-shell-session"
+    def _echo(self, rv):
+        eof = rv[-1] == b"\x04"[0]
 
-        if default_code_block in args:
-            new_args = list(args)
-            index = args.index(default_code_block)
-            new_args[index] = new_code_block
-            args = tuple(new_args)
+        if eof:
+            rv = rv[:-1]
 
-        return super().append(*args, **kwargs)
+        if not self._paused:
+            self._output.write(rv)
+
+            if eof:
+                self._output.write(b"^D\n")
+
+        return rv
+
+
+@contextlib.contextmanager
+def patch_modules():
+    """Patch modules to work better with :meth:`ExampleRunner.invoke`.
+
+    ``subprocess.call` output is redirected to ``click.echo`` so it
+    shows up in the example output.
+    """
+    old_call = subprocess.call
+
+    def dummy_call(*args, **kwargs):
+        with tempfile.TemporaryFile("wb+") as f:
+            kwargs["stdout"] = f
+            kwargs["stderr"] = f
+            rv = subprocess.Popen(*args, **kwargs).wait()
+            f.seek(0)
+            click.echo(f.read().decode("utf-8", "replace").rstrip())
+        return rv
+
+    subprocess.call = dummy_call
+
+    try:
+        yield
+    finally:
+        subprocess.call = old_call
+
+
+class ExampleRunner(ExtraCliRunner):
+    """:class:`click.testing.CliRunner` with additional features.
+
+    This class inherits from ``click_extra.testing.ExtraCliRunner`` to have full
+    control of contextual color settings by the way of the ``color`` parameter. It also
+    produce unfiltered ANSI codes so that the ``Directive`` sub-classes below can
+    render colors in the HTML output.
+    """
+
+    force_color = True
+    """Force color rendering in ``invoke`` calls."""
+
+    def __init__(self):
+        super().__init__(echo_stdin=True)
+        self.namespace = {"click": click, "__file__": "dummy.py"}
+
+    @contextlib.contextmanager
+    def isolation(self, *args, **kwargs):
+        iso = super().isolation(*args, **kwargs)
+
+        with iso as streams:
+            try:
+                buffer = sys.stdin.buffer
+            except AttributeError:
+                buffer = sys.stdin
+
+            # FIXME: We need to replace EchoingStdin with our custom
+            # class that outputs "^D". At this point we know sys.stdin
+            # has been patched so it's safe to reassign the class.
+            # Remove this once EchoingStdin is overridable.
+            buffer.__class__ = EofEchoingStdin
+            yield streams
+
+    def invoke(
+        self,
+        cli,
+        args=None,
+        prog_name=None,
+        input=None,
+        terminate_input=False,
+        env=None,
+        _output_lines=None,
+        **extra,
+    ):
+        """Like :meth:`CliRunner.invoke` but displays what the user
+        would enter in the terminal for env vars, command args, and
+        prompts.
+
+        :param terminate_input: Whether to display "^D" after a list of
+            input.
+        :param _output_lines: A list used internally to collect lines to
+            be displayed.
+        """
+        output_lines = _output_lines if _output_lines is not None else []
+
+        if env:
+            for key, value in sorted(env.items()):
+                value = shlex.quote(value)
+                output_lines.append(f"$ export {key}={value}")
+
+        args = args or []
+
+        if prog_name is None:
+            prog_name = cli.name.replace("_", "-")
+
+        output_lines.append(f"$ {prog_name} {shlex.join(args)}".rstrip())
+        # remove "python" from command
+        prog_name = prog_name.rsplit(" ", 1)[-1]
+
+        if isinstance(input, (tuple, list)):
+            input = "\n".join(input) + "\n"
+
+            if terminate_input:
+                input += "\x04"
+
+        result = super().invoke(
+            cli=cli, args=args, input=input, env=env, prog_name=prog_name, **extra
+        )
+        output_lines.extend(result.output.splitlines())
+        return result
+
+    def declare_example(self, source):
+        """Execute the given code, adding it to the runner's namespace."""
+        with patch_modules():
+            code = compile(source, "<docs>", "exec")
+            exec(code, self.namespace)
+
+    def run_example(self, source):
+        """Run commands by executing the given code, returning the lines
+        of input and output. The code should be a series of the
+        following functions:
+
+        *   :meth:`invoke`: Invoke a command, adding env vars, input,
+            and output to the output.
+        *   ``println(text="")``: Add a line of text to the output.
+        *   :meth:`isolated_filesystem`: A context manager that changes
+            to a temporary directory while executing the block.
+        """
+        code = compile(source, "<docs>", "exec")
+        buffer = []
+        invoke = partial(self.invoke, _output_lines=buffer)
+
+        def println(text=""):
+            buffer.append(text)
+
+        exec(
+            code,
+            self.namespace,
+            {
+                "invoke": invoke,
+                "println": println,
+                "isolated_filesystem": self.isolated_filesystem,
+            },
+        )
+        return buffer
+
+    def close(self):
+        """Clean up the runner once the document has been read."""
+        pass
+
+
+def get_example_runner(document):
+    """Get or create the :class:`ExampleRunner` instance associated with
+    a document.
+    """
+    runner = getattr(document, "click_example_runner", None)
+    if runner is None:
+        runner = document.click_example_runner = ExampleRunner()
+    return runner
+
+
+class DeclareExampleDirective(Directive):
+    """Add the source contained in the directive's content to the
+    document's :class:`ExampleRunner`, to be run using
+    :class:`RunExampleDirective`.
+
+    See :meth:`ExampleRunner.declare_example`.
+    """
+
+    has_content = True
+    required_arguments = 0
+    optional_arguments = 0
+    final_argument_whitespace = False
+
+    def run(self):
+        doc = ViewList()
+        runner = get_example_runner(self.state.document)
+
+        try:
+            runner.declare_example("\n".join(self.content))
+        except BaseException:
+            runner.close()
+            raise
+
+        doc.append(".. code-block:: python", "")
+        doc.append("", "")
+
+        for line in self.content:
+            doc.append(" " + line, "")
+
+        node = nodes.section()
+        self.state.nested_parse(doc, self.content_offset, node)
+        return node.children
+
+
+class RunExampleDirective(Directive):
+    """Run commands from :class:`DeclareExampleDirective` and display
+    the input and output.
+
+    See :meth:`ExampleRunner.run_example`.
+    """
+
+    has_content = True
+    required_arguments = 0
+    optional_arguments = 0
+    final_argument_whitespace = False
+
+    def run(self):
+        doc = ViewList()
+        runner = get_example_runner(self.state.document)
+
+        try:
+            rv = runner.run_example("\n".join(self.content))
+        except BaseException:
+            runner.close()
+            raise
+
+        doc.append(".. code-block:: ansi-shell-session", "")
+        doc.append("", "")
+
+        for line in rv:
+            doc.append(" " + line, "")
+
+        node = nodes.section()
+        self.state.nested_parse(doc, self.content_offset, node)
+        return node.children
+
+
+class ClickDomain(Domain):
+    """Declares new directives:
+    - ``.. click:example::``
+    - ``.. click:run::``
+    """
+
+    name = "click"
+    label = "Click"
+    directives = {
+        "example": DeclareExampleDirective,
+        "run": RunExampleDirective,
+    }
+
+    def merge_domaindata(self, docnames, otherdata):
+        # Needed to support parallel build.
+        # Not using self.data -- nothing to merge.
+        pass
+
+
+def delete_example_runner_state(app, doctree):
+    """Close and remove the :class:`ExampleRunner` instance once the
+    document has been read.
+    """
+    runner = getattr(doctree, "click_example_runner", None)
+
+    if runner is not None:
+        runner.close()
+        del doctree.click_example_runner
 
 
 def setup(app: Any) -> None:
     """Register new directives, augmented with ANSI coloring.
 
-    New directives:
-        - ``.. click:example::``
-        - ``.. click:run::``
-
     .. danger::
-        This function activates lots of monkey-patches:
+        This function activates some monkey-patches:
 
         - ``sphinx.highlighting.PygmentsBridge`` is updated to set its default HTML
           formatter to an ANSI capable one for the whole Sphinx app.
 
-        - ``pallets_sphinx_themes.themes.click.domain.ViewList`` is
-          `patched to force an ANSI lexer on the rST code block
-          <#click_extra.sphinx.PatchedViewList>`_.
-
-        - ``pallets_sphinx_themes.themes.click.domain.ExampleRunner`` is replaced with
-          ``click_extra.testing.ExtraCliRunner`` to have full control of
-          contextual color settings by the way of the ``color`` parameter. It also
-          produce unfiltered ANSI codes so that the other ``PatchedViewList``
-          monkey-patch can do its job and render colors in the HTML output.
     """
     # Set Sphinx's default HTML formatter to an ANSI capable one.
     PygmentsBridge.html_formatter = AnsiHtmlFormatter
 
-    from pallets_sphinx_themes.themes.click import domain
-
-    domain.ViewList = PatchedViewList
-
-    # Brutal, but effective.
-    # Alternative patching methods: https://stackoverflow.com/a/38928265
-    domain.ExampleRunner.__bases__ = (ExtraCliRunner,)
-    # Force color rendering in ``invoke`` calls.
-    domain.ExampleRunner.force_color = True
-
     # Register directives to Sphinx.
-    domain.setup(app)
+    app.add_domain(ClickDomain)
+    app.connect("doctree-read", delete_example_runner_state)

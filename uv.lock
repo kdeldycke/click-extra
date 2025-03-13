@@ -122,7 +122,7 @@ wheels = [
 
 [[package]]
 name = "click-extra"
-version = "4.15.1"
+version = "4.16.0"
 source = { editable = "." }
 dependencies = [
     { name = "boltons" },
@@ -157,7 +157,6 @@ pytest = [
     { name = "pytest" },
 ]
 sphinx = [
-    { name = "pallets-sphinx-themes" },
     { name = "pygments" },
     { name = "pygments-ansi-color" },
     { name = "sphinx" },
@@ -190,7 +189,6 @@ requires-dist = [
     { name = "furo", marker = "extra == 'docs'", specifier = "~=2024.8.6" },
     { name = "mergedeep", specifier = "~=1.3.4" },
     { name = "myst-parser", marker = "extra == 'docs'", specifier = "~=4.0.0" },
-    { name = "pallets-sphinx-themes", marker = "extra == 'sphinx'", specifier = "~=2.3.0" },
     { name = "pygments", marker = "extra == 'pygments'", specifier = "~=2.14" },
     { name = "pygments", marker = "extra == 'sphinx'", specifier = "~=2.14" },
     { name = "pygments-ansi-color", marker = "extra == 'pygments'", specifier = "~=0.3.0" },
@@ -504,20 +502,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pallets-sphinx-themes"
-version = "2.3.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "packaging" },
-    { name = "sphinx" },
-    { name = "sphinx-notfound-page" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/3b/08/c57dd89e45dbc976930200a2cb7826ed76f3c9791454a9fcd1cde3f17177/pallets_sphinx_themes-2.3.0.tar.gz", hash = "sha256:6293ced11a1d5d3de7268af1acd60428732b5a9e6051a47a596c6d9a083e60d9", size = 21029 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ff/7d/a4aa06e452e031559dcfb066e035d2615ebfa6148e93514d7c36030004c1/pallets_sphinx_themes-2.3.0-py3-none-any.whl", hash = "sha256:7ed13de3743c462c2804e2aa63d96cc9ffa82cb76d0251cea03de9bcd9f8dbec", size = 24745 },
-]
-
-[[package]]
 name = "pluggy"
 version = "1.5.0"
 source = { registry = "https://pypi.org/simple" }
@@ -774,18 +758,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ab/2b/5bc6fac05eba113665f18d4ebe3c1180d1ce3e7b6fd6823835dbec48dd4e/sphinx_issues-5.0.0.tar.gz", hash = "sha256:192e43cf071ed7aead401cd14fd15076ecb0866238c095d672180618740c6bae", size = 14021 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1d/14/a1b38212db8d327f53f2f56f0ed81c8b80ee2c2160e8819069c0d329d0a9/sphinx_issues-5.0.0-py3-none-any.whl", hash = "sha256:d80704a01c8af3d76586771a67a9e48f2d1a6091a0377458c49908460a6a31ea", size = 8063 },
-]
-
-[[package]]
-name = "sphinx-notfound-page"
-version = "1.1.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "sphinx" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/6a/b2/67603444a8ee97b4a8ea71b0a9d6bab1727ed65e362c87e02f818ee57b8a/sphinx_notfound_page-1.1.0.tar.gz", hash = "sha256:913e1754370bb3db201d9300d458a8b8b5fb22e9246a816643a819a9ea2b8067", size = 7392 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/cd/d4/019fe439c840a7966012bbb95ccbdd81c5c10271749706793b43beb05145/sphinx_notfound_page-1.1.0-py3-none-any.whl", hash = "sha256:835dc76ff7914577a1f58d80a2c8418fb6138c0932c8da8adce4d9096fbcd389", size = 8167 },
 ]
 
 [[package]]
