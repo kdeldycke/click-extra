@@ -1,0 +1,1201 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+
+    <!-- Generated with Sphinx 8.2.3 and Furo 2024.08.06 -->
+        <title>click_extra.colorize - Click Extra</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=060664ba" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+<div class="announcement">
+  <aside class="announcement-content">
+     Click Extra works fine, but its sole maintainer is distracted by life 😶‍🌫️.<br/>You can influence it with purchase of <strong><a class='reference external' href='https://github.com/sponsors/kdeldycke'>business support 🤝 and sponsorship 🫶</a></strong>. 
+  </aside>
+</div>
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">Click Extra</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../_static/logo-square.svg" alt="Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../commands.html">Commands &amp; groups</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../config.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../colorize.html">Colored help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../logging.html">Logging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tabulate.html">Table</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../version.html">Version</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../timer.html">Timer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../parameters.html">Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../pygments.html">Pygments extensions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../sphinx.html">Sphinx extensions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../testing.html">CLI testing and execution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../pytest.html">Pytest utilities and fixtures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../issues.html">Fixed issues</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../click_extra.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tests.html">tests package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../todolist.html">Todo-list</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../code-of-conduct.html">Code of conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/kdeldycke/click-extra">GitHub Repository</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/sponsors/kdeldycke">Funding</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <h1>Source code for click_extra.colorize</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright Kevin Deldycke &lt;kevin@deldycke.com&gt; and contributors.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is Free Software; you can redistribute it and/or</span>
+<span class="c1"># modify it under the terms of the GNU General Public License</span>
+<span class="c1"># as published by the Free Software Foundation; either version 2</span>
+<span class="c1"># of the License, or (at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU General Public License</span>
+<span class="c1"># along with this program; if not, write to the Free Software</span>
+<span class="c1"># Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.</span>
+<span class="sd">&quot;&quot;&quot;Helpers and utilities to apply ANSI coloring to terminal content.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">dataclasses</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">configparser</span><span class="w"> </span><span class="kn">import</span> <span class="n">RawConfigParser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">cache</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gettext</span><span class="w"> </span><span class="kn">import</span> <span class="n">gettext</span> <span class="k">as</span> <span class="n">_</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">operator</span><span class="w"> </span><span class="kn">import</span> <span class="n">getitem</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">cast</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">click</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cloup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">boltons.strutils</span><span class="w"> </span><span class="kn">import</span> <span class="n">complement_int_list</span><span class="p">,</span> <span class="n">int_ranges_from_int_list</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cloup._util</span><span class="w"> </span><span class="kn">import</span> <span class="n">identity</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cloup.styling</span><span class="w"> </span><span class="kn">import</span> <span class="n">Color</span><span class="p">,</span> <span class="n">IStyle</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Choice</span><span class="p">,</span>
+    <span class="n">Context</span><span class="p">,</span>
+    <span class="n">HelpFormatter</span><span class="p">,</span>
+    <span class="n">Parameter</span><span class="p">,</span>
+    <span class="n">ParameterSource</span><span class="p">,</span>
+    <span class="n">Style</span><span class="p">,</span>
+    <span class="n">get_current_context</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.parameters</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExtraOption</span>
+
+
+<div class="viewcode-block" id="HelpExtraTheme">
+<a class="viewcode-back" href="../../colorize.html#click_extra.HelpExtraTheme">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">HelpExtraTheme</span><span class="p">(</span><span class="n">cloup</span><span class="o">.</span><span class="n">HelpTheme</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extends ``cloup.HelpTheme`` with ``logging.levels`` and extra properties.&quot;&quot;&quot;</span>
+
+    <span class="n">critical</span><span class="p">:</span> <span class="n">IStyle</span> <span class="o">=</span> <span class="n">identity</span>
+    <span class="n">error</span><span class="p">:</span> <span class="n">IStyle</span> <span class="o">=</span> <span class="n">identity</span>
+    <span class="n">warning</span><span class="p">:</span> <span class="n">IStyle</span> <span class="o">=</span> <span class="n">identity</span>
+    <span class="n">info</span><span class="p">:</span> <span class="n">IStyle</span> <span class="o">=</span> <span class="n">identity</span>
+    <span class="n">debug</span><span class="p">:</span> <span class="n">IStyle</span> <span class="o">=</span> <span class="n">identity</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Log levels from Python&#39;s logging module.&quot;&quot;&quot;</span>
+
+    <span class="n">option</span><span class="p">:</span> <span class="n">IStyle</span> <span class="o">=</span> <span class="n">identity</span>
+    <span class="n">subcommand</span><span class="p">:</span> <span class="n">IStyle</span> <span class="o">=</span> <span class="n">identity</span>
+    <span class="n">choice</span><span class="p">:</span> <span class="n">IStyle</span> <span class="o">=</span> <span class="n">identity</span>
+    <span class="n">metavar</span><span class="p">:</span> <span class="n">IStyle</span> <span class="o">=</span> <span class="n">identity</span>
+    <span class="n">bracket</span><span class="p">:</span> <span class="n">IStyle</span> <span class="o">=</span> <span class="n">identity</span>
+    <span class="n">envvar</span><span class="p">:</span> <span class="n">IStyle</span> <span class="o">=</span> <span class="n">identity</span>
+    <span class="n">default</span><span class="p">:</span> <span class="n">IStyle</span> <span class="o">=</span> <span class="n">identity</span>
+    <span class="n">deprecated</span><span class="p">:</span> <span class="n">IStyle</span> <span class="o">=</span> <span class="n">identity</span>
+    <span class="n">search</span><span class="p">:</span> <span class="n">IStyle</span> <span class="o">=</span> <span class="n">identity</span>
+    <span class="n">success</span><span class="p">:</span> <span class="n">IStyle</span> <span class="o">=</span> <span class="n">identity</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Click Extra new coloring properties.&quot;&quot;&quot;</span>
+
+    <span class="n">subheading</span><span class="p">:</span> <span class="n">IStyle</span> <span class="o">=</span> <span class="n">identity</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Non-canonical Click Extra properties.</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        Subheading is used for sub-sections, like `in the help of mail-deduplicate</span>
+<span class="sd">        &lt;https://github.com/kdeldycke/mail-deduplicate/blob/0764287/mail_deduplicate/deduplicate.py#L445&gt;`_.</span>
+
+<span class="sd">    .. todo::</span>
+<span class="sd">        Maybe this shouldn&#39;t be in Click Extra because it is a legacy inheritance from</span>
+<span class="sd">        one of my other project.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="HelpExtraTheme.with_">
+<a class="viewcode-back" href="../../colorize.html#click_extra.HelpExtraTheme.with_">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">with_</span><span class="p">(</span>  <span class="c1"># type: ignore[override]</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">IStyle</span> <span class="o">|</span> <span class="kc">None</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HelpExtraTheme</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Derives a new theme from the current one, with some styles overridden.</span>
+
+<span class="sd">        Returns the same instance if the provided styles are the same as the current.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Check for unrecognized arguments.</span>
+        <span class="n">unrecognized_args</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dataclass_fields__</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">unrecognized_args</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Got unexpected keyword argument(s): </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">unrecognized_args</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="c1"># List of styles that are different from the base theme.</span>
+        <span class="n">new_styles</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">field_id</span><span class="p">:</span> <span class="n">new_style</span>
+            <span class="k">for</span> <span class="n">field_id</span><span class="p">,</span> <span class="n">new_style</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">new_style</span> <span class="o">!=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field_id</span><span class="p">)</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">new_styles</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">new_styles</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+
+        <span class="c1"># No new styles, return the same instance.</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="HelpExtraTheme.dark">
+<a class="viewcode-back" href="../../colorize.html#click_extra.HelpExtraTheme.dark">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dark</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">HelpExtraTheme</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;A theme assuming a dark terminal background color.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">HelpExtraTheme</span><span class="p">(</span>
+            <span class="n">invoked_command</span><span class="o">=</span><span class="n">Style</span><span class="p">(</span><span class="n">fg</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">bright_white</span><span class="p">),</span>
+            <span class="n">heading</span><span class="o">=</span><span class="n">Style</span><span class="p">(</span><span class="n">fg</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">bright_blue</span><span class="p">,</span> <span class="n">bold</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">underline</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+            <span class="n">constraint</span><span class="o">=</span><span class="n">Style</span><span class="p">(</span><span class="n">fg</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">magenta</span><span class="p">),</span>
+            <span class="c1"># Neutralize Cloup&#39;s col1, as it interferes with our finer option styling</span>
+            <span class="c1"># which takes care of separators.</span>
+            <span class="n">col1</span><span class="o">=</span><span class="n">identity</span><span class="p">,</span>
+            <span class="c1"># Style aliases like options and subcommands.</span>
+            <span class="n">alias</span><span class="o">=</span><span class="n">Style</span><span class="p">(</span><span class="n">fg</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">cyan</span><span class="p">),</span>
+            <span class="c1"># Style aliases punctuation like options, but dimmed.</span>
+            <span class="n">alias_secondary</span><span class="o">=</span><span class="n">Style</span><span class="p">(</span><span class="n">fg</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">cyan</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+            <span class="c1">### Log styles.</span>
+            <span class="n">critical</span><span class="o">=</span><span class="n">Style</span><span class="p">(</span><span class="n">fg</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">red</span><span class="p">,</span> <span class="n">bold</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+            <span class="n">error</span><span class="o">=</span><span class="n">Style</span><span class="p">(</span><span class="n">fg</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">red</span><span class="p">),</span>
+            <span class="n">warning</span><span class="o">=</span><span class="n">Style</span><span class="p">(</span><span class="n">fg</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">yellow</span><span class="p">),</span>
+            <span class="n">info</span><span class="o">=</span><span class="n">identity</span><span class="p">,</span>  <span class="c1"># INFO level is the default, so no style applied.</span>
+            <span class="n">debug</span><span class="o">=</span><span class="n">Style</span><span class="p">(</span><span class="n">fg</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">blue</span><span class="p">),</span>
+            <span class="c1">### Click Extra styles.</span>
+            <span class="n">option</span><span class="o">=</span><span class="n">Style</span><span class="p">(</span><span class="n">fg</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">cyan</span><span class="p">),</span>
+            <span class="c1"># Style subcommands like options and aliases.</span>
+            <span class="n">subcommand</span><span class="o">=</span><span class="n">Style</span><span class="p">(</span><span class="n">fg</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">cyan</span><span class="p">),</span>
+            <span class="n">choice</span><span class="o">=</span><span class="n">Style</span><span class="p">(</span><span class="n">fg</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">magenta</span><span class="p">),</span>
+            <span class="n">metavar</span><span class="o">=</span><span class="n">Style</span><span class="p">(</span><span class="n">fg</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">cyan</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+            <span class="n">bracket</span><span class="o">=</span><span class="n">Style</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+            <span class="n">envvar</span><span class="o">=</span><span class="n">Style</span><span class="p">(</span><span class="n">fg</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">yellow</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+            <span class="n">default</span><span class="o">=</span><span class="n">Style</span><span class="p">(</span><span class="n">fg</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">green</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">italic</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+            <span class="n">deprecated</span><span class="o">=</span><span class="n">Style</span><span class="p">(</span><span class="n">fg</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">bright_yellow</span><span class="p">,</span> <span class="n">bold</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+            <span class="n">search</span><span class="o">=</span><span class="n">Style</span><span class="p">(</span><span class="n">fg</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">green</span><span class="p">,</span> <span class="n">bold</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+            <span class="n">success</span><span class="o">=</span><span class="n">Style</span><span class="p">(</span><span class="n">fg</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">green</span><span class="p">),</span>
+            <span class="c1">### Non-canonical Click Extra styles.</span>
+            <span class="n">subheading</span><span class="o">=</span><span class="n">Style</span><span class="p">(</span><span class="n">fg</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">blue</span><span class="p">),</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HelpExtraTheme.light">
+<a class="viewcode-back" href="../../colorize.html#click_extra.HelpExtraTheme.light">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">light</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">HelpExtraTheme</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;A theme assuming a light terminal background color.</span>
+
+<span class="sd">        .. todo::</span>
+<span class="sd">            Tweak colors to make them more readable.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">HelpExtraTheme</span><span class="o">.</span><span class="n">dark</span><span class="p">()</span></div>
+</div>
+
+
+
+<span class="n">default_theme</span><span class="p">:</span> <span class="n">HelpExtraTheme</span> <span class="o">=</span> <span class="n">HelpExtraTheme</span><span class="o">.</span><span class="n">dark</span><span class="p">()</span>
+<span class="sd">&quot;&quot;&quot;Default color theme for Click Extra.&quot;&quot;&quot;</span>
+
+
+<span class="n">nocolor_theme</span><span class="p">:</span> <span class="n">HelpExtraTheme</span> <span class="o">=</span> <span class="n">HelpExtraTheme</span><span class="p">()</span>
+<span class="sd">&quot;&quot;&quot;Color theme for Click Extra to force no colors.&quot;&quot;&quot;</span>
+
+
+<span class="n">OK</span> <span class="o">=</span> <span class="n">default_theme</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="s2">&quot;✓&quot;</span><span class="p">)</span>
+<span class="n">KO</span> <span class="o">=</span> <span class="n">default_theme</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;✘&quot;</span><span class="p">)</span>
+<span class="sd">&quot;&quot;&quot;Pre-rendered UI-elements.&quot;&quot;&quot;</span>
+
+<span class="n">color_env_vars</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="c1"># Colors.</span>
+    <span class="s2">&quot;COLOR&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="s2">&quot;COLORS&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="s2">&quot;CLICOLOR&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="s2">&quot;CLICOLORS&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="s2">&quot;FORCE_COLOR&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="s2">&quot;FORCE_COLORS&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="s2">&quot;CLICOLOR_FORCE&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="s2">&quot;CLICOLORS_FORCE&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="c1"># No colors.</span>
+    <span class="s2">&quot;NOCOLOR&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s2">&quot;NOCOLORS&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s2">&quot;NO_COLOR&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s2">&quot;NO_COLORS&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="sd">&quot;&quot;&quot;List of environment variables recognized as flags to switch color rendering on or</span>
+<span class="sd">off.</span>
+
+<span class="sd">The key is the name of the variable and the boolean value the value to pass to</span>
+<span class="sd">``--color`` option flag when encountered.</span>
+
+<span class="sd">Source: https://github.com/pallets/click/issues/558</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="ColorOption">
+<a class="viewcode-back" href="../../colorize.html#click_extra.ColorOption">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ColorOption</span><span class="p">(</span><span class="n">ExtraOption</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A pre-configured option that is adding a ``--color``/``--no-color`` (aliased by</span>
+<span class="sd">    ``--ansi``/``--no-ansi``) option to keep or strip colors and ANSI codes from CLI</span>
+<span class="sd">    output.</span>
+
+<span class="sd">    This option is eager by default to allow for other eager options (like</span>
+<span class="sd">    ``--version``) to be rendered colorless.</span>
+
+<span class="sd">    .. todo::</span>
+
+<span class="sd">        Should we switch to ``--color=&lt;auto|never|always&gt;`` `as GNU tools does</span>
+<span class="sd">        &lt;https://news.ycombinator.com/item?id=36102377&gt;`_?</span>
+
+<span class="sd">        Also see `how the isatty property defaults with this option</span>
+<span class="sd">        &lt;https://news.ycombinator.com/item?id=36100865&gt;`_, and `how it can be</span>
+<span class="sd">        implemented in Python &lt;https://bixense.com/clicolors/&gt;`_.</span>
+
+<span class="sd">    .. todo::</span>
+
+<span class="sd">        Support the `TERM environment variable convention</span>
+<span class="sd">        &lt;https://news.ycombinator.com/item?id=36101712&gt;`_?</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ColorOption.disable_colors">
+<a class="viewcode-back" href="../../colorize.html#click_extra.ColorOption.disable_colors">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">disable_colors</span><span class="p">(</span>
+        <span class="n">ctx</span><span class="p">:</span> <span class="n">Context</span><span class="p">,</span>
+        <span class="n">param</span><span class="p">:</span> <span class="n">Parameter</span><span class="p">,</span>
+        <span class="n">value</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Callback disabling all coloring utilities.</span>
+
+<span class="sd">        Re-inspect the environment for existence of colorization flags to re-interpret</span>
+<span class="sd">        the provided value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Collect all colorize flags in environment variables we recognize.</span>
+        <span class="n">colorize_from_env</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">var</span><span class="p">,</span> <span class="n">default</span> <span class="ow">in</span> <span class="n">color_env_vars</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">:</span>
+                <span class="c1"># Presence of the variable in the environment without a value encodes</span>
+                <span class="c1"># for an activation, hence the default to True.</span>
+                <span class="n">var_value</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="s2">&quot;true&quot;</span><span class="p">)</span>
+                <span class="c1"># `os.environ` is a dict whose all values are strings. Here we normalize</span>
+                <span class="c1"># these string into booleans. If we can&#39;t, we fallback to True, in the</span>
+                <span class="c1"># same spirit as above.</span>
+                <span class="n">var_boolean</span> <span class="o">=</span> <span class="n">RawConfigParser</span><span class="o">.</span><span class="n">BOOLEAN_STATES</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                    <span class="n">var_value</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span>
+                    <span class="kc">True</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">colorize_from_env</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">default</span> <span class="o">^</span> <span class="p">(</span><span class="ow">not</span> <span class="n">var_boolean</span><span class="p">))</span>
+
+        <span class="c1"># Re-interpret the provided value against the recognized environment variables.</span>
+        <span class="k">if</span> <span class="n">colorize_from_env</span><span class="p">:</span>
+            <span class="c1"># The environment can only override the provided value if it comes from</span>
+            <span class="c1"># the default value or the config file.</span>
+            <span class="n">env_takes_precedence</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">ctx</span><span class="o">.</span><span class="n">get_parameter_source</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">ParameterSource</span><span class="o">.</span><span class="n">DEFAULT</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">env_takes_precedence</span><span class="p">:</span>
+                <span class="c1"># One env var is enough to activate colorization.</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="kc">True</span> <span class="ow">in</span> <span class="n">colorize_from_env</span>
+
+        <span class="c1"># There is an undocumented color flag in context:</span>
+        <span class="c1"># https://github.com/pallets/click/blob/65eceb0/src/click/globals.py#L56-L69</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">value</span><span class="p">:</span>
+
+            <span class="k">def</span><span class="w"> </span><span class="nf">restore_original_styling</span><span class="p">():</span>
+<span class="w">                </span><span class="sd">&quot;&quot;&quot;Reset color flag in context.&quot;&quot;&quot;</span>
+                <span class="n">ctx</span> <span class="o">=</span> <span class="n">get_current_context</span><span class="p">()</span>
+                <span class="n">ctx</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="n">ctx</span><span class="o">.</span><span class="n">call_on_close</span><span class="p">(</span><span class="n">restore_original_styling</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">param_decls</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">is_flag</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">is_eager</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">expose_value</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Strip out all colors and all ANSI codes from output.&quot;</span><span class="p">),</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">param_decls</span><span class="p">:</span>
+            <span class="n">param_decls</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;--color/--no-color&quot;</span><span class="p">,</span> <span class="s2">&quot;--ansi/--no-ansi&quot;</span><span class="p">)</span>
+
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;callback&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">disable_colors</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">param_decls</span><span class="o">=</span><span class="n">param_decls</span><span class="p">,</span>
+            <span class="n">is_flag</span><span class="o">=</span><span class="n">is_flag</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="n">default</span><span class="p">,</span>
+            <span class="n">is_eager</span><span class="o">=</span><span class="n">is_eager</span><span class="p">,</span>
+            <span class="n">expose_value</span><span class="o">=</span><span class="n">expose_value</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="n">help</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="ExtraHelpColorsMixin">
+<a class="viewcode-back" href="../../colorize.html#click_extra.ExtraHelpColorsMixin">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ExtraHelpColorsMixin</span><span class="p">:</span>  <span class="c1"># (Command)??</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Adds extra-keywords highlighting to Click commands.</span>
+
+<span class="sd">    This mixin for ``click.Command``-like classes intercepts the top-level helper-</span>
+<span class="sd">    generation method to initialize the formatter with dynamic settings. This is</span>
+<span class="sd">    implemented at this stage so we have access to the global context.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_collect_keywords</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ctx</span><span class="p">:</span> <span class="n">Context</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span>
+        <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse click context to collect option names, choices and metavar keywords.</span>
+
+<span class="sd">        This is Click Extra-specific and is not part of the upstream ``click.Command``</span>
+<span class="sd">        API.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cli_names</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">subcommands</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">command_aliases</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">options</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">long_options</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">short_options</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">choices</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">metavars</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">envvars</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">defaults</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+        <span class="c1"># Includes CLI base name and its commands.</span>
+        <span class="n">cli_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">command_path</span><span class="p">)</span>
+        <span class="n">command</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">command</span>
+
+        <span class="c1"># Will fetch command&#39;s metavar (i.e. the &quot;[OPTIONS]&quot; after the CLI name in</span>
+        <span class="c1"># &quot;Usage:&quot;) and dig into subcommands to get subcommand_metavar:</span>
+        <span class="c1"># (&quot;COMMAND1 [ARGS]... [COMMAND2 [ARGS]...]...&quot;).</span>
+        <span class="n">metavars</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">command</span><span class="o">.</span><span class="n">collect_usage_pieces</span><span class="p">(</span><span class="n">ctx</span><span class="p">))</span>
+
+        <span class="c1"># Get subcommands and their aliases.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">click</span><span class="o">.</span><span class="n">MultiCommand</span><span class="p">):</span>
+            <span class="n">subcommands</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">command</span><span class="o">.</span><span class="n">list_commands</span><span class="p">(</span><span class="n">ctx</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">sub_id</span> <span class="ow">in</span> <span class="n">subcommands</span><span class="p">:</span>
+                <span class="n">sub_cmd</span> <span class="o">=</span> <span class="n">command</span><span class="o">.</span><span class="n">get_command</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">sub_id</span><span class="p">)</span>
+                <span class="n">command_aliases</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">sub_cmd</span><span class="p">,</span> <span class="s2">&quot;aliases&quot;</span><span class="p">,</span> <span class="p">[]))</span>
+
+        <span class="c1"># Add user defined help options.</span>
+        <span class="n">options</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">help_option_names</span><span class="p">)</span>
+
+        <span class="c1"># Collect all options, choices, metavars, envvars and default values.</span>
+        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">command</span><span class="o">.</span><span class="n">get_params</span><span class="p">(</span><span class="n">ctx</span><span class="p">):</span>
+            <span class="c1"># Ignore hidden options that are not meant to be displayed in help screens.</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">click</span><span class="o">.</span><span class="n">Option</span><span class="p">)</span> <span class="ow">and</span> <span class="n">param</span><span class="o">.</span><span class="n">hidden</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">options</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">opts</span><span class="p">)</span>
+            <span class="n">options</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">secondary_opts</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">Choice</span><span class="p">):</span>
+                <span class="n">choices</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">choices</span><span class="p">)</span>
+
+            <span class="n">metavars</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">make_metavar</span><span class="p">())</span>
+
+            <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">envvar</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">envvar</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="n">envvars</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">envvar</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">envvars</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">envvar</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">click</span><span class="o">.</span><span class="n">Option</span><span class="p">):</span>
+                <span class="n">default_string</span> <span class="o">=</span> <span class="n">ExtraOption</span><span class="o">.</span><span class="n">get_help_default</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">default_string</span><span class="p">:</span>
+                    <span class="n">defaults</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">default_string</span><span class="p">)</span>
+
+        <span class="c1"># Split between shorts and long options</span>
+        <span class="k">for</span> <span class="n">option_name</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span>
+            <span class="c1"># Short options are no longer than 2 characters like &quot;-D&quot;, &quot;/d&quot;, &quot;/?&quot;,</span>
+            <span class="c1"># &quot;+w&quot;, &quot;-w&quot;, &quot;f_&quot;, &quot;_f&quot;, ...</span>
+            <span class="c1"># XXX We cannot reuse the _short_opts and _long_opts attributes from</span>
+            <span class="c1"># https://github.com/pallets/click/blob/b0538df/src/click/parser.py#L173-L182</span>
+            <span class="c1"># because their values are not passed when the context is updated like</span>
+            <span class="c1"># ctx._opt_prefixes is at:</span>
+            <span class="c1"># https://github.com/pallets/click/blob/b0538df/src/click/core.py#L1408 .</span>
+            <span class="c1"># So we rely on simple heuristics to guess the option category.</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">option_name</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">short_options</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">option_name</span><span class="p">)</span>
+            <span class="c1"># Any other is considered a long options. Like: &quot;--debug&quot;, &quot;--c&quot;, &quot;-otest&quot;,</span>
+            <span class="c1"># &quot;---debug&quot;, &quot;-vvvv, &quot;++foo&quot;, &quot;/debug&quot;, &quot;from_&quot;, &quot;_from&quot;, ...</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">long_options</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">option_name</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">cli_names</span><span class="p">,</span>
+            <span class="n">subcommands</span><span class="p">,</span>
+            <span class="n">command_aliases</span><span class="p">,</span>
+            <span class="n">long_options</span><span class="p">,</span>
+            <span class="n">short_options</span><span class="p">,</span>
+            <span class="n">choices</span><span class="p">,</span>
+            <span class="n">metavars</span><span class="p">,</span>
+            <span class="n">envvars</span><span class="p">,</span>
+            <span class="n">defaults</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="ExtraHelpColorsMixin.get_help">
+<a class="viewcode-back" href="../../colorize.html#click_extra.ExtraHelpColorsMixin.get_help">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_help</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Replace default formatter by our own.&quot;&quot;&quot;</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">formatter_class</span> <span class="o">=</span> <span class="n">HelpExtraFormatter</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_help</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span>  <span class="c1"># type: ignore[no-any-return,misc]</span></div>
+
+
+<div class="viewcode-block" id="ExtraHelpColorsMixin.format_help">
+<a class="viewcode-back" href="../../colorize.html#click_extra.ExtraHelpColorsMixin.format_help">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">format_help</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="n">Context</span><span class="p">,</span> <span class="n">formatter</span><span class="p">:</span> <span class="n">HelpExtraFormatter</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Feed our custom formatter instance with the keywords to highlight.&quot;&quot;&quot;</span>
+        <span class="p">(</span>
+            <span class="n">formatter</span><span class="o">.</span><span class="n">cli_names</span><span class="p">,</span>
+            <span class="n">formatter</span><span class="o">.</span><span class="n">subcommands</span><span class="p">,</span>
+            <span class="n">formatter</span><span class="o">.</span><span class="n">command_aliases</span><span class="p">,</span>
+            <span class="n">formatter</span><span class="o">.</span><span class="n">long_options</span><span class="p">,</span>
+            <span class="n">formatter</span><span class="o">.</span><span class="n">short_options</span><span class="p">,</span>
+            <span class="n">formatter</span><span class="o">.</span><span class="n">choices</span><span class="p">,</span>
+            <span class="n">formatter</span><span class="o">.</span><span class="n">metavars</span><span class="p">,</span>
+            <span class="n">formatter</span><span class="o">.</span><span class="n">envvars</span><span class="p">,</span>
+            <span class="n">formatter</span><span class="o">.</span><span class="n">defaults</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collect_keywords</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">format_help</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">formatter</span><span class="p">)</span>  <span class="c1"># type: ignore[misc]</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="escape_for_help_screen">
+<a class="viewcode-back" href="../../colorize.html#click_extra.escape_for_help_screen">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">escape_for_help_screen</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Prepares a string to be used in a regular expression for matches in help screen.</span>
+
+<span class="sd">    Applies `re.escape &lt;https://docs.python.org/3/library/re.html#re.escape&gt;`_, then</span>
+<span class="sd">    accounts for long strings being wrapped on multiple lines and padded with spaces to</span>
+<span class="sd">    fit the columnar layout.</span>
+
+<span class="sd">    It allows for:</span>
+<span class="sd">    - additional number of optional blank characters (line-returns, spaces, tabs, ...)</span>
+<span class="sd">      after a dash, as the help renderer is free to wrap strings after a dash.</span>
+<span class="sd">    - a space to be replaced by any number of blank characters.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">re</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="n">text</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="s2">&quot;-</span><span class="se">\\</span><span class="s2">s*&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2"> &quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">s+&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="HelpExtraFormatter">
+<a class="viewcode-back" href="../../colorize.html#click_extra.HelpExtraFormatter">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">HelpExtraFormatter</span><span class="p">(</span><span class="n">HelpFormatter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extends Cloup&#39;s custom HelpFormatter to highlights options, choices, metavars and</span>
+<span class="sd">    default values.</span>
+
+<span class="sd">    This is being discussed for upstream integration at:</span>
+
+<span class="sd">    - https://github.com/janluke/cloup/issues/97</span>
+<span class="sd">    - https://github.com/click-contrib/click-help-colors/issues/17</span>
+<span class="sd">    - https://github.com/janluke/cloup/issues/95</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">theme</span><span class="p">:</span> <span class="n">HelpExtraTheme</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forces theme to our default.</span>
+
+<span class="sd">        Also transform Cloup&#39;s standard ``HelpTheme`` to our own ``HelpExtraTheme``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">theme</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;theme&quot;</span><span class="p">,</span> <span class="n">default_theme</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">theme</span><span class="p">,</span> <span class="n">HelpExtraTheme</span><span class="p">):</span>
+            <span class="n">theme</span> <span class="o">=</span> <span class="n">default_theme</span><span class="o">.</span><span class="n">with_</span><span class="p">(</span><span class="o">**</span><span class="n">theme</span><span class="o">.</span><span class="n">_asdict</span><span class="p">())</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;theme&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">theme</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="c1"># Lists of extra keywords to highlight.</span>
+    <span class="n">cli_names</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">subcommands</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">command_aliases</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">long_options</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">short_options</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">choices</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">metavars</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">envvars</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">defaults</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="c1"># TODO: Highlight extra keywords &lt;stdout&gt; or &lt;stderr&gt;</span>
+
+    <span class="c1"># TODO: add collection of regexps as pre-compiled constants, so we can</span>
+    <span class="c1"># inspect them and get some performances improvements.</span>
+
+    <span class="n">style_aliases</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="c1"># Layout elements of the square brackets trailing each option.</span>
+        <span class="s2">&quot;bracket_1&quot;</span><span class="p">:</span> <span class="s2">&quot;bracket&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;envvar_label&quot;</span><span class="p">:</span> <span class="s2">&quot;bracket&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;label_sep_1&quot;</span><span class="p">:</span> <span class="s2">&quot;bracket&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;default_label&quot;</span><span class="p">:</span> <span class="s2">&quot;bracket&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;label_sep_2&quot;</span><span class="p">:</span> <span class="s2">&quot;bracket&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;range&quot;</span><span class="p">:</span> <span class="s2">&quot;bracket&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;label_sep_3&quot;</span><span class="p">:</span> <span class="s2">&quot;bracket&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;required_label&quot;</span><span class="p">:</span> <span class="s2">&quot;bracket&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;bracket_2&quot;</span><span class="p">:</span> <span class="s2">&quot;bracket&quot;</span><span class="p">,</span>
+        <span class="c1"># Long and short options are options.</span>
+        <span class="s2">&quot;long_option&quot;</span><span class="p">:</span> <span class="s2">&quot;option&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;short_option&quot;</span><span class="p">:</span> <span class="s2">&quot;option&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Map regex&#39;s group IDs to styles.</span>
+
+<span class="sd">    Most of the time, the style name is the same as the group ID. But some regular</span>
+<span class="sd">    expression implementations requires us to work around group IDs limitations, like</span>
+<span class="sd">    ``bracket_1`` and ``bracket_2``. In which case we use this mapping to apply back</span>
+<span class="sd">    the canonical style to that regex-specific group ID.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="HelpExtraFormatter.get_style_id">
+<a class="viewcode-back" href="../../colorize.html#click_extra.HelpExtraFormatter.get_style_id">[docs]</a>
+    <span class="nd">@cache</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_style_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">group_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the style ID to apply to a group.</span>
+
+<span class="sd">        Return the style which has the same ID as the group, unless it is defined in</span>
+<span class="sd">        the ``style_aliases`` mapping above.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">style_aliases</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">group_id</span><span class="p">,</span> <span class="n">group_id</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HelpExtraFormatter.colorize_group">
+<a class="viewcode-back" href="../../colorize.html#click_extra.HelpExtraFormatter.colorize_group">[docs]</a>
+    <span class="nd">@cache</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">colorize_group</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">str_to_style</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">group_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Colorize a string according to the style of the group ID.&quot;&quot;&quot;</span>
+        <span class="n">style</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="s2">&quot;IStyle&quot;</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theme</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_style_id</span><span class="p">(</span><span class="n">group_id</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="n">style</span><span class="p">(</span><span class="n">str_to_style</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HelpExtraFormatter.colorize">
+<a class="viewcode-back" href="../../colorize.html#click_extra.HelpExtraFormatter.colorize">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">colorize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">match</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">Match</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Colorize all groups with IDs in the provided matching result.</span>
+
+<span class="sd">        All groups without IDs are left as-is.</span>
+
+<span class="sd">        All groups are processed in the order they appear in the ``match`` object.</span>
+<span class="sd">        Then all groups are concatenated to form the final string that is returned.</span>
+
+<span class="sd">        .. caution::</span>
+<span class="sd">            Implementation is a bit funky here because there is no way to iterate over</span>
+<span class="sd">            both unnamed and named groups, in the order they appear in the regex, while</span>
+<span class="sd">            keeping track of the group ID.</span>
+
+<span class="sd">            So we have to iterate over the list of matching strings and pick up the</span>
+<span class="sd">            corresponding group ID along the way, from the ``match.groupdict()``</span>
+<span class="sd">            dictionary. This also means we assume that the ``match.groupdict()`` is</span>
+<span class="sd">            returning an ordered dictionary. Which is supposed to be true as of Python</span>
+<span class="sd">            3.7.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Get a snapshot of all named groups.</span>
+        <span class="n">named_matches</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">groupdict</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+
+        <span class="n">txt</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="c1"># Iterate over all groups, named or not.</span>
+        <span class="k">for</span> <span class="n">group_string</span> <span class="ow">in</span> <span class="n">match</span><span class="o">.</span><span class="n">groups</span><span class="p">():</span>
+            <span class="c1"># Is the next available named group is matching current group string?</span>
+            <span class="k">if</span> <span class="n">named_matches</span> <span class="ow">and</span> <span class="n">group_string</span> <span class="o">==</span> <span class="n">named_matches</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="c1"># We just found a named group. Consume it from the list of named groups</span>
+                <span class="c1"># to prevent it from being processed twice.</span>
+                <span class="n">group_id</span><span class="p">,</span> <span class="n">group_string</span> <span class="o">=</span> <span class="n">named_matches</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">group_string</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="c1"># Colorize the group with a style matching its ID.</span>
+                    <span class="n">txt</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">colorize_group</span><span class="p">(</span><span class="n">group_string</span><span class="p">,</span> <span class="n">group_id</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># No named group matching this string. Leave it as-is.</span>
+                <span class="n">txt</span> <span class="o">+=</span> <span class="n">group_string</span>
+
+        <span class="c1"># Double-check we processed all named groups.</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">named_matches</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;The matching result contains named groups that were not processed. &quot;</span>
+                <span class="s2">&quot;There is an edge-case in the design of regular expressions.&quot;</span>
+            <span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">txt</span></div>
+
+
+<div class="viewcode-block" id="HelpExtraFormatter.highlight_extra_keywords">
+<a class="viewcode-back" href="../../colorize.html#click_extra.HelpExtraFormatter.highlight_extra_keywords">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">highlight_extra_keywords</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">help_text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Highlight extra keywords in help screens based on the theme.</span>
+
+<span class="sd">        It is based on regular expressions. While this is not a bullet-proof method, it</span>
+<span class="sd">        is good enough. After all, help screens are not consumed by machine but are</span>
+<span class="sd">        designed for humans.</span>
+
+<span class="sd">        .. danger::</span>
+<span class="sd">            All the regular expressions below are designed to match its original string</span>
+<span class="sd">            into a sequence of contiguous groups.</span>
+
+<span class="sd">            This means each part of the matching result must be encapsulated in a group.</span>
+<span class="sd">            And subgroups are not allowed (unless their are explicitly set as</span>
+<span class="sd">            non-matching with ``(?:...)`` prefix).</span>
+
+<span class="sd">            Groups with a name must have a corresponding style.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Highlight &quot; (Deprecated)&quot; label, as set by either Click or Cloup:</span>
+        <span class="c1"># https://github.com/pallets/click/blob/8.0.0rc1/tests/test_commands.py#L322</span>
+        <span class="c1"># https://github.com/janluke/cloup/blob/v2.1.0/cloup/formatting/_formatter.py#L190</span>
+        <span class="n">help_text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span>
+            <span class="sa">rf</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            (\s)                                         # Any blank char.</span>
+<span class="s2">            (?P&lt;deprecated&gt;</span><span class="si">{</span><span class="n">re</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="s2">&quot;(Deprecated)&quot;</span><span class="p">)</span><span class="si">}</span><span class="s2">)  # The flag string.</span>
+<span class="s2">            &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">colorize</span><span class="p">,</span>
+            <span class="n">help_text</span><span class="p">,</span>
+            <span class="n">flags</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Highlight subcommands.</span>
+        <span class="k">for</span> <span class="n">subcommand</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">subcommands</span><span class="p">:</span>
+            <span class="n">help_text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span>
+                <span class="sa">rf</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                (\ \ )                        # 2 spaces (i.e. section indentation).</span>
+<span class="s2">                (?P&lt;subcommand&gt;</span><span class="si">{</span><span class="n">re</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="n">subcommand</span><span class="p">)</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">                (\s)                          # Any blank char.</span>
+<span class="s2">                &quot;&quot;&quot;</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">colorize</span><span class="p">,</span>
+                <span class="n">help_text</span><span class="p">,</span>
+                <span class="n">flags</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Highlight environment variables and defaults in trailing square brackets.</span>
+        <span class="n">help_text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span>
+<span class="w">            </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            (\ \ )                  # 2 spaces (column spacing or description spacing).</span>
+<span class="sd">            (?P&lt;bracket_1&gt;\[)       # Square brackets opening.</span>
+
+<span class="sd">            (?:                     # Non-capturing group.</span>
+<span class="sd">                (?P&lt;envvar_label&gt;</span>
+<span class="sd">                    env\s+var:      # Starting content within the brackets.</span>
+<span class="sd">                    \s+             # Any number of blank chars.</span>
+<span class="sd">                )</span>
+<span class="sd">                (?P&lt;envvar&gt;.+?)     # Greedy-matching of any string and line returns.</span>
+<span class="sd">            )?                      # The envvar group is optional.</span>
+
+<span class="sd">            (?P&lt;label_sep_1&gt;</span>
+<span class="sd">                ;                   # Separator between labels.</span>
+<span class="sd">                \s+                 # Any number of blank chars.</span>
+<span class="sd">            )?</span>
+
+<span class="sd">            (?:                     # Non-capturing group.</span>
+<span class="sd">                (?P&lt;default_label&gt;</span>
+<span class="sd">                    default:        # Starting content within the brackets.</span>
+<span class="sd">                    \s+             # Any number of blank chars.</span>
+<span class="sd">                )</span>
+<span class="sd">                (?P&lt;default&gt;.+?)    # Greedy-matching of any string and line returns.</span>
+<span class="sd">            )?                      # The default group is optional.</span>
+
+<span class="sd">            (?P&lt;label_sep_2&gt;</span>
+<span class="sd">                ;                   # Separator between labels.</span>
+<span class="sd">                \s+                 # Any number of blank chars.</span>
+<span class="sd">            )?</span>
+
+<span class="sd">            (?:                     # Non-capturing group.</span>
+<span class="sd">                (?P&lt;range&gt;</span>
+<span class="sd">                    (?:</span>
+<span class="sd">                        \S+</span>
+<span class="sd">                        (?:&lt;|&lt;=)    # Lower bound operators.</span>
+<span class="sd">                    )?              # Operator preceding x is optional.</span>
+<span class="sd">                    x</span>
+<span class="sd">                    (?:&lt;|&lt;=|&gt;|&gt;=)  # Any range operator.</span>
+<span class="sd">                    \S+</span>
+<span class="sd">                )</span>
+<span class="sd">            )?                      # The range group is optional.</span>
+
+<span class="sd">            (?P&lt;label_sep_3&gt;</span>
+<span class="sd">                ;                   # Separator between labels.</span>
+<span class="sd">                \s+                 # Any number of blank chars.</span>
+<span class="sd">            )?</span>
+
+<span class="sd">            (?:                     # Non-capturing group.</span>
+<span class="sd">                (?P&lt;required_label&gt;</span>
+<span class="sd">                    required        # Required label.</span>
+<span class="sd">                )</span>
+<span class="sd">            )?                      # The required group is optional.</span>
+
+<span class="sd">            (?P&lt;bracket_2&gt;\])       # Square brackets closing.</span>
+<span class="sd">            &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">colorize</span><span class="p">,</span>
+            <span class="n">help_text</span><span class="p">,</span>
+            <span class="n">flags</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span> <span class="o">|</span> <span class="n">re</span><span class="o">.</span><span class="n">DOTALL</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Highlight CLI names and commands.</span>
+        <span class="k">for</span> <span class="n">cli_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cli_names</span><span class="p">:</span>
+            <span class="n">help_text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span>
+                <span class="sa">rf</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                (\s)                                        # Any blank char.</span>
+<span class="s2">                (?P&lt;invoked_command&gt;</span><span class="si">{</span><span class="n">re</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="n">cli_name</span><span class="p">)</span><span class="si">}</span><span class="s2">)  # The CLI name.</span>
+<span class="s2">                (\s)                                        # Any blank char.</span>
+<span class="s2">                &quot;&quot;&quot;</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">colorize</span><span class="p">,</span>
+                <span class="n">help_text</span><span class="p">,</span>
+                <span class="n">flags</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Highlight sections.</span>
+        <span class="c1"># XXX Duplicates Cloup&#39;s job, with the only subtlety of not highlighting the</span>
+        <span class="c1"># trailing semicolon.</span>
+        <span class="c1">#</span>
+        <span class="c1"># help_text = re.sub(</span>
+        <span class="c1">#     r&quot;&quot;&quot;</span>
+        <span class="c1">#     ^                       # Beginning of a line preceded by a newline.</span>
+        <span class="c1">#     (?P&lt;heading&gt;\S[\S+ ]+)  # The section title.</span>
+        <span class="c1">#     (:)                     # A semicolon.</span>
+        <span class="c1">#     &quot;&quot;&quot;,</span>
+        <span class="c1">#     self.colorize,</span>
+        <span class="c1">#     help_text,</span>
+        <span class="c1">#     flags=re.VERBOSE | re.MULTILINE,</span>
+        <span class="c1"># )</span>
+
+        <span class="c1"># Highlight long options first, then short options.</span>
+        <span class="k">for</span> <span class="n">matching_keywords</span><span class="p">,</span> <span class="n">style_group_id</span> <span class="ow">in</span> <span class="p">(</span>
+            <span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">long_options</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="s2">&quot;long_option&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">short_options</span><span class="p">),</span> <span class="s2">&quot;short_option&quot;</span><span class="p">),</span>
+        <span class="p">):</span>
+            <span class="k">for</span> <span class="n">keyword</span> <span class="ow">in</span> <span class="n">matching_keywords</span><span class="p">:</span>
+                <span class="n">help_text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span>
+                    <span class="sa">rf</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                    (</span>
+<span class="s2">                        # Not a: word character, or a repeated option&#39;s leading symbol.</span>
+<span class="s2">                        [^\w</span><span class="si">{</span><span class="n">re</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="n">keyword</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="si">}</span><span class="s2">]</span>
+<span class="s2">                    )</span>
+<span class="s2">                    (?P&lt;</span><span class="si">{</span><span class="n">style_group_id</span><span class="si">}</span><span class="s2">&gt;</span><span class="si">{</span><span class="n">escape_for_help_screen</span><span class="p">(</span><span class="n">keyword</span><span class="p">)</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">                    (\W)</span>
+<span class="s2">                    &quot;&quot;&quot;</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">colorize</span><span class="p">,</span>
+                    <span class="n">help_text</span><span class="p">,</span>
+                    <span class="n">flags</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">,</span>
+                <span class="p">)</span>
+
+        <span class="c1"># Highlight other keywords, which are expected to be separated by any</span>
+        <span class="c1"># character but word characters.</span>
+        <span class="k">for</span> <span class="n">matching_keywords</span><span class="p">,</span> <span class="n">style_group_id</span> <span class="ow">in</span> <span class="p">(</span>
+            <span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">choices</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="s2">&quot;choice&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metavars</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="s2">&quot;metavar&quot;</span><span class="p">),</span>
+        <span class="p">):</span>
+            <span class="k">for</span> <span class="n">keyword</span> <span class="ow">in</span> <span class="n">matching_keywords</span><span class="p">:</span>
+                <span class="n">help_text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span>
+                    <span class="sa">rf</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                    (\W)    # Any character which is not a word character.</span>
+<span class="s2">                    (?P&lt;</span><span class="si">{</span><span class="n">style_group_id</span><span class="si">}</span><span class="s2">&gt;</span><span class="si">{</span><span class="n">escape_for_help_screen</span><span class="p">(</span><span class="n">keyword</span><span class="p">)</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">                    (\W)    # Any character which is not a word character.</span>
+<span class="s2">                    &quot;&quot;&quot;</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">colorize</span><span class="p">,</span>
+                    <span class="n">help_text</span><span class="p">,</span>
+                    <span class="n">flags</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">,</span>
+                <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">help_text</span></div>
+
+
+<div class="viewcode-block" id="HelpExtraFormatter.getvalue">
+<a class="viewcode-back" href="../../colorize.html#click_extra.HelpExtraFormatter.getvalue">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">getvalue</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Wrap original `Click.HelpFormatter.getvalue()` to force extra-colorization on</span>
+<span class="sd">        rendering.&quot;&quot;&quot;</span>
+        <span class="n">help_text</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">highlight_extra_keywords</span><span class="p">(</span><span class="n">help_text</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="highlight">
+<a class="viewcode-back" href="../../colorize.html#click_extra.highlight">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">highlight</span><span class="p">(</span>
+    <span class="n">content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">substrings</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">styling_method</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
+    <span class="n">ignore_case</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Highlights parts of the ``string`` that matches ``substrings``.</span>
+
+<span class="sd">    Takes care of overlapping parts within the ``string``.</span>
+
+<span class="sd">    ..todo:</span>
+<span class="sd">        Same as the ``ignore_case`` parameter, should we support case-folding?</span>
+<span class="sd">        As in &quot;Straße&quot; =&gt; &quot;Strasse&quot;? Beware, it messes with string length and</span>
+<span class="sd">        characters index...</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Ranges of character indices flagged for highlighting.</span>
+    <span class="n">ranges</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="c1"># Search for occurrences of query parts in original string.</span>
+    <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">substrings</span><span class="p">):</span>
+        <span class="c1"># Reduce the matching space to the lower-case realm.</span>
+        <span class="n">searched_content</span> <span class="o">=</span> <span class="n">content</span>
+        <span class="k">if</span> <span class="n">ignore_case</span><span class="p">:</span>
+            <span class="n">lower_part</span> <span class="o">=</span> <span class="n">part</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">part</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">lower_part</span><span class="p">),</span> <span class="p">(</span>
+                <span class="s2">&quot;Lowering case is messing with string length&quot;</span>
+            <span class="p">)</span>
+            <span class="n">part</span> <span class="o">=</span> <span class="n">lower_part</span>
+            <span class="n">searched_content</span> <span class="o">=</span> <span class="n">content</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">content</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">searched_content</span><span class="p">),</span> <span class="p">(</span>
+                <span class="s2">&quot;Lowering case is messing with string length&quot;</span>
+            <span class="p">)</span>
+        <span class="c1"># Lookahead assertion which is going to give the starting position of each</span>
+        <span class="c1"># overlapping match.</span>
+        <span class="n">pattern</span> <span class="o">=</span> <span class="sa">rf</span><span class="s2">&quot;(?=</span><span class="si">{</span><span class="n">re</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="n">part</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span>
+        <span class="n">ranges</span> <span class="o">|=</span> <span class="p">{</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">match</span><span class="o">.</span><span class="n">start</span><span class="p">()</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">match</span><span class="o">.</span><span class="n">start</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">part</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">searched_content</span><span class="p">)</span>
+        <span class="p">}</span>
+
+    <span class="c1"># Reduce ranges, compute complement ranges, transform them to list of integers.</span>
+    <span class="n">range_arg</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ranges</span><span class="p">)</span>
+    <span class="n">highlight_ranges</span> <span class="o">=</span> <span class="n">int_ranges_from_int_list</span><span class="p">(</span><span class="n">range_arg</span><span class="p">)</span>
+    <span class="n">untouched_ranges</span> <span class="o">=</span> <span class="n">int_ranges_from_int_list</span><span class="p">(</span>
+        <span class="n">complement_int_list</span><span class="p">(</span><span class="n">range_arg</span><span class="p">,</span> <span class="n">range_end</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">content</span><span class="p">)),</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Apply style to range of characters flagged as matching.</span>
+    <span class="n">styled_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">highlight_ranges</span> <span class="o">+</span> <span class="n">untouched_ranges</span><span class="p">):</span>
+        <span class="n">segment</span> <span class="o">=</span> <span class="n">getitem</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="nb">slice</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span> <span class="ow">in</span> <span class="n">highlight_ranges</span><span class="p">:</span>
+            <span class="n">segment</span> <span class="o">=</span> <span class="n">styling_method</span><span class="p">(</span><span class="n">segment</span><span class="p">)</span>
+        <span class="n">styled_str</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">segment</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">styled_str</span></div>
+
+</pre></div>
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; Kevin Deldycke and contributors
+            </div>
+            Made with 
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            <div class="last-updated">
+              Last updated on 2025-03-13</div>
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script src="../../_static/documentation_options.js?v=6d71c67f"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/scripts/furo.js?v=5fa4622c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs"></script>
+    <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs";import elkLayouts from "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs";mermaid.registerLayoutLoaders(elkLayouts);mermaid.initialize({startOnLoad:false});</script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+    <script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs";
+const load = async () => {
+    await mermaid.run();
+    const all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+    if(mermaids_to_add_zoom > 0) {
+        var svgs = d3.selectAll(".mermaid svg");
+        if(all_mermaids.length !== mermaids_processed.length) {
+            // try again in a sec, wait for mermaids to load
+            setTimeout(load, 200);
+            return;
+        } else if(svgs.size() !== mermaids_to_add_zoom) {
+            // try again in a sec, wait for mermaids to load
+            setTimeout(load, 200);
+            return;
+        } else {
+            svgs.each(function() {
+                var svg = d3.select(this);
+                svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                var inner = svg.select("g");
+                var zoom = d3.zoom().on("zoom", function(event) {
+                    inner.attr("transform", event.transform);
+                });
+                svg.call(zoom);
+            });
+        }
+    }
+};
+
+window.addEventListener("load", load);
+</script>
+    </body>
+</html>
