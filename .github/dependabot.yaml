@@ -13,16 +13,6 @@ updates:
     assignees:
       - "kdeldycke"
 
-  - package-ecosystem: "uv"
-    directory: "/"
-    versioning-strategy: increase-if-necessary
-    schedule:
-      interval: "daily"
-    labels:
-      - "📦 dependencies"
-    assignees:
-      - "kdeldycke"
-
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
