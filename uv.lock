@@ -222,14 +222,14 @@ provides-extras = ["pygments", "sphinx", "pytest", "test", "typing", "docs"]
 
 [[package]]
 name = "cloup"
-version = "3.0.6"
+version = "3.0.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/48/59/8d1b7913dd0a4df06b864455db59da53bcc6cc99f14b84f486c170e29029/cloup-3.0.6.tar.gz", hash = "sha256:7a43e1b611b9f1e9cb3e1e0e02247154cb530df3d909fa184e377cdee6834b98", size = 229337 }
+sdist = { url = "https://files.pythonhosted.org/packages/86/c9/3c621e0b7898403556e807244104095df1132a6094384f80c272bba4e4e4/cloup-3.0.7.tar.gz", hash = "sha256:c852e0a0541aa433c6ab31a9b8b503f63d9881e91ddaf0384d6927965f2b421c", size = 229613 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/96/df/cce3c4b562845db6741abb520619a8b38d817a3ab4b82f2b6df3be7a7dfc/cloup-3.0.6-py2.py3-none-any.whl", hash = "sha256:ce46566204318e32b3e02d97d5e89bcaa9d9c3d0b8f94d1d060bc8b7a6be9179", size = 54446 },
+    { url = "https://files.pythonhosted.org/packages/45/2e/ccd754e473b972155f7e8ca60af373a8bc13ae951a5cb76363c43363e69d/cloup-3.0.7-py2.py3-none-any.whl", hash = "sha256:d3a431cf1e14d8835fe85608e02cc6ff7216f0a39e30d5e28618aa938003ddb4", size = 54602 },
 ]
 
 [[package]]
