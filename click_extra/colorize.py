@@ -339,7 +339,7 @@ class ExtraHelpColorsMixin:  # (Command)??
         metavars.update(command.collect_usage_pieces(ctx))
 
         # Get subcommands and their aliases.
-        if isinstance(command, click.MultiCommand):
+        if isinstance(command, click.Group):
             subcommands.update(command.list_commands(ctx))
             for sub_id in subcommands:
                 sub_cmd = command.get_command(ctx, sub_id)

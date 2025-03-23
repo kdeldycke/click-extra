@@ -192,7 +192,7 @@ class ExtraCliRunner(click.testing.CliRunner):
 
     def invoke2(
         self,
-        cli: click.core.BaseCommand,
+        cli: click.core.Command,
         args: str | Sequence[str] | None = None,
         input: str | bytes | IO[Any] | None = None,
         env: Mapping[str, str | None] | None = None,
@@ -268,7 +268,7 @@ class ExtraCliRunner(click.testing.CliRunner):
 
     def invoke(  # type: ignore[override]
         self,
-        cli: click.core.BaseCommand,
+        cli: click.core.Command,
         *args: TArg | TNestedArgs,
         input: str | bytes | IO | None = None,
         env: TEnvVars | None = None,

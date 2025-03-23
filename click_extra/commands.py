@@ -368,7 +368,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):  # type: ignore[misc]
         parent: click.Context | None = None,
         **extra: Any,
     ) -> Any:
-        """Intercept the call to the original ``click.core.BaseCommand.make_context`` so
+        """Intercept the call to the original ``click.core.Command.make_context`` so
         we can keep a copy of the raw, pre-parsed arguments provided to the CLI.
 
         The result are passed to our own ``ExtraContext`` constructor which is able to

@@ -90,7 +90,6 @@ __all__ = [
     "BadArgumentUsage",  # noqa: F405
     "BadOptionUsage",  # noqa: F405
     "BadParameter",  # noqa: F405
-    "BaseCommand",  # noqa: F405
     "BOOL",  # noqa: F405
     "Choice",  # noqa: F405
     "clear",  # noqa: F405
@@ -151,7 +150,6 @@ __all__ = [
     "launch",  # noqa: F405
     "make_pass_decorator",  # noqa: F405
     "MissingParameter",  # noqa: F405
-    "MultiCommand",  # noqa: F405
     "new_extra_logger",  # noqa: F405
     "NoSuchOption",  # noqa: F405
     "open_file",  # noqa: F405
