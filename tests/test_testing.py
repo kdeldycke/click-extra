@@ -21,7 +21,6 @@ import logging
 from pathlib import Path
 
 import click
-import pytest
 from extra_platforms import is_windows
 
 from click_extra import Style, command, echo, pass_context, secho, style
@@ -48,33 +47,12 @@ def test_runner_output():
         echo("3 - stdout")
         echo("4 - stderr", err=True)
 
-    runner = ExtraCliRunner(mix_stderr=False)
-    result = runner.invoke(cli_output)
-
-    assert result.output == "1 - stdout\n3 - stdout\n"
-    assert result.stdout == result.output
-    assert result.stderr == "2 - stderr\n4 - stderr\n"
-
-    runner_mix = ExtraCliRunner(mix_stderr=True)
+    runner_mix = ExtraCliRunner()
     result_mix = runner_mix.invoke(cli_output)
 
     assert result_mix.output == "1 - stdout\n2 - stderr\n3 - stdout\n4 - stderr\n"
     assert result_mix.stdout == "1 - stdout\n3 - stdout\n"
     assert result_mix.stderr == "2 - stderr\n4 - stderr\n"
-
-
-@pytest.mark.parametrize("mix_stderr", (True, False))
-def test_runner_empty_stderr(mix_stderr):
-    @command
-    def cli_empty_stderr():
-        echo("stdout")
-
-    runner = ExtraCliRunner(mix_stderr=mix_stderr)
-    result = runner.invoke(cli_empty_stderr)
-
-    assert result.output == "stdout\n"
-    assert result.stdout == result.output
-    assert result.stderr == ""
 
 
 @click.command

@@ -5,6 +5,7 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Upgrade to Click 8.2.0.
 - Remove dependency on `pallets-sphinx-themes`.
 - Drop supports for Python 3.10.
 

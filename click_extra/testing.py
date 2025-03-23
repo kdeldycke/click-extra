@@ -17,10 +17,8 @@
 
 from __future__ import annotations
 
-import contextlib
 import inspect
 import io
-import os
 import shlex
 import subprocess
 import sys
@@ -30,12 +28,9 @@ from pathlib import Path
 from textwrap import indent
 from typing import (
     IO,
-    TYPE_CHECKING,
     Any,
-    BinaryIO,
     ContextManager,
     Iterable,
-    Iterator,
     Literal,
     Mapping,
     Optional,
@@ -50,14 +45,10 @@ import click.testing
 from boltons.iterutils import flatten
 from boltons.strutils import strip_ansi
 from boltons.tbutils import ExceptionInfo
-from click import formatting, termui, utils
 
 from . import Color, Style
 from .colorize import default_theme
 from .envvar import TEnvVars
-
-if TYPE_CHECKING:
-    from types import TracebackType
 
 PROMPT = "► "
 INDENT = " " * len(PROMPT)
@@ -120,9 +111,7 @@ def render_cli_run(
         stdout = result.stdout
         stderr = result.stderr
         exit_code = result.exit_code
-
-        if isinstance(result, ExtraResult):
-            output = result.output
+        output = result.output
 
     elif isinstance(result, subprocess.CompletedProcess):
         stdout = result.stdout
@@ -188,99 +177,8 @@ class BytesIOCopy(io.BytesIO):
         return super().write(b)
 
 
-class StreamMixer:
-    """Mixes ``<stdout>`` and ``<stderr>`` streams if ``mix_stderr=True``.
-
-    The result is available in the ``output`` attribute.
-
-    If ``mix_stderr=False``, the ``<stdout>`` and ``<stderr>`` streams are kept
-    independent and the ``output`` is the same as the ``<stdout>`` stream.
-
-    .. caution::
-        This has been `proposed upstream to Click project
-        <https://github.com/pallets/click/pull/2523>`_ but has not been merged yet.
-    """
-
-    def __init__(self, mix_stderr: bool) -> None:
-        if not mix_stderr:
-            self.stdout = io.BytesIO()
-            self.stderr = io.BytesIO()
-            self.output = self.stdout
-
-        else:
-            self.output = io.BytesIO()
-            self.stdout = BytesIOCopy(copy_to=self.output)
-            self.stderr = BytesIOCopy(copy_to=self.output)
-
-
-class ExtraResult(click.testing.Result):
-    """Like ``click.testing.Result``, with finer ``<stdout>`` and ``<stderr>`` streams.
-
-    .. caution::
-        This has been `proposed upstream to Click project
-        <https://github.com/pallets/click/pull/2523>`_ but has not been merged yet.
-    """
-
-    stderr_bytes: bytes
-    """Makes ``stderr_bytes`` mandatory."""
-
-    def __init__(
-        self,
-        runner: click.testing.CliRunner,
-        stdout_bytes: bytes,
-        stderr_bytes: bytes,
-        output_bytes: bytes,
-        return_value: Any,
-        exit_code: int,
-        exception: BaseException | None,
-        exc_info: tuple[type[BaseException], BaseException, TracebackType]
-        | None = None,
-    ) -> None:
-        """Same as original but adds ``output_bytes`` parameter.
-
-        Also makes ``stderr_bytes`` mandatory.
-        """
-        self.output_bytes = output_bytes
-        super().__init__(
-            runner=runner,
-            stdout_bytes=stdout_bytes,
-            stderr_bytes=stderr_bytes,
-            return_value=return_value,
-            exit_code=exit_code,
-            exception=exception,
-            exc_info=exc_info,
-        )
-
-    @property
-    def output(self) -> str:
-        """The terminal output as unicode string, as the user would see it.
-
-        .. caution::
-            Contrary to original ``click.testing.Result.output``, it is not a proxy for
-            ``self.stdout``. It now possess its own stream to mix ``<stdout>`` and
-            ``<stderr>`` depending on the ``mix_stderr`` value.
-        """
-        return self.output_bytes.decode(self.runner.charset, "replace").replace(
-            "\r\n",
-            "\n",
-        )
-
-    @property
-    def stderr(self) -> str:
-        """The standard error as unicode string.
-
-        .. caution::
-            Contrary to original ``click.testing.Result.stderr``, it no longer raise an
-            exception, and always returns the ``<stderr>`` string.
-        """
-        return self.stderr_bytes.decode(self.runner.charset, "replace").replace(
-            "\r\n",
-            "\n",
-        )
-
-
 class ExtraCliRunner(click.testing.CliRunner):
-    """Augment ``click.testing.CliRunner`` with extra features and bug fixes."""
+    """Augment :class:`click.testing.CliRunner` with extra features and bug fixes."""
 
     force_color: bool = False
     """Global class attribute to override the ``color`` parameter in ``invoke``.
@@ -292,146 +190,6 @@ class ExtraCliRunner(click.testing.CliRunner):
         level.
     """
 
-    @contextlib.contextmanager
-    def isolation(  # type: ignore[override]
-        self,
-        input: str | bytes | IO[Any] | None = None,
-        env: Mapping[str, str | None] | None = None,
-        color: bool = False,
-    ) -> Iterator[tuple[io.BytesIO, io.BytesIO, io.BytesIO]]:
-        """Copy of ``click.testing.CliRunner.isolation()`` with extra features.
-
-        - An additional output stream is returned, which is a mix of ``<stdout>`` and
-          ``<stderr>`` streams if ``mix_stderr=True``.
-
-        - Always returns the ``<stderr>`` stream.
-
-        .. caution::
-            This is a hard-copy of the modified ``isolation()`` method `from click#2523
-            PR
-            <https://github.com/pallets/click/pull/2523/files#diff-b07fd6fad9f9ea8be5cbcbeaf34c956703b929b2de95c56229e77c328a7c6010>`_
-            which has not been merged upstream yet.
-
-        .. todo::
-            Reduce the code duplication here by using clever monkeypatching?
-        """
-        bytes_input = click.testing.make_input_stream(input, self.charset)
-        echo_input = None
-
-        old_stdin = sys.stdin
-        old_stdout = sys.stdout
-        old_stderr = sys.stderr
-        old_forced_width = formatting.FORCED_WIDTH
-        formatting.FORCED_WIDTH = 80
-
-        env = self.make_env(env)
-
-        stream_mixer = StreamMixer(mix_stderr=self.mix_stderr)
-
-        if self.echo_stdin:
-            bytes_input = echo_input = cast(
-                BinaryIO,
-                click.testing.EchoingStdin(bytes_input, stream_mixer.stdout),
-            )
-
-        sys.stdin = text_input = click.testing._NamedTextIOWrapper(
-            bytes_input,
-            encoding=self.charset,
-            name="<stdin>",
-            mode="r",
-        )
-
-        if self.echo_stdin:
-            # Force unbuffered reads, otherwise TextIOWrapper reads a
-            # large chunk which is echoed early.
-            text_input._CHUNK_SIZE = 1  # type: ignore
-
-        sys.stdout = click.testing._NamedTextIOWrapper(
-            stream_mixer.stdout,
-            encoding=self.charset,
-            name="<stdout>",
-            mode="w",
-        )
-
-        sys.stderr = click.testing._NamedTextIOWrapper(
-            stream_mixer.stderr,
-            encoding=self.charset,
-            name="<stderr>",
-            mode="w",
-            errors="backslashreplace",
-        )
-
-        @click.testing._pause_echo(echo_input)  # type: ignore[arg-type]
-        def visible_input(prompt: str | None = None) -> str:
-            sys.stdout.write(prompt or "")
-            val = text_input.readline().rstrip("\r\n")
-            sys.stdout.write(f"{val}\n")
-            sys.stdout.flush()
-            return val
-
-        @click.testing._pause_echo(echo_input)  # type: ignore[arg-type]
-        def hidden_input(prompt: str | None = None) -> str:
-            sys.stdout.write(f"{prompt or ''}\n")
-            sys.stdout.flush()
-            return text_input.readline().rstrip("\r\n")
-
-        @click.testing._pause_echo(echo_input)  # type: ignore[arg-type]
-        def _getchar(echo: bool) -> str:
-            char = sys.stdin.read(1)
-
-            if echo:
-                sys.stdout.write(char)
-
-            sys.stdout.flush()
-            return char
-
-        default_color = color
-
-        def should_strip_ansi(
-            stream: IO[Any] | None = None,
-            color: bool | None = None,
-        ) -> bool:
-            if color is None:
-                return not default_color
-            return not color
-
-        old_visible_prompt_func = termui.visible_prompt_func
-        old_hidden_prompt_func = termui.hidden_prompt_func
-        old__getchar_func = termui._getchar
-        old_should_strip_ansi = utils.should_strip_ansi
-        termui.visible_prompt_func = visible_input
-        termui.hidden_prompt_func = hidden_input
-        termui._getchar = _getchar
-        utils.should_strip_ansi = should_strip_ansi
-
-        old_env = {}
-        try:
-            for key, value in env.items():
-                old_env[key] = os.environ.get(key)
-                if value is None:
-                    with contextlib.suppress(Exception):
-                        del os.environ[key]
-
-                else:
-                    os.environ[key] = value
-            yield (stream_mixer.stdout, stream_mixer.stderr, stream_mixer.output)
-        finally:
-            for key, value in old_env.items():
-                if value is None:
-                    with contextlib.suppress(Exception):
-                        del os.environ[key]
-
-                else:
-                    os.environ[key] = value
-            sys.stdout = old_stdout
-            sys.stderr = old_stderr
-            sys.stdin = old_stdin
-            termui.visible_prompt_func = old_visible_prompt_func
-            termui.hidden_prompt_func = old_hidden_prompt_func
-            termui._getchar = old__getchar_func
-            utils.should_strip_ansi = old_should_strip_ansi
-            formatting.FORCED_WIDTH = old_forced_width
-
     def invoke2(
         self,
         cli: click.core.BaseCommand,
@@ -441,7 +199,7 @@ class ExtraCliRunner(click.testing.CliRunner):
         catch_exceptions: bool = True,
         color: bool = False,
         **extra: Any,
-    ) -> ExtraResult:
+    ) -> click.testing.Result:
         """Copy of ``click.testing.CliRunner.invoke()`` with extra ``<output>`` stream.
 
         .. caution::
@@ -497,7 +255,7 @@ class ExtraCliRunner(click.testing.CliRunner):
                 stderr = outstreams[1].getvalue()
                 output = outstreams[2].getvalue()
 
-        return ExtraResult(
+        return click.testing.Result(
             runner=self,
             stdout_bytes=stdout,
             stderr_bytes=stderr,
