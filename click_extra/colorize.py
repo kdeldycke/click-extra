@@ -372,7 +372,7 @@ class ExtraHelpColorsMixin:  # (Command)??
                     envvars.update(param.envvar)
 
             if isinstance(param, click.Option):
-                default_string = ExtraOption.get_help_default(param, ctx)
+                default_string = param.get_help_extra(ctx).get("default")
                 if default_string:
                     defaults.add(default_string)
 

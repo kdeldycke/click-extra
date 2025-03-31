@@ -20,15 +20,15 @@ from __future__ import annotations
 import json
 import logging
 import os
+import tomllib
 from configparser import ConfigParser, ExtendedInterpolation
 from enum import Enum
 from gettext import gettext as _
 from pathlib import Path
 from typing import Any, Iterable, Sequence
-from unittest.mock import patch
 
+import click
 import requests
-import tomllib
 import xmltodict
 import yaml
 from boltons.iterutils import flatten
@@ -188,14 +188,17 @@ class ConfigOption(ExtraOption, ParamStructure):
             ext_pattern = f"{{{','.join(extensions)}}}"
         return f"{app_dir}{os.path.sep}*.{ext_pattern}"
 
-    def get_help_record(self, ctx: Context) -> tuple[str, str] | None:
-        """Replaces the default value by the pretty version of the configuration
-        matching pattern."""
-        # Pre-compute pretty_path to bypass infinite recursive loop on get_default.
-        pretty_path = shrinkuser(Path(self.get_default(ctx)))  # type: ignore[arg-type]
-        with patch.object(ConfigOption, "get_default") as mock_method:
-            mock_method.return_value = pretty_path
-            return super().get_help_record(ctx)
+    def get_help_extra(self, ctx: Context) -> click.types.OptionHelpExtra:
+        """Replaces the default value of the configuration option.
+
+        Display a pretty path that is relative to the user's home directory:
+
+        .. code-block:: text
+            ~/(...)/multiple_envvars.py/*.{toml,yaml,yml,json,ini,xml}
+        """
+        extra = super().get_help_extra(ctx)
+        extra["default"] = shrinkuser(Path(self.get_default(ctx)))  # type: ignore[arg-type]
+        return extra
 
     def search_and_read_conf(self, pattern: str) -> Iterable[tuple[Path | URL, str]]:
         """Search on local file system or remote URL files matching the provided

@@ -7,6 +7,7 @@
 
 - Upgrade to Click 8.2.0.
 - Add support for custom deprecated messages on commands and parameters.
+- Remove `ExtraOption.get_help_default()` and rely on new `Option.get_help_extra()`.
 - Remove dependency on `pallets-sphinx-themes`.
 - Drop supports for Python 3.10.
 
