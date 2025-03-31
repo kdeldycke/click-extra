@@ -22,7 +22,7 @@ leverage the mixins in here to build up your own custom variants.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import click
 import cloup
@@ -35,31 +35,6 @@ from .logging import VerboseOption, VerbosityOption
 from .parameters import ExtraOption, ShowParamsOption, search_params
 from .timer import TimerOption
 from .version import ExtraVersionOption
-
-if TYPE_CHECKING:
-    from typing import NoReturn
-
-from click.exceptions import Exit
-
-
-def patched_exit(self, code: int = 0) -> NoReturn:
-    """Exits the application with a given exit code.
-
-    Forces the context to close before exiting, so callbacks attached to parameters
-    will be called to clean up their state. This is not important in normal CLI
-    execution as the Python process will just be destroyed. But it will lead to leaky
-    states in unitttests.
-
-    .. seealso::
-        This fix has been `proposed upstream to Click
-        <https://github.com/pallets/click/pull/2680>`_.
-    """
-    self.close()
-    raise Exit(code)
-
-
-cloup.Context.exit = patched_exit  # type: ignore[method-assign]
-"""Monkey-patch ``cloup.Context.exit``."""
 
 
 class ExtraContext(cloup.Context):

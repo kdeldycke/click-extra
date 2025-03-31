@@ -453,9 +453,4 @@ class ExtraVersionOption(ExtraOption):
             return
 
         echo(self.render_message(), color=ctx.color)
-
-        # XXX Despite monkey-patching of click.Context.exit to force closing before
-        # exit, we still need to force it here for unknown reason. 🤷
-        # See: https://github.com/pallets/click/pull/2680
-        ctx.close()
         ctx.exit()
