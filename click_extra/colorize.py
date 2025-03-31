@@ -25,6 +25,7 @@ from configparser import RawConfigParser
 from dataclasses import dataclass
 from functools import cache
 from gettext import gettext as _
+from itertools import chain
 from operator import getitem
 from typing import Callable, Sequence, cast
 
@@ -312,6 +313,7 @@ class ExtraHelpColorsMixin:  # (Command)??
         set[str],
         set[str],
         set[str],
+        set[str],
     ]:
         """Parse click context to collect option names, choices and metavar keywords.
 
@@ -328,6 +330,7 @@ class ExtraHelpColorsMixin:  # (Command)??
         metavars: set[str] = set()
         envvars: set[str] = set()
         defaults: set[str] = set()
+        deprecated_messages: set[str] = set()
 
         # Includes CLI base name and its commands.
         cli_names.add(ctx.command_path)
@@ -390,6 +393,26 @@ class ExtraHelpColorsMixin:  # (Command)??
             else:
                 long_options.add(option_name)
 
+        # Collect all deprecated messages on subcommands and parameters.
+        for obj in chain(
+            (command.get_command(ctx, sub_id) for sub_id in subcommands),
+            command.get_params(ctx),
+        ):
+            if obj.deprecated:
+                # Cloup's deprecation message:
+                # https://github.com/janluke/cloup/blob/2bf13729be4dd61f325252f4f128df6724dad9d5/cloup/formatting/_formatter.py#L190
+                if isinstance(obj, cloup.Option):
+                    deprecated_messages.add("(Deprecated)")
+
+                # Generated deprecated message as Click does:
+                # https://github.com/pallets/click/blob/c9f7d9d8a02f0cf9b24db6210b083e687a5cf020/src/click/core.py#L2556-L2560
+                else:
+                    deprecated_messages.add(
+                        f"(DEPRECATED: {param.deprecated})"
+                        if isinstance(param.deprecated, str)
+                        else "(DEPRECATED)"
+                    )
+
         return (
             cli_names,
             subcommands,
@@ -400,6 +423,7 @@ class ExtraHelpColorsMixin:  # (Command)??
             metavars,
             envvars,
             defaults,
+            deprecated_messages,
         )
 
     def get_help(self, ctx: Context) -> str:
@@ -419,6 +443,7 @@ class ExtraHelpColorsMixin:  # (Command)??
             formatter.metavars,
             formatter.envvars,
             formatter.defaults,
+            formatter.deprecated_messages,
         ) = self._collect_keywords(ctx)
         super().format_help(ctx, formatter)  # type: ignore[misc]
 
@@ -472,6 +497,7 @@ class HelpExtraFormatter(HelpFormatter):
     metavars: set[str] = set()
     envvars: set[str] = set()
     defaults: set[str] = set()
+    deprecated_messages: set[str] = set()
 
     # TODO: Highlight extra keywords <stdout> or <stderr>
 
@@ -580,21 +606,16 @@ class HelpExtraFormatter(HelpFormatter):
 
             Groups with a name must have a corresponding style.
         """
-        # Highlight deprecated label, as set by either Click or Cloup:
-        # https://github.com/pallets/click/blob/c9f7d9d8a02f0cf9b24db6210b083e687a5cf020/tests/test_commands.py#L320-L344
-        # https://github.com/janluke/cloup/blob/2bf13729be4dd61f325252f4f128df6724dad9d5/cloup/formatting/_formatter.py#L190
-        deprecated_strings = ["(DEPRECATED)", "(Deprecated)"]
-        help_text = re.sub(
-            rf"""
-            (\s)                                                    # Any blank char.
-            (?P<deprecated>                                         # Message group.
-                (?:{"|".join(map(re.escape, deprecated_strings))})  # All messages.
+        # Highlight deprecated messages.
+        for deprecated_string in self.deprecated_messages:
+            help_text = re.sub(
+                rf"""
+                (?P<deprecated>{escape_for_help_screen(deprecated_string)})  # Message
+                """,
+                self.colorize,
+                help_text,
+                flags=re.VERBOSE,
             )
-            """,
-            self.colorize,
-            help_text,
-            flags=re.VERBOSE,
-        )
 
         # Highlight subcommands.
         for subcommand in self.subcommands:
