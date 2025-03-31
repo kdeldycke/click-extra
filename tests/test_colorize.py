@@ -502,7 +502,7 @@ def test_keyword_collection(invoke):
         r"  \x1b\[36mcommand2\x1b\[0m\n\n"
         r"\x1b\[94m\x1b\[1m\x1b\[4mExtra commands:\x1b\[0m\n"
         r"  \x1b\[36mcommand3\x1b\[0m\n"
-        r"  \x1b\[36mcommand4\x1b\[0m  \x1b\[93m\x1b\[1m\(Deprecated\)\x1b\[0m\n"
+        r"  \x1b\[36mcommand4\x1b\[0m  \x1b\[93m\x1b\[1m\(DEPRECATED\)\x1b\[0m\n"
     )
 
     result = invoke(color_cli1, "--help", color=True)

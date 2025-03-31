@@ -580,13 +580,16 @@ class HelpExtraFormatter(HelpFormatter):
 
             Groups with a name must have a corresponding style.
         """
-        # Highlight " (Deprecated)" label, as set by either Click or Cloup:
-        # https://github.com/pallets/click/blob/8.0.0rc1/tests/test_commands.py#L322
-        # https://github.com/janluke/cloup/blob/v2.1.0/cloup/formatting/_formatter.py#L190
+        # Highlight deprecated label, as set by either Click or Cloup:
+        # https://github.com/pallets/click/blob/c9f7d9d8a02f0cf9b24db6210b083e687a5cf020/tests/test_commands.py#L320-L344
+        # https://github.com/janluke/cloup/blob/2bf13729be4dd61f325252f4f128df6724dad9d5/cloup/formatting/_formatter.py#L190
+        deprecated_strings = ["(DEPRECATED)", "(Deprecated)"]
         help_text = re.sub(
             rf"""
-            (\s)                                         # Any blank char.
-            (?P<deprecated>{re.escape("(Deprecated)")})  # The flag string.
+            (\s)                                                    # Any blank char.
+            (?P<deprecated>                                         # Message group.
+                (?:{"|".join(map(re.escape, deprecated_strings))})  # All messages.
+            )
             """,
             self.colorize,
             help_text,
