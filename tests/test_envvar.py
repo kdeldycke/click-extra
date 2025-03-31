@@ -212,7 +212,9 @@ def test_auto_envvar_parsing(invoke, cmd_decorator, envvars, expected_flag):
     """
 
     @cmd_decorator(context_settings={"auto_envvar_prefix": "yo"})
-    @option("--flag/--no-flag", envvar=["Magic", "sUper"])
+    # XXX Explicitly pass bool type to fix 8.2.0 regression:
+    # https://github.com/pallets/click/discussions/2863#discussioncomment-12675496
+    @option("--flag/--no-flag", type=bool, envvar=["Magic", "sUper"])
     def my_cli(flag):
         echo(f"Flag value: {flag}")
 

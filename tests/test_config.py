@@ -56,7 +56,7 @@ DUMMY_TOML_FILE, DUMMY_TOML_DATA = (
         [garbage]
         # An empty random section that will be skipped
 
-        [config-cli1.default-command]
+        [config-cli1.default]
         int_param = 3
         random_stuff = "will be ignored"
         """,
@@ -68,7 +68,7 @@ DUMMY_TOML_FILE, DUMMY_TOML_DATA = (
             "blahblah": 234,
             "dummy_flag": True,
             "my_list": ["pip", "npm", "gem"],
-            "default-command": {
+            "default": {
                 "int_param": 3,
                 "random_stuff": "will be ignored",
             },
@@ -92,7 +92,7 @@ DUMMY_YAML_FILE, DUMMY_YAML_DATA = (
               - pip
               - "npm"
               - gem
-            default-command:
+            default:
                 int_param: 3
                 random_stuff : will be ignored
 
@@ -108,7 +108,7 @@ DUMMY_YAML_FILE, DUMMY_YAML_DATA = (
             "blahblah": 234,
             "dummy_flag": True,
             "my_list": ["pip", "npm", "gem"],
-            "default-command": {
+            "default": {
                 "int_param": 3,
                 "random_stuff": "will be ignored",
             },
@@ -132,7 +132,7 @@ DUMMY_JSON_FILE, DUMMY_JSON_DATA = (
                 ],
                 "verbosity": "DEBUG",
 
-                "default-command": {
+                "default": {
                     "int_param": 3,
                     "random_stuff": "will be ignored"
                 }
@@ -149,7 +149,7 @@ DUMMY_JSON_FILE, DUMMY_JSON_DATA = (
             "dummy_flag": True,
             "my_list": ["pip", "npm", "gem"],
             "verbosity": "DEBUG",
-            "default-command": {
+            "default": {
                 "int_param": 3,
                 "random_stuff": "will be ignored",
             },
@@ -171,7 +171,7 @@ DUMMY_INI_FILE, DUMMY_INI_DATA = (
         spaces around the delimiter = obviously
         you can also use : to delimit keys from values
 
-        [config-cli1.default-command]
+        [config-cli1.default]
         int_param = 3
         random_stuff = will be ignored
 
@@ -194,7 +194,7 @@ DUMMY_INI_FILE, DUMMY_INI_DATA = (
             "you can also use": "to delimit keys from values",
         },
         "config-cli1": {
-            "default-command": {
+            "default": {
                 "int_param": "3",
                 "random_stuff": "will be ignored",
             },
@@ -238,10 +238,10 @@ DUMMY_XML_FILE, DUMMY_XML_DATA = (
                 <!-- An empty random section that will be skipped -->
             </garbage>
 
-            <default-command>
+            <default>
                 <int_param>3</int_param>
                 <random_stuff>will be ignored</random_stuff>
-            </default-command>
+            </default>
 
         </config-cli1>
     """,
@@ -267,7 +267,7 @@ DUMMY_XML_FILE, DUMMY_XML_DATA = (
             "dummy_flag": "true",
             "my_list": ["pip", "npm", "gem"],
             "garbage": None,
-            "default-command": {
+            "default": {
                 "int_param": "3",
                 "random_stuff": "will be ignored",
             },
@@ -308,7 +308,7 @@ def simple_config_cli():
 
 
 def test_unset_conf_no_message(invoke, simple_config_cli):
-    result = invoke(simple_config_cli, "default-command")
+    result = invoke(simple_config_cli, "default")
     assert result.exit_code == 0
     assert not result.stderr
     assert result.stdout == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
@@ -319,7 +319,7 @@ def test_unset_conf_debug_message(invoke, simple_config_cli):
         simple_config_cli,
         "--verbosity",
         "DEBUG",
-        "default-command",
+        "default",
         color=False,
     )
     assert result.exit_code == 0
@@ -354,7 +354,7 @@ def test_conf_not_exist(invoke, simple_config_cli):
         simple_config_cli,
         "--config",
         str(conf_path),
-        "default-command",
+        "default",
         color=False,
     )
     assert result.exit_code == 2
@@ -369,7 +369,7 @@ def test_conf_not_file(invoke, simple_config_cli):
         simple_config_cli,
         "--config",
         str(conf_path),
-        "default-command",
+        "default",
         color=False,
     )
     assert result.exit_code == 2
@@ -445,7 +445,7 @@ def test_conf_file_overrides_defaults(
             simple_config_cli,
             "--config",
             str(conf_path),
-            "default-command",
+            "default",
             color=False,
         )
         assert result.exit_code == 0
@@ -495,7 +495,7 @@ def test_auto_env_var_conf(
         conf_path = create_config(conf_name, conf_text)
         result = invoke(
             simple_config_cli,
-            "default-command",
+            "default",
             color=False,
             env={"CONFIG_CLI1_CONFIG": str(conf_path)},
         )
@@ -539,7 +539,7 @@ def test_conf_file_overridden_by_cli_param(
             "--no-flag",
             "--my-list",
             "wow",
-            "default-command",
+            "default",
             "--int-param",
             "15",
         )

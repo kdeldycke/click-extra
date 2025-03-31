@@ -85,6 +85,7 @@ from .version import ExtraVersionOption  # noqa: E402
 
 __all__ = [
     "Abort",  # noqa: F405
+    "annotations",  # noqa: F405
     "Argument",  # noqa: F405
     "argument",  # noqa: F405
     "BadArgumentUsage",  # noqa: F405
@@ -142,7 +143,6 @@ __all__ = [
     "HelpExtraFormatter",  # noqa: F405
     "HelpExtraTheme",  # noqa: F405
     "HelpFormatter",  # noqa: F405
-    "HelpOption",  # noqa: F405
     "HelpSection",  # noqa: F405
     "HelpTheme",  # noqa: F405
     "INT",  # noqa: F405
@@ -158,7 +158,6 @@ __all__ = [
     "option_group",  # noqa: F405
     "OptionGroup",  # noqa: F405
     "OptionGroupMixin",  # noqa: F405
-    "OptionParser",  # noqa: F405
     "Parameter",  # noqa: F405
     "ParameterSource",  # noqa: F405
     "ParamStructure",  # noqa: F405

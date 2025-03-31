@@ -224,7 +224,7 @@ def test_unrecognized_verbosity_level(invoke, cmd_decorator, cmd_type):
         f"Usage: logging-cli1 [OPTIONS]{group_help}\n"
         "Try 'logging-cli1 --help' for help.\n\n"
         "Error: Invalid value for '--verbosity': "
-        "'random' is not one of 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'.\n"
+        "'random' is not one of 'critical', 'error', 'warning', 'info', 'debug'.\n"
     )
 
 

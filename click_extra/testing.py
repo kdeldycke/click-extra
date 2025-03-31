@@ -119,7 +119,7 @@ def render_cli_run(
         exit_code = result.returncode
 
     # Render the execution trace.
-    trace = prompt
+    trace = prompt + "\n"
     if output:
         trace += f"{PROMPT}{Style(fg=Color.blue)('<output>')} stream:\n"
         trace += indent(output, INDENT) + "\n"

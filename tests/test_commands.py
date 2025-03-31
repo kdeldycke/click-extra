@@ -161,28 +161,50 @@ def test_required_command(invoke, all_command_cli):
     )
 
 
-@pytest.mark.parametrize("param", (None, "-h", "--help"))
-def test_group_help(invoke, all_command_cli, param):
+@pytest.mark.parametrize(("param", "exit_code"), ((None, 2), ("-h", 0), ("--help", 0)))
+def test_group_help(invoke, all_command_cli, param, exit_code):
     result = invoke(all_command_cli, param, color=False)
-    assert result.exit_code == 0
-    assert re.fullmatch(help_screen, result.stdout)
     assert "It works!" not in result.stdout
-    assert not result.stderr
+    assert result.exit_code == exit_code
+    if exit_code == 2:
+        assert re.fullmatch(help_screen, result.stderr)
+    else:
+        assert re.fullmatch(help_screen, result.stdout)
+        assert not result.stderr
 
 
 @pytest.mark.parametrize(
-    "params",
-    ("--version", "blah", ("--verbosity", "DEBUG"), ("--config", "random.toml")),
+    ("params", "exit_code", "expect_help", "expect_empty_stderr"),
+    (
+        (("--help", "--version"), 0, True, True),
+        # --version takes precedence over --help.
+        (("--version", "--help"), 0, False, True),
+        (("--help", "blah"), 0, True, True),
+        (("--help", "--verbosity", "DEBUG"), 0, True, True),
+        # stderr will contain DEBUG log messages.
+        (("--verbosity", "DEBUG", "--help"), 0, True, False),
+        (("--help", "--config", "random.toml"), 0, True, True),
+        # Config file does not exist and stderr will contain the error message.
+        (("--config", "random.toml", "--help"), 2, False, False),
+    ),
 )
-def test_help_eagerness(invoke, all_command_cli, params):
+def test_help_eagerness(
+    invoke, all_command_cli, params, exit_code, expect_help, expect_empty_stderr
+):
     """See:
     https://click.palletsprojects.com/en/stable/advanced/#callback-evaluation-order
     """
-    result = invoke(all_command_cli, "--help", params, color=False)
-    assert result.exit_code == 0
-    assert re.fullmatch(help_screen, result.stdout)
+    result = invoke(all_command_cli, params, color=False)
+    assert result.exit_code == exit_code
     assert "It works!" not in result.stdout
-    assert not result.stderr
+    if expect_help:
+        assert re.fullmatch(help_screen, result.stdout)
+    else:
+        assert not re.fullmatch(help_screen, result.stdout)
+    if expect_empty_stderr:
+        assert not result.stderr
+    else:
+        assert result.stderr
 
 
 def test_help_custom_name(invoke):
@@ -204,24 +226,32 @@ def test_help_custom_name(invoke):
     assert not result.stderr
 
 
-@pytest.mark.parametrize("cmd_id", ("default", "click-extra", "cloup", "click"))
+@pytest.mark.parametrize(
+    "cmd_id",
+    (
+        "default-subcommand",
+        "click-extra-subcommand",
+        "cloup-subcommand",
+        "click-subcommand",
+    ),
+)
 @pytest.mark.parametrize("param", ("-h", "--help"))
 def test_subcommand_help(invoke, all_command_cli, cmd_id, param):
-    result = invoke(all_command_cli, f"{cmd_id}-subcommand", param)
+    result = invoke(all_command_cli, cmd_id, param)
     assert result.exit_code == 0
     assert not result.stderr
 
     colored_help_header = (
         r"It works!\n"
         r"\x1b\[94m\x1b\[1m\x1b\[4mUsage:\x1b\[0m "
-        rf"\x1b\[97mcommand-cli1 {cmd_id}-subcommand\x1b\[0m"
+        rf"\x1b\[97mcommand-cli1 {cmd_id}\x1b\[0m"
         r" \x1b\[36m\x1b\[2m\[OPTIONS\]\x1b\[0m\n"
         r"\n"
         r"\x1b\[94m\x1b\[1m\x1b\[4mOptions:\x1b\[0m\n"
     )
 
     # Extra sucommands are colored and include all extra options.
-    if cmd_id == "click-extra":
+    if cmd_id == "click-extra-subcommand":
         assert re.fullmatch(
             rf"{colored_help_header}{default_options_colored_help}",
             result.stdout,
@@ -229,7 +259,7 @@ def test_subcommand_help(invoke, all_command_cli, cmd_id, param):
 
     # Default subcommand inherits from extra family and is colored, but does not include
     # extra options.
-    elif cmd_id == "default":
+    elif cmd_id == "default-subcommand":
         assert re.fullmatch(
             (
                 rf"{colored_help_header}"
@@ -244,7 +274,7 @@ def test_subcommand_help(invoke, all_command_cli, cmd_id, param):
         assert result.stdout == dedent(
             f"""\
             It works!
-            Usage: command-cli1 {cmd_id}-subcommand [OPTIONS]
+            Usage: command-cli1 {cmd_id} [OPTIONS]
 
             Options:
               -h, --help  Show this message and exit.
@@ -432,7 +462,7 @@ def test_option_group_integration(invoke):
             rf"{default_options_uncolored_help}"
             r"\n"
             r"Commands:\n"
-            r"  default-command\n"
+            r"  default\n"
         ),
         result.stdout,
     )

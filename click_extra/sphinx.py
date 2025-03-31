@@ -102,7 +102,7 @@ class EofEchoingStdin(EchoingStdin):
     ``terminate_input=True``.
     """
 
-    def _echo(self, rv):
+    def _echo(self, rv: bytes) -> bytes:
         eof = rv[-1] == b"\x04"[0]
 
         if eof:

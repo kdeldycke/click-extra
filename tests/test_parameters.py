@@ -212,7 +212,7 @@ def test_standalone_show_params_option(invoke, cmd_decorator, option_decorator):
     table = [
         (
             "show-params.help",
-            "click.decorators.HelpOption",
+            "click.core.Option",
             "--help",
             "click.types.BoolParamType",
             "bool",
@@ -338,7 +338,7 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.help",
-            "click.decorators.HelpOption",
+            "click.core.Option",
             "-h, --help",
             "click.types.BoolParamType",
             "bool",
@@ -491,7 +491,7 @@ def test_recurse_subcommands(invoke):
     table = [
         (
             "show-params-cli-main.help",
-            "click.decorators.HelpOption",
+            "click.core.Option",
             "-h, --help",
             "click.types.BoolParamType",
             "bool",
@@ -518,35 +518,35 @@ def test_recurse_subcommands(invoke):
             "COMMANDLINE",
         ),
         (
-            "show-params-cli-main.show-params-sub-cmd.help",
-            "click.decorators.HelpOption",
+            "show-params-cli-main.show-params-sub.help",
+            "click.core.Option",
             "-h, --help",
             "click.types.BoolParamType",
             "bool",
             "✘",
             "✘",
             "",
-            "SHOW_PARAMS_CLI_MAIN_HELP",
+            "SHOW_PARAMS_CLI_MAIN_HELP",  # XXX Should be SHOW_PARAMS_SUB_HELP
             False,
             False,
             "DEFAULT",
         ),
         (
-            "show-params-cli-main.show-params-sub-cmd.show-params-sub-sub-cmd.help",
-            "click.decorators.HelpOption",
+            "show-params-cli-main.show-params-sub.show-params-sub-sub.help",
+            "click.core.Option",
             "-h, --help",
             "click.types.BoolParamType",
             "bool",
             "✘",
             "✘",
             "",
-            "SHOW_PARAMS_CLI_MAIN_HELP",
+            "SHOW_PARAMS_CLI_MAIN_HELP",  # XXX Should be SHOW_PARAMS_SUB_SUB_HELP
             False,
             False,
             "DEFAULT",
         ),
         (
-            "show-params-cli-main.show-params-sub-cmd.show-params-sub-sub-cmd.int_param",
+            "show-params-cli-main.show-params-sub.show-params-sub-sub.int_param",
             "cloup._params.Option",
             "--int-param INTEGER",
             "click.types.IntParamType",
@@ -554,7 +554,7 @@ def test_recurse_subcommands(invoke):
             "✘",
             "✓",
             "",
-            "SHOW_PARAMS_SUB_SUB_CMD_INT_PARAM, SHOW_PARAMS_CLI_MAIN_INT_PARAM",
+            "SHOW_PARAMS_SUB_SUB_INT_PARAM, SHOW_PARAMS_CLI_MAIN_INT_PARAM",
             10,
             10,
             "DEFAULT",

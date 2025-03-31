@@ -146,13 +146,14 @@ def default_extra_params() -> list[Option]:
     #. ``--version``
     #. ``-h``, ``--help``
         .. attention::
-            This is an instance of `click.decorators.HelpOption
-            <https://click.palletsprojects.com/en/stable/api/#click.help_option>`_.
+            This is the option produced by the `@click.decorators.help_option
+            <https://click.palletsprojects.com/en/stable/api/#click.help_option>`_
+            decorator.
 
             It is not explicitly referenced in the implementation of this function.
 
-            That's because it's `going to be appended by Click itself
-            <https://github.com/pallets/click/blob/934813e/src/click/core.py#L1262-L1265>`_,
+            That's because it's `going to be added by Click itself
+            <https://github.com/pallets/click/blob/c9f7d9d/src/click/core.py#L966-L969>`_,
             at the end of the list of options. By letting Click handle this, we ensure
             that the help option will take into account the `help_option_names
             <https://click.palletsprojects.com/en/stable/documentation/#help-parameter-customization>`_
@@ -179,7 +180,7 @@ def default_extra_params() -> list[Option]:
         VerbosityOption(),
         VerboseOption(),
         ExtraVersionOption(),
-        # click.decorators.HelpOption(),
+        # @click.decorators.help_option(),
     ]
 
 

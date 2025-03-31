@@ -360,7 +360,7 @@ class ExtraHelpColorsMixin:  # (Command)??
             if isinstance(param.type, Choice):
                 choices.update(param.type.choices)
 
-            metavars.add(param.make_metavar())
+            metavars.add(param.make_metavar(ctx=ctx))
 
             if param.envvar:
                 if isinstance(param.envvar, str):
