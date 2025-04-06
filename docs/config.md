@@ -35,7 +35,7 @@ It produces the following help screen:
     result = invoke(my_cli, args=["--help"])
     assert "-C, --config CONFIG_PATH" in result.stdout
 
-See there the explicit mention of the default location of the configuration file. This improves discoverability, and `makes sysadmins happy <https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations>`_, especially those not familiar with your CLI.
+See in the result above, there is an explicit mention of the default location of the configuration file (`[default: ~/.config/my-cli/*.{toml,yaml,yml,json,ini,xml}]`). This improves discoverability, and `makes sysadmins happy <https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations>`_, especially those not familiar with your CLI.
 
 A bare call returns:
 
@@ -73,7 +73,7 @@ random_stuff = "will be ignored"
 
 In the file above, pay attention to:
 
-- the [default configuration base path](#default-folder) (`~/.config/my-cli/` here on Linux) which is OS-dependant;
+- the [default configuration base path](#default-folder), which is OS-dependant (the `~/.config/my-cli/` path here is for Linux) ;
 - the app's folder (`/my-cli/`) which is built from the script's
   name (`my_cli.py`);
 - the top-level config section (`[my-cli]`), based on the CLI's
