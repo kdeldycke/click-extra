@@ -119,7 +119,7 @@ docs = [
     # Sphinx 8 is the first version to drop Python 3.10.
     "sphinx ~= 8.2.3",
     # sphinx-autodoc-typehints 3.1.0 is the first version to drop Python 3.10.
-    "sphinx-autodoc-typehints ~= 3.1.0",
+    "sphinx-autodoc-typehints ~= 3.2.0",
     "sphinx-copybutton ~= 0.5.2",
     "sphinx-design ~= 0.6.0",
     "sphinx-issues ~= 5.0.0",
