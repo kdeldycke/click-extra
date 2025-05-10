@@ -1,9 +1,11 @@
 # Changelog
 
-## [4.16.0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v4.15.0...main)
+## [4.16.1 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v4.16.0...main)
 
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
+
+## [4.16.0 (2025-05-10)](https://github.com/kdeldycke/click-extra/compare/v4.15.0...v4.16.0)
 
 - Upgrade to Click 8.2.0.
 - Add support for custom deprecated messages on commands and parameters.
