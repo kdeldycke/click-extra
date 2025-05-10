@@ -66,7 +66,7 @@ dependencies = [
     # Investigation of the root cause is being discussed upstream at:
     # https://github.com/mahmoud/boltons/issues/334
     "boltons ~= 25.0.0",
-    "click @ git+https://github.com/pallets/click.git@main#b7c0ab471c339488766d9413349947b2a7b21543",
+    "click @ git+https://github.com/pallets/click.git@8.2.0",
     # Cloup 3.0.5 fix incompatibility with autodoc: https://github.com/janluke/cloup/issues/177
     "cloup ~= 3.0.5",
     "extra-platforms >= 3.1.0",

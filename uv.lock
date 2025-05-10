@@ -111,7 +111,7 @@ wheels = [
 [[package]]
 name = "click"
 version = "8.2.0"
-source = { git = "https://github.com/pallets/click.git?rev=main#b7c0ab471c339488766d9413349947b2a7b21543" }
+source = { git = "https://github.com/pallets/click.git?rev=8.2.0#85b34277788bdcc8fe7c602fb4b1f3a7afc21464" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
 ]
@@ -177,7 +177,7 @@ typing = [
 [package.metadata]
 requires-dist = [
     { name = "boltons", specifier = "~=25.0.0" },
-    { name = "click", git = "https://github.com/pallets/click.git?rev=main" },
+    { name = "click", git = "https://github.com/pallets/click.git?rev=8.2.0" },
     { name = "cloup", specifier = "~=3.0.5" },
     { name = "coverage", extras = ["toml"], marker = "extra == 'test'", specifier = "~=7.8.0" },
     { name = "extra-platforms", specifier = ">=3.1.0" },
