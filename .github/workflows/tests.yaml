@@ -42,9 +42,6 @@ jobs:
           - released
           - stable
           - main
-          # XXX Temporary test of upcoming 8.2.0 release.
-          # Refs: https://github.com/pallets/click/discussions/2892
-          - "8.2.0"
         cloup-version:
           - released
           - master
