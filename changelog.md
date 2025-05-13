@@ -5,6 +5,8 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Fix highlighting of deprecated messages.
+
 ## [5.0.0 (2025-05-13)](https://github.com/kdeldycke/click-extra/compare/v4.15.0...v5.0.0)
 
 - Upgrade to Click 8.2.0.

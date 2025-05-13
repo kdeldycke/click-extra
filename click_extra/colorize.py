@@ -400,19 +400,15 @@ class ExtraHelpColorsMixin:  # (Command)??
         # Collect all deprecated messages on subcommands and parameters.
         for obj in chain(subcommands, command.get_params(ctx)):
             if getattr(obj, "deprecated"):
-                # Cloup's deprecation message:
-                # https://github.com/janluke/cloup/blob/2bf13729be4dd61f325252f4f128df6724dad9d5/cloup/formatting/_formatter.py#L190
-                if isinstance(obj, cloup.Option):
-                    deprecated_messages.add("(Deprecated)")
-
                 # Generated deprecated message as Click does:
-                # https://github.com/pallets/click/blob/c9f7d9d8a02f0cf9b24db6210b083e687a5cf020/src/click/core.py#L2556-L2560
-                else:
-                    deprecated_messages.add(
-                        f"(DEPRECATED: {param.deprecated})"
-                        if isinstance(param.deprecated, str)
-                        else "(DEPRECATED)"
-                    )
+                # https://github.com/pallets/click/blob/c9f7d9d/src/click/core.py#L1061-L1065
+                # https://github.com/pallets/click/blob/c9f7d9d/src/click/core.py#L1098-L1102
+                # https://github.com/pallets/click/blob/c9f7d9d/src/click/core.py#L2556-L2560
+                deprecated_messages.add(
+                    f"(DEPRECATED: {param.deprecated})"
+                    if isinstance(param.deprecated, str)
+                    else "(DEPRECATED)"
+                )
 
         return (
             cli_names,

@@ -380,6 +380,43 @@ def test_extra_theme():
                 + theme.bracket("]"),
             ),
         ),
+        # Deprecated.
+        (
+            ExtraOption(
+                ["-X"],
+                help="An old option that you should not use anymore.",
+                deprecated=True,
+            ),
+            (
+                " " + theme.option("-X") + " " + theme.metavar("TEXT") + " ",
+                " An old option that you should not use anymore."
+                + theme.deprecated("(DEPRECATED)"),
+            ),
+        ),
+        (
+            click.Option(
+                ["-X"],
+                help="An old option that you should not use anymore.",
+                deprecated=True,
+            ),
+            (
+                " " + theme.option("-X") + " " + theme.metavar("TEXT") + " ",
+                " An old option that you should not use anymore."
+                + theme.deprecated("(DEPRECATED)"),
+            ),
+        ),
+        (
+            cloup.Option(
+                ["-X"],
+                help="An old option that you should not use anymore.",
+                deprecated=True,
+            ),
+            (
+                " " + theme.option("-X") + " " + theme.metavar("TEXT") + " ",
+                " An old option that you should not use anymore."
+                + theme.deprecated("(DEPRECATED)"),
+            ),
+        ),
     ),
 )
 def test_option_highlight(opt, expected_outputs):
