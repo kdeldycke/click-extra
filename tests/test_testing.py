@@ -21,7 +21,6 @@ import logging
 from pathlib import Path
 
 import click
-from extra_platforms import is_windows
 
 from click_extra import Style, command, echo, pass_context, secho, style
 from click_extra.testing import ExtraCliRunner
