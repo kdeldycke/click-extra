@@ -458,7 +458,7 @@ class VerbosityOption(ExtraVerbosity):
         default_logger: Logger | str = logging.root.name,
         default: str = DEFAULT_LEVEL_NAME,
         metavar="LEVEL",
-        type=Choice(LOG_LEVELS, case_sensitive=False),  # type: ignore[arg-type]
+        type=Choice(LOG_LEVELS, case_sensitive=False),
         help=_("Either {log_levels}.").format(log_levels=", ".join(LOG_LEVELS)),
         **kwargs,
     ) -> None:

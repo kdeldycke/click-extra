@@ -345,7 +345,7 @@ class ExtraHelpColorsMixin:  # (Command)??
         if isinstance(command, click.Group):
             subcommands.update(command.list_commands(ctx))
             for sub_id in subcommands:
-                sub_cmd = command.get_command(ctx, sub_id)
+                sub_cmd = command.get_command(ctx, sub_id)  # type: ignore[attr-defined]
                 command_aliases.update(getattr(sub_cmd, "aliases", []))
 
         # Add user defined help options.
