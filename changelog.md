@@ -10,6 +10,8 @@
 - Remove `ExtraOption.get_help_default()` and rely on new `Option.get_help_extra()`.
 - Remove dependency on `pallets-sphinx-themes`.
 - Drop supports for Python 3.10.
+- Add `windows-11-arm` to the test matrix.
+- Remove tests on `ubuntu-22.04-arm`, `ubuntu-22.04` and `windows-2022` to keep matrix small.
 
 ## [4.15.0 (2025-03-05)](https://github.com/kdeldycke/click-extra/compare/v4.14.2...v4.15.0)
 

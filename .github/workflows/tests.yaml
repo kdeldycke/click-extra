@@ -23,15 +23,14 @@ jobs:
       fail-fast: false
       matrix:
         # Available OS: https://github.com/actions/runner-images#available-images
+        # Only targets 2 variants per platforms to keep the matrix small.
         os:
-          - ubuntu-24.04     # x86
           - ubuntu-24.04-arm # arm64
-          - ubuntu-22.04     # x86
-          - ubuntu-22.04-arm # arm64
+          - ubuntu-24.04     # x86
           - macos-15         # arm64
           - macos-13         # x86
+          - windows-11-arm   # arm64
           - windows-2025     # x86
-          - windows-2022     # x86
         # Available Python: https://github.com/actions/python-versions/blob/main/versions-manifest.json
         python-version:
           - "3.11"
@@ -48,19 +47,42 @@ jobs:
         # Removes from the matrix some combinations for development versions of Click and Cloup. This reduce the size
         # of the matrix for tests on non-released versions. While keeping the full exhaustive tests on the released
         # versions of Click and Cloup.
+        # XXX Ideally, the exclude section below could be reduced to:
+        #   exclude:
+        #     - click-version: stable
+        #       os:
+        #         - ubuntu-24.04
+        #         - macos-13
+        #         - windows-2025
+        #       python-version:
+        #         - "3.11"
+        #         - "3.12"
+        #         - "3.14"
+        #     - click-version: main
+        #       os:
+        #         - ubuntu-24.04
+        #         - macos-13
+        #         - windows-2025
+        #       python-version:
+        #         - "3.11"
+        #         - "3.12"
+        #         - "3.14"
+        #     - cloup-version: master
+        #       os:
+        #         - ubuntu-24.04
+        #         - macos-13
+        #         - windows-2025
+        #       python-version:
+        #         - "3.11"
+        #         - "3.12"
+        #         - "3.14"
         exclude:
-          # Exclude old OSes. Only keeps the latest OSes of each family.
-          - os: ubuntu-22.04
+          # Only targets the latest OS for each platform.
+          - os: ubuntu-24.04
             click-version: stable
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             click-version: main
-          - os: ubuntu-22.04
-            cloup-version: master
-          - os: ubuntu-22.04-arm
-            click-version: stable
-          - os: ubuntu-22.04-arm
-            click-version: main
-          - os: ubuntu-22.04-arm
+          - os: ubuntu-24.04
             cloup-version: master
           - os: macos-13
             click-version: stable
@@ -68,11 +90,11 @@ jobs:
             click-version: main
           - os: macos-13
             cloup-version: master
-          - os: windows-2022
+          - os: windows-2025
             click-version: stable
-          - os: windows-2022
+          - os: windows-2025
             click-version: main
-          - os: windows-2022
+          - os: windows-2025
             cloup-version: master
           # Exclude old Python version. Only test on latest stable release.
           - python-version: "3.11"
