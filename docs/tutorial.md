@@ -178,8 +178,7 @@ See how the configuration option is grouped with others:
         Cool options: [at least 1 required]
           --foo TEXT              The option that starts it all.
           --bar TEXT              Another important option.
-          --hello-conf CONF_FILE  Loads CLI config.
-        """
+          --hello-conf CONF_FILE  Loads CLI config."""
     ) in result.output
 ```
 
