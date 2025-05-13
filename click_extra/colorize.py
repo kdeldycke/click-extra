@@ -456,6 +456,7 @@ def escape_for_help_screen(text: str) -> str:
     fit the columnar layout.
 
     It allows for:
+
     - additional number of optional blank characters (line-returns, spaces, tabs, ...)
       after a dash, as the help renderer is free to wrap strings after a dash.
     - a space to be replaced by any number of blank characters.

@@ -61,6 +61,7 @@
     <https://github.com/pallets/pallets-sphinx-themes/tree/main?tab=BSD-3-Clause-1-ov-file#readme>`_.
 
     Compared to the latter, it:
+
     - Forces the rendering of CLI results into ANSI shell sessions, via the
       ``.. code-block:: ansi-shell-session`` directive.
 """

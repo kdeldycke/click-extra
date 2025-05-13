@@ -194,6 +194,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         Display a pretty path that is relative to the user's home directory:
 
         .. code-block:: text
+
             ~/(...)/multiple_envvars.py/*.{toml,yaml,yml,json,ini,xml}
         """
         extra = super().get_help_extra(ctx)
