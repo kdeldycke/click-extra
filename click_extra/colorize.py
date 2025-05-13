@@ -321,7 +321,8 @@ class ExtraHelpColorsMixin:  # (Command)??
         API.
         """
         cli_names: set[str] = set()
-        subcommands: set[str] = set()
+        subcommands: set[click.Command] = set()
+        subcommand_ids: set[str] = set()
         command_aliases: set[str] = set()
         options: set[str] = set()
         long_options: set[str] = set()
@@ -343,10 +344,13 @@ class ExtraHelpColorsMixin:  # (Command)??
 
         # Get subcommands and their aliases.
         if isinstance(command, click.Group):
-            subcommands.update(command.list_commands(ctx))
-            for sub_id in subcommands:
-                sub_cmd = command.get_command(ctx, sub_id)  # type: ignore[attr-defined]
-                command_aliases.update(getattr(sub_cmd, "aliases", []))
+            subcommand_ids.update(command.list_commands(ctx))
+            for sub_id in subcommand_ids:
+                subcommand = command.get_command(ctx, sub_id)
+                if not subcommand:
+                    continue
+                subcommands.add(subcommand)
+                command_aliases.update(getattr(subcommand, "aliases", []))
 
         # Add user defined help options.
         options.update(ctx.help_option_names)
@@ -394,10 +398,7 @@ class ExtraHelpColorsMixin:  # (Command)??
                 long_options.add(option_name)
 
         # Collect all deprecated messages on subcommands and parameters.
-        for obj in chain(
-            (command.get_command(ctx, sub_id) for sub_id in subcommands),
-            command.get_params(ctx),
-        ):
+        for obj in chain(subcommands, command.get_params(ctx)):
             if obj.deprecated:
                 # Cloup's deprecation message:
                 # https://github.com/janluke/cloup/blob/2bf13729be4dd61f325252f4f128df6724dad9d5/cloup/formatting/_formatter.py#L190
@@ -415,7 +416,7 @@ class ExtraHelpColorsMixin:  # (Command)??
 
         return (
             cli_names,
-            subcommands,
+            subcommand_ids,
             command_aliases,
             long_options,
             short_options,
