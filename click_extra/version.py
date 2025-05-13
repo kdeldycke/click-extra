@@ -243,7 +243,20 @@ class ExtraVersionOption(ExtraOption):
 
     @cached_property
     def module_version(self) -> str | None:
-        """Returns the string found in the local ``__version__`` variable."""
+        """Returns the string found in the local ``__version__`` variable.
+
+        .. hint::
+
+            ``__version__`` is an old pattern from early Python packaging. It is not a
+            standard variable and is not defined in the packaging PEPs.
+
+            You should prefer using the ``package_version`` property below instead,
+            which uses the standard library `importlib.metadata` API.
+
+            We're still supporting it for backward compatibility with existing
+            codebases, as `Click removed it in version 8.2.0
+            <https://github.com/pallets/click/issues/2598>`.
+        """
         version = getattr(self.module, "__version__", None)
         if version is not None and not isinstance(version, str):
             msg = f"Module version {version!r} expected to be a string or None."
