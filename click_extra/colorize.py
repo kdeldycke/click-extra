@@ -399,7 +399,7 @@ class ExtraHelpColorsMixin:  # (Command)??
 
         # Collect all deprecated messages on subcommands and parameters.
         for obj in chain(subcommands, command.get_params(ctx)):
-            if obj.deprecated:
+            if getattr(obj, "deprecated"):
                 # Cloup's deprecation message:
                 # https://github.com/janluke/cloup/blob/2bf13729be4dd61f325252f4f128df6724dad9d5/cloup/formatting/_formatter.py#L190
                 if isinstance(obj, cloup.Option):
