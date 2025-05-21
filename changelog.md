@@ -1,9 +1,11 @@
 # Changelog
 
-## [5.0.1 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v5.0.0...main)
+## [5.0.2 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v5.0.1...main)
 
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
+
+## [5.0.1 (2025-05-21)](https://github.com/kdeldycke/click-extra/compare/v5.0.0...v5.0.1)
 
 - Fix highlighting of deprecated messages.
 
