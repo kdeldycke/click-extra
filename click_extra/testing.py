@@ -45,12 +45,20 @@ import click.testing
 from boltons.iterutils import flatten
 from boltons.strutils import strip_ansi
 from boltons.tbutils import ExceptionInfo
+from extra_platforms import is_windows
 
 from . import Color, Style
 from .colorize import default_theme
 from .envvar import TEnvVars
 
-PROMPT = "► "
+PROMPT = (">" if is_windows() else "$") + " "
+"""Prompt used to simulate the CLI execution.
+
+.. hint::
+    Use ASCII characters to avoid issues with Windows terminals.
+"""
+
+
 INDENT = " " * len(PROMPT)
 """Constants for rendering of CLI execution."""
 
