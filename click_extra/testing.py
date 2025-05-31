@@ -97,7 +97,7 @@ def format_cli_prompt(
 
     cmd_str = default_theme.invoked_command(" ".join(cmd_args))
 
-    return f"{PROMPT}{extra_env_string}{cmd_str}"
+    return PROMPT + extra_env_string + cmd_str
 
 
 def render_cli_run(
@@ -127,19 +127,20 @@ def render_cli_run(
         exit_code = result.returncode
 
     # Render the execution trace.
-    trace = prompt + "\n"
+    trace = []
+    trace.append(prompt)
     if output:
-        trace += f"{Style(fg=Color.blue)('<output>')} stream:\n"
-        trace += indent(output, INDENT) + "\n"
+        trace.append(f"{Style(fg=Color.blue)('<output>')} stream:")
+        trace.append(indent(output, INDENT))
     if stdout:
-        trace += f"{Style(fg=Color.green)('<stdout>')} stream:\n"
-        trace += indent(stdout, INDENT) + "\n"
+        trace.append(f"{Style(fg=Color.green)('<stdout>')} stream:")
+        trace.append(indent(stdout, INDENT))
     if stderr:
-        trace += f"{Style(fg=Color.red)('<stderr>')} stream:\n"
-        trace += indent(stderr, INDENT) + "\n"
+        trace.append(f"{Style(fg=Color.red)('<stderr>')} stream:")
+        trace.append(indent(stderr, INDENT))
     if exit_code is not None:
-        trace += f"{Style(fg=Color.yellow)('<exit_code>')}: {exit_code}\n"
-    return trace + "\n"
+        trace.append(f"{Style(fg=Color.yellow)('<exit_code>')}: {exit_code}")
+    return "\n".join(trace)
 
 
 def print_cli_run(
