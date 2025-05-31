@@ -138,7 +138,7 @@ def render_cli_run(
         trace += f"{Style(fg=Color.red)('<stderr>')} stream:\n"
         trace += indent(stderr, INDENT) + "\n"
     if exit_code is not None:
-        trace += f"{Style(fg=Color.yellow)('Exit code:')} {exit_code}\n"
+        trace += f"{Style(fg=Color.yellow)('<exit_code>')}: {exit_code}\n"
     return trace + "\n"
 
 
