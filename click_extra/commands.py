@@ -22,7 +22,7 @@ leverage the mixins in here to build up your own custom variants.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, NoReturn, Sequence
 
 import click
 import cloup
@@ -328,14 +328,29 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):  # type: ignore[misc]
         _grouped_params = self._group_params(self.params)  # type: ignore[attr-defined]
         self.arguments, self.option_groups, self.ungrouped_options = _grouped_params
 
-    def main(self, *args, **kwargs):
+    def main(
+        self,
+        args: Sequence[str] | None = None,
+        prog_name: str | None = None,
+        **kwargs: Any,
+    ) -> Any | NoReturn:
         """Pre-invocation step that is instantiating the context, then call ``invoke()``
         within it.
 
-        During context instantiation, each option's callbacks are called. Beware that
-        these might break the execution flow (like ``--help`` or ``--version``).
+        .. caution::
+
+            During context instantiation, each option's callbacks are called. These
+            might break the execution flow (like ``--help`` or ``--version``).
+
+        Sets the default CLI's ``prog_name`` to the command's name if not provided,
+        instead of relying on Click's auto-detection via the
+        ``_detect_program_name()`` method. This is to avoid the CLI being called
+        ``python -m <module_name>``, which is not very user-friendly.
         """
-        return super().main(*args, **kwargs)
+        if not prog_name and self.name:
+            prog_name = self.name
+
+        return super().main(args=args, prog_name=prog_name, **kwargs)
 
     def make_context(
         self,

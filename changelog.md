@@ -5,6 +5,7 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Set `ExtraCommand` default `prog_name` to CLI's `name` to avoid it to be named `python -m <module_name>` if invoked out of a module.
 - Tweak exit code rendering of CLI runs.
 
 ## [5.0.1 (2025-05-28)](https://github.com/kdeldycke/click-extra/compare/v5.0.0...v5.0.1)
