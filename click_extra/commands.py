@@ -328,7 +328,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):  # type: ignore[misc]
         _grouped_params = self._group_params(self.params)  # type: ignore[attr-defined]
         self.arguments, self.option_groups, self.ungrouped_options = _grouped_params
 
-    def main(
+    def main(  # type: ignore[override]
         self,
         args: Sequence[str] | None = None,
         prog_name: str | None = None,
