@@ -5,6 +5,8 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Fix reconciliation of flags' environment variables.
+
 ## [5.0.2 (2025-05-31)](https://github.com/kdeldycke/click-extra/compare/v5.0.1...v5.0.2)
 
 - Set `ExtraCommand` default `prog_name` to CLI's `name` to avoid it to be named `python -m <module_name>` if invoked out of a module.
