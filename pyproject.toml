@@ -102,7 +102,7 @@ pytest = ["pytest >= 8"]
 test = [
     "coverage [toml] ~= 7.8.0",
     "extra-platforms [pytest] >= 3.1.0",
-    "pytest ~= 8.3.1",
+    "pytest ~= 8.4.0",
     # More pytest plugins at: https://docs.pytest.org/en/latest/reference/plugin_list.html
     "pytest-cov ~= 6.1.0",
     "pytest-github-actions-annotate-failures ~= 0.3.0",
