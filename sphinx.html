@@ -1,0 +1,1095 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta property="og:title" content="Sphinx extensions" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="sphinx.html" />
+<meta property="og:site_name" content="Click Extra" />
+<meta property="og:description" content="Sphinx is the best way to document your Python CLI. Click Extra provides several utilities to improve the quality of life of maintainers. Setup: Once Click Extra is installed, you can enable its ex..." />
+<meta name="description" content="Sphinx is the best way to document your Python CLI. Click Extra provides several utilities to improve the quality of life of maintainers. Setup: Once Click Extra is installed, you can enable its ex..." />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="CLI testing and execution" href="testing.html" /><link rel="prev" title="Pygments extensions" href="pygments.html" />
+
+    <!-- Generated with Sphinx 8.2.3 and Furo 2024.08.06 -->
+        <title>Sphinx extensions - Click Extra</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=060664ba" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+<div class="announcement">
+  <aside class="announcement-content">
+     Click Extra works fine, but is <em>maintained by only one person</em> 😶‍🌫️.<br/>You can help if you <strong><a class='reference external' href='https://github.com/sponsors/kdeldycke'>purchase business support 🤝</a></strong> or <strong><a class='reference external' href='https://github.com/sponsors/kdeldycke'>sponsor the project 🫶</a></strong>. 
+  </aside>
+</div>
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">Click Extra</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="_static/logo-square.svg" alt="Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">Commands &amp; groups</a></li>
+<li class="toctree-l1"><a class="reference internal" href="config.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="colorize.html">Colored help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logging.html">Logging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tabulate.html">Table</a></li>
+<li class="toctree-l1"><a class="reference internal" href="version.html">Version</a></li>
+<li class="toctree-l1"><a class="reference internal" href="timer.html">Timer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parameters.html">Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pygments.html">Pygments extensions</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Sphinx extensions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="testing.html">CLI testing and execution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pytest.html">Pytest utilities and fixtures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="issues.html">Fixed issues</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="click_extra.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tests.html">tests package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="todolist.html">Todo-list</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="code-of-conduct.html">Code of conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/kdeldycke/click-extra">GitHub Repository</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/sponsors/kdeldycke">Funding</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/kdeldycke/click-extra/blob/main/docs/sphinx.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/kdeldycke/click-extra/edit/main/docs/sphinx.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="sphinx-extensions">
+<h1>Sphinx extensions<a class="headerlink" href="#sphinx-extensions" title="Link to this heading">¶</a></h1>
+<p><a class="reference external" href="https://www.sphinx-doc.org">Sphinx</a> is the best way to document your Python CLI. Click Extra provides several utilities to improve the quality of life of maintainers.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>For these helpers to work, you need to install <code class="docutils literal notranslate"><span class="pre">click_extra</span></code>’s additional dependencies from the <code class="docutils literal notranslate"><span class="pre">sphinx</span></code> extra group:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>pip<span class="w"> </span>install<span class="w"> </span>click_extra<span class="o">[</span>sphinx<span class="o">]</span>
+</pre></div>
+</div>
+</div>
+<section id="setup">
+<h2>Setup<a class="headerlink" href="#setup" title="Link to this heading">¶</a></h2>
+<p>Once <a class="reference internal" href="install.html"><span class="std std-doc">Click Extra is installed</span></a>, you can enable its <a class="reference external" href="https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-extensions">extensions</a> in your Sphinx’s <code class="docutils literal notranslate"><span class="pre">conf.py</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">extensions</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;click_extra.sphinx&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+</pre></div>
+</div>
+</section>
+<section id="click-directives">
+<h2>Click directives<a class="headerlink" href="#click-directives" title="Link to this heading">¶</a></h2>
+<p>Click Extra adds two new directives:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">click:example::</span></code> to display any Click-based Python code blocks in Sphinx (and renders like <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">code-block::</span> <span class="pre">python</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">click:run::</span></code> to invoke the CLI defined above, and display the results as if was executed in a terminmal (within a <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">code-block::</span> <span class="pre">ansi-shell-session</span></code>)</p></li>
+</ul>
+<p>Thanks to these, you can directly demonstrate the usage of your CLI in your documentation. You no longer have to maintain screenshots of you CLIs. Or copy and paste their outputs to keep them in sync with the latest revision. Click Extra will do that job for you.</p>
+<div class="admonition hint">
+<p class="admonition-title">Hint</p>
+<p>These directives are <a class="reference external" href="https://github.com/pallets/pallets-sphinx-themes/blob/main/src/pallets_sphinx_themes/themes/click/domain.py">based on the official <code class="docutils literal notranslate"><span class="pre">Pallets-Sphinx-Themes</span></code></a> from Click’s authors, but augmented with support for ANSI coloring. That way you can show off your user-friendly CLI in all its glory. 🌈</p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>Click Extra’s own documentation extensively use <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">click:example::</span></code> and <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">click:run::</span></code> directives. <a class="reference external" href="https://github.com/kdeldycke/click-extra/tree/main/docs">Look around
+in its Markdown source files</a> for advanced examples and
+inspiration.</p>
+</div>
+<section id="usage">
+<h3>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h3>
+<p>Here is how to define a simple Click-based CLI with the <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">click:example::</span></code> directive:</p>
+<div class="sd-tab-set docutils">
+<input checked="checked" id="sd-tab-item-0" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" data-sync-group="tab" data-sync-id="myst" for="sd-tab-item-0">
+Markdown (MyST)</label><div class="sd-tab-content docutils">
+<div class="admonition attention">
+<p class="admonition-title">Attention</p>
+<p>As you can see in the example below, these Click directives are not recognized as-is by the MyST parser, so you need to wrap them in <code class="docutils literal notranslate"><span class="pre">{eval-rst}</span></code> blocks.</p>
+</div>
+<div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span>```{eval-rst}
+.. click:example::
+    from click_extra import echo, extra_command, option, style
+
+    <span class="ni">@extra_command</span>
+    <span class="ni">@option</span>(&quot;--name&quot;, prompt=&quot;Your name&quot;, help=&quot;The person to greet.&quot;)
+    def hello_world(name):
+        &quot;&quot;&quot;Simple program that greets NAME.&quot;&quot;&quot;
+        echo(f&quot;Hello, {style(name, fg=&#39;red&#39;)}!&quot;)
+```
+</pre></div>
+</div>
+<p>Thanks to the <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">click:run::</span></code> directive, we can invoke this CLI with its <code class="docutils literal notranslate"><span class="pre">--help</span></code> option:</p>
+<div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span>```{eval-rst}
+.. click:run::
+    invoke(hello_world, args=[&quot;--help&quot;])
+```
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>CLI states and references are lost as soon as an <code class="docutils literal notranslate"><span class="pre">{eval-rst}</span></code> block ends. If you need to run a <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">click:example::</span></code> definition multiple times, all its <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">click:run::</span></code> calls must happens within the same rST block.</p>
+<p>A symptom of that issue is the execution failing with tracebacks such as:</p>
+<div class="highlight-pytb notranslate"><div class="highlight"><pre><span></span><span class="x">Exception occurred:</span>
+  File <span class="nb">&quot;&lt;docs&gt;&quot;</span>, line <span class="m">1</span>, in <span class="n">&lt;module&gt;</span>
+<span class="gr">NameError</span>: <span class="n">name &#39;hello_world&#39; is not defined</span>
+</pre></div>
+</div>
+</div>
+</div>
+<input id="sd-tab-item-1" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" data-sync-group="tab" data-sync-id="rst" for="sd-tab-item-1">
+reStructuredText</label><div class="sd-tab-content docutils">
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="p">..</span> <span class="ow">click:example</span><span class="p">::</span>
+    from click_extra import echo, extra_command, option, style
+
+    @extra_command
+    @option(&quot;--name&quot;, prompt=&quot;Your name&quot;, help=&quot;The person to greet.&quot;)
+    def hello_world(name):
+        &quot;&quot;&quot;Simple program that greets NAME.&quot;&quot;&quot;
+        echo(f&quot;Hello, {style(name, fg=&#39;red&#39;)}!&quot;)
+</pre></div>
+</div>
+<p>Thanks to the <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">click:run::</span></code> directive, we can invoke this CLI with its <code class="docutils literal notranslate"><span class="pre">--help</span></code> option:</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="p">..</span> <span class="ow">click:run</span><span class="p">::</span>
+    invoke(hello_world, args=[&quot;--help&quot;])
+</pre></div>
+</div>
+</div>
+</div>
+<p>Placed in your Sphinx documentation, the two blocks above renders to:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">click_extra</span><span class="w"> </span><span class="kn">import</span> <span class="n">echo</span><span class="p">,</span> <span class="n">extra_command</span><span class="p">,</span> <span class="n">option</span><span class="p">,</span> <span class="n">style</span>
+
+<span class="nd">@extra_command</span>
+<span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--name&quot;</span><span class="p">,</span> <span class="n">prompt</span><span class="o">=</span><span class="s2">&quot;Your name&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The person to greet.&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">hello_world</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Simple program that greets NAME.&quot;&quot;&quot;</span>
+    <span class="n">echo</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Hello, </span><span class="si">{</span><span class="n">style</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">fg</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">!&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>hello-world<span class="w"> </span>--help
+<span class=" -Color -Color-Bold -Color-Bold-BrightBlue -C-Bold -C-BrightBlue">Usage:</span> <span class=" -Color -Color-BrightWhite -C-BrightWhite">hello-world</span> <span class=" -Color -Color-Faint -Color-Faint-Cyan -C-Faint -C-Cyan">[OPTIONS]</span>
+
+  Simple program that greets NAME.
+
+<span class=" -Color -Color-Bold -Color-Bold-BrightBlue -C-Bold -C-BrightBlue">Options:</span>
+  <span class=" -Color -Color-Cyan -C-Cyan">--name</span> <span class=" -Color -Color-Faint -Color-Faint-Cyan -C-Faint -C-Cyan">TEXT</span>               The person to greet.
+  <span class=" -Color -Color-Cyan -C-Cyan">--time</span> / <span class=" -Color -Color-Cyan -C-Cyan">--no-time</span>        Measure and print elapsed execution time.  <span class=" -Color -Color-Faint -C-Faint">[default:</span>
+<span class=" -Color -Color-Faint -C-Faint">                            </span><span class=" -Color -Color-Faint -Color-Faint-Green -C-Faint -C-Green">no-time</span><span class=" -Color -Color-Faint -C-Faint">]</span>
+  <span class=" -Color -Color-Cyan -C-Cyan">--color</span>, <span class=" -Color -Color-Cyan -C-Cyan">--ansi</span> / <span class=" -Color -Color-Cyan -C-Cyan">--no-color</span>, <span class=" -Color -Color-Cyan -C-Cyan">--no-ansi</span>
+                            Strip out all colors and all ANSI codes from output.
+                            <span class=" -Color -Color-Faint -C-Faint">[default: </span><span class=" -Color -Color-Faint -Color-Faint-Green -C-Faint -C-Green">color</span><span class=" -Color -Color-Faint -C-Faint">]</span>
+  <span class=" -Color -Color-Cyan -C-Cyan">-C</span>, <span class=" -Color -Color-Cyan -C-Cyan">--config</span> <span class=" -Color -Color-Faint -Color-Faint-Cyan -C-Faint -C-Cyan">CONFIG_PATH</span>  Location of the configuration file. Supports glob
+                            pattern of local path and remote URL.  <span class=" -Color -Color-Faint -C-Faint">[default:</span>
+<span class=" -Color -Color-Faint -C-Faint">                            </span><span class=" -Color -Color-Faint -Color-Faint-Green -C-Faint -C-Green">~/.config/hello-</span>
+<span class=" -Color -Color-Faint -Color-Faint-Green -C-Faint -C-Green">                            world/*.{toml,yaml,yml,json,ini,xml}</span><span class=" -Color -Color-Faint -C-Faint">]</span>
+  <span class=" -Color -Color-Cyan -C-Cyan">--show-params</span>             Show all CLI parameters, their provenance, defaults
+                            and value, then exit.
+  <span class=" -Color -Color-Cyan -C-Cyan">--verbosity</span> <span class=" -Color -Color-Faint -Color-Faint-Cyan -C-Faint -C-Cyan">LEVEL</span>         Either <span class=" -Color -Color-Magenta -C-Magenta">CRITICAL</span>, <span class=" -Color -Color-Magenta -C-Magenta">ERROR</span>, <span class=" -Color -Color-Magenta -C-Magenta">WARNING</span>, <span class=" -Color -Color-Magenta -C-Magenta">INFO</span>, <span class=" -Color -Color-Magenta -C-Magenta">DEBUG</span>.
+                            <span class=" -Color -Color-Faint -C-Faint">[default: </span><span class=" -Color -Color-Faint -Color-Faint-Green -C-Faint -C-Green">WARNING</span><span class=" -Color -Color-Faint -C-Faint">]</span>
+  <span class=" -Color -Color-Cyan -C-Cyan">-v</span>, <span class=" -Color -Color-Cyan -C-Cyan">--verbose</span>             Increase the default <span class=" -Color -Color-Magenta -C-Magenta">WARNING</span> verbosity by one level
+                            for each additional repetition of the option.
+                            <span class=" -Color -Color-Faint -C-Faint">[default: </span><span class=" -Color -Color-Faint -Color-Faint-Green -C-Faint -C-Green">0</span><span class=" -Color -Color-Faint -C-Faint">]</span>
+  <span class=" -Color -Color-Cyan -C-Cyan">--version</span>                 Show the version and exit.
+  <span class=" -Color -Color-Cyan -C-Cyan">-h</span>, <span class=" -Color -Color-Cyan -C-Cyan">--help</span>                Show this message and exit.
+</pre></div>
+</div>
+<p>This is perfect for documentation, as it shows both the source code of the CLI and its results.</p>
+<p>See for instance how the CLI code is properly rendered as a Python code block with syntax highlighting. And how the invocation of that CLI renders into a terminal session with ANSI coloring of output.</p>
+<p>You can then invoke that CLI again with its <code class="docutils literal notranslate"><span class="pre">--name</span></code> option:</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="p">..</span> <span class="ow">click:run</span><span class="p">::</span>
+    invoke(hello_world, args=[&quot;--name&quot;, &quot;Joe&quot;])
+</pre></div>
+</div>
+<p>Which renders in Sphinx like it was executed in a terminal block:</p>
+<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>hello-world<span class="w"> </span>--name<span class="w"> </span>Joe
+Hello, <span class=" -Color -Color-Red -C-Red">Joe</span>!
+</pre></div>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p><code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">click:example::</span></code> and <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">click:run::</span></code> directives works well with standard vanilla <code class="docutils literal notranslate"><span class="pre">click</span></code>-based CLIs.</p>
+<p>In the example above, we choose to import our CLI primitives from the <code class="docutils literal notranslate"><span class="pre">click-extra</span></code> module instead, to demonstrate the coloring of terminal session outputs, as <code class="docutils literal notranslate"><span class="pre">click-extra</span></code> provides <a class="reference internal" href="colorize.html"><span class="std std-doc">fancy coloring of help screens</span></a> by default.</p>
+</div>
+</section>
+<section id="inline-tests">
+<h3>Inline tests<a class="headerlink" href="#inline-tests" title="Link to this heading">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">click:run::</span></code> directive can also be used to embed tests in your documentation.</p>
+<p>These blocks are Python code executed at build time, so you can use them to validate the behavior of your CLI. This allow you to catch regressions, outdated documentation or changes in terminal output.</p>
+<p>For example, here is a simple CLI:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">click_extra</span><span class="w"> </span><span class="kn">import</span> <span class="n">echo</span><span class="p">,</span> <span class="n">extra_command</span><span class="p">,</span> <span class="n">option</span><span class="p">,</span> <span class="n">style</span>
+
+<span class="nd">@extra_command</span>
+<span class="nd">@option</span><span class="p">(</span><span class="s2">&quot;--name&quot;</span><span class="p">,</span> <span class="n">prompt</span><span class="o">=</span><span class="s2">&quot;Your name&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The person to greet.&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">hello_world</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Simple program that greets NAME.&quot;&quot;&quot;</span>
+    <span class="n">echo</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Hello, </span><span class="si">{</span><span class="n">style</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">fg</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">!&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If we put this CLI code in a <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">click:example::</span></code> directive, we can associate it with the following <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">click:run::</span></code> block:</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="p">..</span> <span class="ow">click:run</span><span class="p">::</span>
+    result = invoke(hello_world, args=[&quot;--help&quot;])
+
+    assert result.exit_code == 0, &quot;CLI execution failed&quot;
+    assert not result.stderr, &quot;error message in &lt;stderr&gt;&quot;
+    assert &quot;--show-params&quot; in result.stdout, &quot;--show-params not found in help screen&quot;
+</pre></div>
+</div>
+<p>See how we collect the <code class="docutils literal notranslate"><span class="pre">result</span></code> of the <code class="docutils literal notranslate"><span class="pre">invoke</span></code> command, and inspect the <code class="docutils literal notranslate"><span class="pre">exit_code</span></code>, <code class="docutils literal notranslate"><span class="pre">stderr</span></code> and <code class="docutils literal notranslate"><span class="pre">stdout</span></code> of the CLI with <code class="docutils literal notranslate"><span class="pre">assert</span></code> statements.</p>
+<p>If for any reason our CLI changes and its help screen is no longer what we expect, the test will fail and the documentation build will break with a message similar to:</p>
+<div class="highlight-pytb notranslate"><div class="highlight"><pre><span></span><span class="x">Exception occurred:</span>
+<span class="x">File &quot;&lt;docs&gt;&quot;, line 5, in &lt;module&gt;</span>
+<span class="x">AssertionError: --show-params not found in help screen</span>
+</pre></div>
+</div>
+<p>Having your build fails when something unexpected happens is a great signal to catch regressions early.</p>
+<p>On the other hand, if the build succeed, the <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">click:run::</span></code> block will render as usual with the result of the invocation:</p>
+<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>hello-world<span class="w"> </span>--help
+<span class=" -Color -Color-Bold -Color-Bold-BrightBlue -C-Bold -C-BrightBlue">Usage:</span> <span class=" -Color -Color-BrightWhite -C-BrightWhite">hello-world</span> <span class=" -Color -Color-Faint -Color-Faint-Cyan -C-Faint -C-Cyan">[OPTIONS]</span>
+
+  Simple program that greets NAME.
+
+<span class=" -Color -Color-Bold -Color-Bold-BrightBlue -C-Bold -C-BrightBlue">Options:</span>
+  <span class=" -Color -Color-Cyan -C-Cyan">--name</span> <span class=" -Color -Color-Faint -Color-Faint-Cyan -C-Faint -C-Cyan">TEXT</span>               The person to greet.
+  <span class=" -Color -Color-Cyan -C-Cyan">--time</span> / <span class=" -Color -Color-Cyan -C-Cyan">--no-time</span>        Measure and print elapsed execution time.  <span class=" -Color -Color-Faint -C-Faint">[default:</span>
+<span class=" -Color -Color-Faint -C-Faint">                            </span><span class=" -Color -Color-Faint -Color-Faint-Green -C-Faint -C-Green">no-time</span><span class=" -Color -Color-Faint -C-Faint">]</span>
+  <span class=" -Color -Color-Cyan -C-Cyan">--color</span>, <span class=" -Color -Color-Cyan -C-Cyan">--ansi</span> / <span class=" -Color -Color-Cyan -C-Cyan">--no-color</span>, <span class=" -Color -Color-Cyan -C-Cyan">--no-ansi</span>
+                            Strip out all colors and all ANSI codes from output.
+                            <span class=" -Color -Color-Faint -C-Faint">[default: </span><span class=" -Color -Color-Faint -Color-Faint-Green -C-Faint -C-Green">color</span><span class=" -Color -Color-Faint -C-Faint">]</span>
+  <span class=" -Color -Color-Cyan -C-Cyan">-C</span>, <span class=" -Color -Color-Cyan -C-Cyan">--config</span> <span class=" -Color -Color-Faint -Color-Faint-Cyan -C-Faint -C-Cyan">CONFIG_PATH</span>  Location of the configuration file. Supports glob
+                            pattern of local path and remote URL.  <span class=" -Color -Color-Faint -C-Faint">[default:</span>
+<span class=" -Color -Color-Faint -C-Faint">                            </span><span class=" -Color -Color-Faint -Color-Faint-Green -C-Faint -C-Green">~/.config/hello-</span>
+<span class=" -Color -Color-Faint -Color-Faint-Green -C-Faint -C-Green">                            world/*.{toml,yaml,yml,json,ini,xml}</span><span class=" -Color -Color-Faint -C-Faint">]</span>
+  <span class=" -Color -Color-Cyan -C-Cyan">--show-params</span>             Show all CLI parameters, their provenance, defaults
+                            and value, then exit.
+  <span class=" -Color -Color-Cyan -C-Cyan">--verbosity</span> <span class=" -Color -Color-Faint -Color-Faint-Cyan -C-Faint -C-Cyan">LEVEL</span>         Either <span class=" -Color -Color-Magenta -C-Magenta">CRITICAL</span>, <span class=" -Color -Color-Magenta -C-Magenta">ERROR</span>, <span class=" -Color -Color-Magenta -C-Magenta">WARNING</span>, <span class=" -Color -Color-Magenta -C-Magenta">INFO</span>, <span class=" -Color -Color-Magenta -C-Magenta">DEBUG</span>.
+                            <span class=" -Color -Color-Faint -C-Faint">[default: </span><span class=" -Color -Color-Faint -Color-Faint-Green -C-Faint -C-Green">WARNING</span><span class=" -Color -Color-Faint -C-Faint">]</span>
+  <span class=" -Color -Color-Cyan -C-Cyan">-v</span>, <span class=" -Color -Color-Cyan -C-Cyan">--verbose</span>             Increase the default <span class=" -Color -Color-Magenta -C-Magenta">WARNING</span> verbosity by one level
+                            for each additional repetition of the option.
+                            <span class=" -Color -Color-Faint -C-Faint">[default: </span><span class=" -Color -Color-Faint -Color-Faint-Green -C-Faint -C-Green">0</span><span class=" -Color -Color-Faint -C-Faint">]</span>
+  <span class=" -Color -Color-Cyan -C-Cyan">--version</span>                 Show the version and exit.
+  <span class=" -Color -Color-Cyan -C-Cyan">-h</span>, <span class=" -Color -Color-Cyan -C-Cyan">--help</span>                Show this message and exit.
+</pre></div>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>In a way, you can consider this kind of inline tests as like <a class="reference external" href="https://docs.python.org/3/library/doctest.html">doctests</a>, but for Click CLIs.</p>
+<p>Look around in the sources of Click Extra’s documentation for more examples of inline tests.</p>
+</div>
+<div class="admonition hint">
+<p class="admonition-title">Hint</p>
+<p>The CLI runner used by <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">click:run::</span></code> is a custom version <a class="reference external" href="https://click.palletsprojects.com/en/stable/api/#click.testing.CliRunner">derived from the original <code class="docutils literal notranslate"><span class="pre">click.testing.CliRunner</span></code></a>.</p>
+<p>It is <a class="reference internal" href="testing.html#click_extra.testing.ExtraCliRunner"><span class="std std-ref">called <code class="docutils literal notranslate"><span class="pre">ExtraCliRunner</span></code></span></a> and is patched so you can refine your tests by inspecting both <code class="docutils literal notranslate"><span class="pre">&lt;stdout&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;stderr&gt;</span></code> independently. It also provides an additional <code class="docutils literal notranslate"><span class="pre">&lt;output&gt;</span></code> stream which simulates what the user sees in its terminal.</p>
+</div>
+</section>
+</section>
+<section id="ansi-shell-sessions">
+<h2>ANSI shell sessions<a class="headerlink" href="#ansi-shell-sessions" title="Link to this heading">¶</a></h2>
+<p>Sphinx extensions from Click Extra automaticcaly integrates the <a class="reference external" href="https://kdeldycke.github.io/click-extra/pygments.html#lexers">new ANSI-capable lexers for Pygments</a>.</p>
+<p>This allows you to render colored shell sessions in code blocks by referring to the <code class="docutils literal notranslate"><span class="pre">ansi-</span></code> prefixed lexers:</p>
+<div class="sd-tab-set docutils">
+<input checked="checked" id="sd-tab-item-2" name="sd-tab-set-1" type="radio">
+<label class="sd-tab-label" data-sync-group="tab" data-sync-id="myst" for="sd-tab-item-2">
+Markdown (MyST)</label><div class="sd-tab-content docutils">
+<div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span><span class="sb">```ansi-shell-session</span>
+<span class="gp">$ </span><span class="c1"># Print ANSI foreground colors.</span>
+<span class="gp">$ </span><span class="k">for</span><span class="w"> </span>i<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="o">{</span><span class="m">0</span>..255<span class="o">}</span><span class="p">;</span><span class="w"> </span><span class="k">do</span><span class="w"> </span><span class="se">\</span>
+<span class="gp">&gt; </span><span class="w">    </span><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;\e[38;5;%dm%3d &#39;</span><span class="w"> </span><span class="nv">$i</span><span class="w"> </span><span class="nv">$i</span><span class="w"> </span><span class="se">\</span>
+<span class="gp">&gt; </span><span class="w">    </span><span class="o">(((</span>i+3<span class="o">)</span><span class="w"> </span>%<span class="w"> </span><span class="m">18</span><span class="o">))</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;\e[0m\n&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="gp">&gt; </span><span class="k">done</span>
+<span class="go">[38;5;0m  0 [38;5;1m  1 [38;5;2m  2 [38;5;3m  3 [38;5;4m  4 [38;5;5m  5 [38;5;6m  6 [38;5;7m  7 [38;5;8m  8 [38;5;9m  9 [38;5;10m 10 [38;5;11m 11 [38;5;12m 12 [38;5;13m 13 [38;5;14m 14 [38;5;15m 15 [0m</span>
+<span class="go">[38;5;16m 16 [38;5;17m 17 [38;5;18m 18 [38;5;19m 19 [38;5;20m 20 [38;5;21m 21 [38;5;22m 22 [38;5;23m 23 [38;5;24m 24 [38;5;25m 25 [38;5;26m 26 [38;5;27m 27 [38;5;28m 28 [38;5;29m 29 [38;5;30m 30 [38;5;31m 31 [38;5;32m 32 [38;5;33m 33 [0m</span>
+<span class="go">[38;5;34m 34 [38;5;35m 35 [38;5;36m 36 [38;5;37m 37 [38;5;38m 38 [38;5;39m 39 [38;5;40m 40 [38;5;41m 41 [38;5;42m 42 [38;5;43m 43 [38;5;44m 44 [38;5;45m 45 [38;5;46m 46 [38;5;47m 47 [38;5;48m 48 [38;5;49m 49 [38;5;50m 50 [38;5;51m 51 [0m</span>
+<span class="go">[38;5;52m 52 [38;5;53m 53 [38;5;54m 54 [38;5;55m 55 [38;5;56m 56 [38;5;57m 57 [38;5;58m 58 [38;5;59m 59 [38;5;60m 60 [38;5;61m 61 [38;5;62m 62 [38;5;63m 63 [38;5;64m 64 [38;5;65m 65 [38;5;66m 66 [38;5;67m 67 [38;5;68m 68 [38;5;69m 69 [0m</span>
+<span class="go">[38;5;70m 70 [38;5;71m 71 [38;5;72m 72 [38;5;73m 73 [38;5;74m 74 [38;5;75m 75 [38;5;76m 76 [38;5;77m 77 [38;5;78m 78 [38;5;79m 79 [38;5;80m 80 [38;5;81m 81 [38;5;82m 82 [38;5;83m 83 [38;5;84m 84 [38;5;85m 85 [38;5;86m 86 [38;5;87m 87 [0m</span>
+<span class="go">[38;5;88m 88 [38;5;89m 89 [38;5;90m 90 [38;5;91m 91 [38;5;92m 92 [38;5;93m 93 [38;5;94m 94 [38;5;95m 95 [38;5;96m 96 [38;5;97m 97 [38;5;98m 98 [38;5;99m 99 [38;5;100m100 [38;5;101m101 [38;5;102m102 [38;5;103m103 [38;5;104m104 [38;5;105m105 [0m</span>
+<span class="go">[38;5;106m106 [38;5;107m107 [38;5;108m108 [38;5;109m109 [38;5;110m110 [38;5;111m111 [38;5;112m112 [38;5;113m113 [38;5;114m114 [38;5;115m115 [38;5;116m116 [38;5;117m117 [38;5;118m118 [38;5;119m119 [38;5;120m120 [38;5;121m121 [38;5;122m122 [38;5;123m123 [0m</span>
+<span class="go">[38;5;124m124 [38;5;125m125 [38;5;126m126 [38;5;127m127 [38;5;128m128 [38;5;129m129 [38;5;130m130 [38;5;131m131 [38;5;132m132 [38;5;133m133 [38;5;134m134 [38;5;135m135 [38;5;136m136 [38;5;137m137 [38;5;138m138 [38;5;139m139 [38;5;140m140 [38;5;141m141 [0m</span>
+<span class="go">[38;5;142m142 [38;5;143m143 [38;5;144m144 [38;5;145m145 [38;5;146m146 [38;5;147m147 [38;5;148m148 [38;5;149m149 [38;5;150m150 [38;5;151m151 [38;5;152m152 [38;5;153m153 [38;5;154m154 [38;5;155m155 [38;5;156m156 [38;5;157m157 [38;5;158m158 [38;5;159m159 [0m</span>
+<span class="go">[38;5;160m160 [38;5;161m161 [38;5;162m162 [38;5;163m163 [38;5;164m164 [38;5;165m165 [38;5;166m166 [38;5;167m167 [38;5;168m168 [38;5;169m169 [38;5;170m170 [38;5;171m171 [38;5;172m172 [38;5;173m173 [38;5;174m174 [38;5;175m175 [38;5;176m176 [38;5;177m177 [0m</span>
+<span class="go">[38;5;178m178 [38;5;179m179 [38;5;180m180 [38;5;181m181 [38;5;182m182 [38;5;183m183 [38;5;184m184 [38;5;185m185 [38;5;186m186 [38;5;187m187 [38;5;188m188 [38;5;189m189 [38;5;190m190 [38;5;191m191 [38;5;192m192 [38;5;193m193 [38;5;194m194 [38;5;195m195 [0m</span>
+<span class="go">[38;5;196m196 [38;5;197m197 [38;5;198m198 [38;5;199m199 [38;5;200m200 [38;5;201m201 [38;5;202m202 [38;5;203m203 [38;5;204m204 [38;5;205m205 [38;5;206m206 [38;5;207m207 [38;5;208m208 [38;5;209m209 [38;5;210m210 [38;5;211m211 [38;5;212m212 [38;5;213m213 [0m</span>
+<span class="go">[38;5;214m214 [38;5;215m215 [38;5;216m216 [38;5;217m217 [38;5;218m218 [38;5;219m219 [38;5;220m220 [38;5;221m221 [38;5;222m222 [38;5;223m223 [38;5;224m224 [38;5;225m225 [38;5;226m226 [38;5;227m227 [38;5;228m228 [38;5;229m229 [38;5;230m230 [38;5;231m231 [0m</span>
+<span class="go">[38;5;232m232 [38;5;233m233 [38;5;234m234 [38;5;235m235 [38;5;236m236 [38;5;237m237 [38;5;238m238 [38;5;239m239 [38;5;240m240 [38;5;241m241 [38;5;242m242 [38;5;243m243 [38;5;244m244 [38;5;245m245 [38;5;246m246 [38;5;247m247 [38;5;248m248 [38;5;249m249 [0m</span>
+<span class="go">[38;5;250m250 [38;5;251m251 [38;5;252m252 [38;5;253m253 [38;5;254m254 [38;5;255m255</span>
+<span class="sb">```</span>
+</pre></div>
+</div>
+</div>
+<input id="sd-tab-item-3" name="sd-tab-set-1" type="radio">
+<label class="sd-tab-label" data-sync-group="tab" data-sync-id="rst" for="sd-tab-item-3">
+reStructuredText</label><div class="sd-tab-content docutils">
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="p">..</span> <span class="ow">code-block</span><span class="p">::</span> <span class="k">ansi-shell-session</span>
+
+    <span class="gp">$ </span><span class="c1"># Print ANSI foreground colors.</span>
+    <span class="gp">$ </span><span class="k">for</span><span class="w"> </span>i<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="o">{</span><span class="m">0</span>..255<span class="o">}</span><span class="p">;</span><span class="w"> </span><span class="k">do</span><span class="w"> </span><span class="se">\</span>
+    <span class="gp">&gt; </span><span class="w">    </span><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;\e[38;5;%dm%3d &#39;</span><span class="w"> </span><span class="nv">$i</span><span class="w"> </span><span class="nv">$i</span><span class="w"> </span><span class="se">\</span>
+    <span class="gp">&gt; </span><span class="w">    </span><span class="o">(((</span>i+3<span class="o">)</span><span class="w"> </span>%<span class="w"> </span><span class="m">18</span><span class="o">))</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;\e[0m\n&#39;</span><span class="w"> </span><span class="se">\</span>
+    <span class="gp">&gt; </span><span class="k">done</span>
+    <span class="go">[38;5;0m  0 [38;5;1m  1 [38;5;2m  2 [38;5;3m  3 [38;5;4m  4 [38;5;5m  5 [38;5;6m  6 [38;5;7m  7 [38;5;8m  8 [38;5;9m  9 [38;5;10m 10 [38;5;11m 11 [38;5;12m 12 [38;5;13m 13 [38;5;14m 14 [38;5;15m 15 [0m</span>
+    <span class="go">[38;5;16m 16 [38;5;17m 17 [38;5;18m 18 [38;5;19m 19 [38;5;20m 20 [38;5;21m 21 [38;5;22m 22 [38;5;23m 23 [38;5;24m 24 [38;5;25m 25 [38;5;26m 26 [38;5;27m 27 [38;5;28m 28 [38;5;29m 29 [38;5;30m 30 [38;5;31m 31 [38;5;32m 32 [38;5;33m 33 [0m</span>
+    <span class="go">[38;5;34m 34 [38;5;35m 35 [38;5;36m 36 [38;5;37m 37 [38;5;38m 38 [38;5;39m 39 [38;5;40m 40 [38;5;41m 41 [38;5;42m 42 [38;5;43m 43 [38;5;44m 44 [38;5;45m 45 [38;5;46m 46 [38;5;47m 47 [38;5;48m 48 [38;5;49m 49 [38;5;50m 50 [38;5;51m 51 [0m</span>
+    <span class="go">[38;5;52m 52 [38;5;53m 53 [38;5;54m 54 [38;5;55m 55 [38;5;56m 56 [38;5;57m 57 [38;5;58m 58 [38;5;59m 59 [38;5;60m 60 [38;5;61m 61 [38;5;62m 62 [38;5;63m 63 [38;5;64m 64 [38;5;65m 65 [38;5;66m 66 [38;5;67m 67 [38;5;68m 68 [38;5;69m 69 [0m</span>
+    <span class="go">[38;5;70m 70 [38;5;71m 71 [38;5;72m 72 [38;5;73m 73 [38;5;74m 74 [38;5;75m 75 [38;5;76m 76 [38;5;77m 77 [38;5;78m 78 [38;5;79m 79 [38;5;80m 80 [38;5;81m 81 [38;5;82m 82 [38;5;83m 83 [38;5;84m 84 [38;5;85m 85 [38;5;86m 86 [38;5;87m 87 [0m</span>
+    <span class="go">[38;5;88m 88 [38;5;89m 89 [38;5;90m 90 [38;5;91m 91 [38;5;92m 92 [38;5;93m 93 [38;5;94m 94 [38;5;95m 95 [38;5;96m 96 [38;5;97m 97 [38;5;98m 98 [38;5;99m 99 [38;5;100m100 [38;5;101m101 [38;5;102m102 [38;5;103m103 [38;5;104m104 [38;5;105m105 [0m</span>
+    <span class="go">[38;5;106m106 [38;5;107m107 [38;5;108m108 [38;5;109m109 [38;5;110m110 [38;5;111m111 [38;5;112m112 [38;5;113m113 [38;5;114m114 [38;5;115m115 [38;5;116m116 [38;5;117m117 [38;5;118m118 [38;5;119m119 [38;5;120m120 [38;5;121m121 [38;5;122m122 [38;5;123m123 [0m</span>
+    <span class="go">[38;5;124m124 [38;5;125m125 [38;5;126m126 [38;5;127m127 [38;5;128m128 [38;5;129m129 [38;5;130m130 [38;5;131m131 [38;5;132m132 [38;5;133m133 [38;5;134m134 [38;5;135m135 [38;5;136m136 [38;5;137m137 [38;5;138m138 [38;5;139m139 [38;5;140m140 [38;5;141m141 [0m</span>
+    <span class="go">[38;5;142m142 [38;5;143m143 [38;5;144m144 [38;5;145m145 [38;5;146m146 [38;5;147m147 [38;5;148m148 [38;5;149m149 [38;5;150m150 [38;5;151m151 [38;5;152m152 [38;5;153m153 [38;5;154m154 [38;5;155m155 [38;5;156m156 [38;5;157m157 [38;5;158m158 [38;5;159m159 [0m</span>
+    <span class="go">[38;5;160m160 [38;5;161m161 [38;5;162m162 [38;5;163m163 [38;5;164m164 [38;5;165m165 [38;5;166m166 [38;5;167m167 [38;5;168m168 [38;5;169m169 [38;5;170m170 [38;5;171m171 [38;5;172m172 [38;5;173m173 [38;5;174m174 [38;5;175m175 [38;5;176m176 [38;5;177m177 [0m</span>
+    <span class="go">[38;5;178m178 [38;5;179m179 [38;5;180m180 [38;5;181m181 [38;5;182m182 [38;5;183m183 [38;5;184m184 [38;5;185m185 [38;5;186m186 [38;5;187m187 [38;5;188m188 [38;5;189m189 [38;5;190m190 [38;5;191m191 [38;5;192m192 [38;5;193m193 [38;5;194m194 [38;5;195m195 [0m</span>
+    <span class="go">[38;5;196m196 [38;5;197m197 [38;5;198m198 [38;5;199m199 [38;5;200m200 [38;5;201m201 [38;5;202m202 [38;5;203m203 [38;5;204m204 [38;5;205m205 [38;5;206m206 [38;5;207m207 [38;5;208m208 [38;5;209m209 [38;5;210m210 [38;5;211m211 [38;5;212m212 [38;5;213m213 [0m</span>
+    <span class="go">[38;5;214m214 [38;5;215m215 [38;5;216m216 [38;5;217m217 [38;5;218m218 [38;5;219m219 [38;5;220m220 [38;5;221m221 [38;5;222m222 [38;5;223m223 [38;5;224m224 [38;5;225m225 [38;5;226m226 [38;5;227m227 [38;5;228m228 [38;5;229m229 [38;5;230m230 [38;5;231m231 [0m</span>
+    <span class="go">[38;5;232m232 [38;5;233m233 [38;5;234m234 [38;5;235m235 [38;5;236m236 [38;5;237m237 [38;5;238m238 [38;5;239m239 [38;5;240m240 [38;5;241m241 [38;5;242m242 [38;5;243m243 [38;5;244m244 [38;5;245m245 [38;5;246m246 [38;5;247m247 [38;5;248m248 [38;5;249m249 [0m</span>
+    <span class="go">[38;5;250m250 [38;5;251m251 [38;5;252m252 [38;5;253m253 [38;5;254m254 [38;5;255m255</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>In Sphinx, the snippet above renders to:</p>
+<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span><span class="c1"># Print ANSI foreground colors.</span>
+<span class="gp">$ </span><span class="k">for</span><span class="w"> </span>i<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="o">{</span><span class="m">0</span>..255<span class="o">}</span><span class="p">;</span><span class="w"> </span><span class="k">do</span><span class="w"> </span><span class="se">\</span>
+<span class="gp">&gt; </span><span class="w">    </span><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;\e[38;5;%dm%3d &#39;</span><span class="w"> </span><span class="nv">$i</span><span class="w"> </span><span class="nv">$i</span><span class="w"> </span><span class="se">\</span>
+<span class="gp">&gt; </span><span class="w">    </span><span class="o">(((</span>i+3<span class="o">)</span><span class="w"> </span>%<span class="w"> </span><span class="m">18</span><span class="o">))</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;\e[0m\n&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="gp">&gt; </span><span class="k">done</span>
+<span class=" -Color -Color-C0 -C-C0">  0 </span><span class=" -Color -Color-C1 -C-C1">  1 </span><span class=" -Color -Color-C2 -C-C2">  2 </span><span class=" -Color -Color-C3 -C-C3">  3 </span><span class=" -Color -Color-C4 -C-C4">  4 </span><span class=" -Color -Color-C5 -C-C5">  5 </span><span class=" -Color -Color-C6 -C-C6">  6 </span><span class=" -Color -Color-C7 -C-C7">  7 </span><span class=" -Color -Color-C8 -C-C8">  8 </span><span class=" -Color -Color-C9 -C-C9">  9 </span><span class=" -Color -Color-C10 -C-C10"> 10 </span><span class=" -Color -Color-C11 -C-C11"> 11 </span><span class=" -Color -Color-C12 -C-C12"> 12 </span><span class=" -Color -Color-C13 -C-C13"> 13 </span><span class=" -Color -Color-C14 -C-C14"> 14 </span><span class=" -Color -Color-C15 -C-C15"> 15 </span>
+<span class=" -Color -Color-C16 -C-C16"> 16 </span><span class=" -Color -Color-C17 -C-C17"> 17 </span><span class=" -Color -Color-C18 -C-C18"> 18 </span><span class=" -Color -Color-C19 -C-C19"> 19 </span><span class=" -Color -Color-C20 -C-C20"> 20 </span><span class=" -Color -Color-C21 -C-C21"> 21 </span><span class=" -Color -Color-C22 -C-C22"> 22 </span><span class=" -Color -Color-C23 -C-C23"> 23 </span><span class=" -Color -Color-C24 -C-C24"> 24 </span><span class=" -Color -Color-C25 -C-C25"> 25 </span><span class=" -Color -Color-C26 -C-C26"> 26 </span><span class=" -Color -Color-C27 -C-C27"> 27 </span><span class=" -Color -Color-C28 -C-C28"> 28 </span><span class=" -Color -Color-C29 -C-C29"> 29 </span><span class=" -Color -Color-C30 -C-C30"> 30 </span><span class=" -Color -Color-C31 -C-C31"> 31 </span><span class=" -Color -Color-C32 -C-C32"> 32 </span><span class=" -Color -Color-C33 -C-C33"> 33 </span>
+<span class=" -Color -Color-C34 -C-C34"> 34 </span><span class=" -Color -Color-C35 -C-C35"> 35 </span><span class=" -Color -Color-C36 -C-C36"> 36 </span><span class=" -Color -Color-C37 -C-C37"> 37 </span><span class=" -Color -Color-C38 -C-C38"> 38 </span><span class=" -Color -Color-C39 -C-C39"> 39 </span><span class=" -Color -Color-C40 -C-C40"> 40 </span><span class=" -Color -Color-C41 -C-C41"> 41 </span><span class=" -Color -Color-C42 -C-C42"> 42 </span><span class=" -Color -Color-C43 -C-C43"> 43 </span><span class=" -Color -Color-C44 -C-C44"> 44 </span><span class=" -Color -Color-C45 -C-C45"> 45 </span><span class=" -Color -Color-C46 -C-C46"> 46 </span><span class=" -Color -Color-C47 -C-C47"> 47 </span><span class=" -Color -Color-C48 -C-C48"> 48 </span><span class=" -Color -Color-C49 -C-C49"> 49 </span><span class=" -Color -Color-C50 -C-C50"> 50 </span><span class=" -Color -Color-C51 -C-C51"> 51 </span>
+<span class=" -Color -Color-C52 -C-C52"> 52 </span><span class=" -Color -Color-C53 -C-C53"> 53 </span><span class=" -Color -Color-C54 -C-C54"> 54 </span><span class=" -Color -Color-C55 -C-C55"> 55 </span><span class=" -Color -Color-C56 -C-C56"> 56 </span><span class=" -Color -Color-C57 -C-C57"> 57 </span><span class=" -Color -Color-C58 -C-C58"> 58 </span><span class=" -Color -Color-C59 -C-C59"> 59 </span><span class=" -Color -Color-C60 -C-C60"> 60 </span><span class=" -Color -Color-C61 -C-C61"> 61 </span><span class=" -Color -Color-C62 -C-C62"> 62 </span><span class=" -Color -Color-C63 -C-C63"> 63 </span><span class=" -Color -Color-C64 -C-C64"> 64 </span><span class=" -Color -Color-C65 -C-C65"> 65 </span><span class=" -Color -Color-C66 -C-C66"> 66 </span><span class=" -Color -Color-C67 -C-C67"> 67 </span><span class=" -Color -Color-C68 -C-C68"> 68 </span><span class=" -Color -Color-C69 -C-C69"> 69 </span>
+<span class=" -Color -Color-C70 -C-C70"> 70 </span><span class=" -Color -Color-C71 -C-C71"> 71 </span><span class=" -Color -Color-C72 -C-C72"> 72 </span><span class=" -Color -Color-C73 -C-C73"> 73 </span><span class=" -Color -Color-C74 -C-C74"> 74 </span><span class=" -Color -Color-C75 -C-C75"> 75 </span><span class=" -Color -Color-C76 -C-C76"> 76 </span><span class=" -Color -Color-C77 -C-C77"> 77 </span><span class=" -Color -Color-C78 -C-C78"> 78 </span><span class=" -Color -Color-C79 -C-C79"> 79 </span><span class=" -Color -Color-C80 -C-C80"> 80 </span><span class=" -Color -Color-C81 -C-C81"> 81 </span><span class=" -Color -Color-C82 -C-C82"> 82 </span><span class=" -Color -Color-C83 -C-C83"> 83 </span><span class=" -Color -Color-C84 -C-C84"> 84 </span><span class=" -Color -Color-C85 -C-C85"> 85 </span><span class=" -Color -Color-C86 -C-C86"> 86 </span><span class=" -Color -Color-C87 -C-C87"> 87 </span>
+<span class=" -Color -Color-C88 -C-C88"> 88 </span><span class=" -Color -Color-C89 -C-C89"> 89 </span><span class=" -Color -Color-C90 -C-C90"> 90 </span><span class=" -Color -Color-C91 -C-C91"> 91 </span><span class=" -Color -Color-C92 -C-C92"> 92 </span><span class=" -Color -Color-C93 -C-C93"> 93 </span><span class=" -Color -Color-C94 -C-C94"> 94 </span><span class=" -Color -Color-C95 -C-C95"> 95 </span><span class=" -Color -Color-C96 -C-C96"> 96 </span><span class=" -Color -Color-C97 -C-C97"> 97 </span><span class=" -Color -Color-C98 -C-C98"> 98 </span><span class=" -Color -Color-C99 -C-C99"> 99 </span><span class=" -Color -Color-C100 -C-C100">100 </span><span class=" -Color -Color-C101 -C-C101">101 </span><span class=" -Color -Color-C102 -C-C102">102 </span><span class=" -Color -Color-C103 -C-C103">103 </span><span class=" -Color -Color-C104 -C-C104">104 </span><span class=" -Color -Color-C105 -C-C105">105 </span>
+<span class=" -Color -Color-C106 -C-C106">106 </span><span class=" -Color -Color-C107 -C-C107">107 </span><span class=" -Color -Color-C108 -C-C108">108 </span><span class=" -Color -Color-C109 -C-C109">109 </span><span class=" -Color -Color-C110 -C-C110">110 </span><span class=" -Color -Color-C111 -C-C111">111 </span><span class=" -Color -Color-C112 -C-C112">112 </span><span class=" -Color -Color-C113 -C-C113">113 </span><span class=" -Color -Color-C114 -C-C114">114 </span><span class=" -Color -Color-C115 -C-C115">115 </span><span class=" -Color -Color-C116 -C-C116">116 </span><span class=" -Color -Color-C117 -C-C117">117 </span><span class=" -Color -Color-C118 -C-C118">118 </span><span class=" -Color -Color-C119 -C-C119">119 </span><span class=" -Color -Color-C120 -C-C120">120 </span><span class=" -Color -Color-C121 -C-C121">121 </span><span class=" -Color -Color-C122 -C-C122">122 </span><span class=" -Color -Color-C123 -C-C123">123 </span>
+<span class=" -Color -Color-C124 -C-C124">124 </span><span class=" -Color -Color-C125 -C-C125">125 </span><span class=" -Color -Color-C126 -C-C126">126 </span><span class=" -Color -Color-C127 -C-C127">127 </span><span class=" -Color -Color-C128 -C-C128">128 </span><span class=" -Color -Color-C129 -C-C129">129 </span><span class=" -Color -Color-C130 -C-C130">130 </span><span class=" -Color -Color-C131 -C-C131">131 </span><span class=" -Color -Color-C132 -C-C132">132 </span><span class=" -Color -Color-C133 -C-C133">133 </span><span class=" -Color -Color-C134 -C-C134">134 </span><span class=" -Color -Color-C135 -C-C135">135 </span><span class=" -Color -Color-C136 -C-C136">136 </span><span class=" -Color -Color-C137 -C-C137">137 </span><span class=" -Color -Color-C138 -C-C138">138 </span><span class=" -Color -Color-C139 -C-C139">139 </span><span class=" -Color -Color-C140 -C-C140">140 </span><span class=" -Color -Color-C141 -C-C141">141 </span>
+<span class=" -Color -Color-C142 -C-C142">142 </span><span class=" -Color -Color-C143 -C-C143">143 </span><span class=" -Color -Color-C144 -C-C144">144 </span><span class=" -Color -Color-C145 -C-C145">145 </span><span class=" -Color -Color-C146 -C-C146">146 </span><span class=" -Color -Color-C147 -C-C147">147 </span><span class=" -Color -Color-C148 -C-C148">148 </span><span class=" -Color -Color-C149 -C-C149">149 </span><span class=" -Color -Color-C150 -C-C150">150 </span><span class=" -Color -Color-C151 -C-C151">151 </span><span class=" -Color -Color-C152 -C-C152">152 </span><span class=" -Color -Color-C153 -C-C153">153 </span><span class=" -Color -Color-C154 -C-C154">154 </span><span class=" -Color -Color-C155 -C-C155">155 </span><span class=" -Color -Color-C156 -C-C156">156 </span><span class=" -Color -Color-C157 -C-C157">157 </span><span class=" -Color -Color-C158 -C-C158">158 </span><span class=" -Color -Color-C159 -C-C159">159 </span>
+<span class=" -Color -Color-C160 -C-C160">160 </span><span class=" -Color -Color-C161 -C-C161">161 </span><span class=" -Color -Color-C162 -C-C162">162 </span><span class=" -Color -Color-C163 -C-C163">163 </span><span class=" -Color -Color-C164 -C-C164">164 </span><span class=" -Color -Color-C165 -C-C165">165 </span><span class=" -Color -Color-C166 -C-C166">166 </span><span class=" -Color -Color-C167 -C-C167">167 </span><span class=" -Color -Color-C168 -C-C168">168 </span><span class=" -Color -Color-C169 -C-C169">169 </span><span class=" -Color -Color-C170 -C-C170">170 </span><span class=" -Color -Color-C171 -C-C171">171 </span><span class=" -Color -Color-C172 -C-C172">172 </span><span class=" -Color -Color-C173 -C-C173">173 </span><span class=" -Color -Color-C174 -C-C174">174 </span><span class=" -Color -Color-C175 -C-C175">175 </span><span class=" -Color -Color-C176 -C-C176">176 </span><span class=" -Color -Color-C177 -C-C177">177 </span>
+<span class=" -Color -Color-C178 -C-C178">178 </span><span class=" -Color -Color-C179 -C-C179">179 </span><span class=" -Color -Color-C180 -C-C180">180 </span><span class=" -Color -Color-C181 -C-C181">181 </span><span class=" -Color -Color-C182 -C-C182">182 </span><span class=" -Color -Color-C183 -C-C183">183 </span><span class=" -Color -Color-C184 -C-C184">184 </span><span class=" -Color -Color-C185 -C-C185">185 </span><span class=" -Color -Color-C186 -C-C186">186 </span><span class=" -Color -Color-C187 -C-C187">187 </span><span class=" -Color -Color-C188 -C-C188">188 </span><span class=" -Color -Color-C189 -C-C189">189 </span><span class=" -Color -Color-C190 -C-C190">190 </span><span class=" -Color -Color-C191 -C-C191">191 </span><span class=" -Color -Color-C192 -C-C192">192 </span><span class=" -Color -Color-C193 -C-C193">193 </span><span class=" -Color -Color-C194 -C-C194">194 </span><span class=" -Color -Color-C195 -C-C195">195 </span>
+<span class=" -Color -Color-C196 -C-C196">196 </span><span class=" -Color -Color-C197 -C-C197">197 </span><span class=" -Color -Color-C198 -C-C198">198 </span><span class=" -Color -Color-C199 -C-C199">199 </span><span class=" -Color -Color-C200 -C-C200">200 </span><span class=" -Color -Color-C201 -C-C201">201 </span><span class=" -Color -Color-C202 -C-C202">202 </span><span class=" -Color -Color-C203 -C-C203">203 </span><span class=" -Color -Color-C204 -C-C204">204 </span><span class=" -Color -Color-C205 -C-C205">205 </span><span class=" -Color -Color-C206 -C-C206">206 </span><span class=" -Color -Color-C207 -C-C207">207 </span><span class=" -Color -Color-C208 -C-C208">208 </span><span class=" -Color -Color-C209 -C-C209">209 </span><span class=" -Color -Color-C210 -C-C210">210 </span><span class=" -Color -Color-C211 -C-C211">211 </span><span class=" -Color -Color-C212 -C-C212">212 </span><span class=" -Color -Color-C213 -C-C213">213 </span>
+<span class=" -Color -Color-C214 -C-C214">214 </span><span class=" -Color -Color-C215 -C-C215">215 </span><span class=" -Color -Color-C216 -C-C216">216 </span><span class=" -Color -Color-C217 -C-C217">217 </span><span class=" -Color -Color-C218 -C-C218">218 </span><span class=" -Color -Color-C219 -C-C219">219 </span><span class=" -Color -Color-C220 -C-C220">220 </span><span class=" -Color -Color-C221 -C-C221">221 </span><span class=" -Color -Color-C222 -C-C222">222 </span><span class=" -Color -Color-C223 -C-C223">223 </span><span class=" -Color -Color-C224 -C-C224">224 </span><span class=" -Color -Color-C225 -C-C225">225 </span><span class=" -Color -Color-C226 -C-C226">226 </span><span class=" -Color -Color-C227 -C-C227">227 </span><span class=" -Color -Color-C228 -C-C228">228 </span><span class=" -Color -Color-C229 -C-C229">229 </span><span class=" -Color -Color-C230 -C-C230">230 </span><span class=" -Color -Color-C231 -C-C231">231 </span>
+<span class=" -Color -Color-C232 -C-C232">232 </span><span class=" -Color -Color-C233 -C-C233">233 </span><span class=" -Color -Color-C234 -C-C234">234 </span><span class=" -Color -Color-C235 -C-C235">235 </span><span class=" -Color -Color-C236 -C-C236">236 </span><span class=" -Color -Color-C237 -C-C237">237 </span><span class=" -Color -Color-C238 -C-C238">238 </span><span class=" -Color -Color-C239 -C-C239">239 </span><span class=" -Color -Color-C240 -C-C240">240 </span><span class=" -Color -Color-C241 -C-C241">241 </span><span class=" -Color -Color-C242 -C-C242">242 </span><span class=" -Color -Color-C243 -C-C243">243 </span><span class=" -Color -Color-C244 -C-C244">244 </span><span class=" -Color -Color-C245 -C-C245">245 </span><span class=" -Color -Color-C246 -C-C246">246 </span><span class=" -Color -Color-C247 -C-C247">247 </span><span class=" -Color -Color-C248 -C-C248">248 </span><span class=" -Color -Color-C249 -C-C249">249 </span>
+<span class=" -Color -Color-C250 -C-C250">250 </span><span class=" -Color -Color-C251 -C-C251">251 </span><span class=" -Color -Color-C252 -C-C252">252 </span><span class=" -Color -Color-C253 -C-C253">253 </span><span class=" -Color -Color-C254 -C-C254">254 </span><span class=" -Color -Color-C255 -C-C255">255</span>
+</pre></div>
+</div>
+</section>
+<section id="click-extra-sphinx-api">
+<h2><code class="docutils literal notranslate"><span class="pre">click_extra.sphinx</span></code> API<a class="headerlink" href="#click-extra-sphinx-api" title="Link to this heading">¶</a></h2>
+<pre  class="mermaid">
+        classDiagram
+  Directive &lt;|-- DeclareExampleDirective
+  Directive &lt;|-- RunExampleDirective
+  Domain &lt;|-- ClickDomain
+  EchoingStdin &lt;|-- EofEchoingStdin
+  ExtraCliRunner &lt;|-- ExampleRunner
+    </pre><p id="module-click_extra.sphinx">Helpers and utilities for Sphinx rendering of CLI based on Click Extra.</p>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>This module is quite janky but does the job. Still, it would benefits from a total
+clean rewrite. This would require a better understanding of Sphinx, Click and MyST
+internals. And as a side effect will eliminate the dependency on
+<code class="docutils literal notranslate"><span class="pre">pallets_sphinx_themes</span></code>.</p>
+<p>If you’re up to the task, you can try to refactor it. I’ll probably start by moving
+the whole <code class="docutils literal notranslate"><span class="pre">pallets_sphinx_themes.themes.click.domain</span></code> code here, merge it with
+the local collection of monkey-patches below, then clean the whole code to make it
+more readable and maintainable. And finally, address all the todo-list below.</p>
+</div>
+<div class="admonition-todo admonition" id="id1">
+<p class="admonition-title">Todo</p>
+<p>Add support for plain MyST directives to remove the need of wrapping rST into an
+<code class="docutils literal notranslate"><span class="pre">{eval-rst}</span></code> block. Ideally, this would allow for the following simpler syntax in
+MyST:</p>
+<div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span>```{click-example}
+from click_extra import echo, extra_command, option, style
+
+<span class="ni">@extra_command</span>
+<span class="ni">@option</span>(&quot;--name&quot;, prompt=&quot;Your name&quot;, help=&quot;The person to greet.&quot;)
+def hello_world(name):
+    &quot;Simple program that greets NAME.&quot;
+    echo(f&quot;Hello, {style(name, fg=&#39;red&#39;)}!&quot;)
+```
+</pre></div>
+</div>
+<div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span>```{click-run}
+invoke(hello_world, args=[&quot;--help&quot;])
+```
+</pre></div>
+</div>
+</div>
+<div class="admonition-todo admonition" id="id2">
+<p class="admonition-title">Todo</p>
+<p>Fix the need to have both <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">click:example::</span></code> and <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">click:run::</span></code> directives
+in the same <code class="docutils literal notranslate"><span class="pre">{eval-rst}</span></code> block in MyST. This is required to have both directives
+shares states and context.</p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>This is based on <a class="reference external" href="https://github.com/pallets/pallets-sphinx-themes/blob/main/src/pallets_sphinx_themes/themes/click/domain.py">Pallets’ Sphinx Themes</a>,
+<a class="reference external" href="https://github.com/pallets/pallets-sphinx-themes/tree/main?tab=BSD-3-Clause-1-ov-file#readme">released under a BSD-3-Clause license</a>.</p>
+<p>Compared to the latter, it:</p>
+<ul class="simple">
+<li><p>Forces the rendering of CLI results into ANSI shell sessions, via the
+<code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">code-block::</span> <span class="pre">ansi-shell-session</span></code> directive.</p></li>
+</ul>
+</div>
+<dl class="py class">
+<dt class="sig sig-object py" id="click_extra.sphinx.EofEchoingStdin">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">click_extra.sphinx.</span></span><span class="sig-name descname"><span class="pre">EofEchoingStdin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/sphinx.html#EofEchoingStdin"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.sphinx.EofEchoingStdin" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">EchoingStdin</span></code></p>
+<p>Like <code class="xref py py-class docutils literal notranslate"><span class="pre">click.testing.EchoingStdin</span></code> but adds a visible
+<code class="docutils literal notranslate"><span class="pre">^D</span></code> in place of the EOT character (<code class="docutils literal notranslate"><span class="pre"></span></code>).</p>
+<p><a class="reference internal" href="#click_extra.sphinx.ExampleRunner.invoke" title="click_extra.sphinx.ExampleRunner.invoke"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ExampleRunner.invoke()</span></code></a> adds <code class="docutils literal notranslate"><span class="pre"></span></code> when
+<code class="docutils literal notranslate"><span class="pre">terminate_input=True</span></code>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.sphinx.patch_modules">
+<span class="sig-prename descclassname"><span class="pre">click_extra.sphinx.</span></span><span class="sig-name descname"><span class="pre">patch_modules</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/sphinx.html#patch_modules"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.sphinx.patch_modules" title="Link to this definition">¶</a></dt>
+<dd><p>Patch modules to work better with <a class="reference internal" href="#click_extra.sphinx.ExampleRunner.invoke" title="click_extra.sphinx.ExampleRunner.invoke"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ExampleRunner.invoke()</span></code></a>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">subprocess.call`</span> <span class="pre">output</span> <span class="pre">is</span> <span class="pre">redirected</span> <span class="pre">to</span> <span class="pre">``click.echo</span></code> so it
+shows up in the example output.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="click_extra.sphinx.ExampleRunner">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">click_extra.sphinx.</span></span><span class="sig-name descname"><span class="pre">ExampleRunner</span></span><a class="reference internal" href="_modules/click_extra/sphinx.html#ExampleRunner"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.sphinx.ExampleRunner" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="testing.html#click_extra.testing.ExtraCliRunner" title="click_extra.testing.ExtraCliRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">ExtraCliRunner</span></code></a></p>
+<p><a class="reference external" href="https://click.palletsprojects.com/en/stable/api/#click.testing.CliRunner" title="(in Click v8.2.x)"><code class="xref py py-class docutils literal notranslate"><span class="pre">click.testing.CliRunner</span></code></a> with additional features.</p>
+<p>This class inherits from <code class="docutils literal notranslate"><span class="pre">click_extra.testing.ExtraCliRunner</span></code> to have full
+control of contextual color settings by the way of the <code class="docutils literal notranslate"><span class="pre">color</span></code> parameter. It also
+produce unfiltered ANSI codes so that the <code class="docutils literal notranslate"><span class="pre">Directive</span></code> sub-classes below can
+render colors in the HTML output.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.sphinx.ExampleRunner.force_color">
+<span class="sig-name descname"><span class="pre">force_color</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#click_extra.sphinx.ExampleRunner.force_color" title="Link to this definition">¶</a></dt>
+<dd><p>Force color rendering in <code class="docutils literal notranslate"><span class="pre">invoke</span></code> calls.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.sphinx.ExampleRunner.isolation">
+<span class="sig-name descname"><span class="pre">isolation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/sphinx.html#ExampleRunner.isolation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.sphinx.ExampleRunner.isolation" title="Link to this definition">¶</a></dt>
+<dd><p>A context manager that sets up the isolation for invoking of a
+command line tool.  This sets up <cite>&lt;stdin&gt;</cite> with the given input data
+and <cite>os.environ</cite> with the overrides from the given dictionary.
+This also rebinds some internals in Click to be mocked (like the
+prompt functionality).</p>
+<p>This is automatically done in the <a class="reference internal" href="#click_extra.sphinx.ExampleRunner.invoke" title="click_extra.sphinx.ExampleRunner.invoke"><code class="xref py py-meth docutils literal notranslate"><span class="pre">invoke()</span></code></a> method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> – the input stream to put into <cite>sys.stdin</cite>.</p></li>
+<li><p><strong>env</strong> – the environment overrides as dictionary.</p></li>
+<li><p><strong>color</strong> – whether the output should contain color codes. The
+application can still override this explicitly.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 8.2: </span>An additional output stream is returned, which is a mix of
+<cite>&lt;stdout&gt;</cite> and <cite>&lt;stderr&gt;</cite> streams.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 8.2: </span>Always returns the <cite>&lt;stderr&gt;</cite> stream.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 8.0: </span><cite>&lt;stderr&gt;</cite> is opened with <code class="docutils literal notranslate"><span class="pre">errors=&quot;backslashreplace&quot;</span></code>
+instead of the default <code class="docutils literal notranslate"><span class="pre">&quot;strict&quot;</span></code>.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 4.0: </span>Added the <code class="docutils literal notranslate"><span class="pre">color</span></code> parameter.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.sphinx.ExampleRunner.invoke">
+<span class="sig-name descname"><span class="pre">invoke</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cli</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prog_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">terminate_input</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_output_lines</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">extra</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/sphinx.html#ExampleRunner.invoke"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.sphinx.ExampleRunner.invoke" title="Link to this definition">¶</a></dt>
+<dd><p>Like <code class="xref py py-meth docutils literal notranslate"><span class="pre">CliRunner.invoke()</span></code> but displays what the user
+would enter in the terminal for env vars, command args, and
+prompts.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>terminate_input</strong> – Whether to display “^D” after a list of
+input.</p></li>
+<li><p><strong>_output_lines</strong> – A list used internally to collect lines to
+be displayed.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.sphinx.ExampleRunner.declare_example">
+<span class="sig-name descname"><span class="pre">declare_example</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/sphinx.html#ExampleRunner.declare_example"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.sphinx.ExampleRunner.declare_example" title="Link to this definition">¶</a></dt>
+<dd><p>Execute the given code, adding it to the runner’s namespace.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.sphinx.ExampleRunner.run_example">
+<span class="sig-name descname"><span class="pre">run_example</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/sphinx.html#ExampleRunner.run_example"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.sphinx.ExampleRunner.run_example" title="Link to this definition">¶</a></dt>
+<dd><p>Run commands by executing the given code, returning the lines
+of input and output. The code should be a series of the
+following functions:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#click_extra.sphinx.ExampleRunner.invoke" title="click_extra.sphinx.ExampleRunner.invoke"><code class="xref py py-meth docutils literal notranslate"><span class="pre">invoke()</span></code></a>: Invoke a command, adding env vars, input,
+and output to the output.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">println(text=&quot;&quot;)</span></code>: Add a line of text to the output.</p></li>
+<li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">isolated_filesystem()</span></code>: A context manager that changes
+to a temporary directory while executing the block.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.sphinx.ExampleRunner.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/sphinx.html#ExampleRunner.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.sphinx.ExampleRunner.close" title="Link to this definition">¶</a></dt>
+<dd><p>Clean up the runner once the document has been read.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.sphinx.ExampleRunner.env">
+<span class="sig-name descname"><span class="pre">env</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">cabc.Mapping[str,</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None]</span></em><a class="headerlink" href="#click_extra.sphinx.ExampleRunner.env" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.sphinx.get_example_runner">
+<span class="sig-prename descclassname"><span class="pre">click_extra.sphinx.</span></span><span class="sig-name descname"><span class="pre">get_example_runner</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">document</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/sphinx.html#get_example_runner"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.sphinx.get_example_runner" title="Link to this definition">¶</a></dt>
+<dd><p>Get or create the <a class="reference internal" href="#click_extra.sphinx.ExampleRunner" title="click_extra.sphinx.ExampleRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">ExampleRunner</span></code></a> instance associated with
+a document.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="click_extra.sphinx.DeclareExampleDirective">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">click_extra.sphinx.</span></span><span class="sig-name descname"><span class="pre">DeclareExampleDirective</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arguments</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">content</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lineno</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">content_offset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">block_text</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state_machine</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/sphinx.html#DeclareExampleDirective"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.sphinx.DeclareExampleDirective" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Directive</span></code></p>
+<p>Add the source contained in the directive’s content to the
+document’s <a class="reference internal" href="#click_extra.sphinx.ExampleRunner" title="click_extra.sphinx.ExampleRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">ExampleRunner</span></code></a>, to be run using
+<a class="reference internal" href="#click_extra.sphinx.RunExampleDirective" title="click_extra.sphinx.RunExampleDirective"><code class="xref py py-class docutils literal notranslate"><span class="pre">RunExampleDirective</span></code></a>.</p>
+<p>See <a class="reference internal" href="#click_extra.sphinx.ExampleRunner.declare_example" title="click_extra.sphinx.ExampleRunner.declare_example"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ExampleRunner.declare_example()</span></code></a>.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.sphinx.DeclareExampleDirective.has_content">
+<span class="sig-name descname"><span class="pre">has_content</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#click_extra.sphinx.DeclareExampleDirective.has_content" title="Link to this definition">¶</a></dt>
+<dd><p>May the directive have content?</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.sphinx.DeclareExampleDirective.required_arguments">
+<span class="sig-name descname"><span class="pre">required_arguments</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#click_extra.sphinx.DeclareExampleDirective.required_arguments" title="Link to this definition">¶</a></dt>
+<dd><p>Number of required directive arguments.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.sphinx.DeclareExampleDirective.optional_arguments">
+<span class="sig-name descname"><span class="pre">optional_arguments</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#click_extra.sphinx.DeclareExampleDirective.optional_arguments" title="Link to this definition">¶</a></dt>
+<dd><p>Number of optional arguments after the required arguments.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.sphinx.DeclareExampleDirective.final_argument_whitespace">
+<span class="sig-name descname"><span class="pre">final_argument_whitespace</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#click_extra.sphinx.DeclareExampleDirective.final_argument_whitespace" title="Link to this definition">¶</a></dt>
+<dd><p>May the final argument contain whitespace?</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.sphinx.DeclareExampleDirective.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/sphinx.html#DeclareExampleDirective.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.sphinx.DeclareExampleDirective.run" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="click_extra.sphinx.RunExampleDirective">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">click_extra.sphinx.</span></span><span class="sig-name descname"><span class="pre">RunExampleDirective</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arguments</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">content</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lineno</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">content_offset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">block_text</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state_machine</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/sphinx.html#RunExampleDirective"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.sphinx.RunExampleDirective" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Directive</span></code></p>
+<p>Run commands from <a class="reference internal" href="#click_extra.sphinx.DeclareExampleDirective" title="click_extra.sphinx.DeclareExampleDirective"><code class="xref py py-class docutils literal notranslate"><span class="pre">DeclareExampleDirective</span></code></a> and display
+the input and output.</p>
+<p>See <a class="reference internal" href="#click_extra.sphinx.ExampleRunner.run_example" title="click_extra.sphinx.ExampleRunner.run_example"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ExampleRunner.run_example()</span></code></a>.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.sphinx.RunExampleDirective.has_content">
+<span class="sig-name descname"><span class="pre">has_content</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#click_extra.sphinx.RunExampleDirective.has_content" title="Link to this definition">¶</a></dt>
+<dd><p>May the directive have content?</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.sphinx.RunExampleDirective.required_arguments">
+<span class="sig-name descname"><span class="pre">required_arguments</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#click_extra.sphinx.RunExampleDirective.required_arguments" title="Link to this definition">¶</a></dt>
+<dd><p>Number of required directive arguments.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.sphinx.RunExampleDirective.optional_arguments">
+<span class="sig-name descname"><span class="pre">optional_arguments</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#click_extra.sphinx.RunExampleDirective.optional_arguments" title="Link to this definition">¶</a></dt>
+<dd><p>Number of optional arguments after the required arguments.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.sphinx.RunExampleDirective.final_argument_whitespace">
+<span class="sig-name descname"><span class="pre">final_argument_whitespace</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#click_extra.sphinx.RunExampleDirective.final_argument_whitespace" title="Link to this definition">¶</a></dt>
+<dd><p>May the final argument contain whitespace?</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.sphinx.RunExampleDirective.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/sphinx.html#RunExampleDirective.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.sphinx.RunExampleDirective.run" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="click_extra.sphinx.ClickDomain">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">click_extra.sphinx.</span></span><span class="sig-name descname"><span class="pre">ClickDomain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/sphinx.html#ClickDomain"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.sphinx.ClickDomain" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Domain</span></code></p>
+<p>Declares new directives:
+- <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">click:example::</span></code>
+- <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">click:run::</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.sphinx.ClickDomain.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'click'</span></em><a class="headerlink" href="#click_extra.sphinx.ClickDomain.name" title="Link to this definition">¶</a></dt>
+<dd><p>domain name: should be short, but unique</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.sphinx.ClickDomain.label">
+<span class="sig-name descname"><span class="pre">label</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Click'</span></em><a class="headerlink" href="#click_extra.sphinx.ClickDomain.label" title="Link to this definition">¶</a></dt>
+<dd><p>domain label: longer, more descriptive (used in messages)</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.sphinx.ClickDomain.directives">
+<span class="sig-name descname"><span class="pre">directives</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict[str,</span> <span class="pre">type[Directive]]</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'example':</span> <span class="pre">&lt;class</span> <span class="pre">'click_extra.sphinx.DeclareExampleDirective'&gt;,</span> <span class="pre">'run':</span> <span class="pre">&lt;class</span> <span class="pre">'click_extra.sphinx.RunExampleDirective'&gt;}</span></em><a class="headerlink" href="#click_extra.sphinx.ClickDomain.directives" title="Link to this definition">¶</a></dt>
+<dd><p>directive name -&gt; directive class</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.sphinx.ClickDomain.merge_domaindata">
+<span class="sig-name descname"><span class="pre">merge_domaindata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">docnames</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">otherdata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/sphinx.html#ClickDomain.merge_domaindata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.sphinx.ClickDomain.merge_domaindata" title="Link to this definition">¶</a></dt>
+<dd><p>Merge in data regarding <em>docnames</em> from a different domaindata
+inventory (coming from a subprocess in parallel builds).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.sphinx.ClickDomain.data">
+<span class="sig-name descname"><span class="pre">data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict[str,</span> <span class="pre">Any]</span></em><a class="headerlink" href="#click_extra.sphinx.ClickDomain.data" title="Link to this definition">¶</a></dt>
+<dd><p>data value</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.sphinx.ClickDomain.env">
+<span class="sig-name descname"><span class="pre">env</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">BuildEnvironment</span></em><a class="headerlink" href="#click_extra.sphinx.ClickDomain.env" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.sphinx.delete_example_runner_state">
+<span class="sig-prename descclassname"><span class="pre">click_extra.sphinx.</span></span><span class="sig-name descname"><span class="pre">delete_example_runner_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">app</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">doctree</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/sphinx.html#delete_example_runner_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.sphinx.delete_example_runner_state" title="Link to this definition">¶</a></dt>
+<dd><p>Close and remove the <a class="reference internal" href="#click_extra.sphinx.ExampleRunner" title="click_extra.sphinx.ExampleRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">ExampleRunner</span></code></a> instance once the
+document has been read.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.sphinx.setup">
+<span class="sig-prename descclassname"><span class="pre">click_extra.sphinx.</span></span><span class="sig-name descname"><span class="pre">setup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">app</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/sphinx.html#setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.sphinx.setup" title="Link to this definition">¶</a></dt>
+<dd><p>Register new directives, augmented with ANSI coloring.</p>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>This function activates some monkey-patches:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">sphinx.highlighting.PygmentsBridge</span></code> is updated to set its default HTML
+formatter to an ANSI capable one for the whole Sphinx app.</p></li>
+</ul>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="testing.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">CLI testing and execution</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="pygments.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Pygments extensions</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; Kevin Deldycke and contributors
+            </div>
+            Made with 
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            <div class="last-updated">
+              Last updated on 2025-06-26</div>
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Sphinx extensions</a><ul>
+<li><a class="reference internal" href="#setup">Setup</a></li>
+<li><a class="reference internal" href="#click-directives">Click directives</a><ul>
+<li><a class="reference internal" href="#usage">Usage</a></li>
+<li><a class="reference internal" href="#inline-tests">Inline tests</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ansi-shell-sessions">ANSI shell sessions</a></li>
+<li><a class="reference internal" href="#click-extra-sphinx-api"><code class="docutils literal notranslate"><span class="pre">click_extra.sphinx</span></code> API</a><ul>
+<li><a class="reference internal" href="#click_extra.sphinx.EofEchoingStdin"><code class="docutils literal notranslate"><span class="pre">EofEchoingStdin</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.sphinx.patch_modules"><code class="docutils literal notranslate"><span class="pre">patch_modules()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.sphinx.ExampleRunner"><code class="docutils literal notranslate"><span class="pre">ExampleRunner</span></code></a><ul>
+<li><a class="reference internal" href="#click_extra.sphinx.ExampleRunner.force_color"><code class="docutils literal notranslate"><span class="pre">ExampleRunner.force_color</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.sphinx.ExampleRunner.isolation"><code class="docutils literal notranslate"><span class="pre">ExampleRunner.isolation()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.sphinx.ExampleRunner.invoke"><code class="docutils literal notranslate"><span class="pre">ExampleRunner.invoke()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.sphinx.ExampleRunner.declare_example"><code class="docutils literal notranslate"><span class="pre">ExampleRunner.declare_example()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.sphinx.ExampleRunner.run_example"><code class="docutils literal notranslate"><span class="pre">ExampleRunner.run_example()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.sphinx.ExampleRunner.close"><code class="docutils literal notranslate"><span class="pre">ExampleRunner.close()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.sphinx.ExampleRunner.env"><code class="docutils literal notranslate"><span class="pre">ExampleRunner.env</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#click_extra.sphinx.get_example_runner"><code class="docutils literal notranslate"><span class="pre">get_example_runner()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.sphinx.DeclareExampleDirective"><code class="docutils literal notranslate"><span class="pre">DeclareExampleDirective</span></code></a><ul>
+<li><a class="reference internal" href="#click_extra.sphinx.DeclareExampleDirective.has_content"><code class="docutils literal notranslate"><span class="pre">DeclareExampleDirective.has_content</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.sphinx.DeclareExampleDirective.required_arguments"><code class="docutils literal notranslate"><span class="pre">DeclareExampleDirective.required_arguments</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.sphinx.DeclareExampleDirective.optional_arguments"><code class="docutils literal notranslate"><span class="pre">DeclareExampleDirective.optional_arguments</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.sphinx.DeclareExampleDirective.final_argument_whitespace"><code class="docutils literal notranslate"><span class="pre">DeclareExampleDirective.final_argument_whitespace</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.sphinx.DeclareExampleDirective.run"><code class="docutils literal notranslate"><span class="pre">DeclareExampleDirective.run()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#click_extra.sphinx.RunExampleDirective"><code class="docutils literal notranslate"><span class="pre">RunExampleDirective</span></code></a><ul>
+<li><a class="reference internal" href="#click_extra.sphinx.RunExampleDirective.has_content"><code class="docutils literal notranslate"><span class="pre">RunExampleDirective.has_content</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.sphinx.RunExampleDirective.required_arguments"><code class="docutils literal notranslate"><span class="pre">RunExampleDirective.required_arguments</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.sphinx.RunExampleDirective.optional_arguments"><code class="docutils literal notranslate"><span class="pre">RunExampleDirective.optional_arguments</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.sphinx.RunExampleDirective.final_argument_whitespace"><code class="docutils literal notranslate"><span class="pre">RunExampleDirective.final_argument_whitespace</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.sphinx.RunExampleDirective.run"><code class="docutils literal notranslate"><span class="pre">RunExampleDirective.run()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#click_extra.sphinx.ClickDomain"><code class="docutils literal notranslate"><span class="pre">ClickDomain</span></code></a><ul>
+<li><a class="reference internal" href="#click_extra.sphinx.ClickDomain.name"><code class="docutils literal notranslate"><span class="pre">ClickDomain.name</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.sphinx.ClickDomain.label"><code class="docutils literal notranslate"><span class="pre">ClickDomain.label</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.sphinx.ClickDomain.directives"><code class="docutils literal notranslate"><span class="pre">ClickDomain.directives</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.sphinx.ClickDomain.merge_domaindata"><code class="docutils literal notranslate"><span class="pre">ClickDomain.merge_domaindata()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.sphinx.ClickDomain.data"><code class="docutils literal notranslate"><span class="pre">ClickDomain.data</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.sphinx.ClickDomain.env"><code class="docutils literal notranslate"><span class="pre">ClickDomain.env</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#click_extra.sphinx.delete_example_runner_state"><code class="docutils literal notranslate"><span class="pre">delete_example_runner_state()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.sphinx.setup"><code class="docutils literal notranslate"><span class="pre">setup()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=f98c4cc8"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/scripts/furo.js?v=5fa4622c"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs"></script>
+    <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs";import elkLayouts from "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs";mermaid.registerLayoutLoaders(elkLayouts);mermaid.initialize({startOnLoad:false});</script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+    <script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs";
+const load = async () => {
+    await mermaid.run();
+    const all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+    if(mermaids_to_add_zoom > 0) {
+        var svgs = d3.selectAll(".mermaid svg");
+        if(all_mermaids.length !== mermaids_processed.length) {
+            // try again in a sec, wait for mermaids to load
+            setTimeout(load, 200);
+            return;
+        } else if(svgs.size() !== mermaids_to_add_zoom) {
+            // try again in a sec, wait for mermaids to load
+            setTimeout(load, 200);
+            return;
+        } else {
+            svgs.each(function() {
+                var svg = d3.select(this);
+                svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                var inner = svg.select("g");
+                var zoom = d3.zoom().on("zoom", function(event) {
+                    inner.attr("transform", event.transform);
+                });
+                svg.call(zoom);
+            });
+        }
+    }
+};
+
+window.addEventListener("load", load);
+</script>
+    </body>
+</html>
