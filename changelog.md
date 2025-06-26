@@ -6,6 +6,7 @@
 > This version is not released yet and is under active development.
 
 - Fix reconciliation of flags' environment variables.
+- Force requirement on `cloup >= 3.0.7`.
 
 ## [5.0.2 (2025-05-31)](https://github.com/kdeldycke/click-extra/compare/v5.0.1...v5.0.2)
 
