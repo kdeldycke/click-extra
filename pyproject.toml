@@ -66,10 +66,10 @@ dependencies = [
     # Investigation of the root cause is being discussed upstream at:
     # https://github.com/mahmoud/boltons/issues/334
     "boltons ~= 25.0.0",
-    # XXX Use temporary fork of Click to fix flag normalization.
+    # XXX We need upcoming Click release to fix flag normalization.
     # See: https://github.com/pallets/click/pull/2956
     # "click ~= 8.2.2",
-    "click @ git+https://github.com/kdeldycke/click.git@flag_normalization",
+    "click @ git+https://github.com/pallets/click.git@stable",
     # Cloup 3.0.7 fix issues with metavars: https://github.com/kdeldycke/click-extra/pull/1281
     "cloup ~= 3.0.7",
     "extra-platforms >= 3.1.0",
