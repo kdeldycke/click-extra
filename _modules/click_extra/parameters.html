@@ -1,0 +1,967 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+
+    <!-- Generated with Sphinx 8.2.3 and Furo 2024.08.06 -->
+        <title>click_extra.parameters - Click Extra</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=060664ba" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+<div class="announcement">
+  <aside class="announcement-content">
+     Click Extra works fine, but is <em>maintained by only one person</em> 😶‍🌫️.<br/>You can help if you <strong><a class='reference external' href='https://github.com/sponsors/kdeldycke'>purchase business support 🤝</a></strong> or <strong><a class='reference external' href='https://github.com/sponsors/kdeldycke'>sponsor the project 🫶</a></strong>. 
+  </aside>
+</div>
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">Click Extra</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../_static/logo-square.svg" alt="Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../commands.html">Commands &amp; groups</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../config.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../colorize.html">Colored help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../logging.html">Logging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tabulate.html">Table</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../version.html">Version</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../timer.html">Timer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../parameters.html">Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../pygments.html">Pygments extensions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../sphinx.html">Sphinx extensions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../testing.html">CLI testing and execution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../pytest.html">Pytest utilities and fixtures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../issues.html">Fixed issues</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../click_extra.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tests.html">tests package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../todolist.html">Todo-list</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../code-of-conduct.html">Code of conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/kdeldycke/click-extra">GitHub Repository</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/sponsors/kdeldycke">Funding</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <h1>Source code for click_extra.parameters</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright Kevin Deldycke &lt;kevin@deldycke.com&gt; and contributors.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is Free Software; you can redistribute it and/or</span>
+<span class="c1"># modify it under the terms of the GNU General Public License</span>
+<span class="c1"># as published by the Free Software Foundation; either version 2</span>
+<span class="c1"># of the License, or (at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU General Public License</span>
+<span class="c1"># along with this program; if not, write to the Free Software</span>
+<span class="c1"># Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.</span>
+<span class="sd">&quot;&quot;&quot;Our own flavor of ``Option``, ``Argument`` and ``parameters``.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">MutableMapping</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">nullcontext</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">cached_property</span><span class="p">,</span> <span class="n">reduce</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gettext</span><span class="w"> </span><span class="kn">import</span> <span class="n">gettext</span> <span class="k">as</span> <span class="n">_</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">operator</span><span class="w"> </span><span class="kn">import</span> <span class="n">getitem</span><span class="p">,</span> <span class="n">methodcaller</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Any</span><span class="p">,</span>
+    <span class="n">Callable</span><span class="p">,</span>
+    <span class="n">ContextManager</span><span class="p">,</span>
+    <span class="n">Iterator</span><span class="p">,</span>
+    <span class="n">cast</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">unittest.mock</span><span class="w"> </span><span class="kn">import</span> <span class="n">patch</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">click</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mergedeep</span><span class="w"> </span><span class="kn">import</span> <span class="n">merge</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tabulate</span><span class="w"> </span><span class="kn">import</span> <span class="n">tabulate</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Command</span><span class="p">,</span>
+    <span class="n">Option</span><span class="p">,</span>
+    <span class="n">Parameter</span><span class="p">,</span>
+    <span class="n">ParamType</span><span class="p">,</span>
+    <span class="n">Style</span><span class="p">,</span>
+    <span class="n">echo</span><span class="p">,</span>
+    <span class="n">get_current_context</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.envvar</span><span class="w"> </span><span class="kn">import</span> <span class="n">param_envvar_ids</span>
+
+
+<div class="viewcode-block" id="search_params">
+<a class="viewcode-back" href="../../parameters.html#click_extra.search_params">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">search_params</span><span class="p">(</span>
+    <span class="n">params</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">click</span><span class="o">.</span><span class="n">Parameter</span><span class="p">],</span>
+    <span class="n">klass</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">click</span><span class="o">.</span><span class="n">Parameter</span><span class="p">],</span>
+    <span class="n">include_subclasses</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">unique</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">click</span><span class="o">.</span><span class="n">Parameter</span><span class="p">]</span> <span class="o">|</span> <span class="n">click</span><span class="o">.</span><span class="n">Parameter</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Search a particular class of parameter in a list and return them.</span>
+
+<span class="sd">    :param params: list of parameter instances to search in.</span>
+<span class="sd">    :param klass: the class of the parameters to look for.</span>
+<span class="sd">    :param include_subclasses: if ``True``, includes in the results all parameters subclassing</span>
+<span class="sd">        the provided ``klass``. If ``False``, only matches parameters which are strictly instances of ``klass``.</span>
+<span class="sd">        Defaults to ``True``.</span>
+<span class="sd">    :param unique: if ``True``, raise an error if more than one parameter of the</span>
+<span class="sd">        provided ``klass`` is found. Defaults to ``True``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">param_list</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">p</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">include_subclasses</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">klass</span><span class="p">))</span>
+        <span class="ow">or</span> <span class="p">(</span><span class="ow">not</span> <span class="n">include_subclasses</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="vm">__class__</span> <span class="ow">is</span> <span class="n">klass</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">param_list</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">unique</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">param_list</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;More than one </span><span class="si">{</span><span class="n">klass</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> parameters found on command: &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">param_list</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">param_list</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">param_list</span></div>
+
+
+
+<div class="viewcode-block" id="ExtraOption">
+<a class="viewcode-back" href="../../parameters.html#click_extra.ExtraOption">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ExtraOption</span><span class="p">(</span><span class="n">Option</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;All new options implemented by ``click-extra`` inherits this class.</span>
+
+<span class="sd">    Does nothing in particular for now but provides a way to identify Click Extra&#39;s own</span>
+<span class="sd">    options with certainty.</span>
+
+<span class="sd">    Also contains Option-specific code that should be contributed upstream to Click.</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="ParamStructure">
+<a class="viewcode-back" href="../../parameters.html#click_extra.ParamStructure">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ParamStructure</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Utilities to introspect CLI options and commands structure.</span>
+
+<span class="sd">    Structures are represented by a tree-like ``dict``.</span>
+
+<span class="sd">    Access to a node is available using a serialized path string composed of the keys to</span>
+<span class="sd">    descend to that node, separated by a dot ``.``.</span>
+
+<span class="sd">    .. todo::</span>
+<span class="sd">        Evaluates the possibility of replacing all key-based access to the tree-like</span>
+<span class="sd">        structure by a `Box &lt;https://github.com/cdgriffith/Box&gt;`_ object, as it</span>
+<span class="sd">        provides lots of utilities to merge its content.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">SEP</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Use a dot ``.`` as a separator between levels of the tree-like parameter</span>
+<span class="sd">    structure.&quot;&quot;&quot;</span>
+
+    <span class="n">DEFAULT_EXCLUDED_PARAMS</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s2">&quot;config&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;help&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;show_params&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;version&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;List of root parameters to exclude from configuration by default:</span>
+
+<span class="sd">    - ``-C``/``--config`` option, which cannot be used to recursively load another</span>
+<span class="sd">      configuration file.</span>
+<span class="sd">    - ``--help``, as it makes no sense to have the configurable file always</span>
+<span class="sd">      forces a CLI to show the help and exit.</span>
+<span class="sd">    - ``--show-params`` flag, which is like ``--help`` and stops the CLI execution.</span>
+<span class="sd">    - ``--version``, which is not a configurable option *per-se*.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="n">excluded_params</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Allow a list of paramerers to be blocked from the parameter structure.</span>
+
+<span class="sd">        If ``excluded_params`` is not provided, let the dynamic and cached</span>
+<span class="sd">        ``self.excluded_params`` property to compute the default value on first use.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">excluded_params</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">excluded_params</span> <span class="o">=</span> <span class="n">excluded_params</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ParamStructure.init_tree_dict">
+<a class="viewcode-back" href="../../parameters.html#click_extra.ParamStructure.init_tree_dict">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">init_tree_dict</span><span class="p">(</span><span class="o">*</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">leaf</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Utility method to recursively create a nested dict structure whose keys are</span>
+<span class="sd">        provided by ``path`` list and at the end is populated by a copy of ``leaf``.&quot;&quot;&quot;</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">dive</span><span class="p">(</span><span class="n">levels</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">levels</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">{</span><span class="n">levels</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span> <span class="n">dive</span><span class="p">(</span><span class="n">levels</span><span class="p">[</span><span class="mi">1</span><span class="p">:])}</span>
+            <span class="k">return</span> <span class="n">leaf</span>
+
+        <span class="k">return</span> <span class="n">dive</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ParamStructure.get_tree_value">
+<a class="viewcode-back" href="../../parameters.html#click_extra.ParamStructure.get_tree_value">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_tree_value</span><span class="p">(</span><span class="n">tree_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="o">*</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get in the ``tree_dict`` the value located at the ``path``.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">reduce</span><span class="p">(</span><span class="n">getitem</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">tree_dict</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_flatten_tree_dict_gen</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">tree_dict</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">,</span> <span class="n">parent_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;`Source of this snippet</span>
+<span class="sd">        &lt;https://www.freecodecamp.org/news/how-to-flatten-a-dictionary-in-python-in-4-different-ways/&gt;`_.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">tree_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">new_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">parent_key</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">SEP</span><span class="si">}{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">parent_key</span> <span class="k">else</span> <span class="n">k</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">MutableMapping</span><span class="p">):</span>
+                <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">flatten_tree_dict</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">new_key</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">new_key</span><span class="p">,</span> <span class="n">v</span>
+
+<div class="viewcode-block" id="ParamStructure.flatten_tree_dict">
+<a class="viewcode-back" href="../../parameters.html#click_extra.ParamStructure.flatten_tree_dict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">flatten_tree_dict</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">tree_dict</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">,</span>
+        <span class="n">parent_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Recursively traverse the tree-like ``dict`` and produce a flat ``dict`` whose</span>
+<span class="sd">        keys are path and values are the leaf&#39;s content.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_flatten_tree_dict_gen</span><span class="p">(</span><span class="n">tree_dict</span><span class="p">,</span> <span class="n">parent_key</span><span class="p">))</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_recurse_cmd</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">cmd</span><span class="p">:</span> <span class="n">Command</span><span class="p">,</span>
+        <span class="n">top_level_params</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="n">parent_keys</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">Parameter</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Recursive generator to walk through all subcommands and their parameters.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="s2">&quot;commands&quot;</span><span class="p">):</span>
+            <span class="n">ctx</span> <span class="o">=</span> <span class="n">get_current_context</span><span class="p">()</span>
+
+            <span class="k">for</span> <span class="n">subcmd_id</span><span class="p">,</span> <span class="n">subcmd</span> <span class="ow">in</span> <span class="n">cmd</span><span class="o">.</span><span class="n">commands</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">subcmd_id</span> <span class="ow">in</span> <span class="n">top_level_params</span><span class="p">:</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cmd</span><span class="o">.</span><span class="n">name</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">SEP</span><span class="si">}{</span><span class="n">subcmd_id</span><span class="si">}</span><span class="s2"> subcommand conflicts with &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">top_level_params</span><span class="si">}</span><span class="s2"> top-level parameters&quot;</span>
+                    <span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">subcmd</span><span class="o">.</span><span class="n">get_params</span><span class="p">(</span><span class="n">ctx</span><span class="p">):</span>
+                    <span class="k">yield</span> <span class="p">((</span><span class="o">*</span><span class="n">parent_keys</span><span class="p">,</span> <span class="n">subcmd_id</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)),</span> <span class="n">p</span>
+
+                <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recurse_cmd</span><span class="p">(</span>
+                    <span class="n">subcmd</span><span class="p">,</span>
+                    <span class="n">top_level_params</span><span class="p">,</span>
+                    <span class="p">((</span><span class="o">*</span><span class="n">parent_keys</span><span class="p">,</span> <span class="n">subcmd</span><span class="o">.</span><span class="n">name</span><span class="p">)),</span>
+                <span class="p">)</span>
+
+<div class="viewcode-block" id="ParamStructure.walk_params">
+<a class="viewcode-back" href="../../parameters.html#click_extra.ParamStructure.walk_params">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">walk_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">Parameter</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generates an unfiltered list of all CLI parameters.</span>
+
+<span class="sd">        Everything is included, from top-level groups to subcommands, and from options</span>
+<span class="sd">        to arguments.</span>
+
+<span class="sd">        Returns a 2-elements tuple:</span>
+<span class="sd">            - the first being a tuple of keys leading to the parameter</span>
+<span class="sd">            - the second being the parameter object itself</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ctx</span> <span class="o">=</span> <span class="n">get_current_context</span><span class="p">()</span>
+        <span class="n">cli</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">find_root</span><span class="p">()</span><span class="o">.</span><span class="n">command</span>
+        <span class="k">assert</span> <span class="n">cli</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+        <span class="c1"># Keep track of top-level CLI parameter IDs to check conflict with command</span>
+        <span class="c1"># IDs later.</span>
+        <span class="n">top_level_params</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+        <span class="c1"># Global, top-level options shared by all subcommands.</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">cli</span><span class="o">.</span><span class="n">get_params</span><span class="p">(</span><span class="n">ctx</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">top_level_params</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">yield</span> <span class="p">(</span><span class="n">cli</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">),</span> <span class="n">p</span>
+
+        <span class="c1"># Subcommand-specific options.</span>
+        <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recurse_cmd</span><span class="p">(</span><span class="n">cli</span><span class="p">,</span> <span class="n">top_level_params</span><span class="p">,</span> <span class="p">(</span><span class="n">cli</span><span class="o">.</span><span class="n">name</span><span class="p">,))</span></div>
+
+
+    <span class="n">TYPE_MAP</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">ParamType</span><span class="p">],</span> <span class="nb">type</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">|</span> <span class="nb">list</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">click</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">StringParamType</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">click</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">IntParamType</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">click</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">FloatParamType</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">click</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">BoolParamType</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="n">click</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">UUIDParameterType</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">click</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">UnprocessedParamType</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">click</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">File</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">click</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">Path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">click</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">Choice</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">click</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">IntRange</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">click</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">FloatRange</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">click</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">DateTime</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">click</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">Tuple</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+    <span class="p">}</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Map Click types to their Python equivalent.</span>
+
+<span class="sd">    Keys are subclasses of ``click.types.ParamType``. Values are expected to be simple</span>
+<span class="sd">    builtins Python types.</span>
+
+<span class="sd">    This mapping can be seen as a reverse of the ``click.types.convert_type()`` method.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ParamStructure.get_param_type">
+<a class="viewcode-back" href="../../parameters.html#click_extra.ParamStructure.get_param_type">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_param_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param</span><span class="p">:</span> <span class="n">Parameter</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">type</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">|</span> <span class="nb">list</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the Python type of a Click parameter.</span>
+
+<span class="sd">        See the list of</span>
+<span class="sd">        `custom types provided by Click &lt;https://click.palletsprojects.com/en/stable/api/#types&gt;`_.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">multiple</span> <span class="ow">or</span> <span class="n">param</span><span class="o">.</span><span class="n">nargs</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">list</span>
+
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="s2">&quot;is_bool_flag&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">param</span><span class="o">.</span><span class="n">is_bool_flag</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">bool</span>
+
+        <span class="c1"># Try to directly map the Click type to a Python type.</span>
+        <span class="n">py_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">TYPE_MAP</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">py_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">py_type</span>
+
+        <span class="c1"># Try to indirectly map the type by looking at inheritance.</span>
+        <span class="k">for</span> <span class="n">click_type</span><span class="p">,</span> <span class="n">py_type</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">TYPE_MAP</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">matching</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">click_type</span><span class="p">):</span>
+                <span class="n">matching</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">py_type</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">matching</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">matching</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Multiple Python types found for </span><span class="si">{</span><span class="n">param</span><span class="o">.</span><span class="n">type</span><span class="si">!r}</span><span class="s2"> parameter: &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">matching</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">matching</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+
+        <span class="c1"># Custom parameters are expected to convert from strings, as that&#39;s the default</span>
+        <span class="c1"># type of command lines.</span>
+        <span class="c1"># See: https://click.palletsprojects.com/en/stable/api/#click.ParamType</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">ParamType</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">str</span>
+
+        <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Can&#39;t guess the appropriate Python type of </span><span class="si">{</span><span class="n">param</span><span class="si">!r}</span><span class="s2"> parameter.&quot;</span>  <span class="c1"># type:ignore[unreachable]</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">excluded_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;List of parameter IDs to exclude from the parameter structure.</span>
+
+<span class="sd">        Elements of this list are expected to be the fully-qualified ID of the</span>
+<span class="sd">        parameter, i.e. the dot-separated ID that is prefixed by the CLI name.</span>
+
+<span class="sd">        .. caution::</span>
+<span class="sd">            It is only called once to produce the list of default parameters to</span>
+<span class="sd">            exclude, if the user did not provided its own list to the constructor.</span>
+
+<span class="sd">            It was not implemented in the constructor but made as a property, to allow</span>
+<span class="sd">            for a just-in-time call to the current context. Without this trick we could</span>
+<span class="sd">            not have fetched the CLI name.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ctx</span> <span class="o">=</span> <span class="n">get_current_context</span><span class="p">()</span>
+        <span class="n">cli</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">find_root</span><span class="p">()</span><span class="o">.</span><span class="n">command</span>
+        <span class="k">return</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cli</span><span class="o">.</span><span class="n">name</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">SEP</span><span class="si">}{</span><span class="n">p</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_EXCLUDED_PARAMS</span><span class="p">]</span>
+
+<div class="viewcode-block" id="ParamStructure.build_param_trees">
+<a class="viewcode-back" href="../../parameters.html#click_extra.ParamStructure.build_param_trees">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_param_trees</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build all parameters tree structure in one go and cache them.</span>
+
+<span class="sd">        This removes parameters whose fully-qualified IDs are in the ``excluded_params``</span>
+<span class="sd">        blocklist.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">template</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">types</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">objects</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">keys</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">walk_params</span><span class="p">():</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">SEP</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">excluded_params</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">merge</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_tree_dict</span><span class="p">(</span><span class="o">*</span><span class="n">keys</span><span class="p">))</span>
+            <span class="n">merge</span><span class="p">(</span><span class="n">types</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_tree_dict</span><span class="p">(</span><span class="o">*</span><span class="n">keys</span><span class="p">,</span> <span class="n">leaf</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_param_type</span><span class="p">(</span><span class="n">param</span><span class="p">)))</span>
+            <span class="n">merge</span><span class="p">(</span><span class="n">objects</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_tree_dict</span><span class="p">(</span><span class="o">*</span><span class="n">keys</span><span class="p">,</span> <span class="n">leaf</span><span class="o">=</span><span class="n">param</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">params_template</span> <span class="o">=</span> <span class="n">template</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params_types</span> <span class="o">=</span> <span class="n">types</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params_objects</span> <span class="o">=</span> <span class="n">objects</span></div>
+
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">params_template</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a tree-like dictionary whose keys shadows the CLI options and</span>
+<span class="sd">        subcommands and values are ``None``.</span>
+
+<span class="sd">        Perfect to serve as a template for configuration files.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">build_param_trees</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params_template</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">params_types</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a tree-like dictionary whose keys shadows the CLI options and</span>
+<span class="sd">        subcommands and values are their expected Python type.</span>
+
+<span class="sd">        Perfect to parse configuration files and user-provided parameters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">build_param_trees</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params_types</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">params_objects</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a tree-like dictionary whose keys shadows the CLI options and</span>
+<span class="sd">        subcommands and values are parameter objects.</span>
+
+<span class="sd">        Perfect to parse configuration files and user-provided parameters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">build_param_trees</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params_objects</span></div>
+
+
+
+<div class="viewcode-block" id="ShowParamsOption">
+<a class="viewcode-back" href="../../parameters.html#click_extra.ShowParamsOption">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ShowParamsOption</span><span class="p">(</span><span class="n">ExtraOption</span><span class="p">,</span> <span class="n">ParamStructure</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A pre-configured option adding a ``--show-params`` option.</span>
+
+<span class="sd">    Between configuration files, default values and environment variables, it might be</span>
+<span class="sd">    hard to guess under which set of parameters the CLI will be executed. This option</span>
+<span class="sd">    print information about the parameters that will be fed to the CLI.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">TABLE_HEADERS</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s2">&quot;ID&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Class&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Spec.&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Param type&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Python type&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Hidden&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Exposed&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Allowed in conf?&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Env. vars.&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Default&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Value&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Source&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Hard-coded list of table headers.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">param_decls</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">is_flag</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">expose_value</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">is_eager</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="n">_</span><span class="p">(</span>
+            <span class="s2">&quot;Show all CLI parameters, their provenance, defaults and value, then exit.&quot;</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">param_decls</span><span class="p">:</span>
+            <span class="n">param_decls</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;--show-params&quot;</span><span class="p">,)</span>
+
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;callback&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">print_params</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">excluded_params</span> <span class="o">=</span> <span class="p">()</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deactivates the blocking of any parameter.&quot;&quot;&quot;</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">param_decls</span><span class="o">=</span><span class="n">param_decls</span><span class="p">,</span>
+            <span class="n">is_flag</span><span class="o">=</span><span class="n">is_flag</span><span class="p">,</span>
+            <span class="n">expose_value</span><span class="o">=</span><span class="n">expose_value</span><span class="p">,</span>
+            <span class="n">is_eager</span><span class="o">=</span><span class="n">is_eager</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="n">help</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="ShowParamsOption.print_params">
+<a class="viewcode-back" href="../../parameters.html#click_extra.ShowParamsOption.print_params">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">print_params</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ctx</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Context</span><span class="p">,</span>
+        <span class="n">param</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Parameter</span><span class="p">,</span>
+        <span class="n">value</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Introspects current CLI and list its parameters and metadata.</span>
+
+<span class="sd">        .. important::</span>
+<span class="sd">            Click doesn&#39;t keep a list of all parsed arguments and their origin.</span>
+<span class="sd">            So we need to emulate here what&#39;s happening during CLI invocation.</span>
+
+<span class="sd">            Unfortunately we cannot even do that because the raw, pre-parsed arguments</span>
+<span class="sd">            are not available anywhere within Click&#39;s internals.</span>
+
+<span class="sd">            Our workaround consist in leveraging our custom</span>
+<span class="sd">            ``ExtraCommand``/``ExtraGroup`` classes, in which we are attaching</span>
+<span class="sd">            a ``click_extra.raw_args`` metadata entry to the context.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Imported here to avoid circular imports.</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">.colorize</span><span class="w"> </span><span class="kn">import</span> <span class="n">KO</span><span class="p">,</span> <span class="n">OK</span><span class="p">,</span> <span class="n">default_theme</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigOption</span>
+
+        <span class="c1"># Exit early if the callback was processed but the option wasn&#39;t set.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">value</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;click_extra&quot;</span><span class="p">)</span>
+
+        <span class="n">get_param_value</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="s2">&quot;click_extra.raw_args&quot;</span> <span class="ow">in</span> <span class="n">ctx</span><span class="o">.</span><span class="n">meta</span><span class="p">:</span>
+            <span class="n">raw_args</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;click_extra.raw_args&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;click_extra.raw_args: </span><span class="si">{</span><span class="n">raw_args</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Mimics click.core.Command.parse_args() so we can produce the list of</span>
+            <span class="c1"># parsed options values.</span>
+            <span class="n">parser</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">make_parser</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="n">raw_args</span><span class="p">)</span>
+
+            <span class="c1"># We call directly consume_value() instead of handle_parse_result() to</span>
+            <span class="c1"># prevent an embedded call to process_value(), as the later triggers the</span>
+            <span class="c1"># callback (and might terminate CLI execution).</span>
+            <span class="n">param_value</span><span class="p">,</span> <span class="n">source</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">consume_value</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">opts</span><span class="p">)</span>
+
+            <span class="n">get_param_value</span> <span class="o">=</span> <span class="n">methodcaller</span><span class="p">(</span><span class="s2">&quot;consume_value&quot;</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">opts</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;click_extra.raw_args not in </span><span class="si">{</span><span class="n">ctx</span><span class="o">.</span><span class="n">meta</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Cannot extract parameters values: &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ctx</span><span class="o">.</span><span class="n">command</span><span class="si">}</span><span class="s2"> does not inherits from ExtraCommand.&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="k">def</span><span class="w"> </span><span class="nf">vanilla_getter</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+                <span class="n">param_value</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">source</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">get_parameter_source</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">param_value</span><span class="p">,</span> <span class="n">source</span>
+
+            <span class="n">get_param_value</span> <span class="o">=</span> <span class="n">vanilla_getter</span>
+
+        <span class="c1"># Inspect the CLI to search for any --config option.</span>
+        <span class="n">config_option</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span>
+            <span class="s2">&quot;ConfigOption&quot;</span><span class="p">,</span>
+            <span class="n">search_params</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">get_params</span><span class="p">(</span><span class="n">ctx</span><span class="p">),</span> <span class="n">ConfigOption</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="n">table</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span>
+            <span class="nb">tuple</span><span class="p">[</span>
+                <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="p">]</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">python_type</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">flatten_tree_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params_types</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1"># Get the parameter instance.</span>
+            <span class="n">tree_keys</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">SEP</span><span class="p">)</span>
+            <span class="n">instance</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span>
+                <span class="s2">&quot;click.Parameter&quot;</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_tree_value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params_objects</span><span class="p">,</span> <span class="o">*</span><span class="n">tree_keys</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="k">assert</span> <span class="n">instance</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">tree_keys</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="n">param_value</span><span class="p">,</span> <span class="n">source</span> <span class="o">=</span> <span class="n">get_param_value</span><span class="p">(</span><span class="n">instance</span><span class="p">)</span>
+            <span class="n">param_class</span> <span class="o">=</span> <span class="n">instance</span><span class="o">.</span><span class="vm">__class__</span>
+
+            <span class="c1"># Collect param&#39;s spec and hidden status.</span>
+            <span class="n">hidden</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">param_spec</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="c1"># Hidden property is only supported by Option, not Argument.</span>
+            <span class="c1"># TODO: Allow arguments to produce their spec.</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="s2">&quot;hidden&quot;</span><span class="p">):</span>
+                <span class="n">hidden</span> <span class="o">=</span> <span class="n">OK</span> <span class="k">if</span> <span class="n">instance</span><span class="o">.</span><span class="n">hidden</span> <span class="ow">is</span> <span class="kc">True</span> <span class="k">else</span> <span class="n">KO</span>
+
+                <span class="c1"># No-op context manager without any effects.</span>
+                <span class="n">hidden_param_bypass</span><span class="p">:</span> <span class="n">ContextManager</span> <span class="o">=</span> <span class="n">nullcontext</span><span class="p">()</span>
+                <span class="c1"># If the parameter is hidden, we need to temporarily disable this flag</span>
+                <span class="c1"># to let Click produce a help record.</span>
+                <span class="c1"># See: https://github.com/kdeldycke/click-extra/issues/689</span>
+                <span class="c1"># TODO: Submit a PR to Click to separate production of param spec and</span>
+                <span class="c1"># help record. That way we can always produce the param spec even if</span>
+                <span class="c1"># the parameter is hidden.</span>
+                <span class="k">if</span> <span class="n">instance</span><span class="o">.</span><span class="n">hidden</span><span class="p">:</span>
+                    <span class="n">hidden_param_bypass</span> <span class="o">=</span> <span class="n">patch</span><span class="o">.</span><span class="n">object</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="s2">&quot;hidden&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+                <span class="k">with</span> <span class="n">hidden_param_bypass</span><span class="p">:</span>
+                    <span class="n">help_record</span> <span class="o">=</span> <span class="n">instance</span><span class="o">.</span><span class="n">get_help_record</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">help_record</span><span class="p">:</span>
+                        <span class="n">param_spec</span> <span class="o">=</span> <span class="n">help_record</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="c1"># Check if the parameter is allowed in the configuration file.</span>
+            <span class="n">allowed_in_conf</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">config_option</span><span class="p">:</span>
+                <span class="n">allowed_in_conf</span> <span class="o">=</span> <span class="n">KO</span> <span class="k">if</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">config_option</span><span class="o">.</span><span class="n">excluded_params</span> <span class="k">else</span> <span class="n">OK</span>
+
+            <span class="n">line</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">default_theme</span><span class="o">.</span><span class="n">invoked_command</span><span class="p">(</span><span class="n">path</span><span class="p">),</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">param_class</span><span class="o">.</span><span class="vm">__module__</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">param_class</span><span class="o">.</span><span class="vm">__qualname__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">param_spec</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">instance</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="vm">__module__</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">instance</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">python_type</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+                <span class="n">hidden</span><span class="p">,</span>
+                <span class="n">OK</span> <span class="k">if</span> <span class="n">instance</span><span class="o">.</span><span class="n">expose_value</span> <span class="ow">is</span> <span class="kc">True</span> <span class="k">else</span> <span class="n">KO</span><span class="p">,</span>
+                <span class="n">allowed_in_conf</span><span class="p">,</span>
+                <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">default_theme</span><span class="o">.</span><span class="n">envvar</span><span class="p">,</span> <span class="n">param_envvar_ids</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="n">ctx</span><span class="p">))),</span>
+                <span class="n">default_theme</span><span class="o">.</span><span class="n">default</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">instance</span><span class="o">.</span><span class="n">get_default</span><span class="p">(</span><span class="n">ctx</span><span class="p">))),</span>
+                <span class="n">param_value</span><span class="p">,</span>
+                <span class="n">source</span><span class="o">.</span><span class="n">_name_</span> <span class="k">if</span> <span class="n">source</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">sort_by_depth</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Sort parameters by depth first, then IDs, so that top-level parameters</span>
+<span class="sd">            are kept to the top.&quot;&quot;&quot;</span>
+            <span class="n">param_path</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">tree_keys</span> <span class="o">=</span> <span class="n">param_path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">SEP</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">tree_keys</span><span class="p">),</span> <span class="n">param_path</span>
+
+        <span class="n">header_style</span> <span class="o">=</span> <span class="n">Style</span><span class="p">(</span><span class="n">bold</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">header_labels</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">header_style</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TABLE_HEADERS</span><span class="p">))</span>
+
+        <span class="n">output</span> <span class="o">=</span> <span class="n">tabulate</span><span class="p">(</span>
+            <span class="nb">sorted</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">sort_by_depth</span><span class="p">),</span>
+            <span class="n">headers</span><span class="o">=</span><span class="n">header_labels</span><span class="p">,</span>
+            <span class="n">tablefmt</span><span class="o">=</span><span class="s2">&quot;rounded_outline&quot;</span><span class="p">,</span>
+            <span class="n">disable_numparse</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">echo</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">color</span><span class="p">)</span>
+
+        <span class="n">ctx</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span></div>
+</div>
+
+</pre></div>
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; Kevin Deldycke and contributors
+            </div>
+            Made with 
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            <div class="last-updated">
+              Last updated on 2025-07-01</div>
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script src="../../_static/documentation_options.js?v=f98c4cc8"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/scripts/furo.js?v=5fa4622c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs"></script>
+    <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs";import elkLayouts from "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs";mermaid.registerLayoutLoaders(elkLayouts);mermaid.initialize({startOnLoad:false});</script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+    <script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs";
+const load = async () => {
+    await mermaid.run();
+    const all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+    if(mermaids_to_add_zoom > 0) {
+        var svgs = d3.selectAll(".mermaid svg");
+        if(all_mermaids.length !== mermaids_processed.length) {
+            // try again in a sec, wait for mermaids to load
+            setTimeout(load, 200);
+            return;
+        } else if(svgs.size() !== mermaids_to_add_zoom) {
+            // try again in a sec, wait for mermaids to load
+            setTimeout(load, 200);
+            return;
+        } else {
+            svgs.each(function() {
+                var svg = d3.select(this);
+                svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                var inner = svg.select("g");
+                var zoom = d3.zoom().on("zoom", function(event) {
+                    inner.attr("transform", event.transform);
+                });
+                svg.call(zoom);
+            });
+        }
+    }
+};
+
+window.addEventListener("load", load);
+</script>
+    </body>
+</html>

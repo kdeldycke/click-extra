@@ -1,0 +1,810 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
+
+    <!-- Generated with Sphinx 8.2.3 and Furo 2024.08.06 -->
+        <title>cloup.formatting._formatter - Click Extra</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=060664ba" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+<div class="announcement">
+  <aside class="announcement-content">
+     Click Extra works fine, but is <em>maintained by only one person</em> 😶‍🌫️.<br/>You can help if you <strong><a class='reference external' href='https://github.com/sponsors/kdeldycke'>purchase business support 🤝</a></strong> or <strong><a class='reference external' href='https://github.com/sponsors/kdeldycke'>sponsor the project 🫶</a></strong>. 
+  </aside>
+</div>
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../index.html"><div class="brand">Click Extra</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../_static/logo-square.svg" alt="Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../commands.html">Commands &amp; groups</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../config.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../colorize.html">Colored help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../logging.html">Logging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tabulate.html">Table</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../version.html">Version</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../timer.html">Timer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../parameters.html">Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../pygments.html">Pygments extensions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../sphinx.html">Sphinx extensions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../testing.html">CLI testing and execution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../pytest.html">Pytest utilities and fixtures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../issues.html">Fixed issues</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../click_extra.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tests.html">tests package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../todolist.html">Todo-list</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../code-of-conduct.html">Code of conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/kdeldycke/click-extra">GitHub Repository</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/sponsors/kdeldycke">Funding</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <h1>Source code for cloup.formatting._formatter</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dc</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">textwrap</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">chain</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span>
+    <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">cloup._util</span><span class="w"> </span><span class="kn">import</span> <span class="n">click_version_ge_8_1</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cloup.formatting._util</span><span class="w"> </span><span class="kn">import</span> <span class="n">unstyled_len</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.sep</span><span class="w"> </span><span class="kn">import</span> <span class="n">RowSepPolicy</span><span class="p">,</span> <span class="n">SepGenerator</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">click</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">click.formatting</span><span class="w"> </span><span class="kn">import</span> <span class="n">wrap_text</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">cloup._util</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">check_positive_int</span><span class="p">,</span> <span class="n">identity</span><span class="p">,</span> <span class="n">indent_lines</span><span class="p">,</span> <span class="n">make_repr</span><span class="p">,</span>
+    <span class="n">pick_non_missing</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">MISSING</span><span class="p">,</span> <span class="n">Possibly</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cloup.styling</span><span class="w"> </span><span class="kn">import</span> <span class="n">HelpTheme</span><span class="p">,</span> <span class="n">IStyle</span>
+
+<span class="n">Definition</span> <span class="o">=</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">str</span><span class="p">]]]</span>
+
+
+<div class="viewcode-block" id="HelpSection">
+<a class="viewcode-back" href="../../../click_extra.html#click_extra.HelpSection">[docs]</a>
+<span class="nd">@dc</span><span class="o">.</span><span class="n">dataclass</span><span class="p">()</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">HelpSection</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A container for a help section data.&quot;&quot;&quot;</span>
+    <span class="n">heading</span><span class="p">:</span> <span class="nb">str</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Help section title.&quot;&quot;&quot;</span>
+
+    <span class="n">definitions</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Definition</span><span class="p">]</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Rows with 2 columns each. The 2nd element of each row can also be a function</span>
+<span class="sd">    taking an integer (the available width for the 2nd column) and returning a string.&quot;&quot;&quot;</span>
+
+    <span class="n">help</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;(Optional) long description of the section.&quot;&quot;&quot;</span>
+
+    <span class="n">constraint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;(Optional) option group constraint description.&quot;&quot;&quot;</span></div>
+
+
+
+<span class="c1"># noinspection PyMethodMayBeStatic</span>
+<div class="viewcode-block" id="HelpFormatter">
+<a class="viewcode-back" href="../../../click_extra.html#click_extra.HelpFormatter">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">HelpFormatter</span><span class="p">(</span><span class="n">click</span><span class="o">.</span><span class="n">HelpFormatter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A custom help formatter. Features include:</span>
+
+<span class="sd">    - more attributes for controlling the output of the formatter</span>
+<span class="sd">    - a ``col1_width`` parameter in :meth:`write_dl` that allows Cloup to align</span>
+<span class="sd">      multiple definition lists without resorting to hacks</span>
+<span class="sd">    - a &quot;linear layout&quot; for definition lists that kicks in when the available</span>
+<span class="sd">      terminal width is not enough for the standard 2-column layout</span>
+<span class="sd">      (see argument ``col2_min_width``)</span>
+<span class="sd">    - the first column width, when not explicitly given in ``write_dl`` is</span>
+<span class="sd">      computed excluding the rows that exceed ``col1_max_width``</span>
+<span class="sd">      (called ``col_max`` in ``write_dl`` for compatibility with Click).</span>
+
+<span class="sd">    .. versionchanged:: 0.9.0</span>
+<span class="sd">        the ``row_sep`` parameter now:</span>
+
+<span class="sd">        - is set to ``None`` by default and ``row_sep=&quot;&quot;`` corresponds to an</span>
+<span class="sd">          empty line between rows</span>
+<span class="sd">        - must not ends with ``\\n``; the formatter writes a newline just after</span>
+<span class="sd">          it (when it&#39;s not ``None``), so a newline at the end is always enforced</span>
+<span class="sd">        - accepts instances of :class:`~cloup.formatting.sep.SepGenerator` and</span>
+<span class="sd">          :class:`~cloup.formatting.sep.RowSepPolicy`.</span>
+
+<span class="sd">    .. versionadded:: 0.8.0</span>
+
+<span class="sd">    :param indent_increment:</span>
+<span class="sd">        width of each indentation increment.</span>
+<span class="sd">    :param width:</span>
+<span class="sd">        content line width, excluding the newline character; by default it&#39;s</span>
+<span class="sd">        initialized to ``min(terminal_width - 1, max_width)`` where</span>
+<span class="sd">        ``max_width`` is another argument.</span>
+<span class="sd">    :param max_width:</span>
+<span class="sd">        maximum content line width (equivalent to ``Context.max_content_width``).</span>
+<span class="sd">        Used to compute ``width`` when it is not provided, ignored otherwise.</span>
+<span class="sd">    :param col1_max_width:</span>
+<span class="sd">        the maximum width of the first column of a definition list; as in Click,</span>
+<span class="sd">        if the text of a row exceeds this threshold, the 2nd column is printed</span>
+<span class="sd">        on a new line.</span>
+<span class="sd">    :param col2_min_width:</span>
+<span class="sd">        the minimum width for the second column of a definition list; if the</span>
+<span class="sd">        available space is less than this value, the formatter switches from the</span>
+<span class="sd">        standard 2-column layout to the &quot;linear layout&quot; (that this decision</span>
+<span class="sd">        is taken for each definition list). If you want to always use the linear</span>
+<span class="sd">        layout, you can set this argument to a very high number (or ``math.inf``).</span>
+<span class="sd">        If you never want it (not recommended), you can set this argument to zero.</span>
+<span class="sd">    :param col_spacing:</span>
+<span class="sd">        the number of spaces between the column boundaries of a definition list.</span>
+<span class="sd">    :param row_sep:</span>
+<span class="sd">        an &quot;extra&quot; separator to insert between the rows of a definition list (in</span>
+<span class="sd">        addition to the normal newline between definitions). If you want an empty</span>
+<span class="sd">        line between rows, pass ``row_sep=&quot;&quot;``.</span>
+<span class="sd">        Read :ref:`Row separators &lt;row-separators&gt;` for more.</span>
+<span class="sd">    :param theme:</span>
+<span class="sd">        an :class:`~cloup.HelpTheme` instance specifying how to style the various</span>
+<span class="sd">        elements of the help page.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">indent_increment</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">width</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">max_width</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">col1_max_width</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">,</span>
+        <span class="n">col2_min_width</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">35</span><span class="p">,</span>
+        <span class="n">col_spacing</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">row_sep</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="s1">&#39;SepGenerator&#39;</span><span class="p">,</span> <span class="s1">&#39;RowSepPolicy&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">theme</span><span class="p">:</span> <span class="n">HelpTheme</span> <span class="o">=</span> <span class="n">HelpTheme</span><span class="p">(),</span>
+    <span class="p">):</span>
+        <span class="n">check_positive_int</span><span class="p">(</span><span class="n">col1_max_width</span><span class="p">,</span> <span class="s1">&#39;col1_max_width&#39;</span><span class="p">)</span>
+        <span class="n">check_positive_int</span><span class="p">(</span><span class="n">col_spacing</span><span class="p">,</span> <span class="s1">&#39;col_spacing&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">row_sep</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">row_sep</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;since v0.9, row_sep must not end with &#39;</span><span class="se">\\</span><span class="s2">n&#39;. The formatter writes &quot;</span>
+                <span class="s2">&quot;a &#39;</span><span class="se">\\</span><span class="s2">n&#39; after it; no other newline is allowed.</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;If you want an empty line between rows, set row_sep=&#39;&#39;.&quot;</span><span class="p">)</span>
+
+        <span class="n">max_width</span> <span class="o">=</span> <span class="n">max_width</span> <span class="ow">or</span> <span class="mi">80</span>
+        <span class="c1"># We subtract 1 to the terminal width to leave space for the new line character.</span>
+        <span class="c1"># Otherwise, when we write a line that is long exactly terminal_size (without \n)</span>
+        <span class="c1"># the \n is printed on a new terminal line, leading to a useless empty line.</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">width</span>
+            <span class="ow">or</span> <span class="n">click</span><span class="o">.</span><span class="n">formatting</span><span class="o">.</span><span class="n">FORCED_WIDTH</span>
+            <span class="ow">or</span> <span class="nb">min</span><span class="p">(</span><span class="n">max_width</span><span class="p">,</span> <span class="n">shutil</span><span class="o">.</span><span class="n">get_terminal_size</span><span class="p">((</span><span class="mi">80</span><span class="p">,</span> <span class="mi">100</span><span class="p">))</span><span class="o">.</span><span class="n">columns</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span> <span class="n">max_width</span><span class="o">=</span><span class="n">max_width</span><span class="p">,</span> <span class="n">indent_increment</span><span class="o">=</span><span class="n">indent_increment</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">width</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">width</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">col1_max_width</span> <span class="o">=</span> <span class="n">col1_max_width</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">col2_min_width</span> <span class="o">=</span> <span class="n">col2_min_width</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">col_spacing</span> <span class="o">=</span> <span class="n">col_spacing</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theme</span> <span class="o">=</span> <span class="n">theme</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">row_sep</span> <span class="o">=</span> <span class="n">row_sep</span>
+
+<div class="viewcode-block" id="HelpFormatter.settings">
+<a class="viewcode-back" href="../../../click_extra.html#click_extra.HelpFormatter.settings">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">settings</span><span class="p">(</span>
+        <span class="o">*</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="n">Possibly</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="n">MISSING</span><span class="p">,</span>
+        <span class="n">max_width</span><span class="p">:</span> <span class="n">Possibly</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="n">MISSING</span><span class="p">,</span>
+        <span class="n">indent_increment</span><span class="p">:</span> <span class="n">Possibly</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">MISSING</span><span class="p">,</span>
+        <span class="n">col1_max_width</span><span class="p">:</span> <span class="n">Possibly</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">MISSING</span><span class="p">,</span>
+        <span class="n">col2_min_width</span><span class="p">:</span> <span class="n">Possibly</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">MISSING</span><span class="p">,</span>
+        <span class="n">col_spacing</span><span class="p">:</span> <span class="n">Possibly</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">MISSING</span><span class="p">,</span>
+        <span class="n">row_sep</span><span class="p">:</span> <span class="n">Possibly</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="s1">&#39;SepGenerator&#39;</span><span class="p">,</span> <span class="s1">&#39;RowSepPolicy&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">MISSING</span><span class="p">,</span>
+        <span class="n">theme</span><span class="p">:</span> <span class="n">Possibly</span><span class="p">[</span><span class="n">HelpTheme</span><span class="p">]</span> <span class="o">=</span> <span class="n">MISSING</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;A utility method for creating a ``formatter_settings`` dictionary to</span>
+<span class="sd">        pass as context settings or command attribute. This method exists for</span>
+<span class="sd">        one only reason: it enables auto-complete for formatter options, thus</span>
+<span class="sd">        improving the developer experience.</span>
+
+<span class="sd">        Parameters are described in :class:`HelpFormatter`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">pick_non_missing</span><span class="p">(</span><span class="nb">locals</span><span class="p">())</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">available_width</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_indent</span>
+
+<div class="viewcode-block" id="HelpFormatter.write">
+<a class="viewcode-back" href="../../../click_extra.html#click_extra.HelpFormatter.write">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">strings</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">+=</span> <span class="n">strings</span></div>
+
+
+<div class="viewcode-block" id="HelpFormatter.write_usage">
+<a class="viewcode-back" href="../../../click_extra.html#click_extra.HelpFormatter.write_usage">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write_usage</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">prog</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">prefix</span> <span class="o">=</span> <span class="s2">&quot;Usage:&quot;</span> <span class="k">if</span> <span class="n">prefix</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">prefix</span>
+        <span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">theme</span><span class="o">.</span><span class="n">heading</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+        <span class="n">prog</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">theme</span><span class="o">.</span><span class="n">invoked_command</span><span class="p">(</span><span class="n">prog</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">write_usage</span><span class="p">(</span><span class="n">prog</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">prefix</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HelpFormatter.write_aliases">
+<a class="viewcode-back" href="../../../click_extra.html#click_extra.HelpFormatter.write_aliases">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write_aliases</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aliases</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_heading</span><span class="p">(</span><span class="s2">&quot;Aliases&quot;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">alias_list</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theme</span><span class="o">.</span><span class="n">col1</span><span class="p">(</span><span class="n">alias</span><span class="p">)</span> <span class="k">for</span> <span class="n">alias</span> <span class="ow">in</span> <span class="n">aliases</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">alias_list</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HelpFormatter.write_command_help_text">
+<a class="viewcode-back" href="../../../click_extra.html#click_extra.HelpFormatter.write_command_help_text">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write_command_help_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Command</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">help_text</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">help</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">help_text</span> <span class="ow">and</span> <span class="n">click_version_ge_8_1</span><span class="p">:</span>
+            <span class="n">help_text</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">cleandoc</span><span class="p">(</span><span class="n">help_text</span><span class="p">)</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\f</span><span class="s2">&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">cmd</span><span class="o">.</span><span class="n">deprecated</span><span class="p">:</span>
+            <span class="c1"># Use the same label as Click:</span>
+            <span class="c1"># https://github.com/pallets/click/blob/b0538df/src/click/core.py#L1331</span>
+            <span class="n">help_text</span> <span class="o">=</span> <span class="s2">&quot;(Deprecated) &quot;</span> <span class="o">+</span> <span class="n">help_text</span>
+        <span class="k">if</span> <span class="n">help_text</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_paragraph</span><span class="p">()</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">indentation</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">help_text</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">theme</span><span class="o">.</span><span class="n">command_help</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HelpFormatter.write_heading">
+<a class="viewcode-back" href="../../../click_extra.html#click_extra.HelpFormatter.write_heading">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write_heading</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">heading</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">newline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_indent</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot; &quot;</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_indent</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theme</span><span class="o">.</span><span class="n">heading</span><span class="p">(</span><span class="n">heading</span> <span class="o">+</span> <span class="s2">&quot;:&quot;</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">newline</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HelpFormatter.write_many_sections">
+<a class="viewcode-back" href="../../../click_extra.html#click_extra.HelpFormatter.write_many_sections">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write_many_sections</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">sections</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">HelpSection</span><span class="p">],</span>
+        <span class="n">aligned</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">aligned</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">write_aligned_sections</span><span class="p">(</span><span class="n">sections</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sections</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_section</span><span class="p">(</span><span class="n">s</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HelpFormatter.write_aligned_sections">
+<a class="viewcode-back" href="../../../click_extra.html#click_extra.HelpFormatter.write_aligned_sections">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write_aligned_sections</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sections</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">HelpSection</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Write multiple aligned definition lists.&quot;&quot;&quot;</span>
+        <span class="n">all_rows</span> <span class="o">=</span> <span class="n">chain</span><span class="o">.</span><span class="n">from_iterable</span><span class="p">(</span><span class="n">dl</span><span class="o">.</span><span class="n">definitions</span> <span class="k">for</span> <span class="n">dl</span> <span class="ow">in</span> <span class="n">sections</span><span class="p">)</span>
+        <span class="n">col1_width</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_col1_width</span><span class="p">(</span><span class="n">all_rows</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">col1_max_width</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sections</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_section</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">col1_width</span><span class="o">=</span><span class="n">col1_width</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HelpFormatter.write_section">
+<a class="viewcode-back" href="../../../click_extra.html#click_extra.HelpFormatter.write_section">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write_section</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">:</span> <span class="n">HelpSection</span><span class="p">,</span> <span class="n">col1_width</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">theme</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">theme</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_heading</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">heading</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="ow">not</span> <span class="n">s</span><span class="o">.</span><span class="n">constraint</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">constraint</span><span class="p">:</span>
+            <span class="n">constraint_text</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;[</span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">constraint</span><span class="si">}</span><span class="s1">]&#39;</span>
+            <span class="n">available_width</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_width</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">heading</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="s1">&#39;: &#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">constraint_text</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">available_width</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">theme</span><span class="o">.</span><span class="n">constraint</span><span class="p">(</span><span class="n">constraint_text</span><span class="p">),</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">indentation</span><span class="p">():</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">constraint_text</span><span class="p">,</span> <span class="n">theme</span><span class="o">.</span><span class="n">constraint</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">indentation</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">help</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">help</span><span class="p">,</span> <span class="n">theme</span><span class="o">.</span><span class="n">section_help</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_dl</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">definitions</span><span class="p">,</span> <span class="n">col1_width</span><span class="o">=</span><span class="n">col1_width</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HelpFormatter.write_text">
+<a class="viewcode-back" href="../../../click_extra.html#click_extra.HelpFormatter.write_text">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">style</span><span class="p">:</span> <span class="n">IStyle</span> <span class="o">=</span> <span class="n">identity</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wrapped</span> <span class="o">=</span> <span class="n">wrap_text</span><span class="p">(</span>
+            <span class="n">text</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_indent</span><span class="p">,</span> <span class="n">preserve_paragraphs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">style</span> <span class="ow">is</span> <span class="n">identity</span><span class="p">:</span>
+            <span class="n">wrapped_text</span> <span class="o">=</span> <span class="n">textwrap</span><span class="o">.</span><span class="n">indent</span><span class="p">(</span><span class="n">wrapped</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s1">&#39; &#39;</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_indent</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">styled_lines</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="n">style</span><span class="p">,</span> <span class="n">wrapped</span><span class="o">.</span><span class="n">splitlines</span><span class="p">())</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="n">indent_lines</span><span class="p">(</span><span class="n">styled_lines</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">current_indent</span><span class="p">)</span>
+            <span class="n">wrapped_text</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">wrapped_text</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HelpFormatter.compute_col1_width">
+<a class="viewcode-back" href="../../../click_extra.html#click_extra.HelpFormatter.compute_col1_width">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_col1_width</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rows</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Definition</span><span class="p">],</span> <span class="n">max_width</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="n">col1_lengths</span> <span class="o">=</span> <span class="p">(</span><span class="n">unstyled_len</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">)</span>
+        <span class="n">lengths_under_limit</span> <span class="o">=</span> <span class="p">(</span><span class="n">length</span> <span class="k">for</span> <span class="n">length</span> <span class="ow">in</span> <span class="n">col1_lengths</span> <span class="k">if</span> <span class="n">length</span> <span class="o">&lt;=</span> <span class="n">max_width</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="n">lengths_under_limit</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HelpFormatter.write_dl">
+<a class="viewcode-back" href="../../../click_extra.html#click_extra.HelpFormatter.write_dl">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write_dl</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">rows</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Definition</span><span class="p">],</span>
+        <span class="n">col_max</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># default changed to None wrt parent class</span>
+        <span class="n">col_spacing</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># default changed to None wrt parent class</span>
+        <span class="n">col1_width</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Write a definition list into the buffer. This is how options</span>
+<span class="sd">        and commands are usually formatted.</span>
+
+<span class="sd">        If there&#39;s enough space, definition lists are rendered as a 2-column</span>
+<span class="sd">        pseudo-table: if the first column text of a row doesn&#39;t fit in the</span>
+<span class="sd">        provided/computed ``col1_width``, the 2nd column is printed on the</span>
+<span class="sd">        following line.</span>
+
+<span class="sd">        If the available space for the 2nd column is below ``self.col2_min_width``,</span>
+<span class="sd">        the 2nd &quot;column&quot; is always printed below the 1st, indented with a minimum</span>
+<span class="sd">        of 3 spaces (or one ``indent_increment`` if that&#39;s greater than 3).</span>
+
+<span class="sd">        :param rows:</span>
+<span class="sd">            a list of two item tuples for the terms and values.</span>
+<span class="sd">        :param col_max:</span>
+<span class="sd">            the maximum width for the 1st column of a definition list; this</span>
+<span class="sd">            argument is here to not break compatibility with Click; if provided,</span>
+<span class="sd">            it overrides the attribute ``self.col1_max_width``.</span>
+<span class="sd">        :param col_spacing:</span>
+<span class="sd">            number of spaces between the first and second column;</span>
+<span class="sd">            this argument is here to not break compatibility with Click;</span>
+<span class="sd">            if provided, it overrides ``self.col_spacing``.</span>
+<span class="sd">        :param col1_width:</span>
+<span class="sd">            the width to use for the first column; if not provided, it&#39;s</span>
+<span class="sd">            computed as the length of the longest string under ``self.col1_max_width``;</span>
+<span class="sd">            useful when you need to align multiple definition lists.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># |&lt;----------------------- width ------------------------&gt;|</span>
+        <span class="c1"># |                |&lt;---------- available_width ----------&gt;|</span>
+        <span class="c1"># | current_indent | col1_width | col_spacing | col2_width |</span>
+
+        <span class="n">col1_max_width</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
+            <span class="n">col_max</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">col1_max_width</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">available_width</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">col1_width</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
+            <span class="n">col1_width</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_col1_width</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">col1_max_width</span><span class="p">),</span>
+            <span class="n">col1_max_width</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">col_spacing</span> <span class="o">=</span> <span class="n">col_spacing</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">col_spacing</span>
+        <span class="n">col2_width</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_width</span> <span class="o">-</span> <span class="n">col1_width</span> <span class="o">-</span> <span class="n">col_spacing</span>
+
+        <span class="k">if</span> <span class="n">col2_width</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">col2_min_width</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_linear_dl</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_tabular_dl</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">col1_width</span><span class="p">,</span> <span class="n">col_spacing</span><span class="p">,</span> <span class="n">col2_width</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_row_sep_for</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">text_rows</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+        <span class="n">col_widths</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+        <span class="n">col_spacing</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">row_sep</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">row_sep</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">row_sep</span>
+
+        <span class="kn">from</span><span class="w"> </span><span class="nn">.sep</span><span class="w"> </span><span class="kn">import</span> <span class="n">RowSepPolicy</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">row_sep</span><span class="p">,</span> <span class="n">RowSepPolicy</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">row_sep</span><span class="p">(</span><span class="n">text_rows</span><span class="p">,</span> <span class="n">col_widths</span><span class="p">,</span> <span class="n">col_spacing</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">callable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">row_sep</span><span class="p">):</span>  <span class="c1"># RowSepPolicy is callable; keep this for last</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">row_sep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">available_width</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;row_sep&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="HelpFormatter.write_tabular_dl">
+<a class="viewcode-back" href="../../../click_extra.html#click_extra.HelpFormatter.write_tabular_dl">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write_tabular_dl</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">rows</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Definition</span><span class="p">],</span>
+        <span class="n">col1_width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">col_spacing</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">col2_width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Format a definition list as a 2-column &quot;pseudo-table&quot;. If the first</span>
+<span class="sd">        column of a row exceeds ``col1_width``, the 2nd column is written on</span>
+<span class="sd">        the subsequent line. This is the standard way of formatting definition</span>
+<span class="sd">        lists and it&#39;s the default if there&#39;s enough space.&quot;&quot;&quot;</span>
+
+        <span class="n">col1_plus_spacing</span> <span class="o">=</span> <span class="n">col1_width</span> <span class="o">+</span> <span class="n">col_spacing</span>
+        <span class="n">col2_indentation</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span> <span class="o">*</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_indent</span> <span class="o">+</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">indent_increment</span><span class="p">,</span> <span class="n">col1_plus_spacing</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">indentation</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_indent</span>
+
+        <span class="c1"># Note: iter_defs() resolves eventual callables in row[1]</span>
+        <span class="n">text_rows</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">iter_defs</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">col2_width</span><span class="p">))</span>
+        <span class="n">row_sep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_row_sep_for</span><span class="p">(</span><span class="n">text_rows</span><span class="p">,</span> <span class="p">(</span><span class="n">col1_width</span><span class="p">,</span> <span class="n">col2_width</span><span class="p">),</span> <span class="n">col_spacing</span><span class="p">)</span>
+        <span class="n">col1_styler</span><span class="p">,</span> <span class="n">col2_styler</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">theme</span><span class="o">.</span><span class="n">col1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">theme</span><span class="o">.</span><span class="n">col2</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">write_row</span><span class="p">(</span><span class="n">row</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">first</span><span class="p">,</span> <span class="n">second</span> <span class="o">=</span> <span class="n">row</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">indentation</span><span class="p">,</span> <span class="n">col1_styler</span><span class="p">(</span><span class="n">first</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">second</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">first_display_length</span> <span class="o">=</span> <span class="n">unstyled_len</span><span class="p">(</span><span class="n">first</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">first_display_length</span> <span class="o">&lt;=</span> <span class="n">col1_width</span><span class="p">:</span>
+                    <span class="n">spaces_to_col2</span> <span class="o">=</span> <span class="n">col1_plus_spacing</span> <span class="o">-</span> <span class="n">first_display_length</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot; &quot;</span> <span class="o">*</span> <span class="n">spaces_to_col2</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">col2_indentation</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">second</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">col2_width</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">col2_styler</span><span class="p">(</span><span class="n">second</span><span class="p">),</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">wrapped_text</span> <span class="o">=</span> <span class="n">wrap_text</span><span class="p">(</span><span class="n">second</span><span class="p">,</span> <span class="n">col2_width</span><span class="p">,</span> <span class="n">preserve_paragraphs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">col2_styler</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">wrapped_text</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()]</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">lines</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">col2_indentation</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">write_row</span><span class="p">(</span><span class="n">text_rows</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">text_rows</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+            <span class="k">if</span> <span class="n">row_sep</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">indentation</span><span class="p">,</span> <span class="n">row_sep</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">write_row</span><span class="p">(</span><span class="n">row</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HelpFormatter.write_linear_dl">
+<a class="viewcode-back" href="../../../click_extra.html#click_extra.HelpFormatter.write_linear_dl">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write_linear_dl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dl</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Definition</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Format a definition list as a &quot;linear list&quot;. This is the default when</span>
+<span class="sd">        the available width for the definitions (2nd column) is below</span>
+<span class="sd">        ``self.col2_min_width``.&quot;&quot;&quot;</span>
+        <span class="n">help_extra_indent</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">indent_increment</span><span class="p">)</span>
+        <span class="n">help_total_indent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_indent</span> <span class="o">+</span> <span class="n">help_extra_indent</span>
+        <span class="n">help_max_width</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">-</span> <span class="n">help_total_indent</span>
+        <span class="n">current_indentation</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_indent</span>
+
+        <span class="n">col1_styler</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">theme</span><span class="o">.</span><span class="n">col1</span>
+        <span class="n">col2_styler</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">theme</span><span class="o">.</span><span class="n">col2</span>
+
+        <span class="k">for</span> <span class="n">names</span><span class="p">,</span> <span class="n">help</span> <span class="ow">in</span> <span class="n">iter_defs</span><span class="p">(</span><span class="n">dl</span><span class="p">,</span> <span class="n">help_max_width</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">current_indentation</span> <span class="o">+</span> <span class="n">col1_styler</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">help</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">current_indent</span> <span class="o">+=</span> <span class="n">help_extra_indent</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">help</span><span class="p">,</span> <span class="n">col2_styler</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">current_indent</span> <span class="o">-=</span> <span class="n">help_extra_indent</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>  <span class="c1"># pop last newline</span></div>
+
+
+<div class="viewcode-block" id="HelpFormatter.write_epilog">
+<a class="viewcode-back" href="../../../click_extra.html#click_extra.HelpFormatter.write_epilog">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write_epilog</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epilog</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">epilog</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">theme</span><span class="o">.</span><span class="n">epilog</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">make_repr</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">width</span><span class="p">,</span> <span class="n">indent_increment</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">indent_increment</span><span class="p">,</span>
+            <span class="n">col1_max_width</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">col1_max_width</span><span class="p">,</span> <span class="n">col_spacing</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">col_spacing</span>
+        <span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">iter_defs</span><span class="p">(</span><span class="n">rows</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Definition</span><span class="p">],</span> <span class="n">col2_width</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">second</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">](</span><span class="n">col2_width</span><span class="p">)</span> <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">else</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">yield</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">second</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;invalid row length: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">row</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+</pre></div>
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; Kevin Deldycke and contributors
+            </div>
+            Made with 
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            <div class="last-updated">
+              Last updated on 2025-07-01</div>
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script src="../../../_static/documentation_options.js?v=f98c4cc8"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/scripts/furo.js?v=5fa4622c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs"></script>
+    <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs";import elkLayouts from "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs";mermaid.registerLayoutLoaders(elkLayouts);mermaid.initialize({startOnLoad:false});</script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+    <script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs";
+const load = async () => {
+    await mermaid.run();
+    const all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+    if(mermaids_to_add_zoom > 0) {
+        var svgs = d3.selectAll(".mermaid svg");
+        if(all_mermaids.length !== mermaids_processed.length) {
+            // try again in a sec, wait for mermaids to load
+            setTimeout(load, 200);
+            return;
+        } else if(svgs.size() !== mermaids_to_add_zoom) {
+            // try again in a sec, wait for mermaids to load
+            setTimeout(load, 200);
+            return;
+        } else {
+            svgs.each(function() {
+                var svg = d3.select(this);
+                svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                var inner = svg.select("g");
+                var zoom = d3.zoom().on("zoom", function(event) {
+                    inner.attr("transform", event.transform);
+                });
+                svg.call(zoom);
+            });
+        }
+    }
+};
+
+window.addEventListener("load", load);
+</script>
+    </body>
+</html>
