@@ -203,12 +203,15 @@ class ParamStructure:
                     )
                     raise ValueError(msg)
 
+                _top_level_params = set()
+
                 for p in subcmd.get_params(ctx):
+                    _top_level_params.add(p.name)
                     yield ((*parent_keys, subcmd_id, p.name)), p
 
                 yield from self._recurse_cmd(
                     subcmd,
-                    top_level_params,
+                    _top_level_params,
                     ((*parent_keys, subcmd.name)),
                 )
 
