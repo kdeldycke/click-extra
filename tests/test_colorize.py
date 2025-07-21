@@ -59,7 +59,7 @@ from click_extra.decorators import (
     help_option,
     verbosity_option,
 )
-from click_extra.logging import LOG_LEVELS
+from click_extra.logging import LogLevel
 from click_extra.pytest import (
     command_decorators,
     default_debug_colored_log_end,
@@ -82,7 +82,7 @@ def test_theme_definition():
         <= HelpExtraTheme.__dataclass_fields__.keys()
     )
 
-    log_levels = {level.lower() for level in LOG_LEVELS}
+    log_levels = {level.name.lower() for level in LogLevel}
     assert log_levels <= HelpExtraTheme.__dataclass_fields__.keys()
     assert log_levels.isdisjoint(HelpTheme.__dataclass_fields__)
 

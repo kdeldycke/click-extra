@@ -21,17 +21,15 @@ import inspect
 import logging
 import sys
 from contextlib import nullcontext
+from enum import IntEnum
 from gettext import gettext as _
 from logging import (
-    NOTSET,
-    WARNING,
     FileHandler,
     Formatter,
     Handler,
     Logger,
     LogRecord,
     StreamHandler,
-    _levelToName,
     basicConfig,
     getLogger,
 )
@@ -49,28 +47,30 @@ if TYPE_CHECKING:
     from collections.abc import Generator, Iterable, Sequence
 
 
-LOG_LEVELS: dict[str, int] = {
-    name: value
-    for value, name in sorted(_levelToName.items(), reverse=True)
-    if value != NOTSET
-}
-"""Mapping of :ref:`canonical log level names <levels>` to their integer level.
+class LogLevel(IntEnum):
+    """Mapping of :ref:`canonical log level names <levels>` to their integer level.
 
-That's our own version of `logging._nameToLevel
-<https://github.com/python/cpython/blob/a379749/Lib/logging/__init__.py#L115-L124>`_,
-but:
+    That's our own version of `logging._nameToLevel
+    <https://github.com/python/cpython/blob/a379749/Lib/logging/__init__.py#L115-L124>`_,
+    but:
 
-- sorted from lowest to highest verbosity,
-- excludes the following levels:
-    - :data:`WARNING <logging.NOTSET>`, which is considered internal
-    - ``WARN``, which :meth:`is obsolete <logging.Logger.warning>`
-    - ``FATAL``, which `shouldn't be used <https://github.com/python/cpython/issues/85013>`_
-      and has been `replaced by CRITICAL
-      <https://github.com/python/cpython/blob/8597be46135a0f4a53e99dade67724bbb8e3c1c9/Lib/logging/__init__.py#L2148-L2152>`_
-"""
+    - sorted from lowest to highest verbosity,
+    - excludes the following levels:
+        - :data:`WARNING <logging.NOTSET>`, which is considered internal
+        - ``WARN``, which :meth:`is obsolete <logging.Logger.warning>`
+        - ``FATAL``, which `shouldn't be used <https://github.com/python/cpython/issues/85013>`_
+        and has been `replaced by CRITICAL
+        <https://github.com/python/cpython/blob/8597be46135a0f4a53e99dade67724bbb8e3c1c9/Lib/logging/__init__.py#L2148-L2152>`_
+    """
+
+    CRITICAL = logging.CRITICAL
+    ERROR = logging.ERROR
+    WARNING = logging.WARNING
+    INFO = logging.INFO
+    DEBUG = logging.DEBUG
 
 
-DEFAULT_LEVEL: int = WARNING
+DEFAULT_LEVEL: LogLevel = LogLevel.WARNING
 """:data:`WARNING <logging.WARNING>` is the default level we expect any loggers to starts their lives at.
 
 :data:`WARNING <logging.WARNING>` has been chosen as it is `the level at which the default Python's
@@ -78,9 +78,6 @@ global root logger is set up <https://github.com/python/cpython/blob/0df7c3a/Lib
 
 This value is also used as the default level for :class:`VerbosityOption` .
 """
-
-DEFAULT_LEVEL_NAME: str = _levelToName[DEFAULT_LEVEL]
-"""Name of the :const:`DEFAULT_LEVEL`."""
 
 
 TFormatter = TypeVar("TFormatter", bound=Formatter)
@@ -371,10 +368,11 @@ class ExtraVerbosity(ExtraOption):
             multiple test calls.
         """
         for logger in list(self.all_loggers)[::-1]:
-            getLogger("click_extra").debug(f"Reset {logger} to {DEFAULT_LEVEL_NAME}.")
-            logger.setLevel(DEFAULT_LEVEL)
+            getLogger("click_extra").debug(f"Reset {logger} to {DEFAULT_LEVEL.name}.")
+            logger.setLevel(DEFAULT_LEVEL.value)
+            # new_extra_logger(name=logger.name)
 
-    def set_level(self, ctx: Context, param: Parameter, value: str) -> None:
+    def set_level(self, ctx: Context, param: Parameter, level: LogLevel) -> None:
         """Set level of all loggers configured on the option.
 
         All verbosity-related options are attached to this callback, so that's where we
@@ -388,18 +386,14 @@ class ExtraVerbosity(ExtraOption):
         # Skip setting the level if another option has already sets it or is at an equal
         # or lower level.
         current_level = ctx.meta.get("click_extra.verbosity_level")
-        if current_level:
-            levels = tuple(LOG_LEVELS)
-            current_level_index = levels.index(current_level)
-            new_level_index = levels.index(value)
-            if new_level_index <= current_level_index:
-                return
+        if current_level and current_level <= level:
+            return
 
-        ctx.meta["click_extra.verbosity_level"] = value
+        ctx.meta["click_extra.verbosity_level"] = level
 
         for logger in self.all_loggers:
-            logger.setLevel(LOG_LEVELS[value])
-            getLogger("click_extra").debug(f"Set {logger} to {value}.")
+            logger.setLevel(level.value)
+            getLogger("click_extra").debug(f"Set {logger} to {level.name}.")
 
         ctx.call_on_close(self.reset_loggers)
 
@@ -445,7 +439,7 @@ class ExtraVerbosity(ExtraOption):
 class VerbosityOption(ExtraVerbosity):
     """``--verbosity`` option to set the the log level of :class:`ExtraVerbosity`."""
 
-    def set_level(self, ctx: Context, param: Parameter, value: str) -> None:
+    def set_level(self, ctx: Context, param: Parameter, value: LogLevel) -> None:
         """The value passed to ``--verbosity`` will be saved in
         ``ctx.meta["click_extra.verbosity"]``.
         """
@@ -456,10 +450,13 @@ class VerbosityOption(ExtraVerbosity):
         self,
         param_decls: Sequence[str] | None = None,
         default_logger: Logger | str = logging.root.name,
-        default: str = DEFAULT_LEVEL_NAME,
+        default: LogLevel = DEFAULT_LEVEL,
         metavar="LEVEL",
-        type=Choice(LOG_LEVELS, case_sensitive=False),
-        help=_("Either {log_levels}.").format(log_levels=", ".join(LOG_LEVELS)),
+        type=Choice(LogLevel, case_sensitive=False),
+        # type=Choice(LogLevel),
+        help=_("Either {log_levels}.").format(
+            log_levels=", ".join(LogLevel.__members__)
+        ),
         **kwargs,
     ) -> None:
         if not param_decls:
@@ -494,13 +491,13 @@ class VerboseOption(ExtraVerbosity):
       ``-vvvvv`` for example will be capped at ``DEBUG``.
     """
 
-    def get_base_level(self, ctx: Context) -> str:
+    def get_base_level(self, ctx: Context) -> LogLevel:
         """Returns the default base-level from which the option will start incrementing.
 
         We try first to get the default level from any instance of
         :class:`VerbosityOption` defined on the current command. If none is found, it's
         because the ``--verbose`` option is used standalone. In which case we defaults to
-        :const:`DEFAULT_LEVEL_NAME`.
+        :const:`DEFAULT_LEVEL`.
         """
         verbosity_option = search_params(
             ctx.command.params, VerbosityOption, include_subclasses=False
@@ -508,7 +505,7 @@ class VerboseOption(ExtraVerbosity):
         return (
             verbosity_option.default  # type: ignore[union-attr, return-value]
             if verbosity_option
-            else DEFAULT_LEVEL_NAME
+            else DEFAULT_LEVEL
         )
 
     def get_help_record(self, ctx: Context) -> tuple[str, str] | None:
@@ -523,8 +520,8 @@ class VerboseOption(ExtraVerbosity):
                 self,
                 "help",
                 (
-                    f"Increase the default {self.get_base_level(ctx)} verbosity by one "
-                    "level for each additional repetition of the option."
+                    f"Increase the default {self.get_base_level(ctx).name} verbosity "
+                    "by one level for each additional repetition of the option."
                 ),
             )
 
@@ -548,13 +545,13 @@ class VerboseOption(ExtraVerbosity):
         if value == 0:
             return
 
-        levels = tuple(LOG_LEVELS)
+        levels_rank = tuple(LogLevel)
         base_level = self.get_base_level(ctx)
-        default_level_index = levels.index(base_level)
+        default_level_index = levels_rank.index(base_level)
 
         # Cap new index to the last, verbosier level.
-        new_level_index = min(default_level_index + value, len(levels) - 1)
-        new_level = levels[new_level_index]
+        new_level_index = min(default_level_index + value, len(levels_rank) - 1)
+        new_level = levels_rank[new_level_index]
 
         super().set_level(ctx, param, new_level)
 
@@ -562,7 +559,7 @@ class VerboseOption(ExtraVerbosity):
         # to see it at DEBUG-level.
         getLogger("click_extra").debug(
             f"Increased log verbosity by {value} levels: "
-            f"from {base_level} to {new_level}."
+            f"from {base_level.name} to {new_level.name}."
         )
 
     def __init__(

@@ -28,10 +28,9 @@ from click_extra import echo
 from click_extra.decorators import extra_command, verbose_option, verbosity_option
 from click_extra.logging import (
     DEFAULT_LEVEL,
-    DEFAULT_LEVEL_NAME,
-    LOG_LEVELS,
     ExtraFormatter,
     ExtraStreamHandler,
+    LogLevel,
     new_extra_logger,
 )
 from click_extra.pytest import (
@@ -50,7 +49,13 @@ from .conftest import skip_windows_colors
 
 
 def test_level_default_order():
-    assert tuple(LOG_LEVELS) == ("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG")
+    assert tuple((level.name, level.value) for level in LogLevel) == (
+        ("CRITICAL", 50),
+        ("ERROR", 40),
+        ("WARNING", 30),
+        ("INFO", 20),
+        ("DEBUG", 10),
+    )
 
 
 def test_root_logger_defaults():
@@ -62,9 +67,9 @@ def test_root_logger_defaults():
     # Check root logger's level.
     assert logging.root.getEffectiveLevel() == logging.WARNING
     assert logging.root.level == logging.WARNING
-    assert logging.root.level == DEFAULT_LEVEL
+    assert logging.root.level == DEFAULT_LEVEL.value
     assert logging._levelToName[logging.root.level] == "WARNING"
-    assert logging._levelToName[logging.root.level] == DEFAULT_LEVEL_NAME
+    assert logging._levelToName[logging.root.level] == DEFAULT_LEVEL.name
 
 
 @pytest.mark.parametrize(
@@ -246,16 +251,16 @@ def test_unrecognized_verbosity_level(invoke, cmd_decorator, cmd_type):
 @pytest.mark.parametrize(
     ("args", "expected_level"),
     (
-        (None, "WARNING"),
-        (("--verbosity", "CRITICAL"), "CRITICAL"),
-        (("--verbosity", "ERROR"), "ERROR"),
-        (("--verbosity", "WARNING"), "WARNING"),
-        (("--verbosity", "INFO"), "INFO"),
-        (("--verbosity", "DEBUG"), "DEBUG"),
-        (("-v",), "INFO"),
-        (("-v", "-v"), "DEBUG"),
-        (("-v", "-v", "-v"), "DEBUG"),
-        (("-v", "-v", "-v", "-v", "-v", "-v"), "DEBUG"),
+        (None, LogLevel.WARNING),
+        (("--verbosity", "CRITICAL"), LogLevel.CRITICAL),
+        (("--verbosity", "ERROR"), LogLevel.ERROR),
+        (("--verbosity", "WARNING"), LogLevel.WARNING),
+        (("--verbosity", "INFO"), LogLevel.INFO),
+        (("--verbosity", "DEBUG"), LogLevel.DEBUG),
+        (("-v",), LogLevel.INFO),
+        (("-v", "-v"), LogLevel.DEBUG),
+        (("-v", "-v", "-v"), LogLevel.DEBUG),
+        (("-v", "-v", "-v", "-v", "-v", "-v"), LogLevel.DEBUG),
     ),
 )
 def test_standalone_option_default_logger(
@@ -311,22 +316,22 @@ def test_standalone_option_default_logger(
     assert isinstance(root_logger.handlers[0], ExtraStreamHandler)
     assert isinstance(root_logger.handlers[0].formatter, ExtraFormatter)
 
-    messages = (
-        (
+    messages = {
+        LogLevel.DEBUG: (
             r"\x1b\[34mdebug\x1b\[0m: my random message.\n"
             r"\x1b\[34mdebug\x1b\[0m: my debug message.\n"
         ),
-        r"info: my info message.\n",
-        r"\x1b\[33mwarning\x1b\[0m: my warning message.\n",
-        r"\x1b\[31merror\x1b\[0m: my error message.\n",
-        r"\x1b\[31m\x1b\[1mcritical\x1b\[0m: my critical message.\n",
-    )
-    level_index = {index: level for level, index in enumerate(LOG_LEVELS)}[
-        expected_level
-    ]
-    log_records = r"".join(messages[-level_index - 1 :])
+        LogLevel.INFO: r"info: my info message.\n",
+        LogLevel.WARNING: r"\x1b\[33mwarning\x1b\[0m: my warning message.\n",
+        LogLevel.ERROR: r"\x1b\[31merror\x1b\[0m: my error message.\n",
+        LogLevel.CRITICAL: r"\x1b\[31m\x1b\[1mcritical\x1b\[0m: my critical message.\n",
+    }
 
-    if expected_level == "DEBUG":
+    log_records = r"".join([
+        line for level, line in messages.items() if level >= expected_level
+    ])
+
+    if expected_level == LogLevel.DEBUG:
         log_start = default_debug_colored_logging
         if "-v" in args:
             log_start += default_debug_colored_verbose_log
