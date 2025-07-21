@@ -23,6 +23,7 @@ import re
 from collections.abc import Iterable
 from configparser import RawConfigParser
 from dataclasses import dataclass
+from enum import Enum
 from functools import cache
 from gettext import gettext as _
 from itertools import chain
@@ -365,7 +366,10 @@ class ExtraHelpColorsMixin:  # (Command)??
             options.update(param.secondary_opts)
 
             if isinstance(param.type, Choice):
-                choices.update(param.type.choices)
+                choices.update(
+                    i.name if isinstance(i, Enum) else str(i)
+                    for i in param.type.choices
+                )
 
             metavars.add(param.make_metavar(ctx=ctx))
 

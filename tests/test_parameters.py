@@ -49,6 +49,8 @@ from click_extra.decorators import extra_command, extra_group, show_params_optio
 from click_extra.parameters import ShowParamsOption
 from click_extra.pytest import command_decorators
 
+from .test_colorize import HashType
+
 
 class Custom(ParamType):
     """A dummy custom type."""
@@ -80,6 +82,8 @@ def test_params_auto_types(invoke, option_decorator):
     @option("--file-param", type=File())
     @option("--path-param", type=click.Path())
     @option("--choice-param", type=Choice(("a", "b", "c")))
+    @option("--number-choice", type=Choice([1, 2, 3]))
+    @option("--hash-type", type=Choice(HashType))
     @option("--int-range-param", type=IntRange())
     @option("--count-param", count=True)  # See issue #170.
     @option("--float-range-param", type=FloatRange())
@@ -107,6 +111,8 @@ def test_params_auto_types(invoke, option_decorator):
         file_param,
         path_param,
         choice_param,
+        number_choice,
+        hash_type,
         int_range_param,
         count_param,
         float_range_param,
@@ -151,6 +157,8 @@ def test_params_auto_types(invoke, option_decorator):
             "path_param": None,
             "show_params": None,
             "choice_param": None,
+            "number_choice": None,
+            "hash_type": None,
             "int_range_param": None,
             "count_param": None,
             "float_range_param": None,
@@ -182,6 +190,8 @@ def test_params_auto_types(invoke, option_decorator):
             "path_param": str,
             "show_params": bool,
             "choice_param": str,
+            "number_choice": str,
+            "hash_type": str,
             "int_range_param": int,
             "count_param": int,
             "float_range_param": float,

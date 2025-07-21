@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+from enum import Enum, auto
 from textwrap import dedent
 
 import click
@@ -108,6 +109,12 @@ def test_extra_theme():
     second_theme = new_theme.with_(choice=Style(fg=Color.magenta))
     assert second_theme == new_theme
     assert second_theme is new_theme
+
+
+class HashType(Enum):
+    MD5 = auto()
+    SHA1 = auto()
+    BCRYPT = auto()
 
 
 @pytest.mark.parametrize(
@@ -309,6 +316,60 @@ def test_extra_theme():
                 + ", APT (not aptitude or apt_mint) and"
                 + " "
                 + theme.choice("brew")
+                + ".",
+            ),
+        ),
+        (
+            # Integer choices.
+            ExtraOption(
+                ["--number-choice"],
+                type=click.Choice([1, 2, 3]),
+                help="1, 2 (not 10, 01, 222 or 3333) and 3.",
+            ),
+            (
+                " "
+                + theme.option("--number-choice")
+                + " "
+                + "["
+                + theme.choice("1")
+                + "|"
+                + theme.choice("2")
+                + "|"
+                + theme.choice("3")
+                + "] ",
+                " "
+                + theme.choice("1")
+                + ", "
+                + theme.choice("2")
+                + " (not 10, 01, 222 or 3333) and "
+                + theme.choice("3")
+                + ".",
+            ),
+        ),
+        (
+            # Enum choices.
+            ExtraOption(
+                ["--hash-type"],
+                type=click.Choice(HashType),
+                help="MD5, SHA1 (not SHA128 or SHA1024) and BCRYPT.",
+            ),
+            (
+                " "
+                + theme.option("--hash-type")
+                + " "
+                + "["
+                + theme.choice("MD5")
+                + "|"
+                + theme.choice("SHA1")
+                + "|"
+                + theme.choice("BCRYPT")
+                + "] ",
+                " "
+                + theme.choice("MD5")
+                + ", "
+                + theme.choice("SHA1")
+                + " (not SHA128 or SHA1024) and "
+                + theme.choice("BCRYPT")
                 + ".",
             ),
         ),
