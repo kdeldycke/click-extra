@@ -89,7 +89,7 @@ def test_params_auto_types(invoke, option_decorator):
     @option("--count-param", count=True)  # See issue #170.
     @option("--float-range-param", type=FloatRange())
     @option("--datetime-param", type=DateTime())
-    @option("--custom-param", type=Custom())
+    @option("--custom-param", type=Custom())  # See issue #721.
     @option("--tuple1", nargs=2, type=Tuple([str, int]))
     @option("--list1", multiple=True)
     @option("--hidden-param", hidden=True)  # See issue #689.
