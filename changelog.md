@@ -6,6 +6,7 @@
 > This version is not released yet and is under active development.
 
 - Support non-string choices in colored help screens. Closes {issue}`1284`.
+- Fix rendering of default values in `--show-params` output.
 - Fix reconciliation of flags' environment variables.
 - Force requirement on `cloup >= 3.0.7`.
 

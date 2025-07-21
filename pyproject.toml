@@ -66,10 +66,11 @@ dependencies = [
     # Investigation of the root cause is being discussed upstream at:
     # https://github.com/mahmoud/boltons/issues/334
     "boltons ~= 25.0.0",
-    # XXX We need upcoming Click release to fix flag normalization.
-    # See: https://github.com/pallets/click/pull/2956
+    # XXX We need upcoming Click release to fix flag normalization and Enum default value:
+    # https://github.com/pallets/click/pull/2956
+    # https://github.com/pallets/click/pull/3004
     # "click ~= 8.2.2",
-    "click @ git+https://github.com/pallets/click.git@stable",
+    "click @ git+https://github.com/kdeldycke/click.git@fix-enum-default-rendering",
     # Cloup 3.0.7 fix issues with metavars: https://github.com/kdeldycke/click-extra/pull/1281
     "cloup ~= 3.0.7",
     "extra-platforms >= 3.1.0",

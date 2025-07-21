@@ -58,7 +58,8 @@ class Custom(ParamType):
     name = "Custom"
 
     def convert(self, value, param, ctx):
-        assert isinstance(value, str)
+        if value is not None:
+            assert isinstance(value, str)
         return value
 
 
@@ -326,8 +327,8 @@ def test_integrated_show_params_option(invoke, create_config):
             "✘",
             "SHOW_PARAMS_CLI_CONFIG",
             (
-                f"{Path(get_app_dir('show-params-cli')).resolve()}{sep}"
-                "*.{toml,yaml,yml,json,ini,xml}"
+                f"'{Path(get_app_dir('show-params-cli')).resolve()}{sep}"
+                "*.{toml,yaml,yml,json,ini,xml}'"
             ),
             str(conf_path),
             "COMMANDLINE",
