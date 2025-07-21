@@ -117,7 +117,7 @@ typing = [
     "types-xmltodict ~= 0.14.0.20241009",
 ]
 docs = [
-    "furo ~= 2024.8.6",
+    "furo ~= 2025.7.19",
     "myst-parser ~= 4.0.0",
     # Sphinx 8 is the first version to drop Python 3.10.
     "sphinx ~= 8.2.3",
