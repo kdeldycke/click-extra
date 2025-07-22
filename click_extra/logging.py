@@ -528,12 +528,7 @@ class VerboseOption(ExtraVerbosity):
         with help_message_patch:
             return super().get_help_record(ctx)
 
-    def set_level(
-        self,
-        ctx: Context,
-        param: Parameter,
-        value: int,  # type: ignore[override]
-    ) -> None:
+    def set_level(self, ctx: Context, param: Parameter, value: int) -> None:
         """Translate the number of steps to the target log level.
 
         The value passed to ``--verbose``/``-v`` will be saved in
