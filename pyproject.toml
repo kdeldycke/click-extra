@@ -70,7 +70,7 @@ dependencies = [
     # https://github.com/pallets/click/pull/2956
     # https://github.com/pallets/click/pull/3004
     # "click ~= 8.2.2",
-    "click @ git+https://github.com/kdeldycke/click.git@fix-enum-default-rendering",
+    "click @ git+https://github.com/pallets/click.git@stable",
     # Cloup 3.0.7 fix issues with metavars: https://github.com/kdeldycke/click-extra/pull/1281
     "cloup ~= 3.0.7",
     "extra-platforms >= 3.1.0",

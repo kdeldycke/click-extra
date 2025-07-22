@@ -177,7 +177,7 @@ typing = [
 [package.metadata]
 requires-dist = [
     { name = "boltons", specifier = "~=25.0.0" },
-    { name = "click", git = "https://github.com/kdeldycke/click.git?rev=fix-enum-default-rendering" },
+    { name = "click", git = "https://github.com/pallets/click.git?rev=stable" },
     { name = "cloup", specifier = "~=3.0.7" },
     { name = "coverage", extras = ["toml"], marker = "extra == 'test'", specifier = "~=7.9.1" },
     { name = "extra-platforms", specifier = ">=3.1.0" },
