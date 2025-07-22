@@ -500,15 +500,15 @@ You can get the name of the current verbosity level from the context or the logg
 
         level_from_logger = logging._levelToName[logging.getLogger().getEffectiveLevel()]
 
-        echo(f"Level from context: {level_from_context}")
-        echo(f"Level from logger: {level_from_logger}")
+        echo(f"Level from context: {level_from_context!r}")
+        echo(f"Level from logger: {level_from_logger!r}")
 
 .. click:run::
    from textwrap import dedent
    result = invoke(vanilla_command, args=["--verbosity", "INFO"])
    assert dedent("""\
-      Level from context: INFO
-      Level from logger: INFO
+      Level from context: <LogLevel.INFO: 20>
+      Level from logger: 'INFO'
       """
    ) in result.output
 ```
