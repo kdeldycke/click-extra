@@ -3,6 +3,18 @@ revision = 2
 requires-python = ">=3.11"
 
 [[package]]
+name = "accessible-pygments"
+version = "0.0.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pygments" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/bc/c1/bbac6a50d02774f91572938964c582fff4270eee73ab822a4aeea4d8b11b/accessible_pygments-0.0.5.tar.gz", hash = "sha256:40918d3e6a2b619ad424cb91e556bd3bd8865443d9f22f1dcdf79e33c8046872", size = 1377899, upload-time = "2024-05-10T11:23:10.216Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8d/3f/95338030883d8c8b91223b4e21744b04d11b161a3ef117295d8241f50ab4/accessible_pygments-0.0.5-py3-none-any.whl", hash = "sha256:88ae3211e68a1d0b011504b2ffc1691feafce124b845bd072ab6f9f66f34d4b7", size = 1395903, upload-time = "2024-05-10T11:23:08.421Z" },
+]
+
+[[package]]
 name = "alabaster"
 version = "1.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -111,14 +123,14 @@ wheels = [
 [[package]]
 name = "click"
 version = "8.2.1"
-source = { git = "https://github.com/kdeldycke/click.git?rev=fix-enum-default-rendering#f2ae679984c3dfaa0c7639686cd793f59eb4d9b8" }
+source = { git = "https://github.com/pallets/click.git?rev=stable#eaf33a957975e7d0943fad8d2b4b905b6bd98cb9" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
 ]
 
 [[package]]
 name = "click-extra"
-version = "5.0.3"
+version = "5.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "boltons" },
@@ -182,7 +194,7 @@ requires-dist = [
     { name = "coverage", extras = ["toml"], marker = "extra == 'test'", specifier = "~=7.9.1" },
     { name = "extra-platforms", specifier = ">=3.1.0" },
     { name = "extra-platforms", extras = ["pytest"], marker = "extra == 'test'", specifier = ">=3.1.0" },
-    { name = "furo", marker = "extra == 'docs'", specifier = "~=2024.8.6" },
+    { name = "furo", marker = "extra == 'docs'", specifier = "~=2025.7.19" },
     { name = "mergedeep", specifier = "~=1.3.4" },
     { name = "myst-parser", marker = "extra == 'docs'", specifier = "~=4.0.0" },
     { name = "pygments", marker = "extra == 'pygments'", specifier = "~=2.14" },
@@ -334,17 +346,18 @@ pytest = [
 
 [[package]]
 name = "furo"
-version = "2024.8.6"
+version = "2025.7.19"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "accessible-pygments" },
     { name = "beautifulsoup4" },
     { name = "pygments" },
     { name = "sphinx" },
     { name = "sphinx-basic-ng" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a0/e2/d351d69a9a9e4badb4a5be062c2d0e87bd9e6c23b5e57337fef14bef34c8/furo-2024.8.6.tar.gz", hash = "sha256:b63e4cee8abfc3136d3bc03a3d45a76a850bada4d6374d24c1716b0e01394a01", size = 1661506, upload-time = "2024-08-06T08:07:57.567Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d0/69/312cd100fa45ddaea5a588334d2defa331ff427bcb61f5fe2ae61bdc3762/furo-2025.7.19.tar.gz", hash = "sha256:4164b2cafcf4023a59bb3c594e935e2516f6b9d35e9a5ea83d8f6b43808fe91f", size = 1662054, upload-time = "2025-07-19T10:52:09.754Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/27/48/e791a7ed487dbb9729ef32bb5d1af16693d8925f4366befef54119b2e576/furo-2024.8.6-py3-none-any.whl", hash = "sha256:6cd97c58b47813d3619e63e9081169880fbe331f0ca883c871ff1f3f11814f5c", size = 341333, upload-time = "2024-08-06T08:07:54.44Z" },
+    { url = "https://files.pythonhosted.org/packages/3a/34/2b07b72bee02a63241d654f5d8af87a2de977c59638eec41ca356ab915cd/furo-2025.7.19-py3-none-any.whl", hash = "sha256:bdea869822dfd2b494ea84c0973937e35d1575af088b6721a29c7f7878adc9e3", size = 342175, upload-time = "2025-07-19T10:52:02.399Z" },
 ]
 
 [[package]]
@@ -897,11 +910,11 @@ wheels = [
 
 [[package]]
 name = "types-docutils"
-version = "0.21.0.20250715"
+version = "0.21.0.20250722"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/1c/22/95cc688902751d289df35012b7a80257ecc77aa7fba8558431776d3f9bb6/types_docutils-0.21.0.20250715.tar.gz", hash = "sha256:f7beb7d136cfbbc456e4a33f45eb367c7a5338b591c57a6555c821f85238a7fb", size = 44342, upload-time = "2025-07-15T03:23:20.22Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9d/be/77ad89d7e45eb9fb2be7279ccb9bdbe6a9b406fb50e2fb19e83e26ef6880/types_docutils-0.21.0.20250722.tar.gz", hash = "sha256:0dcb4d8110a145ba5f9c77be47cfc03b55387f7bd53ba2964eb0a830ecb1b4a9", size = 54539, upload-time = "2025-07-22T03:22:28.291Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b4/06/48dd8ab72d7abc4cf1caa7619cd978ff7c4f5217dd08d413cbc640c46769/types_docutils-0.21.0.20250715-py3-none-any.whl", hash = "sha256:f254ab9aa46cfd4dce07034dc224db25a55452380ed3df156d9ce5589811c261", size = 73240, upload-time = "2025-07-15T03:23:18.903Z" },
+    { url = "https://files.pythonhosted.org/packages/05/fb/388549a782216409bbc80b9e2fcf9d112c1ef5fbead7b3d1b831b2d0ac0f/types_docutils-0.21.0.20250722-py3-none-any.whl", hash = "sha256:503099715fcb3530ba09a27b953d86e639211c6cd0498a153300b2655c3b616c", size = 88991, upload-time = "2025-07-22T03:22:27.265Z" },
 ]
 
 [[package]]
