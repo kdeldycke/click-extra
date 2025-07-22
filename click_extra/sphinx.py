@@ -81,7 +81,7 @@ import subprocess
 import sys
 import tempfile
 from functools import partial
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import click
 from click.testing import EchoingStdin
@@ -93,6 +93,10 @@ from sphinx.highlighting import PygmentsBridge
 
 from .pygments import AnsiHtmlFormatter
 from .testing import ExtraCliRunner
+
+if TYPE_CHECKING:
+    from docutils import nodes
+    from sphinx.application import Sphinx
 
 
 class EofEchoingStdin(EchoingStdin):
@@ -260,12 +264,12 @@ class ExampleRunner(ExtraCliRunner):
         )
         return buffer
 
-    def close(self):
+    def close(self) -> None:
         """Clean up the runner once the document has been read."""
         pass
 
 
-def get_example_runner(document):
+def get_example_runner(document: nodes.document) -> ExampleRunner:
     """Get or create the :class:`ExampleRunner` instance associated with
     a document.
     """
@@ -288,7 +292,7 @@ class DeclareExampleDirective(Directive):
     optional_arguments = 0
     final_argument_whitespace = False
 
-    def run(self):
+    def run(self) -> list[nodes.Node]:
         doc = ViewList()
         runner = get_example_runner(self.state.document)
 
@@ -324,7 +328,7 @@ class RunExampleDirective(Directive):
     optional_arguments = 0
     final_argument_whitespace = False
 
-    def run(self):
+    def run(self) -> list[nodes.Node]:
         doc = ViewList()
         runner = get_example_runner(self.state.document)
 
@@ -361,13 +365,13 @@ class ClickDomain(Domain):
         "run": RunExampleDirective,
     }
 
-    def merge_domaindata(self, docnames, otherdata):
+    def merge_domaindata(self, docnames: set[str], otherdata: dict[str, Any]) -> None:
         # Needed to support parallel build.
         # Not using self.data -- nothing to merge.
         pass
 
 
-def delete_example_runner_state(app, doctree):
+def delete_example_runner_state(app: Sphinx, doctree: nodes.document) -> None:
     """Close and remove the :class:`ExampleRunner` instance once the
     document has been read.
     """
@@ -378,7 +382,7 @@ def delete_example_runner_state(app, doctree):
         del doctree.click_example_runner
 
 
-def setup(app: Any) -> None:
+def setup(app: Sphinx) -> None:
     """Register new directives, augmented with ANSI coloring.
 
     .. danger::
