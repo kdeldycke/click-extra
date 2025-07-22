@@ -123,7 +123,7 @@ wheels = [
 [[package]]
 name = "click"
 version = "8.2.1"
-source = { git = "https://github.com/pallets/click.git?rev=stable#eaf33a957975e7d0943fad8d2b4b905b6bd98cb9" }
+source = { git = "https://github.com/pallets/click.git?rev=stable#44fd6394b72c1186feae31e793cd1196e1024fe2" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
 ]
