@@ -225,13 +225,13 @@ class ExampleRunner(ExtraCliRunner):
         output_lines.extend(result.output.splitlines())
         return result
 
-    def declare_example(self, source):
+    def declare_example(self, source_code: str, location: str) -> None:
         """Execute the given code, adding it to the runner's namespace."""
         with patch_modules():
-            code = compile(source, "<docs>", "exec")
+            code = compile(source_code, location, "exec")
             exec(code, self.namespace)
 
-    def run_example(self, source):
+    def run_example(self, source_code: str, location: str) -> None:
         """Run commands by executing the given code, returning the lines
         of input and output. The code should be a series of the
         following functions:
@@ -242,7 +242,7 @@ class ExampleRunner(ExtraCliRunner):
         *   :meth:`isolated_filesystem`: A context manager that changes
             to a temporary directory while executing the block.
         """
-        code = compile(source, "<docs>", "exec")
+        code = compile(source_code, location, "exec")
         buffer = []
         invoke = partial(self.invoke, _output_lines=buffer)
 
@@ -293,7 +293,10 @@ class DeclareExampleDirective(Directive):
         runner = get_example_runner(self.state.document)
 
         try:
-            runner.declare_example("\n".join(self.content))
+            location = "{0}:line {1}".format(
+                *self.state_machine.get_source_and_line(self.lineno)
+            )
+            runner.declare_example("\n".join(self.content), location)
         except BaseException:
             runner.close()
             raise
@@ -326,7 +329,10 @@ class RunExampleDirective(Directive):
         runner = get_example_runner(self.state.document)
 
         try:
-            rv = runner.run_example("\n".join(self.content))
+            location = "{0}:line {1}".format(
+                *self.state_machine.get_source_and_line(self.lineno)
+            )
+            rv = runner.run_example("\n".join(self.content), location)
         except BaseException:
             runner.close()
             raise
@@ -343,9 +349,9 @@ class RunExampleDirective(Directive):
 
 
 class ClickDomain(Domain):
-    """Declares new directives:
-    - ``.. click:example::``
-    - ``.. click:run::``
+    """Setup new directives:
+    - ``.. click:example::`` which renders a ``.. code-block::`` with ``python`` dialect
+    - ``.. click:run::`` which renders a ``.. code-block::`` with ``ansi-shell-session`` dialect
     """
 
     name = "click"

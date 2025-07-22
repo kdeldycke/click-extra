@@ -11,6 +11,7 @@
 - Fix rendering of default values in `--show-params` output.
 - Fix reconciliation of flags' environment variables.
 - Force requirement on `cloup >= 3.0.7`.
+- Be more informative when error is found in `.. click:example::` and `.. click:run::` Sphinx directives by displaying the path of the original document and the line number of the error.
 
 ## [5.0.2 (2025-05-31)](https://github.com/kdeldycke/click-extra/compare/v5.0.1...v5.0.2)
 
