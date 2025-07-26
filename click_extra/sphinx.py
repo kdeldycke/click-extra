@@ -91,12 +91,14 @@ from docutils.statemachine import ViewList
 from sphinx.domains import Domain
 from sphinx.highlighting import PygmentsBridge
 
+from . import __version__
 from .pygments import AnsiHtmlFormatter
 from .testing import ExtraCliRunner
 
 if TYPE_CHECKING:
     from docutils import nodes
     from sphinx.application import Sphinx
+    from sphinx.util.typing import ExtensionMetadata
 
 
 class EofEchoingStdin(EchoingStdin):
@@ -365,10 +367,6 @@ class ClickDomain(Domain):
         "run": RunExampleDirective,
     }
 
-    def merge_domaindata(self, docnames: set[str], otherdata: dict[str, Any]) -> None:
-        # Needed to support parallel build.
-        # Not using self.data -- nothing to merge.
-        pass
 
 
 def delete_example_runner_state(app: Sphinx, doctree: nodes.document) -> None:
@@ -382,7 +380,7 @@ def delete_example_runner_state(app: Sphinx, doctree: nodes.document) -> None:
         del doctree.click_example_runner
 
 
-def setup(app: Sphinx) -> None:
+def setup(app: Sphinx) -> ExtensionMetadata:
     """Register new directives, augmented with ANSI coloring.
 
     .. danger::
@@ -398,3 +396,9 @@ def setup(app: Sphinx) -> None:
     # Register directives to Sphinx.
     app.add_domain(ClickDomain)
     app.connect("doctree-read", delete_example_runner_state)
+
+    return {
+        "version": __version__,
+        "parallel_read_safe": True,
+        "parallel_write_safe": True,
+    }
