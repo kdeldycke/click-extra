@@ -81,7 +81,7 @@ import subprocess
 import sys
 import tempfile
 from functools import partial
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import click
 from click.testing import EchoingStdin
@@ -366,7 +366,6 @@ class ClickDomain(Domain):
         "example": DeclareExampleDirective,
         "run": RunExampleDirective,
     }
-
 
 
 def delete_example_runner_state(app: Sphinx, doctree: nodes.document) -> None:
