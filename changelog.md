@@ -1,9 +1,11 @@
 # Changelog
 
-## [5.1.0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v5.0.2...main)
+## [5.1.1 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v5.1.0...main)
 
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
+
+## [5.1.0 (2025-07-26)](https://github.com/kdeldycke/click-extra/compare/v5.0.2...v5.1.0)
 
 - Support non-string choices in colored help screens. Closes {issue}`1284`.
 - Replace `LOG_LEVELS` mapping with `LogLevel` enum.
