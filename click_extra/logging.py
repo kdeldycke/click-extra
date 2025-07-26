@@ -59,8 +59,8 @@ class LogLevel(IntEnum):
         - :data:`WARNING <logging.NOTSET>`, which is considered internal
         - ``WARN``, which :meth:`is obsolete <logging.Logger.warning>`
         - ``FATAL``, which `shouldn't be used <https://github.com/python/cpython/issues/85013>`_
-        and has been `replaced by CRITICAL
-        <https://github.com/python/cpython/blob/8597be46135a0f4a53e99dade67724bbb8e3c1c9/Lib/logging/__init__.py#L2148-L2152>`_
+          and has been `replaced by CRITICAL
+          <https://github.com/python/cpython/blob/8597be46135a0f4a53e99dade67724bbb8e3c1c9/Lib/logging/__init__.py#L2148-L2152>`_
     """
 
     CRITICAL = logging.CRITICAL
