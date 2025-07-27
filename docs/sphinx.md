@@ -15,7 +15,10 @@ $ pip install click_extra[sphinx]
 Once [Click Extra is installed](install.md), you can enable its [extensions](https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-extensions) in your Sphinx's `conf.py`:
 
 ```python
-extensions = ["click_extra.sphinx", ...]
+extensions = [
+    ...
+    "click_extra.sphinx",
+]
 ```
 
 ## Click directives
