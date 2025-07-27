@@ -270,9 +270,12 @@ class ClickDirective(Directive):
     render_results: bool = True
     """Whether to render the results of the example in a code block."""
 
-    def example_runner(self) -> ExampleRunner:
+    @property
+    def runner(self) -> ExampleRunner:
         """Get or create the :class:`ExampleRunner` instance associated with
         a document.
+
+        Creates one runner per document.
         """
         runner = getattr(self.state.document, "click_example_runner", None)
         if runner is None:
@@ -281,17 +284,20 @@ class ClickDirective(Directive):
 
     def run(self) -> list[nodes.Node]:
         doc = ViewList()
-        runner = self.example_runner()
 
         location = "{0}:line {1}".format(
             *self.state_machine.get_source_and_line(self.lineno)
         )
-        run_func = runner.run_example if self.render_results else runner.declare_example
+        run_func = (
+            self.runner.run_example
+            if self.render_results
+            else self.runner.declare_example
+        )
 
         try:
             results = run_func("\n".join(self.content), location)
         except BaseException:
-            runner.close()
+            self.runner.close()
             raise
 
         doc.append(f".. code-block:: {self.code_block_dialect}", "")
