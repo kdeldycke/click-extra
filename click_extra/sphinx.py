@@ -371,12 +371,11 @@ def delete_example_runner_state(app: Sphinx, doctree: nodes.document) -> None:
 def setup(app: Sphinx) -> ExtensionMetadata:
     """Register new directives, augmented with ANSI coloring.
 
-    .. danger::
+    .. caution::
         This function activates some monkey-patches:
 
         - ``sphinx.highlighting.PygmentsBridge`` is updated to set its default HTML
           formatter to an ANSI capable one for the whole Sphinx app.
-
     """
     # Set Sphinx's default HTML formatter to an ANSI capable one.
     PygmentsBridge.html_formatter = AnsiHtmlFormatter
