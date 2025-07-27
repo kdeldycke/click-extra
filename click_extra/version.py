@@ -189,7 +189,7 @@ class ExtraVersionOption(ExtraOption):
             frame = frame_info.frame
 
             # Get the current package name from the frame's globals.
-            frame_name = frame.f_globals["__name__"]
+            frame_name = frame.f_globals.get("__name__")
 
             # Get the current function name.
             func_name = frame_info.function
@@ -222,9 +222,6 @@ class ExtraVersionOption(ExtraOption):
                 "click",
             )):
                 continue
-
-            # We found the frame where the CLI is implemented.
-            return frame
 
         # Our heuristics to locate the CLI implementation failed.
         logger = logging.getLogger("click_extra")
