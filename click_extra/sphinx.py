@@ -62,7 +62,7 @@ try:
     import sphinx  # noqa: F401
 except ImportError:
     raise ImportError(
-        "You need to install click_extra[sphinx] extra dependencies to use this module."
+        "You need to install click_extra[sphinx] dependency group to use this module."
     )
 
 import contextlib
