@@ -15,17 +15,6 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Helpers and utilities for Sphinx rendering of CLI based on Click Extra.
 
-.. danger::
-    This module is quite janky but does the job. Still, it would benefits from a total
-    clean rewrite. This would require a better understanding of Sphinx, Click and MyST
-    internals. And as a side effect will eliminate the dependency on
-    ``pallets_sphinx_themes``.
-
-    If you're up to the task, you can try to refactor it. I'll probably start by moving
-    the whole ``pallets_sphinx_themes.themes.click.domain`` code here, merge it with
-    the local collection of monkey-patches below, then clean the whole code to make it
-    more readable and maintainable. And finally, address all the todo-list below.
-
 .. todo::
     Add support for plain MyST directives to remove the need of wrapping rST into an
     ``{eval-rst}`` block. Ideally, this would allow for the following simpler syntax in
@@ -62,8 +51,9 @@
 
     Compared to the latter, it:
 
-    - Forces the rendering of CLI results into ANSI shell sessions, via the
-      ``.. code-block:: ansi-shell-session`` directive.
+    - Adds rendering of ANSI codes in CLI results.
+    - Has better error handling and reporting which helps you pinpoint the failing
+      code in your documentation.
 """
 
 from __future__ import annotations
@@ -81,7 +71,7 @@ import subprocess
 import sys
 import tempfile
 from functools import partial
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import click
 from click.testing import EchoingStdin
@@ -271,93 +261,91 @@ class ExampleRunner(ExtraCliRunner):
         pass
 
 
-def get_example_runner(document: nodes.document) -> ExampleRunner:
-    """Get or create the :class:`ExampleRunner` instance associated with
-    a document.
-    """
-    runner = getattr(document, "click_example_runner", None)
-    if runner is None:
-        runner = document.click_example_runner = ExampleRunner()
-    return runner
-
-
-class DeclareExampleDirective(Directive):
-    """Add the source contained in the directive's content to the
-    document's :class:`ExampleRunner`, to be run using
-    :class:`RunExampleDirective`.
-
-    See :meth:`ExampleRunner.declare_example`.
-    """
-
+class ClickDirective(Directive):
     has_content = True
     required_arguments = 0
     optional_arguments = 0
     final_argument_whitespace = False
 
+    code_block_dialect: str
+    """Pygments dialect to use to render the code block."""
+
+    render_source: bool = True
+    """Whether to render the source code of the example in a code block."""
+    render_results: bool = True
+    """Whether to render the results of the example in a code block."""
+
+    def example_runner(self) -> ExampleRunner:
+        """Get or create the :class:`ExampleRunner` instance associated with
+        a document.
+        """
+        runner = getattr(self.state.document, "click_example_runner", None)
+        if runner is None:
+            runner = self.state.document.click_example_runner = ExampleRunner()
+        return runner
+
     def run(self) -> list[nodes.Node]:
         doc = ViewList()
-        runner = get_example_runner(self.state.document)
+        runner = self.example_runner()
+
+        location = "{0}:line {1}".format(
+            *self.state_machine.get_source_and_line(self.lineno)
+        )
+        run_func = runner.run_example if self.render_results else runner.declare_example
 
         try:
-            location = "{0}:line {1}".format(
-                *self.state_machine.get_source_and_line(self.lineno)
-            )
-            runner.declare_example("\n".join(self.content), location)
+            results = run_func("\n".join(self.content), location)
         except BaseException:
             runner.close()
             raise
 
-        doc.append(".. code-block:: python", "")
+        doc.append(f".. code-block:: {self.code_block_dialect}", "")
         doc.append("", "")
 
-        for line in self.content:
-            doc.append(" " + line, "")
+        if self.render_source:
+            for line in self.content:
+                doc.append(" " + line, "")
+
+        if self.render_results:
+            for line in results:
+                doc.append(" " + line, "")
 
         node = nodes.section()
         self.state.nested_parse(doc, self.content_offset, node)
         return node.children
 
 
-class RunExampleDirective(Directive):
-    """Run commands from :class:`DeclareExampleDirective` and display
-    the input and output.
+class DeclareExampleDirective(ClickDirective):
+    """Directive to declare a Click CLI example.
 
-    See :meth:`ExampleRunner.run_example`.
+    This directive is used to declare a Click CLI example in the
+    documentation. It renders the source code of the example in a
+    Python code block.
     """
 
-    has_content = True
-    required_arguments = 0
-    optional_arguments = 0
-    final_argument_whitespace = False
+    code_block_dialect = "python"
+    render_source = True
+    render_results = False
 
-    def run(self) -> list[nodes.Node]:
-        doc = ViewList()
-        runner = get_example_runner(self.state.document)
 
-        try:
-            location = "{0}:line {1}".format(
-                *self.state_machine.get_source_and_line(self.lineno)
-            )
-            rv = runner.run_example("\n".join(self.content), location)
-        except BaseException:
-            runner.close()
-            raise
+class RunExampleDirective(ClickDirective):
+    """Directive to run a Click CLI example.
 
-        doc.append(".. code-block:: ansi-shell-session", "")
-        doc.append("", "")
+    This directive is used to run a Click CLI example in the
+    documentation. It renders the results of running the example in a
+    shell session code block supporting ANSI colors.
+    """
 
-        for line in rv:
-            doc.append(" " + line, "")
-
-        node = nodes.section()
-        self.state.nested_parse(doc, self.content_offset, node)
-        return node.children
+    code_block_dialect = "ansi-shell-session"
+    render_source = False
+    render_results = True
 
 
 class ClickDomain(Domain):
-    """Setup new directives:
-    - ``.. click:example::`` which renders a ``.. code-block::`` with ``python`` dialect
-    - ``.. click:run::`` which renders a ``.. code-block::`` with ``ansi-shell-session`` dialect
+    """Setup new directives under the same ``.. click:`` namespace:
+
+    - ``.. click:example::`` which renders a Click CLI source code
+    - ``.. click:run::`` which renders the results of running a Click CLI
     """
 
     name = "click"
@@ -366,7 +354,6 @@ class ClickDomain(Domain):
         "example": DeclareExampleDirective,
         "run": RunExampleDirective,
     }
-
 
 
 def delete_example_runner_state(app: Sphinx, doctree: nodes.document) -> None:
