@@ -183,7 +183,7 @@ class ExampleRunner(ExtraCliRunner):
         env=None,
         _output_lines=None,
         **extra,
-    ):
+    ) -> click.testing.Result:
         """Like :meth:`CliRunner.invoke` but displays what the user
         would enter in the terminal for env vars, command args, and
         prompts.

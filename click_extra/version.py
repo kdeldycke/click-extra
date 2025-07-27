@@ -180,7 +180,7 @@ class ExtraVersionOption(ExtraOption):
         Returns the frame itself.
         """
         # Keep a list of all frames inspected for debugging.
-        frame_chain: list[tuple[str, str]] = []
+        frame_chain: list[tuple[str | None, str]] = []
 
         candidate: FrameType | None = None
 
@@ -215,7 +215,7 @@ class ExtraVersionOption(ExtraOption):
 
             # Skip the intermediate frames added by the `@cached_property` decorator
             # and the Click ecosystem.
-            if frame_name.split(".")[0].startswith((
+            if frame_name and frame_name.split(".")[0].startswith((
                 "functools",
                 "click_extra",
                 "cloup",
