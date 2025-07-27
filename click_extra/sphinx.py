@@ -234,7 +234,6 @@ class ExampleRunner(ExtraCliRunner):
 
         *   :meth:`invoke`: Invoke a command, adding env vars, input,
             and output to the output.
-        *   ``println(text="")``: Add a line of text to the output.
         *   :meth:`isolated_filesystem`: A context manager that changes
             to a temporary directory while executing the block.
         """
@@ -242,15 +241,11 @@ class ExampleRunner(ExtraCliRunner):
         buffer = []
         invoke = partial(self.invoke, _output_lines=buffer)
 
-        def println(text=""):
-            buffer.append(text)
-
         exec(
             code,
             self.namespace,
             {
                 "invoke": invoke,
-                "println": println,
                 "isolated_filesystem": self.isolated_filesystem,
             },
         )
