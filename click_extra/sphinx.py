@@ -227,7 +227,7 @@ class ExampleRunner(ExtraCliRunner):
             code = compile(source_code, location, "exec")
             exec(code, self.namespace)
 
-    def run_example(self, source_code: str, location: str) -> None:
+    def run_example(self, source_code: str, location: str) -> list[str]:
         """Run commands by executing the given code, returning the lines
         of input and output. The code should be a series of the
         following functions:
