@@ -177,10 +177,12 @@ class ExtraVersionOption(ExtraOption):
         Inspects the execution stack frames to find the package in which the user's CLI
         is implemented.
 
-        Returns the frame name, the frame itself, and the frame chain for debugging.
+        Returns the frame itself.
         """
         # Keep a list of all frames inspected for debugging.
         frame_chain: list[tuple[str, str]] = []
+
+        candidate: FrameType | None = None
 
         # Walk the execution stack from bottom to top.
         for frame_info in inspect.stack():
@@ -201,11 +203,24 @@ class ExtraVersionOption(ExtraOption):
                 frame.f_locals.get("self"),
                 click.testing.CliRunner,
             ):
-                pass
+                # Because click_extra.testing.ExtraCliRunner inherits from
+                # click.testing.CliRunner, we'd like to keep looking for candidate as
+                # long as the frame is an invoke() function of a CliRunner class.
+                candidate = frame
+                continue
+
+            # We found the top-most frame that is an invoke() function.
+            if candidate:
+                return candidate
 
             # Skip the intermediate frames added by the `@cached_property` decorator
             # and the Click ecosystem.
-            elif frame_name.startswith(("functools", "click_extra", "cloup", "click")):
+            if frame_name.split(".")[0].startswith((
+                "functools",
+                "click_extra",
+                "cloup",
+                "click",
+            )):
                 continue
 
             # We found the frame where the CLI is implemented.

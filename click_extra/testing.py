@@ -19,9 +19,7 @@ from __future__ import annotations
 
 import inspect
 import io
-import shlex
 import subprocess
-import sys
 from contextlib import nullcontext
 from functools import partial
 from pathlib import Path
@@ -32,11 +30,6 @@ from typing import (
     ContextManager,
     Iterable,
     Literal,
-    Mapping,
-    Optional,
-    Sequence,
-    Union,
-    cast,
 )
 from unittest.mock import patch
 
@@ -199,82 +192,6 @@ class ExtraCliRunner(click.testing.CliRunner):
         level.
     """
 
-    def invoke2(
-        self,
-        cli: click.core.Command,
-        args: str | Sequence[str] | None = None,
-        input: str | bytes | IO[Any] | None = None,
-        env: Mapping[str, str | None] | None = None,
-        catch_exceptions: bool = True,
-        color: bool = False,
-        **extra: Any,
-    ) -> click.testing.Result:
-        """Copy of ``click.testing.CliRunner.invoke()`` with extra ``<output>`` stream.
-
-        .. caution::
-            This is a hard-copy of the modified ``invoke()`` method `from click#2523 PR
-            <https://github.com/pallets/click/pull/2523/files#diff-b07fd6fad9f9ea8be5cbcbeaf34c956703b929b2de95c56229e77c328a7c6010>`_
-            which has not been merged upstream yet.
-
-        .. todo::
-            Reduce the code duplication here by using clever monkeypatching?
-        """
-        exc_info = None
-        with self.isolation(input=input, env=env, color=color) as outstreams:
-            return_value = None
-            exception: BaseException | None = None
-            exit_code = 0
-
-            if isinstance(args, str):
-                args = shlex.split(args)
-
-            try:
-                prog_name = extra.pop("prog_name")
-            except KeyError:
-                prog_name = self.get_default_prog_name(cli)
-
-            try:
-                return_value = cli.main(args=args or (), prog_name=prog_name, **extra)
-            except SystemExit as e:
-                exc_info = sys.exc_info()
-                e_code = cast(Optional[Union[int, Any]], e.code)
-
-                if e_code is None:
-                    e_code = 0
-
-                if e_code != 0:
-                    exception = e
-
-                if not isinstance(e_code, int):
-                    sys.stdout.write(str(e_code))
-                    sys.stdout.write("\n")
-                    e_code = 1
-
-                exit_code = e_code
-
-            except Exception as e:
-                if not catch_exceptions:
-                    raise
-                exception = e
-                exit_code = 1
-                exc_info = sys.exc_info()
-            finally:
-                sys.stdout.flush()
-                stdout = outstreams[0].getvalue()
-                stderr = outstreams[1].getvalue()
-                output = outstreams[2].getvalue()
-
-        return click.testing.Result(
-            runner=self,
-            stdout_bytes=stdout,
-            stderr_bytes=stderr,
-            output_bytes=output,
-            return_value=return_value,
-            exit_code=exit_code,
-            exception=exception,
-            exc_info=exc_info,  # type: ignore
-        )
-
     def invoke(  # type: ignore[override]
         self,
         cli: click.core.Command,
@@ -376,7 +293,7 @@ class ExtraCliRunner(click.testing.CliRunner):
             )
 
         with extra_params_bypass:
-            result = self.invoke2(
+            result = super().invoke(
                 cli=cli,
                 args=clean_args,
                 input=input,
