@@ -15,34 +15,6 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Helpers and utilities for Sphinx rendering of CLI based on Click Extra.
 
-.. todo::
-    Add support for plain MyST directives to remove the need of wrapping rST into an
-    ``{eval-rst}`` block. Ideally, this would allow for the following simpler syntax in
-    MyST:
-
-    .. code-block:: markdown
-
-        ```{click-example}
-        from click_extra import echo, extra_command, option, style
-
-        @extra_command
-        @option("--name", prompt="Your name", help="The person to greet.")
-        def hello_world(name):
-            "Simple program that greets NAME."
-            echo(f"Hello, {style(name, fg='red')}!")
-        ```
-
-    .. code-block:: markdown
-
-        ```{click-run}
-        invoke(hello_world, args=["--help"])
-        ```
-
-.. todo::
-    Fix the need to have both ``.. click:example::`` and ``.. click:run::`` directives
-    in the same ``{eval-rst}`` block in MyST. This is required to have both directives
-    shares states and context.
-
 .. seealso::
     These directives are based on `Pallets' Sphinx Themes
     <https://github.com/pallets/pallets-sphinx-themes/blob/main/src/pallets_sphinx_themes/themes/click/domain.py>`_,
@@ -51,6 +23,7 @@
 
     Compared to the latter, it:
 
+    - Add support for MyST syntax.
     - Adds rendering of ANSI codes in CLI results.
     - Has better error handling and reporting which helps you pinpoint the failing
       code in your documentation.
@@ -72,7 +45,7 @@ import shlex
 import subprocess
 import sys
 import tempfile
-from functools import partial
+from functools import cached_property, partial
 from typing import TYPE_CHECKING
 
 import click
@@ -88,7 +61,6 @@ from .pygments import AnsiHtmlFormatter
 from .testing import ExtraCliRunner
 
 if TYPE_CHECKING:
-    from docutils import nodes
     from sphinx.application import Sphinx
     from sphinx.util.typing import ExtensionMetadata
 
@@ -187,10 +159,10 @@ class ExampleRunner(ExtraCliRunner):
         **extra,
     ) -> click.testing.Result:
         """Like :meth:`CliRunner.invoke` but displays what the user
-        would enter in the terminal for env vars, command args, and
+        would enter in the terminal for env vars, command arguments, and
         prompts.
 
-        :param terminate_input: Whether to display "^D" after a list of
+        :param terminate_input: Whether to display ``^D`` after a list of
             input.
         :param _output_lines: A list used internally to collect lines to
             be displayed.
@@ -284,6 +256,11 @@ class ClickDirective(SphinxDirective):
             runner = self.state.document.click_example_runner = ExampleRunner()
         return runner
 
+    @cached_property
+    def is_myst_syntax(self) -> bool:
+        """Check if the current directive is written with MyST syntax."""
+        return self.state.__module__.split(".")[0] == "myst_parser"
+
     def run(self) -> list[nodes.Node]:
         doc = ViewList()
 
@@ -299,16 +276,31 @@ class ClickDirective(SphinxDirective):
             self.runner.close()
             raise
 
-        doc.append(f".. code-block:: {self.code_block_dialect}", "")
-        doc.append("", "")
+        # Write MyST code block.
+        if self.is_myst_syntax:
+            doc.append(f"```{self.code_block_dialect}", "")
+        # Write rST code block.
+        else:
+            doc.append(f".. code-block:: {self.code_block_dialect}", "")
+            doc.append("", "")
 
         if self.render_source:
             for line in self.content:
-                doc.append(" " + line, "")
+                # Indent the line in rST code block.
+                if not self.is_myst_syntax:
+                    line = " " + line
+                doc.append(line, "")
 
         if self.render_results:
             for line in results:
-                doc.append(" " + line, "")
+                # Indent the line in rST code block.
+                if not self.is_myst_syntax:
+                    line = " " + line
+                doc.append(line, "")
+
+        # In MyST, we need to close the code block.
+        if self.is_myst_syntax:
+            doc.append("```", "")
 
         node = nodes.section()
         self.state.nested_parse(doc, self.content_offset, node)
@@ -342,10 +334,10 @@ class RunExampleDirective(ClickDirective):
 
 
 class ClickDomain(Domain):
-    """Setup new directives under the same ``.. click:`` namespace:
+    """Setup new directives under the same ``click`` namespace:
 
-    - ``.. click:example::`` which renders a Click CLI source code
-    - ``.. click:run::`` which renders the results of running a Click CLI
+    - ``click:example`` which renders a Click CLI source code
+    - ``click:run`` which renders the results of running a Click CLI
     """
 
     name = "click"

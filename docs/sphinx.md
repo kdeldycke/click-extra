@@ -25,64 +25,35 @@ extensions = [
 
 Click Extra adds two new directives:
 
-- `.. click:example::` to display any Click-based Python code blocks in Sphinx (and renders like `.. code-block:: python`)
-- `.. click:run::` to invoke the CLI defined above, and display the results as if was executed in a terminmal (within a `.. code-block:: ansi-shell-session`)
+- `click:example` to display any Click-based Python code blocks in Sphinx
+- `click:run` to invoke the CLI defined above, and display the results as if was executed in a terminmal
 
 Thanks to these, you can directly demonstrate the usage of your CLI in your documentation. You no longer have to maintain screenshots of you CLIs. Or copy and paste their outputs to keep them in sync with the latest revision. Click Extra will do that job for you.
 
+These directives supports both [MyST Markdown](https://myst-parser.readthedocs.io) and [reStructuredText](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html) syntax.
+
 ### Usage
 
-Here is how to define a simple Click-based CLI with the `.. click:example::` directive:
+Here is how to define a simple Click-based CLI with the `click:example` directive:
 
 ``````{tab-set}
-`````{tab-item} Markdown (MyST)
+`````{tab-item} MyST Markdown
 :sync: myst
-
 ````markdown
-```{eval-rst}
-.. click:example::
-    from click_extra import echo, extra_command, option, style
+```{click:example}
+from click_extra import echo, extra_command, option, style
 
-    @extra_command
-    @option("--name", prompt="Your name", help="The person to greet.")
-    def hello_world(name):
-        """Simple program that greets NAME."""
-        echo(f"Hello, {style(name, fg='red')}!")
-```
-````
-
-After defining the CLI source code in the `.. click:example::` directive above, you can invoke it with the `.. click:run::` directive.
-
-For that, the `.. click:run::` directive expects a Python code block that uses the `invoke` function. This function is specifically designed to run Click-based CLIs and handle their execution and output.
-
-Here is how we invoke our example with a `--help` option:
-
-````markdown
-```{eval-rst}
-.. click:run::
-    invoke(hello_world, args=["--help"])
-```
-````
-
-```{attention}
-As you can see in the code blocks above, these directives are not recognized as-is by the MyST parser, so you need to wrap each of them into an `{eval-rst}` block.
-```
-
-````{warning}
-CLI states and references are lost as soon as an `{eval-rst}` block ends. If you need to run a `.. click:example::` definition multiple times, all its `.. click:run::` calls must happens within the same rST block.
-
-A symptom of that issue is the execution failing with tracebacks such as:
-```pytb
-Exception occurred:
-  File "<docs>", line 1, in <module>
-NameError: name 'hello_world' is not defined
+@extra_command
+@option("--name", prompt="Your name", help="The person to greet.")
+def hello_world(name):
+    """Simple program that greets NAME."""
+    echo(f"Hello, {style(name, fg='red')}!")
 ```
 ````
 `````
 
 `````{tab-item} reStructuredText
 :sync: rst
-
 ```rst
 .. click:example::
     from click_extra import echo, extra_command, option, style
@@ -93,13 +64,27 @@ NameError: name 'hello_world' is not defined
         """Simple program that greets NAME."""
         echo(f"Hello, {style(name, fg='red')}!")
 ```
+`````
+``````
 
-After defining the CLI source code in the `.. click:example::` directive above, you can invoke it with the `.. click:run::` directive.
+After defining the CLI source code in the `click:example` directive above, you can invoke it with the `click:run` directive.
 
-For that, the `.. click:run::` directive expects a Python code block that uses the `invoke` function. This function is specifically designed to run Click-based CLIs and handle their execution and output.
+The `click:run` directive expects a Python code block that uses the `invoke` function. This function is specifically designed to run Click-based CLIs and handle their execution and output.
 
 Here is how we invoke our example with a `--help` option:
 
+``````{tab-set}
+`````{tab-item} MyST Markdown
+:sync: myst
+````markdown
+```{click:run}
+invoke(hello_world, args=["--help"])
+```
+````
+`````
+
+`````{tab-item} reStructuredText
+:sync: rst
 ```rst
 .. click:run::
     invoke(hello_world, args=["--help"])
@@ -109,29 +94,31 @@ Here is how we invoke our example with a `--help` option:
 
 Placed in your Sphinx documentation, the two blocks above renders to:
 
-```{eval-rst}
-.. click:example::
-    from click_extra import echo, extra_command, option, style
+```{click:example}
+from click_extra import echo, extra_command, option, style
 
-    @extra_command
-    @option("--name", prompt="Your name", help="The person to greet.")
-    def hello_world(name):
-        """Simple program that greets NAME."""
-        echo(f"Hello, {style(name, fg='red')}!")
+@extra_command
+@option("--name", prompt="Your name", help="The person to greet.")
+def hello_world(name):
+    """Simple program that greets NAME."""
+    echo(f"Hello, {style(name, fg='red')}!")
+```
 
-.. click:run::
-    from textwrap import dedent
-    result = invoke(hello_world, args=["--help"])
-    assert result.stdout.startswith(dedent(
-        """\
-        \x1b[94m\x1b[1m\x1b[4mUsage:\x1b[0m \x1b[97mhello-world\x1b[0m \x1b[36m\x1b[2m[OPTIONS]\x1b[0m
+```{click:run}
+from textwrap import dedent
+result = invoke(hello_world, args=["--help"])
+print(repr(result.stdout))
+assert result.stdout.startswith(dedent(
+    """\
+    \x1b[94m\x1b[1m\x1b[4mUsage:\x1b[0m \x1b[97mhello-world\x1b[0m \x1b[36m\x1b[2m[OPTIONS]\x1b[0m
 
-          Simple program that greets NAME.
+      Simple program that greets NAME.
 
-        \x1b[94m\x1b[1m\x1b[4mOptions:\x1b[0m
-          \x1b[36m--name\x1b[0m \x1b[36m\x1b[2mTEXT\x1b[0m               The person to greet.
-          \x1b[36m--time\x1b[0m / \x1b[36m--no-time\x1b[0m        Measure and print elapsed execution time."""
-    ))
+    \x1b[94m\x1b[1m\x1b[4mOptions:\x1b[0m
+      \x1b[36m--name\x1b[0m \x1b[36m\x1b[2mTEXT\x1b[0m               The person to greet.
+      \x1b[36m--time\x1b[0m / \x1b[36m--no-time\x1b[0m        Measure and print elapsed execution time."""
+))
+```
 
 This is perfect for documentation, as it shows both the source code of the CLI and its results.
 
@@ -139,26 +126,40 @@ Notice how the CLI code is properly rendered as a Python code block with syntax 
 
 You can then invoke that CLI again with its ``--name`` option:
 
-.. code-block:: rst
+``````{tab-set}
+`````{tab-item} MyST Markdown
+:sync: myst
+````markdown
+```{click:run}
+invoke(hello_world, args=["--name", "Joe"])
+```
+````
+`````
 
-    .. click:run::
-        invoke(hello_world, args=["--name", "Joe"])
+`````{tab-item} reStructuredText
+:sync: rst
+```rst
+.. click:run::
+    invoke(hello_world, args=["--name", "Joe"])
+```
+`````
+``````
 
 Which renders in Sphinx like it was executed in a terminal block:
 
-.. click:run::
-    result = invoke(hello_world, args=["--name", "Joe"])
-    assert result.output == 'Hello, \x1b[31mJoe\x1b[0m!\n'
+```{click:run}
+result = invoke(hello_world, args=["--name", "Joe"])
+assert result.output == 'Hello, \x1b[31mJoe\x1b[0m!\n'
 ```
 
 ```{tip}
-`.. click:example::` and `.. click:run::` directives works well with standard vanilla `click`-based CLIs.
+`click:example` and `click:run` directives works well with standard vanilla `click`-based CLIs.
 
 In the example above, we choose to import our CLI primitives from the `click-extra` module instead, to demonstrate the coloring of terminal session outputs, as `click-extra` provides [fancy coloring of help screens](colorize.md) by default.
 ```
 
 ```{seealso}
-Click Extra's own documentation extensively use `.. click:example::` and `.. click:run::` directives. [Look around
+Click Extra's own documentation extensively use `click:example` and `lick:run` directives. [Look around
 in its Markdown source files](https://github.com/kdeldycke/click-extra/tree/main/docs) for advanced examples and
 inspiration.
 ```

@@ -5,13 +5,14 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Add support for MyST Markdown syntax for `click:example` and `click:run` Sphinx directives.
 - Support non-string choices in colored help screens. Closes {issue}`1284`.
 - Replace `LOG_LEVELS` mapping with `LogLevel` enum.
 - Remove `DEFAULT_LEVEL_NAME` constants.
 - Fix rendering of default values in `--show-params` output.
 - Fix reconciliation of flags' environment variables.
 - Force requirement on `cloup >= 3.0.7`.
-- Be more informative when error is found in `.. click:example::` and `.. click:run::` Sphinx directives by displaying the path of the original document and the line number of the error.
+- Be more informative when error is found in `click:example` and `click:run` Sphinx directives by displaying the path of the original document and the line number of the error.
 
 ## [5.0.2 (2025-05-31)](https://github.com/kdeldycke/click-extra/compare/v5.0.1...v5.0.2)
 
@@ -384,7 +385,7 @@
 ## [3.4.0 (2022-12-01)](https://github.com/kdeldycke/click-extra/compare/v3.3.4...v3.4.0)
 
 - Streamline setup of Sphinx extensions.
-- Document `.. click:example::` and `.. click:run::` Sphinx extensions.
+- Document `click:example` and `click:run` Sphinx extensions.
 
 ## [3.3.4 (2022-11-14)](https://github.com/kdeldycke/click-extra/compare/v3.3.3...v3.3.4)
 
@@ -478,7 +479,7 @@
 - New `extra_option_at_end` to `extra_command` to force position of all extra options (on by default).
 - Replace theme styles inherited from `click-log` by Python standard `logging` module. Adds `info` and removes `exception` styles.
 - Add a tutorial in documentation.
-- Add support for `.. click:example::` and `.. click:run::` directives in documentation.
+- Add support for `click:example` and `click:run` directives in documentation.
 - Add ANSI session and console lexers for Pygments.
 - Add a Pygments filter to transform tokens into ANSI tokens.
 - Add custom Pygment style to render ANSI tokens in `furo` theme.

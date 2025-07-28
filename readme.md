@@ -61,7 +61,7 @@ To undestrand how we ended up with the result above, [go read the tutorial](http
 - [Colored `--verbosity` option and logs](https://kdeldycke.github.io/click-extra/logging.html)
 - `--time`/`--no-time` flag to measure duration of command execution
 - Global `show_choices` to activate selection of choices on user input prompts
-- [`.. click:example::` and `.. click:run::` Sphinx directives](https://kdeldycke.github.io/click-extra/sphinx.html) to document CLI source code and their execution
+- [`click:example` and `click:run` Sphinx directives](https://kdeldycke.github.io/click-extra/sphinx.html) in MyST Markdown and reStructuredText to document CLI source code and their execution
 - [Inline testing of CLI examples](https://kdeldycke.github.io/click-extra/sphinx.html#inline-tests) in documentation
 - [ANSI-capable Pygments lexers](https://kdeldycke.github.io/click-extra/pygments.html#lexers) for shell session and console output
 - [Fixes 50+ bugs](https://kdeldycke.github.io/click-extra/issues.html) from other Click-related projects
