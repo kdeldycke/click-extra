@@ -44,7 +44,7 @@
     shares states and context.
 
 .. seealso::
-    This is based on `Pallets' Sphinx Themes
+    These directives are based on `Pallets' Sphinx Themes
     <https://github.com/pallets/pallets-sphinx-themes/blob/main/src/pallets_sphinx_themes/themes/click/domain.py>`_,
     `released under a BSD-3-Clause license
     <https://github.com/pallets/pallets-sphinx-themes/tree/main?tab=BSD-3-Clause-1-ov-file#readme>`_.
@@ -54,6 +54,8 @@
     - Adds rendering of ANSI codes in CLI results.
     - Has better error handling and reporting which helps you pinpoint the failing
       code in your documentation.
+    - Removes the ``println`` function which was used to explicitly print a blank
+      line. This is no longer needed as it is now handled natively.
 """
 
 from __future__ import annotations
@@ -232,10 +234,10 @@ class ExampleRunner(ExtraCliRunner):
         of input and output. The code should be a series of the
         following functions:
 
-        *   :meth:`invoke`: Invoke a command, adding env vars, input,
-            and output to the output.
-        *   :meth:`isolated_filesystem`: A context manager that changes
-            to a temporary directory while executing the block.
+        - :meth:`invoke`: Invoke a command, adding env vars, input,
+          and output to the output.
+        - :meth:`isolated_filesystem`: A context manager that changes
+          to a temporary directory while executing the block.
         """
         code = compile(source_code, location, "exec")
         buffer = []

@@ -30,16 +30,6 @@ Click Extra adds two new directives:
 
 Thanks to these, you can directly demonstrate the usage of your CLI in your documentation. You no longer have to maintain screenshots of you CLIs. Or copy and paste their outputs to keep them in sync with the latest revision. Click Extra will do that job for you.
 
-```{hint}
-These directives are [based on the official `Pallets-Sphinx-Themes`](https://github.com/pallets/pallets-sphinx-themes/blob/main/src/pallets_sphinx_themes/themes/click/domain.py) from Click's authors, but augmented with support for ANSI coloring. That way you can show off your user-friendly CLI in all its glory. 🌈
-```
-
-```{seealso}
-Click Extra's own documentation extensively use `.. click:example::` and `.. click:run::` directives. [Look around
-in its Markdown source files](https://github.com/kdeldycke/click-extra/tree/main/docs) for advanced examples and
-inspiration.
-```
-
 ### Usage
 
 Here is how to define a simple Click-based CLI with the `.. click:example::` directive:
@@ -47,9 +37,6 @@ Here is how to define a simple Click-based CLI with the `.. click:example::` dir
 ``````{tab-set}
 `````{tab-item} Markdown (MyST)
 :sync: myst
-```{attention}
-As you can see in the example below, these Click directives are not recognized as-is by the MyST parser, so you need to wrap them in `{eval-rst}` blocks.
-```
 
 ````markdown
 ```{eval-rst}
@@ -64,7 +51,11 @@ As you can see in the example below, these Click directives are not recognized a
 ```
 ````
 
-Thanks to the `.. click:run::` directive, we can invoke this CLI with its `--help` option:
+After defining the CLI source code in the `.. click:example::` directive above, you can invoke it with the `.. click:run::` directive.
+
+For that, the `.. click:run::` directive expects a Python code block that uses the `invoke` function. This function is specifically designed to run Click-based CLIs and handle their execution and output.
+
+Here is how we invoke our example with a `--help` option:
 
 ````markdown
 ```{eval-rst}
@@ -72,6 +63,10 @@ Thanks to the `.. click:run::` directive, we can invoke this CLI with its `--hel
     invoke(hello_world, args=["--help"])
 ```
 ````
+
+```{attention}
+As you can see in the code blocks above, these directives are not recognized as-is by the MyST parser, so you need to wrap each of them into an `{eval-rst}` block.
+```
 
 ````{warning}
 CLI states and references are lost as soon as an `{eval-rst}` block ends. If you need to run a `.. click:example::` definition multiple times, all its `.. click:run::` calls must happens within the same rST block.
@@ -99,7 +94,11 @@ NameError: name 'hello_world' is not defined
         echo(f"Hello, {style(name, fg='red')}!")
 ```
 
-Thanks to the `.. click:run::` directive, we can invoke this CLI with its `--help` option:
+After defining the CLI source code in the `.. click:example::` directive above, you can invoke it with the `.. click:run::` directive.
+
+For that, the `.. click:run::` directive expects a Python code block that uses the `invoke` function. This function is specifically designed to run Click-based CLIs and handle their execution and output.
+
+Here is how we invoke our example with a `--help` option:
 
 ```rst
 .. click:run::
@@ -136,7 +135,7 @@ Placed in your Sphinx documentation, the two blocks above renders to:
 
 This is perfect for documentation, as it shows both the source code of the CLI and its results.
 
-See for instance how the CLI code is properly rendered as a Python code block with syntax highlighting. And how the invocation of that CLI renders into a terminal session with ANSI coloring of output.
+Notice how the CLI code is properly rendered as a Python code block with syntax highlighting. And how the invocation of that CLI renders into a terminal session with ANSI coloring of output.
 
 You can then invoke that CLI again with its ``--name`` option:
 
@@ -158,11 +157,17 @@ Which renders in Sphinx like it was executed in a terminal block:
 In the example above, we choose to import our CLI primitives from the `click-extra` module instead, to demonstrate the coloring of terminal session outputs, as `click-extra` provides [fancy coloring of help screens](colorize.md) by default.
 ```
 
+```{seealso}
+Click Extra's own documentation extensively use `.. click:example::` and `.. click:run::` directives. [Look around
+in its Markdown source files](https://github.com/kdeldycke/click-extra/tree/main/docs) for advanced examples and
+inspiration.
+```
+
 ### Inline tests
 
 The `.. click:run::` directive can also be used to embed tests in your documentation.
 
-These blocks are Python code executed at build time, so you can use them to validate the behavior of your CLI. This allow you to catch regressions, outdated documentation or changes in terminal output.
+You can write tests in your documentation, and they will be executed at build time. This allows you to catch regressions early, and ensure that your documentation is always up-to-date with the latest version of your CLI, in the spirit of [`doctest`](https://docs.python.org/3/library/doctest.html) and [Docs as Tests](https://www.docsastests.com/docs-as-tests/concept/2024/01/09/intro-docs-as-tests.html).
 
 For example, here is a simple CLI:
 
