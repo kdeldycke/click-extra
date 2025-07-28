@@ -225,10 +225,6 @@ class ExampleRunner(ExtraCliRunner):
         )
         return buffer
 
-    def close(self) -> None:
-        """Clean up the runner once the document has been read."""
-        pass
-
 
 class ClickDirective(SphinxDirective):
     has_content = True
@@ -270,11 +266,7 @@ class ClickDirective(SphinxDirective):
             else self.runner.declare_example
         )
 
-        try:
-            results = run_func("\n".join(self.content), self.get_location())
-        except BaseException:
-            self.runner.close()
-            raise
+        results = run_func("\n".join(self.content), self.get_location())
 
         # Write MyST code block.
         if self.is_myst_syntax:
@@ -355,7 +347,6 @@ def delete_example_runner_state(app: Sphinx, doctree: nodes.document) -> None:
     runner = getattr(doctree, "click_example_runner", None)
 
     if runner is not None:
-        runner.close()
         del doctree.click_example_runner
 
 
