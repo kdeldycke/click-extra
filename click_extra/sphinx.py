@@ -78,8 +78,8 @@ from typing import TYPE_CHECKING
 import click
 from click.testing import EchoingStdin
 from docutils import nodes
-from docutils.parsers.rst import Directive
 from docutils.statemachine import ViewList
+from sphinx.directives import SphinxDirective
 from sphinx.domains import Domain
 from sphinx.highlighting import PygmentsBridge
 
@@ -258,7 +258,7 @@ class ExampleRunner(ExtraCliRunner):
         pass
 
 
-class ClickDirective(Directive):
+class ClickDirective(SphinxDirective):
     has_content = True
     required_arguments = 0
     optional_arguments = 0
@@ -287,9 +287,6 @@ class ClickDirective(Directive):
     def run(self) -> list[nodes.Node]:
         doc = ViewList()
 
-        location = "{0}:line {1}".format(
-            *self.state_machine.get_source_and_line(self.lineno)
-        )
         run_func = (
             self.runner.run_example
             if self.render_results
@@ -297,7 +294,7 @@ class ClickDirective(Directive):
         )
 
         try:
-            results = run_func("\n".join(self.content), location)
+            results = run_func("\n".join(self.content), self.get_location())
         except BaseException:
             self.runner.close()
             raise
