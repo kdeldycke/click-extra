@@ -6,35 +6,35 @@ Click Extra aims to be a drop-in replacement for Click. The vast majority of Cli
 
 Here is for instance the [canonical `click` example](https://github.com/pallets/click#a-simple-example) with all original imports replaced with `click_extra`:
 
-```{eval-rst}
-.. click:example::
-    from click_extra import command, echo, option
+```{click:example}
+from click_extra import command, echo, option
 
-    @command
-    @option("--count", default=1, help="Number of greetings.")
-    @option("--name", prompt="Your name", help="The person to greet.")
-    def hello(count, name):
-        """Simple program that greets NAME for a total of COUNT times."""
-        for _ in range(count):
-            echo(f"Hello, {name}!")
+@command
+@option("--count", default=1, help="Number of greetings.")
+@option("--name", prompt="Your name", help="The person to greet.")
+def hello(count, name):
+    """Simple program that greets NAME for a total of COUNT times."""
+    for _ in range(count):
+        echo(f"Hello, {name}!")
+```
 
 As you can see the result does not deviates from the original Click-based output:
 
-.. click:run::
-   from textwrap import dedent
-   result = invoke(hello, args=["--help"])
-   assert result.output == dedent(
-      """\
-      Usage: hello [OPTIONS]
+```{click:run}
+from textwrap import dedent
+result = invoke(hello, args=["--help"])
+assert result.output == dedent(
+    """\
+    Usage: hello [OPTIONS]
 
-        Simple program that greets NAME for a total of COUNT times.
+      Simple program that greets NAME for a total of COUNT times.
 
-      Options:
-        --count INTEGER  Number of greetings.
-        --name TEXT      The person to greet.
-        --help           Show this message and exit.
-      """
-    )
+    Options:
+      --count INTEGER  Number of greetings.
+      --name TEXT      The person to greet.
+      --help           Show this message and exit.
+    """
+)
 ```
 
 ```{note} Click and Cloup inheritance
@@ -108,27 +108,27 @@ The `@extra_command` and `@extra_group` decorators are [pre-configured with a se
 
 You can remove all default options by resetting the `params` argument to `None`:
 
-```{eval-rst}
-.. click:example::
-   from click_extra import extra_command
+```{click:example}
+from click_extra import extra_command
 
-   @extra_command(params=None)
-   def bare_cli():
-      pass
+@extra_command(params=None)
+def bare_cli():
+    pass
+```
 
 Which results in:
 
-.. click:run::
-   from textwrap import dedent
-   result = invoke(bare_cli, args=["--help"])
-   assert result.output == dedent(
-      """\
-      \x1b[94m\x1b[1m\x1b[4mUsage:\x1b[0m \x1b[97mbare-cli\x1b[0m \x1b[36m\x1b[2m[OPTIONS]\x1b[0m
+```{click:run}
+from textwrap import dedent
+result = invoke(bare_cli, args=["--help"])
+assert result.output == dedent(
+    """\
+    \x1b[94m\x1b[1m\x1b[4mUsage:\x1b[0m \x1b[97mbare-cli\x1b[0m \x1b[36m\x1b[2m[OPTIONS]\x1b[0m
 
-      \x1b[94m\x1b[1m\x1b[4mOptions:\x1b[0m
-        \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m  Show this message and exit.
-      """
-   )
+    \x1b[94m\x1b[1m\x1b[4mOptions:\x1b[0m
+      \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m  Show this message and exit.
+    """
+)
 ```
 
 As you can see, all options are stripped out, but the colouring and formatting of the help message is preserved.
@@ -137,63 +137,63 @@ As you can see, all options are stripped out, but the colouring and formatting o
 
 To override the default options, you can provide the `params=` argument to the command. But note how we use classes instead of option decorators:
 
-```{eval-rst}
-.. click:example::
-   from click_extra import extra_command, ConfigOption, VerbosityOption
+```{click:example}
+from click_extra import extra_command, ConfigOption, VerbosityOption
 
-   @extra_command(
-      params=[
-         ConfigOption(default="ex.yml"),
-         VerbosityOption(default="DEBUG"),
-      ]
-   )
-   def cli():
-      pass
+@extra_command(
+    params=[
+        ConfigOption(default="ex.yml"),
+        VerbosityOption(default="DEBUG"),
+    ]
+)
+def cli():
+    pass
+```
 
 And now you get:
 
-.. click:run::
-   from textwrap import dedent
-   result = invoke(cli, args=["--help"])
-   assert result.stdout.startswith(dedent(
-      """\
-      \x1b[94m\x1b[1m\x1b[4mUsage:\x1b[0m \x1b[97mcli\x1b[0m \x1b[36m\x1b[2m[OPTIONS]\x1b[0m
+```{click:run}
+from textwrap import dedent
+result = invoke(cli, args=["--help"])
+assert result.stdout.startswith(dedent(
+    """\
+    \x1b[94m\x1b[1m\x1b[4mUsage:\x1b[0m \x1b[97mcli\x1b[0m \x1b[36m\x1b[2m[OPTIONS]\x1b[0m
 
-      \x1b[94m\x1b[1m\x1b[4mOptions:\x1b[0m
-        \x1b[36m-C\x1b[0m, \x1b[36m--config\x1b[0m \x1b[36m\x1b[2mCONFIG_PATH\x1b[0m"""
-   ))
+    \x1b[94m\x1b[1m\x1b[4mOptions:\x1b[0m
+      \x1b[36m-C\x1b[0m, \x1b[36m--config\x1b[0m \x1b[36m\x1b[2mCONFIG_PATH\x1b[0m"""
+))
 ```
 
 This let you replace the preset options by your own set, tweak their order and fine-tune their defaults.
 
-```{eval-rst}
-.. caution:: Duplicate options
+````{caution} Duplicate options
+If you try to add option decorators to a command which already have them by default, you will end up with duplicate entries ([as seen in issue #232](https://github.com/kdeldycke/click-extra/issues/232)):
 
-   If you try to add option decorators to a command which already have them by default, you will end up with duplicate entries ([as seen in issue #232](https://github.com/kdeldycke/click-extra/issues/232)):
+```{click:example}
+from click_extra import extra_command, extra_version_option
 
-   .. click:example::
-      from click_extra import extra_command, extra_version_option
-
-      @extra_command
-      @extra_version_option(version="0.1")
-      def cli():
-         pass
-
-   See how the ``--version`` option gets duplicated at the end:
-
-   .. click:run::
-      from textwrap import dedent
-      result = invoke(cli, args=["--help"])
-      assert (
-         "  \x1b[36m--version\x1b[0m                 Show the version and exit.\n"
-         "  \x1b[36m--version\x1b[0m                 Show the version and exit.\n"
-         "  \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m                Show this message and exit.\n"
-      ) in result.output
-
-   This is by design: decorators are cumulative, to allow you to add your own options to the preset of `@extra_command` and `@extra_group`.
-
-   And if the second ``--version`` option is placed right before the ``--help`` option, it is because Click is adding its own generated ``--help`` option at the end of the list: https://kdeldycke.github.io/click-extra/commands.html#click_extra.commands.default_extra_params
+@extra_command
+@extra_version_option(version="0.1")
+def cli():
+    pass
 ```
+
+See how the `--version` option gets duplicated at the end:
+
+```{click:run}
+from textwrap import dedent
+result = invoke(cli, args=["--help"])
+assert (
+    "  \x1b[36m--version\x1b[0m                 Show the version and exit.\n"
+    "  \x1b[36m--version\x1b[0m                 Show the version and exit.\n"
+    "  \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m                Show this message and exit.\n"
+) in result.output
+```
+
+This is by design: decorators are cumulative, to allow you to add your own options to the preset of `@extra_command` and `@extra_group`.
+
+And if the second `--version` option is placed right before the `--help` option, it is because [Click is adding its own generated `--help` option at the end of the list](https://kdeldycke.github.io/click-extra/commands.html#click_extra.commands.default_extra_params).
+````
 
 ### Option order
 
@@ -234,19 +234,19 @@ def cli():
 
 But you also have the alternative to pass a `default_map` via the `context_settings`:
 
-```{eval-rst}
-.. click:example::
-   from click_extra import extra_command
+```{click:example}
+from click_extra import extra_command
 
-   @extra_command(context_settings={"default_map": {"verbosity": "INFO"}})
-   def cli():
-      pass
+@extra_command(context_settings={"default_map": {"verbosity": "INFO"}})
+def cli():
+    pass
+```
 
-Which results in ``[default: INFO]`` being featured in the help message:
+Which results in `[default: INFO]` being featured in the help message:
 
-.. click:run::
-   result = invoke(cli, args=["--help"])
-   assert "\x1b[2m[\x1b[0m\x1b[2mdefault: \x1b[0m\x1b[32m\x1b[2m\x1b[3mINFO\x1b[0m\x1b[2m]\x1b[0m\n" in result.stdout
+```{click:run}
+result = invoke(cli, args=["--help"])
+assert "\x1b[2m[\x1b[0m\x1b[2mdefault: \x1b[0m\x1b[32m\x1b[2m\x1b[3mINFO\x1b[0m\x1b[2m]\x1b[0m\n" in result.stdout
 ```
 
 ```{tip}

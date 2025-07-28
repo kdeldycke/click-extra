@@ -3,7 +3,7 @@
 [Sphinx](https://www.sphinx-doc.org) is the best way to document your Python CLI. Click Extra provides several utilities to improve the quality of life of maintainers.
 
 ````{important}
-For these helpers to work, you need to install ``click_extra``'s additional dependencies from the ``sphinx`` extra group:
+For these helpers to work, you need to install `click_extra`'s additional dependencies from the `sphinx` extra group:
 
 ```shell-session
 $ pip install click_extra[sphinx]
@@ -124,7 +124,7 @@ This is perfect for documentation, as it shows both the source code of the CLI a
 
 Notice how the CLI code is properly rendered as a Python code block with syntax highlighting. And how the invocation of that CLI renders into a terminal session with ANSI coloring of output.
 
-You can then invoke that CLI again with its ``--name`` option:
+You can then invoke that CLI again with its `--name` option:
 
 ``````{tab-set}
 `````{tab-item} MyST Markdown
@@ -159,70 +159,86 @@ In the example above, we choose to import our CLI primitives from the `click-ext
 ```
 
 ```{seealso}
-Click Extra's own documentation extensively use `click:example` and `lick:run` directives. [Look around
+Click Extra's own documentation extensively use `click:example` and `click:run` directives. [Look around
 in its Markdown source files](https://github.com/kdeldycke/click-extra/tree/main/docs) for advanced examples and
 inspiration.
 ```
 
 ### Inline tests
 
-The `.. click:run::` directive can also be used to embed tests in your documentation.
+The `click:run` directive can also be used to embed tests in your documentation.
 
 You can write tests in your documentation, and they will be executed at build time. This allows you to catch regressions early, and ensure that your documentation is always up-to-date with the latest version of your CLI, in the spirit of [`doctest`](https://docs.python.org/3/library/doctest.html) and [Docs as Tests](https://www.docsastests.com/docs-as-tests/concept/2024/01/09/intro-docs-as-tests.html).
 
 For example, here is a simple CLI:
 
-```{eval-rst}
-.. click:example::
-    from click_extra import echo, extra_command, option, style
+```{click:example}
+from click_extra import echo, extra_command, option, style
 
-    @extra_command
-    @option("--name", prompt="Your name", help="The person to greet.")
-    def hello_world(name):
-        """Simple program that greets NAME."""
-        echo(f"Hello, {style(name, fg='red')}!")
+@extra_command
+@option("--name", prompt="Your name", help="The person to greet.")
+def hello_world(name):
+    """Simple program that greets NAME."""
+    echo(f"Hello, {style(name, fg='red')}!")
+```
 
-If we put this CLI code in a ``.. click:example::`` directive, we can associate it with the following ``.. click:run::`` block:
+Let's put the code above in a `click:example` directive. And then put the following Python code into a `click:run` block:
 
-.. code-block:: rst
+```python
+result = invoke(hello_world, args=["--help"])
 
-    .. click:run::
-        result = invoke(hello_world, args=["--help"])
+assert result.exit_code == 0, "CLI execution failed"
+assert not result.stderr, "error message in <stderr>"
+assert "--show-params" in result.stdout, "--show-params not found in help screen"
+```
 
-        assert result.exit_code == 0, "CLI execution failed"
-        assert not result.stderr, "error message in <stderr>"
-        assert "--show-params" in result.stdout, "--show-params not found in help screen"
-
-See how we collect the ``result`` of the ``invoke`` command, and inspect the ``exit_code``, ``stderr`` and ``stdout`` of the CLI with ``assert`` statements.
+See how we collect here the `result` of the `invoke` command, and separately inspect the `exit_code`, `stderr` and `stdout` of with `assert` statements.
 
 If for any reason our CLI changes and its help screen is no longer what we expect, the test will fail and the documentation build will break with a message similar to:
 
-.. code-block:: pytb
+```text
+Versions
+========
 
-    Exception occurred:
-    File "<docs>", line 5, in <module>
+* Platform:         darwin; (macOS-15.5-arm64-64bit)
+* Python version:   3.11.11 (CPython)
+* Sphinx version:   8.2.3
+* Docutils version: 0.21.2
+* Jinja2 version:   3.1.6
+* Pygments version: 2.19.2
+
+Loaded Extensions
+=================
+
+(...)
+* myst_parser (4.0.1)
+* click_extra.sphinx (5.1.0)
+
+Traceback
+=========
+
+      File "(...)/click-extra/docs/sphinx.md:197", line 5, in <module>
     AssertionError: --show-params not found in help screen
+
+
+The full traceback has been saved in:
+/var/folders/gr/1frk79j52flczzs2rrpfnkl80000gn/T/sphinx-err-5l6axu9g.log
+```
 
 Having your build fails when something unexpected happens is a great signal to catch regressions early.
 
-On the other hand, if the build succeed, the ``.. click:run::`` block will render as usual with the result of the invocation:
+On the other hand, if the build succeed, the `click:run` block will render as usual with the result of the invocation:
 
-.. click:run::
-    result = invoke(hello_world, args=["--help"])
+```{click:run}
+result = invoke(hello_world, args=["--help"])
 
-    assert result.exit_code == 0, "CLI execution failed"
-    assert not result.stderr, "error message in <stderr>"
-    assert "--show-params" in result.stdout, "--show-params not found in help screen"
-```
-
-```{tip}
-In a way, you can consider this kind of inline tests as like [doctests](https://docs.python.org/3/library/doctest.html), but for Click CLIs.
-
-Look around in the sources of Click Extra's documentation for more examples of inline tests.
+assert result.exit_code == 0, "CLI execution failed"
+assert not result.stderr, "error message in <stderr>"
+assert "--show-params" in result.stdout, "--show-params not found in help screen"
 ```
 
 ```{hint}
-The CLI runner used by `.. click:run::` is a custom version [derived from the original `click.testing.CliRunner`](https://click.palletsprojects.com/en/stable/api/#click.testing.CliRunner).
+The CLI runner used by `click:run` is a custom version [derived from the original `click.testing.CliRunner`](https://click.palletsprojects.com/en/stable/api/#click.testing.CliRunner).
 
 It is [called `ExtraCliRunner`](testing.md#click_extra.testing.ExtraCliRunner) and is patched so you can refine your tests by inspecting both `<stdout>` and `<stderr>` independently. It also provides an additional `<output>` stream which simulates what the user sees in its terminal.
 ```
@@ -234,10 +250,8 @@ Sphinx extensions from Click Extra automaticcaly integrates the [new ANSI-capabl
 This allows you to render colored shell sessions in code blocks by referring to the `ansi-` prefixed lexers:
 
 ``````{tab-set}
-
-`````{tab-item} Markdown (MyST)
+`````{tab-item} MyST Markdown
 :sync: myst
-
 ````markdown
 ```ansi-shell-session
 $ # Print ANSI foreground colors.

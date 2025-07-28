@@ -60,67 +60,68 @@ Write examples and tutorial.
 
 Here is a little CLI to demonstrate the rendering of colors and styles, based on [`cloup.styling.Style`](https://cloup.readthedocs.io/en/stable/autoapi/cloup/styling/index.html#cloup.styling.Style):
 
-```{eval-rst}
-.. click:example::
-   from click import command
-   from click_extra import Color, style, Choice, option
-   from click_extra.tabulate import render_table
+```{click:example}
+from click import command
+from click_extra import Color, style, Choice, option
+from click_extra.tabulate import render_table
 
-   all_styles = [
-      "bold",
-      "dim",
-      "underline",
-      "overline",
-      "italic",
-      "blink",
-      "reverse",
-      "strikethrough",
-   ]
+all_styles = [
+    "bold",
+    "dim",
+    "underline",
+    "overline",
+    "italic",
+    "blink",
+    "reverse",
+    "strikethrough",
+]
 
-   all_colors = sorted(Color._dict.values())
+all_colors = sorted(Color._dict.values())
 
-   @command
-   @option("--matrix", type=Choice(["colors", "styles"]))
-   def render_matrix(matrix):
-      table = []
+@command
+@option("--matrix", type=Choice(["colors", "styles"]))
+def render_matrix(matrix):
+    table = []
 
-      if matrix == "colors":
-         table_headers = ["Foreground ↴ \ Background →"] + all_colors
-         for fg_color in all_colors:
+    if matrix == "colors":
+        table_headers = ["Foreground ↴ \ Background →"] + all_colors
+        for fg_color in all_colors:
             line = [
-               style(fg_color, fg=fg_color)
+                style(fg_color, fg=fg_color)
             ]
             for bg_color in all_colors:
-               line.append(
-                  style(fg_color, fg=fg_color, bg=bg_color)
-               )
+                line.append(
+                    style(fg_color, fg=fg_color, bg=bg_color)
+                )
             table.append(line)
 
-      elif matrix == "styles":
-         table_headers = ["Color ↴ \ Style →"] + all_styles
-         for color_name in all_colors:
+    elif matrix == "styles":
+        table_headers = ["Color ↴ \ Style →"] + all_styles
+        for color_name in all_colors:
             line = [
-               style(color_name, fg=color_name)
+                style(color_name, fg=color_name)
             ]
             for prop in all_styles:
-               line.append(
-                  style(color_name, fg=color_name, **{prop: True})
-               )
+                line.append(
+                    style(color_name, fg=color_name, **{prop: True})
+                )
             table.append(line)
 
-      render_table(table, headers=table_headers)
+    render_table(table, headers=table_headers)
+```
 
-.. click:run::
-   result = invoke(render_matrix, ["--matrix=colors"])
-   assert "\x1b[95mbright_magenta\x1b[0m" in result.stdout
-   assert "\x1b[95m\x1b[101mbright_magenta\x1b[0m" in result.stdout
+```{click:run}
+result = invoke(render_matrix, ["--matrix=colors"])
+assert "\x1b[95mbright_magenta\x1b[0m" in result.stdout
+assert "\x1b[95m\x1b[101mbright_magenta\x1b[0m" in result.stdout
+```
 
-.. click:run::
-   result = invoke(render_matrix, ["--matrix=styles"])
-   assert "\x1b[97mbright_white\x1b[0m" in result.stdout
-   assert "\x1b[97m\x1b[1mbright_white\x1b[0m" in result.stdout
-   assert "\x1b[97m\x1b[2mbright_white\x1b[0m" in result.stdout
-   assert "\x1b[97m\x1b[4mbright_white\x1b[0m" in result.stdout
+```{click:run}
+result = invoke(render_matrix, ["--matrix=styles"])
+assert "\x1b[97mbright_white\x1b[0m" in result.stdout
+assert "\x1b[97m\x1b[1mbright_white\x1b[0m" in result.stdout
+assert "\x1b[97m\x1b[2mbright_white\x1b[0m" in result.stdout
+assert "\x1b[97m\x1b[4mbright_white\x1b[0m" in result.stdout
 ```
 
 ```{caution}

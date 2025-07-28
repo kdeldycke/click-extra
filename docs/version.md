@@ -21,24 +21,25 @@ To prevent any confusion, and to keep on [the promise of drop-in replacement](co
 
 Here is how the defaults looks like:
 
-```{eval-rst}
-.. click:example::
-      from click_extra import command, extra_version_option
+```{click:example}
+from click_extra import command, extra_version_option
 
-      @command
-      @extra_version_option(version="1.2.3")
-      def cli():
-         pass
+@command
+@extra_version_option(version="1.2.3")
+def cli():
+    pass
+```
 
-.. click:run::
-   result = invoke(cli, args=["--help"])
-   assert "--version" in result.output
+```{click:run}
+result = invoke(cli, args=["--help"])
+assert "--version" in result.output
+```
 
 The default version message is the same as Click's default, but colored:
 
-.. click:run::
-   result = invoke(cli, args=["--version"])
-   assert result.output == "\x1b[97mcli\x1b[0m, version \x1b[32m1.2.3\x1b[0m\n"
+```{click:run}
+result = invoke(cli, args=["--version"])
+assert result.output == "\x1b[97mcli\x1b[0m, version \x1b[32m1.2.3\x1b[0m\n"
 ```
 
 ```{hint}
@@ -85,23 +86,23 @@ Some Click's built-in variables are not recognized:
 
 You can compose your own version string by passing the `message` argument:
 
-```{eval-rst}
-.. click:example::
-      from click_extra import command, extra_version_option
+```{click:example}
+from click_extra import command, extra_version_option
 
-      @command
-      @extra_version_option(message="✨ {prog_name} v{version} - {package_name}")
-      def my_own_cli():
-         pass
+@command
+@extra_version_option(message="✨ {prog_name} v{version} - {package_name}")
+def my_own_cli():
+    pass
+```
 
-.. click:run::
-   from click_extra import __version__
-   result = invoke(my_own_cli, args=["--version"])
-   assert result.output == (
-      "✨ \x1b[97mmy-own-cli\x1b[0m "
-      f"v\x1b[32m{__version__}\x1b[0m - "
-      "\x1b[97mclick_extra\x1b[0m\n"
-   )
+```{click:run}
+from click_extra import __version__
+result = invoke(my_own_cli, args=["--version"])
+assert result.output == (
+    "✨ \x1b[97mmy-own-cli\x1b[0m "
+    f"v\x1b[32m{__version__}\x1b[0m - "
+    "\x1b[97mclick_extra\x1b[0m\n"
+)
 ```
 
 ```{note}
@@ -187,29 +188,29 @@ Each variable listed in the section above can be rendered in its own style. They
 
 Here is an example:
 
-```{eval-rst}
-.. click:example::
-      from click_extra import command, extra_version_option, Style
+```{click:example}
+from click_extra import command, extra_version_option, Style
 
-      @command
-      @extra_version_option(
-         message="{prog_name} v{version} 🔥 {package_name} ( ͡❛ ͜ʖ ͡❛)",
-         message_style=Style(fg="cyan"),
-         prog_name_style=Style(fg="green", bold=True),
-         version_style=Style(fg="bright_yellow", bg="red"),
-         package_name_style=Style(fg="bright_blue", italic=True),
-      )
-      def cli():
-         pass
+@command
+@extra_version_option(
+    message="{prog_name} v{version} 🔥 {package_name} ( ͡❛ ͜ʖ ͡❛)",
+    message_style=Style(fg="cyan"),
+    prog_name_style=Style(fg="green", bold=True),
+    version_style=Style(fg="bright_yellow", bg="red"),
+    package_name_style=Style(fg="bright_blue", italic=True),
+)
+def cli():
+    pass
+```
 
-.. click:run::
-   from click_extra import __version__
-   result = invoke(cli, args=["--version"])
-   assert result.output == (
-      "\x1b[32m\x1b[1mcli\x1b[0m\x1b[36m "
-      f"v\x1b[0m\x1b[93m\x1b[41m{__version__}\x1b[0m\x1b[36m 🔥 "
-      "\x1b[0m\x1b[94m\x1b[3mclick_extra\x1b[0m\x1b[36m ( ͡❛\u202f͜ʖ ͡❛)\x1b[0m\n"
-   )
+```{click:run}
+from click_extra import __version__
+result = invoke(cli, args=["--version"])
+assert result.output == (
+    "\x1b[32m\x1b[1mcli\x1b[0m\x1b[36m "
+    f"v\x1b[0m\x1b[93m\x1b[41m{__version__}\x1b[0m\x1b[36m 🔥 "
+    "\x1b[0m\x1b[94m\x1b[3mclick_extra\x1b[0m\x1b[36m ( ͡❛\u202f͜ʖ ͡❛)\x1b[0m\n"
+)
 ```
 
 ```{hint}
@@ -218,23 +219,23 @@ The [`Style()` helper is defined by Cloup](https://cloup.readthedocs.io/en/stabl
 
 You can pass `None` to any of the style parameters to disable styling for the corresponding variable:
 
-```{eval-rst}
-.. click:example::
-      from click_extra import command, extra_version_option
+```{click:example}
+from click_extra import command, extra_version_option
 
-      @command
-      @extra_version_option(
-          message_style=None,
-          version_style=None,
-          prog_name_style=None,
-      )
-      def cli():
-         pass
+@command
+@extra_version_option(
+    message_style=None,
+    version_style=None,
+    prog_name_style=None,
+)
+def cli():
+    pass
+```
 
-.. click:run::
-   from click_extra import __version__
-   result = invoke(cli, args=["--version"])
-   assert result.output == f"cli, version {__version__}\n"
+```{click:run}
+from click_extra import __version__
+result = invoke(cli, args=["--version"])
+assert result.output == f"cli, version {__version__}\n"
 ```
 
 ## Environment information
@@ -243,19 +244,19 @@ The `{env_info}` variable compiles all sorts of environment information.
 
 Here is how it looks like:
 
-```{eval-rst}
-.. click:example::
-      from click_extra import command, extra_version_option
+```{click:example}
+from click_extra import command, extra_version_option
 
-      @command
-      @extra_version_option(message="{env_info}")
-      def env_info_cli():
-         pass
+@command
+@extra_version_option(message="{env_info}")
+def env_info_cli():
+    pass
+```
 
-.. click:run::
-   import re
-   result = invoke(env_info_cli, args=["--version"])
-   assert re.fullmatch(r"\x1b\[90m{'.+'}\x1b\[0m\n", result.output)
+```{click:run}
+import re
+result = invoke(env_info_cli, args=["--version"])
+assert re.fullmatch(r"\x1b\[90m{'.+'}\x1b\[0m\n", result.output)
 ```
 
 It's verbose but it's helpful for debugging and reporting of issues from end users.
@@ -266,83 +267,84 @@ The JSON output is scrubbed out of identifiable information by default: current 
 
 Another trick consist in picking into the content of `{env_info}` to produce highly customized version strings. This can be done because `{env_info}` is kept as a `dict`:
 
-```{eval-rst}
-.. click:example::
-      from click_extra import command, extra_version_option
+```{click:example}
+from click_extra import command, extra_version_option
 
-      @command
-      @extra_version_option(
-          message="{prog_name} {version}, from {module_file} (Python {env_info[python][version]})"
-      )
-      def custom_env_info():
-         pass
+@command
+@extra_version_option(
+    message="{prog_name} {version}, from {module_file} (Python {env_info[python][version]})"
+)
+def custom_env_info():
+    pass
+```
 
-.. click:run::
-   import re
-   from click_extra import __version__
-   result = invoke(custom_env_info, args=["--version"])
-   assert re.fullmatch((
-      rf"\x1b\[97mcustom-env-info\x1b\[0m \x1b\[32m{__version__}\x1b\[0m, "
-      r"from .+ \(Python \x1b\[90m3\.\d+\.\d+ .+\x1b\[0m\)\n"
-   ), result.output)
+```{click:run}
+import re
+from click_extra import __version__
+result = invoke(custom_env_info, args=["--version"])
+assert re.fullmatch((
+    rf"\x1b\[97mcustom-env-info\x1b\[0m \x1b\[32m{__version__}\x1b\[0m, "
+    r"from .+ \(Python \x1b\[90m3\.\d+\.\d+ .+\x1b\[0m\)\n"
+), result.output)
 ```
 
 ## Debug logs
 
 When the `DEBUG` level is enabled, all available variables will be printed in the log:
 
-```{eval-rst}
-.. click:example::
-      from click_extra import command, verbosity_option, extra_version_option, echo
+```{click:example}
+from click_extra import command, verbosity_option, extra_version_option, echo
 
-      @command
-      @extra_version_option
-      @verbosity_option
-      def version_in_logs():
-          echo("Standard operation")
+@command
+@extra_version_option
+@verbosity_option
+def version_in_logs():
+    echo("Standard operation")
+```
 
-.. click:run::
-   import re
-   from click_extra import __version__
-   result = invoke(version_in_logs, ["--verbosity", "DEBUG"])
-   assert "\n\x1b[34mdebug\x1b[0m: Version string template variables:\n" in result.output
+```{click:run}
+import re
+from click_extra import __version__
+result = invoke(version_in_logs, ["--verbosity", "DEBUG"])
+assert "\n\x1b[34mdebug\x1b[0m: Version string template variables:\n" in result.output
 ```
 
 ## Get metadata values
 
 You can get the uncolored, Python values used in the composition of the version message from the context:
 
-```{eval-rst}
-.. click:example::
-    from click_extra import command, echo, pass_context, extra_version_option
+```{click:example}
+from click_extra import command, echo, pass_context, extra_version_option
 
-    @command
-    @extra_version_option
-    @pass_context
-    def version_metadata(ctx):
-        version = ctx.meta["click_extra.version"]
-        package_name = ctx.meta["click_extra.package_name"]
-        prog_name = ctx.meta["click_extra.prog_name"]
-        env_info = ctx.meta["click_extra.env_info"]
+@command
+@extra_version_option
+@pass_context
+def version_metadata(ctx):
+    version = ctx.meta["click_extra.version"]
+    package_name = ctx.meta["click_extra.package_name"]
+    prog_name = ctx.meta["click_extra.prog_name"]
+    env_info = ctx.meta["click_extra.env_info"]
 
-        echo(f"version = {version}")
-        echo(f"package_name = {package_name}")
-        echo(f"prog_name = {prog_name}")
-        echo(f"env_info = {env_info}")
+    echo(f"version = {version}")
+    echo(f"package_name = {package_name}")
+    echo(f"prog_name = {prog_name}")
+    echo(f"env_info = {env_info}")
+```
 
-.. click:run::
-   result = invoke(version_metadata, ["--version"])
+```{click:run}
+result = invoke(version_metadata, ["--version"])
+```
 
-.. click:run::
-   import re
-   from click_extra import __version__
-   result = invoke(version_metadata)
-   assert re.fullmatch((
-      rf"version = {__version__}\n"
-      r"package_name = click_extra\n"
-      r"prog_name = version-metadata\n"
-      r"env_info = {'.+'}\n"
-   ), result.output)
+```{click:run}
+import re
+from click_extra import __version__
+result = invoke(version_metadata)
+assert re.fullmatch((
+    rf"version = {__version__}\n"
+    r"package_name = click_extra\n"
+    r"prog_name = version-metadata\n"
+    r"env_info = {'.+'}\n"
+), result.output)
 ```
 
 ```{hint}
@@ -353,33 +355,35 @@ These variables are presented in their original Python type. If most of these va
 
 You can render the version string manually by calling the option's internal methods:
 
-```{eval-rst}
-.. click:example::
-    from click_extra import command, echo, pass_context, extra_version_option, ExtraVersionOption, search_params
+```{click:example}
+from click_extra import command, echo, pass_context, extra_version_option, ExtraVersionOption, search_params
 
-    @command
-    @extra_version_option
-    @pass_context
-    def template_rendering(ctx):
-         # Search for a ``--version`` parameter.
-         version_opt = search_params(ctx.command.params, ExtraVersionOption)
-         version_string = version_opt.render_message()
-         echo(f"Version string ~> {version_string}")
+@command
+@extra_version_option
+@pass_context
+def template_rendering(ctx):
+    # Search for a ``--version`` parameter.
+    version_opt = search_params(ctx.command.params, ExtraVersionOption)
+    version_string = version_opt.render_message()
+    echo(f"Version string ~> {version_string}")
+```
 
-.. hint::
-   To fetch the ``--version`` parameter defined on the command, we rely on the `click_extra.search_params <parameters.md#click_extra.parameters.search_params>`_.
+```{hint}
+To fetch the `--version` parameter defined on the command, we rely on the [`click_extra.search_params`](parameters.md#click_extra.parameters.search_params).
+```
 
-.. click:run::
-   result = invoke(template_rendering, ["--version"])
+```{click:run}
+invoke(template_rendering, ["--version"])
+```
 
-.. click:run::
-   import re
-   from click_extra import __version__
-   result = invoke(template_rendering)
-   assert re.fullmatch((
-      r"Version string ~> "
-      rf"\x1b\[97mtemplate-rendering\x1b\[0m, version \x1b\[32m{__version__}\x1b\[0m\n"
-   ), result.output)
+```{click:run}
+import re
+from click_extra import __version__
+result = invoke(template_rendering)
+assert re.fullmatch((
+    r"Version string ~> "
+    rf"\x1b\[97mtemplate-rendering\x1b\[0m, version \x1b\[32m{__version__}\x1b\[0m\n"
+), result.output)
 ```
 
 That way you can collect the rendered `version_string`, as if it was printed to the terminal by a call to `--version`, and use it in your own way.

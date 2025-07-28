@@ -78,22 +78,22 @@ It produces a comprehensive table of your CLI parameters, normalized IDs, types 
 
 See how the default `@extra_command` decorator come with the default `--show-params` option and the result of its use:
 
-```{eval-rst}
-.. click:example::
-    from click_extra import extra_command, option, echo
+```{click:example}
+from click_extra import extra_command, option, echo
 
-    @extra_command
-    @option("--int-param1", type=int, default=10)
-    @option("--int-param2", type=int, default=555)
-    def cli(int_param1, int_param2):
-        echo(f"int_param1 is {int_param1!r}")
-        echo(f"int_param2 is {int_param2!r}")
+@extra_command
+@option("--int-param1", type=int, default=10)
+@option("--int-param2", type=int, default=555)
+def cli(int_param1, int_param2):
+    echo(f"int_param1 is {int_param1!r}")
+    echo(f"int_param2 is {int_param2!r}")
+```
 
-.. click:run::
-    result = invoke(cli, args=["--verbosity", "Debug", "--int-param1", "3", "--show-params"])
-    assert "click_extra.raw_args: ['--verbosity', 'Debug', '--int-param1', '3', '--show-params']" in result.stderr
-    assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM1\x1b[0m  │ \x1b[32m\x1b[2m\x1b[3m10\x1b[0m " in result.stdout
-    assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM2\x1b[0m  │ \x1b[32m\x1b[2m\x1b[3m555\x1b[0m " in result.stdout
+```{click:run}
+result = invoke(cli, args=["--verbosity", "Debug", "--int-param1", "3", "--show-params"])
+assert "click_extra.raw_args: ['--verbosity', 'Debug', '--int-param1', '3', '--show-params']" in result.stderr
+assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM1\x1b[0m  │ \x1b[32m\x1b[2m\x1b[3m10\x1b[0m " in result.stdout
+assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM2\x1b[0m  │ \x1b[32m\x1b[2m\x1b[3m555\x1b[0m " in result.stdout
 ```
 
 ```{note}

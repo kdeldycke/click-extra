@@ -8,46 +8,47 @@ data structure to mirror the CLI.
 
 The `@config_option` decorator provided by Click Extra can be used as-is with vanilla Click:
 
-```{eval-rst}
-.. click:example::
-    from click import group, option, echo
+```{click:example}
+from click import group, option, echo
 
-    from click_extra import config_option
+from click_extra import config_option
 
-    @group(context_settings={"show_default": True})
-    @option("--dummy-flag/--no-flag")
-    @option("--my-list", multiple=True)
-    @config_option
-    def my_cli(dummy_flag, my_list):
-        echo(f"dummy_flag    is {dummy_flag!r}")
-        echo(f"my_list       is {my_list!r}")
+@group(context_settings={"show_default": True})
+@option("--dummy-flag/--no-flag")
+@option("--my-list", multiple=True)
+@config_option
+def my_cli(dummy_flag, my_list):
+    echo(f"dummy_flag    is {dummy_flag!r}")
+    echo(f"my_list       is {my_list!r}")
 
-    @my_cli.command
-    @option("--int-param", type=int, default=10)
-    def subcommand(int_param):
-        echo(f"int_parameter is {int_param!r}")
+@my_cli.command
+@option("--int-param", type=int, default=10)
+def subcommand(int_param):
+    echo(f"int_parameter is {int_param!r}")
+```
 
-The code above is saved into a file named ``my_cli.py``.
+The code above is saved into a file named `my_cli.py`.
 
 It produces the following help screen:
 
-.. click:run::
-    result = invoke(my_cli, args=["--help"])
-    assert "-C, --config CONFIG_PATH" in result.stdout
+```{click:run}
+result = invoke(my_cli, args=["--help"])
+assert "-C, --config CONFIG_PATH" in result.stdout
+```
 
-See in the result above, there is an explicit mention of the default location of the configuration file (`[default: ~/.config/my-cli/*.{toml,yaml,yml,json,ini,xml}]`). This improves discoverability, and `makes sysadmins happy <https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations>`_, especially those not familiar with your CLI.
+See in the result above, there is an explicit mention of the default location of the configuration file (`[default: ~/.config/my-cli/*.{toml,yaml,yml,json,ini,xml}]`). This improves discoverability, and [makes sysadmins happy](https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations), especially those not familiar with your CLI.
 
 A bare call returns:
 
-.. click:run::
-    from textwrap import dedent
-    result = invoke(my_cli, args=["subcommand"])
-    assert result.stdout == dedent("""\
-        dummy_flag    is False
-        my_list       is ()
-        int_parameter is 10
-        """
-    )
+```{click:run}
+from textwrap import dedent
+result = invoke(my_cli, args=["subcommand"])
+assert result.stdout == dedent("""\
+    dummy_flag    is False
+    my_list       is ()
+    int_parameter is 10
+    """
+)
 ```
 
 With a simple TOML file in the application folder, we will change the CLI's default output.
@@ -362,22 +363,22 @@ Like the latter, the `@config_option` decorator and `ConfigOption` class accept 
 
 Let's change the default base folder in the following example:
 
-```{eval-rst}
-.. click:example::
-    from click import command
+```{click:example}
+from click import command
 
-    from click_extra import config_option
+from click_extra import config_option
 
-    @command(context_settings={"show_default": True})
-    @config_option(force_posix=True)
-    def cli():
-        pass
+@command(context_settings={"show_default": True})
+@config_option(force_posix=True)
+def cli():
+    pass
+```
 
-See how the default to ``--config`` option has been changed to ``~/.cli/*.{toml,yaml,yml,json,ini,xml}``:
+See how the default to `--config` option has been changed to `~/.cli/*.{toml,yaml,yml,json,ini,xml}`:
 
-.. click:run::
-    result = invoke(cli, args=["--help"])
-    assert "~/.cli/*.{toml,yaml,yml,json,ini,xml}]" in result.stdout
+```{click:run}
+result = invoke(cli, args=["--help"])
+assert "~/.cli/*.{toml,yaml,yml,json,ini,xml}]" in result.stdout
 ```
 
 ### Custom pattern
@@ -386,21 +387,21 @@ If you'd like to customize the pattern, you can pass your own to the `default` p
 
 Here is how to look for an extension-less YAML dotfile in the home directory, with a pre-defined `.commandrc` name:
 
-```{eval-rst}
-.. click:example::
-    from click import command
+```{click:example}
+from click import command
 
-    from click_extra import config_option
-    from click_extra.config import Formats
+from click_extra import config_option
+from click_extra.config import Formats
 
-    @command(context_settings={"show_default": True})
-    @config_option(default="~/.commandrc", formats=Formats.YAML)
-    def cli():
-        pass
+@command(context_settings={"show_default": True})
+@config_option(default="~/.commandrc", formats=Formats.YAML)
+def cli():
+    pass
+```
 
-.. click:run::
-    result = invoke(cli, args=["--help"])
-    assert "~/.commandrc]" in result.stdout
+```{click:run}
+result = invoke(cli, args=["--help"])
+assert "~/.commandrc]" in result.stdout
 ```
 
 ### Pattern specifications
@@ -443,44 +444,44 @@ As soon as a file is able to be parsed without error and returns a `dict`, the s
 
 If you know in advance the only format you'd like to support, you can use the `formats` argument on your decorator like so:
 
-```{eval-rst}
-.. click:example::
-    from click import command, option, echo
+```{click:example}
+from click import command, option, echo
 
-    from click_extra import config_option
-    from click_extra.config import Formats
+from click_extra import config_option
+from click_extra.config import Formats
 
-    @command(context_settings={"show_default": True})
-    @option("--int-param", type=int, default=10)
-    @config_option(formats=Formats.JSON)
-    def cli(int_param):
-        echo(f"int_parameter is {int_param!r}")
+@command(context_settings={"show_default": True})
+@option("--int-param", type=int, default=10)
+@config_option(formats=Formats.JSON)
+def cli(int_param):
+    echo(f"int_parameter is {int_param!r}")
+```
 
-Notice how the default search pattern gets limited to files with a ``.json`` extension:
+Notice how the default search pattern gets limited to files with a `.json` extension:
 
-.. click:run::
-    result = invoke(cli, args=["--help"])
-    assert "*.json]" in result.stdout
+```{click:run}
+result = invoke(cli, args=["--help"])
+assert "*.json]" in result.stdout
 ```
 
 This also works with a subset of formats:
 
-```{eval-rst}
-.. click:example::
-    from click import command, option, echo
+```{click:example}
+from click import command, option, echo
 
-    from click_extra import config_option
-    from click_extra.config import Formats
+from click_extra import config_option
+from click_extra.config import Formats
 
-    @command(context_settings={"show_default": True})
-    @option("--int-param", type=int, default=10)
-    @config_option(formats=[Formats.INI, Formats.YAML])
-    def cli(int_param):
-        echo(f"int_parameter is {int_param!r}")
+@command(context_settings={"show_default": True})
+@option("--int-param", type=int, default=10)
+@config_option(formats=[Formats.INI, Formats.YAML])
+def cli(int_param):
+    echo(f"int_parameter is {int_param!r}")
+```
 
-.. click:run::
-    result = invoke(cli, args=["--help"])
-    assert "*.{ini,yaml,yml}]" in result.stdout
+```{click:run}
+result = invoke(cli, args=["--help"])
+assert "*.{ini,yaml,yml}]" in result.stdout
 ```
 
 ### Remote URL
