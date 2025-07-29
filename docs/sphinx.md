@@ -317,7 +317,7 @@ It is [called `ExtraCliRunner`](testing.md#click_extra.testing.ExtraCliRunner) a
 
 ## ANSI shell sessions
 
-Sphinx extensions from Click Extra automaticcaly integrates the [new ANSI-capable lexers for Pygments](https://kdeldycke.github.io/click-extra/pygments.html#lexers).
+Sphinx extensions from Click Extra automaticcaly integrates the [new ANSI-capable lexers for Pygments](pygments.md#lexers).
 
 This allows you to render colored shell sessions in code blocks by referring to the `ansi-` prefixed lexers:
 
@@ -462,7 +462,7 @@ NameError: name 'hello_world' is not defined
 
 By default, code blocks produced by the directives are automatically highlighted with these languages:
 - `click:example`: [`python`](https://pygments.org/docs/lexers/#pygments.lexers.python.PythonLexer)
-- `click:run`: [`ansi-shell-session`](pygments#lexer-variants)
+- `click:run`: [`ansi-shell-session`](pygments.md#lexer-variants)
 
 If for any reason you want to override these defaults, you can pass the language as an optional parameter to the directive.
 
