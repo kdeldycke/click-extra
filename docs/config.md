@@ -104,9 +104,7 @@ The parameter will take the first value set in that chain.
 See how inline parameters takes priority on defaults from the previous example:
 
 ```{code-block} shell-session
----
-emphasize-lines: 1, 4
----
+:emphasize-lines: 1, 4
 $ my-cli subcommand --int-param 555
 dummy_flag    is True
 my_list       is ('item 1', 'item #2', 'Very Last Item!')
@@ -167,9 +165,7 @@ If for any reason you do not want to allow any garbage in configuration files pr
 Given this `cli.toml` file:
 
 ```{code-block} toml
----
-emphasize-lines: 3
----
+:emphasize-lines: 3
 [cli]
 int_param = 3
 random_param = "forbidden"
@@ -178,9 +174,7 @@ random_param = "forbidden"
 The use of `strict=True` parameter in the CLI below:
 
 ```{code-block} python
----
-emphasize-lines: 7
----
+:emphasize-lines: 7
 from click import command, option, echo
 
 from click_extra import config_option
@@ -195,9 +189,7 @@ def cli(int_param):
 Will raise an error and stop the CLI execution on unrecognized `random_param` value:
 
 ```{code-block} shell-session
----
-emphasize-lines: 4
----
+:emphasize-lines: 4
 $ cli --config "cli.toml"
 Load configuration matching cli.toml
 (...)
@@ -213,9 +205,7 @@ It {py:attr}`defaults to the value of ParamStructure.DEFAULT_EXCLUDED_PARAMS <cl
 You can set your own list of option to ignore with the `excluded_params` argument:
 
 ```{code-block} python
----
-emphasize-lines: 7
----
+:emphasize-lines: 7
 from click import command, option, echo
 
 from click_extra import config_option
