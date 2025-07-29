@@ -332,6 +332,56 @@ $ for i in {0..255}; do \
 [38;5;250m250 [38;5;251m251 [38;5;252m252 [38;5;253m253 [38;5;254m254 [38;5;255m255
 ```
 
+## Legacy mixed syntax: MyST + reStructuredText
+
+Before MyST was fully integrated into Sphinx, many projects used a mixed syntax setup with MyST and reStructuredText. If you are maintaining such a project or need to ensure compatibility with older documentation, you can use these legacy Sphinx snippets.
+
+This rely on MyST's ability to embed reStructuredText within MyST documents, via the [`{eval-rst}` directive](https://myst-parser.readthedocs.io/en/latest/syntax/roles-and-directives.html#how-directives-parse-content).
+
+So instead of using the `{click:example}` and `{click:run}` MyST directive, you can wrap your reStructuredText code blocks with `{eval-rst}`:
+
+````markdown
+```{eval-rst}
+.. click:example::
+    from click_extra import echo, extra_command, option, style
+
+    @extra_command
+    @option("--name", prompt="Your name", help="The person to greet.")
+    def hello_world(name):
+        """Simple program that greets NAME."""
+        echo(f"Hello, {style(name, fg='red')}!")
+
+.. click:run::
+    invoke(hello_world, args=["--help"])
+```
+````
+
+Which renders to:
+
+```{eval-rst}
+.. click:example::
+    from click_extra import echo, extra_command, option, style
+
+    @extra_command
+    @option("--name", prompt="Your name", help="The person to greet.")
+    def hello_world(name):
+        """Simple program that greets NAME."""
+        echo(f"Hello, {style(name, fg='red')}!")
+
+.. click:run::
+    invoke(hello_world, args=["--help"])
+```
+
+````{warning}
+CLI states and references are lost as soon as an `{eval-rst}` block ends. So a `.. click:example::` directive needs to have all its associated `.. click:run::` calls within the same rST block.
+
+If not, you are likely to encounter execution tracebacks such as:
+```pytb
+  File ".../click-extra/docs/sphinx.md:372", line 1, in <module>
+NameError: name 'hello_world' is not defined
+```
+````
+
 ## `click_extra.sphinx` API
 
 ```{eval-rst}
