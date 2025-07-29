@@ -56,6 +56,7 @@ def hello_world(name):
 :sync: rst
 ```rst
 .. click:example::
+
     from click_extra import echo, extra_command, option, style
 
     @extra_command
@@ -87,6 +88,7 @@ invoke(hello_world, args=["--help"])
 :sync: rst
 ```rst
 .. click:run::
+
     invoke(hello_world, args=["--help"])
 ```
 `````
@@ -140,6 +142,7 @@ invoke(hello_world, args=["--name", "Joe"])
 :sync: rst
 ```rst
 .. click:run::
+
     invoke(hello_world, args=["--name", "Joe"])
 ```
 `````
@@ -162,6 +165,75 @@ In the example above, we choose to import our CLI primitives from the `click-ext
 Click Extra's own documentation extensively use `click:example` and `click:run` directives. [Look around
 in its Markdown source files](https://github.com/kdeldycke/click-extra/tree/main/docs) for advanced examples and
 inspiration.
+```
+
+### Options
+
+You can pass options to both the `click:example` and `click:run` directives to customize their behavior.
+
+Because these two directives produces code blocks, they support the [same options as the Sphinx `code-block` directive](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-code-block):
+- `:linenos:` to display line numbers
+- `:lineno-start:` to specify the starting line number (e.g., `:lineno-start: 10`)
+- `:emphasize-lines:` to highlight specific lines
+- `:force:` to ignore minor errors on highlighting
+- `:caption:` to set a caption for the code block
+- `:name:` to set a name for the code block (useful for cross-referencing)
+- `:class:` to set a CSS class for the code block
+- `:dedent:` to specify the number of spaces to remove from the beginning of each line (e.g., `:dedent: 4`)
+
+For example, you can highlight some lines of with the `:emphasize-lines:` option, display line numbers with the `:linenos:` option, and set a caption with the `:caption:` option:
+
+``````{tab-set}
+`````{tab-item} MyST Markdown
+:sync: myst
+````markdown
+```{click:example}
+:caption: A magnificent ✨ Hello World CLI!
+:linenos:
+:emphasize-lines: 4,7
+from click_extra import echo, extra_command, option, style
+
+@extra_command
+@option("--name", prompt="Your name", help="The person to greet.")
+def hello_world(name):
+    """Simple program that greets NAME."""
+    echo(f"Hello, {style(name, fg='red')}!")
+```
+````
+`````
+
+`````{tab-item} reStructuredText
+:sync: rst
+```rst
+.. click:example::
+   :caption: A magnificent ✨ Hello World CLI!
+   :linenos:
+   :emphasize-lines: 4,7
+
+   from click_extra import echo, extra_command, option, style
+
+   @extra_command
+   @option("--name", prompt="Your name", help="The person to greet.")
+   def hello_world(name):
+       """Simple program that greets NAME."""
+       echo(f"Hello, {style(name, fg='red')}!")
+```
+`````
+``````
+
+Which renders to:
+
+```{click:example}
+:caption: A magnificent ✨ Hello World CLI!
+:linenos:
+:emphasize-lines: 4,7
+from click_extra import echo, extra_command, option, style
+
+@extra_command
+@option("--name", prompt="Your name", help="The person to greet.")
+def hello_world(name):
+    """Simple program that greets NAME."""
+    echo(f"Hello, {style(name, fg='red')}!")
 ```
 
 ### Inline tests
@@ -343,6 +415,7 @@ So instead of using the `{click:example}` and `{click:run}` MyST directive, you 
 ````markdown
 ```{eval-rst}
 .. click:example::
+
     from click_extra import echo, extra_command, option, style
 
     @extra_command
@@ -352,6 +425,7 @@ So instead of using the `{click:example}` and `{click:run}` MyST directive, you 
         echo(f"Hello, {style(name, fg='red')}!")
 
 .. click:run::
+
     invoke(hello_world, args=["--help"])
 ```
 ````
@@ -360,6 +434,7 @@ Which renders to:
 
 ```{eval-rst}
 .. click:example::
+
     from click_extra import echo, extra_command, option, style
 
     @extra_command
@@ -369,6 +444,7 @@ Which renders to:
         echo(f"Hello, {style(name, fg='red')}!")
 
 .. click:run::
+
     invoke(hello_world, args=["--help"])
 ```
 
@@ -381,6 +457,48 @@ If not, you are likely to encounter execution tracebacks such as:
 NameError: name 'hello_world' is not defined
 ```
 ````
+
+## Forcing syntax highlight language
+
+By default, code blocks produced by the directives are automatically highlighted with these languages:
+- `click:example`: [`python`](https://pygments.org/docs/lexers/#pygments.lexers.python.PythonLexer)
+- `click:run`: [`ansi-shell-session`](pygments#lexer-variants)
+
+If for any reason you want to override these defaults, you can pass the language as an optional parameter to the directive.
+
+Let's say you have a CLI that is only printing SQL queries in its output:
+
+```{click:example}
+from click_extra import echo, extra_command, option, style
+
+@extra_command
+@option("--name", prompt="Your name", help="The person to greet.")
+def sql_output(name):
+    sql_query = f"SELECT * FROM users WHERE name = '{name}';"
+    echo(sql_query)
+```
+
+Then you can force the SQL Pygments highlighter on its output by passing the [short name of that lexer (i.e. `sql`)](https://pygments.org/docs/lexers/#pygments.lexers.sql.SqlLexer) as the first argument to the directive:
+
+````markdown
+```{click:run} sql
+invoke(sql_output, args=["--name", "Joe"])
+```
+````
+
+And renders to:
+
+```{click:run} sql
+invoke(sql_output, args=["--name", "Joe"])
+```
+
+See how the output (i.e. the second line above) is now rendered with the `sql` Pygments lexer, which is more appropriate for SQL queries. But of course it also parse and renders the whole block as if it is SQL code, which mess up the rendering of the first line, as it is a shell command.
+
+In fact, if you look at Sphinx logs, you will see that a warning has been raised because of that:
+
+```text
+.../docs/sphinx.md:257: WARNING: Lexing literal_block "$ sql-output --name Joe\nSELECT * FROM users WHERE name = 'Joe';" as "sql" resulted in an error at token: '$'. Retrying in relaxed mode. [misc.highlighting_failure]
+```
 
 ## `click_extra.sphinx` API
 

@@ -6,6 +6,7 @@
 > This version is not released yet and is under active development.
 
 - Add support for MyST Markdown syntax for `click:example` and `click:run` Sphinx directives.
+- Add support for all `code-block` options to `click:example` and `click:run`: `:linenos:`, `:lineno-start:`, `:emphasize-lines:`, `:force:`, `:caption:`, `:name:`, `:class:` and `:dedent:`.
 - Support non-string choices in colored help screens. Closes {issue}`1284`.
 - Replace `LOG_LEVELS` mapping with `LogLevel` enum.
 - Remove `DEFAULT_LEVEL_NAME` constants.

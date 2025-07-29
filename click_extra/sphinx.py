@@ -53,6 +53,7 @@ from click.testing import EchoingStdin
 from docutils import nodes
 from docutils.statemachine import ViewList
 from sphinx.directives import SphinxDirective
+from sphinx.directives.code import CodeBlock
 from sphinx.domains import Domain
 from sphinx.highlighting import PygmentsBridge
 
@@ -61,8 +62,14 @@ from .pygments import AnsiHtmlFormatter
 from .testing import ExtraCliRunner
 
 if TYPE_CHECKING:
+    from typing import ClassVar
+
     from sphinx.application import Sphinx
-    from sphinx.util.typing import ExtensionMetadata
+    from sphinx.util.typing import ExtensionMetadata, OptionSpec
+
+
+RST_INDENT = " " * 3
+"""The indentation used for rST code blocks lines."""
 
 
 class EofEchoingStdin(EchoingStdin):
@@ -228,11 +235,20 @@ class ExampleRunner(ExtraCliRunner):
 
 class ClickDirective(SphinxDirective):
     has_content = True
+
     required_arguments = 0
-    optional_arguments = 0
+    optional_arguments = 1
+    """The optional argument overrides the default Pygments dialect to use."""
+
     final_argument_whitespace = False
 
-    code_block_dialect: str
+    option_spec: ClassVar[OptionSpec] = CodeBlock.option_spec.copy()
+    """Support the same options as :class:`sphinx.directives.code.CodeBlock`.
+
+    See: https://github.com/sphinx-doc/sphinx/blob/ead64df/sphinx/directives/code.py#L108-L117
+    """
+
+    default_dialect: str
     """Pygments dialect to use to render the code block."""
 
     render_source: bool = True
@@ -253,6 +269,17 @@ class ClickDirective(SphinxDirective):
         return runner
 
     @cached_property
+    def dialect(self) -> str:
+        """Get the Pygments dialect to use for the code block.
+
+        `All Pygments' languages short names <https://pygments.org/languages/>`_ are
+        recognized.
+        """
+        if self.arguments:
+            return self.arguments[0]
+        return self.default_dialect
+
+    @cached_property
     def is_myst_syntax(self) -> bool:
         """Check if the current directive is written with MyST syntax."""
         return self.state.__module__.split(".")[0] == "myst_parser"
@@ -268,27 +295,39 @@ class ClickDirective(SphinxDirective):
 
         results = run_func("\n".join(self.content), self.get_location())
 
-        # Write MyST code block.
-        if self.is_myst_syntax:
-            doc.append(f"```{self.code_block_dialect}", "")
-        # Write rST code block.
-        else:
-            doc.append(f".. code-block:: {self.code_block_dialect}", "")
+        # Write the code block with either MyST or rST syntax.
+        code_directive = "```{code-block}" if self.is_myst_syntax else ".. code-block::"
+        doc.append(f"{code_directive} {self.dialect}", "")
+
+        # Re-attach each option to the code block.
+        for option_name, value in self.options.items():
+            # If the option is not supported, ignore it and warn the user.
+            if option_name not in self.option_spec:
+                self.state.document.reporter.warning(
+                    f"Ignore unknown option {option_name!r} for {self.name} directive.",
+                    line=self.lineno,
+                )
+                continue
+            option_line = "" if self.is_myst_syntax else RST_INDENT
+            option_line += f":{option_name}:"
+            if value:
+                option_line += f" {value}"
+            doc.append(option_line, "")
+
+        # rST code directives needs a blank line before the body of the block else the
+        # first line will be interpreted as a directive option.
+        if not self.is_myst_syntax:
             doc.append("", "")
 
         if self.render_source:
             for line in self.content:
                 # Indent the line in rST code block.
-                if not self.is_myst_syntax:
-                    line = " " + line
-                doc.append(line, "")
+                doc.append(line if self.is_myst_syntax else RST_INDENT + line, "")
 
         if self.render_results:
             for line in results:
                 # Indent the line in rST code block.
-                if not self.is_myst_syntax:
-                    line = " " + line
-                doc.append(line, "")
+                doc.append(line if self.is_myst_syntax else RST_INDENT + line, "")
 
         # In MyST, we need to close the code block.
         if self.is_myst_syntax:
@@ -307,7 +346,7 @@ class DeclareExampleDirective(ClickDirective):
     Python code block.
     """
 
-    code_block_dialect = "python"
+    default_dialect = "python"
     render_source = True
     render_results = False
 
@@ -320,7 +359,7 @@ class RunExampleDirective(ClickDirective):
     shell session code block supporting ANSI colors.
     """
 
-    code_block_dialect = "ansi-shell-session"
+    default_dialect = "ansi-shell-session"
     render_source = False
     render_results = True
 
