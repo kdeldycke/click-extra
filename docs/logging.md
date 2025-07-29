@@ -86,7 +86,6 @@ result = invoke(vanilla_command, args=["--verbosity", "INFO"])
 assert result.stdout == "It works!\n"
 assert "We're printing stuff." in result.stderr
 ```
-```
 
 ### Default logger
 
