@@ -81,6 +81,7 @@ Check these projects to get real-life examples of `click-extra` usage:
 - ![GitHub stars](https://img.shields.io/github/stars/kdeldycke/mail-deduplicate?label=%E2%AD%90&style=flat-square) [Mail Deduplicate](https://github.com/kdeldycke/mail-deduplicate#readme) - A
   CLI to deduplicate similar emails.
 - ![GitHub stars](https://img.shields.io/github/stars/Sprocket-Security/fireproxng?label=%E2%AD%90&style=flat-square) [fireproxng](https://github.com/Sprocket-Security/fireproxng#readme) - A rewrite of the fireprox tool.
+- ![GitHub stars](https://img.shields.io/github/stars/couchbaselabs/agent-catalog?label=%E2%AD%90&style=flat-square) [agent-catalog](https://github.com/couchbaselabs/agent-catalog#readme) - Couchbase agent catalog.
 - ![GitHub stars](https://img.shields.io/github/stars/hugolundin/badger?label=%E2%AD%90&style=flat-square) [badger-proxy](https://github.com/hugolundin/badger#readme) - An mDNS-based reverse
   proxy for naming services on a local network.
 
