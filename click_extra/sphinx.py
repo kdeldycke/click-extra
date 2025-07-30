@@ -238,7 +238,7 @@ class ClickDirective(SphinxDirective):
 
     required_arguments = 0
     optional_arguments = 1
-    """The optional argument overrides the default Pygments dialect to use."""
+    """The optional argument overrides the default Pygments language to use."""
 
     final_argument_whitespace = False
 
@@ -248,8 +248,12 @@ class ClickDirective(SphinxDirective):
     See: https://github.com/sphinx-doc/sphinx/blob/ead64df/sphinx/directives/code.py#L108-L117
     """
 
-    default_dialect: str
-    """Pygments dialect to use to render the code block."""
+    default_language: str
+    """Default highlighting language to use to render the code block.
+
+    `All Pygments' languages short names <https://pygments.org/languages/>`_ are
+    recognized.
+    """
 
     render_source: bool = True
     """Whether to render the source code of the example in a code block."""
@@ -269,15 +273,15 @@ class ClickDirective(SphinxDirective):
         return runner
 
     @cached_property
-    def dialect(self) -> str:
-        """Get the Pygments dialect to use for the code block.
+    def language(self) -> str:
+        """Short name of the Pygments lexer used to highlight the code block.
 
-        `All Pygments' languages short names <https://pygments.org/languages/>`_ are
-        recognized.
+        Returns the one explicitly set by the user in the directive
+        arguments, or the default language.
         """
         if self.arguments:
             return self.arguments[0]
-        return self.default_dialect
+        return self.default_language
 
     @cached_property
     def is_myst_syntax(self) -> bool:
@@ -297,7 +301,7 @@ class ClickDirective(SphinxDirective):
 
         # Write the code block with either MyST or rST syntax.
         code_directive = "```{code-block}" if self.is_myst_syntax else ".. code-block::"
-        doc.append(f"{code_directive} {self.dialect}", "")
+        doc.append(f"{code_directive} {self.language}", "")
 
         # Re-attach each option to the code block.
         for option_name, value in self.options.items():
@@ -346,7 +350,7 @@ class DeclareExampleDirective(ClickDirective):
     Python code block.
     """
 
-    default_dialect = "python"
+    default_language = "python"
     render_source = True
     render_results = False
 
@@ -359,7 +363,7 @@ class RunExampleDirective(ClickDirective):
     shell session code block supporting ANSI colors.
     """
 
-    default_dialect = "ansi-shell-session"
+    default_language = "ansi-shell-session"
     render_source = False
     render_results = True
 
