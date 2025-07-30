@@ -21,7 +21,7 @@ extensions = [
 ]
 ```
 
-## Click directives
+## `click` directives
 
 Click Extra adds two new directives:
 
@@ -32,7 +32,7 @@ Thanks to these, you can directly demonstrate the usage of your CLI in your docu
 
 These directives supports both [MyST Markdown](https://myst-parser.readthedocs.io) and [reStructuredText](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html) syntax.
 
-### Usage
+## Usage
 
 Here is how to define a simple Click-based CLI with the `click:example` directive:
 
@@ -167,11 +167,9 @@ in its Markdown source files](https://github.com/kdeldycke/click-extra/tree/main
 inspiration.
 ```
 
-### Options
+## Options
 
-You can pass options to both the `click:example` and `click:run` directives to customize their behavior.
-
-Because these two directives produces code blocks, they support the [same options as the Sphinx `code-block` directive](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-code-block):
+You can pass options to both the `click:example` and `click:run` directives to customize their behavior:
 
 | Option | Description | Example |
 |--------|-------------|---------|
@@ -183,6 +181,12 @@ Because these two directives produces code blocks, they support the [same option
 | [`:name:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-name) | Set a name for the code block (useful for cross-referencing). | `:name: example-1` |
 | [`:class:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-class) | Set a CSS class for the code block. | `:class: highlight` |
 | [`:dedent:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-dedent) | Specify the number of spaces to remove from the beginning of each line. | `:dedent: 4` |
+| `:show-source:`/`:hide-source:` | Flags to force the source code within the directive to be rendered or not. | `:show-source:` or `:hide-source:` |
+| `:show-results:`/`:hide-results:` | Flags to force the results of the CLI invocation to be rendered or not. | `:show-results:` or `:hide-results:` |
+
+### `code-block` options
+
+Because the `click:example` and `click:run` directives produces code blocks, they inherits the [same options as the Sphinx `code-block` directive](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-code-block).
 
 For example, you can highlight some lines of with the `:emphasize-lines:` option, display line numbers with the `:linenos:` option, and set a caption with the `:caption:` option:
 
@@ -239,7 +243,73 @@ def hello_world(name):
     echo(f"Hello, {style(name, fg='red')}!")
 ```
 
-### Inline tests
+### Display options
+
+You can also control the display of the source code and the results of the CLI invocation with the `:show-source:`/`:hide-source:` and `:show-results:`/`:hide-results:` options.
+
+By default:
+- `click:example` displays the source code of the CLI, but does not display the results (because it is not executed). This is equivalent to having both `:show-source:` and `:hide-results:` options.
+- `click:run` displays the results of the CLI invocation, but does not display the source code. This is equivalent to having both `:hide-source:` and `:show-results:` options.
+
+But you can override this behavior by explicitly setting the options. Let's say [you only want to display the result](https://github.com/kdeldycke/click-extra/issues/719) of the CLI invocation, without showing the source code defining that CLI. Then you can add `:hide-source:` to the `click:example` directive:
+
+``````{tab-set}
+`````{tab-item} MyST Markdown
+:sync: myst
+````{code-block} markdown
+:emphasize-lines: 2
+```{click:example}
+:hide-source:
+from click_extra import echo, extra_command
+
+@extra_command
+def simple_print():
+    echo("Just a string to print.")
+```
+
+```{click:run}
+invoke(simple_print)
+```
+````
+`````
+
+`````{tab-item} reStructuredText
+:sync: rst
+```{code-block} rst
+:emphasize-lines: 2
+
+.. click:example::
+   :hide-source:
+
+   from click_extra import echo, extra_command
+
+   @extra_command
+   def simple_print():
+       echo("Just a string to print.")
+
+.. click:run::
+
+   invoke(simple_print)
+```
+`````
+``````
+
+Which only renders the `click:run` directive, as the `click:example` doesn't display anything:
+
+```{click:example}
+:hide-source:
+from click_extra import echo, extra_command
+
+@extra_command
+def simple_print():
+    echo("Just a string to print.")
+```
+
+```{click:run}
+invoke(simple_print)
+```
+
+## Inline tests
 
 The `click:run` directive can also be used to embed tests in your documentation.
 

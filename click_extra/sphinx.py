@@ -52,7 +52,7 @@ import click
 from click.testing import EchoingStdin
 from docutils import nodes
 from docutils.statemachine import ViewList
-from sphinx.directives import SphinxDirective
+from sphinx.directives import SphinxDirective, directives
 from sphinx.directives.code import CodeBlock
 from sphinx.domains import Domain
 from sphinx.highlighting import PygmentsBridge
@@ -242,10 +242,18 @@ class ClickDirective(SphinxDirective):
 
     final_argument_whitespace = False
 
-    option_spec: ClassVar[OptionSpec] = CodeBlock.option_spec.copy()
-    """Support the same options as :class:`sphinx.directives.code.CodeBlock`.
+    option_spec: ClassVar[OptionSpec] = CodeBlock.option_spec | {
+        "show-source": directives.flag,
+        "hide-source": directives.flag,
+        "show-results": directives.flag,
+        "hide-results": directives.flag,
+    }
+    """Options supported by this directive.
 
-    See: https://github.com/sphinx-doc/sphinx/blob/ead64df/sphinx/directives/code.py#L108-L117
+    Support the `same options
+    <https://github.com/sphinx-doc/sphinx/blob/ead64df/sphinx/directives/code.py#L108-L117>`_
+    as :class:`sphinx.directives.code.CodeBlock`, and some specific to Click
+    directives.
     """
 
     default_language: str
@@ -255,10 +263,13 @@ class ClickDirective(SphinxDirective):
     recognized.
     """
 
-    render_source: bool = True
-    """Whether to render the source code of the example in a code block."""
-    render_results: bool = True
-    """Whether to render the results of the example in a code block."""
+    default_show_source: bool = True
+    """Whether to render the source code of the example in the code block."""
+    default_show_results: bool = True
+    """Whether to render the results of the example in the code block."""
+
+    runner_func_id: str
+    """The name of the function to call on the :class:`ExampleRunner` instance."""
 
     @property
     def runner(self) -> ExampleRunner:
@@ -284,51 +295,86 @@ class ClickDirective(SphinxDirective):
         return self.default_language
 
     @cached_property
+    def code_block_options(self) -> list[str]:
+        """Render the options supported by Sphinx' native `code-block` directive."""
+        options = []
+        for option_id in CodeBlock.option_spec:
+            if option_id in self.options:
+                value = self.options[option_id]
+                line = f":{option_id}:"
+                if value:
+                    line += f" {value}"
+                options.append(line)
+        return options
+
+    @cached_property
+    def show_source(self) -> bool:
+        """Whether to show the source code of the example in the code block.
+
+        The last occurrence of either ``show-source`` or ``hide-source`` options
+        wins. If neither is set, the default is taken from ``default_show_source``.
+        """
+        show_source = self.default_show_source
+        for option_id in self.options:
+            if option_id == "show-source":
+                show_source = True
+            elif option_id == "hide-source":
+                show_source = False
+        return show_source
+
+    @cached_property
+    def show_results(self) -> bool:
+        """Whether to show the results of running the example in the code block.
+
+        The last occurrence of either ``show-results`` or ``hide-results`` options
+        wins. If neither is set, the default is taken from ``default_show_results``.
+        """
+        show_results = self.default_show_results
+        for option_id in self.options:
+            if option_id == "show-results":
+                show_results = True
+            elif option_id == "hide-results":
+                show_results = False
+        return show_results
+
+    @cached_property
     def is_myst_syntax(self) -> bool:
         """Check if the current directive is written with MyST syntax."""
         return self.state.__module__.split(".", 1)[0] == "myst_parser"
 
     def run(self) -> list[nodes.Node]:
-        doc = ViewList()
-
-        run_func = (
-            self.runner.run_example
-            if self.render_results
-            else self.runner.declare_example
+        assert hasattr(self.runner, self.runner_func_id), (
+            f"{self.runner!r} does not have a function named {self.runner_func_id!r}."
         )
+        runner_func = getattr(self.runner, self.runner_func_id)
+        results = runner_func("\n".join(self.content), self.get_location())
 
-        results = run_func("\n".join(self.content), self.get_location())
+        # If neither source code nor results are requested, we don't render anything.
+        if not self.show_source and not self.show_results:
+            return []
+
+        # Initialize a new document to hold the code block content.
+        doc = ViewList()
 
         # Write the code block with either MyST or rST syntax.
         code_directive = "```{code-block}" if self.is_myst_syntax else ".. code-block::"
         doc.append(f"{code_directive} {self.language}", "")
 
         # Re-attach each option to the code block.
-        for option_name, value in self.options.items():
-            # If the option is not supported, ignore it and warn the user.
-            if option_name not in self.option_spec:
-                self.state.document.reporter.warning(
-                    f"Ignore unknown option {option_name!r} for {self.name} directive.",
-                    line=self.lineno,
-                )
-                continue
-            option_line = "" if self.is_myst_syntax else RST_INDENT
-            option_line += f":{option_name}:"
-            if value:
-                option_line += f" {value}"
-            doc.append(option_line, "")
+        for line in self.code_block_options:
+            doc.append(line if self.is_myst_syntax else RST_INDENT + line, "")
 
         # rST code directives needs a blank line before the body of the block else the
         # first line will be interpreted as a directive option.
         if not self.is_myst_syntax:
             doc.append("", "")
 
-        if self.render_source:
+        if self.show_source:
             for line in self.content:
                 # Indent the line in rST code block.
                 doc.append(line if self.is_myst_syntax else RST_INDENT + line, "")
 
-        if self.render_results:
+        if self.show_results:
             for line in results:
                 # Indent the line in rST code block.
                 doc.append(line if self.is_myst_syntax else RST_INDENT + line, "")
@@ -351,8 +397,9 @@ class DeclareExampleDirective(ClickDirective):
     """
 
     default_language = "python"
-    render_source = True
-    render_results = False
+    default_show_source = True
+    default_show_results = False
+    runner_func_id = "declare_example"
 
 
 class RunExampleDirective(ClickDirective):
@@ -364,8 +411,9 @@ class RunExampleDirective(ClickDirective):
     """
 
     default_language = "ansi-shell-session"
-    render_source = False
-    render_results = True
+    default_show_source = False
+    default_show_results = True
+    runner_func_id = "run_example"
 
 
 class ClickDomain(Domain):
