@@ -50,7 +50,7 @@ In this example I have hard-coded the version to `1.2.3` for the sake of demonst
 
 The message template is a [format string](https://docs.python.org/3/library/string.html#format-string-syntax), which [defaults to](#click_extra.version.ExtraVersionOption.message):
 
-```python
+```{code-block} python
 "{prog_name}, version {version}"
 ```
 
@@ -117,7 +117,7 @@ The `--version` option works with standalone scripts.
 
 Let's put this code in a file named `greet.py`:
 
-```python
+```{code-block} python
 from click_extra import extra_command
 
 
@@ -132,7 +132,7 @@ if __name__ == "__main__":
 
 Here is the result of the `--version` option:
 
-```ansi-shell-session
+```{code-block} ansi-shell-session
 $ python ./greet.py --version
 [97mgreet.py[0m, version [32mNone[0m
 ```
@@ -141,7 +141,7 @@ Because the script is not packaged, the `{package_name}` is set to the script fi
 
 But Click Extra recognize a `__version__` variable. So you can force the version string in your script:
 
-```python
+```{code-block} python
 from click_extra import extra_command
 
 
@@ -157,7 +157,7 @@ if __name__ == "__main__":
     greet()
 ```
 
-```ansi-shell-session
+```{code-block} ansi-shell-session
 $ python ./greet.py --version
 [97mgreet.py[0m, version [32m0.9.3-alpha[0m
 ```

@@ -5,7 +5,7 @@ Click Extra plugs into Pygments to allow for the rendering of ANSI codes in vari
 ````{important}
 For these helpers to work, you need to install ``click_extra``'s additional dependencies from the ``pygments`` extra group:
 
-```shell-session
+```{code-block} shell-session
 $ pip install click_extra[pygments]
 ```
 ````
@@ -18,7 +18,7 @@ Here is a quick way to check the new plugins are visible to Pygments' regular AP
 
 - Formatter:
 
-  ```ansi-pycon
+  ```{code-block} ansi-pycon
   >>> from pygments.formatters import get_formatter_by_name
   >>> get_formatter_by_name("ansi-html")
   <click_extra.pygments.AnsiHtmlFormatter object at 0x1011ff1d0>
@@ -26,7 +26,7 @@ Here is a quick way to check the new plugins are visible to Pygments' regular AP
 
 - Filter:
 
-  ```ansi-pycon
+  ```{code-block} ansi-pycon
   >>> from pygments.filters import get_filter_by_name
   >>> get_filter_by_name("ansi-filter")
   <click_extra.pygments.AnsiFilter object at 0x103aaa790>
@@ -34,7 +34,7 @@ Here is a quick way to check the new plugins are visible to Pygments' regular AP
 
 - Lexers:
 
-  ```ansi-pycon
+  ```{code-block} ansi-pycon
   >>> from pygments.lexers import get_lexer_by_name
   >>> get_lexer_by_name("ansi-shell-session")
   <pygments.lexers.AnsiBashSessionLexer>
@@ -55,7 +55,7 @@ This `ansi-html` formatter is designed to only work with the `ansi-color` lexer.
 
 [`ansi-color` is implement by `pygments_ansi_color.AnsiColorLexer`](https://github.com/chriskuehl/pygments-ansi-color/blob/2ef0410763eff53f0af736c2f08ebd16fa4abb83/pygments_ansi_color/__init__.py#L203) on which Click Extra depends. So on Click Extra installation, `ansi-color` will be available to Pygments:
 
-```ansi-pycon
+```{code-block} ansi-pycon
 >>> from pygments.lexers import get_lexer_by_name
 >>> get_lexer_by_name("ansi-color")
 <pygments.lexers.AnsiColorLexer>
@@ -66,7 +66,7 @@ This `ansi-html` formatter is designed to only work with the `ansi-color` lexer.
 
 To test it, let's generate a `cowsay.ans` file that is full of ANSI colors:
 
-```ansi-shell-session
+```{code-block} ansi-shell-session
 $ fortune | cowsay | lolcat --force > ./cowsay.ans
 $ cat ./cowsay.ans
 [38;5;154m [39m[38;5;154m_[39m[38;5;154m_[39m[38;5;148m_[39m[38;5;184m_[39m[38;5;184m_[39m[38;5;184m_[39m[38;5;184m_[39m[38;5;184m_[39m[38;5;184m_[39m[38;5;184m_[39m[38;5;184m_[39m[38;5;184m_[39m[38;5;184m_[39m[38;5;184m_[39m[38;5;178m_[39m[38;5;214m_[39m[38;5;214m_[39m[38;5;214m_[39m[38;5;214m_[39m[38;5;214m_[39m[38;5;214m_[39m[38;5;214m_[39m[38;5;214m_[39m[38;5;214m_[39m[38;5;208m_[39m[38;5;208m_[39m[38;5;208m_[39m[38;5;208m_[39m[38;5;208m_[39m[38;5;208m_[39m[38;5;208m_[39m[38;5;208m_[39m[38;5;208m [39m[38;5;208m[39m
@@ -82,7 +82,7 @@ $ cat ./cowsay.ans
 
 We can run our formatter on that file:
 
-```python
+```{code-block} python
 from pathlib import Path
 
 from pygments import highlight
@@ -105,7 +105,7 @@ The `ansi-color` lexer parse raw ANSI codes and transform them into custom Pygme
 
 The code above prints the following HTML:
 
-```html
+```{code-block} html
 <div class="highlight">
  <pre>
       <span></span>
@@ -127,11 +127,11 @@ The code above prints the following HTML:
 
 And here is how to obtain the corresponding CSS style:
 
-```python
+```{code-block} python
 print(formatter.get_style_defs(".highlight"))
 ```
 
-```css
+```{code-block} css
 pre {
     line-height: 125%;
 }
@@ -252,7 +252,7 @@ Let's test one of these lexers. We are familiar with Python so we'll focus on th
 
 First, we will generate some random art in an interactive Python shell:
 
-```pycon
+```{code-block} pycon
 >>> import itertools
 >>> colors = [f"\033[3{i}m{{}}\033[0m" for i in range(1, 7)]
 >>> rainbow = itertools.cycle(colors)
@@ -266,7 +266,7 @@ The code block above is a typical Python console session. You have interactive p
 
 You can see that the raw Python string `art` contain ANSI escape sequences (`\x1b[XXm`). When we print this string and give the results to Pygments, the ANSI codes are not interpreted and the output is rendered as-is:
 
-```pycon
+```{code-block} pycon
 >>> print(art)
 [35m║[0m[36m▌[0m[31m█[0m[32m║[0m[33m [0m[34mA[0m[35mN[0m[36mS[0m[31mI[0m[32m [0m[33mA[0m[34mr[0m[35mt[0m[36m [0m[31m▌[0m[32m│[0m[33m║[0m[34m▌[0m
 ```
@@ -275,7 +275,7 @@ If you try to run the snippet above in your own Python console, you will see tha
 
 That's why you need Click Extra's lexers. If we switch to the new `ansi-pycon` lexer, the output is colored, replicating exactly what you are expecting in your console:
 
-```ansi-pycon
+```{code-block} ansi-pycon
 >>> print(art)
 [35m║[0m[36m▌[0m[31m█[0m[32m║[0m[33m [0m[34mA[0m[35mN[0m[36mS[0m[31mI[0m[32m [0m[33mA[0m[34mr[0m[35mt[0m[36m [0m[31m▌[0m[32m│[0m[33m║[0m[34m▌[0m
 ```
@@ -288,7 +288,7 @@ All these new lexers [can be used in Sphinx](https://kdeldycke.github.io/click-e
 
 We can check how `pygments_ansi_color`'s `ansi-color` lexer transforms a raw string into ANSI tokens:
 
-```ansi-pycon
+```{code-block} ansi-pycon
 >>> from pygments.lexers import get_lexer_by_name
 >>> ansi_lexer = get_lexer_by_name("ansi-color")
 >>> tokens = ansi_lexer.get_tokens(art)
@@ -304,12 +304,12 @@ Because they're properly registered to Pygments, all these new components can be
 
 For example, here is how we can render the `cowsay.ans` file from the [example above](<>) into a standalone HTML file:
 
-```ansi-shell-session
+```{code-block} ansi-shell-session
 $ pygmentize -f ansi-html -O full -o cowsay.html ./cowsay.ans
 $ cat cowsay.html
 ```
 
-```html
+```{code-block} html
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <!--
 generated by Pygments <https://pygments.org/>

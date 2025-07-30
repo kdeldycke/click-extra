@@ -78,7 +78,7 @@ That's it!
 
 Here is a `diff` highlight of the simple changes between the two versions:
 
-```diff
+```{code-block} diff
 -from click import command, echo, option
 +from click_extra import extra_command, echo, option
 

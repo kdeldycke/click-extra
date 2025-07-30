@@ -3,7 +3,7 @@
 ````{important}
 For these helpers to work, you need to install ``click_extra``'s additional dependencies from the ``pytest`` extra group:
 
-```shell-session
+```{code-block} shell-session
 $ pip install click_extra[pytest]
 ```
 ````

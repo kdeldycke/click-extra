@@ -55,7 +55,7 @@ With a simple TOML file in the application folder, we will change the CLI's defa
 
 Here is what `~/.config/my-cli/config.toml` contains:
 
-```toml
+```{code-block} toml
 # My default configuration file.
 top_level_param = "is_ignored"
 
@@ -83,7 +83,7 @@ In the file above, pay attention to:
 
 Now we can verify the configuration file is properly read and change the defaults:
 
-```shell-session
+```{code-block} shell-session
 $ my-cli subcommand
 dummy_flag    is True
 my_list       is ('item 1', 'item #2', 'Very Last Item!')
@@ -117,7 +117,7 @@ After gathering all the configuration from the different sources, and assembling
 
 You can still access the full configuration by looking into the context's `meta` attribute:
 
-```python
+```{code-block} python
 from click_extra import option, echo, pass_context, command, config_option
 
 
@@ -132,7 +132,7 @@ def my_cli(ctx, int_param):
     echo(f"int_param is {int_param!r}")
 ```
 
-```toml
+```{code-block} toml
 [my-cli]
 int_param = 3
 random_stuff = "will be ignored"
@@ -141,7 +141,7 @@ random_stuff = "will be ignored"
 dummy_flag = true
 ```
 
-```shell-session
+```{code-block} shell-session
 $ my-cli --config ./conf.toml --int-param 999
 Load configuration matching ./conf.toml
 Configuration location: /home/me/conf.toml
@@ -244,7 +244,7 @@ The example above, given for a TOML configuration file, is working as-is with YA
 Just replace the TOML file with the following configuration at
 `~/.config/my-cli/config.yaml`:
 
-```yaml
+```{code-block} yaml
 # My default configuration file.
 top_level_param: is_ignored
 
@@ -264,7 +264,7 @@ garbage: >
   An empty random section that will be skipped
 ```
 
-```shell-session
+```{code-block} shell-session
 $ my-cli --config "~/.config/my-cli/config.yaml" subcommand
 dummy_flag    is True
 my_list       is ('point 1', 'point #2', 'Very Last Point!')
@@ -275,7 +275,7 @@ int_parameter is 77
 
 Again, same for JSON:
 
-```json
+```{code-block} json
 {
   "top_level_param": "is_ignored",
   "garbage": {},
@@ -295,7 +295,7 @@ Again, same for JSON:
 }
 ```
 
-```shell-session
+```{code-block} shell-session
 $ my-cli --config "~/.config/my-cli/config.json" subcommand
 dummy_flag    is True
 my_list       is ('item 1', 'item #2', 'Very Last Item!')
@@ -478,7 +478,7 @@ assert "*.{ini,yaml,yml}]" in result.stdout
 
 Remote URL can be passed directly to the `--config` option:
 
-```shell-session
+```{code-block} shell-session
 $ my-cli --config "https://example.com/dummy/configuration.yaml" subcommand
 dummy_flag    is True
 my_list       is ('point 1', 'point #2', 'Very Last Point!')

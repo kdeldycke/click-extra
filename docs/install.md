@@ -7,7 +7,7 @@ This package is
 can install the latest stable release and its dependencies with a simple `pip`
 call:
 
-```shell-session
+```{code-block} shell-session
 $ pip install click-extra
 ```
 
@@ -28,18 +28,18 @@ For additional features, and to facilitate integration of Click CLIs with third-
 
 - [For Pygments](pygments.md):
 
-  ```shell-session
+  ```{code-block} shell-session
   $ pip install click-extra[pygments]
   ```
 
 - [For Sphinx](sphinx.md):
 
-  ```shell-session
+  ```{code-block} shell-session
   $ pip install click-extra[sphinx]
   ```
 
 - [For Pytest](pytest.md):
 
-  ```shell-session
+  ```{code-block} shell-session
   $ pip install click-extra[pytest]
   ```

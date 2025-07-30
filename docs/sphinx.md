@@ -5,7 +5,7 @@
 ````{important}
 For these helpers to work, you need to install `click_extra`'s additional dependencies from the `sphinx` extra group:
 
-```shell-session
+```{code-block} shell-session
 $ pip install click_extra[sphinx]
 ```
 ````
@@ -14,7 +14,7 @@ $ pip install click_extra[sphinx]
 
 Once [Click Extra is installed](install.md), you can enable its [extensions](https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-extensions) in your Sphinx's `conf.py`:
 
-```python
+```{code-block} python
 extensions = [
     ...
     "click_extra.sphinx",
@@ -39,7 +39,7 @@ Here is how to define a simple Click-based CLI with the `click:example` directiv
 ``````{tab-set}
 `````{tab-item} MyST Markdown
 :sync: myst
-````markdown
+````{code-block} markdown
 ```{click:example}
 from click_extra import echo, extra_command, option, style
 
@@ -54,7 +54,7 @@ def hello_world(name):
 
 `````{tab-item} reStructuredText
 :sync: rst
-```rst
+```{code-block} rst
 .. click:example::
 
     from click_extra import echo, extra_command, option, style
@@ -77,7 +77,7 @@ Here is how we invoke our example with a `--help` option:
 ``````{tab-set}
 `````{tab-item} MyST Markdown
 :sync: myst
-````markdown
+````{code-block} markdown
 ```{click:run}
 invoke(hello_world, args=["--help"])
 ```
@@ -86,7 +86,7 @@ invoke(hello_world, args=["--help"])
 
 `````{tab-item} reStructuredText
 :sync: rst
-```rst
+```{code-block} rst
 .. click:run::
 
     invoke(hello_world, args=["--help"])
@@ -131,7 +131,7 @@ You can then invoke that CLI again with its `--name` option:
 ``````{tab-set}
 `````{tab-item} MyST Markdown
 :sync: myst
-````markdown
+````{code-block} markdown
 ```{click:run}
 invoke(hello_world, args=["--name", "Joe"])
 ```
@@ -140,7 +140,7 @@ invoke(hello_world, args=["--name", "Joe"])
 
 `````{tab-item} reStructuredText
 :sync: rst
-```rst
+```{code-block} rst
 .. click:run::
 
     invoke(hello_world, args=["--name", "Joe"])
@@ -193,7 +193,7 @@ For example, you can highlight some lines of with the `:emphasize-lines:` option
 ``````{tab-set}
 `````{tab-item} MyST Markdown
 :sync: myst
-````markdown
+````{code-block} markdown
 ```{click:example}
 :caption: A magnificent ✨ Hello World CLI!
 :linenos:
@@ -211,7 +211,7 @@ def hello_world(name):
 
 `````{tab-item} reStructuredText
 :sync: rst
-```rst
+```{code-block} rst
 .. click:example::
    :caption: A magnificent ✨ Hello World CLI!
    :linenos:
@@ -329,7 +329,7 @@ def hello_world(name):
 
 Let's put the code above in a `click:example` directive. And then put the following Python code into a `click:run` block:
 
-```python
+```{code-block} python
 result = invoke(hello_world, args=["--help"])
 
 assert result.exit_code == 0, "CLI execution failed"
@@ -341,7 +341,7 @@ See how we collect here the `result` of the `invoke` command, and separately ins
 
 If for any reason our CLI changes and its help screen is no longer what we expect, the test will fail and the documentation build will break with a message similar to:
 
-```text
+```{code-block} text
 Versions
 ========
 
@@ -397,8 +397,8 @@ This allows you to render colored shell sessions in code blocks by referring to 
 ``````{tab-set}
 `````{tab-item} MyST Markdown
 :sync: myst
-````markdown
-```ansi-shell-session
+````{code-block} markdown
+```{code-block} ansi-shell-session
 $ # Print ANSI foreground colors.
 $ for i in {0..255}; do \
 >     printf '\e[38;5;%dm%3d ' $i $i \
@@ -425,7 +425,7 @@ $ for i in {0..255}; do \
 
 `````{tab-item} reStructuredText
 :sync: rst
-```rst
+```{code-block} rst
 .. code-block:: ansi-shell-session
 
     $ # Print ANSI foreground colors.
@@ -454,7 +454,7 @@ $ for i in {0..255}; do \
 
 In Sphinx, the snippet above renders to:
 
-```ansi-shell-session
+```{code-block} ansi-shell-session
 $ # Print ANSI foreground colors.
 $ for i in {0..255}; do \
 >     printf '\e[38;5;%dm%3d ' $i $i \
@@ -485,7 +485,7 @@ This rely on MyST's ability to embed reStructuredText within MyST documents, via
 
 So instead of using the `{click:example}` and `{click:run}` MyST directive, you can wrap your reStructuredText code blocks with `{eval-rst}`:
 
-````markdown
+````{code-block} markdown
 ```{eval-rst}
 .. click:example::
 
@@ -553,7 +553,7 @@ def sql_output(name):
 
 Then you can force the SQL Pygments highlighter on its output by passing the [short name of that lexer (i.e. `sql`)](https://pygments.org/docs/lexers/#pygments.lexers.sql.SqlLexer) as the first argument to the directive:
 
-````markdown
+````{code-block} markdown
 ```{click:run} sql
 invoke(sql_output, args=["--name", "Joe"])
 ```
@@ -569,7 +569,7 @@ See how the output (i.e. the second line above) is now rendered with the `sql` P
 
 In fact, if you look at Sphinx logs, you will see that a warning has been raised because of that:
 
-```text
+```{code-block} text
 .../docs/sphinx.md:257: WARNING: Lexing literal_block "$ sql-output --name Joe\nSELECT * FROM users WHERE name = 'Joe';" as "sql" resulted in an error at token: '$'. Retrying in relaxed mode. [misc.highlighting_failure]
 ```
 

@@ -49,7 +49,7 @@ Propose the `raw_args` feature upstream to Click.
 
 Now if we feed the following `~/configuration.toml` configuration file:
 
-```toml
+```{code-block} toml
 [my-cli]
 verbosity = "DEBUG"
 dummy_flag = true

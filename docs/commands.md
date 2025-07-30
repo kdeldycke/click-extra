@@ -211,7 +211,7 @@ For example, the [`--verbosity` option defaults to the `WARNING` level](logging.
 
 If you manage your own `--verbosity` option, you can [pass the `default` argument to its decorator like we did above](#change-default-options):
 
-```python
+```{code-block} python
 from click_extra import command, verbosity_option
 
 
@@ -223,7 +223,7 @@ def cli():
 
 This also works in its class form:
 
-```python
+```{code-block} python
 from click_extra import command, VerbosityOption
 
 
@@ -268,7 +268,7 @@ For some practical reasons, you'd like to wrap all these commands into a big one
 ````{note}
 Here is how I initialized this example on my machine:
 
-```shell-session
+```{code-block} shell-session
 $ git clone https://github.com/kdeldycke/click-extra
 (...)
 
@@ -296,7 +296,7 @@ $ uv pip install aws-sam-cli
 
 That way I had the latest Click Extra, `dbt` and `aws-sam-cli` installed in the same virtual environment:
 
-```shell-session
+```{code-block} shell-session
 $ uv run -- dbt --version
 Core:
   - installed: 1.6.1
@@ -311,7 +311,7 @@ Plugins:
 
 ```
 
-```shell-session
+```{code-block} shell-session
 $ uv run -- sam --version
 SAM CLI, version 1.97.0
 ```
@@ -319,7 +319,7 @@ SAM CLI, version 1.97.0
 
 Once you identified the entry points of each commands, you can easily wrap them into a top-level Click Extra CLI. Here is for instance the content of a `wrap.py` script:
 
-```python
+```{code-block} python
 from click_extra import extra_group
 
 from samcli.cli.main import cli as sam_cli
@@ -341,7 +341,7 @@ if __name__ == "__main__":
 
 And this simple script gets rendered into:
 
-```shell-session
+```{code-block} shell-session
 $ uv run -- python ./wrap.py
 Usage: wrap.py [OPTIONS] COMMAND [ARGS]...
 
@@ -375,7 +375,7 @@ You can compare the output of the `aws_sam` subcommand with its original one:
 
 `````{tab-set}
 ````{tab-item} aws_sam subcommand in wrap.py
-```shell-session
+```{code-block} shell-session
 $ uv run -- python ./wrap.py aws_sam --help
 Usage: wrap.py aws_sam [OPTIONS] COMMAND [ARGS]...
 
@@ -439,7 +439,7 @@ Examples:
 ````
 
 ````{tab-item} Vanilla sam CLI
-```shell-session
+```{code-block} shell-session
 $ uv run -- sam --help
 Usage: sam [OPTIONS] COMMAND [ARGS]...
 
@@ -505,7 +505,7 @@ Examples:
 
 Here is the highlighted differences to make them even more obvious:
 
-```diff
+```{code-block} diff
 @@ -1,5 +1,5 @@
 -$ uv run -- python ./wrap.py aws_sam --help
 -Usage: wrap.py aws_sam [OPTIONS] COMMAND [ARGS]...
