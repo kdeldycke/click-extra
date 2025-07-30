@@ -282,7 +282,7 @@ class ClickDirective(SphinxDirective):
     @cached_property
     def is_myst_syntax(self) -> bool:
         """Check if the current directive is written with MyST syntax."""
-        return self.state.__module__.split(".")[0] == "myst_parser"
+        return self.state.__module__.split(".", 1)[0] == "myst_parser"
 
     def run(self) -> list[nodes.Node]:
         doc = ViewList()

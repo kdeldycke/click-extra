@@ -215,7 +215,7 @@ class ExtraVersionOption(ExtraOption):
 
             # Skip the intermediate frames added by the `@cached_property` decorator
             # and the Click ecosystem.
-            if frame_name and frame_name.split(".")[0] in (
+            if frame_name and frame_name.split(".", 1)[0] in (
                 "functools",
                 "click_extra",
                 "cloup",
