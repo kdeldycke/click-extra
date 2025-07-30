@@ -172,14 +172,17 @@ inspiration.
 You can pass options to both the `click:example` and `click:run` directives to customize their behavior.
 
 Because these two directives produces code blocks, they support the [same options as the Sphinx `code-block` directive](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-code-block):
-- `:linenos:` to display line numbers
-- `:lineno-start:` to specify the starting line number (e.g., `:lineno-start: 10`)
-- `:emphasize-lines:` to highlight specific lines
-- `:force:` to ignore minor errors on highlighting
-- `:caption:` to set a caption for the code block
-- `:name:` to set a name for the code block (useful for cross-referencing)
-- `:class:` to set a CSS class for the code block
-- `:dedent:` to specify the number of spaces to remove from the beginning of each line (e.g., `:dedent: 4`)
+
+| Option | Description | Example |
+|--------|-------------|---------|
+| [`:linenos:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-linenos) | Display line numbers. | `:linenos:` |
+| [`:lineno-start:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-lineno-start) | Specify the starting line number. | `:lineno-start: 10` |
+| [`:emphasize-lines:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-emphasize-lines) | Highlight specific lines. | `:emphasize-lines: 2,4-6` |
+| [`:force:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-force) | Ignore minor errors on highlighting. | `:force:` |
+| [`:caption:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-caption) | Set a caption for the code block. | `:caption: My Code Example` |
+| [`:name:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-name) | Set a name for the code block (useful for cross-referencing). | `:name: example-1` |
+| [`:class:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-class) | Set a CSS class for the code block. | `:class: highlight` |
+| [`:dedent:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-dedent) | Specify the number of spaces to remove from the beginning of each line. | `:dedent: 4` |
 
 For example, you can highlight some lines of with the `:emphasize-lines:` option, display line numbers with the `:linenos:` option, and set a caption with the `:caption:` option:
 
