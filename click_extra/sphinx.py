@@ -243,6 +243,7 @@ class ClickDirective(SphinxDirective):
     final_argument_whitespace = False
 
     option_spec: ClassVar[OptionSpec] = CodeBlock.option_spec | {
+        "language": directives.unchanged_required,
         "show-source": directives.flag,
         "hide-source": directives.flag,
         "show-results": directives.flag,
@@ -287,9 +288,12 @@ class ClickDirective(SphinxDirective):
     def language(self) -> str:
         """Short name of the Pygments lexer used to highlight the code block.
 
-        Returns the one explicitly set by the user in the directive
-        arguments, or the default language.
+        Returns, in order of precedence, the language specified in the `:language:`
+        directive options, the first argument of the directive (if any), or the default
+        set in the directive class.
         """
+        if "language" in self.options:
+            return self.options["language"]
         if self.arguments:
             return self.arguments[0]
         return self.default_language

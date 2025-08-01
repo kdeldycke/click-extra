@@ -189,6 +189,7 @@ You can pass options to both the `click:example` and `click:run` directives to c
 | [`:name:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-name) | Set a name for the code block (useful for cross-referencing). | `:name: example-1` |
 | [`:class:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-class) | Set a CSS class for the code block. | `:class: highlight` |
 | [`:dedent:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-dedent) | Specify the number of spaces to remove from the beginning of each line. | `:dedent: 4` |
+| [`:language:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-literalinclude-language) | Specify the programming language for syntax highlighting. This can be used as an alternative to [passing the language as an argument](#syntax-highlight-language). | `:language: sql` |
 | `:show-source:`/`:hide-source:` | Flags to force the source code within the directive to be rendered or not. | `:show-source:` or `:hide-source:` |
 | `:show-results:`/`:hide-results:` | Flags to force the results of the CLI invocation to be rendered or not. | `:show-results:` or `:hide-results:` |
 
@@ -590,7 +591,7 @@ NameError: name 'yo_cli' is not defined
 ```
 ````
 
-## Forcing syntax highlight language
+## Syntax highlight language
 
 By default, code blocks produced by the directives are automatically highlighted with these languages:
 - `click:example`: [`python`](https://pygments.org/docs/lexers/#pygments.lexers.python.PythonLexer)
@@ -633,6 +634,10 @@ In fact, if you look at Sphinx logs, you will see that a warning has been raised
 
 ```{code-block} text
 .../docs/sphinx.md:257: WARNING: Lexing literal_block "$ sql-output --name Joe\nSELECT * FROM users WHERE name = 'Joe';" as "sql" resulted in an error at token: '$'. Retrying in relaxed mode. [misc.highlighting_failure]
+```
+
+```{hint}
+Alternatively, you can force syntax highlight with the `:language:` option, which takes precedence over the default language of the directive.
 ```
 
 ## `click_extra.sphinx` API
