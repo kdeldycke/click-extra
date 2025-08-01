@@ -330,6 +330,7 @@ If you want to display the source code used to invoke the CLI in addition to its
 :show-source:
 result = invoke(simple_print)
 
+# Some inline tests.
 assert result.exit_code == 0, "CLI execution failed"
 assert not result.stderr, "Found error messages in <stderr>"
 ```
@@ -345,6 +346,7 @@ assert not result.stderr, "Found error messages in <stderr>"
 
    result = invoke(simple_print)
 
+   # Some inline tests.
    assert result.exit_code == 0, "CLI execution failed"
    assert not result.stderr, "Found error messages in <stderr>"
 ```
@@ -357,6 +359,7 @@ In this particular mode the `click:run` produced two code blocks, one for the so
 :show-source:
 result = invoke(simple_print)
 
+# Some inline tests.
 assert result.exit_code == 0, "CLI execution failed"
 assert not result.stderr, "Found error messages in <stderr>"
 ```

@@ -392,17 +392,14 @@ class ClickDirective(SphinxDirective):
             # If we are running a CLI, we force rendering the source code as a
             # Python code block.
             if self.runner_func_id == "run_example":
-                language = "python"
+                language = DeclareExampleDirective.default_language
             lines.extend(self.render_code_block(self.content, language))
         if self.show_results:
             lines.extend(self.render_code_block(results, self.language))
 
         # Dump the code block into a docutils section.
-        doc = ViewList()
-        for line in lines:
-            doc.append(line, "")
         node = nodes.section()
-        self.state.nested_parse(doc, self.content_offset, node)
+        self.state.nested_parse(ViewList(lines, ""), self.content_offset, node)
         return node.children
 
 
