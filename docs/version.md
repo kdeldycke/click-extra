@@ -344,7 +344,7 @@ def version_metadata(ctx):
 ```
 
 ```{click:run}
-result = invoke(version_metadata, ["--version"])
+invoke(version_metadata, ["--version"])
 ```
 
 ```{click:run}
