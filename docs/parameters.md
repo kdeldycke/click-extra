@@ -15,6 +15,7 @@ Write example and tutorial.
 If for any reason you need to dive into parameters and their values, there is a lot of intermediate and metadata available in the context. Here are some pointers:
 
 ```{code-block} python
+:emphasize-lines: 13-15
 from click import option, echo, pass_context
 
 from click_extra import config_option, extra_group
@@ -50,6 +51,7 @@ Propose the `raw_args` feature upstream to Click.
 Now if we feed the following `~/configuration.toml` configuration file:
 
 ```{code-block} toml
+:caption: `~/configuration.toml`
 [my-cli]
 verbosity = "DEBUG"
 dummy_flag = true
@@ -79,6 +81,7 @@ It produces a comprehensive table of your CLI parameters, normalized IDs, types 
 See how the default `@extra_command` decorator come with the default `--show-params` option and the result of its use:
 
 ```{click:example}
+:emphasize-lines: 3
 from click_extra import extra_command, option, echo
 
 @extra_command

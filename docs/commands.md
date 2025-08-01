@@ -7,6 +7,7 @@ Click Extra aims to be a drop-in replacement for Click. The vast majority of Cli
 Here is for instance the [canonical `click` example](https://github.com/pallets/click#a-simple-example) with all original imports replaced with `click_extra`:
 
 ```{click:example}
+:emphasize-lines: 1
 from click_extra import command, echo, option
 
 @command
@@ -109,6 +110,7 @@ The `@extra_command` and `@extra_group` decorators are [pre-configured with a se
 You can remove all default options by resetting the `params` argument to `None`:
 
 ```{click:example}
+:emphasize-lines: 3
 from click_extra import extra_command
 
 @extra_command(params=None)
@@ -138,6 +140,7 @@ As you can see, all options are stripped out, but the colouring and formatting o
 To override the default options, you can provide the `params=` argument to the command. But note how we use classes instead of option decorators:
 
 ```{click:example}
+:emphasize-lines: 4-7
 from click_extra import extra_command, ConfigOption, VerbosityOption
 
 @extra_command(
@@ -153,6 +156,7 @@ def cli():
 And now you get:
 
 ```{click:run}
+:emphasize-lines: 5-9
 from textwrap import dedent
 result = invoke(cli, args=["--help"])
 assert result.stdout.startswith(dedent(
@@ -166,10 +170,12 @@ assert result.stdout.startswith(dedent(
 
 This let you replace the preset options by your own set, tweak their order and fine-tune their defaults.
 
-````{caution} Duplicate options
+````{admonition} Duplicate options
+:class: caution
 If you try to add option decorators to a command which already have them by default, you will end up with duplicate entries ([as seen in issue #232](https://github.com/kdeldycke/click-extra/issues/232)):
 
 ```{click:example}
+:emphasize-lines: 4
 from click_extra import extra_command, extra_version_option
 
 @extra_command
@@ -181,6 +187,7 @@ def cli():
 See how the `--version` option gets duplicated at the end:
 
 ```{click:run}
+:emphasize-lines: 21,22
 from textwrap import dedent
 result = invoke(cli, args=["--help"])
 assert (
@@ -192,7 +199,9 @@ assert (
 
 This is by design: decorators are cumulative, to allow you to add your own options to the preset of `@extra_command` and `@extra_group`.
 
-And if the second `--version` option is placed right before the `--help` option, it is because [Click is adding its own generated `--help` option at the end of the list](https://kdeldycke.github.io/click-extra/commands.html#click_extra.commands.default_extra_params).
+But notice the `UserWarning` log messages: `The parameter --version is used more than once. Remove its duplicate as parameters should be unique.`. As it is not a good practice to have duplicate options and you must avoid it. There's also a non-zero chance for this situation to result in complete failure in a future Click release.
+
+Finally, if the second `--version` option is placed right before the `--help` option, it is because [Click is adding its own generated `--help` option at the end of the list](https://kdeldycke.github.io/click-extra/commands.html#click_extra.commands.default_extra_params).
 ````
 
 ### Option order
@@ -211,9 +220,9 @@ For example, the [`--verbosity` option defaults to the `WARNING` level](logging.
 
 If you manage your own `--verbosity` option, you can [pass the `default` argument to its decorator like we did above](#change-default-options):
 
-```{code-block} python
+```{click:example}
+:emphasize-lines: 4
 from click_extra import command, verbosity_option
-
 
 @command
 @verbosity_option(default="INFO")
@@ -223,9 +232,9 @@ def cli():
 
 This also works in its class form:
 
-```{code-block} python
+```{click:example}
+:emphasize-lines: 3
 from click_extra import command, VerbosityOption
-
 
 @command(params=[VerbosityOption(default="INFO")])
 def cli():
@@ -235,6 +244,7 @@ def cli():
 But you also have the alternative to pass a `default_map` via the `context_settings`:
 
 ```{click:example}
+:emphasize-lines: 3
 from click_extra import extra_command
 
 @extra_command(context_settings={"default_map": {"verbosity": "INFO"}})
@@ -245,6 +255,7 @@ def cli():
 Which results in `[default: INFO]` being featured in the help message:
 
 ```{click:run}
+:emphasize-lines: 17
 result = invoke(cli, args=["--help"])
 assert "\x1b[2m[\x1b[0m\x1b[2mdefault: \x1b[0m\x1b[32m\x1b[2m\x1b[3mINFO\x1b[0m\x1b[2m]\x1b[0m\n" in result.stdout
 ```
@@ -317,9 +328,11 @@ SAM CLI, version 1.97.0
 ```
 ````
 
-Once you identified the entry points of each commands, you can easily wrap them into a top-level Click Extra CLI. Here is for instance the content of a `wrap.py` script:
+Once you identified the entry points of each commands, you can easily wrap them into a top-level Click Extra CLI, here in a local script I called `wrap.py`:
 
 ```{code-block} python
+:caption: `wrap.py`
+:emphasize-lines: 3-4,12-13
 from click_extra import extra_group
 
 from samcli.cli.main import cli as sam_cli
@@ -342,6 +355,7 @@ if __name__ == "__main__":
 And this simple script gets rendered into:
 
 ```{code-block} shell-session
+:emphasize-lines: 22-23
 $ uv run -- python ./wrap.py
 Usage: wrap.py [OPTIONS] COMMAND [ARGS]...
 
@@ -376,6 +390,7 @@ You can compare the output of the `aws_sam` subcommand with its original one:
 `````{tab-set}
 ````{tab-item} aws_sam subcommand in wrap.py
 ```{code-block} shell-session
+:emphasize-lines: 1-2,59
 $ uv run -- python ./wrap.py aws_sam --help
 Usage: wrap.py aws_sam [OPTIONS] COMMAND [ARGS]...
 
@@ -440,6 +455,7 @@ Examples:
 
 ````{tab-item} Vanilla sam CLI
 ```{code-block} shell-session
+:emphasize-lines: 1-2,59
 $ uv run -- sam --help
 Usage: sam [OPTIONS] COMMAND [ARGS]...
 
@@ -506,6 +522,7 @@ Examples:
 Here is the highlighted differences to make them even more obvious:
 
 ```{code-block} diff
+:emphasize-lines: 2-5,13-14
 @@ -1,5 +1,5 @@
 -$ uv run -- python ./wrap.py aws_sam --help
 -Usage: wrap.py aws_sam [OPTIONS] COMMAND [ARGS]...
@@ -524,7 +541,7 @@ Here is the highlighted differences to make them even more obvious:
 
 Now that all commands are under the same umbrella, there is no limit to your imagination!
 
-```{important}
+```{caution}
 This might looks janky, but this franken-CLI might be a great way to solve practical problems in your situation.
 
 You can augment them with your custom glue code. Or maybe mashing them up will simplify the re-distribution of these CLIs on your production machines. Or control their common dependencies. Or freeze their versions. Or hard-code some parameters. Or apply monkey-patches. Or chain these commands to create new kind of automation...

@@ -5,6 +5,7 @@ Click Extra provides a way to render tables in the terminal.
 Here how to use the standalone table rendering option decorator:
 
 ```{click:example}
+:emphasize-lines: 4
 from click_extra import command, echo, pass_context, table_format_option
 
 @command
@@ -21,6 +22,7 @@ As you can see above, this option adds a ready-to-use `print_table()` method to 
 The default help message for this option list all available table formats:
 
 ```{click:run}
+:emphasize-lines: 5-6
 result = invoke(table_command, args=["--help"])
 assert "-t, --table-format" in result.stdout
 ```
@@ -79,6 +81,7 @@ Explain extra parameters supported by `print_table()` for each category of forma
 You can get the ID of the current table format from the context:
 
 ```{click:example}
+:emphasize-lines: 7-8
 from click_extra import command, echo, pass_context, table_format_option
 
 @command
@@ -94,6 +97,7 @@ def vanilla_command(ctx):
 ```
 
 ```{click:run}
+:emphasize-lines: 2
 result = invoke(vanilla_command, args=["--table-format", "fancy_outline"])
 assert "Table format: fancy_outline" in result.stdout
 ```

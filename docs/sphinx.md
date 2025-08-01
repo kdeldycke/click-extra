@@ -15,6 +15,8 @@ $ pip install click_extra[sphinx]
 Once [Click Extra is installed](install.md), you can enable its [extensions](https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-extensions) in your Sphinx's `conf.py`:
 
 ```{code-block} python
+:caption: `conf.py`
+:emphasize-lines: 3
 extensions = [
     ...
     "click_extra.sphinx",
@@ -40,6 +42,7 @@ Here is how to define a simple Click-based CLI with the `click:example` directiv
 `````{tab-item} MyST Markdown
 :sync: myst
 ````{code-block} markdown
+:emphasize-lines: 1
 ```{click:example}
 from click_extra import echo, extra_command, option, style
 
@@ -55,6 +58,7 @@ def hello_world(name):
 `````{tab-item} reStructuredText
 :sync: rst
 ```{code-block} rst
+:emphasize-lines: 1
 .. click:example::
 
     from click_extra import echo, extra_command, option, style
@@ -78,6 +82,7 @@ Here is how we invoke our example with a `--help` option:
 `````{tab-item} MyST Markdown
 :sync: myst
 ````{code-block} markdown
+:emphasize-lines: 1
 ```{click:run}
 invoke(hello_world, args=["--help"])
 ```
@@ -87,6 +92,7 @@ invoke(hello_world, args=["--help"])
 `````{tab-item} reStructuredText
 :sync: rst
 ```{code-block} rst
+:emphasize-lines: 1
 .. click:run::
 
     invoke(hello_world, args=["--help"])
@@ -132,6 +138,7 @@ You can then invoke that CLI again with its `--name` option:
 `````{tab-item} MyST Markdown
 :sync: myst
 ````{code-block} markdown
+:emphasize-lines: 2
 ```{click:run}
 invoke(hello_world, args=["--name", "Joe"])
 ```
@@ -141,6 +148,7 @@ invoke(hello_world, args=["--name", "Joe"])
 `````{tab-item} reStructuredText
 :sync: rst
 ```{code-block} rst
+:emphasize-lines: 3
 .. click:run::
 
     invoke(hello_world, args=["--name", "Joe"])
@@ -194,6 +202,7 @@ For example, you can highlight some lines of with the `:emphasize-lines:` option
 `````{tab-item} MyST Markdown
 :sync: myst
 ````{code-block} markdown
+:emphasize-lines: 2-4
 ```{click:example}
 :caption: A magnificent ✨ Hello World CLI!
 :linenos:
@@ -212,6 +221,7 @@ def hello_world(name):
 `````{tab-item} reStructuredText
 :sync: rst
 ```{code-block} rst
+:emphasize-lines: 2-4
 .. click:example::
    :caption: A magnificent ✨ Hello World CLI!
    :linenos:
@@ -317,31 +327,72 @@ You can write tests in your documentation, and they will be executed at build ti
 
 For example, here is a simple CLI:
 
+``````{tab-set}
+`````{tab-item} MyST Markdown
+:sync: myst
+````{code-block} markdown
 ```{click:example}
-from click_extra import echo, extra_command, option, style
+from click import echo, command
 
-@extra_command
-@option("--name", prompt="Your name", help="The person to greet.")
-def hello_world(name):
-    """Simple program that greets NAME."""
-    echo(f"Hello, {style(name, fg='red')}!")
+@command
+def yo_cli():
+    echo("Yo!")
 ```
+````
+`````
+
+`````{tab-item} reStructuredText
+:sync: rst
+```{code-block} rst
+.. click:example::
+
+   from click import echo, command
+
+   @command
+   def yo_cli():
+       echo("Yo!")
+```
+`````
+``````
 
 Let's put the code above in a `click:example` directive. And then put the following Python code into a `click:run` block:
 
-```{code-block} python
-result = invoke(hello_world, args=["--help"])
+``````{tab-set}
+`````{tab-item} MyST Markdown
+:sync: myst
+````{code-block} markdown
+:emphasize-lines: 6
+```{click:run}
+result = invoke(yo_cli, args=["--help"])
 
 assert result.exit_code == 0, "CLI execution failed"
-assert not result.stderr, "error message in <stderr>"
-assert "--show-params" in result.stdout, "--show-params not found in help screen"
+assert not result.stderr, "Found error messages in <stderr>"
+assert "Usage: yo-cli [OPTIONS]" in result.stdout, "Usage line not found in help screen"
 ```
+````
+`````
+
+`````{tab-item} reStructuredText
+:sync: rst
+```{code-block} rst
+:emphasize-lines: 7
+.. click:run::
+
+   result = invoke(yo_cli, args=["--help"])
+
+   assert result.exit_code == 0, "CLI execution failed"
+   assert not result.stderr, "Found error messages in <stderr>"
+   assert "Usage: yo-cli [OPTIONS]" in result.stdout, "Usage line not found in help screen"
+```
+`````
+``````
 
 See how we collect here the `result` of the `invoke` command, and separately inspect the `exit_code`, `stderr` and `stdout` of with `assert` statements.
 
 If for any reason our CLI changes and its help screen is no longer what we expect, the test will fail and the documentation build will break with a message similar to:
 
 ```{code-block} text
+:emphasize-lines: 22
 Versions
 ========
 
@@ -363,8 +414,7 @@ Traceback
 =========
 
       File "(...)/click-extra/docs/sphinx.md:197", line 5, in <module>
-    AssertionError: --show-params not found in help screen
-
+    AssertionError: Usage line not found in help screen
 
 The full traceback has been saved in:
 /var/folders/gr/1frk79j52flczzs2rrpfnkl80000gn/T/sphinx-err-5l6axu9g.log
@@ -374,12 +424,22 @@ Having your build fails when something unexpected happens is a great signal to c
 
 On the other hand, if the build succeed, the `click:run` block will render as usual with the result of the invocation:
 
+```{click:example}
+:hide-source:
+from click import echo, command
+
+@command
+def yo_cli():
+    echo("Yo!")
+```
+
 ```{click:run}
-result = invoke(hello_world, args=["--help"])
+:emphasize-lines: 2
+result = invoke(yo_cli, args=["--help"])
 
 assert result.exit_code == 0, "CLI execution failed"
-assert not result.stderr, "error message in <stderr>"
-assert "--show-params" in result.stdout, "--show-params not found in help screen"
+assert not result.stderr, "Found error messages in <stderr>"
+assert "Usage: yo-cli [OPTIONS]" in result.stdout, "Usage line not found in help screen"
 ```
 
 ```{hint}
@@ -398,6 +458,7 @@ This allows you to render colored shell sessions in code blocks by referring to 
 `````{tab-item} MyST Markdown
 :sync: myst
 ````{code-block} markdown
+:emphasize-lines: 1
 ```{code-block} ansi-shell-session
 $ # Print ANSI foreground colors.
 $ for i in {0..255}; do \
@@ -426,6 +487,7 @@ $ for i in {0..255}; do \
 `````{tab-item} reStructuredText
 :sync: rst
 ```{code-block} rst
+:emphasize-lines: 1
 .. code-block:: ansi-shell-session
 
     $ # Print ANSI foreground colors.
@@ -486,20 +548,19 @@ This rely on MyST's ability to embed reStructuredText within MyST documents, via
 So instead of using the `{click:example}` and `{click:run}` MyST directive, you can wrap your reStructuredText code blocks with `{eval-rst}`:
 
 ````{code-block} markdown
+:emphasize-lines: 1
 ```{eval-rst}
 .. click:example::
 
-    from click_extra import echo, extra_command, option, style
+   from click import echo, command
 
-    @extra_command
-    @option("--name", prompt="Your name", help="The person to greet.")
-    def hello_world(name):
-        """Simple program that greets NAME."""
-        echo(f"Hello, {style(name, fg='red')}!")
+   @command
+   def yo_cli():
+       echo("Yo!")
 
 .. click:run::
 
-    invoke(hello_world, args=["--help"])
+    invoke(yo_cli)
 ```
 ````
 
@@ -508,17 +569,15 @@ Which renders to:
 ```{eval-rst}
 .. click:example::
 
-    from click_extra import echo, extra_command, option, style
+   from click import echo, command
 
-    @extra_command
-    @option("--name", prompt="Your name", help="The person to greet.")
-    def hello_world(name):
-        """Simple program that greets NAME."""
-        echo(f"Hello, {style(name, fg='red')}!")
+   @command
+   def yo_cli():
+       echo("Yo!")
 
 .. click:run::
 
-    invoke(hello_world, args=["--help"])
+    invoke(yo_cli)
 ```
 
 ````{warning}
@@ -527,7 +586,7 @@ CLI states and references are lost as soon as an `{eval-rst}` block ends. So a `
 If not, you are likely to encounter execution tracebacks such as:
 ```pytb
   File ".../click-extra/docs/sphinx.md:372", line 1, in <module>
-NameError: name 'hello_world' is not defined
+NameError: name 'yo_cli' is not defined
 ```
 ````
 
@@ -542,10 +601,11 @@ If for any reason you want to override these defaults, you can pass the language
 Let's say you have a CLI that is only printing SQL queries in its output:
 
 ```{click:example}
+:emphasize-lines: 6
 from click_extra import echo, extra_command, option, style
 
 @extra_command
-@option("--name", prompt="Your name", help="The person to greet.")
+@option("--name")
 def sql_output(name):
     sql_query = f"SELECT * FROM users WHERE name = '{name}';"
     echo(sql_query)
@@ -554,6 +614,7 @@ def sql_output(name):
 Then you can force the SQL Pygments highlighter on its output by passing the [short name of that lexer (i.e. `sql`)](https://pygments.org/docs/lexers/#pygments.lexers.sql.SqlLexer) as the first argument to the directive:
 
 ````{code-block} markdown
+:emphasize-lines: 1
 ```{click:run} sql
 invoke(sql_output, args=["--name", "Joe"])
 ```
@@ -562,6 +623,7 @@ invoke(sql_output, args=["--name", "Joe"])
 And renders to:
 
 ```{click:run} sql
+:emphasize-lines: 2
 invoke(sql_output, args=["--name", "Joe"])
 ```
 
