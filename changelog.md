@@ -1,9 +1,6 @@
 # Changelog
 
-## [5.1.0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v5.0.2...main)
-
-> [!IMPORTANT]
-> This version is not released yet and is under active development.
+## [5.1.0 (2025-08-01)](https://github.com/kdeldycke/click-extra/compare/v5.0.2...v5.1.0)
 
 - Add support for MyST Markdown syntax for `click:example` and `click:run` Sphinx directives.
 - Add support for all `code-block` options to `click:example` and `click:run`: `:linenos:`, `:lineno-start:`, `:emphasize-lines:`, `:force:`, `:caption:`, `:name:`, `:class:` and `:dedent:`.
