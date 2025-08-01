@@ -46,7 +46,7 @@ import subprocess
 import sys
 import tempfile
 from functools import cached_property, partial
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable
 
 import click
 from click.testing import EchoingStdin
@@ -346,6 +346,35 @@ class ClickDirective(SphinxDirective):
         """Check if the current directive is written with MyST syntax."""
         return self.state.__module__.split(".", 1)[0] == "myst_parser"
 
+    def render_code_block(self, lines: Iterable[str], language: str) -> list[str]:
+        """Render the code block with the source code and results."""
+        block = []
+        if not lines:
+            return block
+
+        # Initiate the code block with with its MyST or rST syntax.
+        code_directive = "```{code-block}" if self.is_myst_syntax else ".. code-block::"
+        block.append(f"{code_directive} {language}")
+
+        # Re-attach each option to the code block.
+        for line in self.code_block_options:
+            # Indent the line in rST code block.
+            block.append(line if self.is_myst_syntax else RST_INDENT + line)
+
+        # rST code directives needs a blank line before the body of the block else the
+        # first line will be interpreted as a directive option.
+        if not self.is_myst_syntax:
+            block.append("")
+
+        for line in lines:
+            block.append(line if self.is_myst_syntax else RST_INDENT + line)
+
+        # In MyST, we need to close the code block.
+        if self.is_myst_syntax:
+            block.append("```")
+
+        return block
+
     def run(self) -> list[nodes.Node]:
         assert hasattr(self.runner, self.runner_func_id), (
             f"{self.runner!r} does not have a function named {self.runner_func_id!r}."
@@ -357,36 +386,21 @@ class ClickDirective(SphinxDirective):
         if not self.show_source and not self.show_results:
             return []
 
-        # Initialize a new document to hold the code block content.
-        doc = ViewList()
-
-        # Write the code block with either MyST or rST syntax.
-        code_directive = "```{code-block}" if self.is_myst_syntax else ".. code-block::"
-        doc.append(f"{code_directive} {self.language}", "")
-
-        # Re-attach each option to the code block.
-        for line in self.code_block_options:
-            doc.append(line if self.is_myst_syntax else RST_INDENT + line, "")
-
-        # rST code directives needs a blank line before the body of the block else the
-        # first line will be interpreted as a directive option.
-        if not self.is_myst_syntax:
-            doc.append("", "")
-
+        lines = []
         if self.show_source:
-            for line in self.content:
-                # Indent the line in rST code block.
-                doc.append(line if self.is_myst_syntax else RST_INDENT + line, "")
-
+            language = self.language
+            # If we are running a CLI, we force rendering the source code as a
+            # Python code block.
+            if self.runner_func_id == "run_example":
+                language = "python"
+            lines.extend(self.render_code_block(self.content, language))
         if self.show_results:
-            for line in results:
-                # Indent the line in rST code block.
-                doc.append(line if self.is_myst_syntax else RST_INDENT + line, "")
+            lines.extend(self.render_code_block(results, self.language))
 
-        # In MyST, we need to close the code block.
-        if self.is_myst_syntax:
-            doc.append("```", "")
-
+        # Dump the code block into a docutils section.
+        doc = ViewList()
+        for line in lines:
+            doc.append(line, "")
         node = nodes.section()
         self.state.nested_parse(doc, self.content_offset, node)
         return node.children

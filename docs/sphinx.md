@@ -271,11 +271,11 @@ But you can override this behavior by explicitly setting the options. Let's say 
 :emphasize-lines: 2
 ```{click:example}
 :hide-source:
-from click_extra import echo, extra_command
+from click_extra import echo, extra_command, style
 
 @extra_command
 def simple_print():
-    echo("Just a string to print.")
+    echo(f"Just a {style('string', fg='blue')} to print.")
 ```
 
 ```{click:run}
@@ -288,15 +288,14 @@ invoke(simple_print)
 :sync: rst
 ```{code-block} rst
 :emphasize-lines: 2
-
 .. click:example::
    :hide-source:
 
-   from click_extra import echo, extra_command
+   from click_extra import echo, extra_command, style
 
    @extra_command
    def simple_print():
-       echo("Just a string to print.")
+       echo(f"Just a {style('string', fg='blue')} to print.")
 
 .. click:run::
 
@@ -309,11 +308,11 @@ Which only renders the `click:run` directive, as the `click:example` doesn't dis
 
 ```{click:example}
 :hide-source:
-from click_extra import echo, extra_command
+from click_extra import echo, extra_command, style
 
 @extra_command
 def simple_print():
-    echo("Just a string to print.")
+    echo(f"Just a {style('string', fg='blue')} to print.")
 ```
 
 ```{click:run}
@@ -329,7 +328,10 @@ If you want to display the source code used to invoke the CLI in addition to its
 :emphasize-lines: 2
 ```{click:run}
 :show-source:
-invoke(simple_print)
+result = invoke(simple_print)
+
+assert result.exit_code == 0, "CLI execution failed"
+assert not result.stderr, "Found error messages in <stderr>"
 ```
 ````
 `````
@@ -341,7 +343,10 @@ invoke(simple_print)
 .. click:run::
    :show-source:
 
-   invoke(simple_print)
+   result = invoke(simple_print)
+
+   assert result.exit_code == 0, "CLI execution failed"
+   assert not result.stderr, "Found error messages in <stderr>"
 ```
 `````
 ``````
@@ -350,7 +355,10 @@ In this particular mode the `click:run` produced two code blocks, one for the so
 
 ```{click:run}
 :show-source:
-invoke(simple_print)
+result = invoke(simple_print)
+
+assert result.exit_code == 0, "CLI execution failed"
+assert not result.stderr, "Found error messages in <stderr>"
 ```
 
 ```{hint}
@@ -640,7 +648,7 @@ Let's say you have a CLI that is only printing SQL queries in its output:
 
 ```{click:example}
 :emphasize-lines: 6
-from click_extra import echo, extra_command, option, style
+from click_extra import echo, extra_command, option
 
 @extra_command
 @option("--name")
