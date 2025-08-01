@@ -320,6 +320,43 @@ def simple_print():
 invoke(simple_print)
 ```
 
+If you want to display the source code used to invoke the CLI in addition to its results, you can add the `:show-source:` option to the `click:run` directive:
+
+``````{tab-set}
+`````{tab-item} MyST Markdown
+:sync: myst
+````{code-block} markdown
+:emphasize-lines: 2
+```{click:run}
+:show-source:
+invoke(simple_print)
+```
+````
+`````
+
+`````{tab-item} reStructuredText
+:sync: rst
+```{code-block} rst
+:emphasize-lines: 2
+.. click:run::
+   :show-source:
+
+   invoke(simple_print)
+```
+`````
+``````
+
+In this particular mode the `click:run` produced two code blocks, one for the source code, and one for the results of the invocation:
+
+```{click:run}
+:show-source:
+invoke(simple_print)
+```
+
+```{hint}
+`:show-results:`/`:hide-results:` options have no effect on the `click:example` directive and will be ignored. That's because this directive does not execute the CLI: it only displays its source code.
+```
+
 ## Inline tests
 
 The `click:run` directive can also be used to embed tests in your documentation.
