@@ -51,7 +51,7 @@ from typing import TYPE_CHECKING, Iterable
 import click
 from click.testing import EchoingStdin
 from docutils import nodes
-from docutils.statemachine import ViewList
+from docutils.statemachine import StringList
 from sphinx.directives import SphinxDirective, directives
 from sphinx.directives.code import CodeBlock
 from sphinx.domains import Domain
@@ -397,10 +397,14 @@ class ClickDirective(SphinxDirective):
         if self.show_results:
             lines.extend(self.render_code_block(results, self.language))
 
-        # Dump the code block into a docutils section.
-        node = nodes.section()
-        self.state.nested_parse(ViewList(lines, ""), self.content_offset, node)
-        return node.children
+        # Convert code block lines to a Docutils node tree.
+        # The section element is the main unit of hierarchy for Docutils documents.
+        section = nodes.section()
+        source_file, line_number = self.get_source_info()
+        self.state.nested_parse(
+            StringList(lines, source_file), self.content_offset, section
+        )
+        return section.children
 
 
 class DeclareExampleDirective(ClickDirective):
