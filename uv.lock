@@ -123,9 +123,13 @@ wheels = [
 [[package]]
 name = "click"
 version = "8.2.2"
-source = { git = "https://github.com/pallets/click.git?rev=8.2.2#df8a52ed8073b2a253ff4511eedc27b512264bf7" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e9/87/105111999772ec9730e3d4d910c723ea9763ece2ec441533a5cea1e87e3c/click-8.2.2.tar.gz", hash = "sha256:068616e6ef9705a07b6db727cb9c248f4eb9dae437a30239f56fa94b18b852ef", size = 263977, upload-time = "2025-08-02T02:23:41.102Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ec/85/e7297e34133ae1cfde3bffd30c24e1ef055248251baa877834e048687a28/click-8.2.2-py3-none-any.whl", hash = "sha256:52e1e9f5d3db8c85aa76968c7c67ed41ddbacb167f43201511c8fd61eb5ba2ca", size = 103900, upload-time = "2025-08-02T02:23:39.299Z" },
 ]
 
 [[package]]
@@ -189,7 +193,7 @@ typing = [
 [package.metadata]
 requires-dist = [
     { name = "boltons", specifier = "~=25.0.0" },
-    { name = "click", git = "https://github.com/pallets/click.git?rev=8.2.2" },
+    { name = "click", specifier = "~=8.2.2" },
     { name = "cloup", specifier = "~=3.0.7" },
     { name = "coverage", extras = ["toml"], marker = "extra == 'test'", specifier = "~=7.10.0" },
     { name = "extra-platforms", specifier = ">=3.1.0" },
@@ -931,11 +935,11 @@ wheels = [
 
 [[package]]
 name = "types-docutils"
-version = "0.21.0.20250727"
+version = "0.21.0.20250728"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f5/12/dedd9206543174f37ee4151055e02b24d063352d9f5a89e05434c17fd8f7/types_docutils-0.21.0.20250727.tar.gz", hash = "sha256:7ad336839211a454ffb9ff2cca1a7e2c7148dd916bc2185247085ea91bd060ba", size = 54467, upload-time = "2025-07-27T03:39:50.223Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/49/9c/223feef75550722e428bed338bff6d1692e1f32f0e3484a9c5c15a0bc601/types_docutils-0.21.0.20250728.tar.gz", hash = "sha256:fbfe44496c98c71437cd9ac20d71df2ea44878084f604960af7cf3696d562bab", size = 54656, upload-time = "2025-07-28T03:29:16.386Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f4/cf/1196df18ab26c6e2c8c8c7eef9445e35b8b5c99670f3f8f0f7572a9757ee/types_docutils-0.21.0.20250727-py3-none-any.whl", hash = "sha256:6c1777148ef1d2141b74d38791888d7331ac3fb9fb861ded83868aef796ae953", size = 88947, upload-time = "2025-07-27T03:39:48.963Z" },
+    { url = "https://files.pythonhosted.org/packages/25/91/45beab84b3484446d4966deca4606c3e8427af168677776ebafaaf277690/types_docutils-0.21.0.20250728-py3-none-any.whl", hash = "sha256:48b8caaac0d572295f94865b7f97a93a78a305625e7c0d10ea289f3fc15d2fe5", size = 89533, upload-time = "2025-07-28T03:29:15.132Z" },
 ]
 
 [[package]]
