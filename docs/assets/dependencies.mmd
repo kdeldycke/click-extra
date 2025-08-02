@@ -1,21 +1,21 @@
 flowchart TD
     classDef missing stroke-dasharray: 5
     boltons["boltons\n25.0.0"]
-    bracex["bracex\n2.5.post1"]
-    certifi["certifi\n2025.4.26"]
+    bracex["bracex\n2.6"]
+    certifi["certifi\n2025.7.14"]
     charset-normalizer["charset-normalizer\n3.4.2"]
-    click-extra["click-extra\n5.0.2"]
-    click_0["click\n8.2.1"]
+    click-extra["click-extra\n5.1.0"]
+    click_0["click\n8.2.2"]
     cloup["cloup\n3.0.7"]
     distro["distro\n1.9.0"]
     extra-platforms["extra-platforms\n3.2.2"]
     idna["idna\n3.10"]
     mergedeep["mergedeep\n1.3.4"]
     pyyaml["PyYAML\n6.0.2"]
-    requests["requests\n2.32.3"]
+    requests["requests\n2.32.4"]
     tabulate["tabulate\n0.9.0"]
-    urllib3["urllib3\n2.4.0"]
-    wcmatch["wcmatch\n10.0"]
+    urllib3["urllib3\n2.5.0"]
+    wcmatch["wcmatch\n10.1"]
     xmltodict["xmltodict\n0.14.2"]
     click-extra -- ">=3.1.0" --> extra-platforms
     click-extra -- "~=0.14.2" --> xmltodict
@@ -24,9 +24,9 @@ flowchart TD
     click-extra -- "~=10.0" --> wcmatch
     click-extra -- "~=2.32.3" --> requests
     click-extra -- "~=25.0.0" --> boltons
-    click-extra -- "~=3.0.5" --> cloup
+    click-extra -- "~=3.0.7" --> cloup
     click-extra -- "~=6.0.0" --> pyyaml
-    click-extra -- "~=8.2.0" --> click_0
+    click-extra -- "~=8.2.2" --> click_0
     cloup -- ">=8.0,<9.0" --> click_0
     extra-platforms -- "~=1.9.0" --> distro
     extra-platforms -- "~=25.0.0" --> boltons
