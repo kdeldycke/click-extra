@@ -46,7 +46,9 @@ assert result.output == dedent(
 To augment the simple example above with [all the bells and whistles](index.md#features) `click-extra` has in store, you just need to replace the base command decorator with its `extra_`-prefixed variant:
 
 ```{click:example}
-:emphasize-lines: 1, 3
+---
+emphasize-lines: 1, 3
+---
 from click_extra import extra_command, echo, option
 
 @extra_command
@@ -104,7 +106,9 @@ If you do not like the opiniated way the `@extra_command` decorator is built wit
 If, for example, you're only interested in using the `--config` option, nothing prevents you to use it with a standard `click` CLI:
 
 ```{click:example}
-:emphasize-lines: 2, 7
+---
+emphasize-lines: 2, 7
+---
 from click import command, echo, option
 from click_extra import config_option
 
@@ -121,7 +125,9 @@ def hello(count, name):
 Which now renders to:
 
 ```{click:run}
-:emphasize-lines: 9-12
+---
+emphasize-lines: 9-12
+---
 result = invoke(hello, args=["--help"])
 assert "-C, --config CONFIG_PATH" in result.output
 ```
@@ -129,7 +135,9 @@ assert "-C, --config CONFIG_PATH" in result.output
 This option itself behave like any Click option and can be customized easily:
 
 ```{click:example}
-:emphasize-lines: 7
+---
+emphasize-lines: 7
+---
 from click import command, echo, option
 from click_extra import config_option
 
@@ -144,7 +152,9 @@ def hello(count, name):
 ```
 
 ```{click:run}
-:emphasize-lines: 9-10
+---
+emphasize-lines: 9-10
+---
 result = invoke(hello, args=["--help"])
 assert "--hello-conf CONF_FILE  Loads CLI config." in result.output
 ```
@@ -152,7 +162,9 @@ assert "--hello-conf CONF_FILE  Loads CLI config." in result.output
 Click Extra's options are sub-classes of Cloup's and supports all its features, like [option groups](https://cloup.readthedocs.io/en/stable/pages/option-groups.html):
 
 ```{click:example}
-:emphasize-lines: 2-3, 9-15
+---
+emphasize-lines: 2-3, 9-15
+---
 from click import echo
 from cloup import command, option, option_group
 from cloup.constraints import RequireAtLeast
@@ -177,7 +189,9 @@ def hello(count, name, foo, bar, hello_conf):
 See how the configuration option is grouped with others:
 
 ```{click:run}
-:emphasize-lines: 6-10
+---
+emphasize-lines: 6-10
+---
 from textwrap import dedent
 result = invoke(hello, args=["--help"])
 assert dedent(
