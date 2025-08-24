@@ -58,8 +58,6 @@ class Custom(ParamType):
     name = "Custom"
 
     def convert(self, value, param, ctx):
-        if value is not None:
-            assert isinstance(value, str)
         return value
 
 
@@ -343,8 +341,8 @@ def test_integrated_show_params_option(invoke, create_config):
             "✓",
             "✓",
             "SHOW_PARAMS_CLI_CUSTOM_PARAM",
-            "None",
-            None,
+            click._utils.UNSET,
+            click._utils.UNSET,
             "DEFAULT",
         ),
         (
@@ -371,8 +369,8 @@ def test_integrated_show_params_option(invoke, create_config):
             "✓",
             "✓",
             "SHOW_PARAMS_CLI_HIDDEN_PARAM",
-            "None",
-            None,
+            click._utils.UNSET,
+            click._utils.UNSET,
             "DEFAULT",
         ),
         (

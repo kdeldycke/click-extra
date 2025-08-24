@@ -548,13 +548,6 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             if config_option:
                 allowed_in_conf = KO if path in config_option.excluded_params else OK
 
-            # Convert the default value to the correct type. This is not called if the
-            # value is ``None`` (the missing value). See:
-            # https://github.com/pallets/click/blob/834e04a/src/click/types.py#L102-L106
-            default_value = instance.get_default(ctx)
-            if default_value is not None:
-                default_value = instance.type.convert(default_value, instance, ctx)
-
             line = (
                 default_theme.invoked_command(path),
                 f"{param_class.__module__}.{param_class.__qualname__}",
@@ -565,7 +558,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 OK if instance.expose_value is True else KO,
                 allowed_in_conf,
                 ", ".join(map(default_theme.envvar, param_envvar_ids(instance, ctx))),
-                default_theme.default(repr(default_value)),
+                default_theme.default(repr(instance.get_default(ctx))),
                 param_value,
                 source._name_ if source else None,
             )
