@@ -119,6 +119,9 @@ jobs:
         include:
           # Default all jobs as stable, unless marked otherwise below.
           - state: stable
+          # PyYAML does not work on Python 3.14: https://github.com/yaml/pyyaml/pull/864
+          - state: unstable
+            python-version: "3.14"
     name: |
       ${{ matrix.state == 'stable' && '✅' || '⁉️' }}
       ${{ matrix.os }},
