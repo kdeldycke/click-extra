@@ -75,7 +75,7 @@ class Formats(Enum):
 
 
 class ConfigOption(ExtraOption, ParamStructure):
-    """A pre-configured option adding ``--config``/``-C`` option."""
+    """A pre-configured option adding ``--config CONFIG_PATH``/``-C CONFIG_PATH``."""
 
     formats: Sequence[Formats]
 

@@ -195,8 +195,7 @@ Source: https://github.com/pallets/click/issues/558
 
 class ColorOption(ExtraOption):
     """A pre-configured option that is adding a ``--color``/``--no-color`` (aliased by
-    ``--ansi``/``--no-ansi``) option to keep or strip colors and ANSI codes from CLI
-    output.
+    ``--ansi``/``--no-ansi``) to keep or strip colors and ANSI codes from CLI output.
 
     This option is eager by default to allow for other eager options (like
     ``--version``) to be rendered colorless.

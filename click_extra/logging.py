@@ -317,7 +317,7 @@ def new_extra_logger(
 
 
 class ExtraVerbosity(ExtraOption):
-    """A base class implementing all the common halpers to manipulated logger's
+    """A base class implementing all the common helpers to manipulated logger's
     verbosity.
 
     Sets the level of the provided logger. If no logger is provided, sets the level of
@@ -437,7 +437,7 @@ class ExtraVerbosity(ExtraOption):
 
 
 class VerbosityOption(ExtraVerbosity):
-    """``--verbosity`` option to set the the log level of :class:`ExtraVerbosity`."""
+    """``--verbosity LEVEL`` option to set the the log level of :class:`ExtraVerbosity`."""
 
     def set_level(self, ctx: Context, param: Parameter, value: LogLevel) -> None:
         """The value passed to ``--verbosity`` will be saved in
