@@ -5,6 +5,8 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Relax Click dependency to account for yanked release. Closes {issue}`1307`.
+
 ## [5.1.0 (2025-08-01)](https://github.com/kdeldycke/click-extra/compare/v5.0.2...v5.1.0)
 
 - Add support for MyST Markdown syntax for `click:example` and `click:run` Sphinx directives.
