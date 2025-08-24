@@ -167,7 +167,7 @@ OK = default_theme.success("✓")
 KO = default_theme.error("✘")
 """Pre-rendered UI-elements."""
 
-color_env_vars = {
+color_envvars = {
     # Colors.
     "COLOR": True,
     "COLORS": True,
@@ -228,7 +228,7 @@ class ColorOption(ExtraOption):
         """
         # Collect all colorize flags in environment variables we recognize.
         colorize_from_env = set()
-        for var, default in color_env_vars.items():
+        for var, default in color_envvars.items():
             if var in os.environ:
                 # Presence of the variable in the environment without a value encodes
                 # for an activation, hence the default to True.

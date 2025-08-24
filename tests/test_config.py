@@ -469,7 +469,7 @@ def test_conf_file_overrides_defaults(
 
 
 @all_config_formats
-def test_auto_env_var_conf(
+def test_auto_envvar_conf(
     invoke,
     simple_config_cli,
     create_config,

@@ -236,13 +236,13 @@ def test_auto_envvar_parsing(invoke, cmd_decorator, envvars, expected_flag):
 
 
 def test_env_copy():
-    env_var = "MPM_DUMMY_ENV_VAR_93725"
-    assert env_var not in os.environ
+    envvar = "MPM_DUMMY_ENVVAR_93725"
+    assert envvar not in os.environ
 
     no_env = env_copy()
     assert no_env is None
 
-    extended_env = env_copy({env_var: "yo"})
-    assert env_var in extended_env
-    assert extended_env[env_var] == "yo"
-    assert env_var not in os.environ
+    extended_env = env_copy({envvar: "yo"})
+    assert envvar in extended_env
+    assert extended_env[envvar] == "yo"
+    assert envvar not in os.environ
