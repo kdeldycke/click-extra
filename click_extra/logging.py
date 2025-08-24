@@ -56,7 +56,7 @@ class LogLevel(IntEnum):
 
     - sorted from lowest to highest verbosity,
     - excludes the following levels:
-        - :data:`WARNING <logging.NOTSET>`, which is considered internal
+        - :data:`NOTSET <logging.NOTSET>`, which is considered internal
         - ``WARN``, which :meth:`is obsolete <logging.Logger.warning>`
         - ``FATAL``, which `shouldn't be used <https://github.com/python/cpython/issues/85013>`_
           and has been `replaced by CRITICAL
