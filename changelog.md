@@ -1,5 +1,10 @@
 # Changelog
 
+## [5.1.2 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v5.1.1...main)
+
+> [!IMPORTANT]
+> This version is not released yet and is under active development.
+
 ## [5.1.1 (2025-08-24)](https://github.com/kdeldycke/click-extra/compare/v5.1.0...v5.1.1)
 
 - Relax Click dependency to account for yanked release. Closes {issue}`1307`.
