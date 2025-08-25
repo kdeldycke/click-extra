@@ -1,6 +1,6 @@
 # Changelog
 
-## [5.1.2 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v5.1.1...main)
+## [5.2.0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v5.1.1...main)
 
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
