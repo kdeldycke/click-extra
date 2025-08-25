@@ -13,7 +13,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Utilities to load parameters and options from a configuration file."""
+"""Utilities to load parameters and options from a configuration file.
+
+.. todo::
+    Add a ``--dump-config`` or ``--export-config`` option to write down the current
+    configuration (or a template) into a file or ``<stdout>``.
+
+    Help message would be: *you can use this option with other options or environment
+    variables to have them set in the generated configuration*.
+
+.. todo::
+    Allow the ``--config`` option to walk-up the filesystem (up until the filesystem
+    root) to discover configuration files.
+    See: https://github.com/kdeldycke/click-extra/issues/651
+
+.. todo::
+    Add a ``ParameterSource.CONFIG_FILE`` entry to the ``ParameterSource`` enum?
+    Also see: https://github.com/pallets/click/issues/2879
+"""
 
 from __future__ import annotations
 
