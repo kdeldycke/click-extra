@@ -45,6 +45,7 @@ To undestrand how we ended up with the result above, [go read the tutorial](http
 - Optional [strict validation](https://kdeldycke.github.io/click-extra/config.html#strictness) of configuration
 - Respect the [default application path](https://kdeldycke.github.io/click-extra/config.html#default-folder) on each platform (XDG spec on Linux)
 - [Glob search patterns](https://kdeldycke.github.io/click-extra/config.html#pattern-matching) for configuration files
+- A `--no-config` option to disable configuration file loading
 - Respect of `CLI` > `Configuration` > `Environment` > `Defaults` [precedence](https://kdeldycke.github.io/click-extra/config.html#precedence)
 - Normalization and discoverability of environment variables
 - [`--show-params` option](https://kdeldycke.github.io/click-extra/parameters.html#show-params-option) to debug parameters defaults, values, environment variables and provenance
