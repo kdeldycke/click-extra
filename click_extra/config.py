@@ -51,9 +51,9 @@ import yaml
 from boltons.iterutils import flatten
 from boltons.pathutils import shrinkuser
 from boltons.urlutils import URL
+from deepmerge import always_merger
 from extra_platforms import is_windows
 from extra_platforms.platform import _recursive_update, _remove_blanks
-from mergedeep import merge
 from wcmatch.glob import (
     BRACE,
     DOTGLOB,
@@ -364,7 +364,9 @@ class ConfigOption(ExtraOption, ParamStructure):
                 sub_conf[option_id] = value
 
             # Place collected options at the right level of the dict tree.
-            merge(conf, self.init_tree_dict(*section_id.split(self.SEP), leaf=sub_conf))
+            conf = always_merger.merge(
+                conf, self.init_tree_dict(*section_id.split(self.SEP), leaf=sub_conf)
+            )
 
         return conf
 
