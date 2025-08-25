@@ -393,9 +393,9 @@ class ConfigOption(ExtraOption, ParamStructure):
         <https://click.palletsprojects.com/en/stable/commands/#overriding-defaults>`_,
         `like Click does <https://click.palletsprojects.com/en/stable/commands/#context-defaults>`_.
 
-        By relying on Click's default_map, we make sure that precedence is respected.
-        And direct CLI parameters, environment variables or interactive prompts takes
-        precedence over any values from the config file.
+        By relying on Click's ``default_map``, we make sure that precedence is
+        respected. And direct CLI parameters, environment variables or interactive
+        prompts takes precedence over any values from the config file.
         """
         logger = logging.getLogger("click_extra")
 
