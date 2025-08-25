@@ -29,7 +29,7 @@ import cloup
 
 from . import Command, Group, Option
 from .colorize import ColorOption, ExtraHelpColorsMixin, HelpExtraFormatter
-from .config import ConfigOption
+from .config import ConfigOption, NoConfigOption
 from .envvar import clean_envvar_id, param_envvar_ids
 from .logging import VerboseOption, VerbosityOption
 from .parameters import ExtraOption, ShowParamsOption, search_params
@@ -151,6 +151,7 @@ def default_extra_params() -> list[Option]:
         TimerOption(),
         ColorOption(),
         ConfigOption(),
+        NoConfigOption(),
         ShowParamsOption(),
         VerbosityOption(),
         VerboseOption(),

@@ -34,15 +34,17 @@
 
 from __future__ import annotations
 
+import enum
 import json
 import logging
 import os
 import tomllib
 from configparser import ConfigParser, ExtendedInterpolation
 from enum import Enum
+from functools import partial
 from gettext import gettext as _
 from pathlib import Path
-from typing import Any, Iterable, Sequence
+from typing import Any, Iterable, Literal, Sequence
 
 import click
 import requests
@@ -66,7 +68,7 @@ from wcmatch.glob import (
 )
 
 from . import (
-    STRING,
+    UNPROCESSED,
     Context,
     Parameter,
     ParameterSource,
@@ -91,6 +93,38 @@ class Formats(Enum):
     XML = ("xml",)
 
 
+CONFIG_OPTION_NAME = "config"
+"""Hardcoded name of the configuration option.
+
+This name is going to be shared by both the ``--config`` and ``--no-config`` options
+below, so they can compete with each other to either set a path pattern or disable the
+use of any configuration file at all.
+"""
+
+
+class Sentinel(enum.Enum):
+    """Enum used to define sentinel values.
+
+    .. note::
+        This reuse the same pattern as ``Click._utils.Sentinel``.
+
+    .. seealso::
+        `PEP 661 - Sentinel Values <https://peps.python.org/pep-0661/>`_.
+    """
+
+    NO_CONFIG = object()
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}.{self.name}"
+
+
+NO_CONFIG = Sentinel.NO_CONFIG
+"""Sentinel used to indicate that no configuration file must be used at all."""
+
+T_NO_CONFIG = Literal[NO_CONFIG]  # type: ignore[valid-type]
+"""Type hint for the :data:`NO_CONFIG` sentinel value."""
+
+
 class ConfigOption(ExtraOption, ParamStructure):
     """A pre-configured option adding ``--config CONFIG_PATH``/``-C CONFIG_PATH``."""
 
@@ -105,7 +139,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         self,
         param_decls: Sequence[str] | None = None,
         metavar="CONFIG_PATH",
-        type=STRING,
+        type=UNPROCESSED,
         help=_(
             "Location of the configuration file. Supports glob pattern of local "
             "path and remote URL.",
@@ -135,9 +169,8 @@ class ConfigOption(ExtraOption, ParamStructure):
           <https://click.palletsprojects.com/en/stable/api/#click.get_app_dir>`_
           to setup the default configuration folder.
 
-        - ``excluded_params`` is a list of options to ignore by the
-          configuration parser. Defaults to
-          ``ParamStructure.DEFAULT_EXCLUDED_PARAMS``.
+        - ``excluded_params`` is a list of options to ignore by the configuration
+          parser. See ``ParamStructure.excluded_params`` for the default values.
 
         - ``strict``
             - If ``True``, raise an error if the configuration file contain
@@ -145,7 +178,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             - If ``False``, silently ignore unsupported configuration option.
         """
         if not param_decls:
-            param_decls = ("--config", "-C")
+            param_decls = ("--config", "-C", CONFIG_OPTION_NAME)
 
         # Make sure formats ends up as an iterable.
         if isinstance(formats, Formats):
@@ -172,6 +205,11 @@ class ConfigOption(ExtraOption, ParamStructure):
             is_eager=is_eager,
             expose_value=expose_value,
             **kwargs,
+        )
+
+        assert self.name == CONFIG_OPTION_NAME, (
+            f"{'/'.join(self.opts)} option is expected to have its name hardcoded to "
+            f"{CONFIG_OPTION_NAME!r}."
         )
 
     def default_pattern(self) -> str:
@@ -401,18 +439,27 @@ class ConfigOption(ExtraOption, ParamStructure):
         """
         logger = logging.getLogger("click_extra")
 
-        explicit_conf = ctx.get_parameter_source("config") in (
+        # In this function we would like to inform the user of what we're doing.
+        # In theory we could use logger.info() for that, but the logger is stuck to its
+        # default WARNING level at this point, because the defaults have not been
+        # loaded yet. So we use echo() to print messages to stderr instead.
+        info_msg = partial(echo, err=True)
+
+        if path_pattern is NO_CONFIG:
+            logger.debug(f"{NO_CONFIG} sentinel received.")
+            info_msg("Skip configuration file loading altogether.")
+            return
+
+        explicit_conf = ctx.get_parameter_source(self.name) in (
             ParameterSource.COMMANDLINE,
             ParameterSource.ENVIRONMENT,
             ParameterSource.PROMPT,
         )
 
         message = f"Load configuration matching {path_pattern}"
-        # Force printing of configuration location if the user explicitly set it.
+        # Print configuration location to the user if it was explicitly set.
         if explicit_conf:
-            # We have can't simply use logger.info() here as the defaults have not been
-            # loaded yet and the logger is stuck to its default WARNING level.
-            echo(message, err=True)
+            info_msg(message)
         else:
             logger.debug(message)
 
@@ -435,3 +482,48 @@ class ConfigOption(ExtraOption, ParamStructure):
             logger.debug(f"Initial defaults: {ctx.default_map}")
             self.merge_default_map(ctx, user_conf)
             logger.debug(f"New defaults: {ctx.default_map}")
+
+
+class NoConfigOption(ExtraOption):
+    """A pre-configured option adding ``--no-config``.
+
+    This option is supposed to be used alongside the ``--config`` option
+    (``ConfigOption``) to allow users to explicitly disable the use of any
+    configuration file.
+
+    This is especially useful to debug side-effects caused by autodetection of
+    configuration files.
+    """
+
+    def __init__(
+        self,
+        param_decls: Sequence[str] | None = None,
+        type=UNPROCESSED,
+        help=_(
+            "Ignore all configuration files and only use command line parameters and "
+            "environment variables.",
+        ),
+        is_flag=True,
+        flag_value=NO_CONFIG,
+        is_eager=True,
+        expose_value=False,
+        **kwargs,
+    ) -> None:
+        if not param_decls:
+            param_decls = ("--no-config", CONFIG_OPTION_NAME)
+
+        super().__init__(
+            param_decls=param_decls,
+            type=type,
+            help=help,
+            is_flag=is_flag,
+            flag_value=flag_value,
+            is_eager=is_eager,
+            expose_value=expose_value,
+            **kwargs,
+        )
+
+        assert self.name == CONFIG_OPTION_NAME, (
+            f"{'/'.join(self.opts)} option is expected to have its name hardcoded to "
+            f"{CONFIG_OPTION_NAME!r}."
+        )

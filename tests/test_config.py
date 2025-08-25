@@ -550,6 +550,14 @@ def test_conf_file_overridden_by_cli_param(
         assert result.stderr == f"Load configuration matching {conf_path}\n"
 
 
+def test_conf_file_ignored_with_no_config(invoke, simple_config_cli, create_config):
+    # Create a local file.
+    conf_path = create_config("dummy.toml", DUMMY_TOML_FILE)
+
+    result = invoke(simple_config_cli, "--config", str(conf_path), "--no-config")
+    assert result.exit_code == 0
+
+
 @all_config_formats
 def test_conf_metadata(
     invoke,

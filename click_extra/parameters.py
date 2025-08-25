@@ -111,22 +111,6 @@ class ParamStructure:
     """Use a dot ``.`` as a separator between levels of the tree-like parameter
     structure."""
 
-    DEFAULT_EXCLUDED_PARAMS: Iterable[str] = (
-        "config",
-        "help",
-        "show_params",
-        "version",
-    )
-    """List of root parameters to exclude from configuration by default:
-
-    - ``-C``/``--config`` option, which cannot be used to recursively load another
-      configuration file.
-    - ``--help``, as it makes no sense to have the configurable file always
-      forces a CLI to show the help and exit.
-    - ``--show-params`` flag, which is like ``--help`` and stops the CLI execution.
-    - ``--version``, which is not a configurable option *per-se*.
-    """
-
     def __init__(
         self,
         *args,
@@ -309,6 +293,15 @@ class ParamStructure:
         Elements of this list are expected to be the fully-qualified ID of the
         parameter, i.e. the dot-separated ID that is prefixed by the CLI name.
 
+        Defaults to:
+
+        - ``-C``/``--config`` option, which cannot be used to recursively load another
+            configuration file.
+        - ``--help``, as it makes no sense to have the configurable file always
+            forces a CLI to show the help and exit.
+        - ``--show-params`` flag, which is like ``--help`` and stops the CLI execution.
+        - ``--version``, which is not a configurable option *per-se*.
+
         .. caution::
             It is only called once to produce the list of default parameters to
             exclude, if the user did not provided its own list to the constructor.
@@ -317,9 +310,19 @@ class ParamStructure:
             for a just-in-time call to the current context. Without this trick we could
             not have fetched the CLI name.
         """
+        # Imported here to avoid circular imports.
+        from .config import CONFIG_OPTION_NAME
+
+        DEFAULT_EXCLUDED_PARAMS = (
+            CONFIG_OPTION_NAME,
+            "help",
+            "show_params",
+            "version",
+        )
+
         ctx = get_current_context()
         cli = ctx.find_root().command
-        return [f"{cli.name}{self.SEP}{p}" for p in self.DEFAULT_EXCLUDED_PARAMS]
+        return [f"{cli.name}{self.SEP}{p}" for p in DEFAULT_EXCLUDED_PARAMS]
 
     def build_param_trees(self) -> None:
         """Build all parameters tree structure in one go and cache them.

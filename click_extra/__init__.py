@@ -46,7 +46,7 @@ from .commands import (  # noqa: E402
     ExtraContext,
     ExtraGroup,
 )
-from .config import ConfigOption  # noqa: E402
+from .config import ConfigOption, NoConfigOption  # noqa: E402
 from .decorators import (  # type: ignore[no-redef, has-type, unused-ignore] # noqa: E402
     color_option,
     command,
@@ -151,6 +151,7 @@ __all__ = [
     "make_pass_decorator",  # noqa: F405
     "MissingParameter",  # noqa: F405
     "new_extra_logger",  # noqa: F405
+    "NoConfigOption",  # noqa: F405
     "NoSuchOption",  # noqa: F405
     "open_file",  # noqa: F405
     "Option",  # noqa: F405
