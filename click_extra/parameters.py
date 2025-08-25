@@ -33,7 +33,7 @@ from typing import (
 from unittest.mock import patch
 
 import click
-from mergedeep import merge
+from deepmerge import always_merger
 from tabulate import tabulate
 
 from . import (
@@ -334,10 +334,14 @@ class ParamStructure:
         for keys, param in self.walk_params():
             if self.SEP.join(keys) in self.excluded_params:
                 continue
-            merge(template, self.init_tree_dict(*keys))
-            merge(types, self.init_tree_dict(*keys, leaf=self.get_param_type(param)))
-            merge(objects, self.init_tree_dict(*keys, leaf=param))
 
+            template = always_merger.merge(template, self.init_tree_dict(*keys))
+            types = always_merger.merge(
+                types, self.init_tree_dict(*keys, leaf=self.get_param_type(param))
+            )
+            objects = always_merger.merge(
+                objects, self.init_tree_dict(*keys, leaf=param)
+            )
         self.params_template = template
         self.params_types = types
         self.params_objects = objects
