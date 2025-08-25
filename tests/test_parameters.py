@@ -316,19 +316,19 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.config",
-            "click_extra.config.ConfigOption",
-            "-C, --config CONFIG_PATH",
+            "click_extra.config.NoConfigOption",
+            "--no-config",
             "click.types.UnprocessedParamType",
             "str",
             "✘",
             "✘",
             "✘",
             "SHOW_PARAMS_CLI_CONFIG",
+            click._utils.UNSET,
             (
                 f"'{Path(get_app_dir('show-params-cli')).resolve()}{sep}"
                 "*.{toml,yaml,yml,json,ini,xml}'"
             ),
-            str(conf_path),
             "COMMANDLINE",
         ),
         (
