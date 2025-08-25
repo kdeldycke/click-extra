@@ -22,7 +22,9 @@ To prevent any confusion, and to keep on [the promise of drop-in replacement](co
 Here is how the defaults looks like:
 
 ```{click:example}
-:emphasize-lines: 4
+---
+emphasize-lines: 4
+---
 from click_extra import command, extra_version_option
 
 @command
@@ -32,7 +34,9 @@ def cli():
 ```
 
 ```{click:run}
-:emphasize-lines: 5
+---
+emphasize-lines: 5
+---
 result = invoke(cli, args=["--help"])
 assert "--version" in result.output
 ```
@@ -89,7 +93,9 @@ Some Click's built-in variables are not recognized:
 You can compose your own version string by passing the `message` argument:
 
 ```{click:example}
-:emphasize-lines: 4
+---
+emphasize-lines: 4
+---
 from click_extra import command, extra_version_option
 
 @command
@@ -195,7 +201,9 @@ Each variable listed in the section above can be rendered in its own style. They
 Here is an example:
 
 ```{click:example}
-:emphasize-lines: 6-9
+---
+emphasize-lines: 6-9
+---
 from click_extra import command, extra_version_option, Style
 
 @command
@@ -227,7 +235,9 @@ The [`Style()` helper is defined by Cloup](https://cloup.readthedocs.io/en/stabl
 You can pass `None` to any of the style parameters to disable styling for the corresponding variable:
 
 ```{click:example}
-:emphasize-lines: 5-7
+---
+emphasize-lines: 5-7
+---
 from click_extra import command, extra_version_option
 
 @command
@@ -253,7 +263,9 @@ The `{env_info}` variable compiles all sorts of environment information.
 Here is how it looks like:
 
 ```{click:example}
-:emphasize-lines: 4
+---
+emphasize-lines: 4
+---
 from click_extra import command, extra_version_option
 
 @command
@@ -277,7 +289,9 @@ The JSON output is scrubbed out of identifiable information by default: current 
 Another trick consist in picking into the content of `{env_info}` to produce highly customized version strings. This can be done because `{env_info}` is kept as a `dict`:
 
 ```{click:example}
-:emphasize-lines: 5
+---
+emphasize-lines: 5
+---
 from click_extra import command, extra_version_option
 
 @command
@@ -303,7 +317,9 @@ assert re.fullmatch((
 When the `DEBUG` level is enabled, all available variables will be printed in the log:
 
 ```{click:example}
-:emphasize-lines: 4-5
+---
+emphasize-lines: 4-5
+---
 from click_extra import command, verbosity_option, extra_version_option, echo
 
 @command
@@ -325,7 +341,9 @@ assert "\n\x1b[34mdebug\x1b[0m: Version string template variables:\n" in result.
 You can get the uncolored, Python values used in the composition of the version message from the context:
 
 ```{click:example}
-:emphasize-lines: 7-10
+---
+emphasize-lines: 7-10
+---
 from click_extra import command, echo, pass_context, extra_version_option
 
 @command
@@ -368,7 +386,9 @@ These variables are presented in their original Python type. If most of these va
 You can render the version string manually by calling the option's internal methods:
 
 ```{click:example}
-:emphasize-lines: 8-9
+---
+emphasize-lines: 8-9
+---
 from click_extra import command, echo, pass_context, extra_version_option, ExtraVersionOption, search_params
 
 @command
