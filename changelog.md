@@ -1,5 +1,10 @@
 # Changelog
 
+## [5.2.1 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v5.2.0...main)
+
+> [!IMPORTANT]
+> This version is not released yet and is under active development.
+
 ## [5.2.0 (2025-08-25)](https://github.com/kdeldycke/click-extra/compare/v5.1.1...v5.2.0)
 
 - Add a new `--no-config` option to disable loading of configuration files. Closes {issue}`750`.
