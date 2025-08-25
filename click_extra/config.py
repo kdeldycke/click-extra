@@ -509,6 +509,13 @@ class NoConfigOption(ExtraOption):
         expose_value=False,
         **kwargs,
     ) -> None:
+        """
+        .. seealso::
+            An alternative implementation of this class would be to create a custom
+            `click.ParamType <https://click.palletsprojects.com/en/stable/api/#click.ParamType>`_
+            instead of a custom ``Option`` subclass. `Here is for example
+            <https://github.com/pallets/click/issues/3024#issuecomment-3146511356>`_.
+        """
         if not param_decls:
             param_decls = ("--no-config", CONFIG_OPTION_NAME)
 
