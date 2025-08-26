@@ -17,8 +17,6 @@
 from __future__ import annotations
 
 import re
-from os.path import sep
-from pathlib import Path
 from textwrap import dedent
 
 import click
@@ -41,7 +39,6 @@ from click_extra import (
     Tuple,
     argument,
     echo,
-    get_app_dir,
     option,
     search_params,
 )
@@ -325,10 +322,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "✘",
             "SHOW_PARAMS_CLI_CONFIG",
             click._utils.UNSET,
-            (
-                f"'{Path(get_app_dir('show-params-cli')).resolve()}{sep}"
-                "*.{toml,yaml,yml,json,ini,xml}'"
-            ),
+            str(conf_path),
             "COMMANDLINE",
         ),
         (

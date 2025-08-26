@@ -554,7 +554,9 @@ def test_conf_file_ignored_with_no_config(invoke, simple_config_cli, create_conf
     # Create a local file.
     conf_path = create_config("dummy.toml", DUMMY_TOML_FILE)
 
-    result = invoke(simple_config_cli, "--config", str(conf_path), "--no-config")
+    result = invoke(
+        simple_config_cli, "--config", str(conf_path), "--no-config", "default"
+    )
     assert result.exit_code == 0
 
 
