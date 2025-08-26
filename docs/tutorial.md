@@ -121,7 +121,7 @@ def hello(count, name):
 Which now renders to:
 
 ```{click:run}
-:emphasize-lines: 9-12
+:emphasize-lines: 9-11
 result = invoke(hello, args=["--help"])
 assert "-C, --config CONFIG_PATH" in result.output
 ```
