@@ -269,7 +269,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         Raises ``FileNotFoundError`` if no file was found matching the pattern.
         """
         logger = logging.getLogger("click_extra")
-        file_found = 0
+        files_found = 0
 
         # Check if the pattern is an URL.
         location = URL(pattern)
@@ -278,7 +278,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             logger.debug(f"Download configuration from URL: {location}")
             with requests.get(location) as response:
                 if response.ok:
-                    file_found += 1
+                    files_found += 1
                     yield location, response.text
                 else:
                     logger.warning(f"Can't download {location}: {response.reason}")
@@ -286,8 +286,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         # Not an URL, search local file system with glob pattern.
         else:
             logger.debug("Pattern is not an URL: search local file system.")
-            # wcmatch expect patterns to be written with Unix-like syntax by default, even
-            # on Windows. See more details at:
+            # wcmatch expect patterns to be written with Unix-like syntax by default,
+            # even on Windows. See more details at:
             # https://facelessuser.github.io/wcmatch/glob/#windows-separators
             # https://github.com/facelessuser/wcmatch/issues/194
             if is_windows():
@@ -304,10 +304,10 @@ class ConfigOption(ExtraOption, ParamStructure):
             ):
                 file_path = Path(file).resolve()
                 logger.debug(f"Configuration file found at {file_path}")
-                file_found += 1
+                files_found += 1
                 yield file_path, file_path.read_text(encoding="utf-8")
 
-        if file_found == 0:
+        if not files_found:
             msg = f"No configuration file found matching {pattern}"
             raise FileNotFoundError(msg)
 
@@ -477,7 +477,8 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         User configuration is merged to the `context's default_map
         <https://click.palletsprojects.com/en/stable/commands/#overriding-defaults>`_,
-        `like Click does <https://click.palletsprojects.com/en/stable/commands/#context-defaults>`_.
+        `like Click does
+        <https://click.palletsprojects.com/en/stable/commands/#context-defaults>`_.
 
         By relying on Click's ``default_map``, we make sure that precedence is
         respected. And direct CLI parameters, environment variables or interactive
@@ -502,8 +503,8 @@ class ConfigOption(ExtraOption, ParamStructure):
             ParameterSource.PROMPT,
         )
 
-        message = f"Load configuration matching {path_pattern}"
         # Print configuration location to the user if it was explicitly set.
+        message = f"Load configuration matching {path_pattern}"
         if explicit_conf:
             info_msg(message)
         else:
@@ -525,8 +526,8 @@ class ConfigOption(ExtraOption, ParamStructure):
                 logger.debug(message)
 
         # Exit the CLI if a user-provided config file was found but could not be
-        # parsed. Else, it means we automaticcaly discovered a config
-        # file, but it couldn't be parsed, so we can just log it and continue.
+        # parsed. Else, it means we automaticcaly discovered a config file, but it
+        # couldn't be parsed, so we can just log it and continue.
         else:
             if user_conf is None:
                 message = (
@@ -578,7 +579,8 @@ class NoConfigOption(ExtraOption):
         """
         .. seealso::
             An alternative implementation of this class would be to create a custom
-            `click.ParamType <https://click.palletsprojects.com/en/stable/api/#click.ParamType>`_
+            `click.ParamType
+            <https://click.palletsprojects.com/en/stable/api/#click.ParamType>`_
             instead of a custom ``Option`` subclass. `Here is for example
             <https://github.com/pallets/click/issues/3024#issuecomment-3146511356>`_.
         """
