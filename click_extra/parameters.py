@@ -517,21 +517,17 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             ]
         ] = []
 
-        # Use the parameter types structure to walk through the the tree of parameters and get their
-        # fully-qualified path and IDs.
-        for path, python_types in self.flatten_tree_dict(self.params_types).items():
-            # Get the parameters associated with this path.
+        # Walk through the the tree of parameters and get their fully-qualified path.
+        for path, instances in self.flatten_tree_dict(self.params_objects).items():
+            # Get the Python types of the parameters at this path.
             tree_keys = path.split(self.SEP)
-            instances = cast(
-                list[click.Parameter],
-                self.get_tree_value(self.params_objects, *tree_keys),
-            )
-            assert len(instances) == len(python_types)
+            python_types = self.get_tree_value(self.params_types, *tree_keys)
+            assert len(python_types) == len(instances)
 
             # Multiple parameters can share the same path, if for instance they are
             # sharing the same variable name.
-            for index, python_type in enumerate(python_types):
-                instance = instances[index]
+            for index, instance in enumerate(instances):
+                python_type = python_types[index]
                 assert instance.name == tree_keys[-1]
 
                 param_value, source = get_param_value(instance)
@@ -560,14 +556,6 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                         if help_record:
                             param_spec = help_record[0]
 
-                # if "SHOW_PARAMS_CLI_MAIN_HELP" in param_envvar_ids(instance, ctx):
-                #    import pdb
-                #    pdb.set_trace()
-
-                # if "SHOW_PARAMS_CLI_VERBOSITY" in param_envvar_ids(instance, ctx):
-                #    import pdb
-                #    pdb.set_trace()
-
                 # Check if the parameter is allowed in the configuration file.
                 allowed_in_conf = None
                 if config_option:
@@ -590,8 +578,6 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                     default_theme.default(repr(instance.get_default(ctx))),
                     param_value,
                     source._name_ if source else None,
-                    # instance.is_eager,
-                    # Evaluation order.
                 )
                 table.append(line)
 
