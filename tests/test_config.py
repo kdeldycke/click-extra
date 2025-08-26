@@ -28,6 +28,7 @@ from click_extra import (
     command,
     echo,
     get_app_dir,
+    no_config_option,
     option,
     pass_context,
 )
@@ -307,22 +308,11 @@ def simple_config_cli():
     return config_cli1
 
 
-def test_unset_conf_no_message(invoke, simple_config_cli):
+def test_unset_conf(invoke, simple_config_cli):
     result = invoke(simple_config_cli, "default")
     assert result.exit_code == 0
     assert not result.stderr
     assert result.stdout == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
-
-
-def test_conf_file_ignored_with_no_config(invoke, simple_config_cli, create_config):
-    conf_path = create_config("dummy.toml", DUMMY_TOML_FILE)
-
-    result = invoke(
-        simple_config_cli, "--config", str(conf_path), "--no-config", "default"
-    )
-    assert result.exit_code == 0
-    assert result.stdout == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
-    assert result.stderr == "Skip configuration file loading altogether.\n"
 
 
 def test_unset_conf_debug_message(invoke, simple_config_cli):
@@ -388,6 +378,38 @@ def test_conf_not_file(invoke, simple_config_cli):
 
     assert f"Load configuration matching {conf_path}\n" in result.stderr
     assert "critical: No configuration file found.\n" in result.stderr
+
+
+def test_no_config_option(invoke, simple_config_cli, create_config):
+    conf_path = create_config("dummy.toml", DUMMY_TOML_FILE)
+
+    for args in (
+        ("--no-config", "default"),
+        ("--config", str(conf_path), "--no-config", "default"),
+    ):
+        result = invoke(simple_config_cli, args)
+        assert result.exit_code == 0
+        assert result.stdout == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
+        assert result.stderr == "Skip configuration file loading altogether.\n"
+
+
+def test_standalone_no_config_option(invoke):
+    """@no_config_option cannot work without @config_option."""
+
+    @command
+    @no_config_option
+    def missing_config_option():
+        echo("Hello, World!")
+
+    result = invoke(missing_config_option)
+
+    assert result.exit_code == 1
+    assert not result.output
+    assert result.exception
+    assert type(result.exception) is RuntimeError
+    assert str(result.exception) == (
+        "--no-config NoConfigOption must be used alongside ConfigOption."
+    )
 
 
 def test_strict_conf(invoke, create_config):

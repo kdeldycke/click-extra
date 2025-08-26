@@ -76,7 +76,7 @@ from . import (
     get_app_dir,
     get_current_context,
 )
-from .parameters import ExtraOption, ParamStructure
+from .parameters import ExtraOption, ParamStructure, search_params
 
 
 class Formats(Enum):
@@ -516,6 +516,8 @@ class NoConfigOption(ExtraOption):
         if not param_decls:
             param_decls = ("--no-config", CONFIG_OPTION_NAME)
 
+        kwargs.setdefault("callback", self.check_sibling_config_option)
+
         super().__init__(
             param_decls=param_decls,
             type=type,
@@ -531,3 +533,14 @@ class NoConfigOption(ExtraOption):
             f"{'/'.join(self.opts)} option is expected to have its name hardcoded to "
             f"{CONFIG_OPTION_NAME!r}."
         )
+
+    def check_sibling_config_option(
+        self, ctx: Context, param: Parameter, value: int
+    ) -> None:
+        """Ensure that this option is used alongside a ``ConfigOption`` instance."""
+        config_option = search_params(ctx.command.params, ConfigOption)
+        if config_option is None:
+            raise RuntimeError(
+                f"{'/'.join(param.opts)} {self.__class__.__name__} must be used "
+                f"alongside {ConfigOption.__name__}."
+            )
