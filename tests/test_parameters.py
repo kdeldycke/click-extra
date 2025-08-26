@@ -299,7 +299,7 @@ def test_integrated_show_params_option(invoke, create_config):
     assert result.exit_code == 0
     assert f"debug: click_extra.raw_args: {raw_args!r}\n" in result.stderr
 
-    table = [
+    expected_table = [
         (
             "show-params-cli.color",
             "click_extra.colorize.ColorOption",
@@ -472,13 +472,27 @@ def test_integrated_show_params_option(invoke, create_config):
             "DEFAULT",
         ),
     ]
-    output = tabulate(
-        table,
+
+    # Crudly parse the rendered table from the output.
+    extracted_table = []
+    for line in result.stdout.splitlines()[3:-1]:
+        columns = [col.strip() for col in re.split(r"\s*\│\s*", line) if col.strip()]
+        if columns:
+            extracted_table.append(tuple(columns))
+
+    # Compare tables row by row to get cleaner assertion errors.
+    for index in range(len(expected_table)):
+        expected_strings = tuple(map(str, expected_table[index]))
+        assert extracted_table[index] == expected_strings
+
+    # Check the rendering of the table.
+    rendered_table = tabulate(
+        expected_table,
         headers=ShowParamsOption.TABLE_HEADERS,
         tablefmt="rounded_outline",
         disable_numparse=True,
     )
-    assert result.stdout == f"{output}\n"
+    assert result.stdout == f"{rendered_table}\n"
 
 
 def test_recurse_subcommands(invoke):
