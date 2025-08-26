@@ -140,12 +140,12 @@ class ParamStructure:
         return dive(path)
 
     @staticmethod
-    def get_tree_value(tree_dict: dict[str, Any], *path: str) -> Any | None:
-        """Get in the ``tree_dict`` the value located at the ``path``."""
-        try:
-            return reduce(getitem, path, tree_dict)
-        except KeyError:
-            return None
+    def get_tree_value(tree_dict: dict[str, Any], *path: str) -> Any:
+        """Get in the ``tree_dict`` the value located at the ``path``.
+
+        Raises ``KeyError`` if no item is found at the provided ``path``.
+        """
+        return reduce(getitem, path, tree_dict)
 
     def _flatten_tree_dict_gen(
         self, tree_dict: MutableMapping, parent_key: str | None = None
