@@ -314,6 +314,17 @@ def test_unset_conf_no_message(invoke, simple_config_cli):
     assert result.stdout == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
 
 
+def test_conf_file_ignored_with_no_config(invoke, simple_config_cli, create_config):
+    conf_path = create_config("dummy.toml", DUMMY_TOML_FILE)
+
+    result = invoke(
+        simple_config_cli, "--config", str(conf_path), "--no-config", "default"
+    )
+    assert result.exit_code == 0
+    assert result.stdout == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
+    assert result.stderr == "Skip configuration file loading altogether.\n"
+
+
 def test_unset_conf_debug_message(invoke, simple_config_cli):
     result = invoke(
         simple_config_cli,
@@ -548,16 +559,6 @@ def test_conf_file_overridden_by_cli_param(
             "dummy_flag = False\nmy_list = ('super', 'wow')\nint_parameter = 15\n"
         )
         assert result.stderr == f"Load configuration matching {conf_path}\n"
-
-
-def test_conf_file_ignored_with_no_config(invoke, simple_config_cli, create_config):
-    # Create a local file.
-    conf_path = create_config("dummy.toml", DUMMY_TOML_FILE)
-
-    result = invoke(
-        simple_config_cli, "--config", str(conf_path), "--no-config", "default"
-    )
-    assert result.exit_code == 0
 
 
 @all_config_formats
