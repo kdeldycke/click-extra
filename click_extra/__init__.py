@@ -154,8 +154,8 @@ __all__ = [
     "make_pass_decorator",  # noqa: F405
     "MissingParameter",  # noqa: F405
     "new_extra_logger",  # noqa: F405
-    "NoConfigOption",  # noqa: F405
     "no_config_option",  # noqa: F405
+    "NoConfigOption",  # noqa: F405
     "NoSuchOption",  # noqa: F405
     "open_file",  # noqa: F405
     "Option",  # noqa: F405
