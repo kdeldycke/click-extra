@@ -31,9 +31,11 @@ __version__ = "5.2.0"
 # Import all click's module-level content to allow for drop-in replacement.
 # XXX Star import is really badly supported by mypy for now and leads to lots of
 # "Module 'XXX' has no attribute 'YYY'". See: https://github.com/python/mypy/issues/4930
-# Overrides click helpers with cloup's.
 from click import *  # noqa: E402, F403
+from click._utils import UNSET  # noqa: E402
 from click.core import ParameterSource  # noqa: E402
+
+# Overrides click helpers with cloup's.
 from cloup import *  # type: ignore[no-redef, assignment] # noqa: E402, F403
 
 from .colorize import (  # noqa: E402
@@ -190,6 +192,7 @@ __all__ = [
     "TimerOption",  # noqa: F405
     "Tuple",  # noqa: F405
     "UNPROCESSED",  # noqa: F405
+    "UNSET",  # noqa: F405
     "unstyle",  # noqa: F405
     "UsageError",  # noqa: F405
     "UUID",  # noqa: F405

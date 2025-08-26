@@ -8,6 +8,7 @@
 - Add a new `--no-config` option to disable loading of configuration files. Closes {issue}`750`.
 - Fix display in `--show-params` of parameters sharing the same name but in different commands.
 - Replace unmaintained `mergedeep` dependency by `deepmerge`.
+- Expose `click._utils.UNSET` sentinel as `click_extra.UNSET`.
 
 ## [5.1.1 (2025-08-24)](https://github.com/kdeldycke/click-extra/compare/v5.1.0...v5.1.1)
 
