@@ -41,7 +41,7 @@ from click_extra.pytest import (
     default_debug_uncolored_version_details,
 )
 
-DUMMY_TOML_FILE, DUMMY_TOML_DATA = (
+TOML_FILE, TOML_DATA = (
     dedent(
         """
         # Comment
@@ -78,7 +78,7 @@ DUMMY_TOML_FILE, DUMMY_TOML_DATA = (
     },
 )
 
-DUMMY_YAML_FILE, DUMMY_YAML_DATA = (
+YAML_FILE, YAML_DATA = (
     dedent(
         """
         # Comment
@@ -118,7 +118,7 @@ DUMMY_YAML_FILE, DUMMY_YAML_DATA = (
     },
 )
 
-DUMMY_JSON_FILE, DUMMY_JSON_DATA = (
+JSON_FILE, JSON_DATA = (
     dedent(
         """
         {
@@ -159,7 +159,7 @@ DUMMY_JSON_FILE, DUMMY_JSON_DATA = (
     },
 )
 
-DUMMY_INI_FILE, DUMMY_INI_DATA = (
+INI_FILE, INI_DATA = (
     dedent(
         """
         ; Comment
@@ -208,7 +208,7 @@ DUMMY_INI_FILE, DUMMY_INI_DATA = (
     },
 )
 
-DUMMY_XML_FILE, DUMMY_XML_DATA = (
+XML_FILE, XML_DATA = (
     dedent(
         """
         <!-- Comment -->
@@ -281,11 +281,11 @@ all_config_formats = pytest.mark.parametrize(
     (
         pytest.param(f"configuration.{ext}", content, data, id=ext)
         for ext, content, data in (
-            ("toml", DUMMY_TOML_FILE, DUMMY_TOML_DATA),
-            ("yaml", DUMMY_YAML_FILE, DUMMY_YAML_DATA),
-            ("json", DUMMY_JSON_FILE, DUMMY_JSON_DATA),
-            ("ini", DUMMY_INI_FILE, DUMMY_INI_DATA),
-            ("xml", DUMMY_XML_FILE, DUMMY_XML_DATA),
+            ("toml", TOML_FILE, TOML_DATA),
+            ("yaml", YAML_FILE, YAML_DATA),
+            ("json", JSON_FILE, JSON_DATA),
+            ("ini", INI_FILE, INI_DATA),
+            ("xml", XML_FILE, XML_DATA),
         )
     ),
 )
@@ -381,7 +381,7 @@ def test_conf_not_file(invoke, simple_config_cli):
 
 
 def test_no_config_option(invoke, simple_config_cli, create_config):
-    conf_path = create_config("dummy.toml", DUMMY_TOML_FILE)
+    conf_path = create_config("dummy.toml", TOML_FILE)
 
     for args in (
         ("--no-config", "default"),
