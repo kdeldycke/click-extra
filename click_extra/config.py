@@ -309,20 +309,17 @@ class ConfigOption(ExtraOption, ParamStructure):
             logger.debug(f"Parse configuration as {conf_format.name}...")
 
             try:
-                if conf_format == Formats.TOML:
-                    user_conf = tomllib.loads(conf_text)
-
-                elif conf_format == Formats.YAML:
-                    user_conf = yaml.full_load(conf_text)
-
-                elif conf_format == Formats.JSON:
-                    user_conf = json.loads(conf_text)
-
-                elif conf_format == Formats.INI:
-                    user_conf = self.load_ini_config(conf_text)
-
-                elif conf_format == Formats.XML:
-                    user_conf = xmltodict.parse(conf_text)
+                match conf_format:
+                    case Formats.TOML:
+                        user_conf = tomllib.loads(conf_text)
+                    case Formats.YAML:
+                        user_conf = yaml.full_load(conf_text)
+                    case Formats.JSON:
+                        user_conf = json.loads(conf_text)
+                    case Formats.INI:
+                        user_conf = self.load_ini_config(conf_text)
+                    case Formats.XML:
+                        user_conf = xmltodict.parse(conf_text)
 
             except Exception as ex:
                 logger.debug(ex)
