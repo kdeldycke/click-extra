@@ -526,6 +526,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 list[click.Parameter],
                 self.get_tree_value(self.params_objects, *tree_keys),
             )
+            assert len(instances) == len(python_types)
 
             # Multiple parameters can share the same path, if for instance they are
             # sharing the same variable name.
