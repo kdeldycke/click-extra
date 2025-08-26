@@ -265,8 +265,11 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         Returns an iterator of the normalized configuration location and its textual
         content, for each file/URL matching the pattern.
+
+        Raises ``FileNotFoundError`` if no file was found matching the pattern.
         """
         logger = logging.getLogger("click_extra")
+        file_found = 0
 
         # Check if the pattern is an URL.
         location = URL(pattern)
@@ -275,24 +278,38 @@ class ConfigOption(ExtraOption, ParamStructure):
             logger.debug(f"Download configuration from URL: {location}")
             with requests.get(location) as response:
                 if response.ok:
+                    file_found += 1
                     yield location, response.text
-                    return
-                logger.warning(f"Can't download {location}: {response.reason}")
+                else:
+                    logger.warning(f"Can't download {location}: {response.reason}")
 
-        logger.debug("Pattern is not an URL: search local file system.")
-        # wcmatch expect patterns to be written with Unix-like syntax by default, even
-        # on Windows. See more details at:
-        # https://facelessuser.github.io/wcmatch/glob/#windows-separators
-        # https://github.com/facelessuser/wcmatch/issues/194
-        if is_windows():
-            pattern = pattern.replace("\\", "/")
-        for file in iglob(
-            pattern,
-            flags=NODIR | GLOBSTAR | DOTGLOB | GLOBTILDE | BRACE | FOLLOW | IGNORECASE,
-        ):
-            file_path = Path(file).resolve()
-            logger.debug(f"Configuration file found at {file_path}")
-            yield file_path, file_path.read_text(encoding="utf-8")
+        # Not an URL, search local file system with glob pattern.
+        else:
+            logger.debug("Pattern is not an URL: search local file system.")
+            # wcmatch expect patterns to be written with Unix-like syntax by default, even
+            # on Windows. See more details at:
+            # https://facelessuser.github.io/wcmatch/glob/#windows-separators
+            # https://github.com/facelessuser/wcmatch/issues/194
+            if is_windows():
+                pattern = pattern.replace("\\", "/")
+            for file in iglob(
+                pattern,
+                flags=NODIR
+                | GLOBSTAR
+                | DOTGLOB
+                | GLOBTILDE
+                | BRACE
+                | FOLLOW
+                | IGNORECASE,
+            ):
+                file_path = Path(file).resolve()
+                logger.debug(f"Configuration file found at {file_path}")
+                file_found += 1
+                yield file_path, file_path.read_text(encoding="utf-8")
+
+        if file_found == 0:
+            msg = f"No configuration file found matching {pattern}"
+            raise FileNotFoundError(msg)
 
     def parse_conf(self, conf_text: str) -> dict[str, Any] | None:
         """Try to parse the provided content with each format in the order provided by
@@ -306,8 +323,6 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         user_conf = None
         for conf_format in self.formats:
-            logger.debug(f"Parse configuration as {conf_format.name}...")
-
             try:
                 match conf_format:
                     case Formats.TOML:
@@ -322,14 +337,20 @@ class ConfigOption(ExtraOption, ParamStructure):
                         user_conf = xmltodict.parse(conf_text)
 
             except Exception as ex:
-                logger.debug(ex)
+                logger.debug(f"{conf_format.name} parsing failed: {ex}")
                 continue
 
-            if isinstance(user_conf, dict):
-                return user_conf
-            else:
-                logger.debug(f"{conf_format.name} parsing failed.")
+            if not isinstance(user_conf, dict) or user_conf is None:
+                logger.debug(
+                    f"{conf_format.name} parsing failed: "
+                    f"expecting a dict, got {user_conf!r} instead."
+                )
+                continue
 
+            logger.debug(f"{conf_format.name} parsing successful, got {user_conf!r}.")
+            return user_conf
+
+        # All parsing attempts failed
         return None
 
     def read_and_parse_conf(
@@ -340,8 +361,13 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         Returns the location and parsed content of the first valid configuration file
         that is not blank, or `(None, None)` if no file was found.
+
+        Raises ``FileNotFoundError`` if no file was found matching the pattern.
         """
+        logger = logging.getLogger("click_extra")
+
         for conf_path, conf_text in self.search_and_read_conf(pattern):
+            logger.debug(f"Parsing: {conf_text!r}")
             user_conf = self.parse_conf(conf_text)
             if user_conf is not None:
                 return conf_path, user_conf
@@ -443,7 +469,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         info_msg = partial(echo, err=True)
 
         if path_pattern is NO_CONFIG:
-            logger.debug(f"{NO_CONFIG} sentinel received.")
+            logger.debug(f"{NO_CONFIG} received.")
             info_msg("Skip configuration file loading altogether.")
             return
 
@@ -461,12 +487,13 @@ class ConfigOption(ExtraOption, ParamStructure):
             logger.debug(message)
 
         # Read configuration file.
-        conf_path, user_conf = self.read_and_parse_conf(path_pattern)
-        ctx.meta["click_extra.conf_source"] = conf_path
-        ctx.meta["click_extra.conf_full"] = user_conf
-
-        # Exit the CLI if no user-provided config file was found.
-        if user_conf is None:
+        conf_path, user_conf = None, None
+        try:
+            conf_path, user_conf = self.read_and_parse_conf(path_pattern)
+        # Exit the CLI if no user-provided config file was found. Else, it means we
+        # were just trying to automaticcaly discover a config file with the default
+        # pattern, so we can just log it and continue.
+        except FileNotFoundError:
             message = "No configuration file found."
             if explicit_conf:
                 logger.critical(message)
@@ -474,11 +501,30 @@ class ConfigOption(ExtraOption, ParamStructure):
             else:
                 logger.debug(message)
 
+        # Exit the CLI if a user-provided config file was found but could not be
+        # parsed. Else, it means we automaticcaly discovered a config
+        # file, but it couldn't be parsed, so we can just log it and continue.
         else:
-            logger.debug(f"Parsed user configuration: {user_conf}")
-            logger.debug(f"Initial defaults: {ctx.default_map}")
-            self.merge_default_map(ctx, user_conf)
-            logger.debug(f"New defaults: {ctx.default_map}")
+            if user_conf is None:
+                message = (
+                    f"Error while parsing the configuration file in any of the "
+                    f"{', '.join(e.name for e in self.formats)} formats."
+                )
+                if explicit_conf:
+                    logger.critical(message)
+                    ctx.exit(2)
+                else:
+                    logger.debug(message)
+            else:
+                logger.debug(f"Parsed user configuration: {user_conf}")
+                logger.debug(f"Initial defaults: {ctx.default_map}")
+                self.merge_default_map(ctx, user_conf)
+                logger.debug(f"New defaults: {ctx.default_map}")
+
+        # Save the location and content of the configuration file into the context's
+        # meta dict, for the convenience of CLI developers.
+        ctx.meta["click_extra.conf_source"] = conf_path
+        ctx.meta["click_extra.conf_full"] = user_conf
 
 
 class NoConfigOption(ExtraOption):
