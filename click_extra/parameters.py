@@ -340,11 +340,12 @@ class ParamStructure:
 
             template = always_merger.merge(template, self.init_tree_dict(*keys))
             types = always_merger.merge(
-                types, self.init_tree_dict(*keys, leaf=self.get_param_type(param))
+                types, self.init_tree_dict(*keys, leaf=[self.get_param_type(param)])
             )
             objects = always_merger.merge(
-                objects, self.init_tree_dict(*keys, leaf=param)
+                objects, self.init_tree_dict(*keys, leaf=[param])
             )
+
         self.params_template = template
         self.params_types = types
         self.params_objects = objects
@@ -515,61 +516,83 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 str | None,
             ]
         ] = []
-        for path, python_type in self.flatten_tree_dict(self.params_types).items():
-            # Get the parameter instance.
+
+        # Use the parameter types structure to walk through the the tree of parameters and get their
+        # fully-qualified path and IDs.
+        for path, python_types in self.flatten_tree_dict(self.params_types).items():
+            # Get the parameters associated with this path.
             tree_keys = path.split(self.SEP)
-            instance = cast(
-                "click.Parameter",
+            instances = cast(
+                list[click.Parameter],
                 self.get_tree_value(self.params_objects, *tree_keys),
             )
-            assert instance.name == tree_keys[-1]
 
-            param_value, source = get_param_value(instance)
-            param_class = instance.__class__
+            # Multiple parameters can share the same path, if for instance they are
+            # sharing the same variable name.
+            for index, python_type in enumerate(python_types):
+                instance = instances[index]
+                assert instance.name == tree_keys[-1]
 
-            # Collect param's spec and hidden status.
-            hidden = None
-            param_spec = None
-            # Hidden property is only supported by Option, not Argument.
-            # TODO: Allow arguments to produce their spec.
-            if hasattr(instance, "hidden"):
-                hidden = OK if instance.hidden is True else KO
+                param_value, source = get_param_value(instance)
+                param_class = instance.__class__
 
-                # No-op context manager without any effects.
-                hidden_param_bypass: ContextManager = nullcontext()
-                # If the parameter is hidden, we need to temporarily disable this flag
-                # to let Click produce a help record.
-                # See: https://github.com/kdeldycke/click-extra/issues/689
-                # TODO: Submit a PR to Click to separate production of param spec and
-                # help record. That way we can always produce the param spec even if
-                # the parameter is hidden.
-                if instance.hidden:
-                    hidden_param_bypass = patch.object(instance, "hidden", False)
-                with hidden_param_bypass:
-                    help_record = instance.get_help_record(ctx)
-                    if help_record:
-                        param_spec = help_record[0]
+                # Collect param's spec and hidden status.
+                hidden = None
+                param_spec = None
+                # Hidden property is only supported by Option, not Argument.
+                # TODO: Allow arguments to produce their spec.
+                if hasattr(instance, "hidden"):
+                    hidden = OK if instance.hidden is True else KO
 
-            # Check if the parameter is allowed in the configuration file.
-            allowed_in_conf = None
-            if config_option:
-                allowed_in_conf = KO if path in config_option.excluded_params else OK
+                    # No-op context manager without any effects.
+                    hidden_param_bypass: ContextManager = nullcontext()
+                    # If the parameter is hidden, we need to temporarily disable this flag
+                    # to let Click produce a help record.
+                    # See: https://github.com/kdeldycke/click-extra/issues/689
+                    # TODO: Submit a PR to Click to separate production of param spec and
+                    # help record. That way we can always produce the param spec even if
+                    # the parameter is hidden.
+                    if instance.hidden:
+                        hidden_param_bypass = patch.object(instance, "hidden", False)
+                    with hidden_param_bypass:
+                        help_record = instance.get_help_record(ctx)
+                        if help_record:
+                            param_spec = help_record[0]
 
-            line = (
-                default_theme.invoked_command(path),
-                f"{param_class.__module__}.{param_class.__qualname__}",
-                param_spec,
-                f"{instance.type.__module__}.{instance.type.__class__.__name__}",
-                python_type.__name__,
-                hidden,
-                OK if instance.expose_value is True else KO,
-                allowed_in_conf,
-                ", ".join(map(default_theme.envvar, param_envvar_ids(instance, ctx))),
-                default_theme.default(repr(instance.get_default(ctx))),
-                param_value,
-                source._name_ if source else None,
-            )
-            table.append(line)
+                # if "SHOW_PARAMS_CLI_MAIN_HELP" in param_envvar_ids(instance, ctx):
+                #    import pdb
+                #    pdb.set_trace()
+
+                # if "SHOW_PARAMS_CLI_VERBOSITY" in param_envvar_ids(instance, ctx):
+                #    import pdb
+                #    pdb.set_trace()
+
+                # Check if the parameter is allowed in the configuration file.
+                allowed_in_conf = None
+                if config_option:
+                    allowed_in_conf = (
+                        KO if path in config_option.excluded_params else OK
+                    )
+
+                line = (
+                    default_theme.invoked_command(path),
+                    f"{param_class.__module__}.{param_class.__qualname__}",
+                    param_spec,
+                    f"{instance.type.__module__}.{instance.type.__class__.__name__}",
+                    python_type.__name__,
+                    hidden,
+                    OK if instance.expose_value is True else KO,
+                    allowed_in_conf,
+                    ", ".join(
+                        map(default_theme.envvar, param_envvar_ids(instance, ctx))
+                    ),
+                    default_theme.default(repr(instance.get_default(ctx))),
+                    param_value,
+                    source._name_ if source else None,
+                    # instance.is_eager,
+                    # Evaluation order.
+                )
+                table.append(line)
 
         def sort_by_depth(line):
             """Sort parameters by depth first, then IDs, so that top-level parameters
