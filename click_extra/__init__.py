@@ -56,6 +56,7 @@ from .decorators import (  # type: ignore[no-redef, has-type, unused-ignore] # n
     extra_version_option,
     group,
     help_option,
+    no_config_option,
     show_params_option,
     table_format_option,
     telemetry_option,
@@ -152,6 +153,7 @@ __all__ = [
     "MissingParameter",  # noqa: F405
     "new_extra_logger",  # noqa: F405
     "NoConfigOption",  # noqa: F405
+    "no_config_option",  # noqa: F405
     "NoSuchOption",  # noqa: F405
     "open_file",  # noqa: F405
     "Option",  # noqa: F405
