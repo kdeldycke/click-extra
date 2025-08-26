@@ -577,7 +577,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                     ),
                     default_theme.default(repr(instance.get_default(ctx))),
                     param_value,
-                    source._name_ if source else None,
+                    source.name if source else None,
                 )
                 table.append(line)
 
