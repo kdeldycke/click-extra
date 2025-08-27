@@ -223,6 +223,11 @@ class ExtraVersionOption(ExtraOption):
             ):
                 continue
 
+            # We found a frame that is not part of the Click ecosystem, and is not an
+            # intermediate frame added by a decorator. We assume this is the frame in
+            # which the user's CLI is implemented.
+            return frame
+
         # Our heuristics to locate the CLI implementation failed.
         logger = logging.getLogger("click_extra")
         count_size = len(str(len(frame_chain)))
