@@ -191,9 +191,9 @@ See how the `--version` option gets duplicated at the end:
 from textwrap import dedent
 result = invoke(cli, args=["--help"])
 assert (
-    "  \x1b[36m--version\x1b[0m                 Show the version and exit.\n"
-    "  \x1b[36m--version\x1b[0m                 Show the version and exit.\n"
-    "  \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m                Show this message and exit.\n"
+    "  \x1b[36m--version\x1b[0m             Show the version and exit.\n"
+    "  \x1b[36m--version\x1b[0m             Show the version and exit.\n"
+    "  \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m            Show this message and exit.\n"
 ) in result.output
 ```
 
