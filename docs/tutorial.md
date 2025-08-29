@@ -214,5 +214,5 @@ Click Extra provides these additional, pre-configured options decorators you can
 ```{note}
 Because single-letter options are a scarce resource, Click Extra does not impose them on you. All the options above are specified with their long names only. You can always customize them to add a short name if you wish.
 
-That a general rule, unless some short names follow a widely accepted convention or an overwhelmingly tradition. Which is the case for `-h, --help` and `-v, --verbose`.
+That's a general rule, unless some short names follow a widely-accepted convention or an overwhelmingly-followed tradition. Which is the case for `-v, --verbose` and `-h, --help`.
 ```
