@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import logging
 import random
-import re
 from textwrap import dedent
 
 import click
@@ -106,7 +105,9 @@ def test_root_logger_defaults():
     ),
 )
 # TODO: test extra_group
-def test_integrated_verbosity_options(invoke, args, expected_level):
+def test_integrated_verbosity_options(
+    invoke, args, expected_level, assert_output_regex
+):
     @extra_command
     def logging_cli3():
         echo("It works!")
@@ -123,7 +124,7 @@ def test_integrated_verbosity_options(invoke, args, expected_level):
             + default_debug_colored_version_details
             + default_debug_colored_log_end
         )
-        assert re.fullmatch(debug_log, result.stderr)
+        assert_output_regex(result.stderr, debug_log)
     else:
         assert not result.stderr
 
@@ -155,7 +156,7 @@ def test_integrated_verbosity_options(invoke, args, expected_level):
         ),
     ),
 )
-def test_custom_verbosity_option_name(invoke, args):
+def test_custom_verbosity_option_name(invoke, args, assert_output_regex):
     param_names = ("--blah", "-B")
 
     @click.command
@@ -167,11 +168,11 @@ def test_custom_verbosity_option_name(invoke, args):
     result = invoke(awesome_app, args, color=False)
     assert result.exit_code == 0
     assert not result.stdout
-    assert re.fullmatch(
+    assert_output_regex(
+        result.stderr,
         default_debug_uncolored_logging
         + r"debug: my debug message\.\n"
         + default_debug_uncolored_log_end,
-        result.stderr,
     )
 
 
@@ -188,7 +189,7 @@ def test_custom_verbosity_option_name(invoke, args):
         ("-B", "--blah"),
     ),
 )
-def test_custom_verbose_option_name(invoke, args):
+def test_custom_verbose_option_name(invoke, args, assert_output_regex):
     param_names = ("--blah", "-B")
 
     @click.command
@@ -200,12 +201,12 @@ def test_custom_verbose_option_name(invoke, args):
     result = invoke(awesome_app, args, color=False)
     assert result.exit_code == 0
     assert not result.stdout
-    assert re.fullmatch(
+    assert_output_regex(
+        result.stderr,
         default_debug_uncolored_logging
         + default_debug_uncolored_verbose_log
         + r"debug: my debug message\.\n"
         + default_debug_uncolored_log_end,
-        result.stderr,
     )
 
 
@@ -264,7 +265,7 @@ def test_unrecognized_verbosity_level(invoke, cmd_decorator, cmd_type):
     ),
 )
 def test_standalone_option_default_logger(
-    invoke, cmd_decorator, option_decorator, args, expected_level
+    invoke, cmd_decorator, option_decorator, args, expected_level, assert_output_regex
 ):
     """Checks:
     - option affect log level
@@ -336,7 +337,7 @@ def test_standalone_option_default_logger(
         if "-v" in args:
             log_start += default_debug_colored_verbose_log
         log_records = log_start + log_records + default_debug_colored_log_end
-    assert re.fullmatch(log_records, result.stderr)
+    assert_output_regex(result.stderr, log_records)
 
 
 @pytest.mark.parametrize(

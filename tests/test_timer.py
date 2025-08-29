@@ -81,7 +81,9 @@ def test_integrated_notime_option(invoke, subcommand_id):
     command_decorators(no_groups=True, no_extra=True),
 )
 @pytest.mark.parametrize("option_decorator", (timer_option, timer_option()))
-def test_standalone_timer_option(invoke, cmd_decorator, option_decorator):
+def test_standalone_timer_option(
+    invoke, cmd_decorator, option_decorator, assert_output_regex
+):
     @cmd_decorator
     @option_decorator
     def standalone_timer():
@@ -103,9 +105,9 @@ def test_standalone_timer_option(invoke, cmd_decorator, option_decorator):
     result = invoke(standalone_timer, "--time")
     assert result.exit_code == 0
     assert not result.stderr
-    assert re.fullmatch(
-        r"It works!\nExecution time: [0-9.]+ seconds.\n",
+    assert_output_regex(
         result.stdout,
+        r"It works!\nExecution time: [0-9.]+ seconds.\n",
     )
 
     result = invoke(standalone_timer, "--no-time")

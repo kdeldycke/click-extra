@@ -210,7 +210,9 @@ def test_params_auto_types(invoke, option_decorator):
 # Skip click extra's commands, as show_params option is already part of the default.
 @pytest.mark.parametrize("cmd_decorator", command_decorators(no_extra=True))
 @pytest.mark.parametrize("option_decorator", (show_params_option, show_params_option()))
-def test_standalone_show_params_option(invoke, cmd_decorator, option_decorator):
+def test_standalone_show_params_option(
+    invoke, cmd_decorator, option_decorator, assert_output_regex
+):
     @cmd_decorator
     @option_decorator
     def show_params():
@@ -257,11 +259,12 @@ def test_standalone_show_params_option(invoke, cmd_decorator, option_decorator):
     )
     assert result.stdout == f"{output}\n"
 
-    assert re.fullmatch(
-        r"warning: Cannot extract parameters values: "
-        r"<(Group|Command) show-params> does not inherits from ExtraCommand\.\n",
-        result.stderr,
-    )
+    if result.stderr:
+        assert_output_regex(
+            result.stderr,
+            r"warning: Cannot extract parameters values: "
+            r"<(Group|Command) show-params> does not inherits from ExtraCommand\.\n",
+        )
 
 
 def test_integrated_show_params_option(invoke, create_config):

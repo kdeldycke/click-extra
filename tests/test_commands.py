@@ -21,7 +21,6 @@ from __future__ import annotations
 import ast
 import inspect
 import os
-import re
 from pathlib import Path
 from textwrap import dedent
 
@@ -114,7 +113,7 @@ def all_command_cli():
 
 
 help_screen = (
-    r"Usage: command-cli1 \[OPTIONS\] COMMAND \[ARGS\]...\n"
+    r"Usage: command-cli1 \[OPTIONS\] COMMAND \[ARGS\]\.\.\.\n"
     r"\n"
     r"Options:\n"
     rf"{default_options_uncolored_help}"
@@ -143,33 +142,33 @@ def test_unknown_command(invoke, all_command_cli):
     assert "Error: No such command 'blah'." in result.stderr
 
 
-def test_required_command(invoke, all_command_cli):
+def test_required_command(invoke, all_command_cli, assert_output_regex):
     result = invoke(all_command_cli, "--verbosity", "DEBUG", color=False)
     assert result.exit_code == 2
     # In debug mode, the version is always printed.
     assert not result.stdout
-    assert re.fullmatch(
+    assert_output_regex(
+        result.stderr,
         (
             rf"{default_debug_uncolored_log_start}"
             rf"{default_debug_uncolored_log_end}"
-            r"Usage: command-cli1 \[OPTIONS\] COMMAND \[ARGS\]...\n"
-            r"Try 'command-cli1 --help' for help.\n"
+            r"Usage: command-cli1 \[OPTIONS\] COMMAND \[ARGS\]\.\.\.\n"
+            r"Try 'command-cli1 --help' for help\.\n"
             r"\n"
-            r"Error: Missing command.\n"
+            r"Error: Missing command\.\n"
         ),
-        result.stderr,
     )
 
 
 @pytest.mark.parametrize(("param", "exit_code"), ((None, 2), ("-h", 0), ("--help", 0)))
-def test_group_help(invoke, all_command_cli, param, exit_code):
+def test_group_help(invoke, all_command_cli, param, exit_code, assert_output_regex):
     result = invoke(all_command_cli, param, color=False)
     assert "It works!" not in result.stdout
     assert result.exit_code == exit_code
     if exit_code == 2:
-        assert re.fullmatch(help_screen, result.stderr)
+        assert_output_regex(result.stderr, help_screen)
     else:
-        assert re.fullmatch(help_screen, result.stdout)
+        assert_output_regex(result.stdout, help_screen)
         assert not result.stderr
 
 
@@ -189,7 +188,13 @@ def test_group_help(invoke, all_command_cli, param, exit_code):
     ),
 )
 def test_help_eagerness(
-    invoke, all_command_cli, params, exit_code, expect_help, expect_empty_stderr
+    invoke,
+    all_command_cli,
+    params,
+    exit_code,
+    expect_help,
+    expect_empty_stderr,
+    assert_output_regex,
 ):
     """See:
     https://click.palletsprojects.com/en/stable/advanced/#callback-evaluation-order
@@ -198,9 +203,10 @@ def test_help_eagerness(
     assert result.exit_code == exit_code
     assert "It works!" not in result.stdout
     if expect_help:
-        assert re.fullmatch(help_screen, result.stdout)
-    else:
-        assert not re.fullmatch(help_screen, result.stdout)
+        assert_output_regex(result.stdout, help_screen)
+    elif result.stdout:
+        with pytest.raises(AssertionError):
+            assert_output_regex(result.stdout, help_screen)
     if expect_empty_stderr:
         assert not result.stderr
     else:
@@ -236,7 +242,7 @@ def test_help_custom_name(invoke):
     ),
 )
 @pytest.mark.parametrize("param", ("-h", "--help"))
-def test_subcommand_help(invoke, all_command_cli, cmd_id, param):
+def test_subcommand_help(invoke, all_command_cli, cmd_id, param, assert_output_regex):
     result = invoke(all_command_cli, cmd_id, param)
     assert result.exit_code == 0
     assert not result.stderr
@@ -252,21 +258,21 @@ def test_subcommand_help(invoke, all_command_cli, cmd_id, param):
 
     # Extra sucommands are colored and include all extra options.
     if cmd_id == "click-extra-subcommand":
-        assert re.fullmatch(
-            rf"{colored_help_header}{default_options_colored_help}",
+        assert_output_regex(
             result.stdout,
+            rf"{colored_help_header}{default_options_colored_help}",
         )
 
     # Default subcommand inherits from extra family and is colored, but does not include
     # extra options.
     elif cmd_id == "default-subcommand":
-        assert re.fullmatch(
+        assert_output_regex(
+            result.stdout,
             (
                 rf"{colored_help_header}"
                 r"  \x1b\[36m-h\x1b\[0m, \x1b\[36m--help\x1b\[0m"
-                r"  Show this message and exit.\n"
+                r"  Show this message and exit\.\n"
             ),
-            result.stdout,
         )
 
     # Non-extra subcommands are not colored.
@@ -360,7 +366,7 @@ def test_duplicate_option(invoke):
     assert not result.stderr
 
 
-def test_no_option_leaks_between_subcommands(invoke):
+def test_no_option_leaks_between_subcommands(invoke, assert_output_regex):
     """As reported in https://github.com/kdeldycke/click-extra/issues/489."""
 
     @click.group
@@ -398,7 +404,8 @@ def test_no_option_leaks_between_subcommands(invoke):
 
     result = invoke(cli, "foo", "--help", color=False)
     assert result.exit_code == 0
-    assert re.fullmatch(
+    assert_output_regex(
+        result.stdout,
         (
             r"Run cli\.\.\.\n"
             r"Usage: cli foo \[OPTIONS\]\n"
@@ -407,13 +414,13 @@ def test_no_option_leaks_between_subcommands(invoke):
             r"  --one TEXT\n"
             rf"{default_options_uncolored_help}"
         ),
-        result.stdout,
     )
     assert not result.stderr
 
     result = invoke(cli, "bar", "--help", color=False)
     assert result.exit_code == 0
-    assert re.fullmatch(
+    assert_output_regex(
+        result.stdout,
         (
             r"Run cli\.\.\.\n"
             r"Usage: cli bar \[OPTIONS\]\n"
@@ -422,12 +429,11 @@ def test_no_option_leaks_between_subcommands(invoke):
             r"  --two TEXT\n"
             rf"{default_options_uncolored_help}"
         ),
-        result.stdout,
     )
     assert not result.stderr
 
 
-def test_option_group_integration(invoke):
+def test_option_group_integration(invoke, assert_output_regex):
     # Mix regular and grouped options
     @extra_group
     @option_group(
@@ -447,9 +453,10 @@ def test_option_group_integration(invoke):
     # Remove colors to simplify output comparison.
     result = invoke(command_cli2, "--help", color=False)
     assert result.exit_code == 0
-    assert re.fullmatch(
+    assert_output_regex(
+        result.stdout,
         (
-            r"Usage: command-cli2 \[OPTIONS\] COMMAND \[ARGS\]...\n"
+            r"Usage: command-cli2 \[OPTIONS\] COMMAND \[ARGS\]\.\.\.\n"
             r"\n"
             r"Group 1:\n"
             r"  -a, --opt1 TEXT\n"
@@ -463,7 +470,6 @@ def test_option_group_integration(invoke):
             r"Commands:\n"
             r"  default\n"
         ),
-        result.stdout,
     )
     assert "It works!" not in result.stdout
     assert not result.stderr

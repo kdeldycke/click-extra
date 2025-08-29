@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import logging
 import os
-import re
 from enum import Enum, auto
 from textwrap import dedent
 
@@ -569,7 +568,7 @@ def test_keyword_collection(invoke, assert_output_regex):
     color_cli1.section("Extra commands", command3, command4)
 
     help_screen = (
-        r"\x1b\[94m\x1b\[1m\x1b\[4mUsage:\x1b\[0m \x1b\[97mcolor-cli1\x1b\[0m \x1b\[36m\x1b\[2m\[OPTIONS\]\x1b\[0m \x1b\[36m\x1b\[2mCOMMAND \[ARGS\]...\x1b\[0m\n"
+        r"\x1b\[94m\x1b\[1m\x1b\[4mUsage:\x1b\[0m \x1b\[97mcolor-cli1\x1b\[0m \x1b\[36m\x1b\[2m\[OPTIONS\]\x1b\[0m \x1b\[36m\x1b\[2mCOMMAND \[ARGS\]\.\.\.\x1b\[0m\n"
         r"\n"
         r"\x1b\[94m\x1b\[1m\x1b\[4mGroup 1:\x1b\[0m\n"
         r"  \x1b\[36m-a\x1b\[0m, \x1b\[36m--o1\x1b\[0m \x1b\[36m\x1b\[2mTEXT\x1b\[0m\n"
@@ -588,7 +587,7 @@ def test_keyword_collection(invoke, assert_output_regex):
         r"                        \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mno-long-shout\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
         rf"{default_options_colored_help}\n"
         r"\x1b\[94m\x1b\[1m\x1b\[4mSubcommand group 1:\x1b\[0m\n"
-        r"  \x1b\[36mcommand1\x1b\[0m  CLI description with extra \x1b\[36m\x1b\[2mMY_VAR\x1b\[0m reference.\n"
+        r"  \x1b\[36mcommand1\x1b\[0m  CLI description with extra \x1b\[36m\x1b\[2mMY_VAR\x1b\[0m reference\.\n"
         r"  \x1b\[36mcommand2\x1b\[0m\n"
         r"\n"
         r"\x1b\[94m\x1b\[1m\x1b\[4mExtra commands:\x1b\[0m\n"
@@ -669,7 +668,9 @@ def test_keyword_collection(invoke, assert_output_regex):
         (None, True),
     ),
 )
-def test_standalone_color_option(invoke, option_decorator, param, expecting_colors):
+def test_standalone_color_option(
+    invoke, option_decorator, param, expecting_colors, assert_output_regex
+):
     """Check color option values, defaults and effects on all things colored, including
     verbosity option."""
 
@@ -695,13 +696,13 @@ def test_standalone_color_option(invoke, option_decorator, param, expecting_colo
             "\x1b[34mprint() bypass Click.\x1b[0m\n"
             "\x1b[32mDone.\x1b[0m\n"
         )
-        assert re.fullmatch(
+        assert_output_regex(
+            result.stderr,
             (
                 rf"{default_debug_colored_logging}"
-                r"\x1b\[33mwarning\x1b\[0m: Processing...\n"
+                r"\x1b\[33mwarning\x1b\[0m: Processing\.\.\.\n"
                 rf"{default_debug_colored_log_end}"
             ),
-            result.stderr,
         )
     else:
         assert result.stdout == (
@@ -711,13 +712,13 @@ def test_standalone_color_option(invoke, option_decorator, param, expecting_colo
             "\x1b[34mprint() bypass Click.\x1b[0m\n"
             "Done.\n"
         )
-        assert re.fullmatch(
+        assert_output_regex(
+            result.stderr,
             (
                 rf"{default_debug_uncolored_logging}"
-                rf"warning: Processing\.\.\.\n"
+                r"warning: Processing\.\.\.\n"
                 rf"{default_debug_uncolored_log_end}"
             ),
-            result.stderr,
         )
 
 
@@ -791,7 +792,7 @@ def test_no_color_env_convention(
         (None, True),
     ),
 )
-def test_integrated_color_option(invoke, param, expecting_colors):
+def test_integrated_color_option(invoke, param, expecting_colors, assert_output_regex):
     """Check effect of color option on all things colored, including verbosity option.
 
     Also checks the color option in subcommands is inherited from parent context.
@@ -826,13 +827,13 @@ def test_integrated_color_option(invoke, param, expecting_colors):
             "\x1b[34mprint() bypass Click.\x1b[0m\n"
             "\x1b[32mDone.\x1b[0m\n"
         )
-        assert re.fullmatch(
+        assert_output_regex(
+            result.stderr,
             (
                 rf"{default_debug_colored_log_start}"
-                r"\x1b\[33mwarning\x1b\[0m: Processing...\n"
+                r"\x1b\[33mwarning\x1b\[0m: Processing\.\.\.\n"
                 rf"{default_debug_colored_log_end}"
             ),
-            result.stderr,
         )
 
     else:
@@ -845,13 +846,13 @@ def test_integrated_color_option(invoke, param, expecting_colors):
             "\x1b[34mprint() bypass Click.\x1b[0m\n"
             "Done.\n"
         )
-        assert re.fullmatch(
+        assert_output_regex(
+            result.stderr,
             (
                 rf"{default_debug_uncolored_log_start}"
-                rf"warning: Processing\.\.\.\n"
+                r"warning: Processing\.\.\.\n"
                 rf"{default_debug_uncolored_log_end}"
             ),
-            result.stderr,
         )
 
 

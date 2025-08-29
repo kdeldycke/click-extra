@@ -321,18 +321,18 @@ default_debug_colored_log_end = (
 )
 
 
+REGEX_NEWLINE = r"\\n"
+"""Newline representation in the regexes above."""
+
+
 def unescape_regex(text: str) -> str:
     """De-obfuscate a regex for better diff readability."""
     return (
         text.replace("\\x1b", "\x1b")
-        .replace("\[", "[")
-        .replace("\]", "]")
-        .replace("\\n", "\n")
+        .replace(r"\[", "[")
+        .replace(r"\]", "]")
+        .replace(REGEX_NEWLINE, "\n")
     )
-
-
-REGEX_NEWLINE = "\\n"
-"""Newline representation in the regexes above."""
 
 
 @pytest.fixture

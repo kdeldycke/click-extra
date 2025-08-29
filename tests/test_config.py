@@ -315,7 +315,7 @@ def test_unset_conf(invoke, simple_config_cli):
     assert result.stdout == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
 
 
-def test_unset_conf_debug_message(invoke, simple_config_cli):
+def test_unset_conf_debug_message(invoke, simple_config_cli, assert_output_regex):
     result = invoke(
         simple_config_cli,
         "--verbosity",
@@ -325,9 +325,9 @@ def test_unset_conf_debug_message(invoke, simple_config_cli):
     )
     assert result.exit_code == 0
     assert result.stdout == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
-    assert re.fullmatch(
-        default_debug_uncolored_log_start + default_debug_uncolored_log_end,
+    assert_output_regex(
         result.stderr,
+        default_debug_uncolored_log_start + default_debug_uncolored_log_end,
     )
 
 
@@ -467,6 +467,7 @@ def test_conf_file_overrides_defaults(
     conf_name,
     conf_text,
     conf_data,
+    assert_output_regex,
 ):
     # Create a local file and remote config.
     conf_filepath = create_config(conf_name, conf_text)
@@ -498,7 +499,7 @@ def test_conf_file_overrides_defaults(
             + default_debug_uncolored_version_details
             + default_debug_uncolored_log_end
         )
-        assert re.fullmatch(debug_log, result.stderr)
+        assert_output_regex(result.stderr, debug_log)
 
 
 @all_config_formats

@@ -72,7 +72,7 @@ def test_standalone_version_option(invoke, cmd_decorator, option_decorator):
 @pytest.mark.parametrize(
     "option_decorator", (extra_version_option, extra_version_option())
 )
-def test_debug_output(invoke, cmd_decorator, option_decorator):
+def test_debug_output(invoke, cmd_decorator, option_decorator, assert_output_regex):
     @cmd_decorator
     @verbosity_option
     @option_decorator
@@ -82,7 +82,8 @@ def test_debug_output(invoke, cmd_decorator, option_decorator):
     result = invoke(debug_output, "--verbosity", "DEBUG", "--version", color=True)
     assert result.exit_code == 0
 
-    assert re.fullmatch(
+    assert_output_regex(
+        result.output,
         (
             default_debug_colored_logging
             + default_debug_colored_version_details
@@ -90,7 +91,6 @@ def test_debug_output(invoke, cmd_decorator, option_decorator):
             rf"version \x1b\[32m{re.escape(__version__)}\x1b\[0m\n"
             + default_debug_colored_log_end
         ),
-        result.output,
     )
 
 
@@ -145,7 +145,9 @@ def test_set_version(invoke):
         ),
     ),
 )
-def test_custom_message(invoke, cmd_decorator, message, regex_stdout):
+def test_custom_message(
+    invoke, cmd_decorator, message, regex_stdout, assert_output_regex
+):
     @cmd_decorator
     @extra_version_option(message=message)
     def color_cli3():
@@ -154,7 +156,7 @@ def test_custom_message(invoke, cmd_decorator, message, regex_stdout):
     result = invoke(color_cli3, "--version", color=True)
     assert result.exit_code == 0
     assert not result.stderr
-    assert re.fullmatch(regex_stdout, result.output)
+    assert_output_regex(result.output, regex_stdout)
 
 
 @pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
@@ -199,7 +201,7 @@ def test_custom_message_style(invoke, cmd_decorator):
 
 
 @pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
-def test_context_meta(invoke, cmd_decorator):
+def test_context_meta(invoke, cmd_decorator, assert_output_regex):
     @cmd_decorator
     @extra_version_option
     @pass_context
@@ -211,7 +213,9 @@ def test_context_meta(invoke, cmd_decorator):
     result = invoke(version_metadata, color=True)
     assert result.exit_code == 0
     assert not result.stderr
-    assert re.fullmatch(
+
+    assert_output_regex(
+        result.output,
         (
             r"module = <module 'click_extra\.testing' from '.+testing\.py'>\n"
             r"module_name = click_extra\.testing\n"
@@ -224,7 +228,6 @@ def test_context_meta(invoke, cmd_decorator):
             r"prog_name = version-metadata\n"
             r"env_info = {'.+'}\n"
         ),
-        result.output,
     )
     assert result.output == strip_ansi(result.output)
 
