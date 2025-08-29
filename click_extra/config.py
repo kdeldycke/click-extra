@@ -207,11 +207,6 @@ class ConfigOption(ExtraOption, ParamStructure):
             **kwargs,
         )
 
-        assert self.name == CONFIG_OPTION_NAME, (
-            f"{'/'.join(self.opts)} option is expected to have its name hardcoded to "
-            f"{CONFIG_OPTION_NAME!r}."
-        )
-
     def default_pattern(self) -> str:
         """Returns the default pattern used to search for the configuration file.
 
@@ -598,11 +593,6 @@ class NoConfigOption(ExtraOption):
             is_eager=is_eager,
             expose_value=expose_value,
             **kwargs,
-        )
-
-        assert self.name == CONFIG_OPTION_NAME, (
-            f"{'/'.join(self.opts)} option is expected to have its name hardcoded to "
-            f"{CONFIG_OPTION_NAME!r}."
         )
 
     def check_sibling_config_option(
