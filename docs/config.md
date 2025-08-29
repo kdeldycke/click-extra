@@ -32,7 +32,7 @@ The code above is saved into a file named `my_cli.py`.
 It produces the following help screen:
 
 ```{click:run}
-:emphasize-lines: 7-10
+:emphasize-lines: 7-9
 result = invoke(my_cli, args=["--help"])
 assert "-C, --config CONFIG_PATH" in result.stdout
 ```
