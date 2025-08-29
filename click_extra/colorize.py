@@ -778,7 +778,7 @@ def highlight(
 
     Takes care of overlapping parts within the ``string``.
 
-    ..todo:
+    ..todo::
         Same as the ``ignore_case`` parameter, should we support case-folding?
         As in "Straße" => "Strasse"? Beware, it messes with string length and
         characters index...
