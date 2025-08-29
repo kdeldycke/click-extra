@@ -525,7 +525,7 @@ def test_only_full_word_highlight():
     assert strip_ansi(output) == output
 
 
-def test_keyword_collection(invoke):
+def test_keyword_collection(invoke, assert_output_regex):
     # Create a dummy Click CLI.
     @extra_group
     @option_group(
@@ -543,8 +543,8 @@ def test_keyword_collection(invoke):
     @option("--boolean/--no-boolean", "-b/+B", is_flag=True)
     @option("/debug;/no-debug")
     # First option without an alias.
-    @option("--shout/--no-shout", " /-S", default=False)
-    def color_cli1(o1, o2, o3, o4, test, boolean, debug, shout):
+    @option("--long-shout/--no-long-shout", " /-S", default=False)
+    def color_cli1(o1, o2, o3, o4, test, boolean, debug, long_shout):
         echo("It works!")
 
     @extra_command(params=None)
@@ -569,35 +569,28 @@ def test_keyword_collection(invoke):
     color_cli1.section("Extra commands", command3, command4)
 
     help_screen = (
-        r"\x1b\[94m\x1b\[1m\x1b\[4mUsage:\x1b\[0m \x1b\[97mcolor-cli1\x1b\[0m "
-        r"\x1b\[36m\x1b\[2m\[OPTIONS\]\x1b\[0m"
-        r" \x1b\[36m\x1b\[2mCOMMAND \[ARGS\]...\x1b\[0m\n\n"
+        r"\x1b\[94m\x1b\[1m\x1b\[4mUsage:\x1b\[0m \x1b\[97mcolor-cli1\x1b\[0m \x1b\[36m\x1b\[2m\[OPTIONS\]\x1b\[0m \x1b\[36m\x1b\[2mCOMMAND \[ARGS\]...\x1b\[0m\n"
+        r"\n"
         r"\x1b\[94m\x1b\[1m\x1b\[4mGroup 1:\x1b\[0m\n"
         r"  \x1b\[36m-a\x1b\[0m, \x1b\[36m--o1\x1b\[0m \x1b\[36m\x1b\[2mTEXT\x1b\[0m\n"
         r"  \x1b\[36m-b\x1b\[0m, \x1b\[36m--o2\x1b\[0m \x1b\[36m\x1b\[2mTEXT\x1b\[0m\n"
         r"\n"
         r"\x1b\[94m\x1b\[1m\x1b\[4mGroup 2:\x1b\[0m\n"
         r"  \x1b\[36m--o3\x1b\[0m \x1b\[36m\x1b\[2mMY_VAR\x1b\[0m\n"
-        r"  \x1b\[36m--o4\x1b\[0m \x1b\[36m\x1b\[2mTEXT\x1b\[0m\n\n"
+        r"  \x1b\[36m--o4\x1b\[0m \x1b\[36m\x1b\[2mTEXT\x1b\[0m\n"
+        r"\n"
         r"\x1b\[94m\x1b\[1m\x1b\[4mOther options:\x1b\[0m\n"
         r"  \x1b\[36m--test\x1b\[0m \x1b\[36m\x1b\[2mTEXT\x1b\[0m\n"
-        r"  \x1b\[36m-b\x1b\[0m, \x1b\[36m--boolean\x1b\[0m / \x1b\[36m\+B\x1b\[0m,"
-        r" \x1b\[36m--no-boolean\x1b\[0m\n"
-        r"                            "
-        r"\x1b\[2m\[\x1b\[0m\x1b\[2mdefault: "
-        r"\x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mno-boolean\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
-        r"  \x1b\[36m/debug\x1b\[0m; \x1b\[36m/no-debug\x1b\[0m"
-        r"         \x1b\[2m\[\x1b\[0m\x1b\[2mdefault:"
-        r" \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mno-debug\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
-        r"  \x1b\[36m--shout\x1b\[0m / \x1b\[36m-S\x1b\[0m, \x1b\[36m--no-shout\x1b\[0m"
-        r"  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: "
-        r"\x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mno-shout\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
-        rf"{default_options_colored_help}"
-        r"\n"
+        r"  \x1b\[36m-b\x1b\[0m, \x1b\[36m--boolean\x1b\[0m / \x1b\[36m\+B\x1b\[0m, \x1b\[36m--no-boolean\x1b\[0m\n"
+        r"                        \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mno-boolean\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
+        r"  \x1b\[36m/debug\x1b\[0m; \x1b\[36m/no-debug\x1b\[0m     \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mno-debug\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
+        r"  \x1b\[36m--long-shout\x1b\[0m / \x1b\[36m-S\x1b\[0m, \x1b\[36m--no-long-shout\x1b\[0m\n"
+        r"                        \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mno-long-shout\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
+        rf"{default_options_colored_help}\n"
         r"\x1b\[94m\x1b\[1m\x1b\[4mSubcommand group 1:\x1b\[0m\n"
-        r"  \x1b\[36mcommand1\x1b\[0m  CLI description with extra"
-        r" \x1b\[36m\x1b\[2mMY_VAR\x1b\[0m reference.\n"
-        r"  \x1b\[36mcommand2\x1b\[0m\n\n"
+        r"  \x1b\[36mcommand1\x1b\[0m  CLI description with extra \x1b\[36m\x1b\[2mMY_VAR\x1b\[0m reference.\n"
+        r"  \x1b\[36mcommand2\x1b\[0m\n"
+        r"\n"
         r"\x1b\[94m\x1b\[1m\x1b\[4mExtra commands:\x1b\[0m\n"
         r"  \x1b\[36mcommand3\x1b\[0m\n"
         r"  \x1b\[36mcommand4\x1b\[0m  \x1b\[93m\x1b\[1m\(DEPRECATED\)\x1b\[0m\n"
@@ -605,12 +598,12 @@ def test_keyword_collection(invoke):
 
     result = invoke(color_cli1, "--help", color=True)
     assert result.exit_code == 0
-    assert re.fullmatch(help_screen, result.stdout)
+    assert_output_regex(result.stdout, help_screen)
     assert not result.stderr
 
     result = invoke(color_cli1, "-h", color=True)
     assert result.exit_code == 0
-    assert re.fullmatch(help_screen, result.stdout)
+    assert_output_regex(result.stdout, help_screen)
     assert not result.stderr
 
     # CLI main group is invoked before sub-command.

@@ -19,7 +19,12 @@ from __future__ import annotations
 
 from extra_platforms.pytest import skip_windows  # type: ignore[attr-defined]
 
-from click_extra.pytest import create_config, extra_runner, invoke  # noqa: F401
+from click_extra.pytest import (  # noqa: F401
+    assert_output_regex,
+    create_config,
+    extra_runner,
+    invoke,
+)
 
 skip_windows_colors = skip_windows(reason="Click overstrip colors on Windows")
 """Skips color tests on Windows as ``click.testing.invoke`` overzealously strips colors.

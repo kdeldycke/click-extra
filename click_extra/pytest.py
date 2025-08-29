@@ -24,18 +24,20 @@ except ImportError:
         "You need to install click_extra[pytest] extra dependencies to use this module."
     )
 
-from typing import TYPE_CHECKING, Any
+import re
+from typing import TYPE_CHECKING
 
 import click
-import click.testing
 import cloup
 import pytest
+from _pytest.assertion.util import assertrepr_compare
 
 from click_extra.decorators import command, extra_command, extra_group, group
 from click_extra.testing import ExtraCliRunner
 
 if TYPE_CHECKING:
     from pathlib import Path
+    from typing import Any
 
     from _pytest.mark import MarkDecorator
     from _pytest.mark.structures import ParameterSet
@@ -192,71 +194,48 @@ def create_config(tmp_path):
 
 
 default_options_uncolored_help = (
-    r"  --time / --no-time        Measure and print elapsed execution time."
-    r"  \[default:\n"
-    r"                            no-time\]\n"
+    r"  --time / --no-time    Measure and print elapsed execution time.  \[default: no-\n"
+    r"                        time\]\n"
     r"  --color, --ansi / --no-color, --no-ansi\n"
-    r"                            Strip out all colors and all ANSI codes from"
-    r" output.\n"
-    r"                            \[default: color\]\n"
+    r"                        Strip out all colors and all ANSI codes from output.\n"
+    r"                        \[default: color\]\n"
     r"  --config CONFIG_PATH  Location of the configuration file. Supports glob\n"
-    r"                            pattern of local path and remote URL."
-    r"  \[default:( \S+)?\n"
-    r"(                            .+\n)*"
-    r"                            \S+\.{toml,yaml,yml,json,ini,xml}\]\n"
-    r"  --no-config               Ignore all configuration files and only use command\n"
-    r"                            line parameters and environment variables.\n"
-    r"  --show-params             Show all CLI parameters, their provenance, defaults\n"
-    r"                            and value, then exit.\n"
-    r"  --verbosity LEVEL         Either CRITICAL, ERROR, WARNING, INFO, DEBUG.\n"
-    r"                            \[default: WARNING\]\n"
-    r"  -v, --verbose             Increase the default WARNING verbosity by one level\n"
-    r"                            for each additional repetition of the option.\n"
-    r"                            \[default: 0\]\n"
-    r"  --version                 Show the version and exit.\n"
-    r"  -h, --help                Show this message and exit.\n"
+    r"                        pattern of local path and remote URL.  \[default:( \S+)?\n"
+    r"(                        .+\n)*"
+    r"                        \S+\.{toml,yaml,yml,json,ini,xml}\]\n"
+    r"  --no-config           Ignore all configuration files and only use command line\n"
+    r"                        parameters and environment variables.\n"
+    r"  --show-params         Show all CLI parameters, their provenance, defaults and\n"
+    r"                        value, then exit.\n"
+    r"  --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.  \[default:\n"
+    r"                        WARNING\]\n"
+    r"  -v, --verbose         Increase the default WARNING verbosity by one level for\n"
+    r"                        each additional repetition of the option.  \[default: 0\]\n"
+    r"  --version             Show the version and exit.\n"
+    r"  -h, --help            Show this message and exit.\n"
 )
 
 
 default_options_colored_help = (
-    r"  \x1b\[36m--time\x1b\[0m / \x1b\[36m--no-time\x1b\[0m"
-    r"        Measure and print elapsed execution time."
-    r"  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault:\n"
-    r"                            "
-    r"\x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mno-time\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
-    r"  \x1b\[36m--color\x1b\[0m, \x1b\[36m--ansi\x1b\[0m /"
-    r" \x1b\[36m--no-color\x1b\[0m, \x1b\[36m--no-ansi\x1b\[0m\n"
-    r"                            Strip out all colors and all ANSI codes from"
-    r" output.\n"
-    r"                            \x1b\[2m\[\x1b\[0m\x1b\[2mdefault:"
-    r" \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mcolor\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
-    r"  \x1b\[36m--config\x1b\[0m \x1b\[36m\x1b\[2mCONFIG_PATH\x1b\[0m"
-    r"  Location of the configuration file. Supports glob\n"
-    r"                            pattern of local path and remote URL."
-    r"  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault:( \S+)?\n"
-    r"(                            .+\n)*"
-    r"                            "
-    r"\S+\.{toml,yaml,yml,json,ini,xml}\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
-    r"  \x1b\[36m--no-config\x1b\[0m"
-    r"               Ignore all configuration files and only use command\n"
-    r"                            line parameters and environment variables.\n"
-    r"  \x1b\[36m--show-params\x1b\[0m"
-    r"             Show all CLI parameters, their provenance, defaults\n"
-    r"                            and value, then exit.\n"
-    r"  \x1b\[36m--verbosity\x1b\[0m"
-    r" \x1b\[36m\x1b\[2mLEVEL\x1b\[0m    "
-    r"     Either \x1b\[35mCRITICAL\x1b\[0m, \x1b\[35mERROR\x1b\[0m, "
-    r"\x1b\[35mWARNING\x1b\[0m, \x1b\[35mINFO\x1b\[0m, \x1b\[35mDEBUG\x1b\[0m.\n"
-    r"                            \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: "
-    r"\x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mWARNING\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
-    r"  \x1b\[36m-v\x1b\[0m, \x1b\[36m--verbose\x1b\[0m"
-    r"             Increase the default \x1b\[35mWARNING\x1b\[0m verbosity by one level\n"
-    r"                            for each additional repetition of the option.\n"
-    r"                            \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: "
-    r"\x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3m0\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
-    r"  \x1b\[36m--version\x1b\[0m                 Show the version and exit.\n"
-    r"  \x1b\[36m-h\x1b\[0m, \x1b\[36m--help\x1b\[0m"
-    r"                Show this message and exit.\n"
+    r"  \x1b\[36m--time\x1b\[0m / \x1b\[36m--no-time\x1b\[0m    Measure and print elapsed execution time.  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mno-\n"
+    r"                        time\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
+    r"  \x1b\[36m--color\x1b\[0m, \x1b\[36m--ansi\x1b\[0m / \x1b\[36m--no-color\x1b\[0m, \x1b\[36m--no-ansi\x1b\[0m\n"
+    r"                        Strip out all colors and all ANSI codes from output.\n"
+    r"                        \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mcolor\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
+    r"  \x1b\[36m--config\x1b\[0m \x1b\[36m\x1b\[2mCONFIG_PATH\x1b\[0m  Location of the configuration file. Supports glob\n"
+    r"                        pattern of local path and remote URL.  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault:( \S+)?\n"
+    r"(                        .+\n)*"
+    r"                        \S+\.{toml,yaml,yml,json,ini,xml}\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
+    r"  \x1b\[36m--no-config\x1b\[0m           Ignore all configuration files and only use command line\n"
+    r"                        parameters and environment variables.\n"
+    r"  \x1b\[36m--show-params\x1b\[0m         Show all CLI parameters, their provenance, defaults and\n"
+    r"                        value, then exit.\n"
+    r"  \x1b\[36m--verbosity\x1b\[0m \x1b\[36m\x1b\[2mLEVEL\x1b\[0m     Either \x1b\[35mCRITICAL\x1b\[0m, \x1b\[35mERROR\x1b\[0m, \x1b\[35mWARNING\x1b\[0m, \x1b\[35mINFO\x1b\[0m, \x1b\[35mDEBUG\x1b\[0m.  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault:\n"
+    r"                        \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mWARNING\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
+    r"  \x1b\[36m-v\x1b\[0m, \x1b\[36m--verbose\x1b\[0m         Increase the default \x1b\[35mWARNING\x1b\[0m verbosity by one level for\n"
+    r"                        each additional repetition of the option.  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3m0\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
+    r"  \x1b\[36m--version\x1b\[0m             Show the version and exit.\n"
+    r"  \x1b\[36m-h\x1b\[0m, \x1b\[36m--help\x1b\[0m            Show this message and exit.\n"
 )
 
 
@@ -293,7 +272,7 @@ default_debug_colored_config = (
 
 
 default_debug_uncolored_version_details = (
-    "debug: Version string template variables:\n"
+    r"debug: Version string template variables:\n"
     r"debug: {module}         : <module '\S+' from '.+'>\n"
     r"debug: {module_name}    : \S+\n"
     r"debug: {module_file}    : .+\n"
@@ -340,3 +319,59 @@ default_debug_colored_log_end = (
     r"\x1b\[34mdebug\x1b\[0m: Reset <RootLogger root \(DEBUG\)> to WARNING.\n"
     r"\x1b\[34mdebug\x1b\[0m: Reset <Logger click_extra \(DEBUG\)> to WARNING.\n"
 )
+
+
+def unescape_regex(text: str) -> str:
+    """De-obfuscate a regex for better diff readability."""
+    return (
+        text.replace("\\x1b", "\x1b")
+        .replace("\[", "[")
+        .replace("\]", "]")
+        .replace("\\n", "\n")
+    )
+
+
+REGEX_NEWLINE = "\\n"
+"""Newline representation in the regexes above."""
+
+
+@pytest.fixture
+def assert_output_regex(request):
+    """An assert-like utility for Pytest to compare CLI output against the regex.
+
+    Designed for the regexes defined above.
+    """
+
+    def _check_output(output: str, regex: str) -> None:
+        """Check that the ``output`` matches the given ``regex``.
+
+        Rely on Pytest's terminal writer to enhance diff highlighting.
+
+        Compare the wall of text line by line, so that the first mismatching line is
+        shown in the diff, instead of the whole output at once.
+        """
+        # If the regex fully match the output right away, no need for a custom message.
+        if re.fullmatch(regex, output):
+            return
+
+        regex_lines = regex.split(REGEX_NEWLINE)
+        output_lines = output.splitlines(keepends=True)
+
+        line_indexes = range(max(len(regex_lines), len(output_lines)))
+        for i in line_indexes:
+            regex_line = regex_lines[i] + REGEX_NEWLINE
+            output_line = output_lines[i]
+
+            if not re.fullmatch(regex_line, output_line):
+                explanation = assertrepr_compare(
+                    request.config,
+                    "==",
+                    # De-obfuscate the regex to allow for comparison with the output.
+                    unescape_regex(regex_line),
+                    output_line,
+                )
+                raise AssertionError(
+                    f"Output line {i + 1} does not match:\n{'\n'.join(explanation)}"
+                )
+
+    return _check_output

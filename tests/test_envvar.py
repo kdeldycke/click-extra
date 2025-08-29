@@ -77,7 +77,7 @@ def test_clean_envvar_id(env_name, clean_name):
         # (and show the defaults).
         (
             extra_command,
-            "  --flag / --no-flag        "
+            "  --flag / --no-flag    "
             "[env var: "
             + ("CUSTOM, YO_FLAG" if os.name == "nt" else "custom, yo_FLAG")
             + "; default: no-flag]\n",

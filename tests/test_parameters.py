@@ -318,7 +318,7 @@ def test_integrated_show_params_option(invoke, create_config):
         (
             "show-params-cli.config",
             "click_extra.config.ConfigOption",
-            "-C, --config CONFIG_PATH",
+            "--config CONFIG_PATH",
             "click.types.UnprocessedParamType",
             "str",
             "✘",
