@@ -370,8 +370,7 @@ def assert_output_regex(request):
                     unescape_regex(regex_line),
                     output_line,
                 )
-                raise AssertionError(
-                    f"Output line {i + 1} does not match:\n{'\n'.join(explanation)}"
-                )
+                diff = "\n".join(explanation)
+                raise AssertionError(f"Output line {i + 1} does not match:\n{diff}")
 
     return _check_output
