@@ -114,6 +114,7 @@ def default_extra_params() -> list[Option]:
         .. hint::
             ``--config`` is at the top so it can have a direct influence on the default
             behavior and value of the other options.
+    #. ``--no-config``
     #. ``--color``, ``--ansi`` / ``--no-color``, ``--no-ansi``
     #. ``--show-params``
     #. ``--verbosity LEVEL``

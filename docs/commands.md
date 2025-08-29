@@ -369,10 +369,15 @@ Options:
                             pattern of local path and remote URL.  [default:
                             ~/Library/Application
                             Support/wrap.py/*.{toml,yaml,yml,json,ini,xml}]
+  --no-config               Ignore all configuration files and only use command
+                            line parameters and environment variables.
   --show-params             Show all CLI parameters, their provenance, defaults
                             and value, then exit.
-  -v, --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.
+  --verbosity LEVEL         Either CRITICAL, ERROR, WARNING, INFO, DEBUG.
                             [default: WARNING]
+  -v, --verbose             Increase the default WARNING verbosity by one level
+                            for each additional repetition of the option.
+                            [default: 0]
   --version                 Show the version and exit.
   -h, --help                Show this message and exit.
 
