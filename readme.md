@@ -43,7 +43,7 @@ To undestrand how we ended up with the result above, [go read the tutorial](http
 - Automatic inference of the configuration file structure from your CLI's options
 - Remote loading of [configuration from URLs](https://kdeldycke.github.io/click-extra/config.html#remote-url)
 - Optional [strict validation](https://kdeldycke.github.io/click-extra/config.html#strictness) of configuration
-- Respect the [default application path](https://kdeldycke.github.io/click-extra/config.html#default-folder) on each platform (XDG spec on Linux)
+- Respect the [default application path](https://kdeldycke.github.io/click-extra/config.html#default-folder) on each platform (XDG spec. on Linux)
 - [Glob search patterns](https://kdeldycke.github.io/click-extra/config.html#pattern-matching) for configuration files
 - A `--no-config` option to disable configuration file loading
 - Respect of `CLI` > `Configuration` > `Environment` > `Defaults` [precedence](https://kdeldycke.github.io/click-extra/config.html#precedence)
