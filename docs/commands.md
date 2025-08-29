@@ -257,7 +257,10 @@ Which results in `[default: INFO]` being featured in the help message:
 ```{click:run}
 :emphasize-lines: 18
 result = invoke(cli, args=["--help"])
-assert "\x1b[2m[\x1b[0m\x1b[2mdefault: \x1b[0m\x1b[32m\x1b[2m\x1b[3mINFO\x1b[0m\x1b[2m]\x1b[0m\n" in result.stdout
+assert (
+    "  \x1b[2m[\x1b[0m\x1b[2mdefault:\n"
+    "                        \x1b[0m\x1b[32m\x1b[2m\x1b[3mINFO\x1b[0m\x1b[2m]\x1b[0m\n"
+) in result.stdout
 ```
 
 ```{tip}

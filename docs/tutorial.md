@@ -69,8 +69,8 @@ assert result.output.startswith(dedent("""\
       Simple program that greets NAME for a total of COUNT times.
 
     \x1b[94m\x1b[1m\x1b[4mOptions:\x1b[0m
-      \x1b[36m--count\x1b[0m \x1b[36m\x1b[2mINTEGER\x1b[0m           Number of greetings.  \x1b[2m[\x1b[0m\x1b[2mdefault: \x1b[0m\x1b[32m\x1b[2m\x1b[3m1\x1b[0m\x1b[2m]\x1b[0m
-      \x1b[36m--name\x1b[0m \x1b[36m\x1b[2mTEXT\x1b[0m               The person to greet.
+      \x1b[36m--count\x1b[0m \x1b[36m\x1b[2mINTEGER\x1b[0m       Number of greetings.  \x1b[2m[\x1b[0m\x1b[2mdefault: \x1b[0m\x1b[32m\x1b[2m\x1b[3m1\x1b[0m\x1b[2m]\x1b[0m
+      \x1b[36m--name\x1b[0m \x1b[36m\x1b[2mTEXT\x1b[0m           The person to greet.
     """
 ))
 ```
