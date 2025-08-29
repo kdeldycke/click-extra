@@ -41,7 +41,7 @@ To undestrand how we ended up with the result above, [go read the tutorial](http
   - `INI`, with extended interpolation, multi-level sections and non-native types (`list`, `set`, …)
   - `XML`
 - Automatic inference of the configuration file structure from your CLI's options
-- Remote loading of [configuration files from URLs](https://kdeldycke.github.io/click-extra/config.html#remote-url)
+- Remote loading of [configuration from URLs](https://kdeldycke.github.io/click-extra/config.html#remote-url)
 - Optional [strict validation](https://kdeldycke.github.io/click-extra/config.html#strictness) of configuration
 - Respect the [default application path](https://kdeldycke.github.io/click-extra/config.html#default-folder) on each platform (XDG spec on Linux)
 - [Glob search patterns](https://kdeldycke.github.io/click-extra/config.html#pattern-matching) for configuration files
