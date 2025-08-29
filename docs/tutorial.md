@@ -193,15 +193,20 @@ assert dedent(
 Notice in the example above how the `@command()` decorator from Cloup is used with parenthesis. Contrary to Click and Click Extra, [Cloup requires parenthesis on its decorators](https://github.com/janluke/cloup/issues/127).
 ```
 
-```{seealso}
-Click Extra provides these additional options:
+## Available options
 
-- [`color_option`](colorize.md#color-option)
-- [`config_option`](config.md)
-- [`help_option`](colorize.md#help-option)
-- [`show_params_option`](parameters.md#show-params-option)
-- [`table_format_option`](tabulate.md)
-- [`timer_option`](timer.md)
-- [`verbosity_option`](logging.md)
-- [`extra_version_option`](version.md)
-```
+Click Extra provides these additional, pre-configured options decorators you can use standalone. Some of them are [included by default in the `@extra_command` and `@extra_group`](commands.md#click_extra.commands.default_extra_params) decorators (see the last column):
+
+| Decorator |  Specification | Default |
+|-----------|----------------| ----|
+| [`@timer_option`](timer.md) | `--time / --no-time` | ✅ |
+| [`@color_option`](colorize.md#color-option)   | `--color, --ansi / --no-color, --no-ansi` | ✅ |
+| [`@config_option`](config.md#standalone-option) | `-C, --config CONFIG_PATH` | ✅ |
+| [`@no_config_option`](config.md#) | `--no-config` | ✅ |
+| [`@show_params_option`](parameters.md#show-params-option) | `--show-params` | ✅ |
+| [`@verbosity_option`](logging.md#colored-verbosity) | `--verbosity LEVEL` | ✅ |
+| [`@verbose_option`](logging.md#click_extra.logging.VerboseOption) | `-v, --verbose` | ✅ |
+| [`@version_option`](version.md)| `--version` | ✅ |
+| [`@help_option`](colorize.md#click_extra.colorize.HelpExtraFormatter) | `-h, --help` | ✅ |
+| [`@table_format_option`](tabulate.md) | `--table-format FORMAT` |❌|
+| [`@telemetry_option`](click_extra.md#module-click_extra.telemetry) | `--telemetry / --no-telemetry` |❌|
