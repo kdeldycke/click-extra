@@ -329,9 +329,9 @@ Write example.
 Write example.
 ```
 
-## Pattern matching
+## Search pattern
 
-The configuration file is searched based on a wildcard-based pattern.
+The configuration file is searched based on a wildcard-based glob pattern.
 
 By default, the pattern is `/<app_dir>/*.{toml,yaml,yml,json,ini,xml}`, where:
 
