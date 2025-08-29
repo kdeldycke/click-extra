@@ -126,7 +126,7 @@ T_NO_CONFIG = Literal[NO_CONFIG]  # type: ignore[valid-type]
 
 
 class ConfigOption(ExtraOption, ParamStructure):
-    """A pre-configured option adding ``--config CONFIG_PATH``/``-C CONFIG_PATH``."""
+    """A pre-configured option adding ``--config CONFIG_PATH``."""
 
     formats: Sequence[Formats]
 
@@ -178,7 +178,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             - If ``False``, silently ignore unsupported configuration option.
         """
         if not param_decls:
-            param_decls = ("--config", "-C", CONFIG_OPTION_NAME)
+            param_decls = ("--config", CONFIG_OPTION_NAME)
 
         # Make sure formats ends up as an iterable.
         if isinstance(formats, Formats):

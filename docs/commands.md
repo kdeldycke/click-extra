@@ -365,7 +365,7 @@ Options:
   --color, --ansi / --no-color, --no-ansi
                             Strip out all colors and all ANSI codes from output.
                             [default: color]
-  -C, --config CONFIG_PATH  Location of the configuration file. Supports glob
+  --config CONFIG_PATH      Location of the configuration file. Supports glob
                             pattern of local path and remote URL.  [default:
                             ~/Library/Application
                             Support/wrap.py/*.{toml,yaml,yml,json,ini,xml}]

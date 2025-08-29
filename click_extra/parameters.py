@@ -295,7 +295,7 @@ class ParamStructure:
 
         Defaults to:
 
-        - ``-C``/``--config`` option, which cannot be used to recursively load another
+        - ``--config`` option, which cannot be used to recursively load another
             configuration file.
         - ``--help``, as it makes no sense to have the configurable file always
             forces a CLI to show the help and exit.

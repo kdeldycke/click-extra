@@ -123,7 +123,7 @@ Which now renders to:
 ```{click:run}
 :emphasize-lines: 9-11
 result = invoke(hello, args=["--help"])
-assert "-C, --config CONFIG_PATH" in result.output
+assert "--config CONFIG_PATH" in result.output
 ```
 
 This option itself behave like any Click option and can be customized easily:
@@ -201,7 +201,7 @@ Click Extra provides these additional, pre-configured options decorators you can
 |-----------|----------------| ----|
 | [`@timer_option`](timer.md) | `--time / --no-time` | ✅ |
 | [`@color_option`](colorize.md#color-option)   | `--color, --ansi / --no-color, --no-ansi` | ✅ |
-| [`@config_option`](config.md#standalone-option) | `-C, --config CONFIG_PATH` | ✅ |
+| [`@config_option`](config.md#standalone-option) | `--config CONFIG_PATH` | ✅ |
 | [`@no_config_option`](config.md#) | `--no-config` | ✅ |
 | [`@show_params_option`](parameters.md#show-params-option) | `--show-params` | ✅ |
 | [`@verbosity_option`](logging.md#colored-verbosity) | `--verbosity LEVEL` | ✅ |
@@ -210,3 +210,9 @@ Click Extra provides these additional, pre-configured options decorators you can
 | [`@help_option`](colorize.md#click_extra.colorize.HelpExtraFormatter) | `-h, --help` | ✅ |
 | [`@table_format_option`](tabulate.md) | `--table-format FORMAT` |❌|
 | [`@telemetry_option`](click_extra.md#module-click_extra.telemetry) | `--telemetry / --no-telemetry` |❌|
+
+```{note}
+Because single-letter options are a scarce resource, Click Extra does not impose them on you. All the options above are specified with their long names only. You can always customize them to add a short name if you wish.
+
+That a general rule, unless some short names follow a widely accepted convention or an overwhelmingly tradition. Which is the case for `-h, --help` and `-v, --verbose`.
+```

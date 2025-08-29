@@ -110,7 +110,7 @@ def default_extra_params() -> list[Option]:
         .. hint::
             ``--time`` is placed at the top of all other eager options so all other
             options' processing time can be measured.
-    #. ``-C``, ``--config CONFIG_PATH``
+    #. ``--config CONFIG_PATH``
         .. hint::
             ``--config`` is at the top so it can have a direct influence on the default
             behavior and value of the other options.

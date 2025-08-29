@@ -6,6 +6,7 @@
 > This version is not released yet and is under active development.
 
 - Add a new `--no-config` option to disable loading of configuration files. Closes {issue}`750`.
+- Remove the `-C` short option associated with `--config`.
 - Fix display in `--show-params` of parameters sharing the same name but in different commands.
 - Replace unmaintained `mergedeep` dependency by `deepmerge`.
 - Expose `click._utils.UNSET` sentinel as `click_extra.UNSET`.

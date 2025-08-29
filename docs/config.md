@@ -34,7 +34,7 @@ It produces the following help screen:
 ```{click:run}
 :emphasize-lines: 7-9
 result = invoke(my_cli, args=["--help"])
-assert "-C, --config CONFIG_PATH" in result.stdout
+assert "--config CONFIG_PATH" in result.stdout
 ```
 
 See in the result above, there is an explicit mention of the default location of the configuration file (`[default: ~/.config/my-cli/*.{toml,yaml,yml,json,ini,xml}]`). This improves discoverability, and [makes sysadmins happy](https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations), especially those not familiar with your CLI.
