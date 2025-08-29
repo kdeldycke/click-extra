@@ -488,15 +488,15 @@ class ConfigOption(ExtraOption, ParamStructure):
         info_msg = partial(echo, err=True)
 
         if path_pattern is NO_CONFIG:
-            logger.debug(f"{NO_CONFIG} received.")
+            logger.debug(f"{NO_CONFIG} received.")  # type: ignore[unreachable]
             info_msg("Skip configuration file loading altogether.")
             return
 
-        explicit_conf = ctx.get_parameter_source(self.name) in (
+        explicit_conf = ctx.get_parameter_source(self.name) in (  # type: ignore[arg-type]
             ParameterSource.COMMANDLINE,
             ParameterSource.ENVIRONMENT,
             ParameterSource.PROMPT,
-        )
+        )  # type: ignore[operator]
 
         # Print configuration location to the user if it was explicitly set.
         message = f"Load configuration matching {path_pattern}"

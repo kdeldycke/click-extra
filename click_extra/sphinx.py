@@ -46,7 +46,7 @@ import subprocess
 import sys
 import tempfile
 from functools import cached_property, partial
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING, Iterable, cast
 
 import click
 from click.testing import EchoingStdin
@@ -154,7 +154,7 @@ class ExampleRunner(ExtraCliRunner):
             buffer.__class__ = EofEchoingStdin
             yield streams
 
-    def invoke(
+    def invoke(  # type: ignore[override]
         self,
         cli,
         args=None,
@@ -219,7 +219,7 @@ class ExampleRunner(ExtraCliRunner):
           to a temporary directory while executing the block.
         """
         code = compile(source_code, location, "exec")
-        buffer = []
+        buffer: list[str] = []
         invoke = partial(self.invoke, _output_lines=buffer)
 
         exec(
@@ -281,7 +281,8 @@ class ClickDirective(SphinxDirective):
         """
         runner = getattr(self.state.document, "click_example_runner", None)
         if runner is None:
-            runner = self.state.document.click_example_runner = ExampleRunner()
+            runner = ExampleRunner()
+            setattr(self.state.document, "click_example_runner", runner)
         return runner
 
     @cached_property
@@ -293,7 +294,7 @@ class ClickDirective(SphinxDirective):
         set in the directive class.
         """
         if "language" in self.options:
-            return self.options["language"]
+            return cast(str, self.options["language"])
         if self.arguments:
             return self.arguments[0]
         return self.default_language
@@ -348,7 +349,7 @@ class ClickDirective(SphinxDirective):
 
     def render_code_block(self, lines: Iterable[str], language: str) -> list[str]:
         """Render the code block with the source code and results."""
-        block = []
+        block: list[str] = []
         if not lines:
             return block
 
@@ -454,10 +455,10 @@ def delete_example_runner_state(app: Sphinx, doctree: nodes.document) -> None:
     """Close and remove the :class:`ExampleRunner` instance once the
     document has been read.
     """
-    runner = getattr(doctree, "click_example_runner", None)
-
-    if runner is not None:
-        del doctree.click_example_runner
+    if hasattr(doctree, "click_example_runner"):
+        runner = getattr(doctree, "click_example_runner", None)
+        if runner is not None:
+            del doctree.click_example_runner
 
 
 def setup(app: Sphinx) -> ExtensionMetadata:
