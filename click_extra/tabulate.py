@@ -125,7 +125,7 @@ def render_table(
     headers: Sequence[str] = (),
     **kwargs,
 ) -> None:
-    """Render a table with tabulate and output it via echo."""
+    """Render a table with tabulate and use ``echo`` to print it."""
     defaults = {
         "disable_numparse": True,
         "numalign": None,
