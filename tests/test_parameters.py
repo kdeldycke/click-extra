@@ -23,6 +23,7 @@ from textwrap import dedent
 
 import click
 import pytest
+from extra_platforms import is_windows
 from tabulate import tabulate
 
 from click_extra import (
@@ -328,7 +329,13 @@ def test_integrated_show_params_option(invoke, create_config):
             "✘",
             "✘",
             "SHOW_PARAMS_CLI_CONFIG",
+            # On Windows, backslashes are double-escaped in Path string repr.
             (
+                f"'{Path(get_app_dir('show-params-cli')).resolve()}{sep}"
+                "*.{toml,yaml,yml,json,ini,xml}'"
+            ).replace("\\", "\\\\")
+            if is_windows
+            else (
                 f"'{Path(get_app_dir('show-params-cli')).resolve()}{sep}"
                 "*.{toml,yaml,yml,json,ini,xml}'"
             ),
