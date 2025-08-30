@@ -5,7 +5,7 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
-- Add a new `--no-config` option on  `@extra_command` and `@extra_group` to disable configuration files. Closes {issue}`750`.
+- Add a new `--no-config` option on `@extra_command` and `@extra_group` to disable configuration files. Closes {issue}`750`.
 - Add `--table-format` option by default on `@extra_command` and `@extra_group`.
 - Remove the `-C` short option associated with `--config`.
 - Remove the `-t` short option associated with `--table-format`.
