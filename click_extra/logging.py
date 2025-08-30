@@ -452,9 +452,10 @@ class VerbosityOption(ExtraVerbosity):
         default_logger: Logger | str = logging.root.name,
         default: LogLevel = DEFAULT_LEVEL,
         metavar="LEVEL",
+        # Click choices do not use the enum member values, but their names.
         type=Choice(LogLevel, case_sensitive=False),
         help=_("Either {log_levels}.").format(
-            log_levels=", ".join(LogLevel.__members__)
+            log_levels=", ".join(i.name for i in LogLevel)
         ),
         **kwargs,
     ) -> None:
