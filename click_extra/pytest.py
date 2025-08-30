@@ -325,18 +325,23 @@ default_debug_colored_log_end = (
 )
 
 
-REGEX_NEWLINE = r"\\n"
-"""Newline representation in the regexes above."""
-
-
 def unescape_regex(text: str) -> str:
-    """De-obfuscate a regex for better diff readability."""
-    return (
-        text.replace("\\x1b", "\x1b")
-        .replace(r"\[", "[")
-        .replace(r"\]", "]")
-        .replace(REGEX_NEWLINE, "\n")
-    )
+    """De-obfuscate a regex for better diff readability.
+
+    This is like the reverse of ``re.escape()``.
+    """
+    char_map = {
+        escaped_char: chr(single_char)
+        for single_char, escaped_char in re._special_chars_map.items()
+    }
+    char_map.update({r"\x1b": "\x1b"})
+    for escaped, char in char_map.items():
+        text = text.replace(escaped, char)
+    return text
+
+
+REGEX_NEWLINE = re._special_chars_map[ord("\n")]
+"""Newline representation in the regexes above."""
 
 
 @pytest.fixture
