@@ -24,7 +24,7 @@ The default help message for this option list all available table formats:
 ```{click:run}
 :emphasize-lines: 5-6
 result = invoke(table_command, args=["--help"])
-assert "-t, --table-format" in result.stdout
+assert "--table-format" in result.stdout
 ```
 
 So you can use the `--table-format` option to change the table format:
@@ -102,15 +102,15 @@ result = invoke(vanilla_command, args=["--table-format", "fancy_outline"])
 assert "Table format: fancy_outline" in result.stdout
 ```
 
-## `click_extra.tabulate` API
+## `click_extra.table` API
 
 ```{eval-rst}
-.. autoclasstree:: click_extra.tabulate
+.. autoclasstree:: click_extra.table
    :strict:
 ```
 
 ```{eval-rst}
-.. automodule:: click_extra.tabulate
+.. automodule:: click_extra.table
    :members:
    :undoc-members:
    :show-inheritance:

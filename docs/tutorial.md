@@ -204,7 +204,7 @@ Click Extra provides these additional, pre-configured options decorators you can
 | [`@config_option`](config.md#standalone-option) | `--config CONFIG_PATH` | ✅ |
 | [`@no_config_option`](config.md#) | `--no-config` | ✅ |
 | [`@show_params_option`](parameters.md#show-params-option) | `--show-params` | ✅ |
-| [`@table_format_option`](tabulate.md) | `--table-format FORMAT` | ✅ |
+| [`@table_format_option`](table.md) | `--table-format FORMAT` | ✅ |
 | [`@verbosity_option`](logging.md#colored-verbosity) | `--verbosity LEVEL` | ✅ |
 | [`@verbose_option`](logging.md#click_extra.logging.VerboseOption) | `-v, --verbose` | ✅ |
 | [`@version_option`](version.md)| `--version` | ✅ |

@@ -25,7 +25,7 @@ from .commands import DEFAULT_HELP_NAMES, ExtraCommand, ExtraGroup, default_extr
 from .config import ConfigOption, NoConfigOption
 from .logging import VerboseOption, VerbosityOption
 from .parameters import ShowParamsOption
-from .tabulate import TableFormatOption
+from .table import TableFormatOption
 from .telemetry import TelemetryOption
 from .timer import TimerOption
 from .version import ExtraVersionOption

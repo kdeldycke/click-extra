@@ -32,7 +32,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from .tabulate import tabulate
+from .table import tabulate
 
 
 def replace_content(

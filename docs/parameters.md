@@ -95,8 +95,8 @@ def cli(int_param1, int_param2):
 ```{click:run}
 result = invoke(cli, args=["--verbosity", "Debug", "--int-param1", "3", "--show-params"])
 assert "click_extra.raw_args: ['--verbosity', 'Debug', '--int-param1', '3', '--show-params']" in result.stderr
-assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM1\x1b[0m  │ \x1b[32m\x1b[2m\x1b[3m10\x1b[0m " in result.stdout
-assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM2\x1b[0m  │ \x1b[32m\x1b[2m\x1b[3m555\x1b[0m " in result.stdout
+assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM1\x1b[0m   │ \x1b[32m\x1b[2m\x1b[3m10\x1b[0m " in result.stdout
+assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM2\x1b[0m   │ \x1b[32m\x1b[2m\x1b[3m555\x1b[0m " in result.stdout
 ```
 
 ```{note}

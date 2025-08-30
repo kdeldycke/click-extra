@@ -97,10 +97,10 @@ click\_extra.sphinx module
    :show-inheritance:
    :undoc-members:
 
-click\_extra.tabulate module
+click\_extra.table module
 ----------------------------
 
-.. automodule:: click_extra.tabulate
+.. automodule:: click_extra.table
    :members:
    :show-inheritance:
    :undoc-members:

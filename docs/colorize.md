@@ -63,7 +63,7 @@ Here is a little CLI to demonstrate the rendering of colors and styles, based on
 ```{click:example}
 from click import command
 from click_extra import Color, style, Choice, option
-from click_extra.tabulate import render_table
+from click_extra.table import render_table
 
 all_styles = [
     "bold",

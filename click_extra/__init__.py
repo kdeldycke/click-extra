@@ -80,7 +80,7 @@ from .parameters import (  # noqa: E402
     ShowParamsOption,
     search_params,
 )
-from .tabulate import TableFormatOption  # noqa: E402
+from .table import TableFormatOption  # noqa: E402
 from .telemetry import TelemetryOption  # noqa: E402
 from .testing import ExtraCliRunner  # noqa: E402
 from .timer import TimerOption  # noqa: E402

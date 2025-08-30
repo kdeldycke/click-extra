@@ -16,7 +16,7 @@ commands
 config
 colorize
 logging
-tabulate
+table
 version
 timer
 parameters

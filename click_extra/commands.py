@@ -33,7 +33,7 @@ from .config import ConfigOption, NoConfigOption
 from .envvar import clean_envvar_id, param_envvar_ids
 from .logging import VerboseOption, VerbosityOption
 from .parameters import ExtraOption, ShowParamsOption, search_params
-from .tabulate import TableFormatOption
+from .table import TableFormatOption
 from .timer import TimerOption
 from .version import ExtraVersionOption
 

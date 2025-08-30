@@ -18,13 +18,13 @@ from __future__ import annotations
 
 import pytest
 import tabulate
+from click_extra.table import output_formats
 from extra_platforms import is_windows
 
 # We use vanilla click primitives here to demonstrate the full-compatibility.
 from click_extra import echo, pass_context
 from click_extra.decorators import table_format_option
 from click_extra.pytest import command_decorators
-from click_extra.tabulate import output_formats
 
 
 @pytest.mark.parametrize(
