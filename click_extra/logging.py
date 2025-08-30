@@ -453,7 +453,6 @@ class VerbosityOption(ExtraVerbosity):
         default: LogLevel = DEFAULT_LEVEL,
         metavar="LEVEL",
         type=Choice(LogLevel, case_sensitive=False),
-        # type=Choice(LogLevel),
         help=_("Either {log_levels}.").format(
             log_levels=", ".join(LogLevel.__members__)
         ),
