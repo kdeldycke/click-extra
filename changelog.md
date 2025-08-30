@@ -10,7 +10,7 @@
 - Fix display in `--show-params` of parameters sharing the same name but in different commands.
 - Replace unmaintained `mergedeep` dependency by `deepmerge`.
 - Expose `click._utils.UNSET` sentinel as `click_extra.UNSET`.
-- Fix detection of module in which the user's CLI is implemented for `--version` option.
+- Fix detection in the `--version` option of the module in which the user's CLI is implemented.
 
 ## [5.1.1 (2025-08-24)](https://github.com/kdeldycke/click-extra/compare/v5.1.0...v5.1.1)
 
