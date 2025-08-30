@@ -33,6 +33,7 @@ from .config import ConfigOption, NoConfigOption
 from .envvar import clean_envvar_id, param_envvar_ids
 from .logging import VerboseOption, VerbosityOption
 from .parameters import ExtraOption, ShowParamsOption, search_params
+from .tabulate import TableFormatOption
 from .timer import TimerOption
 from .version import ExtraVersionOption
 
@@ -117,6 +118,7 @@ def default_extra_params() -> list[Option]:
     #. ``--no-config``
     #. ``--color``, ``--ansi`` / ``--no-color``, ``--no-ansi``
     #. ``--show-params``
+    #. ``--table-format FORMAT``
     #. ``--verbosity LEVEL``
     #. ``-v``, ``--verbose``
     #. ``--version``
@@ -154,6 +156,7 @@ def default_extra_params() -> list[Option]:
         ConfigOption(),
         NoConfigOption(),
         ShowParamsOption(),
+        TableFormatOption(),
         VerbosityOption(),
         VerboseOption(),
         ExtraVersionOption(),
