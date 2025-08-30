@@ -45,7 +45,7 @@ def test_unrecognized_format(invoke, cmd_decorator, cmd_type):
     assert result.stderr == (
         f"Usage: tabulate-cli1 [OPTIONS]{group_help}\n"
         "Try 'tabulate-cli1 --help' for help.\n\n"
-        "Error: Invalid value for '-t' / '--table-format': 'random' is not one of "
+        "Error: Invalid value for '--table-format': 'random' is not one of "
         "'asciidoc', 'csv', 'csv-excel', 'csv-excel-tab', 'csv-unix', 'double_grid', "
         "'double_outline', 'fancy_grid', 'fancy_outline', 'github', 'grid', "
         "'heavy_grid', 'heavy_outline', 'html', 'jira', 'latex', 'latex_booktabs', "

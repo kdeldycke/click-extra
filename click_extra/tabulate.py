@@ -135,7 +135,7 @@ def render_table(
 
 
 class TableFormatOption(ExtraOption):
-    """A pre-configured option that is adding a ``-t``/``--table-format`` flag to select
+    """A pre-configured option that is adding a ``--table-format`` flag to select
     the rendering style of a table.
 
     The selected table format ID is made available in the context in
@@ -152,7 +152,7 @@ class TableFormatOption(ExtraOption):
         **kwargs,
     ) -> None:
         if not param_decls:
-            param_decls = ("-t", "--table-format")
+            param_decls = ("--table-format",)
 
         kwargs.setdefault("callback", self.init_formatter)
 
