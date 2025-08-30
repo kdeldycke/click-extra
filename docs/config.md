@@ -9,7 +9,9 @@ data structure to mirror the CLI.
 The `@config_option` decorator provided by Click Extra can be used as-is with vanilla Click:
 
 ```{click:example}
-:emphasize-lines: 7
+---
+emphasize-lines: 7
+---
 from click import group, option, echo
 from click_extra import config_option
 
@@ -32,7 +34,9 @@ The code above is saved into a file named `my_cli.py`.
 It produces the following help screen:
 
 ```{click:run}
-:emphasize-lines: 7-9
+---
+emphasize-lines: 7-9
+---
 result = invoke(my_cli, args=["--help"])
 assert "--config CONFIG_PATH" in result.stdout
 ```
@@ -107,7 +111,9 @@ The parameter will take the first value set in that chain.
 See how inline parameters takes priority on defaults from the previous example:
 
 ```{code-block} shell-session
-:emphasize-lines: 1, 4
+---
+emphasize-lines: 1, 4
+---
 $ my-cli subcommand --int-param 555
 dummy_flag    is True
 my_list       is ('item 1', 'item #2', 'Very Last Item!')
@@ -121,7 +127,9 @@ After gathering all the configuration from the different sources, and assembling
 You can still access the full configuration by looking into the context's `meta` attribute:
 
 ```{code-block} python
-:emphasize-lines: 9-12
+---
+emphasize-lines: 9-12
+---
 from click_extra import option, echo, pass_context, command, config_option
 
 
@@ -147,7 +155,9 @@ dummy_flag = true
 ```
 
 ```{code-block} shell-session
-:emphasize-lines: 3-6
+---
+emphasize-lines: 3-6
+---
 $ my-cli --config ./conf.toml --int-param 999
 Load configuration matching ./conf.toml
 Configuration location: /home/me/conf.toml
@@ -181,7 +191,9 @@ random_param = "forbidden"
 The use of `strict=True` parameter in the CLI below:
 
 ```{code-block} python
-:emphasize-lines: 7
+---
+emphasize-lines: 7
+---
 from click import command, option, echo
 
 from click_extra import config_option
@@ -196,7 +208,9 @@ def cli(int_param):
 Will raise an error and stop the CLI execution on unrecognized `random_param` value:
 
 ```{code-block} shell-session
-:emphasize-lines: 4
+---
+emphasize-lines: 4
+---
 $ cli --config "cli.toml"
 Load configuration matching cli.toml
 (...)
@@ -212,7 +226,9 @@ It {py:attr}`defaults to the value of ParamStructure.DEFAULT_EXCLUDED_PARAMS <cl
 You can set your own list of option to ignore with the `excluded_params` argument:
 
 ```{code-block} python
-:emphasize-lines: 7
+---
+emphasize-lines: 7
+---
 from click import command, option, echo
 
 from click_extra import config_option
@@ -274,7 +290,9 @@ garbage: >
 ```
 
 ```{code-block} shell-session
-:emphasize-lines: 2-4
+---
+emphasize-lines: 2-4
+---
 $ my-cli --config "~/.config/my-cli/config.yaml" subcommand
 dummy_flag    is True
 my_list       is ('point 1', 'point #2', 'Very Last Point!')
@@ -308,7 +326,9 @@ Again, same for JSON:
 ```
 
 ```{code-block} shell-session
-:emphasize-lines: 2-4
+---
+emphasize-lines: 2-4
+---
 $ my-cli --config "~/.config/my-cli/config.json" subcommand
 dummy_flag    is True
 my_list       is ('item 1', 'item #2', 'Very Last Item!')
@@ -367,7 +387,9 @@ Like the latter, the `@config_option` decorator and `ConfigOption` class accept 
 Let's change the default base folder in the following example:
 
 ```{click:example}
-:emphasize-lines: 6
+---
+emphasize-lines: 6
+---
 from click import command
 
 from click_extra import config_option
@@ -381,7 +403,9 @@ def cli():
 See how the default to `--config` option has been changed to `~/.cli/*.{toml,yaml,yml,json,ini,xml}`:
 
 ```{click:run}
-:emphasize-lines: 7
+---
+emphasize-lines: 7
+---
 result = invoke(cli, args=["--help"])
 assert "~/.cli/*.{toml,yaml,yml,json,ini,xml}]" in result.stdout
 ```
@@ -393,7 +417,9 @@ If you'd like to customize the pattern, you can pass your own to the `default` p
 Here is how to look for an extension-less YAML dotfile in the home directory, with a pre-defined `.commandrc` name:
 
 ```{click:example}
-:emphasize-lines: 7
+---
+emphasize-lines: 7
+---
 from click import command
 
 from click_extra import config_option
@@ -406,7 +432,9 @@ def cli():
 ```
 
 ```{click:run}
-:emphasize-lines: 7
+---
+emphasize-lines: 7
+---
 result = invoke(cli, args=["--help"])
 assert "~/.commandrc]" in result.stdout
 ```
@@ -452,7 +480,9 @@ As soon as a file is able to be parsed without error and returns a `dict`, the s
 If you know in advance the only format you'd like to support, you can use the `formats` argument on your decorator like so:
 
 ```{click:example}
-:emphasize-lines: 8
+---
+emphasize-lines: 8
+---
 from click import command, option, echo
 
 from click_extra import config_option
@@ -468,7 +498,9 @@ def cli(int_param):
 Notice how the default search pattern gets limited to files with a `.json` extension:
 
 ```{click:run}
-:emphasize-lines: 8
+---
+emphasize-lines: 8
+---
 result = invoke(cli, args=["--help"])
 assert "*.json]" in result.stdout
 ```
@@ -476,7 +508,9 @@ assert "*.json]" in result.stdout
 This also works with a subset of formats:
 
 ```{click:example}
-:emphasize-lines: 8
+---
+emphasize-lines: 8
+---
 from click import command, option, echo
 
 from click_extra import config_option
@@ -490,7 +524,9 @@ def cli(int_param):
 ```
 
 ```{click:run}
-:emphasize-lines: 8
+---
+emphasize-lines: 8
+---
 result = invoke(cli, args=["--help"])
 assert "*.{ini,yaml,yml}]" in result.stdout
 ```
@@ -500,7 +536,9 @@ assert "*.{ini,yaml,yml}]" in result.stdout
 Remote URL can be passed directly to the `--config` option:
 
 ```{code-block} shell-session
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 $ my-cli --config "https://example.com/dummy/configuration.yaml" subcommand
 dummy_flag    is True
 my_list       is ('point 1', 'point #2', 'Very Last Point!')
