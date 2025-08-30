@@ -187,7 +187,7 @@ def cli():
 See how the `--version` option gets duplicated at the end:
 
 ```{click:run}
-:emphasize-lines: 22,23
+:emphasize-lines: 23,24
 from textwrap import dedent
 result = invoke(cli, args=["--help"])
 assert (
@@ -255,7 +255,7 @@ def cli():
 Which results in `[default: INFO]` being featured in the help message:
 
 ```{click:run}
-:emphasize-lines: 18
+:emphasize-lines: 20
 result = invoke(cli, args=["--help"])
 assert (
     "  \x1b[2m[\x1b[0m\x1b[2mdefault:\n"
@@ -358,7 +358,7 @@ if __name__ == "__main__":
 And this simple script gets rendered into:
 
 ```{code-block} shell-session
-:emphasize-lines: 22-23
+:emphasize-lines: 26-27
 $ uv run -- python ./wrap.py
 Usage: wrap.py [OPTIONS] COMMAND [ARGS]...
 
