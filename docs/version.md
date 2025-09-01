@@ -185,22 +185,22 @@ Each variable listed in the section above can be rendered in its own style. They
 
 | Parameter                 | Description                                 | Default Style |
 | ------------------------- | ------------------------------------------- | ------------- |
-| `message_style`           | Default style of the message.               | `None` |
-| `module_style`            | Style of the `{module}` variable.           | `None` |
-| `module_name_style`       | Style of the `{module_name}` variable.      | `default_theme.invoked_command` |
-| `module_file_style`       | Style of the `{module_file}` variable.      | `None` |
-| `module_version_style`    | Style of the `{module_version}` variable.   | `Style(fg="green")` |
-| `package_name_style`      | Style of the `{package_name}` variable.     | `default_theme.invoked_command` |
-| `package_version_style`   | Style of the `{package_version}` variable.  | `Style(fg="green")` |
-| `exec_name_style`         | Style of the `{exec_name}` variable.        | `default_theme.invoked_command` |
-| `version_style`           | Style of the `{version}` variable.          | `Style(fg="green")` |
-| `git_repo_path_style`     | Style of the `{git_repo_path}` variable.    | `Style(fg="bright_black")` |
-| `git_branch_style`        | Style of the `{git_branch}` variable.       | `Style(fg="cyan")` |
-| `git_long_hash_style`     | Style of the `{git_long_hash}` variable.    | `Style(fg="yellow")` |
-| `git_short_hash_style`    | Style of the `{git_short_hash}` variable.   | `Style(fg="yellow")` |
-| `git_date_style`          | Style of the `{git_date}` variable.         | `Style(fg="bright_black")` |
-| `prog_name_style`         | Style of the `{prog_name}` variable.        | `default_theme.invoked_command` |
-| `env_info_style`          | Style of the `{env_info}` variable.         | `Style(fg="bright_black")` |
+| `message_style`           | Style of the whole message.               | `None` |
+| `module_style`            | Style for `{module}` variable.           | `None` |
+| `module_name_style`       | Style for `{module_name}` variable.      | `default_theme.invoked_command` |
+| `module_file_style`       | Style for `{module_file}` variable.      | `None` |
+| `module_version_style`    | Style for `{module_version}` variable.   | `Style(fg="green")` |
+| `package_name_style`      | Style for `{package_name}` variable.     | `default_theme.invoked_command` |
+| `package_version_style`   | Style for `{package_version}` variable.  | `Style(fg="green")` |
+| `exec_name_style`         | Style for `{exec_name}` variable.        | `default_theme.invoked_command` |
+| `version_style`           | Style for `{version}` variable.          | `Style(fg="green")` |
+| `git_repo_path_style`     | Style for `{git_repo_path}` variable.    | `Style(fg="bright_black")` |
+| `git_branch_style`        | Style for `{git_branch}` variable.       | `Style(fg="cyan")` |
+| `git_long_hash_style`     | Style for `{git_long_hash}` variable.    | `Style(fg="yellow")` |
+| `git_short_hash_style`    | Style for `{git_short_hash}` variable.   | `Style(fg="yellow")` |
+| `git_date_style`          | Style for `{git_date}` variable.         | `Style(fg="bright_black")` |
+| `prog_name_style`         | Style for `{prog_name}` variable.        | `default_theme.invoked_command` |
+| `env_info_style`          | Style for `{env_info}` variable.         | `Style(fg="bright_black")` |
 
 Here is an example:
 
