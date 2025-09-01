@@ -460,7 +460,14 @@ class ExtraVersionOption(ExtraOption):
 
     @cached_property
     def prog_name(self) -> str | None:
-        """Return the name of the CLI, from Click's point of view."""
+        """Return the name of the CLI, from Click's point of view.
+
+        Get the `info_name
+        <https://click.palletsprojects.com/en/stable/api/#click.Context.info_name>`_ of
+        the `root
+        <https://click.palletsprojects.com/en/stable/api/#click.Context.find_root>`_
+        command.
+        """
         return get_current_context().find_root().info_name
 
     @cached_property
