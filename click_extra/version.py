@@ -298,7 +298,7 @@ class ExtraVersionOption(ExtraOption):
 
             We're still supporting it for backward compatibility with existing
             codebases, as `Click removed it in version 8.2.0
-            <https://github.com/pallets/click/issues/2598>`.
+            <https://github.com/pallets/click/issues/2598>`_.
         """
         version = getattr(self.module, "__version__", None)
         if version is not None and not isinstance(version, str):
