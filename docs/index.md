@@ -40,6 +40,6 @@ todolist
 changelog
 code-of-conduct
 license
-GitHub Repository <https://github.com/kdeldycke/click-extra>
+GitHub repository <https://github.com/kdeldycke/click-extra>
 Funding <https://github.com/sponsors/kdeldycke>
 ```
