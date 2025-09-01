@@ -183,24 +183,24 @@ It is supported by Click Extra as a convenience for script developers.
 
 Each variable listed in the section above can be rendered in its own style. They all have dedicated parameters you can pass to the `extra_version_option` decorator:
 
-| Parameter                 | Description                                 |
-| ------------------------- | ------------------------------------------- |
-| `message_style`           | Default style of the message.               |
-| `module_style`            | Style of the `{module}` variable.           |
-| `module_name_style`       | Style of the `{module_name}` variable.      |
-| `module_file_style`       | Style of the `{module_file}` variable.      |
-| `module_version_style`    | Style of the `{module_version}` variable.   |
-| `package_name_style`      | Style of the `{package_name}` variable.     |
-| `package_version_style`   | Style of the `{package_version}` variable.  |
-| `exec_name_style`         | Style of the `{exec_name}` variable.        |
-| `version_style`           | Style of the `{version}` variable.          |
-| `git_repo_path_style`     | Style of the `{git_repo_path}` variable.    |
-| `git_branch_style`        | Style of the `{git_branch}` variable.       |
-| `git_long_hash_style`     | Style of the `{git_long_hash}` variable.    |
-| `git_short_hash_style`    | Style of the `{git_short_hash}` variable.   |
-| `git_date_style`          | Style of the `{git_date}` variable.         |
-| `prog_name_style`         | Style of the `{prog_name}` variable.        |
-| `env_info_style`          | Style of the `{env_info}` variable.         |
+| Parameter                 | Description                                 | Default Style |
+| ------------------------- | ------------------------------------------- | ------------- |
+| `message_style`           | Default style of the message.               | `None` |
+| `module_style`            | Style of the `{module}` variable.           | `None` |
+| `module_name_style`       | Style of the `{module_name}` variable.      | `default_theme.invoked_command` |
+| `module_file_style`       | Style of the `{module_file}` variable.      | `None` |
+| `module_version_style`    | Style of the `{module_version}` variable.   | `Style(fg="green")` |
+| `package_name_style`      | Style of the `{package_name}` variable.     | `default_theme.invoked_command` |
+| `package_version_style`   | Style of the `{package_version}` variable.  | `Style(fg="green")` |
+| `exec_name_style`         | Style of the `{exec_name}` variable.        | `default_theme.invoked_command` |
+| `version_style`           | Style of the `{version}` variable.          | `Style(fg="green")` |
+| `git_repo_path_style`     | Style of the `{git_repo_path}` variable.    | `Style(fg="bright_black")` |
+| `git_branch_style`        | Style of the `{git_branch}` variable.       | `Style(fg="cyan")` |
+| `git_long_hash_style`     | Style of the `{git_long_hash}` variable.    | `Style(fg="yellow")` |
+| `git_short_hash_style`    | Style of the `{git_short_hash}` variable.   | `Style(fg="yellow")` |
+| `git_date_style`          | Style of the `{git_date}` variable.         | `Style(fg="bright_black")` |
+| `prog_name_style`         | Style of the `{prog_name}` variable.        | `default_theme.invoked_command` |
+| `env_info_style`          | Style of the `{env_info}` variable.         | `Style(fg="bright_black")` |
 
 Here is an example:
 
@@ -322,6 +322,8 @@ from click_extra import command, verbosity_option, extra_version_option, echo
 def version_in_logs():
     echo("Standard operation")
 ```
+
+Which is great to see how each variable is populated and styled:
 
 ```{click:run}
 import re
