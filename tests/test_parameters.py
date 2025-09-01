@@ -250,8 +250,8 @@ def test_standalone_show_params_option(
     expected_table = [
         (
             "show-params.help",
-            "click.core.Option",
             "--help",
+            "click.core.Option",
             "click.types.BoolParamType",
             "bool",
             "✘",
@@ -264,8 +264,8 @@ def test_standalone_show_params_option(
         ),
         (
             "show-params.show_params",
-            "click_extra.parameters.ShowParamsOption",
             "--show-params",
+            "click_extra.parameters.ShowParamsOption",
             "click.types.BoolParamType",
             "bool",
             "✘",
@@ -327,8 +327,8 @@ def test_integrated_show_params_option(invoke, create_config):
     expected_table = [
         (
             "show-params-cli.color",
-            "click_extra.colorize.ColorOption",
             "--color, --ansi / --no-color, --no-ansi",
+            "click_extra.colorize.ColorOption",
             "click.types.BoolParamType",
             "bool",
             "✘",
@@ -341,8 +341,8 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.config",
-            "click_extra.config.ConfigOption",
             "--config CONFIG_PATH",
+            "click_extra.config.ConfigOption",
             "click.types.UnprocessedParamType",
             "str",
             "✘",
@@ -364,8 +364,8 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.config",
-            "click_extra.config.NoConfigOption",
             "--no-config",
+            "click_extra.config.NoConfigOption",
             "click.types.UnprocessedParamType",
             "str",
             "✘",
@@ -378,8 +378,8 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.custom_param",
-            "cloup._params.Option",
             "--custom-param CUSTOM",
+            "cloup._params.Option",
             "tests.test_parameters.Custom",
             "str",
             "✘",
@@ -392,8 +392,8 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.help",
-            "click.core.Option",
             "-h, --help",
+            "click.core.Option",
             "click.types.BoolParamType",
             "bool",
             "✘",
@@ -406,8 +406,8 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.hidden_param",
-            "cloup._params.Option",
             "--hidden-param TEXT",
+            "cloup._params.Option",
             "click.types.StringParamType",
             "str",
             "✓",
@@ -420,8 +420,8 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.int_param1",
-            "cloup._params.Option",
             "--int-param1 INTEGER",
+            "cloup._params.Option",
             "click.types.IntParamType",
             "int",
             "✘",
@@ -434,8 +434,8 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.int_param2",
-            "cloup._params.Option",
             "--int-param2 INTEGER",
+            "cloup._params.Option",
             "click.types.IntParamType",
             "int",
             "✘",
@@ -448,8 +448,8 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.show_params",
-            "click_extra.parameters.ShowParamsOption",
             "--show-params",
+            "click_extra.parameters.ShowParamsOption",
             "click.types.BoolParamType",
             "bool",
             "✘",
@@ -462,8 +462,8 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.table_format",
-            "click_extra.table.TableFormatOption",
             "--table-format [asciidoc|csv|csv-excel|csv-excel-tab|csv-unix|double-grid|double-outline|fancy-grid|fancy-outline|github|grid|heavy-grid|heavy-outline|html|jira|latex|latex-booktabs|latex-longtable|latex-raw|mediawiki|mixed-grid|mixed-outline|moinmoin|orgtbl|outline|pipe|plain|presto|pretty|psql|rounded-grid|rounded-outline|rst|simple|simple-grid|simple-outline|textile|tsv|unsafehtml|vertical|youtrack]",
+            "click_extra.table.TableFormatOption",
             "click.types.Choice",
             "str",
             "✘",
@@ -476,8 +476,8 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.time",
-            "click_extra.timer.TimerOption",
             "--time / --no-time",
+            "click_extra.timer.TimerOption",
             "click.types.BoolParamType",
             "bool",
             "✘",
@@ -490,8 +490,8 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.verbose",
-            "click_extra.logging.VerboseOption",
             "-v, --verbose",
+            "click_extra.logging.VerboseOption",
             "click.types.IntRange",
             "int",
             "✘",
@@ -504,8 +504,8 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.verbosity",
-            "click_extra.logging.VerbosityOption",
             "--verbosity LEVEL",
+            "click_extra.logging.VerbosityOption",
             "click.types.Choice",
             "str",
             "✘",
@@ -518,8 +518,8 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.version",
-            "click_extra.version.ExtraVersionOption",
             "--version",
+            "click_extra.version.ExtraVersionOption",
             "click.types.BoolParamType",
             "bool",
             "✘",
@@ -551,11 +551,11 @@ def test_recurse_subcommands(invoke):
 
     result = invoke(show_params_cli_main, "--show-params", color=False)
 
-    table = [
+    expected_table = [
         (
             "show-params-cli-main.help",
-            "click.core.Option",
             "-h, --help",
+            "click.core.Option",
             "click.types.BoolParamType",
             "bool",
             "✘",
@@ -568,8 +568,8 @@ def test_recurse_subcommands(invoke):
         ),
         (
             "show-params-cli-main.show_params",
-            "click_extra.parameters.ShowParamsOption",
             "--show-params",
+            "click_extra.parameters.ShowParamsOption",
             "click.types.BoolParamType",
             "bool",
             "✘",
@@ -582,8 +582,8 @@ def test_recurse_subcommands(invoke):
         ),
         (
             "show-params-cli-main.show-params-sub.help",
-            "click.core.Option",
             "-h, --help",
+            "click.core.Option",
             "click.types.BoolParamType",
             "bool",
             "✘",
@@ -596,8 +596,8 @@ def test_recurse_subcommands(invoke):
         ),
         (
             "show-params-cli-main.show-params-sub.show-params-sub-sub.help",
-            "click.core.Option",
             "-h, --help",
+            "click.core.Option",
             "click.types.BoolParamType",
             "bool",
             "✘",
@@ -610,8 +610,8 @@ def test_recurse_subcommands(invoke):
         ),
         (
             "show-params-cli-main.show-params-sub.show-params-sub-sub.int_param",
-            "cloup._params.Option",
             "--int-param INTEGER",
+            "cloup._params.Option",
             "click.types.IntParamType",
             "int",
             "✘",
@@ -623,10 +623,5 @@ def test_recurse_subcommands(invoke):
             "DEFAULT",
         ),
     ]
-    output = tabulate(
-        table,
-        headers=ShowParamsOption.TABLE_HEADERS,
-        tablefmt="rounded_outline",
-        disable_numparse=True,
-    )
-    assert result.stdout == f"{output}\n"
+
+    assert_table_content(result.stdout, expected_table)

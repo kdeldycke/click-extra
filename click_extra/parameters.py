@@ -391,8 +391,8 @@ class ShowParamsOption(ExtraOption, ParamStructure):
 
     TABLE_HEADERS = (
         "ID",
-        "Class",
         "Spec.",
+        "Class",
         "Param type",
         "Python type",
         "Hidden",
@@ -565,8 +565,8 @@ class ShowParamsOption(ExtraOption, ParamStructure):
 
                 line = (
                     default_theme.invoked_command(path),
-                    f"{param_class.__module__}.{param_class.__qualname__}",
                     param_spec,
+                    f"{param_class.__module__}.{param_class.__qualname__}",
                     f"{instance.type.__module__}.{instance.type.__class__.__name__}",
                     python_type.__name__,
                     hidden,
