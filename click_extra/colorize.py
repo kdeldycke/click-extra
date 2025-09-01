@@ -743,20 +743,25 @@ class HelpExtraFormatter(HelpFormatter):
 
         # Highlight other keywords, which are expected to be separated by any
         # character but word characters.
-        for matching_keywords, style_group_id in (
-            (sorted(self.choices, reverse=True), "choice"),
-            (sorted(self.metavars, reverse=True), "metavar"),
+        for matching_keywords, style_func in (
+            # Choices are already featured in metavars, so we process them first to
+            # avoid double-highlighting.
+            (self.choices, self.theme.choice),
+            (self.metavars, self.theme.metavar),
         ):
-            for keyword in matching_keywords:
-                help_text = re.sub(
-                    rf"""
-                    (\W)    # Any character which is not a word character.
-                    (?P<{style_group_id}>{escape_for_help_screen(keyword)})
-                    (\W)    # Any character which is not a word character.
-                    """,
-                    self.colorize,
-                    help_text,
-                    flags=re.VERBOSE,
+            if matching_keywords:
+                # Transform keywords into regex patterns.
+                patterns = (
+                    # Use negative lookbehind / lookahead (?<!\w) / (?!\w)) to ensure
+                    # the keyword is not part of a larger word.
+                    # i.e. "FOO" matches "FOO" but not "FOOBAR" or "AFOO".
+                    re.compile(rf"(?<!\w){escape_for_help_screen(keyword)}(?!\w)")
+                    for keyword in sorted(matching_keywords, reverse=True)
+                )
+                help_text = highlight(
+                    content=help_text,
+                    patterns=patterns,
+                    styling_func=style_func,
                 )
 
         return help_text

@@ -233,7 +233,9 @@ default_options_colored_help = (
     r"  \x1b\[36m--show-params\x1b\[0m         Show all CLI parameters, their provenance, defaults and\n"
     r"                        value, then exit.\n"
     r"  \x1b\[36m--table-format\x1b\[0m \[\x1b\[35masciidoc\x1b\[0m\|\x1b\[35mcsv\x1b\[0m\|\x1b\[35mcsv-excel\x1b\[0m\|\x1b\[35mcsv-excel-tab\x1b\[0m\|\x1b\[35mcsv-unix\x1b\[0m\|\x1b\[35mdouble-grid\x1b\[0m\|\x1b\[35mdouble-outline\x1b\[0m\|\x1b\[35mfancy-grid\x1b\[0m\|\x1b\[35mfancy-outline\x1b\[0m\|\x1b\[35mgithub\x1b\[0m\|\x1b\[35mgrid\x1b\[0m\|\x1b\[35mheavy-grid\x1b\[0m\|\x1b\[35mheavy-outline\x1b\[0m\|\x1b\[35mhtml\x1b\[0m\|\x1b\[35mjira\x1b\[0m\|\x1b\[35mlatex\x1b\[0m\|\x1b\[35mlatex-booktabs\x1b\[0m\|\x1b\[35mlatex-longtable\x1b\[0m\|\x1b\[35mlatex-raw\x1b\[0m\|\x1b\[35mmediawiki\x1b\[0m\|\x1b\[35mmixed-grid\x1b\[0m\|\x1b\[35mmixed-outline\x1b\[0m\|\x1b\[35mmoinmoin\x1b\[0m\|\x1b\[35morgtbl\x1b\[0m\|\x1b\[35moutline\x1b\[0m\|\x1b\[35mpipe\x1b\[0m\|\x1b\[35mplain\x1b\[0m\|\x1b\[35mpresto\x1b\[0m\|\x1b\[35mpretty\x1b\[0m\|\x1b\[35mpsql\x1b\[0m\|\x1b\[35mrounded-grid\x1b\[0m\|\x1b\[35mrounded-outline\x1b\[0m\|\x1b\[35mrst\x1b\[0m\|\x1b\[35msimple\x1b\[0m\|\x1b\[35msimple-grid\x1b\[0m\|\x1b\[35msimple-outline\x1b\[0m\|\x1b\[35mtextile\x1b\[0m\|\x1b\[35mtsv\x1b\[0m\|\x1b\[35munsafehtml\x1b\[0m\|\x1b\[35mvertical\x1b\[0m\|\x1b\[35myoutrack\x1b\[0m\]\n"
-    r"                        Rendering style of tables.  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mrounded-outline\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
+    # XXX rounded-outline is double-highlighted because it is both the default
+    # and one of the choices.
+    r"                        Rendering style of tables.  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mrounded-\x1b\[35moutline\x1b\[0m\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
     r"  \x1b\[36m--verbosity\x1b\[0m \x1b\[36m\x1b\[2mLEVEL\x1b\[0m     Either \x1b\[35mCRITICAL\x1b\[0m, \x1b\[35mERROR\x1b\[0m, \x1b\[35mWARNING\x1b\[0m, \x1b\[35mINFO\x1b\[0m, \x1b\[35mDEBUG\x1b\[0m.  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault:\n"
     r"                        \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mWARNING\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
     r"  \x1b\[36m-v\x1b\[0m, \x1b\[36m--verbose\x1b\[0m         Increase the default \x1b\[35mWARNING\x1b\[0m verbosity by one level for\n"
@@ -340,7 +342,7 @@ def unescape_regex(text: str) -> str:
     return text
 
 
-REGEX_NEWLINE = re._special_chars_map[ord("\n")]
+REGEX_NEWLINE = "\\n"
 """Newline representation in the regexes above."""
 
 
