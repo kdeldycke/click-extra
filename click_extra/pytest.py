@@ -287,6 +287,11 @@ default_debug_uncolored_version_details = (
     r"debug: {package_version}: \S+\n"
     r"debug: {exec_name}      : \S+\n"
     r"debug: {version}        : \S+\n"
+    r"debug: {git_repo_path}  : \S+\n"
+    r"debug: {git_branch}     : \S+\n"
+    r"debug: {git_long_hash}  : [a-f0-9]{40}\n"
+    r"debug: {git_short_hash} : [a-f0-9]{4,40}\n"
+    r"debug: {git_date}       : \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4}\n"
     r"debug: {prog_name}      : \S+\n"
     r"debug: {env_info}       : {.*}\n"
 )
@@ -300,6 +305,11 @@ default_debug_colored_version_details = (
     r"\x1b\[34mdebug\x1b\[0m: {package_version}: \x1b\[32m\S+\x1b\[0m\n"
     r"\x1b\[34mdebug\x1b\[0m: {exec_name}      : \x1b\[97m\S+\x1b\[0m\n"
     r"\x1b\[34mdebug\x1b\[0m: {version}        : \x1b\[32m\S+\x1b\[0m\n"
+    r"\x1b\[34mdebug\x1b\[0m: {git_repo_path}  : \x1b\[90m\S+\x1b\[0m\n"
+    r"\x1b\[34mdebug\x1b\[0m: {git_branch}     : \x1b\[36m\S+\x1b\[0m\n"
+    r"\x1b\[34mdebug\x1b\[0m: {git_long_hash}  : \x1b\[33m[a-f0-9]{40}\x1b\[0m\n"
+    r"\x1b\[34mdebug\x1b\[0m: {git_short_hash} : \x1b\[33m[a-f0-9]{4,40}\x1b\[0m\n"
+    r"\x1b\[34mdebug\x1b\[0m: {git_date}       : \x1b\[90m\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4}\x1b\[0m\n"
     r"\x1b\[34mdebug\x1b\[0m: {prog_name}      : \x1b\[97m\S+\x1b\[0m\n"
     r"\x1b\[34mdebug\x1b\[0m: {env_info}       : \x1b\[90m{.*}\x1b\[0m\n"
 )

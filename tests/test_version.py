@@ -225,6 +225,11 @@ def test_context_meta(invoke, cmd_decorator, assert_output_regex):
             rf"package_version = {__version__}\n"
             r"exec_name = click_extra\.testing\n"
             rf"version = {__version__}\n"
+            r"git_repo_path = .+\n"
+            r"git_branch = .+\n"
+            r"git_long_hash = [a-f0-9]{40}\n"
+            r"git_short_hash = [a-f0-9]{4,40}\n"
+            r"git_date = \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4}\n"
             r"prog_name = version-metadata\n"
             r"env_info = {'.+'}\n"
         ),

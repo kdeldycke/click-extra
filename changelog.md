@@ -5,6 +5,7 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Add new variables for version string template: `{git_repo_path}`, `{git_branch}`, `{git_long_hash}`, `{git_short_hash}` and `{git_date}`.
 - Add a new `--no-config` option on  `@extra_command` and `@extra_group` to disable configuration files. Closes {issue}`750`.
 - Add `--table-format` option by default on `@extra_command` and `@extra_group`.
 - Remove the `-C` short option associated with `--config`.

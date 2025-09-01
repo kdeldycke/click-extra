@@ -20,9 +20,11 @@ from __future__ import annotations
 import inspect
 import logging
 import os
+import subprocess
 from functools import cached_property
 from gettext import gettext as _
 from importlib import metadata
+from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 import click
@@ -72,6 +74,11 @@ class ExtraVersionOption(ExtraOption):
         "package_version",
         "exec_name",
         "version",
+        "git_repo_path",
+        "git_branch",
+        "git_long_hash",
+        "git_short_hash",
+        "git_date",
         "prog_name",
         "env_info",
     )
@@ -90,6 +97,11 @@ class ExtraVersionOption(ExtraOption):
         package_version: str | None = None,
         exec_name: str | None = None,
         version: str | None = None,
+        git_repo_path: str | None = None,
+        git_branch: str | None = None,
+        git_long_hash: str | None = None,
+        git_short_hash: str | None = None,
+        git_date: str | None = None,
         prog_name: str | None = None,
         env_info: dict[str, str] | None = None,
         # Field style overrides.
@@ -102,6 +114,11 @@ class ExtraVersionOption(ExtraOption):
         package_version_style: IStyle | None = Style(fg="green"),
         exec_name_style: IStyle | None = default_theme.invoked_command,
         version_style: IStyle | None = Style(fg="green"),
+        git_repo_path_style: IStyle | None = Style(fg="bright_black"),
+        git_branch_style: IStyle | None = Style(fg="cyan"),
+        git_long_hash_style: IStyle | None = Style(fg="yellow"),
+        git_short_hash_style: IStyle | None = Style(fg="yellow"),
+        git_date_style: IStyle | None = Style(fg="bright_black"),
         prog_name_style: IStyle | None = default_theme.invoked_command,
         env_info_style: IStyle | None = Style(fg="bright_black"),
         is_flag=True,
@@ -124,6 +141,11 @@ class ExtraVersionOption(ExtraOption):
         :param package_version: forces the value of ``{package_version}``.
         :param exec_name: forces the value of ``{exec_name}``.
         :param version: forces the value of ``{version}``.
+        :param git_repo_path: forces the value of ``{git_repo_path}``.
+        :param git_branch: forces the value of ``{git_branch}``.
+        :param git_long_hash: forces the value of ``{git_long_hash}``.
+        :param git_short_hash: forces the value of ``{git_short_hash}``.
+        :param git_date: forces the value of ``{git_date}``.
         :param prog_name: forces the value of ``{prog_name}``.
         :param env_info: forces the value of ``{env_info}``.
 
@@ -137,6 +159,11 @@ class ExtraVersionOption(ExtraOption):
         :param package_version_style: style of ``{package_version}``.
         :param exec_name_style: style of ``{exec_name}``.
         :param version_style: style of ``{version}``.
+        :param git_repo_path_style: style of ``{git_repo_path}``.
+        :param git_branch_style: style of ``{git_branch}``.
+        :param git_long_hash_style: style of ``{git_long_hash}``.
+        :param git_short_hash_style: style of ``{git_short_hash}``.
+        :param git_date_style: style of ``{git_date}``.
         :param prog_name_style: style of ``{prog_name}``.
         :param env_info_style: style of ``{env_info}``.
         """
@@ -263,7 +290,6 @@ class ExtraVersionOption(ExtraOption):
         """Returns the string found in the local ``__version__`` variable.
 
         .. hint::
-
             ``__version__`` is an old pattern from early Python packaging. It is not a
             standard variable and is not defined in the packaging PEPs.
 
@@ -352,6 +378,85 @@ class ExtraVersionOption(ExtraOption):
             return self.package_version
 
         return None
+
+    @cached_property
+    def git_repo_path(self) -> Path | None:
+        """Find the Git repository root directory."""
+        if self.module_file:
+            # Start from the module's directory
+            current_path = Path(self.module_file).parent
+        else:
+            # Fallback to current working directory
+            current_path = Path.cwd()
+
+        # Walk up the directory tree to find .git
+        for path in [current_path] + list(current_path.parents):
+            if (path / ".git").exists():
+                return path
+
+        return None
+
+    def _run_git_command(self, *args: str) -> str | None:
+        """Run a ``git`` command and return its output, or `None` if it fails."""
+        if not self.git_repo_path:
+            return None
+
+        try:
+            result = subprocess.run(
+                ["git", *args],
+                cwd=self.git_repo_path,
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=5,
+            )
+            return result.stdout.strip() or None
+        except (
+            subprocess.CalledProcessError,
+            FileNotFoundError,
+            subprocess.TimeoutExpired,
+        ):
+            return None
+
+    @cached_property
+    def git_branch(self) -> str | None:
+        """Returns the current Git branch name.
+
+        Uses ``git rev-parse --abbrev-ref HEAD`` CLI.
+        """
+        return self._run_git_command("rev-parse", "--abbrev-ref", "HEAD")
+
+    @cached_property
+    def git_long_hash(self) -> str | None:
+        """Returns the full Git commit hash.
+
+        Uses ``git rev-parse HEAD`` CLI.
+        """
+        return self._run_git_command("rev-parse", "HEAD")
+
+    @cached_property
+    def git_short_hash(self) -> str | None:
+        """Returns the short Git commit hash.
+
+        Uses ``git rev-parse --short HEAD`` CLI.
+
+        .. hint::
+            The short hash is usually the first 7 characters of the full hash, but this
+            is not guaranteed to be the case.
+
+            But it is at least guaranteed to be unique within the repository, and
+            a `minimum of 4 characters
+            <https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreabbrev>`_.
+        """
+        return self._run_git_command("rev-parse", "--short", "HEAD")
+
+    @cached_property
+    def git_date(self) -> str | None:
+        """Returns the commit date in ISO format: ``YYYY-MM-DD HH:MM:SS +ZZZZ``.
+
+        Uses ``git show -s --format=%ci HEAD`` CLI.
+        """
+        return self._run_git_command("show", "-s", "--format=%ci", "HEAD")
 
     @cached_property
     def prog_name(self) -> str | None:

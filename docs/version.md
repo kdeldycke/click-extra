@@ -76,6 +76,11 @@ You can customize the message template with the following variables:
 | [`{package_version}`](#click_extra.version.ExtraVersionOption.package_version) | The [version from the package metadata](https://docs.python.org/3/library/importlib.metadata.html?highlight=metadata%20version#distribution-versions) in which the CLI is distributed. |
 | [`{exec_name}`](#click_extra.version.ExtraVersionOption.exec_name)             | User-friendly name of the executed CLI. Returns `{module_name}`, `{package_name}` or script's filename, in this order.                                                                 |
 | [`{version}`](#click_extra.version.ExtraVersionOption.version)                 | Version of the CLI. Returns `{module_version}`, `{package_version}` or `None`, in this order.                                                                                          |
+| [`{git_repo_path}`](#click_extra.version.ExtraVersionOption.git_repo_path)     | The full path to the Git repository root directory, or `None` if not in a Git repository.                                                                                              |
+| [`{git_branch}`](#click_extra.version.ExtraVersionOption.git_branch)           | The current Git branch name, or `None` if not in a Git repository or Git is not available.                                                                                             |
+| [`{git_long_hash}`](#click_extra.version.ExtraVersionOption.git_long_hash)     | The full Git commit hash of the current `HEAD`, or `None` if not in a Git repository or Git is not available.                                                                           |
+| [`{git_short_hash}`](#click_extra.version.ExtraVersionOption.git_short_hash)   | The short Git commit hash of the current `HEAD`, or `None` if not in a Git repository or Git is not available.                                                                          |
+| [`{git_date}`](#click_extra.version.ExtraVersionOption.git_date)               | The commit date of the current `HEAD` in ISO format (`YYYY-MM-DD HH:MM:SS +ZZZZ`), or `None` if not in a Git repository or Git is not available.                                       |
 | [`{prog_name}`](#click_extra.version.ExtraVersionOption.prog_name)             | The name of the program, from Click's point of view.                                                                                                                                   |
 | [`{env_info}`](#click_extra.version.ExtraVersionOption.env_info)               | The [environment information](https://boltons.readthedocs.io/en/latest/ecoutils.html#boltons.ecoutils.get_profile) in JSON.                                                            |
 
@@ -178,19 +183,24 @@ It is supported by Click Extra as a convenience for script developers.
 
 Each variable listed in the section above can be rendered in its own style. They all have dedicated parameters you can pass to the `extra_version_option` decorator:
 
-| Parameter               | Description                                |
-| ----------------------- | ------------------------------------------ |
-| `message_style`         | Default style of the message.              |
-| `module_style`          | Style of the `{module}` variable.          |
-| `module_name_style`     | Style of the `{module_name}` variable.     |
-| `module_file_style`     | Style of the `{module_file}` variable.     |
-| `module_version_style`  | Style of the `{module_version}` variable.  |
-| `package_name_style`    | Style of the `{package_name}` variable.    |
-| `package_version_style` | Style of the `{package_version}` variable. |
-| `exec_name_style`       | Style of the `{exec_name}` variable.       |
-| `version_style`         | Style of the `{version}` variable.         |
-| `prog_name_style`       | Style of the `{prog_name}` variable.       |
-| `env_info_style`        | Style of the `{env_info}` variable.        |
+| Parameter                 | Description                                 |
+| ------------------------- | ------------------------------------------- |
+| `message_style`           | Default style of the message.               |
+| `module_style`            | Style of the `{module}` variable.           |
+| `module_name_style`       | Style of the `{module_name}` variable.      |
+| `module_file_style`       | Style of the `{module_file}` variable.      |
+| `module_version_style`    | Style of the `{module_version}` variable.   |
+| `package_name_style`      | Style of the `{package_name}` variable.     |
+| `package_version_style`   | Style of the `{package_version}` variable.  |
+| `exec_name_style`         | Style of the `{exec_name}` variable.        |
+| `version_style`           | Style of the `{version}` variable.          |
+| `git_repo_path_style`     | Style of the `{git_repo_path}` variable.    |
+| `git_branch_style`        | Style of the `{git_branch}` variable.       |
+| `git_long_hash_style`     | Style of the `{git_long_hash}` variable.    |
+| `git_short_hash_style`    | Style of the `{git_short_hash}` variable.   |
+| `git_date_style`          | Style of the `{git_date}` variable.         |
+| `prog_name_style`         | Style of the `{prog_name}` variable.        |
+| `env_info_style`          | Style of the `{env_info}` variable.         |
 
 Here is an example:
 
