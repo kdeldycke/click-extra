@@ -770,15 +770,29 @@ class HelpExtraFormatter(HelpFormatter):
 
 def highlight(
     content: str,
-    substrings: Iterable[str],
-    styling_method: Callable,
+    substrings: Iterable[str] | str,
+    styling_func: Callable,
     ignore_case: bool = False,
 ) -> str:
-    """Highlights parts of the ``string`` that matches ``substrings``.
+    """Highlights parts of the ``content`` that matches ``substrings``.
 
-    Takes care of overlapping parts within the ``string``.
+    Takes care of overlapping parts within the ``content``, so that the styling function
+    is applied only once to each contiguous range of matching characters.
 
-    ..todo::
+    .. danger::
+        Roundtrip through lower-casing/upper-casing is a can of worms, because some
+        characters change length when their case is changed. This breaks the indexing
+        logic of this function:
+
+        - `Unicode roundtrip-unsafe characters
+          <https://gist.github.com/rendello/4d8266b7c52bf0e98eab2073b38829d9>`_
+        - `Unicode codepoints expanding or contracting on case changes
+          <https://gist.github.com/rendello/d37552507a389656e248f3255a618127>`_
+
+        Thus, this function raises an ``AssertionError`` if it detects such an
+        unstable situation.
+
+    .. todo::
         Same as the ``ignore_case`` parameter, should we support case-folding?
         As in "Straße" => "Strasse"? Beware, it messes with string length and
         characters index...
@@ -788,8 +802,8 @@ def highlight(
 
     # Search for occurrences of query parts in original string.
     for part in set(substrings):
-        # Reduce the matching space to the lower-case realm.
         searched_content = content
+        # Reduce the matching space to the lower-case realm.
         if ignore_case:
             lower_part = part.lower()
             assert len(part) == len(lower_part), (
@@ -820,7 +834,7 @@ def highlight(
     for i, j in sorted(highlight_ranges + untouched_ranges):
         segment = getitem(content, slice(i, j + 1))
         if (i, j) in highlight_ranges:
-            segment = styling_method(segment)
+            segment = styling_func(segment)
         styled_str += str(segment)
 
     return styled_str
