@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from enum import Enum, auto
 from textwrap import dedent
 
@@ -857,7 +858,7 @@ def test_integrated_color_option(invoke, param, expecting_colors, assert_output_
 
 
 @pytest.mark.parametrize(
-    ("original", "substrings", "expected", "ignore_case"),
+    ("content", "patterns", "expected", "ignore_case"),
     (
         # Function input types.
         (
@@ -881,6 +882,12 @@ def test_integrated_color_option(invoke, param, expecting_colors, assert_output_
         (
             "Hey-xx-xxx-heY-xXxXxxxxx-hey",
             "hey",
+            "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m",
+            False,
+        ),
+        (
+            "Hey-xx-xxx-heY-xXxXxxxxx-hey",
+            ["h", "e", "y"],
             "H\x1b[32mey\x1b[0m-xx-xxx-\x1b[32mhe\x1b[0mY-xXxXxxxxx-\x1b[32mhey\x1b[0m",
             False,
         ),
@@ -906,7 +913,7 @@ def test_integrated_color_option(invoke, param, expecting_colors, assert_output_
         (
             "Hey-xx-xxx-heY-xXxXxxxxx-hey",
             "heyhey",
-            "H\x1b[32mey\x1b[0m-xx-xxx-\x1b[32mhe\x1b[0mY-xXxXxxxxx-\x1b[32mhey\x1b[0m",
+            "Hey-xx-xxx-heY-xXxXxxxxx-hey",
             False,
         ),
         # Case-sensitivity and multiple matches.
@@ -994,14 +1001,124 @@ def test_integrated_color_option(invoke, param, expecting_colors, assert_output_
             "|\x1b[32msimple-grid\x1b[0m|\x1b[32msimple-outline\x1b[0m]",
             False,
         ),
+        # Regex patterns - basic patterns
+        (
+            "Hey-xx-xxx-heY-xXxXxxxxx-hey",
+            re.compile(r"h\w+"),
+            "Hey-xx-xxx-\x1b[32mheY\x1b[0m-xXxXxxxxx-\x1b[32mhey\x1b[0m",
+            False,
+        ),
+        (
+            "Hey-xx-xxx-heY-xXxXxxxxx-hey",
+            re.compile(r"h\w+"),
+            "\x1b[32mHey\x1b[0m-xx-xxx-\x1b[32mheY\x1b[0m-xXxXxxxxx-\x1b[32mhey\x1b[0m",
+            True,
+        ),
+        # Regex patterns - character classes
+        (
+            "test123-abc456-xyz789",
+            re.compile(r"\d+"),
+            "test\x1b[32m123\x1b[0m-abc\x1b[32m456\x1b[0m-xyz\x1b[32m789\x1b[0m",
+            False,
+        ),
+        (
+            "file.txt config.json data.csv",
+            re.compile(r"\w+\.\w+"),
+            "\x1b[32mfile.txt\x1b[0m \x1b[32mconfig.json\x1b[0m \x1b[32mdata.csv\x1b[0m",
+            False,
+        ),
+        # Regex patterns - word boundaries
+        (
+            "testing test tested",
+            re.compile(r"\btest\b"),
+            "testing \x1b[32mtest\x1b[0m tested",
+            False,
+        ),
+        # Regex patterns - alternation
+        (
+            "apple banana cherry",
+            re.compile(r"apple|cherry"),
+            "\x1b[32mapple\x1b[0m banana \x1b[32mcherry\x1b[0m",
+            False,
+        ),
+        # Regex patterns - quantifiers
+        (
+            "a aa aaa aaaa aaaaa",
+            re.compile(r"a{2,3}"),
+            "a \x1b[32maa\x1b[0m \x1b[32maaa\x1b[0m \x1b[32maaaa\x1b[0m \x1b[32maaaaa\x1b[0m",
+            False,
+        ),
+        # Compiled regex patterns
+        (
+            "test@example.com admin@site.org",
+            re.compile(r"\w+@\w+\.\w+"),
+            "\x1b[32mtest@example.com\x1b[0m \x1b[32madmin@site.org\x1b[0m",
+            False,
+        ),
+        # Mixed literal and regex patterns
+        (
+            "--verbose --debug --help -v -d -h",
+            ["--help", re.compile(r"--\w+"), re.compile(r"-[a-z]")],
+            "\x1b[32m--verbose\x1b[0m \x1b[32m--debug\x1b[0m \x1b[32m--help\x1b[0m \x1b[32m-v\x1b[0m \x1b[32m-d\x1b[0m \x1b[32m-h\x1b[0m",
+            False,
+        ),
+        # Overlapping regex matches
+        (
+            "aaabbb",
+            [re.compile(r"aa"), re.compile(r"aaa")],
+            "\x1b[32maaa\x1b[0mbbb",
+            False,
+        ),
+        # Regex with special characters (already escaped in literal)
+        (
+            "Price: $10.99 and $5.50",
+            re.compile(r"\$\d+\.\d+"),
+            "Price: \x1b[32m$10.99\x1b[0m and \x1b[32m$5.50\x1b[0m",
+            False,
+        ),
+        # Empty regex match (should not highlight)
+        (
+            "test string",
+            re.compile(r"xyz"),
+            "test string",
+            False,
+        ),
+        # Case-insensitive regex
+        (
+            "HTML CSS JavaScript",
+            re.compile(r"html|css"),
+            "\x1b[32mHTML\x1b[0m \x1b[32mCSS\x1b[0m JavaScript",
+            True,
+        ),
+        # Pre-compiled regex with flags
+        (
+            "HTML CSS JavaScript",
+            re.compile(r"html|css", re.IGNORECASE),
+            "\x1b[32mHTML\x1b[0m \x1b[32mCSS\x1b[0m JavaScript",
+            False,
+        ),
+        # Complex regex patterns
+        (
+            "IP: 192.168.1.1 and 10.0.0.1",
+            re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b"),
+            "IP: \x1b[32m192.168.1.1\x1b[0m and \x1b[32m10.0.0.1\x1b[0m",
+            False,
+        ),
+        # Regex matching start/end anchors (should work within content)
+        (
+            "start middle end",
+            re.compile(r"start|end"),
+            "\x1b[32mstart\x1b[0m middle \x1b[32mend\x1b[0m",
+            False,
+        ),
     ),
 )
-def test_substring_highlighting(original, substrings, expected, ignore_case):
+def test_substring_highlighting(content, patterns, expected, ignore_case):
     assert (
         highlight(
-            original,
-            substrings,
-            styling_method=theme.success,
+            content,
+            patterns,
+            styling_func=theme.success,
             ignore_case=ignore_case,
         )
         == expected

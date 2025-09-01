@@ -770,57 +770,80 @@ class HelpExtraFormatter(HelpFormatter):
 
 def highlight(
     content: str,
-    substrings: Iterable[str] | str,
+    patterns: Iterable[str | re.Pattern] | str | re.Pattern,
     styling_func: Callable,
     ignore_case: bool = False,
 ) -> str:
-    """Highlights parts of the ``content`` that matches ``substrings``.
+    """Highlights parts of the ``content`` that matches ``patterns``.
 
     Takes care of overlapping parts within the ``content``, so that the styling function
     is applied only once to each contiguous range of matching characters.
 
-    .. danger::
-        Roundtrip through lower-casing/upper-casing is a can of worms, because some
-        characters change length when their case is changed. This breaks the indexing
-        logic of this function:
-
-        - `Unicode roundtrip-unsafe characters
-          <https://gist.github.com/rendello/4d8266b7c52bf0e98eab2073b38829d9>`_
-        - `Unicode codepoints expanding or contracting on case changes
-          <https://gist.github.com/rendello/d37552507a389656e248f3255a618127>`_
-
-        Thus, this function raises an ``AssertionError`` if it detects such an
-        unstable situation.
-
     .. todo::
-        Same as the ``ignore_case`` parameter, should we support case-folding?
-        As in "Straße" => "Strasse"? Beware, it messes with string length and
-        characters index...
+        Support case-foldeing, so we can have the ``Straße`` string matching the
+        ``Strasse`` content.
+
+        This could be tricky as it messes with string length and characters index, which
+        our logic relies on.
+
+        .. danger::
+            Roundtrip through lower-casing/upper-casing is a can of worms, because some
+            characters change length when their case is changed:
+
+            - `Unicode roundtrip-unsafe characters
+            <https://gist.github.com/rendello/4d8266b7c52bf0e98eab2073b38829d9>`_
+            - `Unicode codepoints expanding or contracting on case changes
+            <https://gist.github.com/rendello/d37552507a389656e248f3255a618127>`_
     """
+    # Normalize input to a set of patterns.
+    if isinstance(patterns, (str, re.Pattern)):
+        pattern_list = {patterns}
+    else:
+        pattern_list = set(patterns)
+
     # Ranges of character indices flagged for highlighting.
     ranges = set()
 
-    # Search for occurrences of query parts in original string.
-    for part in set(substrings):
-        searched_content = content
-        # Reduce the matching space to the lower-case realm.
-        if ignore_case:
-            lower_part = part.lower()
-            assert len(part) == len(lower_part), (
-                "Lowering case is messing with string length"
-            )
-            part = lower_part
-            searched_content = content.lower()
-            assert len(content) == len(searched_content), (
-                "Lowering case is messing with string length"
-            )
-        # Lookahead assertion which is going to give the starting position of each
-        # overlapping match.
-        pattern = rf"(?={re.escape(part)})"
-        ranges |= {
-            f"{match.start()}-{match.start() + len(part) - 1}"
-            for match in re.finditer(pattern, searched_content)
-        }
+    # Normalize patterns into regular expression and find matches.
+    for pattern in pattern_list:
+        # Pattern is already a regex.
+        if isinstance(pattern, re.Pattern):
+            regex = pattern
+        # Treat as literal string and escape for regex.
+        elif isinstance(pattern, str):
+            regex = re.compile(re.escape(pattern), re.IGNORECASE if ignore_case else 0)
+        else:
+            raise TypeError(f"Unsupported pattern type: {pattern!r}")
+
+        # Force IGNORECASE flag if not already compiled with it.
+        if ignore_case and not (regex.flags & re.IGNORECASE):
+            regex = re.compile(regex.pattern, regex.flags | re.IGNORECASE)
+
+        # Find all matches including overlapping ones.
+        start_pos = 0
+        while start_pos < len(content):
+            match = regex.search(content, start_pos)
+            # No more matches possible with this pattern from this position.
+            if not match:
+                break
+
+            start_idx = match.start()
+            end_idx = match.end() - 1
+
+            # Ensure valid range.
+            assert start_idx <= end_idx, "Invalid match range"
+            assert 0 <= start_idx < len(content), "Start index out of bounds"
+            assert 0 <= end_idx < len(content), "End index out of bounds"
+            ranges.add(f"{start_idx}-{end_idx}")
+
+            # Because re.search() is matching the first occurrence only, we can safely
+            # skip ahead to the next character just after the start of the current
+            # match.
+            start_pos = start_idx + 1
+
+    # If no matches found, return original content.
+    if not ranges:
+        return content
 
     # Reduce ranges, compute complement ranges, transform them to list of integers.
     range_arg = ",".join(ranges)
