@@ -208,6 +208,31 @@ def test_params_auto_types(invoke, option_decorator):
     }
 
 
+def assert_table_content(output, expected_table):
+    """Helper to assert the content of a rendered table in the output."""
+    # Crudly parse the rendered table from the output.
+    extracted_table = []
+    for line in output.splitlines()[3:-1]:
+        columns = [col.strip() for col in re.split(r"\s*\│\s*", line[1:-1])]
+        assert len(columns) == len(ShowParamsOption.TABLE_HEADERS)
+        extracted_table.append(tuple(columns))
+
+    # Compare tables row by row to get cleaner assertion errors.
+    for index in range(len(expected_table)):
+        expected_strings = tuple(map(str, expected_table[index]))
+        assert len(expected_strings) == len(ShowParamsOption.TABLE_HEADERS)
+        assert extracted_table[index] == expected_strings
+
+    # Check the rendering of the table.
+    rendered_table = tabulate(
+        expected_table,
+        headers=ShowParamsOption.TABLE_HEADERS,
+        tablefmt="rounded_outline",
+        disable_numparse=True,
+    )
+    assert output == f"{rendered_table}\n"
+
+
 # Skip click extra's commands, as show_params option is already part of the default.
 @pytest.mark.parametrize("cmd_decorator", command_decorators(no_extra=True))
 @pytest.mark.parametrize("option_decorator", (show_params_option, show_params_option()))
@@ -222,7 +247,7 @@ def test_standalone_show_params_option(
     result = invoke(show_params, "--show-params")
     assert result.exit_code == 0
 
-    table = [
+    expected_table = [
         (
             "show-params.help",
             "click.core.Option",
@@ -234,7 +259,7 @@ def test_standalone_show_params_option(
             "",
             "",
             False,
-            "",
+            "None",
             "",
         ),
         (
@@ -248,17 +273,12 @@ def test_standalone_show_params_option(
             "",
             "",
             False,
-            "",
+            "None",
             "COMMANDLINE",
         ),
     ]
-    output = tabulate(
-        table,
-        headers=ShowParamsOption.TABLE_HEADERS,
-        tablefmt="rounded_outline",
-        disable_numparse=True,
-    )
-    assert result.stdout == f"{output}\n"
+
+    assert_table_content(result.stdout, expected_table)
 
     if result.stderr:
         assert_output_regex(
@@ -339,7 +359,7 @@ def test_integrated_show_params_option(invoke, create_config):
                 f"'{Path(get_app_dir('show-params-cli')).resolve()}{sep}"
                 "*.{toml,yaml,yml,json,ini,xml}'"
             ),
-            str(conf_path),
+            repr(str(conf_path)),
             "COMMANDLINE",
         ),
         (
@@ -353,7 +373,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "✘",
             "SHOW_PARAMS_CLI_CONFIG",
             UNSET,
-            str(conf_path),
+            repr(str(conf_path)),
             "COMMANDLINE",
         ),
         (
@@ -409,7 +429,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "✓",
             "SHOW_PARAMS_CLI_INT_PARAM1",
             3,
-            9999,
+            "'9999'",
             "COMMANDLINE",
         ),
         (
@@ -451,7 +471,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "✓",
             "SHOW_PARAMS_CLI_TABLE_FORMAT",
             "'rounded-outline'",
-            "rounded-outline",
+            "'rounded-outline'",
             "DEFAULT",
         ),
         (
@@ -478,8 +498,8 @@ def test_integrated_show_params_option(invoke, create_config):
             "✘",
             "✓",
             "SHOW_PARAMS_CLI_VERBOSE",
-            "0",
-            "0",
+            0,
+            0,
             "DEFAULT",
         ),
         (
@@ -493,7 +513,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "✓",
             "SHOW_PARAMS_CLI_VERBOSITY",
             "<LogLevel.WARNING: 30>",
-            "DeBuG",
+            "'DeBuG'",
             "COMMANDLINE",
         ),
         (
@@ -512,26 +532,7 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
     ]
 
-    # Crudly parse the rendered table from the output.
-    extracted_table = []
-    for line in result.stdout.splitlines()[3:-1]:
-        columns = [col.strip() for col in re.split(r"\s*\│\s*", line) if col.strip()]
-        if columns:
-            extracted_table.append(tuple(columns))
-
-    # Compare tables row by row to get cleaner assertion errors.
-    for index in range(len(expected_table)):
-        expected_strings = tuple(map(str, expected_table[index]))
-        assert extracted_table[index] == expected_strings
-
-    # Check the rendering of the table.
-    rendered_table = tabulate(
-        expected_table,
-        headers=ShowParamsOption.TABLE_HEADERS,
-        tablefmt="rounded_outline",
-        disable_numparse=True,
-    )
-    assert result.stdout == f"{rendered_table}\n"
+    assert_table_content(result.stdout, expected_table)
 
 
 def test_recurse_subcommands(invoke):

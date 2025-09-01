@@ -576,7 +576,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                         map(default_theme.envvar, param_envvar_ids(instance, ctx))
                     ),
                     default_theme.default(repr(instance.get_default(ctx))),
-                    param_value,
+                    repr(param_value),
                     source.name if source else None,
                 )
                 table.append(line)
