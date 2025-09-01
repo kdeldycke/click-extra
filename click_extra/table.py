@@ -18,6 +18,8 @@
 from __future__ import annotations
 
 import csv
+import logging
+from enum import StrEnum
 from functools import partial
 from gettext import gettext as _
 from io import StringIO
@@ -59,20 +61,30 @@ This has been proposed upstream at `python-tabulate#261
 <https://github.com/astanin/python-tabulate/pull/261>`_.
 """
 
-
-output_formats: list[str] = sorted(
+output_formats: frozenset[str] = frozenset(
     # Formats from tabulate.
     list(tabulate._table_formats)  # type: ignore[attr-defined]
     # Formats inherited from previous legacy cli-helpers dependency.
     + ["csv", "vertical"]
     # Formats derived from CSV dialects.
-    + [f"csv-{d}" for d in csv.list_dialects()],
+    + [f"csv-{d}" for d in csv.list_dialects()]
 )
-"""All output formats supported by click-extra."""
+"""Collection of raw IDs for supported table formats."""
 
 
-def get_csv_dialect(format_id: str) -> str | None:
+TableFormat = StrEnum(
+    "TableFormat",
+    {
+        fmt.replace("-", "_").upper(): fmt.replace("_", "-").lower()
+        for fmt in sorted(output_formats)
+    },
+)
+"""Enumeration of supported table formats."""
+
+
+def get_csv_dialect(table_format: TableFormat) -> str | None:
     """Extract, validate and normalize CSV dialect ID from format."""
+    format_id = table_format.value
     assert format_id.startswith("csv")
     # Defaults to excel rendering, like in Python's csv module.
     dialect = "excel"
@@ -123,12 +135,15 @@ def render_vertical(
 def render_table(
     tabular_data: Sequence[Sequence[str]],
     headers: Sequence[str] = (),
+    table_format: TableFormat = TableFormat.ROUNDED_OUTLINE,
     **kwargs,
 ) -> None:
     """Render a table with tabulate and use ``echo`` to print it."""
     defaults = {
         "disable_numparse": True,
         "numalign": None,
+        # tabulate()'s  format ID uses underscores instead of dashes.
+        "tablefmt": table_format.value.replace("-", "_"),
     }
     defaults.update(kwargs)
     echo(tabulate.tabulate(tabular_data, headers, **defaults))  # type: ignore[arg-type]
@@ -145,8 +160,9 @@ class TableFormatOption(ExtraOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        type=Choice(output_formats, case_sensitive=False),
-        default="rounded_outline",
+        # Click choices do not use the enum member values, but their names.
+        type=Choice(tuple(i.value for i in TableFormat), case_sensitive=False),
+        default=TableFormat.ROUNDED_OUTLINE.value,
         expose_value=False,
         help=_("Rendering style of tables."),
         **kwargs,
@@ -169,23 +185,51 @@ class TableFormatOption(ExtraOption):
         self,
         ctx: Context,
         param: Parameter,
-        value: str,
+        value: str | TableFormat | None,
     ) -> None:
-        """Save table format ID in the context, and adds ``print_table()`` to it.
+        """Save table format in the context, and adds ``print_table()`` to it.
 
         The ``print_table(tabular_data, headers)`` method added to the context is a
         ready-to-use helper that takes for parameters:
-        - ``tabular_data``, a 2-dimensional iterable of iterables for cell values,
-        - ``headers``, a list of string to be used as headers.
-        """
-        ctx.meta["click_extra.table_format"] = value
 
-        render_func = None
-        if value.startswith("csv"):
-            render_func = partial(render_csv, dialect=get_csv_dialect(value))
-        elif value == "vertical":
-            render_func = render_vertical  # type: ignore[assignment]
-        else:
-            render_func = partial(render_table, tablefmt=value)
+        - ``tabular_data``: a 2-dimensional iterable of iterables for rows and cells
+          values,
+        - ``headers``: a list of string to be used as column headers.
+
+        The rendering style of the table is normalized to one of the supported
+        ``TableFormat`` enum.
+        """
+        # TODO: move this normalization logic into the Enum's _missing_() method?
+        table_format = None
+        if isinstance(value, TableFormat):
+            table_format = value
+        elif value:
+            format_id = value.lower().replace("_", "-")
+            if value != format_id:
+                logging.warning(
+                    f"Table format ID normalized from {value!r} to {format_id!r}. "
+                    f"Please update your CLI usage before {value!r} is deprecated.",
+                )
+            for fmt in TableFormat:
+                if fmt.value == format_id:
+                    table_format = fmt
+                    break
+
+        ctx.meta["click_extra.table_format"] = table_format
+
+        match table_format:
+            case None:
+                raise ValueError("Table format should not be None here.")
+            case (
+                TableFormat.CSV
+                | TableFormat.CSV_EXCEL
+                | TableFormat.CSV_EXCEL_TAB
+                | TableFormat.CSV_UNIX
+            ):
+                render_func = partial(render_csv, dialect=get_csv_dialect(table_format))
+            case TableFormat.VERTICAL:
+                render_func = render_vertical  # type: ignore[assignment]
+            case _:
+                render_func = partial(render_table, table_format=table_format)
 
         ctx.print_table = render_func  # type: ignore[attr-defined]

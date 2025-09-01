@@ -443,15 +443,15 @@ def test_integrated_show_params_option(invoke, create_config):
         (
             "show-params-cli.table_format",
             "click_extra.table.TableFormatOption",
-            "--table-format [asciidoc|csv|csv-excel|csv-excel-tab|csv-unix|double_grid|double_outline|fancy_grid|fancy_outline|github|grid|heavy_grid|heavy_outline|html|jira|latex|latex_booktabs|latex_longtable|latex_raw|mediawiki|mixed_grid|mixed_outline|moinmoin|orgtbl|outline|pipe|plain|presto|pretty|psql|rounded_grid|rounded_outline|rst|simple|simple_grid|simple_outline|textile|tsv|unsafehtml|vertical|youtrack]",
+            "--table-format [asciidoc|csv|csv-excel|csv-excel-tab|csv-unix|double-grid|double-outline|fancy-grid|fancy-outline|github|grid|heavy-grid|heavy-outline|html|jira|latex|latex-booktabs|latex-longtable|latex-raw|mediawiki|mixed-grid|mixed-outline|moinmoin|orgtbl|outline|pipe|plain|presto|pretty|psql|rounded-grid|rounded-outline|rst|simple|simple-grid|simple-outline|textile|tsv|unsafehtml|vertical|youtrack]",
             "click.types.Choice",
             "str",
             "✘",
             "✘",
             "✓",
             "SHOW_PARAMS_CLI_TABLE_FORMAT",
-            "'rounded_outline'",
-            "rounded_outline",
+            "'rounded-outline'",
+            "rounded-outline",
             "DEFAULT",
         ),
         (

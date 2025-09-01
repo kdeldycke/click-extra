@@ -18,13 +18,13 @@ from __future__ import annotations
 
 import pytest
 import tabulate
-from click_extra.table import output_formats
 from extra_platforms import is_windows
 
 # We use vanilla click primitives here to demonstrate the full-compatibility.
 from click_extra import echo, pass_context
 from click_extra.decorators import table_format_option
 from click_extra.pytest import command_decorators
+from click_extra.table import TableFormat
 
 
 @pytest.mark.parametrize(
@@ -46,13 +46,13 @@ def test_unrecognized_format(invoke, cmd_decorator, cmd_type):
         f"Usage: tabulate-cli1 [OPTIONS]{group_help}\n"
         "Try 'tabulate-cli1 --help' for help.\n\n"
         "Error: Invalid value for '--table-format': 'random' is not one of "
-        "'asciidoc', 'csv', 'csv-excel', 'csv-excel-tab', 'csv-unix', 'double_grid', "
-        "'double_outline', 'fancy_grid', 'fancy_outline', 'github', 'grid', "
-        "'heavy_grid', 'heavy_outline', 'html', 'jira', 'latex', 'latex_booktabs', "
-        "'latex_longtable', 'latex_raw', 'mediawiki', 'mixed_grid', 'mixed_outline', "
+        "'asciidoc', 'csv', 'csv-excel', 'csv-excel-tab', 'csv-unix', 'double-grid', "
+        "'double-outline', 'fancy-grid', 'fancy-outline', 'github', 'grid', "
+        "'heavy-grid', 'heavy-outline', 'html', 'jira', 'latex', 'latex-booktabs', "
+        "'latex-longtable', 'latex-raw', 'mediawiki', 'mixed-grid', 'mixed-outline', "
         "'moinmoin', 'orgtbl', 'outline', 'pipe', 'plain', 'presto', 'pretty', "
-        "'psql', 'rounded_grid', 'rounded_outline', 'rst', 'simple', 'simple_grid', "
-        "'simple_outline', 'textile', 'tsv', 'unsafehtml', 'vertical', 'youtrack'.\n"
+        "'psql', 'rounded-grid', 'rounded-outline', 'rst', 'simple', 'simple-grid', "
+        "'simple-outline', 'textile', 'tsv', 'unsafehtml', 'vertical', 'youtrack'.\n"
     )
 
 
@@ -458,58 +458,62 @@ temperature | 79
 
 
 expected_renderings = {
-    "asciidoc": asciidoc_table,
-    "csv": csv_table,
-    "csv-excel": csv_excel_table,
-    "csv-excel-tab": csv_excel_tab_table,
-    "csv-unix": csv_unix_table,
-    "double_grid": double_grid_table,
-    "double_outline": double_outline_table,
-    "fancy_grid": fancy_grid_table,
-    "fancy_outline": fancy_outline_table,
-    "github": github_table,
-    "grid": grid_table,
-    "heavy_grid": heavy_grid_table,
-    "heavy_outline": heavy_outline_table,
-    "html": html_table,
-    "jira": jira_table,
-    "latex": latex_table,
-    "latex_booktabs": latex_booktabs_table,
-    "latex_longtable": latex_longtable_table,
-    "latex_raw": latex_raw_table,
-    "mediawiki": mediawiki_table,
-    "mixed_grid": mixed_grid_table,
-    "mixed_outline": mixed_outline_table,
-    "moinmoin": moinmoin_table,
-    "orgtbl": orgtbl_table,
-    "outline": outline_table,
-    "pipe": pipe_table,
-    "plain": plain_table,
-    "presto": presto_table,
-    "pretty": pretty_table,
-    "psql": psql_table,
-    "rounded_grid": rounded_grid_table,
-    "rounded_outline": rounded_outline_table,
-    "rst": rst_table,
-    "simple": simple_table,
-    "simple_grid": simple_grid_table,
-    "simple_outline": simple_outline_table,
-    "textile": textile_table,
-    "tsv": tsv_table,
-    "unsafehtml": unsafehtml_table,
-    "youtrack": youtrack_table,
-    "vertical": vertical_table,
+    TableFormat.ASCIIDOC: asciidoc_table,
+    TableFormat.CSV: csv_table,
+    TableFormat.CSV_EXCEL: csv_excel_table,
+    TableFormat.CSV_EXCEL_TAB: csv_excel_tab_table,
+    TableFormat.CSV_UNIX: csv_unix_table,
+    TableFormat.DOUBLE_GRID: double_grid_table,
+    TableFormat.DOUBLE_OUTLINE: double_outline_table,
+    TableFormat.FANCY_GRID: fancy_grid_table,
+    TableFormat.FANCY_OUTLINE: fancy_outline_table,
+    TableFormat.GITHUB: github_table,
+    TableFormat.GRID: grid_table,
+    TableFormat.HEAVY_GRID: heavy_grid_table,
+    TableFormat.HEAVY_OUTLINE: heavy_outline_table,
+    TableFormat.HTML: html_table,
+    TableFormat.JIRA: jira_table,
+    TableFormat.LATEX: latex_table,
+    TableFormat.LATEX_BOOKTABS: latex_booktabs_table,
+    TableFormat.LATEX_LONGTABLE: latex_longtable_table,
+    TableFormat.LATEX_RAW: latex_raw_table,
+    TableFormat.MEDIAWIKI: mediawiki_table,
+    TableFormat.MIXED_GRID: mixed_grid_table,
+    TableFormat.MIXED_OUTLINE: mixed_outline_table,
+    TableFormat.MOINMOIN: moinmoin_table,
+    TableFormat.ORGTBL: orgtbl_table,
+    TableFormat.OUTLINE: outline_table,
+    TableFormat.PIPE: pipe_table,
+    TableFormat.PLAIN: plain_table,
+    TableFormat.PRESTO: presto_table,
+    TableFormat.PRETTY: pretty_table,
+    TableFormat.PSQL: psql_table,
+    TableFormat.ROUNDED_GRID: rounded_grid_table,
+    TableFormat.ROUNDED_OUTLINE: rounded_outline_table,
+    TableFormat.RST: rst_table,
+    TableFormat.SIMPLE: simple_table,
+    TableFormat.SIMPLE_GRID: simple_grid_table,
+    TableFormat.SIMPLE_OUTLINE: simple_outline_table,
+    TableFormat.TEXTILE: textile_table,
+    TableFormat.TSV: tsv_table,
+    TableFormat.UNSAFEHTML: unsafehtml_table,
+    TableFormat.YOUTRACK: youtrack_table,
+    TableFormat.VERTICAL: vertical_table,
 }
 
 
 def test_recognized_modes():
     """Check all rendering modes proposed by the table module are accounted for and
     there is no duplicates."""
-    assert set(tabulate._table_formats) <= expected_renderings.keys()
-    assert set(tabulate._table_formats) <= set(output_formats)
+    assert set(tabulate._table_formats) <= set(
+        i.value.replace("-", "_") for i in expected_renderings
+    )
+    assert set(tabulate._table_formats) <= set(
+        i.value.replace("-", "_") for i in TableFormat
+    )
 
-    assert len(output_formats) == len(expected_renderings.keys())
-    assert set(output_formats) == set(expected_renderings.keys())
+    assert len(TableFormat) == len(expected_renderings.keys())
+    assert set(TableFormat) == set(expected_renderings.keys())
 
 
 @pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))

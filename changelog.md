@@ -9,6 +9,22 @@
 - Add `--table-format` option by default on `@extra_command` and `@extra_group`.
 - Remove the `-C` short option associated with `--config`.
 - Remove the `-t` short option associated with `--table-format`.
+- Rename all table format identifiers to use dashes instead of underscores:
+  - `double_grid` → `double-grid`
+  - `double_outline` → `double-outline`
+  - `fancy_grid` → `fancy-grid`
+  - `fancy_outline` → `fancy-outline`
+  - `heavy_grid` → `heavy-grid`
+  - `heavy_outline` → `heavy-outline`
+  - `latex_booktabs` → `latex-booktabs`
+  - `latex_longtable` → `latex-longtable`
+  - `latex_raw` → `latex-raw`
+  - `mixed_grid` → `mixed-grid`
+  - `mixed_outline` → `mixed-outline`
+  - `rounded_grid` → `rounded-grid`
+  - `rounded_outline` → `rounded-outline`
+  - `simple_grid` → `simple-grid`
+  - `simple_outline` → `simple-outline`
 - Fix display in `--show-params` of parameters sharing the same name but in different commands.
 - Fix detection in the `--version` option of the module in which the user's CLI is implemented.
 - Rename `click_extra.tabulate` namespace to `click_extra.table`.
