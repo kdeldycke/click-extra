@@ -32,7 +32,7 @@ So you can use the `--table-format` option to change the table format:
 ```{click:run}
 from textwrap import dedent
 
-result = invoke(table_command, args=["--table-format", "fancy_outline"])
+result = invoke(table_command, args=["--table-format", "fancy-outline"])
 assert result.stdout == dedent("""\
     ╒═════╤═════════════╕
     │ day │ temperature │
@@ -98,8 +98,8 @@ def vanilla_command(ctx):
 
 ```{click:run}
 :emphasize-lines: 2
-result = invoke(vanilla_command, args=["--table-format", "fancy_outline"])
-assert "Table format: fancy_outline" in result.stdout
+result = invoke(vanilla_command, args=["--table-format", "fancy-outline"])
+assert "Table format: fancy-outline" in result.stdout
 ```
 
 ## `click_extra.table` API
