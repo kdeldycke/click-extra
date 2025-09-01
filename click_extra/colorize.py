@@ -796,9 +796,9 @@ def highlight(
             characters change length when their case is changed:
 
             - `Unicode roundtrip-unsafe characters
-            <https://gist.github.com/rendello/4d8266b7c52bf0e98eab2073b38829d9>`_
+              <https://gist.github.com/rendello/4d8266b7c52bf0e98eab2073b38829d9>`_
             - `Unicode codepoints expanding or contracting on case changes
-            <https://gist.github.com/rendello/d37552507a389656e248f3255a618127>`_
+              <https://gist.github.com/rendello/d37552507a389656e248f3255a618127>`_
     """
     # Normalize input to a set of patterns.
     if isinstance(patterns, (str, re.Pattern)):
