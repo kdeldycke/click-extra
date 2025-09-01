@@ -358,31 +358,32 @@ if __name__ == "__main__":
 And this simple script gets rendered into:
 
 ```{code-block} shell-session
-:emphasize-lines: 26-27
+:emphasize-lines: 31-32
 $ uv run -- python ./wrap.py
 Usage: wrap.py [OPTIONS] COMMAND [ARGS]...
 
 Options:
-  --time / --no-time        Measure and print elapsed execution time.  [default:
-                            no-time]
+  --time / --no-time    Measure and print elapsed execution time.  [default: no-
+                        time]
   --color, --ansi / --no-color, --no-ansi
-                            Strip out all colors and all ANSI codes from output.
-                            [default: color]
-  --config CONFIG_PATH      Location of the configuration file. Supports glob
-                            pattern of local path and remote URL.  [default:
-                            ~/Library/Application
-                            Support/wrap.py/*.{toml,yaml,yml,json,ini,xml}]
-  --no-config               Ignore all configuration files and only use command
-                            line parameters and environment variables.
-  --show-params             Show all CLI parameters, their provenance, defaults
-                            and value, then exit.
-  --verbosity LEVEL         Either CRITICAL, ERROR, WARNING, INFO, DEBUG.
-                            [default: WARNING]
-  -v, --verbose             Increase the default WARNING verbosity by one level
-                            for each additional repetition of the option.
-                            [default: 0]
-  --version                 Show the version and exit.
-  -h, --help                Show this message and exit.
+                        Strip out all colors and all ANSI codes from output.
+                        [default: color]
+  --config CONFIG_PATH  Location of the configuration file. Supports glob
+                        pattern of local path and remote URL.  [default:
+                        ~/Library/Application
+                        Support/wrap.py/*.{toml,yaml,yml,json,ini,xml}]
+  --no-config           Ignore all configuration files and only use command line
+                        parameters and environment variables.
+  --show-params         Show all CLI parameters, their provenance, defaults and
+                        value, then exit.
+  --table-format [asciidoc|csv|csv-excel|csv-excel-tab|csv-unix|double-grid|double-outline|fancy-grid|fancy-outline|github|grid|heavy-grid|heavy-outline|html|jira|latex|latex-booktabs|latex-longtable|latex-raw|mediawiki|mixed-grid|mixed-outline|moinmoin|orgtbl|outline|pipe|plain|presto|pretty|psql|rounded-grid|rounded-outline|rst|simple|simple-grid|simple-outline|textile|tsv|unsafehtml|vertical|youtrack]
+                        Rendering style of tables.  [default: rounded-outline]
+  --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.  [default:
+                        INFO]
+  -v, --verbose         Increase the default WARNING verbosity by one level for
+                        each additional repetition of the option.  [default: 0]
+  --version             Show the version and exit.
+  -h, --help            Show this message and exit.
 
 Commands:
   aws_sam  AWS Serverless Application Model (SAM) CLI
