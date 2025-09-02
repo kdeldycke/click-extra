@@ -64,6 +64,10 @@ assert "│ CLI_INT_PARAM1   │ 10 " in result.stdout
 assert "│ CLI_INT_PARAM2   │ 555 " in result.stdout
 ```
 
+```{caution}
+Because both options are eager, the order in which they are passed matters. `--no-color` must be passed before `--show-params`, otherwise it will have no effect.
+```
+
 ## Introspecting parameters
 
 If you need to dive deeper into parameters and their values, there is a lot of metadata available in the context. Here are some pointers:

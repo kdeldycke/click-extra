@@ -195,7 +195,7 @@ def _select_table_funcs(
 
     For all formats other than CSV, we relying on Click's ``echo()`` as the print
     function, to benefit from its sensitivity to global colorization settings. Thanks
-    to this the ``--no-color`` option is automatically supported.
+    to this the ``--color``/``--no-color`` option is automatically supported.
 
     For CSV formats we returns the Python standard ``print()`` function, to preserve
     line terminations, avoid extra line returns and keep ANSI coloring.
