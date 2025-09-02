@@ -79,8 +79,14 @@ TableFormat = StrEnum(
         for fmt in sorted(_output_formats)
     },
 )
-"""Enumeration of supported table formats."""
+"""Enumeration of supported table formats.
 
+.. warning::
+    The ``youtrack`` format is missing in action from any official JetBrains
+    documentation. So maybe it has been silently deprecated? Hence my
+    `proposal to remove it in python-tabulate#375
+    <https://github.com/astanin/python-tabulate/issues/375>`_.
+"""
 
 DEFAULT_FORMAT = TableFormat.ROUNDED_OUTLINE
 """Default table format, if none is specified."""
