@@ -20,6 +20,7 @@ import re
 from os.path import sep
 from pathlib import Path
 from textwrap import dedent
+from typing import Sequence
 
 import click
 import pytest
@@ -39,6 +40,7 @@ from click_extra import (
     FloatRange,
     IntRange,
     ParamType,
+    TableFormat,
     Tuple,
     argument,
     echo,
@@ -208,7 +210,11 @@ def test_params_auto_types(invoke, option_decorator):
     }
 
 
-def assert_table_content(output, expected_table):
+def assert_table_content(
+    output: str,
+    expected_table: Sequence[Sequence[str]],
+    table_format: TableFormat | None = None,
+) -> None:
     """Helper to assert the content of a rendered table in the output."""
     # Crudly parse the rendered table from the output.
     extracted_table = []
@@ -223,10 +229,11 @@ def assert_table_content(output, expected_table):
         assert len(expected_strings) == len(ShowParamsOption.TABLE_HEADERS)
         assert extracted_table[index] == expected_strings
 
-    # Check the rendering of the table.
+    # Check the rendering style of the table.
     rendered_table = render_table(
         expected_table,
         headers=ShowParamsOption.TABLE_HEADERS,
+        table_format=table_format,
     )
     assert output == f"{rendered_table}\n"
 

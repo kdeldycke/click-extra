@@ -82,6 +82,10 @@ TableFormat = StrEnum(
 """Enumeration of supported table formats."""
 
 
+DEFAULT_TABLE_FORMAT = TableFormat.ROUNDED_OUTLINE
+"""Default table format, if none is specified."""
+
+
 def _get_csv_dialect(table_format: TableFormat | None = None) -> str:
     """Extract, validate and normalize CSV dialect ID from format.
 
@@ -170,7 +174,7 @@ def _render_tabulate(
     if not headers:
         headers = ()
     if not table_format:
-        table_format = TableFormat.ROUNDED_OUTLINE
+        table_format = DEFAULT_TABLE_FORMAT
     defaults = {
         "disable_numparse": True,
         "numalign": None,
@@ -238,7 +242,7 @@ class TableFormatOption(ExtraOption):
         param_decls: Sequence[str] | None = None,
         # Click choices do not use the enum member values, but their names.
         type=Choice(tuple(i.value for i in TableFormat), case_sensitive=False),
-        default=TableFormat.ROUNDED_OUTLINE.value,
+        default=DEFAULT_TABLE_FORMAT.value,
         expose_value=False,
         help=_("Rendering style of tables."),
         **kwargs,
