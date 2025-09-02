@@ -1,4 +1,4 @@
-# Tutorial
+# {octicon}`mortar-board` Tutorial
 
 This tutorial details how we transformed the [canonical `click` example](https://github.com/pallets/click?tab=readme-ov-file#a-simple-example):
 

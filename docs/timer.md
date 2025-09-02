@@ -1,4 +1,4 @@
-# Timer
+# {octicon}`stopwatch` Timer
 
 ## Option
 

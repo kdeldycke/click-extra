@@ -1,4 +1,4 @@
-# Installation
+# {octicon}`download` Installation
 
 ## With `pip`
 

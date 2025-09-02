@@ -1,4 +1,4 @@
-# Table
+# {octicon}`table` Table
 
 Click Extra provides a way to render tables in the terminal.
 

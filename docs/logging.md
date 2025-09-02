@@ -1,4 +1,4 @@
-# Logging
+# {octicon}`log` Logging
 
 The Python's standard library [`logging` module](https://docs.python.org/3/library/logging) is a bit tricky to use. Click Extra provides pre-configured helpers with sane defaults to simplify the logging configuration.
 

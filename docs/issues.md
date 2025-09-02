@@ -1,4 +1,4 @@
-# Fixed issues
+# {octicon}`bug` Fixed issues
 
 Click Extra was basically born as a collection of patches for unmaintained or slow moving [`click-contrib` addons](https://github.com/click-contrib).
 

@@ -1,4 +1,4 @@
-# Version
+# {octicon}`versions` Version
 
 Click Extra provides its own version option which, compared to [Click's built-in](https://click.palletsprojects.com/en/stable/api/?highlight=version#click.version_option):
 

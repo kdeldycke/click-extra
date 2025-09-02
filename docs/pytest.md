@@ -1,4 +1,4 @@
-# Pytest utilities and fixtures
+# {octicon}`meter` Pytest utilities and fixtures
 
 ````{important}
 For these helpers to work, you need to install ``click_extra``'s additional dependencies from the ``pytest`` extra group:

@@ -1,4 +1,4 @@
-# Parameters
+# {octicon}`tasklist` Parameters
 
 Click Extra provides a set of tools to help you manage parameters in your CLI.
 
