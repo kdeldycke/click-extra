@@ -24,7 +24,6 @@ pygments
 sphinx
 testing
 pytest
-issues
 ```
 
 ```{toctree}
@@ -36,8 +35,9 @@ hidden:
 API <click_extra>
 genindex
 modindex
-todolist
 changelog
+issues
+todolist
 code-of-conduct
 license
 GitHub repository <https://github.com/kdeldycke/click-extra>

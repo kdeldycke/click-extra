@@ -1,4 +1,4 @@
-# {octicon}`shield-check` CLI testing and execution
+# {octicon}`shield-check` CLI testing
 
 ```{todo}
 Write example and tutorial.

@@ -1,4 +1,4 @@
-# {octicon}`sliders` Configuration
+# {octicon}`sliders` Configuration files
 
 The structure of the configuration file is automatically [derived from the
 parameters](parameters.md#parameter-structure) of the CLI and their types. There is no need to manually produce a configuration
