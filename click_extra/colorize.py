@@ -189,7 +189,12 @@ off.
 The key is the name of the variable and the boolean value the value to pass to
 ``--color`` option flag when encountered.
 
-Source: https://github.com/pallets/click/issues/558
+Source:
+
+- https://github.com/pallets/click/issues/558
+- https://github.com/pallets/click/issues/1090
+- https://github.com/pallets/click/issues/1498
+- https://github.com/pallets/click/issues/3022
 """
 
 
