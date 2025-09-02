@@ -41,7 +41,6 @@ from . import (
     Parameter,
     ParamType,
     Style,
-    echo,
     get_current_context,
 )
 from .envvar import param_envvar_ids
@@ -290,14 +289,15 @@ class ParamStructure:
         """List of parameter IDs to exclude from the parameter structure.
 
         Elements of this list are expected to be the fully-qualified ID of the
-        parameter, i.e. the dot-separated ID that is prefixed by the CLI name.
+        parameter. Which is the dot-separated ID that is prefixed by the CLI name,
+        featured in the first column of the table.
 
         Defaults to:
 
         - ``--config`` option, which cannot be used to recursively load another
-            configuration file.
+          configuration file.
         - ``--help``, as it makes no sense to have the configurable file always
-            forces a CLI to show the help and exit.
+          forces a CLI to show the help and exit.
         - ``--show-params`` flag, which is like ``--help`` and stops the CLI execution.
         - ``--version``, which is not a configurable option *per-se*.
 
@@ -454,6 +454,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         # Imported here to avoid circular imports.
         from .colorize import KO, OK, default_theme
         from .config import ConfigOption
+        from .table import print_table
 
         # Exit early if the callback was processed but the option wasn't set.
         if not value:
@@ -590,10 +591,10 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         header_style = Style(bold=True)
         header_labels = tuple(map(header_style, self.TABLE_HEADERS))
 
-        # Prevent circular imports.
-        from .table import render_table
-
-        output = render_table(sorted(table, key=sort_by_depth), headers=header_labels)
-        echo(output, color=ctx.color)
+        # Pick the ready-made print_table() function if available in the context, as
+        # this one will be already configured with the appropriate table format from
+        # --table-format option.
+        print_func = getattr(ctx, "print_table", print_table)
+        print_func(sorted(table, key=sort_by_depth), headers=header_labels)
 
         ctx.exit()

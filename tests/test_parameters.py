@@ -40,18 +40,21 @@ from click_extra import (
     FloatRange,
     IntRange,
     ParamType,
+    ShowParamsOption,
     TableFormat,
     Tuple,
     argument,
     echo,
+    extra_command,
+    extra_group,
     get_app_dir,
     option,
+    render_table,
     search_params,
+    show_params_option,
+    table_format_option,
 )
-from click_extra.decorators import extra_command, extra_group, show_params_option
-from click_extra.parameters import ShowParamsOption
 from click_extra.pytest import command_decorators
-from click_extra.table import render_table
 
 from .test_colorize import HashType
 
@@ -216,7 +219,8 @@ def assert_table_content(
     table_format: TableFormat | None = None,
 ) -> None:
     """Helper to assert the content of a rendered table in the output."""
-    # Crudly parse the rendered table from the output.
+    # Crudly parse the rendered table from the output, as if produced with the
+    # default style.
     extracted_table = []
     for line in output.strip().splitlines()[3:-1]:
         columns = [col.strip() for col in re.split(r"\s*\│\s*", line[1:-1])]
@@ -630,3 +634,108 @@ def test_recurse_subcommands(invoke):
     ]
 
     assert_table_content(result.stdout, expected_table)
+
+
+@pytest.mark.parametrize("table_format", TableFormat)
+def test_standalone_table_rendering(invoke, table_format, assert_output_regex):
+    """Check all rendering styles of the table with standalone ``--show-params`` and
+    ``--table-format`` option.
+    """
+
+    @click.command
+    @table_format_option
+    @show_params_option
+    def show_params():
+        echo("It works!")
+
+    expected_table = [
+        [
+            "show-params.help",
+            "--help",
+            "click.core.Option",
+            "click.types.BoolParamType",
+            "bool",
+            "✘",
+            "✘",
+            "",
+            "",
+            False,
+            "None",
+            "",
+        ],
+        [
+            "show-params.show_params",
+            "--show-params",
+            "click_extra.parameters.ShowParamsOption",
+            "click.types.BoolParamType",
+            "bool",
+            "✘",
+            "✘",
+            "",
+            "",
+            False,
+            "None",
+            "COMMANDLINE",
+        ],
+        [
+            "show-params.table_format",
+            "--table-format [asciidoc|csv|csv-excel|csv-excel-tab|csv-unix|double-grid|double-outline|fancy-grid|fancy-outline|github|grid|heavy-grid|heavy-outline|html|jira|latex|latex-booktabs|latex-longtable|latex-raw|mediawiki|mixed-grid|mixed-outline|moinmoin|orgtbl|outline|pipe|plain|presto|pretty|psql|rounded-grid|rounded-outline|rst|simple|simple-grid|simple-outline|textile|tsv|unsafehtml|vertical|youtrack]",
+            "click_extra.table.TableFormatOption",
+            "click.types.Choice",
+            "str",
+            "✘",
+            "✘",
+            "",
+            "",
+            "'rounded-outline'",
+            "None",
+            "",
+        ],
+    ]
+
+    # Check the default rendering style.
+    result = invoke(show_params, "--show-params")
+    assert result.exit_code == 0
+    assert_table_content(result.stdout, expected_table)
+
+    # Both options are eager, so passing --table-format after --show-params makes it
+    # too late to have an effect and so fallback to default table format.
+    result = invoke(show_params, "--show-params", "--table-format", table_format)
+    assert result.exit_code == 0
+    assert_table_content(result.stdout, expected_table)
+
+    # Check the explicit rendering style of the table.
+    result = invoke(
+        show_params, "--table-format", table_format, "--show-params", color=False
+    )
+    assert result.exit_code == 0
+
+    # --table-format is explicitly set, so its source is COMMANDLINE.
+    expected_table[2][11] = "COMMANDLINE"
+    rendered_table = (
+        render_table(
+            expected_table,
+            headers=ShowParamsOption.TABLE_HEADERS,
+            table_format=table_format,
+        )
+        + "\n"
+    )
+
+    # Compare content line by line to avoid to simplify reporting of differences.
+    output_lines = result.stdout.strip().splitlines()
+    expected_lines = rendered_table.strip().splitlines()
+    assert len(output_lines) == len(expected_lines)
+    for index in range(len(expected_lines)):
+        assert output_lines[index] == expected_lines[index]
+
+    # XXX Click.testing.Result always uses \n line endings, even on Windows.
+    # "\r\n" are replaced by "\n" since the beginning of time:
+    # https://github.com/pallets/click/commit/7360097ec25e89730f46b840aa050467c5a80e9e#diff-e52e4ddd58b7ef887ab03c04116e676f6280b824ab7469d5d3080e5cba4f2128R120
+    # So we can't test the CSV dialects properly.
+    if table_format not in (
+        TableFormat.CSV,
+        TableFormat.CSV_EXCEL,
+        TableFormat.CSV_EXCEL_TAB,
+        TableFormat.CSV_UNIX,
+    ):
+        assert result.stdout == rendered_table

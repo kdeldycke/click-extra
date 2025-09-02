@@ -1,18 +1,72 @@
 # {octicon}`tasklist` Parameters
 
-Click Extra provides a set of tools to help you manage parameters in your CLI.
+Click Extra implements tools to manipulate your CLI's Parameters, Options and Arguments.
 
-Like the magical `--show-params` option, which is a X-ray scanner for your CLI's parameters.
+The cornerstone of these tools is the magical `--show-params` option, which is a X-ray scanner for your CLI's parameters.
 
-## Parameter structure
+## `--show-params` option
 
-```{todo}
-Write example and tutorial.
+Click Extra provides a ready-to-use `--show-params` option, which is enabled by default.
+
+It produces a comprehensive table of all the metadata about each of your CLI parameters, including: their normalized IDs, types, defaults and environment variables. And because it is dynamic, actual values and their sources are evaluated at runtime.
+
+The default `@extra_command` decorator come with the `--show-params` option, so you can call it right away:
+
+```{click:example}
+:emphasize-lines: 3
+from click_extra import extra_command, option, echo
+
+@extra_command
+@option("--int-param1", type=int, default=10)
+@option("--int-param2", type=int, default=555)
+def cli(int_param1, int_param2):
+    echo(f"int_param1 is {int_param1!r}")
+    echo(f"int_param2 is {int_param2!r}")
+```
+
+```{click:run}
+:emphasize-lines: 1
+result = invoke(cli, args=["--int-param1", "3", "--show-params"])
+assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM1\x1b[0m   │ \x1b[32m\x1b[2m\x1b[3m10\x1b[0m " in result.stdout
+assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM2\x1b[0m   │ \x1b[32m\x1b[2m\x1b[3m555\x1b[0m " in result.stdout
+```
+
+See in the rendered table above how `--int-param1` is set to `3`, because it was explicitly set on the command line. While `--int-param2` still gets its value from its default of `555`.
+
+```{hint}
+`--show-params` always displays all parameters, even those marked as not *allowed in conf*. In effect bypassing [its own `excluded_params` argument](#click_extra.parameters.ParamStructure.excluded_params). So you can still see the `--help`, `--version`, `-C`/`--config` and `--show-params` options in the table.
+```
+
+### Table format
+
+The default table produced by `--show-params` can be a bit overwhelming, so you can change its rendering with the [`--table-format` option](table.md#table-formats):
+
+```{click:run}
+:emphasize-lines: 1
+result = invoke(cli, args=["--table-format", "vertical", "--show-params"])
+assert "***************************[ 1. row ]***************************\n" in result.stdout
+assert "\x1b[1mEnv. vars.\x1b[0m       | \x1b[33m\x1b[2mCLI_INT_PARAM1\x1b[0m\n" in result.stdout
+assert "\x1b[1mDefault\x1b[0m          | \x1b[32m\x1b[2m\x1b[3m10\x1b[0m\n" in result.stdout
+```
+
+```{caution}
+Because both options are eager, the order in which they are passed matters. `--table-format` must be passed before `--show-params`, otherwise it will have no effect.
+```
+
+### Color highlighting
+
+By default, the table produced by `--show-params` is colorized to highlight important bits. If you do not like colors, you can disable them with the [`--no-color` option](colorize.md#color-option):
+
+```{click:run}
+:emphasize-lines: 1
+result = invoke(cli, args=["--no-color", "--show-params"])
+assert "│ CLI_INT_PARAM1   │ 10 " in result.stdout
+assert "│ CLI_INT_PARAM2   │ 555 " in result.stdout
 ```
 
 ## Introspecting parameters
 
-If for any reason you need to dive into parameters and their values, there is a lot of intermediate and metadata available in the context. Here are some pointers:
+If you need to dive deeper into parameters and their values, there is a lot of metadata available in the context. Here are some pointers:
 
 ```{code-block} python
 :emphasize-lines: 13-15
@@ -72,35 +126,10 @@ Loaded, default values:    {'dummy_flag': True, 'my_list': ['pip', 'npm', 'gem']
 Values passed to function: {'dummy_flag': True, 'my_list': ('pip', 'npm', 'gem')}
 ```
 
-## `--show-params` option
+## Parameter structure
 
-Click Extra provides a ready-to-use `--show-params` option, which is enabled by default.
-
-It produces a comprehensive table of your CLI parameters, normalized IDs, types and corresponding environment variables. And because it dynamiccaly print their default value, actual value and its source, it is a practical tool for users to introspect and debug the parameters of a CLI.
-
-See how the default `@extra_command` decorator come with the default `--show-params` option and the result of its use:
-
-```{click:example}
-:emphasize-lines: 3
-from click_extra import extra_command, option, echo
-
-@extra_command
-@option("--int-param1", type=int, default=10)
-@option("--int-param2", type=int, default=555)
-def cli(int_param1, int_param2):
-    echo(f"int_param1 is {int_param1!r}")
-    echo(f"int_param2 is {int_param2!r}")
-```
-
-```{click:run}
-result = invoke(cli, args=["--verbosity", "Debug", "--int-param1", "3", "--show-params"])
-assert "click_extra.raw_args: ['--verbosity', 'Debug', '--int-param1', '3', '--show-params']" in result.stderr
-assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM1\x1b[0m   │ \x1b[32m\x1b[2m\x1b[3m10\x1b[0m " in result.stdout
-assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM2\x1b[0m   │ \x1b[32m\x1b[2m\x1b[3m555\x1b[0m " in result.stdout
-```
-
-```{note}
-Notice how `--show-params` is showing all parameters, even those provided to the `excluded_params` argument. You can still see the `--help`, `--version`, `-C`/`--config` and `--show-params` options in the table.
+```{todo}
+Write example and tutorial.
 ```
 
 ## `click_extra.parameters` API

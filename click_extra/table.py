@@ -157,6 +157,9 @@ def _render_vertical(
     for index, row in enumerate(table_data):
         table_lines.append(f"{sep}[ {index + 1}. row ]{sep}")
         for cell_label, cell_value in zip(padded_headers, row):
+            # Like other formats, render None as an empty string.
+            if cell_value is None:
+                cell_value = ""
             table_lines.append(f"{cell_label} | {cell_value}")
     return "\n".join(table_lines)
 
@@ -188,7 +191,18 @@ def _render_tabulate(
 def _select_table_funcs(
     table_format: TableFormat | None = None,
 ) -> tuple[callable, callable]:
-    """Returns the rendering and print functions for the given ``table_format``."""
+    """Returns the rendering and print functions for the given ``table_format``.
+
+    For all formats other than CSV, we relying on Click's ``echo()`` as the print
+    function, to benefit from its sensitivity to global colorization settings. Thanks
+    to this the ``--no-color`` option is automatically supported.
+
+    For CSV formats we returns the Python standard ``print()`` function, to preserve
+    line terminations, avoid extra line returns and keep ANSI coloring.
+
+    .. todo::
+        Consider to always strips ANSI coloring for CSV formats.
+    """
     print_func = echo
     match table_format:
         case (
@@ -197,8 +211,6 @@ def _select_table_funcs(
             | TableFormat.CSV_EXCEL_TAB
             | TableFormat.CSV_UNIX
         ):
-            # Use print instead of echo to conserve CSV dialect's line termination,
-            # avoid extra line returns and keep ANSI coloring.
             print_func = partial(print, end="")
             return partial(_render_csv, table_format=table_format), print_func  # type: ignore[assignment]
         case TableFormat.VERTICAL:
@@ -244,6 +256,7 @@ class TableFormatOption(ExtraOption):
         type=Choice(tuple(i.value for i in TableFormat), case_sensitive=False),
         default=DEFAULT_TABLE_FORMAT.value,
         expose_value=False,
+        is_eager=True,
         help=_("Rendering style of tables."),
         **kwargs,
     ) -> None:
@@ -258,6 +271,7 @@ class TableFormatOption(ExtraOption):
             default=default,
             expose_value=expose_value,
             help=help,
+            is_eager=is_eager,
             **kwargs,
         )
 
