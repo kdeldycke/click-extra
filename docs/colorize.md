@@ -62,8 +62,7 @@ Here is a little CLI to demonstrate the rendering of colors and styles, based on
 
 ```{click:example}
 from click import command
-from click_extra import Color, style, Choice, option
-from click_extra.table import render_table
+from click_extra import Color, style, Choice, option, print_table
 
 all_styles = [
     "bold",
@@ -107,7 +106,7 @@ def render_matrix(matrix):
                 )
             table.append(line)
 
-    render_table(table, headers=table_headers)
+    print_table(table, headers=table_headers)
 ```
 
 ```{click:run}
