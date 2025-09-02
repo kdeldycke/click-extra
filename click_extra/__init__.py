@@ -80,7 +80,12 @@ from .parameters import (  # noqa: E402
     ShowParamsOption,
     search_params,
 )
-from .table import TableFormatOption  # noqa: E402
+from .table import (  # noqa: E402
+    TableFormat,
+    TableFormatOption,
+    print_table,
+    render_table,
+)
 from .telemetry import TelemetryOption  # noqa: E402
 from .testing import ExtraCliRunner  # noqa: E402
 from .timer import TimerOption  # noqa: E402
@@ -173,8 +178,10 @@ __all__ = [
     "Path",  # noqa: F405
     "path",  # noqa: F405
     "pause",  # noqa: F405
+    "print_table",  # noqa: F405
     "progressbar",  # noqa: F405
     "prompt",  # noqa: F405
+    "render_table",  # noqa: F405
     "search_params",  # noqa: F405
     "secho",  # noqa: F405
     "Section",  # noqa: F405
@@ -185,6 +192,7 @@ __all__ = [
     "Style",  # noqa: F405
     "style",  # noqa: F405
     "table_format_option",  # noqa: F405
+    "TableFormat",  # noqa: F405
     "TableFormatOption",  # noqa: F405
     "telemetry_option",  # noqa: F405
     "TelemetryOption",  # noqa: F405

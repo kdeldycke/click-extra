@@ -61,7 +61,7 @@ This has been proposed upstream at `python-tabulate#261
 <https://github.com/astanin/python-tabulate/pull/261>`_.
 """
 
-output_formats: frozenset[str] = frozenset(
+_output_formats: frozenset[str] = frozenset(
     # Formats from tabulate.
     list(tabulate._table_formats)  # type: ignore[attr-defined]
     # Formats inherited from previous legacy cli-helpers dependency.
@@ -76,69 +76,101 @@ TableFormat = StrEnum(
     "TableFormat",
     {
         fmt.replace("-", "_").upper(): fmt.replace("_", "-").lower()
-        for fmt in sorted(output_formats)
+        for fmt in sorted(_output_formats)
     },
 )
 """Enumeration of supported table formats."""
 
 
-def get_csv_dialect(table_format: TableFormat) -> str | None:
-    """Extract, validate and normalize CSV dialect ID from format."""
-    format_id = table_format.value
-    assert format_id.startswith("csv")
-    # Defaults to excel rendering, like in Python's csv module.
+def _get_csv_dialect(table_format: TableFormat | None = None) -> str:
+    """Extract, validate and normalize CSV dialect ID from format.
+
+    Defaults to ``excel`` rendering, like in Python's csv module.
+    """
     dialect = "excel"
-    parts = format_id.split("-", 1)
-    assert parts[0] == "csv"
-    if len(parts) > 1:
-        dialect = parts[1]
+
+    # Extract dialect ID from table format, if any.
+    if table_format:
+        format_id = table_format.value
+        assert format_id.startswith("csv")
+        parts = format_id.split("-", 1)
+        assert parts[0] == "csv"
+        if len(parts) > 1:
+            dialect = parts[1]
+
+    csv.get_dialect(dialect)  # Validate dialect.
     return dialect
 
 
-def render_csv(
-    tabular_data: Sequence[Sequence[str]],
-    headers: Sequence[str] = (),
+def _render_csv(
+    table_data: Sequence[Sequence[str]],
+    headers: Sequence[str] | None = None,
+    table_format: TableFormat | None = None,
     **kwargs,
-) -> None:
-    # StringIO is used to capture CSV output in memory. Hard-coded to default to UTF-8:
-    # https://github.com/python/cpython/blob/9291095a746cbd266a3681a26e10989def6f8629/Lib/_pyio.py#L2652
+) -> str:
+    """Render a table in CSV format.
+
+    .. note::
+        StringIO is used to capture CSV output in memory. `Hard-coded to default to
+        UTF-8 <https://github.com/python/cpython/blob/9291095/Lib/_pyio.py#L2652>`_.
+    """
+    defaults = {"dialect": _get_csv_dialect(table_format)}
+    defaults.update(kwargs)
+
     with StringIO(newline="") as output:
-        writer = csv.writer(output, **kwargs)
-        writer.writerow(headers)
-        writer.writerows(tabular_data)
-        # Use print instead of echo to conserve CSV dialect's line termination,
-        # avoid extra line returns and keep ANSI coloring.
-        print(output.getvalue(), end="")
+        writer = csv.writer(output, **defaults)
+        if headers:
+            writer.writerow(headers)
+        writer.writerows(table_data)
+        return output.getvalue()
 
 
-def render_vertical(
-    tabular_data: Sequence[Sequence[str]],
-    headers: Sequence[str] = (),
+def _render_vertical(
+    table_data: Sequence[Sequence[str]],
+    headers: Sequence[str] | None = None,
+    sep_character: str = "*",
+    sep_length: int = 27,
     **kwargs,
-) -> None:
+) -> str:
     """Re-implements ``cli-helpers``'s vertical table layout.
 
-    See `cli-helpers source for reference
-    <https://github.com/dbcli/cli_helpers/blob/v2.3.0/cli_helpers/tabular_output/vertical_table_adapter.py>`_.
+    .. note::
+        See `cli-helpers source code for reference
+        <https://github.com/dbcli/cli_helpers/blob/v2.7.0/cli_helpers/tabular_output/vertical_table_adapter.py>`_.
+
+    .. caution::
+        This layout is `hard-coded to 27 asterisks to separate rows
+        <https://github.com/dbcli/cli_helpers/blob/c34ae9f/cli_helpers/tabular_output/vertical_table_adapter.py#L34>`_,
+        as in the original implementation.
     """
+    if not headers:
+        headers = []
     header_len = max(len(h) for h in headers)
     padded_headers = [h.ljust(header_len) for h in headers]
 
-    for index, row in enumerate(tabular_data):
-        # 27 has been hardcoded in cli-helpers:
-        # https://github.com/dbcli/cli_helpers/blob/4e2c417/cli_helpers/tabular_output/vertical_table_adapter.py#L34
-        echo(f"{'*' * 27}[ {index + 1}. row ]{'*' * 27}")
+    table_lines = []
+    sep = sep_character * sep_length
+    for index, row in enumerate(table_data):
+        table_lines.append(f"{sep}[ {index + 1}. row ]{sep}")
         for cell_label, cell_value in zip(padded_headers, row):
-            echo(f"{cell_label} | {cell_value}")
+            table_lines.append(f"{cell_label} | {cell_value}")
+    return "\n".join(table_lines)
 
 
-def render_table(
-    tabular_data: Sequence[Sequence[str]],
-    headers: Sequence[str] = (),
-    table_format: TableFormat = TableFormat.ROUNDED_OUTLINE,
+def _render_tabulate(
+    table_data: Sequence[Sequence[str]],
+    headers: Sequence[str] | None = None,
+    table_format: TableFormat | None = None,
     **kwargs,
-) -> None:
-    """Render a table with tabulate and use ``echo`` to print it."""
+) -> str:
+    """Render a table with ``tabulate``.
+
+    Default format is ``TableFormat.ROUNDED_OUTLINE``.
+    """
+    if not headers:
+        headers = ()
+    if not table_format:
+        table_format = TableFormat.ROUNDED_OUTLINE
     defaults = {
         "disable_numparse": True,
         "numalign": None,
@@ -146,7 +178,49 @@ def render_table(
         "tablefmt": table_format.value.replace("-", "_"),
     }
     defaults.update(kwargs)
-    echo(tabulate.tabulate(tabular_data, headers, **defaults))  # type: ignore[arg-type]
+    return tabulate.tabulate(table_data, headers, **defaults)  # type: ignore[arg-type]
+
+
+def _select_table_funcs(
+    table_format: TableFormat | None = None,
+) -> tuple[callable, callable]:
+    """Returns the rendering and print functions for the given ``table_format``."""
+    print_func = echo
+    match table_format:
+        case (
+            TableFormat.CSV
+            | TableFormat.CSV_EXCEL
+            | TableFormat.CSV_EXCEL_TAB
+            | TableFormat.CSV_UNIX
+        ):
+            # Use print instead of echo to conserve CSV dialect's line termination,
+            # avoid extra line returns and keep ANSI coloring.
+            print_func = partial(print, end="")
+            return partial(_render_csv, table_format=table_format), print_func  # type: ignore[assignment]
+        case TableFormat.VERTICAL:
+            return _render_vertical, print_func  # type: ignore[assignment]
+        case _:
+            return partial(_render_tabulate, table_format=table_format), print_func
+
+
+def render_table(
+    table_data: Sequence[Sequence[str]],
+    headers: Sequence[str] | None = None,
+    table_format: TableFormat | None = None,
+    **kwargs,
+) -> str:
+    render_func, _ = _select_table_funcs(table_format)
+    return render_func(table_data, headers, **kwargs)
+
+
+def print_table(
+    table_data: Sequence[Sequence[str]],
+    headers: Sequence[str] | None = None,
+    table_format: TableFormat | None = None,
+    **kwargs,
+) -> None:
+    render_func, print_func = _select_table_funcs(table_format)
+    return print_func(render_func(table_data, headers, **kwargs))
 
 
 class TableFormatOption(ExtraOption):
@@ -199,7 +273,6 @@ class TableFormatOption(ExtraOption):
         The rendering style of the table is normalized to one of the supported
         ``TableFormat`` enum.
         """
-        # TODO: move this normalization logic into the Enum's _missing_() method?
         table_format = None
         if isinstance(value, TableFormat):
             table_format = value
@@ -216,20 +289,4 @@ class TableFormatOption(ExtraOption):
                     break
 
         ctx.meta["click_extra.table_format"] = table_format
-
-        match table_format:
-            case None:
-                raise ValueError("Table format should not be None here.")
-            case (
-                TableFormat.CSV
-                | TableFormat.CSV_EXCEL
-                | TableFormat.CSV_EXCEL_TAB
-                | TableFormat.CSV_UNIX
-            ):
-                render_func = partial(render_csv, dialect=get_csv_dialect(table_format))
-            case TableFormat.VERTICAL:
-                render_func = render_vertical  # type: ignore[assignment]
-            case _:
-                render_func = partial(render_table, table_format=table_format)
-
-        ctx.print_table = render_func  # type: ignore[attr-defined]
+        ctx.print_table = partial(print_table, table_format=table_format)  # type: ignore[attr-defined]

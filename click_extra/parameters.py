@@ -34,7 +34,6 @@ from unittest.mock import patch
 
 import click
 from deepmerge import always_merger
-from tabulate import tabulate
 
 from . import (
     Command,
@@ -591,12 +590,10 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         header_style = Style(bold=True)
         header_labels = tuple(map(header_style, self.TABLE_HEADERS))
 
-        output = tabulate(
-            sorted(table, key=sort_by_depth),
-            headers=header_labels,
-            tablefmt="rounded_outline",
-            disable_numparse=True,
-        )
+        # Prevent circular imports.
+        from .table import render_table
+
+        output = render_table(sorted(table, key=sort_by_depth), headers=header_labels)
         echo(output, color=ctx.color)
 
         ctx.exit()

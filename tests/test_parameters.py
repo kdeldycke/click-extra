@@ -24,7 +24,6 @@ from textwrap import dedent
 import click
 import pytest
 from extra_platforms import is_windows
-from tabulate import tabulate
 
 from click_extra import (
     BOOL,
@@ -50,6 +49,7 @@ from click_extra import (
 from click_extra.decorators import extra_command, extra_group, show_params_option
 from click_extra.parameters import ShowParamsOption
 from click_extra.pytest import command_decorators
+from click_extra.table import render_table
 
 from .test_colorize import HashType
 
@@ -212,7 +212,7 @@ def assert_table_content(output, expected_table):
     """Helper to assert the content of a rendered table in the output."""
     # Crudly parse the rendered table from the output.
     extracted_table = []
-    for line in output.splitlines()[3:-1]:
+    for line in output.strip().splitlines()[3:-1]:
         columns = [col.strip() for col in re.split(r"\s*\│\s*", line[1:-1])]
         assert len(columns) == len(ShowParamsOption.TABLE_HEADERS)
         extracted_table.append(tuple(columns))
@@ -224,11 +224,9 @@ def assert_table_content(output, expected_table):
         assert extracted_table[index] == expected_strings
 
     # Check the rendering of the table.
-    rendered_table = tabulate(
+    rendered_table = render_table(
         expected_table,
         headers=ShowParamsOption.TABLE_HEADERS,
-        tablefmt="rounded_outline",
-        disable_numparse=True,
     )
     assert output == f"{rendered_table}\n"
 

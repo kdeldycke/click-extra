@@ -32,7 +32,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from .table import tabulate
+from .table import TableFormat, render_table
 
 
 def replace_content(
@@ -94,16 +94,15 @@ def generate_lexer_table() -> str:
                 f"{', '.join(f'`{a}`' for a in sorted(ansi_lexer.aliases))}",
             ],
         )
-    return tabulate.tabulate(
+    return render_table(
         table,
+        table_format=TableFormat.GITHUB,
         headers=[
             "Original Lexer",
             "Original IDs",
             "ANSI variants",
         ],
-        tablefmt="github",
         colalign=["left", "left", "left"],
-        disable_numparse=True,
     )
 
 

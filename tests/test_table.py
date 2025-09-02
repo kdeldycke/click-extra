@@ -34,17 +34,17 @@ from click_extra.table import TableFormat
 def test_unrecognized_format(invoke, cmd_decorator, cmd_type):
     @cmd_decorator
     @table_format_option
-    def tabulate_cli1():
+    def table_cli():
         echo("It works!")
 
-    result = invoke(tabulate_cli1, "--table-format", "random", color=False)
+    result = invoke(table_cli, "--table-format", "random", color=False)
     assert result.exit_code == 2
     assert not result.stdout
 
     group_help = " COMMAND [ARGS]..." if "group" in cmd_type else ""
     assert result.stderr == (
-        f"Usage: tabulate-cli1 [OPTIONS]{group_help}\n"
-        "Try 'tabulate-cli1 --help' for help.\n\n"
+        f"Usage: table-cli [OPTIONS]{group_help}\n"
+        "Try 'table-cli --help' for help.\n\n"
         "Error: Invalid value for '--table-format': 'random' is not one of "
         "'asciidoc', 'csv', 'csv-excel', 'csv-excel-tab', 'csv-unix', 'double-grid', "
         "'double-outline', 'fancy-grid', 'fancy-outline', 'github', 'grid', "
@@ -530,7 +530,7 @@ def test_all_table_rendering(
     @cmd_decorator
     @option_decorator
     @pass_context
-    def tabulate_cli2(ctx):
+    def table_cli(ctx):
         format_id = ctx.meta["click_extra.table_format"]
         echo(f"Table format: {format_id}")
 
@@ -538,7 +538,7 @@ def test_all_table_rendering(
         headers = ("day", "temperature")
         ctx.print_table(data, headers)
 
-    result = invoke(tabulate_cli2, "--table-format", format_name)
+    result = invoke(table_cli, "--table-format", format_name)
     assert result.exit_code == 0
     if not is_windows():
         expected = expected.replace("\r\n", "\n")
