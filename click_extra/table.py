@@ -82,7 +82,7 @@ TableFormat = StrEnum(
 """Enumeration of supported table formats."""
 
 
-DEFAULT_TABLE_FORMAT = TableFormat.ROUNDED_OUTLINE
+DEFAULT_FORMAT = TableFormat.ROUNDED_OUTLINE
 """Default table format, if none is specified."""
 
 
@@ -177,7 +177,7 @@ def _render_tabulate(
     if not headers:
         headers = ()
     if not table_format:
-        table_format = DEFAULT_TABLE_FORMAT
+        table_format = DEFAULT_FORMAT
     defaults = {
         "disable_numparse": True,
         "numalign": None,
@@ -254,7 +254,7 @@ class TableFormatOption(ExtraOption):
         param_decls: Sequence[str] | None = None,
         # Click choices do not use the enum member values, but their names.
         type=Choice(tuple(i.value for i in TableFormat), case_sensitive=False),
-        default=DEFAULT_TABLE_FORMAT.value,
+        default=DEFAULT_FORMAT.value,
         expose_value=False,
         is_eager=True,
         help=_("Rendering style of tables."),
