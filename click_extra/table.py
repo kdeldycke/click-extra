@@ -209,6 +209,7 @@ def render_table(
     table_format: TableFormat | None = None,
     **kwargs,
 ) -> str:
+    """Render a table and return it as a string."""
     render_func, _ = _select_table_funcs(table_format)
     return render_func(table_data, headers, **kwargs)
 
@@ -219,6 +220,7 @@ def print_table(
     table_format: TableFormat | None = None,
     **kwargs,
 ) -> None:
+    """Render a table and print it to the console."""
     render_func, print_func = _select_table_funcs(table_format)
     return print_func(render_func(table_data, headers, **kwargs))
 
@@ -263,12 +265,14 @@ class TableFormatOption(ExtraOption):
     ) -> None:
         """Save table format in the context, and adds ``print_table()`` to it.
 
-        The ``print_table(tabular_data, headers)`` method added to the context is a
-        ready-to-use helper that takes for parameters:
+        The ``print_table(table_data, headers, **kwargs)`` method added to the context
+        is a ready-to-use helper that takes for parameters:
 
-        - ``tabular_data``: a 2-dimensional iterable of iterables for rows and cells
+        - ``table_data``: a 2-dimensional iterable of iterables for rows and cells
           values,
-        - ``headers``: a list of string to be used as column headers.
+        - ``headers``: a list of string to be used as column headers,
+        - ``**kwargs``: any extra keyword argument supported by the underlying
+          table rendering function.
 
         The rendering style of the table is normalized to one of the supported
         ``TableFormat`` enum.
