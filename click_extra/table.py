@@ -88,6 +88,32 @@ TableFormat = StrEnum(
     <https://github.com/astanin/python-tabulate/issues/375>`_.
 """
 
+MARKUP_FORMATS = {
+    TableFormat.ASCIIDOC,
+    TableFormat.CSV,
+    TableFormat.CSV_EXCEL,
+    TableFormat.CSV_EXCEL_TAB,
+    TableFormat.CSV_UNIX,
+    TableFormat.GITHUB,
+    TableFormat.HTML,
+    TableFormat.JIRA,
+    TableFormat.LATEX,
+    TableFormat.LATEX_BOOKTABS,
+    TableFormat.LATEX_LONGTABLE,
+    TableFormat.LATEX_RAW,
+    TableFormat.MEDIAWIKI,
+    TableFormat.MOINMOIN,
+    TableFormat.ORGTBL,
+    TableFormat.PIPE,
+    TableFormat.RST,
+    TableFormat.TEXTILE,
+    TableFormat.TSV,
+    TableFormat.UNSAFEHTML,
+    TableFormat.YOUTRACK,
+}
+"""Subset of table formats that are considered as markup rendering.
+"""
+
 DEFAULT_FORMAT = TableFormat.ROUNDED_OUTLINE
 """Default table format, if none is specified."""
 

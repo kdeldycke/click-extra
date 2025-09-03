@@ -12,6 +12,7 @@
 - Swap `Class` and `Spec.` columns in `--show-params` output.
 - Remove the `-C` short option associated with `--config`.
 - Remove the `-t` short option associated with `--table-format`.
+- Classify table formats into two categories: markup formats and plain-text formats.
 - Rename all table format identifiers to use dashes instead of underscores:
   - `double_grid` → `double-grid`
   - `double_outline` → `double-outline`
