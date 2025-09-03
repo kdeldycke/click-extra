@@ -93,7 +93,7 @@ They're divided in 2 categories:
 | `fancy-grid` | Grid with Unicode box-drawing characters | `python-tabulate` | ❌ |
 | `fancy-outline` | Outline with Unicode box-drawing characters | `python-tabulate` | ❌ |
 | `github` | [GitHub-flavored Markdown table](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-tables) | `python-tabulate` | ✅ |
-| `grid` | Grid table with ASCII characters | `python-tabulate` | ❌ |
+| `grid` | Grid table with ASCII characters, also [supported by Pandoc](https://pandoc.org/MANUAL.html#extension-grid_tables) | `python-tabulate` | ❌ |
 | `heavy-grid` | Heavy-line grid table | `python-tabulate` | ❌ |
 | `heavy-outline` | Heavy-line outline table | `python-tabulate` | ❌ |
 | `html` | [HTML table](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/table) | `python-tabulate` | ✅ |
@@ -116,7 +116,7 @@ They're divided in 2 categories:
 | `rounded-grid` | Rounded grid table | `python-tabulate` | ❌ |
 | `rounded-outline` | Rounded outline table | `python-tabulate` | ❌ |
 | `rst` | [reStructuredText grid table](https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#grid-tables) | `python-tabulate` | ✅ |
-| `simple` | Simple table with spaces | `python-tabulate` | ❌ |
+| `simple` | Simple table with spaces, also [supported by Pandoc](https://pandoc.org/MANUAL.html#extension-simple_tables) | `python-tabulate` | ❌ |
 | `simple-grid` | Simple grid table | `python-tabulate` | ❌ |
 | `simple-outline` | Simple outline table | `python-tabulate` | ❌ |
 | `textile` | [Textile markup](https://textile-lang.com/doc/tables) | `python-tabulate` | ✅ |
