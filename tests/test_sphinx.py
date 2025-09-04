@@ -25,9 +25,16 @@ from sphinx.application import Sphinx
 from sphinx.util.docutils import docutils_namespace
 
 
-@pytest.fixture
-def sphinx_app():
-    """Create a real Sphinx application for testing."""
+@pytest.fixture(params=["rst", "myst"])
+def sphinx_app(request):
+    """Create a Sphinx application for testing.
+
+    Args:
+        request.param: Either ``rst`` for reStructuredText only,
+                      or ``myst`` for MyST Markdown support.
+    """
+    format_type = request.param
+
     with tempfile.TemporaryDirectory() as tmpdir:
         srcdir = Path(tmpdir) / "source"
         outdir = Path(tmpdir) / "build"
@@ -37,13 +44,20 @@ def sphinx_app():
         srcdir.mkdir()
         outdir.mkdir()
 
-        # Create minimal conf.py.
-        (srcdir / "conf.py").write_text(
-            dedent("""\
-            master_doc = 'index'
-            extensions = ['click_extra.sphinx']
-            """)
+        # Sphinx's configuration is Python code.
+        conf = {
+            "master_doc": "index",
+            "extensions": ["click_extra.sphinx"],
+        }
+        if format_type == "myst":
+            conf["extensions"].append("myst_parser")
+            conf["myst_enable_extensions"] = ["colon_fence"]
+
+        # Write the conf.py file.
+        config_content = "\n".join(
+            f"{key} = {repr(value)}" for key, value in conf.items()
         )
+        (srcdir / "conf.py").write_text(config_content)
 
         with docutils_namespace():
             app = Sphinx(
@@ -55,14 +69,23 @@ def sphinx_app():
                 verbosity=0,
                 warning=None,
             )
+            # Add format type as an attribute for easy access in tests.
+            app._test_format = format_type
             yield app
 
 
-def build_sphinx_document(sphinx_app: Sphinx, rst_content: str) -> str | None:
-    """Build a Sphinx document with the given RST content and return the HTML output."""
-    # Write the RST content to index.rst.
-    index_file = Path(sphinx_app.srcdir) / "index.rst"
-    index_file.write_text(rst_content)
+def build_sphinx_document(sphinx_app: Sphinx, content: str) -> str | None:
+    """Build a Sphinx document with content and return the HTML output.
+
+    Automatically detects the format from the app configuration and uses
+    the appropriate file extension (.rst or .md).
+    """
+    # Determine file extension based on app configuration.
+    assert hasattr(sphinx_app, "_test_format")
+    file_extension = ".md" if sphinx_app._test_format == "myst" else ".rst"
+
+    index_file = Path(sphinx_app.srcdir) / f"index{file_extension}"
+    index_file.write_text(content)
 
     # Build the documentation.
     sphinx_app.build()
@@ -84,28 +107,51 @@ def test_sphinx_extension_setup(sphinx_app):
     assert "run" in sphinx_app.env.get_domain("click").directives
 
 
-def test_simple_rst_directives(sphinx_app):
-    """Test a minimal reStructuredText document to check everything works."""
-    rst_content = dedent("""\
-        Test Document
-        =============
+def test_simple_directives(sphinx_app):
+    """Test minimal documents with directives in both RST and MyST formats."""
+    format_type = sphinx_app._test_format
 
-        This is a test document.
+    if format_type == "rst":
+        content = dedent("""\
+            Test Document
+            =============
 
-        .. click:example::
+            This is a test document.
 
-           import click
+            .. click:example::
 
-           @click.command()
-           def simple():
-               click.echo("It works!")
+                import click
 
-        .. click:run::
+                @click.command()
+                def simple():
+                    click.echo("It works!")
 
-           invoke(simple, [])
-    """)
+            .. click:run::
 
-    html_output = build_sphinx_document(sphinx_app, rst_content)
+                invoke(simple, [])
+        """)
+    elif format_type == "myst":
+        content = dedent("""\
+            # Test Document
+
+            This is a test document.
+
+            ```{click:example}
+            import click
+
+            @click.command()
+            def simple():
+                click.echo("It works!")
+            ```
+
+            ```{click:run}
+            invoke(simple, [])
+            ```
+        """)
+    else:
+        pytest.fail(f"Unknown format type: {format_type}")
+
+    html_output = build_sphinx_document(sphinx_app, content)
 
     assert html_output is not None
     assert "<h1>Test Document" in html_output
