@@ -29,7 +29,7 @@
   - `rounded_outline` → `rounded-outline`
   - `simple_grid` → `simple-grid`
   - `simple_outline` → `simple-outline`
-- Fix display in `--show-params` of parameters sharing the same name but in different commands.
+- Fix display in `--show-params` for parameters sharing the same name.
 - Fix detection in the `--version` option of the module in which the user's CLI is implemented.
 - Rename `click_extra.tabulate` namespace to `click_extra.table`.
 - Expose `click._utils.UNSET` and `click.logging.LogLevel` at the root `click_extra` module.
