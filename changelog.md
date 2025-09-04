@@ -35,6 +35,7 @@
 - Expose `click._utils.UNSET` and `click.logging.LogLevel` at the root `click_extra` module.
 - Replace unmaintained `mergedeep` dependency by `deepmerge`.
 - Mark Python 3.14-dev tests as unstable again, because of `PyYAML`.
+- Render GitHub-Flavored Markdown admonitions in Sphinx.
 
 ## [5.1.1 (2025-08-24)](https://github.com/kdeldycke/click-extra/compare/v5.1.0...v5.1.1)
 
