@@ -40,6 +40,7 @@ except ImportError:
         "You need to install click_extra[sphinx] dependency group to use this module."
     )
 
+import ast
 import contextlib
 import shlex
 import subprocess
@@ -202,34 +203,67 @@ class ExampleRunner(ExtraCliRunner):
         output_lines.extend(result.output.splitlines())
         return result
 
-    def declare_example(self, source_code: str, location: str) -> None:
+    def declare_example(self, directive: SphinxDirective) -> None:
         """Execute the given code, adding it to the runner's namespace."""
+        source_code = directive.block_text
+        # Get the user-friendly location string as provided by Sphinx.
+        location = directive.get_location()
+
         with patch_modules():
             code = compile(source_code, location, "exec")
             exec(code, self.namespace)
 
-    def run_example(self, source_code: str, location: str) -> list[str]:
-        """Run commands by executing the given code, returning the lines
-        of input and output. The code should be a series of the
-        following functions:
+    def run_example(self, directive: SphinxDirective) -> list[str]:
+        """Execute the given ``source_code``.
 
-        - :meth:`invoke`: Invoke a command, adding env vars, input,
-          and output to the output.
-        - :meth:`isolated_filesystem`: A context manager that changes
-          to a temporary directory while executing the block.
+        Returns a simulation of terminaml execution, including a mix of input, output,
+        prompts and tracebacks.
+
+        The execution context is augmented, so you can refer directly to these
+        functions in the provided ``source_code``:
+
+        - :meth:`invoke()`: which is the same as :meth:`ExtraCliRunner.invoke`
+        - :meth:`isolated_filesystem()`: A context manager that changes to a temporary
+          directory while executing the block.
+
+        If any local variable in the provided ``source_code`` conflicts with these
+        functions, a :class:`RuntimeError` is raised to help you pinpoint the issue.
         """
-        code = compile(source_code, location, "exec")
-        buffer: list[str] = []
-        invoke = partial(self.invoke, _output_lines=buffer)
+        source_code = directive.block_text
+        # Get the user-friendly location string as provided by Sphinx.
+        location = directive.get_location()
 
-        exec(
-            code,
-            self.namespace,
-            {
-                "invoke": invoke,
-                "isolated_filesystem": self.isolated_filesystem,
-            },
-        )
+        buffer: list[str] = []
+
+        # Functions available as local variables when executing the code.
+        local_vars = {
+            "invoke": partial(self.invoke, _output_lines=buffer),
+            "isolated_filesystem": self.isolated_filesystem,
+        }
+
+        # Check for local variable conflicts.
+        tree = ast.parse(source_code, location)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+                if node.id in local_vars:
+                    # Get the source lines for better error reporting.
+                    source_lines = source_code.splitlines()
+                    # Get the line number relative to the source code.
+                    python_lineno = node.lineno
+                    python_line = source_lines[python_lineno - 1]
+                    markdown_lineno = (
+                        directive.lineno + directive.content_offset + python_lineno
+                    )
+                    raise RuntimeError(
+                        f"Local variable {node.id!r} at "
+                        f"{location}:{directive.name}:{markdown_lineno} conflicts with "
+                        f"the one automaticcaly provided by the {directive.name} "
+                        "directive.\n"
+                        f"Line: {python_line}"
+                    )
+
+        code = compile(source_code, location, "exec")
+        exec(code, self.namespace, local_vars)
         return buffer
 
 
@@ -381,7 +415,7 @@ class ClickDirective(SphinxDirective):
             f"{self.runner!r} does not have a function named {self.runner_func_id!r}."
         )
         runner_func = getattr(self.runner, self.runner_func_id)
-        results = runner_func("\n".join(self.content), self.get_location())
+        results = runner_func(self)
 
         # If neither source code nor results are requested, we don't render anything.
         if not self.show_source and not self.show_results:
@@ -401,7 +435,7 @@ class ClickDirective(SphinxDirective):
         # Convert code block lines to a Docutils node tree.
         # The section element is the main unit of hierarchy for Docutils documents.
         section = nodes.section()
-        source_file, line_number = self.get_source_info()
+        source_file, _line_number = self.get_source_info()
         self.state.nested_parse(
             StringList(lines, source_file), self.content_offset, section
         )
