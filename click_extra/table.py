@@ -26,7 +26,8 @@ from io import StringIO
 from typing import Sequence
 
 import tabulate
-from tabulate import DataRow, Line, TableFormat
+from tabulate import DataRow, Line
+from tabulate import TableFormat as TabulateTableFormat
 
 from . import Choice, Context, Parameter, echo
 from .parameters import ExtraOption
@@ -37,7 +38,7 @@ tabulate.MIN_PADDING = 0
 
 tabulate._table_formats.update(  # type: ignore[attr-defined]
     {
-        "github": TableFormat(
+        "github": TabulateTableFormat(
             lineabove=Line("| ", "-", " | ", " |"),
             linebelowheader=Line("| ", "-", " | ", " |"),
             linebetweenrows=None,
@@ -57,8 +58,14 @@ I.e. add a space between the column separator and the dashes filling a cell:
 
 That way we produce a table that doesn't need any supplement linting.
 
-This has been proposed upstream at `python-tabulate#261
-<https://github.com/astanin/python-tabulate/pull/261>`_.
+.. todo::
+    This has been merged upstream and can be removed once python-tabulate v0.9.1 is
+    released:
+
+    - https://github.com/astanin/python-tabulate/pull/261
+    - https://github.com/astanin/python-tabulate/pull/341
+    - https://github.com/astanin/python-tabulate/issues/364
+    - https://github.com/astanin/python-tabulate/issues/335
 """
 
 
