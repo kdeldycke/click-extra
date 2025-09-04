@@ -32,7 +32,7 @@
 - Fix display in `--show-params` of parameters sharing the same name but in different commands.
 - Fix detection in the `--version` option of the module in which the user's CLI is implemented.
 - Rename `click_extra.tabulate` namespace to `click_extra.table`.
-- Expose `click._utils.UNSET` sentinel as `click_extra.UNSET`.
+- Expose `click._utils.UNSET` and `click.logging.LogLevel` at the root `click_extra` module.
 - Replace unmaintained `mergedeep` dependency by `deepmerge`.
 - Mark Python 3.14-dev tests as unstable again, because of `PyYAML`.
 

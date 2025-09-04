@@ -31,11 +31,15 @@ import click
 import pytest
 from boltons.strutils import strip_ansi
 
-from click_extra import ExtraVersionOption, Style, __version__, echo, pass_context
-from click_extra.decorators import (
+from click_extra import (
+    ExtraVersionOption,
+    Style,
+    __version__,
     color_option,
+    echo,
     extra_group,
     extra_version_option,
+    pass_context,
     verbosity_option,
 )
 from click_extra.pytest import (

@@ -453,7 +453,7 @@ class ExtraHelpColorsMixin:  # (Command)??
         super().format_help(ctx, formatter)  # type: ignore[misc]
 
 
-def escape_for_help_screen(text: str) -> str:
+def _escape_for_help_screen(text: str) -> str:
     """Prepares a string to be used in a regular expression for matches in help screen.
 
     Applies `re.escape <https://docs.python.org/3/library/re.html#re.escape>`_, then
@@ -616,7 +616,7 @@ class HelpExtraFormatter(HelpFormatter):
         for deprecated_string in self.deprecated_messages:
             help_text = re.sub(
                 rf"""
-                (?P<deprecated>{escape_for_help_screen(deprecated_string)})  # Message
+                (?P<deprecated>{_escape_for_help_screen(deprecated_string)})  # Message
                 """,
                 self.colorize,
                 help_text,
@@ -738,7 +738,7 @@ class HelpExtraFormatter(HelpFormatter):
                         # Not a: word character, or a repeated option's leading symbol.
                         [^\w{re.escape(keyword[0])}]
                     )
-                    (?P<{style_group_id}>{escape_for_help_screen(keyword)})
+                    (?P<{style_group_id}>{_escape_for_help_screen(keyword)})
                     (\W)
                     """,
                     self.colorize,
@@ -760,7 +760,7 @@ class HelpExtraFormatter(HelpFormatter):
                     # Use negative lookbehind / lookahead (?<!\w) / (?!\w)) to ensure
                     # the keyword is not part of a larger word.
                     # i.e. "FOO" matches "FOO" but not "FOOBAR" or "AFOO".
-                    re.compile(rf"(?<!\w){escape_for_help_screen(keyword)}(?!\w)")
+                    re.compile(rf"(?<!\w){_escape_for_help_screen(keyword)}(?!\w)")
                     for keyword in sorted(keywords, reverse=True)
                 )
                 help_text = highlight(

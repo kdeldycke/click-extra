@@ -22,8 +22,7 @@ from pathlib import Path
 
 import click
 
-from click_extra import Style, command, echo, pass_context, secho, style
-from click_extra.testing import ExtraCliRunner
+from click_extra import ExtraCliRunner, Style, command, echo, pass_context, secho, style
 
 
 def test_real_fs():

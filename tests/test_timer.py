@@ -24,8 +24,7 @@ from time import sleep
 
 import pytest
 
-from click_extra import echo
-from click_extra.decorators import extra_group, timer_option
+from click_extra import echo, extra_group, timer_option
 from click_extra.pytest import command_decorators
 
 

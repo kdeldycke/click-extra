@@ -69,6 +69,7 @@ from .decorators import (  # type: ignore[no-redef, has-type, unused-ignore] # n
 from .logging import (  # noqa: E402
     ExtraFormatter,
     ExtraStreamHandler,
+    LogLevel,
     VerboseOption,
     VerbosityOption,
     extraBasicConfig,
@@ -156,6 +157,7 @@ __all__ = [
     "INT",  # noqa: F405
     "IntRange",  # noqa: F405
     "launch",  # noqa: F405
+    "LogLevel",  # noqa: F405
     "make_pass_decorator",  # noqa: F405
     "MissingParameter",  # noqa: F405
     "new_extra_logger",  # noqa: F405

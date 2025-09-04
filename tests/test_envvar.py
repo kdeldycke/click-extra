@@ -22,8 +22,7 @@ import click
 import pytest
 from extra_platforms import is_windows
 
-from click_extra import command, echo, option
-from click_extra.decorators import extra_command
+from click_extra import command, echo, extra_command, option
 from click_extra.envvar import clean_envvar_id, env_copy, merge_envvar_ids
 
 

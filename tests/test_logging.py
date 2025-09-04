@@ -23,13 +23,11 @@ from textwrap import dedent
 import click
 import pytest
 
-from click_extra import echo
-from click_extra.decorators import extra_command, verbose_option, verbosity_option
+from click_extra import LogLevel, echo, extra_command, verbose_option, verbosity_option
 from click_extra.logging import (
     DEFAULT_LEVEL,
     ExtraFormatter,
     ExtraStreamHandler,
-    LogLevel,
     new_extra_logger,
 )
 from click_extra.pytest import (

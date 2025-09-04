@@ -26,14 +26,15 @@ from boltons.pathutils import shrinkuser
 
 from click_extra import (
     command,
+    config_option,
     echo,
+    extra_group,
     get_app_dir,
     no_config_option,
     option,
     pass_context,
 )
-from click_extra.colorize import escape_for_help_screen
-from click_extra.decorators import config_option, extra_group
+from click_extra.colorize import _escape_for_help_screen
 from click_extra.pytest import (
     default_debug_uncolored_log_end,
     default_debug_uncolored_log_start,
@@ -344,7 +345,7 @@ def test_conf_default_path(invoke, simple_config_cli):
     # Make path string compatible with regexp.
     assert re.search(
         r"\s+\[env\s+var:\s+CONFIG_CLI1_CONFIG;\s+"
-        rf"default:\s+{escape_for_help_screen(str(default_path))}\]\s+",
+        rf"default:\s+{_escape_for_help_screen(str(default_path))}\]\s+",
         result.stdout,
     )
 

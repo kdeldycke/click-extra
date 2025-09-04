@@ -29,8 +29,15 @@ import cloup
 import pytest
 
 import click_extra
-from click_extra import echo, option, option_group, pass_context
-from click_extra.decorators import extra_command, extra_group, extra_version_option
+from click_extra import (
+    echo,
+    extra_command,
+    extra_group,
+    extra_version_option,
+    option,
+    option_group,
+    pass_context,
+)
 from click_extra.pytest import (
     command_decorators,
     default_debug_uncolored_log_end,

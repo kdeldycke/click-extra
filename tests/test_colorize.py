@@ -32,34 +32,28 @@ from click_extra import (
     ExtraCommand,
     ExtraContext,
     ExtraOption,
+    HelpExtraFormatter,
+    HelpExtraTheme,
     HelpTheme,
     IntRange,
+    LogLevel,
     Style,
     argument,
+    color_option,
+    command,
     echo,
+    extra_command,
+    extra_group,
+    help_option,
     option,
     option_group,
     pass_context,
     secho,
     style,
-)
-from click_extra.colorize import (
-    HelpExtraFormatter,
-    HelpExtraTheme,
-    highlight,
-)
-from click_extra.colorize import (
-    default_theme as theme,
-)
-from click_extra.decorators import (
-    color_option,
-    command,
-    extra_command,
-    extra_group,
-    help_option,
     verbosity_option,
 )
-from click_extra.logging import LogLevel
+from click_extra.colorize import default_theme as theme
+from click_extra.colorize import highlight
 from click_extra.pytest import (
     command_decorators,
     default_debug_colored_log_end,
