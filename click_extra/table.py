@@ -61,32 +61,62 @@ This has been proposed upstream at `python-tabulate#261
 <https://github.com/astanin/python-tabulate/pull/261>`_.
 """
 
-_output_formats: frozenset[str] = frozenset(
-    # Formats from tabulate.
-    list(tabulate._table_formats)  # type: ignore[attr-defined]
-    # Formats inherited from previous legacy cli-helpers dependency.
-    + ["csv", "vertical"]
-    # Formats derived from CSV dialects.
-    + [f"csv-{d}" for d in csv.list_dialects()]
-)
-"""Collection of raw IDs for supported table formats."""
 
+class TableFormat(StrEnum):
+    """Enumeration of supported table formats.
 
-TableFormat = StrEnum(
-    "TableFormat",
-    {
-        fmt.replace("-", "_").upper(): fmt.replace("_", "-").lower()
-        for fmt in sorted(_output_formats)
-    },
-)
-"""Enumeration of supported table formats.
+    Hard-coded to be in alphabetical order. Content of this enum is checked in
+    unit tests.
 
-.. warning::
-    The ``youtrack`` format is missing in action from any official JetBrains
-    documentation. So maybe it has been silently deprecated? Hence my
-    `proposal to remove it in python-tabulate#375
-    <https://github.com/astanin/python-tabulate/issues/375>`_.
-"""
+    .. warning::
+        The ``youtrack`` format is missing in action from any official JetBrains
+        documentation. So maybe it has been silently deprecated? Hence my
+        `proposal to remove it in python-tabulate#375
+        <https://github.com/astanin/python-tabulate/issues/375>`_.
+    """
+
+    ASCIIDOC = "asciidoc"
+    CSV = "csv"
+    CSV_EXCEL = "csv-excel"
+    CSV_EXCEL_TAB = "csv-excel-tab"
+    CSV_UNIX = "csv-unix"
+    DOUBLE_GRID = "double-grid"
+    DOUBLE_OUTLINE = "double-outline"
+    FANCY_GRID = "fancy-grid"
+    FANCY_OUTLINE = "fancy-outline"
+    GITHUB = "github"
+    GRID = "grid"
+    HEAVY_GRID = "heavy-grid"
+    HEAVY_OUTLINE = "heavy-outline"
+    HTML = "html"
+    JIRA = "jira"
+    LATEX = "latex"
+    LATEX_BOOKTABS = "latex-booktabs"
+    LATEX_LONGTABLE = "latex-longtable"
+    LATEX_RAW = "latex-raw"
+    MEDIAWIKI = "mediawiki"
+    MIXED_GRID = "mixed-grid"
+    MIXED_OUTLINE = "mixed-outline"
+    MOINMOIN = "moinmoin"
+    ORGTBL = "orgtbl"
+    OUTLINE = "outline"
+    PIPE = "pipe"
+    PLAIN = "plain"
+    PRESTO = "presto"
+    PRETTY = "pretty"
+    PSQL = "psql"
+    ROUNDED_GRID = "rounded-grid"
+    ROUNDED_OUTLINE = "rounded-outline"
+    RST = "rst"
+    SIMPLE = "simple"
+    SIMPLE_GRID = "simple-grid"
+    SIMPLE_OUTLINE = "simple-outline"
+    TEXTILE = "textile"
+    TSV = "tsv"
+    UNSAFEHTML = "unsafehtml"
+    VERTICAL = "vertical"
+    YOUTRACK = "youtrack"
+
 
 MARKUP_FORMATS = {
     TableFormat.ASCIIDOC,

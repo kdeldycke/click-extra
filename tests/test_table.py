@@ -16,6 +16,8 @@
 
 from __future__ import annotations
 
+import csv
+
 import pytest
 import tabulate
 from extra_platforms import is_windows
@@ -29,6 +31,45 @@ from click_extra import (
     table_format_option,
 )
 from click_extra.pytest import command_decorators
+
+
+def test_table_formats_definition():
+    """Check all table formats are accounted for and properly named."""
+    # Formats from tabulate.
+    tabulate_formats = [
+        (f.upper(), f.replace("_", "-")) for f in tabulate._table_formats
+    ]
+
+    # Formats derived from CSV dialects.
+    csv_dialects = [
+        (f"CSV_{d.replace('-', '_').upper()}", f"csv-{d}") for d in csv.list_dialects()
+    ]
+
+    # Formats inherited from previous legacy cli-helpers dependency.
+    cli_helpers_formats = [("CSV", "csv"), ("VERTICAL", "vertical")]
+
+    table_formats = set((f.name, f.value) for f in TableFormat)
+
+    # All tabulate formats are listed in our TableFormat enum.
+    assert set(tabulate_formats) <= table_formats
+
+    # All CSV variants are listed in our TableFormat enum.
+    assert set(csv_dialects) <= table_formats
+
+    # All legacy cli-helpers formats are listed in our TableFormat enum.
+    assert set(cli_helpers_formats) <= table_formats
+
+    # No duplicates.
+    assert len(tabulate_formats) + len(csv_dialects) + len(cli_helpers_formats) == len(
+        table_formats
+    )
+    assert (
+        set(tabulate_formats) | set(csv_dialects) | set(cli_helpers_formats)
+        == table_formats
+    )
+
+    # Sorted alphabetically by format name.
+    assert list(f.name for f in TableFormat) == sorted(f.name for f in TableFormat)
 
 
 @pytest.mark.parametrize(
@@ -436,13 +477,6 @@ unsafehtml_table = """\
 </table>
 """
 
-youtrack_table = """\
-||  Day     ||  Temperature  ||
-|  1       |  42.9         |
-|  2       |               |
-|  Friday  |  Hot 🥵       |
-"""
-
 vertical_table = (
     "***************************[ 1. row ]***************************\n"
     "Day         | 1\n"
@@ -454,6 +488,13 @@ vertical_table = (
     "Day         | Friday\n"
     "Temperature | Hot 🥵\n"
 )
+
+youtrack_table = """\
+||  Day     ||  Temperature  ||
+|  1       |  42.9         |
+|  2       |               |
+|  Friday  |  Hot 🥵       |
+"""
 
 expected_renderings = {
     TableFormat.ASCIIDOC: asciidoc_table,
@@ -495,22 +536,18 @@ expected_renderings = {
     TableFormat.TEXTILE: textile_table,
     TableFormat.TSV: tsv_table,
     TableFormat.UNSAFEHTML: unsafehtml_table,
-    TableFormat.YOUTRACK: youtrack_table,
     TableFormat.VERTICAL: vertical_table,
+    TableFormat.YOUTRACK: youtrack_table,
 }
 
 
-def test_recognized_modes():
-    """Check all rendering modes proposed by the table module are accounted for and
-    there is no duplicates."""
-    assert set(tabulate._table_formats) <= set(
-        i.value.replace("-", "_") for i in expected_renderings
-    )
-    assert set(tabulate._table_formats) <= set(
-        i.value.replace("-", "_") for i in TableFormat
-    )
-
+def test_all_table_formats_have_test_rendering():
+    """Check all table formats have a rendering test fixture defined."""
+    # Nothing missing or extra.
     assert len(TableFormat) == len(expected_renderings.keys())
+    # Same order.
+    assert list(TableFormat) == list(expected_renderings.keys())
+    # Same content.
     assert set(TableFormat) == set(expected_renderings.keys())
 
 
