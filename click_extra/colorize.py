@@ -727,11 +727,11 @@ class HelpExtraFormatter(HelpFormatter):
         # )
 
         # Highlight long options first, then short options.
-        for matching_keywords, style_group_id in (
+        for option_keywords, style_group_id in (
             (sorted(self.long_options, reverse=True), "long_option"),
             (sorted(self.short_options), "short_option"),
         ):
-            for keyword in matching_keywords:
+            for keyword in option_keywords:
                 help_text = re.sub(
                     rf"""
                     (
@@ -748,20 +748,20 @@ class HelpExtraFormatter(HelpFormatter):
 
         # Highlight other keywords, which are expected to be separated by any
         # character but word characters.
-        for matching_keywords, style_func in (
+        for keywords, style_func in (
             # Choices are already featured in metavars, so we process them first to
             # avoid double-highlighting.
             (self.choices, self.theme.choice),
             (self.metavars, self.theme.metavar),
         ):
-            if matching_keywords:
+            if keywords:
                 # Transform keywords into regex patterns.
                 patterns = (
                     # Use negative lookbehind / lookahead (?<!\w) / (?!\w)) to ensure
                     # the keyword is not part of a larger word.
                     # i.e. "FOO" matches "FOO" but not "FOOBAR" or "AFOO".
                     re.compile(rf"(?<!\w){escape_for_help_screen(keyword)}(?!\w)")
-                    for keyword in sorted(matching_keywords, reverse=True)
+                    for keyword in sorted(keywords, reverse=True)
                 )
                 help_text = highlight(
                     content=help_text,

@@ -500,22 +500,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             search_params(ctx.command.get_params(ctx), ConfigOption),
         )
 
-        table: list[
-            tuple[
-                str | None,
-                str | None,
-                str | None,
-                str | None,
-                str | None,
-                str | None,
-                str | None,
-                str | None,
-                str | None,
-                str | None,
-                str | None,
-                str | None,
-            ]
-        ] = []
+        table = []
 
         # Walk through the the tree of parameters and get their fully-qualified path.
         for path, instances in self.flatten_tree_dict(self.params_objects).items():

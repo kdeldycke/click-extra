@@ -455,7 +455,7 @@ class VerbosityOption(ExtraVerbosity):
         # Click choices do not use the enum member values, but their names.
         type=Choice(LogLevel, case_sensitive=False),
         help=_("Either {log_levels}.").format(
-            log_levels=", ".join(i.name for i in LogLevel)
+            log_levels=", ".join(i.name for i in LogLevel)  # type: ignore[name-defined]
         ),
         **kwargs,
     ) -> None:

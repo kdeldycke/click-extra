@@ -23,7 +23,7 @@ from enum import StrEnum
 from functools import partial
 from gettext import gettext as _
 from io import StringIO
-from typing import Sequence
+from typing import Callable, Sequence
 
 import tabulate
 from tabulate import DataRow, Line
@@ -176,8 +176,8 @@ def _get_csv_dialect(table_format: TableFormat | None = None) -> str:
 
 
 def _render_csv(
-    table_data: Sequence[Sequence[str]],
-    headers: Sequence[str] | None = None,
+    table_data: Sequence[Sequence[str | None]],
+    headers: Sequence[str | None] | None = None,
     table_format: TableFormat | None = None,
     **kwargs,
 ) -> str:
@@ -191,7 +191,7 @@ def _render_csv(
     defaults.update(kwargs)
 
     with StringIO(newline="") as output:
-        writer = csv.writer(output, **defaults)
+        writer = csv.writer(output, **defaults)  # type: ignore[arg-type]
         if headers:
             writer.writerow(headers)
         writer.writerows(table_data)
@@ -199,8 +199,8 @@ def _render_csv(
 
 
 def _render_vertical(
-    table_data: Sequence[Sequence[str]],
-    headers: Sequence[str] | None = None,
+    table_data: Sequence[Sequence[str | None]],
+    headers: Sequence[str | None] | None = None,
     sep_character: str = "*",
     sep_length: int = 27,
     **kwargs,
@@ -218,8 +218,11 @@ def _render_vertical(
     """
     if not headers:
         headers = []
-    header_len = max(len(h) for h in headers)
-    padded_headers = [h.ljust(header_len) for h in headers]
+
+    # Calculate header lengths and pad headers in one pass.
+    header_length = [0 if h is None else len(h) for h in headers]
+    max_length = max(header_length) if header_length else 0
+    padded_headers = ["" if h is None else h.ljust(max_length) for h in headers]
 
     table_lines = []
     sep = sep_character * sep_length
@@ -227,15 +230,14 @@ def _render_vertical(
         table_lines.append(f"{sep}[ {index + 1}. row ]{sep}")
         for cell_label, cell_value in zip(padded_headers, row):
             # Like other formats, render None as an empty string.
-            if cell_value is None:
-                cell_value = ""
+            cell_value = "" if cell_value is None else cell_value
             table_lines.append(f"{cell_label} | {cell_value}")
     return "\n".join(table_lines)
 
 
 def _render_tabulate(
-    table_data: Sequence[Sequence[str]],
-    headers: Sequence[str] | None = None,
+    table_data: Sequence[Sequence[str | None]],
+    headers: Sequence[str | None] | None = None,
     table_format: TableFormat | None = None,
     **kwargs,
 ) -> str:
@@ -259,7 +261,7 @@ def _render_tabulate(
 
 def _select_table_funcs(
     table_format: TableFormat | None = None,
-) -> tuple[callable, callable]:
+) -> tuple[Callable[..., str], Callable[[str], None]]:
     """Returns the rendering and print functions for the given ``table_format``.
 
     For all formats other than CSV, we relying on Click's ``echo()`` as the print
@@ -281,16 +283,16 @@ def _select_table_funcs(
             | TableFormat.CSV_UNIX
         ):
             print_func = partial(print, end="")
-            return partial(_render_csv, table_format=table_format), print_func  # type: ignore[assignment]
+            return partial(_render_csv, table_format=table_format), print_func
         case TableFormat.VERTICAL:
-            return _render_vertical, print_func  # type: ignore[assignment]
+            return _render_vertical, print_func
         case _:
             return partial(_render_tabulate, table_format=table_format), print_func
 
 
 def render_table(
-    table_data: Sequence[Sequence[str]],
-    headers: Sequence[str] | None = None,
+    table_data: Sequence[Sequence[str | None]],
+    headers: Sequence[str | None] | None = None,
     table_format: TableFormat | None = None,
     **kwargs,
 ) -> str:
@@ -300,14 +302,14 @@ def render_table(
 
 
 def print_table(
-    table_data: Sequence[Sequence[str]],
-    headers: Sequence[str] | None = None,
+    table_data: Sequence[Sequence[str | None]],
+    headers: Sequence[str | None] | None = None,
     table_format: TableFormat | None = None,
     **kwargs,
 ) -> None:
     """Render a table and print it to the console."""
     render_func, print_func = _select_table_funcs(table_format)
-    return print_func(render_func(table_data, headers, **kwargs))
+    print_func(render_func(table_data, headers, **kwargs))
 
 
 class TableFormatOption(ExtraOption):
@@ -322,7 +324,10 @@ class TableFormatOption(ExtraOption):
         self,
         param_decls: Sequence[str] | None = None,
         # Click choices do not use the enum member values, but their names.
-        type=Choice(tuple(i.value for i in TableFormat), case_sensitive=False),
+        type=Choice(
+            tuple(f.value for f in TableFormat),  # type: ignore[name-defined]
+            case_sensitive=False,
+        ),
         default=DEFAULT_FORMAT.value,
         expose_value=False,
         is_eager=True,
