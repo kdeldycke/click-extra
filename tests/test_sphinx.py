@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import re
 import tempfile
 from pathlib import Path
 from textwrap import dedent
@@ -108,7 +109,11 @@ def test_sphinx_extension_setup(sphinx_app):
 
 
 def test_simple_directives(sphinx_app):
-    """Test minimal documents with directives in both RST and MyST formats."""
+    """Test minimal documents with directives in both RST and MyST formats.
+
+    .. todo::
+        Test different unmatching indentions and spacing in example and run directives.
+    """
     format_type = sphinx_app._test_format
 
     if format_type == "rst":
@@ -305,3 +310,63 @@ def test_stdout_stderr_output(sphinx_app):
         'Direct <span class=" -Color -Color-Red -C-Red">stderr</span> print\n'
         "</pre></div>"
     ) in html_output
+
+
+@pytest.mark.parametrize("var_name", ["invoke", "isolated_filesystem"])
+def test_directive_variable_conflict(var_name, sphinx_app):
+    """Test that variable conflicts are properly detected in real Sphinx environment.
+
+    .. todo::
+        Test different indentations and spacing around the conflicting variable to
+        check line number reported in error message are accurate.
+    """
+    format_type = sphinx_app._test_format
+
+    if format_type == "rst":
+        content = dedent(f"""
+            .. click:example::
+
+                import click
+
+                @click.command()
+                def hello():
+                    click.echo("Hello World!")
+
+            .. click:run::
+
+                # This should fail due to variable conflict.
+                {var_name} = "Do not overwrite me!"
+                result = invoke(hello)
+        """)
+        file_extension = ".rst"
+        error_lineno = 23
+
+    elif format_type == "myst":
+        content = dedent(f"""
+            ```{{click:example}}
+            import click
+
+            @click.command()
+            def hello():
+                click.echo("Hello World!")
+            ```
+
+            ```{{click:run}}
+            # This should fail due to variable conflict.
+            {var_name} = "Do not overwrite me!"
+            result = invoke(hello)
+            ```
+        """)
+        file_extension = ".md"
+        error_lineno = 12
+
+    with pytest.raises(RuntimeError) as exc_info:
+        build_sphinx_document(sphinx_app, content)
+
+    expected_pattern = (
+        rf"Local variable '{var_name}' at .+/index"
+        + re.escape(file_extension)
+        + rf":10:click:run:{error_lineno} conflicts with the one automaticcaly provided by the click:run directive\.\n"
+        rf"Line: {var_name} = \"Do not overwrite me!\""
+    )
+    assert re.fullmatch(expected_pattern, str(exc_info.value))
