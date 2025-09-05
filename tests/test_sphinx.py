@@ -420,3 +420,87 @@ def test_directive_variable_conflict(var_name, sphinx_app):
         rf"Line: {var_name} = \"Do not overwrite me!\""
     )
     assert re.fullmatch(expected_pattern, str(exc_info.value))
+
+
+def test_exit_exception_percolate(sphinx_app):
+    """Test directives that handle command errors and exit codes."""
+    format_type = sphinx_app._test_format
+
+    if format_type == "rst":
+        content = dedent("""\
+            Error Handling Test
+            ===================
+
+            Testing commands that exit with non-zero codes.
+
+            .. click:example::
+
+                import click
+                import sys
+
+                @click.command()
+                @click.option('--fail', is_flag=True, help='Force command to fail')
+                def error_command(fail):
+                    click.echo("Starting command...")
+                    if fail:
+                        click.echo("Something went wrong!", err=True)
+                        sys.exit(1)
+                    click.echo("Command completed successfully")
+
+            .. click:run::
+
+                # Test successful execution
+                invoke(error_command, [])
+
+            .. click:run::
+
+                # Test failed execution
+                try:
+                    invoke(error_command, ['--fail'])
+                except SystemExit as e:
+                    click.echo(f"Command exited with code: {e.code}", err=True)
+        """)
+    elif format_type == "myst":
+        content = dedent("""\
+            # Error Handling Test
+
+            Testing commands that exit with non-zero codes.
+
+            ```{click:example}
+            import click
+            import sys
+
+            @click.command()
+            @click.option('--fail', is_flag=True, help='Force command to fail')
+            def error_command(fail):
+                click.echo("Starting command...")
+                if fail:
+                    click.echo("Something went wrong!", err=True)
+                    sys.exit(1)
+                click.echo("Command completed successfully")
+            ```
+
+            ```{click:run}
+            # Test successful execution
+            invoke(error_command, [])
+            ```
+
+            ```{click:run}
+            # Test failed execution
+            try:
+                invoke(error_command, ['--fail'])
+            except SystemExit as e:
+                click.echo(f"Command exited with code: {e.code}", err=True)
+            ```
+        """)
+
+    html_output = build_sphinx_document(sphinx_app, content)
+    assert html_output is not None
+
+    assert (
+        '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span>'
+        '<span class="gp">$ </span>error<span class="w"> </span>--fail\n'
+        "Starting command...\n"
+        "Something went wrong!\n"
+        "</pre></div>\n"
+    ) in html_output
