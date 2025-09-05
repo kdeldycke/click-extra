@@ -298,7 +298,7 @@ def test_directive_option_format(sphinx_app_rst):
             :linenos:
             import click
 
-            @click.command()
+            @click.command
             def bad_format():
                 click.echo("This should fail to parse")
 
@@ -438,6 +438,116 @@ def test_directive_option_linenos_start(sphinx_app):
         "</div>\n"
     ) in html_output
 
+
+def test_directive_option_hide_source(sphinx_app):
+    """Test that ``:hide-source:``hides source code in ``click:example`` directive."""
+    format_type = sphinx_app._test_format
+
+    if format_type == "rst":
+        content = dedent("""
+            .. click:example::
+                :hide-source:
+
+                from click import echo, command
+
+                @command
+                def simple_print():
+                    echo("Just a string to print.")
+
+            .. click:run::
+
+                invoke(simple_print)
+        """)
+    elif format_type == "myst":
+        content = dedent("""
+            ```{click:example}
+            :hide-source:
+            from click import echo, command
+
+            @command
+            def simple_print():
+                echo("Just a string to print.")
+            ```
+
+            ```{click:run}
+            invoke(simple_print)
+            ```
+        """)
+
+    html_output = build_sphinx_document(sphinx_app, content)
+    assert html_output is not None
+
+    # click:example should not display source code.
+    assert "highlight-python" not in html_output
+    assert "command" not in html_output
+    assert "simple_print" not in html_output
+
+    # But click:run should still display results.
+    assert (
+        '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span>'
+        '<span class="gp">$ </span>simple-print\n'
+        "Just a string to print.\n"
+        "</pre></div>\n"
+    ) in html_output
+
+
+def test_directive_option_show_source(sphinx_app):
+    """Test that ``:show-source:`` option shows source code in ``click:run`` directive."""
+    format_type = sphinx_app._test_format
+
+    if format_type == "rst":
+        content = dedent("""
+            .. click:example::
+
+                from click import echo, command
+
+                @command
+                def simple_print():
+                    echo("Just a string to print.")
+
+            .. click:run::
+                :show-source:
+
+                invoke(simple_print)
+        """)
+    elif format_type == "myst":
+        content = dedent("""
+            ```{click:example}
+            from click import echo, command
+
+            @command
+            def simple_print():
+                echo("Just a string to print.")
+            ```
+
+            ```{click:run}
+            :show-source:
+            invoke(simple_print)
+            ```
+        """)
+
+    html_output = build_sphinx_document(sphinx_app, content)
+    assert html_output is not None
+
+    assert (
+        '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
+        '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">echo</span><span class="p">,</span> <span class="n">command</span>\n'
+        "\n"
+        '<span class="nd">@command</span>\n'
+        '<span class="k">def</span><span class="w"> </span><span class="nf">simple_print</span><span class="p">():</span>\n'
+        '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Just a string to print.&quot;</span><span class="p">)</span>\n'
+        "</pre></div>\n"
+    ) in html_output
+
+    assert (
+        '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
+        '<span class="n">invoke</span><span class="p">(</span><span class="n">simple_print</span><span class="p">)</span>\n'
+        "</pre></div>\n"
+        "</div>\n"
+        '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>simple-print\n'
+        "Just a string to print.\n"
+        "</pre></div>\n"
+    ) in html_output
 
 
 def test_directive_option_language_override(sphinx_app):
