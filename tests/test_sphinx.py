@@ -320,18 +320,18 @@ def test_isolated_filesystem_directive(sphinx_app):
         content = dedent("""\
             .. click:example::
 
-               import click
+                import click
 
-               @click.command()
-               def greet():
-                   click.echo("Hello World!")
+                @click.command()
+                def greet():
+                    click.echo("Hello World!")
 
             .. click:run::
 
-               with isolated_filesystem():
-                   with open("test.txt", "w") as f:
-                       f.write("Hello File!")
-                   result = invoke(greet, [])
+                with isolated_filesystem():
+                    with open("test.txt", "w") as f:
+                        f.write("Hello File!")
+                    invoke(greet)
         """)
     elif format_type == "myst":
         content = dedent("""\
@@ -347,7 +347,7 @@ def test_isolated_filesystem_directive(sphinx_app):
             with isolated_filesystem():
                 with open("test.txt", "w") as f:
                     f.write("Hello File!")
-                result = invoke(greet, [])
+                invoke(greet)
             ```
         """)
 
