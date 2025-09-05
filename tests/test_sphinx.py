@@ -170,7 +170,9 @@ def build_sphinx_document(sphinx_app: Sphinx, content: str) -> str | None:
     # Read the generated HTML.
     output_file = Path(sphinx_app.outdir) / "index.html"
     if output_file.exists():
-        return output_file.read_text()
+        html_output = output_file.read_text()
+        assert html_output
+        return html_output
 
 
 def test_sphinx_extension_setup(sphinx_app):
@@ -231,7 +233,6 @@ def test_simple_directives(sphinx_app):
         """)
 
     html_output = build_sphinx_document(sphinx_app, content)
-    assert html_output is not None
     assert "<h1>Test Document" in html_output
 
     # click:example renders into a code block with syntax highlighting.
@@ -271,7 +272,6 @@ def test_legacy_mixed_syntax_eval_rst(sphinx_app_myst):
     """)
 
     html_output = build_sphinx_document(sphinx_app_myst, content)
-    assert html_output is not None
 
     # Both directives should render correctly.
     assert (
@@ -354,7 +354,6 @@ def test_directive_option_linenos(sphinx_app):
         """)
 
     html_output = build_sphinx_document(sphinx_app, content)
-    assert html_output is not None
 
     assert (
         '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
@@ -418,7 +417,6 @@ def test_directive_option_linenos_start(sphinx_app):
         """)
 
     html_output = build_sphinx_document(sphinx_app, content)
-    assert html_output is not None
 
     assert (
         '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
@@ -475,7 +473,6 @@ def test_directive_option_hide_source(sphinx_app):
         """)
 
     html_output = build_sphinx_document(sphinx_app, content)
-    assert html_output is not None
 
     # click:example should not display source code.
     assert "highlight-python" not in html_output
@@ -527,7 +524,6 @@ def test_directive_option_show_source(sphinx_app):
         """)
 
     html_output = build_sphinx_document(sphinx_app, content)
-    assert html_output is not None
 
     assert (
         '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
@@ -586,7 +582,6 @@ def test_directive_option_hide_results(sphinx_app):
         """)
 
     html_output = build_sphinx_document(sphinx_app, content)
-    assert html_output is not None
 
     assert (
         '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
@@ -635,7 +630,6 @@ def test_directive_option_show_results(sphinx_app):
         """)
 
     html_output = build_sphinx_document(sphinx_app, content)
-    assert html_output is not None
 
     assert (
         '  <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
@@ -696,7 +690,6 @@ def test_directive_option_combinations(sphinx_app):
         """)
 
     html_output = build_sphinx_document(sphinx_app, content)
-    assert html_output is not None
 
     assert (
         '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
@@ -756,7 +749,6 @@ def test_directive_option_language_override(sphinx_app):
         """)
 
     html_output = build_sphinx_document(sphinx_app, content)
-    assert html_output is not None
 
     assert (
         '<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span>'
@@ -821,7 +813,6 @@ def test_sphinx_directive_state_persistence(sphinx_app):
         """)
 
     html_output = build_sphinx_document(sphinx_app, content)
-    assert html_output is not None
 
     assert (
         '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span>'
@@ -882,7 +873,6 @@ def test_stdout_stderr_output(sphinx_app):
         """)
 
     html_output = build_sphinx_document(sphinx_app, content)
-    assert html_output is not None
 
     assert (
         '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span>'
@@ -935,7 +925,6 @@ def test_isolated_filesystem_directive(sphinx_app):
         """)
 
     html_output = build_sphinx_document(sphinx_app, content)
-    assert html_output is not None
 
     assert (
         '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span>'
@@ -1069,7 +1058,6 @@ def test_exit_exception_percolate(sphinx_app):
         """)
 
     html_output = build_sphinx_document(sphinx_app, content)
-    assert html_output is not None
 
     assert (
         '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span>'
