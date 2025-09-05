@@ -550,6 +550,174 @@ def test_directive_option_show_source(sphinx_app):
     ) in html_output
 
 
+def test_directive_option_hide_results(sphinx_app):
+    """Test that ``:hide-results:`` option hides execution results in ``click:run``."""
+    format_type = sphinx_app._test_format
+
+    if format_type == "rst":
+        content = dedent("""\
+            .. click:example::
+
+                from click import echo, command
+
+                @command
+                def simple():
+                    echo("This output should be hidden")
+
+            .. click:run::
+                :hide-results:
+
+                invoke(simple)
+        """)
+    elif format_type == "myst":
+        content = dedent("""\
+            ```{click:example}
+            from click import echo, command
+
+            @command
+            def simple():
+                echo("This output should be hidden")
+            ```
+
+            ```{click:run}
+            :hide-results:
+            invoke(simple)
+            ```
+        """)
+
+    html_output = build_sphinx_document(sphinx_app, content)
+    assert html_output is not None
+
+    assert (
+        '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
+        '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">echo</span><span class="p">,</span> <span class="n">command</span>\n'
+        "\n"
+        '<span class="nd">@command</span>\n'
+        '<span class="k">def</span><span class="w"> </span><span class="nf">simple</span><span class="p">():</span>\n'
+        '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;This output should be hidden&quot;</span><span class="p">)</span>\n'
+        "</pre></div>\n"
+    ) in html_output
+
+
+def test_directive_option_show_results(sphinx_app):
+    """Test that ``:show-results:`` option shows execution results (default behavior)."""
+    format_type = sphinx_app._test_format
+
+    if format_type == "rst":
+        content = dedent("""\
+            .. click:example::
+
+                from click import echo, command
+
+                @command
+                def simple():
+                    echo("This output should be hidden")
+
+            .. click:run::
+                :show-results:
+
+                invoke(simple)
+        """)
+    elif format_type == "myst":
+        content = dedent("""\
+            ```{click:example}
+            from click import echo, command
+
+            @command
+            def simple():
+                echo("This output should be hidden")
+            ```
+
+            ```{click:run}
+            :show-results:
+            invoke(simple)
+            ```
+        """)
+
+    html_output = build_sphinx_document(sphinx_app, content)
+    assert html_output is not None
+
+    assert (
+        '  <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
+        '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">echo</span><span class="p">,</span> <span class="n">command</span>\n'
+        "\n"
+        '<span class="nd">@command</span>\n'
+        '<span class="k">def</span><span class="w"> </span><span class="nf">simple</span><span class="p">():</span>\n'
+        '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;This output should be hidden&quot;</span><span class="p">)</span>\n'
+        "</pre></div>\n"
+        "</div>\n"
+        '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span>'
+        '<span class="gp">$ </span>simple\n'
+        "This output should be hidden\n"
+        "</pre></div>\n"
+    ) in html_output
+
+
+def test_directive_option_combinations(sphinx_app):
+    """Test various combinations of display options."""
+    format_type = sphinx_app._test_format
+
+    if format_type == "rst":
+        content = dedent("""\
+            .. click:example::
+                :show-source:
+                :hide-results:
+
+                from click import command, echo
+
+                @command
+                def combo_test():
+                    echo("Should not see this")
+
+            .. click:run::
+                :show-source:
+                :show-results:
+
+                invoke(combo_test)
+        """)
+    elif format_type == "myst":
+        content = dedent("""\
+            ```{click:example}
+            :show-source:
+            :hide-results:
+
+            from click import command, echo
+
+            @command
+            def combo_test():
+                echo("Should not see this")
+            ```
+
+            ```{click:run}
+            :show-source:
+            :show-results:
+            invoke(combo_test)
+            ```
+        """)
+
+    html_output = build_sphinx_document(sphinx_app, content)
+    assert html_output is not None
+
+    assert (
+        '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
+        '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">command</span><span class="p">,</span> <span class="n">echo</span>\n'
+        "\n"
+        '<span class="nd">@command</span>\n'
+        '<span class="k">def</span><span class="w"> </span><span class="nf">combo_test</span><span class="p">():</span>\n'
+        '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Should not see this&quot;</span><span class="p">)</span>\n'
+        "</pre></div>\n"
+        "</div>\n"
+        '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
+        '<span class="n">invoke</span><span class="p">(</span><span class="n">combo_test</span><span class="p">)</span>\n'
+        "</pre></div>\n"
+        "</div>\n"
+        '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span>'
+        '<span class="gp">$ </span>combo-test\n'
+        "Should not see this\n"
+        "</pre></div>\n"
+    ) in html_output
+
+
 def test_directive_option_language_override(sphinx_app):
     """Test that language override works for click:run directive."""
     format_type = sphinx_app._test_format
