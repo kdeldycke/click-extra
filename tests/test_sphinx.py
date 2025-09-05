@@ -68,7 +68,14 @@ def sphinx_app(request, tmp_path):
 
 @pytest.fixture
 def sphinx_app_rst(tmp_path):
-    """Create a Sphinx application for testing RST format only."""
+    """Create a Sphinx application for testing RST format only.
+
+    .. todo::
+        Deduplicate this fixture with the sphinx_app() above.
+
+    .. todo::
+        Add an equivalent sphinx_app_myst fixture for MyST-only tests.
+    """
     srcdir = tmp_path / "source"
     outdir = tmp_path / "build"
     doctreedir = outdir / ".doctrees"
@@ -203,7 +210,7 @@ def test_simple_directives(sphinx_app):
 
 
 def test_directive_option_format(sphinx_app_rst):
-    """Test that rST will fail to render click directive if an ``:option:`` is not followed by an empty line."""
+    """rST will fail to render if an ``:option:`` is not followed by an empty line."""
     content = dedent("""
         .. click:example::
             :linenos:
@@ -219,19 +226,14 @@ def test_directive_option_format(sphinx_app_rst):
     """)
 
     # RST should fail to parse this malformed directive
-    with pytest.raises(Exception) as exc_info:
+    with pytest.raises(NameError) as exc_info:
         build_sphinx_document(sphinx_app_rst, content)
 
-    # Verify it's a parsing error related to directive format
-    error_msg = str(exc_info.value)
-    assert any(
-        keyword in error_msg.lower()
-        for keyword in ["directive", "option", "content", "parse", "format"]
-    )
+    assert str(exc_info.value) == "name 'bad_format' is not defined"
 
 
 def test_directive_option_linenos(sphinx_app):
-    """Test that :linenos: option adds line numbers to code blocks."""
+    """Test that ``:linenos:`` option adds line numbers to code blocks."""
     format_type = sphinx_app._test_format
 
     if format_type == "rst":
@@ -291,7 +293,7 @@ def test_directive_option_linenos(sphinx_app):
 
 
 def test_directive_option_linenos_start(sphinx_app):
-    """Test that :linenos: option with :lineno-start: adds line numbers starting from a specific number."""
+    """Test that ``:lineno-start:`` shifts the starting line number."""
     format_type = sphinx_app._test_format
 
     if format_type == "rst":
