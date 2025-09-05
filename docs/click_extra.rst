@@ -98,7 +98,7 @@ click\_extra.sphinx module
    :undoc-members:
 
 click\_extra.table module
-----------------------------
+-------------------------
 
 .. automodule:: click_extra.table
    :members:
