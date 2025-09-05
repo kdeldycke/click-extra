@@ -112,7 +112,7 @@ def test_simple_directives(sphinx_app):
     format_type = sphinx_app._test_format
 
     if format_type == "rst":
-        content = dedent("""\
+        content = dedent("""
             Test Document
             =============
 
@@ -128,10 +128,10 @@ def test_simple_directives(sphinx_app):
 
             .. click:run::
 
-                invoke(simple, [])
+                invoke(simple)
         """)
     elif format_type == "myst":
-        content = dedent("""\
+        content = dedent("""
             # Test Document
 
             This is a test document.
@@ -145,14 +145,11 @@ def test_simple_directives(sphinx_app):
             ```
 
             ```{click:run}
-            invoke(simple, [])
+            invoke(simple)
             ```
         """)
-    else:
-        pytest.fail(f"Unknown format type: {format_type}")
 
     html_output = build_sphinx_document(sphinx_app, content)
-
     assert html_output is not None
     assert "<h1>Test Document" in html_output
 
@@ -170,4 +167,141 @@ def test_simple_directives(sphinx_app):
         '<span class="gp">$ </span>simple\n'
         "It works!\n"
         "</pre></div>\n"
+    ) in html_output
+
+
+def test_sphinx_directive_state_persistence(sphinx_app):
+    """Test that state persists between declare and run directives in real Sphinx."""
+    format_type = sphinx_app._test_format
+
+    if format_type == "rst":
+        content = dedent("""
+            .. click:example::
+
+                import click
+
+                @click.command()
+                def cmd1():
+                    click.echo("Command 1")
+
+            .. click:example::
+
+                @click.command()
+                def cmd2():
+                    click.echo("Command 2")
+
+            .. click:run::
+
+                invoke(cmd1)
+
+            .. click:run::
+
+                invoke(cmd2)
+        """)
+    elif format_type == "myst":
+        content = dedent("""
+            ```{click:example}
+            import click
+
+            @click.command()
+            def cmd1():
+                click.echo("Command 1")
+            ```
+
+            ```{click:example}
+            @click.command()
+            def cmd2():
+                click.echo("Command 2")
+            ```
+
+            ```{click:run}
+            invoke(cmd1)
+            ```
+
+            ```{click:run}
+            invoke(cmd2)
+            ```
+        """)
+
+    html_output = build_sphinx_document(sphinx_app, content)
+    assert html_output is not None
+
+    assert (
+        '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span>'
+        '<span class="gp">$ </span>cmd1\n'
+        "Command 1\n"
+        "</pre></div>\n"
+        "</div>\n"
+        '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span>'
+        '<span class="gp">$ </span>cmd2\n'
+        "Command 2\n"
+        "</pre></div>\n"
+    ) in html_output
+
+
+def test_stdout_stderr_output(sphinx_app):
+    """Test directives that print to both ``<stdout>`` and ``<stderr>`` with proper rendering."""
+    format_type = sphinx_app._test_format
+
+    if format_type == "rst":
+        content = dedent("""
+            Test Document
+            =============
+
+            This is a test document with ``<stdout>`` and ``<stderr>`` output.
+
+            .. click:example::
+
+                import sys
+
+                import click
+                from click_extra import style, Color
+
+                @click.command()
+                def mixed_output():
+                    click.echo(f"This goes to {style('stdout', fg=Color.blue)}")
+                    click.echo(f"This is an {style('error', fg=Color.red)}", err=True)
+                    print(f"Direct {style('stdout', fg=Color.blue)} print", file=sys.stdout)
+                    print(f"Direct {style('stderr', fg=Color.red)} print", file=sys.stderr)
+
+            .. click:run::
+
+                invoke(mixed_output)
+        """)
+    elif format_type == "myst":
+        content = dedent("""
+            # Test Document
+
+            This is a test document with `<stdout>` and `<stderr>` output.
+
+            ```{click:example}
+            import sys
+
+            import click
+            from click_extra import style, Color
+
+            @click.command()
+            def mixed_output():
+                click.echo(f"This goes to {style('stdout', fg=Color.blue)}")
+                click.echo(f"This is an {style('error', fg=Color.red)}", err=True)
+                print(f"Direct {style('stdout', fg=Color.blue)} print", file=sys.stdout)
+                print(f"Direct {style('stderr', fg=Color.red)} print", file=sys.stderr)
+            ```
+
+            ```{click:run}
+            invoke(mixed_output)
+            ```
+        """)
+
+    html_output = build_sphinx_document(sphinx_app, content)
+    assert html_output is not None
+
+    assert (
+        '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span>'
+        '</span><span class="gp">$ </span>mixed-output\n'
+        'This goes to <span class=" -Color -Color-Blue -C-Blue">stdout</span>\n'
+        'This is an <span class=" -Color -Color-Red -C-Red">error</span>\n'
+        'Direct <span class=" -Color -Color-Blue -C-Blue">stdout</span> print\n'
+        'Direct <span class=" -Color -Color-Red -C-Red">stderr</span> print\n'
+        "</pre></div>"
     ) in html_output
