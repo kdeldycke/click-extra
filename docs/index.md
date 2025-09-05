@@ -24,6 +24,7 @@ pygments
 sphinx
 testing
 pytest
+telemetry
 ```
 
 ```{toctree}
