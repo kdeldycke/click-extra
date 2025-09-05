@@ -240,7 +240,7 @@ def test_simple_directives(sphinx_app):
         '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
         '<span class="kn">import</span><span class="w"> </span><span class="nn">click</span>\n'
         "\n"
-        '<span class="nd">@click</span><span class="o">.</span><span class="n">command</span>\n'
+        '<span class="and">@click</span><span class="o">.</span><span class="n">command</span>\n'
     ) in html_output
 
     # click:run renders into an ANSI shell session block with syntax highlighting.
@@ -278,7 +278,7 @@ def test_legacy_mixed_syntax_eval_rst(sphinx_app_myst):
         '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
         '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">echo</span><span class="p">,</span> <span class="n">command</span>\n'
         "\n"
-        '<span class="nd">@command</span>\n'
+        '<span class="and">@command</span>\n'
         '<span class="k">def</span><span class="w"> </span><span class="nf">yo_cli</span><span class="p">():</span>\n'
         '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Yo!&quot;</span><span class="p">)</span>\n'
         "</pre></div>\n"
@@ -359,7 +359,7 @@ def test_directive_option_linenos(sphinx_app):
         '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
         '<span class="linenos">1</span><span class="kn">import</span><span class="w"> </span><span class="nn">click</span>\n'
         '<span class="linenos">2</span>\n'
-        '<span class="linenos">3</span><span class="nd">@click</span><span class="o">.</span><span class="n">command</span>\n'
+        '<span class="linenos">3</span><span class="and">@click</span><span class="o">.</span><span class="n">command</span>\n'
         '<span class="linenos">4</span><span class="k">def</span><span class="w"> </span><span class="nf">numbered_example</span><span class="p">():</span>\n'
         '<span class="linenos">5</span>    <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Line numbers should appear&quot;</span><span class="p">)</span>\n'
         '<span class="linenos">6</span>    <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="s2">&quot;on the left side&quot;</span><span class="p">)</span>\n'
@@ -422,7 +422,7 @@ def test_directive_option_linenos_start(sphinx_app):
         '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
         '<span class="linenos"> 5</span><span class="kn">import</span><span class="w"> </span><span class="nn">click</span>\n'
         '<span class="linenos"> 6</span>\n'
-        '<span class="linenos"> 7</span><span class="nd">@click</span><span class="o">.</span><span class="n">command</span>\n'
+        '<span class="linenos"> 7</span><span class="and">@click</span><span class="o">.</span><span class="n">command</span>\n'
         '<span class="linenos"> 8</span><span class="k">def</span><span class="w"> </span><span class="nf">numbered_example</span><span class="p">():</span>\n'
         '<span class="linenos"> 9</span>    <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Line numbers should start from 5&quot;</span><span class="p">)</span>\n'
         '<span class="linenos">10</span>    <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="s2">&quot;and continue incrementing&quot;</span><span class="p">)</span>\n'
@@ -529,7 +529,7 @@ def test_directive_option_show_source(sphinx_app):
         '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
         '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">echo</span><span class="p">,</span> <span class="n">command</span>\n'
         "\n"
-        '<span class="nd">@command</span>\n'
+        '<span class="and">@command</span>\n'
         '<span class="k">def</span><span class="w"> </span><span class="nf">simple_print</span><span class="p">():</span>\n'
         '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Just a string to print.&quot;</span><span class="p">)</span>\n'
         "</pre></div>\n"
@@ -587,7 +587,7 @@ def test_directive_option_hide_results(sphinx_app):
         '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
         '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">echo</span><span class="p">,</span> <span class="n">command</span>\n'
         "\n"
-        '<span class="nd">@command</span>\n'
+        '<span class="and">@command</span>\n'
         '<span class="k">def</span><span class="w"> </span><span class="nf">simple</span><span class="p">():</span>\n'
         '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;This output should be hidden&quot;</span><span class="p">)</span>\n'
         "</pre></div>\n"
@@ -635,7 +635,7 @@ def test_directive_option_show_results(sphinx_app):
         '  <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
         '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">echo</span><span class="p">,</span> <span class="n">command</span>\n'
         "\n"
-        '<span class="nd">@command</span>\n'
+        '<span class="and">@command</span>\n'
         '<span class="k">def</span><span class="w"> </span><span class="nf">simple</span><span class="p">():</span>\n'
         '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;This output should be hidden&quot;</span><span class="p">)</span>\n'
         "</pre></div>\n"
@@ -695,7 +695,7 @@ def test_directive_option_combinations(sphinx_app):
         '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
         '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">command</span><span class="p">,</span> <span class="n">echo</span>\n'
         "\n"
-        '<span class="nd">@command</span>\n'
+        '<span class="and">@command</span>\n'
         '<span class="k">def</span><span class="w"> </span><span class="nf">combo_test</span><span class="p">():</span>\n'
         '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Should not see this&quot;</span><span class="p">)</span>\n'
         "</pre></div>\n"
