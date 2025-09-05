@@ -27,7 +27,11 @@ from sphinx.util.docutils import docutils_namespace
 
 @pytest.fixture(params=["rst", "myst"])
 def sphinx_app(request, tmp_path):
-    """Create a Sphinx application for testing."""
+    """Create a Sphinx application for testing.
+
+    .. todo::
+        Deduplicate and merge ``sphinx_app``, ``sphinx_app_rst`` and ``sphinx_app_myst`` fixtures.
+    """
     format_type = request.param
 
     srcdir = tmp_path / "source"
@@ -71,10 +75,7 @@ def sphinx_app_rst(tmp_path):
     """Create a Sphinx application for testing RST format only.
 
     .. todo::
-        Deduplicate this fixture with the sphinx_app() above.
-
-    .. todo::
-        Add an equivalent sphinx_app_myst fixture for MyST-only tests.
+        Deduplicate and merge ``sphinx_app``, ``sphinx_app_rst`` and ``sphinx_app_myst`` fixtures.
     """
     srcdir = tmp_path / "source"
     outdir = tmp_path / "build"
@@ -106,6 +107,47 @@ def sphinx_app_rst(tmp_path):
         )
         # Add format type as an attribute for easy access in tests.
         app._test_format = "rst"
+        yield app
+
+
+@pytest.fixture
+def sphinx_app_myst(tmp_path):
+    """Create a Sphinx application for testing MyST format only.
+
+    .. todo::
+        Deduplicate and merge ``sphinx_app``, ``sphinx_app_rst`` and ``sphinx_app_myst`` fixtures.
+    """
+    srcdir = tmp_path / "source"
+    outdir = tmp_path / "build"
+    doctreedir = outdir / ".doctrees"
+    confdir = srcdir
+
+    srcdir.mkdir()
+    outdir.mkdir()
+
+    # Sphinx's configuration is Python code.
+    conf = {
+        "master_doc": "index",
+        "extensions": ["click_extra.sphinx", "myst_parser"],
+        "myst_enable_extensions": ["colon_fence"],
+    }
+
+    # Write the conf.py file.
+    config_content = "\n".join(f"{key} = {repr(value)}" for key, value in conf.items())
+    (srcdir / "conf.py").write_text(config_content)
+
+    with docutils_namespace():
+        app = Sphinx(
+            str(srcdir),
+            str(confdir),
+            str(outdir),
+            str(doctreedir),
+            "html",
+            verbosity=0,
+            warning=None,
+        )
+        # Add format type as an attribute for easy access in tests.
+        app._test_format = "myst"
         yield app
 
 
@@ -205,6 +247,46 @@ def test_simple_directives(sphinx_app):
         '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span>'
         '<span class="gp">$ </span>simple\n'
         "It works!\n"
+        "</pre></div>\n"
+    ) in html_output
+
+
+def test_legacy_mixed_syntax_eval_rst(sphinx_app_myst):
+    """Test MyST's ``{eval-rst}`` directive with ``click`` directives for legacy compatibility."""
+    # Test MyST with embedded RST using {eval-rst}
+    content = dedent("""
+        ```{eval-rst}
+        .. click:example::
+
+            from click import echo, command
+
+            @command
+            def yo_cli():
+                echo("Yo!")
+
+        .. click:run::
+
+            invoke(yo_cli)
+        ```
+    """)
+
+    html_output = build_sphinx_document(sphinx_app_myst, content)
+    assert html_output is not None
+
+    # Both directives should render correctly.
+    assert (
+        '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
+        '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">echo</span><span class="p">,</span> <span class="n">command</span>\n'
+        "\n"
+        '<span class="nd">@command</span>\n'
+        '<span class="k">def</span><span class="w"> </span><span class="nf">yo_cli</span><span class="p">():</span>\n'
+        '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Yo!&quot;</span><span class="p">)</span>\n'
+        "</pre></div>\n"
+    ) in html_output
+    assert (
+        '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span>'
+        '<span class="gp">$ </span>yo-cli\n'
+        "Yo!\n"
         "</pre></div>\n"
     ) in html_output
 
@@ -352,6 +434,56 @@ def test_directive_option_linenos_start(sphinx_app):
         '<span class="linenos">10</span><span class="gp">$ </span>numbered-example\n'
         '<span class="linenos">11</span>Line numbers should start from 5\n'
         '<span class="linenos">12</span>and continue incrementing\n'
+        "</pre></div>\n"
+        "</div>\n"
+    ) in html_output
+
+
+
+def test_directive_option_language_override(sphinx_app):
+    """Test that language override works for click:run directive."""
+    format_type = sphinx_app._test_format
+
+    if format_type == "rst":
+        content = dedent("""
+            .. click:example::
+
+                from click import echo, command, option
+
+                @command
+                @option("--name")
+                def sql_output(name):
+                    sql_query = f"SELECT * FROM users WHERE name = '{name}';"
+                    echo(sql_query)
+
+            .. click:run:: sql
+
+                invoke(sql_output, args=["--name", "Joe"])
+        """)
+    elif format_type == "myst":
+        content = dedent("""
+            ```{click:example}
+            from click import echo, command, option
+
+            @command
+            @option("--name")
+            def sql_output(name):
+                sql_query = f"SELECT * FROM users WHERE name = '{name}';"
+                echo(sql_query)
+            ```
+
+            ```{click:run} sql
+            invoke(sql_output, args=["--name", "Joe"])
+            ```
+        """)
+
+    html_output = build_sphinx_document(sphinx_app, content)
+    assert html_output is not None
+
+    assert (
+        '<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span>'
+        '<span class="err">$</span><span class="w"> </span><span class="k">sql</span><span class="o">-</span><span class="k">output</span><span class="w"> </span><span class="c1">--name Joe</span>\n'
+        '<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;Joe&#39;</span><span class="p">;</span>\n'
         "</pre></div>\n"
         "</div>\n"
     ) in html_output
