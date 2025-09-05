@@ -344,7 +344,8 @@ def unescape_regex(text: str) -> str:
     """
     char_map = {
         escaped_char: chr(single_char)
-        for single_char, escaped_char in re._special_chars_map.items()  # type: ignore[attr-defined]
+        # type: ignore[attr-defined]
+        for single_char, escaped_char in re._special_chars_map.items()
     }
     char_map.update({r"\x1b": "\x1b"})
     for escaped, char in char_map.items():
