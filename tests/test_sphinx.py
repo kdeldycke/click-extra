@@ -17,7 +17,6 @@
 from __future__ import annotations
 
 import re
-import tempfile
 from pathlib import Path
 from textwrap import dedent
 
@@ -27,91 +26,80 @@ from sphinx.util.docutils import docutils_namespace
 
 
 @pytest.fixture(params=["rst", "myst"])
-def sphinx_app(request):
-    """Create a Sphinx application for testing.
-
-    Args:
-        request.param: Either ``rst`` for reStructuredText only,
-                      or ``myst`` for MyST Markdown support.
-    """
+def sphinx_app(request, tmp_path):
+    """Create a Sphinx application for testing."""
     format_type = request.param
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        srcdir = Path(tmpdir) / "source"
-        outdir = Path(tmpdir) / "build"
-        doctreedir = outdir / ".doctrees"
-        confdir = srcdir
+    srcdir = tmp_path / "source"
+    outdir = tmp_path / "build"
+    doctreedir = outdir / ".doctrees"
+    confdir = srcdir
 
-        srcdir.mkdir()
-        outdir.mkdir()
+    srcdir.mkdir()
+    outdir.mkdir()
 
-        # Sphinx's configuration is Python code.
-        conf = {
-            "master_doc": "index",
-            "extensions": ["click_extra.sphinx"],
-        }
-        if format_type == "myst":
-            conf["extensions"].append("myst_parser")
-            conf["myst_enable_extensions"] = ["colon_fence"]
+    # Sphinx's configuration is Python code.
+    conf = {
+        "master_doc": "index",
+        "extensions": ["click_extra.sphinx"],
+    }
+    if format_type == "myst":
+        conf["extensions"].append("myst_parser")
+        conf["myst_enable_extensions"] = ["colon_fence"]
 
-        # Write the conf.py file.
-        config_content = "\n".join(
-            f"{key} = {repr(value)}" for key, value in conf.items()
+    # Write the conf.py file.
+    config_content = "\n".join(f"{key} = {repr(value)}" for key, value in conf.items())
+    (srcdir / "conf.py").write_text(config_content)
+
+    with docutils_namespace():
+        app = Sphinx(
+            str(srcdir),
+            str(confdir),
+            str(outdir),
+            str(doctreedir),
+            "html",
+            verbosity=0,
+            warning=None,
         )
-        (srcdir / "conf.py").write_text(config_content)
-
-        with docutils_namespace():
-            app = Sphinx(
-                str(srcdir),
-                str(confdir),
-                str(outdir),
-                str(doctreedir),
-                "html",
-                verbosity=0,
-                warning=None,
-            )
-            # Add format type as an attribute for easy access in tests.
-            app._test_format = format_type
-            yield app
+        # Add format type as an attribute for easy access in tests.
+        app._test_format = format_type
+        yield app
 
 
 @pytest.fixture
-def sphinx_app_rst():
+def sphinx_app_rst(tmp_path):
     """Create a Sphinx application for testing RST format only."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        srcdir = Path(tmpdir) / "source"
-        outdir = Path(tmpdir) / "build"
-        doctreedir = outdir / ".doctrees"
-        confdir = srcdir
+    srcdir = tmp_path / "source"
+    outdir = tmp_path / "build"
+    doctreedir = outdir / ".doctrees"
+    confdir = srcdir
 
-        srcdir.mkdir()
-        outdir.mkdir()
+    srcdir.mkdir()
+    outdir.mkdir()
 
-        # Sphinx's configuration is Python code.
-        conf = {
-            "master_doc": "index",
-            "extensions": ["click_extra.sphinx"],
-        }
+    # Sphinx's configuration is Python code.
+    conf = {
+        "master_doc": "index",
+        "extensions": ["click_extra.sphinx"],
+    }
 
-        # Write the conf.py file.
-        config_content = "\n".join(
-            f"{key} = {repr(value)}" for key, value in conf.items()
+    # Write the conf.py file.
+    config_content = "\n".join(f"{key} = {repr(value)}" for key, value in conf.items())
+    (srcdir / "conf.py").write_text(config_content)
+
+    with docutils_namespace():
+        app = Sphinx(
+            str(srcdir),
+            str(confdir),
+            str(outdir),
+            str(doctreedir),
+            "html",
+            verbosity=0,
+            warning=None,
         )
-        (srcdir / "conf.py").write_text(config_content)
-
-        with docutils_namespace():
-            app = Sphinx(
-                str(srcdir),
-                str(confdir),
-                str(outdir),
-                str(doctreedir),
-                "html",
-                verbosity=0,
-                warning=None,
-            )
-            # Add format type as an attribute for easy access in tests.
-            app._test_format = "rst"
-            yield app
+        # Add format type as an attribute for easy access in tests.
+        app._test_format = "rst"
+        yield app
 
 
 def build_sphinx_document(sphinx_app: Sphinx, content: str) -> str | None:
