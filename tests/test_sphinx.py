@@ -283,6 +283,7 @@ def test_legacy_mixed_syntax_eval_rst(sphinx_app_myst):
         '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Yo!&quot;</span><span class="p">)</span>\n'
         "</pre></div>\n"
     ) in html_output
+
     assert (
         '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span>'
         '<span class="gp">$ </span>yo-cli\n'
@@ -364,7 +365,9 @@ def test_directive_option_linenos(sphinx_app):
         '<span class="linenos">5</span>    <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Line numbers should appear&quot;</span><span class="p">)</span>\n'
         '<span class="linenos">6</span>    <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="s2">&quot;on the left side&quot;</span><span class="p">)</span>\n'
         "</pre></div>\n"
-        "</div>\n"
+    ) in html_output
+
+    assert (
         '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span>'
         '<span class="linenos">1</span><span class="gp">$ </span>numbered-example\n'
         '<span class="linenos">2</span>Line numbers should appear\n'
@@ -427,18 +430,19 @@ def test_directive_option_linenos_start(sphinx_app):
         '<span class="linenos"> 9</span>    <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Line numbers should start from 5&quot;</span><span class="p">)</span>\n'
         '<span class="linenos">10</span>    <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="s2">&quot;and continue incrementing&quot;</span><span class="p">)</span>\n'
         "</pre></div>\n"
-        "</div>\n"
+    ) in html_output
+
+    assert (
         '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span>'
         '<span class="linenos">10</span><span class="gp">$ </span>numbered-example\n'
         '<span class="linenos">11</span>Line numbers should start from 5\n'
         '<span class="linenos">12</span>and continue incrementing\n'
         "</pre></div>\n"
-        "</div>\n"
     ) in html_output
 
 
 def test_directive_option_hide_source(sphinx_app):
-    """Test that ``:hide-source:``hides source code in ``click:example`` directive."""
+    """Test that ``:hide-source:`` hides source code in ``click:example`` directive."""
     format_type = sphinx_app._test_format
 
     if format_type == "rst":
@@ -446,7 +450,7 @@ def test_directive_option_hide_source(sphinx_app):
             .. click:example::
                 :hide-source:
 
-                from click import echo, command
+                from click import command, echo
 
                 @command
                 def simple_print():
@@ -460,7 +464,7 @@ def test_directive_option_hide_source(sphinx_app):
         content = dedent("""
             ```{click:example}
             :hide-source:
-            from click import echo, command
+            from click import command, echo
 
             @command
             def simple_print():
@@ -496,7 +500,7 @@ def test_directive_option_show_source(sphinx_app):
         content = dedent("""
             .. click:example::
 
-                from click import echo, command
+                from click import command, echo
 
                 @command
                 def simple_print():
@@ -510,7 +514,7 @@ def test_directive_option_show_source(sphinx_app):
     elif format_type == "myst":
         content = dedent("""
             ```{click:example}
-            from click import echo, command
+            from click import command, echo
 
             @command
             def simple_print():
@@ -527,7 +531,7 @@ def test_directive_option_show_source(sphinx_app):
 
     assert (
         '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
-        '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">echo</span><span class="p">,</span> <span class="n">command</span>\n'
+        '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">command</span><span class="p">,</span> <span class="n">echo</span>\n'
         "\n"
         '<span class="nd">@command</span>\n'
         '<span class="k">def</span><span class="w"> </span><span class="nf">simple_print</span><span class="p">():</span>\n'
@@ -539,10 +543,14 @@ def test_directive_option_show_source(sphinx_app):
         '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
         '<span class="n">invoke</span><span class="p">(</span><span class="n">simple_print</span><span class="p">)</span>\n'
         "</pre></div>\n"
-        "</div>\n"
-        '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>simple-print\n'
+    ) in html_output
+
+    assert (
+        '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span>'
+        '<span class="gp">$ </span>simple-print\n'
         "Just a string to print.\n"
         "</pre></div>\n"
+        "</div>\n"
     ) in html_output
 
 
@@ -554,30 +562,30 @@ def test_directive_option_hide_results(sphinx_app):
         content = dedent("""\
             .. click:example::
 
-                from click import echo, command
+                from click import command, echo
 
                 @command
-                def simple():
-                    echo("This output should be hidden")
+                def simple_print():
+                    echo("Just a string to print.")
 
             .. click:run::
                 :hide-results:
 
-                invoke(simple)
+                invoke(simple_print)
         """)
     elif format_type == "myst":
         content = dedent("""\
             ```{click:example}
-            from click import echo, command
+            from click import command, echo
 
             @command
-            def simple():
-                echo("This output should be hidden")
+            def simple_print():
+                echo("Just a string to print.")
             ```
 
             ```{click:run}
             :hide-results:
-            invoke(simple)
+            invoke(simple_print)
             ```
         """)
 
@@ -585,11 +593,11 @@ def test_directive_option_hide_results(sphinx_app):
 
     assert (
         '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
-        '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">echo</span><span class="p">,</span> <span class="n">command</span>\n'
+        '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">command</span><span class="p">,</span> <span class="n">echo</span>\n'
         "\n"
         '<span class="nd">@command</span>\n'
-        '<span class="k">def</span><span class="w"> </span><span class="nf">simple</span><span class="p">():</span>\n'
-        '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;This output should be hidden&quot;</span><span class="p">)</span>\n'
+        '<span class="k">def</span><span class="w"> </span><span class="nf">simple_print</span><span class="p">():</span>\n'
+        '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Just a string to print.&quot;</span><span class="p">)</span>\n'
         "</pre></div>\n"
     ) in html_output
 
@@ -602,47 +610,49 @@ def test_directive_option_show_results(sphinx_app):
         content = dedent("""\
             .. click:example::
 
-                from click import echo, command
+                from click import command, echo
 
                 @command
-                def simple():
-                    echo("This output should be hidden")
+                def simple_print():
+                    echo("Just a string to print.")
 
             .. click:run::
                 :show-results:
 
-                invoke(simple)
+                invoke(simple_print)
         """)
     elif format_type == "myst":
         content = dedent("""\
             ```{click:example}
-            from click import echo, command
+            from click import command, echo
 
             @command
-            def simple():
-                echo("This output should be hidden")
+            def simple_print():
+                echo("Just a string to print.")
             ```
 
             ```{click:run}
             :show-results:
-            invoke(simple)
+            invoke(simple_print)
             ```
         """)
 
     html_output = build_sphinx_document(sphinx_app, content)
 
     assert (
-        '  <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
-        '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">echo</span><span class="p">,</span> <span class="n">command</span>\n'
+        '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
+        '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">command</span><span class="p">,</span> <span class="n">echo</span>\n'
         "\n"
         '<span class="nd">@command</span>\n'
-        '<span class="k">def</span><span class="w"> </span><span class="nf">simple</span><span class="p">():</span>\n'
-        '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;This output should be hidden&quot;</span><span class="p">)</span>\n'
+        '<span class="k">def</span><span class="w"> </span><span class="nf">simple_print</span><span class="p">():</span>\n'
+        '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Just a string to print.&quot;</span><span class="p">)</span>\n'
         "</pre></div>\n"
-        "</div>\n"
+    ) in html_output
+
+    assert (
         '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span>'
-        '<span class="gp">$ </span>simple\n'
-        "This output should be hidden\n"
+        '<span class="gp">$ </span>simple-print\n'
+        "Just a string to print.\n"
         "</pre></div>\n"
     ) in html_output
 
@@ -660,14 +670,15 @@ def test_directive_option_combinations(sphinx_app):
                 from click import command, echo
 
                 @command
-                def combo_test():
-                    echo("Should not see this")
+                def simple_print():
+                    echo("Just a string to print.")
 
             .. click:run::
                 :show-source:
+                :hide-results:
                 :show-results:
 
-                invoke(combo_test)
+                invoke(simple_print)
         """)
     elif format_type == "myst":
         content = dedent("""\
@@ -678,14 +689,15 @@ def test_directive_option_combinations(sphinx_app):
             from click import command, echo
 
             @command
-            def combo_test():
-                echo("Should not see this")
+            def simple_print():
+                echo("Just a string to print.")
             ```
 
             ```{click:run}
             :show-source:
+            :hide-results:
             :show-results:
-            invoke(combo_test)
+            invoke(simple_print)
             ```
         """)
 
@@ -696,17 +708,21 @@ def test_directive_option_combinations(sphinx_app):
         '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">command</span><span class="p">,</span> <span class="n">echo</span>\n'
         "\n"
         '<span class="nd">@command</span>\n'
-        '<span class="k">def</span><span class="w"> </span><span class="nf">combo_test</span><span class="p">():</span>\n'
-        '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Should not see this&quot;</span><span class="p">)</span>\n'
+        '<span class="k">def</span><span class="w"> </span><span class="nf">simple_print</span><span class="p">():</span>\n'
+        '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Just a string to print.&quot;</span><span class="p">)</span>\n'
         "</pre></div>\n"
-        "</div>\n"
+    ) in html_output
+
+    assert (
         '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
-        '<span class="n">invoke</span><span class="p">(</span><span class="n">combo_test</span><span class="p">)</span>\n'
+        '<span class="n">invoke</span><span class="p">(</span><span class="n">simple_print</span><span class="p">)</span>\n'
         "</pre></div>\n"
-        "</div>\n"
+    ) in html_output
+
+    assert (
         '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span>'
-        '<span class="gp">$ </span>combo-test\n'
-        "Should not see this\n"
+        '<span class="gp">$ </span>simple-print\n'
+        "Just a string to print.\n"
         "</pre></div>\n"
     ) in html_output
 
@@ -755,7 +771,6 @@ def test_directive_option_language_override(sphinx_app):
         '<span class="err">$</span><span class="w"> </span><span class="k">sql</span><span class="o">-</span><span class="k">output</span><span class="w"> </span><span class="c1">--name Joe</span>\n'
         '<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;Joe&#39;</span><span class="p">;</span>\n'
         "</pre></div>\n"
-        "</div>\n"
     ) in html_output
 
 
@@ -819,7 +834,9 @@ def test_sphinx_directive_state_persistence(sphinx_app):
         '<span class="gp">$ </span>cmd1\n'
         "Command 1\n"
         "</pre></div>\n"
-        "</div>\n"
+    ) in html_output
+
+    assert (
         '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span>'
         '<span class="gp">$ </span>cmd2\n'
         "Command 2\n"
@@ -875,8 +892,8 @@ def test_stdout_stderr_output(sphinx_app):
     html_output = build_sphinx_document(sphinx_app, content)
 
     assert (
-        '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span>'
-        '</span><span class="gp">$ </span>mixed-output\n'
+        '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span>'
+        '<span class="gp">$ </span>mixed-output\n'
         'This goes to <span class=" -Color -Color-Blue -C-Blue">stdout</span>\n'
         'This is an <span class=" -Color -Color-Red -C-Red">error</span>\n'
         'Direct <span class=" -Color -Color-Blue -C-Blue">stdout</span> print\n'
