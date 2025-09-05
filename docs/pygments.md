@@ -1,4 +1,4 @@
-# {octicon}`north-star` Pygments
+# {octicon}`file-code` Pygments
 
 Click Extra plugs into Pygments to allow for the rendering of ANSI codes in various terminal output.
 
