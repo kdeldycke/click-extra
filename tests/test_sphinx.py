@@ -312,6 +312,56 @@ def test_stdout_stderr_output(sphinx_app):
     ) in html_output
 
 
+def test_isolated_filesystem_directive(sphinx_app):
+    """Test that isolated_filesystem works properly in click:run directives."""
+    format_type = sphinx_app._test_format
+
+    if format_type == "rst":
+        content = dedent("""\
+            .. click:example::
+
+               import click
+
+               @click.command()
+               def greet():
+                   click.echo("Hello World!")
+
+            .. click:run::
+
+               with isolated_filesystem():
+                   with open("test.txt", "w") as f:
+                       f.write("Hello File!")
+                   result = invoke(greet, [])
+        """)
+    elif format_type == "myst":
+        content = dedent("""\
+            ```{click:example}
+            import click
+
+            @click.command()
+            def greet():
+                click.echo("Hello World!")
+            ```
+
+            ```{click:run}
+            with isolated_filesystem():
+                with open("test.txt", "w") as f:
+                    f.write("Hello File!")
+                result = invoke(greet, [])
+            ```
+        """)
+
+    html_output = build_sphinx_document(sphinx_app, content)
+    assert html_output is not None
+
+    assert (
+        '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span>'
+        '<span class="gp">$ </span>greet\n'
+        "Hello World!\n"
+        "</pre></div>\n"
+    ) in html_output
+
+
 @pytest.mark.parametrize("var_name", ["invoke", "isolated_filesystem"])
 def test_directive_variable_conflict(var_name, sphinx_app):
     """Test that variable conflicts are properly detected in real Sphinx environment.
