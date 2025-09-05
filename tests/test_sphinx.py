@@ -75,6 +75,45 @@ def sphinx_app(request):
             yield app
 
 
+@pytest.fixture
+def sphinx_app_rst():
+    """Create a Sphinx application for testing RST format only."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        srcdir = Path(tmpdir) / "source"
+        outdir = Path(tmpdir) / "build"
+        doctreedir = outdir / ".doctrees"
+        confdir = srcdir
+
+        srcdir.mkdir()
+        outdir.mkdir()
+
+        # Sphinx's configuration is Python code.
+        conf = {
+            "master_doc": "index",
+            "extensions": ["click_extra.sphinx"],
+        }
+
+        # Write the conf.py file.
+        config_content = "\n".join(
+            f"{key} = {repr(value)}" for key, value in conf.items()
+        )
+        (srcdir / "conf.py").write_text(config_content)
+
+        with docutils_namespace():
+            app = Sphinx(
+                str(srcdir),
+                str(confdir),
+                str(outdir),
+                str(doctreedir),
+                "html",
+                verbosity=0,
+                warning=None,
+            )
+            # Add format type as an attribute for easy access in tests.
+            app._test_format = "rst"
+            yield app
+
+
 def build_sphinx_document(sphinx_app: Sphinx, content: str) -> str | None:
     """Build a Sphinx document with content and return the HTML output.
 
@@ -173,6 +212,34 @@ def test_simple_directives(sphinx_app):
         "It works!\n"
         "</pre></div>\n"
     ) in html_output
+
+
+def test_directive_option_format(sphinx_app_rst):
+    """Test that rST will fail to render click directive if an ``:option:`` is not followed by an empty line."""
+    content = dedent("""
+        .. click:example::
+            :linenos:
+            import click
+
+            @click.command()
+            def bad_format():
+                click.echo("This should fail to parse")
+
+        .. click:run::
+
+            invoke(bad_format, [])
+    """)
+
+    # RST should fail to parse this malformed directive
+    with pytest.raises(Exception) as exc_info:
+        build_sphinx_document(sphinx_app_rst, content)
+
+    # Verify it's a parsing error related to directive format
+    error_msg = str(exc_info.value)
+    assert any(
+        keyword in error_msg.lower()
+        for keyword in ["directive", "option", "content", "parse", "format"]
+    )
 
 
 def test_directive_option_linenos(sphinx_app):
