@@ -15,7 +15,7 @@ def table_command(ctx):
     headers = ("Day", "Temperature")
     data = (
         (1, 42.9),
-        (2, None),
+        ("2", None),
         (style("Friday", fg=Color.blue), style("Hot 🥵", fg=Color.red, bold=True)),
     )
     ctx.print_table(data, headers)
