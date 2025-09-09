@@ -191,7 +191,8 @@ You can pass options to both the `click:example` and `click:run` directives to c
 | [`:dedent:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-dedent) | Specify the number of spaces to remove from the beginning of each line. | `:dedent: 4` |
 | [`:language:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-literalinclude-language) | Specify the programming language for syntax highlighting. This can be used as an alternative to [passing the language as an argument](#syntax-highlight-language). | `:language: sql` |
 | `:show-source:`/`:hide-source:` | Flags to force the source code within the directive to be rendered or not. | `:show-source:` or `:hide-source:` |
-| `:show-results:`/`:hide-results:` | Flags to force the results of the CLI invocation to be rendered or not. | `:show-results:` or `:hide-results:` |
+| `:show-results:`/`:hide-results:` | Flags to force the results of the CLI invocation to be rendered or not. Only applies to `click:run`. Is silently ignored in `click:example`. | `:show-results:` or `:hide-results:` |
+| `:show-prompt:`/`:hide-prompt:` | TODO | TODO |
 
 ### `code-block` options
 
@@ -259,7 +260,7 @@ def hello_world(name):
 You can also control the display of the source code and the results of the CLI invocation with the `:show-source:`/`:hide-source:` and `:show-results:`/`:hide-results:` options.
 
 By default:
-- `click:example` displays the source code of the CLI, but does not display the results (because it is not executed). This is equivalent to having both `:show-source:` and `:hide-results:` options.
+- `click:example` displays the source code of the CLI. Because its content is not executed, no results are displayed. This is equivalent to having both `:show-source:` and `:hide-results:` options.
 - `click:run` displays the results of the CLI invocation, but does not display the source code. This is equivalent to having both `:hide-source:` and `:show-results:` options.
 
 But you can override this behavior by explicitly setting the options. Let's say [you only want to display the result](https://github.com/kdeldycke/click-extra/issues/719) of the CLI invocation, without showing the source code defining that CLI. Then you can add `:hide-source:` to the `click:example` directive:
