@@ -169,11 +169,11 @@ def test_simple_directives(sphinx_app):
 
             .. click:example::
 
-                import click
+                from click import command, echo
 
-                @click.command
+                @command
                 def simple():
-                    click.echo("It works!")
+                    echo("It works!")
 
             .. click:run::
 
@@ -186,11 +186,11 @@ def test_simple_directives(sphinx_app):
             This is a test document.
 
             ```{click:example}
-            import click
+            from click import command, echo
 
-            @click.command
+            @command
             def simple():
-                click.echo("It works!")
+                echo("It works!")
             ```
 
             ```{click:run}
@@ -204,9 +204,12 @@ def test_simple_directives(sphinx_app):
     # click:example renders into a code block with syntax highlighting.
     assert (
         HTML_FRAGMENTS["python_highlight"]
-        + '<span class="kn">import</span><span class="w"> </span><span class="nn">click</span>\n'
+        + '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">command</span><span class="p">,</span> <span class="n">echo</span>\n'
         + "\n"
-        + '<span class="nd">@click</span><span class="o">.</span><span class="n">command</span>\n'
+        + '<span class="nd">@command</span>\n'
+        + '<span class="k">def</span><span class="w"> </span><span class="nf">simple</span><span class="p">():</span>\n'
+        + '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;It works!&quot;</span><span class="p">)</span>\n'
+        + "</pre></div>\n"
     ) in html_output
 
     # click:run renders into an ANSI shell session block with syntax highlighting.
@@ -225,7 +228,7 @@ def test_legacy_mixed_syntax_eval_rst(sphinx_app_myst):
         ```{eval-rst}
         .. click:example::
 
-            from click import echo, command
+            from click import command, echo
 
             @command
             def yo_cli():
@@ -242,7 +245,7 @@ def test_legacy_mixed_syntax_eval_rst(sphinx_app_myst):
     # Both directives should render correctly.
     assert (
         HTML_FRAGMENTS["python_highlight"]
-        + '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">echo</span><span class="p">,</span> <span class="n">command</span>\n'
+        + '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">command</span><span class="p">,</span> <span class="n">echo</span>\n'
         + "\n"
         + '<span class="nd">@command</span>\n'
         + '<span class="k">def</span><span class="w"> </span><span class="nf">yo_cli</span><span class="p">():</span>\n'
@@ -263,11 +266,11 @@ def test_directive_option_format(sphinx_app_rst):
     content = dedent("""
         .. click:example::
             :linenos:
-            import click
+            from click import command, echo
 
-            @click.command
+            @command
             def bad_format():
-                click.echo("This should fail to parse")
+                echo("This should fail to parse")
 
         .. click:run::
 
@@ -290,12 +293,12 @@ def test_directive_option_linenos(sphinx_app):
             .. click:example::
                 :linenos:
 
-                import click
+                from click import command, echo
 
-                @click.command
+                @command
                 def numbered_example():
-                    click.echo("Line numbers should appear")
-                    click.echo("on the left side")
+                    echo("Line numbers should appear")
+                    echo("on the left side")
 
             .. click:run::
                 :linenos:
@@ -306,12 +309,12 @@ def test_directive_option_linenos(sphinx_app):
         content = dedent("""
             ```{click:example}
             :linenos:
-            import click
+            from click import command, echo
 
-            @click.command
+            @command
             def numbered_example():
-                click.echo("Line numbers should appear")
-                click.echo("on the left side")
+                echo("Line numbers should appear")
+                echo("on the left side")
             ```
 
             ```{click:run}
@@ -324,12 +327,12 @@ def test_directive_option_linenos(sphinx_app):
 
     assert (
         HTML_FRAGMENTS["python_highlight"]
-        + '<span class="linenos">1</span><span class="kn">import</span><span class="w"> </span><span class="nn">click</span>\n'
+        + '<span class="linenos">1</span><span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">command</span><span class="p">,</span> <span class="n">echo</span>\n'
         + '<span class="linenos">2</span>\n'
-        + '<span class="linenos">3</span><span class="nd">@click</span><span class="o">.</span><span class="n">command</span>\n'
+        + '<span class="linenos">3</span><span class="nd">@command</span>\n'
         + '<span class="linenos">4</span><span class="k">def</span><span class="w"> </span><span class="nf">numbered_example</span><span class="p">():</span>\n'
-        + '<span class="linenos">5</span>    <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Line numbers should appear&quot;</span><span class="p">)</span>\n'
-        + '<span class="linenos">6</span>    <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="s2">&quot;on the left side&quot;</span><span class="p">)</span>\n'
+        + '<span class="linenos">5</span>    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Line numbers should appear&quot;</span><span class="p">)</span>\n'
+        + '<span class="linenos">6</span>    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;on the left side&quot;</span><span class="p">)</span>\n'
         + "</pre></div>\n"
     ) in html_output
 
@@ -352,12 +355,12 @@ def test_directive_option_linenos_start(sphinx_app):
                 :linenos:
                 :lineno-start: 5
 
-                import click
+                from click import command, echo
 
-                @click.command
+                @command
                 def numbered_example():
-                    click.echo("Line numbers should start from 5")
-                    click.echo("and continue incrementing")
+                    echo("Line numbers should start from 5")
+                    echo("and continue incrementing")
 
             .. click:run::
                 :linenos:
@@ -370,12 +373,12 @@ def test_directive_option_linenos_start(sphinx_app):
             ```{click:example}
             :linenos:
             :lineno-start: 5
-            import click
+            from click import command, echo
 
-            @click.command
+            @command
             def numbered_example():
-                click.echo("Line numbers should start from 5")
-                click.echo("and continue incrementing")
+                echo("Line numbers should start from 5")
+                echo("and continue incrementing")
             ```
 
             ```{click:run}
@@ -389,12 +392,12 @@ def test_directive_option_linenos_start(sphinx_app):
 
     assert (
         HTML_FRAGMENTS["python_highlight"]
-        + '<span class="linenos"> 5</span><span class="kn">import</span><span class="w"> </span><span class="nn">click</span>\n'
+        + '<span class="linenos"> 5</span><span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">command</span><span class="p">,</span> <span class="n">echo</span>\n'
         + '<span class="linenos"> 6</span>\n'
-        + '<span class="linenos"> 7</span><span class="nd">@click</span><span class="o">.</span><span class="n">command</span>\n'
+        + '<span class="linenos"> 7</span><span class="nd">@command</span>\n'
         + '<span class="linenos"> 8</span><span class="k">def</span><span class="w"> </span><span class="nf">numbered_example</span><span class="p">():</span>\n'
-        + '<span class="linenos"> 9</span>    <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Line numbers should start from 5&quot;</span><span class="p">)</span>\n'
-        + '<span class="linenos">10</span>    <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="s2">&quot;and continue incrementing&quot;</span><span class="p">)</span>\n'
+        + '<span class="linenos"> 9</span>    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Line numbers should start from 5&quot;</span><span class="p">)</span>\n'
+        + '<span class="linenos">10</span>    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;and continue incrementing&quot;</span><span class="p">)</span>\n'
         + "</pre></div>\n"
     ) in html_output
 
@@ -701,7 +704,7 @@ def test_directive_option_language_override(sphinx_app):
         content = dedent("""
             .. click:example::
 
-                from click import echo, command, option
+                from click import command, echo, option
 
                 @command
                 @option("--name")
@@ -716,7 +719,7 @@ def test_directive_option_language_override(sphinx_app):
     elif format_type == MYST:
         content = dedent("""
             ```{click:example}
-            from click import echo, command, option
+            from click import command, echo, option
 
             @command
             @option("--name")
@@ -748,17 +751,17 @@ def test_sphinx_directive_state_persistence(sphinx_app):
         content = dedent("""
             .. click:example::
 
-                import click
+                from click import command, echo
 
-                @click.command
+                @command
                 def cmd1():
-                    click.echo("Command 1")
+                    echo("Command 1")
 
             .. click:example::
 
-                @click.command
+                @command
                 def cmd2():
-                    click.echo("Command 2")
+                    echo("Command 2")
 
             .. click:run::
 
@@ -771,17 +774,17 @@ def test_sphinx_directive_state_persistence(sphinx_app):
     elif format_type == MYST:
         content = dedent("""
             ```{click:example}
-            import click
+            from click import command, echo
 
-            @click.command
+            @command
             def cmd1():
-                click.echo("Command 1")
+                echo("Command 1")
             ```
 
             ```{click:example}
-            @click.command
+            @command
             def cmd2():
-                click.echo("Command 2")
+                echo("Command 2")
             ```
 
             ```{click:run}
@@ -820,13 +823,13 @@ def test_stdout_stderr_output(sphinx_app):
 
                 import sys
 
-                import click
+                from click import command, echo
                 from click_extra import style, Color
 
-                @click.command
+                @command
                 def mixed_output():
-                    click.echo(f"This goes to {style('stdout', fg=Color.blue)}")
-                    click.echo(f"This is an {style('error', fg=Color.red)}", err=True)
+                    echo(f"This goes to {style('stdout', fg=Color.blue)}")
+                    echo(f"This is an {style('error', fg=Color.red)}", err=True)
                     print(f"Direct {style('stdout', fg=Color.blue)} print", file=sys.stdout)
                     print(f"Direct {style('stderr', fg=Color.red)} print", file=sys.stderr)
 
@@ -839,13 +842,13 @@ def test_stdout_stderr_output(sphinx_app):
             ```{click:example}
             import sys
 
-            import click
+            from click import command, echo
             from click_extra import style, Color
 
-            @click.command
+            @command
             def mixed_output():
-                click.echo(f"This goes to {style('stdout', fg=Color.blue)}")
-                click.echo(f"This is an {style('error', fg=Color.red)}", err=True)
+                echo(f"This goes to {style('stdout', fg=Color.blue)}")
+                echo(f"This is an {style('error', fg=Color.red)}", err=True)
                 print(f"Direct {style('stdout', fg=Color.blue)} print", file=sys.stdout)
                 print(f"Direct {style('stderr', fg=Color.red)} print", file=sys.stderr)
             ```
@@ -876,11 +879,11 @@ def test_isolated_filesystem_directive(sphinx_app):
         content = dedent("""\
             .. click:example::
 
-                import click
+                from click import command, echo
 
-                @click.command
+                @command
                 def greet():
-                    click.echo("Hello World!")
+                    echo("Hello World!")
 
             .. click:run::
 
@@ -892,11 +895,11 @@ def test_isolated_filesystem_directive(sphinx_app):
     elif format_type == MYST:
         content = dedent("""\
             ```{click:example}
-            import click
+            from click import command, echo
 
-            @click.command
+            @command
             def greet():
-                click.echo("Hello World!")
+                echo("Hello World!")
             ```
 
             ```{click:run}
@@ -939,11 +942,11 @@ def test_directive_variable_conflict(var_name, sphinx_app, error_lineno):
         content = dedent(f"""
             .. click:example::
 
-                import click
+                from click import command, echo
 
-                @click.command
+                @command
                 def hello():
-                    click.echo("Hello World!")
+                    echo("Hello World!")
 
             .. click:run::
 
@@ -955,11 +958,11 @@ def test_directive_variable_conflict(var_name, sphinx_app, error_lineno):
     elif format_type == MYST:
         content = dedent(f"""
             ```{{click:example}}
-            import click
+            from click import command, echo
 
-            @click.command
+            @command
             def hello():
-                click.echo("Hello World!")
+                echo("Hello World!")
             ```
 
             ```{{click:run}}
@@ -990,17 +993,18 @@ def test_exit_exception_percolate(sphinx_app):
         content = dedent("""
             .. click:example::
 
-                import click
                 import sys
 
-                @click.command
-                @click.option('--fail', is_flag=True, help='Force command to fail')
+                from click import command, echo, option
+
+                @command
+                @option('--fail', is_flag=True, help='Force command to fail')
                 def error_command(fail):
-                    click.echo("Starting command...")
+                    echo("Starting command...")
                     if fail:
-                        click.echo("Something went wrong!", err=True)
+                        echo("Something went wrong!", err=True)
                         sys.exit(1)
-                    click.echo("Command completed successfully")
+                    echo("Command completed successfully")
 
             .. click:run::
 
@@ -1013,22 +1017,23 @@ def test_exit_exception_percolate(sphinx_app):
                 try:
                     invoke(error_command, ['--fail'])
                 except SystemExit as e:
-                    click.echo(f"Command exited with code: {e.code}", err=True)
+                    echo(f"Command exited with code: {e.code}", err=True)
         """)
     elif format_type == MYST:
         content = dedent("""
             ```{click:example}
-            import click
             import sys
 
-            @click.command
-            @click.option('--fail', is_flag=True, help='Force command to fail')
+            from click import command, echo, option
+
+            @command
+            @option('--fail', is_flag=True, help='Force command to fail')
             def error_command(fail):
-                click.echo("Starting command...")
+                echo("Starting command...")
                 if fail:
-                    click.echo("Something went wrong!", err=True)
+                    echo("Something went wrong!", err=True)
                     sys.exit(1)
-                click.echo("Command completed successfully")
+                echo("Command completed successfully")
             ```
 
             ```{click:run}
@@ -1041,7 +1046,7 @@ def test_exit_exception_percolate(sphinx_app):
             try:
                 invoke(error_command, ['--fail'])
             except SystemExit as e:
-                click.echo(f"Command exited with code: {e.code}", err=True)
+                echo(f"Command exited with code: {e.code}", err=True)
             ```
         """)
 
