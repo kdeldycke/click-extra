@@ -75,7 +75,7 @@ def _create_sphinx_app(format_type: FormatType, tmp_path):
         yield app
 
 
-@pytest.fixture
+@pytest.fixture(params=[RST, MYST])
 def sphinx_app(request, tmp_path):
     """Create a Sphinx application for testing."""
     yield from _create_sphinx_app(request.param, tmp_path)
@@ -117,7 +117,6 @@ def build_sphinx_document(sphinx_app: Sphinx, content: str) -> str | None:
         return html_output
 
 
-@pytest.mark.parametrize("sphinx_app", [RST, MYST], indirect=True)
 def test_sphinx_extension_setup(sphinx_app):
     """Test that the Sphinx extension is properly loaded."""
     # Check that the domain is registered.
@@ -129,7 +128,6 @@ def test_sphinx_extension_setup(sphinx_app):
     assert "run" in sphinx_app.env.get_domain("click").directives
 
 
-@pytest.mark.parametrize("sphinx_app", [RST, MYST], indirect=True)
 def test_simple_directives(sphinx_app):
     """Test minimal documents with directives in both RST and MyST formats.
 
@@ -259,7 +257,6 @@ def test_directive_option_format(sphinx_app_rst):
     assert str(exc_info.value) == "name 'bad_format' is not defined"
 
 
-@pytest.mark.parametrize("sphinx_app", [RST, MYST], indirect=True)
 def test_directive_option_linenos(sphinx_app):
     """Test that ``:linenos:`` option adds line numbers to code blocks."""
     format_type = sphinx_app._test_format
@@ -321,7 +318,6 @@ def test_directive_option_linenos(sphinx_app):
     ) in html_output
 
 
-@pytest.mark.parametrize("sphinx_app", [RST, MYST], indirect=True)
 def test_directive_option_linenos_start(sphinx_app):
     """Test that ``:lineno-start:`` shifts the starting line number."""
     format_type = sphinx_app._test_format
@@ -387,7 +383,6 @@ def test_directive_option_linenos_start(sphinx_app):
     ) in html_output
 
 
-@pytest.mark.parametrize("sphinx_app", [RST, MYST], indirect=True)
 def test_directive_option_hide_source(sphinx_app):
     """Test that ``:hide-source:`` hides source code in ``click:example`` directive."""
     format_type = sphinx_app._test_format
@@ -439,7 +434,6 @@ def test_directive_option_hide_source(sphinx_app):
     ) in html_output
 
 
-@pytest.mark.parametrize("sphinx_app", [RST, MYST], indirect=True)
 def test_directive_option_show_source(sphinx_app):
     """Test that ``:show-source:`` option shows source code in ``click:run`` directive."""
     format_type = sphinx_app._test_format
@@ -502,7 +496,6 @@ def test_directive_option_show_source(sphinx_app):
     ) in html_output
 
 
-@pytest.mark.parametrize("sphinx_app", [RST, MYST], indirect=True)
 def test_directive_option_hide_results(sphinx_app):
     """Test that ``:hide-results:`` option hides execution results in ``click:run``."""
     format_type = sphinx_app._test_format
@@ -551,7 +544,6 @@ def test_directive_option_hide_results(sphinx_app):
     ) in html_output
 
 
-@pytest.mark.parametrize("sphinx_app", [RST, MYST], indirect=True)
 def test_directive_option_show_results(sphinx_app):
     """Test that ``:show-results:`` option shows execution results (default behavior)."""
     format_type = sphinx_app._test_format
@@ -607,7 +599,6 @@ def test_directive_option_show_results(sphinx_app):
     ) in html_output
 
 
-@pytest.mark.parametrize("sphinx_app", [RST, MYST], indirect=True)
 def test_directive_option_combinations(sphinx_app):
     """Test various combinations of display options."""
     format_type = sphinx_app._test_format
@@ -678,7 +669,6 @@ def test_directive_option_combinations(sphinx_app):
     ) in html_output
 
 
-@pytest.mark.parametrize("sphinx_app", [RST, MYST], indirect=True)
 def test_directive_option_language_override(sphinx_app):
     """Test that language override works for click:run directive."""
     format_type = sphinx_app._test_format
@@ -726,7 +716,6 @@ def test_directive_option_language_override(sphinx_app):
     ) in html_output
 
 
-@pytest.mark.parametrize("sphinx_app", [RST, MYST], indirect=True)
 def test_sphinx_directive_state_persistence(sphinx_app):
     """Test that state persists between declare and run directives in real Sphinx."""
     format_type = sphinx_app._test_format
@@ -797,7 +786,6 @@ def test_sphinx_directive_state_persistence(sphinx_app):
     ) in html_output
 
 
-@pytest.mark.parametrize("sphinx_app", [RST, MYST], indirect=True)
 def test_stdout_stderr_output(sphinx_app):
     """Test directives that print to both ``<stdout>`` and ``<stderr>`` with proper rendering."""
     format_type = sphinx_app._test_format
@@ -856,7 +844,6 @@ def test_stdout_stderr_output(sphinx_app):
     ) in html_output
 
 
-@pytest.mark.parametrize("sphinx_app", [RST, MYST], indirect=True)
 def test_isolated_filesystem_directive(sphinx_app):
     """Test that isolated_filesystem works properly in click:run directives."""
     format_type = sphinx_app._test_format
@@ -971,7 +958,6 @@ def test_directive_variable_conflict(var_name, sphinx_app, error_lineno):
     assert re.fullmatch(expected_pattern, str(exc_info.value))
 
 
-@pytest.mark.parametrize("sphinx_app", [RST, MYST], indirect=True)
 def test_exit_exception_percolate(sphinx_app):
     """Test directives that handle command errors and exit codes."""
     format_type = sphinx_app._test_format
