@@ -133,11 +133,12 @@ def sphinx_app_myst(tmp_path):
     yield from SphinxAppWrapper.create(MYST, tmp_path)
 
 
-# Common HTML fragments for assertions
-HTML_FRAGMENTS = {
+# Common HTML fragments for assertions.
+HTML = {
     "python_highlight": '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>',
     "shell_session": '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span>',
     "sql_highlight": '<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span>',
+    "import_click": '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">command</span><span class="p">,</span> <span class="n">echo</span>\n',
 }
 
 
@@ -203,8 +204,8 @@ def test_simple_directives(sphinx_app):
 
     # click:example renders into a code block with syntax highlighting.
     assert (
-        HTML_FRAGMENTS["python_highlight"]
-        + '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">command</span><span class="p">,</span> <span class="n">echo</span>\n'
+        HTML["python_highlight"]
+        + HTML["import_click"]
         + "\n"
         + '<span class="nd">@command</span>\n'
         + '<span class="k">def</span><span class="w"> </span><span class="nf">simple</span><span class="p">():</span>\n'
@@ -214,7 +215,7 @@ def test_simple_directives(sphinx_app):
 
     # click:run renders into an ANSI shell session block with syntax highlighting.
     assert (
-        HTML_FRAGMENTS["shell_session"]
+        HTML["shell_session"]
         + '<span class="gp">$ </span>simple\n'
         + "It works!\n"
         + "</pre></div>\n"
@@ -244,8 +245,8 @@ def test_legacy_mixed_syntax_eval_rst(sphinx_app_myst):
 
     # Both directives should render correctly.
     assert (
-        HTML_FRAGMENTS["python_highlight"]
-        + '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">command</span><span class="p">,</span> <span class="n">echo</span>\n'
+        HTML["python_highlight"]
+        + HTML["import_click"]
         + "\n"
         + '<span class="nd">@command</span>\n'
         + '<span class="k">def</span><span class="w"> </span><span class="nf">yo_cli</span><span class="p">():</span>\n'
@@ -254,7 +255,7 @@ def test_legacy_mixed_syntax_eval_rst(sphinx_app_myst):
     ) in html_output
 
     assert (
-        HTML_FRAGMENTS["shell_session"]
+        HTML["shell_session"]
         + '<span class="gp">$ </span>yo-cli\n'
         + "Yo!\n"
         + "</pre></div>\n"
@@ -326,8 +327,9 @@ def test_directive_option_linenos(sphinx_app):
     html_output = sphinx_app.build_document(content)
 
     assert (
-        HTML_FRAGMENTS["python_highlight"]
-        + '<span class="linenos">1</span><span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">command</span><span class="p">,</span> <span class="n">echo</span>\n'
+        HTML["python_highlight"]
+        + '<span class="linenos">1</span>'
+        + HTML["import_click"]
         + '<span class="linenos">2</span>\n'
         + '<span class="linenos">3</span><span class="nd">@command</span>\n'
         + '<span class="linenos">4</span><span class="k">def</span><span class="w"> </span><span class="nf">numbered_example</span><span class="p">():</span>\n'
@@ -337,7 +339,7 @@ def test_directive_option_linenos(sphinx_app):
     ) in html_output
 
     assert (
-        HTML_FRAGMENTS["shell_session"]
+        HTML["shell_session"]
         + '<span class="linenos">1</span><span class="gp">$ </span>numbered-example\n'
         + '<span class="linenos">2</span>Line numbers should appear\n'
         + '<span class="linenos">3</span>on the left side\n'
@@ -391,8 +393,9 @@ def test_directive_option_linenos_start(sphinx_app):
     html_output = sphinx_app.build_document(content)
 
     assert (
-        HTML_FRAGMENTS["python_highlight"]
-        + '<span class="linenos"> 5</span><span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">command</span><span class="p">,</span> <span class="n">echo</span>\n'
+        HTML["python_highlight"]
+        + '<span class="linenos"> 5</span>'
+        + HTML["import_click"]
         + '<span class="linenos"> 6</span>\n'
         + '<span class="linenos"> 7</span><span class="nd">@command</span>\n'
         + '<span class="linenos"> 8</span><span class="k">def</span><span class="w"> </span><span class="nf">numbered_example</span><span class="p">():</span>\n'
@@ -402,7 +405,7 @@ def test_directive_option_linenos_start(sphinx_app):
     ) in html_output
 
     assert (
-        HTML_FRAGMENTS["shell_session"]
+        HTML["shell_session"]
         + '<span class="linenos">10</span><span class="gp">$ </span>numbered-example\n'
         + '<span class="linenos">11</span>Line numbers should start from 5\n'
         + '<span class="linenos">12</span>and continue incrementing\n'
@@ -454,7 +457,7 @@ def test_directive_option_hide_source(sphinx_app):
 
     # But click:run should still display results.
     assert (
-        HTML_FRAGMENTS["shell_session"]
+        HTML["shell_session"]
         + '<span class="gp">$ </span>simple-print\n'
         + "Just a string to print.\n"
         + "</pre></div>\n"
@@ -499,8 +502,8 @@ def test_directive_option_show_source(sphinx_app):
     html_output = sphinx_app.build_document(content)
 
     assert (
-        HTML_FRAGMENTS["python_highlight"]
-        + '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">command</span><span class="p">,</span> <span class="n">echo</span>\n'
+        HTML["python_highlight"]
+        + HTML["import_click"]
         + "\n"
         + '<span class="nd">@command</span>\n'
         + '<span class="k">def</span><span class="w"> </span><span class="nf">simple_print</span><span class="p">():</span>\n'
@@ -509,13 +512,13 @@ def test_directive_option_show_source(sphinx_app):
     ) in html_output
 
     assert (
-        HTML_FRAGMENTS["python_highlight"]
+        HTML["python_highlight"]
         + '<span class="n">invoke</span><span class="p">(</span><span class="n">simple_print</span><span class="p">)</span>\n'
         + "</pre></div>\n"
     ) in html_output
 
     assert (
-        HTML_FRAGMENTS["shell_session"]
+        HTML["shell_session"]
         + '<span class="gp">$ </span>simple-print\n'
         + "Just a string to print.\n"
         + "</pre></div>\n"
@@ -561,8 +564,8 @@ def test_directive_option_hide_results(sphinx_app):
     html_output = sphinx_app.build_document(content)
 
     assert (
-        HTML_FRAGMENTS["python_highlight"]
-        + '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">command</span><span class="p">,</span> <span class="n">echo</span>\n'
+        HTML["python_highlight"]
+        + HTML["import_click"]
         + "\n"
         + '<span class="nd">@command</span>\n'
         + '<span class="k">def</span><span class="w"> </span><span class="nf">simple_print</span><span class="p">():</span>\n'
@@ -609,8 +612,8 @@ def test_directive_option_show_results(sphinx_app):
     html_output = sphinx_app.build_document(content)
 
     assert (
-        HTML_FRAGMENTS["python_highlight"]
-        + '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">command</span><span class="p">,</span> <span class="n">echo</span>\n'
+        HTML["python_highlight"]
+        + HTML["import_click"]
         + "\n"
         + '<span class="nd">@command</span>\n'
         + '<span class="k">def</span><span class="w"> </span><span class="nf">simple_print</span><span class="p">():</span>\n'
@@ -619,7 +622,7 @@ def test_directive_option_show_results(sphinx_app):
     ) in html_output
 
     assert (
-        HTML_FRAGMENTS["shell_session"]
+        HTML["shell_session"]
         + '<span class="gp">$ </span>simple-print\n'
         + "Just a string to print.\n"
         + "</pre></div>\n"
@@ -673,8 +676,8 @@ def test_directive_option_combinations(sphinx_app):
     html_output = sphinx_app.build_document(content)
 
     assert (
-        HTML_FRAGMENTS["python_highlight"]
-        + '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">command</span><span class="p">,</span> <span class="n">echo</span>\n'
+        HTML["python_highlight"]
+        + HTML["import_click"]
         + "\n"
         + '<span class="nd">@command</span>\n'
         + '<span class="k">def</span><span class="w"> </span><span class="nf">simple_print</span><span class="p">():</span>\n'
@@ -683,13 +686,13 @@ def test_directive_option_combinations(sphinx_app):
     ) in html_output
 
     assert (
-        HTML_FRAGMENTS["python_highlight"]
+        HTML["python_highlight"]
         + '<span class="n">invoke</span><span class="p">(</span><span class="n">simple_print</span><span class="p">)</span>\n'
         + "</pre></div>\n"
     ) in html_output
 
     assert (
-        HTML_FRAGMENTS["shell_session"]
+        HTML["shell_session"]
         + '<span class="gp">$ </span>simple-print\n'
         + "Just a string to print.\n"
         + "</pre></div>\n"
@@ -736,7 +739,7 @@ def test_directive_option_language_override(sphinx_app):
     html_output = sphinx_app.build_document(content)
 
     assert (
-        HTML_FRAGMENTS["sql_highlight"]
+        HTML["sql_highlight"]
         + '<span class="err">$</span><span class="w"> </span><span class="k">sql</span><span class="o">-</span><span class="k">output</span><span class="w"> </span><span class="c1">--name Joe</span>\n'
         + '<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;Joe&#39;</span><span class="p">;</span>\n'
         + "</pre></div>\n"
@@ -799,14 +802,14 @@ def test_sphinx_directive_state_persistence(sphinx_app):
     html_output = sphinx_app.build_document(content)
 
     assert (
-        HTML_FRAGMENTS["shell_session"]
+        HTML["shell_session"]
         + '<span class="gp">$ </span>cmd1\n'
         + "Command 1\n"
         + "</pre></div>\n"
     ) in html_output
 
     assert (
-        HTML_FRAGMENTS["shell_session"]
+        HTML["shell_session"]
         + '<span class="gp">$ </span>cmd2\n'
         + "Command 2\n"
         + "</pre></div>\n"
@@ -861,7 +864,7 @@ def test_stdout_stderr_output(sphinx_app):
     html_output = sphinx_app.build_document(content)
 
     assert (
-        HTML_FRAGMENTS["shell_session"]
+        HTML["shell_session"]
         + '<span class="gp">$ </span>mixed-output\n'
         + 'This goes to <span class=" -Color -Color-Blue -C-Blue">stdout</span>\n'
         + 'This is an <span class=" -Color -Color-Red -C-Red">error</span>\n'
@@ -913,7 +916,7 @@ def test_isolated_filesystem_directive(sphinx_app):
     html_output = sphinx_app.build_document(content)
 
     assert (
-        HTML_FRAGMENTS["shell_session"]
+        HTML["shell_session"]
         + '<span class="gp">$ </span>greet\n'
         + "Hello World!\n"
         + "</pre></div>\n"
@@ -1053,7 +1056,7 @@ def test_exit_exception_percolate(sphinx_app):
     html_output = sphinx_app.build_document(content)
 
     assert (
-        HTML_FRAGMENTS["shell_session"]
+        HTML["shell_session"]
         + '<span class="gp">$ </span>error<span class="w"> </span>--fail\n'
         + "Starting command...\n"
         + "Something went wrong!\n"
