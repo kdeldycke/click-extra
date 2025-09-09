@@ -20,6 +20,7 @@ import re
 from enum import StrEnum
 from pathlib import Path
 from textwrap import dedent
+from typing import Generator
 
 import pytest
 from sphinx.application import Sphinx
@@ -27,7 +28,7 @@ from sphinx.util.docutils import docutils_namespace
 
 
 class FormatType(StrEnum):
-    """Sphinx document format types."""
+    """Sphinx document format types and their file extensions."""
 
     RST = ".rst"
     MYST = ".md"
@@ -49,6 +50,47 @@ class SphinxAppWrapper:
     def __getattr__(self, name):
         """Delegate attribute access to the wrapped Sphinx app."""
         return getattr(self._app, name)
+
+    @classmethod
+    def create(
+        cls, format_type: FormatType, tmp_path
+    ) -> Generator[SphinxAppWrapper, None, None]:
+        """Factory method to create a SphinxAppWrapper with given format."""
+        srcdir = tmp_path / "source"
+        outdir = tmp_path / "build"
+        doctreedir = outdir / ".doctrees"
+        confdir = srcdir
+
+        srcdir.mkdir()
+        outdir.mkdir()
+
+        # Sphinx's configuration is Python code.
+        conf = {
+            "master_doc": "index",
+            "extensions": ["click_extra.sphinx"],
+        }
+        if format_type == MYST:
+            conf["extensions"].append("myst_parser")
+            conf["myst_enable_extensions"] = ["colon_fence"]
+
+        # Write the conf.py file.
+        config_content = "\n".join(
+            f"{key} = {repr(value)}" for key, value in conf.items()
+        )
+        (srcdir / "conf.py").write_text(config_content)
+
+        with docutils_namespace():
+            app = Sphinx(
+                str(srcdir),
+                str(confdir),
+                str(outdir),
+                str(doctreedir),
+                "html",
+                verbosity=0,
+                warning=None,
+            )
+            # Return wrapped app instead of raw Sphinx app.
+            yield cls(app, format_type)
 
     def build_document(self, content: str) -> str | None:
         """Build a Sphinx document with content and return the HTML output.
@@ -73,59 +115,22 @@ class SphinxAppWrapper:
             return html_output
 
 
-def _create_sphinx_app(format_type: FormatType, tmp_path):
-    """Helper function to create Sphinx app with given format."""
-    srcdir = tmp_path / "source"
-    outdir = tmp_path / "build"
-    doctreedir = outdir / ".doctrees"
-    confdir = srcdir
-
-    srcdir.mkdir()
-    outdir.mkdir()
-
-    # Sphinx's configuration is Python code.
-    conf = {
-        "master_doc": "index",
-        "extensions": ["click_extra.sphinx"],
-    }
-    if format_type == MYST:
-        conf["extensions"].append("myst_parser")
-        conf["myst_enable_extensions"] = ["colon_fence"]
-
-    # Write the conf.py file.
-    config_content = "\n".join(f"{key} = {repr(value)}" for key, value in conf.items())
-    (srcdir / "conf.py").write_text(config_content)
-
-    with docutils_namespace():
-        app = Sphinx(
-            str(srcdir),
-            str(confdir),
-            str(outdir),
-            str(doctreedir),
-            "html",
-            verbosity=0,
-            warning=None,
-        )
-        # Return wrapped app instead of raw Sphinx app.
-        yield SphinxAppWrapper(app, format_type)
-
-
 @pytest.fixture(params=[RST, MYST])
 def sphinx_app(request, tmp_path):
     """Create a Sphinx application for testing."""
-    yield from _create_sphinx_app(request.param, tmp_path)
+    yield from SphinxAppWrapper.create(request.param, tmp_path)
 
 
 @pytest.fixture
 def sphinx_app_rst(tmp_path):
     """Create a Sphinx application for testing RST format only."""
-    yield from _create_sphinx_app(RST, tmp_path)
+    yield from SphinxAppWrapper.create(RST, tmp_path)
 
 
 @pytest.fixture
 def sphinx_app_myst(tmp_path):
     """Create a Sphinx application for testing MyST format only."""
-    yield from _create_sphinx_app(MYST, tmp_path)
+    yield from SphinxAppWrapper.create(MYST, tmp_path)
 
 
 def test_sphinx_extension_setup(sphinx_app):
