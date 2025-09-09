@@ -37,6 +37,42 @@ RST = FormatType.RST
 MYST = FormatType.MYST
 
 
+class SphinxAppWrapper:
+    """Wrapper around Sphinx application with additional testing methods."""
+
+    def __init__(self, app: Sphinx, format_type: FormatType):
+        self.app = app
+        self.format_type = format_type
+        # Delegate all other attributes to the wrapped app
+        self._app = app
+
+    def __getattr__(self, name):
+        """Delegate attribute access to the wrapped Sphinx app."""
+        return getattr(self._app, name)
+
+    def build_document(self, content: str) -> str | None:
+        """Build a Sphinx document with content and return the HTML output.
+
+        Automatically detects the format from the app configuration and uses the
+        appropriate file extension (.rst or .md).
+        """
+        # Determine file extension based on format type.
+        file_extension = self.format_type.value
+
+        index_file = Path(self.app.srcdir) / f"index{file_extension}"
+        index_file.write_text(content)
+
+        # Build the documentation.
+        self.app.build()
+
+        # Read the generated HTML.
+        output_file = Path(self.app.outdir) / "index.html"
+        if output_file.exists():
+            html_output = output_file.read_text()
+            assert html_output
+            return html_output
+
+
 def _create_sphinx_app(format_type: FormatType, tmp_path):
     """Helper function to create Sphinx app with given format."""
     srcdir = tmp_path / "source"
@@ -70,9 +106,8 @@ def _create_sphinx_app(format_type: FormatType, tmp_path):
             verbosity=0,
             warning=None,
         )
-        # Add format type as an attribute for easy access in tests.
-        app._test_format = format_type
-        yield app
+        # Return wrapped app instead of raw Sphinx app.
+        yield SphinxAppWrapper(app, format_type)
 
 
 @pytest.fixture(params=[RST, MYST])
@@ -93,30 +128,6 @@ def sphinx_app_myst(tmp_path):
     yield from _create_sphinx_app(MYST, tmp_path)
 
 
-def build_sphinx_document(sphinx_app: Sphinx, content: str) -> str | None:
-    """Build a Sphinx document with content and return the HTML output.
-
-    Automatically detects the format from the app configuration and uses
-    the appropriate file extension (.rst or .md).
-    """
-    # Determine file extension based on app configuration.
-    assert hasattr(sphinx_app, "_test_format")
-    file_extension = sphinx_app._test_format.value
-
-    index_file = Path(sphinx_app.srcdir) / f"index{file_extension}"
-    index_file.write_text(content)
-
-    # Build the documentation.
-    sphinx_app.build()
-
-    # Read the generated HTML.
-    output_file = Path(sphinx_app.outdir) / "index.html"
-    if output_file.exists():
-        html_output = output_file.read_text()
-        assert html_output
-        return html_output
-
-
 def test_sphinx_extension_setup(sphinx_app):
     """Test that the Sphinx extension is properly loaded."""
     # Check that the domain is registered.
@@ -134,7 +145,7 @@ def test_simple_directives(sphinx_app):
     .. todo::
         Test different unmatching indentions and spacing in example and run directives.
     """
-    format_type = sphinx_app._test_format
+    format_type = sphinx_app.format_type
 
     if format_type == RST:
         content = dedent("""
@@ -174,7 +185,7 @@ def test_simple_directives(sphinx_app):
             ```
         """)
 
-    html_output = build_sphinx_document(sphinx_app, content)
+    html_output = sphinx_app.build_document(content)
     assert "<h1>Test Document" in html_output
 
     # click:example renders into a code block with syntax highlighting.
@@ -213,7 +224,7 @@ def test_legacy_mixed_syntax_eval_rst(sphinx_app_myst):
         ```
     """)
 
-    html_output = build_sphinx_document(sphinx_app_myst, content)
+    html_output = sphinx_app_myst.build_document(content)
 
     # Both directives should render correctly.
     assert (
@@ -252,14 +263,14 @@ def test_directive_option_format(sphinx_app_rst):
 
     # RST should fail to parse this malformed directive
     with pytest.raises(NameError) as exc_info:
-        build_sphinx_document(sphinx_app_rst, content)
+        sphinx_app_rst.build_document(content)
 
     assert str(exc_info.value) == "name 'bad_format' is not defined"
 
 
 def test_directive_option_linenos(sphinx_app):
     """Test that ``:linenos:`` option adds line numbers to code blocks."""
-    format_type = sphinx_app._test_format
+    format_type = sphinx_app.format_type
 
     if format_type == RST:
         content = dedent("""
@@ -296,7 +307,7 @@ def test_directive_option_linenos(sphinx_app):
             ```
         """)
 
-    html_output = build_sphinx_document(sphinx_app, content)
+    html_output = sphinx_app.build_document(content)
 
     assert (
         '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
@@ -320,7 +331,7 @@ def test_directive_option_linenos(sphinx_app):
 
 def test_directive_option_linenos_start(sphinx_app):
     """Test that ``:lineno-start:`` shifts the starting line number."""
-    format_type = sphinx_app._test_format
+    format_type = sphinx_app.format_type
 
     if format_type == RST:
         content = dedent("""
@@ -361,7 +372,7 @@ def test_directive_option_linenos_start(sphinx_app):
             ```
         """)
 
-    html_output = build_sphinx_document(sphinx_app, content)
+    html_output = sphinx_app.build_document(content)
 
     assert (
         '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
@@ -385,7 +396,7 @@ def test_directive_option_linenos_start(sphinx_app):
 
 def test_directive_option_hide_source(sphinx_app):
     """Test that ``:hide-source:`` hides source code in ``click:example`` directive."""
-    format_type = sphinx_app._test_format
+    format_type = sphinx_app.format_type
 
     if format_type == RST:
         content = dedent("""
@@ -418,7 +429,7 @@ def test_directive_option_hide_source(sphinx_app):
             ```
         """)
 
-    html_output = build_sphinx_document(sphinx_app, content)
+    html_output = sphinx_app.build_document(content)
 
     # click:example should not display source code.
     assert "highlight-python" not in html_output
@@ -436,7 +447,7 @@ def test_directive_option_hide_source(sphinx_app):
 
 def test_directive_option_show_source(sphinx_app):
     """Test that ``:show-source:`` option shows source code in ``click:run`` directive."""
-    format_type = sphinx_app._test_format
+    format_type = sphinx_app.format_type
 
     if format_type == RST:
         content = dedent("""
@@ -469,7 +480,7 @@ def test_directive_option_show_source(sphinx_app):
             ```
         """)
 
-    html_output = build_sphinx_document(sphinx_app, content)
+    html_output = sphinx_app.build_document(content)
 
     assert (
         '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
@@ -498,7 +509,7 @@ def test_directive_option_show_source(sphinx_app):
 
 def test_directive_option_hide_results(sphinx_app):
     """Test that ``:hide-results:`` option hides execution results in ``click:run``."""
-    format_type = sphinx_app._test_format
+    format_type = sphinx_app.format_type
 
     if format_type == RST:
         content = dedent("""\
@@ -531,7 +542,7 @@ def test_directive_option_hide_results(sphinx_app):
             ```
         """)
 
-    html_output = build_sphinx_document(sphinx_app, content)
+    html_output = sphinx_app.build_document(content)
 
     assert (
         '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
@@ -546,7 +557,7 @@ def test_directive_option_hide_results(sphinx_app):
 
 def test_directive_option_show_results(sphinx_app):
     """Test that ``:show-results:`` option shows execution results (default behavior)."""
-    format_type = sphinx_app._test_format
+    format_type = sphinx_app.format_type
 
     if format_type == RST:
         content = dedent("""\
@@ -579,7 +590,7 @@ def test_directive_option_show_results(sphinx_app):
             ```
         """)
 
-    html_output = build_sphinx_document(sphinx_app, content)
+    html_output = sphinx_app.build_document(content)
 
     assert (
         '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
@@ -601,7 +612,7 @@ def test_directive_option_show_results(sphinx_app):
 
 def test_directive_option_combinations(sphinx_app):
     """Test various combinations of display options."""
-    format_type = sphinx_app._test_format
+    format_type = sphinx_app.format_type
 
     if format_type == RST:
         content = dedent("""\
@@ -643,7 +654,7 @@ def test_directive_option_combinations(sphinx_app):
             ```
         """)
 
-    html_output = build_sphinx_document(sphinx_app, content)
+    html_output = sphinx_app.build_document(content)
 
     assert (
         '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>'
@@ -671,7 +682,7 @@ def test_directive_option_combinations(sphinx_app):
 
 def test_directive_option_language_override(sphinx_app):
     """Test that language override works for click:run directive."""
-    format_type = sphinx_app._test_format
+    format_type = sphinx_app.format_type
 
     if format_type == RST:
         content = dedent("""
@@ -706,7 +717,7 @@ def test_directive_option_language_override(sphinx_app):
             ```
         """)
 
-    html_output = build_sphinx_document(sphinx_app, content)
+    html_output = sphinx_app.build_document(content)
 
     assert (
         '<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span>'
@@ -718,7 +729,7 @@ def test_directive_option_language_override(sphinx_app):
 
 def test_sphinx_directive_state_persistence(sphinx_app):
     """Test that state persists between declare and run directives in real Sphinx."""
-    format_type = sphinx_app._test_format
+    format_type = sphinx_app.format_type
 
     if format_type == RST:
         content = dedent("""
@@ -769,7 +780,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
             ```
         """)
 
-    html_output = build_sphinx_document(sphinx_app, content)
+    html_output = sphinx_app.build_document(content)
 
     assert (
         '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span>'
@@ -788,7 +799,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
 
 def test_stdout_stderr_output(sphinx_app):
     """Test directives that print to both ``<stdout>`` and ``<stderr>`` with proper rendering."""
-    format_type = sphinx_app._test_format
+    format_type = sphinx_app.format_type
 
     if format_type == RST:
         content = dedent("""
@@ -831,7 +842,7 @@ def test_stdout_stderr_output(sphinx_app):
             ```
         """)
 
-    html_output = build_sphinx_document(sphinx_app, content)
+    html_output = sphinx_app.build_document(content)
 
     assert (
         '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span>'
@@ -846,7 +857,7 @@ def test_stdout_stderr_output(sphinx_app):
 
 def test_isolated_filesystem_directive(sphinx_app):
     """Test that isolated_filesystem works properly in click:run directives."""
-    format_type = sphinx_app._test_format
+    format_type = sphinx_app.format_type
 
     if format_type == RST:
         content = dedent("""\
@@ -883,7 +894,7 @@ def test_isolated_filesystem_directive(sphinx_app):
             ```
         """)
 
-    html_output = build_sphinx_document(sphinx_app, content)
+    html_output = sphinx_app.build_document(content)
 
     assert (
         '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span>'
@@ -909,7 +920,7 @@ def test_directive_variable_conflict(var_name, sphinx_app, error_lineno):
         Test different indentations and spacing around the conflicting variable to
         check line number reported in error message are accurate.
     """
-    format_type = sphinx_app._test_format
+    format_type = sphinx_app.format_type
 
     if format_type == RST:
         content = dedent(f"""
@@ -946,7 +957,7 @@ def test_directive_variable_conflict(var_name, sphinx_app, error_lineno):
         """)
 
     with pytest.raises(RuntimeError) as exc_info:
-        build_sphinx_document(sphinx_app, content)
+        sphinx_app.build_document(content)
 
     file_extension = format_type.value
     expected_pattern = (
@@ -960,7 +971,7 @@ def test_directive_variable_conflict(var_name, sphinx_app, error_lineno):
 
 def test_exit_exception_percolate(sphinx_app):
     """Test directives that handle command errors and exit codes."""
-    format_type = sphinx_app._test_format
+    format_type = sphinx_app.format_type
 
     if format_type == RST:
         content = dedent("""
@@ -1021,7 +1032,7 @@ def test_exit_exception_percolate(sphinx_app):
             ```
         """)
 
-    html_output = build_sphinx_document(sphinx_app, content)
+    html_output = sphinx_app.build_document(content)
 
     assert (
         '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span>'
