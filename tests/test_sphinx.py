@@ -25,15 +25,8 @@ from sphinx.application import Sphinx
 from sphinx.util.docutils import docutils_namespace
 
 
-@pytest.fixture(params=["rst", "myst"])
-def sphinx_app(request, tmp_path):
-    """Create a Sphinx application for testing.
-
-    .. todo::
-        Deduplicate and merge ``sphinx_app``, ``sphinx_app_rst`` and ``sphinx_app_myst`` fixtures.
-    """
-    format_type = request.param
-
+def _create_sphinx_app(format_type, tmp_path):
+    """Helper function to create Sphinx app with given format."""
     srcdir = tmp_path / "source"
     outdir = tmp_path / "build"
     doctreedir = outdir / ".doctrees"
@@ -71,84 +64,21 @@ def sphinx_app(request, tmp_path):
 
 
 @pytest.fixture
+def sphinx_app(request, tmp_path):
+    """Create a Sphinx application for testing."""
+    yield from _create_sphinx_app(request.param, tmp_path)
+
+
+@pytest.fixture
 def sphinx_app_rst(tmp_path):
-    """Create a Sphinx application for testing RST format only.
-
-    .. todo::
-        Deduplicate and merge ``sphinx_app``, ``sphinx_app_rst`` and ``sphinx_app_myst`` fixtures.
-    """
-    srcdir = tmp_path / "source"
-    outdir = tmp_path / "build"
-    doctreedir = outdir / ".doctrees"
-    confdir = srcdir
-
-    srcdir.mkdir()
-    outdir.mkdir()
-
-    # Sphinx's configuration is Python code.
-    conf = {
-        "master_doc": "index",
-        "extensions": ["click_extra.sphinx"],
-    }
-
-    # Write the conf.py file.
-    config_content = "\n".join(f"{key} = {repr(value)}" for key, value in conf.items())
-    (srcdir / "conf.py").write_text(config_content)
-
-    with docutils_namespace():
-        app = Sphinx(
-            str(srcdir),
-            str(confdir),
-            str(outdir),
-            str(doctreedir),
-            "html",
-            verbosity=0,
-            warning=None,
-        )
-        # Add format type as an attribute for easy access in tests.
-        app._test_format = "rst"
-        yield app
+    """Create a Sphinx application for testing RST format only."""
+    yield from _create_sphinx_app("rst", tmp_path)
 
 
 @pytest.fixture
 def sphinx_app_myst(tmp_path):
-    """Create a Sphinx application for testing MyST format only.
-
-    .. todo::
-        Deduplicate and merge ``sphinx_app``, ``sphinx_app_rst`` and ``sphinx_app_myst`` fixtures.
-    """
-    srcdir = tmp_path / "source"
-    outdir = tmp_path / "build"
-    doctreedir = outdir / ".doctrees"
-    confdir = srcdir
-
-    srcdir.mkdir()
-    outdir.mkdir()
-
-    # Sphinx's configuration is Python code.
-    conf = {
-        "master_doc": "index",
-        "extensions": ["click_extra.sphinx", "myst_parser"],
-        "myst_enable_extensions": ["colon_fence"],
-    }
-
-    # Write the conf.py file.
-    config_content = "\n".join(f"{key} = {repr(value)}" for key, value in conf.items())
-    (srcdir / "conf.py").write_text(config_content)
-
-    with docutils_namespace():
-        app = Sphinx(
-            str(srcdir),
-            str(confdir),
-            str(outdir),
-            str(doctreedir),
-            "html",
-            verbosity=0,
-            warning=None,
-        )
-        # Add format type as an attribute for easy access in tests.
-        app._test_format = "myst"
-        yield app
+    """Create a Sphinx application for testing MyST format only."""
+    yield from _create_sphinx_app("myst", tmp_path)
 
 
 def build_sphinx_document(sphinx_app: Sphinx, content: str) -> str | None:
@@ -175,6 +105,7 @@ def build_sphinx_document(sphinx_app: Sphinx, content: str) -> str | None:
         return html_output
 
 
+@pytest.mark.parametrize("sphinx_app", ["rst", "myst"], indirect=True)
 def test_sphinx_extension_setup(sphinx_app):
     """Test that the Sphinx extension is properly loaded."""
     # Check that the domain is registered.
@@ -186,6 +117,7 @@ def test_sphinx_extension_setup(sphinx_app):
     assert "run" in sphinx_app.env.get_domain("click").directives
 
 
+@pytest.mark.parametrize("sphinx_app", ["rst", "myst"], indirect=True)
 def test_simple_directives(sphinx_app):
     """Test minimal documents with directives in both RST and MyST formats.
 
@@ -315,6 +247,7 @@ def test_directive_option_format(sphinx_app_rst):
     assert str(exc_info.value) == "name 'bad_format' is not defined"
 
 
+@pytest.mark.parametrize("sphinx_app", ["rst", "myst"], indirect=True)
 def test_directive_option_linenos(sphinx_app):
     """Test that ``:linenos:`` option adds line numbers to code blocks."""
     format_type = sphinx_app._test_format
@@ -376,6 +309,7 @@ def test_directive_option_linenos(sphinx_app):
     ) in html_output
 
 
+@pytest.mark.parametrize("sphinx_app", ["rst", "myst"], indirect=True)
 def test_directive_option_linenos_start(sphinx_app):
     """Test that ``:lineno-start:`` shifts the starting line number."""
     format_type = sphinx_app._test_format
@@ -441,6 +375,7 @@ def test_directive_option_linenos_start(sphinx_app):
     ) in html_output
 
 
+@pytest.mark.parametrize("sphinx_app", ["rst", "myst"], indirect=True)
 def test_directive_option_hide_source(sphinx_app):
     """Test that ``:hide-source:`` hides source code in ``click:example`` directive."""
     format_type = sphinx_app._test_format
@@ -492,6 +427,7 @@ def test_directive_option_hide_source(sphinx_app):
     ) in html_output
 
 
+@pytest.mark.parametrize("sphinx_app", ["rst", "myst"], indirect=True)
 def test_directive_option_show_source(sphinx_app):
     """Test that ``:show-source:`` option shows source code in ``click:run`` directive."""
     format_type = sphinx_app._test_format
@@ -554,6 +490,7 @@ def test_directive_option_show_source(sphinx_app):
     ) in html_output
 
 
+@pytest.mark.parametrize("sphinx_app", ["rst", "myst"], indirect=True)
 def test_directive_option_hide_results(sphinx_app):
     """Test that ``:hide-results:`` option hides execution results in ``click:run``."""
     format_type = sphinx_app._test_format
@@ -602,6 +539,7 @@ def test_directive_option_hide_results(sphinx_app):
     ) in html_output
 
 
+@pytest.mark.parametrize("sphinx_app", ["rst", "myst"], indirect=True)
 def test_directive_option_show_results(sphinx_app):
     """Test that ``:show-results:`` option shows execution results (default behavior)."""
     format_type = sphinx_app._test_format
@@ -657,6 +595,7 @@ def test_directive_option_show_results(sphinx_app):
     ) in html_output
 
 
+@pytest.mark.parametrize("sphinx_app", ["rst", "myst"], indirect=True)
 def test_directive_option_combinations(sphinx_app):
     """Test various combinations of display options."""
     format_type = sphinx_app._test_format
@@ -727,6 +666,7 @@ def test_directive_option_combinations(sphinx_app):
     ) in html_output
 
 
+@pytest.mark.parametrize("sphinx_app", ["rst", "myst"], indirect=True)
 def test_directive_option_language_override(sphinx_app):
     """Test that language override works for click:run directive."""
     format_type = sphinx_app._test_format
@@ -774,6 +714,7 @@ def test_directive_option_language_override(sphinx_app):
     ) in html_output
 
 
+@pytest.mark.parametrize("sphinx_app", ["rst", "myst"], indirect=True)
 def test_sphinx_directive_state_persistence(sphinx_app):
     """Test that state persists between declare and run directives in real Sphinx."""
     format_type = sphinx_app._test_format
@@ -844,6 +785,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
     ) in html_output
 
 
+@pytest.mark.parametrize("sphinx_app", ["rst", "myst"], indirect=True)
 def test_stdout_stderr_output(sphinx_app):
     """Test directives that print to both ``<stdout>`` and ``<stderr>`` with proper rendering."""
     format_type = sphinx_app._test_format
@@ -902,6 +844,7 @@ def test_stdout_stderr_output(sphinx_app):
     ) in html_output
 
 
+@pytest.mark.parametrize("sphinx_app", ["rst", "myst"], indirect=True)
 def test_isolated_filesystem_directive(sphinx_app):
     """Test that isolated_filesystem works properly in click:run directives."""
     format_type = sphinx_app._test_format
@@ -952,7 +895,17 @@ def test_isolated_filesystem_directive(sphinx_app):
 
 
 @pytest.mark.parametrize("var_name", ["invoke", "isolated_filesystem"])
-def test_directive_variable_conflict(var_name, sphinx_app):
+@pytest.mark.parametrize(
+    "sphinx_app,file_extension,error_lineno",
+    [
+        ("rst", ".rst", 23),
+        ("myst", ".md", 12),
+    ],
+    indirect=["sphinx_app"],
+)
+def test_directive_variable_conflict(
+    var_name, sphinx_app, file_extension, error_lineno
+):
     """Test that variable conflicts are properly detected in real Sphinx environment.
 
     .. todo::
@@ -977,8 +930,6 @@ def test_directive_variable_conflict(var_name, sphinx_app):
                 {var_name} = "Do not overwrite me!"
                 result = invoke(hello)
         """)
-        file_extension = ".rst"
-        error_lineno = 23
 
     elif format_type == "myst":
         content = dedent(f"""
@@ -996,8 +947,6 @@ def test_directive_variable_conflict(var_name, sphinx_app):
             result = invoke(hello)
             ```
         """)
-        file_extension = ".md"
-        error_lineno = 12
 
     with pytest.raises(RuntimeError) as exc_info:
         build_sphinx_document(sphinx_app, content)
@@ -1011,6 +960,7 @@ def test_directive_variable_conflict(var_name, sphinx_app):
     assert re.fullmatch(expected_pattern, str(exc_info.value))
 
 
+@pytest.mark.parametrize("sphinx_app", ["rst", "myst"], indirect=True)
 def test_exit_exception_percolate(sphinx_app):
     """Test directives that handle command errors and exit codes."""
     format_type = sphinx_app._test_format
