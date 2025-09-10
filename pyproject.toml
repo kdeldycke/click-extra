@@ -237,24 +237,27 @@ replace = "date-released: {utcnow:%Y-%m-%d}"
 [tool.typos]
 default.extend-ignore-identifiers-re = [
     # error: `Uper` should be `Super`, `Upper`
-    #   --> ./click_extra/tests/test_parameters.py:132:19
-    #     |
-    # 132 |                 "sUper",
-    #     |                   ^^^^
-    #     |
+    #     ╭▸ ./tests/test_envvar.py:113:19
+    #     │
+    # 113 │                 "sUper",
+    #     ╰╴                  ━━━━
     "sUper",
     # error: `Als` should be `Also`
-    #   --> ./click_extra/tests/test_parameters.py:198:11
-    #     |
-    # 198 |         "fAlsE": False,
-    #     |           ^^^
-    #     |
+    #     ╭▸ ./tests/test_envvar.py:179:11
+    #     │
+    # 179 │         "fAlsE": False,
+    #     ╰╴          ━━━
     "fAlsE",
     # error: `mey` should be `may`
-    #   --> ./click_extra/tests/test_colorize.py:712:22
-    #     |
-    # 712 |             "H\x1b[32mey\x1b[0m-xx-xxx-\x1b[32mhe\x1b[0mY-xXxXxxxxx-\x1b[32mhey\x1b[0m",
-    #     |                      ^^^
-    #     |
+    #     ╭▸ ./tests/test_colorize.py:890:22
+    #     │
+    # 890 │             "H\x1b[32mey\x1b[0m-xx-xxx-\x1b[32mhe\x1b[0mY-xXxXxxxxx-\x1b[32mhey\x1b[0m",
+    #     ╰╴                     ━━━
     "mey",
+    # error: `nd` should be `and`
+    #     ╭▸ ./tests/test_sphinx.py:232:29
+    #     │
+    # 232 │             + '<span class="nd">@command</span>\n'
+    #     ╰╴                            ━━
+    "nd",
 ]
