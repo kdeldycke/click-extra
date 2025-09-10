@@ -325,6 +325,29 @@ LINENOS_START_TEST_CASE = DirectiveTestCase(
     ),
 )
 
+HIDE_SOURCE_TEST_CASE = DirectiveTestCase(
+    # Test that :hide-source: hides source code in click:example directive.
+    name="hide_source_test",
+    example_code="""
+        :hide-source:
+
+        from click import command, echo
+
+        @command
+        def simple_print():
+            echo("Just a string to print.")
+    """,
+    run_code="invoke(simple_print)",
+    html_matches=(
+        # Should NOT contain Python source code
+        # We'll validate this with a negative assertion in the test
+        HTML["shell_session"]
+        + '<span class="gp">$ </span>simple-print\n'
+        + "Just a string to print.\n"
+        + "</pre></div>\n",
+    ),
+)
+
 SHOW_SOURCE_TEST_CASE = DirectiveTestCase(
     # Test that :show-source: option shows source code in click:run directive.
     name="show_source_test",
@@ -365,29 +388,6 @@ SHOW_SOURCE_TEST_CASE = DirectiveTestCase(
             + "</pre></div>\n"
             + "</div>\n"
         ),
-    ),
-)
-
-HIDE_SOURCE_TEST_CASE = DirectiveTestCase(
-    # Test that :hide-source: hides source code in click:example directive.
-    name="hide_source_test",
-    example_code="""
-        :hide-source:
-
-        from click import command, echo
-
-        @command
-        def simple_print():
-            echo("Just a string to print.")
-    """,
-    run_code="invoke(simple_print)",
-    html_matches=(
-        # Should NOT contain Python source code
-        # We'll validate this with a negative assertion in the test
-        HTML["shell_session"]
-        + '<span class="gp">$ </span>simple-print\n'
-        + "Just a string to print.\n"
-        + "</pre></div>\n",
     ),
 )
 
@@ -568,8 +568,8 @@ ISOLATED_FILESYSTEM_TEST_CASE = DirectiveTestCase(
         SIMPLE_DIRECTIVES_TEST_CASE,
         LINENOS_TEST_CASE,
         LINENOS_START_TEST_CASE,
-        SHOW_SOURCE_TEST_CASE,
         HIDE_SOURCE_TEST_CASE,
+        SHOW_SOURCE_TEST_CASE,
         HIDE_RESULTS_TEST_CASE,
         SHOW_RESULTS_TEST_CASE,
         OPTION_COMBINATIONS_TEST_CASE,
