@@ -17,10 +17,12 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from enum import StrEnum
+from inspect import cleandoc
 from pathlib import Path
-from textwrap import dedent
-from typing import Generator
+from textwrap import dedent, indent
+from typing import Generator, Sequence
 
 import pytest
 from sphinx.application import Sphinx
@@ -114,6 +116,43 @@ class SphinxAppWrapper:
             assert html_output
             return html_output
 
+    def generate_test_content(self, test_case: DirectiveTestCase) -> str:
+        """Generate content for a test case based on the app's format type."""
+        lines = []
+        if test_case.example_code:
+            if self.format_type == RST:
+                lines.append(".. click:example::")
+                # We need a blank line if there are no options.
+                if not test_case.example_code.startswith(":"):
+                    lines.append("")
+                lines.append(indent(test_case.example_code, " " * 4))
+            elif self.format_type == MYST:
+                lines += [
+                    "```{click:example}",
+                    test_case.example_code,
+                    "```",
+                ]
+
+        # Separate directives with a blank line.
+        if lines:
+            lines.append("")
+
+        if test_case.run_code:
+            if self.format_type == RST:
+                lines.append(".. click:run::")
+                # We need a blank line if there are no options.
+                if not test_case.run_code.startswith(":"):
+                    lines.append("")
+                lines.append(indent(test_case.run_code, " " * 4))
+            elif self.format_type == MYST:
+                lines += [
+                    "```{click:run}",
+                    test_case.run_code,
+                    "```",
+                ]
+
+        return "\n".join(lines)
+
 
 @pytest.fixture(params=[RST, MYST])
 def sphinx_app(request, tmp_path):
@@ -131,6 +170,26 @@ def sphinx_app_rst(tmp_path):
 def sphinx_app_myst(tmp_path):
     """Create a Sphinx application for testing MyST format only."""
     yield from SphinxAppWrapper.create(MYST, tmp_path)
+
+
+@dataclass
+class DirectiveTestCase:
+    """Test case data for directive tests."""
+
+    name: str
+    example_code: str | None = None
+    run_code: str | None = None
+    html_matches: Sequence[str] = None
+    should_fail: bool = False
+    format_type: FormatType | None = None
+
+    def __post_init__(self):
+        self.html_matches = self.html_matches or tuple()
+        # Dedent code fields to remove leading and trailing whitespace.
+        if self.example_code:
+            self.example_code = cleandoc(self.example_code)
+        if self.run_code:
+            self.run_code = cleandoc(self.run_code)
 
 
 # Common HTML fragments for assertions.
@@ -153,73 +212,91 @@ def test_sphinx_extension_setup(sphinx_app):
     assert "run" in sphinx_app.env.get_domain("click").directives
 
 
-def test_simple_directives(sphinx_app):
-    """Test minimal documents with directives in both RST and MyST formats.
+# Test case definitions
+SIMPLE_DIRECTIVES_TEST_CASE = DirectiveTestCase(
+    # Test minimal documents with directives in both RST and MyST formats.
+    name="simple_directives",
+    example_code="""
+        from click import command, echo
 
-    .. todo::
-        Test different unmatching indentions and spacing in example and run directives.
-    """
-    format_type = sphinx_app.format_type
+        @command
+        def simple_cli():
+            echo("It works!")
+    """,
+    run_code="invoke(simple_cli)",
+    html_matches=(
+        (
+            HTML["python_highlight"]
+            + HTML["import_click"]
+            + "\n"
+            + '<span class="nd">@command</span>\n'
+            + '<span class="k">def</span><span class="w"> </span><span class="nf">simple_cli</span><span class="p">():</span>\n'
+            + '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;It works!&quot;</span><span class="p">)</span>\n'
+            + "</pre></div>\n"
+        ),
+        (
+            HTML["shell_session"]
+            + '<span class="gp">$ </span>simple-cli\n'
+            + "It works!\n"
+            + "</pre></div>\n"
+        ),
+    ),
+)
 
-    if format_type == RST:
-        content = dedent("""
-            Test Document
-            =============
+LINENOS_TEST_CASE = DirectiveTestCase(
+    # Test that :linenos: option adds line numbers to code blocks.
+    name="linenos_test",
+    example_code="""
+        :linenos:
 
-            This is a test document.
+        from click import command, echo
 
-            .. click:example::
+        @command
+        def numbered_example():
+            echo("Line numbers should appear")
+            echo("on the left side")
+    """,
+    run_code="""
+        :linenos:
 
-                from click import command, echo
+        invoke(numbered_example)
+    """,
+    html_matches=(
+        (
+            HTML["python_highlight"]
+            + '<span class="linenos">1</span>'
+            + HTML["import_click"]
+            + '<span class="linenos">2</span>\n'
+            + '<span class="linenos">3</span><span class="nd">@command</span>\n'
+            + '<span class="linenos">4</span><span class="k">def</span><span class="w"> </span><span class="nf">numbered_example</span><span class="p">():</span>\n'
+            + '<span class="linenos">5</span>    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Line numbers should appear&quot;</span><span class="p">)</span>\n'
+            + '<span class="linenos">6</span>    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;on the left side&quot;</span><span class="p">)</span>\n'
+            + "</pre></div>\n"
+        ),
+        (
+            HTML["shell_session"]
+            + '<span class="linenos">1</span><span class="gp">$ </span>numbered-example\n'
+            + '<span class="linenos">2</span>Line numbers should appear\n'
+            + '<span class="linenos">3</span>on the left side\n'
+            + "</pre></div>\n"
+        ),
+    ),
+)
 
-                @command
-                def simple():
-                    echo("It works!")
 
-            .. click:run::
-
-                invoke(simple)
-        """)
-    elif format_type == MYST:
-        content = dedent("""
-            # Test Document
-
-            This is a test document.
-
-            ```{click:example}
-            from click import command, echo
-
-            @command
-            def simple():
-                echo("It works!")
-            ```
-
-            ```{click:run}
-            invoke(simple)
-            ```
-        """)
-
+@pytest.mark.parametrize(
+    "test_case",
+    [SIMPLE_DIRECTIVES_TEST_CASE, LINENOS_TEST_CASE],
+    ids=lambda tc: tc.name,
+)
+def test_directive_functionality(sphinx_app, test_case):
+    """Test various directive functionalities using parameterized test cases."""
+    content = sphinx_app.generate_test_content(test_case)
     html_output = sphinx_app.build_document(content)
-    assert "<h1>Test Document" in html_output
 
-    # click:example renders into a code block with syntax highlighting.
-    assert (
-        HTML["python_highlight"]
-        + HTML["import_click"]
-        + "\n"
-        + '<span class="nd">@command</span>\n'
-        + '<span class="k">def</span><span class="w"> </span><span class="nf">simple</span><span class="p">():</span>\n'
-        + '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;It works!&quot;</span><span class="p">)</span>\n'
-        + "</pre></div>\n"
-    ) in html_output
-
-    # click:run renders into an ANSI shell session block with syntax highlighting.
-    assert (
-        HTML["shell_session"]
-        + '<span class="gp">$ </span>simple\n'
-        + "It works!\n"
-        + "</pre></div>\n"
-    ) in html_output
+    # Assert all expected fragments are present
+    for fragment in test_case.html_matches:
+        assert fragment in html_output
 
 
 def test_legacy_mixed_syntax_eval_rst(sphinx_app_myst):
@@ -283,68 +360,6 @@ def test_directive_option_format(sphinx_app_rst):
         sphinx_app_rst.build_document(content)
 
     assert str(exc_info.value) == "name 'bad_format' is not defined"
-
-
-def test_directive_option_linenos(sphinx_app):
-    """Test that ``:linenos:`` option adds line numbers to code blocks."""
-    format_type = sphinx_app.format_type
-
-    if format_type == RST:
-        content = dedent("""
-            .. click:example::
-                :linenos:
-
-                from click import command, echo
-
-                @command
-                def numbered_example():
-                    echo("Line numbers should appear")
-                    echo("on the left side")
-
-            .. click:run::
-                :linenos:
-
-                invoke(numbered_example)
-        """)
-    elif format_type == MYST:
-        content = dedent("""
-            ```{click:example}
-            :linenos:
-            from click import command, echo
-
-            @command
-            def numbered_example():
-                echo("Line numbers should appear")
-                echo("on the left side")
-            ```
-
-            ```{click:run}
-            :linenos:
-            invoke(numbered_example)
-            ```
-        """)
-
-    html_output = sphinx_app.build_document(content)
-
-    assert (
-        HTML["python_highlight"]
-        + '<span class="linenos">1</span>'
-        + HTML["import_click"]
-        + '<span class="linenos">2</span>\n'
-        + '<span class="linenos">3</span><span class="nd">@command</span>\n'
-        + '<span class="linenos">4</span><span class="k">def</span><span class="w"> </span><span class="nf">numbered_example</span><span class="p">():</span>\n'
-        + '<span class="linenos">5</span>    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Line numbers should appear&quot;</span><span class="p">)</span>\n'
-        + '<span class="linenos">6</span>    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;on the left side&quot;</span><span class="p">)</span>\n'
-        + "</pre></div>\n"
-    ) in html_output
-
-    assert (
-        HTML["shell_session"]
-        + '<span class="linenos">1</span><span class="gp">$ </span>numbered-example\n'
-        + '<span class="linenos">2</span>Line numbers should appear\n'
-        + '<span class="linenos">3</span>on the left side\n'
-        + "</pre></div>\n"
-    ) in html_output
 
 
 def test_directive_option_linenos_start(sphinx_app):
