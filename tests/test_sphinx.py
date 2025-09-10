@@ -118,19 +118,24 @@ class SphinxAppWrapper:
 
     def generate_test_content(self, test_case: DirectiveTestCase) -> str:
         """Generate content for a test case based on the app's format type."""
+        # If document is provided, use it directly.
+        if test_case.document is not None:
+            return test_case.document
+
+        # Produce click:example and click:run directives in the appropriate format.
         lines = []
 
-        if test_case.example_code:
+        if test_case.example_block:
             if self.format_type == RST:
                 lines.append(".. click:example::")
                 # We need a blank line if there are no options.
-                if not test_case.example_code.startswith(":"):
+                if not test_case.example_block.startswith(":"):
                     lines.append("")
-                lines.append(indent(test_case.example_code, " " * 4))
+                lines.append(indent(test_case.example_block, " " * 4))
             elif self.format_type == MYST:
                 lines += [
                     "```{click:example}",
-                    test_case.example_code,
+                    test_case.example_block,
                     "```",
                 ]
 
@@ -138,17 +143,17 @@ class SphinxAppWrapper:
         if lines:
             lines.append("")
 
-        if test_case.run_code:
+        if test_case.run_block:
             if self.format_type == RST:
                 lines.append(".. click:run::")
                 # We need a blank line if there are no options.
-                if not test_case.run_code.startswith(":"):
+                if not test_case.run_block.startswith(":"):
                     lines.append("")
-                lines.append(indent(test_case.run_code, " " * 4))
+                lines.append(indent(test_case.run_block, " " * 4))
             elif self.format_type == MYST:
                 lines += [
                     "```{click:run}",
-                    test_case.run_code,
+                    test_case.run_block,
                     "```",
                 ]
 
@@ -179,17 +184,32 @@ class DirectiveTestCase:
 
     name: str
     format_type: FormatType | None = None
-    example_code: str | None = None
-    run_code: str | None = None
+    example_block: str | None = None
+    run_block: str | None = None
+    document: str | None = None
     html_matches: Sequence[str] = None
 
     def __post_init__(self):
         self.html_matches = self.html_matches or tuple()
+
+        # Validate mutually exclusive options
+        if self.document is not None:
+            if self.example_block is not None or self.run_block is not None:
+                raise ValueError(
+                    "DirectiveTestCase: 'document' cannot be used with 'example_block' or 'run_block'"
+                )
+            if self.format_type is None:
+                raise ValueError(
+                    "DirectiveTestCase: 'format_type' must be specified when using 'document'"
+                )
+
         # Dedent code fields to remove leading and trailing whitespace.
-        if self.example_code:
-            self.example_code = cleandoc(self.example_code)
-        if self.run_code:
-            self.run_code = cleandoc(self.run_code)
+        if self.example_block:
+            self.example_block = cleandoc(self.example_block)
+        if self.run_block:
+            self.run_block = cleandoc(self.run_block)
+        if self.document:
+            self.document = cleandoc(self.document)
 
 
 # Common HTML fragments for assertions.
@@ -216,14 +236,14 @@ def test_sphinx_extension_setup(sphinx_app):
 BASIC_DIRECTIVES_TEST_CASE = DirectiveTestCase(
     # Test minimal documents with directives in both RST and MyST formats.
     name="basic",
-    example_code="""
+    example_block="""
         from click import command, echo
 
         @command
         def simple_cli():
             echo("It works!")
     """,
-    run_code="invoke(simple_cli)",
+    run_block="invoke(simple_cli)",
     html_matches=(
         (
             HTML["python_highlight"]
@@ -246,7 +266,7 @@ BASIC_DIRECTIVES_TEST_CASE = DirectiveTestCase(
 LINENOS_TEST_CASE = DirectiveTestCase(
     # Test that :linenos: option adds line numbers to code blocks.
     name="linenos",
-    example_code="""
+    example_block="""
         :linenos:
 
         from click import command, echo
@@ -256,7 +276,7 @@ LINENOS_TEST_CASE = DirectiveTestCase(
             echo("Line numbers should appear")
             echo("on the left side")
     """,
-    run_code="""
+    run_block="""
         :linenos:
 
         invoke(numbered_example)
@@ -286,7 +306,7 @@ LINENOS_TEST_CASE = DirectiveTestCase(
 LINENOS_START_TEST_CASE = DirectiveTestCase(
     # Test that :lineno-start: shifts the starting line number.
     name="linenos_start",
-    example_code="""
+    example_block="""
         :linenos:
         :lineno-start: 5
 
@@ -297,7 +317,7 @@ LINENOS_START_TEST_CASE = DirectiveTestCase(
             echo("Line numbers should start from 5")
             echo("and continue incrementing")
     """,
-    run_code="""
+    run_block="""
         :linenos:
         :lineno-start: 10
 
@@ -328,7 +348,7 @@ LINENOS_START_TEST_CASE = DirectiveTestCase(
 HIDE_SOURCE_TEST_CASE = DirectiveTestCase(
     # Test that :hide-source: hides source code in click:example directive.
     name="hide_source",
-    example_code="""
+    example_block="""
         :hide-source:
 
         from click import command, echo
@@ -337,7 +357,7 @@ HIDE_SOURCE_TEST_CASE = DirectiveTestCase(
         def simple_print():
             echo("Just a string to print.")
     """,
-    run_code="invoke(simple_print)",
+    run_block="invoke(simple_print)",
     html_matches=(
         # Check from the start of the body to make sure the click:example is gone.
         '          <div class="body" role="main">\n'
@@ -352,14 +372,14 @@ HIDE_SOURCE_TEST_CASE = DirectiveTestCase(
 SHOW_SOURCE_TEST_CASE = DirectiveTestCase(
     # Test that :show-source: option shows source code in click:run directive.
     name="show_source_",
-    example_code="""
+    example_block="""
         from click import command, echo
 
         @command
         def simple_print():
             echo("Just a string to print.")
     """,
-    run_code="""
+    run_block="""
         :show-source:
 
         invoke(simple_print)
@@ -395,14 +415,14 @@ SHOW_SOURCE_TEST_CASE = DirectiveTestCase(
 HIDE_RESULTS_TEST_CASE = DirectiveTestCase(
     # Test that :hide-results: option hides execution results in click:run directive.
     name="hide_results",
-    example_code="""
+    example_block="""
         from click import command, echo
 
         @command
         def simple_print():
             echo("Just a string to print.")
     """,
-    run_code="""
+    run_block="""
         :hide-results:
 
         invoke(simple_print)
@@ -424,14 +444,14 @@ HIDE_RESULTS_TEST_CASE = DirectiveTestCase(
 SHOW_RESULTS_TEST_CASE = DirectiveTestCase(
     # Test that :show-results: option shows execution results (default behavior).
     name="show_results",
-    example_code="""
+    example_block="""
         from click import command, echo
 
         @command
         def simple_print():
             echo("Just a string to print.")
     """,
-    run_code="""
+    run_block="""
         :show-results:
 
         invoke(simple_print)
@@ -460,7 +480,7 @@ SHOW_RESULTS_TEST_CASE = DirectiveTestCase(
 OPTION_COMBINATIONS_TEST_CASE = DirectiveTestCase(
     # Test various combinations of display options.
     name="option_combinations",
-    example_code="""
+    example_block="""
         :show-source:
         :hide-results:
 
@@ -470,7 +490,7 @@ OPTION_COMBINATIONS_TEST_CASE = DirectiveTestCase(
         def simple_print():
             echo("Just a string to print.")
     """,
-    run_code="""
+    run_block="""
         :show-source:
         :hide-results:
         :show-results:
@@ -507,7 +527,7 @@ OPTION_COMBINATIONS_TEST_CASE = DirectiveTestCase(
 MIXED_OUTPUT_TEST_CASE = DirectiveTestCase(
     # Test directives that print to both stdout and stderr with proper rendering.
     name="mixed_output",
-    example_code="""
+    example_block="""
         import sys
 
         from click import command, echo
@@ -520,7 +540,7 @@ MIXED_OUTPUT_TEST_CASE = DirectiveTestCase(
             print(f"Direct {style('stdout', fg=Color.blue)} print", file=sys.stdout)
             print(f"Direct {style('stderr', fg=Color.red)} print", file=sys.stderr)
     """,
-    run_code="invoke(mixed_output)",
+    run_block="invoke(mixed_output)",
     html_matches=(
         # Should show mixed stdout/stderr output with colors.
         (
@@ -538,14 +558,14 @@ MIXED_OUTPUT_TEST_CASE = DirectiveTestCase(
 ISOLATED_FILESYSTEM_TEST_CASE = DirectiveTestCase(
     # Test that isolated_filesystem works properly in click:run directives.
     name="isolated_filesystem",
-    example_code="""
+    example_block="""
         from click import command, echo
 
         @command
         def greet():
             echo("Hello World!")
     """,
-    run_code="""
+    run_block="""
         with isolated_filesystem():
             with open("test.txt", "w") as f:
                 f.write("Hello File!")
