@@ -213,9 +213,9 @@ def test_sphinx_extension_setup(sphinx_app):
 
 
 # Test case definitions
-SIMPLE_DIRECTIVES_TEST_CASE = DirectiveTestCase(
+BASIC_DIRECTIVES_TEST_CASE = DirectiveTestCase(
     # Test minimal documents with directives in both RST and MyST formats.
-    name="simple_directives",
+    name="basic",
     example_code="""
         from click import command, echo
 
@@ -245,7 +245,7 @@ SIMPLE_DIRECTIVES_TEST_CASE = DirectiveTestCase(
 
 LINENOS_TEST_CASE = DirectiveTestCase(
     # Test that :linenos: option adds line numbers to code blocks.
-    name="linenos_test",
+    name="linenos",
     example_code="""
         :linenos:
 
@@ -285,7 +285,7 @@ LINENOS_TEST_CASE = DirectiveTestCase(
 
 LINENOS_START_TEST_CASE = DirectiveTestCase(
     # Test that :lineno-start: shifts the starting line number.
-    name="linenos_start_test",
+    name="linenos_start",
     example_code="""
         :linenos:
         :lineno-start: 5
@@ -327,7 +327,7 @@ LINENOS_START_TEST_CASE = DirectiveTestCase(
 
 HIDE_SOURCE_TEST_CASE = DirectiveTestCase(
     # Test that :hide-source: hides source code in click:example directive.
-    name="hide_source_test",
+    name="hide_source",
     example_code="""
         :hide-source:
 
@@ -350,7 +350,7 @@ HIDE_SOURCE_TEST_CASE = DirectiveTestCase(
 
 SHOW_SOURCE_TEST_CASE = DirectiveTestCase(
     # Test that :show-source: option shows source code in click:run directive.
-    name="show_source_test",
+    name="show_source_",
     example_code="""
         from click import command, echo
 
@@ -393,7 +393,7 @@ SHOW_SOURCE_TEST_CASE = DirectiveTestCase(
 
 HIDE_RESULTS_TEST_CASE = DirectiveTestCase(
     # Test that :hide-results: option hides execution results in click:run directive.
-    name="hide_results_test",
+    name="hide_results",
     example_code="""
         from click import command, echo
 
@@ -422,7 +422,7 @@ HIDE_RESULTS_TEST_CASE = DirectiveTestCase(
 
 SHOW_RESULTS_TEST_CASE = DirectiveTestCase(
     # Test that :show-results: option shows execution results (default behavior).
-    name="show_results_test",
+    name="show_results",
     example_code="""
         from click import command, echo
 
@@ -458,7 +458,7 @@ SHOW_RESULTS_TEST_CASE = DirectiveTestCase(
 
 OPTION_COMBINATIONS_TEST_CASE = DirectiveTestCase(
     # Test various combinations of display options.
-    name="option_combinations_test",
+    name="option_combinations",
     example_code="""
         :show-source:
         :hide-results:
@@ -505,7 +505,7 @@ OPTION_COMBINATIONS_TEST_CASE = DirectiveTestCase(
 
 MIXED_OUTPUT_TEST_CASE = DirectiveTestCase(
     # Test directives that print to both stdout and stderr with proper rendering.
-    name="mixed_output_test",
+    name="mixed_output",
     example_code="""
         import sys
 
@@ -536,7 +536,7 @@ MIXED_OUTPUT_TEST_CASE = DirectiveTestCase(
 
 ISOLATED_FILESYSTEM_TEST_CASE = DirectiveTestCase(
     # Test that isolated_filesystem works properly in click:run directives.
-    name="isolated_filesystem_test",
+    name="isolated_filesystem",
     example_code="""
         from click import command, echo
 
@@ -565,7 +565,7 @@ ISOLATED_FILESYSTEM_TEST_CASE = DirectiveTestCase(
 @pytest.mark.parametrize(
     "test_case",
     [
-        SIMPLE_DIRECTIVES_TEST_CASE,
+        BASIC_DIRECTIVES_TEST_CASE,
         LINENOS_TEST_CASE,
         LINENOS_START_TEST_CASE,
         HIDE_SOURCE_TEST_CASE,
