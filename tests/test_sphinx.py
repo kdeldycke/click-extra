@@ -46,7 +46,7 @@ class SphinxAppWrapper:
     def __init__(self, app: Sphinx, format_type: FormatType):
         self.app = app
         self.format_type = format_type
-        # Delegate all other attributes to the wrapped app
+        # Delegate all other attributes to the wrapped app.
         self._app = app
 
     def __getattr__(self, name):
@@ -339,9 +339,10 @@ HIDE_SOURCE_TEST_CASE = DirectiveTestCase(
     """,
     run_code="invoke(simple_print)",
     html_matches=(
-        # Should NOT contain Python source code
-        # We'll validate this with a negative assertion in the test
-        HTML["shell_session"]
+        # Check from the start of the body to make sure the click:example is gone.
+        '          <div class="body" role="main">\n'
+        + "            \n  "
+        + HTML["shell_session"]
         + '<span class="gp">$ </span>simple-print\n'
         + "Just a string to print.\n"
         + "</pre></div>\n",
@@ -364,7 +365,7 @@ SHOW_SOURCE_TEST_CASE = DirectiveTestCase(
         invoke(simple_print)
     """,
     html_matches=(
-        # Example directive should show source
+        # Example directive should show source.
         (
             HTML["python_highlight"]
             + HTML["import_click"]
@@ -374,13 +375,13 @@ SHOW_SOURCE_TEST_CASE = DirectiveTestCase(
             + '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Just a string to print.&quot;</span><span class="p">)</span>\n'
             + "</pre></div>\n"
         ),
-        # Run directive should show source code
+        # Run directive should show source code.
         (
             HTML["python_highlight"]
             + '<span class="n">invoke</span><span class="p">(</span><span class="n">simple_print</span><span class="p">)</span>\n'
             + "</pre></div>\n"
         ),
-        # Run directive should show execution results
+        # Run directive should show execution results.
         (
             HTML["shell_session"]
             + '<span class="gp">$ </span>simple-print\n'
@@ -407,7 +408,7 @@ HIDE_RESULTS_TEST_CASE = DirectiveTestCase(
         invoke(simple_print)
     """,
     html_matches=(
-        # Example directive should show source
+        # Example directive should show source.
         (
             HTML["python_highlight"]
             + HTML["import_click"]
@@ -436,7 +437,7 @@ SHOW_RESULTS_TEST_CASE = DirectiveTestCase(
         invoke(simple_print)
     """,
     html_matches=(
-        # Example directive should show source
+        # Example directive should show source.
         (
             HTML["python_highlight"]
             + HTML["import_click"]
@@ -446,7 +447,7 @@ SHOW_RESULTS_TEST_CASE = DirectiveTestCase(
             + '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Just a string to print.&quot;</span><span class="p">)</span>\n'
             + "</pre></div>\n"
         ),
-        # Run directive should show execution results
+        # Run directive should show execution results.
         (
             HTML["shell_session"]
             + '<span class="gp">$ </span>simple-print\n'
@@ -477,7 +478,7 @@ OPTION_COMBINATIONS_TEST_CASE = DirectiveTestCase(
         invoke(simple_print)
     """,
     html_matches=(
-        # Example directive should show source
+        # Example directive should show source.
         (
             HTML["python_highlight"]
             + HTML["import_click"]
@@ -487,13 +488,13 @@ OPTION_COMBINATIONS_TEST_CASE = DirectiveTestCase(
             + '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Just a string to print.&quot;</span><span class="p">)</span>\n'
             + "</pre></div>\n"
         ),
-        # Run directive should show source code
+        # Run directive should show source code.
         (
             HTML["python_highlight"]
             + '<span class="n">invoke</span><span class="p">(</span><span class="n">simple_print</span><span class="p">)</span>\n'
             + "</pre></div>\n"
         ),
-        # Run directive should show execution results (show-results overrides hide-results)
+        # Run directive should show execution results (show-results overrides hide-results).
         (
             HTML["shell_session"]
             + '<span class="gp">$ </span>simple-print\n'
@@ -521,7 +522,7 @@ MIXED_OUTPUT_TEST_CASE = DirectiveTestCase(
     """,
     run_code="invoke(mixed_output)",
     html_matches=(
-        # Should show mixed stdout/stderr output with colors
+        # Should show mixed stdout/stderr output with colors.
         (
             HTML["shell_session"]
             + '<span class="gp">$ </span>mixed-output\n'
@@ -551,7 +552,7 @@ ISOLATED_FILESYSTEM_TEST_CASE = DirectiveTestCase(
             invoke(greet)
     """,
     html_matches=(
-        # Should show command execution within isolated filesystem
+        # Should show command execution within isolated filesystem.
         (
             HTML["shell_session"]
             + '<span class="gp">$ </span>greet\n'
@@ -583,21 +584,14 @@ def test_directive_functionality(sphinx_app, test_case):
     content = sphinx_app.generate_test_content(test_case)
     html_output = sphinx_app.build_document(content)
 
-    # Assert all expected fragments are present
+    # Assert all expected fragments are present.
     for fragment in test_case.html_matches:
         assert fragment in html_output
-
-    # Special handling for hide-source test case
-    if test_case.name == "hide_source_test":
-        # click:example should not display source code
-        assert "highlight-python" not in html_output
-        assert "command" not in html_output
-        assert "simple_print" not in html_output
 
 
 def test_legacy_mixed_syntax_eval_rst(sphinx_app_myst):
     """Test MyST's ``{eval-rst}`` directive with ``click`` directives for legacy compatibility."""
-    # Test MyST with embedded RST using {eval-rst}
+    # Test MyST with embedded RST using {eval-rst}.
     content = dedent("""
         ```{eval-rst}
         .. click:example::
@@ -651,7 +645,7 @@ def test_directive_option_format(sphinx_app_rst):
             invoke(bad_format, [])
     """)
 
-    # RST should fail to parse this malformed directive
+    # RST should fail to parse this malformed directive.
     with pytest.raises(NameError) as exc_info:
         sphinx_app_rst.build_document(content)
 
