@@ -211,6 +211,14 @@ class DirectiveTestCase:
         if self.document:
             self.document = cleandoc(self.document)
 
+    def supports_format(self, format_type: FormatType) -> bool:
+        """Check if this test case supports the given format type.
+
+        .. todo::
+            Get rid of this method, and make the test case provide its own sphinx_app.
+        """
+        return self.format_type is None or self.format_type == format_type
+
 
 # Common HTML fragments for assertions.
 HTML = {
@@ -582,6 +590,43 @@ ISOLATED_FILESYSTEM_TEST_CASE = DirectiveTestCase(
     ),
 )
 
+RST_WITHIN_MYST_EVAL_TEST_CASE = DirectiveTestCase(
+    name="rst_within_myst_eval",
+    format_type=MYST,  # This test is MyST-specific but contains embedded RST
+    document="""
+        ```{eval-rst}
+        .. click:example::
+
+            from click import command, echo
+
+            @command
+            def yo_cli():
+                echo("Yo!")
+
+        .. click:run::
+
+            invoke(yo_cli)
+        ```
+    """,
+    html_matches=(
+        (
+            HTML["python_highlight"]
+            + HTML["import_click"]
+            + "\n"
+            + '<span class="nd">@command</span>\n'
+            + '<span class="k">def</span><span class="w"> </span><span class="nf">yo_cli</span><span class="p">():</span>\n'
+            + '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Yo!&quot;</span><span class="p">)</span>\n'
+            + "</pre></div>\n"
+        ),
+        (
+            HTML["shell_session"]
+            + '<span class="gp">$ </span>yo-cli\n'
+            + "Yo!\n"
+            + "</pre></div>\n"
+        ),
+    ),
+)
+
 
 @pytest.mark.parametrize(
     "test_case",
@@ -596,57 +641,24 @@ ISOLATED_FILESYSTEM_TEST_CASE = DirectiveTestCase(
         OPTION_COMBINATIONS_TEST_CASE,
         MIXED_OUTPUT_TEST_CASE,
         ISOLATED_FILESYSTEM_TEST_CASE,
+        RST_WITHIN_MYST_EVAL_TEST_CASE,
     ],
     ids=lambda tc: tc.name,
 )
 def test_directive_functionality(sphinx_app, test_case):
     """Test standard directive functionalities in both rST and MyST."""
+    # Skip test if format doesn't match
+    if not test_case.supports_format(sphinx_app.format_type):
+        pytest.skip(
+            f"Test case '{test_case.name}' only supports {test_case.format_type}"
+        )
+
     content = sphinx_app.generate_test_content(test_case)
     html_output = sphinx_app.build_document(content)
 
     # Assert all expected fragments are present.
     for fragment in test_case.html_matches:
         assert fragment in html_output
-
-
-def test_legacy_mixed_syntax_eval_rst(sphinx_app_myst):
-    """Test MyST's ``{eval-rst}`` directive with ``click`` directives for legacy compatibility."""
-    # Test MyST with embedded RST using {eval-rst}.
-    content = dedent("""
-        ```{eval-rst}
-        .. click:example::
-
-            from click import command, echo
-
-            @command
-            def yo_cli():
-                echo("Yo!")
-
-        .. click:run::
-
-            invoke(yo_cli)
-        ```
-    """)
-
-    html_output = sphinx_app_myst.build_document(content)
-
-    # Both directives should render correctly.
-    assert (
-        HTML["python_highlight"]
-        + HTML["import_click"]
-        + "\n"
-        + '<span class="nd">@command</span>\n'
-        + '<span class="k">def</span><span class="w"> </span><span class="nf">yo_cli</span><span class="p">():</span>\n'
-        + '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Yo!&quot;</span><span class="p">)</span>\n'
-        + "</pre></div>\n"
-    ) in html_output
-
-    assert (
-        HTML["shell_session"]
-        + '<span class="gp">$ </span>yo-cli\n'
-        + "Yo!\n"
-        + "</pre></div>\n"
-    ) in html_output
 
 
 def test_directive_option_format(sphinx_app_rst):
