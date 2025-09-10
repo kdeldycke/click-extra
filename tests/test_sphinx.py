@@ -187,7 +187,7 @@ class DirectiveTestCase:
     example_block: str | None = None
     run_block: str | None = None
     document: str | None = None
-    html_matches: Sequence[str] = None
+    html_matches: Sequence[str] | None = None
 
     def __post_init__(self):
         self.html_matches = self.html_matches or tuple()
@@ -379,7 +379,7 @@ HIDE_SOURCE_TEST_CASE = DirectiveTestCase(
 
 SHOW_SOURCE_TEST_CASE = DirectiveTestCase(
     # Test that :show-source: option shows source code in click:run directive.
-    name="show_source_",
+    name="show_source",
     example_block="""
         from click import command, echo
 
@@ -674,7 +674,7 @@ def test_directive_option_format(sphinx_app_rst):
 
         .. click:run::
 
-            invoke(bad_format, [])
+            invoke(bad_format)
     """)
 
     # RST should fail to parse this malformed directive.
@@ -809,44 +809,26 @@ def test_sphinx_directive_state_persistence(sphinx_app):
         (
             RST,
             """\
-            .. click:example::
-
-                from click import command, echo
-
-                @command
-                def hello():
-                    echo("Hello World!")
-
             .. click:run::
 
                 # This should fail due to variable conflict.
                 {var_name} = "Do not overwrite me!"
-                result = invoke(hello)
             """,
-            9,
-            12,
+            1,
+            4,
         ),
         (
             MYST,
             """\
-            ```{{click:example}}
-            from click import command, echo
-
-            @command
-            def hello():
-                echo("Hello World!")
-            ```
-
             ```{{click:run}}
             # This should fail due to variable conflict.
             {var_name} = "Do not overwrite me!"
-            result = invoke(hello)
             ```
             """,
-            9,
-            11,
+            1,
+            3,
         ),
-        # Check proper line number reporting with preceding blank lines.
+        # Check proper line number reporting with preceding lines.
         (
             RST,
             """
@@ -893,6 +875,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
             9 + 4,
             11 + 4,
         ),
+        # Check proper line number reporting with blank lines within the directive.
         (
             RST,
             """\
@@ -900,6 +883,8 @@ def test_sphinx_directive_state_persistence(sphinx_app):
 
                 # This should fail due to variable conflict.
                 {var_name} = "Do not overwrite me!"
+
+
             """,
             1,
             4,
@@ -910,6 +895,8 @@ def test_sphinx_directive_state_persistence(sphinx_app):
             ```{{click:run}}
             # This should fail due to variable conflict.
             {var_name} = "Do not overwrite me!"
+
+
             ```
             """,
             1,
@@ -966,7 +953,32 @@ def test_sphinx_directive_state_persistence(sphinx_app):
             1,
             4,
         ),
-        # Options should not affect line numbering.
+        (
+            RST,
+            """\
+            .. click:run::
+                :linenos:
+                :lineno-start: 10
+
+                # This should fail due to variable conflict.
+                {var_name} = "Do not overwrite me!"
+            """,
+            1,
+            6,
+        ),
+        (
+            MYST,
+            """\
+            ```{{click:run}}
+            :linenos:
+            :lineno-start: 10
+            # This should fail due to variable conflict.
+            {var_name} = "Do not overwrite me!"
+            ```
+            """,
+            1,
+            5,
+        ),
         (
             RST,
             """\
@@ -994,6 +1006,42 @@ def test_sphinx_directive_state_persistence(sphinx_app):
             """,
             1,
             6,
+        ),
+        (
+            RST,
+            """\
+            .. click:run::
+                :linenos:
+
+                # This should fail due to variable conflict.
+                {var_name} = "Do not overwrite me!"
+
+
+
+            """,
+            1,
+            5,
+        ),
+        pytest.param(
+            MYST,
+            """\
+            ```{{click:run}}
+            :linenos:
+            # This should fail due to variable conflict.
+            {var_name} = "Do not overwrite me!"
+
+
+
+            ```
+            """,
+            1,
+            4,
+            marks=pytest.mark.xfail(
+                reason="MyST line reporting is off: "
+                "https://github.com/executablebooks/MyST-Parser/pull/1048",
+                # This is going to fail unless MyST is fixed upstream.
+                strict=True,
+            ),
         ),
     ],
     indirect=["sphinx_app"],

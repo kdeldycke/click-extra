@@ -260,6 +260,9 @@ class ExampleRunner(ExtraCliRunner):
                         doc_lineno = (
                             directive.lineno + directive.content_offset + python_lineno
                         )
+                        # XXX MyST absolute error line reporting is broken in some
+                        # situations, see:
+                        # https://github.com/executablebooks/MyST-Parser/pull/1048
                     else:
                         # In rST, the content offset is the absolute position at which
                         # the source code starts in the document.
