@@ -119,6 +119,7 @@ class SphinxAppWrapper:
     def generate_test_content(self, test_case: DirectiveTestCase) -> str:
         """Generate content for a test case based on the app's format type."""
         lines = []
+
         if test_case.example_code:
             if self.format_type == RST:
                 lines.append(".. click:example::")
@@ -177,11 +178,10 @@ class DirectiveTestCase:
     """Test case data for directive tests."""
 
     name: str
+    format_type: FormatType | None = None
     example_code: str | None = None
     run_code: str | None = None
     html_matches: Sequence[str] = None
-    should_fail: bool = False
-    format_type: FormatType | None = None
 
     def __post_init__(self):
         self.html_matches = self.html_matches or tuple()
@@ -283,20 +283,316 @@ LINENOS_TEST_CASE = DirectiveTestCase(
     ),
 )
 
+LINENOS_START_TEST_CASE = DirectiveTestCase(
+    # Test that :lineno-start: shifts the starting line number.
+    name="linenos_start_test",
+    example_code="""
+        :linenos:
+        :lineno-start: 5
+
+        from click import command, echo
+
+        @command
+        def numbered_example():
+            echo("Line numbers should start from 5")
+            echo("and continue incrementing")
+    """,
+    run_code="""
+        :linenos:
+        :lineno-start: 10
+
+        invoke(numbered_example)
+    """,
+    html_matches=(
+        (
+            HTML["python_highlight"]
+            + '<span class="linenos"> 5</span>'
+            + HTML["import_click"]
+            + '<span class="linenos"> 6</span>\n'
+            + '<span class="linenos"> 7</span><span class="nd">@command</span>\n'
+            + '<span class="linenos"> 8</span><span class="k">def</span><span class="w"> </span><span class="nf">numbered_example</span><span class="p">():</span>\n'
+            + '<span class="linenos"> 9</span>    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Line numbers should start from 5&quot;</span><span class="p">)</span>\n'
+            + '<span class="linenos">10</span>    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;and continue incrementing&quot;</span><span class="p">)</span>\n'
+            + "</pre></div>\n"
+        ),
+        (
+            HTML["shell_session"]
+            + '<span class="linenos">10</span><span class="gp">$ </span>numbered-example\n'
+            + '<span class="linenos">11</span>Line numbers should start from 5\n'
+            + '<span class="linenos">12</span>and continue incrementing\n'
+            + "</pre></div>\n"
+        ),
+    ),
+)
+
+SHOW_SOURCE_TEST_CASE = DirectiveTestCase(
+    # Test that :show-source: option shows source code in click:run directive.
+    name="show_source_test",
+    example_code="""
+        from click import command, echo
+
+        @command
+        def simple_print():
+            echo("Just a string to print.")
+    """,
+    run_code="""
+        :show-source:
+
+        invoke(simple_print)
+    """,
+    html_matches=(
+        # Example directive should show source
+        (
+            HTML["python_highlight"]
+            + HTML["import_click"]
+            + "\n"
+            + '<span class="nd">@command</span>\n'
+            + '<span class="k">def</span><span class="w"> </span><span class="nf">simple_print</span><span class="p">():</span>\n'
+            + '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Just a string to print.&quot;</span><span class="p">)</span>\n'
+            + "</pre></div>\n"
+        ),
+        # Run directive should show source code
+        (
+            HTML["python_highlight"]
+            + '<span class="n">invoke</span><span class="p">(</span><span class="n">simple_print</span><span class="p">)</span>\n'
+            + "</pre></div>\n"
+        ),
+        # Run directive should show execution results
+        (
+            HTML["shell_session"]
+            + '<span class="gp">$ </span>simple-print\n'
+            + "Just a string to print.\n"
+            + "</pre></div>\n"
+            + "</div>\n"
+        ),
+    ),
+)
+
+HIDE_SOURCE_TEST_CASE = DirectiveTestCase(
+    # Test that :hide-source: hides source code in click:example directive.
+    name="hide_source_test",
+    example_code="""
+        :hide-source:
+
+        from click import command, echo
+
+        @command
+        def simple_print():
+            echo("Just a string to print.")
+    """,
+    run_code="invoke(simple_print)",
+    html_matches=(
+        # Should NOT contain Python source code
+        # We'll validate this with a negative assertion in the test
+        HTML["shell_session"]
+        + '<span class="gp">$ </span>simple-print\n'
+        + "Just a string to print.\n"
+        + "</pre></div>\n",
+    ),
+)
+
+HIDE_RESULTS_TEST_CASE = DirectiveTestCase(
+    # Test that :hide-results: option hides execution results in click:run directive.
+    name="hide_results_test",
+    example_code="""
+        from click import command, echo
+
+        @command
+        def simple_print():
+            echo("Just a string to print.")
+    """,
+    run_code="""
+        :hide-results:
+
+        invoke(simple_print)
+    """,
+    html_matches=(
+        # Example directive should show source
+        (
+            HTML["python_highlight"]
+            + HTML["import_click"]
+            + "\n"
+            + '<span class="nd">@command</span>\n'
+            + '<span class="k">def</span><span class="w"> </span><span class="nf">simple_print</span><span class="p">():</span>\n'
+            + '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Just a string to print.&quot;</span><span class="p">)</span>\n'
+            + "</pre></div>\n"
+        ),
+    ),
+)
+
+SHOW_RESULTS_TEST_CASE = DirectiveTestCase(
+    # Test that :show-results: option shows execution results (default behavior).
+    name="show_results_test",
+    example_code="""
+        from click import command, echo
+
+        @command
+        def simple_print():
+            echo("Just a string to print.")
+    """,
+    run_code="""
+        :show-results:
+
+        invoke(simple_print)
+    """,
+    html_matches=(
+        # Example directive should show source
+        (
+            HTML["python_highlight"]
+            + HTML["import_click"]
+            + "\n"
+            + '<span class="nd">@command</span>\n'
+            + '<span class="k">def</span><span class="w"> </span><span class="nf">simple_print</span><span class="p">():</span>\n'
+            + '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Just a string to print.&quot;</span><span class="p">)</span>\n'
+            + "</pre></div>\n"
+        ),
+        # Run directive should show execution results
+        (
+            HTML["shell_session"]
+            + '<span class="gp">$ </span>simple-print\n'
+            + "Just a string to print.\n"
+            + "</pre></div>\n"
+        ),
+    ),
+)
+
+OPTION_COMBINATIONS_TEST_CASE = DirectiveTestCase(
+    # Test various combinations of display options.
+    name="option_combinations_test",
+    example_code="""
+        :show-source:
+        :hide-results:
+
+        from click import command, echo
+
+        @command
+        def simple_print():
+            echo("Just a string to print.")
+    """,
+    run_code="""
+        :show-source:
+        :hide-results:
+        :show-results:
+
+        invoke(simple_print)
+    """,
+    html_matches=(
+        # Example directive should show source
+        (
+            HTML["python_highlight"]
+            + HTML["import_click"]
+            + "\n"
+            + '<span class="nd">@command</span>\n'
+            + '<span class="k">def</span><span class="w"> </span><span class="nf">simple_print</span><span class="p">():</span>\n'
+            + '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Just a string to print.&quot;</span><span class="p">)</span>\n'
+            + "</pre></div>\n"
+        ),
+        # Run directive should show source code
+        (
+            HTML["python_highlight"]
+            + '<span class="n">invoke</span><span class="p">(</span><span class="n">simple_print</span><span class="p">)</span>\n'
+            + "</pre></div>\n"
+        ),
+        # Run directive should show execution results (show-results overrides hide-results)
+        (
+            HTML["shell_session"]
+            + '<span class="gp">$ </span>simple-print\n'
+            + "Just a string to print.\n"
+            + "</pre></div>\n"
+        ),
+    ),
+)
+
+MIXED_OUTPUT_TEST_CASE = DirectiveTestCase(
+    # Test directives that print to both stdout and stderr with proper rendering.
+    name="mixed_output_test",
+    example_code="""
+        import sys
+
+        from click import command, echo
+        from click_extra import style, Color
+
+        @command
+        def mixed_output():
+            echo(f"This goes to {style('stdout', fg=Color.blue)}")
+            echo(f"This is an {style('error', fg=Color.red)}", err=True)
+            print(f"Direct {style('stdout', fg=Color.blue)} print", file=sys.stdout)
+            print(f"Direct {style('stderr', fg=Color.red)} print", file=sys.stderr)
+    """,
+    run_code="invoke(mixed_output)",
+    html_matches=(
+        # Should show mixed stdout/stderr output with colors
+        (
+            HTML["shell_session"]
+            + '<span class="gp">$ </span>mixed-output\n'
+            + 'This goes to <span class=" -Color -Color-Blue -C-Blue">stdout</span>\n'
+            + 'This is an <span class=" -Color -Color-Red -C-Red">error</span>\n'
+            + 'Direct <span class=" -Color -Color-Blue -C-Blue">stdout</span> print\n'
+            + 'Direct <span class=" -Color -Color-Red -C-Red">stderr</span> print\n'
+            + "</pre></div>"
+        ),
+    ),
+)
+
+ISOLATED_FILESYSTEM_TEST_CASE = DirectiveTestCase(
+    # Test that isolated_filesystem works properly in click:run directives.
+    name="isolated_filesystem_test",
+    example_code="""
+        from click import command, echo
+
+        @command
+        def greet():
+            echo("Hello World!")
+    """,
+    run_code="""
+        with isolated_filesystem():
+            with open("test.txt", "w") as f:
+                f.write("Hello File!")
+            invoke(greet)
+    """,
+    html_matches=(
+        # Should show command execution within isolated filesystem
+        (
+            HTML["shell_session"]
+            + '<span class="gp">$ </span>greet\n'
+            + "Hello World!\n"
+            + "</pre></div>\n"
+        ),
+    ),
+)
+
 
 @pytest.mark.parametrize(
     "test_case",
-    [SIMPLE_DIRECTIVES_TEST_CASE, LINENOS_TEST_CASE],
+    [
+        SIMPLE_DIRECTIVES_TEST_CASE,
+        LINENOS_TEST_CASE,
+        LINENOS_START_TEST_CASE,
+        SHOW_SOURCE_TEST_CASE,
+        HIDE_SOURCE_TEST_CASE,
+        HIDE_RESULTS_TEST_CASE,
+        SHOW_RESULTS_TEST_CASE,
+        OPTION_COMBINATIONS_TEST_CASE,
+        MIXED_OUTPUT_TEST_CASE,
+        ISOLATED_FILESYSTEM_TEST_CASE,
+    ],
     ids=lambda tc: tc.name,
 )
 def test_directive_functionality(sphinx_app, test_case):
-    """Test various directive functionalities using parameterized test cases."""
+    """Test standard directive functionalities in both rST and MyST."""
     content = sphinx_app.generate_test_content(test_case)
     html_output = sphinx_app.build_document(content)
 
     # Assert all expected fragments are present
     for fragment in test_case.html_matches:
         assert fragment in html_output
+
+    # Special handling for hide-source test case
+    if test_case.name == "hide_source_test":
+        # click:example should not display source code
+        assert "highlight-python" not in html_output
+        assert "command" not in html_output
+        assert "simple_print" not in html_output
 
 
 def test_legacy_mixed_syntax_eval_rst(sphinx_app_myst):
@@ -360,358 +656,6 @@ def test_directive_option_format(sphinx_app_rst):
         sphinx_app_rst.build_document(content)
 
     assert str(exc_info.value) == "name 'bad_format' is not defined"
-
-
-def test_directive_option_linenos_start(sphinx_app):
-    """Test that ``:lineno-start:`` shifts the starting line number."""
-    format_type = sphinx_app.format_type
-
-    if format_type == RST:
-        content = dedent("""
-            .. click:example::
-                :linenos:
-                :lineno-start: 5
-
-                from click import command, echo
-
-                @command
-                def numbered_example():
-                    echo("Line numbers should start from 5")
-                    echo("and continue incrementing")
-
-            .. click:run::
-                :linenos:
-                :lineno-start: 10
-
-                invoke(numbered_example)
-        """)
-    elif format_type == MYST:
-        content = dedent("""
-            ```{click:example}
-            :linenos:
-            :lineno-start: 5
-            from click import command, echo
-
-            @command
-            def numbered_example():
-                echo("Line numbers should start from 5")
-                echo("and continue incrementing")
-            ```
-
-            ```{click:run}
-            :linenos:
-            :lineno-start: 10
-            invoke(numbered_example)
-            ```
-        """)
-
-    html_output = sphinx_app.build_document(content)
-
-    assert (
-        HTML["python_highlight"]
-        + '<span class="linenos"> 5</span>'
-        + HTML["import_click"]
-        + '<span class="linenos"> 6</span>\n'
-        + '<span class="linenos"> 7</span><span class="nd">@command</span>\n'
-        + '<span class="linenos"> 8</span><span class="k">def</span><span class="w"> </span><span class="nf">numbered_example</span><span class="p">():</span>\n'
-        + '<span class="linenos"> 9</span>    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Line numbers should start from 5&quot;</span><span class="p">)</span>\n'
-        + '<span class="linenos">10</span>    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;and continue incrementing&quot;</span><span class="p">)</span>\n'
-        + "</pre></div>\n"
-    ) in html_output
-
-    assert (
-        HTML["shell_session"]
-        + '<span class="linenos">10</span><span class="gp">$ </span>numbered-example\n'
-        + '<span class="linenos">11</span>Line numbers should start from 5\n'
-        + '<span class="linenos">12</span>and continue incrementing\n'
-        + "</pre></div>\n"
-    ) in html_output
-
-
-def test_directive_option_hide_source(sphinx_app):
-    """Test that ``:hide-source:`` hides source code in ``click:example`` directive."""
-    format_type = sphinx_app.format_type
-
-    if format_type == RST:
-        content = dedent("""
-            .. click:example::
-                :hide-source:
-
-                from click import command, echo
-
-                @command
-                def simple_print():
-                    echo("Just a string to print.")
-
-            .. click:run::
-
-                invoke(simple_print)
-        """)
-    elif format_type == MYST:
-        content = dedent("""
-            ```{click:example}
-            :hide-source:
-            from click import command, echo
-
-            @command
-            def simple_print():
-                echo("Just a string to print.")
-            ```
-
-            ```{click:run}
-            invoke(simple_print)
-            ```
-        """)
-
-    html_output = sphinx_app.build_document(content)
-
-    # click:example should not display source code.
-    assert "highlight-python" not in html_output
-    assert "command" not in html_output
-    assert "simple_print" not in html_output
-
-    # But click:run should still display results.
-    assert (
-        HTML["shell_session"]
-        + '<span class="gp">$ </span>simple-print\n'
-        + "Just a string to print.\n"
-        + "</pre></div>\n"
-    ) in html_output
-
-
-def test_directive_option_show_source(sphinx_app):
-    """Test that ``:show-source:`` option shows source code in ``click:run`` directive."""
-    format_type = sphinx_app.format_type
-
-    if format_type == RST:
-        content = dedent("""
-            .. click:example::
-
-                from click import command, echo
-
-                @command
-                def simple_print():
-                    echo("Just a string to print.")
-
-            .. click:run::
-                :show-source:
-
-                invoke(simple_print)
-        """)
-    elif format_type == MYST:
-        content = dedent("""
-            ```{click:example}
-            from click import command, echo
-
-            @command
-            def simple_print():
-                echo("Just a string to print.")
-            ```
-
-            ```{click:run}
-            :show-source:
-            invoke(simple_print)
-            ```
-        """)
-
-    html_output = sphinx_app.build_document(content)
-
-    assert (
-        HTML["python_highlight"]
-        + HTML["import_click"]
-        + "\n"
-        + '<span class="nd">@command</span>\n'
-        + '<span class="k">def</span><span class="w"> </span><span class="nf">simple_print</span><span class="p">():</span>\n'
-        + '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Just a string to print.&quot;</span><span class="p">)</span>\n'
-        + "</pre></div>\n"
-    ) in html_output
-
-    assert (
-        HTML["python_highlight"]
-        + '<span class="n">invoke</span><span class="p">(</span><span class="n">simple_print</span><span class="p">)</span>\n'
-        + "</pre></div>\n"
-    ) in html_output
-
-    assert (
-        HTML["shell_session"]
-        + '<span class="gp">$ </span>simple-print\n'
-        + "Just a string to print.\n"
-        + "</pre></div>\n"
-        + "</div>\n"
-    ) in html_output
-
-
-def test_directive_option_hide_results(sphinx_app):
-    """Test that ``:hide-results:`` option hides execution results in ``click:run``."""
-    format_type = sphinx_app.format_type
-
-    if format_type == RST:
-        content = dedent("""\
-            .. click:example::
-
-                from click import command, echo
-
-                @command
-                def simple_print():
-                    echo("Just a string to print.")
-
-            .. click:run::
-                :hide-results:
-
-                invoke(simple_print)
-        """)
-    elif format_type == MYST:
-        content = dedent("""\
-            ```{click:example}
-            from click import command, echo
-
-            @command
-            def simple_print():
-                echo("Just a string to print.")
-            ```
-
-            ```{click:run}
-            :hide-results:
-            invoke(simple_print)
-            ```
-        """)
-
-    html_output = sphinx_app.build_document(content)
-
-    assert (
-        HTML["python_highlight"]
-        + HTML["import_click"]
-        + "\n"
-        + '<span class="nd">@command</span>\n'
-        + '<span class="k">def</span><span class="w"> </span><span class="nf">simple_print</span><span class="p">():</span>\n'
-        + '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Just a string to print.&quot;</span><span class="p">)</span>\n'
-        + "</pre></div>\n"
-    ) in html_output
-
-
-def test_directive_option_show_results(sphinx_app):
-    """Test that ``:show-results:`` option shows execution results (default behavior)."""
-    format_type = sphinx_app.format_type
-
-    if format_type == RST:
-        content = dedent("""\
-            .. click:example::
-
-                from click import command, echo
-
-                @command
-                def simple_print():
-                    echo("Just a string to print.")
-
-            .. click:run::
-                :show-results:
-
-                invoke(simple_print)
-        """)
-    elif format_type == MYST:
-        content = dedent("""\
-            ```{click:example}
-            from click import command, echo
-
-            @command
-            def simple_print():
-                echo("Just a string to print.")
-            ```
-
-            ```{click:run}
-            :show-results:
-            invoke(simple_print)
-            ```
-        """)
-
-    html_output = sphinx_app.build_document(content)
-
-    assert (
-        HTML["python_highlight"]
-        + HTML["import_click"]
-        + "\n"
-        + '<span class="nd">@command</span>\n'
-        + '<span class="k">def</span><span class="w"> </span><span class="nf">simple_print</span><span class="p">():</span>\n'
-        + '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Just a string to print.&quot;</span><span class="p">)</span>\n'
-        + "</pre></div>\n"
-    ) in html_output
-
-    assert (
-        HTML["shell_session"]
-        + '<span class="gp">$ </span>simple-print\n'
-        + "Just a string to print.\n"
-        + "</pre></div>\n"
-    ) in html_output
-
-
-def test_directive_option_combinations(sphinx_app):
-    """Test various combinations of display options."""
-    format_type = sphinx_app.format_type
-
-    if format_type == RST:
-        content = dedent("""\
-            .. click:example::
-                :show-source:
-                :hide-results:
-
-                from click import command, echo
-
-                @command
-                def simple_print():
-                    echo("Just a string to print.")
-
-            .. click:run::
-                :show-source:
-                :hide-results:
-                :show-results:
-
-                invoke(simple_print)
-        """)
-    elif format_type == MYST:
-        content = dedent("""\
-            ```{click:example}
-            :show-source:
-            :hide-results:
-
-            from click import command, echo
-
-            @command
-            def simple_print():
-                echo("Just a string to print.")
-            ```
-
-            ```{click:run}
-            :show-source:
-            :hide-results:
-            :show-results:
-            invoke(simple_print)
-            ```
-        """)
-
-    html_output = sphinx_app.build_document(content)
-
-    assert (
-        HTML["python_highlight"]
-        + HTML["import_click"]
-        + "\n"
-        + '<span class="nd">@command</span>\n'
-        + '<span class="k">def</span><span class="w"> </span><span class="nf">simple_print</span><span class="p">():</span>\n'
-        + '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Just a string to print.&quot;</span><span class="p">)</span>\n'
-        + "</pre></div>\n"
-    ) in html_output
-
-    assert (
-        HTML["python_highlight"]
-        + '<span class="n">invoke</span><span class="p">(</span><span class="n">simple_print</span><span class="p">)</span>\n'
-        + "</pre></div>\n"
-    ) in html_output
-
-    assert (
-        HTML["shell_session"]
-        + '<span class="gp">$ </span>simple-print\n'
-        + "Just a string to print.\n"
-        + "</pre></div>\n"
-    ) in html_output
 
 
 def test_directive_option_language_override(sphinx_app):
@@ -827,113 +771,6 @@ def test_sphinx_directive_state_persistence(sphinx_app):
         HTML["shell_session"]
         + '<span class="gp">$ </span>cmd2\n'
         + "Command 2\n"
-        + "</pre></div>\n"
-    ) in html_output
-
-
-def test_stdout_stderr_output(sphinx_app):
-    """Test directives that print to both ``<stdout>`` and ``<stderr>`` with proper rendering."""
-    format_type = sphinx_app.format_type
-
-    if format_type == RST:
-        content = dedent("""
-            .. click:example::
-
-                import sys
-
-                from click import command, echo
-                from click_extra import style, Color
-
-                @command
-                def mixed_output():
-                    echo(f"This goes to {style('stdout', fg=Color.blue)}")
-                    echo(f"This is an {style('error', fg=Color.red)}", err=True)
-                    print(f"Direct {style('stdout', fg=Color.blue)} print", file=sys.stdout)
-                    print(f"Direct {style('stderr', fg=Color.red)} print", file=sys.stderr)
-
-            .. click:run::
-
-                invoke(mixed_output)
-        """)
-    elif format_type == MYST:
-        content = dedent("""
-            ```{click:example}
-            import sys
-
-            from click import command, echo
-            from click_extra import style, Color
-
-            @command
-            def mixed_output():
-                echo(f"This goes to {style('stdout', fg=Color.blue)}")
-                echo(f"This is an {style('error', fg=Color.red)}", err=True)
-                print(f"Direct {style('stdout', fg=Color.blue)} print", file=sys.stdout)
-                print(f"Direct {style('stderr', fg=Color.red)} print", file=sys.stderr)
-            ```
-
-            ```{click:run}
-            invoke(mixed_output)
-            ```
-        """)
-
-    html_output = sphinx_app.build_document(content)
-
-    assert (
-        HTML["shell_session"]
-        + '<span class="gp">$ </span>mixed-output\n'
-        + 'This goes to <span class=" -Color -Color-Blue -C-Blue">stdout</span>\n'
-        + 'This is an <span class=" -Color -Color-Red -C-Red">error</span>\n'
-        + 'Direct <span class=" -Color -Color-Blue -C-Blue">stdout</span> print\n'
-        + 'Direct <span class=" -Color -Color-Red -C-Red">stderr</span> print\n'
-        + "</pre></div>"
-    ) in html_output
-
-
-def test_isolated_filesystem_directive(sphinx_app):
-    """Test that isolated_filesystem works properly in click:run directives."""
-    format_type = sphinx_app.format_type
-
-    if format_type == RST:
-        content = dedent("""\
-            .. click:example::
-
-                from click import command, echo
-
-                @command
-                def greet():
-                    echo("Hello World!")
-
-            .. click:run::
-
-                with isolated_filesystem():
-                    with open("test.txt", "w") as f:
-                        f.write("Hello File!")
-                    invoke(greet)
-        """)
-    elif format_type == MYST:
-        content = dedent("""\
-            ```{click:example}
-            from click import command, echo
-
-            @command
-            def greet():
-                echo("Hello World!")
-            ```
-
-            ```{click:run}
-            with isolated_filesystem():
-                with open("test.txt", "w") as f:
-                    f.write("Hello File!")
-                invoke(greet)
-            ```
-        """)
-
-    html_output = sphinx_app.build_document(content)
-
-    assert (
-        HTML["shell_session"]
-        + '<span class="gp">$ </span>greet\n'
-        + "Hello World!\n"
         + "</pre></div>\n"
     ) in html_output
 
