@@ -200,6 +200,9 @@ class ExampleRunner(ExtraCliRunner):
         result = super().invoke(
             cli=cli, args=args, input=input, env=env, prog_name=prog_name, **extra
         )
+        # TODO: Maybe we can intercept the exception here either make it:
+        # - part of the output in the rendered Sphinx code block, or
+        # - re-raise it so Sphinx can display it properly in its logs.
         output_lines.extend(result.output.splitlines())
         return result
 
@@ -295,6 +298,7 @@ class ClickDirective(SphinxDirective):
         "hide-source": directives.flag,
         "show-results": directives.flag,
         "hide-results": directives.flag,
+        # TODO: Add a show-prompts and hide-prompts options?
     }
     """Options supported by this directive.
 
@@ -450,7 +454,10 @@ class ClickDirective(SphinxDirective):
         section = nodes.section()
         source_file, _line_number = self.get_source_info()
         self.state.nested_parse(
-            StringList(lines, source_file), self.content_offset, section
+            StringList(lines, source_file),
+            # XXX Check that the offset here is properly computed in both rST and MyST.
+            self.content_offset,
+            section,
         )
         return section.children
 
