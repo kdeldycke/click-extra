@@ -803,24 +803,12 @@ def test_sphinx_directive_state_persistence(sphinx_app):
 
 @pytest.mark.parametrize("var_name", ["invoke", "isolated_filesystem"])
 @pytest.mark.parametrize(
-    ("sphinx_app", "error_lineno"),
+    ("sphinx_app", "content", "directive_lineno", "error_lineno"),
     [
-        (RST, 23),
-        (MYST, 12),
-    ],
-    indirect=["sphinx_app"],
-)
-def test_directive_variable_conflict(var_name, sphinx_app, error_lineno):
-    """Test that variable conflicts are properly detected in real Sphinx environment.
-
-    .. todo::
-        Test different indentations and spacing around the conflicting variable to
-        check line number reported in error message are accurate.
-    """
-    format_type = sphinx_app.format_type
-
-    if format_type == RST:
-        content = dedent(f"""
+        # Test variable conflicts in both rST and MyST formats.
+        (
+            RST,
+            """\
             .. click:example::
 
                 from click import command, echo
@@ -834,10 +822,13 @@ def test_directive_variable_conflict(var_name, sphinx_app, error_lineno):
                 # This should fail due to variable conflict.
                 {var_name} = "Do not overwrite me!"
                 result = invoke(hello)
-        """)
-
-    elif format_type == MYST:
-        content = dedent(f"""
+            """,
+            9,
+            12,
+        ),
+        (
+            MYST,
+            """\
             ```{{click:example}}
             from click import command, echo
 
@@ -851,7 +842,169 @@ def test_directive_variable_conflict(var_name, sphinx_app, error_lineno):
             {var_name} = "Do not overwrite me!"
             result = invoke(hello)
             ```
-        """)
+            """,
+            9,
+            11,
+        ),
+        # Check proper line number reporting with preceding blank lines.
+        (
+            RST,
+            """
+
+
+
+            .. click:example::
+
+                from click import command, echo
+
+                @command
+                def hello():
+                    echo("Hello World!")
+
+            .. click:run::
+
+                # This should fail due to variable conflict.
+                {var_name} = "Do not overwrite me!"
+                result = invoke(hello)
+            """,
+            9 + 4,
+            12 + 4,
+        ),
+        (
+            MYST,
+            """
+
+
+
+            ```{{click:example}}
+            from click import command, echo
+
+            @command
+            def hello():
+                echo("Hello World!")
+            ```
+
+            ```{{click:run}}
+            # This should fail due to variable conflict.
+            {var_name} = "Do not overwrite me!"
+            result = invoke(hello)
+            ```
+            """,
+            9 + 4,
+            11 + 4,
+        ),
+        (
+            RST,
+            """\
+            .. click:run::
+
+                # This should fail due to variable conflict.
+                {var_name} = "Do not overwrite me!"
+            """,
+            1,
+            4,
+        ),
+        (
+            MYST,
+            """\
+            ```{{click:run}}
+            # This should fail due to variable conflict.
+            {var_name} = "Do not overwrite me!"
+            ```
+            """,
+            1,
+            3,
+        ),
+        (
+            RST,
+            """\
+            .. click:run::
+
+
+
+                # This should fail due to variable conflict.
+                {var_name} = "Do not overwrite me!"
+            """,
+            1,
+            6,
+        ),
+        (
+            MYST,
+            """\
+            ```{{click:run}}
+
+
+            # This should fail due to variable conflict.
+            {var_name} = "Do not overwrite me!"
+            ```
+            """,
+            1,
+            5,
+        ),
+        # Options should not affect line numbering.
+        (
+            RST,
+            """\
+            .. click:run::
+                :linenos:
+
+                # This should fail due to variable conflict.
+                {var_name} = "Do not overwrite me!"
+            """,
+            1,
+            5,
+        ),
+        (
+            MYST,
+            """\
+            ```{{click:run}}
+            :linenos:
+            # This should fail due to variable conflict.
+            {var_name} = "Do not overwrite me!"
+            ```
+            """,
+            1,
+            4,
+        ),
+        # Options should not affect line numbering.
+        (
+            RST,
+            """\
+            .. click:run::
+                :linenos:
+
+
+
+                # This should fail due to variable conflict.
+                {var_name} = "Do not overwrite me!"
+            """,
+            1,
+            7,
+        ),
+        (
+            MYST,
+            """\
+            ```{{click:run}}
+            :linenos:
+
+
+            # This should fail due to variable conflict.
+            {var_name} = "Do not overwrite me!"
+            ```
+            """,
+            1,
+            6,
+        ),
+    ],
+    indirect=["sphinx_app"],
+)
+def test_directive_variable_conflict(
+    var_name, sphinx_app, content, directive_lineno, error_lineno
+):
+    """Test that variable conflicts are properly detected in real Sphinx environment."""
+    format_type = sphinx_app.format_type
+
+    content = dedent(content).format(var_name=var_name)
 
     with pytest.raises(RuntimeError) as exc_info:
         sphinx_app.build_document(content)
@@ -860,7 +1013,8 @@ def test_directive_variable_conflict(var_name, sphinx_app, error_lineno):
     expected_pattern = (
         rf"Local variable '{var_name}' at .+/index"
         + re.escape(file_extension)
-        + rf":10:click:run:{error_lineno} conflicts with the one automaticcaly provided by the click:run directive\.\n"
+        + rf":{directive_lineno}:click:run:{error_lineno} "
+        + "conflicts with the one automaticcaly provided by the click:run directive\.\n"
         rf"Line: {var_name} = \"Do not overwrite me!\""
     )
     assert re.fullmatch(expected_pattern, str(exc_info.value))

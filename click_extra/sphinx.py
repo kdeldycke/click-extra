@@ -253,12 +253,20 @@ class ExampleRunner(ExtraCliRunner):
                     # Get the line number relative to the source code.
                     python_lineno = node.lineno
                     python_line = source_lines[python_lineno - 1]
-                    markdown_lineno = (
-                        directive.lineno + directive.content_offset + python_lineno
-                    )
+                    # Compute the absolute line number in the document.
+                    if directive.is_myst_syntax:
+                        # In MyST, the content offset is the position of the first line
+                        # of the source code, relative to the directive itself.
+                        doc_lineno = (
+                            directive.lineno + directive.content_offset + python_lineno
+                        )
+                    else:
+                        # In rST, the content offset is the absolute position at which
+                        # the source code starts in the document.
+                        doc_lineno = directive.content_offset + python_lineno
                     raise RuntimeError(
                         f"Local variable {node.id!r} at "
-                        f"{location}:{directive.name}:{markdown_lineno} conflicts with "
+                        f"{location}:{directive.name}:{doc_lineno} conflicts with "
                         f"the one automaticcaly provided by the {directive.name} "
                         "directive.\n"
                         f"Line: {python_line}"
