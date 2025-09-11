@@ -107,7 +107,7 @@ test = [
     "pytest-cov ~= 7.0.0",
     "pytest-github-actions-annotate-failures ~= 0.3.0",
     "pytest-httpserver ~= 1.1.0",
-    "pytest-randomly ~= 3.16.0",
+    "pytest-randomly ~= 4.0.0",
 ]
 typing = [
     "types-Pygments ~= 2.19.0.20250107",
