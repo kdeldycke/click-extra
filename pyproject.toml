@@ -61,55 +61,83 @@ classifiers = [
     'Topic :: Utilities',
     'Typing :: Typed',
 ]
+# Semantic versioning works in theory. In practice, it is hard to guarantee.
+# So we do not rely on ~= specifier, but only on >= specifier.
+# This gives more freedom to downstream and upstream packagers to mix and match versions of dependencies.
+# All minimal version choice are documented. Reasons to bump a minimal version are:
+# - security fixes,
+# - new features we rely on,
+# - aligns its minimal Python version to ours,
+# - bug fixes for issues we encountered in our codebase,
+# - support for a new Python version that this package supports.
 dependencies = [
-    # XXX boltons.ecoutils 23.0.0 breaks PDB interactive sessions in pytest.
+    # boltons 23.0.0 is the first version to support Python 3.11.
+    # XXX boltons.ecoutils breaks PDB interactive sessions in pytest.
     # Investigation of the root cause is being discussed upstream at:
     # https://github.com/mahmoud/boltons/issues/334
-    "boltons ~= 25.0.0",
-    # Depends on upcoming click 8.3.0 to fix several issues with flag values, and flag envvars.
+    "boltons >= 23.0.0",
+    # XXX Depends on upcoming click 8.3.0 to fix several issues with flag values, and flag envvars.
     # Refs: https://github.com/pallets/click/pull/3030
-    # "click ~= 8.3.0",
+    # "click >= 8.3.0",
     "click @ git+https://github.com/pallets/click.git@main",
     # Cloup 3.0.7 fix issues with metavars: https://github.com/kdeldycke/click-extra/pull/1281
-    "cloup ~= 3.0.7",
-    "deepmerge ~= 2.0",
-    "extra-platforms >= 3.1.0",
-    "pyyaml ~= 6.0.0",
-    # requests 2.28.2 is the first version to support charset_normalizer 3.x.
-    "requests ~= 2.32.3",
+    "cloup >= 3.0.7",
+    # deepmerge 2.0 is the first version used in Click Extra.
+    "deepmerge >= 2.0",
+    # extra-platforms 3.0.0 is the first version to drop Python 3.10, like us.
+    "extra-platforms >= 3.0.0",
+    # PyYAML 6.0.2 is the first version to support Python 3.13.
+    "pyyaml >= 6.0.2",
+    # requests 2.32.4 fix CVE-2024-47081.
+    "requests >= 2.32.4",
     # tabulate 0.9 is the first to add `*grid` and `*outline` formats.
-    "tabulate [widechars] ~= 0.9",
-    "wcmatch ~= 10.0",
-    "xmltodict ~= 0.15.0",
+    "tabulate [widechars] >= 0.9",
+    # wcmatch 10.0 fix some inconsistencies in globbing and symlinks.
+    "wcmatch >= 10.0",
+    # xmltodict 0.15.1 prevent XML injection.
+    "xmltodict >= 0.15.1",
 ]
 
 [project.optional-dependencies]
+## Groups below are runtime dependencies, so using >= specifier as explained above.
 pygments = [
     # Pygments 2.14.0 is the first version with ``lexers.algebra.GAPConsoleLexer`` that is referenced in our code.
-    "pygments ~= 2.14",
+    "pygments >= 2.14",
     # pygments-ansi-color 0.3.0 is the first version to set the default theme of ANSI colors.
-    "pygments-ansi-color ~= 0.3.0",
+    "pygments-ansi-color >= 0.3.0",
 ]
 sphinx = [
     # Pygments 2.14.0 is the first version with ``lexers.algebra.GAPConsoleLexer`` that is referenced in our code.
-    "pygments ~= 2.14",
+    "pygments >= 2.14",
     # pygments-ansi-color 0.3.0 is the first version to set the default theme of ANSI colors.
-    "pygments-ansi-color ~= 0.3.0",
-    # Sphinx 8.2 is the first version to drop Python 3.10.
-    "sphinx ~= 8.2.3",
+    "pygments-ansi-color >= 0.3.0",
+    # Sphinx 8.2 is the first version to drop Python 3.10, like us.
+    "sphinx >= 8.2",
 ]
-pytest = ["pytest >= 8"]
+pytest = [
+    # pytest 8.2.1 is the first version to support Python 3.13.
+    "pytest >= 8.2.1",
+]
+## Non-runtime dependencies, for development and CI, are using the ~= specifier to reduce randomness.
+## Unless the package has been referenced in sections above, in which case we align the version specifier.
 test = [
     "coverage [toml] ~= 7.10.0",
-    "extra-platforms [pytest] >= 3.1.0",
-    "pytest ~= 8.4.0",
+    # extra-platforms 3.0.0 is the first version to drop Python 3.10, like us.
+    "extra-platforms [pytest] >= 3.0.0",
+    "myst-parser ~= 4.0.0",
+    # pytest 8.2.1 is the first version to support Python 3.13.
+    "pytest >= 8.2.1",
     # More pytest plugins at: https://docs.pytest.org/en/latest/reference/plugin_list.html
     "pytest-cov ~= 7.0.0",
+    #"pytest-cases ~= 3.8.3",
     "pytest-github-actions-annotate-failures ~= 0.3.0",
     "pytest-httpserver ~= 1.1.0",
     "pytest-randomly ~= 4.0.0",
+    # Sphinx 8.2 is the first version to drop Python 3.10, like us.
+    "sphinx >= 8.2",
 ]
 typing = [
+    "types-boltons ~= 25.0.0.20250822",
     "types-Pygments ~= 2.19.0.20250107",
     "types-PyYAML ~= 6.0.12.9",
     "types-requests ~= 2.32.4.20250611",
@@ -119,8 +147,8 @@ typing = [
 docs = [
     "furo ~= 2025.7.19",
     "myst-parser ~= 4.0.0",
-    # Sphinx 8 is the first version to drop Python 3.10.
-    "sphinx ~= 8.2.3",
+    # Sphinx 8.2 is the first version to drop Python 3.10, like us.
+    "sphinx >= 8.2",
     # sphinx-autodoc-typehints 3.1.0 is the first version to drop Python 3.10.
     "sphinx-autodoc-typehints ~= 3.2.0",
     "sphinx-copybutton ~= 0.5.2",
@@ -183,7 +211,7 @@ pretty = true
 
 [[tool.mypy.overrides]]
 ignore_missing_imports = true
-module = ["boltons.*", "furo", "mergedeep.*", "pallets_sphinx_themes.*"]
+module = ["furo"]
 
 [tool.pytest.ini_options]
 # https://docs.pytest.org/en/latest/customize.html#pyproject-toml

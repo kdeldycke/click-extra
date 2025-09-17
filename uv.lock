@@ -128,7 +128,7 @@ wheels = [
 [[package]]
 name = "click"
 version = "8.2.2"
-source = { git = "https://github.com/pallets/click.git?rev=main#10b77f98f2b2334943cd80b14717a935650cb3d6" }
+source = { git = "https://github.com/pallets/click.git?rev=main#2a0e3ba907927ade6951d5732b775f11b54cb766" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
 ]
@@ -177,13 +177,16 @@ sphinx = [
 test = [
     { name = "coverage", extra = ["toml"] },
     { name = "extra-platforms", extra = ["pytest"] },
+    { name = "myst-parser" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-github-actions-annotate-failures" },
     { name = "pytest-httpserver" },
     { name = "pytest-randomly" },
+    { name = "sphinx" },
 ]
 typing = [
+    { name = "types-boltons" },
     { name = "types-pygments" },
     { name = "types-pyyaml" },
     { name = "types-requests" },
@@ -193,43 +196,46 @@ typing = [
 
 [package.metadata]
 requires-dist = [
-    { name = "boltons", specifier = "~=25.0.0" },
+    { name = "boltons", specifier = ">=23.0.0" },
     { name = "click", git = "https://github.com/pallets/click.git?rev=main" },
-    { name = "cloup", specifier = "~=3.0.7" },
+    { name = "cloup", specifier = ">=3.0.7" },
     { name = "coverage", extras = ["toml"], marker = "extra == 'test'", specifier = "~=7.10.0" },
-    { name = "deepmerge", specifier = "~=2.0" },
-    { name = "extra-platforms", specifier = ">=3.1.0" },
-    { name = "extra-platforms", extras = ["pytest"], marker = "extra == 'test'", specifier = ">=3.1.0" },
+    { name = "deepmerge", specifier = ">=2.0" },
+    { name = "extra-platforms", specifier = ">=3.0.0" },
+    { name = "extra-platforms", extras = ["pytest"], marker = "extra == 'test'", specifier = ">=3.0.0" },
     { name = "furo", marker = "extra == 'docs'", specifier = "~=2025.7.19" },
     { name = "myst-parser", marker = "extra == 'docs'", specifier = "~=4.0.0" },
-    { name = "pygments", marker = "extra == 'pygments'", specifier = "~=2.14" },
-    { name = "pygments", marker = "extra == 'sphinx'", specifier = "~=2.14" },
-    { name = "pygments-ansi-color", marker = "extra == 'pygments'", specifier = "~=0.3.0" },
-    { name = "pygments-ansi-color", marker = "extra == 'sphinx'", specifier = "~=0.3.0" },
-    { name = "pytest", marker = "extra == 'pytest'", specifier = ">=8" },
-    { name = "pytest", marker = "extra == 'test'", specifier = "~=8.4.0" },
+    { name = "myst-parser", marker = "extra == 'test'", specifier = "~=4.0.0" },
+    { name = "pygments", marker = "extra == 'pygments'", specifier = ">=2.14" },
+    { name = "pygments", marker = "extra == 'sphinx'", specifier = ">=2.14" },
+    { name = "pygments-ansi-color", marker = "extra == 'pygments'", specifier = ">=0.3.0" },
+    { name = "pygments-ansi-color", marker = "extra == 'sphinx'", specifier = ">=0.3.0" },
+    { name = "pytest", marker = "extra == 'pytest'", specifier = ">=8.2.1" },
+    { name = "pytest", marker = "extra == 'test'", specifier = ">=8.2.1" },
     { name = "pytest-cov", marker = "extra == 'test'", specifier = "~=7.0.0" },
     { name = "pytest-github-actions-annotate-failures", marker = "extra == 'test'", specifier = "~=0.3.0" },
     { name = "pytest-httpserver", marker = "extra == 'test'", specifier = "~=1.1.0" },
-    { name = "pytest-randomly", marker = "extra == 'test'", specifier = "~=3.16.0" },
-    { name = "pyyaml", specifier = "~=6.0.0" },
-    { name = "requests", specifier = "~=2.32.3" },
-    { name = "sphinx", marker = "extra == 'docs'", specifier = "~=8.2.3" },
-    { name = "sphinx", marker = "extra == 'sphinx'", specifier = "~=8.2.3" },
+    { name = "pytest-randomly", marker = "extra == 'test'", specifier = "~=4.0.0" },
+    { name = "pyyaml", specifier = ">=6.0.2" },
+    { name = "requests", specifier = ">=2.32.4" },
+    { name = "sphinx", marker = "extra == 'docs'", specifier = ">=8.2" },
+    { name = "sphinx", marker = "extra == 'sphinx'", specifier = ">=8.2" },
+    { name = "sphinx", marker = "extra == 'test'", specifier = ">=8.2" },
     { name = "sphinx-autodoc-typehints", marker = "extra == 'docs'", specifier = "~=3.2.0" },
     { name = "sphinx-copybutton", marker = "extra == 'docs'", specifier = "~=0.5.2" },
     { name = "sphinx-design", marker = "extra == 'docs'", specifier = "~=0.6.0" },
     { name = "sphinx-issues", marker = "extra == 'docs'", specifier = "~=5.0.0" },
     { name = "sphinxcontrib-mermaid", marker = "extra == 'docs'", specifier = "~=1.0.0" },
     { name = "sphinxext-opengraph", marker = "extra == 'docs'", specifier = "~=0.13.0" },
-    { name = "tabulate", extras = ["widechars"], specifier = "~=0.9" },
+    { name = "tabulate", extras = ["widechars"], specifier = ">=0.9" },
+    { name = "types-boltons", marker = "extra == 'typing'", specifier = "~=25.0.0.20250822" },
     { name = "types-pygments", marker = "extra == 'typing'", specifier = "~=2.19.0.20250107" },
     { name = "types-pyyaml", marker = "extra == 'typing'", specifier = "~=6.0.12.9" },
     { name = "types-requests", marker = "extra == 'typing'", specifier = "~=2.32.4.20250611" },
     { name = "types-tabulate", marker = "extra == 'typing'", specifier = "~=0.9.0.2" },
     { name = "types-xmltodict", marker = "extra == 'typing'", specifier = "~=0.15.0.20250907" },
-    { name = "wcmatch", specifier = "~=10.0" },
-    { name = "xmltodict", specifier = "~=0.15.0" },
+    { name = "wcmatch", specifier = ">=10.0" },
+    { name = "xmltodict", specifier = ">=0.15.1" },
 ]
 provides-extras = ["pygments", "sphinx", "pytest", "test", "typing", "docs"]
 
@@ -627,14 +633,14 @@ wheels = [
 
 [[package]]
 name = "pytest-randomly"
-version = "3.16.0"
+version = "4.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pytest" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c0/68/d221ed7f4a2a49a664da721b8e87b52af6dd317af2a6cb51549cf17ac4b8/pytest_randomly-3.16.0.tar.gz", hash = "sha256:11bf4d23a26484de7860d82f726c0629837cf4064b79157bd18ec9d41d7feb26", size = 13367, upload-time = "2024-10-25T15:45:34.274Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c4/1d/258a4bf1109258c00c35043f40433be5c16647387b6e7cd5582d638c116b/pytest_randomly-4.0.1.tar.gz", hash = "sha256:174e57bb12ac2c26f3578188490bd333f0e80620c3f47340158a86eca0593cd8", size = 14130, upload-time = "2025-09-12T15:23:00.085Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/22/70/b31577d7c46d8e2f9baccfed5067dd8475262a2331ffb0bfdf19361c9bde/pytest_randomly-3.16.0-py3-none-any.whl", hash = "sha256:8633d332635a1a0983d3bba19342196807f6afb17c3eef78e02c2f85dade45d6", size = 8396, upload-time = "2024-10-25T15:45:32.78Z" },
+    { url = "https://files.pythonhosted.org/packages/33/3e/a4a9227807b56869790aad3e24472a554b585974fe7e551ea350f50897ae/pytest_randomly-4.0.1-py3-none-any.whl", hash = "sha256:e0dfad2fd4f35e07beff1e47c17fbafcf98f9bf4531fd369d9260e2f858bfcb7", size = 8304, upload-time = "2025-09-12T15:22:58.946Z" },
 ]
 
 [[package]]
@@ -935,12 +941,21 @@ wheels = [
 ]
 
 [[package]]
-name = "types-docutils"
-version = "0.22.0.20250822"
+name = "types-boltons"
+version = "25.0.0.20250822"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/b4/e3/b28d7786f4a5170095f59846d492c2980656c30ef4405ae94156ff63151c/types_docutils-0.22.0.20250822.tar.gz", hash = "sha256:40efebeef8467ae7648a33f3fa6f778bd94d338ca1f4a1c924b206d2f687f60a", size = 56487, upload-time = "2025-08-22T03:03:07.576Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a9/20/d83f840fc73f04abeae1104d3daecc1718e4252650e8a7952e4dab9ec56d/types_boltons-25.0.0.20250822.tar.gz", hash = "sha256:854075d9837fc1d01048b92a4f51d628b4a7f1667e087d7fe2156cd510b192fa", size = 21671, upload-time = "2025-08-22T03:02:12.532Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e9/02/4822bbddf4dae6b5dfe28d257c1e1f128c8315da8709e6d1862e055c13f2/types_docutils-0.22.0.20250822-py3-none-any.whl", hash = "sha256:890d5986045b8a532b56e7f0d4979de3afc23b4543de40910ec8c71ec5f3ba99", size = 91786, upload-time = "2025-08-22T03:03:06.522Z" },
+    { url = "https://files.pythonhosted.org/packages/50/b8/8521684b97f53c83c0886876d432af7c12dcbc2f0c7b3c20831f80062b4a/types_boltons-25.0.0.20250822-py3-none-any.whl", hash = "sha256:137fd8604947ae65e38108f65d91f678dc78a0573e098c73354979380151d4ab", size = 28315, upload-time = "2025-08-22T03:02:11.637Z" },
+]
+
+[[package]]
+name = "types-docutils"
+version = "0.22.0.20250914"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/4d/72/48cad115dff86755d83bbb37eb70df2d26a1fb2d8b5e1725d6524e0f08a4/types_docutils-0.22.0.20250914.tar.gz", hash = "sha256:0c7f61c90ed2900fa5c8e6cd375222981be1e28240b8c8a67ca4a186e367618d", size = 56496, upload-time = "2025-09-14T02:56:04.766Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ec/7b/ddf2a291e5145d8abe3bf8e264b232b8bd9c6865121257dfd43079ce9b6d/types_docutils-0.22.0.20250914-py3-none-any.whl", hash = "sha256:f1eec1a6024feef6560688fd9525ff888b95866cecb685e0a68bd095e817b00a", size = 91784, upload-time = "2025-09-14T02:56:03.449Z" },
 ]
 
 [[package]]
@@ -957,23 +972,23 @@ wheels = [
 
 [[package]]
 name = "types-pyyaml"
-version = "6.0.12.20250822"
+version = "6.0.12.20250915"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/49/85/90a442e538359ab5c9e30de415006fb22567aa4301c908c09f19e42975c2/types_pyyaml-6.0.12.20250822.tar.gz", hash = "sha256:259f1d93079d335730a9db7cff2bcaf65d7e04b4a56b5927d49a612199b59413", size = 17481, upload-time = "2025-08-22T03:02:16.209Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7e/69/3c51b36d04da19b92f9e815be12753125bd8bc247ba0470a982e6979e71c/types_pyyaml-6.0.12.20250915.tar.gz", hash = "sha256:0f8b54a528c303f0e6f7165687dd33fafa81c807fcac23f632b63aa624ced1d3", size = 17522, upload-time = "2025-09-15T03:01:00.728Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/32/8e/8f0aca667c97c0d76024b37cffa39e76e2ce39ca54a38f285a64e6ae33ba/types_pyyaml-6.0.12.20250822-py3-none-any.whl", hash = "sha256:1fe1a5e146aa315483592d292b72a172b65b946a6d98aa6ddd8e4aa838ab7098", size = 20314, upload-time = "2025-08-22T03:02:15.002Z" },
+    { url = "https://files.pythonhosted.org/packages/bd/e0/1eed384f02555dde685fff1a1ac805c1c7dcb6dd019c916fe659b1c1f9ec/types_pyyaml-6.0.12.20250915-py3-none-any.whl", hash = "sha256:e7d4d9e064e89a3b3cae120b4990cd370874d2bf12fa5f46c97018dd5d3c9ab6", size = 20338, upload-time = "2025-09-15T03:00:59.218Z" },
 ]
 
 [[package]]
 name = "types-requests"
-version = "2.32.4.20250809"
+version = "2.32.4.20250913"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "urllib3" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ed/b0/9355adb86ec84d057fea765e4c49cce592aaf3d5117ce5609a95a7fc3dac/types_requests-2.32.4.20250809.tar.gz", hash = "sha256:d8060de1c8ee599311f56ff58010fb4902f462a1470802cf9f6ed27bc46c4df3", size = 23027, upload-time = "2025-08-09T03:17:10.664Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/36/27/489922f4505975b11de2b5ad07b4fe1dca0bca9be81a703f26c5f3acfce5/types_requests-2.32.4.20250913.tar.gz", hash = "sha256:abd6d4f9ce3a9383f269775a9835a4c24e5cd6b9f647d64f88aa4613c33def5d", size = 23113, upload-time = "2025-09-13T02:40:02.309Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2b/6f/ec0012be842b1d888d46884ac5558fd62aeae1f0ec4f7a581433d890d4b5/types_requests-2.32.4.20250809-py3-none-any.whl", hash = "sha256:f73d1832fb519ece02c85b1f09d5f0dd3108938e7d47e7f94bbfa18a6782b163", size = 20644, upload-time = "2025-08-09T03:17:09.716Z" },
+    { url = "https://files.pythonhosted.org/packages/2a/20/9a227ea57c1285986c4cf78400d0a91615d25b24e257fd9e2969606bdfae/types_requests-2.32.4.20250913-py3-none-any.whl", hash = "sha256:78c9c1fffebbe0fa487a418e0fa5252017e9c60d1a2da394077f1780f655d7e1", size = 20658, upload-time = "2025-09-13T02:40:01.115Z" },
 ]
 
 [[package]]
@@ -1047,9 +1062,9 @@ wheels = [
 
 [[package]]
 name = "xmltodict"
-version = "0.15.1"
+version = "1.0.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d7/7a/42f705c672e77dc3ce85a6823bb289055323aac30de7c4b9eca1e28b2c17/xmltodict-0.15.1.tar.gz", hash = "sha256:3d8d49127f3ce6979d40a36dbcad96f8bab106d232d24b49efdd4bd21716983c", size = 62984, upload-time = "2025-09-08T18:33:19.349Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a0/38/ef8e9bedc88707e0c481bd4a1ee3a59509d4c7a1d07da41b3333e903d603/xmltodict-1.0.1.tar.gz", hash = "sha256:43f06e35e03f0f3ce622b9bd5e9652570a923db2906d5d4b830b76eafcafddcb", size = 109348, upload-time = "2025-09-17T06:31:23.447Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5d/4e/001c53a22f6bd5f383f49915a53e40f0cab2d3f1884d968f3ae14be367b7/xmltodict-0.15.1-py2.py3-none-any.whl", hash = "sha256:dcd84b52f30a15be5ac4c9099a0cb234df8758624b035411e329c5c1e7a49089", size = 11260, upload-time = "2025-09-08T18:33:17.87Z" },
+    { url = "https://files.pythonhosted.org/packages/57/14/84b0d94be8ac72999c7ae7fee71bce5bcd849f40d90b4b2cacb5220ee7d4/xmltodict-1.0.1-py3-none-any.whl", hash = "sha256:47b370ca0bf049bfad9e12ab27b2bb81c9d4d0ac2f58901810f3acc1c06987a5", size = 14041, upload-time = "2025-09-17T06:31:22.15Z" },
 ]

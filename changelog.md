@@ -34,6 +34,7 @@
 - Rename `click_extra.tabulate` namespace to `click_extra.table`.
 - Expose `click._utils.UNSET` and `click.logging.LogLevel` at the root `click_extra` module.
 - Replace unmaintained `mergedeep` dependency by `deepmerge`.
+- Remove maximum capped version of all dependencies (relax all `~=` specifiers to `>=`). This gives more freedom to downstream and upstream packagers. Document each minimal version choice.
 - Add unit tests for Sphinx extension.
 - Mark Python 3.14-dev tests as unstable again, because of `PyYAML`.
 - Render GitHub-Flavored Markdown admonitions in Sphinx.
