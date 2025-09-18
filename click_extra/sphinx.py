@@ -257,7 +257,7 @@ class ExampleRunner(ExtraCliRunner):
                     python_lineno = node.lineno
                     python_line = source_lines[python_lineno - 1]
                     # Compute the absolute line number in the document.
-                    if directive.is_myst_syntax:
+                    if directive.is_myst_syntax:  # type:ignore[attr-defined]
                         # In MyST, the content offset is the position of the first line
                         # of the source code, relative to the directive itself.
                         doc_lineno = (

@@ -305,9 +305,9 @@ class ExtraCliRunner(click.testing.CliRunner):
 
         # ``color`` has been explicitly set to ``False``, so strip all ANSI codes.
         if color is False:
-            result.stdout_bytes = strip_ansi(result.stdout_bytes)
-            result.stderr_bytes = strip_ansi(result.stderr_bytes)
-            result.output_bytes = strip_ansi(result.output_bytes)
+            result.stdout_bytes = strip_ansi(result.stdout_bytes)  # type: ignore[assignment,arg-type]
+            result.stderr_bytes = strip_ansi(result.stderr_bytes)  # type: ignore[assignment,arg-type]
+            result.output_bytes = strip_ansi(result.output_bytes)  # type: ignore[assignment,arg-type]
 
         print_cli_run(
             [self.get_default_prog_name(cli), *clean_args],
@@ -316,6 +316,10 @@ class ExtraCliRunner(click.testing.CliRunner):
         )
 
         if result.exception:
-            print(ExceptionInfo.from_exc_info(*result.exc_info).get_formatted())
+            if result.exc_info:
+                msg = ExceptionInfo.from_exc_info(*result.exc_info).get_formatted()
+            else:
+                msg = f"Exception occurred: {result.exception}"
+            print(msg)
 
         return result

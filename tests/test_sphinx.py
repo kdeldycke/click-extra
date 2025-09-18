@@ -72,7 +72,7 @@ class SphinxAppWrapper:
             "extensions": ["click_extra.sphinx"],
         }
         if format_type == MYST:
-            conf["extensions"].append("myst_parser")
+            conf["extensions"].append("myst_parser")  # type: ignore[attr-defined]
             conf["myst_enable_extensions"] = ["colon_fence"]
 
         # Write the conf.py file.
@@ -115,6 +115,8 @@ class SphinxAppWrapper:
             html_output = output_file.read_text()
             assert html_output
             return html_output
+
+        return None
 
     def generate_test_content(self, test_case: DirectiveTestCase) -> str:
         """Generate content for a test case based on the app's format type."""

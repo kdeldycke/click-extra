@@ -271,7 +271,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         location.normalize()
         if location and location.scheme in ("http", "https"):
             logger.debug(f"Download configuration from URL: {location}")
-            with requests.get(location) as response:
+            with requests.get(str(location)) as response:
                 if response.ok:
                     files_found += 1
                     yield location, response.text

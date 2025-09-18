@@ -524,7 +524,7 @@ class ExtraVersionOption(ExtraOption):
             # If not, keep accumulating literal strings until the next field.
             if not is_field:
                 # Re-escape literal curly braces to avoid messing up the format.
-                literal_accu += segment.replace("{", "{{").replace("}", "}}")
+                literal_accu += segment.replace("{", "{{").replace("}", "}}")  # type: ignore[union-attr]
 
             # Dump the accumulated literals before processing the field, or at the end
             # of the template.
@@ -537,7 +537,7 @@ class ExtraVersionOption(ExtraOption):
 
             # Add the field to the template copy, colored with its own style.
             if is_field:
-                colored_template += field_styles[segment.base_name](str(segment))
+                colored_template += field_styles[segment.base_name](str(segment))  # type: ignore[union-attr]
 
         return colored_template
 

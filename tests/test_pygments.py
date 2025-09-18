@@ -17,12 +17,12 @@
 from __future__ import annotations
 
 import tarfile
+import tomllib
 from importlib import metadata
 from operator import itemgetter
 from pathlib import Path
 
 import requests
-import tomllib
 from boltons.strutils import camel2under
 from boltons.typeutils import issubclass
 from pygments.filter import Filter

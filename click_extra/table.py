@@ -385,4 +385,7 @@ class TableFormatOption(ExtraOption):
                     break
 
         ctx.meta["click_extra.table_format"] = table_format
-        ctx.print_table = partial(print_table, table_format=table_format)  # type: ignore[attr-defined]
+        ctx.print_table = partial(  # type: ignore[attr-defined]
+            print_table,
+            table_format=table_format,
+        )
