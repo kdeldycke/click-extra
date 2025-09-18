@@ -62,19 +62,18 @@ classifiers = [
     'Typing :: Typed',
 ]
 # Semantic versioning works in theory. In practice, it is hard to guarantee.
-# So we do not rely on ~= specifier, but only on >= specifier.
-# This gives more freedom to downstream and upstream packagers to mix and match versions of dependencies.
+# That's why we rely on >= specifier instead of ~= to relax constraints. This gives more freedom to packagers to
+# release hotfixes for security vulnerabilities in the future, as Click Extra becomes more popular.
 # All minimal version choice are documented. Reasons to bump a minimal version are:
+# - bug fixes,
 # - security fixes,
-# - new features we rely on,
-# - aligns its minimal Python version to ours,
-# - bug fixes for issues we encountered in our codebase,
-# - support for a new Python version that this package supports.
+# - new code path we depends on,
+# - aligns minimal Python requirements to ours,
+# - adds new explicit support Python version.
 dependencies = [
     # boltons 23.0.0 is the first version to support Python 3.11.
-    # XXX boltons.ecoutils breaks PDB interactive sessions in pytest.
-    # Investigation of the root cause is being discussed upstream at:
-    # https://github.com/mahmoud/boltons/issues/334
+    # XXX boltons.ecoutils breaks PDB interactive sessions in pytest. Investigation of the root cause is being
+    # discussed upstream at: https://github.com/mahmoud/boltons/issues/334
     "boltons >= 23.0.0",
     # XXX Depends on upcoming click 8.3.0 to fix several issues with flag values, and flag envvars.
     # Refs: https://github.com/pallets/click/pull/3030
@@ -99,15 +98,15 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-## Groups below are runtime dependencies, so using >= specifier as explained above.
+### Groups below are runtime extra dependencies, so we're also rely on >= specifiers as explained above.
 pygments = [
-    # Pygments 2.14.0 is the first version with ``lexers.algebra.GAPConsoleLexer`` that is referenced in our code.
+    # Pygments 2.14.0 is the first version with lexers.algebra.GAPConsoleLexer that is referenced in our code.
     "pygments >= 2.14",
     # pygments-ansi-color 0.3.0 is the first version to set the default theme of ANSI colors.
     "pygments-ansi-color >= 0.3.0",
 ]
 sphinx = [
-    # Pygments 2.14.0 is the first version with ``lexers.algebra.GAPConsoleLexer`` that is referenced in our code.
+    # Pygments 2.14.0 is the first version with lexers.algebra.GAPConsoleLexer that is referenced in our code.
     "pygments >= 2.14",
     # pygments-ansi-color 0.3.0 is the first version to set the default theme of ANSI colors.
     "pygments-ansi-color >= 0.3.0",
@@ -127,9 +126,7 @@ test = [
     "myst-parser ~= 4.0.0",
     # pytest 8.2.1 is the first version to support Python 3.13.
     "pytest >= 8.2.1",
-    # More pytest plugins at: https://docs.pytest.org/en/latest/reference/plugin_list.html
     "pytest-cov ~= 7.0.0",
-    #"pytest-cases ~= 3.8.3",
     "pytest-github-actions-annotate-failures ~= 0.3.0",
     "pytest-httpserver ~= 1.1.0",
     "pytest-randomly ~= 4.0.0",
