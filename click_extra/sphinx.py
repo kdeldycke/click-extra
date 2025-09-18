@@ -208,7 +208,8 @@ class ExampleRunner(ExtraCliRunner):
 
     def declare_example(self, directive: SphinxDirective) -> None:
         """Execute the given code, adding it to the runner's namespace."""
-        # Use directive.content instead of directive.block_text as the latter include the directive text itself in rST.
+        # Use directive.content instead of directive.block_text as the latter
+        # include the directive text itself in rST.
         source_code = "\n".join(directive.content)
         # Get the user-friendly location string as provided by Sphinx.
         location = directive.get_location()
@@ -233,7 +234,8 @@ class ExampleRunner(ExtraCliRunner):
         If any local variable in the provided ``source_code`` conflicts with these
         functions, a :class:`RuntimeError` is raised to help you pinpoint the issue.
         """
-        # Use directive.content instead of directive.block_text as the latter include the directive text itself in rST.
+        # Use directive.content instead of directive.block_text as the latter
+        # include the directive text itself in rST.
         source_code = "\n".join(directive.content)
         # Get the user-friendly location string as provided by Sphinx.
         location = directive.get_location()
