@@ -857,6 +857,7 @@ def highlight(
 
     # Reduce ranges, compute complement ranges, transform them to list of integers.
     range_arg = ",".join(ranges)
+    # XXX Types are forced while we wait for: https://github.com/python/typeshed/pull/14740
     highlight_ranges: tuple[tuple[int, int], ...] = int_ranges_from_int_list(range_arg)  # type: ignore[assignment]
     untouched_ranges: tuple[tuple[int, int], ...] = int_ranges_from_int_list(  # type: ignore[assignment]
         complement_int_list(range_arg, range_end=len(content)),
