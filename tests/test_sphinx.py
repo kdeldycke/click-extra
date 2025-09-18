@@ -524,7 +524,8 @@ OPTION_COMBINATIONS_TEST_CASE = DirectiveTestCase(
             + '<span class="n">invoke</span><span class="p">(</span><span class="n">simple_print</span><span class="p">)</span>\n'
             + "</pre></div>\n"
         ),
-        # Run directive should show execution results (show-results overrides hide-results).
+        # Run directive should show execution results (show-results overrides
+        # hide-results).
         (
             HTML["shell_session"]
             + '<span class="gp">$ </span>simple-print\n'
