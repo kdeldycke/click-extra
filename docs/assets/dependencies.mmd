@@ -5,7 +5,7 @@ flowchart TD
     certifi["certifi\n2025.8.3"]
     charset-normalizer["charset-normalizer\n3.4.3"]
     click-extra["click-extra\n5.2.0"]
-    click_0["click\n8.2.2"]
+    click_0["click\n8.3.0"]
     cloup["cloup\n3.0.8"]
     deepmerge["deepmerge\n2.0"]
     distro["distro\n1.9.0"]
@@ -16,7 +16,7 @@ flowchart TD
     tabulate["tabulate\n0.9.0"]
     urllib3["urllib3\n2.5.0"]
     wcmatch["wcmatch\n10.1"]
-    xmltodict["xmltodict\n1.0.1"]
+    xmltodict["xmltodict\n1.0.2"]
     click-extra -- ">=0.15.1" --> xmltodict
     click-extra -- ">=0.9" --> tabulate
     click-extra -- ">=10.0" --> wcmatch
@@ -26,7 +26,7 @@ flowchart TD
     click-extra -- ">=3.0.0" --> extra-platforms
     click-extra -- ">=3.0.7" --> cloup
     click-extra -- ">=6.0.2" --> pyyaml
-    click-extra -- "any" --> click_0
+    click-extra -- ">=8.3.0" --> click_0
     cloup -- ">=8.0,<9.0" --> click_0
     extra-platforms -- "~=1.9.0" --> distro
     extra-platforms -- "~=25.0.0" --> boltons
