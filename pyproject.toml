@@ -104,6 +104,8 @@ pygments = [
     "pygments-ansi-color >= 0.3.0",
 ]
 sphinx = [
+    # docutils 0.20 is the minimal version for Sphinx 8.2.
+    "docutils >= 0.20",
     # Pygments 2.14.0 is the first version with lexers.algebra.GAPConsoleLexer that is referenced in our code.
     "pygments >= 2.14",
     # pygments-ansi-color 0.3.0 is the first version to set the default theme of ANSI colors.
@@ -133,6 +135,7 @@ test = [
 ]
 typing = [
     "types-boltons ~= 25.0.0.20250919",
+    "types-docutils ~= 0.22.0.20250919",
     "types-Pygments ~= 2.19.0.20250107",
     "types-PyYAML ~= 6.0.12.9",
     "types-requests ~= 2.32.4.20250611",

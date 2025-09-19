@@ -174,6 +174,7 @@ pytest = [
     { name = "pytest" },
 ]
 sphinx = [
+    { name = "docutils" },
     { name = "pygments" },
     { name = "pygments-ansi-color" },
     { name = "sphinx" },
@@ -191,6 +192,7 @@ test = [
 ]
 typing = [
     { name = "types-boltons" },
+    { name = "types-docutils" },
     { name = "types-pygments" },
     { name = "types-pyyaml" },
     { name = "types-requests" },
@@ -205,6 +207,7 @@ requires-dist = [
     { name = "cloup", specifier = ">=3.0.7" },
     { name = "coverage", extras = ["toml"], marker = "extra == 'test'", specifier = "~=7.10.0" },
     { name = "deepmerge", specifier = ">=2.0" },
+    { name = "docutils", marker = "extra == 'sphinx'", specifier = ">=0.20" },
     { name = "extra-platforms", specifier = ">=3.0.0" },
     { name = "extra-platforms", extras = ["pytest"], marker = "extra == 'test'", specifier = ">=3.0.0" },
     { name = "furo", marker = "extra == 'docs'", specifier = "~=2025.7.19" },
@@ -233,6 +236,7 @@ requires-dist = [
     { name = "sphinxext-opengraph", marker = "extra == 'docs'", specifier = "~=0.13.0" },
     { name = "tabulate", extras = ["widechars"], specifier = ">=0.9" },
     { name = "types-boltons", marker = "extra == 'typing'", specifier = "~=25.0.0.20250919" },
+    { name = "types-docutils", marker = "extra == 'typing'", specifier = "~=0.22.0.20250919" },
     { name = "types-pygments", marker = "extra == 'typing'", specifier = "~=2.19.0.20250107" },
     { name = "types-pyyaml", marker = "extra == 'typing'", specifier = "~=6.0.12.9" },
     { name = "types-requests", marker = "extra == 'typing'", specifier = "~=2.32.4.20250611" },
@@ -955,11 +959,11 @@ wheels = [
 
 [[package]]
 name = "types-docutils"
-version = "0.22.0.20250914"
+version = "0.22.0.20250919"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/4d/72/48cad115dff86755d83bbb37eb70df2d26a1fb2d8b5e1725d6524e0f08a4/types_docutils-0.22.0.20250914.tar.gz", hash = "sha256:0c7f61c90ed2900fa5c8e6cd375222981be1e28240b8c8a67ca4a186e367618d", size = 56496, upload-time = "2025-09-14T02:56:04.766Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1b/37/410c4bd2f97e1f3fa5b438572216a437c94b9f9fabfee9d614941eec8048/types_docutils-0.22.0.20250919.tar.gz", hash = "sha256:2b4e08d811e08e851f17808afbcf767bbf65f195be7e0080009cf983dc4312f0", size = 56554, upload-time = "2025-09-19T02:54:35.454Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ec/7b/ddf2a291e5145d8abe3bf8e264b232b8bd9c6865121257dfd43079ce9b6d/types_docutils-0.22.0.20250914-py3-none-any.whl", hash = "sha256:f1eec1a6024feef6560688fd9525ff888b95866cecb685e0a68bd095e817b00a", size = 91784, upload-time = "2025-09-14T02:56:03.449Z" },
+    { url = "https://files.pythonhosted.org/packages/7d/a0/fb5b7ff6a659f784fc6f33c70d97469bbdc6edcc7ef88eb695da5a706de8/types_docutils-0.22.0.20250919-py3-none-any.whl", hash = "sha256:67fbc6e25a2ba61d63b639db01172d91debf2beccb8780e83006f97b5cc1c226", size = 91820, upload-time = "2025-09-19T02:54:34.511Z" },
 ]
 
 [[package]]
