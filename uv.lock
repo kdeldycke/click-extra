@@ -232,7 +232,7 @@ requires-dist = [
     { name = "sphinxcontrib-mermaid", marker = "extra == 'docs'", specifier = "~=1.0.0" },
     { name = "sphinxext-opengraph", marker = "extra == 'docs'", specifier = "~=0.13.0" },
     { name = "tabulate", extras = ["widechars"], specifier = ">=0.9" },
-    { name = "types-boltons", marker = "extra == 'typing'", specifier = "~=25.0.0.20250822" },
+    { name = "types-boltons", marker = "extra == 'typing'", specifier = "~=25.0.0.20250919" },
     { name = "types-pygments", marker = "extra == 'typing'", specifier = "~=2.19.0.20250107" },
     { name = "types-pyyaml", marker = "extra == 'typing'", specifier = "~=6.0.12.9" },
     { name = "types-requests", marker = "extra == 'typing'", specifier = "~=2.32.4.20250611" },
@@ -946,11 +946,11 @@ wheels = [
 
 [[package]]
 name = "types-boltons"
-version = "25.0.0.20250822"
+version = "25.0.0.20250919"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/a9/20/d83f840fc73f04abeae1104d3daecc1718e4252650e8a7952e4dab9ec56d/types_boltons-25.0.0.20250822.tar.gz", hash = "sha256:854075d9837fc1d01048b92a4f51d628b4a7f1667e087d7fe2156cd510b192fa", size = 21671, upload-time = "2025-08-22T03:02:12.532Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/85/fe/c6f225c2c25cd42c5ea2ec3b1af9f033088602c0f0b7dc3d74a0f53bc237/types_boltons-25.0.0.20250919.tar.gz", hash = "sha256:be94cf6c9a96fb02220123f50cdad65a12cfe3d770463e782402b9d911f880f0", size = 21737, upload-time = "2025-09-19T02:54:47.006Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/50/b8/8521684b97f53c83c0886876d432af7c12dcbc2f0c7b3c20831f80062b4a/types_boltons-25.0.0.20250822-py3-none-any.whl", hash = "sha256:137fd8604947ae65e38108f65d91f678dc78a0573e098c73354979380151d4ab", size = 28315, upload-time = "2025-08-22T03:02:11.637Z" },
+    { url = "https://files.pythonhosted.org/packages/8c/1d/df20f629f470211e84af53d2ec31cd9dd2bd4014a6c6164931122ecc405e/types_boltons-25.0.0.20250919-py3-none-any.whl", hash = "sha256:1b1cb1463c71a40eb2bf633eb524d5e738fd828821b23ac5d097beffcf6d0f98", size = 28326, upload-time = "2025-09-19T02:54:46.081Z" },
 ]
 
 [[package]]
