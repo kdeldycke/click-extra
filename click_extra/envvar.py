@@ -22,7 +22,6 @@ import re
 from typing import Any, Iterable, Mapping
 
 import click
-import click.testing
 from boltons.iterutils import flatten_iter
 
 TEnvVarID = str | None
