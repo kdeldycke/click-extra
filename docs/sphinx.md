@@ -23,6 +23,13 @@ extensions = [
 ]
 ```
 
+```{tip}
+I recommend using one of these themes, which works well with Click Extra:
+
+- ![GitHub stars](https://img.shields.io/github/stars/pradyunsg/furo?label=%E2%AD%90&style=flat-square) [Furo](https://github.com/pradyunsg/furo) - Which has been [fixed to support Click Extra](https://github.com/pradyunsg/furo/pull/657) as of `2023.05.20`.
+- ![GitHub stars](https://img.shields.io/github/stars/lepture/shibuya?label=%E2%AD%90&style=flat-square) [Shibuya](https://github.com/lepture/shibuya) - Which is [explicitly supporting Click Extra](https://shibuya.lepture.com/extensions/click-extra/) as of `2025.9.22`.
+```
+
 ## `click` directives
 
 Click Extra adds two new directives:
