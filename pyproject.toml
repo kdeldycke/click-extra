@@ -135,7 +135,7 @@ test = [
 ]
 typing = [
     "types-boltons ~= 25.0.0.20250919",
-    "types-docutils ~= 0.22.0.20250919",
+    "types-docutils ~= 0.22.2.20250924",
     "types-Pygments ~= 2.19.0.20250107",
     "types-PyYAML ~= 6.0.12.9",
     "types-requests ~= 2.32.4.20250611",
