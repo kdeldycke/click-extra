@@ -1,5 +1,10 @@
 # Changelog
 
+## [6.0.1 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v6.0.0...main)
+
+> [!IMPORTANT]
+> This version is not released yet and is under active development.
+
 ## [6.0.0 (2025-09-25)](https://github.com/kdeldycke/click-extra/compare/v5.1.1...v6.0.0)
 
 - Add new variables for version string template: `{git_repo_path}`, `{git_branch}`, `{git_long_hash}`, `{git_short_hash}` and `{git_date}`.
