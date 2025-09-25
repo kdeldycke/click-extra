@@ -308,7 +308,7 @@ See how the raw string is split into Pygments tokens, including the new `Token.C
 
 Because they're properly registered to Pygments, all these new components can be invoked with the [`pygmentize` CLI](https://pygments.org/docs/cmdline/).
 
-For example, here is how we can render the `cowsay.ans` file from the [example above](<>) into a standalone HTML file:
+For example, here is how we can render the `cowsay.ans` file from the [example above](#formatter-usage) into a standalone HTML file:
 
 ```{code-block} ansi-shell-session
 $ pygmentize -f ansi-html -O full -o cowsay.html ./cowsay.ans
