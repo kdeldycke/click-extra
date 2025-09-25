@@ -236,7 +236,7 @@ requires-dist = [
     { name = "sphinxext-opengraph", marker = "extra == 'docs'", specifier = "~=0.13.0" },
     { name = "tabulate", extras = ["widechars"], specifier = ">=0.9" },
     { name = "types-boltons", marker = "extra == 'typing'", specifier = "~=25.0.0.20250919" },
-    { name = "types-docutils", marker = "extra == 'typing'", specifier = "~=0.22.0.20250919" },
+    { name = "types-docutils", marker = "extra == 'typing'", specifier = "~=0.22.2.20250924" },
     { name = "types-pygments", marker = "extra == 'typing'", specifier = "~=2.19.0.20250107" },
     { name = "types-pyyaml", marker = "extra == 'typing'", specifier = "~=6.0.12.9" },
     { name = "types-requests", marker = "extra == 'typing'", specifier = "~=2.32.4.20250611" },
@@ -971,11 +971,11 @@ wheels = [
 
 [[package]]
 name = "types-docutils"
-version = "0.22.0.20250919"
+version = "0.22.2.20250924"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/1b/37/410c4bd2f97e1f3fa5b438572216a437c94b9f9fabfee9d614941eec8048/types_docutils-0.22.0.20250919.tar.gz", hash = "sha256:2b4e08d811e08e851f17808afbcf767bbf65f195be7e0080009cf983dc4312f0", size = 56554, upload-time = "2025-09-19T02:54:35.454Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5e/6d/60326ba08f44629f778937d5021a342da996682d932261d48b4043c437f7/types_docutils-0.22.2.20250924.tar.gz", hash = "sha256:a13fb412676c164edec7c2f26fe52ab7b0b7c868168dacc4298f6a8069298f3d", size = 56679, upload-time = "2025-09-24T02:53:26.251Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7d/a0/fb5b7ff6a659f784fc6f33c70d97469bbdc6edcc7ef88eb695da5a706de8/types_docutils-0.22.0.20250919-py3-none-any.whl", hash = "sha256:67fbc6e25a2ba61d63b639db01172d91debf2beccb8780e83006f97b5cc1c226", size = 91820, upload-time = "2025-09-19T02:54:34.511Z" },
+    { url = "https://files.pythonhosted.org/packages/8d/2b/844f3a6e972515ef0890fd8bf631890b6d74c8eacb1acbf31a72820c3b45/types_docutils-0.22.2.20250924-py3-none-any.whl", hash = "sha256:a6d52e21fa70998d34d13db6891ea35920bbb20f91459ca528a3845fd0b9ec03", size = 91873, upload-time = "2025-09-24T02:53:24.824Z" },
 ]
 
 [[package]]
@@ -1061,11 +1061,11 @@ wheels = [
 
 [[package]]
 name = "wcwidth"
-version = "0.2.13"
+version = "0.2.14"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/6c/63/53559446a878410fc5a5974feb13d31d78d752eb18aeba59c7fef1af7598/wcwidth-0.2.13.tar.gz", hash = "sha256:72ea0c06399eb286d978fdedb6923a9eb47e1c486ce63e9b4e64fc18303972b5", size = 101301, upload-time = "2024-01-06T02:10:57.829Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/24/30/6b0809f4510673dc723187aeaf24c7f5459922d01e2f794277a3dfb90345/wcwidth-0.2.14.tar.gz", hash = "sha256:4d478375d31bc5395a3c55c40ccdf3354688364cd61c4f6adacaa9215d0b3605", size = 102293, upload-time = "2025-09-22T16:29:53.023Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fd/84/fd2ba7aafacbad3c4201d395674fc6348826569da3c0937e75505ead3528/wcwidth-0.2.13-py2.py3-none-any.whl", hash = "sha256:3da69048e4540d84af32131829ff948f1e022c1c6bdb8d6102117aac784f6859", size = 34166, upload-time = "2024-01-06T02:10:55.763Z" },
+    { url = "https://files.pythonhosted.org/packages/af/b5/123f13c975e9f27ab9c0770f514345bd406d0e8d3b7a0723af9d43f710af/wcwidth-0.2.14-py2.py3-none-any.whl", hash = "sha256:a7bb560c8aee30f9957e5f9895805edd20602f2d7f720186dfd906e82b4982e1", size = 37286, upload-time = "2025-09-22T16:29:51.641Z" },
 ]
 
 [[package]]
