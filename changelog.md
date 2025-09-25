@@ -36,7 +36,6 @@
 - Replace unmaintained `mergedeep` dependency by `deepmerge`.
 - Remove maximum capped version of all dependencies (relax all `~=` specifiers to `>=`). This gives more freedom to downstream and upstream packagers. Document each minimal version choice.
 - Add unit tests for Sphinx extension.
-- Mark Python 3.14-dev tests as unstable again, because of `PyYAML`.
 - Render GitHub-Flavored Markdown admonitions in Sphinx.
 
 ## [5.1.1 (2025-08-24)](https://github.com/kdeldycke/click-extra/compare/v5.1.0...v5.1.1)
