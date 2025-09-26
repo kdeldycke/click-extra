@@ -7,7 +7,9 @@ Click Extra aims to be a drop-in replacement for Click. The vast majority of Cli
 Here is for instance the [canonical `click` example](https://github.com/pallets/click#a-simple-example) with all original imports replaced with `click_extra`:
 
 ```{click:example}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 from click_extra import command, echo, option
 
 @command
@@ -110,7 +112,9 @@ The `@extra_command` and `@extra_group` decorators are [pre-configured with a se
 You can remove all default options by resetting the `params` argument to `None`:
 
 ```{click:example}
-:emphasize-lines: 3
+---
+emphasize-lines: 3
+---
 from click_extra import extra_command
 
 @extra_command(params=None)
@@ -140,7 +144,9 @@ As you can see, all options are stripped out, but the colouring and formatting o
 To override the default options, you can provide the `params=` argument to the command. But note how we use classes instead of option decorators:
 
 ```{click:example}
-:emphasize-lines: 4-7
+---
+emphasize-lines: 4-7
+---
 from click_extra import extra_command, ConfigOption, VerbosityOption
 
 @extra_command(
@@ -156,7 +162,9 @@ def cli():
 And now you get:
 
 ```{click:run}
-:emphasize-lines: 5-9
+---
+emphasize-lines: 5-9
+---
 from textwrap import dedent
 result = invoke(cli, args=["--help"])
 assert result.stdout.startswith(dedent(
@@ -171,7 +179,9 @@ assert result.stdout.startswith(dedent(
 This let you replace the preset options by your own set, tweak their order and fine-tune their defaults.
 
 ````{admonition} Duplicate options
-:class: caution
+---
+class: caution
+---
 If you try to add option decorators to a command which already have them by default, you will end up with duplicate entries ([as seen in issue #232](https://github.com/kdeldycke/click-extra/issues/232)):
 
 ```{click:example}
@@ -221,7 +231,9 @@ For example, the [`--verbosity` option defaults to the `WARNING` level](logging.
 If you manage your own `--verbosity` option, you can [pass the `default` argument to its decorator like we did above](#change-default-options):
 
 ```{click:example}
-:emphasize-lines: 4
+---
+emphasize-lines: 4
+---
 from click_extra import command, verbosity_option
 
 @command
@@ -233,7 +245,9 @@ def cli():
 This also works in its class form:
 
 ```{click:example}
-:emphasize-lines: 3
+---
+emphasize-lines: 3
+---
 from click_extra import command, VerbosityOption
 
 @command(params=[VerbosityOption(default="INFO")])
@@ -244,7 +258,9 @@ def cli():
 But you also have the alternative to pass a `default_map` via the `context_settings`:
 
 ```{click:example}
-:emphasize-lines: 3
+---
+emphasize-lines: 3
+---
 from click_extra import extra_command
 
 @extra_command(context_settings={"default_map": {"verbosity": "INFO"}})
@@ -255,7 +271,9 @@ def cli():
 Which results in `[default: INFO]` being featured in the help message:
 
 ```{click:run}
-:emphasize-lines: 20
+---
+emphasize-lines: 20
+---
 result = invoke(cli, args=["--help"])
 assert (
     "  \x1b[2m[\x1b[0m\x1b[2mdefault:\n"
@@ -358,7 +376,9 @@ if __name__ == "__main__":
 And this simple script gets rendered into:
 
 ```{code-block} shell-session
-:emphasize-lines: 27-29
+---
+emphasize-lines: 27-29
+---
 $ uv run -- python ./wrap.py
 Usage: wrap.py [OPTIONS] COMMAND [ARGS]...
 
@@ -531,7 +551,9 @@ Examples:
 Here is the highlighted differences to make them even more obvious:
 
 ```{code-block} diff
-:emphasize-lines: 2-5,13-14
+---
+emphasize-lines: 2-5,13-14
+---
 @@ -1,5 +1,5 @@
 -$ uv run -- python ./wrap.py aws_sam --help
 -Usage: wrap.py aws_sam [OPTIONS] COMMAND [ARGS]...
