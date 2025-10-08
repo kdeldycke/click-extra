@@ -158,7 +158,7 @@ jobs:
           ${{ matrix.cloup-version != 'released'
           && format('--with "git+https://github.com/janluke/cloup.git@{0}"', matrix.cloup-version) || ''}}
           --
-          pytest -vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+          pytest
       - name: Codecov - coverage
         uses: codecov/codecov-action@v5.5.1
         with:
