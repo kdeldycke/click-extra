@@ -367,8 +367,11 @@ def test_conf_default_pathlib_type(invoke, create_config):
     assert result.exit_code == 0
     assert not result.stderr
 
-    # Make it a single line for easier regexp.
-    assert f"[default: {str(conf_path)}]" in re.sub(r"\n\s+", "", result.stdout)
+    re.search(
+        rf"\s+\[default:\s*{str(conf_path)}\]\-\-help\s+",
+        # Make it a single line for easier regexp.
+        re.sub(r"\n\s+", "", result.stdout),
+    )
 
     result = invoke(config_cli1)
     assert result.exit_code == 0
