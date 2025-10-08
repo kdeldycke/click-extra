@@ -368,7 +368,7 @@ def test_conf_default_pathlib_type(invoke, create_config):
     assert not result.stderr
 
     re.search(
-        rf"\s+\[default:\s*{str(conf_path)}\]\-\-help\s+",
+        rf"\s+\[default:\s*{re.escape(str(conf_path))}\]\-\-help\s+",
         # Make it a single line for easier regexp.
         re.sub(r"\n\s+", "", result.stdout),
     )
