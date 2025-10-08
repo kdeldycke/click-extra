@@ -1,5 +1,10 @@
 # Changelog
 
+## [6.0.2 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v6.0.1...main)
+
+> [!IMPORTANT]
+> This version is not released yet and is under active development.
+
 ## [6.0.1 (2025-10-08)](https://github.com/kdeldycke/click-extra/compare/v6.0.0...v6.0.1)
 
 - Fix `@config_option` to accept `Path` objects as default value. Closes {issue}`1356`.
