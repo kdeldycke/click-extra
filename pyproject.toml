@@ -46,6 +46,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     'Programming Language :: Python :: Implementation :: CPython',
     'Topic :: Documentation :: Sphinx',
     'Topic :: Software Development :: Libraries :: Python Modules',
@@ -83,8 +84,8 @@ dependencies = [
     "deepmerge >= 2.0",
     # extra-platforms 3.0.0 is the first version to drop Python 3.10, like us.
     "extra-platforms >= 3.0.0",
-    # PyYAML 6.0.2 is the first version to support Python 3.13.
-    "pyyaml >= 6.0.2",
+    # PyYAML 6.0.3 is the first version to support Python 3.14.
+    "pyyaml >= 6.0.3",
     # requests 2.32.4 fix CVE-2024-47081.
     "requests >= 2.32.4",
     # tabulate 0.9 is the first to add `*grid` and `*outline` formats.

@@ -37,6 +37,7 @@ jobs:
           - "3.12"
           - "3.13"
           - "3.14"
+          - "3.15"
         click-version:
           - released
           - stable
@@ -57,7 +58,8 @@ jobs:
         #       python-version:
         #         - "3.11"
         #         - "3.12"
-        #         - "3.14"
+        #         - "3.13"
+        #         - "3.15"
         #     - click-version: main
         #       os:
         #         - ubuntu-24.04
@@ -66,7 +68,8 @@ jobs:
         #       python-version:
         #         - "3.11"
         #         - "3.12"
-        #         - "3.14"
+        #         - "3.13"
+        #         - "3.15"
         #     - cloup-version: master
         #       os:
         #         - ubuntu-24.04
@@ -75,7 +78,8 @@ jobs:
         #       python-version:
         #         - "3.11"
         #         - "3.12"
-        #         - "3.14"
+        #         - "3.13"
+        #         - "3.15"
         exclude:
           # Only targets the latest OS for each platform.
           - os: ubuntu-24.04
@@ -109,16 +113,25 @@ jobs:
             click-version: main
           - python-version: "3.12"
             cloup-version: master
-          # Exclude Python's dev version.
-          - python-version: "3.14"
+          - python-version: "3.13"
             click-version: stable
-          - python-version: "3.14"
+          - python-version: "3.13"
             click-version: main
-          - python-version: "3.14"
+          - python-version: "3.13"
+            cloup-version: master
+          # Exclude Python's dev version.
+          - python-version: "3.15"
+            click-version: stable
+          - python-version: "3.15"
+            click-version: main
+          - python-version: "3.15"
             cloup-version: master
         include:
           # Default all jobs as stable, unless marked otherwise below.
           - state: stable
+          # XXX Python 3.15 is still in development.
+          - state: unstable
+            python-version: "3.15"
     name: |
       ${{ matrix.state == 'stable' && '✅' || '⁉️' }}
       ${{ matrix.os }},
