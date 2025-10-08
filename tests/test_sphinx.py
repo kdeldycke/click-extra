@@ -1062,7 +1062,7 @@ def test_directive_variable_conflict(
 
     file_extension = format_type.value
     expected_pattern = (
-        rf"Local variable '{var_name}' at .+/index"
+        rf"Local variable '{var_name}' at .+index"
         + re.escape(file_extension)
         + rf":{directive_lineno}:click:run:{error_lineno} "
         + "conflicts with the one automaticcaly provided by the click:run directive\.\n"
