@@ -467,7 +467,9 @@ class ConfigOption(ExtraOption, ParamStructure):
             ctx.default_map = {}
         ctx.default_map.update(clean_conf.get(ctx.find_root().command.name, {}))
 
-    def load_conf(self, ctx: Context, param: Parameter, path_pattern: str) -> None:
+    def load_conf(
+        self, ctx: Context, param: Parameter, path_pattern: str | Path
+    ) -> None:
         """Fetch parameters values from configuration file and sets them as defaults.
 
         User configuration is merged to the `context's default_map
@@ -499,6 +501,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         )  # type: ignore[operator]
 
         # Print configuration location to the user if it was explicitly set.
+        if isinstance(path_pattern, Path):
+            path_pattern = str(path_pattern)
         message = f"Load configuration matching {path_pattern}"
         if explicit_conf:
             info_msg(message)

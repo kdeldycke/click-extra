@@ -350,6 +350,32 @@ def test_conf_default_path(invoke, simple_config_cli):
     )
 
 
+def test_conf_default_pathlib_type(invoke, create_config):
+    """Refs https://github.com/kdeldycke/click-extra/issues/1356"""
+
+    conf_path = create_config("dummy.toml", TOML_FILE)
+    assert isinstance(conf_path, Path)
+    assert conf_path.is_file()
+
+    @click.command
+    @option("--dummy-flag/--no-flag")
+    @config_option(default=conf_path)
+    def config_cli1(dummy_flag):
+        echo(f"dummy_flag = {dummy_flag!r}")
+
+    result = invoke(config_cli1, "--help", color=False)
+    assert result.exit_code == 0
+    assert not result.stderr
+
+    # Make it a single line for easier regexp.
+    assert f"[default: {str(conf_path)}]" in re.sub(r"\n\s+", "", result.stdout)
+
+    result = invoke(config_cli1)
+    assert result.exit_code == 0
+    assert not result.stderr
+    assert result.stdout == "dummy_flag = True\n"
+
+
 def test_conf_not_exist(invoke, simple_config_cli):
     conf_path = Path("dummy.toml")
     result = invoke(

@@ -5,6 +5,7 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Fix `@config_option` to accept `Path` objects as default value. Closes {issue}`1356`.
 - Add official support of Python 3.14.
 - Run tests on Python 3.15-dev.
 
