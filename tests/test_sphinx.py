@@ -1065,7 +1065,7 @@ def test_directive_variable_conflict(
         rf"Local variable '{var_name}' at .+index"
         + re.escape(file_extension)
         + rf":{directive_lineno}:click:run:{error_lineno} "
-        + "conflicts with the one automaticcaly provided by the click:run directive\.\n"
+        + r"conflicts with the one automaticcaly provided by the click:run directive\.\n"
         rf"Line: {var_name} = \"Do not overwrite me!\""
     )
     assert re.fullmatch(expected_pattern, str(exc_info.value))
