@@ -5,6 +5,8 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Add a new `regex_fullmatch_line_by_line` utility to compare a wall of text against a regex, line by line, and raise a custom `RegexLineMismatch` exception on the first mismatch.
+
 ## [6.0.1 (2025-10-08)](https://github.com/kdeldycke/click-extra/compare/v6.0.0...v6.0.1)
 
 - Fix `@config_option` to accept `Path` objects as default value. Closes {issue}`1356`.

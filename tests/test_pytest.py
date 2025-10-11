@@ -23,7 +23,6 @@ import pytest
 from boltons.strutils import strip_ansi
 
 from click_extra.pytest import (
-    REGEX_NEWLINE,
     default_debug_colored_config,
     default_debug_colored_log_end,
     default_debug_colored_log_start,
@@ -38,8 +37,8 @@ from click_extra.pytest import (
     default_debug_uncolored_version_details,
     default_options_colored_help,
     default_options_uncolored_help,
-    unescape_regex,
 )
+from click_extra.testing import REGEX_NEWLINE, unescape_regex
 
 
 @pytest.mark.parametrize(

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import inspect
 import io
+import re
 import subprocess
 from contextlib import nullcontext
 from functools import partial
@@ -323,3 +324,65 @@ class ExtraCliRunner(click.testing.CliRunner):
             print(msg)
 
         return result
+
+
+def unescape_regex(text: str) -> str:
+    """De-obfuscate a regex for better readability.
+
+    This is like the reverse of ``re.escape()``.
+    """
+    char_map = {
+        escaped_char: chr(single_char)
+        for single_char, escaped_char in (
+            re._special_chars_map.items()  # type: ignore[attr-defined]
+        )
+    }
+    char_map.update({r"\x1b": "\x1b"})
+    for escaped, char in char_map.items():
+        text = text.replace(escaped, char)
+    return text
+
+
+REGEX_NEWLINE = "\\n"
+"""Newline representation in the regexes above."""
+
+
+class RegexLineMismatch(AssertionError):
+    """Raised when a regex line does not match the corresponding content line."""
+
+    def __init__(self, regex_line: str, content_line: str, line_number: int) -> None:
+        # De-obfuscate the regex to allow for comparison with the output.
+        self.regex_line = unescape_regex(regex_line)
+        self.content_line = content_line
+        self.line_number = line_number
+
+        message = (
+            f"Output line {self.line_number} does not match:\n"
+            f"Regex:  {self.regex_line}\n"
+            f"Output: {self.content_line}"
+        )
+        super().__init__(message)
+
+
+def regex_fullmatch_line_by_line(regex: str, content: str) -> None:
+    """Check that the ``content`` matches the given ``regex``.
+
+    If the ``regex`` does not fully match the ``content``, raise an ``AssertionError``,
+    with a message showing the first mismatching line.
+
+    This is useful when comparing large walls of text, such as CLI output.
+    """
+    # If the regex fully match the output right away, no need for a custom message.
+    if re.fullmatch(regex, content):
+        return
+
+    regex_lines = regex.split(REGEX_NEWLINE)
+    content_lines = content.splitlines(keepends=True)
+
+    line_indexes = range(max(len(regex_lines), len(content_lines)))
+    for i in line_indexes:
+        regex_line = regex_lines[i] + REGEX_NEWLINE
+        content_line = content_lines[i]
+
+        if not re.fullmatch(regex_line, content_line):
+            raise RegexLineMismatch(regex_line, content_line, i + 1)

@@ -24,7 +24,6 @@ except ImportError:
         "You need to install click_extra[pytest] extra dependencies to use this module."
     )
 
-import re
 from typing import TYPE_CHECKING
 
 import click
@@ -33,7 +32,11 @@ import pytest
 from _pytest.assertion.util import assertrepr_compare
 
 from click_extra.decorators import command, extra_command, extra_group, group
-from click_extra.testing import ExtraCliRunner
+from click_extra.testing import (
+    ExtraCliRunner,
+    RegexLineMismatch,
+    regex_fullmatch_line_by_line,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -337,27 +340,6 @@ default_debug_colored_log_end = (
 )
 
 
-def unescape_regex(text: str) -> str:
-    """De-obfuscate a regex for better diff readability.
-
-    This is like the reverse of ``re.escape()``.
-    """
-    char_map = {
-        escaped_char: chr(single_char)
-        for single_char, escaped_char in (
-            re._special_chars_map.items()  # type: ignore[attr-defined]
-        )
-    }
-    char_map.update({r"\x1b": "\x1b"})
-    for escaped, char in char_map.items():
-        text = text.replace(escaped, char)
-    return text
-
-
-REGEX_NEWLINE = "\\n"
-"""Newline representation in the regexes above."""
-
-
 @pytest.fixture
 def assert_output_regex(request):
     """An assert-like utility for Pytest to compare CLI output against the regex.
@@ -369,31 +351,16 @@ def assert_output_regex(request):
         """Check that the ``output`` matches the given ``regex``.
 
         Rely on Pytest's terminal writer to enhance diff highlighting.
-
-        Compare the wall of text line by line, so that the first mismatching line is
-        shown in the diff, instead of the whole output at once.
         """
-        # If the regex fully match the output right away, no need for a custom message.
-        if re.fullmatch(regex, output):
-            return
-
-        regex_lines = regex.split(REGEX_NEWLINE)
-        output_lines = output.splitlines(keepends=True)
-
-        line_indexes = range(max(len(regex_lines), len(output_lines)))
-        for i in line_indexes:
-            regex_line = regex_lines[i] + REGEX_NEWLINE
-            output_line = output_lines[i]
-
-            if not re.fullmatch(regex_line, output_line):
-                explanation = assertrepr_compare(
-                    request.config,
-                    "==",
-                    # De-obfuscate the regex to allow for comparison with the output.
-                    unescape_regex(regex_line),
-                    output_line,
-                )
-                diff = "\n".join(explanation)  # type: ignore[arg-type]
-                raise AssertionError(f"Output line {i + 1} does not match:\n{diff}")
+        try:
+            regex_fullmatch_line_by_line(regex, output)
+        except RegexLineMismatch as ex:
+            explanation = assertrepr_compare(
+                request.config, "==", ex.regex_line, ex.content_line
+            )
+            diff = "\n".join(explanation)  # type: ignore[arg-type]
+            raise AssertionError(
+                f"Output line {ex.content_line} does not match:\n{diff}"
+            )
 
     return _check_output
