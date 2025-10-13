@@ -23,7 +23,7 @@ from dataclasses import dataclass
 from functools import cached_property, reduce
 from gettext import gettext as _
 from operator import getitem, methodcaller
-from typing import MutableMapping, cast
+from typing import MutableMapping
 from unittest.mock import patch
 
 import click
@@ -502,10 +502,9 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             get_param_value = vanilla_getter
 
         # Inspect the CLI to search for any --config option.
-        config_option = cast(
-            "ConfigOption",
-            search_params(ctx.command.get_params(ctx), ConfigOption),
-        )
+        config_option = search_params(ctx.command.get_params(ctx), ConfigOption)
+        # This is just a check to please the type checker.
+        assert config_option is None or isinstance(config_option, ConfigOption)
 
         table = []
 
