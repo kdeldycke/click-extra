@@ -24,6 +24,7 @@ except ImportError:
         "You need to install click_extra[pytest] extra dependencies to use this module."
     )
 
+import re
 from typing import TYPE_CHECKING
 
 import click
@@ -347,7 +348,7 @@ def assert_output_regex(request):
     Designed for the regexes defined above.
     """
 
-    def _check_output(output: str, regex: str) -> None:
+    def _check_output(output: str, regex: re.Pattern | str) -> None:
         """Check that the ``output`` matches the given ``regex``.
 
         Rely on Pytest's terminal writer to enhance diff highlighting.

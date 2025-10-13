@@ -358,13 +358,13 @@ class RegexLineMismatch(AssertionError):
 
         message = (
             f"Output line {self.line_number} does not match:\n"
-            f"Regex:  {self.regex_line}\n"
-            f"Output: {self.content_line}"
+            f"Regex:  {self.regex_line!r}\n"
+            f"Output: {self.content_line!r}"
         )
         super().__init__(message)
 
 
-def regex_fullmatch_line_by_line(regex: str, content: str) -> None:
+def regex_fullmatch_line_by_line(regex: re.Pattern | str, content: str) -> None:
     """Check that the ``content`` matches the given ``regex``.
 
     If the ``regex`` does not fully match the ``content``, raise an ``AssertionError``,
@@ -376,7 +376,11 @@ def regex_fullmatch_line_by_line(regex: str, content: str) -> None:
     if re.fullmatch(regex, content):
         return
 
-    regex_lines = regex.split(REGEX_NEWLINE)
+    if isinstance(regex, re.Pattern):
+        regex_lines = regex.pattern.split(REGEX_NEWLINE)
+    else:
+        regex_lines = regex.split(REGEX_NEWLINE)
+
     content_lines = content.splitlines(keepends=True)
 
     line_indexes = range(max(len(regex_lines), len(content_lines)))

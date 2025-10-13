@@ -5,6 +5,8 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Fix `regex_fullmatch_line_by_line` to accept compiled regex patterns as well as string patterns.
+
 ## [6.0.2 (2025-10-11)](https://github.com/kdeldycke/click-extra/compare/v6.0.1...v6.0.2)
 
 - Add a new `regex_fullmatch_line_by_line` utility to compare a wall of text against a regex, line by line, and raise a custom `RegexLineMismatch` exception on the first mismatch.
