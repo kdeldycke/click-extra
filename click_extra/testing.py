@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import inspect
 import io
+import logging
 import re
 import subprocess
 from contextlib import nullcontext
@@ -343,10 +344,6 @@ def unescape_regex(text: str) -> str:
     return text
 
 
-REGEX_NEWLINE = "\\n"
-"""Newline representation in the regexes above."""
-
-
 class RegexLineMismatch(AssertionError):
     """Raised when a regex line does not match the corresponding content line."""
 
@@ -357,8 +354,8 @@ class RegexLineMismatch(AssertionError):
         self.line_number = line_number
 
         message = (
-            f"Output line {self.line_number} does not match:\n"
-            f"Regex:  {self.regex_line!r}\n"
+            f"Line #{self.line_number} does not match.\n"
+            f"Regex : {self.regex_line!r}\n"
             f"Output: {self.content_line!r}"
         )
         super().__init__(message)
@@ -372,21 +369,26 @@ def regex_fullmatch_line_by_line(regex: re.Pattern | str, content: str) -> None:
 
     This is useful when comparing large walls of text, such as CLI output.
     """
+    if not isinstance(regex, re.Pattern):
+        regex = re.compile(regex)
+
     # If the regex fully match the output right away, no need for a custom message.
     if re.fullmatch(regex, content):
         return
 
-    if isinstance(regex, re.Pattern):
-        regex_lines = regex.pattern.split(REGEX_NEWLINE)
-    else:
-        regex_lines = regex.split(REGEX_NEWLINE)
-
+    regex_lines = regex.pattern.splitlines(keepends=True)
     content_lines = content.splitlines(keepends=True)
 
     line_indexes = range(max(len(regex_lines), len(content_lines)))
     for i in line_indexes:
-        regex_line = regex_lines[i] + REGEX_NEWLINE
+        regex_line = regex_lines[i]
         content_line = content_lines[i]
 
-        if not re.fullmatch(regex_line, content_line):
+        if re.fullmatch(regex_line, content_line):
+            logging.debug(
+                f"Line #{i + 1} match.\n"
+                f"Regex : {regex_line!r}\n"
+                f"Output: {content_line!r}"
+            )
+        else:
             raise RegexLineMismatch(regex_line, content_line, i + 1)

@@ -38,7 +38,10 @@ from click_extra.pytest import (
     default_options_colored_help,
     default_options_uncolored_help,
 )
-from click_extra.testing import REGEX_NEWLINE, unescape_regex
+from click_extra.testing import unescape_regex
+
+REGEX_NEWLINE = "\\n"
+"""Newline representation in the regexes above."""
 
 
 @pytest.mark.parametrize(
