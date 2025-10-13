@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import logging
 from contextlib import nullcontext
-from dataclasses import dataclass
 from functools import cached_property, reduce
 from gettext import gettext as _
 from operator import getitem, methodcaller
