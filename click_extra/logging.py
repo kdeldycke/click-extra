@@ -32,7 +32,6 @@ from logging import (
     basicConfig,
     getLogger,
 )
-from typing import TypeVar
 from unittest.mock import patch
 
 import click
@@ -55,6 +54,7 @@ if TYPE_CHECKING:
     )
 
     from . import Context, Parameter
+    from ._types import TFormatter, THandler
 
 
 class LogLevel(IntEnum):
@@ -88,11 +88,6 @@ global root logger is set up <https://github.com/python/cpython/blob/0df7c3a/Lib
 
 This value is also used as the default level for :class:`VerbosityOption` .
 """
-
-
-TFormatter = TypeVar("TFormatter", bound=Formatter)
-THandler = TypeVar("THandler", bound=Handler)
-"""Custom types to be used in type hints below."""
 
 
 class ExtraStreamHandler(StreamHandler):

@@ -5,6 +5,9 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Move all custom types to `click_extra._types` module.
+- Avoid importing all types at runtime to reduce startup time.
+
 ## [6.0.3 (2025-10-13)](https://github.com/kdeldycke/click-extra/compare/v6.0.2...v6.0.3)
 
 - Fix `regex_fullmatch_line_by_line` to accept compiled regex patterns as well as string patterns.

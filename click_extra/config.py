@@ -44,7 +44,6 @@ from enum import Enum
 from functools import partial
 from gettext import gettext as _
 from pathlib import Path
-from typing import Literal
 
 import requests
 import xmltodict
@@ -77,7 +76,7 @@ from .parameters import ExtraOption, ParamStructure, search_params
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from typing import Any, Iterable, Literal, Sequence
+    from typing import Any, Iterable, Sequence
 
     import click
 
@@ -125,9 +124,6 @@ class Sentinel(enum.Enum):
 
 NO_CONFIG = Sentinel.NO_CONFIG
 """Sentinel used to indicate that no configuration file must be used at all."""
-
-T_NO_CONFIG = Literal[NO_CONFIG]  # type: ignore[valid-type]
-"""Type hint for the :data:`NO_CONFIG` sentinel value."""
 
 
 class ConfigOption(ExtraOption, ParamStructure):

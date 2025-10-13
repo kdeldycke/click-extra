@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import os
 import re
-from typing import Iterable, Mapping
 
 import click
 from boltons.iterutils import flatten_iter
@@ -28,13 +27,7 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     from typing import Any
 
-TEnvVarID = str | None
-TEnvVarIDs = Iterable[TEnvVarID]
-TNestedEnvVarIDs = Iterable[TEnvVarID | Iterable["TNestedEnvVarIDs"]]
-"""Types environment variable names."""
-
-TEnvVars = Mapping[str, str | None]
-"""Type for ``dict``-like environment variables."""
+    from ._types import TEnvVarID, TEnvVars, TNestedEnvVarIDs
 
 
 def merge_envvar_ids(*envvar_ids: TEnvVarID | TNestedEnvVarIDs) -> tuple[str, ...]:

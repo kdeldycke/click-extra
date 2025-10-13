@@ -24,9 +24,7 @@ import re
 import subprocess
 from contextlib import nullcontext
 from functools import partial
-from pathlib import Path
 from textwrap import indent
-from typing import Iterable
 from unittest.mock import patch
 
 import click
@@ -49,7 +47,7 @@ if TYPE_CHECKING:
         Literal,
     )
 
-    from .envvar import TEnvVars
+    from ._types import TArg, TEnvVars, TNestedArgs
 
 
 PROMPT = (">" if is_windows() else "$") + " "
@@ -62,15 +60,6 @@ PROMPT = (">" if is_windows() else "$") + " "
 
 INDENT = " " * len(PROMPT)
 """Constants for rendering of CLI execution."""
-
-
-TArg = str | Path | None
-TArgs = Iterable[TArg]
-TNestedArgs = Iterable[TArg | Iterable["TNestedArgs"]]
-"""Types for arbitrary nested CLI arguments.
-
-Arguments can be ``str``, :py:class:`pathlib.Path` objects or ``None`` values.
-"""
 
 
 def args_cleanup(*args: TArg | TNestedArgs) -> tuple[str, ...]:
