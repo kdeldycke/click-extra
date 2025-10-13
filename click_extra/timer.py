@@ -19,10 +19,15 @@ from __future__ import annotations
 
 from gettext import gettext as _
 from time import perf_counter
-from typing import Sequence
 
-from . import Context, Parameter, echo
+from . import echo
 from .parameters import ExtraOption
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from typing import Sequence
+
+    from . import Context, Parameter
 
 
 class TimerOption(ExtraOption):

@@ -44,9 +44,8 @@ from enum import Enum
 from functools import partial
 from gettext import gettext as _
 from pathlib import Path
-from typing import Any, Iterable, Literal, Sequence
+from typing import Literal
 
-import click
 import requests
 import xmltodict
 import yaml
@@ -69,14 +68,20 @@ from wcmatch.glob import (
 
 from . import (
     UNPROCESSED,
-    Context,
-    Parameter,
     ParameterSource,
     echo,
     get_app_dir,
     get_current_context,
 )
 from .parameters import ExtraOption, ParamStructure, search_params
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from typing import Any, Iterable, Literal, Sequence
+
+    import click
+
+    from . import Context, Parameter
 
 
 class Formats(Enum):

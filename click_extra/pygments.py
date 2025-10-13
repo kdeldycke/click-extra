@@ -25,8 +25,6 @@ except ImportError:
         "module."
     )
 
-from typing import Iterable, Iterator
-
 from pygments import lexers
 from pygments.filter import Filter
 from pygments.filters import TokenMergeFilter
@@ -46,12 +44,19 @@ from pygments.lexers.shell import ShellSessionBaseLexer
 from pygments.lexers.special import OutputLexer
 from pygments.lexers.sql import PostgresConsoleLexer, SqliteConsoleLexer
 from pygments.style import StyleMeta
-from pygments.token import Generic, _TokenType, string_to_tokentype
+from pygments.token import Generic, string_to_tokentype
 from pygments_ansi_color import (
     AnsiColorLexer,
     ExtendedColorHtmlFormatterMixin,
     color_tokens,
 )
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from typing import Iterable, Iterator
+
+    from pygments.token import _TokenType
+
 
 DEFAULT_TOKEN_TYPE = Generic.Output
 """Default Pygments' token type to render with ANSI support.

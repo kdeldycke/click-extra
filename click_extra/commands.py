@@ -22,12 +22,10 @@ leverage the mixins in here to build up your own custom variants.
 
 from __future__ import annotations
 
-from typing import Any, NoReturn, Sequence
-
 import click
 import cloup
 
-from . import Command, Group, Option
+from . import Command, Group
 from .colorize import ColorOption, ExtraHelpColorsMixin, HelpExtraFormatter
 from .config import ConfigOption, NoConfigOption
 from .envvar import clean_envvar_id, param_envvar_ids
@@ -36,6 +34,12 @@ from .parameters import ExtraOption, ShowParamsOption, search_params
 from .table import TableFormatOption
 from .timer import TimerOption
 from .version import ExtraVersionOption
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from typing import Any, NoReturn, Sequence
+
+    from . import Option
 
 
 class ExtraContext(cloup.Context):

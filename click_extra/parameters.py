@@ -18,18 +18,12 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable, MutableMapping, Sequence
 from contextlib import nullcontext
+from dataclasses import dataclass
 from functools import cached_property, reduce
 from gettext import gettext as _
 from operator import getitem, methodcaller
-from typing import (
-    Any,
-    Callable,
-    ContextManager,
-    Iterator,
-    cast,
-)
+from typing import MutableMapping, cast
 from unittest.mock import patch
 
 import click
@@ -38,12 +32,25 @@ from deepmerge import always_merger
 from . import (
     Command,
     Option,
-    Parameter,
     ParamType,
     Style,
     get_current_context,
 )
 from .envvar import param_envvar_ids
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from typing import (
+        Any,
+        Callable,
+        ContextManager,
+        Iterable,
+        Iterator,
+        MutableMapping,
+        Sequence,
+    )
+
+    from . import Parameter
 
 
 def search_params(

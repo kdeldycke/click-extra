@@ -23,14 +23,20 @@ from enum import StrEnum
 from functools import partial
 from gettext import gettext as _
 from io import StringIO
-from typing import Callable, Sequence
 
 import tabulate
 from tabulate import DataRow, Line
 from tabulate import TableFormat as TabulateTableFormat
 
-from . import Choice, Context, Parameter, echo
+from . import Choice, echo
 from .parameters import ExtraOption
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from typing import Callable, Sequence
+
+    from . import Context, Parameter
+
 
 tabulate.MIN_PADDING = 0
 """Neutralize spurious double-spacing in table rendering."""

@@ -25,21 +25,23 @@ from functools import cached_property
 from gettext import gettext as _
 from importlib import metadata
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
 
 import click
 from boltons.ecoutils import get_profile
 from boltons.formatutils import BaseFormatField, tokenize_format_str
 
-from . import Context, Parameter, Style, echo, get_current_context
+from . import Style, echo, get_current_context
 from .colorize import default_theme
 from .parameters import ExtraOption
 
+TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Sequence
     from types import FrameType, ModuleType
+    from typing import Any, Sequence
 
     from cloup.styling import IStyle
+
+    from . import Context, Parameter
 
 
 class ExtraVersionOption(ExtraOption):
@@ -471,13 +473,13 @@ class ExtraVersionOption(ExtraOption):
         return get_current_context().find_root().info_name
 
     @cached_property
-    def env_info(self) -> dict[str, str]:
+    def env_info(self) -> dict[str, Any]:
         """Various environment info.
 
         Returns the data produced by `boltons.ecoutils.get_profile()
         <https://boltons.readthedocs.io/en/latest/ecoutils.html#boltons.ecoutils.get_profile>`_.
         """
-        return cast("dict[str, str]", get_profile(scrub=True))
+        return get_profile(scrub=True)
 
     def colored_template(self, template: str | None = None) -> str:
         """Insert ANSI styles to a message template.

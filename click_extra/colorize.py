@@ -20,7 +20,6 @@ from __future__ import annotations
 import dataclasses
 import os
 import re
-from collections.abc import Iterable
 from configparser import RawConfigParser
 from dataclasses import dataclass
 from enum import Enum
@@ -28,24 +27,29 @@ from functools import cache
 from gettext import gettext as _
 from itertools import chain
 from operator import getitem
-from typing import Callable, Sequence, cast
 
 import click
 import cloup
 from boltons.strutils import complement_int_list, int_ranges_from_int_list
 from cloup._util import identity
-from cloup.styling import Color, IStyle
+from cloup.styling import Color
 
 from . import (
     Choice,
-    Context,
     HelpFormatter,
-    Parameter,
     ParameterSource,
     Style,
     get_current_context,
 )
 from .parameters import ExtraOption
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from typing import Callable, Iterable, Sequence
+
+    from cloup.styling import IStyle
+
+    from . import Context, Parameter
 
 
 @dataclass(frozen=True)
@@ -545,8 +549,8 @@ class HelpExtraFormatter(HelpFormatter):
     @cache
     def colorize_group(self, str_to_style: str, group_id: str) -> str:
         """Colorize a string according to the style of the group ID."""
-        style = cast("IStyle", getattr(self.theme, self.get_style_id(group_id)))
-        return style(str_to_style)
+        style = getattr(self.theme, self.get_style_id(group_id))
+        return style(str_to_style)  # type: ignore[no-any-return]
 
     def colorize(self, match: re.Match) -> str:
         """Colorize all groups with IDs in the provided matching result.

@@ -19,10 +19,14 @@ from __future__ import annotations
 
 import os
 import re
-from typing import Any, Iterable, Mapping
+from typing import Iterable, Mapping
 
 import click
 from boltons.iterutils import flatten_iter
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from typing import Any
 
 TEnvVarID = str | None
 TEnvVarIDs = Iterable[TEnvVarID]

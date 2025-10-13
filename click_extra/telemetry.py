@@ -18,12 +18,14 @@
 from __future__ import annotations
 
 from gettext import gettext as _
-from typing import TYPE_CHECKING, Sequence
 
 from .envvar import merge_envvar_ids
 from .parameters import ExtraOption
 
+TYPE_CHECKING = False
 if TYPE_CHECKING:
+    from typing import Sequence
+
     from . import Context, Parameter
 
 

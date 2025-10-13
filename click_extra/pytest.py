@@ -24,8 +24,6 @@ except ImportError:
         "You need to install click_extra[pytest] extra dependencies to use this module."
     )
 
-import re
-from typing import TYPE_CHECKING
 
 import click
 import cloup
@@ -39,7 +37,9 @@ from click_extra.testing import (
     regex_fullmatch_line_by_line,
 )
 
+TYPE_CHECKING = False
 if TYPE_CHECKING:
+    import re
     from pathlib import Path
     from typing import Any
 

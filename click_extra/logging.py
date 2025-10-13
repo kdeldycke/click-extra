@@ -28,23 +28,33 @@ from logging import (
     Formatter,
     Handler,
     Logger,
-    LogRecord,
     StreamHandler,
     basicConfig,
     getLogger,
 )
-from typing import IO, TYPE_CHECKING, Any, Literal, TypeVar
+from typing import TypeVar
 from unittest.mock import patch
 
 import click
 from click.types import IntRange
 
-from . import Choice, Context, Parameter
+from . import Choice
 from .colorize import default_theme
 from .parameters import ExtraOption, search_params
 
+TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Generator, Iterable, Sequence
+    from logging import LogRecord
+    from typing import (
+        IO,
+        Any,
+        Generator,
+        Iterable,
+        Literal,
+        Sequence,
+    )
+
+    from . import Context, Parameter
 
 
 class LogLevel(IntEnum):

@@ -47,7 +47,6 @@ import subprocess
 import sys
 import tempfile
 from functools import cached_property, partial
-from typing import TYPE_CHECKING, Iterable, cast
 
 import click
 from click.testing import EchoingStdin
@@ -62,8 +61,9 @@ from . import __version__
 from .pygments import AnsiHtmlFormatter
 from .testing import ExtraCliRunner
 
+TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from typing import ClassVar
+    from typing import ClassVar, Iterable, cast
 
     from sphinx.application import Sphinx
     from sphinx.util.typing import ExtensionMetadata, OptionSpec

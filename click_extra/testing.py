@@ -26,13 +26,7 @@ from contextlib import nullcontext
 from functools import partial
 from pathlib import Path
 from textwrap import indent
-from typing import (
-    IO,
-    Any,
-    ContextManager,
-    Iterable,
-    Literal,
-)
+from typing import Iterable
 from unittest.mock import patch
 
 import click
@@ -44,7 +38,19 @@ from extra_platforms import is_windows
 
 from . import Color, Style
 from .colorize import default_theme
-from .envvar import TEnvVars
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from typing import (
+        IO,
+        Any,
+        ContextManager,
+        Iterable,
+        Literal,
+    )
+
+    from .envvar import TEnvVars
+
 
 PROMPT = (">" if is_windows() else "$") + " "
 """Prompt used to simulate the CLI execution.
