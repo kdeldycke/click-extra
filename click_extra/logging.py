@@ -43,8 +43,9 @@ from .parameters import ExtraOption, search_params
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
+    from collections.abc import Generator, Iterable, Sequence
     from logging import LogRecord
-    from typing import IO, Any, Generator, Iterable, Literal, Sequence, Type
+    from typing import IO, Any, Literal
 
     from . import Context, Parameter
 
@@ -163,9 +164,9 @@ def extraBasicConfig(
     encoding: str | None = None,
     errors: str | None = "backslashreplace",
     # New arguments specific to this function:
-    stream_handler_class: Type[Handler] = ExtraStreamHandler,
-    file_handler_class: Type[Handler] = FileHandler,
-    formatter_class: Type[Formatter] = ExtraFormatter,
+    stream_handler_class: type[Handler] = ExtraStreamHandler,
+    file_handler_class: type[Handler] = FileHandler,
+    formatter_class: type[Formatter] = ExtraFormatter,
 ) -> None:
     """Configure the global ``root`` logger.
 

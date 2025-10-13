@@ -25,7 +25,7 @@ from .parameters import ExtraOption
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from typing import Sequence
+    from collections.abc import Sequence
 
     from . import Context, Parameter
 

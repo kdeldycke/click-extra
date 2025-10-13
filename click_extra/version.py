@@ -36,8 +36,9 @@ from .parameters import ExtraOption
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from types import FrameType, ModuleType
-    from typing import Any, Sequence
+    from typing import Any
 
     from cloup.styling import IStyle
 

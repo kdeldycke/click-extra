@@ -18,11 +18,11 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import MutableMapping
 from contextlib import nullcontext
 from functools import cached_property, reduce
 from gettext import gettext as _
 from operator import getitem, methodcaller
-from typing import MutableMapping
 from unittest.mock import patch
 
 import click
@@ -39,15 +39,8 @@ from .envvar import param_envvar_ids
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from typing import (
-        Any,
-        Callable,
-        ContextManager,
-        Iterable,
-        Iterator,
-        MutableMapping,
-        Sequence,
-    )
+    from collections.abc import Callable, Iterable, Iterator, Sequence
+    from typing import Any, ContextManager
 
     from . import Parameter
 

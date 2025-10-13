@@ -63,7 +63,8 @@ from .testing import ExtraCliRunner
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from typing import ClassVar, Iterable, cast
+    from collections.abc import Iterable
+    from typing import ClassVar
 
     from sphinx.application import Sphinx
     from sphinx.util.typing import ExtensionMetadata, OptionSpec
@@ -347,7 +348,7 @@ class ClickDirective(SphinxDirective):
         set in the directive class.
         """
         if "language" in self.options:
-            return cast(str, self.options["language"])
+            return self.options["language"]  # type: ignore[no-any-return]
         if self.arguments:
             return self.arguments[0]
         return self.default_language

@@ -53,7 +53,7 @@ from pygments_ansi_color import (
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from typing import Iterable, Iterator
+    from collections.abc import Iterable, Iterator
 
     from pygments.token import _TokenType
 

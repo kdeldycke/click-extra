@@ -45,7 +45,7 @@ from .parameters import ExtraOption
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from typing import Callable, Iterable, Sequence
+    from collections.abc import Callable, Iterable, Sequence
 
     from cloup.styling import IStyle
 

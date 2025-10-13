@@ -37,7 +37,8 @@ from .version import ExtraVersionOption
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from typing import Any, NoReturn, Sequence
+    from collections.abc import Sequence
+    from typing import Any, NoReturn
 
     from . import Option
 

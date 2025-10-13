@@ -39,13 +39,9 @@ from .colorize import default_theme
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from typing import (
-        IO,
-        Any,
-        ContextManager,
-        Iterable,
-        Literal,
-    )
+    from collections.abc import Iterable
+    from contextlib import AbstractContextManager
+    from typing import IO, Any, Literal
 
     from ._types import TArg, TEnvVars, TNestedArgs
 
@@ -271,7 +267,7 @@ class ExtraCliRunner(click.testing.CliRunner):
             isolation_color = bool(color)
 
         # No-op context manager without any effects.
-        extra_params_bypass: ContextManager = nullcontext()
+        extra_params_bypass: AbstractContextManager = nullcontext()
 
         # If ``extra`` contains parameters that collide with the original ``invoke()``
         # parameters, we need to remove them from ``extra``, then use a monkeypatch to

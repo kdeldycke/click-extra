@@ -76,7 +76,8 @@ from .parameters import ExtraOption, ParamStructure, search_params
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from typing import Any, Iterable, Sequence
+    from collections.abc import Iterable, Sequence
+    from typing import Any
 
     import click
 
