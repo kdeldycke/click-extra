@@ -38,9 +38,8 @@ Inspired by `how tomllib does it in the stdlib
 
 from __future__ import annotations
 
-from logging import Formatter, Handler
 from pathlib import Path
-from typing import Iterable, Mapping, TypeVar
+from typing import Iterable, Mapping
 
 # click_extra.envvar module.
 
@@ -53,22 +52,6 @@ TNestedEnvVarIDs = Iterable[TEnvVarID | Iterable["TNestedEnvVarIDs"]]
 
 TEnvVars = Mapping[str, str | None]
 """Type for ``dict``-like environment variables."""
-
-
-# click_extra.logging module.
-
-TFormatter = TypeVar("TFormatter", bound=Formatter)
-THandler = TypeVar("THandler", bound=Handler)
-"""Used in type hints in `click_extra.logging.extraBasicConfig()`.
-
-.. warning::
-    This is a workaround for the fact that `typing.TypeVar` cannot be
-    parameterized with concrete types, and that `typing.Type` cannot be
-    parameterized with `typing.TypeVar`.
-
-    Else, we would have used `typing.Type[Formatter]` and
-    `typing.Type[Handler]` directly.
-"""
 
 
 # click_extra.testing module.

@@ -44,17 +44,9 @@ from .parameters import ExtraOption, search_params
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from logging import LogRecord
-    from typing import (
-        IO,
-        Any,
-        Generator,
-        Iterable,
-        Literal,
-        Sequence,
-    )
+    from typing import IO, Any, Generator, Iterable, Literal, Sequence, Type
 
     from . import Context, Parameter
-    from ._types import TFormatter, THandler
 
 
 class LogLevel(IntEnum):
@@ -171,13 +163,9 @@ def extraBasicConfig(
     encoding: str | None = None,
     errors: str | None = "backslashreplace",
     # New arguments specific to this function:
-    stream_handler_class: type[THandler] = (
-        # XXX This funky code format is a workaround for autopep8 unstable long-line
-        # wrapping.
-        ExtraStreamHandler  # type: ignore[assignment]
-    ),
-    file_handler_class: type[THandler] = FileHandler,  # type: ignore[assignment]
-    formatter_class: type[TFormatter] = ExtraFormatter,  # type: ignore[assignment]
+    stream_handler_class: Type[Handler] = ExtraStreamHandler,
+    file_handler_class: Type[Handler] = FileHandler,
+    formatter_class: Type[Formatter] = ExtraFormatter,
 ) -> None:
     """Configure the global ``root`` logger.
 
