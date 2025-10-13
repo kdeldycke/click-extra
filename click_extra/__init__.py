@@ -15,18 +15,7 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Expose package-wide elements."""
 
-__version__ = "6.0.4"
-"""Examples of valid version strings according :pep:`440#version-scheme`:
-
-.. code-block:: python
-
-    __version__ = "1.2.3.dev1"  # Development release 1
-    __version__ = "1.2.3a1"  # Alpha Release 1
-    __version__ = "1.2.3b1"  # Beta Release 1
-    __version__ = "1.2.3rc1"  # RC Release 1
-    __version__ = "1.2.3"  # Final Release
-    __version__ = "1.2.3.post1"  # Post Release 1
-"""
+from __future__ import annotations
 
 # Import all click's module-level content to allow for drop-in replacement.
 # XXX Star import is really badly supported by mypy for now and leads to lots of
@@ -223,4 +212,18 @@ __all__ = [
 .. todo::
     Test ruff __all__ formatting capabilities. And if good enough, remove ``__all__``
     checks in unittests.
+"""
+
+
+__version__ = "6.0.4"
+"""Examples of valid version strings according :pep:`440#version-scheme`:
+
+.. code-block:: python
+
+    __version__ = "1.2.3.dev1"  # Development release 1
+    __version__ = "1.2.3a1"  # Alpha Release 1
+    __version__ = "1.2.3b1"  # Beta Release 1
+    __version__ = "1.2.3rc1"  # RC Release 1
+    __version__ = "1.2.3"  # Final Release
+    __version__ = "1.2.3.post1"  # Post Release 1
 """
