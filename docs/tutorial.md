@@ -149,6 +149,8 @@ result = invoke(hello, args=["--help"])
 assert "--hello-conf CONF_FILE  Loads CLI config." in result.output
 ```
 
+## Cloup integration
+
 Click Extra's options are sub-classes of Cloup's and supports all its features, like [option groups](https://cloup.readthedocs.io/en/stable/pages/option-groups.html):
 
 ```{click:example}
