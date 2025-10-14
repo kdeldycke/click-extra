@@ -337,20 +337,20 @@ def test_conf_default_path(invoke, simple_config_cli):
     assert result.exit_code == 0
     assert not result.stderr
 
-    # OS-specific path.
-    default_path = shrinkuser(
-        Path(get_app_dir("config-cli1"))
-        / "*.{toml,yaml,yml,json,json5,jsonc,hjson,ini,xml}",
-    )
-
-    # Make path string compatible with regexp, and tweak it for help screen formatting.
-    path_regex = _escape_for_help_screen(str(default_path))
-    path_regex = path_regex.replace("jsonc", "json\\s*c")
+    # Search for the OS-specific path without glob pattern.
+    default_path = _escape_for_help_screen(str(shrinkuser(get_app_dir("config-cli1"))))
 
     assert re.search(
-        rf"\s+\[env\s+var:\s+CONFIG_CLI1_CONFIG;\s+default:\s+{path_regex}\]\s+",
+        rf"\s+\[env\s+var:\s+CONFIG_CLI1_CONFIG;\s+default:\s+{default_path}",
         result.stdout,
     )
+
+    # Search for the glob pattern, as we cannot rely on regexp because
+    help_screen = "".join(
+        line.strip()
+        for line in result.stdout.split("--config CONFIG_PATH")[1].splitlines()
+    )
+    assert "*.{toml,yaml,yml,json,json5,jsonc,hjson,ini,xml}]" in help_screen
 
 
 def test_conf_default_pathlib_type(invoke, create_config):
