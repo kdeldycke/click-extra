@@ -520,7 +520,7 @@
 - Add a `ignored_options` parameter to the configuration file instead of hard-coding them.
 - Add dependency on `wcmatch`.
 - Remove tests on deprecated `ubuntu-18.04`.
-- Document preset options ovveriding. Closes {issue}`232`.
+- Document preset options overriding. Closes {issue}`232`.
 - Document configuration option pattern matching and default folder. Closes {issue}`197` and {issue}`211`.
 
 ## [3.0.1 (2022-08-07)](https://github.com/kdeldycke/click-extra/compare/v3.0.0...v3.0.1)
