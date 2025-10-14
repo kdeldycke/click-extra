@@ -216,3 +216,20 @@ Because single-letter options are a scarce resource, Click Extra does not impose
 
 That's a general rule, unless some short names follow a widely-accepted convention or an overwhelmingly-followed tradition. Which is the case for `-v, --verbose` and `-h, --help`.
 ```
+
+````{tip}
+If you find the `click_extra` namespace too long to type, you can always alias it to something shorter.
+
+A popular choice is `clickx`:
+
+```python
+import click
+import click_extra as clickx
+
+@click.command
+@click.option("--foo")
+@clickx.config_option
+def first(foo):
+    ...
+```
+````
