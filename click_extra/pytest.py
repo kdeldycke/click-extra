@@ -206,7 +206,7 @@ default_options_uncolored_help = (
     r"  --config CONFIG_PATH  Location of the configuration file. Supports glob\n"
     r"                        pattern of local path and remote URL.  \[default:( \S+)?\n"
     r"(                        .+\n)*"
-    r"                        \S+\.{toml,yaml,yml,json,json5,jsonc,ini,xml}\]\n"
+    r"                        .*json5,jsonc,hjson,ini,xml}\]\n"
     r"  --no-config           Ignore all configuration files and only use command line\n"
     r"                        parameters and environment variables.\n"
     r"  --show-params         Show all CLI parameters, their provenance, defaults and\n"
@@ -231,7 +231,7 @@ default_options_colored_help = (
     r"  \x1b\[36m--config\x1b\[0m \x1b\[36m\x1b\[2mCONFIG_PATH\x1b\[0m  Location of the configuration file. Supports glob\n"
     r"                        pattern of local path and remote URL.  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault:( \S+)?\n"
     r"(                        .+\n)*"
-    r"                        \S+\.{toml,yaml,yml,json,json5,jsonc,ini,xml}\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
+    r"                        .*json5,jsonc,hjson,ini,xml}\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
     r"  \x1b\[36m--no-config\x1b\[0m           Ignore all configuration files and only use command line\n"
     r"                        parameters and environment variables.\n"
     r"  \x1b\[36m--show-params\x1b\[0m         Show all CLI parameters, their provenance, defaults and\n"
@@ -269,13 +269,14 @@ default_debug_colored_verbose_log = (
 
 
 default_debug_uncolored_config = (
-    r"debug: Load configuration matching .+\*\.{toml,yaml,yml,json,json5,jsonc,ini,xml}\n"
+    r"debug: Load configuration"
+    r" matching .+\*\.{toml,yaml,yml,json,json5,jsonc,hjson,ini,xml}\n"
     r"debug: Pattern is not an URL: search local file system.\n"
     r"debug: No configuration file found.\n"
 )
 default_debug_colored_config = (
     r"\x1b\[34mdebug\x1b\[0m: Load configuration"
-    r" matching .+\*\.{toml,yaml,yml,json,json5,jsonc,ini,xml}\n"
+    r" matching .+\*\.{toml,yaml,yml,json,json5,jsonc,hjson,ini,xml}\n"
     r"\x1b\[34mdebug\x1b\[0m: Pattern is not an URL: search local file system.\n"
     r"\x1b\[34mdebug\x1b\[0m: No configuration file found.\n"
 )

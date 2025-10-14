@@ -16,6 +16,9 @@ keywords = [
     'console',
     'ini',
     'json',
+    'json5',
+    'jsonc',
+    'hjson',
     'logging',
     'multiplatform',
     'pygments',
@@ -108,6 +111,10 @@ json5 = [
 jsonc = [
     # json-with-comments 1.2.10 is the first version we used in Click Extra.
     "json-with-comments >= 1.2.10",
+]
+hjson = [
+    # hjson 3.1.0 is the first version we used in Click Extra.
+    "hjson >= 3.1.0",
 ]
 xml = [
     # xmltodict 0.15.1 prevent XML injection.

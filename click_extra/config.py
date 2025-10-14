@@ -112,6 +112,16 @@ except ImportError:
     )
 
 
+hjson_support = True
+try:
+    import hjson  # noqa: F401
+except ImportError:
+    hjson_support = False
+    logging.getLogger("click_extra").debug(
+        "HJSON support disabled: install click-extra[hjson] to enable it."
+    )
+
+
 xml_support = True
 try:
     import xmltodict  # noqa: F401
@@ -131,6 +141,11 @@ class Formats(Enum):
 
     The default order set the priority by which each format is searched for the default
     configuration file.
+
+    .. todo::
+        Add support for `JWCC
+        <https://nigeltao.github.io/blog/2021/json-with-commas-comments.html>`_
+        / `hujson <https://github.com/tailscale/hujson>`_ format?
     """
 
     TOML = (("toml",), True)
@@ -138,6 +153,7 @@ class Formats(Enum):
     JSON = (("json",), True)
     JSON5 = (("json5",), json5_support)
     JSONC = (("jsonc",), jsonc_support)
+    HJSON = (("hjson",), hjson_support)
     INI = (("ini",), True)
     XML = (("xml",), xml_support)
 
@@ -265,7 +281,7 @@ class ConfigOption(ExtraOption, ParamStructure):
     def default_pattern(self) -> str:
         """Returns the default pattern used to search for the configuration file.
 
-        Defaults to ``<app_dir>/*.{toml,yaml,yml,json,json5,jsonc,ini,xml}``.
+        Defaults to ``<app_dir>/*.{toml,yaml,yml,json,json5,jsonc,hjson,ini,xml}``.
         Where ``<app_dir>`` is produced by the `clickget_app_dir() method
         <https://click.palletsprojects.com/en/stable/api/#click.get_app_dir>`_.
         The result depends on OS and is influenced by the ``roaming`` and
@@ -300,7 +316,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         .. code-block:: text
 
-            ~/(...)/multiple_envvars.py/*.{toml,yaml,yml,json,json5,jsonc,ini,xml}
+            ~/(...)/multiple_envvars.py/*.{toml,yaml,yml,json,json5,jsonc,hjson,ini,xml}
         """
         extra = super().get_help_extra(ctx)
         extra["default"] = shrinkuser(Path(self.get_default(ctx)))  # type: ignore[arg-type]
@@ -385,6 +401,8 @@ class ConfigOption(ExtraOption, ParamStructure):
                         user_conf = json5.loads(conf_text)
                     case Formats.JSONC:
                         user_conf = jsonc.loads(conf_text)
+                    case Formats.HJSON:
+                        user_conf = hjson.loads(conf_text)
                     case Formats.INI:
                         user_conf = self.load_ini_config(conf_text)
                     case Formats.XML:

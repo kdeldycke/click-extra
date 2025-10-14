@@ -339,13 +339,16 @@ def test_conf_default_path(invoke, simple_config_cli):
 
     # OS-specific path.
     default_path = shrinkuser(
-        Path(get_app_dir("config-cli1")) / "*.{toml,yaml,yml,json,json5,jsonc,ini,xml}",
+        Path(get_app_dir("config-cli1"))
+        / "*.{toml,yaml,yml,json,json5,jsonc,hjson,ini,xml}",
     )
 
-    # Make path string compatible with regexp.
+    # Make path string compatible with regexp, and tweak it for help screen formatting.
+    path_regex = _escape_for_help_screen(str(default_path))
+    path_regex = path_regex.replace("jsonc", "json\\s*c")
+
     assert re.search(
-        r"\s+\[env\s+var:\s+CONFIG_CLI1_CONFIG;\s+"
-        rf"default:\s+{_escape_for_help_screen(str(default_path))}\]\s+",
+        rf"\s+\[env\s+var:\s+CONFIG_CLI1_CONFIG;\s+default:\s+{path_regex}\]\s+",
         result.stdout,
     )
 
