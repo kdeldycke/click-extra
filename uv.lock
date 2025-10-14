@@ -159,7 +159,7 @@ wheels = [
 
 [[package]]
 name = "click-extra"
-version = "6.0.4"
+version = "6.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "boltons" },
@@ -170,7 +170,6 @@ dependencies = [
     { name = "requests" },
     { name = "tabulate", extra = ["widechars"] },
     { name = "wcmatch" },
-    { name = "xmltodict" },
 ]
 
 [package.optional-dependencies]
@@ -217,6 +216,9 @@ typing = [
     { name = "types-requests" },
     { name = "types-tabulate" },
     { name = "types-xmltodict" },
+]
+xml = [
+    { name = "xmltodict" },
 ]
 yaml = [
     { name = "pyyaml" },
@@ -265,9 +267,9 @@ requires-dist = [
     { name = "types-tabulate", marker = "extra == 'typing'", specifier = "~=0.9.0.2" },
     { name = "types-xmltodict", marker = "extra == 'typing'", specifier = "~=1.0.1.20250920" },
     { name = "wcmatch", specifier = ">=10.0" },
-    { name = "xmltodict", specifier = ">=0.15.1" },
+    { name = "xmltodict", marker = "extra == 'xml'", specifier = ">=0.15.1" },
 ]
-provides-extras = ["yaml", "pygments", "sphinx", "pytest", "test", "typing", "docs"]
+provides-extras = ["yaml", "xml", "pygments", "sphinx", "pytest", "test", "typing", "docs"]
 
 [[package]]
 name = "cloup"

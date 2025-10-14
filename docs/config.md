@@ -329,6 +329,10 @@ Write example.
 
 ### XML
 
+```{important}
+XML support requires additional packages. You need to [install `click_extra[xml]`](install.md#extra-dependencies) extra dependency group to enable it.
+```
+
 ```{todo}
 Write example.
 ```

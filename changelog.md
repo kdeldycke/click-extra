@@ -5,7 +5,7 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
-- YAML configuration support is now optional. You need to install the `click_extra[yaml]` extra dependency group to enable it.
+- YAML and XML configuration support is now optional. You need to install the `click_extra[yaml]` and `click_extra[xml]` extra dependency groups to enable it.
 - Move all custom types to `click_extra._types` module.
 - Avoid importing all types at runtime to reduce startup time.
 - Upgrade tests runs from `macos-13` to `macos-15-intel`, and from `macos-15` to `macos-26`.

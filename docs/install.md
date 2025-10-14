@@ -32,6 +32,12 @@ For additional features, you may need to install extra dependencies:
   $ pip install click-extra[yaml]
   ```
 
+- To add support for [XML configuration files](config.md#xml):
+
+  ```{code-block} shell-session
+  $ pip install click-extra[xml]
+  ```
+
 - To register new [ANSI-capable formatter, filter and lexers for Pygments](pygments.md):
 
   ```{code-block} shell-session

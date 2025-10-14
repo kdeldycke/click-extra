@@ -93,8 +93,6 @@ dependencies = [
     "tabulate [widechars] >= 0.9",
     # wcmatch 10.0 fix some inconsistencies in globbing and symlinks.
     "wcmatch >= 10.0",
-    # xmltodict 0.15.1 prevent XML injection.
-    "xmltodict >= 0.15.1",
 ]
 
 [project.optional-dependencies]
@@ -102,6 +100,10 @@ dependencies = [
 yaml = [
     # PyYAML 6.0.3 is the first version to support Python 3.14.
     "pyyaml >= 6.0.3",
+]
+xml = [
+    # xmltodict 0.15.1 prevent XML injection.
+    "xmltodict >= 0.15.1",
 ]
 pygments = [
     # Pygments 2.14.0 is the first version with lexers.algebra.GAPConsoleLexer that is referenced in our code.

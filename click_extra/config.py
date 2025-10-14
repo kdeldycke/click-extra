@@ -46,7 +46,6 @@ from gettext import gettext as _
 from pathlib import Path
 
 import requests
-import xmltodict
 from boltons.iterutils import flatten
 from boltons.pathutils import shrinkuser
 from boltons.urlutils import URL
@@ -94,6 +93,17 @@ except ImportError:
     )
 
 
+xml_support = True
+try:
+    import xmltodict  # noqa: F401
+except ImportError:
+    xml_support = False
+    logging.getLogger("click_extra").debug(
+        "XML support disabled: xmltodict package not found. "
+        "You need to install click-extra[xml] dependency group to enable it.",
+    )
+
+
 class Formats(Enum):
     """All configuration formats, associated to their default extensions.
 
@@ -109,7 +119,7 @@ class Formats(Enum):
     YAML = (("yaml", "yml"), yaml_support)
     JSON = (("json",), True)
     INI = (("ini",), True)
-    XML = (("xml",), True)
+    XML = (("xml",), xml_support)
 
 
 CONFIG_OPTION_NAME = "config"

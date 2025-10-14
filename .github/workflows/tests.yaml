@@ -153,8 +153,9 @@ jobs:
           set -e
           uv --no-progress venv --python ${{ matrix.python-version }}
       - name: Install project
-        run: |
-          uv --no-progress sync --frozen --extra test --extra yaml --extra pygments --extra sphinx --extra pytest
+        run: >
+          uv --no-progress sync --frozen --extra test
+          --extra yaml --extra xml --extra pygments --extra sphinx --extra pytest
       - name: Unittests
         run: >
           uv --no-progress run --frozen
