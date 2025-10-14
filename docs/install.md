@@ -38,6 +38,24 @@ For additional features, you may need to install extra dependencies:
   $ pip install click-extra[xml]
   ```
 
+- To add support for [JSON5 configuration files](config.md#json5):
+
+  ```{code-block} shell-session
+  $ pip install click-extra[json5]
+  ```
+
+- To add support for [JSONC configuration files](config.md#jsonc):
+
+  ```{code-block} shell-session
+  $ pip install click-extra[jsonc]
+  ```
+
+- To add support for [HJSON configuration files](config.md#hjson):
+
+  ```{code-block} shell-session
+  $ pip install click-extra[hjson]
+  ```
+
 - To register new [ANSI-capable formatter, filter and lexers for Pygments](pygments.md):
 
   ```{code-block} shell-session
