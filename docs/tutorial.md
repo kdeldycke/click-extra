@@ -228,10 +228,10 @@ A popular choice is `clickx`:
 import click
 import click_extra as clickx
 
+
 @click.command
 @click.option("--foo")
 @clickx.config_option
-def first(foo):
-    ...
+def first(foo): ...
 ```
 ````
