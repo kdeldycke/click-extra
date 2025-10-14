@@ -232,6 +232,7 @@ pretty = true
 
 [[tool.mypy.overrides]]
 ignore_missing_imports = true
+module = ["hjson", "jsonc"]
 
 [tool.pytest.ini_options]
 # https://docs.pytest.org/en/latest/customize.html#pyproject-toml
