@@ -213,7 +213,6 @@ pretty = true
 
 [[tool.mypy.overrides]]
 ignore_missing_imports = true
-module = ["furo"]
 
 [tool.pytest.ini_options]
 # https://docs.pytest.org/en/latest/customize.html#pyproject-toml
