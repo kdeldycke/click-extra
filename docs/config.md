@@ -333,10 +333,10 @@ Write example.
 
 The configuration file is searched based on a wildcard-based glob pattern.
 
-By default, the pattern is `/<app_dir>/*.{toml,yaml,yml,json,ini,xml}`, where:
+By default, the pattern is `<app_dir>/*.{toml,yaml,yml,json,ini,xml}`, where:
 
-- `<app_dir>` is the [default application folder](#default-folder) (see section below)
-- `*.{toml,yaml,yml,json,ini,xml}` is any file in that folder with any of `.toml`, `.yaml`, `.yml`, `.json` , `.ini` or `.xml` extension.
+- `<app_dir>` is the [default application folder](#default-folder)
+- `*.{toml,yaml,yml,json,ini,xml}` are the [default extensions](#default-extensions) of supported formats
 
 ```{seealso}
 There is a long history about the choice of the default application folder.
@@ -353,7 +353,7 @@ But there is still a lot of cases for which the XDG doesn't cut it, like on othe
 
 The configuration file is searched in the default application path, as defined by [`click.get_app_dir()`](https://click.palletsprojects.com/en/stable/api/#click.get_app_dir).
 
-Like the latter, the `@config_option` decorator and `ConfigOption` class accept a `roaming` and `force_posix` argument to alter the default path:
+Like the latter, the `@config_option` decorator accept a `roaming` and `force_posix` argument to alter the default path:
 
 | Platform          | `roaming` | `force_posix` | Folder                                    |
 | :---------------- | :-------- | :------------ | :---------------------------------------- |
@@ -388,9 +388,48 @@ assert "~/.cli/*.{toml,yaml,yml,json,ini,xml}]" in result.stdout
 
 ### Custom pattern
 
-If you'd like to customize the pattern, you can pass your own to the `default` parameter.
+You can directly provide a customized search pattern to the `default` argument of the decorator:
 
-Here is how to look for an extension-less YAML dotfile in the home directory, with a pre-defined `.commandrc` name:
+```{click:example}
+:emphasize-lines: 6
+from click import command
+
+from click_extra import config_option
+
+@command(context_settings={"show_default": True})
+@config_option(default="~/my_special_folder/*.{toml,conf}")
+def cli():
+    pass
+```
+
+```{click:run}
+:emphasize-lines: 7
+result = invoke(cli, args=["--help"])
+assert "~/my_special_folder/*.{toml,conf}]" in result.stdout
+```
+
+The rules for the pattern are described in the next section.
+
+### Pattern specifications
+
+Patterns provided to `@config_option`:
+
+- are [based on `wcmatch.glob` syntax](https://facelessuser.github.io/wcmatch/glob/#syntax)
+- should be written with Unix separators (`/`), even for Windows (the [pattern will be normalized to the local platform dialect](https://facelessuser.github.io/wcmatch/glob/#windows-separators))
+- are configured with the following default flags:
+  - [`IGNORECASE`](https://facelessuser.github.io/wcmatch/glob/#ignorecase): case-insensitive matching
+  - [`GLOBSTAR`](https://facelessuser.github.io/wcmatch/glob/#globstar): recursive directory search via `**`
+  - [`FOLLOW`](https://facelessuser.github.io/wcmatch/glob/#follow): traverse symlink directories
+  - [`DOTGLOB`](https://facelessuser.github.io/wcmatch/glob/#dotglob): allow match of file or directory starting with a dot (`.`)
+  - [`BRACE`](https://facelessuser.github.io/wcmatch/glob/#brace): allow brace expansion for greater expressiveness
+  - [`GLOBTILDE`](https://facelessuser.github.io/wcmatch/glob/#globtilde): allows for user path expansion via `~`
+  - [`NODIR`](https://facelessuser.github.io/wcmatch/glob/#nodir): restricts results to files
+
+### Extension-less files
+
+This is an example of a special case that is popular on Unix-like systems: the configuration file is an extension-less dotfile in the home directory.
+
+Here is how to set up `@config_option` for a pre-defined `.commandrc` file in YAML:
 
 ```{click:example}
 :emphasize-lines: 7
@@ -411,25 +450,9 @@ result = invoke(cli, args=["--help"])
 assert "~/.commandrc]" in result.stdout
 ```
 
-### Pattern specifications
-
-Patterns provided to `@config_option`:
-
-- are [based on `wcmatch.glob` syntax](https://facelessuser.github.io/wcmatch/glob/#syntax)
-- should be written with Unix separators (`/`), even for Windows (the [pattern will be normalized to the local platform dialect](https://facelessuser.github.io/wcmatch/glob/#windows-separators))
-- are configured with the following default flags:
-  - [`IGNORECASE`](https://facelessuser.github.io/wcmatch/glob/#ignorecase): case-insensitive matching
-  - [`GLOBSTAR`](https://facelessuser.github.io/wcmatch/glob/#globstar): recursive directory search via `**`
-  - [`FOLLOW`](https://facelessuser.github.io/wcmatch/glob/#follow): traverse symlink directories
-  - [`DOTGLOB`](https://facelessuser.github.io/wcmatch/glob/#dotglob): allow match of file or directory starting with a dot (`.`)
-  - [`BRACE`](https://facelessuser.github.io/wcmatch/glob/#brace): allow brace expansion for greater expressiveness
-  - [`GLOBTILDE`](https://facelessuser.github.io/wcmatch/glob/#globtilde): allows for user path expansion via `~`
-  - [`NODIR`](https://facelessuser.github.io/wcmatch/glob/#nodir): restricts results to files
-
 ### Default extensions
 
-The extensions that are used for each dialect to produce the default file pattern matching are encoded by
-the {py:class}`Formats <click_extra.config.Formats>` Enum:
+The extensions that are used for each dialect to produce the file pattern matching are encoded by the {py:class}`Formats <click_extra.config.Formats>` Enum:
 
 | Format | Extensions        |
 | :----- | :---------------- |

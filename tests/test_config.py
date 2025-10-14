@@ -648,3 +648,63 @@ def test_conf_metadata(
             "default_map={}\n"
         )
         assert result.stderr == f"Load configuration matching {conf_path}\n"
+
+
+def test_multiple_cli_shared_conf(invoke, create_config):
+    """Two CLIs sharing the same configuration file.
+
+    Refs: https://github.com/kdeldycke/click-extra/issues/1277
+    """
+
+    conf_file = dedent(
+        """
+        # My shared configuration file.
+
+        int_param = 99   # Will be ignored.
+
+        [first-cli]
+        int_param = 7
+
+        [second-cli]
+        int_param = 11
+        random_stuff = "will be ignored"
+        """,
+    )
+
+    conf_path = create_config("shared.toml", conf_file)
+
+    search_path = conf_path.parent / "*.{toml,yaml,yml,json,ini,xml}"
+
+    @click.command
+    @option("--int-param", type=int, default=3)
+    @config_option(default=search_path)
+    @no_config_option
+    def first_cli(int_param):
+        echo(f"int = {int_param!r}")
+
+    @click.command
+    @option("--int-param", type=int, default=5)
+    @config_option(default=search_path)
+    @no_config_option
+    def second_cli(int_param):
+        echo(f"int = {int_param!r}")
+
+    result = invoke(first_cli, color=False)
+    assert result.stdout == "int = 7\n"
+    assert not result.stderr
+    assert result.exit_code == 0
+
+    result = invoke(second_cli, color=False)
+    assert result.stdout == "int = 11\n"
+    assert not result.stderr
+    assert result.exit_code == 0
+
+    result = invoke(first_cli, "--no-config", color=False)
+    assert result.stdout == "int = 3\n"
+    assert result.stderr == "Skip configuration file loading altogether.\n"
+    assert result.exit_code == 0
+
+    result = invoke(second_cli, "--no-config", color=False)
+    assert result.stdout == "int = 5\n"
+    assert result.stderr == "Skip configuration file loading altogether.\n"
+    assert result.exit_code == 0
