@@ -13,7 +13,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Implements environment variable utilities."""
+"""Implements environment variable utilities.
+
+.. seealso:
+    `Environment variables are a legacy mess: Let's dive deep into them
+    <https://allvpv.org/haotic-journey-through-envvars/>`_.
+"""
 
 from __future__ import annotations
 
