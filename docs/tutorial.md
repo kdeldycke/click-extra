@@ -225,6 +225,7 @@ If you find the `click_extra` namespace too long to type, you can always alias i
 A popular choice is `clickx`:
 
 ```python
+:emphasize-lines: 2,7
 import click
 import click_extra as clickx
 
