@@ -7,6 +7,7 @@
 
 - Move all custom types to `click_extra._types` module.
 - Avoid importing all types at runtime to reduce startup time.
+- Upgrade tests runs from `macos-13` to `macos-15-intel`, and from `macos-15` to `macos-26`.
 
 ## [6.0.3 (2025-10-13)](https://github.com/kdeldycke/click-extra/compare/v6.0.2...v6.0.3)
 

@@ -27,8 +27,8 @@ jobs:
         os:
           - ubuntu-24.04-arm # arm64
           - ubuntu-24.04     # x86
-          - macos-15         # arm64
-          - macos-13         # x86
+          - macos-26         # arm64
+          - macos-15-intel   # x86
           - windows-11-arm   # arm64
           - windows-2025     # x86
         # Available Python: https://github.com/actions/python-versions/blob/main/versions-manifest.json
@@ -53,7 +53,7 @@ jobs:
         #     - click-version: stable
         #       os:
         #         - ubuntu-24.04
-        #         - macos-13
+        #         - macos-15-intel
         #         - windows-2025
         #       python-version:
         #         - "3.11"
@@ -63,7 +63,7 @@ jobs:
         #     - click-version: main
         #       os:
         #         - ubuntu-24.04
-        #         - macos-13
+        #         - macos-15-intel
         #         - windows-2025
         #       python-version:
         #         - "3.11"
@@ -73,7 +73,7 @@ jobs:
         #     - cloup-version: master
         #       os:
         #         - ubuntu-24.04
-        #         - macos-13
+        #         - macos-15-intel
         #         - windows-2025
         #       python-version:
         #         - "3.11"
@@ -88,11 +88,11 @@ jobs:
             click-version: main
           - os: ubuntu-24.04
             cloup-version: master
-          - os: macos-13
+          - os: macos-15-intel
             click-version: stable
-          - os: macos-13
+          - os: macos-15-intel
             click-version: main
-          - os: macos-13
+          - os: macos-15-intel
             cloup-version: master
           - os: windows-2025
             click-version: stable
