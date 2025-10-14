@@ -24,21 +24,27 @@ This is a graph of the default, main dependencies of the Python package:
 
 ## Extra dependencies
 
-For additional features, and to facilitate integration of Click CLIs with third-party tools, you may need to install extra dependencies:
+For additional features, you may need to install extra dependencies:
 
-- [For Pygments](pygments.md):
+- To add support for [YAML configuration files](config.md#yaml):
+
+  ```{code-block} shell-session
+  $ pip install click-extra[yaml]
+  ```
+
+- To register new [ANSI-capable formatter, filter and lexers for Pygments](pygments.md):
 
   ```{code-block} shell-session
   $ pip install click-extra[pygments]
   ```
 
-- [For Sphinx](sphinx.md):
+- To add new [`click:example` and `click:run` directives for Sphinx](sphinx.md):
 
   ```{code-block} shell-session
   $ pip install click-extra[sphinx]
   ```
 
-- [For Pytest](pytest.md):
+- To use [fixtures and utilities for testing Click CLIs with Pytest](pytest.md):
 
   ```{code-block} shell-session
   $ pip install click-extra[pytest]

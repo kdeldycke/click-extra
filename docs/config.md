@@ -246,6 +246,10 @@ See the [example in the top of this page](#standalone-option).
 
 ### YAML
 
+```{important}
+YAML support requires additional packages. You need to [install `click_extra[yaml]`](install.md#extra-dependencies) extra dependency group to enable it.
+```
+
 The example above, given for a TOML configuration file, is working as-is with YAML.
 
 Just replace the TOML file with the following configuration at

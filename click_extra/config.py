@@ -47,7 +47,6 @@ from pathlib import Path
 
 import requests
 import xmltodict
-import yaml
 from boltons.iterutils import flatten
 from boltons.pathutils import shrinkuser
 from boltons.urlutils import URL
@@ -84,18 +83,33 @@ if TYPE_CHECKING:
     from . import Context, Parameter
 
 
+yaml_support = True
+try:
+    import yaml  # noqa: F401
+except ImportError:
+    yaml_support = False
+    logging.getLogger("click_extra").debug(
+        "YAML support disabled: PyYAML package not found. "
+        "You need to install click-extra[yaml] dependency group to enable it.",
+    )
+
+
 class Formats(Enum):
-    """Supported configuration formats and the list of their default extensions.
+    """All configuration formats, associated to their default extensions.
+
+    The first element of the tuple is a sequence of file extensions associated to
+    the format. The second element indicates whether the format is supported or not,
+    depending on the availability of the required third-party packages.
 
     The default order set the priority by which each format is searched for the default
     configuration file.
     """
 
-    TOML = ("toml",)
-    YAML = ("yaml", "yml")
-    JSON = ("json",)
-    INI = ("ini",)
-    XML = ("xml",)
+    TOML = (("toml",), True)
+    YAML = (("yaml", "yml"), yaml_support)
+    JSON = (("json",), True)
+    INI = (("ini",), True)
+    XML = (("xml",), True)
 
 
 CONFIG_OPTION_NAME = "config"
@@ -167,6 +181,11 @@ class ConfigOption(ExtraOption, ParamStructure):
         - ``formats`` is the ordered list of formats that the configuration
           file will be tried to be read with. Can be a single one.
 
+          .. attention::
+              The formats depending on third-party packages will be automatically
+              disabled if their corresponding extra dependency groups are not
+              installed.
+
         - ``roaming`` and ``force_posix`` are `fed to click.get_app_dir()
           <https://click.palletsprojects.com/en/stable/api/#click.get_app_dir>`_
           to setup the default configuration folder.
@@ -185,7 +204,11 @@ class ConfigOption(ExtraOption, ParamStructure):
         # Make sure formats ends up as an iterable.
         if isinstance(formats, Formats):
             formats = (formats,)
-        self.formats = formats
+        assert all(isinstance(f, Formats) for f in formats), formats
+        # Filter out unsupported formats.
+        self.formats = [f for f in formats if f.value[1]]
+        if not self.formats:
+            raise ValueError("No supported format found in the provided formats.")
 
         # Setup the configuration default folder.
         self.roaming = roaming
@@ -212,8 +235,8 @@ class ConfigOption(ExtraOption, ParamStructure):
     def default_pattern(self) -> str:
         """Returns the default pattern used to search for the configuration file.
 
-        Defaults to ``/<app_dir>/*.{toml,yaml,yml,json,ini,xml}``. Where
-        ``<app_dir>`` is produced by the `clickget_app_dir() method
+        Defaults to ``<app_dir>/*.{toml,yaml,yml,json,ini,xml}``. Where ``<app_dir>`` is
+        produced by the `clickget_app_dir() method
         <https://click.palletsprojects.com/en/stable/api/#click.get_app_dir>`_.
         The result depends on OS and is influenced by the ``roaming`` and
         ``force_posix`` properties of this instance.
@@ -231,8 +254,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         app_dir = Path(
             get_app_dir(cli_name, roaming=self.roaming, force_posix=self.force_posix),
         ).resolve()
-        # Build the extension matching pattern.
-        extensions = flatten(f.value for f in self.formats)
+        # Collect all supported extensions from the selected formats.
+        extensions = flatten(f.value[0] for f in self.formats)
         if len(extensions) == 1:
             ext_pattern = extensions[0]
         else:

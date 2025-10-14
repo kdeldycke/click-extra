@@ -167,7 +167,6 @@ dependencies = [
     { name = "cloup" },
     { name = "deepmerge" },
     { name = "extra-platforms" },
-    { name = "pyyaml" },
     { name = "requests" },
     { name = "tabulate", extra = ["widechars"] },
     { name = "wcmatch" },
@@ -219,6 +218,9 @@ typing = [
     { name = "types-tabulate" },
     { name = "types-xmltodict" },
 ]
+yaml = [
+    { name = "pyyaml" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -243,7 +245,7 @@ requires-dist = [
     { name = "pytest-github-actions-annotate-failures", marker = "extra == 'test'", specifier = "~=0.3.0" },
     { name = "pytest-httpserver", marker = "extra == 'test'", specifier = "~=1.1.0" },
     { name = "pytest-randomly", marker = "extra == 'test'", specifier = "~=4.0.0" },
-    { name = "pyyaml", specifier = ">=6.0.3" },
+    { name = "pyyaml", marker = "extra == 'yaml'", specifier = ">=6.0.3" },
     { name = "requests", specifier = ">=2.32.4" },
     { name = "sphinx", marker = "extra == 'docs'", specifier = ">=8.2" },
     { name = "sphinx", marker = "extra == 'sphinx'", specifier = ">=8.2" },
@@ -265,7 +267,7 @@ requires-dist = [
     { name = "wcmatch", specifier = ">=10.0" },
     { name = "xmltodict", specifier = ">=0.15.1" },
 ]
-provides-extras = ["pygments", "sphinx", "pytest", "test", "typing", "docs"]
+provides-extras = ["yaml", "pygments", "sphinx", "pytest", "test", "typing", "docs"]
 
 [[package]]
 name = "cloup"
