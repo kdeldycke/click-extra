@@ -342,7 +342,7 @@ By default, the pattern is `/<app_dir>/*.{toml,yaml,yml,json,ini,xml}`, where:
 There is a long history about the choice of the default application folder.
 
 For Unix, the oldest reference I can track is from the [*Where Configurations Live* chapter](http://www.catb.org/~esr/writings/taoup/html/ch10s02.html)
-of [The Art of Unix Programming](https://www.amazon.com/dp/0131429019?&linkCode=ll1&tag=kevideld-20&linkId=49054395b39ea5b23bdf912ff839bca2&language=en_US&ref_=as_li_ss_tl) by Eric S. Raymond.
+of [The Art of Unix Programming](https://a.co/d/aC36Ft0).
 
 The [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html) is the latest iteration of this tradition on Linux. This long-due guidelines brings [lots of benefits](https://xdgbasedirectoryspecification.com) to the platform. This is what Click Extra is [implementing by default](#default-folder).
 
