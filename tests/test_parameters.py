@@ -364,12 +364,12 @@ def test_integrated_show_params_option(invoke, create_config):
             # On Windows, backslashes are double-escaped in Path string repr.
             (
                 f"'{Path(get_app_dir('show-params-cli')).resolve()}{sep}"
-                "*.{toml,yaml,yml,json,ini,xml}'"
+                "*.{toml,yaml,yml,json,json5,jsonc,ini,xml}'"
             ).replace("\\", "\\\\")
             if is_windows
             else (
                 f"'{Path(get_app_dir('show-params-cli')).resolve()}{sep}"
-                "*.{toml,yaml,yml,json,ini,xml}'"
+                "*.{toml,yaml,yml,json,json5,jsonc,ini,xml}'"
             ),
             repr(str(conf_path)),
             "COMMANDLINE",

@@ -88,8 +88,27 @@ try:
 except ImportError:
     yaml_support = False
     logging.getLogger("click_extra").debug(
-        "YAML support disabled: PyYAML package not found. "
-        "You need to install click-extra[yaml] dependency group to enable it.",
+        "YAML support disabled: install click-extra[yaml] to enable it."
+    )
+
+
+json5_support = True
+try:
+    import json5  # noqa: F401
+except ImportError:
+    json5_support = False
+    logging.getLogger("click_extra").debug(
+        "JSON5 support disabled: install click-extra[json5] to enable it."
+    )
+
+
+jsonc_support = True
+try:
+    import jsonc  # noqa: F401
+except ImportError:
+    jsonc_support = False
+    logging.getLogger("click_extra").debug(
+        "JSONC support disabled: install click-extra[jsonc] to enable it."
     )
 
 
@@ -99,8 +118,7 @@ try:
 except ImportError:
     xml_support = False
     logging.getLogger("click_extra").debug(
-        "XML support disabled: xmltodict package not found. "
-        "You need to install click-extra[xml] dependency group to enable it.",
+        "XML support disabled: install click-extra[xml] to enable it."
     )
 
 
@@ -118,6 +136,8 @@ class Formats(Enum):
     TOML = (("toml",), True)
     YAML = (("yaml", "yml"), yaml_support)
     JSON = (("json",), True)
+    JSON5 = (("json5",), json5_support)
+    JSONC = (("jsonc",), jsonc_support)
     INI = (("ini",), True)
     XML = (("xml",), xml_support)
 
@@ -245,8 +265,8 @@ class ConfigOption(ExtraOption, ParamStructure):
     def default_pattern(self) -> str:
         """Returns the default pattern used to search for the configuration file.
 
-        Defaults to ``<app_dir>/*.{toml,yaml,yml,json,ini,xml}``. Where ``<app_dir>`` is
-        produced by the `clickget_app_dir() method
+        Defaults to ``<app_dir>/*.{toml,yaml,yml,json,json5,jsonc,ini,xml}``.
+        Where ``<app_dir>`` is produced by the `clickget_app_dir() method
         <https://click.palletsprojects.com/en/stable/api/#click.get_app_dir>`_.
         The result depends on OS and is influenced by the ``roaming`` and
         ``force_posix`` properties of this instance.
@@ -280,7 +300,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         .. code-block:: text
 
-            ~/(...)/multiple_envvars.py/*.{toml,yaml,yml,json,ini,xml}
+            ~/(...)/multiple_envvars.py/*.{toml,yaml,yml,json,json5,jsonc,ini,xml}
         """
         extra = super().get_help_extra(ctx)
         extra["default"] = shrinkuser(Path(self.get_default(ctx)))  # type: ignore[arg-type]
@@ -361,6 +381,10 @@ class ConfigOption(ExtraOption, ParamStructure):
                         user_conf = yaml.full_load(conf_text)
                     case Formats.JSON:
                         user_conf = json.loads(conf_text)
+                    case Formats.JSON5:
+                        user_conf = json5.loads(conf_text)
+                    case Formats.JSONC:
+                        user_conf = jsonc.loads(conf_text)
                     case Formats.INI:
                         user_conf = self.load_ini_config(conf_text)
                     case Formats.XML:

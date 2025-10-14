@@ -184,6 +184,12 @@ docs = [
     { name = "sphinxcontrib-mermaid" },
     { name = "sphinxext-opengraph" },
 ]
+json5 = [
+    { name = "json5" },
+]
+jsonc = [
+    { name = "json-with-comments" },
+]
 pygments = [
     { name = "pygments" },
     { name = "pygments-ansi-color" },
@@ -235,6 +241,8 @@ requires-dist = [
     { name = "extra-platforms", specifier = ">=3.0.0" },
     { name = "extra-platforms", extras = ["pytest"], marker = "extra == 'test'", specifier = ">=3.0.0" },
     { name = "furo", marker = "extra == 'docs'", specifier = "~=2025.9.25" },
+    { name = "json-with-comments", marker = "extra == 'jsonc'", specifier = ">=1.2.10" },
+    { name = "json5", marker = "extra == 'json5'", specifier = ">=0.12.1" },
     { name = "myst-parser", marker = "extra == 'docs'", specifier = "~=4.0.0" },
     { name = "myst-parser", marker = "extra == 'test'", specifier = "~=4.0.0" },
     { name = "pygments", marker = "extra == 'pygments'", specifier = ">=2.14" },
@@ -269,7 +277,7 @@ requires-dist = [
     { name = "wcmatch", specifier = ">=10.0" },
     { name = "xmltodict", marker = "extra == 'xml'", specifier = ">=0.15.1" },
 ]
-provides-extras = ["yaml", "xml", "pygments", "sphinx", "pytest", "test", "typing", "docs"]
+provides-extras = ["yaml", "json5", "jsonc", "xml", "pygments", "sphinx", "pytest", "test", "typing", "docs"]
 
 [[package]]
 name = "cloup"
@@ -482,6 +490,24 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/df/bf/f7da0350254c0ed7c72f3e33cef02e048281fec7ecec5f032d4aac52226b/jinja2-3.1.6.tar.gz", hash = "sha256:0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d", size = 245115, upload-time = "2025-03-05T20:05:02.478Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/62/a1/3d680cbfd5f4b8f15abc1d571870c5fc3e594bb582bc3b64ea099db13e56/jinja2-3.1.6-py3-none-any.whl", hash = "sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67", size = 134899, upload-time = "2025-03-05T20:05:00.369Z" },
+]
+
+[[package]]
+name = "json-with-comments"
+version = "1.2.10"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/bf/6d/638e8adbb2b92bb0803c092dd8ae6482945961c8545fc7e2f21c48233928/json_with_comments-1.2.10.tar.gz", hash = "sha256:0020b321cf6c80963c85f95ce985e71332f1797ed49abfd1cd675b3bdee24a28", size = 6788, upload-time = "2024-12-10T05:46:37.415Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/00/8a/f67dadb0648f00ac2249d3ef32532f0d5a2e72016f8426290ce6fe575870/json_with_comments-1.2.10-py3-none-any.whl", hash = "sha256:d7989c2577b1f8cbba735209f8d388d21017feb42ef30c29c230040f86b42700", size = 6533, upload-time = "2024-12-10T05:46:34.856Z" },
+]
+
+[[package]]
+name = "json5"
+version = "0.12.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/12/ae/929aee9619e9eba9015207a9d2c1c54db18311da7eb4dcf6d41ad6f0eb67/json5-0.12.1.tar.gz", hash = "sha256:b2743e77b3242f8d03c143dd975a6ec7c52e2f2afe76ed934e53503dd4ad4990", size = 52191, upload-time = "2025-08-12T19:47:42.583Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/85/e2/05328bd2621be49a6fed9e3030b1e51a2d04537d3f816d211b9cc53c5262/json5-0.12.1-py3-none-any.whl", hash = "sha256:d9c9b3bc34a5f54d43c35e11ef7cb87d8bdd098c6ace87117a7b7e83e705c1d5", size = 36119, upload-time = "2025-08-12T19:47:41.131Z" },
 ]
 
 [[package]]

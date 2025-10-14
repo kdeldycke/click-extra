@@ -339,7 +339,7 @@ def test_conf_default_path(invoke, simple_config_cli):
 
     # OS-specific path.
     default_path = shrinkuser(
-        Path(get_app_dir("config-cli1")) / "*.{toml,yaml,yml,json,ini,xml}",
+        Path(get_app_dir("config-cli1")) / "*.{toml,yaml,yml,json,json5,jsonc,ini,xml}",
     )
 
     # Make path string compatible with regexp.

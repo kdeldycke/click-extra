@@ -37,7 +37,7 @@ result = invoke(my_cli, args=["--help"])
 assert "--config CONFIG_PATH" in result.stdout
 ```
 
-See in the result above, there is an explicit mention of the default location of the configuration file (`[default: ~/.config/my-cli/*.{toml,yaml,yml,json,ini,xml}]`). This improves discoverability, and [makes sysadmins happy](https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations), especially those not familiar with your CLI.
+See in the result above, there is an explicit mention of the default location of the configuration file (`[default: ~/.config/my-cli/*.{toml,yaml,yml,json,json5,jsonc,ini,xml}]`). This improves discoverability, and [makes sysadmins happy](https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations), especially those not familiar with your CLI.
 
 A bare call returns:
 
@@ -236,7 +236,9 @@ Several dialects are supported:
 
 - [`TOML`](#toml)
 - [`YAML`](#yaml)
-- [`JSON`](#json), with inline and block comments (Python-style `#` and Javascript-style `//`, thanks to [`commentjson`](https://github.com/vaidik/commentjson))
+- [`JSON`](#json)
+- [`JSON5`](#json5), a [superset of JSON made for configuration file](https://json5.org)
+- [`JSONC`](#jsonc), like JSON, but with comments and trailing commas
 - [`INI`](#ini), with extended interpolation, multi-level sections and non-native types (`list`, `set`, …)
 - [`XML`](#xml)
 
@@ -319,6 +321,26 @@ my_list       is ('item 1', 'item #2', 'Very Last Item!')
 int_parameter is 65
 ```
 
+### JSON5
+
+```{important}
+JSON5 support requires additional packages. You need to [install `click_extra[json5]`](install.md#extra-dependencies) extra dependency group to enable it.
+```
+
+```{todo}
+Write example.
+```
+
+### JSONC
+
+```{important}
+JSONC support requires additional packages. You need to [install `click_extra[jsonc]`](install.md#extra-dependencies) extra dependency group to enable it.
+```
+
+```{todo}
+Write example.
+```
+
 ### INI
 
 `INI` configuration files are allowed to use [`ExtendedInterpolation`](https://docs.python.org/3/library/configparser.html?highlight=configparser#configparser.ExtendedInterpolation) by default.
@@ -341,10 +363,10 @@ Write example.
 
 The configuration file is searched based on a wildcard-based glob pattern.
 
-By default, the pattern is `<app_dir>/*.{toml,yaml,yml,json,ini,xml}`, where:
+By default, the pattern is `<app_dir>/*.{toml,yaml,yml,json,json5,jsonc,ini,xml}`, where:
 
 - `<app_dir>` is the [default application folder](#default-folder)
-- `*.{toml,yaml,yml,json,ini,xml}` are the [default extensions](#default-extensions) of supported formats
+- `*.{toml,yaml,yml,json,json5,jsonc,ini,xml}` are the [default extensions](#default-extensions) of supported formats
 
 ```{seealso}
 There is a long history about the choice of the default application folder.
@@ -386,12 +408,12 @@ def cli():
     pass
 ```
 
-See how the default to `--config` option has been changed to `~/.cli/*.{toml,yaml,yml,json,ini,xml}`:
+See how the default to `--config` option has been changed to `~/.cli/*.{toml,yaml,yml,json,json5,jsonc,ini,xml}`:
 
 ```{click:run}
 :emphasize-lines: 7
 result = invoke(cli, args=["--help"])
-assert "~/.cli/*.{toml,yaml,yml,json,ini,xml}]" in result.stdout
+assert "~/.cli/*.{toml,yaml,yml,json,json5,jsonc,ini,xml}]" in result.stdout
 ```
 
 ### Custom pattern
@@ -467,6 +489,8 @@ The extensions that are used for each dialect to produce the file pattern matchi
 | `TOML` | `*.toml`          |
 | `YAML` | `*.yaml`, `*.yml` |
 | `JSON` | `*.json`          |
+| `JSON5`| `*.json5`         |
+| `JSONC`| `*.jsonc`         |
 | `INI`  | `*.ini`           |
 | `XML`  | `*.xml`           |
 

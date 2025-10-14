@@ -101,6 +101,14 @@ yaml = [
     # PyYAML 6.0.3 is the first version to support Python 3.14.
     "pyyaml >= 6.0.3",
 ]
+json5 = [
+    # json5 0.12.1 is the first version we used in Click Extra.
+    "json5 >= 0.12.1",
+]
+jsonc = [
+    # json-with-comments 1.2.10 is the first version we used in Click Extra.
+    "json-with-comments >= 1.2.10",
+]
 xml = [
     # xmltodict 0.15.1 prevent XML injection.
     "xmltodict >= 0.15.1",

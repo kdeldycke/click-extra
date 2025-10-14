@@ -155,7 +155,7 @@ jobs:
       - name: Install project
         run: >
           uv --no-progress sync --frozen --extra test
-          --extra yaml --extra xml --extra pygments --extra sphinx --extra pytest
+          --extra yaml --extra json5 --extra jsonc --extra xml --extra pygments --extra sphinx --extra pytest
       - name: Unittests
         run: >
           uv --no-progress run --frozen
