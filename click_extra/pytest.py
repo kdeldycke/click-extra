@@ -205,8 +205,11 @@ default_options_uncolored_help = (
     r"                        \[default: color\]\n"
     r"  --config CONFIG_PATH  Location of the configuration file. Supports glob\n"
     r"                        pattern of local path and remote URL.  \[default:( \S+)?\n"
+    # XXX We cannot do better than \S+ for the default path because it is OS-specific,
+    # and we cannot hard-code the whole glob pattern because the line wrapping would be
+    # different on different terminals.
     r"(                        .+\n)*"
-    r"                        .*json5,jsonc,hjson,ini,xml}\]\n"
+    r"                        .*ni,xml}\]\n"
     r"  --no-config           Ignore all configuration files and only use command line\n"
     r"                        parameters and environment variables.\n"
     r"  --show-params         Show all CLI parameters, their provenance, defaults and\n"
@@ -229,9 +232,12 @@ default_options_colored_help = (
     r"                        Strip out all colors and all ANSI codes from output.\n"
     r"                        \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mcolor\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
     r"  \x1b\[36m--config\x1b\[0m \x1b\[36m\x1b\[2mCONFIG_PATH\x1b\[0m  Location of the configuration file. Supports glob\n"
+    # XXX We cannot do better than \S+ for the default path because it is OS-specific,
+    # and we cannot hard-code the whole glob pattern because the line wrapping would be
+    # different on different terminals.
     r"                        pattern of local path and remote URL.  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault:( \S+)?\n"
     r"(                        .+\n)*"
-    r"                        .*json5,jsonc,hjson,ini,xml}\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
+    r"                        .*ni,xml}\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
     r"  \x1b\[36m--no-config\x1b\[0m           Ignore all configuration files and only use command line\n"
     r"                        parameters and environment variables.\n"
     r"  \x1b\[36m--show-params\x1b\[0m         Show all CLI parameters, their provenance, defaults and\n"
