@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5.0.0
-      - uses: astral-sh/setup-uv@v7.0.0
+      - uses: astral-sh/setup-uv@v7.1.0
       - name: Generate dynamic doc
         run: |
           uv --no-progress run --frozen --extra pygments -m click_extra.docs_update
