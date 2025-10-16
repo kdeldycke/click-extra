@@ -143,7 +143,7 @@ pytest = [
 ## Non-runtime dependencies, for development and CI, are using the ~= specifier to reduce randomness.
 ## Unless the package has been referenced in sections above, in which case we align the version specifier.
 test = [
-    "coverage [toml] ~= 7.10.0",
+    "coverage [toml] ~= 7.11.0",
     # extra-platforms 3.0.0 is the first version to drop Python 3.10, like us.
     "extra-platforms [pytest] >= 3.0.0",
     "myst-parser ~= 4.0.0",
