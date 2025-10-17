@@ -90,23 +90,18 @@ def decorator_factory(dec, *new_args, **new_defaults):
     return decorator
 
 
-# Redefine Cloup decorators to allow them to be used with or without parenthesis.
+# Rebase default decorators on Cloup, and allow them to be used without parenthesis.
 command = decorator_factory(dec=cloup.command)
 group = decorator_factory(dec=cloup.group)
 
-# Customize existing Click decorators with better default parameters.
+# Customize existing Click decorator with better default parameters.
 help_option = decorator_factory(
-    # XXX parameters are not named because of the way the default option names are
-    # passed to HelpOption.
-    # TODO: try the following instead once https://github.com/pallets/click/pull/2840
-    # is merged:
-    #   dec=click.decorators.help_option,
-    #   param_decls=DEFAULT_HELP_NAMES,
-    click.decorators.help_option,
-    *DEFAULT_HELP_NAMES,
+    dec=click.decorators.help_option,
+    param_decls=DEFAULT_HELP_NAMES,
 )
 
-# Extend Cloup decorators with better defaults, and prefix them with "extra_".
+# Define our own fully-capable decorators based on Cloup's, and prefix them with
+# "extra_".
 extra_command = decorator_factory(
     dec=cloup.command,
     cls=ExtraCommand,
