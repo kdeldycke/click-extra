@@ -219,7 +219,7 @@ __all__ = [
 """
 
 
-__version__ = "6.1.0"
+__version__ = "6.1.1"
 """Examples of valid version strings according :pep:`440#version-scheme`:
 
 .. code-block:: python
