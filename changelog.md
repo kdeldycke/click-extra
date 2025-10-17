@@ -7,7 +7,7 @@
 
 - Add support for JSON5, JSONC and HJSON configuration files.
 - YAML and XML configuration support is now optional. You need to install the `click_extra[yaml]` and `click_extra[xml]` extra dependency groups to enable it.
-- Add new `@lazy_group` decorator and `LazyGroup` class to create groups that only load their subcommands when invoked.
+- Add new `@lazy_group` decorator and `LazyGroup` class to create groups that only load their subcommands when invoked. Closes {issue}`1332`.
 - Move all custom types to `click_extra._types` module.
 - Avoid importing all types at runtime to reduce startup time.
 - Upgrade tests runs from `macos-13` to `macos-15-intel`, and from `macos-15` to `macos-26`.
