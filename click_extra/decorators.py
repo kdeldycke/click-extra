@@ -21,7 +21,13 @@ import click
 import cloup
 
 from .colorize import ColorOption
-from .commands import DEFAULT_HELP_NAMES, ExtraCommand, ExtraGroup, default_extra_params
+from .commands import (
+    DEFAULT_HELP_NAMES,
+    ExtraCommand,
+    ExtraGroup,
+    LazyGroup,
+    default_extra_params,
+)
 from .config import ConfigOption, NoConfigOption
 from .logging import VerboseOption, VerbosityOption
 from .parameters import ShowParamsOption
@@ -100,7 +106,7 @@ help_option = decorator_factory(
     *DEFAULT_HELP_NAMES,
 )
 
-# Copy Click and Cloup decorators with better defaults, and prefix them with "extra_".
+# Extend Cloup decorators with better defaults, and prefix them with "extra_".
 extra_command = decorator_factory(
     dec=cloup.command,
     cls=ExtraCommand,
@@ -112,6 +118,11 @@ extra_group = decorator_factory(
     params=default_extra_params,
 )
 extra_version_option = decorator_factory(dec=cloup.option, cls=ExtraVersionOption)
+
+
+# New group decorators provided by Click Extra.
+lazy_group = decorator_factory(dec=extra_group, cls=LazyGroup)
+
 
 # New option decorators provided by Click Extra.
 color_option = decorator_factory(dec=cloup.option, cls=ColorOption)

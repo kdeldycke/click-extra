@@ -267,6 +267,12 @@ assert (
 The advantage of the `context_settings` method we demonstrated last, is that it let you change the default of the `--verbosity` option provided by Click Extra, without having to [re-list the whole set of default options](#change-default-options).
 ```
 
+## Lazily loading subcommands
+
+Click Extra provides a `LazyGroup` class and `@lazy_group` decorator to create command groups that only load their subcommands when they are invoked.
+
+This implementation is based on the one provided in Click's documentation, so refer to the [*Lazily loading subcommands*](https://click.palletsprojects.com/en/stable/complex/#defining-the-lazy-group) section for more details.
+
 ## Third-party commands composition
 
 Click Extra is capable of composing with existing Click CLI in various situation.

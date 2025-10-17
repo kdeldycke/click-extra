@@ -36,6 +36,7 @@ from .commands import (  # noqa: E402
     ExtraCommand,
     ExtraContext,
     ExtraGroup,
+    LazyGroup,
 )
 from .config import ConfigOption, NoConfigOption  # noqa: E402
 from .decorators import (  # type: ignore[no-redef, has-type, unused-ignore] # noqa: E402
@@ -47,6 +48,7 @@ from .decorators import (  # type: ignore[no-redef, has-type, unused-ignore] # n
     extra_version_option,
     group,
     help_option,
+    lazy_group,
     no_config_option,
     show_params_option,
     table_format_option,
@@ -146,6 +148,8 @@ __all__ = [
     "INT",  # noqa: F405
     "IntRange",  # noqa: F405
     "launch",  # noqa: F405
+    "lazy_group",  # noqa: F405
+    "LazyGroup",  # noqa: F405
     "LogLevel",  # noqa: F405
     "make_pass_decorator",  # noqa: F405
     "MissingParameter",  # noqa: F405

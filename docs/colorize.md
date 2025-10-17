@@ -12,7 +12,7 @@ to add colorization of:
 
 - Cli name
 
-- Sub-commands
+- Subcommands
 
 - Command aliases
 

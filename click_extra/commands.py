@@ -22,6 +22,9 @@ leverage the mixins in here to build up your own custom variants.
 
 from __future__ import annotations
 
+import importlib
+import logging
+
 import click
 import cloup
 
@@ -394,7 +397,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):  # type: ignore[misc]
 
 
 class ExtraGroup(ExtraCommand, Group):  # type: ignore[misc]
-    """Like``cloup.Group``, with sane defaults and extra help screen colorization."""
+    """Like ``cloup.Group``, with sane defaults and extra help screen colorization."""
 
     command_class = ExtraCommand
     """Makes commands of an ``ExtraGroup`` be instances of ``ExtraCommand``.
@@ -410,3 +413,172 @@ class ExtraGroup(ExtraCommand, Group):  # type: ignore[misc]
 
     See: https://click.palletsprojects.com/en/stable/api/#click.Group.group_class
     """
+
+
+class LazyGroup(ExtraGroup):
+    """An ``ExtraGroup`` that supports lazy loading of subcommands.
+
+    This implementation adds special handling for ``config_option`` to ensure
+    configuration values are passed to lazily loaded commands correctly.
+
+    .. hint::
+        This implementation is based on the snippet from Click's documentation:
+        `Defining the lazy group
+        <https://click.palletsprojects.com/en/stable/complex/#defining-the-lazy-group>`_.
+
+        And has been adapted to work with Click Extra's ``config_option`` in
+        `click_extra#1332 issue
+        <https://github.com/kdeldycke/click-extra/issues/1332#issuecomment-3299486142>`_.
+    """
+
+    def __init__(
+        self,
+        *args: Any,
+        lazy_subcommands: dict[str, str] | None = None,
+        **kwargs: Any,
+    ) -> None:
+        """Initialize the ``LazyGroup``.
+
+        Args:
+            *args: Positional arguments for the parent class.
+            lazy_subcommands (dict, optional): Mapping of command names to import paths.
+            **kwargs: Keyword arguments for the parent class.
+
+        .. tip::
+            ``lazy_subcommands`` is a map of the form:
+
+            .. code-block:: text
+                `{"<command-name>": "<module-name>.<command-object-name>"}`
+
+            Example:
+
+            .. code-block:: text
+                `{"mycmd": "my_cli.commands.mycmd:mycmd"}`
+        """
+        super().__init__(*args, **kwargs)
+        self.lazy_subcommands = lazy_subcommands if lazy_subcommands else {}
+
+    def list_commands(self, ctx: click.Context) -> list[str]:
+        """List all commands, including lazy subcommands.
+
+        Returns the list of command names, including the lazy-loaded.
+        """
+        base = super().list_commands(ctx)
+        lazy = sorted(self.lazy_subcommands.keys())
+        return base + lazy
+
+    def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
+        """Get a command by name, loading lazily if necessary."""
+        if cmd_name in self.lazy_subcommands:
+            return self._lazy_load(ctx, cmd_name)
+        return super().get_command(ctx, cmd_name)
+
+    def _lazy_load(self, ctx: click.Context, cmd_name: str) -> click.Command:
+        """Lazily load a command from its import path."""
+        import_path = self.lazy_subcommands[cmd_name]
+        modname, cmd_object_name = import_path.rsplit(".", 1)
+        mod = importlib.import_module(modname)
+        cmd_object = getattr(mod, cmd_object_name)
+        if not isinstance(cmd_object, click.Command):
+            raise ValueError(
+                f"Lazy loading of {import_path!r} failed by returning a non-command "
+                f"object: {cmd_object!r}"
+            )
+
+        # Fix for config_option: ensure name is set correctly.
+        cmd_object.name = cmd_name
+
+        # Extract and apply config at load time, before any parameter resolution
+        self._apply_config_to_parent_context(ctx, cmd_name)
+
+        return cmd_object
+
+    def _apply_config_to_parent_context(
+        self, ctx: click.Context, cmd_name: str
+    ) -> None:
+        """Apply configuration values to the parent context's ``default_map``.
+
+        This is the key fix for ``config_option`` with lazy commands. Instead of trying
+        to apply config to the command's context (which doesn't exist yet), we apply it
+        to the parent context's default_map with the command name as the key.
+
+        When Click later creates the command's context, it will automatically inherit
+        this config through Click's standard context inheritance mechanism.
+        """
+        logger = logging.getLogger("click_extra")
+
+        try:
+            # Skip if no click_extra config was loaded.
+            if not ctx or not ctx.meta or "click_extra.conf_full" not in ctx.meta:
+                return
+
+            # Get the full configuration loaded by click_extra.
+            full_config = ctx.meta["click_extra.conf_full"]
+            if not full_config:
+                return
+
+            # Get root command name.
+            root = ctx.find_root()
+            root_name = (
+                root.command.name if root.command and root.command.name else None
+            )
+            if not root_name or root_name not in full_config:
+                return
+
+            # Get parent command name (our current group).
+            parent_cmd_name = self.name if hasattr(self, "name") else None
+            if not parent_cmd_name:
+                return
+
+            # Find config for our command.
+            try:
+                # Start with root config.
+                config_branch = full_config[root_name]
+
+                # Navigate to parent group's config.
+                current_ctx = ctx
+                path_segments: list[str] = []
+
+                # Build path from root to our parent group (excluding root).
+                while current_ctx and current_ctx.parent:
+                    if current_ctx.command and current_ctx.command.name:
+                        if current_ctx.command.name != root_name:  # Skip root command.
+                            path_segments.insert(0, current_ctx.command.name)
+                    current_ctx = current_ctx.parent
+
+                # Navigate through path segments in config.
+                for segment in path_segments:
+                    if segment in config_branch and isinstance(
+                        config_branch[segment], dict
+                    ):
+                        config_branch = config_branch[segment]
+                    else:
+                        # Path doesn't exist in config.
+                        return
+
+                # Now check for our command's config.
+                if cmd_name in config_branch and isinstance(
+                    config_branch[cmd_name], dict
+                ):
+                    cmd_config = config_branch[cmd_name]
+
+                    # Initialize parent context's default_map if needed
+                    if ctx.default_map is None:
+                        ctx.default_map = {}
+
+                    # Set up for this command in parent's default_map
+                    if cmd_name not in ctx.default_map:
+                        ctx.default_map[cmd_name] = {}
+
+                    # Apply the command's config to parent context's default_map.
+                    # Click will automatically pass this to the command's context.
+                    ctx.default_map[cmd_name].update(cmd_config)
+                    logger.debug(f"Config found for {cmd_name}: {cmd_config}")
+
+            # Log error but continue.
+            except (KeyError, AttributeError, TypeError) as ex:
+                logger.error(f"Error finding config: {ex}")
+
+        # Log error but continue - better to run without config than crash.
+        except (KeyError, AttributeError, TypeError) as ex:
+            logger.error(f"Error applying config: {ex}")
