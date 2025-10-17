@@ -32,7 +32,7 @@ The code above is saved into a file named `my_cli.py`.
 It produces the following help screen:
 
 ```{click:run}
-:emphasize-lines: 7-9
+:emphasize-lines: 7-10
 result = invoke(my_cli, args=["--help"])
 assert "--config CONFIG_PATH" in result.stdout
 ```
@@ -234,14 +234,16 @@ If you have difficulties identifying your options and their IDs, run your CLI wi
 
 Several dialects are supported:
 
-- [`TOML`](#toml)
-- [`YAML`](#yaml)
-- [`JSON`](#json)
-- [`JSON5`](#json5), a [superset of JSON made for configuration file](https://json5.org)
-- [`JSONC`](#jsonc), like JSON, but with comments and trailing commas
-- [`HJSON`](#hjson), another flavor of a [user-friendly JSON](https://hjson.github.io)
-- [`INI`](#ini), with extended interpolation, multi-level sections and non-native types (`list`, `set`, …)
-- [`XML`](#xml)
+| Format | Description | Extensions | Enabled by default |
+| :----- | :---------- | :---------------- | :----------------- |
+| [`TOML`](#toml) | - | `*.toml` | ✅ |
+| [`YAML`](#yaml) | - | `*.yaml`, `*.yml` | ❌ |
+| [`JSON`](#json) | - | `*.json` | ✅ |
+| [`JSON5`](#json5) | A [superset of JSON made for configuration file](https://json5.org) | `*.json5` | ❌ |
+| [`JSONC`](#jsonc) | Like JSON, but with comments and trailing commas | `*.jsonc` | ❌ |
+| [`HJSON`](#hjson) | Another flavor of a [user-friendly JSON](https://hjson.github.io) | `*.hjson` | ❌ |
+| [`INI`](#ini) | With extended interpolation, multi-level sections and non-native types (`list`, `set`, …) | `*.ini` | ✅ |
+| [`XML`](#xml) | - | `*.xml` | ❌ |
 
 ### TOML
 
@@ -374,10 +376,14 @@ Write example.
 
 The configuration file is searched based on a wildcard-based glob pattern.
 
-By default, the pattern is `<app_dir>/*.{toml,yaml,yml,json,json5,jsonc,hjson,ini,xml}`, where:
+By default, the pattern is `<app_dir>/*.{toml,json,ini}`, where:
 
 - `<app_dir>` is the [default application folder](#default-folder)
-- `*.{toml,yaml,yml,json,json5,jsonc,hjson,ini,xml}` are the [default extensions](#default-extensions) of supported formats
+- `*.{toml,json,ini}` are the [extensions of formats](#formats) enabled by default
+
+```{hint}
+Depending on the formats you enabled in your installation of Click Extra, the default extensions may vary. For example, if you installed Click Extra with all extra dependencies, the default extensions would be `*.{toml,yaml,yml,json,json5,jsonc,hjson,ini,xml}`.
+```
 
 ```{seealso}
 There is a long history about the choice of the default application folder.
@@ -419,12 +425,12 @@ def cli():
     pass
 ```
 
-See how the default to `--config` option has been changed to `~/.cli/*.{toml,yaml,yml,json,json5,jsonc,hjson,ini,xml}`:
+See how the default to `--config` option has been changed to `~/.cli/`:
 
 ```{click:run}
 :emphasize-lines: 7
 result = invoke(cli, args=["--help"])
-assert "~/.cli/*.{toml,yaml,yml,json,json5,jsonc,hjson,ini,xml}]" in result.stdout
+assert "~/.cli/*.{" in result.stdout
 ```
 
 ### Custom pattern
@@ -491,24 +497,9 @@ result = invoke(cli, args=["--help"])
 assert "~/.commandrc]" in result.stdout
 ```
 
-### Default extensions
-
-The extensions that are used for each dialect to produce the file pattern matching are encoded by the {py:class}`Formats <click_extra.config.Formats>` Enum:
-
-| Format | Extensions        |
-| :----- | :---------------- |
-| `TOML` | `*.toml`          |
-| `YAML` | `*.yaml`, `*.yml` |
-| `JSON` | `*.json`          |
-| `JSON5`| `*.json5`         |
-| `JSONC`| `*.jsonc`         |
-| `HJSON`| `*.hjson`         |
-| `INI`  | `*.ini`           |
-| `XML`  | `*.xml`           |
-
 ### Multi-format matching
 
-The default behavior consist in searching for all files matching the default `*.{toml,yaml,yml,json,ini,xml}` pattern.
+The default behavior consist in searching for all files matching the default `*.{toml,json,ini}` pattern.
 
 A parsing attempt is made for each file matching the extension pattern, in the order of the table above.
 

@@ -281,8 +281,8 @@ class ConfigOption(ExtraOption, ParamStructure):
     def default_pattern(self) -> str:
         """Returns the default pattern used to search for the configuration file.
 
-        Defaults to ``<app_dir>/*.{toml,yaml,yml,json,json5,jsonc,hjson,ini,xml}``.
-        Where ``<app_dir>`` is produced by the `clickget_app_dir() method
+        Defaults to ``<app_dir>/*.{toml,json,ini}``. Where ``<app_dir>`` is produced by
+        the `clickget_app_dir() method
         <https://click.palletsprojects.com/en/stable/api/#click.get_app_dir>`_.
         The result depends on OS and is influenced by the ``roaming`` and
         ``force_posix`` properties of this instance.
@@ -316,7 +316,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         .. code-block:: text
 
-            ~/(...)/multiple_envvars.py/*.{toml,yaml,yml,json,json5,jsonc,hjson,ini,xml}
+            ~/(...)/multiple_envvars.py/*.{toml,json,ini}
         """
         extra = super().get_help_extra(ctx)
         extra["default"] = shrinkuser(Path(self.get_default(ctx)))  # type: ignore[arg-type]

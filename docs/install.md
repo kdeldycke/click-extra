@@ -2,19 +2,15 @@
 
 ## With `pip`
 
-This package is
-[available on PyPi](https://pypi.python.org/pypi/click-extra), so you
-can install the latest stable release and its dependencies with a simple `pip`
-call:
+This package is [available on PyPi](https://pypi.python.org/pypi/click-extra), so you can install the latest stable release and its dependencies with a simple `pip` call:
 
 ```{code-block} shell-session
 $ pip install click-extra
 ```
 
-See also
-[pip installation instructions](https://pip.pypa.io/en/stable/installing/).
+See also [pip installation instructions](https://pip.pypa.io/en/stable/installing/).
 
-## Main dependencies
+## Default dependencies
 
 This is a graph of the default, main dependencies of the Python package:
 
@@ -24,52 +20,60 @@ This is a graph of the default, main dependencies of the Python package:
 
 ## Extra dependencies
 
-For additional features, you may need to install extra dependencies:
+For additional features, you may need to install extra dependencies.
 
-- To add support for [YAML configuration files](config.md#yaml):
+### Configuration file formats
+
+- [YAML configuration files](config.md#yaml) support:
 
   ```{code-block} shell-session
   $ pip install click-extra[yaml]
   ```
 
-- To add support for [XML configuration files](config.md#xml):
+- [XML configuration files](config.md#xml) support:
 
   ```{code-block} shell-session
   $ pip install click-extra[xml]
   ```
 
-- To add support for [JSON5 configuration files](config.md#json5):
+- [JSON5 configuration files](config.md#json5) support:
 
   ```{code-block} shell-session
   $ pip install click-extra[json5]
   ```
 
-- To add support for [JSONC configuration files](config.md#jsonc):
+- [JSONC configuration files](config.md#jsonc) support:
 
   ```{code-block} shell-session
   $ pip install click-extra[jsonc]
   ```
 
-- To add support for [HJSON configuration files](config.md#hjson):
+- [HJSON configuration files](config.md#hjson) support:
 
   ```{code-block} shell-session
   $ pip install click-extra[hjson]
   ```
 
-- To register new [ANSI-capable formatter, filter and lexers for Pygments](pygments.md):
+### For Pygments
 
-  ```{code-block} shell-session
-  $ pip install click-extra[pygments]
-  ```
+Register new [ANSI-capable formatter, filter and lexers](pygments.md):
 
-- To add new [`click:example` and `click:run` directives for Sphinx](sphinx.md):
+```{code-block} shell-session
+$ pip install click-extra[pygments]
+```
 
-  ```{code-block} shell-session
-  $ pip install click-extra[sphinx]
-  ```
+### For Sphinx
 
-- To use [fixtures and utilities for testing Click CLIs with Pytest](pytest.md):
+Register new [`click:example` and `click:run` directives](sphinx.md):
 
-  ```{code-block} shell-session
-  $ pip install click-extra[pytest]
-  ```
+```{code-block} shell-session
+$ pip install click-extra[sphinx]
+```
+
+### For Pytest
+
+Activate new [fixtures and utilities](pytest.md) for testing Click CLIs:
+
+```{code-block} shell-session
+$ pip install click-extra[pytest]
+```
