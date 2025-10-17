@@ -96,8 +96,8 @@ group = decorator_factory(dec=cloup.group)
 
 # Customize existing Click decorator with better default parameters.
 help_option = decorator_factory(
-    dec=click.decorators.help_option,
-    param_decls=DEFAULT_HELP_NAMES,
+    click.decorators.help_option,
+    *DEFAULT_HELP_NAMES,
 )
 
 # Define our own fully-capable decorators based on Cloup's, and prefix them with
