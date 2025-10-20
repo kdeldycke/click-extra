@@ -63,7 +63,7 @@ def test_integrated_time_option(invoke, subcommand_id, time_min):
     )
     assert group
     # Hard-code upper bound to avoid flakiness on slow platforms like macOS.
-    assert time_min < float(group.groupdict()["time"]) < 40
+    assert time_min < float(group.groupdict()["time"]) < 80
 
 
 @pytest.mark.parametrize("subcommand_id", ("fast", "slow"))
