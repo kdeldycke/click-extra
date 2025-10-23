@@ -70,7 +70,8 @@ classifiers = [
 ]
 # Semantic versioning works in theory. In practice, it is hard to guarantee.
 # That's why we rely on >= specifier instead of ~= to relax constraints. This gives more freedom to packagers to
-# release hotfixes for security vulnerabilities in the future, as Click Extra becomes more popular.
+# release hotfixes for security vulnerabilities in the future.
+# See also discussion about upper limits at: https://iscinumpy.dev/post/bound-version-constraints/#tldr
 # All minimal version choice are documented. Reasons to bump a minimal version are:
 # - bug fixes,
 # - security fixes,
