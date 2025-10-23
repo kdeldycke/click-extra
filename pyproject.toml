@@ -78,10 +78,10 @@ classifiers = [
 # - aligns minimal Python requirements to ours,
 # - adds new explicit support Python version.
 dependencies = [
-    # boltons 23.0.0 is the first version to support Python 3.11.
+    # boltons 25.0.0 is the first version to support Python 3.13.
     # XXX boltons.ecoutils breaks PDB interactive sessions in pytest. Investigation of the root cause is being
     # discussed upstream at: https://github.com/mahmoud/boltons/issues/334
-    "boltons >= 23.0.0",
+    "boltons >= 25.0.0",
     # Click 8.3.0 to fix several issues with flag values, and flag envvars: https://github.com/pallets/click/pull/3030
     "click >= 8.3.0",
     # Cloup 3.0.7 fix issues with metavars: https://github.com/kdeldycke/click-extra/pull/1281

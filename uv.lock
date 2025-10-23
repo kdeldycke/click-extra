@@ -235,7 +235,7 @@ yaml = [
 
 [package.metadata]
 requires-dist = [
-    { name = "boltons", specifier = ">=23.0.0" },
+    { name = "boltons", specifier = ">=25.0.0" },
     { name = "click", specifier = ">=8.3.0" },
     { name = "cloup", specifier = ">=3.0.7" },
     { name = "coverage", extras = ["toml"], marker = "extra == 'test'", specifier = "~=7.11.0" },
