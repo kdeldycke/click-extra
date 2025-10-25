@@ -353,13 +353,16 @@ class ExtraHelpColorsMixin:  # (Command)??
 
         # Get subcommands and their aliases.
         if isinstance(command, click.Group):
-            subcommand_ids.update(command.list_commands(ctx))
-            for sub_id in subcommand_ids:
+            # Process all subcommands, in the order they are listed, to have a stable
+            # and predictable loading order. Which is important on lazy-loading.
+            for sub_id in command.list_commands(ctx):
                 subcommand = command.get_command(ctx, sub_id)
                 if not subcommand:
-                    continue
-                subcommands.add(subcommand)
+                    raise RuntimeError(f"Subcommand {sub_id!r} not found.")
+                subcommand_ids.add(sub_id)
                 command_aliases.update(getattr(subcommand, "aliases", []))
+                # Keep reference to subcommand object for later processing.
+                subcommands.add(subcommand)
 
         # Add user defined help options.
         options.update(ctx.help_option_names)

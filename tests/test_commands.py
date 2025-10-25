@@ -21,6 +21,7 @@ from __future__ import annotations
 import ast
 import inspect
 import os
+import sys
 from pathlib import Path
 from textwrap import dedent
 
@@ -30,6 +31,7 @@ import pytest
 
 import click_extra
 from click_extra import (
+    LazyGroup,
     echo,
     extra_command,
     extra_group,
@@ -580,3 +582,219 @@ def test_raw_args(invoke):
         Raw parameters: ['--int-param', '33']
         """,
     )
+
+
+@pytest.mark.parametrize(
+    "lazy_cmd_decorator",
+    (
+        "@click.command",
+        "@click_extra.command",
+        "@cloup.command()",
+    ),
+)
+def test_lazy_group(invoke, tmp_path, lazy_cmd_decorator):
+    """Test extends the `snippet from Click documentation
+    <https://click.palletsprojects.com/en/stable/complex/#using-lazygroup-to-define-a-cli>`_.
+    """
+
+    (tmp_path / "foo_cmd.py").write_text(
+        dedent(
+            f"""
+            import click
+            import cloup
+            import click_extra
+
+            from click import echo, option
+
+
+            print("<foo_cmd module loaded>")
+
+            {lazy_cmd_decorator}
+            @option("--foo-param", default=5)
+            def foo_cli(foo_param):
+                echo(f"foo_param = {{foo_param}}")
+            """
+        )
+    )
+
+    (tmp_path / "fur_cmd.py").write_text(
+        dedent(
+            f"""
+            import click
+            import cloup
+            import click_extra
+
+            from click import echo, option
+
+
+            print("<fur_cmd module loaded>")
+
+            {lazy_cmd_decorator}
+            @option("--fur-param", default=7)
+            def fur_cli(fur_param):
+                echo(f"fur_param = {{fur_param}}")
+            """
+        )
+    )
+
+    (tmp_path / "bar_cmd.py").write_text(
+        dedent(
+            """
+            import click
+            import cloup
+            import click_extra
+
+            from click import echo, option
+            from click_extra import LazyGroup
+
+
+            print("<bar_cmd module loaded>")
+
+            @click.group(
+                cls=LazyGroup,
+                lazy_subcommands={"baz_cmd": "baz_cmd.baz_cli"},
+                help="bar command for lazy example.",
+            )
+            @option("--bar-param", default=11)
+            def bar_cli(bar_param):
+                echo(f"bar_param = {bar_param}")
+            """
+        )
+    )
+
+    (tmp_path / "baz_cmd.py").write_text(
+        dedent(
+            f"""
+            import click
+            import cloup
+            import click_extra
+
+            from click import echo, option
+
+
+            print("<baz_cmd module loaded>")
+
+            {lazy_cmd_decorator}
+            @option("--baz-param", default=13)
+            def baz_cli(baz_param):
+                echo(f"baz_param = {{baz_param}}")
+            """
+        )
+    )
+
+    def reset_main_cli():
+        """Create the main CLI command with lazy subcommands.
+
+        Also forces a reset of the lazy-loaded module. Else we'll have an issue
+        with ``invoke()`` reusing the same CLI instance, and modules attached to it
+        not getting reloaded because ``LazyGroup`` caches the resolved commands.
+        """
+        # Remove lazy-loaded modules from sys.modules to force reloading.
+        for module_name in ["foo_cmd", "fur_cmd", "bar_cmd", "baz_cmd"]:
+            sys.modules.pop(module_name, None)
+
+        @click.group(
+            cls=LazyGroup,
+            lazy_subcommands={
+                "foo_cmd": "foo_cmd.foo_cli",
+                "fur_cmd": "fur_cmd.fur_cli",
+                "bar_cmd": "bar_cmd.bar_cli",
+            },
+            help="main CLI command for lazy example.",
+        )
+        @click.option("--main-param", default=3)
+        def main_cli(main_param):
+            echo(f"main_param = {main_param}")
+
+        return main_cli
+
+    help_screen = dedent(
+        """\
+        Usage: main-cli [OPTIONS] COMMAND [ARGS]...
+
+          main CLI command for lazy example.
+
+        Options:
+          --main-param INTEGER  [default: 3]
+          -h, --help            Show this message and exit.
+
+        Commands:
+          bar_cmd  bar command for lazy example.
+          foo_cmd
+          fur_cmd
+        """
+    )
+
+    # Allow discoverability of the modules implementing the lazy subcommands.
+    sys.path.insert(0, str(tmp_path))
+
+    try:
+        main_cli = reset_main_cli()
+
+        # Calling --help load the modules in a stable order. Also check that the
+        # subcommands are featured in the help screen. But not the nested baz_cmd.
+        result = invoke(main_cli, "--help", color=False)
+        assert result.stdout == (
+            dedent(
+                """\
+                <bar_cmd module loaded>
+                <foo_cmd module loaded>
+                <fur_cmd module loaded>
+                """
+            )
+            + help_screen
+        )
+        assert not result.stderr
+        assert result.exit_code == 0
+
+        # A second help invocation should not reload already loaded modules.
+        result = invoke(main_cli, "--help", color=False)
+        assert result.stdout == help_screen
+
+        # Recreate the CLI to reset the lazy-loaded commands cache.
+        main_cli = reset_main_cli()
+
+        # Check modules are reloaded.
+        result = invoke(main_cli, "--help", color=False)
+        assert result.stdout == (
+            dedent(
+                """\
+                <bar_cmd module loaded>
+                <foo_cmd module loaded>
+                <fur_cmd module loaded>
+                """
+            )
+            + help_screen
+        )
+        assert not result.stderr
+        assert result.exit_code == 0
+
+        # Execute a lazy subcommand: no module gets loaded because it was already done
+        # in the previous --help invocation.
+        result = invoke(main_cli, "foo_cmd")
+        assert result.stdout == dedent(
+            """\
+            main_param = 3
+            foo_param = 5
+            """
+        )
+        assert not result.stderr
+        assert result.exit_code == 0
+
+        # Reset the CLI.
+        main_cli = reset_main_cli()
+
+        # Execute a lazy subcommand: only the invoked module gets lazy loaded.
+        result = invoke(main_cli, "foo_cmd")
+        assert result.stdout == dedent(
+            """\
+            <foo_cmd module loaded>
+            main_param = 3
+            foo_param = 5
+            """
+        )
+        assert not result.stderr
+        assert result.exit_code == 0
+
+    finally:
+        sys.path.remove(str(tmp_path))

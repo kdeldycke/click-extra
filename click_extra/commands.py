@@ -447,16 +447,19 @@ class LazyGroup(ExtraGroup):
         .. tip::
             ``lazy_subcommands`` is a map of the form:
 
-            .. code-block:: text
-                `{"<command-name>": "<module-name>.<command-object-name>"}`
+            .. code-block:: python
+                {"<command-name>": "<module-name>.<command-object-name>"}
 
             Example:
 
-            .. code-block:: text
-                `{"mycmd": "my_cli.commands.mycmd:mycmd"}`
+            .. code-block:: python
+                {"mycmd": "my_cli.commands.mycmd"}
         """
         super().__init__(*args, **kwargs)
-        self.lazy_subcommands = lazy_subcommands if lazy_subcommands else {}
+        # Explicitly sort lazy subcommands so we have a predictable and stable lazy loading order.
+        self.lazy_subcommands = (
+            OrderedDict(sorted(lazy_subcommands.items())) if lazy_subcommands else {}
+        )
 
     def list_commands(self, ctx: click.Context) -> list[str]:
         """List all commands, including lazy subcommands.
@@ -464,13 +467,29 @@ class LazyGroup(ExtraGroup):
         Returns the list of command names, including the lazy-loaded.
         """
         base = super().list_commands(ctx)
-        lazy = sorted(self.lazy_subcommands.keys())
+        lazy = list(self.lazy_subcommands.keys())
         return base + lazy
 
     def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
-        """Get a command by name, loading lazily if necessary."""
-        if cmd_name in self.lazy_subcommands:
-            return self._lazy_load(ctx, cmd_name)
+        """Get a command by name, loading lazily if necessary.
+
+        .. todo::
+            Allow passing extra parameters to the ``self.lazy_subcommands`` so we can
+            registered commands with custom settings like Cloup's ``section`` or
+            ``fallback_to_default_section``:
+
+            - section: Optional[Section] = None,
+            - fallback_to_default_section: bool = True,
+
+            See: https://github.com/janluke/cloup/blob/master/cloup/_sections.py#L169
+        """
+        # Lazily load the command if it's not already registered.
+        if cmd_name in self.lazy_subcommands and cmd_name not in self.commands:
+            cmd_object = self._lazy_load(ctx, cmd_name)
+            # Register the command with Click public API so it triggers the whole Help
+            # machinery properly, including the way Cloup initialize its Section system.
+            self.add_command(cmd_object)
+
         return super().get_command(ctx, cmd_name)
 
     def _lazy_load(self, ctx: click.Context, cmd_name: str) -> click.Command:
