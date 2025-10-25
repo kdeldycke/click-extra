@@ -785,12 +785,26 @@ def test_lazy_group(invoke, tmp_path, lazy_cmd_decorator):
         main_cli = reset_main_cli()
 
         # Execute a lazy subcommand: only the invoked module gets lazy loaded.
-        result = invoke(main_cli, "foo_cmd")
+        result = invoke(main_cli, "--main-param", "30", "foo_cmd", "--foo-param", "50")
         assert result.stdout == dedent(
             """\
             <foo_cmd module loaded>
+            main_param = 30
+            foo_param = 50
+            """
+        )
+        assert not result.stderr
+        assert result.exit_code == 0
+
+        # Execute a nested lazy subcommand.
+        result = invoke(main_cli, "bar_cmd", "baz_cmd", "--baz-param", "17")
+        assert result.stdout == dedent(
+            """\
+            <bar_cmd module loaded>
             main_param = 3
-            foo_param = 5
+            <baz_cmd module loaded>
+            bar_param = 11
+            baz_param = 17
             """
         )
         assert not result.stderr
