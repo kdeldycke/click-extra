@@ -1,5 +1,10 @@
 # Changelog
 
+## [6.1.1 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v6.1.0...main)
+
+> [!IMPORTANT]
+> This version is not released yet and is under active development.
+
 ## [6.1.0 (2025-10-28)](https://github.com/kdeldycke/click-extra/compare/v6.0.3...v6.1.0)
 
 - Add support for JSON5, JSONC and HJSON configuration files.
