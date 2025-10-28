@@ -457,7 +457,8 @@ class LazyGroup(ExtraGroup):
                 {"mycmd": "my_cli.commands.mycmd"}
         """
         super().__init__(*args, **kwargs)
-        # Explicitly sort lazy subcommands so we have a predictable and stable lazy loading order.
+        # Explicitly sort lazy subcommands so we have a predictable and stable
+        # lazy loading order.
         self.lazy_subcommands = (
             OrderedDict(sorted(lazy_subcommands.items())) if lazy_subcommands else {}
         )
