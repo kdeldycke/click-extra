@@ -6,7 +6,7 @@
 
 [![Last release](https://img.shields.io/pypi/v/click-extra.svg)](https://pypi.python.org/pypi/click-extra)
 [![Python versions](https://img.shields.io/pypi/pyversions/click-extra.svg)](https://pypi.python.org/pypi/click-extra)
-[![Downloads](https://static.pepy.tech/badge/click_extra/month)](https://pepy.tech/project/click_extra)
+[![Downloads](https://static.pepy.tech/badge/click_extra/month)](https://pepy.tech/projects/click_extra)
 [![Unittests status](https://github.com/kdeldycke/click-extra/actions/workflows/tests.yaml/badge.svg?branch=main)](https://github.com/kdeldycke/click-extra/actions/workflows/tests.yaml?query=branch%3Amain)
 [![Coverage status](https://codecov.io/gh/kdeldycke/click-extra/branch/main/graph/badge.svg)](https://app.codecov.io/gh/kdeldycke/click-extra)
 [![Documentation status](https://github.com/kdeldycke/click-extra/actions/workflows/docs.yaml/badge.svg?branch=main)](https://github.com/kdeldycke/click-extra/actions/workflows/docs.yaml?query=branch%3Amain)
