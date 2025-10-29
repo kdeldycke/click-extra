@@ -34,8 +34,8 @@ jobs:
         # Available Python: https://github.com/actions/python-versions/blob/main/versions-manifest.json
         python-version:
           - "3.11"
-          - "3.12"
-          - "3.13"
+          # - "3.12"
+          # - "3.13"
           - "3.14"
           - "3.15"
         click-version:
@@ -57,8 +57,6 @@ jobs:
         #         - windows-2025
         #       python-version:
         #         - "3.11"
-        #         - "3.12"
-        #         - "3.13"
         #         - "3.15"
         #     - click-version: main
         #       os:
@@ -67,8 +65,6 @@ jobs:
         #         - windows-2025
         #       python-version:
         #         - "3.11"
-        #         - "3.12"
-        #         - "3.13"
         #         - "3.15"
         #     - cloup-version: master
         #       os:
@@ -77,8 +73,6 @@ jobs:
         #         - windows-2025
         #       python-version:
         #         - "3.11"
-        #         - "3.12"
-        #         - "3.13"
         #         - "3.15"
         exclude:
           # Only targets the latest OS for each platform.
@@ -106,18 +100,6 @@ jobs:
           - python-version: "3.11"
             click-version: main
           - python-version: "3.11"
-            cloup-version: master
-          - python-version: "3.12"
-            click-version: stable
-          - python-version: "3.12"
-            click-version: main
-          - python-version: "3.12"
-            cloup-version: master
-          - python-version: "3.13"
-            click-version: stable
-          - python-version: "3.13"
-            click-version: main
-          - python-version: "3.13"
             cloup-version: master
           # Exclude Python's dev version.
           - python-version: "3.15"

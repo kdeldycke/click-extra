@@ -5,6 +5,8 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Skip tests on intermediate Python versions (`3.12` and `3.13`) to reduce CI load.
+
 ## [6.1.0 (2025-10-28)](https://github.com/kdeldycke/click-extra/compare/v6.0.3...v6.1.0)
 
 - Add support for JSON5, JSONC and HJSON configuration files.
