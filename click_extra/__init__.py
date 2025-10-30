@@ -222,7 +222,7 @@ __all__ = [
 """
 
 
-__version__ = "6.2.0"
+__version__ = "7.0.0"
 """Examples of valid version strings according :pep:`440#version-scheme`:
 
 .. code-block:: python
