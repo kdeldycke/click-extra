@@ -81,6 +81,7 @@ from .table import (  # noqa: E402
 from .telemetry import TelemetryOption  # noqa: E402
 from .testing import ExtraCliRunner  # noqa: E402
 from .timer import TimerOption  # noqa: E402
+from .types import ChoiceSource, EnumChoice  # noqa: E402
 from .version import ExtraVersionOption  # noqa: E402
 
 __all__ = [
@@ -93,6 +94,7 @@ __all__ = [
     "BadParameter",  # noqa: F405
     "BOOL",  # noqa: F405
     "Choice",  # noqa: F405
+    "ChoiceSource",  # noqa: F405
     "clear",  # noqa: F405
     "ClickException",  # noqa: F405
     "Color",  # noqa: F405
@@ -114,6 +116,7 @@ __all__ = [
     "echo",  # noqa: F405
     "echo_via_pager",  # noqa: F405
     "edit",  # noqa: F405
+    "EnumChoice",  # noqa: F405
     "extra_command",  # noqa: F405
     "extra_group",  # noqa: F405
     "extra_version_option",  # noqa: F405

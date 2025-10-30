@@ -20,6 +20,7 @@ table
 version
 timer
 parameters
+types
 pygments
 sphinx
 testing
