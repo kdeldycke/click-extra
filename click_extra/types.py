@@ -16,7 +16,6 @@
 
 from __future__ import annotations
 
-import re
 from enum import Enum, StrEnum
 
 from . import Choice
@@ -59,8 +58,11 @@ class EnumChoice(Choice):
     .. hint::
         Contrary to the parent ``Choice`` class, we store the choice directly as
         strings, not the ``Enum`` members themselves. That way there is no surprises
-        when displaying the choices to the user. This trick bypass ``Enum``-specific
-        code path in the Click library.
+        when displaying the choices to the user.
+
+        This trick bypass ``Enum``-specific code path in the Click library. Because,
+        after all, a terminal environment only deals with strings: arguments,
+        parameters, parsing, help messages, environment variables, etc.
     """
 
     _enum: Enum
@@ -143,3 +145,6 @@ class EnumChoice(Choice):
         """
         choice_string = super().convert(value, param, ctx)
         return self._enum_map[choice_string]
+
+    def __repr__(self) -> str:
+        return f"EnumChoice{self.choices!r}"

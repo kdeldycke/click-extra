@@ -16,11 +16,72 @@
 
 from __future__ import annotations
 
-from enum import IntEnum, StrEnum, auto
+from enum import Enum, IntEnum, StrEnum, auto
 
 import pytest
 
-from click_extra import BadParameter, ChoiceSource, EnumChoice
+from click_extra import (
+    BadParameter,
+    Choice,
+    ChoiceSource,
+    EnumChoice,
+    command,
+    echo,
+    option,
+)
+
+
+def test_click_choice_behavior() -> None:
+    """Lockdown the behavior of method inherited from Click's Choice type."""
+
+    class SimpleEnum(Enum):
+        FIRST_VALUE = auto()
+        SECOND_VALUE = "second-value"
+
+    enum_choice = Choice(SimpleEnum)
+
+    assert repr(enum_choice) == (
+        "Choice([<SimpleEnum.FIRST_VALUE: 1>, "
+        "<SimpleEnum.SECOND_VALUE: 'second-value'>])"
+    )
+    assert enum_choice.choices == (SimpleEnum.FIRST_VALUE, SimpleEnum.SECOND_VALUE)
+    assert enum_choice.case_sensitive is True
+
+    # Choice strings or Eunum members are recognized as valid inputs.
+    assert enum_choice.convert("FIRST_VALUE", None, None) == SimpleEnum.FIRST_VALUE
+    assert enum_choice.convert("SECOND_VALUE", None, None) == SimpleEnum.SECOND_VALUE
+    assert enum_choice.convert(SimpleEnum.FIRST_VALUE, None, None) == (
+        SimpleEnum.FIRST_VALUE
+    )
+    assert enum_choice.convert(SimpleEnum.SECOND_VALUE, None, None) == (
+        SimpleEnum.SECOND_VALUE
+    )
+
+    # Values are not recognized as valid inputs.
+    with pytest.raises(BadParameter) as exc_info:
+        enum_choice.convert("second-value", None, None)
+    assert exc_info.value.args[0] == (
+        "'second-value' is not one of 'FIRST_VALUE', 'SECOND_VALUE'."
+    )
+
+    # Normalization works for both choice strings and Enum members.
+    assert enum_choice.normalize_choice("FIRST_VALUE", None) == "FIRST_VALUE"
+    assert enum_choice.normalize_choice("SECOND_VALUE", None) == "SECOND_VALUE"
+    assert enum_choice.normalize_choice(SimpleEnum.FIRST_VALUE, None) == "FIRST_VALUE"
+    assert enum_choice.normalize_choice(SimpleEnum.SECOND_VALUE, None) == "SECOND_VALUE"
+
+    # Normalization leave stings unchanged (case-sensitive).
+    assert enum_choice.normalize_choice("first_value", None) == "first_value"
+    assert enum_choice.normalize_choice("Second_Value", None) == "Second_Value"
+
+    # Test case-insensitive behavior.
+    enum_choice_ci = Choice(SimpleEnum, case_sensitive=False)
+    assert enum_choice_ci.convert("first_value", None, None) == SimpleEnum.FIRST_VALUE
+    assert enum_choice_ci.convert("SECOND_value", None, None) == (
+        SimpleEnum.SECOND_VALUE
+    )
+    assert enum_choice_ci.normalize_choice("first_value", None) == "first_value"
+    assert enum_choice_ci.normalize_choice("SECOND_value", None) == "second_value"
 
 
 # TODO: test with all Enum types (IntEnum, Flag, IntFlag, etc.)
@@ -34,6 +95,7 @@ def test_simple_enum_choice() -> None:
     enum_choice = EnumChoice(SimpleEnum)
 
     assert enum_choice.choices == ("first_value", "second-value")
+    assert repr(enum_choice) == "EnumChoice('first_value', 'second-value')"
 
 
 class MyEnum(StrEnum):
@@ -75,7 +137,12 @@ def test_enum_choice_internals(
     assert enum_choice.choices == expected_choices
     assert len(enum_choice.choices) == 2
 
+    assert repr(enum_choice) == (
+        f"EnumChoice('{expected_choices[0]}', '{expected_choices[1]}')"
+    )
+
     # Check internal metadata.
+    assert enum_choice.case_sensitive is False
     assert enum_choice._enum is MyEnum
     assert enum_choice._choice_source in ChoiceSource
     assert len(enum_choice._enum_map) == 2
@@ -167,3 +234,81 @@ def test_duplicate_choice_string() -> None:
         "<BadEnum.FIRST: 'first'> and <BadEnum.SECOND: 'second'> when using "
         "<ChoiceSource.STR: 'str'>."
     )
+
+
+@pytest.mark.parametrize(
+    ("case_sensitive", "valid_inputs", "invalid_inputs"),
+    (
+        (
+            # Case-insensitive mode.
+            False,
+            (
+                # Choice strings.
+                ("my-first-value", MyEnum.FIRST_VALUE),
+                ("my-second-value", MyEnum.SECOND_VALUE),
+                # Case variations (should be accepted).
+                ("MY-FIRST-VALUE", MyEnum.FIRST_VALUE),
+                ("My-Second-Value", MyEnum.SECOND_VALUE),
+                # Enum members.
+                (MyEnum.FIRST_VALUE, MyEnum.FIRST_VALUE),
+                (MyEnum.SECOND_VALUE, MyEnum.SECOND_VALUE),
+            ),
+            (
+                "FIRST_VALUE",
+                "first_value",
+                "my_second_value",
+            ),
+        ),
+        (
+            # Case-sensitive mode.
+            True,
+            (
+                # Choice strings.
+                ("my-first-value", MyEnum.FIRST_VALUE),
+                ("my-second-value", MyEnum.SECOND_VALUE),
+                # Enum members.
+                (MyEnum.FIRST_VALUE, MyEnum.FIRST_VALUE),
+                (MyEnum.SECOND_VALUE, MyEnum.SECOND_VALUE),
+            ),
+            (
+                "FIRST_VALUE",
+                "first_value",
+                "my_second_value",
+                # Case variations should be rejected.
+                "MY-FIRST-VALUE",
+                "My-Second-Value",
+            ),
+        ),
+    ),
+)
+def test_enum_choice_command(
+    invoke, case_sensitive, valid_inputs, invalid_inputs
+) -> None:
+    """Test EnumChoice used within an option."""
+
+    @command
+    @option("--my-enum", type=EnumChoice(MyEnum, case_sensitive=case_sensitive))
+    def cli(my_enum: MyEnum) -> None:
+        echo(f"my_enum: {my_enum!r}")
+
+    # Test valid input.
+    for valid_input, expected_member in valid_inputs:
+        result = invoke(cli, ["--my-enum", valid_input])
+        assert result.stdout == f"my_enum: {expected_member!r}\n"
+        assert not result.stderr
+        assert result.exit_code == 0
+
+    # Test invalid inputs.
+    for invalid_input in invalid_inputs:
+        result = invoke(cli, ["--my-enum", invalid_input])
+        assert (
+            "Error: Invalid value for '--my-enum': "
+            f"'{invalid_input}' is not one of 'my-first-value', 'my-second-value'."
+        ) in result.stderr
+        assert not result.stdout
+        assert result.exit_code == 2
+
+    # Test help message.
+    result = invoke(cli, ["--help"])
+    assert "--my-enum [my-first-value|my-second-value]" in result.stdout
+    assert result.exit_code == 0
