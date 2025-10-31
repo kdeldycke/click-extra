@@ -56,9 +56,9 @@ class EnumChoice(Choice):
     """The available choice strings.
 
     .. hint::
-        Contrary to the parent ``Choice`` class, we store the choice directly as
+        Contrary to the parent ``Choice`` class, we store choices directly as
         strings, not the ``Enum`` members themselves. That way there is no surprises
-        when displaying the choices to the user.
+        when displaying them to the user.
 
         This trick bypass ``Enum``-specific code path in the Click library. Because,
         after all, a terminal environment only deals with strings: arguments,
