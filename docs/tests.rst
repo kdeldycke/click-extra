@@ -121,6 +121,14 @@ tests.test\_timer module
    :show-inheritance:
    :undoc-members:
 
+tests.test\_types module
+------------------------
+
+.. automodule:: tests.test_types
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 tests.test\_version module
 --------------------------
 

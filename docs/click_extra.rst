@@ -129,6 +129,14 @@ click\_extra.timer module
    :show-inheritance:
    :undoc-members:
 
+click\_extra.types module
+-------------------------
+
+.. automodule:: click_extra.types
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 click\_extra.version module
 ---------------------------
 
