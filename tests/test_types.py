@@ -149,7 +149,8 @@ def test_enum_choice_internals(
     assert tuple(enum_choice._enum_map.keys()) == enum_choice.choices
     assert tuple(enum_choice._enum_map.values()) == tuple(MyEnum)
 
-    # Choice strings and Enum members are normalized correctly (i.e. lower-cased by default).
+    # Choice strings and Enum members are normalized correctly (i.e.
+    # lower-cased by default).
     assert (
         enum_choice.normalize_choice(expected_choices[0], None)
         == expected_choices[0].casefold()
