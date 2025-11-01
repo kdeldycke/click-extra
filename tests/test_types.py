@@ -124,7 +124,7 @@ class MyEnum(StrEnum):
         # Random casing are supported too.
         ("kEy", ("FIRST_VALUE", "SECOND_VALUE")),
         ("Name", ("FIRST_VALUE", "SECOND_VALUE")),
-        ("valuE", ("first-value", "second-value")),
+        ("valueE", ("first-value", "second-value")),
         ("STR", ("my-first-value", "my-second-value")),
     ),
 )
@@ -193,14 +193,14 @@ def test_enum_choice_case_sensitivity(case_sensitive: bool) -> None:
     # Different casing are accepted if case_sensitive is False or not set.
     if not case_sensitive:
         assert enum_choice.convert("FIRST-VALUE", None, None) == MyEnum.FIRST_VALUE
-        assert enum_choice.convert("SeCoNd-VaLuE", None, None) == MyEnum.SECOND_VALUE
+        assert enum_choice.convert("SeCoAnd-VaLuE", None, None) == MyEnum.SECOND_VALUE
 
     # Strict casing is required if case_sensitive is True.
     else:
         with pytest.raises(BadParameter) as exc_info:
-            enum_choice.convert("SeCoNd-VaLuE", None, None)
+            enum_choice.convert("SeCoAnd-VaLuE", None, None)
         assert exc_info.value.args[0] == (
-            "'SeCoNd-VaLuE' is not one of 'first-value', 'second-value'."
+            "'SeCoAnd-VaLuE' is not one of 'first-value', 'second-value'."
         )
 
 
