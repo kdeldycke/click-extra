@@ -37,7 +37,7 @@ from unittest.mock import patch
 import click
 from click.types import IntRange
 
-from . import Choice
+from . import EnumChoice
 from .colorize import default_theme
 from .parameters import ExtraOption, search_params
 
@@ -71,6 +71,10 @@ class LogLevel(IntEnum):
     WARNING = logging.WARNING
     INFO = logging.INFO
     DEBUG = logging.DEBUG
+
+    def __str__(self):
+        """Use upper-case names as string representation."""
+        return self.name
 
 
 DEFAULT_LEVEL: LogLevel = LogLevel.WARNING
@@ -362,7 +366,7 @@ class ExtraVerbosity(ExtraOption):
             multiple test calls.
         """
         for logger in list(self.all_loggers)[::-1]:
-            getLogger("click_extra").debug(f"Reset {logger} to {DEFAULT_LEVEL.name}.")
+            getLogger("click_extra").debug(f"Reset {logger} to {DEFAULT_LEVEL}.")
             logger.setLevel(DEFAULT_LEVEL.value)
             # new_extra_logger(name=logger.name)
 
@@ -387,7 +391,7 @@ class ExtraVerbosity(ExtraOption):
 
         for logger in self.all_loggers:
             logger.setLevel(level.value)
-            getLogger("click_extra").debug(f"Set {logger} to {level.name}.")
+            getLogger("click_extra").debug(f"Set {logger} to {level}.")
 
         ctx.call_on_close(self.reset_loggers)
 
@@ -447,10 +451,8 @@ class VerbosityOption(ExtraVerbosity):
         default: LogLevel = DEFAULT_LEVEL,
         metavar="LEVEL",
         # Click choices do not use the enum member values, but their names.
-        type=Choice(LogLevel, case_sensitive=False),
-        help=_("Either {log_levels}.").format(
-            log_levels=", ".join(i.name for i in LogLevel)  # type: ignore[name-defined]
-        ),
+        type=EnumChoice(LogLevel),
+        help=_("Either {log_levels}.").format(log_levels=", ".join(map(str, LogLevel))),
         **kwargs,
     ) -> None:
         if not param_decls:
@@ -514,7 +516,7 @@ class VerboseOption(ExtraVerbosity):
                 self,
                 "help",
                 (
-                    f"Increase the default {self.get_base_level(ctx).name} verbosity "
+                    f"Increase the default {self.get_base_level(ctx)} verbosity "
                     "by one level for each additional repetition of the option."
                 ),
             )
@@ -548,7 +550,7 @@ class VerboseOption(ExtraVerbosity):
         # to see it at DEBUG-level.
         getLogger("click_extra").debug(
             f"Increased log verbosity by {value} levels: "
-            f"from {base_level.name} to {new_level.name}."
+            f"from {base_level} to {new_level}."
         )
 
     def __init__(

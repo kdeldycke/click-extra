@@ -27,6 +27,10 @@ from click.core import ParameterSource  # noqa: E402
 # Overrides click helpers with cloup's.
 from cloup import *  # type: ignore[no-redef, assignment] # noqa: E402, F403
 
+# XXX Import types first to avoid circular imports.
+if True:
+    from .types import ChoiceSource, EnumChoice  # noqa: E402
+
 from .colorize import (  # noqa: E402
     ColorOption,
     HelpExtraFormatter,
@@ -81,7 +85,6 @@ from .table import (  # noqa: E402
 from .telemetry import TelemetryOption  # noqa: E402
 from .testing import ExtraCliRunner  # noqa: E402
 from .timer import TimerOption  # noqa: E402
-from .types import ChoiceSource, EnumChoice  # noqa: E402
 from .version import ExtraVersionOption  # noqa: E402
 
 __all__ = [

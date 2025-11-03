@@ -518,7 +518,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "show-params-cli.verbosity",
             "--verbosity LEVEL",
             "click_extra.logging.VerbosityOption",
-            "click.types.Choice",
+            "click_extra.types.EnumChoice",
             "str",
             "✘",
             "✘",
