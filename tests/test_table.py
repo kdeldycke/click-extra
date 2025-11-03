@@ -557,7 +557,7 @@ def test_all_table_formats_have_test_rendering():
 )
 @pytest.mark.parametrize(
     ("format_name", "expected"),
-    (pytest.param(k, v, id=k) for k, v in expected_renderings.items()),
+    (pytest.param(k, v, id=str(k)) for k, v in expected_renderings.items()),
 )
 def test_all_table_rendering(
     invoke, cmd_decorator, option_decorator, format_name, expected

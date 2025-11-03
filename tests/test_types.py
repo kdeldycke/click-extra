@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import sys
 from collections.abc import Callable
-from enum import Enum, IntEnum, auto
+from enum import Enum, Flag, IntEnum, IntFlag, auto
 from operator import attrgetter
 
 import click
@@ -74,14 +74,14 @@ def test_click_choice_behavior() -> None:
     )
 
     # Normalization works for both choice strings and Enum members.
-    assert enum_choice.normalize_choice("FIRST_VALUE", None) == "FIRST_VALUE"
-    assert enum_choice.normalize_choice("SECOND_VALUE", None) == "SECOND_VALUE"
+    assert enum_choice.normalize_choice("FIRST_VALUE", None) == "FIRST_VALUE"  # type: ignore[arg-type]
+    assert enum_choice.normalize_choice("SECOND_VALUE", None) == "SECOND_VALUE"  # type: ignore[arg-type]
     assert enum_choice.normalize_choice(SimpleEnum.FIRST_VALUE, None) == "FIRST_VALUE"
     assert enum_choice.normalize_choice(SimpleEnum.SECOND_VALUE, None) == "SECOND_VALUE"
 
     # Normalization leave stings unchanged (case-sensitive).
-    assert enum_choice.normalize_choice("first_value", None) == "first_value"
-    assert enum_choice.normalize_choice("Second_Value", None) == "Second_Value"
+    assert enum_choice.normalize_choice("first_value", None) == "first_value"  # type: ignore[arg-type]
+    assert enum_choice.normalize_choice("Second_Value", None) == "Second_Value"  # type: ignore[arg-type]
 
     # Test case-insensitive behavior.
     enum_choice_ci = Choice(SimpleEnum, case_sensitive=False)
@@ -89,25 +89,72 @@ def test_click_choice_behavior() -> None:
     assert enum_choice_ci.convert("SECOND_value", None, None) == (
         SimpleEnum.SECOND_VALUE
     )
-    assert enum_choice_ci.normalize_choice("first_value", None) == "first_value"
-    assert enum_choice_ci.normalize_choice("SECOND_value", None) == "second_value"
+    assert enum_choice_ci.normalize_choice("first_value", None) == "first_value"  # type: ignore[arg-type]
+    assert enum_choice_ci.normalize_choice("SECOND_value", None) == "second_value"  # type: ignore[arg-type]
 
 
-# TODO: test with all Enum types (IntEnum, Flag, IntFlag, etc.)
-def test_enum_choice_basics() -> None:
-    """By default, EnumChoice uses ChoiceSource.STR."""
+@pytest.mark.parametrize(
+    ("enum_definition", "expected_choices"),
+    (
+        # String-based Enum.
+        (
+            Enum("Status", {"PENDING": "pending", "APPROVED": "approved"}),
+            ("Status.PENDING", "Status.APPROVED"),
+        ),
+        # Integer-based Enum.
+        (
+            Enum("Color", {"RED": 1, "GREEN": 2, "BLUE": 3}),
+            ("Color.RED", "Color.GREEN", "Color.BLUE"),
+        ),
+        # Auto-numbered Enum.
+        (
+            Enum("Permission", {"READ": auto(), "WRITE": auto(), "EXECUTE": auto()}),
+            ("Permission.READ", "Permission.WRITE", "Permission.EXECUTE"),
+        ),
+        # IntEnum.
+        (
+            IntEnum("Priority", {"LOW": auto(), "MEDIUM": auto(), "HIGH": auto()}),
+            ("1", "2", "3"),
+        ),
+        # Difference between Enum and StrEnum: StrEnum defines __str__() to return the value.
+        (
+            Enum(
+                "MyEnum", {"FIRST_VALUE": "first_value", "SECOND_VALUE": "second-value"}
+            ),
+            ("MyEnum.FIRST_VALUE", "MyEnum.SECOND_VALUE"),
+        ),
+        (
+            StrEnum(
+                "MyEnum",
+                {"FIRST_VALUE": "first_value", "SECOND_VALUE": "second-value"},
+            ),
+            ("first_value", "second-value"),
+        ),
+        (
+            StrEnum("MyEnum", {"FIRST_VALUE": auto(), "SECOND_VALUE": auto()}),
+            ("first_value", "second_value"),
+        ),
+        # Flag enums.
+        (
+            Flag("Features", {"FEATURE_A": auto(), "FEATURE_B": auto()}),
+            ("Features.FEATURE_A", "Features.FEATURE_B"),
+        ),
+        # IntFlag enums.
+        (
+            IntFlag(
+                "Options", {"OPTION_X": auto(), "OPTION_Y": auto(), "OPTION_Z": auto()}
+            ),
+            ("1", "2", "4"),
+        ),
+    ),
+)
+def test_enum_default_string_choices(enum_definition, expected_choices) -> None:
+    enum_choice = EnumChoice(enum_definition)
 
-    class SimpleEnum(StrEnum):
-        FIRST_VALUE = auto()
-        SECOND_VALUE = "second-value"
-
-    enum_choice = EnumChoice(SimpleEnum)
-
-    assert enum_choice.choices == ("first_value", "second-value")
-    assert repr(enum_choice) == "EnumChoice('first_value', 'second-value')"
+    assert enum_choice.choices == expected_choices
 
 
-class MyEnum(StrEnum):
+class MyEnum(Enum):
     """Produce different strings for keys/names, values and str()."""
 
     FIRST_VALUE = "first-value"

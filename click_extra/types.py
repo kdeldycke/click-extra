@@ -16,16 +16,9 @@
 
 from __future__ import annotations
 
-import sys
 from enum import Enum
 
 from . import Choice
-
-if sys.version_info >= (3, 11):
-    from enum import StrEnum
-else:
-    from backports.strenum import StrEnum  # type: ignore[import-not-found]
-
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -35,7 +28,7 @@ if TYPE_CHECKING:
     from . import Context, Parameter
 
 
-class ChoiceSource(StrEnum):
+class ChoiceSource(Enum):
     """Source of choices for ``EnumChoice``."""
 
     # KEY and NAME are synonyms.
@@ -101,8 +94,9 @@ class EnumChoice(Choice):
 
         # Normalize choice_source to ChoiceSource.
         if isinstance(choice_source, str) and not callable(choice_source):
-            choice_source = getattr(ChoiceSource, choice_source.upper())
-        self._choice_source = choice_source
+            self._choice_source = getattr(ChoiceSource, choice_source.upper())
+        else:
+            self._choice_source = choice_source
 
         # Build the mapping of choice strings to Enum members.
         self._enum_map = {}
