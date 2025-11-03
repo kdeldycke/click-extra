@@ -18,7 +18,6 @@
 from __future__ import annotations
 
 import csv
-import logging
 import sys
 from functools import partial
 from gettext import gettext as _
@@ -28,7 +27,7 @@ import tabulate
 from tabulate import DataRow, Line
 from tabulate import TableFormat as TabulateTableFormat
 
-from . import Choice, echo
+from . import EnumChoice, echo
 from .parameters import ExtraOption
 
 if sys.version_info >= (3, 11):
@@ -135,6 +134,9 @@ class TableFormat(StrEnum):
     UNSAFEHTML = "unsafehtml"
     VERTICAL = "vertical"
     YOUTRACK = "youtrack"
+
+    def __str__(self):
+        return self.name.lower().replace("_", "-")
 
 
 MARKUP_FORMATS = {
@@ -335,11 +337,7 @@ class TableFormatOption(ExtraOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        # Click choices do not use the enum member values, but their names.
-        type=Choice(
-            tuple(f.value for f in TableFormat),  # type: ignore[name-defined]
-            case_sensitive=False,
-        ),
+        type=EnumChoice(TableFormat),
         default=DEFAULT_FORMAT.value,
         expose_value=False,
         is_eager=True,
@@ -365,7 +363,7 @@ class TableFormatOption(ExtraOption):
         self,
         ctx: Context,
         param: Parameter,
-        value: str | TableFormat | None,
+        table_format: TableFormat | None,
     ) -> None:
         """Save table format in the context, and adds ``print_table()`` to it.
 
@@ -377,25 +375,7 @@ class TableFormatOption(ExtraOption):
         - ``headers``: a list of string to be used as column headers,
         - ``**kwargs``: any extra keyword argument supported by the underlying
           table rendering function.
-
-        The rendering style of the table is normalized to one of the supported
-        ``TableFormat`` enum.
         """
-        table_format = None
-        if isinstance(value, TableFormat):
-            table_format = value
-        elif value:
-            format_id = value.lower().replace("_", "-")
-            if value != format_id:
-                logging.warning(
-                    f"Table format ID normalized from {value!r} to {format_id!r}. "
-                    f"Please update your CLI usage before {value!r} is deprecated.",
-                )
-            for fmt in TableFormat:
-                if fmt.value == format_id:
-                    table_format = fmt
-                    break
-
         ctx.meta["click_extra.table_format"] = table_format
         ctx.print_table = partial(  # type: ignore[attr-defined]
             print_table,
