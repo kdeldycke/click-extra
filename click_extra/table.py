@@ -18,7 +18,6 @@
 from __future__ import annotations
 
 import csv
-import enum
 import logging
 import sys
 from functools import partial
@@ -32,8 +31,10 @@ from tabulate import TableFormat as TabulateTableFormat
 from . import Choice, echo
 from .parameters import ExtraOption
 
-if sys.version_info < (3, 11):
-    enum.StrEnum = enum.Enum  # type: ignore[assignment]
+if sys.version_info >= (3, 11):
+    from enum import StrEnum
+else:
+    from backports.strenum import StrEnum
 
 
 TYPE_CHECKING = False
@@ -80,7 +81,7 @@ That way we produce a table that doesn't need any supplement linting.
 """
 
 
-class TableFormat(enum.StrEnum):
+class TableFormat(StrEnum):
     """Enumeration of supported table formats.
 
     Hard-coded to be in alphabetical order. Content of this enum is checked in

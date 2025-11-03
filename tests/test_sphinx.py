@@ -16,7 +16,6 @@
 
 from __future__ import annotations
 
-import enum
 import re
 import sys
 from dataclasses import dataclass
@@ -29,11 +28,13 @@ import pytest
 from sphinx.application import Sphinx
 from sphinx.util.docutils import docutils_namespace
 
-if sys.version_info < (3, 11):
-    enum.StrEnum = enum.Enum  # type: ignore[assignment]
+if sys.version_info >= (3, 11):
+    from enum import StrEnum
+else:
+    from backports.strenum import StrEnum
 
 
-class FormatType(enum.StrEnum):
+class FormatType(StrEnum):
     """Sphinx document format types and their file extensions."""
 
     RST = ".rst"

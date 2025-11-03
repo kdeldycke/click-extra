@@ -32,8 +32,10 @@ from click_extra import (
     option,
 )
 
-if sys.version_info < (3, 11):
-    enum.StrEnum = enum.Enum  # type: ignore[assignment]
+if sys.version_info >= (3, 11):
+    from enum import StrEnum
+else:
+    from backports.strenum import StrEnum
 
 
 def test_click_choice_behavior() -> None:
@@ -93,7 +95,7 @@ def test_click_choice_behavior() -> None:
 def test_simple_enum_choice() -> None:
     """By default, EnumChoice uses ChoiceSource.STR."""
 
-    class SimpleEnum(enum.StrEnum):
+    class SimpleEnum(StrEnum):
         FIRST_VALUE = auto()
         SECOND_VALUE = "second-value"
 
@@ -103,7 +105,7 @@ def test_simple_enum_choice() -> None:
     assert repr(enum_choice) == "EnumChoice('first_value', 'second-value')"
 
 
-class MyEnum(enum.StrEnum):
+class MyEnum(StrEnum):
     """Produce different strings for keys/names, values and str()."""
 
     FIRST_VALUE = "first-value"
