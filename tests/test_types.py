@@ -116,7 +116,8 @@ def test_click_choice_behavior() -> None:
             IntEnum("Priority", {"LOW": auto(), "MEDIUM": auto(), "HIGH": auto()}),
             ("1", "2", "3"),
         ),
-        # Difference between Enum and StrEnum: StrEnum defines __str__() to return the value.
+        # Difference between Enum and StrEnum: StrEnum defines __str__() to return
+        # the value.
         (
             Enum(
                 "MyEnum", {"FIRST_VALUE": "first_value", "SECOND_VALUE": "second-value"}
@@ -214,7 +215,8 @@ def test_enum_choice_internals(
     assert tuple(enum_choice._enum_map.keys()) == enum_choice.choices
     assert tuple(enum_choice._enum_map.values()) == tuple(MyEnum)
 
-    # Choice strings and Enum members are normalized correctly (i.e. lower-cased by default).
+    # Choice strings and Enum members are normalized correctly (i.e.
+    # lower-cased by default).
     assert (
         enum_choice.normalize_choice(expected_choices[0], None)
         == expected_choices[0].casefold()
