@@ -227,7 +227,7 @@ def test_enum_choice_non_string() -> None:
 
 
 def test_enum_choice_duplicate_string() -> None:
-    class BadEnum(enum.StrEnum):
+    class BadEnum(StrEnum):
         FIRST = auto()
         SECOND = auto()
 
