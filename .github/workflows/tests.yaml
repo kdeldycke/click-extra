@@ -106,33 +106,11 @@ jobs:
           - os: windows-2025
             cloup-version: master
           # Exclude old Python version. Only test on latest stable release.
-          # Python 3.10
           - python-version: "3.10"
             click-version: stable
           - python-version: "3.10"
             click-version: main
           - python-version: "3.10"
-            cloup-version: master
-          # Python 3.11
-          - python-version: "3.11"
-            click-version: stable
-          - python-version: "3.11"
-            click-version: main
-          - python-version: "3.11"
-            cloup-version: master
-          # Python 3.12
-          - python-version: "3.12"
-            click-version: stable
-          - python-version: "3.12"
-            click-version: main
-          - python-version: "3.12"
-            cloup-version: master
-          # Python 3.13
-          - python-version: "3.13"
-            click-version: stable
-          - python-version: "3.13"
-            click-version: main
-          - python-version: "3.13"
             cloup-version: master
           # Exclude Python's dev version.
           - python-version: "3.15"
