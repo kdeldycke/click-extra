@@ -34,7 +34,6 @@
 
 from __future__ import annotations
 
-import enum
 import json
 import logging
 import os
@@ -173,7 +172,7 @@ use of any configuration file at all.
 """
 
 
-class Sentinel(enum.Enum):
+class Sentinel(Enum):
     """Enum used to define sentinel values.
 
     .. note::
