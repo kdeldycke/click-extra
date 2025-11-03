@@ -16,8 +16,8 @@
 
 from __future__ import annotations
 
+import sys
 import tarfile
-import tomllib
 from importlib import metadata
 from operator import itemgetter
 from pathlib import Path
@@ -34,6 +34,12 @@ from pygments.lexers import find_lexer_class_by_name, get_lexer_by_name
 
 from click_extra import pygments as extra_pygments
 from click_extra.pygments import DEFAULT_TOKEN_TYPE, collect_session_lexers
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib  # type: ignore[import-not-found]
+
 
 PROJECT_ROOT = Path(__file__).parent.parent
 
