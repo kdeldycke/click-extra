@@ -286,6 +286,18 @@ replace = "date-released: {utcnow:%Y-%m-%d}"
 
 [tool.typos]
 default.extend-ignore-identifiers-re = [
+    # error: `valu` should be `value`
+    #     ╭▸ ./tests/test_types.py:127:11
+    #     │
+    # 127 │         ("valuE", ("first-value", "second-value")),
+    #     ╰╴          ━━━━
+    "valuE",
+    # error: `Nd` should be `And`
+    #     ╭▸ ./tests/test_types.py:196:41
+    #     │
+    # 196 │         assert enum_choice.convert("SeCoNd-VaLuE", None, None) == MyEnum.SECOND_VALUE
+    #     ╰╴                                        ━━
+    "SeCoNd",
     # error: `Uper` should be `Super`, `Upper`
     #     ╭▸ ./tests/test_envvar.py:113:19
     #     │
@@ -298,16 +310,16 @@ default.extend-ignore-identifiers-re = [
     # 179 │         "fAlsE": False,
     #     ╰╴          ━━━
     "fAlsE",
+    # error: `nd` should be `and`
+    #     ╭▸ ./tests/test_sphinx.py:262:29
+    #     │
+    # 262 │             + '<span class="nd">@command</span>\n'
+    #     ╰╴                            ━━
+    "nd",
     # error: `mey` should be `may`
     #     ╭▸ ./tests/test_colorize.py:890:22
     #     │
     # 890 │             "H\x1b[32mey\x1b[0m-xx-xxx-\x1b[32mhe\x1b[0mY-xXxXxxxxx-\x1b[32mhey\x1b[0m",
     #     ╰╴                     ━━━
     "mey",
-    # error: `nd` should be `and`
-    #     ╭▸ ./tests/test_sphinx.py:232:29
-    #     │
-    # 232 │             + '<span class="nd">@command</span>\n'
-    #     ╰╴                            ━━
-    "nd",
 ]
