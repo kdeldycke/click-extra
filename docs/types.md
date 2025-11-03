@@ -47,46 +47,10 @@ But we made its values more user-friendly:
 'other-format'
 ```
 
-If we use this `Enum` with `click.Choice`, we get the following behavior:
-
-```{code-block} pycon
-:emphasize-lines: 14-15
->>> from enum import Enum
->>> import click
-
->>> class Format(Enum):
-...     TEXT = "text"
-...     HTML = "html"
-...     OTHER_FORMAT = "other-format"
-
->>> choice_type = click.Choice(Format)
-
->>> choice_type
-Choice([<Format.TEXT: 'text'>, <Format.HTML: 'html'>, <Format.OTHER_FORMAT: 'other-format'>])
-
->>> choice_type.choices
-(<Format.TEXT: 'text'>, <Format.HTML: 'html'>, <Format.OTHER_FORMAT: 'other-format'>)
-```
-
-Here we can see that all `Enum`'s members are properly registered by `Choice`.
-
-But user inputs are matched against their names, not their values:
-
-```{code-block} pycon
-:emphasize-lines: 7
->>> choice_type.convert("OTHER_FORMAT", None, None)
-<Format.OTHER_FORMAT: 'other-format'>
-
->>> choice_type.convert("other-format", None, None)
-Traceback (most recent call last):
-  ...
-click.exceptions.BadParameter: 'other-format' is not one of 'TEXT', 'HTML', 'OTHER_FORMAT'.
-```
-
-And here is how it renders in Click's help messages:
+Now let's combine this `Enum` with `click.Choice` into a simple CLI:
 
 ```{click:example}
-:emphasize-lines: 15
+:emphasize-lines: 15,17
 from enum import Enum
 
 from click import command, option, echo, Choice
@@ -103,6 +67,8 @@ class Format(Enum):
     "--format",
     type=Choice(Format),
     show_choices=True,
+    default=Format.HTML,
+    show_default=True,
     help="Select format.",
 )
 
@@ -110,16 +76,35 @@ def cli(format):
     echo(f"Selected format: {format!r}")
 ```
 
+All Enum’s members are properly registered and recognized when using their `name`:
+
 ```{click:run}
-:emphasize-lines: 5
+invoke(cli, args=["--format", "TEXT"])
+invoke(cli, args=["--format", "HTML"])
+invoke(cli, args=["--format", "OTHER_FORMAT"])
+```
+
+However, using the `value` fails:
+
+```{click:run}
+:emphasize-lines: 5,10,15
+invoke(cli, args=["--format", "text"])
+invoke(cli, args=["--format", "html"])
+invoke(cli, args=["--format", "other-format"])
+```
+
+This preference for `Enum.name` is also reflected in the help message:
+
+```{click:run}
+:emphasize-lines: 5-6
 invoke(cli, args=["--help"])
 ```
 
-And here is where `EnumChoice` comes into play.
+To change this behavior, we need `EnumChoice`.
 
 ### Usage
 
-To fix this issue, we use `click_extra.EnumChoice` instead of `click.Choice`, and we override the `__str__` method of our `Enum`:
+Let's use `click_extra.EnumChoice` instead of `click.Choice`, and we override the `__str__` method of our `Enum`:
 
 ```{click:example}
 :emphasize-lines: 11-12,18
@@ -148,14 +133,14 @@ def cli(format):
     echo(f"Selected format: {format!r}")
 ```
 
-Which renders much better help messages:
+This renders into much better help messages:
 
 ```{click:run}
 :emphasize-lines: 5
 invoke(cli, args=["--help"])
 ```
 
-And user inputs are now matched against the `str()` representation:
+User inputs are now matched against the `str()` representation:
 
 ```{click:run}
 invoke(cli, args=["--format", "other-format"])
@@ -168,7 +153,7 @@ And not the `Enum.name`:
 invoke(cli, args=["--format", "OTHER_FORMAT"])
 ```
 
-So by customizing the `__str__` method of the `Enum`, you have full control over how choices are displayed and matched.
+By customizing the `__str__` method of the `Enum`, you have full control over how choices are displayed and matched.
 
 ### Case-sensitivity
 
@@ -181,7 +166,7 @@ invoke(cli, args=["--format", "oThER-forMAt"])
 If you want to restore case-sensitive matching, you can enable it by setting the `case_sensitive` parameter to `True`:
 
 ```{click:example}
-:emphasize-lines: 11-12,18
+:emphasize-lines: 18
 from enum import Enum
 
 from click_extra import command, option, echo, EnumChoice
