@@ -159,7 +159,9 @@ def test_enum_choice_internals(
     # Check internal metadata.
     assert enum_choice.case_sensitive is False
     assert enum_choice._enum is MyEnum
-    assert enum_choice._choice_source in ChoiceSource or callable
+    assert enum_choice._choice_source in ChoiceSource.__members__.values() or callable(
+        enum_choice._choice_source
+    )
     assert len(enum_choice._enum_map) == 2
     assert tuple(enum_choice._enum_map.keys()) == enum_choice.choices
     assert tuple(enum_choice._enum_map.values()) == tuple(MyEnum)

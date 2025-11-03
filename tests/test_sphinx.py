@@ -41,8 +41,8 @@ class FormatType(StrEnum):
     MYST = ".md"
 
 
-RST = FormatType.RST
-MYST = FormatType.MYST
+RST: FormatType = FormatType.RST
+MYST: FormatType = FormatType.MYST
 
 
 class SphinxAppWrapper:
