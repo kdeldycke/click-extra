@@ -17,8 +17,8 @@
 from __future__ import annotations
 
 import re
-import sys
 from dataclasses import dataclass
+from enum import Enum
 from inspect import cleandoc
 from pathlib import Path
 from textwrap import dedent, indent
@@ -28,13 +28,8 @@ import pytest
 from sphinx.application import Sphinx
 from sphinx.util.docutils import docutils_namespace
 
-if sys.version_info >= (3, 11):
-    from enum import StrEnum
-else:
-    from backports.strenum import StrEnum  # type: ignore[import-not-found]
 
-
-class FormatType(StrEnum):
+class FormatType(Enum):
     """Sphinx document format types and their file extensions."""
 
     RST = ".rst"
@@ -596,7 +591,8 @@ ISOLATED_FILESYSTEM_TEST_CASE = DirectiveTestCase(
 
 RST_WITHIN_MYST_EVAL_TEST_CASE = DirectiveTestCase(
     name="rst_within_myst_eval",
-    format_type=FormatType.MYST,  # This test is MyST-specific but contains embeddedFormatType.RST
+    # This test is MyST-specific but contains embedded RST.
+    format_type=FormatType.MYST,
     document="""
         ```{eval-rst}
         .. click:example::
