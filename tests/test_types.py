@@ -19,6 +19,7 @@ from __future__ import annotations
 import sys
 from collections.abc import Callable
 from enum import Enum, IntEnum, auto
+from operator import attrgetter
 
 import click
 import pytest
@@ -139,7 +140,7 @@ class MyEnum(StrEnum):
             lambda member: f"custom-{member.value}",
             ("custom-first-value", "custom-second-value"),
         ),
-        ("custom-{value}".format, ("custom-first-value", "custom-second-value")),
+        (attrgetter("name"), ("FIRST_VALUE", "SECOND_VALUE")),
     ),
 )
 def test_enum_choice_internals(

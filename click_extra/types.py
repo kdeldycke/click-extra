@@ -130,7 +130,12 @@ class EnumChoice(Choice):
             choice = str(member)
 
         elif callable(self._choice_source):
-            choice = self._choice_source(member)
+            try:
+                choice = self._choice_source(member)
+            except Exception as ex:
+                raise ValueError(
+                    f"cannot call {self._choice_source!r} on for {member!r}: {ex}"
+                ) from ex
 
         if not isinstance(choice, str):
             raise TypeError(
