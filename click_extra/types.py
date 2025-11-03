@@ -60,7 +60,7 @@ class EnumChoice(Choice):
     """
 
     choices: tuple[str, ...]
-    """The available choice strings.
+    """The strings available as choice.
 
     .. hint::
         Contrary to the parent ``Choice`` class, we store choices directly as

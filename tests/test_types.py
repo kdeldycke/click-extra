@@ -20,6 +20,7 @@ import enum
 import sys
 from enum import Enum, IntEnum, auto
 
+import click
 import pytest
 
 from click_extra import (
@@ -92,7 +93,7 @@ def test_click_choice_behavior() -> None:
 
 
 # TODO: test with all Enum types (IntEnum, Flag, IntFlag, etc.)
-def test_simple_enum_choice() -> None:
+def test_enum_choice_basics() -> None:
     """By default, EnumChoice uses ChoiceSource.STR."""
 
     class SimpleEnum(StrEnum):
@@ -211,7 +212,7 @@ def test_enum_choice_case_sensitivity(case_sensitive: bool) -> None:
         )
 
 
-def test_non_string_choice() -> None:
+def test_enum_choice_non_string() -> None:
     class BadEnum(IntEnum):
         FIRST = auto()
         SECOND = auto()
@@ -225,7 +226,7 @@ def test_non_string_choice() -> None:
     )
 
 
-def test_duplicate_choice_string() -> None:
+def test_enum_choice_duplicate_string() -> None:
     class BadEnum(enum.StrEnum):
         FIRST = auto()
         SECOND = auto()
@@ -318,4 +319,38 @@ def test_enum_choice_command(
     # Test help message.
     result = invoke(cli, ["--help"])
     assert "--my-enum [my-first-value|my-second-value]" in result.stdout
+    assert result.exit_code == 0
+
+
+@pytest.mark.parametrize(
+    ("cmd_decorator", "default_rendering"),
+    (
+        (click.command, "SECOND_VALUE"),
+        (command, "SECOND_VALUE"),
+    ),
+)
+def test_enum_choice_default_value(invoke, cmd_decorator, default_rendering) -> None:
+    """Test EnumChoice used within an option with a default value."""
+
+    @cmd_decorator
+    @option(
+        "--my-enum",
+        type=EnumChoice(MyEnum),
+        default=MyEnum.SECOND_VALUE,
+        show_default=True,
+    )
+    def cli(my_enum: MyEnum) -> None:
+        echo(f"my_enum: {my_enum!r}")
+
+    # Test default value is used when option is not provided.
+    result = invoke(cli)
+    assert result.stdout == "my_enum: <MyEnum.SECOND_VALUE: 'second-value'>\n"
+    assert not result.stderr
+    assert result.exit_code == 0
+
+    # Test help message showing the default.
+    result = invoke(cli, ["--help"])
+    assert "--my-enum [my-first-value|my-second-value]" in result.stdout
+    assert f"[default: {default_rendering}]" in result.stdout
+    assert not result.stderr
     assert result.exit_code == 0
