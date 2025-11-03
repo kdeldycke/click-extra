@@ -16,7 +16,9 @@
 
 from __future__ import annotations
 
-from enum import Enum, IntEnum, StrEnum, auto
+import enum
+import sys
+from enum import Enum, IntEnum, auto
 
 import pytest
 
@@ -29,6 +31,9 @@ from click_extra import (
     echo,
     option,
 )
+
+if sys.version_info < (3, 11):
+    enum.StrEnum = enum.Enum  # type: ignore[assignment]
 
 
 def test_click_choice_behavior() -> None:
@@ -88,7 +93,7 @@ def test_click_choice_behavior() -> None:
 def test_simple_enum_choice() -> None:
     """By default, EnumChoice uses ChoiceSource.STR."""
 
-    class SimpleEnum(StrEnum):
+    class SimpleEnum(enum.StrEnum):
         FIRST_VALUE = auto()
         SECOND_VALUE = "second-value"
 
@@ -98,7 +103,7 @@ def test_simple_enum_choice() -> None:
     assert repr(enum_choice) == "EnumChoice('first_value', 'second-value')"
 
 
-class MyEnum(StrEnum):
+class MyEnum(enum.StrEnum):
     """Produce different strings for keys/names, values and str()."""
 
     FIRST_VALUE = "first-value"
