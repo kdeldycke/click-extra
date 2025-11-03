@@ -41,10 +41,6 @@ class FormatType(StrEnum):
     MYST = ".md"
 
 
-RST: FormatType = FormatType.RST
-MYST: FormatType = FormatType.MYST
-
-
 class SphinxAppWrapper:
     """Wrapper around Sphinx application with additional testing methods."""
 
@@ -76,7 +72,7 @@ class SphinxAppWrapper:
             "master_doc": "index",
             "extensions": ["click_extra.sphinx"],
         }
-        if format_type == MYST:
+        if format_type == FormatType.MYST:
             conf["extensions"].append("myst_parser")  # type: ignore[attr-defined]
             conf["myst_enable_extensions"] = ["colon_fence"]
 
@@ -133,13 +129,13 @@ class SphinxAppWrapper:
         lines = []
 
         if test_case.example_block:
-            if self.format_type == RST:
+            if self.format_type == FormatType.RST:
                 lines.append(".. click:example::")
                 # We need a blank line if there are no options.
                 if not test_case.example_block.startswith(":"):
                     lines.append("")
                 lines.append(indent(test_case.example_block, " " * 4))
-            elif self.format_type == MYST:
+            elif self.format_type == FormatType.MYST:
                 lines += [
                     "```{click:example}",
                     test_case.example_block,
@@ -151,13 +147,13 @@ class SphinxAppWrapper:
             lines.append("")
 
         if test_case.run_block:
-            if self.format_type == RST:
+            if self.format_type == FormatType.RST:
                 lines.append(".. click:run::")
                 # We need a blank line if there are no options.
                 if not test_case.run_block.startswith(":"):
                     lines.append("")
                 lines.append(indent(test_case.run_block, " " * 4))
-            elif self.format_type == MYST:
+            elif self.format_type == FormatType.MYST:
                 lines += [
                     "```{click:run}",
                     test_case.run_block,
@@ -167,7 +163,7 @@ class SphinxAppWrapper:
         return "\n".join(lines)
 
 
-@pytest.fixture(params=[RST, MYST])
+@pytest.fixture(params=[FormatType.RST, FormatType.MYST])
 def sphinx_app(request, tmp_path):
     """Create a Sphinx application for testing."""
     yield from SphinxAppWrapper.create(request.param, tmp_path)
@@ -176,13 +172,13 @@ def sphinx_app(request, tmp_path):
 @pytest.fixture
 def sphinx_app_rst(tmp_path):
     """Create a Sphinx application for testing RST format only."""
-    yield from SphinxAppWrapper.create(RST, tmp_path)
+    yield from SphinxAppWrapper.create(FormatType.RST, tmp_path)
 
 
 @pytest.fixture
 def sphinx_app_myst(tmp_path):
     """Create a Sphinx application for testing MyST format only."""
-    yield from SphinxAppWrapper.create(MYST, tmp_path)
+    yield from SphinxAppWrapper.create(FormatType.MYST, tmp_path)
 
 
 @dataclass
@@ -600,7 +596,7 @@ ISOLATED_FILESYSTEM_TEST_CASE = DirectiveTestCase(
 
 RST_WITHIN_MYST_EVAL_TEST_CASE = DirectiveTestCase(
     name="rst_within_myst_eval",
-    format_type=MYST,  # This test is MyST-specific but contains embedded RST
+    format_type=FormatType.MYST,  # This test is MyST-specific but contains embeddedFormatType.RST
     document="""
         ```{eval-rst}
         .. click:example::
@@ -696,7 +692,7 @@ def test_directive_option_language_override(sphinx_app):
     """Test that language override works for click:run directive."""
     format_type = sphinx_app.format_type
 
-    if format_type == RST:
+    if format_type == FormatType.RST:
         content = dedent("""
             .. click:example::
 
@@ -712,7 +708,7 @@ def test_directive_option_language_override(sphinx_app):
 
                 invoke(sql_output, args=["--name", "Joe"])
         """)
-    elif format_type == MYST:
+    elif format_type == FormatType.MYST:
         content = dedent("""
             ```{click:example}
             from click import command, echo, option
@@ -743,7 +739,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
     """Test that state persists between declare and run directives in real Sphinx."""
     format_type = sphinx_app.format_type
 
-    if format_type == RST:
+    if format_type == FormatType.RST:
         content = dedent("""
             .. click:example::
 
@@ -767,7 +763,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
 
                 invoke(cmd2)
         """)
-    elif format_type == MYST:
+    elif format_type == FormatType.MYST:
         content = dedent("""
             ```{click:example}
             from click import command, echo
@@ -815,7 +811,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
     [
         # Test variable conflicts in both rST and MyST formats.
         (
-            RST,
+            FormatType.RST,
             """\
             .. click:run::
 
@@ -826,7 +822,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
             4,
         ),
         (
-            MYST,
+            FormatType.MYST,
             """\
             ```{{click:run}}
             # This should fail due to variable conflict.
@@ -838,7 +834,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
         ),
         # Check proper line number reporting with preceding lines.
         (
-            RST,
+            FormatType.RST,
             """
 
 
@@ -861,7 +857,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
             12 + 4,
         ),
         (
-            MYST,
+            FormatType.MYST,
             """
 
 
@@ -885,7 +881,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
         ),
         # Check proper line number reporting with blank lines within the directive.
         (
-            RST,
+            FormatType.RST,
             """\
             .. click:run::
 
@@ -898,7 +894,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
             4,
         ),
         (
-            MYST,
+            FormatType.MYST,
             """\
             ```{{click:run}}
             # This should fail due to variable conflict.
@@ -911,7 +907,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
             3,
         ),
         (
-            RST,
+            FormatType.RST,
             """\
             .. click:run::
 
@@ -924,7 +920,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
             6,
         ),
         (
-            MYST,
+            FormatType.MYST,
             """\
             ```{{click:run}}
 
@@ -938,7 +934,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
         ),
         # Options should not affect line numbering.
         (
-            RST,
+            FormatType.RST,
             """\
             .. click:run::
                 :linenos:
@@ -950,7 +946,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
             5,
         ),
         (
-            MYST,
+            FormatType.MYST,
             """\
             ```{{click:run}}
             :linenos:
@@ -962,7 +958,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
             4,
         ),
         (
-            RST,
+            FormatType.RST,
             """\
             .. click:run::
                 :linenos:
@@ -975,7 +971,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
             6,
         ),
         (
-            MYST,
+            FormatType.MYST,
             """\
             ```{{click:run}}
             :linenos:
@@ -988,7 +984,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
             5,
         ),
         (
-            RST,
+            FormatType.RST,
             """\
             .. click:run::
                 :linenos:
@@ -1002,7 +998,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
             7,
         ),
         (
-            MYST,
+            FormatType.MYST,
             """\
             ```{{click:run}}
             :linenos:
@@ -1016,7 +1012,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
             6,
         ),
         (
-            RST,
+            FormatType.RST,
             """\
             .. click:run::
                 :linenos:
@@ -1031,7 +1027,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
             5,
         ),
         pytest.param(
-            MYST,
+            FormatType.MYST,
             """\
             ```{{click:run}}
             :linenos:
@@ -1080,7 +1076,7 @@ def test_exit_exception_percolate(sphinx_app):
     """Test directives that handle command errors and exit codes."""
     format_type = sphinx_app.format_type
 
-    if format_type == RST:
+    if format_type == FormatType.RST:
         content = dedent("""
             .. click:example::
 
@@ -1110,7 +1106,7 @@ def test_exit_exception_percolate(sphinx_app):
                 except SystemExit as e:
                     echo(f"Command exited with code: {e.code}", err=True)
         """)
-    elif format_type == MYST:
+    elif format_type == FormatType.MYST:
         content = dedent("""
             ```{click:example}
             import sys
