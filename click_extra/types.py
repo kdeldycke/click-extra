@@ -16,9 +16,15 @@
 
 from __future__ import annotations
 
-from enum import Enum, StrEnum
+import enum
+import sys
+from enum import Enum
 
 from . import Choice
+
+if sys.version_info < (3, 11):
+    enum.StrEnum = enum.Enum  # type: ignore[assignment]
+
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -27,7 +33,7 @@ if TYPE_CHECKING:
     from . import Context, Parameter
 
 
-class ChoiceSource(StrEnum):
+class ChoiceSource(enum.StrEnum):
     """Source of choices for ``EnumChoice``."""
 
     # KEY and NAME are synonyms.
