@@ -114,7 +114,9 @@ def test_click_choice_behavior() -> None:
         # IntEnum.
         (
             IntEnum("Priority", {"LOW": auto(), "MEDIUM": auto(), "HIGH": auto()}),
-            ("1", "2", "3"),
+            ("1", "2", "3")
+            if sys.version_info >= (3, 11)
+            else ("Priority.LOW", "Priority.MEDIUM", "Priority.HIGH"),
         ),
         # Difference between Enum and StrEnum: StrEnum defines __str__() to return
         # the value.
@@ -145,7 +147,9 @@ def test_click_choice_behavior() -> None:
             IntFlag(
                 "Options", {"OPTION_X": auto(), "OPTION_Y": auto(), "OPTION_Z": auto()}
             ),
-            ("1", "2", "4"),
+            ("1", "2", "4")
+            if sys.version_info >= (3, 11)
+            else ("Options.OPTION_X", "Options.OPTION_Y", "Options.OPTION_Z"),
         ),
     ),
 )
