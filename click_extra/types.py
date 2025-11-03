@@ -29,6 +29,7 @@ else:
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from typing import Any
 
     from . import Context, Parameter
@@ -79,14 +80,14 @@ class EnumChoice(Choice):
     _enum_map: dict[str, Enum]
     """Mapping of choice strings to ``Enum`` members."""
 
-    _choice_source: ChoiceSource | callable
+    _choice_source: ChoiceSource | Callable[[Enum], str]
     """The source used to derive choice strings from Enum members."""
 
     def __init__(
         self,
         choices: type[Enum],
         case_sensitive: bool = False,
-        choice_source: ChoiceSource | str | callable = ChoiceSource.STR,
+        choice_source: ChoiceSource | str | Callable[[Enum], str] = ChoiceSource.STR,
     ) -> None:
         """Same as ``click.Choice``, but takes an ``Enum`` as ``choices``.
 

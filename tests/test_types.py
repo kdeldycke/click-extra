@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import sys
+from collections.abc import Callable
 from enum import Enum, IntEnum, auto
 
 import click
@@ -142,7 +143,7 @@ class MyEnum(StrEnum):
     ),
 )
 def test_enum_choice_internals(
-    source: ChoiceSource | str | callable,
+    source: ChoiceSource | str | Callable[[Enum], str],
     expected_choices: tuple[str, ...],
 ) -> None:
     enum_choice = EnumChoice(MyEnum, choice_source=source)
