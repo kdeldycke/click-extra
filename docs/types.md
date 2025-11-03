@@ -79,25 +79,37 @@ def cli(format):
 All Enum’s members are properly registered and recognized when using their `name`:
 
 ```{click:run}
-invoke(cli, args=["--format", "TEXT"])
-invoke(cli, args=["--format", "HTML"])
-invoke(cli, args=["--format", "OTHER_FORMAT"])
+result = invoke(cli, args=["--format", "TEXT"])
+assert result.output == "Selected format: <Format.TEXT: 'text'>\n"
+
+result = invoke(cli, args=["--format", "HTML"])
+assert result.output == "Selected format: <Format.HTML: 'html'>\n"
+
+result = invoke(cli, args=["--format", "OTHER_FORMAT"])
+assert result.output == "Selected format: <Format.OTHER_FORMAT: 'other-format'>\n"
 ```
 
 However, using the `value` fails:
 
 ```{click:run}
 :emphasize-lines: 5,10,15
-invoke(cli, args=["--format", "text"])
-invoke(cli, args=["--format", "html"])
-invoke(cli, args=["--format", "other-format"])
+result = invoke(cli, args=["--format", "text"])
+assert "'text' is not one of 'TEXT', 'HTML', 'OTHER_FORMAT'." in result.stderr
+
+result = invoke(cli, args=["--format", "html"])
+assert "'html' is not one of 'TEXT', 'HTML', 'OTHER_FORMAT'." in result.stderr
+
+result = invoke(cli, args=["--format", "other-format"])
+assert "'other-format' is not one of 'TEXT', 'HTML', 'OTHER_FORMAT'." in result.stderr
 ```
 
-This preference for `Enum.name` is also reflected in the help message:
+This preference for `Enum.name` is also reflected in the help message, both for choices and default value:
 
 ```{click:run}
 :emphasize-lines: 5-6
-invoke(cli, args=["--help"])
+result = invoke(cli, args=["--help"])
+assert "--format [TEXT|HTML|OTHER_FORMAT]" in result.stdout
+assert "[default: HTML]" in result.stdout
 ```
 
 To change this behavior, we need `EnumChoice`.
@@ -137,20 +149,23 @@ This renders into much better help messages:
 
 ```{click:run}
 :emphasize-lines: 5
-invoke(cli, args=["--help"])
+result = invoke(cli, args=["--help"])
+assert "--format [text|html|other-format]" in result.stdout
 ```
 
 User inputs are now matched against the `str()` representation:
 
 ```{click:run}
-invoke(cli, args=["--format", "other-format"])
+result = invoke(cli, args=["--format", "other-format"])
+assert result.output == "Selected format: <Format.OTHER_FORMAT: 'other-format'>\n"
 ```
 
 And not the `Enum.name`:
 
 ```{click:run}
 :emphasize-lines: 5
-invoke(cli, args=["--format", "OTHER_FORMAT"])
+result = invoke(cli, args=["--format", "OTHER_FORMAT"])
+assert "'OTHER_FORMAT' is not one of 'text', 'html', 'other-format'." in result.stderr
 ```
 
 By customizing the `__str__` method of the `Enum`, you have full control over how choices are displayed and matched.
@@ -194,7 +209,8 @@ def cli(format):
 
 ```{click:run}
 :emphasize-lines: 5
-invoke(cli, args=["--format", "oThER-forMAt"])
+result = invoke(cli, args=["--format", "oThER-forMAt"])
+assert "'oThER-forMAt' is not one of 'text', 'html', 'other-format'." in result.stderr
 ```
 
 ### Choice source
@@ -207,24 +223,56 @@ But you can configure it to select which part of the members to use as choice st
 - `ChoiceSource.VALUE` to use the [`Enum.value`](https://docs.python.org/3/library/enum.html#enum.Enum.value), or
 - `ChoiceSource.STR` to use the [`str()` string representation](https://docs.python.org/3/library/enum.html#enum.Enum.__str__) (which is the default behavior).
 
-Here is an example using `ChoiceSource.KEY`:
+Here is an example using `ChoiceSource.KEY`, which is equivalent to `click.Choice` behavior:
 
-```{code-block} pycon
-:emphasize-lines: 3,6,14
->>> from click_extra import EnumChoice, ChoiceSource
+```{click:example}
+:emphasize-lines: 18
+from enum import Enum
 
->>> choice_type = EnumChoice(Format, choice_source=ChoiceSource.KEY)
+from click_extra import command, option, echo, EnumChoice, ChoiceSource
 
->>> choice_type
-EnumChoice('TEXT', 'HTML', 'OTHER_FORMAT')
 
->>> choice_type.convert("OTHER_FORMAT", None, None)
-<Format.OTHER_FORMAT: 'other-format'>
+class Format(Enum):
+    TEXT = "text"
+    HTML = "html"
+    OTHER_FORMAT = "other-format"
 
->>> choice_type.convert("other-format", None, None)
-Traceback (most recent call last):
-  ...
-click.exceptions.BadParameter: 'other-format' is not one of 'TEXT', 'HTML', 'OTHER_FORMAT'.
+    def __str__(self):
+        return self.value
+
+
+@command
+@option(
+    "--format",
+    type=EnumChoice(Format, choice_source=ChoiceSource.KEY),
+    show_choices=True,
+    help="Select format.",
+)
+def cli(format):
+    echo(f"Selected format: {format!r}")
+```
+
+So even though we still override the `__str__` method, user inputs are now matched against the `name`:
+
+```{click:run}
+result = invoke(cli, args=["--format", "OTHER_FORMAT"])
+assert result.output == "Selected format: <Format.OTHER_FORMAT: 'other-format'>\n"
+```
+
+And not the `str()` representation:
+
+```{click:run}
+:emphasize-lines: 5
+result = invoke(cli, args=["--format", "other-format"])
+assert "'other-format' is not one of 'text', 'html', 'other_format'." in result.stderr
+```
+
+Still, as you can see above, the choice strings are [lower-cased, as per `EnumChoice` default](#case-sensitivity). And this is also reflected in the help message:
+
+```{click:run}
+:emphasize-lines: 5
+result = invoke(cli, args=["--help"])
+assert "--format [text|html|other_format]" in result.stdout
 ```
 
 ````{tip}
@@ -238,6 +286,45 @@ If you don't want to import `ChoiceSource`, you can also pass the string values 
 EnumChoice('TEXT', 'HTML', 'OTHER_FORMAT')
 ```
 ````
+
+### Custom choice source
+
+In addition to the [built-in choice sources](#choice-source) detailed above, you can also provide a custom callable to the `choice_source` parameter. This callable should accept an `Enum` member and return the corresponding string to use as choice.
+
+This is practical when you want to use a specific attribute or method of the `Enum` members as choice strings. Here's an example:
+
+```{click:example}
+:emphasize-lines: 18
+from enum import Enum
+
+from click_extra import command, option, echo, EnumChoice
+
+
+class Format(Enum):
+    TEXT = "text"
+    HTML = "html"
+    OTHER_FORMAT = "other-format"
+
+    def display_name(self):
+        return f"custom-{self.value}"
+
+
+@command
+@option(
+    "--format",
+    type=EnumChoice(Format, choice_source=getattr(Format, "display_name")),
+    show_choices=True,
+    help="Select format.",
+)
+def cli(format):
+    echo(f"Selected format: {format!r}")
+```
+
+```{click:run}
+:emphasize-lines: 5
+result = invoke(cli, args=["--help"])
+assert "--format [custom-text|custom-html|custom-other-format]" in result.stdout
+```
 
 ### Default value
 
@@ -274,7 +361,9 @@ def cli(format):
 
 ```{click:run}
 :emphasize-lines: 6
-invoke(cli, args=["--help"])
+result = invoke(cli, args=["--help"])
+assert "--format [text|html|other-format]" in result.stdout
+assert "[default: HTML]" in result.stdout
 ```
 
 One way to work around this limitation is to set the default value to the corresponding choice string:
@@ -310,7 +399,9 @@ def cli(format):
 
 ```{click:run}
 :emphasize-lines: 6
-invoke(cli, args=["--help"])
+result = invoke(cli, args=["--help"])
+assert "--format [text|html|other-format]" in result.stdout
+assert "[default: html]" in result.stdout
 ```
 
 ## `click_extra.types` API

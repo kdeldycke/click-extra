@@ -52,8 +52,9 @@ class EnumChoice(Choice):
 
     - ``ChoiceSource.KEY`` or ``ChoiceSource.NAME`` to use the key (i.e. the ``name``
       property),
-    - ``ChoiceSource.VALUE`` to use the ``value``, or
-    - ``ChoiceSource.STR`` to use the ``str()`` string representation.
+    - ``ChoiceSource.VALUE`` to use the ``value``,
+    - ``ChoiceSource.STR`` to use the ``str()`` string representation, or
+    - A custom callable that takes an ``Enum`` member and returns a string.
 
     Default to ``ChoiceSource.STR``, which makes you to only have to define the
     ``__str__()`` method on your ``Enum`` to produce beautiful choice strings.
@@ -78,14 +79,14 @@ class EnumChoice(Choice):
     _enum_map: dict[str, Enum]
     """Mapping of choice strings to ``Enum`` members."""
 
-    _choice_source: ChoiceSource
+    _choice_source: ChoiceSource | callable
     """The source used to derive choice strings from Enum members."""
 
     def __init__(
         self,
         choices: type[Enum],
         case_sensitive: bool = False,
-        choice_source: ChoiceSource | str = ChoiceSource.STR,
+        choice_source: ChoiceSource | str | callable = ChoiceSource.STR,
     ) -> None:
         """Same as ``click.Choice``, but takes an ``Enum`` as ``choices``.
 
@@ -98,7 +99,7 @@ class EnumChoice(Choice):
         self._enum = choices
 
         # Normalize choice_source to ChoiceSource.
-        if isinstance(choice_source, str):
+        if isinstance(choice_source, str) and not callable(choice_source):
             choice_source = getattr(ChoiceSource, choice_source.upper())
         self._choice_source = choice_source
 
@@ -126,6 +127,9 @@ class EnumChoice(Choice):
 
         elif self._choice_source == ChoiceSource.STR:
             choice = str(member)
+
+        elif callable(self._choice_source):
+            choice = self._choice_source(member)
 
         if not isinstance(choice, str):
             raise TypeError(

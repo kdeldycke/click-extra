@@ -133,10 +133,17 @@ class MyEnum(StrEnum):
         ("Name", ("FIRST_VALUE", "SECOND_VALUE")),
         ("valuE", ("first-value", "second-value")),
         ("STR", ("my-first-value", "my-second-value")),
+        # Callable choice_source.
+        (
+            lambda member: f"custom-{member.value}",
+            ("custom-first-value", "custom-second-value"),
+        ),
+        ("custom-{value}".format, ("custom-first-value", "custom-second-value")),
     ),
 )
 def test_enum_choice_internals(
-    source: ChoiceSource | str, expected_choices: tuple[str, ...]
+    source: ChoiceSource | str | callable,
+    expected_choices: tuple[str, ...],
 ) -> None:
     enum_choice = EnumChoice(MyEnum, choice_source=source)
 
@@ -151,7 +158,7 @@ def test_enum_choice_internals(
     # Check internal metadata.
     assert enum_choice.case_sensitive is False
     assert enum_choice._enum is MyEnum
-    assert enum_choice._choice_source in ChoiceSource
+    assert enum_choice._choice_source in ChoiceSource or callable
     assert len(enum_choice._enum_map) == 2
     assert tuple(enum_choice._enum_map.keys()) == enum_choice.choices
     assert tuple(enum_choice._enum_map.values()) == tuple(MyEnum)
