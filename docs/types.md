@@ -81,10 +81,14 @@ All Enum’s members are properly registered and recognized when using their `na
 ```{click:run}
 result = invoke(cli, args=["--format", "TEXT"])
 assert result.output == "Selected format: <Format.TEXT: 'text'>\n"
+```
 
+```{click:run}
 result = invoke(cli, args=["--format", "HTML"])
 assert result.output == "Selected format: <Format.HTML: 'html'>\n"
+```
 
+```{click:run}
 result = invoke(cli, args=["--format", "OTHER_FORMAT"])
 assert result.output == "Selected format: <Format.OTHER_FORMAT: 'other-format'>\n"
 ```
@@ -92,13 +96,19 @@ assert result.output == "Selected format: <Format.OTHER_FORMAT: 'other-format'>\
 However, using the `value` fails:
 
 ```{click:run}
-:emphasize-lines: 5,10,15
+:emphasize-lines: 5
 result = invoke(cli, args=["--format", "text"])
 assert "'text' is not one of 'TEXT', 'HTML', 'OTHER_FORMAT'." in result.stderr
+```
 
+```{click:run}
+:emphasize-lines: 5
 result = invoke(cli, args=["--format", "html"])
 assert "'html' is not one of 'TEXT', 'HTML', 'OTHER_FORMAT'." in result.stderr
+```
 
+```{click:run}
+:emphasize-lines: 5
 result = invoke(cli, args=["--format", "other-format"])
 assert "'other-format' is not one of 'TEXT', 'HTML', 'OTHER_FORMAT'." in result.stderr
 ```
