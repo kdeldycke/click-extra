@@ -72,7 +72,7 @@ class EnumChoice(Choice):
         parameters, parsing, help messages, environment variables, etc.
     """
 
-    _enum: Enum
+    _enum: type[Enum]
     """The ``Enum`` class used for choices."""
 
     _enum_map: dict[str, Enum]
@@ -83,7 +83,7 @@ class EnumChoice(Choice):
 
     def __init__(
         self,
-        choices: Enum,
+        choices: type[Enum],
         case_sensitive: bool = False,
         choice_source: ChoiceSource | str = ChoiceSource.STR,
     ) -> None:
@@ -99,7 +99,7 @@ class EnumChoice(Choice):
 
         # Normalize choice_source to ChoiceSource.
         if isinstance(choice_source, str):
-            choice_source = ChoiceSource[choice_source.upper()]
+            choice_source = getattr(ChoiceSource, choice_source.upper())
         self._choice_source = choice_source
 
         # Build the mapping of choice strings to Enum members.
