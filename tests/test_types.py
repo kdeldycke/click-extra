@@ -16,7 +16,6 @@
 
 from __future__ import annotations
 
-import enum
 import sys
 from enum import Enum, IntEnum, auto
 
