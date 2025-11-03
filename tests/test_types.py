@@ -35,7 +35,7 @@ from click_extra import (
 if sys.version_info >= (3, 11):
     from enum import StrEnum
 else:
-    from backports.strenum import StrEnum
+    from backports.strenum import StrEnum  # type: ignore[import-not-found]
 
 
 def test_click_choice_behavior() -> None:

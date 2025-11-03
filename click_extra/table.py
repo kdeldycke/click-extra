@@ -34,7 +34,7 @@ from .parameters import ExtraOption
 if sys.version_info >= (3, 11):
     from enum import StrEnum
 else:
-    from backports.strenum import StrEnum
+    from backports.strenum import StrEnum  # type: ignore[import-not-found]
 
 
 TYPE_CHECKING = False

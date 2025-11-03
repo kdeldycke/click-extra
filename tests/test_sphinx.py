@@ -31,7 +31,7 @@ from sphinx.util.docutils import docutils_namespace
 if sys.version_info >= (3, 11):
     from enum import StrEnum
 else:
-    from backports.strenum import StrEnum
+    from backports.strenum import StrEnum  # type: ignore[import-not-found]
 
 
 class FormatType(StrEnum):
