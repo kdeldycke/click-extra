@@ -3,7 +3,7 @@
 name = "click-extra"
 version = "6.2.0"
 # Python versions and their status: https://devguide.python.org/versions/
-requires-python = ">= 3.11"
+requires-python = ">= 3.10"
 description = "🌈 Drop-in replacement for Click to make user-friendly and colorful CLI"
 authors = [{ name = "Kevin Deldycke", email = "kevin@deldycke.com" }]
 readme = "readme.md"
@@ -49,6 +49,7 @@ classifiers = [
     "Operating System :: POSIX :: BSD :: OpenBSD",
     'Operating System :: POSIX :: Linux',
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -89,12 +90,14 @@ dependencies = [
     "cloup >= 3.0.7",
     # deepmerge 2.0 is the first version used in Click Extra.
     "deepmerge >= 2.0",
-    # extra-platforms 3.0.0 is the first version to drop Python 3.10, like us.
-    "extra-platforms >= 3.0.0",
-    # requests 2.32.4 fix CVE-2024-47081.
-    "requests >= 2.32.4",
+    # extra-platforms 5.0.0 is the first version to re-introduce support for Python 3.10.
+    "extra-platforms >= 5.0.0",
+    # requests 2.32.5 adds support for Python 3.14.
+    "requests >= 2.32.5",
     # tabulate 0.9 is the first to add `*grid` and `*outline` formats.
     "tabulate [widechars] >= 0.9",
+    # tomllib is not part of the standard library before Python 3.11. Version 2.3.0 is the first to support Python 3.14.
+    "tomli >= 2.3.0 ; python_version < '3.11'",
     # wcmatch 10.0 fix some inconsistencies in globbing and symlinks.
     "wcmatch >= 10.0",
 ]
@@ -128,14 +131,14 @@ pygments = [
     "pygments-ansi-color >= 0.3.0",
 ]
 sphinx = [
-    # docutils 0.20 is the minimal version for Sphinx 8.2.
+    # docutils 0.20 is the minimal version for Sphinx 8.0.0.
     "docutils >= 0.20",
     # Pygments 2.14.0 is the first version with lexers.algebra.GAPConsoleLexer that is referenced in our code.
     "pygments >= 2.14",
     # pygments-ansi-color 0.3.0 is the first version to set the default theme of ANSI colors.
     "pygments-ansi-color >= 0.3.0",
-    # Sphinx 8.2 is the first version to drop Python 3.10, like us.
-    "sphinx >= 8.2",
+    # Sphinx  8.0.0 is the first version to drop Python 3.9, like us.
+    "sphinx >= 8.0.0",
 ]
 pytest = [
     # pytest 8.2.1 is the first version to support Python 3.13.
@@ -145,8 +148,8 @@ pytest = [
 ## Unless the package has been referenced in sections above, in which case we align the version specifier.
 test = [
     "coverage [toml] ~= 7.11.0",
-    # extra-platforms 3.0.0 is the first version to drop Python 3.10, like us.
-    "extra-platforms [pytest] >= 3.0.0",
+    # extra-platforms 5.0.0 is the first version to re-introduce support for Python 3.10.
+    "extra-platforms [pytest] >= 5.0.0",
     "myst-parser ~= 4.0.0",
     # pytest 8.2.1 is the first version to support Python 3.13.
     "pytest >= 8.2.1",
@@ -154,8 +157,8 @@ test = [
     "pytest-github-actions-annotate-failures ~= 0.3.0",
     "pytest-httpserver ~= 1.1.0",
     "pytest-randomly ~= 4.0.0",
-    # Sphinx 8.2 is the first version to drop Python 3.10, like us.
-    "sphinx >= 8.2",
+    # Sphinx  8.0.0 is the first version to drop Python 3.9, like us.
+    "sphinx >= 8.0.0",
 ]
 typing = [
     "types-boltons ~= 25.0.0.20250919",
@@ -169,15 +172,16 @@ typing = [
 docs = [
     "furo ~= 2025.9.25",
     "myst-parser ~= 4.0.0",
-    # Sphinx 8.2 is the first version to drop Python 3.10, like us.
-    "sphinx >= 8.2",
-    # sphinx-autodoc-typehints 3.1.0 is the first version to drop Python 3.10.
-    "sphinx-autodoc-typehints ~= 3.5.1",
+    # Sphinx  8.0.0 is the first version to drop Python 3.9, like us.
+    "sphinx >= 8.0.0",
+    # sphinx-autodoc-typehints 2.4.0 is the first version that is aligned to our Python >= 3.10 requirement.
+    "sphinx-autodoc-typehints >= 2.4.0",
     "sphinx-copybutton ~= 0.5.2",
     "sphinx-design ~= 0.6.0",
     "sphinx-issues ~= 5.0.0",
     "sphinxcontrib-mermaid ~= 1.0.0",
     "sphinxext-opengraph ~= 0.13.0",
+    "tomli >= 2.3.0 ; python_version < '3.11'",
 ]
 
 [project.urls]

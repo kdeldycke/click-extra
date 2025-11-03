@@ -33,7 +33,9 @@ jobs:
           - windows-2025     # x86
         # Available Python: https://github.com/actions/python-versions/blob/main/versions-manifest.json
         python-version:
-          - "3.11"
+          - "3.10"
+          # Ignore intermediate versions to reduce CI load.
+          # - "3.11"
           # - "3.12"
           # - "3.13"
           - "3.14"
@@ -56,7 +58,10 @@ jobs:
         #         - macos-15-intel
         #         - windows-2025
         #       python-version:
+        #         - "3.10"
         #         - "3.11"
+        #         - "3.12"
+        #         - "3.13"
         #         - "3.15"
         #     - click-version: main
         #       os:
@@ -64,7 +69,10 @@ jobs:
         #         - macos-15-intel
         #         - windows-2025
         #       python-version:
+        #         - "3.10"
         #         - "3.11"
+        #         - "3.12"
+        #         - "3.13"
         #         - "3.15"
         #     - cloup-version: master
         #       os:
@@ -72,7 +80,10 @@ jobs:
         #         - macos-15-intel
         #         - windows-2025
         #       python-version:
+        #         - "3.10"
         #         - "3.11"
+        #         - "3.12"
+        #         - "3.13"
         #         - "3.15"
         exclude:
           # Only targets the latest OS for each platform.
@@ -95,11 +106,33 @@ jobs:
           - os: windows-2025
             cloup-version: master
           # Exclude old Python version. Only test on latest stable release.
+          # Python 3.10
+          - python-version: "3.10"
+            click-version: stable
+          - python-version: "3.10"
+            click-version: main
+          - python-version: "3.10"
+            cloup-version: master
+          # Python 3.11
           - python-version: "3.11"
             click-version: stable
           - python-version: "3.11"
             click-version: main
           - python-version: "3.11"
+            cloup-version: master
+          # Python 3.12
+          - python-version: "3.12"
+            click-version: stable
+          - python-version: "3.12"
+            click-version: main
+          - python-version: "3.12"
+            cloup-version: master
+          # Python 3.13
+          - python-version: "3.13"
+            click-version: stable
+          - python-version: "3.13"
+            click-version: main
+          - python-version: "3.13"
             cloup-version: master
           # Exclude Python's dev version.
           - python-version: "3.15"
@@ -135,10 +168,10 @@ jobs:
           set -e
           uv --no-progress venv --python ${{ matrix.python-version }}
       - name: Install project
+        # Install all extras, so we can check any incompatibility.
         run: >
-          uv --no-progress sync --frozen --extra test
-          --extra yaml --extra json5 --extra jsonc --extra hjson --extra xml
-          --extra pygments --extra sphinx --extra pytest
+          uv --no-progress sync --frozen --all-extras
+
       - name: Unittests
         run: >
           uv --no-progress run --frozen
@@ -148,6 +181,7 @@ jobs:
           && format('--with "git+https://github.com/janluke/cloup.git@{0}"', matrix.cloup-version) || ''}}
           --
           pytest
+
       - name: Codecov - coverage
         uses: codecov/codecov-action@v5.5.1
         with:

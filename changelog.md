@@ -6,7 +6,9 @@
 > This version is not released yet and is under active development.
 
 - Add new `EnumChoice` type for fine-tunable Enum-based choices. Expose `EnumChoice` and `ChoiceSource` at the root `click_extra` module.
-- Skip tests on intermediate Python versions (`3.12` and `3.13`) to reduce CI load.
+- Relax dependencies to support Python 3.10. Closes {issue}`1385`.
+- Re-introduce `tomli` dependency for Python 3.10 users.
+- Skip tests on intermediate Python versions (`3.11`, `3.12` and `3.13`) to reduce CI load.
 
 ## [6.1.0 (2025-10-28)](https://github.com/kdeldycke/click-extra/compare/v6.0.3...v6.1.0)
 

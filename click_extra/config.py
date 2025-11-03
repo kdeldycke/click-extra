@@ -38,7 +38,7 @@ import enum
 import json
 import logging
 import os
-import tomllib
+import sys
 from configparser import ConfigParser, ExtendedInterpolation
 from enum import Enum
 from functools import partial
@@ -71,6 +71,12 @@ from . import (
     get_current_context,
 )
 from .parameters import ExtraOption, ParamStructure, search_params
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib  # type: ignore[import-not-found]
+
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
