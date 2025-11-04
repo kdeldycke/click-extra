@@ -20,30 +20,31 @@ from __future__ import annotations
 # Import all click's module-level content to allow for drop-in replacement.
 # XXX Star import is really badly supported by mypy for now and leads to lots of
 # "Module 'XXX' has no attribute 'YYY'". See: https://github.com/python/mypy/issues/4930
-from click import *  # noqa: E402, F403
-from click._utils import UNSET  # noqa: E402
-from click.core import ParameterSource  # noqa: E402
+from click import *  # noqa: F403
+from click._utils import UNSET
+from click.core import ParameterSource
 
 # Overrides click helpers with cloup's.
-from cloup import *  # type: ignore[no-redef, assignment] # noqa: E402, F403
+from cloup import *  # type: ignore[no-redef, assignment] # noqa: F403
 
-# XXX Import types first to avoid circular imports.
+# XXX Import types first to avoid circular imports. The True condition is a hack to
+# prevent ruff from re-ordering imports.
 if True:
-    from .types import ChoiceSource, EnumChoice  # noqa: E402
+    from .types import ChoiceSource, EnumChoice
 
-from .colorize import (  # noqa: E402
+from .colorize import (
     ColorOption,
     HelpExtraFormatter,
     HelpExtraTheme,
 )
-from .commands import (  # noqa: E402
+from .commands import (
     ExtraCommand,
     ExtraContext,
     ExtraGroup,
     LazyGroup,
 )
-from .config import ConfigOption, NoConfigOption  # noqa: E402
-from .decorators import (  # type: ignore[no-redef, has-type, unused-ignore] # noqa: E402
+from .config import ConfigOption, NoConfigOption
+from .decorators import (  # type: ignore[no-redef]
     color_option,
     command,
     config_option,
@@ -61,7 +62,7 @@ from .decorators import (  # type: ignore[no-redef, has-type, unused-ignore] # n
     verbose_option,
     verbosity_option,
 )
-from .logging import (  # noqa: E402
+from .logging import (
     ExtraFormatter,
     ExtraStreamHandler,
     LogLevel,
@@ -70,149 +71,149 @@ from .logging import (  # noqa: E402
     extraBasicConfig,
     new_extra_logger,
 )
-from .parameters import (  # noqa: E402
+from .parameters import (
     ExtraOption,
     ParamStructure,
     ShowParamsOption,
     search_params,
 )
-from .table import (  # noqa: E402
+from .table import (
     TableFormat,
     TableFormatOption,
     print_table,
     render_table,
 )
-from .telemetry import TelemetryOption  # noqa: E402
-from .testing import ExtraCliRunner  # noqa: E402
-from .timer import TimerOption  # noqa: E402
-from .version import ExtraVersionOption  # noqa: E402
+from .telemetry import TelemetryOption
+from .testing import ExtraCliRunner
+from .timer import TimerOption
+from .version import ExtraVersionOption
 
-__all__ = [
-    "Abort",  # noqa: F405
-    "annotations",  # noqa: F405
-    "Argument",  # noqa: F405
-    "argument",  # noqa: F405
-    "BadArgumentUsage",  # noqa: F405
-    "BadOptionUsage",  # noqa: F405
-    "BadParameter",  # noqa: F405
-    "BOOL",  # noqa: F405
-    "Choice",  # noqa: F405
-    "ChoiceSource",  # noqa: F405
-    "clear",  # noqa: F405
-    "ClickException",  # noqa: F405
-    "Color",  # noqa: F405
-    "color_option",  # noqa: F405
-    "ColorOption",  # noqa: F405
-    "Command",  # noqa: F405
-    "command",  # noqa: F405
-    "CommandCollection",  # noqa: F405
-    "config_option",  # noqa: F405
-    "ConfigOption",  # noqa: F405
-    "confirm",  # noqa: F405
-    "confirmation_option",  # noqa: F405
-    "constrained_params",  # noqa: F405
-    "constraint",  # noqa: F405
-    "ConstraintMixin",  # noqa: F405
-    "Context",  # noqa: F405
-    "DateTime",  # noqa: F405
-    "dir_path",  # noqa: F405
-    "echo",  # noqa: F405
-    "echo_via_pager",  # noqa: F405
-    "edit",  # noqa: F405
-    "EnumChoice",  # noqa: F405
-    "extra_command",  # noqa: F405
-    "extra_group",  # noqa: F405
-    "extra_version_option",  # noqa: F405
-    "extraBasicConfig",  # noqa: F405
-    "ExtraCliRunner",  # noqa: F405
-    "ExtraCommand",  # noqa: F405
-    "ExtraContext",  # noqa: F405
-    "ExtraFormatter",  # noqa: F405
-    "ExtraGroup",  # noqa: F405
-    "ExtraOption",  # noqa: F405
-    "ExtraStreamHandler",  # noqa: F405
-    "ExtraVersionOption",  # noqa: F405
-    "File",  # noqa: F405
-    "file_path",  # noqa: F405
-    "FileError",  # noqa: F405
-    "FLOAT",  # noqa: F405
-    "FloatRange",  # noqa: F405
-    "format_filename",  # noqa: F405
-    "get_app_dir",  # noqa: F405
-    "get_binary_stream",  # noqa: F405
-    "get_current_context",  # noqa: F405
-    "get_text_stream",  # noqa: F405
-    "getchar",  # noqa: F405
-    "Group",  # noqa: F405
-    "group",  # noqa: F405
-    "help_option",  # noqa: F405
-    "HelpExtraFormatter",  # noqa: F405
-    "HelpExtraTheme",  # noqa: F405
-    "HelpFormatter",  # noqa: F405
-    "HelpSection",  # noqa: F405
-    "HelpTheme",  # noqa: F405
-    "INT",  # noqa: F405
-    "IntRange",  # noqa: F405
-    "launch",  # noqa: F405
-    "lazy_group",  # noqa: F405
-    "LazyGroup",  # noqa: F405
-    "LogLevel",  # noqa: F405
-    "make_pass_decorator",  # noqa: F405
-    "MissingParameter",  # noqa: F405
-    "new_extra_logger",  # noqa: F405
-    "no_config_option",  # noqa: F405
-    "NoConfigOption",  # noqa: F405
-    "NoSuchOption",  # noqa: F405
-    "open_file",  # noqa: F405
-    "Option",  # noqa: F405
-    "option",  # noqa: F405
-    "option_group",  # noqa: F405
-    "OptionGroup",  # noqa: F405
-    "OptionGroupMixin",  # noqa: F405
-    "Parameter",  # noqa: F405
-    "ParameterSource",  # noqa: F405
-    "ParamStructure",  # noqa: F405
-    "ParamType",  # noqa: F405
-    "pass_context",  # noqa: F405
-    "pass_obj",  # noqa: F405
-    "password_option",  # noqa: F405
-    "Path",  # noqa: F405
-    "path",  # noqa: F405
-    "pause",  # noqa: F405
-    "print_table",  # noqa: F405
-    "progressbar",  # noqa: F405
-    "prompt",  # noqa: F405
-    "render_table",  # noqa: F405
-    "search_params",  # noqa: F405
-    "secho",  # noqa: F405
-    "Section",  # noqa: F405
-    "SectionMixin",  # noqa: F405
-    "show_params_option",  # noqa: F405
-    "ShowParamsOption",  # noqa: F405
-    "STRING",  # noqa: F405
-    "Style",  # noqa: F405
-    "style",  # noqa: F405
-    "table_format_option",  # noqa: F405
-    "TableFormat",  # noqa: F405
-    "TableFormatOption",  # noqa: F405
-    "telemetry_option",  # noqa: F405
-    "TelemetryOption",  # noqa: F405
-    "timer_option",  # noqa: F405
-    "TimerOption",  # noqa: F405
-    "Tuple",  # noqa: F405
-    "UNPROCESSED",  # noqa: F405
-    "UNSET",  # noqa: F405
-    "unstyle",  # noqa: F405
-    "UsageError",  # noqa: F405
-    "UUID",  # noqa: F405
-    "verbose_option",  # noqa: F405
-    "VerboseOption",  # noqa: F405
-    "verbosity_option",  # noqa: F405
-    "VerbosityOption",  # noqa: F405
-    "version_option",  # noqa: F405
-    "VersionOption",  # noqa: F405
-    "warnings",  # noqa: F405
-    "wrap_text",  # noqa: F405
+__all__ = [  # noqa: F405
+    "Abort",
+    "annotations",
+    "Argument",
+    "argument",
+    "BadArgumentUsage",
+    "BadOptionUsage",
+    "BadParameter",
+    "BOOL",
+    "Choice",
+    "ChoiceSource",
+    "clear",
+    "ClickException",
+    "Color",
+    "color_option",
+    "ColorOption",
+    "Command",
+    "command",
+    "CommandCollection",
+    "config_option",
+    "ConfigOption",
+    "confirm",
+    "confirmation_option",
+    "constrained_params",
+    "constraint",
+    "ConstraintMixin",
+    "Context",
+    "DateTime",
+    "dir_path",
+    "echo",
+    "echo_via_pager",
+    "edit",
+    "EnumChoice",
+    "extra_command",
+    "extra_group",
+    "extra_version_option",
+    "extraBasicConfig",
+    "ExtraCliRunner",
+    "ExtraCommand",
+    "ExtraContext",
+    "ExtraFormatter",
+    "ExtraGroup",
+    "ExtraOption",
+    "ExtraStreamHandler",
+    "ExtraVersionOption",
+    "File",
+    "file_path",
+    "FileError",
+    "FLOAT",
+    "FloatRange",
+    "format_filename",
+    "get_app_dir",
+    "get_binary_stream",
+    "get_current_context",
+    "get_text_stream",
+    "getchar",
+    "Group",
+    "group",
+    "help_option",
+    "HelpExtraFormatter",
+    "HelpExtraTheme",
+    "HelpFormatter",
+    "HelpSection",
+    "HelpTheme",
+    "INT",
+    "IntRange",
+    "launch",
+    "lazy_group",
+    "LazyGroup",
+    "LogLevel",
+    "make_pass_decorator",
+    "MissingParameter",
+    "new_extra_logger",
+    "no_config_option",
+    "NoConfigOption",
+    "NoSuchOption",
+    "open_file",
+    "Option",
+    "option",
+    "option_group",
+    "OptionGroup",
+    "OptionGroupMixin",
+    "Parameter",
+    "ParameterSource",
+    "ParamStructure",
+    "ParamType",
+    "pass_context",
+    "pass_obj",
+    "password_option",
+    "Path",
+    "path",
+    "pause",
+    "print_table",
+    "progressbar",
+    "prompt",
+    "render_table",
+    "search_params",
+    "secho",
+    "Section",
+    "SectionMixin",
+    "show_params_option",
+    "ShowParamsOption",
+    "STRING",
+    "Style",
+    "style",
+    "table_format_option",
+    "TableFormat",
+    "TableFormatOption",
+    "telemetry_option",
+    "TelemetryOption",
+    "timer_option",
+    "TimerOption",
+    "Tuple",
+    "UNPROCESSED",
+    "UNSET",
+    "unstyle",
+    "UsageError",
+    "UUID",
+    "verbose_option",
+    "VerboseOption",
+    "verbosity_option",
+    "VerbosityOption",
+    "version_option",
+    "VersionOption",
+    "warnings",
+    "wrap_text",
 ]
 """Expose all of Click, Cloup and Click Extra.
 
