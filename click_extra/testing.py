@@ -18,7 +18,6 @@
 from __future__ import annotations
 
 import inspect
-import io
 import logging
 import re
 import subprocess
@@ -149,27 +148,6 @@ We need to collect them to help us identify which extra parameters passed to
     <https://github.com/pallets/click/issues/2110>`_ but has been rejected and not
     considered an issue worth fixing.
 """
-
-
-class BytesIOCopy(io.BytesIO):
-    """Patch ``io.BytesIO`` to let the written stream be copied to another.
-
-    .. caution::
-        This has been `proposed upstream to Click project
-        <https://github.com/pallets/click/pull/2523>`_ but has not been merged yet.
-    """
-
-    def __init__(self, copy_to: io.BytesIO) -> None:
-        super().__init__()
-        self.copy_to = copy_to
-
-    def flush(self) -> None:
-        super().flush()
-        self.copy_to.flush()
-
-    def write(self, b) -> int:
-        self.copy_to.write(b)
-        return super().write(b)
 
 
 class ExtraCliRunner(click.testing.CliRunner):
