@@ -1,5 +1,10 @@
 # Changelog
 
+## [6.2.1 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v6.2.0...main)
+
+> [!IMPORTANT]
+> This version is not released yet and is under active development.
+
 ## [6.2.0 (2025-11-04)](https://github.com/kdeldycke/click-extra/compare/v6.1.0...v6.2.0)
 
 - Add new `EnumChoice` type for fine-tunable Enum-based choices. Expose `EnumChoice` and `ChoiceSource` at the root `click_extra` module.
