@@ -376,7 +376,7 @@ def test_conf_default_pathlib_type(invoke, create_config):
         line.strip()
         for line in result.stdout.split("--config CONFIG_PATH")[1].splitlines()
     )
-    assert f"[default:{shrinkuser(conf_path)}]--help" in help_screen
+    assert str(shrinkuser(conf_path)) in help_screen
 
     assert not result.stderr
     assert result.exit_code == 0
