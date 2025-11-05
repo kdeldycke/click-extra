@@ -30,9 +30,8 @@ from click_extra import (
     ChoiceSource,
     EnumChoice,
     echo,
-    option,
 )
-from click_extra.pytest import command_decorators
+from click_extra.pytest import command_decorators, option_decorators
 
 if sys.version_info >= (3, 11):
     from enum import StrEnum
@@ -395,11 +394,17 @@ def test_enum_choice_command(
 @pytest.mark.parametrize(
     ("cmd_decorator", "cmd_type"), command_decorators(no_groups=True, with_types=True)
 )
-def test_enum_choice_default_value(invoke, cmd_decorator, cmd_type) -> None:
+@pytest.mark.parametrize(
+    ("opt_decorator", "opt_type"),
+    option_decorators(no_arguments=True, with_parenthesis=False, with_types=True),
+)
+def test_enum_choice_default_value(
+    invoke, cmd_decorator, cmd_type, opt_decorator, opt_type
+) -> None:
     """Test EnumChoice used within an option with a default value."""
 
     @cmd_decorator
-    @option(
+    @opt_decorator(
         "--my-enum",
         type=EnumChoice(MyEnum),
         default=MyEnum.SECOND_VALUE,
@@ -419,8 +424,7 @@ def test_enum_choice_default_value(invoke, cmd_decorator, cmd_type) -> None:
     assert "--my-enum [my-first-value|my-second-value]" in result.stdout
 
     # Using our click_extra.command decorator fix the rendering.
-    # default_rendering = "second-value" if "extra" in cmd_type else "SECOND_VALUE"
-    default_rendering = "SECOND_VALUE"
+    default_rendering = "my-second-value" if "extra" in opt_type else "SECOND_VALUE"
     assert f"[default: {default_rendering}]" in result.stdout
 
     assert not result.stderr

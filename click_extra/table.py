@@ -332,7 +332,7 @@ class TableFormatOption(ExtraOption):
         self,
         param_decls: Sequence[str] | None = None,
         type=EnumChoice(TableFormat),
-        default=DEFAULT_FORMAT.value,
+        default=DEFAULT_FORMAT,
         expose_value=False,
         is_eager=True,
         help=_("Rendering style of tables."),

@@ -29,7 +29,7 @@ import click
 import cloup
 from deepmerge import always_merger
 
-from . import ParamType, Style, get_current_context
+from . import EnumChoice, ParamType, Style, get_current_context
 from .envvar import param_envvar_ids
 
 TYPE_CHECKING = False
@@ -86,12 +86,17 @@ class _ParameterMixin:
         - Multiple inheritance cannot be used because of MRO issues.
     """
 
-    def _get_default(self, ctx: click.Context, call: bool = True):
+    def get_default(self, ctx: click.Context, call: bool = True):
+        """Override Click's ``Parameter.get_default()`` to support ``EnumChoice`` types.
+
+        Reuse the ``EnumChoice.get_choice_string()`` method to convert the default value
+        to its string representation, instead of returning the ``name`` of the ``Enum``,
+        as Click does by default: https://github.com/pallets/click/pull/3004 .
+        """
         default_value = super().get_default(ctx, call)  # type: ignore[misc]
 
-        import pdb
-
-        pdb.set_trace()
+        if isinstance(self.type, EnumChoice):
+            default_value = self.type.get_choice_string(default_value)
 
         return default_value
 

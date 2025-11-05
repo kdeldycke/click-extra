@@ -17,6 +17,7 @@
 - Remove `@extra_command`, `@extra_group` and `@extra_version_option`.
 - Remove `no_redefined` argument in `click_extra.pytest.command_decorators()` method.
 - Validates that classes passed to the `cls` parameter of decorators are subclasses of the expected base classes.
+- Normalize the default value of `EnumChoice` parameters to their string choice representation in help screens.
 
 ## [6.2.0 (2025-11-04)](https://github.com/kdeldycke/click-extra/compare/v6.1.0...v6.2.0)
 

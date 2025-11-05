@@ -30,7 +30,7 @@ import cloup
 import pytest
 from _pytest.assertion.util import assertrepr_compare
 
-from click_extra.decorators import command, group
+from click_extra.decorators import argument, command, group, option
 from click_extra.testing import (
     ExtraCliRunner,
     RegexLineMismatch,
@@ -118,12 +118,9 @@ def command_decorators(
         if not no_extra:
             params.append((command, {"extra", "command"}, "click_extra.command", ()))
             if with_parenthesis:
-                params.append((
-                    command(),
-                    {"extra", "command"},
-                    "click_extra.command()",
-                    (),
-                ))
+                params.append(
+                    (command(), {"extra", "command"}, "click_extra.command()", ()),
+                )
 
     if not no_groups:
         if not no_click:
@@ -140,6 +137,92 @@ def command_decorators(
             params.append((group, {"extra", "group"}, "click_extra.group", ()))
             if with_parenthesis:
                 params.append((group(), {"extra", "group"}, "click_extra.group()", ()))
+
+    decorator_params = []
+    for deco, deco_type, label, marks in params:
+        args = [deco]
+        if with_types:
+            args.append(deco_type)
+        decorator_params.append(pytest.param(*args, id=label, marks=marks))
+
+    return tuple(decorator_params)
+
+
+def option_decorators(
+    no_options: bool = False,
+    no_arguments: bool = False,
+    no_click: bool = False,
+    no_cloup: bool = False,
+    no_extra: bool = False,
+    with_parenthesis: bool = True,
+    with_types: bool = False,
+) -> tuple[ParameterSet, ...]:
+    """Returns collection of Pytest parameters to test all parameter-like decorators.
+
+    Returns:
+
+    - `click.option`
+    - `click.option()`
+    - `cloup.option`
+    - `cloup.option()`
+    - `click_extra.option`
+    - `click_extra.option()`
+    - `click.argument`
+    - `click.argument()`
+    - `cloup.argument`
+    - `cloup.argument()`
+    - `click_extra.argument`
+    - `click_extra.argument()`
+    """
+    params: list[tuple[Any, set[str], str, tuple | MarkDecorator]] = []
+
+    if no_options is False:
+        if not no_click:
+            params.append((click.option, {"click", "option"}, "click.option", ()))
+            if with_parenthesis:
+                params.append(
+                    (click.option(), {"click", "option"}, "click.option()", ()),
+                )
+
+        if not no_cloup:
+            params.append(
+                (cloup.option, {"cloup", "option"}, "cloup.option", skip_naked),
+            )
+            if with_parenthesis:
+                params.append(
+                    (cloup.option(), {"cloup", "option"}, "cloup.option()", ()),
+                )
+
+        if not no_extra:
+            params.append((option, {"extra", "option"}, "click_extra.option", ()))
+            if with_parenthesis:
+                params.append(
+                    (option(), {"extra", "option"}, "click_extra.option()", ()),
+                )
+
+    if no_arguments is False:
+        if not no_click:
+            params.append((click.argument, {"click", "argument"}, "click.argument", ()))
+            if with_parenthesis:
+                params.append(
+                    (click.argument(), {"click", "argument"}, "click.argument()", ()),
+                )
+
+        if not no_cloup:
+            params.append(
+                (cloup.argument, {"cloup", "argument"}, "cloup.argument", skip_naked),
+            )
+            if with_parenthesis:
+                params.append(
+                    (cloup.argument(), {"cloup", "argument"}, "cloup.argument()", ()),
+                )
+
+        if not no_extra:
+            params.append((argument, {"extra", "argument"}, "click_extra.argument", ()))
+            if with_parenthesis:
+                params.append(
+                    (argument(), {"extra", "argument"}, "click_extra.argument()", ()),
+                )
 
     decorator_params = []
     for deco, deco_type, label, marks in params:
