@@ -54,8 +54,6 @@ def slow_subcommand():
 )
 def test_integrated_time_option(invoke, subcommand_id, time_min):
     result = invoke(integrated_timer, "--time", f"{subcommand_id}-subcommand")
-    assert result.exit_code == 0
-    assert not result.stderr
     group = re.fullmatch(
         rf"Start of CLI\nEnd of {subcommand_id} subcommand\n"
         r"Execution time: (?P<time>[0-9.]+) seconds.\n",
@@ -64,14 +62,16 @@ def test_integrated_time_option(invoke, subcommand_id, time_min):
     assert group
     # Hard-code upper bound to avoid flakiness on slow platforms like macOS.
     assert time_min < float(group.groupdict()["time"]) < 80
+    assert not result.stderr
+    assert result.exit_code == 0
 
 
 @pytest.mark.parametrize("subcommand_id", ("fast", "slow"))
 def test_integrated_notime_option(invoke, subcommand_id):
     result = invoke(integrated_timer, "--no-time", f"{subcommand_id}-subcommand")
-    assert result.exit_code == 0
-    assert not result.stderr
     assert result.stdout == f"Start of CLI\nEnd of {subcommand_id} subcommand\n"
+    assert not result.stderr
+    assert result.exit_code == 0
 
 
 @pytest.mark.parametrize(
@@ -89,8 +89,6 @@ def test_standalone_timer_option(
         echo("It works!")
 
     result = invoke(standalone_timer, "--help")
-    assert result.exit_code == 0
-    assert not result.stderr
     assert result.stdout == dedent(
         """\
         Usage: standalone-timer [OPTIONS]
@@ -100,16 +98,18 @@ def test_standalone_timer_option(
           --help              Show this message and exit.
         """,
     )
+    assert not result.stderr
+    assert result.exit_code == 0
 
     result = invoke(standalone_timer, "--time")
-    assert result.exit_code == 0
-    assert not result.stderr
     assert_output_regex(
         result.stdout,
         r"It works!\nExecution time: [0-9.]+ seconds.\n",
     )
+    assert not result.stderr
+    assert result.exit_code == 0
 
     result = invoke(standalone_timer, "--no-time")
-    assert result.exit_code == 0
-    assert not result.stderr
     assert result.stdout == "It works!\n"
+    assert not result.stderr
+    assert result.exit_code == 0

@@ -311,9 +311,9 @@ def simple_config_cli():
 
 def test_unset_conf(invoke, simple_config_cli):
     result = invoke(simple_config_cli, "default")
-    assert result.exit_code == 0
-    assert not result.stderr
     assert result.stdout == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
+    assert not result.stderr
+    assert result.exit_code == 0
 
 
 def test_unset_conf_debug_message(invoke, simple_config_cli, assert_output_regex):
@@ -324,18 +324,16 @@ def test_unset_conf_debug_message(invoke, simple_config_cli, assert_output_regex
         "default",
         color=False,
     )
-    assert result.exit_code == 0
     assert result.stdout == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
     assert_output_regex(
         result.stderr,
         default_debug_uncolored_log_start + default_debug_uncolored_log_end,
     )
+    assert result.exit_code == 0
 
 
 def test_conf_default_path(invoke, simple_config_cli):
     result = invoke(simple_config_cli, "--help", color=False)
-    assert result.exit_code == 0
-    assert not result.stderr
 
     # Search for the OS-specific path without glob pattern.
     default_path = _escape_for_help_screen(str(shrinkuser(get_app_dir("config-cli1"))))
@@ -352,6 +350,9 @@ def test_conf_default_path(invoke, simple_config_cli):
     )
     assert "*.{toml,yaml,yml,json,json5,jsonc,hjson,ini,xml}]" in help_screen
 
+    assert not result.stderr
+    assert result.exit_code == 0
+
 
 def test_conf_default_pathlib_type(invoke, create_config):
     """Refs https://github.com/kdeldycke/click-extra/issues/1356"""
@@ -367,19 +368,19 @@ def test_conf_default_pathlib_type(invoke, create_config):
         echo(f"dummy_flag = {dummy_flag!r}")
 
     result = invoke(config_cli1, "--help", color=False)
-    assert result.exit_code == 0
-    assert not result.stderr
 
-    re.search(
+    assert re.search(
         rf"\s+\[default:\s*{re.escape(str(conf_path))}\]\-\-help\s+",
         # Make it a single line for easier regexp.
         re.sub(r"\n\s+", "", result.stdout),
     )
+    assert not result.stderr
+    assert result.exit_code == 0
 
     result = invoke(config_cli1)
-    assert result.exit_code == 0
-    assert not result.stderr
     assert result.stdout == "dummy_flag = True\n"
+    assert not result.stderr
+    assert result.exit_code == 0
 
 
 def test_conf_not_exist(invoke, simple_config_cli):
@@ -391,10 +392,10 @@ def test_conf_not_exist(invoke, simple_config_cli):
         "default",
         color=False,
     )
-    assert result.exit_code == 2
     assert not result.stdout
     assert f"Load configuration matching {conf_path}\n" in result.stderr
     assert "critical: No configuration file found.\n" in result.stderr
+    assert result.exit_code == 2
 
 
 def test_conf_not_file(invoke, simple_config_cli):
@@ -406,11 +407,10 @@ def test_conf_not_file(invoke, simple_config_cli):
         "default",
         color=False,
     )
-    assert result.exit_code == 2
     assert not result.stdout
-
     assert f"Load configuration matching {conf_path}\n" in result.stderr
     assert "critical: No configuration file found.\n" in result.stderr
+    assert result.exit_code == 2
 
 
 def test_no_config_option(invoke, simple_config_cli, create_config):
@@ -421,9 +421,9 @@ def test_no_config_option(invoke, simple_config_cli, create_config):
         ("--config", str(conf_path), "--no-config", "default"),
     ):
         result = invoke(simple_config_cli, args)
-        assert result.exit_code == 0
         assert result.stdout == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
         assert result.stderr == "Skip configuration file loading altogether.\n"
+        assert result.exit_code == 0
 
 
 def test_standalone_no_config_option(invoke):
@@ -436,13 +436,14 @@ def test_standalone_no_config_option(invoke):
 
     result = invoke(missing_config_option)
 
-    assert result.exit_code == 1
-    assert not result.output
     assert result.exception
     assert type(result.exception) is RuntimeError
     assert str(result.exception) == (
         "--no-config NoConfigOption must be used alongside ConfigOption."
     )
+
+    assert not result.output
+    assert result.exit_code == 1
 
 
 def test_strict_conf(invoke, create_config):
@@ -486,9 +487,9 @@ def test_strict_conf(invoke, create_config):
         == "Parameter 'random_stuff' found in second dict but not in first."
     )
 
-    assert result.exit_code == 1
-    assert f"Load configuration matching {conf_path}\n" in result.stderr
     assert not result.stdout
+    assert f"Load configuration matching {conf_path}\n" in result.stderr
+    assert result.exit_code == 1
 
 
 @all_config_formats
@@ -515,7 +516,6 @@ def test_conf_file_overrides_defaults(
             "default",
             color=False,
         )
-        assert result.exit_code == 0
         assert result.stdout == (
             "dummy_flag = True\nmy_list = ('pip', 'npm', 'gem')\nint_parameter = 3\n"
         )
@@ -534,6 +534,8 @@ def test_conf_file_overrides_defaults(
         )
         assert_output_regex(result.stderr, debug_log)
 
+        assert result.exit_code == 0
+
 
 @all_config_formats
 def test_auto_envvar_conf(
@@ -547,9 +549,9 @@ def test_auto_envvar_conf(
 ):
     # Check the --config option properly documents its environment variable.
     result = invoke(simple_config_cli, "--help")
-    assert result.exit_code == 0
-    assert not result.stderr
     assert "CONFIG_CLI1_CONFIG" in result.stdout
+    assert not result.stderr
+    assert result.exit_code == 0
 
     # Create a local config.
     conf_filepath = create_config(conf_name, conf_text)
@@ -566,7 +568,6 @@ def test_auto_envvar_conf(
             color=False,
             env={"CONFIG_CLI1_CONFIG": str(conf_path)},
         )
-        assert result.exit_code == 0
         assert result.stdout == (
             "dummy_flag = True\nmy_list = ('pip', 'npm', 'gem')\nint_parameter = 3\n"
         )
@@ -576,6 +577,7 @@ def test_auto_envvar_conf(
             "debug: Set <Logger click_extra (DEBUG)> to DEBUG.\n"
             "debug: Set <RootLogger root (DEBUG)> to DEBUG.\n",
         )
+        assert result.exit_code == 0
 
 
 @all_config_formats
@@ -610,11 +612,11 @@ def test_conf_file_overridden_by_cli_param(
             "--int-param",
             "15",
         )
-        assert result.exit_code == 0
         assert result.stdout == (
             "dummy_flag = False\nmy_list = ('super', 'wow')\nint_parameter = 15\n"
         )
         assert result.stderr == f"Load configuration matching {conf_path}\n"
+        assert result.exit_code == 0
 
 
 @all_config_formats
@@ -642,7 +644,6 @@ def test_conf_metadata(
     for conf_path in conf_filepath, conf_url:
         conf_path = create_config(conf_name, conf_text)
         result = invoke(config_metadata, "--config", str(conf_path))
-        assert result.exit_code == 0
         assert result.stdout == (
             f"conf_source={conf_path}\n"
             f"conf_full={conf_data}\n"
@@ -651,6 +652,7 @@ def test_conf_metadata(
             "default_map={}\n"
         )
         assert result.stderr == f"Load configuration matching {conf_path}\n"
+        assert result.exit_code == 0
 
 
 def test_multiple_cli_shared_conf(invoke, create_config):

@@ -111,7 +111,6 @@ def test_integrated_verbosity_options(
         echo("It works!")
 
     result = invoke(logging_cli3, args, color=True)
-    assert result.exit_code == 0
     assert result.stdout == "It works!\n"
     if expected_level == "DEBUG":
         debug_log = default_debug_colored_logging
@@ -125,6 +124,7 @@ def test_integrated_verbosity_options(
         assert_output_regex(result.stderr, debug_log)
     else:
         assert not result.stderr
+    assert result.exit_code == 0
 
 
 @pytest.mark.parametrize(
@@ -164,7 +164,6 @@ def test_custom_verbosity_option_name(invoke, args, assert_output_regex):
         root_logger.debug("my debug message.")
 
     result = invoke(awesome_app, args, color=False)
-    assert result.exit_code == 0
     assert not result.stdout
     assert_output_regex(
         result.stderr,
@@ -172,6 +171,7 @@ def test_custom_verbosity_option_name(invoke, args, assert_output_regex):
         + r"debug: my debug message\.\n"
         + default_debug_uncolored_log_end,
     )
+    assert result.exit_code == 0
 
 
 @pytest.mark.parametrize(
@@ -197,7 +197,6 @@ def test_custom_verbose_option_name(invoke, args, assert_output_regex):
         root_logger.debug("my debug message.")
 
     result = invoke(awesome_app, args, color=False)
-    assert result.exit_code == 0
     assert not result.stdout
     assert_output_regex(
         result.stderr,
@@ -206,6 +205,7 @@ def test_custom_verbose_option_name(invoke, args, assert_output_regex):
         + r"debug: my debug message\.\n"
         + default_debug_uncolored_log_end,
     )
+    assert result.exit_code == 0
 
 
 @pytest.mark.parametrize(
@@ -220,7 +220,6 @@ def test_unrecognized_verbosity_level(invoke, cmd_decorator, cmd_type):
 
     # Remove colors to simplify output comparison.
     result = invoke(logging_cli1, "--verbosity", "random", color=False)
-    assert result.exit_code == 2
     assert not result.stdout
 
     group_help = " COMMAND [ARGS]..." if "group" in cmd_type else ""
@@ -230,6 +229,8 @@ def test_unrecognized_verbosity_level(invoke, cmd_decorator, cmd_type):
         "Error: Invalid value for '--verbosity': "
         "'random' is not one of 'critical', 'error', 'warning', 'info', 'debug'.\n"
     )
+
+    assert result.exit_code == 2
 
 
 @skip_windows_colors
@@ -297,7 +298,6 @@ def test_standalone_option_default_logger(
         )
 
     result = invoke(logging_cli2, args, color=True)
-    assert result.exit_code == 0
     assert result.stdout == "It works!\n"
 
     root_logger = logging.getLogger()
@@ -337,6 +337,8 @@ def test_standalone_option_default_logger(
         log_records = log_start + log_records + default_debug_colored_log_end
     assert_output_regex(result.stderr, log_records)
 
+    assert result.exit_code == 0
+
 
 @pytest.mark.parametrize(
     "logger_param",
@@ -357,7 +359,6 @@ def test_default_logger_param(invoke, logger_param, params):
         logging.getLogger("awesome_app").debug("Awesome App has started.")
 
     result = invoke(awesome_app, params, color=False)
-    assert result.exit_code == 0
     assert result.stdout == "Starting Awesome App...\n"
     if params:
         assert result.stderr == dedent("""\
@@ -369,6 +370,7 @@ def test_default_logger_param(invoke, logger_param, params):
             """)
     else:
         assert not result.stderr
+    assert result.exit_code == 0
 
 
 def test_new_extra_logger_name_passing(invoke):
@@ -392,14 +394,13 @@ def test_new_extra_logger_name_passing(invoke):
         my_logger.info("My logger info")
 
     result = invoke(logger_as_name, color=False)
-    assert result.exit_code == 0
     assert result.output == dedent("""\
         warning: Root logger warning
         warning | my_logger | My logger warning
         """)
+    assert result.exit_code == 0
 
     result = invoke(logger_as_name, ("--verbosity", "DEBUG"), color=False)
-    assert result.exit_code == 0
     # The --verbosity option only affects the logger it is attached to.
     assert result.output == dedent("""\
         debug: Set <Logger click_extra (DEBUG)> to DEBUG.
@@ -411,6 +412,7 @@ def test_new_extra_logger_name_passing(invoke):
         debug: Reset <Logger my_logger (DEBUG)> to WARNING.
         debug: Reset <Logger click_extra (DEBUG)> to WARNING.
         """)
+    assert result.exit_code == 0
 
 
 def test_new_extra_logger_object_passing(invoke):
@@ -433,14 +435,13 @@ def test_new_extra_logger_object_passing(invoke):
         custom_logger.info("Logger object info")
 
     result = invoke(logger_as_object, color=False)
-    assert result.exit_code == 0
     assert result.output == dedent("""\
         warning: Root logger warning
         warning | my_logger | Logger object warning
         """)
+    assert result.exit_code == 0
 
     result = invoke(logger_as_object, ("--verbosity", "DEBUG"), color=False)
-    assert result.exit_code == 0
     assert result.output == dedent("""\
         debug: Set <Logger click_extra (DEBUG)> to DEBUG.
         debug: Set <Logger my_logger (DEBUG)> to DEBUG.
@@ -451,6 +452,7 @@ def test_new_extra_logger_object_passing(invoke):
         debug: Reset <Logger my_logger (DEBUG)> to WARNING.
         debug: Reset <Logger click_extra (DEBUG)> to WARNING.
         """)
+    assert result.exit_code == 0
 
 
 @pytest.mark.skip(reason="Test is flacky because of the logger's propagation.")
@@ -473,14 +475,13 @@ def test_new_extra_logger_root_config(invoke):
         my_logger.info("My logger info")
 
     result = invoke(custom_root_logger_cli, color=False)
-    assert result.exit_code == 0
     assert result.output == dedent("""\
         warning | root | Root logger warning
         warning | my_logger | My logger warning
         """)
+    assert result.exit_code == 0
 
     result = invoke(custom_root_logger_cli, ("--verbosity", "DEBUG"), color=False)
-    assert result.exit_code == 0
     assert result.output == dedent("""\
         debug | click_extra | Set <Logger click_extra (DEBUG)> to DEBUG.
         debug | click_extra | Set <RootLogger root (DEBUG)> to DEBUG.
@@ -491,6 +492,7 @@ def test_new_extra_logger_root_config(invoke):
         debug | click_extra | Reset <RootLogger root (DEBUG)> to WARNING.
         debug | click_extra | Reset <Logger click_extra (DEBUG)> to WARNING.
         """)
+    assert result.exit_code == 0
 
 
 def test_logger_propagation(invoke):
@@ -514,16 +516,15 @@ def test_logger_propagation(invoke):
         my_logger.info("My logger info")
 
     result = invoke(logger_as_name, color=False)
-    assert result.exit_code == 0
     # my_logger is now breaking its inheritance from the root logger.
     assert result.output == dedent("""\
         warning: Root logger warning
         warning | my_logger | My logger warning
         warning: My logger warning
         """)
+    assert result.exit_code == 0
 
     result = invoke(logger_as_name, ("--verbosity", "DEBUG"), color=False)
-    assert result.exit_code == 0
     # The root logger is unaffected by the --verbosity option.
     assert result.output == dedent("""\
         debug: Set <Logger click_extra (DEBUG)> to DEBUG.
@@ -538,3 +539,4 @@ def test_logger_propagation(invoke):
         debug: Reset <Logger my_logger (DEBUG)> to WARNING.
         debug: Reset <Logger click_extra (DEBUG)> to WARNING.
         """)
+    assert result.exit_code == 0

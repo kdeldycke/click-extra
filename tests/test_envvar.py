@@ -97,9 +97,9 @@ def test_show_auto_envvar_help(invoke, cmd_decorator, option_help):
 
     # Remove colors to simplify output comparison.
     result = invoke(envvar_help, "--help", color=False)
-    assert result.exit_code == 0
-    assert not result.stderr
     assert option_help in result.stdout
+    assert not result.stderr
+    assert result.exit_code == 0
 
 
 def envvars_test_cases():
@@ -229,9 +229,9 @@ def test_auto_envvar_parsing(invoke, cmd_decorator, envvars, expected_flag):
     assert my_cli.params[0].envvar == registered_envvars
 
     result = invoke(my_cli, env=envvars)
-    assert result.exit_code == 0
-    assert not result.stderr
     assert result.stdout == f"Flag value: {expected_flag}\n"
+    assert not result.stderr
+    assert result.exit_code == 0
 
 
 def test_env_copy():

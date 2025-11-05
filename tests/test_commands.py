@@ -139,21 +139,20 @@ help_screen = (
 
 def test_unknown_option(invoke, all_command_cli):
     result = invoke(all_command_cli, "--blah")
-    assert result.exit_code == 2
     assert not result.stdout
     assert "Error: No such option: --blah" in result.stderr
+    assert result.exit_code == 2
 
 
 def test_unknown_command(invoke, all_command_cli):
     result = invoke(all_command_cli, "blah")
-    assert result.exit_code == 2
     assert not result.stdout
     assert "Error: No such command 'blah'." in result.stderr
+    assert result.exit_code == 2
 
 
 def test_required_command(invoke, all_command_cli, assert_output_regex):
     result = invoke(all_command_cli, "--verbosity", "DEBUG", color=False)
-    assert result.exit_code == 2
     # In debug mode, the version is always printed.
     assert not result.stdout
     assert_output_regex(
@@ -167,18 +166,19 @@ def test_required_command(invoke, all_command_cli, assert_output_regex):
             r"Error: Missing command\.\n"
         ),
     )
+    assert result.exit_code == 2
 
 
 @pytest.mark.parametrize(("param", "exit_code"), ((None, 2), ("-h", 0), ("--help", 0)))
 def test_group_help(invoke, all_command_cli, param, exit_code, assert_output_regex):
     result = invoke(all_command_cli, param, color=False)
     assert "It works!" not in result.stdout
-    assert result.exit_code == exit_code
     if exit_code == 2:
         assert_output_regex(result.stderr, help_screen)
     else:
         assert_output_regex(result.stdout, help_screen)
         assert not result.stderr
+    assert result.exit_code == exit_code
 
 
 @pytest.mark.parametrize(
@@ -209,7 +209,6 @@ def test_help_eagerness(
     https://click.palletsprojects.com/en/stable/advanced/#callback-evaluation-order
     """
     result = invoke(all_command_cli, params, color=False)
-    assert result.exit_code == exit_code
     assert "It works!" not in result.stdout
     if expect_help:
         assert_output_regex(result.stdout, help_screen)
@@ -220,6 +219,7 @@ def test_help_eagerness(
         assert not result.stderr
     else:
         assert result.stderr
+    assert result.exit_code == exit_code
 
 
 def test_help_custom_name(invoke):
@@ -234,11 +234,11 @@ def test_help_custom_name(invoke):
         echo(f"--header is {header}")
 
     result = invoke(cli, "--help", color=False)
-    assert result.exit_code == 0
     assert "-h, --header" in result.stdout
     assert "-h, --help" not in result.stdout
     assert "--help" in result.stdout
     assert not result.stderr
+    assert result.exit_code == 0
 
 
 @pytest.mark.parametrize(
@@ -253,8 +253,6 @@ def test_help_custom_name(invoke):
 @pytest.mark.parametrize("param", ("-h", "--help"))
 def test_subcommand_help(invoke, all_command_cli, cmd_id, param, assert_output_regex):
     result = invoke(all_command_cli, cmd_id, param)
-    assert result.exit_code == 0
-    assert not result.stderr
 
     colored_help_header = (
         r"It works!\n"
@@ -264,7 +262,6 @@ def test_subcommand_help(invoke, all_command_cli, cmd_id, param, assert_output_r
         r"\n"
         r"\x1b\[94m\x1b\[1m\x1b\[4mOptions:\x1b\[0m\n"
     )
-
     # Extra sucommands are colored and include all extra options.
     if cmd_id == "click-extra-subcommand":
         assert_output_regex(
@@ -296,11 +293,13 @@ def test_subcommand_help(invoke, all_command_cli, cmd_id, param, assert_output_r
             """,
         )
 
+    assert result.exit_code == 0
+    assert not result.stderr
+
 
 @pytest.mark.parametrize("cmd_id", ("default", "click-extra", "cloup", "click"))
 def test_subcommand_execution(invoke, all_command_cli, cmd_id):
     result = invoke(all_command_cli, f"{cmd_id}-subcommand", color=False)
-    assert result.exit_code == 0
     assert result.stdout == dedent(
         f"""\
         It works!
@@ -308,13 +307,14 @@ def test_subcommand_execution(invoke, all_command_cli, cmd_id):
         """,
     )
     assert not result.stderr
+    assert result.exit_code == 0
 
 
 def test_integrated_version_value(invoke, all_command_cli):
     result = invoke(all_command_cli, "--version", color=False)
-    assert result.exit_code == 0
-    assert not result.stderr
     assert result.stdout == "command-cli1, version 2021.10.08\n"
+    assert not result.stderr
+    assert result.exit_code == 0
 
 
 @pytest.mark.parametrize(
@@ -340,13 +340,13 @@ def test_colored_bare_help(invoke, cmd_decorator, param):
         pass
 
     result = invoke(bare_cli, param)
-    assert result.exit_code == 0
-    assert not result.stderr
     assert (
         "\n"
         "\x1b[94m\x1b[1m\x1b[4mOptions:\x1b[0m\n"
         "  \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m  Show this message and exit.\n"
     ) in result.stdout
+    assert not result.stderr
+    assert result.exit_code == 0
 
 
 def test_duplicate_option(invoke):
@@ -362,7 +362,6 @@ def test_duplicate_option(invoke):
         pass
 
     result = invoke(cli, "--help", color=False)
-    assert result.exit_code == 0
     assert result.stdout.endswith(
         "  --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.  [default:\n"
         "                        WARNING]\n"
@@ -373,6 +372,7 @@ def test_duplicate_option(invoke):
         "  -h, --help            Show this message and exit.\n"
     )
     assert not result.stderr
+    assert result.exit_code == 0
 
 
 def test_no_option_leaks_between_subcommands(invoke, assert_output_regex):
@@ -396,7 +396,6 @@ def test_no_option_leaks_between_subcommands(invoke, assert_output_regex):
     cli.add_command(bar)
 
     result = invoke(cli, "--help", color=False)
-    assert result.exit_code == 0
     assert result.stdout == dedent(
         """\
         Usage: cli [OPTIONS] COMMAND [ARGS]...
@@ -410,9 +409,9 @@ def test_no_option_leaks_between_subcommands(invoke, assert_output_regex):
         """,
     )
     assert not result.stderr
+    assert result.exit_code == 0
 
     result = invoke(cli, "foo", "--help", color=False)
-    assert result.exit_code == 0
     assert_output_regex(
         result.stdout,
         (
@@ -425,9 +424,9 @@ def test_no_option_leaks_between_subcommands(invoke, assert_output_regex):
         ),
     )
     assert not result.stderr
+    assert result.exit_code == 0
 
     result = invoke(cli, "bar", "--help", color=False)
-    assert result.exit_code == 0
     assert_output_regex(
         result.stdout,
         (
@@ -440,6 +439,7 @@ def test_no_option_leaks_between_subcommands(invoke, assert_output_regex):
         ),
     )
     assert not result.stderr
+    assert result.exit_code == 0
 
 
 def test_option_group_integration(invoke, assert_output_regex):
@@ -461,7 +461,6 @@ def test_option_group_integration(invoke, assert_output_regex):
 
     # Remove colors to simplify output comparison.
     result = invoke(command_cli2, "--help", color=False)
-    assert result.exit_code == 0
     assert_output_regex(
         result.stdout,
         (
@@ -482,6 +481,7 @@ def test_option_group_integration(invoke, assert_output_regex):
     )
     assert "It works!" not in result.stdout
     assert not result.stderr
+    assert result.exit_code == 0
 
 
 @pytest.mark.parametrize(
@@ -545,9 +545,9 @@ def test_show_envvar_parameter(invoke, cmd_decorator, ctx_settings, expected_hel
 
     # Remove colors to simplify output comparison.
     result = invoke(cli, "--help", color=False)
-    assert result.exit_code == 0
-    assert not result.stderr
     assert expected_help in result.stdout
+    assert not result.stderr
+    assert result.exit_code == 0
 
 
 def test_raw_args(invoke):
@@ -570,8 +570,6 @@ def test_raw_args(invoke):
         echo(f"Raw parameters: {ctx.meta.get('click_extra.raw_args', [])}")
 
     result = invoke(my_cli, "--dummy-flag", "subcommand", "--int-param", "33")
-    assert result.exit_code == 0
-    assert not result.stderr
     assert result.stdout == dedent(
         """\
         -- Group output --
@@ -582,6 +580,8 @@ def test_raw_args(invoke):
         Raw parameters: ['--int-param', '33']
         """,
     )
+    assert not result.stderr
+    assert result.exit_code == 0
 
 
 @pytest.mark.parametrize(

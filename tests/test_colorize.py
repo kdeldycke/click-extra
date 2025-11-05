@@ -591,18 +591,17 @@ def test_keyword_collection(invoke, assert_output_regex):
     )
 
     result = invoke(color_cli1, "--help", color=True)
-    assert result.exit_code == 0
     assert_output_regex(result.stdout, help_screen)
     assert not result.stderr
+    assert result.exit_code == 0
 
     result = invoke(color_cli1, "-h", color=True)
-    assert result.exit_code == 0
     assert_output_regex(result.stdout, help_screen)
     assert not result.stderr
+    assert result.exit_code == 0
 
     # CLI main group is invoked before sub-command.
     result = invoke(color_cli1, "command1", "--help", color=True)
-    assert result.exit_code == 0
     assert result.stdout == (
         "It works!\n"
         "\x1b[94m\x1b[1m\x1b[4mUsage:\x1b[0m \x1b[97mcolor-cli1 command1\x1b[0m"
@@ -617,10 +616,10 @@ def test_keyword_collection(invoke, assert_output_regex):
         "  \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m  Show this message and exit.\n"
     )
     assert not result.stderr
+    assert result.exit_code == 0
 
     # Standalone call to command: CLI main group is skipped.
     result = invoke(command1, "--help", color=True)
-    assert result.exit_code == 0
     assert result.stdout == (
         "\x1b[94m\x1b[1m\x1b[4mUsage:\x1b[0m \x1b[97mcommand1\x1b[0m"
         " \x1b[36m\x1b[2m[OPTIONS]\x1b[0m [\x1b[36mMY_ARG\x1b[0m]...\n"
@@ -634,11 +633,11 @@ def test_keyword_collection(invoke, assert_output_regex):
         "  \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m  Show this message and exit.\n"
     )
     assert not result.stderr
+    assert result.exit_code == 0
 
     # Non-click-extra commands are not colorized nor have extra options.
     for cmd_id in ("command2", "command3"):
         result = invoke(color_cli1, cmd_id, "--help", color=True)
-        assert result.exit_code == 0
         assert result.stdout == dedent(
             f"""\
             It works!
@@ -649,6 +648,7 @@ def test_keyword_collection(invoke, assert_output_regex):
             """,
         )
         assert not result.stderr
+        assert result.exit_code == 0
 
 
 @skip_windows_colors
@@ -681,8 +681,6 @@ def test_standalone_color_option(
         secho("Done.", fg="green")
 
     result = invoke(standalone_color, param, "--verbosity", "DEBUG", color=True)
-    assert result.exit_code == 0
-
     if expecting_colors:
         assert result.stdout == (
             "\x1b[33mIt works!\x1b[0m\n"
@@ -715,6 +713,7 @@ def test_standalone_color_option(
                 rf"{default_debug_uncolored_log_end}"
             ),
         )
+    assert result.exit_code == 0
 
 
 @pytest.mark.parametrize(
@@ -760,18 +759,18 @@ def test_no_color_env_convention(
         echo(Style(fg="yellow")("It works!"))
 
     result = invoke(color_cli7, param, color=True, env=env)
-    assert result.exit_code == 0
-    assert not result.stderr
 
     # Params always overrides env's expectations.
     expecting_colors = env_expect_colors
     if param:
         expecting_colors = param_expect_colors
-
     if expecting_colors:
         assert result.stdout == "\x1b[33mIt works!\x1b[0m\n"
     else:
         assert result.stdout == "It works!\n"
+
+    assert result.exit_code == 0
+    assert not result.stderr
 
 
 # TODO: test with  configuration file
@@ -810,8 +809,6 @@ def test_integrated_color_option(invoke, param, expecting_colors, assert_output_
         secho("Done.", fg="green")
 
     result = invoke(color_cli8, param, "--verbosity", "DEBUG", "command1", color=True)
-
-    assert result.exit_code == 0
     if expecting_colors:
         assert result.stdout == (
             "ctx.color=True\n"
@@ -849,6 +846,7 @@ def test_integrated_color_option(invoke, param, expecting_colors, assert_output_
                 rf"{default_debug_uncolored_log_end}"
             ),
         )
+    assert result.exit_code == 0
 
 
 @pytest.mark.parametrize(
@@ -1132,9 +1130,6 @@ def test_standalone_help_option(invoke, cmd_decorator, cmd_type, option_decorato
         echo("It works!")
 
     result = invoke(standalone_help, "--help")
-    assert result.exit_code == 0
-    assert not result.stderr
-
     if "group" in cmd_type:
         assert result.stdout == dedent(
             """\
@@ -1153,3 +1148,5 @@ def test_standalone_help_option(invoke, cmd_decorator, cmd_type, option_decorato
               -h, --help  Show this message and exit.
             """,
         )
+    assert result.exit_code == 0
+    assert not result.stderr

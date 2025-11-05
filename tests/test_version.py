@@ -64,11 +64,10 @@ def test_standalone_version_option(invoke, cmd_decorator, option_decorator):
         echo("It works!")
 
     result = invoke(standalone_option, "--version", color=True)
-    assert result.exit_code == 0
-    assert not result.stderr
     assert result.output == (
         f"\x1b[97mstandalone-option\x1b[0m, version \x1b[32m{__version__}\x1b[0m\n"
     )
+    assert result.exit_code == 0
 
 
 @skip_windows_colors
@@ -84,7 +83,6 @@ def test_debug_output(invoke, cmd_decorator, option_decorator, assert_output_reg
         echo("It works!")
 
     result = invoke(debug_output, "--verbosity", "DEBUG", "--version", color=True)
-    assert result.exit_code == 0
 
     assert_output_regex(
         result.output,
@@ -107,11 +105,11 @@ def test_set_version(invoke):
 
     # Test default coloring.
     result = invoke(color_cli2, "--version", color=True)
-    assert result.exit_code == 0
-    assert not result.stderr
     assert result.stdout == (
         "\x1b[97mcolor-cli2\x1b[0m, version \x1b[32m1.2.3.4\x1b[0m\n"
     )
+    assert not result.stderr
+    assert result.exit_code == 0
 
 
 @skip_windows_colors
@@ -158,9 +156,9 @@ def test_custom_message(
         echo("It works!")
 
     result = invoke(color_cli3, "--version", color=True)
-    assert result.exit_code == 0
-    assert not result.stderr
     assert_output_regex(result.output, regex_stdout)
+    assert not result.stderr
+    assert result.exit_code == 0
 
 
 @pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
@@ -175,9 +173,9 @@ def test_style_reset(invoke, cmd_decorator):
         pass
 
     result = invoke(color_reset, "--version", color=True)
-    assert result.exit_code == 0
-    assert not result.stderr
     assert result.output == strip_ansi(result.output)
+    assert not result.stderr
+    assert result.exit_code == 0
 
 
 @skip_windows_colors
@@ -195,13 +193,13 @@ def test_custom_message_style(invoke, cmd_decorator):
         pass
 
     result = invoke(custom_style, "--version", color=True)
-    assert result.exit_code == 0
-    assert not result.stderr
     assert result.output == (
         "\x1b[32m\x1b[1mcustom-style\x1b[0m\x1b[36m "
         f"v\x1b[0m\x1b[93m\x1b[41m{__version__}\x1b[0m\x1b[36m - "
         "\x1b[0m\x1b[94m\x1b[3mclick_extra\x1b[0m\x1b[36m (latest)\x1b[0m\n"
     )
+    assert not result.stderr
+    assert result.exit_code == 0
 
 
 @pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
@@ -215,8 +213,6 @@ def test_context_meta(invoke, cmd_decorator, assert_output_regex):
             echo(f"{field} = {value}")
 
     result = invoke(version_metadata, color=True)
-    assert result.exit_code == 0
-    assert not result.stderr
 
     assert_output_regex(
         result.output,
@@ -240,6 +236,9 @@ def test_context_meta(invoke, cmd_decorator, assert_output_regex):
     )
     assert result.output == strip_ansi(result.output)
 
+    assert not result.stderr
+    assert result.exit_code == 0
+
 
 @pytest.mark.parametrize(
     "params",
@@ -251,11 +250,11 @@ def test_integrated_version_option_precedence(invoke, params):
         echo("It works!")
 
     result = invoke(color_cli4, "--version", params, color=True)
-    assert result.exit_code == 0
-    assert not result.stderr
     assert result.stdout == (
         "\x1b[97mcolor-cli4\x1b[0m, version \x1b[32m1.2.3.4\x1b[0m\n"
     )
+    assert not result.stderr
+    assert result.exit_code == 0
 
 
 @skip_windows_colors
@@ -280,13 +279,13 @@ def test_color_option_precedence(invoke):
         echo(Style(fg="yellow")("It works!"))
 
     result = invoke(color_cli6, "--no-color", "--version", "command1", color=True)
-    assert result.exit_code == 0
-    assert not result.stderr
     assert result.stdout == "color-cli6, version 2.1.9\n"
+    assert not result.stderr
+    assert result.exit_code == 0
 
     result = invoke(color_cli6, "--version", "--no-color", "command1", color=True)
-    assert result.exit_code == 0
-    assert not result.stderr
     assert result.stdout == (
         "\x1b[97mcolor-cli6\x1b[0m, version \x1b[32m2.1.9\x1b[0m\n"
     )
+    assert not result.stderr
+    assert result.exit_code == 0

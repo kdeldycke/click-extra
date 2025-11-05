@@ -83,7 +83,6 @@ def test_unrecognized_format(invoke, cmd_decorator, cmd_type):
         echo("It works!")
 
     result = invoke(table_cli, "--table-format", "random", color=False)
-    assert result.exit_code == 2
     assert not result.stdout
 
     group_help = " COMMAND [ARGS]..." if "group" in cmd_type else ""
@@ -99,6 +98,8 @@ def test_unrecognized_format(invoke, cmd_decorator, cmd_type):
         "'psql', 'rounded-grid', 'rounded-outline', 'rst', 'simple', 'simple-grid', "
         "'simple-outline', 'textile', 'tsv', 'unsafehtml', 'vertical', 'youtrack'.\n"
     )
+
+    assert result.exit_code == 2
 
 
 asciidoc_table = (
@@ -581,8 +582,8 @@ def test_all_table_rendering(
     # XXX Strip colors for now, while we figure how to lock down the handling of ANSI
     # codes in the various table formats.
     result = invoke(table_cli, "--table-format", format_name, color=False)
-    assert result.exit_code == 0
     if not is_windows():
         expected = expected.replace("\r\n", "\n")
     assert result.stdout == f"Table format: {format_name}\n{expected}"
     assert not result.stderr
+    assert result.exit_code == 0

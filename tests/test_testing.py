@@ -51,6 +51,7 @@ def test_runner_output():
     assert result_mix.output == "1 - stdout\n2 - stderr\n3 - stdout\n4 - stderr\n"
     assert result_mix.stdout == "1 - stdout\n3 - stdout\n"
     assert result_mix.stderr == "2 - stderr\n4 - stderr\n"
+    assert result_mix.exit_code == 0
 
 
 @click.command
@@ -76,7 +77,6 @@ def run_cli1(ctx):
 
 
 def check_default_colored_rendering(result):
-    assert result.exit_code == 0
     assert result.stdout.startswith(
         "\x1b[32mecho()\x1b[0m\n"
         "\x1b[32mecho(color=None)\x1b[0m\n"
@@ -89,10 +89,10 @@ def check_default_colored_rendering(result):
         "\x1b[34mprint() bypass Click.\x1b[0m\n",
     )
     assert result.stderr == "\x1b[33mwarning\x1b[0m: Is the logger colored?\n"
+    assert result.exit_code == 0
 
 
 def check_default_uncolored_rendering(result):
-    assert result.exit_code == 0
     assert result.stdout.startswith(
         "echo()\n"
         "echo(color=None)\n"
@@ -105,10 +105,10 @@ def check_default_uncolored_rendering(result):
         "\x1b[34mprint() bypass Click.\x1b[0m\n",
     )
     assert result.stderr == "warning: Is the logger colored?\n"
+    assert result.exit_code == 0
 
 
 def check_forced_uncolored_rendering(result):
-    assert result.exit_code == 0
     assert result.stdout.startswith(
         "echo()\n"
         "echo(color=None)\n"
@@ -121,6 +121,7 @@ def check_forced_uncolored_rendering(result):
         "print() bypass Click.\n",
     )
     assert result.stderr == "warning: Is the logger colored?\n"
+    assert result.exit_code == 0
 
 
 def test_invoke_optional_color(invoke):

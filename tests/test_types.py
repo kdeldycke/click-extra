@@ -372,16 +372,17 @@ def test_enum_choice_command(
     # Test invalid inputs.
     for invalid_input in invalid_inputs:
         result = invoke(cli, ["--my-enum", invalid_input])
+        assert not result.stdout
         assert (
             "Error: Invalid value for '--my-enum': "
             f"'{invalid_input}' is not one of 'my-first-value', 'my-second-value'."
         ) in result.stderr
-        assert not result.stdout
         assert result.exit_code == 2
 
     # Test help message.
     result = invoke(cli, ["--help"])
     assert "--my-enum [my-first-value|my-second-value]" in result.stdout
+    assert not result.stderr
     assert result.exit_code == 0
 
 

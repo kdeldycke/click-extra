@@ -144,8 +144,9 @@ def test_params_auto_types(invoke, option_decorator):
         color=False,
     )
 
-    assert result.exit_code == 0
     assert result.stdout != "Works!\n"
+    assert not result.stderr
+    assert result.exit_code == 0
 
     show_param_option = search_params(params_introspection.params, ShowParamsOption)
     assert show_param_option.params_template == {
@@ -257,7 +258,6 @@ def test_standalone_show_params_option(
         echo("It works!")
 
     result = invoke(show_params, "--show-params")
-    assert result.exit_code == 0
 
     expected_table = [
         (
@@ -299,6 +299,8 @@ def test_standalone_show_params_option(
             r"<(Group|Command) show-params> does not inherits from ExtraCommand\.\n",
         )
 
+    assert result.exit_code == 0
+
 
 def test_integrated_show_params_option(invoke, create_config):
     @extra_command
@@ -332,9 +334,6 @@ def test_integrated_show_params_option(invoke, create_config):
         "--help",
     ]
     result = invoke(show_params_cli, *raw_args, color=False)
-
-    assert result.exit_code == 0
-    assert f"debug: click_extra.raw_args: {raw_args!r}\n" in result.stderr
 
     expected_table = [
         (
@@ -546,6 +545,9 @@ def test_integrated_show_params_option(invoke, create_config):
 
     assert_table_content(result.stdout, expected_table)
 
+    assert f"debug: click_extra.raw_args: {raw_args!r}\n" in result.stderr
+    assert result.exit_code == 0
+
 
 def test_recurse_subcommands(invoke):
     @extra_group(params=[ShowParamsOption()])
@@ -638,6 +640,8 @@ def test_recurse_subcommands(invoke):
 
     assert_table_content(result.stdout, expected_table)
 
+    assert not result.stderr
+    assert result.exit_code == 0
 
 # Shuffle the order of declaration to ensure behavior stability.
 @pytest.mark.parametrize(
@@ -645,9 +649,7 @@ def test_recurse_subcommands(invoke):
     permutations((show_params_option, table_format_option)),
 )
 @pytest.mark.parametrize("table_format", TableFormat)
-def test_standalone_table_rendering(
-    invoke, opt1, opt2, table_format, assert_output_regex
-):
+def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
     """Check all rendering styles of the table with standalone ``--show-params`` and
     ``--table-format`` option.
     """
@@ -712,8 +714,9 @@ def test_standalone_table_rendering(
         ("--show-params", "--table-format", table_format),
     ):
         result = invoke(show_params, args)
-        assert result.exit_code == 0
         assert_table_content(result.stdout, expected_table)
+        assert not result.stderr
+        assert result.exit_code == 0
 
     # --table-format is explicitly set from now on, so its source is COMMANDLINE.
     expected_table[2][11] = "COMMANDLINE"
@@ -723,7 +726,6 @@ def test_standalone_table_rendering(
     result = invoke(
         show_params, "--table-format", table_format, "--show-params", color=False
     )
-    assert result.exit_code == 0
 
     rendered_table = (
         render_table(
@@ -753,6 +755,9 @@ def test_standalone_table_rendering(
     ):
         assert result.stdout == rendered_table
 
+    assert not result.stderr
+    assert result.exit_code == 0
+
 
 # Shuffle the order of declaration to ensure behavior stability.
 @pytest.mark.parametrize(
@@ -760,9 +765,7 @@ def test_standalone_table_rendering(
     permutations((show_params_option, table_format_option, color_option)),
 )
 @pytest.mark.parametrize("table_format", TableFormat)
-def test_standalone_no_color_rendering(
-    invoke, opt1, opt2, opt3, table_format, assert_output_regex
-):
+def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
     """Check that all rendering styles are responding to the
     ``--color``/``--no-color`` option.
     """
@@ -843,25 +846,28 @@ def test_standalone_no_color_rendering(
         ("--show-params", "--no-color"),
     ):
         result = invoke(show_params, args)
-        assert result.exit_code == 0
         assert_table_content(result.stdout, expected_table)
+        assert not result.stderr
+        assert result.exit_code == 0
 
     # --color/--no-color is explicitly set from now on, so its source is COMMANDLINE.
     expected_table[0][11] = "COMMANDLINE"
 
     # Force --color.
     result = invoke(show_params, "--color", "--show-params")
-    assert result.exit_code == 0
     # --color is forced, so the table is colorized and doesn't match expected_table, unless we
     # strip all ANSI escape sequences.
     with pytest.raises(AssertionError):
         assert_table_content(result.stdout, expected_table)
     assert_table_content(strip_ansi(result.stdout), expected_table)
+    assert not result.stderr
+    assert result.exit_code == 0
 
     # Force --no-color.
     result = invoke(show_params, "--no-color", "--show-params")
-    assert result.exit_code == 0
     assert_table_content(result.stdout, expected_table)
+    assert not result.stderr
+    assert result.exit_code == 0
 
     # --table-format is explicitly set from now on, so its source is COMMANDLINE.
     expected_table[3][11] = "COMMANDLINE"
@@ -870,7 +876,6 @@ def test_standalone_no_color_rendering(
     result = invoke(
         show_params, "--no-color", "--table-format", table_format, "--show-params"
     )
-    assert result.exit_code == 0
 
     rendered_table = (
         render_table(
@@ -909,3 +914,6 @@ def test_standalone_no_color_rendering(
         TableFormat.CSV_UNIX,
     ):
         assert result.stdout == rendered_table
+
+    assert not result.stderr
+    assert result.exit_code == 0
