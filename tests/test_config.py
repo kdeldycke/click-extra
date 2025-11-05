@@ -343,7 +343,8 @@ def test_conf_default_path(invoke, simple_config_cli):
         result.stdout,
     )
 
-    # Search for the glob pattern, as we cannot rely on regexp because
+    # Reconstruct and search for the glob pattern, as we cannot rely on regexp because
+    # we cannot predict how Cloup will wrap the help screen lines.
     help_screen = "".join(
         line.strip()
         for line in result.stdout.split("--config CONFIG_PATH")[1].splitlines()
@@ -369,11 +370,14 @@ def test_conf_default_pathlib_type(invoke, create_config):
 
     result = invoke(config_cli1, "--help", color=False)
 
-    assert re.search(
-        rf"\s+\[default:\s*{re.escape(str(conf_path))}\]\-\-help\s+",
-        # Make it a single line for easier regexp.
-        re.sub(r"\n\s+", "", result.stdout),
+    # Reconstruct and search for the glob pattern, as we cannot rely on regexp because
+    # we cannot predict how Cloup will wrap the help screen lines.
+    help_screen = "".join(
+        line.strip()
+        for line in result.stdout.split("--config CONFIG_PATH")[1].splitlines()
     )
+    assert str(conf_path) in help_screen
+
     assert not result.stderr
     assert result.exit_code == 0
 
