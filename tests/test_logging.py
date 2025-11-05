@@ -23,7 +23,7 @@ from textwrap import dedent
 import click
 import pytest
 
-from click_extra import LogLevel, echo, extra_command, verbose_option, verbosity_option
+from click_extra import LogLevel, command, echo, verbose_option, verbosity_option
 from click_extra.logging import (
     DEFAULT_LEVEL,
     ExtraFormatter,
@@ -106,7 +106,7 @@ def test_root_logger_defaults():
 def test_integrated_verbosity_options(
     invoke, args, expected_level, assert_output_regex
 ):
-    @extra_command
+    @command
     def logging_cli3():
         echo("It works!")
 

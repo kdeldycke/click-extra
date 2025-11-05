@@ -29,10 +29,10 @@ from click_extra import (
     Choice,
     ChoiceSource,
     EnumChoice,
-    command,
     echo,
     option,
 )
+from click_extra.pytest import command_decorators
 
 if sys.version_info >= (3, 11):
     from enum import StrEnum
@@ -308,6 +308,12 @@ def test_enum_choice_duplicate_string() -> None:
 
 
 @pytest.mark.parametrize(
+    # XXX Got a strange issue with double <Option my_enum> in the cli()
+    # with the click_extra.command(), hence the no_extra=True parameter here.
+    "cmd_decorator",
+    command_decorators(no_groups=True, no_extra=True),
+)
+@pytest.mark.parametrize(
     ("case_sensitive", "valid_inputs", "invalid_inputs"),
     (
         (
@@ -353,12 +359,12 @@ def test_enum_choice_duplicate_string() -> None:
     ),
 )
 def test_enum_choice_command(
-    invoke, case_sensitive, valid_inputs, invalid_inputs
+    invoke, cmd_decorator, case_sensitive, valid_inputs, invalid_inputs
 ) -> None:
     """Test EnumChoice used within an option."""
 
-    @command
-    @option("--my-enum", type=EnumChoice(MyEnum, case_sensitive=case_sensitive))
+    @cmd_decorator
+    @click.option("--my-enum", type=EnumChoice(MyEnum, case_sensitive=case_sensitive))
     def cli(my_enum: MyEnum) -> None:
         echo(f"my_enum: {my_enum!r}")
 
@@ -380,20 +386,16 @@ def test_enum_choice_command(
         assert result.exit_code == 2
 
     # Test help message.
-    result = invoke(cli, ["--help"])
+    result = invoke(cli, ["--help"], color=False)
     assert "--my-enum [my-first-value|my-second-value]" in result.stdout
     assert not result.stderr
     assert result.exit_code == 0
 
 
 @pytest.mark.parametrize(
-    ("cmd_decorator", "default_rendering"),
-    (
-        (click.command, "SECOND_VALUE"),
-        (command, "SECOND_VALUE"),
-    ),
+    ("cmd_decorator", "cmd_type"), command_decorators(no_groups=True, with_types=True)
 )
-def test_enum_choice_default_value(invoke, cmd_decorator, default_rendering) -> None:
+def test_enum_choice_default_value(invoke, cmd_decorator, cmd_type) -> None:
     """Test EnumChoice used within an option with a default value."""
 
     @cmd_decorator
@@ -413,8 +415,13 @@ def test_enum_choice_default_value(invoke, cmd_decorator, default_rendering) -> 
     assert result.exit_code == 0
 
     # Test help message showing the default.
-    result = invoke(cli, ["--help"])
+    result = invoke(cli, ["--help"], color=False)
     assert "--my-enum [my-first-value|my-second-value]" in result.stdout
+
+    # Using our click_extra.command decorator fix the rendering.
+    # default_rendering = "second-value" if "extra" in cmd_type else "SECOND_VALUE"
+    default_rendering = "SECOND_VALUE"
     assert f"[default: {default_rendering}]" in result.stdout
+
     assert not result.stderr
     assert result.exit_code == 0

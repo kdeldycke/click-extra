@@ -67,15 +67,6 @@ class EnumChoice(Choice):
         parameters, parsing, help messages, environment variables, etc.
     """
 
-    _enum: type[Enum]
-    """The ``Enum`` class used for choices."""
-
-    _enum_map: dict[str, Enum]
-    """Mapping of choice strings to ``Enum`` members."""
-
-    _choice_source: ChoiceSource | Callable[[Enum], str]
-    """The source used to derive choice strings from Enum members."""
-
     def __init__(
         self,
         choices: type[Enum],
@@ -86,6 +77,15 @@ class EnumChoice(Choice):
 
         Also defaults to case-insensitive matching.
         """
+        self._enum: type[Enum]
+        """The ``Enum`` class used for choices."""
+
+        self._enum_map: dict[str, Enum]
+        """Mapping of choice strings to ``Enum`` members."""
+
+        self._choice_source: ChoiceSource | Callable[[Enum], str]
+        """The source used to derive choice strings from Enum members."""
+
         # Keep the Enum class around.
         assert issubclass(choices, Enum), (
             f"choice_enum must be a subclass of Enum, got {choices!r}."

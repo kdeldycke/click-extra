@@ -22,6 +22,7 @@ import ast
 import inspect
 import os
 import sys
+from contextlib import nullcontext
 from pathlib import Path
 from textwrap import dedent
 
@@ -32,13 +33,13 @@ import pytest
 import click_extra
 from click_extra import (
     LazyGroup,
+    command,
     echo,
-    extra_command,
-    extra_group,
-    extra_version_option,
+    group,
     option,
     option_group,
     pass_context,
+    version_option,
 )
 from click_extra.pytest import (
     command_decorators,
@@ -91,7 +92,7 @@ def test_module_root_declarations():
 def all_command_cli():
     """A CLI that is mixing all variations and flavors of subcommands."""
 
-    @extra_group(version="2021.10.08")
+    @group(version="2021.10.08")
     def command_cli1():
         echo("It works!")
 
@@ -99,7 +100,7 @@ def all_command_cli():
     def default_subcommand():
         echo("Run default subcommand...")
 
-    @extra_command
+    @command
     def click_extra_subcommand():
         echo("Run click-extra subcommand...")
 
@@ -228,7 +229,7 @@ def test_help_custom_name(invoke):
     See: https://github.com/kdeldycke/mail-deduplicate/issues/762
     """
 
-    @extra_command(context_settings={"help_option_names": ("--help",)})
+    @command(context_settings={"help_option_names": ("--help",)})
     @option("-h", "--header", is_flag=True)
     def cli(header):
         echo(f"--header is {header}")
@@ -319,12 +320,7 @@ def test_integrated_version_value(invoke, all_command_cli):
 
 @pytest.mark.parametrize(
     "cmd_decorator",
-    command_decorators(
-        no_click=True,
-        no_cloup=True,
-        no_redefined=True,
-        with_parenthesis=False,
-    ),
+    command_decorators(no_click=True, no_cloup=True, with_parenthesis=False),
 )
 @pytest.mark.parametrize("param", ("-h", "--help"))
 def test_colored_bare_help(invoke, cmd_decorator, param):
@@ -356,8 +352,8 @@ def test_duplicate_option(invoke):
     - https://github.com/kdeldycke/click-extra/issues/232
     """
 
-    @extra_command
-    @extra_version_option(version="0.1")
+    @command
+    @version_option(version="0.1")
     def cli():
         pass
 
@@ -382,12 +378,12 @@ def test_no_option_leaks_between_subcommands(invoke, assert_output_regex):
     def cli():
         echo("Run cli...")
 
-    @extra_command
+    @command
     @click.option("--one")
     def foo():
         echo("Run foo...")
 
-    @extra_command(short_help="Bar subcommand.")
+    @command(short_help="Bar subcommand.")
     @click.option("--two")
     def bar():
         echo("Run bar...")
@@ -444,7 +440,7 @@ def test_no_option_leaks_between_subcommands(invoke, assert_output_regex):
 
 def test_option_group_integration(invoke, assert_output_regex):
     # Mix regular and grouped options
-    @extra_group
+    @group
     @option_group(
         "Group 1",
         click.option("-a", "--opt1"),
@@ -496,7 +492,7 @@ def test_option_group_integration(invoke, assert_output_regex):
         ),
         # Click Extra defaults to let each option choose its own show_envvar value.
         (
-            extra_command,
+            command,
             {},
             "  --flag1\n"
             "  --flag2               [env var: "
@@ -506,7 +502,7 @@ def test_option_group_integration(invoke, assert_output_regex):
         ),
         # Click Extra allow bypassing its global show_envvar setting.
         (
-            extra_command,
+            command,
             {"show_envvar": None},
             "  --flag1\n"
             "  --flag2               [env var: "
@@ -516,7 +512,7 @@ def test_option_group_integration(invoke, assert_output_regex):
         ),
         # Click Extra force the show_envvar value on all options.
         (
-            extra_command,
+            command,
             {"show_envvar": True},
             "  --flag1               [env var: "
             + ("CUSTOM1" if os.name == "nt" else "custom1")
@@ -529,7 +525,7 @@ def test_option_group_integration(invoke, assert_output_regex):
             + ", CLI_FLAG3]\n",
         ),
         (
-            extra_command,
+            command,
             {"show_envvar": False},
             "  --flag1\n  --flag2\n  --flag3\n",
         ),
@@ -553,7 +549,7 @@ def test_show_envvar_parameter(invoke, cmd_decorator, ctx_settings, expected_hel
 def test_raw_args(invoke):
     """Raw args are expected to be scoped in subcommands."""
 
-    @extra_group
+    @group
     @option("--dummy-flag/--no-flag")
     @pass_context
     def my_cli(ctx, dummy_flag):
@@ -812,3 +808,53 @@ def test_lazy_group(invoke, tmp_path, lazy_cmd_decorator):
 
     finally:
         sys.path.remove(str(tmp_path))
+
+
+def test_decorator_overrides():
+    """Ensure our decorators are not just alias of Click and Cloup ones."""
+
+    assert click_extra.command not in (click.command, cloup.command)
+    assert click_extra.group not in (click.group, cloup.group)
+
+    assert click_extra.Option not in (click.Option, cloup.Option)
+    assert issubclass(click_extra.Option, click.Option)
+    assert issubclass(click_extra.Option, cloup.Option)
+
+    assert click_extra.Argument not in (click.Argument, cloup.Argument)
+    assert issubclass(click_extra.Argument, click.Argument)
+    assert issubclass(click_extra.Argument, cloup.Argument)
+
+    assert click_extra.option not in (click.option, cloup.option)
+    assert click_extra.argument not in (click.argument, cloup.argument)
+
+    assert click_extra.version_option not in (
+        click.version_option,
+        cloup.version_option,
+    )
+
+
+@pytest.mark.parametrize(
+    ("klass", "should_raise"),
+    (
+        (click.Command, True),
+        (click.Group, True),
+        (cloup.Command, True),
+        (cloup.Group, True),
+        (click_extra.Command, True),
+        (click_extra.Group, True),
+        (click_extra.ExtraCommand, False),
+        (click_extra.ExtraGroup, False),
+        (str, True),
+        (int, True),
+    ),
+)
+def test_decorator_cls_parameter(klass, should_raise):
+    """Decorators accept custom cls parameters."""
+
+    class Custom(klass):
+        pass
+
+    context = pytest.raises(TypeError) if should_raise else nullcontext()
+
+    with context:
+        command(cls=Custom)

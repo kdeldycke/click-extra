@@ -30,7 +30,7 @@ from .commands import (
 )
 from .config import ConfigOption, NoConfigOption
 from .logging import VerboseOption, VerbosityOption
-from .parameters import ShowParamsOption
+from .parameters import Argument, Option, ShowParamsOption
 from .table import TableFormatOption
 from .telemetry import TelemetryOption
 from .timer import TimerOption
@@ -58,6 +58,17 @@ def decorator_factory(dec, *new_args, **new_defaults):
 
     Used to create our own collection of decorators for our custom options, based on
     Cloup's.
+
+    .. attention::
+        The `cls` argument passed to the factory is used as the reference class from
+        which the produced decorator's `cls` argument must inherit.
+
+        The idea is to ensure that, for example, the `@command` decorator
+        re-implemented by Click Extra is always a subclass of `ExtraCommand`, even when
+        the user overrides the `cls` argument. That way it can always rely on the
+        additional properties and methods defined in the Click Extra framework, where we
+        have extended Cloup and Click so much that we want to prevent surprising side
+        effects.
     """
 
     @allow_missing_parenthesis
@@ -73,6 +84,17 @@ def decorator_factory(dec, *new_args, **new_defaults):
         """
         if not args:
             args = new_args
+
+        # Validate that the provided 'cls' is a subclass of the default one.
+        if "cls" in new_defaults and "cls" in kwargs:
+            if not issubclass(kwargs["cls"], new_defaults["cls"]):
+                mro_list = ", ".join(
+                    f"{k.__module__}.{k.__name__}" for k in kwargs["cls"].__mro__
+                )
+                raise TypeError(
+                    f"The 'cls' argument must be a subclass of "
+                    f"{new_defaults['cls'].__name__}, got: {mro_list}"
+                )
 
         # Use a copy of the defaults to avoid modifying the original dict.
         new_kwargs = new_defaults.copy()
@@ -90,42 +112,38 @@ def decorator_factory(dec, *new_args, **new_defaults):
     return decorator
 
 
-# Rebase default decorators on Cloup, and allow them to be used without parenthesis.
-command = decorator_factory(dec=cloup.command)
-group = decorator_factory(dec=cloup.group)
-
-# Customize existing Click decorator with better default parameters.
-help_option = decorator_factory(
-    click.decorators.help_option,
-    *DEFAULT_HELP_NAMES,
-)
-
-# Define our own fully-capable decorators based on Cloup's, and prefix them with
-# "extra_".
-extra_command = decorator_factory(
+# Replace and extend existing Click and Cloup commands decorators.
+command = decorator_factory(
     dec=cloup.command,
     cls=ExtraCommand,
     params=default_extra_params,
 )
-extra_group = decorator_factory(
+group = decorator_factory(
     dec=cloup.group,
     cls=ExtraGroup,
     params=default_extra_params,
 )
-extra_version_option = decorator_factory(dec=cloup.option, cls=ExtraVersionOption)
 
 
-# New group decorators provided by Click Extra.
-lazy_group = decorator_factory(dec=extra_group, cls=LazyGroup)
+# Replace and extend existing Click parameter decorators.
+option = decorator_factory(dec=cloup.option, cls=Option)
+argument = decorator_factory(dec=cloup.argument, cls=Argument)
+
+help_option = decorator_factory(click.decorators.help_option, *DEFAULT_HELP_NAMES)
+version_option = decorator_factory(dec=option, cls=ExtraVersionOption)
 
 
-# New option decorators provided by Click Extra.
-color_option = decorator_factory(dec=cloup.option, cls=ColorOption)
-config_option = decorator_factory(dec=cloup.option, cls=ConfigOption)
-no_config_option = decorator_factory(dec=cloup.option, cls=NoConfigOption)
-show_params_option = decorator_factory(dec=cloup.option, cls=ShowParamsOption)
-table_format_option = decorator_factory(dec=cloup.option, cls=TableFormatOption)
-telemetry_option = decorator_factory(dec=cloup.option, cls=TelemetryOption)
-timer_option = decorator_factory(dec=cloup.option, cls=TimerOption)
-verbose_option = decorator_factory(dec=cloup.option, cls=VerboseOption)
-verbosity_option = decorator_factory(dec=cloup.option, cls=VerbosityOption)
+# Introduce new commands decorators exclusive to Click Extra.
+lazy_group = decorator_factory(dec=group, cls=LazyGroup)
+
+
+# Introduce new parameter decorators exclusive to Click Extra.
+color_option = decorator_factory(dec=option, cls=ColorOption)
+config_option = decorator_factory(dec=option, cls=ConfigOption)
+no_config_option = decorator_factory(dec=option, cls=NoConfigOption)
+show_params_option = decorator_factory(dec=option, cls=ShowParamsOption)
+table_format_option = decorator_factory(dec=option, cls=TableFormatOption)
+telemetry_option = decorator_factory(dec=option, cls=TelemetryOption)
+timer_option = decorator_factory(dec=option, cls=TimerOption)
+verbose_option = decorator_factory(dec=option, cls=VerboseOption)
+verbosity_option = decorator_factory(dec=option, cls=VerbosityOption)

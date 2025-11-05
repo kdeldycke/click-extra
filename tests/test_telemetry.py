@@ -16,76 +16,105 @@
 
 from __future__ import annotations
 
-from textwrap import dedent
-
+import click
+import cloup
 import pytest
 
 from click_extra import command, echo, pass_context, telemetry_option
-from click_extra.pytest import command_decorators
 
 
 @pytest.mark.parametrize(
-    "cmd_decorator", command_decorators(no_groups=True, no_extra=True)
+    ("cmd_decorator", "telemetry_help"),
+    (
+        # Click and Cloup do not show the auto-generated envvar in the help screen.
+        (
+            click.command,
+            "  --telemetry / --no-telemetry  Collect telemetry and usage data.  [env var:\n"
+            "                                DO_NOT_TRACK]\n",
+        ),
+        (
+            click.command(),
+            "  --telemetry / --no-telemetry  Collect telemetry and usage data.  [env var:\n"
+            "                                DO_NOT_TRACK]\n",
+        ),
+        (
+            cloup.command(),
+            "  --telemetry / --no-telemetry  Collect telemetry and usage data.  [env var:\n"
+            "                                DO_NOT_TRACK]\n",
+        ),
+        # Click Extra always adds the auto-generated envvar to the help screen
+        # (and show the defaults).
+        (
+            command,
+            "  --telemetry / --no-telemetry  Collect telemetry and usage data.  [env var:\n"
+            "                                DO_NOT_TRACK, CLI_TELEMETRY; default: no-\n"
+            "                                telemetry]\n",
+        ),
+    ),
 )
 @pytest.mark.parametrize("option_decorator", (telemetry_option, telemetry_option()))
-def test_standalone_telemetry_option(invoke, cmd_decorator, option_decorator):
+def test_standalone_telemetry_option(
+    invoke, cmd_decorator, telemetry_help, option_decorator
+):
     @cmd_decorator
     @option_decorator
     @pass_context
-    def standalone_telemetry(ctx):
+    def cli(ctx):
         echo("It works!")
         echo(f"Telemetry value: {ctx.telemetry}")
 
-    result = invoke(standalone_telemetry, "--help")
-    assert result.exit_code == 0
+    result = invoke(cli, "--help", color=False)
+    assert telemetry_help in result.stdout
     assert not result.stderr
-
-    assert result.stdout == dedent(
-        """\
-        Usage: standalone-telemetry [OPTIONS]
-
-        Options:
-          --telemetry / --no-telemetry  Collect telemetry and usage data.  [env var:
-                                        DO_NOT_TRACK]
-          --help                        Show this message and exit.
-        """,
-    )
-
-    result = invoke(standalone_telemetry, "--telemetry")
     assert result.exit_code == 0
 
+    result = invoke(cli, "--telemetry")
     assert result.stdout == "It works!\nTelemetry value: True\n"
-
-    result = invoke(standalone_telemetry, "--no-telemetry")
     assert not result.stderr
     assert result.exit_code == 0
+
+    result = invoke(cli, "--no-telemetry")
     assert result.stdout == "It works!\nTelemetry value: False\n"
     assert not result.stderr
     assert result.exit_code == 0
 
 
-def test_multiple_envvars(invoke):
-    @command(context_settings={"auto_envvar_prefix": "yo", "show_default": True})
+@pytest.mark.parametrize(
+    ("cmd_decorator", "telemetry_help"),
+    (
+        # Click and Cloup do not show the auto-generated envvar in the help screen.
+        (
+            click.command,
+            "  --telemetry / --no-telemetry  Collect telemetry and usage data.  [env var:\n"
+            "                                DO_NOT_TRACK; default: no-telemetry]\n",
+        ),
+        (
+            cloup.command,
+            "  --telemetry / --no-telemetry  Collect telemetry and usage data.  [env var:\n"
+            "                                DO_NOT_TRACK; default: no-telemetry]\n",
+        ),
+        # Click Extra always adds the auto-generated envvar to the help screen
+        # (and show the defaults).
+        (
+            command,
+            "  --telemetry / --no-telemetry  Collect telemetry and usage data.  [env var:\n"
+            "                                DO_NOT_TRACK, yo_TELEMETRY; default: no-\n"
+            "                                telemetry]\n",
+        ),
+    ),
+)
+def test_multiple_envvars(invoke, cmd_decorator, telemetry_help):
+    @cmd_decorator(context_settings={"auto_envvar_prefix": "yo", "show_default": True})
     @telemetry_option
     @pass_context
     def standalone_telemetry(ctx):
         echo("It works!")
         echo(f"Telemetry value: {ctx.telemetry}")
 
-    result = invoke(standalone_telemetry, "--help")
-    assert result.exit_code == 0
+    result = invoke(standalone_telemetry, "--help", color=False)
+    assert telemetry_help in result.stdout
     assert not result.stderr
-
-    assert result.stdout == dedent(
-        """\
-        Usage: standalone-telemetry [OPTIONS]
-
-        Options:
-          --telemetry / --no-telemetry  Collect telemetry and usage data.  [env var:
-                                        DO_NOT_TRACK; default: no-telemetry]
-          --help                        Show this message and exit.
-        """,
-    )
+    assert result.exit_code == 0
 
     result = invoke(standalone_telemetry, env={"DO_NOT_TRACK": "1"})
     assert result.stdout == "It works!\nTelemetry value: True\n"

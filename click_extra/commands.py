@@ -29,7 +29,6 @@ from collections import OrderedDict
 import click
 import cloup
 
-from . import Command, Group
 from .colorize import ColorOption, ExtraHelpColorsMixin, HelpExtraFormatter
 from .config import ConfigOption, NoConfigOption
 from .envvar import clean_envvar_id, param_envvar_ids
@@ -176,7 +175,7 @@ def default_extra_params() -> list[Option]:
 DEFAULT_HELP_NAMES: tuple[str, ...] = ("--help", "-h")
 
 
-class ExtraCommand(ExtraHelpColorsMixin, Command):  # type: ignore[misc]
+class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
     """Like ``cloup.command``, with sane defaults and extra help screen colorization."""
 
     context_class: type[cloup.Context] = ExtraContext
@@ -397,7 +396,7 @@ class ExtraCommand(ExtraHelpColorsMixin, Command):  # type: ignore[misc]
         return super().invoke(ctx)
 
 
-class ExtraGroup(ExtraCommand, Group):  # type: ignore[misc]
+class ExtraGroup(ExtraCommand, cloup.Group):  # type: ignore[misc]
     """Like ``cloup.Group``, with sane defaults and extra help screen colorization."""
 
     command_class = ExtraCommand

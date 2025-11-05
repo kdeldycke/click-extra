@@ -5,6 +5,19 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Override base decorators and classes with Click Extra's own variants:
+  - `@command` now points to what was `@extra_command`.
+  - `@group` now points to what was `@extra_group`.
+  - `Option` class now points to `click_extra.Option`, which is a subclass of `cloup.Option`.
+  - `Argument` class now points to `click_extra.Argument`, which is a subclass of `cloup.Argument`.
+  - `@option` now instantiates `click_extra.Option` by default.
+  - `@argument` now instantiates `click_extra.Argument` by default.
+  - `@version_option` now points to what was `@extra_version_option`.
+  - Now if you want to use the previous aliases to Click's and Cloup's originals, import them directly from `click` or `cloup` instead of `click_extra`, which makes origination clearer.
+- Remove `@extra_command`, `@extra_group` and `@extra_version_option`.
+- Remove `no_redefined` argument in `click_extra.pytest.command_decorators()` method.
+- Validates that classes passed to the `cls` parameter of decorators are subclasses of the expected base classes.
+
 ## [6.2.0 (2025-11-04)](https://github.com/kdeldycke/click-extra/compare/v6.1.0...v6.2.0)
 
 - Add new `EnumChoice` type for fine-tunable Enum-based choices. Expose `EnumChoice` and `ChoiceSource` at the root `click_extra` module.

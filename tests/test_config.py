@@ -25,11 +25,10 @@ import pytest
 from boltons.pathutils import shrinkuser
 
 from click_extra import (
-    command,
     config_option,
     echo,
-    extra_group,
     get_app_dir,
+    group,
     no_config_option,
     option,
     pass_context,
@@ -294,7 +293,7 @@ all_config_formats = pytest.mark.parametrize(
 
 @pytest.fixture
 def simple_config_cli():
-    @extra_group(context_settings={"show_envvar": True})
+    @group(context_settings={"show_envvar": True})
     @option("--dummy-flag/--no-flag")
     @option("--my-list", multiple=True)
     def config_cli1(dummy_flag, my_list):
@@ -433,7 +432,7 @@ def test_no_config_option(invoke, simple_config_cli, create_config):
 def test_standalone_no_config_option(invoke):
     """@no_config_option cannot work without @config_option."""
 
-    @command
+    @click.command
     @no_config_option
     def missing_config_option():
         echo("Hello, World!")
@@ -632,7 +631,7 @@ def test_conf_metadata(
     conf_text,
     conf_data,
 ):
-    @command
+    @click.command
     @config_option
     @pass_context
     def config_metadata(ctx):

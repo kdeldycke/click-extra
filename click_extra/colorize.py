@@ -34,13 +34,7 @@ from boltons.strutils import complement_int_list, int_ranges_from_int_list
 from cloup._util import identity
 from cloup.styling import Color
 
-from . import (
-    Choice,
-    HelpFormatter,
-    ParameterSource,
-    Style,
-    get_current_context,
-)
+from . import HelpFormatter, ParameterSource, Style, get_current_context
 from .parameters import ExtraOption
 
 TYPE_CHECKING = False
@@ -48,8 +42,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Sequence
 
     from cloup.styling import IStyle
-
-    from . import Context, Parameter
 
 
 @dataclass(frozen=True)
@@ -226,8 +218,8 @@ class ColorOption(ExtraOption):
 
     @staticmethod
     def disable_colors(
-        ctx: Context,
-        param: Parameter,
+        ctx: click.Context,
+        param: click.Parameter,
         value: bool,
     ) -> None:
         """Callback disabling all coloring utilities.
@@ -311,7 +303,7 @@ class ExtraHelpColorsMixin:  # (Command)??
 
     def _collect_keywords(
         self,
-        ctx: Context,
+        ctx: click.Context,
     ) -> tuple[
         set[str],
         set[str],
@@ -376,7 +368,7 @@ class ExtraHelpColorsMixin:  # (Command)??
             options.update(param.opts)
             options.update(param.secondary_opts)
 
-            if isinstance(param.type, Choice):
+            if isinstance(param.type, click.Choice):
                 choices.update(
                     i.name if isinstance(i, Enum) else str(i)
                     for i in param.type.choices
@@ -438,12 +430,12 @@ class ExtraHelpColorsMixin:  # (Command)??
             deprecated_messages,
         )
 
-    def get_help(self, ctx: Context) -> str:
+    def get_help(self, ctx: click.Context) -> str:
         """Replace default formatter by our own."""
         ctx.formatter_class = HelpExtraFormatter
         return super().get_help(ctx)  # type: ignore[no-any-return,misc]
 
-    def format_help(self, ctx: Context, formatter: HelpExtraFormatter) -> None:
+    def format_help(self, ctx: click.Context, formatter: HelpExtraFormatter) -> None:
         """Feed our custom formatter instance with the keywords to highlight."""
         (
             formatter.cli_names,

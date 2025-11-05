@@ -30,7 +30,7 @@ import cloup
 import pytest
 from _pytest.assertion.util import assertrepr_compare
 
-from click_extra.decorators import command, extra_command, extra_group, group
+from click_extra.decorators import command, group
 from click_extra.testing import (
     ExtraCliRunner,
     RegexLineMismatch,
@@ -61,7 +61,7 @@ def invoke(extra_runner):
     return extra_runner.invoke
 
 
-skip_naked = pytest.mark.skip(reason="Naked decorator not supported yet.")
+skip_naked = pytest.mark.skip(reason="Naked decorator not supported.")
 """Mark to skip Cloup decorators without parenthesis.
 
 .. warning::
@@ -75,13 +75,27 @@ def command_decorators(
     no_groups: bool = False,
     no_click: bool = False,
     no_cloup: bool = False,
-    no_redefined: bool = False,
     no_extra: bool = False,
     with_parenthesis: bool = True,
     with_types: bool = False,
 ) -> tuple[ParameterSet, ...]:
-    """Returns collection of Pytest parameters to test all forms of click/cloup/click-
-    extra command-like decorators."""
+    """Returns collection of Pytest parameters to test all command-like decorators.
+
+    Returns:
+
+    - `click.command`
+    - `click.command()`
+    - `cloup.command`
+    - `cloup.command()`
+    - `click_extra.command`
+    - `click_extra.command()`
+    - `click.group`
+    - `click.group()`
+    - `cloup.group`
+    - `cloup.group()`
+    - `click_extra.group`
+    - `click_extra.group()`
+    """
     params: list[tuple[Any, set[str], str, tuple | MarkDecorator]] = []
 
     if no_commands is False:
@@ -101,33 +115,15 @@ def command_decorators(
                     (cloup.command(), {"cloup", "command"}, "cloup.command()", ()),
                 )
 
-        if not no_redefined:
-            params.append(
-                (command, {"redefined", "command"}, "click_extra.command", ()),
-            )
-            if with_parenthesis:
-                params.append(
-                    (command(), {"redefined", "command"}, "click_extra.command()", ()),
-                )
-
         if not no_extra:
-            params.append(
-                (
-                    extra_command,
-                    {"extra", "command"},
-                    "click_extra.extra_command",
-                    (),
-                ),
-            )
+            params.append((command, {"extra", "command"}, "click_extra.command", ()))
             if with_parenthesis:
-                params.append(
-                    (
-                        extra_command(),
-                        {"extra", "command"},
-                        "click_extra.extra_command()",
-                        (),
-                    ),
-                )
+                params.append((
+                    command(),
+                    {"extra", "command"},
+                    "click_extra.command()",
+                    (),
+                ))
 
     if not no_groups:
         if not no_click:
@@ -140,31 +136,10 @@ def command_decorators(
             if with_parenthesis:
                 params.append((cloup.group(), {"cloup", "group"}, "cloup.group()", ()))
 
-        if not no_redefined:
-            params.append((group, {"redefined", "group"}, "click_extra.group", ()))
-            if with_parenthesis:
-                params.append(
-                    (group(), {"redefined", "group"}, "click_extra.group()", ()),
-                )
-
         if not no_extra:
-            params.append(
-                (
-                    extra_group,
-                    {"extra", "group"},
-                    "click_extra.extra_group",
-                    (),
-                ),
-            )
+            params.append((group, {"extra", "group"}, "click_extra.group", ()))
             if with_parenthesis:
-                params.append(
-                    (
-                        extra_group(),
-                        {"extra", "group"},
-                        "click_extra.extra_group()",
-                        (),
-                    ),
-                )
+                params.append((group(), {"extra", "group"}, "click_extra.group()", ()))
 
     decorator_params = []
     for deco, deco_type, label, marks in params:

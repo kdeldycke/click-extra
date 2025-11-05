@@ -45,22 +45,22 @@ from .commands import (
 )
 from .config import ConfigOption, NoConfigOption
 from .decorators import (  # type: ignore[no-redef]
+    argument,
     color_option,
     command,
     config_option,
-    extra_command,
-    extra_group,
-    extra_version_option,
     group,
     help_option,
     lazy_group,
     no_config_option,
+    option,
     show_params_option,
     table_format_option,
     telemetry_option,
     timer_option,
     verbose_option,
     verbosity_option,
+    version_option,
 )
 from .logging import (
     ExtraFormatter,
@@ -72,7 +72,9 @@ from .logging import (
     new_extra_logger,
 )
 from .parameters import (
+    Argument,
     ExtraOption,
+    Option,
     ParamStructure,
     ShowParamsOption,
     search_params,
@@ -121,9 +123,6 @@ __all__ = [  # noqa: F405
     "echo_via_pager",
     "edit",
     "EnumChoice",
-    "extra_command",
-    "extra_group",
-    "extra_version_option",
     "extraBasicConfig",
     "ExtraCliRunner",
     "ExtraCommand",

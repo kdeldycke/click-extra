@@ -26,23 +26,16 @@ from operator import getitem, methodcaller
 from unittest.mock import patch
 
 import click
+import cloup
 from deepmerge import always_merger
 
-from . import (
-    Command,
-    Option,
-    ParamType,
-    Style,
-    get_current_context,
-)
+from . import ParamType, Style, get_current_context
 from .envvar import param_envvar_ids
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator, Sequence
     from typing import Any, ContextManager
-
-    from . import Parameter
 
 
 def search_params(
@@ -80,13 +73,54 @@ def search_params(
     return param_list
 
 
+class _ParameterMixin:
+    """Mixin providing shared functionality for Click Extra parameters.
+
+    .. warning::
+        If we want to override any method from Click's ``Parameter`` class, we have to
+        use that mixin and have it inherited first in the ``Option`` and ``Argument``
+        classes below.
+
+        Because:
+        - Cloup does not provide its own ``Parameter`` class.
+        - Multiple inheritance cannot be used because of MRO issues.
+    """
+
+    def _get_default(self, ctx: click.Context, call: bool = True):
+        default_value = super().get_default(ctx, call)  # type: ignore[misc]
+
+        import pdb
+
+        pdb.set_trace()
+
+        return default_value
+
+
+class Argument(_ParameterMixin, cloup.Argument):
+    """Wrap ``cloup.Argument``, itself inheriting from ``click.Argument``.
+
+    Inherits first from ``_ParameterMixin`` to allow future overrides of Click's
+    ``Parameter`` methods.
+    """
+
+
+class Option(_ParameterMixin, cloup.Option):
+    """Wrap ``cloup.Option``, itself inheriting from ``click.Option``.
+
+    Inherits first from ``_ParameterMixin`` to allow future overrides of Click's
+    ``Parameter`` methods.
+    """
+
+
 class ExtraOption(Option):
-    """All new options implemented by ``click-extra`` inherits this class.
+    """Dedicated to option implemented by ``click-extra`` itself.
 
     Does nothing in particular for now but provides a way to identify Click Extra's own
     options with certainty.
 
-    Also contains Option-specific code that should be contributed upstream to Click.
+    .. hint::
+        Could contains in the future Option-specific code that would be prime candidate
+        for upstream contribution to Click.
     """
 
 
@@ -168,10 +202,10 @@ class ParamStructure:
 
     def _recurse_cmd(
         self,
-        cmd: Command,
+        cmd: click.Command,
         top_level_params: Iterable[str],
         parent_keys: tuple[str, ...],
-    ) -> Iterator[tuple[tuple[str, ...], Parameter]]:
+    ) -> Iterator[tuple[tuple[str, ...], click.Parameter]]:
         """Recursive generator to walk through all subcommands and their parameters."""
         if hasattr(cmd, "commands"):
             ctx = get_current_context()
@@ -193,7 +227,7 @@ class ParamStructure:
                     ((*parent_keys, subcmd.name)),
                 )
 
-    def walk_params(self) -> Iterator[tuple[tuple[str, ...], Parameter]]:
+    def walk_params(self) -> Iterator[tuple[tuple[str, ...], click.Parameter]]:
         """Generates an unfiltered list of all CLI parameters.
 
         Everything is included, from top-level groups to subcommands, and from options
@@ -243,7 +277,9 @@ class ParamStructure:
     This mapping can be seen as a reverse of the ``click.types.convert_type()`` method.
     """
 
-    def get_param_type(self, param: Parameter) -> type[str | int | float | bool | list]:
+    def get_param_type(
+        self, param: click.Parameter
+    ) -> type[str | int | float | bool | list]:
         """Get the Python type of a Click parameter.
 
         See the list of

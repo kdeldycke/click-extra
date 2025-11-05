@@ -37,10 +37,10 @@ from click_extra import (
     __version__,
     color_option,
     echo,
-    extra_group,
-    extra_version_option,
+    group,
     pass_context,
     verbosity_option,
+    version_option,
 )
 from click_extra.pytest import (
     command_decorators,
@@ -54,9 +54,7 @@ from .conftest import skip_windows_colors
 
 @skip_windows_colors
 @pytest.mark.parametrize("cmd_decorator", command_decorators())
-@pytest.mark.parametrize(
-    "option_decorator", (extra_version_option, extra_version_option())
-)
+@pytest.mark.parametrize("option_decorator", (version_option, version_option()))
 def test_standalone_version_option(invoke, cmd_decorator, option_decorator):
     @cmd_decorator
     @option_decorator
@@ -72,9 +70,7 @@ def test_standalone_version_option(invoke, cmd_decorator, option_decorator):
 
 @skip_windows_colors
 @pytest.mark.parametrize("cmd_decorator", command_decorators())
-@pytest.mark.parametrize(
-    "option_decorator", (extra_version_option, extra_version_option())
-)
+@pytest.mark.parametrize("option_decorator", (version_option, version_option()))
 def test_debug_output(invoke, cmd_decorator, option_decorator, assert_output_regex):
     @cmd_decorator
     @verbosity_option
@@ -99,7 +95,7 @@ def test_debug_output(invoke, cmd_decorator, option_decorator, assert_output_reg
 @skip_windows_colors
 def test_set_version(invoke):
     @click.group
-    @extra_version_option(version="1.2.3.4")
+    @version_option(version="1.2.3.4")
     def color_cli2():
         echo("It works!")
 
@@ -151,7 +147,7 @@ def test_custom_message(
     invoke, cmd_decorator, message, regex_stdout, assert_output_regex
 ):
     @cmd_decorator
-    @extra_version_option(message=message)
+    @version_option(message=message)
     def color_cli3():
         echo("It works!")
 
@@ -164,7 +160,7 @@ def test_custom_message(
 @pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
 def test_style_reset(invoke, cmd_decorator):
     @cmd_decorator
-    @extra_version_option(
+    @version_option(
         message_style=None,
         version_style=None,
         prog_name_style=None,
@@ -182,7 +178,7 @@ def test_style_reset(invoke, cmd_decorator):
 @pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
 def test_custom_message_style(invoke, cmd_decorator):
     @cmd_decorator
-    @extra_version_option(
+    @version_option(
         message="{prog_name} v{version} - {package_name} (latest)",
         message_style=Style(fg="cyan"),
         prog_name_style=Style(fg="green", bold=True),
@@ -205,7 +201,7 @@ def test_custom_message_style(invoke, cmd_decorator):
 @pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
 def test_context_meta(invoke, cmd_decorator, assert_output_regex):
     @cmd_decorator
-    @extra_version_option
+    @version_option
     @pass_context
     def version_metadata(ctx):
         for field in ExtraVersionOption.template_fields:
@@ -245,7 +241,7 @@ def test_context_meta(invoke, cmd_decorator, assert_output_regex):
     (None, "--help", "blah", ("--config", "random.toml")),
 )
 def test_integrated_version_option_precedence(invoke, params):
-    @extra_group(version="1.2.3.4")
+    @group(version="1.2.3.4")
     def color_cli4():
         echo("It works!")
 
@@ -274,7 +270,7 @@ def test_color_option_precedence(invoke):
 
     @click.command
     @color_option
-    @extra_version_option(version="2.1.9")
+    @version_option(version="2.1.9")
     def color_cli6():
         echo(Style(fg="yellow")("It works!"))
 

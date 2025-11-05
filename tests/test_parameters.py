@@ -47,10 +47,10 @@ from click_extra import (
     Tuple,
     argument,
     color_option,
+    command,
     echo,
-    extra_command,
-    extra_group,
     get_app_dir,
+    group,
     option,
     render_table,
     search_params,
@@ -302,7 +302,7 @@ def test_standalone_show_params_option(
 
 
 def test_integrated_show_params_option(invoke, create_config):
-    @extra_command
+    @command
     @option("--int-param1", type=int, default=10)
     @option("--int-param2", type=int, default=555)
     @option("--hidden-param", hidden=True)  # See issue #689.
@@ -389,7 +389,7 @@ def test_integrated_show_params_option(invoke, create_config):
         (
             "show-params-cli.custom_param",
             "--custom-param CUSTOM",
-            "cloup._params.Option",
+            "click_extra.parameters.Option",
             "tests.test_parameters.Custom",
             "str",
             "✘",
@@ -417,7 +417,7 @@ def test_integrated_show_params_option(invoke, create_config):
         (
             "show-params-cli.hidden_param",
             "--hidden-param TEXT",
-            "cloup._params.Option",
+            "click_extra.parameters.Option",
             "click.types.StringParamType",
             "str",
             "✓",
@@ -431,7 +431,7 @@ def test_integrated_show_params_option(invoke, create_config):
         (
             "show-params-cli.int_param1",
             "--int-param1 INTEGER",
-            "cloup._params.Option",
+            "click_extra.parameters.Option",
             "click.types.IntParamType",
             "int",
             "✘",
@@ -445,7 +445,7 @@ def test_integrated_show_params_option(invoke, create_config):
         (
             "show-params-cli.int_param2",
             "--int-param2 INTEGER",
-            "cloup._params.Option",
+            "click_extra.parameters.Option",
             "click.types.IntParamType",
             "int",
             "✘",
@@ -549,7 +549,7 @@ def test_integrated_show_params_option(invoke, create_config):
 
 
 def test_recurse_subcommands(invoke):
-    @extra_group(params=[ShowParamsOption()])
+    @group(params=[ShowParamsOption()])
     def show_params_cli_main():
         echo("main cmd")
 
@@ -624,7 +624,7 @@ def test_recurse_subcommands(invoke):
         (
             "show-params-cli-main.show-params-sub.show-params-sub-sub.int_param",
             "--int-param INTEGER",
-            "cloup._params.Option",
+            "click_extra.parameters.Option",
             "click.types.IntParamType",
             "int",
             "✘",

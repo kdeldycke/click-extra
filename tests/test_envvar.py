@@ -19,10 +19,11 @@ from __future__ import annotations
 import os
 
 import click
+import cloup
 import pytest
 from extra_platforms import is_windows
 
-from click_extra import command, echo, extra_command, option
+from click_extra import command, echo, option
 from click_extra.envvar import clean_envvar_id, env_copy, merge_envvar_ids
 
 
@@ -67,17 +68,20 @@ def test_clean_envvar_id(env_name, clean_name):
 @pytest.mark.parametrize(
     ("cmd_decorator", "option_help"),
     (
-        # Click does not show the auto-generated envvar in the help screen.
+        # Click and Cloup do not show the auto-generated envvar in the help screen.
         (
             click.command,
+            "  --flag / --no-flag  [env var: custom]\n",
+        ),
+        (
+            cloup.command,
             "  --flag / --no-flag  [env var: custom]\n",
         ),
         # Click Extra always adds the auto-generated envvar to the help screen
         # (and show the defaults).
         (
-            extra_command,
-            "  --flag / --no-flag    "
-            "[env var: "
+            command,
+            "  --flag / --no-flag    [env var: "
             + ("CUSTOM, YO_FLAG" if os.name == "nt" else "custom, yo_FLAG")
             + "; default: no-flag]\n",
         ),
@@ -106,7 +110,7 @@ def envvars_test_cases():
     params = []
 
     matrix = {
-        (command, "command"): {
+        (click.command, "click.command"): {
             "working_envvar": (
                 # User-defined envvars are recognized as-is.
                 "Magic",
@@ -123,7 +127,24 @@ def envvars_test_cases():
                 "yo_FlAg",
             ),
         },
-        (extra_command, "extra_command"): {
+        (cloup.command, "cloup.command"): {
+            "working_envvar": (
+                # User-defined envvars are recognized as-is.
+                "Magic",
+                "sUper",
+                # XXX Uppercased auto-generated envvar is recognized but should not be.
+                "YO_FLAG",
+            ),
+            "unknown_envvar": (
+                # Uppercased user-defined envvar is not recognized.
+                "MAGIC",
+                # XXX Literal auto-generated is not recognized but should be.
+                "yo_FLAG",
+                # Mixed-cased auto-generated envvat is not recognized.
+                "yo_FlAg",
+            ),
+        },
+        (command, "click_extra.command"): {
             "working_envvar": (
                 # User-defined envvars are recognized as-is.
                 "Magic",
@@ -157,11 +178,15 @@ def envvars_test_cases():
             "yo_FlAg",
         )
         matrix = {
-            (command, "command"): {
+            (click.command, "click.command"): {
                 "working_envvar": all_envvars,
                 "unknown_envvar": (),
             },
-            (extra_command, "extra_command"): {
+            (cloup.command, "cloup.command"): {
+                "working_envvar": all_envvars,
+                "unknown_envvar": (),
+            },
+            (command, "click_extra.command"): {
                 "working_envvar": all_envvars,
                 "unknown_envvar": (),
             },
@@ -202,11 +227,13 @@ def envvars_test_cases():
     return params
 
 
-@pytest.mark.parametrize("cmd_decorator, envvars, expected_flag", envvars_test_cases())
+@pytest.mark.parametrize(
+    ("cmd_decorator", "envvars", "expected_flag"), envvars_test_cases()
+)
 def test_auto_envvar_parsing(invoke, cmd_decorator, envvars, expected_flag):
     """This test highlights the way Click recognize and parse envvars.
 
-    It shows that the default behavior is not ideal, and covers how ``extra_command``
+    It shows that the default behavior is not ideal, and covers how ``command``
     improves the situation by normalizing the envvar name.
     """
 
@@ -216,14 +243,14 @@ def test_auto_envvar_parsing(invoke, cmd_decorator, envvars, expected_flag):
         echo(f"Flag value: {flag}")
 
     registered_envvars = ["Magic", "sUper"]
-    # Specific behavior of @extra_command that is not present in vanilla Click.
-    if cmd_decorator == extra_command:
-        # @extra_command forces registration of auto-generated envvar.
+    # Specific behavior of @click_extra.command that is not present in vanilla Click.
+    if cmd_decorator == command:
+        # @command forces registration of auto-generated envvar.
         registered_envvars = [*registered_envvars, "yo_FLAG"]
         # On Windows, envvars are normalizes to uppercase.
         if os.name == "nt":
             registered_envvars = [envvar.upper() for envvar in registered_envvars]
-        # @extra_command parameters returns envvar property as tuple, while vanilla Click
+        # @command parameters returns envvar property as tuple, while vanilla Click
         # returns a list.
         registered_envvars = tuple(registered_envvars)
     assert my_cli.params[0].envvar == registered_envvars

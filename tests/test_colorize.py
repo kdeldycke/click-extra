@@ -42,8 +42,7 @@ from click_extra import (
     color_option,
     command,
     echo,
-    extra_command,
-    extra_group,
+    group,
     help_option,
     option,
     option_group,
@@ -521,7 +520,7 @@ def test_only_full_word_highlight():
 
 def test_keyword_collection(invoke, assert_output_regex):
     # Create a dummy Click CLI.
-    @extra_group
+    @group
     @option_group(
         "Group 1",
         option("-a", "--o1"),
@@ -541,7 +540,7 @@ def test_keyword_collection(invoke, assert_output_regex):
     def color_cli1(o1, o2, o3, o4, test, boolean, debug, long_shout):
         echo("It works!")
 
-    @extra_command(params=None)
+    @command(params=None)
     @argument("MY_ARG", nargs=-1, help="Argument supports help.")
     def command1(my_arg):
         """CLI description with extra MY_VAR reference."""
@@ -555,7 +554,7 @@ def test_keyword_collection(invoke, assert_output_regex):
     def command3():
         echo("Run click command #3...")
 
-    @command(deprecated=True)
+    @click.command(deprecated=True)
     def command4():
         echo("Run click-extra command #4...")
 
@@ -792,7 +791,7 @@ def test_integrated_color_option(invoke, param, expecting_colors, assert_output_
     Also checks the color option in subcommands is inherited from parent context.
     """
 
-    @extra_group
+    @group
     @pass_context
     def color_cli8(ctx):
         echo(f"ctx.color={ctx.color}")

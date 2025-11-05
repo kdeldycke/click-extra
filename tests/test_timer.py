@@ -24,11 +24,11 @@ from time import sleep
 
 import pytest
 
-from click_extra import echo, extra_group, timer_option
+from click_extra import echo, group, timer_option
 from click_extra.pytest import command_decorators
 
 
-@extra_group
+@group
 def integrated_timer():
     echo("Start of CLI")
 
@@ -46,7 +46,7 @@ def slow_subcommand():
 
 
 @pytest.mark.parametrize(
-    "subcommand_id, time_min",
+    ("subcommand_id", "time_min"),
     (
         ("fast", 0.01),
         ("slow", 0.1),
