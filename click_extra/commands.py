@@ -338,7 +338,7 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
 
         # Forces re-identification of grouped and non-grouped options as we re-ordered
         # them above and added our own extra options since initialization.
-        _grouped_params = self._group_params(self.params)  # type: ignore[attr-defined]
+        _grouped_params = self._group_params(self.params)
         self.arguments, self.option_groups, self.ungrouped_options = _grouped_params
 
     def main(  # type: ignore[override]
