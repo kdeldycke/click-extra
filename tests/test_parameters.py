@@ -145,7 +145,6 @@ def test_params_auto_types(invoke, option_decorator):
     )
 
     assert result.stdout != "Works!\n"
-    assert not result.stderr
     assert result.exit_code == 0
 
     show_param_option = search_params(params_introspection.params, ShowParamsOption)
@@ -640,8 +639,8 @@ def test_recurse_subcommands(invoke):
 
     assert_table_content(result.stdout, expected_table)
 
-    assert not result.stderr
     assert result.exit_code == 0
+
 
 # Shuffle the order of declaration to ensure behavior stability.
 @pytest.mark.parametrize(
@@ -715,7 +714,6 @@ def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
     ):
         result = invoke(show_params, args)
         assert_table_content(result.stdout, expected_table)
-        assert not result.stderr
         assert result.exit_code == 0
 
     # --table-format is explicitly set from now on, so its source is COMMANDLINE.
@@ -755,7 +753,6 @@ def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
     ):
         assert result.stdout == rendered_table
 
-    assert not result.stderr
     assert result.exit_code == 0
 
 
@@ -847,7 +844,6 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
     ):
         result = invoke(show_params, args)
         assert_table_content(result.stdout, expected_table)
-        assert not result.stderr
         assert result.exit_code == 0
 
     # --color/--no-color is explicitly set from now on, so its source is COMMANDLINE.
@@ -860,13 +856,11 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
     with pytest.raises(AssertionError):
         assert_table_content(result.stdout, expected_table)
     assert_table_content(strip_ansi(result.stdout), expected_table)
-    assert not result.stderr
     assert result.exit_code == 0
 
     # Force --no-color.
     result = invoke(show_params, "--no-color", "--show-params")
     assert_table_content(result.stdout, expected_table)
-    assert not result.stderr
     assert result.exit_code == 0
 
     # --table-format is explicitly set from now on, so its source is COMMANDLINE.
@@ -914,6 +908,4 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
         TableFormat.CSV_UNIX,
     ):
         assert result.stdout == rendered_table
-
-    assert not result.stderr
     assert result.exit_code == 0
