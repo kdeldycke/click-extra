@@ -16,6 +16,8 @@
 
 from __future__ import annotations
 
+import os
+
 import click
 import cloup
 import pytest
@@ -98,7 +100,9 @@ def test_standalone_telemetry_option(
         (
             command,
             "  --telemetry / --no-telemetry  Collect telemetry and usage data.  [env var:\n"
-            "                                DO_NOT_TRACK, yo_TELEMETRY; default: no-\n"
+            "                                DO_NOT_TRACK, "
+            + ("YO_TELEMETRY" if os.name == "nt" else "yo_TELEMETRY")
+            + "; default: no-\n"
             "                                telemetry]\n",
         ),
     ),
