@@ -351,7 +351,6 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
         within it.
 
         .. caution::
-
             During context instantiation, each option's callbacks are called. These
             might break the execution flow (like ``--help`` or ``--version``).
 
@@ -448,11 +447,13 @@ class LazyGroup(ExtraGroup):
             ``lazy_subcommands`` is a map of the form:
 
             .. code-block:: python
+
                 {"<command-name>": "<module-name>.<command-object-name>"}
 
             Example:
 
             .. code-block:: python
+
                 {"mycmd": "my_cli.commands.mycmd"}
         """
         super().__init__(*args, **kwargs)
