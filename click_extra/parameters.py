@@ -95,7 +95,7 @@ class _ParameterMixin:
         """
         default_value = super().get_default(ctx, call)  # type: ignore[misc]
 
-        if isinstance(self.type, EnumChoice):
+        if hasattr(self, "type") and isinstance(self.type, EnumChoice):
             default_value = self.type.get_choice_string(default_value)
 
         return default_value

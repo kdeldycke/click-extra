@@ -324,7 +324,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             ~/(...)/multiple_envvars.py/*.{toml,json,ini}
         """
         extra = super().get_help_extra(ctx)
-        extra["default"] = shrinkuser(Path(self.get_default(ctx)))  # type: ignore[arg-type]
+        extra["default"] = shrinkuser(Path(self.get_default(ctx)))
         return extra
 
     def search_and_read_conf(self, pattern: str) -> Iterable[tuple[Path | URL, str]]:
