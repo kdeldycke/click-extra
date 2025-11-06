@@ -391,24 +391,22 @@ def test_enum_choice_command(
     assert result.exit_code == 0
 
 
-@pytest.mark.parametrize(
-    ("cmd_decorator", "cmd_type"), command_decorators(no_groups=True, with_types=True)
-)
+@pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
 @pytest.mark.parametrize(
     ("opt_decorator", "opt_type"),
     option_decorators(no_arguments=True, with_parenthesis=False, with_types=True),
 )
+@pytest.mark.parametrize(
+    "default_value", (MyEnum.SECOND_VALUE, str(MyEnum.SECOND_VALUE), "my-second-value")
+)
 def test_enum_choice_default_value(
-    invoke, cmd_decorator, cmd_type, opt_decorator, opt_type
+    invoke, cmd_decorator, opt_decorator, opt_type, default_value
 ) -> None:
     """Test EnumChoice used within an option with a default value."""
 
     @cmd_decorator
     @opt_decorator(
-        "--my-enum",
-        type=EnumChoice(MyEnum),
-        default=MyEnum.SECOND_VALUE,
-        show_default=True,
+        "--my-enum", type=EnumChoice(MyEnum), default=default_value, show_default=True
     )
     def cli(my_enum: MyEnum) -> None:
         echo(f"my_enum: {my_enum!r}")
@@ -423,8 +421,12 @@ def test_enum_choice_default_value(
     result = invoke(cli, ["--help"], color=False)
     assert "--my-enum [my-first-value|my-second-value]" in result.stdout
 
-    # Using our click_extra.command decorator fix the rendering.
-    default_rendering = "my-second-value" if "extra" in opt_type else "SECOND_VALUE"
+    # @click_extra.command fix the rendering of Enum default, but not the other
+    # vanilla decorators.
+    if "extra" not in opt_type and isinstance(default_value, MyEnum):
+        default_rendering = "SECOND_VALUE"
+    else:
+        default_rendering = default_value
     assert f"[default: {default_rendering}]" in result.stdout
 
     assert not result.stderr
