@@ -31,7 +31,7 @@ def my_cli():
 See that `--verbosity` is featured in the help screen:
 
 ```{click:run}
-:emphasize-lines: 19-20
+:emphasize-lines: 20-21
 result = invoke(my_cli, args=["--help"])
 assert "--verbosity" in result.stdout, "missing --verbosity option"
 ```
