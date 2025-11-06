@@ -5,10 +5,11 @@ Click Extra provides a way to render tables in the terminal.
 Here how to use the standalone table rendering option decorator:
 
 ```{click:example}
-:emphasize-lines: 4,13
-from click_extra import command, pass_context, table_format_option, style, Color
+:emphasize-lines: 5,14
+import click
+from click_extra import pass_context, table_format_option, style, Color
 
-@command
+@click.command
 @table_format_option
 @pass_context
 def table_command(ctx):
@@ -339,10 +340,11 @@ invoke(table_command, args=["--table-format", "youtrack"])
 You can get the ID of the current table format from the context:
 
 ```{click:example}
-:emphasize-lines: 7-8
-from click_extra import command, echo, pass_context, table_format_option
+:emphasize-lines: 8-9
+import click
+from click_extra import echo, pass_context, table_format_option
 
-@command
+@click.command
 @table_format_option
 @pass_context
 def vanilla_command(ctx):

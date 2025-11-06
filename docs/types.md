@@ -125,7 +125,7 @@ To change this behavior, we need `EnumChoice`.
 
 ### Usage
 
-Let's use `click_extra.EnumChoice` instead of `click.Choice`, and we override the `__str__` method of our `Enum`:
+Let's use `click_extra.EnumChoice` instead of `click.Choice`, and then override the `__str__` method of our `Enum`:
 
 ```{click:example}
 :emphasize-lines: 4,12-13,19
@@ -226,9 +226,9 @@ assert "'oThER-forMAt' is not one of 'text', 'html', 'other-format'." in result.
 
 ### Choice source
 
-`EnumChoice` use the `str()` representation of each member by default.
+`EnumChoice` use the `str()` representation of each member by default. But you can configure it to select which part of the members to use as choice strings.
 
-But you can configure it to select which part of the members to use as choice strings, by setting the `choice_source` parameter to one of:
+That's done by setting the `choice_source` parameter to one of:
 
 - `ChoiceSource.KEY` or `ChoiceSource.NAME` to use the key (i.e. the [`Enum.name` property](https://docs.python.org/3/library/enum.html#enum.Enum.name)),
 - `ChoiceSource.VALUE` to use the [`Enum.value`](https://docs.python.org/3/library/enum.html#enum.Enum.value), or
@@ -390,7 +390,7 @@ assert "[default: html]" in result.stdout
 Without Click Extra's `@option` or `@argument`, Click's default help formatter is used, which always displays the default value using the `Enum.name`, even when using `EnumChoice`:
 
 ```{click:example}
-:emphasize-lines: 16,19
+:emphasize-lines: 17,19
 from enum import Enum
 
 import click

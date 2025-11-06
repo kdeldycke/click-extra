@@ -514,7 +514,7 @@ assert dedent("""\
 You can get the name of the current verbosity level from the context or the logger itself:
 
 ```{click:example}
-:emphasize-lines: 8, 10
+:emphasize-lines: 9, 11
 import logging
 from click import command, echo, pass_context
 from click_extra import verbosity_option

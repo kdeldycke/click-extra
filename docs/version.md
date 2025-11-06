@@ -381,7 +381,7 @@ These variables are presented in their original Python type. If most of these va
 You can render the version string manually by calling the option's internal methods:
 
 ```{click:example}
-:emphasize-lines: 8-9
+:emphasize-lines: 9-10
 import click
 from click_extra import echo, pass_context, version_option, ExtraVersionOption, search_params
 

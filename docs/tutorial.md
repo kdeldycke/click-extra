@@ -43,7 +43,7 @@ assert result.output == dedent(
 )
 ```
 
-To augment the example above with [all the bells and whistles](index.md#features) `click-extra` has in store, you just need to import from its namespace:
+To augment the example above with [all the bells and whistles](index.md#features) `click-extra` has in store, you just need to import the same decorators and functions from its namespace:
 
 ```{click:example}
 :emphasize-lines: 1,3-5,9
@@ -83,19 +83,19 @@ That's it!
 
 ## Mix and match
 
-If you do not like the opiniated way the `@click_extra.command` decorator is built with all its defaults options, you are still free to pick them up independently.
+If you do not like the opiniated way the `@click_extra.command` decorator is setup, with all its defaults options, you are still free to pick them up independently.
 
-If, for example, you're only interested in using [the `--config` option](config.md), nothing prevents you to use it with a standard `click` CLI:
+If, for example, you're only interested in using the [`--config` option](config.md), you're free to to use it with a standard Click CLI. Just take the `@config_option` decorator from `click_extra` and add it to your command:
 
 ```{click:example}
 :emphasize-lines: 2, 7
 import click
-import click_extra
+from click_extra import config_option
 
 @click.command
 @click.option("--count", default=1, help="Number of greetings.")
 @click.option("--name", prompt="Your name", help="The person to greet.")
-@click_extra.config_option
+@config_option
 def hello(count, name):
     """Simple program that greets NAME for a total of COUNT times."""
     for _ in range(count):
@@ -110,16 +110,16 @@ result = invoke(hello, args=["--help"])
 assert "--config CONFIG_PATH" in result.output
 ```
 
-This option itself behave like any Click option and can be customized easily:
+This option behave like any Click option and can be customized easily:
 
 ```{click:example}
 :emphasize-lines: 7
-from click import command, echo, option
+import click
 from click_extra import config_option
 
-@command
-@option("--count", default=1, help="Number of greetings.")
-@option("--name", prompt="Your name", help="The person to greet.")
+@click.command
+@click.option("--count", default=1, help="Number of greetings.")
+@click.option("--name", prompt="Your name", help="The person to greet.")
 @config_option("--hello-conf", metavar="CONF_FILE", help="Loads CLI config.")
 def hello(count, name):
     """Simple program that greets NAME for a total of COUNT times."""
@@ -140,10 +140,10 @@ All Click Extra primitives are sub-classes of Cloup's and supports all its featu
 Like [option groups](https://cloup.readthedocs.io/en/stable/pages/option-groups.html):
 
 ```{click:example}
-:emphasize-lines: 2-3, 9-15
+:emphasize-lines: 2,5,8-14
 import click
 import cloup
-import click_extra
+from click_extra import config_option
 
 @cloup.command()
 @click.option("--count", default=1, help="Number of greetings.")
@@ -152,7 +152,7 @@ import click_extra
     "Cool options",
     cloup.option("--foo", help="The option that starts it all."),
     cloup.option("--bar", help="Another important option."),
-    click_extra.config_option("--hello-conf", metavar="CONF_FILE", help="Loads CLI config."),
+    config_option("--hello-conf", metavar="CONF_FILE", help="Loads CLI config."),
     constraint=cloup.constraints.RequireAtLeast(1),
 )
 def hello(count, name, foo, bar, hello_conf):

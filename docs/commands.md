@@ -2,9 +2,9 @@
 
 ## Drop-in replacement
 
-The whole namespace of `click_extra` is a superset of both `click` and `cloup` namespaces. So if Click Extra's main decorators, functions and classes extends and enhance Click and Cloup ones, all the rest are direct proxies.
+The whole namespace of `click_extra` is a superset of both `click` and `cloup` namespaces. Click Extra's main decorators, functions and classes extends and enhance Click and Cloup ones. Those left untouched by Click Extra are directly proxied to Cloup or Click.
 
-This means if you want to [upgrade an existing Click-based CLI to Click Extra](tutorial.md), you can often replace imports of the `click` namespace by `click_extra` and it will work as expected.
+This means if you want to [upgrade an existing CLI to Click Extra](tutorial.md), you can often replace imports of the `click` namespace by `click_extra` and it will work as expected.
 
 ## Click and Cloup inheritance
 
@@ -13,56 +13,57 @@ At the module level, `click_extra` imports all elements from `click.*`, then all
 Which means all elements not redefined by Click Extra fallback to Cloup. And if Cloup itself does not redefine them, they fallback to Click.
 
 For example:
-- `click_extra.echo` is a direct alias to `click.echo` because Cloup does not re-implement an `echo` helper.
-- [`@cloup.option_group` is a specific feature of Cloup](https://cloup.readthedocs.io/en/stable/pages/option-groups.html) that is is not implemented by Click. Still, `@click_extra.option_group` is a direct proxy to it.
-- `@click_extra.timer` is a new decorator implemented by Click Extra and not present in either Click or Cloup. So it is not a proxy of anything.
+- `click_extra.echo` is a direct alias to `click.echo` because neither Click Extra or Cloup re-implements an `echo` helper.
+- [`@cloup.option_group` is a specific feature of Cloup](https://cloup.readthedocs.io/en/stable/pages/option-groups.html) that is only implemented by it. It is not modified by Click Extra, and Click does not implement it. Still, `@click_extra.option_group` is a direct alias to Cloup's one.
+- `@click_extra.timer` is a new decorator only implemented by Click Extra. So it is not a proxy of anything.
 - As for `@click_extra.version_option`, it is a re-implementation of `@click.version_option`, and so overrides it. If you want to use its original version, import it directly from `click` namespace.
 
-Here is how the main decorators of Click Extra wraps and extends Cloup and Click ones:
+Here is some of the main decorators of Click Extra and how they wraps and extends Cloup and Click ones:
 
-| Click Extra decorator              | Wrapped decorator        | Base class                           |
-| ---------------------------------- | ------------------------ | ------------------------------------ |
-| `@click_extra.command`             | `@cloup.command`         | `click_extra.ExtraCommand`           |
-| `@click_extra.group`               | `@cloup.group`           | `click_extra.ExtraGroup`             |
-| `@click_extra.option`              | `@cloup.option`          | `click_extra.Option`                 |
-| `@click_extra.argument`            | `@cloup.argument`        | `click_extra.Argument`               |
-| `@click_extra.version_option`      | `@click_extra.option`    | `click_extra.ExtraVersionOption`     |
-| `@click_extra.lazy_group`          | `@click_extra.group`     | `click_extra.LazyGroup`              |
-| `@click_extra.color_option`        | `@click_extra.option`    | `click_extra.ColorOption`            |
-| `@click_extra.config_option`       | `@click_extra.option`    | `click_extra.ConfigOption`           |
-| `@click_extra.no_config_option`    | `@click_extra.option`    | `click_extra.NoConfigOption`         |
-| `@click_extra.show_params_option`  | `@click_extra.option`    | `click_extra.ShowParamsOption`       |
-| `@click_extra.table_format_option` | `@click_extra.option`    | `click_extra.TableFormatOption`      |
-| `@click_extra.telemetry_option`    | `@click_extra.option`    | `click_extra.TelemetryOption`        |
-| `@click_extra.timer_option`        | `@click_extra.option`    | `click_extra.TimerOption`            |
-| `@click_extra.verbose_option`      | `@click_extra.option`    | `click_extra.VerboseOption`          |
-| `@click_extra.verbosity_option`    | `@click_extra.option`    | `click_extra.VerbosityOption`        |
-| `@click_extra.option_group`        | `@cloup.option_group`    | `cloup.OptionGroup`                  |
-| `@click_extra.pass_context`        | `@click.pass_context`    | *None*                               |
-| `@click_extra.help_option`         | `@click.help_option`     | *None*                               |
+| Decorators from `click_extra`              | Wrapped decorator        | Base class                           |
+| :--------------------------------- | :----------------------- | :----------------------------------- |
+| `@command`             | `@cloup.command`         | `click_extra.ExtraCommand`           |
+| `@group`               | `@cloup.group`           | `click_extra.ExtraGroup`             |
+| `@lazy_group`          | `@click_extra.group`     | `click_extra.LazyGroup`              |
+| `@option`              | `@cloup.option`          | `click_extra.Option`                 |
+| `@argument`            | `@cloup.argument`        | `click_extra.Argument`               |
+| `@version_option`      | `@click_extra.option`    | `click_extra.ExtraVersionOption`     |
+| `@color_option`        | `@click_extra.option`    | `click_extra.ColorOption`            |
+| `@config_option`       | `@click_extra.option`    | `click_extra.ConfigOption`           |
+| `@no_config_option`    | `@click_extra.option`    | `click_extra.NoConfigOption`         |
+| `@show_params_option`  | `@click_extra.option`    | `click_extra.ShowParamsOption`       |
+| `@table_format_option` | `@click_extra.option`    | `click_extra.TableFormatOption`      |
+| `@telemetry_option`    | `@click_extra.option`    | `click_extra.TelemetryOption`        |
+| `@timer_option`        | `@click_extra.option`    | `click_extra.TimerOption`            |
+| `@verbose_option`      | `@click_extra.option`    | `click_extra.VerboseOption`          |
+| `@verbosity_option`    | `@click_extra.option`    | `click_extra.VerbosityOption`        |
+| `@option_group`        | `@cloup.option_group`    | `cloup.OptionGroup`                  |
+| `@pass_context`        | `@click.pass_context`    | -                               |
+| `@help_option`         | `@click.help_option`     | -                               |
 | …                                  | …                        | …                                    |
 
 Same for the main classes and functions, where some are re-implemented by Click Extra, and others are direct aliases to Cloup or Click ones:
 
-| Click Extra class                | Alias to                        | Parent class                 |
-| -------------------------------- | ------------------------------- | ---------------------------- |
-| `click_extra.ExtraCommand`       | *Itself*                        | `cloup.Command`              |
-| `click_extra.ExtraGroup`         | *Itself*                        | `cloup.Group`                |
-| `click_extra.Option`             | *Itself*                        | `cloup.Option`               |
-| `click_extra.Argument`           | *Itself*                        | `cloup.Argument`             |
-| `click_extra.ExtraContext`       | *Itself*                        | `cloup.Context`              |
-| `click_extra.HelpFormatter`      | `cloup.HelpFormatter`           |                              |
-| `click_extra.HelpExtraFormatter` | *Itself*                        | `cloup.HelpFormatter`        |
-| `click_extra.HelpTheme`          | `cloup.HelpThene`               |                              |
-| `click_extra.HelpExtraTheme`     | *Itself*                        | `cloup.HelpThene`            |
-| `click_extra.ExtraCliRunner`     | *Itself*                        | `click.testing.CliRunner`    |
-| `click_extra.ExtraVersionOption` | *Itself*                        |                              |
-| `click_extra.Style`              | `cloup.Style`                   |                              |
-| `click_extra.echo`               | `click.echo`                    |                              |
-| `click_extra.ParameterSource`    | `click.core.ParameterSource`    |                              |
-| `click_extra.UNSET`              | `click._utils.UNSET`            |                              |
-| `click_extra.EnumChoice`         | *Itself*                        | `click.Choice`               |
-| `click_extra.Choice`             | `click.Choice`                  |                              |
+| Classes from `click_extra`                | Alias to                        | Parent class                 |
+| :------------------------------- | :------------------------------ | :--------------------------- |
+| `ExtraCommand`       | -                     | `cloup.Command`              |
+| `ExtraGroup`         | -                        | `cloup.Group`                |
+| `LazyGroup`         | -                        | `click_extra.ExtraGroup`                |
+| `Option`             | -                        | `cloup.Option`               |
+| `Argument`           | -                        | `cloup.Argument`             |
+| `ExtraContext`       | -                        | `cloup.Context`              |
+| `HelpFormatter`      | `cloup.HelpFormatter`           |                              |
+| `HelpExtraFormatter` | -                        | `cloup.HelpFormatter`        |
+| `HelpTheme`          | `cloup.HelpThene`               |                              |
+| `HelpExtraTheme`     | -                        | `cloup.HelpThene`            |
+| `ExtraCliRunner`     | -                        | `click.testing.CliRunner`    |
+| `ExtraVersionOption` | -                        |                              |
+| `Style`              | `cloup.Style`                   |                              |
+| `echo`               | `click.echo`                    |                              |
+| `ParameterSource`    | `click.core.ParameterSource`    |                              |
+| `UNSET`              | `click._utils.UNSET`            |                              |
+| `Choice`             | `click.Choice`                  |                              |
+| `EnumChoice`         | -                        | `click.Choice`               |
 | …                                | …                               | …                            |
 
 ```{hint}
@@ -186,19 +187,19 @@ After that, there is a final [sorting step applied to options](https://kdeldycke
 
 ### Option's defaults
 
-Because Click Extra commands and groups inherits from Click, you can [override the defaults the way Click allows you to](https://click.palletsprojects.com/en/stable/commands/#context-defaults). Here is a reminder on how to do it.
+Because Click Extra inherits from Click, you can [override the defaults the same way Click allows you to](https://click.palletsprojects.com/en/stable/commands/#context-defaults). Here is a reminder on how to do it.
 
 For example, the [`--verbosity` option defaults to the `WARNING` level](logging.md#click_extra.logging.DEFAULT_LEVEL_NAME). Now we'd like to change this default to `INFO`.
 
 If you manage your own `--verbosity` option, you can [pass the `default` argument to its decorator like we did above](#change-default-options):
 
 ```{click:example}
-:emphasize-lines: 5
+:emphasize-lines: 2,5
 import click
-import click_extra
+from click_extra import verbosity_option
 
 @click.command
-@click_extra.verbosity_option(default="INFO")
+@verbosity_option(default="INFO")
 def cli():
     pass
 ```
@@ -206,19 +207,19 @@ def cli():
 This also works in its class form:
 
 ```{click:example}
-:emphasize-lines: 4
+:emphasize-lines: 2,4
 import click
-import click_extra
+from click_extra import VerbosityOption
 
-@click.command(params=[click_extra.VerbosityOption(default="INFO")])
+@click.command(params=[VerbosityOption(default="INFO")])
 def cli():
     pass
 ```
 
-But you also have the alternative to pass a `default_map` via the `context_settings`:
+With a `@click_extra.command` instead of `@click.command`, it is the same, you also have the alternative to pass a `default_map` via the `context_settings`:
 
 ```{click:example}
-:emphasize-lines: 3
+:emphasize-lines: 1,3
 import click_extra
 
 @click_extra.command(context_settings={"default_map": {"verbosity": "INFO"}})

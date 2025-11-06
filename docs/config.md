@@ -9,7 +9,7 @@ data structure to mirror the CLI.
 The `@config_option` decorator provided by Click Extra can be used as-is with vanilla Click:
 
 ```{click:example}
-:emphasize-lines: 7
+:emphasize-lines: 2,7
 from click import group, option, echo
 from click_extra import config_option
 
