@@ -1,6 +1,6 @@
 # {octicon}`tasklist` Parameters
 
-Click Extra implements tools to manipulate your CLI's Parameters, Options and Arguments.
+Click Extra implements tools to manipulate your CLI's parameters, options and arguments.
 
 The cornerstone of these tools is the magical `--show-params` option, which is a X-ray scanner for your CLI's parameters.
 
@@ -10,13 +10,13 @@ Click Extra provides a ready-to-use `--show-params` option, which is enabled by 
 
 It produces a comprehensive table of all the metadata about each of your CLI parameters, including: their normalized IDs, types, defaults and environment variables. And because it is dynamic, actual values and their sources are evaluated at runtime.
 
-The default `@extra_command` decorator come with the `--show-params` option, so you can call it right away:
+The default `@command` decorator come with the `--show-params` option, so you can call it right away:
 
 ```{click:example}
 :emphasize-lines: 3
-from click_extra import extra_command, option, echo
+from click_extra import command, option, echo
 
-@extra_command
+@command
 @option("--int-param1", type=int, default=10)
 @option("--int-param2", type=int, default=555)
 def cli(int_param1, int_param2):
@@ -31,7 +31,7 @@ assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM1\x1b[0m   │ \x1b[32m\x1b[2m\x1b[3m10\
 assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM2\x1b[0m   │ \x1b[32m\x1b[2m\x1b[3m555\x1b[0m " in result.stdout
 ```
 
-See in the rendered table above how `--int-param1` is set to `3`, because it was explicitly set on the command line. While `--int-param2` still gets its value from its default of `555`.
+See in the rendered table above how `--int-param1` is set to `3`, because it was explicitly set on the command line. While `--int-param2` still gets its value from its `555` default.
 
 ```{hint}
 `--show-params` always displays all parameters, even those marked as not *allowed in conf*. In effect bypassing [its own `excluded_params` argument](#click_extra.parameters.ParamStructure.excluded_params). So you can still see the `--help`, `--version`, `-C`/`--config` and `--show-params` options in the table.
@@ -76,9 +76,9 @@ If you need to dive deeper into parameters and their values, there is a lot of m
 :emphasize-lines: 13-15
 from click import option, echo, pass_context
 
-from click_extra import config_option, extra_group
+from click_extra import config_option, group
 
-@extra_group
+@group
 @option("--dummy-flag/--no-flag")
 @option("--my-list", multiple=True)
 @config_option
@@ -96,8 +96,8 @@ def subcommand(int_param):
     echo(f"int_parameter is {int_param!r}")
 ```
 
-```{caution}
-The `click_extra.raw_args` metadata field in the context referenced above is not a standard feature from Click, but a helper introduced by Click Extra. It is only available with `@extra_group` and `@extra_command` decorators.
+```{hint}
+The `click_extra.raw_args` metadata field in the context referenced above is not a standard feature from Click, but a helper introduced by Click Extra. It is only available with `@group` and `@command` decorators.
 
 In the mean time, it is [being discussed in the Click community at `click#1279`](https://github.com/pallets/click/issues/1279#issuecomment-1493348208).
 ```

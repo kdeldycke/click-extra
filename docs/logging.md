@@ -17,13 +17,13 @@ Default behavior is to:
 
 ### Integrated option
 
-This option is part of `@extra_command` and `@extra_group` by default:
+This option is part of `@command` and `@group` by default:
 
 ```{click:example}
 :emphasize-lines: 3
-from click_extra import extra_command, echo
+from click_extra import command, echo
 
-@extra_command
+@command
 def my_cli():
     echo("It works!")
 ```
@@ -59,18 +59,18 @@ In the rest of this documentation, we will mainly focus on the canonical `--verb
 
 ### Standalone option
 
-The verbosity option can be used independently of `@extra_command`, and you can attach it to a vanilla Click command:
+The verbosity option can be used independently of `@command`, and you can attach it to a vanilla Click command:
 
 ```{click:example}
 :emphasize-lines: 6
 import logging
-from click import command, echo
-from click_extra import verbosity_option
+import click
+import click_extra
 
-@command
-@verbosity_option
+@click.command
+@click_extra.verbosity_option
 def vanilla_command():
-    echo("It works!")
+    click.echo("It works!")
     logging.info("We're printing stuff.")
 ```
 
@@ -101,11 +101,11 @@ This allows you to use module-level helpers like [`logging.debug`](https://docs.
 ```{click:example}
 :emphasize-lines: 1, 9-13
 import logging
-from click import command
-from click_extra import verbosity_option
+import click
+import click_extra
 
-@command
-@verbosity_option
+@click.command
+@click_extra.verbosity_option
 def my_cli():
     # Print a message for each level.
     logging.critical("Complete meltdown!")
@@ -192,11 +192,11 @@ assert result.stderr == dedent("""\
 ```{click:example}
 :emphasize-lines: 1, 9, 14
 import logging
-from click import command
-from click_extra import verbosity_option
+import click
+import click_extra
 
-@command
-@verbosity_option
+@click.command
+@click_extra.verbosity_option
 def multiple_loggers_cli():
     # Use the default root logger.
     root_logger = logging.getLogger()
@@ -516,7 +516,8 @@ You can get the name of the current verbosity level from the context or the logg
 ```{click:example}
 :emphasize-lines: 8, 10
 import logging
-from click_extra import command, echo, pass_context, verbosity_option
+from click import command, echo, pass_context
+from click_extra import verbosity_option
 
 @command
 @verbosity_option

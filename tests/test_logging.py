@@ -102,7 +102,7 @@ def test_root_logger_defaults():
         (("--verbosity", "DEBUG", "-v"), "DEBUG"),
     ),
 )
-# TODO: test extra_group
+# TODO: test click_extra.group
 def test_integrated_verbosity_options(
     invoke, args, expected_level, assert_output_regex
 ):

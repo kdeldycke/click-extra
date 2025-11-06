@@ -9,8 +9,8 @@ Here how to use the standalone decorator:
 ```{click:example}
 :emphasize-lines: 6
 from time import sleep
-
-from click_extra import command, echo, pass_context, timer_option
+from click import command, echo, pass_context
+from click_extra import timer_option
 
 @command
 @timer_option
@@ -42,8 +42,9 @@ assert re.fullmatch(
 You can get the timestamp of the CLI start from the context:
 
 ```{click:example}
-:emphasize-lines: 7
-from click_extra import command, echo, pass_context, timer_option
+:emphasize-lines: 8
+from click import command, echo, pass_context
+from click_extra import timer_option
 
 @command
 @timer_option

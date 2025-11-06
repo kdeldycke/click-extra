@@ -13,15 +13,15 @@ Into this:
 The [canonical `click` example](https://github.com/pallets/click?tab=readme-ov-file#a-simple-example) is implemented that way:
 
 ```{click:example}
-from click import command, echo, option
+import click
 
-@command
-@option("--count", default=1, help="Number of greetings.")
-@option("--name", prompt="Your name", help="The person to greet.")
+@click.command
+@click.option("--count", default=1, help="Number of greetings.")
+@click.option("--name", prompt="Your name", help="The person to greet.")
 def hello(count, name):
     """Simple program that greets NAME for a total of COUNT times."""
     for _ in range(count):
-        echo(f"Hello, {name}!")
+        click.echo(f"Hello, {name}!")
 ```
 
 Whose help screen renders as:
@@ -43,19 +43,19 @@ assert result.output == dedent(
 )
 ```
 
-To augment the simple example above with [all the bells and whistles](index.md#features) `click-extra` has in store, you just need to replace the base command decorator with its `extra_`-prefixed variant:
+To augment the example above with [all the bells and whistles](index.md#features) `click-extra` has in store, you just need to import from its namespace:
 
 ```{click:example}
-:emphasize-lines: 1, 3
-from click_extra import extra_command, echo, option
+:emphasize-lines: 1,3-5,9
+import click_extra
 
-@extra_command
-@option("--count", default=1, help="Number of greetings.")
-@option("--name", prompt="Your name", help="The person to greet.")
+@click_extra.command
+@click_extra.option("--count", default=1, help="Number of greetings.")
+@click_extra.option("--name", prompt="Your name", help="The person to greet.")
 def hello(count, name):
     """Simple program that greets NAME for a total of COUNT times."""
     for _ in range(count):
-        echo(f"Hello, {name}!")
+        click_extra.echo(f"Hello, {name}!")
 ```
 
 And now you get:
@@ -77,51 +77,35 @@ assert result.output.startswith(dedent("""\
 
 That's it!
 
-Here is a `diff` highlight of the simple changes between the two versions:
-
-```{code-block} diff
--from click import command, echo, option
-+from click_extra import extra_command, echo, option
-
--@command
-+@extra_command
- @option("--count", default=1, help="Number of greetings.")
- @option("--name", prompt="Your name", help="The person to greet.")
- def hello(count, name):
-     """Simple program that greets NAME for a total of COUNT times."""
-     for _ in range(count):
-         echo(f"Hello, {name}!")
-```
-
 ```{tip}
-As you can see above, `click_extra` is proxy-ing the whole `click` namespace, so you can use it as a [drop-in replacement](tutorial.md#drop-in-replacement).
+`click_extra` is proxy-ing the whole `click` and `cloud` namespace, so you can use it as a [drop-in replacement](tutorial.md#drop-in-replacement).
 ```
 
-## Standalone options
+## Mix and match
 
-If you do not like the opiniated way the `@extra_command` decorator is built with all its defaults options, you are still free to pick them up independently.
+If you do not like the opiniated way the `@click_extra.command` decorator is built with all its defaults options, you are still free to pick them up independently.
 
-If, for example, you're only interested in using the `--config` option, nothing prevents you to use it with a standard `click` CLI:
+If, for example, you're only interested in using [the `--config` option](config.md), nothing prevents you to use it with a standard `click` CLI:
 
 ```{click:example}
 :emphasize-lines: 2, 7
-from click import command, echo, option
-from click_extra import config_option
+import click
+import click_extra
 
-@command
-@option("--count", default=1, help="Number of greetings.")
-@option("--name", prompt="Your name", help="The person to greet.")
-@config_option
+@click.command
+@click.option("--count", default=1, help="Number of greetings.")
+@click.option("--name", prompt="Your name", help="The person to greet.")
+@click_extra.config_option
 def hello(count, name):
     """Simple program that greets NAME for a total of COUNT times."""
     for _ in range(count):
-        echo(f"Hello, {name}!")
+        click.echo(f"Hello, {name}!")
 ```
 
 Which now renders to:
 
 ```{click:run}
-:emphasize-lines: 9-11
+:emphasize-lines: 9-12
 result = invoke(hello, args=["--help"])
 assert "--config CONFIG_PATH" in result.output
 ```
@@ -151,29 +135,30 @@ assert "--hello-conf CONF_FILE  Loads CLI config." in result.output
 
 ## Cloup integration
 
-Click Extra's options are sub-classes of Cloup's and supports all its features, like [option groups](https://cloup.readthedocs.io/en/stable/pages/option-groups.html):
+All Click Extra primitives are sub-classes of Cloup's and supports all its features.
+
+Like [option groups](https://cloup.readthedocs.io/en/stable/pages/option-groups.html):
 
 ```{click:example}
 :emphasize-lines: 2-3, 9-15
-from click import echo
-from cloup import command, option, option_group
-from cloup.constraints import RequireAtLeast
-from click_extra import config_option
+import click
+import cloup
+import click_extra
 
-@command()
-@option("--count", default=1, help="Number of greetings.")
-@option("--name", prompt="Your name", help="The person to greet.")
-@option_group(
+@cloup.command()
+@click.option("--count", default=1, help="Number of greetings.")
+@click.option("--name", prompt="Your name", help="The person to greet.")
+@cloup.option_group(
     "Cool options",
-    option("--foo", help="The option that starts it all."),
-    option("--bar", help="Another important option."),
-    config_option("--hello-conf", metavar="CONF_FILE", help="Loads CLI config."),
-    constraint=RequireAtLeast(1),
+    cloup.option("--foo", help="The option that starts it all."),
+    cloup.option("--bar", help="Another important option."),
+    click_extra.config_option("--hello-conf", metavar="CONF_FILE", help="Loads CLI config."),
+    constraint=cloup.constraints.RequireAtLeast(1),
 )
 def hello(count, name, foo, bar, hello_conf):
     """Simple program that greets NAME for a total of COUNT times."""
     for _ in range(count):
-        echo(f"Hello, {name}!")
+        click.echo(f"Hello, {name}!")
 ```
 
 See how the configuration option is grouped with others:
@@ -224,7 +209,7 @@ If you find the `click_extra` namespace too long to type, you can always alias i
 
 A popular choice is `clickx`:
 
-```python
+```{code-block} python
 :emphasize-lines: 2,7
 import click
 import click_extra as clickx

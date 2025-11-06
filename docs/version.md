@@ -10,23 +10,17 @@ Click Extra provides its own version option which, compared to [Click's built-in
 - prints [details metadata in `DEBUG` logs](#debug-logs)
 - expose [metadata in the context](#get-metadata-values)
 
-```{hint}
-To prevent any confusion, and to keep on [the promise of drop-in replacement](commands.md#drop-in-replacement), Click Extra's version option is prefixed with `extra_`:
-   - the vanilla Click's `version_option` is aliased as `click_extra.version_option`
-   - Click Extra's own `version_option` is available as [`click_extra.extra_version_option`](click_extra.md#click_extra.extra_version_option)
-   - Click Extra adds a [`@extra_version_option` decorator](click_extra.md#click_extra.extra_version_option) which is based on [`click_extra.ExtraVersionOption` class](#click_extra.version.ExtraVersionOption)
-```
-
 ## Defaults
 
 Here is how the defaults looks like:
 
 ```{click:example}
-:emphasize-lines: 4
-from click_extra import command, extra_version_option
+:emphasize-lines: 5
+import click
+import click_extra
 
-@command
-@extra_version_option(version="1.2.3")
+@click.command
+@click_extra.version_option(version="1.2.3")
 def cli():
     pass
 ```
@@ -94,11 +88,12 @@ Some Click's built-in variables are not recognized:
 You can compose your own version string by passing the `message` argument:
 
 ```{click:example}
-:emphasize-lines: 4
-from click_extra import command, extra_version_option
+:emphasize-lines: 5
+import click
+import click_extra
 
-@command
-@extra_version_option(message="✨ {prog_name} v{version} - {package_name}")
+@click.command
+@click_extra.version_option(message="✨ {prog_name} v{version} - {package_name}")
 def my_own_cli():
     pass
 ```
@@ -127,10 +122,10 @@ Let's put this code in a file named `greet.py`:
 
 ```{code-block} python
 :caption: `greet.py`
-from click_extra import extra_command
+import click_extra
 
 
-@extra_command
+@click_extra.command
 def greet():
     print("Hello world")
 
@@ -153,13 +148,13 @@ But Click Extra recognize a `__version__` variable. So you can force the version
 ```{code-block} python
 :caption: `greet.py`
 :emphasize-lines: 4
-from click_extra import extra_command
+import click_extra
 
 
 __version__ = "0.9.3-alpha"
 
 
-@extra_command
+@click_extra.command
 def greet():
     print("Hello world")
 
@@ -181,7 +176,7 @@ It is supported by Click Extra as a convenience for script developers.
 
 ## Colors
 
-Each variable listed in the section above can be rendered in its own style. They all have dedicated parameters you can pass to the `extra_version_option` decorator:
+Each variable listed in the section above can be rendered in its own style. They all have dedicated parameters you can pass to the `version_option` decorator:
 
 | Parameter                 | Description                                 | Default Style |
 | ------------------------- | ------------------------------------------- | ------------- |
@@ -205,11 +200,12 @@ Each variable listed in the section above can be rendered in its own style. They
 Here is an example:
 
 ```{click:example}
-:emphasize-lines: 6-9
-from click_extra import command, extra_version_option, Style
+:emphasize-lines: 7-10
+import click
+from click_extra import version_option, Style
 
-@command
-@extra_version_option(
+@click.command
+@version_option(
     message="{prog_name} v{version} 🔥 {package_name} ( ͡❛ ͜ʖ ͡❛)",
     message_style=Style(fg="cyan"),
     prog_name_style=Style(fg="green", bold=True),
@@ -237,11 +233,12 @@ The [`Style()` helper is defined by Cloup](https://cloup.readthedocs.io/en/stabl
 You can pass `None` to any of the style parameters to disable styling for the corresponding variable:
 
 ```{click:example}
-:emphasize-lines: 5-7
-from click_extra import command, extra_version_option
+:emphasize-lines: 6-8
+import click
+from click_extra import version_option
 
-@command
-@extra_version_option(
+@click.command
+@version_option(
     message_style=None,
     version_style=None,
     prog_name_style=None,
@@ -263,11 +260,12 @@ The `{env_info}` variable compiles all sorts of environment information.
 Here is how it looks like:
 
 ```{click:example}
-:emphasize-lines: 4
-from click_extra import command, extra_version_option
+:emphasize-lines: 5
+import click
+from click_extra import version_option
 
-@command
-@extra_version_option(message="{env_info}")
+@click.command
+@version_option(message="{env_info}")
 def env_info_cli():
     pass
 ```
@@ -287,11 +285,12 @@ The JSON output is scrubbed out of identifiable information by default: current 
 Another trick consist in picking into the content of `{env_info}` to produce highly customized version strings. This can be done because `{env_info}` is kept as a `dict`:
 
 ```{click:example}
-:emphasize-lines: 5
-from click_extra import command, extra_version_option
+:emphasize-lines: 6
+import click
+from click_extra import version_option
 
-@command
-@extra_version_option(
+@click.command
+@version_option(
     message="{prog_name} {version}, from {module_file} (Python {env_info[python][version]})"
 )
 def custom_env_info():
@@ -313,11 +312,12 @@ assert re.fullmatch((
 When the `DEBUG` level is enabled, all available variables will be printed in the log:
 
 ```{click:example}
-:emphasize-lines: 4-5
-from click_extra import command, verbosity_option, extra_version_option, echo
+:emphasize-lines: 5-6
+import click
+from click_extra import version_option, verbosity_option, echo
 
-@command
-@extra_version_option
+@click.command
+@version_option
 @verbosity_option
 def version_in_logs():
     echo("Standard operation")
@@ -337,11 +337,12 @@ assert "\n\x1b[34mdebug\x1b[0m: Version string template variables:\n" in result.
 You can get the uncolored, Python values used in the composition of the version message from the context:
 
 ```{click:example}
-:emphasize-lines: 7-10
-from click_extra import command, echo, pass_context, extra_version_option
+:emphasize-lines: 8-11
+import click
+from click_extra import echo, pass_context, version_option
 
-@command
-@extra_version_option
+@click.command
+@version_option
 @pass_context
 def version_metadata(ctx):
     version = ctx.meta["click_extra.version"]
@@ -381,10 +382,11 @@ You can render the version string manually by calling the option's internal meth
 
 ```{click:example}
 :emphasize-lines: 8-9
-from click_extra import command, echo, pass_context, extra_version_option, ExtraVersionOption, search_params
+import click
+from click_extra import echo, pass_context, version_option, ExtraVersionOption, search_params
 
-@command
-@extra_version_option
+@click.command
+@version_option
 @pass_context
 def template_rendering(ctx):
     # Search for a ``--version`` parameter.

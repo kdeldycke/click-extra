@@ -102,7 +102,7 @@ class ExtraContext(cloup.Context):
 
 
 def default_extra_params() -> list[click.Option]:
-    """Default additional options added to ``extra_command`` and ``extra_group``.
+    """Default additional options added to ``@command`` and ``@group``.
 
     .. caution::
         The order of options has been carefully crafted to handle subtle edge-cases and
@@ -273,7 +273,7 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
 
         .. code-block:: python
 
-            @extra_command(
+            @command(
                 context_settings={
                     "show_default": False,
                     ...

@@ -71,7 +71,6 @@ class Format(Enum):
     show_default=True,
     help="Select format.",
 )
-
 def cli(format):
     echo(f"Selected format: {format!r}")
 ```
@@ -129,10 +128,11 @@ To change this behavior, we need `EnumChoice`.
 Let's use `click_extra.EnumChoice` instead of `click.Choice`, and we override the `__str__` method of our `Enum`:
 
 ```{click:example}
-:emphasize-lines: 11-12,18
+:emphasize-lines: 4,12-13,19
 from enum import Enum
 
-from click_extra import command, option, echo, EnumChoice
+from click import command, option, echo
+from click_extra import EnumChoice
 
 
 class Format(Enum):
@@ -191,10 +191,11 @@ invoke(cli, args=["--format", "oThER-forMAt"])
 If you want to restore case-sensitive matching, you can enable it by setting the `case_sensitive` parameter to `True`:
 
 ```{click:example}
-:emphasize-lines: 18
+:emphasize-lines: 19
 from enum import Enum
 
-from click_extra import command, option, echo, EnumChoice
+from click import command, option, echo
+from click_extra import EnumChoice
 
 
 class Format(Enum):
@@ -236,10 +237,11 @@ But you can configure it to select which part of the members to use as choice st
 Here is an example using `ChoiceSource.KEY`, which is equivalent to `click.Choice` behavior:
 
 ```{click:example}
-:emphasize-lines: 18
+:emphasize-lines: 4,19
 from enum import Enum
 
-from click_extra import command, option, echo, EnumChoice, ChoiceSource
+from click import command, option, echo
+from click_extra import EnumChoice, ChoiceSource
 
 
 class Format(Enum):
@@ -304,10 +306,11 @@ In addition to the [built-in choice sources](#choice-source) detailed above, you
 This is practical when you want to use a specific attribute or method of the `Enum` members as choice strings. Here's an example:
 
 ```{click:example}
-:emphasize-lines: 18
+:emphasize-lines: 12-13,19
 from enum import Enum
 
-from click_extra import command, option, echo, EnumChoice
+from click import command, option, echo
+from click_extra import EnumChoice
 
 
 class Format(Enum):
@@ -338,13 +341,18 @@ assert "--format [custom-text|custom-html|custom-other-format]" in result.stdout
 
 ### Default value
 
-Unfortunately Click is [hard-coded to use the `Enum.name` in help messages](https://github.com/pallets/click/pull/3004) for the default value. Therefore, even when using `EnumChoice`, the default value will still be displayed using the `name`, which may not match the choice strings:
+Another limit of `click.Choice` is how the default value is displayed in help messages. Click is [hard-coded to use the `Enum.name` in help messages](https://github.com/pallets/click/pull/3004) for the default value.
+
+To fix this limitation, you have to use `EnumChoice` with `@click_extra.option` or `@click_extra.argument` decorators, which override Click's default help formatter to properly display the default value according to the choice strings.
+
+For example, using `@click_extra.option`:
 
 ```{click:example}
-:emphasize-lines: 20
+:emphasize-lines: 17,19,21-22
 from enum import Enum
 
-from click_extra import command, option, echo, EnumChoice
+import click
+import click_extra
 
 
 class Format(Enum):
@@ -356,18 +364,62 @@ class Format(Enum):
         return self.value
 
 
-@command
-@option(
+@click.command
+@click_extra.option(
     "--format",
-    type=EnumChoice(Format),
+    type=click_extra.EnumChoice(Format),
     show_choices=True,
     default=Format.HTML,
     show_default=True,
     help="Select format.",
 )
 def cli(format):
-    echo(f"Selected format: {format!r}")
+    click.echo(f"Selected format: {format!r}")
 ```
+
+This renders into much better help messages, where the default value is displayed using the choice strings:
+
+```{click:run}
+:emphasize-lines: 6
+result = invoke(cli, args=["--help"])
+assert "--format [text|html|other-format]" in result.stdout
+assert "[default: html]" in result.stdout
+```
+
+````{warning}
+Without Click Extra's `@option` or `@argument`, Click's default help formatter is used, which always displays the default value using the `Enum.name`, even when using `EnumChoice`:
+
+```{click:example}
+:emphasize-lines: 16,19
+from enum import Enum
+
+import click
+import click_extra
+
+
+class Format(Enum):
+    TEXT = "text"
+    HTML = "html"
+    OTHER_FORMAT = "other-format"
+
+    def __str__(self):
+        return self.value
+
+
+@click.command
+@click.option(
+    "--format",
+    type=click_extra.EnumChoice(Format),
+    show_choices=True,
+    default=Format.HTML,
+    show_default=True,
+    help="Select format.",
+)
+def cli(format):
+    click.echo(f"Selected format: {format!r}")
+```
+
+See the unmatched default value in the help message:
 
 ```{click:run}
 :emphasize-lines: 6
@@ -376,13 +428,14 @@ assert "--format [text|html|other-format]" in result.stdout
 assert "[default: HTML]" in result.stdout
 ```
 
-One way to work around this limitation is to set the default value to the corresponding choice string:
+You can still work around this limitation by forcing the default value:
 
 ```{click:example}
-:emphasize-lines: 20
+:emphasize-lines: 21
 from enum import Enum
 
-from click_extra import command, option, echo, EnumChoice
+import click
+import click_extra
 
 
 class Format(Enum):
@@ -394,17 +447,17 @@ class Format(Enum):
         return self.value
 
 
-@command
-@option(
+@click.command
+@click.option(
     "--format",
-    type=EnumChoice(Format),
+    type=click_extra.EnumChoice(Format),
     show_choices=True,
-    default=Format.HTML.value,
+    default=str(Format.HTML),
     show_default=True,
     help="Select format.",
 )
 def cli(format):
-    echo(f"Selected format: {format!r}")
+    click.echo(f"Selected format: {format!r}")
 ```
 
 ```{click:run}
@@ -413,6 +466,7 @@ result = invoke(cli, args=["--help"])
 assert "--format [text|html|other-format]" in result.stdout
 assert "[default: html]" in result.stdout
 ```
+````
 
 ## `click_extra.types` API
 

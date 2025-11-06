@@ -51,9 +51,9 @@ Here is how to define a simple Click-based CLI with the `click:example` directiv
 ````{code-block} markdown
 :emphasize-lines: 1
 ```{click:example}
-from click_extra import echo, extra_command, option, style
+from click_extra import echo, command, option, style
 
-@extra_command
+@command
 @option("--name", prompt="Your name", help="The person to greet.")
 def hello_world(name):
     """Simple program that greets NAME."""
@@ -68,9 +68,9 @@ def hello_world(name):
 :emphasize-lines: 1
 .. click:example::
 
-    from click_extra import echo, extra_command, option, style
+    from click_extra import echo, command, option, style
 
-    @extra_command
+    @command
     @option("--name", prompt="Your name", help="The person to greet.")
     def hello_world(name):
         """Simple program that greets NAME."""
@@ -110,9 +110,9 @@ invoke(hello_world, args=["--help"])
 Placed in your Sphinx documentation, the two blocks above renders to:
 
 ```{click:example}
-from click_extra import echo, extra_command, option, style
+from click_extra import echo, command, option, style
 
-@extra_command
+@command
 @option("--name", prompt="Your name", help="The person to greet.")
 def hello_world(name):
     """Simple program that greets NAME."""
@@ -216,9 +216,9 @@ For example, you can highlight some lines of with the `:emphasize-lines:` option
 :caption: A magnificent ✨ Hello World CLI!
 :linenos:
 :emphasize-lines: 4,7
-from click_extra import echo, extra_command, option, style
+from click_extra import echo, command, option, style
 
-@extra_command
+@command
 @option("--name", prompt="Your name", help="The person to greet.")
 def hello_world(name):
     """Simple program that greets NAME."""
@@ -236,9 +236,9 @@ def hello_world(name):
    :linenos:
    :emphasize-lines: 4,7
 
-   from click_extra import echo, extra_command, option, style
+   from click_extra import echo, command, option, style
 
-   @extra_command
+   @command
    @option("--name", prompt="Your name", help="The person to greet.")
    def hello_world(name):
        """Simple program that greets NAME."""
@@ -253,9 +253,9 @@ Which renders to:
 :caption: A magnificent ✨ Hello World CLI!
 :linenos:
 :emphasize-lines: 4,7
-from click_extra import echo, extra_command, option, style
+from click_extra import echo, command, option, style
 
-@extra_command
+@command
 @option("--name", prompt="Your name", help="The person to greet.")
 def hello_world(name):
     """Simple program that greets NAME."""
@@ -279,9 +279,9 @@ But you can override this behavior by explicitly setting the options. Let's say 
 :emphasize-lines: 2
 ```{click:example}
 :hide-source:
-from click_extra import echo, extra_command, style
+from click_extra import echo, command, style
 
-@extra_command
+@command
 def simple_print():
     echo(f"Just a {style('string', fg='blue')} to print.")
 ```
@@ -299,9 +299,9 @@ invoke(simple_print)
 .. click:example::
    :hide-source:
 
-   from click_extra import echo, extra_command, style
+   from click_extra import echo, command, style
 
-   @extra_command
+   @command
    def simple_print():
        echo(f"Just a {style('string', fg='blue')} to print.")
 
@@ -316,9 +316,9 @@ Which only renders the `click:run` directive, as the `click:example` doesn't dis
 
 ```{click:example}
 :hide-source:
-from click_extra import echo, extra_command, style
+from click_extra import echo, command, style
 
-@extra_command
+@command
 def simple_print():
     echo(f"Just a {style('string', fg='blue')} to print.")
 ```
@@ -499,12 +499,6 @@ assert not result.stderr, "Found error messages in <stderr>"
 assert "Usage: yo-cli [OPTIONS]" in result.stdout, "Usage line not found in help screen"
 ```
 
-```{hint}
-The CLI runner used by `click:run` is a custom version [derived from the original `click.testing.CliRunner`](https://click.palletsprojects.com/en/stable/api/#click.testing.CliRunner).
-
-It is [called `ExtraCliRunner`](testing.md#click_extra.testing.ExtraCliRunner) and is patched so you can refine your tests by inspecting both `<stdout>` and `<stderr>` independently. It also provides an additional `<output>` stream which simulates what the user sees in its terminal.
-```
-
 ## ANSI shell sessions
 
 Sphinx extensions from Click Extra automaticcaly integrates the [new ANSI-capable lexers for Pygments](pygments.md#lexers).
@@ -596,7 +590,7 @@ $ for i in {0..255}; do \
 [38;5;250m250 [38;5;251m251 [38;5;252m252 [38;5;253m253 [38;5;254m254 [38;5;255m255
 ```
 
-## Legacy mixed syntax: MyST + reStructuredText
+## Legacy MyST + reStructuredText syntax
 
 Before MyST was fully integrated into Sphinx, many projects used a mixed syntax setup with MyST and reStructuredText. If you are maintaining such a project or need to ensure compatibility with older documentation, you can use these legacy Sphinx snippets.
 
@@ -659,9 +653,9 @@ Let's say you have a CLI that is only printing SQL queries in its output:
 
 ```{click:example}
 :emphasize-lines: 6
-from click_extra import echo, extra_command, option
+from click_extra import echo, command, option
 
-@extra_command
+@command
 @option("--name")
 def sql_output(name):
     sql_query = f"SELECT * FROM users WHERE name = '{name}';"
