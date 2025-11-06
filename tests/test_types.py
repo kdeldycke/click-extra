@@ -25,6 +25,7 @@ import click
 import pytest
 
 from click_extra import (
+    UNSET,
     BadParameter,
     Choice,
     ChoiceSource,
@@ -313,52 +314,84 @@ def test_enum_choice_duplicate_string() -> None:
     command_decorators(no_groups=True, no_extra=True),
 )
 @pytest.mark.parametrize(
-    ("case_sensitive", "valid_inputs", "invalid_inputs"),
+    ("case_sensitive", "valid_args", "invalid_args"),
     (
         (
             # Case-insensitive mode.
             False,
             (
-                # Choice strings.
-                ("my-first-value", MyEnum.FIRST_VALUE),
-                ("my-second-value", MyEnum.SECOND_VALUE),
-                # Case variations (should be accepted).
-                ("MY-FIRST-VALUE", MyEnum.FIRST_VALUE),
-                ("My-Second-Value", MyEnum.SECOND_VALUE),
+                # Exact choice strings.
+                (["--my-enum", "my-first-value"], MyEnum.FIRST_VALUE),
+                (["--my-enum", "my-second-value"], MyEnum.SECOND_VALUE),
+                (["--my-enum", str(MyEnum.FIRST_VALUE)], MyEnum.FIRST_VALUE),
+                (["--my-enum", str(MyEnum.SECOND_VALUE)], MyEnum.SECOND_VALUE),
+                # Case variations are accepted.
+                (["--my-enum", "MY-FIRST-VALUE"], MyEnum.FIRST_VALUE),
+                (["--my-enum", "My-Second-Value"], MyEnum.SECOND_VALUE),
                 # Enum members.
-                (MyEnum.FIRST_VALUE, MyEnum.FIRST_VALUE),
-                (MyEnum.SECOND_VALUE, MyEnum.SECOND_VALUE),
+                (["--my-enum", MyEnum.FIRST_VALUE], MyEnum.FIRST_VALUE),
+                (["--my-enum", MyEnum.SECOND_VALUE], MyEnum.SECOND_VALUE),
+                # Empty input defaults to None.
+                ([], None),
             ),
             (
-                "FIRST_VALUE",
-                "first_value",
-                "my_second_value",
+                ["--my-enum", "FIRST_VALUE"],
+                ["--my-enum", "first_value"],
+                ["--my-enum", "my_second_value"],
+                ["--my-enum", MyEnum.FIRST_VALUE.name],
+                ["--my-enum", MyEnum.FIRST_VALUE.value],
+                # Garbage types.
+                ["--my-enum", 123],
+                ["--my-enum", 45.67],
+                ["--my-enum", True],
+                ["--my-enum", False],
+                # Missing and blank values.
+                ["--my-enum"],
+                ["--my-enum", None],
+                ["--my-enum", ""],
+                ["--my-enum", UNSET],
             ),
         ),
         (
             # Case-sensitive mode.
             True,
             (
-                # Choice strings.
-                ("my-first-value", MyEnum.FIRST_VALUE),
-                ("my-second-value", MyEnum.SECOND_VALUE),
+                # Exact choice strings.
+                (["--my-enum", "my-first-value"], MyEnum.FIRST_VALUE),
+                (["--my-enum", "my-second-value"], MyEnum.SECOND_VALUE),
+                (["--my-enum", str(MyEnum.FIRST_VALUE)], MyEnum.FIRST_VALUE),
+                (["--my-enum", str(MyEnum.SECOND_VALUE)], MyEnum.SECOND_VALUE),
                 # Enum members.
-                (MyEnum.FIRST_VALUE, MyEnum.FIRST_VALUE),
-                (MyEnum.SECOND_VALUE, MyEnum.SECOND_VALUE),
+                (["--my-enum", MyEnum.FIRST_VALUE], MyEnum.FIRST_VALUE),
+                (["--my-enum", MyEnum.SECOND_VALUE], MyEnum.SECOND_VALUE),
+                # Empty input defaults to None.
+                ([], None),
             ),
             (
-                "FIRST_VALUE",
-                "first_value",
-                "my_second_value",
-                # Case variations should be rejected.
-                "MY-FIRST-VALUE",
-                "My-Second-Value",
+                ["--my-enum", "FIRST_VALUE"],
+                ["--my-enum", "first_value"],
+                ["--my-enum", "my_second_value"],
+                ["--my-enum", MyEnum.FIRST_VALUE.name],
+                ["--my-enum", MyEnum.FIRST_VALUE.value],
+                # Case variations are rejected.
+                ["--my-enum", "MY-FIRST-VALUE"],
+                ["--my-enum", "My-Second-Value"],
+                # Garbage types.
+                ["--my-enum", 123],
+                ["--my-enum", 45.67],
+                ["--my-enum", True],
+                ["--my-enum", False],
+                # Missing and blank values.
+                ["--my-enum"],
+                ["--my-enum", None],
+                ["--my-enum", ""],
+                ["--my-enum", UNSET],
             ),
         ),
     ),
 )
 def test_enum_choice_command(
-    invoke, cmd_decorator, case_sensitive, valid_inputs, invalid_inputs
+    invoke, cmd_decorator, case_sensitive, valid_args, invalid_args
 ) -> None:
     """Test EnumChoice used within an option."""
 
@@ -368,20 +401,26 @@ def test_enum_choice_command(
         echo(f"my_enum: {my_enum!r}")
 
     # Test valid input.
-    for valid_input, expected_member in valid_inputs:
-        result = invoke(cli, ["--my-enum", valid_input])
+    for args, expected_member in valid_args:
+        result = invoke(cli, args)
         assert result.stdout == f"my_enum: {expected_member!r}\n"
         assert not result.stderr
         assert result.exit_code == 0
 
     # Test invalid inputs.
-    for invalid_input in invalid_inputs:
-        result = invoke(cli, ["--my-enum", invalid_input])
+    for args in invalid_args:
+        result = invoke(cli, args)
         assert not result.stdout
-        assert (
-            "Error: Invalid value for '--my-enum': "
-            f"'{invalid_input}' is not one of 'my-first-value', 'my-second-value'."
-        ) in result.stderr
+        if len(args) == 2 and args[1] is not None:
+            # Invalid value provided.
+            msg = (
+                "Error: Invalid value for '--my-enum': "
+                f"'{args[1]}' is not one of 'my-first-value', 'my-second-value'."
+            )
+        else:
+            # Missing value.
+            msg = "Error: Option '--my-enum' requires an argument."
+        assert msg in result.stderr
         assert result.exit_code == 2
 
     # Test help message.
