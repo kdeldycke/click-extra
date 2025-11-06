@@ -29,7 +29,7 @@ import click
 import cloup
 from deepmerge import always_merger
 
-from . import EnumChoice, ParamType, Style, get_current_context
+from . import UNSET, EnumChoice, ParamType, Style, get_current_context
 from .envvar import param_envvar_ids
 
 TYPE_CHECKING = False
@@ -87,15 +87,20 @@ class _ParameterMixin:
     """
 
     def get_default(self, ctx: click.Context, call: bool = True):
-        """Override Click's ``Parameter.get_default()`` to support ``EnumChoice`` types.
+        """Override ``click.Parameter.get_default()`` to support ``EnumChoice`` types.
 
-        Reuse the ``EnumChoice.get_choice_string()`` method to convert the default value
-        to its string representation, instead of returning the ``name`` of the ``Enum``,
-        as Click does by default: https://github.com/pallets/click/pull/3004 .
+        Reuse the ``EnumChoice.get_choice_string()`` method to convert an ``Enum``
+        default value to its string representation, to bypass `Click's default behavior
+        of returning the Enum.name <https://github.com/pallets/click/pull/3004>`_.
         """
         default_value = super().get_default(ctx, call)  # type: ignore[misc]
 
-        if hasattr(self, "type") and isinstance(self.type, EnumChoice):
+        if (
+            hasattr(self, "type")
+            and isinstance(self.type, EnumChoice)
+            # Turns out UNSET is also an Enum member, so we need to ignore it.
+            and default_value is not UNSET
+        ):
             default_value = self.type.get_choice_string(default_value)
 
         return default_value

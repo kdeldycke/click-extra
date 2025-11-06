@@ -21,7 +21,6 @@ from collections.abc import Callable
 from enum import Enum, Flag, IntEnum, IntFlag, auto
 from operator import attrgetter
 
-import click
 import pytest
 
 from click_extra import (
@@ -314,6 +313,9 @@ def test_enum_choice_duplicate_string() -> None:
     command_decorators(no_groups=True, no_extra=True),
 )
 @pytest.mark.parametrize(
+    "opt_decorator", option_decorators(no_arguments=True, with_parenthesis=False)
+)
+@pytest.mark.parametrize(
     ("case_sensitive", "valid_args", "invalid_args"),
     (
         (
@@ -391,12 +393,12 @@ def test_enum_choice_duplicate_string() -> None:
     ),
 )
 def test_enum_choice_command(
-    invoke, cmd_decorator, case_sensitive, valid_args, invalid_args
+    invoke, cmd_decorator, opt_decorator, case_sensitive, valid_args, invalid_args
 ) -> None:
     """Test EnumChoice used within an option."""
 
     @cmd_decorator
-    @click.option("--my-enum", type=EnumChoice(MyEnum, case_sensitive=case_sensitive))
+    @opt_decorator("--my-enum", type=EnumChoice(MyEnum, case_sensitive=case_sensitive))
     def cli(my_enum: MyEnum) -> None:
         echo(f"my_enum: {my_enum!r}")
 
