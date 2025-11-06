@@ -64,11 +64,10 @@ def search_params(
         return None
     if unique:
         if len(param_list) != 1:
-            msg = (
+            raise RuntimeError(
                 f"More than one {klass.__name__} parameters found on command: "
                 f"{param_list}"
             )
-            raise RuntimeError(msg)
         return param_list.pop()
     return param_list
 
@@ -222,11 +221,10 @@ class ParamStructure:
 
             for subcmd_id, subcmd in cmd.commands.items():
                 if subcmd_id in top_level_params:
-                    msg = (
+                    raise ValueError(
                         f"{cmd.name}{self.SEP}{subcmd_id} subcommand conflicts with "
                         f"{top_level_params} top-level parameters"
                     )
-                    raise ValueError(msg)
 
                 for p in subcmd.get_params(ctx):
                     yield ((*parent_keys, subcmd_id, p.name)), p
@@ -313,11 +311,10 @@ class ParamStructure:
                 matching.add(py_type)
             if matching:
                 if len(matching) > 1:
-                    msg = (
+                    raise ValueError(
                         f"Multiple Python types found for {param.type!r} parameter: "
                         f"{matching}"
                     )
-                    raise ValueError(msg)
                 return matching.pop()
 
         # Custom parameters are expected to convert from strings, as that's the default
@@ -326,8 +323,9 @@ class ParamStructure:
         if isinstance(param.type, ParamType):
             return str
 
-        msg = f"Can't guess the appropriate Python type of {param!r} parameter."  # type:ignore[unreachable]
-        raise ValueError(msg)
+        raise ValueError(  # type:ignore[unreachable]
+            f"Can't guess the appropriate Python type of {param!r} parameter."
+        )
 
     @cached_property
     def excluded_params(self) -> Iterable[str]:

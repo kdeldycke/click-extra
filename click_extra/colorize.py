@@ -90,8 +90,9 @@ class HelpExtraTheme(cloup.HelpTheme):
         # Check for unrecognized arguments.
         unrecognized_args = set(kwargs).difference(self.__dataclass_fields__)
         if unrecognized_args:
-            msg = f"Got unexpected keyword argument(s): {', '.join(unrecognized_args)}"
-            raise TypeError(msg)
+            raise TypeError(
+                f"Got unexpected keyword argument(s): {', '.join(unrecognized_args)}"
+            )
 
         # List of styles that are different from the base theme.
         new_styles = {
@@ -586,11 +587,10 @@ class HelpExtraFormatter(cloup.HelpFormatter):
 
         # Double-check we processed all named groups.
         if len(named_matches) != 0:
-            msg = (
+            raise ValueError(
                 "The matching result contains named groups that were not processed. "
                 "There is an edge-case in the design of regular expressions."
             )
-            raise ValueError(msg)
 
         return txt
 

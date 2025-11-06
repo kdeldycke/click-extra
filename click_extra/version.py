@@ -261,8 +261,7 @@ class ExtraVersionOption(ExtraOption):
         count_size = len(str(len(frame_chain)))
         for counter, (p_name, f_name) in enumerate(frame_chain):
             logger.debug(f"Frame {counter:<{count_size}} # {p_name}:{f_name}")
-        msg = "Could not find the frame in which the CLI is implemented."
-        raise RuntimeError(msg)
+        raise RuntimeError("Could not find the frame in which the CLI is implemented.")
 
     @cached_property
     def module(self) -> ModuleType:
@@ -271,8 +270,7 @@ class ExtraVersionOption(ExtraOption):
 
         module = inspect.getmodule(frame)
         if not module:
-            msg = f"Cannot find module of {frame!r}"
-            raise RuntimeError(msg)
+            raise RuntimeError(f"Cannot find module of {frame!r}")
 
         return module
 
@@ -303,8 +301,9 @@ class ExtraVersionOption(ExtraOption):
         """
         version = getattr(self.module, "__version__", None)
         if version is not None and not isinstance(version, str):
-            msg = f"Module version {version!r} expected to be a string or None."
-            raise ValueError(msg)
+            raise ValueError(
+                f"Module version {version!r} expected to be a string or None."
+            )
         return version
 
     @cached_property
@@ -355,11 +354,10 @@ class ExtraVersionOption(ExtraOption):
         if self.module_file:
             return os.path.basename(self.module_file)
 
-        msg = (
+        raise RuntimeError(
             "Could not determine the user-friendly name of the CLI from the frame "
             "stack."
         )
-        raise RuntimeError(msg)
 
     @cached_property
     def version(self) -> str | None:

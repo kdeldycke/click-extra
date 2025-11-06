@@ -378,8 +378,7 @@ class ConfigOption(ExtraOption, ParamStructure):
                 yield file_path, file_path.read_text(encoding="utf-8")
 
         if not files_found:
-            msg = f"No configuration file found matching {pattern}"
-            raise FileNotFoundError(msg)
+            raise FileNotFoundError(f"No configuration file found matching {pattern}")
 
     def parse_conf(self, conf_text: str) -> dict[str, Any] | None:
         """Try to parse the provided content with each format in the order provided by
@@ -487,12 +486,11 @@ class ConfigOption(ExtraOption, ParamStructure):
 
                     # XXX This case is tricky and not even covered in Click unittests.
                     if len(dedup_types) > 1:
-                        msg = (
+                        raise ValueError(
                             f"Cannot handle the {target_types!r} types defined by the "
                             "multiple options associated to the "
                             f"[{section_id}]:{option_id} INI config item."
                         )
-                        raise ValueError(msg)
                     target_type = dedup_types.pop()
 
                 value: Any
@@ -515,11 +513,10 @@ class ConfigOption(ExtraOption, ParamStructure):
                     value = json.loads(ini_config.get(section_id, option_id))
 
                 else:
-                    msg = (
+                    raise ValueError(
                         f"Cannot handle the conversion of [{section_id}]:{option_id} "
                         f"INI config item to {target_type} type."
                     )
-                    raise ValueError(msg)
 
                 sub_conf[option_id] = value
 

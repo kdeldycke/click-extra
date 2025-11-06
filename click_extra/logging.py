@@ -124,8 +124,7 @@ class ExtraStreamHandler(StreamHandler):
     def emit(self, record: LogRecord) -> None:
         """Use :func:`click.echo` to print to the console."""
         try:
-            msg = self.format(record)
-            click.echo(msg, err=self._stderr_output)
+            click.echo(self.format(record), err=self._stderr_output)
         except RecursionError:
             raise
 
