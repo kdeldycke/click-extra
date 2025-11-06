@@ -42,8 +42,6 @@ if TYPE_CHECKING:
 
     from cloup.styling import IStyle
 
-    from . import Context, Parameter
-
 
 class ExtraVersionOption(ExtraOption):
     """Gather CLI metadata and prints a colored version string.
@@ -582,8 +580,8 @@ class ExtraVersionOption(ExtraOption):
 
     def print_and_exit(
         self,
-        ctx: Context,
-        param: Parameter,
+        ctx: click.Context,
+        param: click.Parameter,
         value: bool,
     ) -> None:
         """Print the version string and exits.

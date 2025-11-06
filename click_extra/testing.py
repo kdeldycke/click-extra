@@ -165,7 +165,7 @@ class ExtraCliRunner(click.testing.CliRunner):
 
     def invoke(  # type: ignore[override]
         self,
-        cli: click.core.Command,
+        cli: click.Command,
         *args: TArg | TNestedArgs,
         input: str | bytes | IO | None = None,
         env: TEnvVars | None = None,

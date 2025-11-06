@@ -47,8 +47,6 @@ if TYPE_CHECKING:
     from logging import LogRecord
     from typing import IO, Any, Literal
 
-    from . import Context, Parameter
-
 
 class LogLevel(IntEnum):
     """Mapping of :ref:`canonical log level names <levels>` to their integer level.
@@ -370,7 +368,9 @@ class ExtraVerbosity(ExtraOption):
             logger.setLevel(DEFAULT_LEVEL.value)
             # new_extra_logger(name=logger.name)
 
-    def set_level(self, ctx: Context, param: Parameter, level: LogLevel) -> None:
+    def set_level(
+        self, ctx: click.Context, param: click.Parameter, level: LogLevel
+    ) -> None:
         """Set level of all loggers configured on the option.
 
         All verbosity-related options are attached to this callback, so that's where we
@@ -437,7 +437,9 @@ class ExtraVerbosity(ExtraOption):
 class VerbosityOption(ExtraVerbosity):
     """``--verbosity LEVEL`` option to set the the log level of :class:`ExtraVerbosity`."""
 
-    def set_level(self, ctx: Context, param: Parameter, value: LogLevel) -> None:
+    def set_level(
+        self, ctx: click.Context, param: click.Parameter, value: LogLevel
+    ) -> None:
         """The value passed to ``--verbosity`` will be saved in
         ``ctx.meta["click_extra.verbosity"]``.
         """
@@ -486,7 +488,7 @@ class VerboseOption(ExtraVerbosity):
       ``-vvvvv`` for example will be capped at ``DEBUG``.
     """
 
-    def get_base_level(self, ctx: Context) -> LogLevel:
+    def get_base_level(self, ctx: click.Context) -> LogLevel:
         """Returns the default base-level from which the option will start incrementing.
 
         We try first to get the default level from any instance of
@@ -503,7 +505,7 @@ class VerboseOption(ExtraVerbosity):
             else DEFAULT_LEVEL
         )
 
-    def get_help_record(self, ctx: Context) -> tuple[str, str] | None:
+    def get_help_record(self, ctx: click.Context) -> tuple[str, str] | None:
         """Dynamiccaly generates the default help message.
 
         We need that patch because :meth:`get_base_level` depends on the context, so we
@@ -523,7 +525,7 @@ class VerboseOption(ExtraVerbosity):
         with help_message_patch:
             return super().get_help_record(ctx)
 
-    def set_level(self, ctx: Context, param: Parameter, value: int) -> None:
+    def set_level(self, ctx: click.Context, param: click.Parameter, value: int) -> None:
         """Translate the number of steps to the target log level.
 
         The value passed to ``--verbose``/``-v`` will be saved in

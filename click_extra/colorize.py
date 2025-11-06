@@ -34,7 +34,7 @@ from boltons.strutils import complement_int_list, int_ranges_from_int_list
 from cloup._util import identity
 from cloup.styling import Color
 
-from . import HelpFormatter, ParameterSource, Style, get_current_context
+from . import ParameterSource, Style, get_current_context
 from .parameters import ExtraOption
 
 TYPE_CHECKING = False
@@ -468,7 +468,7 @@ def _escape_for_help_screen(text: str) -> str:
     return re.escape(text).replace("-", "-\\s*").replace("\\ ", "\\s+")
 
 
-class HelpExtraFormatter(HelpFormatter):
+class HelpExtraFormatter(cloup.HelpFormatter):
     """Extends Cloup's custom HelpFormatter to highlights options, choices, metavars and
     default values.
 

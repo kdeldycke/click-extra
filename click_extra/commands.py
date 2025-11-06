@@ -43,8 +43,6 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from typing import Any, NoReturn
 
-    from . import Option
-
 
 class ExtraContext(cloup.Context):
     """Like ``cloup._context.Context``, but with the ability to populate the context's
@@ -103,7 +101,7 @@ class ExtraContext(cloup.Context):
         self._color = None
 
 
-def default_extra_params() -> list[Option]:
+def default_extra_params() -> list[click.Option]:
     """Default additional options added to ``extra_command`` and ``extra_group``.
 
     .. caution::

@@ -34,7 +34,7 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from . import Context, Parameter
+    import click
 
 
 tabulate.MIN_PADDING = 0
@@ -355,8 +355,8 @@ class TableFormatOption(ExtraOption):
 
     def init_formatter(
         self,
-        ctx: Context,
-        param: Parameter,
+        ctx: click.Context,
+        param: click.Parameter,
         table_format: TableFormat | None,
     ) -> None:
         """Save table format in the context, and adds ``print_table()`` to it.

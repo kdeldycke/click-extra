@@ -18,14 +18,12 @@ from __future__ import annotations
 
 from enum import Enum
 
-from . import Choice
+import click
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import Any
-
-    from . import Context, Parameter
 
 
 class ChoiceSource(Enum):
@@ -38,7 +36,7 @@ class ChoiceSource(Enum):
     STR = "str"
 
 
-class EnumChoice(Choice):
+class EnumChoice(click.Choice):
     """Choice type for ``Enum``.
 
     Allows to select which part of the members to use as choice strings, by setting the
@@ -139,7 +137,7 @@ class EnumChoice(Choice):
 
         return choice
 
-    def normalize_choice(self, choice: Enum | str, ctx: Context | None) -> str:
+    def normalize_choice(self, choice: Enum | str, ctx: click.Context | None) -> str:
         """Expand the parent's ``normalize_choice()`` to accept ``Enum`` members as input.
 
         Parent method expects a string, but here we allow passing ``Enum`` members too.
@@ -148,7 +146,9 @@ class EnumChoice(Choice):
             choice = self.get_choice_string(choice)
         return super().normalize_choice(choice, ctx)
 
-    def convert(self, value: Any, param: Parameter | None, ctx: Context | None) -> Enum:
+    def convert(
+        self, value: Any, param: click.Parameter | None, ctx: click.Context | None
+    ) -> Enum:
         """Convert the input value to the corresponding ``Enum`` member.
 
         The parent's ``convert()`` is going to return the choice string, which we

@@ -27,7 +27,7 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from . import Context, Parameter
+    import click
 
 
 class TimerOption(ExtraOption):
@@ -44,8 +44,8 @@ class TimerOption(ExtraOption):
 
     def register_timer_on_close(
         self,
-        ctx: Context,
-        param: Parameter,
+        ctx: click.Context,
+        param: click.Parameter,
         value: bool,
     ) -> None:
         """Callback setting up all timer's machinery.

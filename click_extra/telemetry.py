@@ -26,7 +26,7 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from . import Context, Parameter
+    import click
 
 
 class TelemetryOption(ExtraOption):
@@ -50,8 +50,8 @@ class TelemetryOption(ExtraOption):
 
     def save_telemetry(
         self,
-        ctx: Context,
-        param: Parameter,
+        ctx: click.Context,
+        param: click.Parameter,
         value: bool,
     ) -> None:
         """Save the option value in the context, in ``ctx.telemetry``."""

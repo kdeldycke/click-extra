@@ -84,8 +84,6 @@ if TYPE_CHECKING:
 
     import click
 
-    from . import Context, Parameter
-
 
 yaml_support = True
 try:
@@ -211,13 +209,14 @@ class ConfigOption(ExtraOption, ParamStructure):
             "Location of the configuration file. Supports glob pattern of local "
             "path and remote URL.",
         ),
-        is_eager=True,
-        expose_value=False,
+        is_eager: bool = True,
+        expose_value: bool = False,
         formats=tuple(Formats),
-        roaming=True,
-        force_posix=False,
-        excluded_params=None,
-        strict=False,
+        roaming: bool = True,
+        force_posix: bool = False,
+        parent_folders_search: bool = False,
+        excluded_params: Iterable[str] | None = None,
+        strict: bool = False,
         **kwargs,
     ) -> None:
         """Takes as input a glob pattern or an URL.
@@ -314,7 +313,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             ext_pattern = f"{{{','.join(extensions)}}}"
         return f"{app_dir}{os.path.sep}*.{ext_pattern}"
 
-    def get_help_extra(self, ctx: Context) -> click.types.OptionHelpExtra:
+    def get_help_extra(self, ctx: click.Context) -> click.types.OptionHelpExtra:
         """Replaces the default value of the configuration option.
 
         Display a pretty path that is relative to the user's home directory:
@@ -531,7 +530,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         return conf
 
-    def merge_default_map(self, ctx: Context, user_conf: dict) -> None:
+    def merge_default_map(self, ctx: click.Context, user_conf: dict) -> None:
         """Save the user configuration into the context's ``default_map``.
 
         Merge the user configuration into the pre-computed template structure, which
@@ -549,8 +548,9 @@ class ConfigOption(ExtraOption, ParamStructure):
             ctx.default_map = {}
         ctx.default_map.update(clean_conf.get(ctx.find_root().command.name, {}))
 
+
     def load_conf(
-        self, ctx: Context, param: Parameter, path_pattern: str | Path
+        self, ctx: click.Context, param: click.Parameter, path_pattern: str | Path
     ) -> None:
         """Fetch parameters values from configuration file and sets them as defaults.
 
@@ -682,7 +682,7 @@ class NoConfigOption(ExtraOption):
         )
 
     def check_sibling_config_option(
-        self, ctx: Context, param: Parameter, value: int
+        self, ctx: click.Context, param: click.Parameter, value: int
     ) -> None:
         """Ensure that this option is used alongside a ``ConfigOption`` instance."""
         config_option = search_params(ctx.command.params, ConfigOption)
