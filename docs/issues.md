@@ -70,6 +70,10 @@ Here is the list of issues and bugs from other projects that `click-extra` has a
 
 - [`#5482` - ANSI shell sessions in Sphinx documentation](https://github.com/kovidgoyal/kitty/discussions/5482)
 
+## [`nbsphinx`](https://github.com/spatialaudio/nbsphinx)
+
+- [`#852` - Sphinx & Pygments integration for ANSI rendering](https://github.com/spatialaudio/nbsphinx/issues/852)
+
 ## [`pallets-sphinx-themes`](https://github.com/pallets/pallets-sphinx-themes)
 
 - [`#62` - Render `.. click:run::` code blocks with `shell-session` lexer](https://github.com/pallets/pallets-sphinx-themes/pull/62)
