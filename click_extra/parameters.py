@@ -323,7 +323,7 @@ class ParamStructure:
         if isinstance(param.type, ParamType):
             return str
 
-        raise ValueError(  # type:ignore[unreachable]
+        raise ValueError(
             f"Can't guess the appropriate Python type of {param!r} parameter."
         )
 
