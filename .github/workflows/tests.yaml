@@ -156,8 +156,8 @@ jobs:
           uv run python -m click_extra --version
       - name: Check launchable CLI
         run: |
-          uvx -- click-extra --version
-          uv run -- click-extra --version
+          uvx --from git+https://github.com/kdeldycke/click-extra -- click-extra --version
+          uv run --from git+https://github.com/kdeldycke/click-extra -- click-extra --version
 
       - name: Unittests
         run: >
