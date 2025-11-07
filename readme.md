@@ -20,6 +20,16 @@ Click Extra is a **ready-to-use wrapper around Click** to make your CLI look goo
 
 It also comes with [workarounds and patches](https://kdeldycke.github.io/click-extra/issues.html) that have not reached upstream yet (or are unlikely to).
 
+## Demo
+
+You can try Click Extra right now in your terminal, without installing any dependency or virtual env [thanks to `uvx`](https://docs.astral.sh/uv/guides/tools/):
+
+```shell-session
+$ uvx click-extra
+```
+
+This is a great way to play with Click Extra and check that it runs fine on your system, and renders properly in your terminal.
+
 ## Example
 
 It transforms this vanilla `click` CLI:

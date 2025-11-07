@@ -1,5 +1,31 @@
 # {octicon}`download` Installation
 
+## Try it first
+
+You can try Click Extra right now in your terminal, without installing any dependency or virtual env [thanks to `uvx`](https://docs.astral.sh/uv/guides/tools/):
+
+`````{tab-set}
+````{tab-item} Latest version
+```shell-session
+$ uvx -- click-extra
+```
+````
+
+````{tab-item} Specific version
+```shell-session
+$ uvx -- click-extra@7.0.0
+```
+````
+
+````{tab-item} Development version
+```shell-session
+$ uvx --from git+https://github.com/kdeldycke/click-extra -- click-extra
+```
+````
+`````
+
+This is a great way to play with Click Extra and check that it runs fine on your system, and renders properly in your terminal.
+
 ## With `pip`
 
 This package is [available on PyPi](https://pypi.python.org/pypi/click-extra), so you can install the latest stable release and its dependencies with a simple `pip` call:
