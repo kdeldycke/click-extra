@@ -34,8 +34,8 @@ I recommend using one of these themes, which works well with Click Extra:
 
 Click Extra adds two new directives:
 
-- `click:example` to display any Click-based Python code blocks in Sphinx
-- `click:run` to invoke the CLI defined above, and display the results as if was executed in a terminmal
+- `click:example` to display any Click-based Python code blocks in Sphinx.
+- `click:run` to invoke the CLI defined above, and display the results as if was executed in a terminal session.
 
 Thanks to these, you can directly demonstrate the usage of your CLI in your documentation. You no longer have to maintain screenshots of you CLIs. Or copy and paste their outputs to keep them in sync with the latest revision. Click Extra will do that job for you.
 
@@ -163,14 +163,14 @@ invoke(hello_world, args=["--name", "Joe"])
 `````
 ``````
 
-Which renders in Sphinx like it was executed in a terminal block:
+Which renders in Sphinx as if it was executed in a terminal code block:
 
 ```{click:run}
 result = invoke(hello_world, args=["--name", "Joe"])
 assert result.output == 'Hello, \x1b[31mJoe\x1b[0m!\n'
 ```
 
-```{tip}
+```{hint}
 `click:example` and `click:run` directives works well with standard vanilla `click`-based CLIs.
 
 In the example above, we choose to import our CLI primitives from the `click-extra` module instead, to demonstrate the coloring of terminal session outputs, as `click-extra` provides [fancy coloring of help screens](colorize.md) by default.
@@ -374,6 +374,41 @@ assert not result.stderr, "Found error messages in <stderr>"
 
 ```{hint}
 `:show-results:`/`:hide-results:` options have no effect on the `click:example` directive and will be ignored. That's because this directive does not execute the CLI: it only displays its source code.
+```
+
+## Standalone `click:run` blocks
+
+You can also use the `click:run` directive without a preceding `click:example` block. This is useful when you want to demonstrate the usage of a CLI defined elsewhere, for example in your package's source code.
+
+In the example below, we import the `click_extra.cli.click_extra` function, which is defined in the `click_extra/cli/click_extra.py` source file. There is no need to redefine the CLI in a `click:example` block beforehand:
+
+``````{tab-set}
+`````{tab-item} MyST Markdown
+:sync: myst
+````{code-block} markdown
+```{click:run}
+from click_extra.cli import click_extra
+invoke(click_extra, args=["--version"])
+```
+````
+`````
+
+`````{tab-item} reStructuredText
+:sync: rst
+```{code-block} rst
+.. click:run::
+
+   from click_extra.cli import click_extra
+   invoke(click_extra, args=["--version"])
+```
+`````
+``````
+
+And the execution of that CLI renders just fine:
+
+```{click:run}
+from click_extra.cli import click_extra
+invoke(click_extra, args=["--version"])
 ```
 
 ## Inline tests
