@@ -150,6 +150,15 @@ jobs:
         run: >
           uv --no-progress sync --frozen --all-extras
 
+      - name: Check launchable modules
+        run: |
+          uv run -m click_extra --version
+          uv run python -m click_extra --version
+      - name: Check launchable CLI
+        run: |
+          uvx -- click-extra --version
+          uv run -- click-extra --version
+
       - name: Unittests
         run: >
           uv --no-progress run --frozen

@@ -195,6 +195,9 @@ docs = [
 "Issues" = "https://github.com/kdeldycke/click-extra/issues"
 "Changelog" = "https://github.com/kdeldycke/click-extra/blob/main/changelog.md"
 
+[project.scripts]
+click-extra = "click_extra.__main__:main"
+
 [tool.uv]
 package = true
 
