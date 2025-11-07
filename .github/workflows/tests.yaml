@@ -152,11 +152,11 @@ jobs:
 
       - name: Check launchable modules
         run: |
-          uv run -m click_extra --version
+          uv run        -m click_extra --version
           uv run python -m click_extra --version
-      - name: Check launchable CLI
+      - name: Check launchable dev CLI
         run: |
-          uvx --from git+https://github.com/kdeldycke/click-extra -- click-extra --version
+          uvx    --from git+https://github.com/kdeldycke/click-extra -- click-extra --version
           uv run --from git+https://github.com/kdeldycke/click-extra -- click-extra --version
 
       - name: Unittests
