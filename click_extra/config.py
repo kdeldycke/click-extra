@@ -368,7 +368,7 @@ class ConfigOption(ExtraOption, ParamStructure):
                 if len(parts) != 1 or any(
                     part
                     for part in parts
-                    if part.is_dir_only
+                    if part.dir_only
                     or part.is_drive
                     or part.is_globstar
                     or part.is_globstarlong
