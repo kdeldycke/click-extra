@@ -16,11 +16,10 @@
 """Utilities to load parameters and options from a configuration file.
 
 .. hint::
-
     Why ``config``?
 
-    That whole namespace is named after the common ``config`` short name used in CLI
-    parameters to designate configuration files.
+    That whole namespace is using the common ``config`` short-name to designate
+    configuration files.
 
     Not ``conf``, not ``cfg``, not ``configuration``, not ``settings``. Just ``config``.
 
@@ -30,7 +29,7 @@
     After all, is there a chance for it to be misunderstood, in the context of a CLI,
     for something else? *Confirm*? *Conference*? *Conflict* *Confuse*?...
 
-    That's good enough for me.
+    So yes, ``config`` is good enough.
 
 .. todo::
     Add a ``--dump-config`` or ``--export-config`` option to write down the current
@@ -71,6 +70,8 @@ from wcmatch.glob import (
     GLOBTILDE,
     IGNORECASE,
     NODIR,
+    Glob,
+    _GlobSplit,
     iglob,
     is_magic,
 )
@@ -92,7 +93,7 @@ else:
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Iterable, Mapping, Sequence
     from typing import Any, Literal
 
     import click
@@ -149,14 +150,11 @@ except ImportError:
 
 
 class Formats(Enum):
-    """All configuration formats, associated to their default extensions.
+    """All configuration formats, associated to their support status.
 
-    The first element of the tuple is a sequence of file extensions associated to
-    the format. The second element indicates whether the format is supported or not,
-    depending on the availability of the required third-party packages.
-
-    The default order set the priority by which each format is searched for the default
-    configuration file.
+    The value of each member indicates whether the format is supported or not,
+    depending on the availability of the required third-party packages. This
+    evaluation is performed at runtime when this module is imported.
 
     .. todo::
         Add support for `JWCC
@@ -164,14 +162,40 @@ class Formats(Enum):
         / `hujson <https://github.com/tailscale/hujson>`_ format?
     """
 
-    TOML = (("toml",), True)
-    YAML = (("yaml", "yml"), yaml_support)
-    JSON = (("json",), True)
-    JSON5 = (("json5",), json5_support)
-    JSONC = (("jsonc",), jsonc_support)
-    HJSON = (("hjson",), hjson_support)
-    INI = (("ini",), True)
-    XML = (("xml",), xml_support)
+    TOML = True
+    YAML = yaml_support
+    JSON = True
+    JSON5 = json5_support
+    JSONC = jsonc_support
+    HJSON = hjson_support
+    INI = True
+    XML = xml_support
+
+    def enabled(self) -> bool:
+        """Returns ``True`` if the format is supported, ``False`` otherwise."""
+        return self.value
+
+
+DEFAULT_FORMAT_PATTERNS: dict[Formats, tuple[str]] = {
+    Formats.TOML: ("*.toml",),
+    Formats.YAML: ("*.yaml", "*.yml"),
+    Formats.JSON: ("*.json",),
+    Formats.JSON5: ("*.json5",),
+    Formats.JSONC: ("*.jsonc",),
+    Formats.HJSON: ("*.hjson",),
+    Formats.INI: ("*.ini",),
+    Formats.XML: ("*.xml",),
+}
+"""Default mapping of configuration formats to their file patterns.
+
+Values are a sequence of file extensions associated to the format. Patterns
+are fed to ``wcmatch.glob`` for matching, and are influenced by the flags set
+on the ``ConfigOption`` instance.
+
+.. caution::
+    The order is important for both keys and patterns in the values. It defines the
+    priority order in which formats are tried when multiple files are found.
+"""
 
 
 CONFIG_OPTION_NAME = "config"
@@ -206,7 +230,7 @@ NO_CONFIG = Sentinel.NO_CONFIG
 class ConfigOption(ExtraOption, ParamStructure):
     """A pre-configured option adding ``--config CONFIG_PATH``."""
 
-    formats: Sequence[Formats]
+    file_format_patterns: dict[Formats, tuple[str]]
 
     roaming: bool
 
@@ -231,7 +255,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         ),
         is_eager: bool = True,
         expose_value: bool = False,
-        formats=tuple(Formats),
+        file_format_patterns: Mapping[Formats, Sequence[str] | str] | None = None,
         roaming: bool = True,
         force_posix: bool = False,
         pattern_flags: int = (
@@ -242,53 +266,57 @@ class ConfigOption(ExtraOption, ParamStructure):
         strict: bool = False,
         **kwargs,
     ) -> None:
-        """Takes as input a glob pattern or an URL.
+        """Takes as input a path to a file or folder, a glob pattern, or an URL.
 
-        Glob patterns must follow the syntax of `wcmatch.glob
-        <https://facelessuser.github.io/wcmatch/glob/#syntax>`_.
+        .. attention::
+            All patterns must follow the syntax of `wcmatch.glob
+            <https://facelessuser.github.io/wcmatch/glob/#syntax>`_.
 
-        - ``is_eager`` is active by default so the config option's ``callback``
-          gets the opportunity to set the ``default_map`` values before the
-          other options use them.
+        - ``is_eager`` is active by default so the ``callback`` gets the opportunity
+          to set the ``default_map`` of the CLI before any other parameter is processed.
 
-        - ``formats`` is the ordered list of formats that the configuration
-          file will be tried to be read with. Can be a single one.
+        - ``file_format_patterns`` is a mapping of ``Formats`` to their associated
+          file patterns. Can be a string or a sequence of strings. This defines
+          which configuration file formats are supported, and which file patterns
+          are used to search for them.
 
           .. caution::
-              The formats depending on third-party packages will be automatically
-              disabled if their corresponding extra dependency groups are not
-              installed.
+              All formats depending on third-party dependencies that are not
+              installed will be skipped.
 
         - ``roaming`` and ``force_posix`` are `fed to click.get_app_dir()
           <https://click.palletsprojects.com/en/stable/api/#click.get_app_dir>`_
           to setup the default configuration folder.
 
-        - ``pattern_flags`` are the flags used by ``wcmatch.glob``.
+        - ``pattern_flags`` are flags provided to all calls of ``wcmatch.glob``.
+            Applies to both the default pattern and any user-provided pattern.
+            Including the patterns specified in ``file_format_patterns``.
 
-        - ``parent_search`` indicates whether parent folders must be searched
-          for configuration files matching the given pattern.
+        - ``parent_search`` indicates whether to walk back the tree of parent
+            folders when searching for configuration files.
 
-        - ``excluded_params`` is a list of options to ignore by the configuration
-          parser. See ``ParamStructure.excluded_params`` for the default values.
+        - ``excluded_params`` are parameters which, if present in the configuration
+            file, will be ignored and not applied to the CLI. See
+            ``ParamStructure.excluded_params`` for the default values.
 
         - ``strict``
             - If ``True``, raise an error if the configuration file contain
-              unrecognized content.
-            - If ``False``, silently ignore unsupported configuration option.
+              parameters not recognized by the CLI.
+            - If ``False``, silently ignore unrecognized parameters.
         """
         if not param_decls:
             param_decls = ("--config", CONFIG_OPTION_NAME)
 
-        # Make sure formats ends up as an iterable.
-        if isinstance(formats, Formats):
-            formats = (formats,)
-        assert all(isinstance(f, Formats) for f in formats), formats
-        # Filter out unsupported formats.
-        self.formats = [f for f in formats if f.value[1]]
-        if not self.formats:
-            raise ValueError("No supported format found in the provided formats.")
+        # Setup supported file format patterns.
+        if file_format_patterns:
+            self.file_format_patterns = {
+                fmt: (patterns,) if isinstance(patterns, str) else tuple(patterns)
+                for fmt, patterns in file_format_patterns.items()
+            }
+        else:
+            self.file_format_patterns = DEFAULT_FORMAT_PATTERNS.copy()
 
-        # Setup the configuration default folder.
+        # Setup the configuration for default folder search.
         self.roaming = roaming
         self.force_posix = force_posix
         kwargs.setdefault("default", self.default_pattern)
@@ -314,6 +342,52 @@ class ConfigOption(ExtraOption, ParamStructure):
             expose_value=expose_value,
             **kwargs,
         )
+
+    def validate_file_patterns(self) -> None:
+        """Check mapping of file formats to their patterns.
+
+        File patterns are expected to only match filenames.
+
+        .. attention::
+            Are forbidden, patterns that:
+
+            - have multiple parts, which means they're not matching only filenames.
+            - are directory-only.
+            - are representing a drive.
+            - feature glob-star (``**``) or long glob-star (``***``) to prevent tree traversal.
+        """
+        for fmt, patterns in self.file_format_patterns.items():
+            assert fmt in Formats
+            assert isinstance(patterns, tuple)
+            assert patterns, f"No pattern defined for {fmt}"
+            assert all(isinstance(pat, str) and pat for pat in patterns)
+            assert len(set(patterns)) == len(patterns), f"Duplicate patterns for {fmt}"
+
+            for pat in patterns:
+                parts = _GlobSplit(pat, flags=self.pattern_flags).split()
+                if len(parts) != 1 or any(
+                    part
+                    for part in parts
+                    if part.is_dir_only
+                    or part.is_drive
+                    or part.is_globstar
+                    or part.is_globstarlong
+                ):
+                    raise ValueError(
+                        f"Pattern {pat!r} for {fmt} match more than filenames."
+                    )
+
+        # Filter out disabled formats.
+        disabled = {fmt for fmt in self.file_format_patterns if not fmt.enabled()}
+        if disabled:
+            logging.getLogger("click_extra").debug(
+                f"Skip disabled {', '.join(map(str, disabled))}."
+            )
+            for fmt in disabled:
+                del self.file_format_patterns[fmt]
+
+        if not self.file_format_patterns:
+            raise ValueError("No configuration format is enabled.")
 
     def default_pattern(self) -> str:
         """Returns the default pattern used to search for the configuration file.
@@ -455,58 +529,60 @@ class ConfigOption(ExtraOption, ParamStructure):
         if not files_found:
             raise FileNotFoundError(f"No file found matching {pattern}")
 
-    def parse_conf(self, conf_text: str) -> dict[str, Any] | None:
-        """Try to parse ``conf_text`` with each format in the order specified by
-        ``self.formats``.
+    def parse_conf(
+        self,
+        content: str,
+        formats: Sequence[Formats],
+    ) -> Iterable[dict[str, Any] | None]:
+        """Parse the ``content`` with the given ``formats``.
 
-        Formats depending on third-party packages will be automatically skipped if
-        their corresponding extra dependency groups are not installed.
+        Tries to parse the given raw ``content`` string with each of the given
+        ``formats``, in order. Yields the resulting data structure for each
+        successful parse.
 
-        Parsing that raises an exception or does not return a ``dict`` is considered a
-        failure and the next format is tried.
+        .. attention::
 
-        The first format that successfully parses ``conf_text`` is used, and its
-        resulting ``dict`` is returned (even if empty).
+            Formats whose parsing raises an exception or does not return a ``dict``
+            are considered a failure and are skipped.
+
+            This follows the *parse, don't validate* principle.
         """
         logger = logging.getLogger("click_extra")
 
-        user_conf = None
-        for conf_format in self.formats:
+        conf = None
+        for fmt in formats:
             try:
-                match conf_format:
+                match fmt:
                     case Formats.TOML:
-                        user_conf = tomllib.loads(conf_text)
+                        conf = tomllib.loads(content)
                     case Formats.YAML:
-                        user_conf = yaml.full_load(conf_text)
+                        conf = yaml.full_load(content)
                     case Formats.JSON:
-                        user_conf = json.loads(conf_text)
+                        conf = json.loads(content)
                     case Formats.JSON5:
-                        user_conf = json5.loads(conf_text)
+                        conf = json5.loads(content)
                     case Formats.JSONC:
-                        user_conf = jsonc.loads(conf_text)
+                        conf = jsonc.loads(content)
                     case Formats.HJSON:
-                        user_conf = hjson.loads(conf_text)
+                        conf = hjson.loads(content)
                     case Formats.INI:
-                        user_conf = self.load_ini_config(conf_text)
+                        conf = self.load_ini_config(content)
                     case Formats.XML:
-                        user_conf = xmltodict.parse(conf_text)
+                        conf = xmltodict.parse(content)
 
             except Exception as ex:
-                logger.debug(f"{conf_format.name} parsing failed: {ex}")
+                logger.debug(f"{fmt} parsing failed: {ex}")
                 continue
 
-            if not isinstance(user_conf, dict) or user_conf is None:
+            # A parseable but empty configuration is expected to return an empty dict.
+            if not isinstance(conf, dict) or conf is None:
                 logger.debug(
-                    f"{conf_format.name} parsing failed: "
-                    f"expecting a dict, got {user_conf!r} instead."
+                    f"{fmt} parsing failed: expecting a dict, got {conf!r} instead."
                 )
                 continue
 
-            logger.debug(f"{conf_format.name} parsing successful, got {user_conf!r}.")
-            return user_conf
-
-        # All parsing attempts failed
-        return None
+            logger.debug(f"{fmt} parsing successful, got {conf!r}.")
+            yield conf
 
     def read_and_parse_conf(
         self,
@@ -522,7 +598,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         - exists,
         - is a file,
         - is not empty,
-        - could be parsed without issue (follows the *parse, don't validate* principle),
+        - match file format patterns,
+        - can be parsed successfully, and
         - produce a non-empty data structure.
 
         Raises ``FileNotFoundError`` if no configuration file was found matching the
@@ -532,11 +609,27 @@ class ConfigOption(ExtraOption, ParamStructure):
         """
         logger = logging.getLogger("click_extra")
 
+        # Defer file patterns validation just before searching for files.
+        self.validate_file_patterns()
+
         for path, content in self.search_and_read_file(pattern):
-            logger.debug(f"Parsing {path!r}")
-            conf = self.parse_conf(content)
-            if conf:
-                return path, conf
+            # Match file with formats.
+            matching_formats = []
+            for fmt, patterns in self.file_format_patterns.items():
+                if any(
+                    Glob(pat, flags=self.pattern_flags).match(path.name)
+                    for pat in patterns
+                ):
+                    matching_formats.append(fmt)
+
+            logger.debug(
+                f"Parsing {path!r} with {','.join(map(str, matching_formats))}"
+            )
+            for conf in self.parse_conf(content, formats=matching_formats):
+                if conf:
+                    return path, conf
+                logger.debug("Empty configuration, try next file.")
+
         return None, None
 
     def load_ini_config(self, content: str) -> dict[str, Any]:
@@ -705,8 +798,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         else:
             if user_conf is None:
                 message = (
-                    f"Error while parsing the configuration file in any of the "
-                    f"{', '.join(e.name for e in self.formats)} formats."
+                    f"Error while parsing the configuration file in any of "
+                    f"{', '.join(map(str, self.file_format_patterns))}."
                 )
                 if explicit_conf:
                     logger.critical(message)

@@ -5,6 +5,9 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Allow parent directories search for configuration files. Adds `parent_search` argument on `@config_file`. Closes {issue}`651`.
+- Allow fine-tuning of configuration file format pattern matching. Replaces `formats` argument on `@config_file` by `file_format_patterns`.
+- Adds `pattern_flags` argument on `@config_file` to allow user to tweak glob patterns behavior.
 - Eat our own dog food: add a `click-extra` CLI to run self-tests.
 - Override base decorators and classes with Click Extra's own variants:
   - `@command` now points to what was `@extra_command`.
