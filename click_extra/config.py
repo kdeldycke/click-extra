@@ -62,19 +62,7 @@ from boltons.urlutils import URL
 from deepmerge import always_merger
 from extra_platforms import is_windows
 from extra_platforms.platform import _recursive_update, _remove_blanks
-from wcmatch.glob import (
-    BRACE,
-    DOTGLOB,
-    FOLLOW,
-    GLOBSTAR,
-    GLOBTILDE,
-    IGNORECASE,
-    NODIR,
-    Glob,
-    _GlobSplit,
-    iglob,
-    is_magic,
-)
+from wcmatch import fnmatch, glob
 
 from . import (
     UNPROCESSED,
@@ -232,13 +220,15 @@ class ConfigOption(ExtraOption, ParamStructure):
 
     file_format_patterns: dict[ConfigFormat, tuple[str]]
 
+    file_pattern_flags: int
+
     roaming: bool
 
     force_posix: bool
 
-    pattern_flags: int
+    search_pattern_flags: int
 
-    parent_search: bool
+    search_parents: bool
 
     excluded_params: Iterable[str]
 
@@ -256,12 +246,13 @@ class ConfigOption(ExtraOption, ParamStructure):
         is_eager: bool = True,
         expose_value: bool = False,
         file_format_patterns: Mapping[ConfigFormat, Sequence[str] | str] | None = None,
+        file_pattern_flags: int = fnmatch.NEGATE,
         roaming: bool = True,
         force_posix: bool = False,
-        pattern_flags: int = (
-            NODIR | GLOBSTAR | DOTGLOB | GLOBTILDE | BRACE | FOLLOW | IGNORECASE
+        search_pattern_flags: int = (
+            glob.GLOBSTAR | glob.FOLLOW | glob.DOTGLOB | glob.GLOBTILDE | glob.NODIR
         ),
-        parent_search: bool = False,
+        search_parents: bool = False,
         excluded_params: Iterable[str] | None = None,
         strict: bool = False,
         **kwargs,
@@ -284,20 +275,23 @@ class ConfigOption(ExtraOption, ParamStructure):
               All formats depending on third-party dependencies that are not
               installed will be skipped.
 
+        - ``file_pattern_flags`` are flags provided to all calls of ``fnmatch.fnmatch``.
+          Applies to the matching of file names against supported format patterns
+          specified in ``file_format_patterns``.
+
         - ``roaming`` and ``force_posix`` are `fed to click.get_app_dir()
           <https://click.palletsprojects.com/en/stable/api/#click.get_app_dir>`_
           to setup the default configuration folder.
 
-        - ``pattern_flags`` are flags provided to all calls of ``wcmatch.glob``.
-            Applies to both the default pattern and any user-provided pattern.
-            Including the patterns specified in ``file_format_patterns``.
+        - ``search_pattern_flags`` are flags provided to all calls of ``wcmatch.glob``.
+          Applies to both the default pattern and any user-provided pattern.
 
-        - ``parent_search`` indicates whether to walk back the tree of parent
-            folders when searching for configuration files.
+        - ``search_parents`` indicates whether to walk back the tree of parent folders
+          when searching for configuration files.
 
         - ``excluded_params`` are parameters which, if present in the configuration
-            file, will be ignored and not applied to the CLI. See
-            ``ParamStructure.excluded_params`` for the default values.
+          file, will be ignored and not applied to the CLI. See
+          ``ParamStructure.excluded_params`` for the default values.
 
         - ``strict``
             - If ``True``, raise an error if the configuration file contain
@@ -316,15 +310,37 @@ class ConfigOption(ExtraOption, ParamStructure):
         else:
             self.file_format_patterns = DEFAULT_FORMAT_PATTERNS.copy()
 
+        # Check mapping of file formats to their patterns.
+        for fmt, patterns in self.file_format_patterns.items():
+            assert fmt in ConfigFormat
+            assert isinstance(patterns, tuple)
+            assert patterns, f"No pattern defined for {fmt}"
+            assert all(isinstance(pat, str) and pat for pat in patterns)
+            assert len(set(patterns)) == len(patterns), f"Duplicate patterns for {fmt}"
+
+        # Filter out disabled formats.
+        disabled = {fmt for fmt in self.file_format_patterns if not fmt.enabled()}
+        if disabled:
+            logging.getLogger("click_extra").debug(
+                f"Skip disabled {', '.join(map(str, disabled))}."
+            )
+            for fmt in disabled:
+                del self.file_format_patterns[fmt]
+
+        if not self.file_format_patterns:
+            raise ValueError("No configuration format is enabled.")
+
+        self.file_pattern_flags = file_pattern_flags
+
         # Setup the configuration for default folder search.
         self.roaming = roaming
         self.force_posix = force_posix
         kwargs.setdefault("default", self.default_pattern)
 
         # Use user's flags but force NODIR.
-        self.pattern_flags = pattern_flags | NODIR
+        self.search_pattern_flags = search_pattern_flags | glob.NODIR
 
-        self.parent_search = parent_search
+        self.search_parents = search_parents
 
         if excluded_params is not None:
             self.excluded_params = excluded_params
@@ -342,52 +358,6 @@ class ConfigOption(ExtraOption, ParamStructure):
             expose_value=expose_value,
             **kwargs,
         )
-
-    def validate_file_patterns(self) -> None:
-        """Check mapping of file formats to their patterns.
-
-        File patterns are expected to only match filenames.
-
-        .. attention::
-            Are forbidden, patterns that:
-
-            - have multiple parts, which means they're not matching only filenames.
-            - are directory-only.
-            - are representing a drive.
-            - feature glob-star (``**``) or long glob-star (``***``) to prevent tree traversal.
-        """
-        for fmt, patterns in self.file_format_patterns.items():
-            assert fmt in ConfigFormat
-            assert isinstance(patterns, tuple)
-            assert patterns, f"No pattern defined for {fmt}"
-            assert all(isinstance(pat, str) and pat for pat in patterns)
-            assert len(set(patterns)) == len(patterns), f"Duplicate patterns for {fmt}"
-
-            for pat in patterns:
-                parts = _GlobSplit(pat, flags=self.pattern_flags).split()
-                if len(parts) != 1 or any(
-                    part
-                    for part in parts
-                    if part.dir_only
-                    or part.is_drive
-                    or part.is_globstar
-                    or part.is_globstarlong
-                ):
-                    raise ValueError(
-                        f"Pattern {pat!r} for {fmt} match more than filenames."
-                    )
-
-        # Filter out disabled formats.
-        disabled = {fmt for fmt in self.file_format_patterns if not fmt.enabled()}
-        if disabled:
-            logging.getLogger("click_extra").debug(
-                f"Skip disabled {', '.join(map(str, disabled))}."
-            )
-            for fmt in disabled:
-                del self.file_format_patterns[fmt]
-
-        if not self.file_format_patterns:
-            raise ValueError("No configuration format is enabled.")
 
     def default_pattern(self) -> str:
         """Returns the default pattern used to search for the configuration file.
@@ -446,14 +416,14 @@ class ConfigOption(ExtraOption, ParamStructure):
         yield pattern
 
         # No parent search requested, stop here.
-        if not self.parent_search:
+        if not self.search_parents:
             return
 
         logger = logging.getLogger("click_extra")
         logger.debug("Parent search enabled.")
 
         # The pattern is a regular path: no magic is involved. Simply walk up.
-        if not is_magic(pattern, flags=self.pattern_flags):
+        if not glob.is_magic(pattern, flags=self.search_pattern_flags):
             search_path = Path(pattern).resolve()
             if search_path.is_file():
                 search_path = search_path.parent
@@ -479,7 +449,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         This method returns the raw content of all matching patterns, without trying to
         parse them. If the content is empty, it is still returned as-is.
 
-        Also includes lookups into parents directories if ``self.parent_search`` is
+        Also includes lookups into parents directories if ``self.search_parents`` is
         ``True``.
 
         Raises ``FileNotFoundError`` if no file was found after searching all locations.
@@ -516,7 +486,7 @@ class ConfigOption(ExtraOption, ParamStructure):
                 logger.debug(f"Converted Windows pattern {win_path} to {pattern}")
 
             for search_pattern in self.parent_patterns(pattern):
-                for file in iglob(search_pattern, flags=self.pattern_flags):
+                for file in glob.iglob(search_pattern, flags=self.search_pattern_flags):
                     logger.debug(f"Found candidate: {file}")
                     file_path = Path(file).resolve()
                     if not file_path.is_file():
@@ -609,19 +579,13 @@ class ConfigOption(ExtraOption, ParamStructure):
         """
         logger = logging.getLogger("click_extra")
 
-        # Defer file patterns validation just before searching for files.
-        self.validate_file_patterns()
-
         for path, content in self.search_and_read_file(pattern):
             # Match file with formats.
-            matching_formats = []
-            for fmt, patterns in self.file_format_patterns.items():
-                if any(
-                    Glob(pat, flags=self.pattern_flags).match(path.name)
-                    for pat in patterns
-                ):
-                    matching_formats.append(fmt)
-
+            matching_formats = tuple(
+                fmt
+                for fmt, patterns in self.file_format_patterns.items()
+                if fnmatch.fnmatch(path.name, patterns, flags=self.file_pattern_flags)
+            )
             logger.debug(
                 f"Parsing {path!r} with {','.join(map(str, matching_formats))}"
             )
