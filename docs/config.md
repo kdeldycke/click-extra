@@ -479,14 +479,13 @@ This is an example of a special case that is popular on Unix-like systems: the c
 Here is how to set up `@config_option` for a pre-defined `.commandrc` file in YAML:
 
 ```{click:example}
-:emphasize-lines: 7
+:emphasize-lines: 6
 from click import command
 
-from click_extra import config_option
-from click_extra.config import Formats
+from click_extra import config_option, ConfigFormat
 
 @command(context_settings={"show_default": True})
-@config_option(default="~/.commandrc", formats=Formats.YAML)
+@config_option(default="~/.commandrc", formats=ConfigFormat.YAML)
 def cli():
     pass
 ```
@@ -510,15 +509,14 @@ As soon as a file is able to be parsed without error and returns a `dict`, the s
 If you know in advance the only format you'd like to support, you can use the `formats` argument on your decorator like so:
 
 ```{click:example}
-:emphasize-lines: 8
+:emphasize-lines: 7
 from click import command, option, echo
 
-from click_extra import config_option
-from click_extra.config import Formats
+from click_extra import config_option, ConfigFormat
 
 @command(context_settings={"show_default": True})
 @option("--int-param", type=int, default=10)
-@config_option(formats=Formats.JSON)
+@config_option(formats=ConfigFormat.JSON)
 def cli(int_param):
     echo(f"int_parameter is {int_param!r}")
 ```
@@ -534,15 +532,14 @@ assert "*.json]" in result.stdout
 This also works with a subset of formats:
 
 ```{click:example}
-:emphasize-lines: 8
+:emphasize-lines: 7
 from click import command, option, echo
 
-from click_extra import config_option
-from click_extra.config import Formats
+from click_extra import config_option, ConfigFormat
 
 @command(context_settings={"show_default": True})
 @option("--int-param", type=int, default=10)
-@config_option(formats=[Formats.INI, Formats.YAML])
+@config_option(formats=[ConfigFormat.INI, ConfigFormat.YAML])
 def cli(int_param):
     echo(f"int_parameter is {int_param!r}")
 ```

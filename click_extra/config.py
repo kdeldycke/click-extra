@@ -149,7 +149,7 @@ except ImportError:
     )
 
 
-class Formats(Enum):
+class ConfigFormat(Enum):
     """All configuration formats, associated to their support status.
 
     The value of each member indicates whether the format is supported or not,
@@ -176,15 +176,15 @@ class Formats(Enum):
         return self.value
 
 
-DEFAULT_FORMAT_PATTERNS: dict[Formats, tuple[str]] = {
-    Formats.TOML: ("*.toml",),
-    Formats.YAML: ("*.yaml", "*.yml"),
-    Formats.JSON: ("*.json",),
-    Formats.JSON5: ("*.json5",),
-    Formats.JSONC: ("*.jsonc",),
-    Formats.HJSON: ("*.hjson",),
-    Formats.INI: ("*.ini",),
-    Formats.XML: ("*.xml",),
+DEFAULT_FORMAT_PATTERNS: dict[ConfigFormat, tuple[str]] = {
+    ConfigFormat.TOML: ("*.toml",),
+    ConfigFormat.YAML: ("*.yaml", "*.yml"),
+    ConfigFormat.JSON: ("*.json",),
+    ConfigFormat.JSON5: ("*.json5",),
+    ConfigFormat.JSONC: ("*.jsonc",),
+    ConfigFormat.HJSON: ("*.hjson",),
+    ConfigFormat.INI: ("*.ini",),
+    ConfigFormat.XML: ("*.xml",),
 }
 """Default mapping of configuration formats to their file patterns.
 
@@ -230,7 +230,7 @@ NO_CONFIG = Sentinel.NO_CONFIG
 class ConfigOption(ExtraOption, ParamStructure):
     """A pre-configured option adding ``--config CONFIG_PATH``."""
 
-    file_format_patterns: dict[Formats, tuple[str]]
+    file_format_patterns: dict[ConfigFormat, tuple[str]]
 
     roaming: bool
 
@@ -255,7 +255,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         ),
         is_eager: bool = True,
         expose_value: bool = False,
-        file_format_patterns: Mapping[Formats, Sequence[str] | str] | None = None,
+        file_format_patterns: Mapping[ConfigFormat, Sequence[str] | str] | None = None,
         roaming: bool = True,
         force_posix: bool = False,
         pattern_flags: int = (
@@ -275,7 +275,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         - ``is_eager`` is active by default so the ``callback`` gets the opportunity
           to set the ``default_map`` of the CLI before any other parameter is processed.
 
-        - ``file_format_patterns`` is a mapping of ``Formats`` to their associated
+        - ``file_format_patterns`` is a mapping of ``ConfigFormat`` to their associated
           file patterns. Can be a string or a sequence of strings. This defines
           which configuration file formats are supported, and which file patterns
           are used to search for them.
@@ -357,7 +357,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             - feature glob-star (``**``) or long glob-star (``***``) to prevent tree traversal.
         """
         for fmt, patterns in self.file_format_patterns.items():
-            assert fmt in Formats
+            assert fmt in ConfigFormat
             assert isinstance(patterns, tuple)
             assert patterns, f"No pattern defined for {fmt}"
             assert all(isinstance(pat, str) and pat for pat in patterns)
@@ -532,7 +532,7 @@ class ConfigOption(ExtraOption, ParamStructure):
     def parse_conf(
         self,
         content: str,
-        formats: Sequence[Formats],
+        formats: Sequence[ConfigFormat],
     ) -> Iterable[dict[str, Any] | None]:
         """Parse the ``content`` with the given ``formats``.
 
@@ -553,21 +553,21 @@ class ConfigOption(ExtraOption, ParamStructure):
         for fmt in formats:
             try:
                 match fmt:
-                    case Formats.TOML:
+                    case ConfigFormat.TOML:
                         conf = tomllib.loads(content)
-                    case Formats.YAML:
+                    case ConfigFormat.YAML:
                         conf = yaml.full_load(content)
-                    case Formats.JSON:
+                    case ConfigFormat.JSON:
                         conf = json.loads(content)
-                    case Formats.JSON5:
+                    case ConfigFormat.JSON5:
                         conf = json5.loads(content)
-                    case Formats.JSONC:
+                    case ConfigFormat.JSONC:
                         conf = jsonc.loads(content)
-                    case Formats.HJSON:
+                    case ConfigFormat.HJSON:
                         conf = hjson.loads(content)
-                    case Formats.INI:
+                    case ConfigFormat.INI:
                         conf = self.load_ini_config(content)
-                    case Formats.XML:
+                    case ConfigFormat.XML:
                         conf = xmltodict.parse(content)
 
             except Exception as ex:

@@ -43,7 +43,7 @@ from .commands import (
     ExtraGroup,
     LazyGroup,
 )
-from .config import ConfigOption, NoConfigOption
+from .config import ConfigFormat, ConfigOption, NoConfigOption
 from .decorators import (  # type: ignore[no-redef]
     argument,
     color_option,
@@ -110,6 +110,7 @@ __all__ = [  # noqa: F405
     "command",
     "CommandCollection",
     "config_option",
+    "ConfigFormat",
     "ConfigOption",
     "confirm",
     "confirmation_option",
