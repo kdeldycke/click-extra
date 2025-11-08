@@ -15,17 +15,29 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Utilities to load parameters and options from a configuration file.
 
+.. hint::
+
+    Why ``config``?
+
+    That whole namespace is named after the common ``config`` short name used in CLI
+    parameters to designate configuration files.
+
+    Not ``conf``, not ``cfg``, not ``configuration``, not ``settings``. Just ``config``.
+
+    A quick survey of existing practices, and poll to my friends informed me that
+    ``config`` is more explicit and less likely to be misunderstood.
+
+    After all, is there a chance for it to be misunderstood, in the context of a CLI,
+    for something else? *Confirm*? *Conference*? *Conflict* *Confuse*?...
+
+    That's good enough for me.
+
 .. todo::
     Add a ``--dump-config`` or ``--export-config`` option to write down the current
     configuration (or a template) into a file or ``<stdout>``.
 
     Help message would be: *you can use this option with other options or environment
     variables to have them set in the generated configuration*.
-
-.. todo::
-    Allow the ``--config`` option to walk-up the filesystem (up until the filesystem
-    root) to discover configuration files.
-    See: https://github.com/kdeldycke/click-extra/issues/651
 
 .. todo::
     Add a ``ParameterSource.CONFIG_FILE`` entry to the ``ParameterSource`` enum?
@@ -60,6 +72,7 @@ from wcmatch.glob import (
     IGNORECASE,
     NODIR,
     iglob,
+    is_magic,
 )
 
 from . import (
@@ -80,7 +93,7 @@ else:
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
-    from typing import Any
+    from typing import Any, Literal
 
     import click
 
@@ -196,7 +209,14 @@ class ConfigOption(ExtraOption, ParamStructure):
     formats: Sequence[Formats]
 
     roaming: bool
+
     force_posix: bool
+
+    pattern_flags: int
+
+    parent_search: bool
+
+    excluded_params: Iterable[str]
 
     strict: bool
 
@@ -214,7 +234,10 @@ class ConfigOption(ExtraOption, ParamStructure):
         formats=tuple(Formats),
         roaming: bool = True,
         force_posix: bool = False,
-        parent_folders_search: bool = False,
+        pattern_flags: int = (
+            NODIR | GLOBSTAR | DOTGLOB | GLOBTILDE | BRACE | FOLLOW | IGNORECASE
+        ),
+        parent_search: bool = False,
         excluded_params: Iterable[str] | None = None,
         strict: bool = False,
         **kwargs,
@@ -231,7 +254,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         - ``formats`` is the ordered list of formats that the configuration
           file will be tried to be read with. Can be a single one.
 
-          .. attention::
+          .. caution::
               The formats depending on third-party packages will be automatically
               disabled if their corresponding extra dependency groups are not
               installed.
@@ -239,6 +262,11 @@ class ConfigOption(ExtraOption, ParamStructure):
         - ``roaming`` and ``force_posix`` are `fed to click.get_app_dir()
           <https://click.palletsprojects.com/en/stable/api/#click.get_app_dir>`_
           to setup the default configuration folder.
+
+        - ``pattern_flags`` are the flags used by ``wcmatch.glob``.
+
+        - ``parent_search`` indicates whether parent folders must be searched
+          for configuration files matching the given pattern.
 
         - ``excluded_params`` is a list of options to ignore by the configuration
           parser. See ``ParamStructure.excluded_params`` for the default values.
@@ -264,6 +292,11 @@ class ConfigOption(ExtraOption, ParamStructure):
         self.roaming = roaming
         self.force_posix = force_posix
         kwargs.setdefault("default", self.default_pattern)
+
+        # Use user's flags but force NODIR.
+        self.pattern_flags = pattern_flags | NODIR
+
+        self.parent_search = parent_search
 
         if excluded_params is not None:
             self.excluded_params = excluded_params
@@ -326,17 +359,56 @@ class ConfigOption(ExtraOption, ParamStructure):
         extra["default"] = shrinkuser(Path(self.get_default(ctx)))
         return extra
 
-    def search_and_read_conf(self, pattern: str) -> Iterable[tuple[Path | URL, str]]:
-        """Search on local file system or remote URL files matching the provided
-        pattern.
+    def parent_patterns(self, pattern: str) -> Iterable[str]:
+        """Generate patterns for parent directories lookup.
 
-        ``pattern`` is considered an URL only if it is parseable as such and starts
-        with ``http://`` or ``https://``.
+        Yields patterns for each parent directory of the given ``pattern``.
 
-        Returns an iterator of the normalized configuration location and its textual
-        content, for each file/URL matching the pattern.
+        The first yielded pattern is the original one.
 
-        Raises ``FileNotFoundError`` if no file was found matching the pattern.
+        Stops when reaching the root folder.
+        """
+        # Return the original pattern as-is.
+        yield pattern
+
+        # No parent search requested, stop here.
+        if not self.parent_search:
+            return
+
+        logger = logging.getLogger("click_extra")
+        logger.debug("Parent search enabled.")
+
+        # The pattern is a regular path: no magic is involved. Simply walk up.
+        if not is_magic(pattern, flags=self.pattern_flags):
+            search_path = Path(pattern).resolve()
+            if search_path.is_file():
+                search_path = search_path.parent
+
+            yield from (search_path, *search_path.parents)
+            return
+
+        # Magic patterns needs special handling for parent search.
+
+        # XXXXXXXXXXXX below is experimental to dissect the magic pattern into folder and file parts.
+
+    def search_and_read_file(self, pattern: str) -> Iterable[tuple[Path | URL, str]]:
+        """Search file-system or URL for files matching the ``pattern``.
+
+        If ``pattern`` is an URL, download its content. A pattern is considered an URL
+        only if it validates as one and starts with ``http://`` or ``https://``. All
+        other patterns are considered glob patterns for local file-system search.
+
+        Returns an iterator of the normalized location and its raw content, for each
+        one matching the pattern. Only files are returned, directories are silently
+        skipped.
+
+        This method returns the raw content of all matching patterns, without trying to
+        parse them. If the content is empty, it is still returned as-is.
+
+        Also includes lookups into parents directories if ``self.parent_search`` is
+        ``True``.
+
+        Raises ``FileNotFoundError`` if no file was found after searching all locations.
         """
         logger = logging.getLogger("click_extra")
         files_found = 0
@@ -345,48 +417,56 @@ class ConfigOption(ExtraOption, ParamStructure):
         location = URL(pattern)
         location.normalize()
         if location and location.scheme in ("http", "https"):
-            logger.debug(f"Download configuration from URL: {location}")
+            # It's an URL, try to download it.
+            logger.debug(f"Download file from URL: {location}")
             with requests.get(str(location)) as response:
                 if response.ok:
                     files_found += 1
+                    # TODO: use mime-type to guess file format?
                     yield location, response.text
                 else:
                     logger.warning(f"Can't download {location}: {response.reason}")
 
-        # Not an URL, search local file system with glob pattern.
+        # Not an URL, search local file system.
         else:
-            logger.debug("Pattern is not an URL: search local file system.")
+            logger.debug(f"Search file-system for: {pattern}")
             # wcmatch expect patterns to be written with Unix-like syntax by default,
             # even on Windows. See more details at:
             # https://facelessuser.github.io/wcmatch/glob/#windows-separators
             # https://github.com/facelessuser/wcmatch/issues/194
             if is_windows():
-                pattern = pattern.replace("\\", "/")
-            for file in iglob(
-                pattern,
-                flags=NODIR
-                | GLOBSTAR
-                | DOTGLOB
-                | GLOBTILDE
-                | BRACE
-                | FOLLOW
-                | IGNORECASE,
-            ):
-                file_path = Path(file).resolve()
-                logger.debug(f"Configuration file found at {file_path}")
-                files_found += 1
-                yield file_path, file_path.read_text(encoding="utf-8")
+                # TODO: have a better way to transform Windows paths to POSIX ones
+                # by the way of PureWindowsPath -> PurePosixPath conversion?
+                win_path = PurePath(pattern)
+                pattern = str(win_path).replace("\\", "/")
+                logger.debug(f"Converted Windows pattern {win_path} to {pattern}")
+
+            for search_pattern in self.parent_patterns(pattern):
+                for file in iglob(search_pattern, flags=self.pattern_flags):
+                    logger.debug(f"Found candidate: {file}")
+                    file_path = Path(file).resolve()
+                    if not file_path.is_file():
+                        logger.debug(f"Skipping non-file: {file_path}")
+                        continue
+                    logger.debug(f"File found at {file_path}")
+                    files_found += 1
+                    yield file_path, file_path.read_text(encoding="utf-8")
 
         if not files_found:
-            raise FileNotFoundError(f"No configuration file found matching {pattern}")
+            raise FileNotFoundError(f"No file found matching {pattern}")
 
     def parse_conf(self, conf_text: str) -> dict[str, Any] | None:
-        """Try to parse the provided content with each format in the order provided by
-        the user.
+        """Try to parse ``conf_text`` with each format in the order specified by
+        ``self.formats``.
 
-        A successful parsing in any format is supposed to return a ``dict``. Any other
-        result, including any raised exception, is considered a failure and the next
-        format is tried.
+        Formats depending on third-party packages will be automatically skipped if
+        their corresponding extra dependency groups are not installed.
+
+        Parsing that raises an exception or does not return a ``dict`` is considered a
+        failure and the next format is tried.
+
+        The first format that successfully parses ``conf_text`` is used, and its
+        resulting ``dict`` is returned (even if empty).
         """
         logger = logging.getLogger("click_extra")
 
@@ -432,20 +512,31 @@ class ConfigOption(ExtraOption, ParamStructure):
         self,
         pattern: str,
     ) -> tuple[Path | URL, dict[str, Any]] | tuple[None, None]:
-        """Search for a configuration file matching the provided pattern.
+        """Search for a parseable configuration file.
 
-        Returns the location and parsed content of the first valid configuration file
-        that is not blank, or `(None, None)` if no file was found.
+        Returns the location and data structure of the first configuration matching the
+        ``pattern``.
 
-        Raises ``FileNotFoundError`` if no file was found matching the pattern.
+        Only return the first match that:
+
+        - exists,
+        - is a file,
+        - is not empty,
+        - could be parsed without issue (follows the *parse, don't validate* principle),
+        - produce a non-empty data structure.
+
+        Raises ``FileNotFoundError`` if no configuration file was found matching the
+        criteria above.
+
+        Returns ``(None, None)`` if files were found but none could be parsed.
         """
         logger = logging.getLogger("click_extra")
 
-        for conf_path, conf_text in self.search_and_read_conf(pattern):
-            logger.debug(f"Parsing: {conf_text!r}")
-            user_conf = self.parse_conf(conf_text)
-            if user_conf is not None:
-                return conf_path, user_conf
+        for path, content in self.search_and_read_file(pattern):
+            logger.debug(f"Parsing {path!r}")
+            conf = self.parse_conf(content)
+            if conf:
+                return path, conf
         return None, None
 
     def load_ini_config(self, content: str) -> dict[str, Any]:
@@ -547,7 +638,10 @@ class ConfigOption(ExtraOption, ParamStructure):
 
 
     def load_conf(
-        self, ctx: click.Context, param: click.Parameter, path_pattern: str | Path
+        self,
+        ctx: click.Context,
+        param: click.Parameter,
+        path_pattern: str | Path | Literal[Sentinel.NO_CONFIG],
     ) -> None:
         """Fetch parameters values from configuration file and sets them as defaults.
 
@@ -580,8 +674,10 @@ class ConfigOption(ExtraOption, ParamStructure):
         )  # type: ignore[operator]
 
         # Print configuration location to the user if it was explicitly set.
+        # Normalize to string to both allow parsing as a glob pattern or URL.
         if isinstance(path_pattern, Path):
-            path_pattern = str(path_pattern)
+            # Normalize the path without checking for its existence.
+            path_pattern = str(path_pattern.resolve(strict=False))
         message = f"Load configuration matching {path_pattern}"
         if explicit_conf:
             info_msg(message)
