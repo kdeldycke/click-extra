@@ -391,7 +391,7 @@ Depending on the formats you enabled in your installation of Click Extra, the de
 ```
 
 ```{tip}
-Debugging the file search process can be quite demanding. To help you see clearly, you can enable debug logging for the `click_extra` logger to see which files are located, matched, parsed, skipped, and finally used.
+The search process can be hard to follow. To help you see clearly, you can enable debug logging for the `click_extra` logger to see which files are located, matched, parsed, skipped, and finally used.
 
 Or better, just pass the [`--verbosity DEBUG` option](logging.md#colored-verbosity) to your CLI if it is powered by Click Extra.
 ```
@@ -428,9 +428,9 @@ def cli():
 See how the default to `--config` option has been changed to `~/.cli/`:
 
 ```{click:run}
-:emphasize-lines: 7
+:emphasize-lines: 6
 result = invoke(cli, args=["--help"])
-assert "~/.cli/*.toml|" in result.stdout.replace("\n                        ", "")
+assert "~/.cli/*.toml|*.yaml|*.yml|*.json|*.json5|*.jsonc|*.hjson|*.ini|*.xml]" in result.stdout.replace("\n                        ", "")
 ```
 
 ```{seealso}
@@ -467,21 +467,46 @@ assert "~/my_special_folder/*.toml|*.conf]" in result.stdout
 
 The rules for the pattern are described in the next section.
 
-### Pattern specifications
+### Search pattern specifications
 
-Patterns provided to `@config_option`:
+Patterns provided to `@config_option`'s `default` argument:
 
-- are [based on `wcmatch.glob` syntax](https://facelessuser.github.io/wcmatch/glob/#syntax)
-- should be written with Unix separators (`/`), even for Windows (the [pattern will be normalized to the local platform dialect](https://facelessuser.github.io/wcmatch/glob/#windows-separators))
-- are setup with the following default flags:
-  - [`GLOBSTAR`](https://facelessuser.github.io/wcmatch/glob/#globstar): recursive directory search via `**` glob notation
-  - [`FOLLOW`](https://facelessuser.github.io/wcmatch/glob/#follow): traverse symlink directories
-  - [`DOTGLOB`](https://facelessuser.github.io/wcmatch/glob/#dotglob): include file or directory starting with a literal dot (`.`)
-  - [`SPLIT`](https://facelessuser.github.io/wcmatch/glob/#split): allow multiple patterns separated by `|`
-  - [`GLOBTILDE`](https://facelessuser.github.io/wcmatch/glob/#globtilde): allow user's home path `~` to be expanded
-  - [`NODIR`](https://facelessuser.github.io/wcmatch/glob/#nodir): restricts results to files
+- Are [based on `wcmatch.glob` syntax](https://facelessuser.github.io/wcmatch/glob/#syntax).
+- Should be written with Unix separators (`/`), even for Windows: the [pattern will be normalized to the local platform dialect](https://facelessuser.github.io/wcmatch/glob/#windows-separators).
+- Can be absolute or relative paths.
+- Have their default case-sensitivity aligned with the local platform:
+  - Windows is insensitive to case,
+  - Unix and macOS are case-sensitive.
+- Are setup with the following default flags:
+  - [`GLOBSTAR`](https://facelessuser.github.io/wcmatch/glob/#globstar): recursive directory search via `**` glob notation.
+  - [`FOLLOW`](https://facelessuser.github.io/wcmatch/glob/#follow): traverse symlink directories.
+  - [`DOTGLOB`](https://facelessuser.github.io/wcmatch/glob/#dotglob): include file or directory starting with a literal dot (`.`).
+  - [`SPLIT`](https://facelessuser.github.io/wcmatch/glob/#split): allow multiple patterns separated by `|`.
+  - [`GLOBTILDE`](https://facelessuser.github.io/wcmatch/glob/#globtilde): allow user's home path `~` to be expanded.
+  - [`NODIR`](https://facelessuser.github.io/wcmatch/glob/#nodir): restricts results to files.
 
-The flags above can be changed via the [`search_pattern_flags` argument of the decorator](config.md#click_extra.config.ConfigOption).
+The flags above can be changed via the [`search_pattern_flags` argument of the decorator](config.md#click_extra.config.ConfigOption). So to make the matching case-insensitive, add the `IGNORECASE` flag:
+
+```{code-block} python
+:emphasize-lines: 8,13
+from wcmatch.glob import (
+    GLOBSTAR,
+    FOLLOW,
+    DOTGLOB,
+    SPLIT,
+    GLOBTILDE,
+    NODIR,
+    IGNORECASE
+)
+
+@config_option(
+    file_pattern_flags=(
+        GLOBSTAR | FOLLOW | DOTGLOB | SPLIT | GLOBTILDE | NODIR | IGNORECASE
+    )
+)
+```
+
+But because of the way flags works, you have to re-specify all flags you want to keep, including the default ones.
 
 ```{important}
 The `NODIR` flag is always forced, to optimize the search for files only.
@@ -520,17 +545,17 @@ from click_extra import config_option, ConfigFormat
 
 @command(context_settings={"show_default": True})
 @option("--int-param", type=int, default=10)
-@config_option(file_format_patterns=[ConfigFormat.TOML, ConfigFormat.JSON])
+@config_option(file_format_patterns=[ConfigFormat.JSON, ConfigFormat.TOML])
 def cli(int_param):
     echo(f"int_parameter is {int_param!r}")
 ```
 
-Notice how the default search pattern has been restricted to only `*.toml` and `*.json` files:
+Notice how the default search pattern has been restricted to only `*.json` and `*.toml` files, and also that the order is reflected in the help:
 
 ```{click:run}
 :emphasize-lines: 8
 result = invoke(cli, args=["--help"])
-assert "*.json]" in result.stdout
+assert "*.json|*.toml]" in result.stdout
 ```
 
 You can also specify a single format:
@@ -569,7 +594,7 @@ from click_extra import config_option, ConfigFormat
 @config_option(
     file_format_patterns={
         ConfigFormat.TOML: ["*.toml", "my_app.conf"],
-        ConfigFormat.JSON: ["*.json", "settings*.js"],
+        ConfigFormat.JSON: ["settings*.js", "*.json"],
     }
 )
 def cli(int_param):
@@ -579,9 +604,9 @@ def cli(int_param):
 Again, this is reflected in the help:
 
 ```{click:run}
-:emphasize-lines: 8
+:emphasize-lines: 9
 result = invoke(cli, args=["--help"])
-assert "*.json" in result.stdout
+assert "*.toml|my_app.conf|settings*.js|*.json]" in result.stdout
 ```
 
 ### Parsing priority
@@ -589,7 +614,7 @@ assert "*.json" in result.stdout
 The syntax of `file_format_patterns` argument allows you to specify either a list of formats, a single format, or a mapping of formats to patterns. And we can even have multiple formats share the same pattern:
 
 ```{click:example}
-:emphasize-lines: 8-11
+:emphasize-lines: 8-12
 from click import command, option, echo
 
 from click_extra import config_option, ConfigFormat
@@ -610,7 +635,7 @@ def cli(int_param):
 Notice how all formats are merged into the same pattern:
 
 ```{click:run}
-:emphasize-lines: 8
+:emphasize-lines: 9
 result = invoke(cli, args=["--help"])
 assert "*.toml|config*.js|*.js" in result.stdout
 ```
@@ -629,8 +654,8 @@ The `file_pattern_flags` argument controls the matching behavior of file pattern
 
 These flags are defined in [`wcmatch.fnmatch`](https://facelessuser.github.io/wcmatch/fnmatch/#flags) and default to:
 
-- [`NEGATE`](https://facelessuser.github.io/wcmatch/fnmatch/#negate): adds support of `!` negation to define exclusions
-- [`SPLIT`](https://facelessuser.github.io/wcmatch/fnmatch/#split): allow multiple patterns separated by `|`
+- [`NEGATE`](https://facelessuser.github.io/wcmatch/fnmatch/#negate): adds support of `!` negation to define exclusions.
+- [`SPLIT`](https://facelessuser.github.io/wcmatch/fnmatch/#split): allow multiple patterns separated by `|`.
 
 ```{important}
 The `SPLIT` flag is always forced, as our multi-pattern design relies on it.
@@ -652,7 +677,8 @@ But because of the way flags works, you have to re-specify all flags you want to
 
 To ignore, for example, all your template files residing alongside real configuration files. Then, to exclude all files starting with `template_` in their name, you can do:
 
-```python
+```{code-block} python
+:emphasize-lines: 3
 @config_option(
     file_format_patterns={
         ConfigFormat.TOML: ["*.toml", "!template_*.toml"],
@@ -667,7 +693,7 @@ This demonstrate the popular case on Unix-like systems, where the configuration 
 Here is how to set up `@config_option` for a pre-defined `.commandrc` file in YAML:
 
 ```{click:example}
-:emphasize-lines: 6
+:emphasize-lines: 7-8
 from click import command
 
 from click_extra import config_option, ConfigFormat
@@ -682,9 +708,13 @@ def cli():
 ```
 
 ```{click:run}
-:emphasize-lines: 7
+:emphasize-lines: 6
 result = invoke(cli, args=["--help"])
 assert "[default: ~/*]" in result.stdout
+```
+
+```{caution}
+Depending on how you set up your patterns, files starting with a dot (`.`) may not be matched by default. Make sure to include the [`DOTMATCH`](https://facelessuser.github.io/wcmatch/fnmatch/#dotmatch) flag in `file_pattern_flags` if needed.
 ```
 
 ### Remote URL
@@ -697,6 +727,12 @@ $ my-cli --config "https://example.com/dummy/configuration.yaml" subcommand
 dummy_flag    is True
 my_list       is ('point 1', 'point #2', 'Very Last Point!')
 int_parameter is 77
+```
+
+```{warning}
+URLs do not support multi-format matching. You need to provide a direct link to the configuration file, including its extension.
+
+Glob patterns are also not supported for URLs. Unless you want to let your users download the whole internet…
 ```
 
 ## `click_extra.config` API

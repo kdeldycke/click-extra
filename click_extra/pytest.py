@@ -261,8 +261,8 @@ default_options_uncolored_help = (
     r"  --color, --ansi / --no-color, --no-ansi\n"
     r"                        Strip out all colors and all ANSI codes from output.\n"
     r"                        \[default: color\]\n"
-    r"  --config CONFIG_PATH  Location of the configuration file. Supports glob\n"
-    r"                        pattern of local path and remote URL.  \[default:( \S+)?\n"
+    r"  --config CONFIG_PATH  Location of the configuration file. Supports local path\n"
+    r"                        with glob patterns or remote URL.  \[default:( \S+)?\n"
     # XXX We cannot do better than \S+ for the default path because it is OS-specific,
     # and we cannot hard-code the whole glob pattern because the line wrapping would be
     # different on different terminals.
@@ -289,11 +289,11 @@ default_options_colored_help = (
     r"  \x1b\[36m--color\x1b\[0m, \x1b\[36m--ansi\x1b\[0m / \x1b\[36m--no-color\x1b\[0m, \x1b\[36m--no-ansi\x1b\[0m\n"
     r"                        Strip out all colors and all ANSI codes from output.\n"
     r"                        \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mcolor\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
-    r"  \x1b\[36m--config\x1b\[0m \x1b\[36m\x1b\[2mCONFIG_PATH\x1b\[0m  Location of the configuration file. Supports glob\n"
+    r"  \x1b\[36m--config\x1b\[0m \x1b\[36m\x1b\[2mCONFIG_PATH\x1b\[0m  Location of the configuration file. Supports local path\n"
     # XXX We cannot do better than \S+ for the default path because it is OS-specific,
     # and we cannot hard-code the whole glob pattern because the line wrapping would be
     # different on different terminals.
-    r"                        pattern of local path and remote URL.  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault:( \S+)?\n"
+    r"                        with glob patterns or remote URL.  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault:( \S+)?\n"
     r"(                        .+\n)*"
     r"                        .*ni\|\*\.xml\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
     r"  \x1b\[36m--no-config\x1b\[0m           Ignore all configuration files and only use command line\n"

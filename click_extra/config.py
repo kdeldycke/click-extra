@@ -255,8 +255,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         metavar="CONFIG_PATH",
         type=UNPROCESSED,
         help=_(
-            "Location of the configuration file. Supports glob pattern of local "
-            "path and remote URL.",
+            "Location of the configuration file. Supports local path with glob patterns "
+            "or remote URL.",
         ),
         is_eager: bool = True,
         expose_value: bool = False,
