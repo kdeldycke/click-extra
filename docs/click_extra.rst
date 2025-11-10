@@ -9,6 +9,14 @@ click\_extra package
 Submodules
 ----------
 
+click\_extra.cli module
+-----------------------
+
+.. automodule:: click_extra.cli
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 click\_extra.colorize module
 ----------------------------
 
