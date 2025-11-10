@@ -157,7 +157,7 @@ jobs:
       - name: Check launchable dev CLI
         run: |
           uvx    --from git+https://github.com/kdeldycke/click-extra -- click-extra --version
-          uv run --from git+https://github.com/kdeldycke/click-extra -- click-extra --version
+          uv run --with git+https://github.com/kdeldycke/click-extra -- click-extra --version
 
       - name: Unittests
         run: >
