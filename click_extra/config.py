@@ -493,9 +493,9 @@ class ConfigOption(ExtraOption, ParamStructure):
             if is_windows():
                 # TODO: have a better way to transform Windows paths to POSIX ones
                 # by the way of PureWindowsPath -> PurePosixPath conversion?
-                win_path = PurePath(pattern)
-                pattern = str(win_path).replace("\\", "/")
-                logger.debug(f"Converted Windows pattern {win_path} to {pattern}")
+                win_path = Path(pattern)
+                pattern = str(win_path.as_posix())
+                logger.debug(f"Windows pattern converted from {win_path} to {pattern}")
 
             for search_pattern in self.parent_patterns(pattern):
                 for file in glob.iglob(search_pattern, flags=self.search_pattern_flags):
