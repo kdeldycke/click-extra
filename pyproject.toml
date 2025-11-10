@@ -141,8 +141,8 @@ sphinx = [
     "sphinx >= 8.0.0",
 ]
 pytest = [
-    # pytest 8.2.1 is the first version to support Python 3.13.
-    "pytest >= 8.2.1",
+    # pytest 9.0.0 is the first supporting native TOML configuration files.
+    "pytest >= 9.0.0",
 ]
 ## Non-runtime dependencies, for development and CI, are using the ~= specifier to reduce randomness.
 ## Unless the package has been referenced in sections above, in which case we align the version specifier.
@@ -153,8 +153,8 @@ test = [
     # extra-platforms 5.0.0 is the first version to re-introduce support for Python 3.10.
     "extra-platforms [pytest] >= 5.0.0",
     "myst-parser ~= 4.0.0",
-    # pytest 8.2.1 is the first version to support Python 3.13.
-    "pytest >= 8.2.1",
+    # pytest 9.0.0 is the first supporting native TOML configuration files.
+    "pytest >= 9.0.0",
     "pytest-cov ~= 7.0.0",
     "pytest-github-actions-annotate-failures ~= 0.3.0",
     "pytest-httpserver ~= 1.1.0",
@@ -245,7 +245,7 @@ pretty = true
 ignore_missing_imports = true
 module = ["hjson", "jsonc"]
 
-[tool.pytest.ini_options]
+[tool.pytest]
 # https://docs.pytest.org/en/latest/customize.html#pyproject-toml
 addopts = [
     "--durations=10",
