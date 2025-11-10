@@ -490,8 +490,6 @@ class ConfigOption(ExtraOption, ParamStructure):
             # https://facelessuser.github.io/wcmatch/glob/#windows-separators
             # https://github.com/facelessuser/wcmatch/issues/194
             if is_windows():
-                # TODO: have a better way to transform Windows paths to POSIX ones
-                # by the way of PureWindowsPath -> PurePosixPath conversion?
                 win_path = Path(pattern)
                 pattern = str(win_path.as_posix())
                 logger.debug(f"Windows pattern converted from {win_path} to {pattern}")

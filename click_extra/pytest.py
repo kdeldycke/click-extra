@@ -29,6 +29,7 @@ import click
 import cloup
 import pytest
 from _pytest.assertion.util import assertrepr_compare
+from extra_platforms import is_windows
 
 from click_extra.decorators import argument, command, group, option
 from click_extra.testing import (
@@ -331,20 +332,29 @@ default_debug_colored_verbose_log = (
 )
 
 
+default_config_file_pattern = (
+    r"\*\.toml\|\*\.yaml\|\*\.yml\|\*\.json\|\*\.json5\|\*\.jsonc\|\*\.hjson\|\*\.ini\|"
+    r"\*\.xml"
+)
 default_debug_uncolored_config = (
-    r"debug: Load configuration matching"
-    r" .+\*\.toml\|\*\.yaml\|\*\.yml\|\*\.json\|\*\.json5\|\*\.jsonc\|\*\.hjson\|\*\.ini\|\*\.xml\n"
-    r"debug: Search filesystem for"
-    r" .+\*\.toml\|\*\.yaml\|\*\.yml\|\*\.json\|\*\.json5\|\*\.jsonc\|\*\.hjson\|\*\.ini\|\*\.xml\n"
+    rf"debug: Load configuration matching .+{default_config_file_pattern}\n"
+    rf"debug: Search filesystem for .+{default_config_file_pattern}\n"
     r"debug: No configuration file found.\n"
 )
 default_debug_colored_config = (
-    r"\x1b\[34mdebug\x1b\[0m: Load configuration matching"
-    r" .+\*\.toml\|\*\.yaml\|\*\.yml\|\*\.json\|\*\.json5\|\*\.jsonc\|\*\.hjson\|\*\.ini\|\*\.xml\n"
-    r"\x1b\[34mdebug\x1b\[0m: Search filesystem for"
-    r" .+\*\.toml\|\*\.yaml\|\*\.yml\|\*\.json\|\*\.json5\|\*\.jsonc\|\*\.hjson\|\*\.ini\|\*\.xml\n"
+    rf"\x1b\[34mdebug\x1b\[0m: Load configuration matching .+{default_config_file_pattern}\n"
+    rf"\x1b\[34mdebug\x1b\[0m: Search filesystem for .+{default_config_file_pattern}\n"
     r"\x1b\[34mdebug\x1b\[0m: No configuration file found.\n"
 )
+if is_windows():
+    default_debug_uncolored_config += (
+        r"debug: Windows pattern converted from"
+        rf" .+{default_config_file_pattern} to .+{default_config_file_pattern}\n"
+    )
+    default_debug_colored_config += (
+        r"\x1b\[34mdebug\x1b\[0m: Windows pattern converted from"
+        rf" .+{default_config_file_pattern} to .+{default_config_file_pattern}\n"
+    )
 
 
 default_debug_uncolored_version_details = (
