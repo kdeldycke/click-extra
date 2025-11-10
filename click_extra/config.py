@@ -49,6 +49,7 @@ import json
 import logging
 import os
 import sys
+from collections.abc import Iterable
 from configparser import ConfigParser, ExtendedInterpolation
 from enum import Enum
 from functools import cached_property, partial
@@ -81,7 +82,7 @@ else:
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping, Sequence
+    from collections.abc import Sequence
     from typing import Any, Literal
 
     import click
@@ -259,8 +260,11 @@ class ConfigOption(ExtraOption, ParamStructure):
         ),
         is_eager: bool = True,
         expose_value: bool = False,
-        file_format_patterns: Mapping[ConfigFormat, Sequence[str] | str] | None = None,
-        file_pattern_flags: int = fnmatch.NEGATE | glob.SPLIT,
+        file_format_patterns: dict[ConfigFormat, Sequence[str] | str]
+        | Iterable[ConfigFormat]
+        | ConfigFormat
+        | None = None,
+        file_pattern_flags: int = fnmatch.NEGATE | fnmatch.SPLIT,
         roaming: bool = True,
         force_posix: bool = False,
         search_pattern_flags: int = (
@@ -278,32 +282,48 @@ class ConfigOption(ExtraOption, ParamStructure):
     ) -> None:
         """Takes as input a path to a file or folder, a glob pattern, or an URL.
 
-        .. attention::
-            All patterns must follow the syntax of `wcmatch.glob
+        - ``is_eager`` is active by default so the ``callback`` gets the opportunity to
+          set the ``default_map`` of the CLI before any other parameter is processed.
+
+        - ``default`` is set to the value returned by ``self.default_pattern()``, which
+          is a pattern combining the default configuration folder for the CLI (as
+          returned by ``click.get_app_dir()``) and all supported file formats.
+
+          .. attention::
+            Default search pattern must follow the syntax of `wcmatch.glob
             <https://facelessuser.github.io/wcmatch/glob/#syntax>`_.
 
-        - ``is_eager`` is active by default so the ``callback`` gets the opportunity
-          to set the ``default_map`` of the CLI before any other parameter is processed.
-
         - ``file_format_patterns`` is a mapping of ``ConfigFormat`` to their associated
-          file patterns. Can be a string or a sequence of strings. This defines
-          which configuration file formats are supported, and which file patterns
-          are used to search for them.
+          file patterns. Can be a string or a sequence of strings. This defines which
+          configuration file formats are supported, and which file patterns are used to
+          search for them.
 
-          .. caution::
-              All formats depending on third-party dependencies that are not
-              installed will be skipped.
+          .. attention::
+              File patterns must follow the syntax of `wcmatch.fnmatch
+              <https://facelessuser.github.io/wcmatch/fnmatch/#syntax>`_.
+
+          .. note::
+              All formats depending on third-party dependencies that are not installed
+              will be ignored.
 
         - ``file_pattern_flags`` are flags provided to all calls of ``fnmatch.fnmatch``.
           Applies to the matching of file names against supported format patterns
           specified in ``file_format_patterns``.
 
+          .. important::
+              The ``SPLIT`` flag is always forced, as our multi-pattern design relies on
+              it.
+
         - ``roaming`` and ``force_posix`` are `fed to click.get_app_dir()
-          <https://click.palletsprojects.com/en/stable/api/#click.get_app_dir>`_
-          to setup the default configuration folder.
+          <https://click.palletsprojects.com/en/stable/api/#click.get_app_dir>`_ to
+          setup the default configuration folder.
 
         - ``search_pattern_flags`` are flags provided to all calls of ``wcmatch.glob``.
           Applies to both the default pattern and any user-provided pattern.
+
+          .. important::
+              The ``NODIR`` flag is always forced, to optimize the search for files
+              only.
 
         - ``search_parents`` indicates whether to walk back the tree of parent folders
           when searching for configuration files.
@@ -314,8 +334,8 @@ class ConfigOption(ExtraOption, ParamStructure):
           ``--show-params``. Will default to the value of ``DEFAULT_EXCLUDED_PARAMS``.
 
         - ``strict``
-            - If ``True``, raise an error if the configuration file contain
-              parameters not recognized by the CLI.
+            - If ``True``, raise an error if the configuration file contain parameters
+              not recognized by the CLI.
             - If ``False``, silently ignore unrecognized parameters.
         """
         logger = logging.getLogger("click_extra")
@@ -324,10 +344,18 @@ class ConfigOption(ExtraOption, ParamStructure):
             param_decls = ("--config", CONFIG_OPTION_NAME)
 
         # Setup supported file format patterns.
-        if file_format_patterns:
+        if isinstance(file_format_patterns, ConfigFormat):
+            self.file_format_patterns = {
+                file_format_patterns: file_format_patterns.patterns
+            }
+        elif isinstance(file_format_patterns, dict):
             self.file_format_patterns = {
                 fmt: (patterns,) if isinstance(patterns, str) else tuple(patterns)
                 for fmt, patterns in file_format_patterns.items()
+            }
+        elif isinstance(file_format_patterns, Iterable):
+            self.file_format_patterns = {
+                fmt: fmt.patterns for fmt in file_format_patterns
             }
         else:
             self.file_format_patterns = {fmt: fmt.patterns for fmt in ConfigFormat}
@@ -352,7 +380,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         # Validate file pattern flags.
         if not file_pattern_flags & glob.SPLIT:
-            logger.warning("Forcing SPLIT flag for configuration file patterns.")
+            logger.warning("Forcing SPLIT flag for file patterns.")
             file_pattern_flags |= glob.SPLIT
         self.file_pattern_flags = file_pattern_flags
 
@@ -363,7 +391,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         # Force NODIR to optimize search for files only.
         if not search_pattern_flags & glob.NODIR:
-            logger.warning("Forcing NODIR flag for configuration search patterns.")
+            logger.warning("Forcing NODIR flag for search patterns.")
             search_pattern_flags |= glob.NODIR
         self.search_pattern_flags = search_pattern_flags
 
@@ -445,7 +473,16 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         .. code-block:: text
 
-            ~/(...)/multiple_envvars.py/*.{toml,json,ini}
+            ~/folder/my_cli/*.toml|*.json|*.ini
+
+        Instead of the full absolute path:
+
+        .. code-block:: text
+
+            /home/user/folder/my_cli/*.toml|*.json|*.ini
+
+        .. caution::
+            This only applies when the ``GLOBTILDE`` flag is set in ``search_pattern_flags``.
         """
         extra = super().get_help_extra(ctx)
         if self.search_pattern_flags & glob.GLOBTILDE:

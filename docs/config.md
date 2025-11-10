@@ -205,9 +205,9 @@ ValueError: Parameter 'random_param' is not allowed in configuration file.
 
 ## Excluding parameters
 
-The {py:attr}`excluded_params <click_extra.config.ConfigOption.excluded_params>` argument allows you to block some of your CLI options to be loaded from configuration. By setting this argument, you will prevent your CLI users to set these parameters in their configuration file.
+The [`excluded_params`](#click_extra.config.ConfigOption.excluded_params) argument allows you to block some of your CLI options to be loaded from configuration. By setting this argument, you will prevent your CLI users to set these parameters in their configuration file.
 
-It {py:attr}`defaults to the value of ParamStructure.DEFAULT_EXCLUDED_PARAMS <click_extra.parameters.ParamStructure.DEFAULT_EXCLUDED_PARAMS>`.
+It [defaults to the value of `DEFAULT_EXCLUDED_PARAMS`](#click_extra.config.DEFAULT_EXCLUDED_PARAMS).
 
 You can set your own list of option to ignore with the `excluded_params` argument:
 
@@ -224,7 +224,7 @@ def my_cli(int_param):
     echo(f"int_parameter is {int_param!r}")
 ```
 
-```{attention}
+```{hint}
 You need to provide the fully-qualified ID of the option you're looking to block. I.e. the dot-separated ID that is prefixed by the CLI name. That way you can specify an option to ignore at any level, including subcommands.
 
 If you have difficulties identifying your options and their IDs, run your CLI with the [`--show-params` option](#show-params-option) for introspection.
@@ -252,7 +252,7 @@ See the [example in the top of this page](#standalone-option).
 ### YAML
 
 ```{important}
-YAML support requires additional packages. You need to [install `click_extra[yaml]`](install.md#extra-dependencies) extra dependency group to enable it.
+YAML support requires additional packages. You need to [install `click-extra[yaml]`](install.md#configuration-file-formats) extra dependency group to enable it.
 ```
 
 The example above, given for a TOML configuration file, is working as-is with YAML.
@@ -327,7 +327,7 @@ int_parameter is 65
 ### JSON5
 
 ```{important}
-JSON5 support requires additional packages. You need to [install `click_extra[json5]`](install.md#extra-dependencies) extra dependency group to enable it.
+JSON5 support requires additional packages. You need to [install `click-extra[json5]`](install.md#configuration-file-formats) extra dependency group to enable it.
 ```
 
 ```{todo}
@@ -337,7 +337,7 @@ Write example.
 ### JSONC
 
 ```{important}
-JSONC support requires additional packages. You need to [install `click_extra[jsonc]`](install.md#extra-dependencies) extra dependency group to enable it.
+JSONC support requires additional packages. You need to [install `click-extra[jsonc]`](install.md#configuration-file-formats) extra dependency group to enable it.
 ```
 
 ```{todo}
@@ -347,7 +347,7 @@ Write example.
 ### HJSON
 
 ```{important}
-HJSON support requires additional packages. You need to [install `click_extra[hjson]`](install.md#extra-dependencies) extra dependency group to enable it.
+HJSON support requires additional packages. You need to [install `click-extra[hjson]`](install.md#configuration-file-formats) extra dependency group to enable it.
 ```
 
 ```{todo}
@@ -365,7 +365,7 @@ Write example.
 ### XML
 
 ```{important}
-XML support requires additional packages. You need to [install `click_extra[xml]`](install.md#extra-dependencies) extra dependency group to enable it.
+XML support requires additional packages. You need to [install `click-extra[xml]`](install.md#configuration-file-formats) extra dependency group to enable it.
 ```
 
 ```{todo}
@@ -374,11 +374,12 @@ Write example.
 
 ## Search pattern
 
-The configuration file is searched based on a wildcard-based glob pattern.
+The configuration file is searched with a wildcard-based glob pattern.
 
-There is 2 stages to the search:
-1. Locate all files matching the path pattern
+There is multiple stages to locate and parse the configuration file:
+1. Locate all files matching the search pattern
 2. Match each file against the supported formats, in order, until one is successfully parsed
+3. Use the first successfully parsed file as the configuration source
 
 By default, the pattern is `<app_dir>/*.toml|*.json|*.ini`, where:
 
@@ -386,25 +387,20 @@ By default, the pattern is `<app_dir>/*.toml|*.json|*.ini`, where:
 - `*.toml|*.json|*.ini` are the [extensions of formats](#formats) enabled by default
 
 ```{hint}
-Depending on the formats you enabled in your installation of Click Extra, the default extensions may vary. For example, if you installed Click Extra with all extra dependencies, the default extensions would be `*.toml|*.yaml|*.yml|*.json|*.json5|*.jsonc|*.hjson|*.ini|*.xml`.
+Depending on the formats you enabled in your installation of Click Extra, the default extensions may vary. For example, if you installed Click Extra with all extra dependencies, the default extensions would extended to `*.toml|*.yaml|*.yml|*.json|*.json5|*.jsonc|*.hjson|*.ini|*.xml`.
 ```
 
-```{seealso}
-There is a long history about the choice of the default application folder.
+```{tip}
+Debugging the file search process can be quite demanding. To help you see clearly, you can enable debug logging for the `click_extra` logger to see which files are located, matched, parsed, skipped, and finally used.
 
-For Unix, the oldest reference I can track is from the [*Where Configurations Live* chapter](http://www.catb.org/~esr/writings/taoup/html/ch10s02.html)
-of [The Art of Unix Programming](https://a.co/d/aC36Ft0).
-
-The [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html) is the latest iteration of this tradition on Linux. This long-due guidelines brings [lots of benefits](https://xdgbasedirectoryspecification.com) to the platform. This is what Click Extra is [implementing by default](#default-folder).
-
-But there is still a lot of cases for which the XDG doesn't cut it, like on other platforms (macOS, Windows, …) or for legacy applications. That's why Click Extra allows you to customize the way configuration is searched and located.
+Or better, just pass the [`--verbosity DEBUG` option](logging.md#colored-verbosity) to your CLI if it is powered by Click Extra.
 ```
 
 ### Default folder
 
 The configuration file is searched in the default application path, as defined by [`click.get_app_dir()`](https://click.palletsprojects.com/en/stable/api/#click.get_app_dir).
 
-Like the latter, the `@config_option` decorator accept a `roaming` and `force_posix` argument to alter the default path:
+To mirror the latter, the `@config_option` decorator accept a `roaming` and `force_posix` argument to alter the default path:
 
 | Platform          | `roaming` | `force_posix` | Folder                                    |
 | :---------------- | :-------- | :------------ | :---------------------------------------- |
@@ -415,7 +411,7 @@ Like the latter, the `@config_option` decorator accept a `roaming` and `force_po
 | Windows (default) | `True`    | -             | `C:\Users\<user>\AppData\Roaming\Foo Bar` |
 | Windows           | `False`   | -             | `C:\Users\<user>\AppData\Local\Foo Bar`   |
 
-Let's change the default base folder in the following example:
+Let's change the default in the following example:
 
 ```{click:example}
 :emphasize-lines: 6
@@ -434,7 +430,17 @@ See how the default to `--config` option has been changed to `~/.cli/`:
 ```{click:run}
 :emphasize-lines: 7
 result = invoke(cli, args=["--help"])
-assert "~/.cli/*.{" in result.stdout
+assert "~/.cli/*.toml|" in result.stdout.replace("\n                        ", "")
+```
+
+```{seealso}
+The default application folder concept has a long and complicated history in the Unix world.
+
+The oldest reference I can track is from the [*Where Configurations Live*](http://www.catb.org/~esr/writings/taoup/html/ch10s02.html) chapter from [*The Art of Unix Programming*](https://a.co/d/aC36Ft0).
+
+The [*XDG base directory specification*](https://specifications.freedesktop.org/basedir/latest/) is the latest iteration of this tradition on Linux. This long-due guidelines brings [lots of benefits](https://xdgbasedirectoryspecification.com) to the platform. This is what Click Extra is [implementing by default](#default-folder).
+
+But there is still a lot of cases for which the XDG doesn't cut it, like on other platforms (macOS, Windows, …) or for legacy applications. That's why Click Extra allows you to customize the way configuration is searched and located.
 ```
 
 ### Custom pattern
@@ -467,17 +473,196 @@ Patterns provided to `@config_option`:
 
 - are [based on `wcmatch.glob` syntax](https://facelessuser.github.io/wcmatch/glob/#syntax)
 - should be written with Unix separators (`/`), even for Windows (the [pattern will be normalized to the local platform dialect](https://facelessuser.github.io/wcmatch/glob/#windows-separators))
-- are configured with the following default flags:
-  - [`GLOBSTAR`](https://facelessuser.github.io/wcmatch/glob/#globstar): recursive directory search via `**`
+- are setup with the following default flags:
+  - [`GLOBSTAR`](https://facelessuser.github.io/wcmatch/glob/#globstar): recursive directory search via `**` glob notation
   - [`FOLLOW`](https://facelessuser.github.io/wcmatch/glob/#follow): traverse symlink directories
-  - [`DOTGLOB`](https://facelessuser.github.io/wcmatch/glob/#dotglob): allow match of file or directory starting with a dot (`.`)
+  - [`DOTGLOB`](https://facelessuser.github.io/wcmatch/glob/#dotglob): include file or directory starting with a literal dot (`.`)
   - [`SPLIT`](https://facelessuser.github.io/wcmatch/glob/#split): allow multiple patterns separated by `|`
-  - [`GLOBTILDE`](https://facelessuser.github.io/wcmatch/glob/#globtilde): allows for user path expansion via `~`
+  - [`GLOBTILDE`](https://facelessuser.github.io/wcmatch/glob/#globtilde): allow user's home path `~` to be expanded
   - [`NODIR`](https://facelessuser.github.io/wcmatch/glob/#nodir): restricts results to files
+
+The flags above can be changed via the [`search_pattern_flags` argument of the decorator](config.md#click_extra.config.ConfigOption).
+
+```{important}
+The `NODIR` flag is always forced, to optimize the search for files only.
+```
+
+### Multi-format matching
+
+The default behavior consist in searching for all files matching the default `*.toml|*.json|*.ini` pattern. Or more, depending on the [extra dependencies](install.md#configuration-file-formats) installed with Click Extra.
+
+As soon as files are located, they are matched against each supported format, in order, until one is successfully parsed.
+
+The first successfully parsed file is used to feed the CLI's default values.
+
+The search will only consider matches that:
+
+- exists,
+- are a file,
+- are not empty,
+- matches file format patterns,
+- can be parsed successfully, and
+- produce a non-empty data structure.
+
+All others are skipped. And the search continues with the next matching file.
+
+To influence which formats are supported, see the next section.
+
+### Format selection
+
+If you want to limit the formats supported by your CLI, you can use the `file_format_patterns` argument to specify which formats are allowed:
+
+```{click:example}
+:emphasize-lines: 7
+from click import command, option, echo
+
+from click_extra import config_option, ConfigFormat
+
+@command(context_settings={"show_default": True})
+@option("--int-param", type=int, default=10)
+@config_option(file_format_patterns=[ConfigFormat.TOML, ConfigFormat.JSON])
+def cli(int_param):
+    echo(f"int_parameter is {int_param!r}")
+```
+
+Notice how the default search pattern has been restricted to only `*.toml` and `*.json` files:
+
+```{click:run}
+:emphasize-lines: 8
+result = invoke(cli, args=["--help"])
+assert "*.json]" in result.stdout
+```
+
+You can also specify a single format:
+
+```{click:example}
+:emphasize-lines: 7
+from click import command, option, echo
+
+from click_extra import config_option, ConfigFormat
+
+@command(context_settings={"show_default": True})
+@option("--int-param", type=int, default=10)
+@config_option(file_format_patterns=ConfigFormat.XML)
+def cli(int_param):
+    echo(f"int_parameter is {int_param!r}")
+```
+
+```{click:run}
+:emphasize-lines: 8
+result = invoke(cli, args=["--help"])
+assert "*.xml]" in result.stdout
+```
+
+### Custom file format patterns
+
+Each format is associated with [default file patterns](#formats). But you can also change these with the same `file_format_patterns` argument:
+
+```{click:example}
+:emphasize-lines: 8-11
+from click import command, option, echo
+
+from click_extra import config_option, ConfigFormat
+
+@command(context_settings={"show_default": True})
+@option("--int-param", type=int, default=10)
+@config_option(
+    file_format_patterns={
+        ConfigFormat.TOML: ["*.toml", "my_app.conf"],
+        ConfigFormat.JSON: ["*.json", "settings*.js"],
+    }
+)
+def cli(int_param):
+    echo(f"int_parameter is {int_param!r}")
+```
+
+Again, this is reflected in the help:
+
+```{click:run}
+:emphasize-lines: 8
+result = invoke(cli, args=["--help"])
+assert "*.json" in result.stdout
+```
+
+### Parsing priority
+
+The syntax of `file_format_patterns` argument allows you to specify either a list of formats, a single format, or a mapping of formats to patterns. And we can even have multiple formats share the same pattern:
+
+```{click:example}
+:emphasize-lines: 8-11
+from click import command, option, echo
+
+from click_extra import config_option, ConfigFormat
+
+@command(context_settings={"show_default": True})
+@option("--int-param", type=int, default=10)
+@config_option(
+    file_format_patterns={
+        ConfigFormat.TOML: "*.toml",
+        ConfigFormat.JSON5: "config*.js",
+        ConfigFormat.JSON: ["config*.js", "*.js"],
+    }
+)
+def cli(int_param):
+    echo(f"int_parameter is {int_param!r}")
+```
+
+Notice how all formats are merged into the same pattern:
+
+```{click:run}
+:emphasize-lines: 8
+result = invoke(cli, args=["--help"])
+assert "*.toml|config*.js|*.js" in result.stdout
+```
+
+What will happen in this case is that the search will try to parse matching files first as `JSON5`, then as `JSON`. The first format that successfully parses the file will be used.
+
+So a file named `config123.js` containing valid `JSON5` syntax will be parsed as such, even if it also contains valid `JSON` syntax and match the `*.js` pattern. But if for any reason the `JSON5` parsing fails, the search will try to parse it as `JSON` next, which is the second-best match.
+
+On the other hand, a file named `settings.js` will only be tried as `JSON`, since it doesn't match the `JSON5` pattern.
+
+This illustrates the flexibility of this approach, but how the order of formats matter.
+
+### File pattern flags
+
+The `file_pattern_flags` argument controls the matching behavior of file patterns.
+
+These flags are defined in [`wcmatch.fnmatch`](https://facelessuser.github.io/wcmatch/fnmatch/#flags) and default to:
+
+- [`NEGATE`](https://facelessuser.github.io/wcmatch/fnmatch/#negate): adds support of `!` negation to define exclusions
+- [`SPLIT`](https://facelessuser.github.io/wcmatch/fnmatch/#split): allow multiple patterns separated by `|`
+
+```{important}
+The `SPLIT` flag is always forced, as our multi-pattern design relies on it.
+```
+
+If for example, you want to make the matching case-insensitive, you do that by adding the `IGNORECASE` flag:
+
+```python
+from wcmatch.fnmatch import NEGATE, SPLIT, IGNORECASE
+
+@config_option(file_pattern_flags=NEGATE | SPLIT | IGNORECASE)
+```
+
+But because of the way flags works, you have to re-specify all flags you want to keep, including the default ones.
+
+### Excluding files
+
+[Negation is active by default](#file-pattern-flags), which is useful when you want to exclude some files from being considered during the search.
+
+To ignore, for example, all your template files residing alongside real configuration files. Then, to exclude all files starting with `template_` in their name, you can do:
+
+```python
+@config_option(
+    file_format_patterns={
+        ConfigFormat.TOML: ["*.toml", "!template_*.toml"],
+    }
+)
+```
 
 ### Extension-less files
 
-This is an example of a special case that is popular on Unix-like systems: the configuration file is an extension-less dotfile in the home directory.
+This demonstrate the popular case on Unix-like systems, where the configuration file is an extension-less dotfile in the home directory.
 
 Here is how to set up `@config_option` for a pre-defined `.commandrc` file in YAML:
 
@@ -488,7 +673,10 @@ from click import command
 from click_extra import config_option, ConfigFormat
 
 @command(context_settings={"show_default": True})
-@config_option(default="~/.commandrc", formats=ConfigFormat.YAML)
+@config_option(
+    default="~/*",
+    file_format_patterns={ConfigFormat.YAML: ".commandrc"}
+)
 def cli():
     pass
 ```
@@ -496,61 +684,7 @@ def cli():
 ```{click:run}
 :emphasize-lines: 7
 result = invoke(cli, args=["--help"])
-assert "~/.commandrc]" in result.stdout
-```
-
-### Multi-format matching
-
-The default behavior consist in searching for all files matching the default `*.toml|*.json|*.ini` pattern.
-
-A parsing attempt is made for each file matching the extension pattern, in the order of the table above.
-
-As soon as a file is able to be parsed without error and returns a `dict`, the search stops and the file is used to feed the CLI's default values.
-
-### Forcing formats
-
-If you know in advance the only format you'd like to support, you can use the `formats` argument on your decorator like so:
-
-```{click:example}
-:emphasize-lines: 7
-from click import command, option, echo
-
-from click_extra import config_option, ConfigFormat
-
-@command(context_settings={"show_default": True})
-@option("--int-param", type=int, default=10)
-@config_option(formats=ConfigFormat.JSON)
-def cli(int_param):
-    echo(f"int_parameter is {int_param!r}")
-```
-
-Notice how the default search pattern gets limited to files with a `.json` extension:
-
-```{click:run}
-:emphasize-lines: 8
-result = invoke(cli, args=["--help"])
-assert "*.json]" in result.stdout
-```
-
-This also works with a subset of formats:
-
-```{click:example}
-:emphasize-lines: 7
-from click import command, option, echo
-
-from click_extra import config_option, ConfigFormat
-
-@command(context_settings={"show_default": True})
-@option("--int-param", type=int, default=10)
-@config_option(formats=[ConfigFormat.INI, ConfigFormat.YAML])
-def cli(int_param):
-    echo(f"int_parameter is {int_param!r}")
-```
-
-```{click:run}
-:emphasize-lines: 8
-result = invoke(cli, args=["--help"])
-assert "*.{ini,yaml,yml}]" in result.stdout
+assert "[default: ~/*]" in result.stdout
 ```
 
 ### Remote URL
