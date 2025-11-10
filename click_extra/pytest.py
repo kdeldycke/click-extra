@@ -39,7 +39,6 @@ from click_extra.testing import (
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    import re
     from pathlib import Path
     from typing import Any
 
@@ -267,7 +266,7 @@ default_options_uncolored_help = (
     # and we cannot hard-code the whole glob pattern because the line wrapping would be
     # different on different terminals.
     r"(                        .+\n)*"
-    r"                        .*ni,xml}\]\n"
+    r"                        .*ni\|\*\.xml\]\n"
     r"  --no-config           Ignore all configuration files and only use command line\n"
     r"                        parameters and environment variables.\n"
     r"  --show-params         Show all CLI parameters, their provenance, defaults and\n"
@@ -295,7 +294,7 @@ default_options_colored_help = (
     # different on different terminals.
     r"                        pattern of local path and remote URL.  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault:( \S+)?\n"
     r"(                        .+\n)*"
-    r"                        .*ni,xml}\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
+    r"                        .*ni\|\*\.xml\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
     r"  \x1b\[36m--no-config\x1b\[0m           Ignore all configuration files and only use command line\n"
     r"                        parameters and environment variables.\n"
     r"  \x1b\[36m--show-params\x1b\[0m         Show all CLI parameters, their provenance, defaults and\n"
@@ -333,15 +332,17 @@ default_debug_colored_verbose_log = (
 
 
 default_debug_uncolored_config = (
-    r"debug: Load configuration"
-    r" matching .+\*\.{toml,yaml,yml,json,json5,jsonc,hjson,ini,xml}\n"
-    r"debug: Pattern is not an URL: search local file system.\n"
+    r"debug: Load configuration matching"
+    r" .+\*\.toml\|\*\.yaml\|\*\.yml\|\*\.json\|\*\.json5\|\*\.jsonc\|\*\.hjson\|\*\.ini\|\*\.xml\n"
+    r"debug: Search filesystem for"
+    r" .+\*\.toml\|\*\.yaml\|\*\.yml\|\*\.json\|\*\.json5\|\*\.jsonc\|\*\.hjson\|\*\.ini\|\*\.xml\n"
     r"debug: No configuration file found.\n"
 )
 default_debug_colored_config = (
-    r"\x1b\[34mdebug\x1b\[0m: Load configuration"
-    r" matching .+\*\.{toml,yaml,yml,json,json5,jsonc,hjson,ini,xml}\n"
-    r"\x1b\[34mdebug\x1b\[0m: Pattern is not an URL: search local file system.\n"
+    r"\x1b\[34mdebug\x1b\[0m: Load configuration matching"
+    r" .+\*\.toml\|\*\.yaml\|\*\.yml\|\*\.json\|\*\.json5\|\*\.jsonc\|\*\.hjson\|\*\.ini\|\*\.xml\n"
+    r"\x1b\[34mdebug\x1b\[0m: Search filesystem for"
+    r" .+\*\.toml\|\*\.yaml\|\*\.yml\|\*\.json\|\*\.json5\|\*\.jsonc\|\*\.hjson\|\*\.ini\|\*\.xml\n"
     r"\x1b\[34mdebug\x1b\[0m: No configuration file found.\n"
 )
 
@@ -413,7 +414,7 @@ def assert_output_regex(request):
     Designed for the regexes defined above.
     """
 
-    def _check_output(output: str, regex: re.Pattern | str) -> None:
+    def _check_output(output: str, regex: str) -> None:
         """Check that the ``output`` matches the given ``regex``.
 
         Rely on Pytest's terminal writer to enhance diff highlighting.

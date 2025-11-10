@@ -330,6 +330,10 @@ class RegexLineMismatch(AssertionError):
         super().__init__(message)
 
 
+REGEX_NEWLINE = "\\n"
+"""Newline representation in the regexes above."""
+
+
 def regex_fullmatch_line_by_line(regex: re.Pattern | str, content: str) -> None:
     """Check that the ``content`` matches the given ``regex``.
 
@@ -338,15 +342,16 @@ def regex_fullmatch_line_by_line(regex: re.Pattern | str, content: str) -> None:
 
     This is useful when comparing large walls of text, such as CLI output.
     """
-    if not isinstance(regex, re.Pattern):
-        regex = re.compile(regex)
-
     # If the regex fully match the output right away, no need for a custom message.
     if re.fullmatch(regex, content):
         return
 
-    regex_lines = regex.pattern.splitlines(keepends=True)
     content_lines = content.splitlines(keepends=True)
+
+    if isinstance(regex, str):
+        regex_lines = [line + REGEX_NEWLINE for line in regex.split(REGEX_NEWLINE)]
+    else:
+        regex_lines = regex.pattern.splitlines(keepends=True)
 
     line_indexes = range(max(len(regex_lines), len(content_lines)))
     for i in line_indexes:

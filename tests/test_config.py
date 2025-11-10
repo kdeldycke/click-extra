@@ -348,7 +348,9 @@ def test_conf_default_path(invoke, simple_config_cli):
         line.strip()
         for line in result.stdout.split("--config CONFIG_PATH")[1].splitlines()
     )
-    assert "*.{toml,yaml,yml,json,json5,jsonc,hjson,ini,xml}]" in help_screen
+    assert (
+        "*.toml|*.yaml|*.yml|*.json|*.json5|*.jsonc|*.hjson|*.ini|*.xml]" in help_screen
+    )
 
     assert not result.stderr
     assert result.exit_code == 0
@@ -681,7 +683,7 @@ def test_multiple_cli_shared_conf(invoke, create_config):
 
     conf_path = create_config("shared.toml", conf_file)
 
-    search_path = conf_path.parent / "*.{toml,yaml,yml,json,ini,xml}"
+    search_path = conf_path.parent / "*.toml|*.yaml|*.yml|*.json|*.ini|*.xml"
 
     @click.command
     @option("--int-param", type=int, default=3)

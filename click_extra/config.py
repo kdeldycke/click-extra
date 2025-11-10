@@ -140,9 +140,17 @@ except ImportError:
 class ConfigFormat(Enum):
     """All configuration formats, associated to their support status.
 
-    The value of each member indicates whether the format is supported or not,
-    depending on the availability of the required third-party packages. This
-    evaluation is performed at runtime when this module is imported.
+    The first element of the tuple is a sequence of file extensions associated to the
+    format. Patterns are fed to ``wcmatch.glob`` for matching, and are influenced by the
+    flags set on the ``ConfigOption`` instance.
+
+    The second element indicates whether the format is supported or not, depending on
+    the availability of the required third-party packages. This evaluation is performed
+    at runtime when this module is imported.
+
+    .. caution::
+        The order is important for both format members and file patterns. It defines the
+        priority order in which formats are tried when multiple candidate files are found.
 
     .. todo::
         Add support for `JWCC
@@ -150,40 +158,27 @@ class ConfigFormat(Enum):
         / `hujson <https://github.com/tailscale/hujson>`_ format?
     """
 
-    TOML = True
-    YAML = yaml_support
-    JSON = True
-    JSON5 = json5_support
-    JSONC = jsonc_support
-    HJSON = hjson_support
-    INI = True
-    XML = xml_support
+    TOML = (("*.toml",), True)
+    YAML = (("*.yaml", "*.yml"), yaml_support)
+    JSON = (("*.json",), True)
+    JSON5 = (("*.json5",), json5_support)
+    JSONC = (("*.jsonc",), jsonc_support)
+    HJSON = (("*.hjson",), hjson_support)
+    INI = (("*.ini",), True)
+    XML = (("*.xml",), xml_support)
 
+    def __str__(self) -> str:
+        return self.name.lower()
+
+    @property
     def enabled(self) -> bool:
         """Returns ``True`` if the format is supported, ``False`` otherwise."""
-        return self.value
+        return self.value[1]
 
-
-DEFAULT_FORMAT_PATTERNS: dict[ConfigFormat, tuple[str]] = {
-    ConfigFormat.TOML: ("*.toml",),
-    ConfigFormat.YAML: ("*.yaml", "*.yml"),
-    ConfigFormat.JSON: ("*.json",),
-    ConfigFormat.JSON5: ("*.json5",),
-    ConfigFormat.JSONC: ("*.jsonc",),
-    ConfigFormat.HJSON: ("*.hjson",),
-    ConfigFormat.INI: ("*.ini",),
-    ConfigFormat.XML: ("*.xml",),
-}
-"""Default mapping of configuration formats to their file patterns.
-
-Values are a sequence of file extensions associated to the format. Patterns
-are fed to ``wcmatch.glob`` for matching, and are influenced by the flags set
-on the ``ConfigOption`` instance.
-
-.. caution::
-    The order is important for both keys and patterns in the values. It defines the
-    priority order in which formats are tried when multiple files are found.
-"""
+    @property
+    def patterns(self) -> tuple[str]:
+        """Returns the default file patterns associated to the format."""
+        return self.value[0]
 
 
 CONFIG_OPTION_NAME = "config"
@@ -315,7 +310,7 @@ class ConfigOption(ExtraOption, ParamStructure):
                 for fmt, patterns in file_format_patterns.items()
             }
         else:
-            self.file_format_patterns = DEFAULT_FORMAT_PATTERNS.copy()
+            self.file_format_patterns = {fmt: fmt.patterns for fmt in ConfigFormat}
 
         # Check mapping of file formats to their patterns.
         for fmt, patterns in self.file_format_patterns.items():
@@ -326,7 +321,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             assert len(set(patterns)) == len(patterns), f"Duplicate patterns for {fmt}"
 
         # Filter out disabled formats.
-        disabled = {fmt for fmt in self.file_format_patterns if not fmt.enabled()}
+        disabled = {fmt for fmt in self.file_format_patterns if not fmt.enabled}
         if disabled:
             logger.debug(f"Skip disabled {', '.join(map(str, disabled))}.")
             for fmt in disabled:
@@ -509,7 +504,6 @@ class ConfigOption(ExtraOption, ParamStructure):
                     if not file_path.is_file():
                         logger.debug(f"Skipping non-file {file_path}")
                         continue
-                    logger.debug(f"File found at {file_path}")
                     files_found += 1
                     yield file_path, file_path.read_text(encoding="utf-8")
 
@@ -595,19 +589,29 @@ class ConfigOption(ExtraOption, ParamStructure):
         """
         logger = logging.getLogger("click_extra")
 
-        for path, content in self.search_and_read_file(pattern):
+        for location, content in self.search_and_read_file(pattern):
+            if isinstance(location, URL):
+                filename = location.path_parts[-1]
+            else:
+                filename = location.name
+
             # Match file with formats.
             matching_formats = tuple(
                 fmt
                 for fmt, patterns in self.file_format_patterns.items()
-                if fnmatch.fnmatch(path.name, patterns, flags=self.file_pattern_flags)
+                if fnmatch.fnmatch(filename, patterns, flags=self.file_pattern_flags)
             )
+
+            if not matching_formats:
+                logger.debug(f"{location} does not match {self.file_pattern}.")
+                continue
+
             logger.debug(
-                f"Parsing {path!r} with {','.join(map(str, matching_formats))}"
+                f"Parsing {location} with {','.join(map(str, matching_formats))}"
             )
             for conf in self.parse_conf(content, formats=matching_formats):
                 if conf:
-                    return path, conf
+                    return location, conf
                 logger.debug("Empty configuration, try next file.")
 
         return None, None
