@@ -245,7 +245,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
     search_parents: bool
 
-    excluded_params: frozenset[str]
+    # excluded_params: frozenset[str]
 
     strict: bool
 
