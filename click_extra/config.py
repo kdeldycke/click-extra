@@ -190,6 +190,25 @@ use of any configuration file at all.
 """
 
 
+DEFAULT_EXCLUDED_PARAMS = (
+    CONFIG_OPTION_NAME,
+    "help",
+    "show_params",
+    "version",
+)
+"""Default parameter IDs to exclude from the configuration file.
+
+Defaults to:
+
+- ``--config`` option, which cannot be used to recursively load another configuration
+  file.
+- ``--help``, as it makes no sense to have the configurable file always forces a CLI to
+  show the help and exit.
+- ``--show-params`` flag, which is like ``--help`` and stops the CLI execution.
+- ``--version``, which is not a configurable option *per-se*.
+"""
+
+
 class Sentinel(Enum):
     """Enum used to define sentinel values.
 
@@ -225,7 +244,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
     search_parents: bool
 
-    excluded_params: Iterable[str]
+    excluded_params: frozenset[str]
 
     strict: bool
 
@@ -290,8 +309,9 @@ class ConfigOption(ExtraOption, ParamStructure):
           when searching for configuration files.
 
         - ``excluded_params`` are parameters which, if present in the configuration
-          file, will be ignored and not applied to the CLI. See
-          ``ParamStructure.excluded_params`` for the default values.
+          file, will be ignored and not applied to the CLI. Items are expected to be the
+          fully-qualified ID of the parameter, as produced in the output of
+          ``--show-params``. Will default to the value of ``DEFAULT_EXCLUDED_PARAMS``.
 
         - ``strict``
             - If ``True``, raise an error if the configuration file contain
@@ -349,8 +369,10 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         self.search_parents = search_parents
 
+        # If the user provided its own excluded params, freeze them now and store it
+        # to prevent the dynamic default property to be called.
         if excluded_params is not None:
-            self.excluded_params = excluded_params
+            self.excluded_params = frozenset(excluded_params)
 
         self.strict = strict
 
@@ -364,6 +386,23 @@ class ConfigOption(ExtraOption, ParamStructure):
             is_eager=is_eager,
             expose_value=expose_value,
             **kwargs,
+        )
+
+    @cached_property
+    def excluded_params(self) -> set[str]:
+        """Generates the default list of fully-qualified IDs to exclude.
+
+        .. caution::
+            It is only called once to produce the default exclusion list if the user did
+            not provided its own.
+
+            It was not implemented in the constructor but made as a property, to allow
+            for a just-in-time call within the current context. Without this trick we could
+            not have fetched the CLI name.
+        """
+        cli = get_current_context().find_root().command
+        return set(
+            f"{cli.name}{ParamStructure.SEP}{p}" for p in DEFAULT_EXCLUDED_PARAMS
         )
 
     @cached_property

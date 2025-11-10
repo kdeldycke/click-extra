@@ -159,11 +159,13 @@ class ParamStructure:
     ) -> None:
         """Allow a list of paramerers to be blocked from the parameter structure.
 
-        If ``excluded_params`` is not provided, let the dynamic and cached
-        ``self.excluded_params`` property to compute the default value on first use.
+        Items of ``excluded_params`` are expected to be the fully-qualified ID of the
+        parameter. Which is the dot-separated ID that is prefixed by the CLI name,
+        featured in the first column of the table.
         """
-        if excluded_params is not None:
-            self.excluded_params = excluded_params
+        self.excluded_params: frozenset[str] = (
+            frozenset(excluded_params) if excluded_params else frozenset()
+        )
 
         super().__init__(*args, **kwargs)
 
@@ -327,45 +329,6 @@ class ParamStructure:
             f"Can't guess the appropriate Python type of {param!r} parameter."
         )
 
-    @cached_property
-    def excluded_params(self) -> Iterable[str]:
-        """List of parameter IDs to exclude from the parameter structure.
-
-        Elements of this list are expected to be the fully-qualified ID of the
-        parameter. Which is the dot-separated ID that is prefixed by the CLI name,
-        featured in the first column of the table.
-
-        Defaults to:
-
-        - ``--config`` option, which cannot be used to recursively load another
-          configuration file.
-        - ``--help``, as it makes no sense to have the configurable file always
-          forces a CLI to show the help and exit.
-        - ``--show-params`` flag, which is like ``--help`` and stops the CLI execution.
-        - ``--version``, which is not a configurable option *per-se*.
-
-        .. caution::
-            It is only called once to produce the list of default parameters to
-            exclude, if the user did not provided its own list to the constructor.
-
-            It was not implemented in the constructor but made as a property, to allow
-            for a just-in-time call to the current context. Without this trick we could
-            not have fetched the CLI name.
-        """
-        # Imported here to avoid circular imports.
-        from .config import CONFIG_OPTION_NAME
-
-        DEFAULT_EXCLUDED_PARAMS = (
-            CONFIG_OPTION_NAME,
-            "help",
-            "show_params",
-            "version",
-        )
-
-        ctx = get_current_context()
-        cli = ctx.find_root().command
-        return [f"{cli.name}{self.SEP}{p}" for p in DEFAULT_EXCLUDED_PARAMS]
-
     def build_param_trees(self) -> None:
         """Build all parameters tree structure in one go and cache them.
 
@@ -463,7 +426,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
 
         kwargs.setdefault("callback", self.print_params)
 
-        self.excluded_params = ()
+        self.excluded_params = frozenset()
         """Deactivates the blocking of any parameter."""
 
         super().__init__(
