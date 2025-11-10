@@ -173,12 +173,12 @@ class ConfigFormat(Enum):
     @property
     def enabled(self) -> bool:
         """Returns ``True`` if the format is supported, ``False`` otherwise."""
-        return self.value[1]  # type ignore: [no-any-return]
+        return self.value[1]  # type: ignore[no-any-return]
 
     @property
     def patterns(self) -> tuple[str]:
         """Returns the default file patterns associated to the format."""
-        return self.value[0]  # type ignore: [no-any-return]
+        return self.value[0]  # type: ignore[no-any-return]
 
 
 CONFIG_OPTION_NAME = "config"
@@ -213,7 +213,7 @@ NO_CONFIG = Sentinel.NO_CONFIG
 class ConfigOption(ExtraOption, ParamStructure):
     """A pre-configured option adding ``--config CONFIG_PATH``."""
 
-    file_format_patterns: dict[ConfigFormat, tuple[str]]
+    file_format_patterns: dict[ConfigFormat, tuple[str, ...]]
 
     file_pattern_flags: int
 
@@ -439,7 +439,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             if search_path.is_file():
                 search_path = search_path.parent
 
-            yield from (search_path, *search_path.parents)
+            yield from map(str, (search_path, *search_path.parents))
             return
 
         # Magic patterns needs special handling for parent search.
