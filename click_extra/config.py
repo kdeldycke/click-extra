@@ -51,12 +51,12 @@ import os
 import sys
 from configparser import ConfigParser, ExtendedInterpolation
 from enum import Enum
-from functools import partial
+from functools import cached_property, partial
 from gettext import gettext as _
 from pathlib import Path
 
 import requests
-from boltons.iterutils import flatten
+from boltons.iterutils import flatten, unique
 from boltons.pathutils import shrinkuser
 from boltons.urlutils import URL
 from deepmerge import always_merger
@@ -246,11 +246,16 @@ class ConfigOption(ExtraOption, ParamStructure):
         is_eager: bool = True,
         expose_value: bool = False,
         file_format_patterns: Mapping[ConfigFormat, Sequence[str] | str] | None = None,
-        file_pattern_flags: int = fnmatch.NEGATE,
+        file_pattern_flags: int = fnmatch.NEGATE | glob.SPLIT,
         roaming: bool = True,
         force_posix: bool = False,
         search_pattern_flags: int = (
-            glob.GLOBSTAR | glob.FOLLOW | glob.DOTGLOB | glob.GLOBTILDE | glob.NODIR
+            glob.GLOBSTAR
+            | glob.FOLLOW
+            | glob.DOTGLOB
+            | glob.SPLIT
+            | glob.GLOBTILDE
+            | glob.NODIR
         ),
         search_parents: bool = False,
         excluded_params: Iterable[str] | None = None,
@@ -298,6 +303,8 @@ class ConfigOption(ExtraOption, ParamStructure):
               parameters not recognized by the CLI.
             - If ``False``, silently ignore unrecognized parameters.
         """
+        logger = logging.getLogger("click_extra")
+
         if not param_decls:
             param_decls = ("--config", CONFIG_OPTION_NAME)
 
@@ -321,15 +328,17 @@ class ConfigOption(ExtraOption, ParamStructure):
         # Filter out disabled formats.
         disabled = {fmt for fmt in self.file_format_patterns if not fmt.enabled()}
         if disabled:
-            logging.getLogger("click_extra").debug(
-                f"Skip disabled {', '.join(map(str, disabled))}."
-            )
+            logger.debug(f"Skip disabled {', '.join(map(str, disabled))}.")
             for fmt in disabled:
                 del self.file_format_patterns[fmt]
 
         if not self.file_format_patterns:
             raise ValueError("No configuration format is enabled.")
 
+        # Validate file pattern flags.
+        if not file_pattern_flags & glob.SPLIT:
+            logger.warning("Forcing SPLIT flag for configuration file patterns.")
+            file_pattern_flags |= glob.SPLIT
         self.file_pattern_flags = file_pattern_flags
 
         # Setup the configuration for default folder search.
@@ -337,8 +346,11 @@ class ConfigOption(ExtraOption, ParamStructure):
         self.force_posix = force_posix
         kwargs.setdefault("default", self.default_pattern)
 
-        # Use user's flags but force NODIR.
-        self.search_pattern_flags = search_pattern_flags | glob.NODIR
+        # Force NODIR to optimize search for files only.
+        if not search_pattern_flags & glob.NODIR:
+            logger.warning("Forcing NODIR flag for configuration search patterns.")
+            search_pattern_flags |= glob.NODIR
+        self.search_pattern_flags = search_pattern_flags
 
         self.search_parents = search_parents
 
@@ -359,20 +371,29 @@ class ConfigOption(ExtraOption, ParamStructure):
             **kwargs,
         )
 
+    @cached_property
+    def file_pattern(self) -> str:
+        """Compile all file patterns from the supported formats.
+
+        Use ``|`` split notation to combine multiple patterns.
+
+        Returns a single pattern string.
+        """
+        patterns = unique(flatten(self.file_format_patterns.values()))
+        return "|".join(patterns)
+
     def default_pattern(self) -> str:
         """Returns the default pattern used to search for the configuration file.
 
-        Defaults to ``<app_dir>/*.{toml,json,ini}``. Where ``<app_dir>`` is produced by
+        Defaults to ``<app_dir>/*.toml|*.json|*.ini``. Where ``<app_dir>`` is produced by
         the `clickget_app_dir() method
         <https://click.palletsprojects.com/en/stable/api/#click.get_app_dir>`_.
         The result depends on OS and is influenced by the ``roaming`` and
-        ``force_posix`` properties of this instance.
+        ``force_posix`` properties.
 
-        In that folder, we're looking for any file matching the extensions
-        derived from the ``self.formats`` property:
-
-        - a simple ``*.ext`` pattern if only one format is set
-        - an expanded ``*.{ext1,ext2,...}`` pattern if multiple formats are set
+        .. todo::
+            Use `platformdirs <https://github.com/tox-dev/platformdirs>`_ for more
+            advanced configuration folder detection?
         """
         ctx = get_current_context()
         cli_name = ctx.find_root().info_name
@@ -381,14 +402,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         app_dir = Path(
             get_app_dir(cli_name, roaming=self.roaming, force_posix=self.force_posix),
         ).resolve()
-        # Collect all supported extensions from the selected formats.
-        extensions = flatten(f.value[0] for f in self.formats)
-        if len(extensions) == 1:
-            ext_pattern = extensions[0]
-        else:
-            # Use brace notation for multiple extension matching.
-            ext_pattern = f"{{{','.join(extensions)}}}"
-        return f"{app_dir}{os.path.sep}*.{ext_pattern}"
+        return f"{app_dir}{os.path.sep}{self.file_pattern}"
 
     def get_help_extra(self, ctx: click.Context) -> click.types.OptionHelpExtra:
         """Replaces the default value of the configuration option.
@@ -400,7 +414,10 @@ class ConfigOption(ExtraOption, ParamStructure):
             ~/(...)/multiple_envvars.py/*.{toml,json,ini}
         """
         extra = super().get_help_extra(ctx)
-        extra["default"] = shrinkuser(Path(self.get_default(ctx)))
+        default = Path(self.get_default(ctx))
+        if self.search_pattern_flags & glob.GLOBTILDE:
+            default = shrinkuser(default)
+        extra["default"] = default
         return extra
 
     def parent_patterns(self, pattern: str) -> Iterable[str]:
@@ -436,11 +453,11 @@ class ConfigOption(ExtraOption, ParamStructure):
         # XXXXXXXXXXXX below is experimental to dissect the magic pattern into folder and file parts.
 
     def search_and_read_file(self, pattern: str) -> Iterable[tuple[Path | URL, str]]:
-        """Search file-system or URL for files matching the ``pattern``.
+        """Search filesystem or URL for files matching the ``pattern``.
 
         If ``pattern`` is an URL, download its content. A pattern is considered an URL
         only if it validates as one and starts with ``http://`` or ``https://``. All
-        other patterns are considered glob patterns for local file-system search.
+        other patterns are considered glob patterns for local filesystem search.
 
         Returns an iterator of the normalized location and its raw content, for each
         one matching the pattern. Only files are returned, directories are silently
@@ -473,7 +490,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         # Not an URL, search local file system.
         else:
-            logger.debug(f"Search file-system for: {pattern}")
+            logger.debug(f"Search filesystem for {pattern}")
             # wcmatch expect patterns to be written with Unix-like syntax by default,
             # even on Windows. See more details at:
             # https://facelessuser.github.io/wcmatch/glob/#windows-separators
@@ -490,7 +507,7 @@ class ConfigOption(ExtraOption, ParamStructure):
                     logger.debug(f"Found candidate: {file}")
                     file_path = Path(file).resolve()
                     if not file_path.is_file():
-                        logger.debug(f"Skipping non-file: {file_path}")
+                        logger.debug(f"Skipping non-file {file_path}")
                         continue
                     logger.debug(f"File found at {file_path}")
                     files_found += 1
@@ -511,7 +528,6 @@ class ConfigOption(ExtraOption, ParamStructure):
         successful parse.
 
         .. attention::
-
             Formats whose parsing raises an exception or does not return a ``dict``
             are considered a failure and are skipped.
 
@@ -762,7 +778,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         else:
             if user_conf is None:
                 message = (
-                    f"Error while parsing the configuration file in any of "
+                    "Error parsing file as "
                     f"{', '.join(map(str, self.file_format_patterns))}."
                 )
                 if explicit_conf:

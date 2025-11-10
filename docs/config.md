@@ -37,7 +37,7 @@ result = invoke(my_cli, args=["--help"])
 assert "--config CONFIG_PATH" in result.stdout
 ```
 
-See in the result above, there is an explicit mention of the default location of the configuration file (`[default: ~/.config/my-cli/*.{toml,yaml,yml,json,json5,jsonc,hjson,ini,xml}]`). This improves discoverability, and [makes sysadmins happy](https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations), especially those not familiar with your CLI.
+See in the result above, there is an explicit mention of the default location of the configuration file (`[default: ~/.config/my-cli/*.toml|*.yaml|*.yml|*.json|*.json5|*.jsonc|*.hjson|*.ini|*.xml]`). This improves discoverability, and [makes sysadmins happy](https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations), especially those not familiar with your CLI.
 
 A bare call returns:
 
@@ -376,13 +376,17 @@ Write example.
 
 The configuration file is searched based on a wildcard-based glob pattern.
 
-By default, the pattern is `<app_dir>/*.{toml,json,ini}`, where:
+There is 2 stages to the search:
+1. Locate all files matching the path pattern
+2. Match each file against the supported formats, in order, until one is successfully parsed
+
+By default, the pattern is `<app_dir>/*.toml|*.json|*.ini`, where:
 
 - `<app_dir>` is the [default application folder](#default-folder)
-- `*.{toml,json,ini}` are the [extensions of formats](#formats) enabled by default
+- `*.toml|*.json|*.ini` are the [extensions of formats](#formats) enabled by default
 
 ```{hint}
-Depending on the formats you enabled in your installation of Click Extra, the default extensions may vary. For example, if you installed Click Extra with all extra dependencies, the default extensions would be `*.{toml,yaml,yml,json,json5,jsonc,hjson,ini,xml}`.
+Depending on the formats you enabled in your installation of Click Extra, the default extensions may vary. For example, if you installed Click Extra with all extra dependencies, the default extensions would be `*.toml|*.yaml|*.yml|*.json|*.json5|*.jsonc|*.hjson|*.ini|*.xml`.
 ```
 
 ```{seealso}
@@ -444,7 +448,7 @@ from click import command
 from click_extra import config_option
 
 @command(context_settings={"show_default": True})
-@config_option(default="~/my_special_folder/*.{toml,conf}")
+@config_option(default="~/my_special_folder/*.toml|*.conf")
 def cli():
     pass
 ```
@@ -452,7 +456,7 @@ def cli():
 ```{click:run}
 :emphasize-lines: 7
 result = invoke(cli, args=["--help"])
-assert "~/my_special_folder/*.{toml,conf}]" in result.stdout
+assert "~/my_special_folder/*.toml|*.conf]" in result.stdout
 ```
 
 The rules for the pattern are described in the next section.
@@ -464,10 +468,10 @@ Patterns provided to `@config_option`:
 - are [based on `wcmatch.glob` syntax](https://facelessuser.github.io/wcmatch/glob/#syntax)
 - should be written with Unix separators (`/`), even for Windows (the [pattern will be normalized to the local platform dialect](https://facelessuser.github.io/wcmatch/glob/#windows-separators))
 - are configured with the following default flags:
-  - [`IGNORECASE`](https://facelessuser.github.io/wcmatch/glob/#ignorecase): case-insensitive matching
   - [`GLOBSTAR`](https://facelessuser.github.io/wcmatch/glob/#globstar): recursive directory search via `**`
   - [`FOLLOW`](https://facelessuser.github.io/wcmatch/glob/#follow): traverse symlink directories
   - [`DOTGLOB`](https://facelessuser.github.io/wcmatch/glob/#dotglob): allow match of file or directory starting with a dot (`.`)
+  - [`SPLIT`](https://facelessuser.github.io/wcmatch/glob/#split): allow multiple patterns separated by `|`
   - [`GLOBTILDE`](https://facelessuser.github.io/wcmatch/glob/#globtilde): allows for user path expansion via `~`
   - [`NODIR`](https://facelessuser.github.io/wcmatch/glob/#nodir): restricts results to files
 
@@ -497,7 +501,7 @@ assert "~/.commandrc]" in result.stdout
 
 ### Multi-format matching
 
-The default behavior consist in searching for all files matching the default `*.{toml,json,ini}` pattern.
+The default behavior consist in searching for all files matching the default `*.toml|*.json|*.ini` pattern.
 
 A parsing attempt is made for each file matching the extension pattern, in the order of the table above.
 

@@ -8,7 +8,9 @@
 - Allow parent directories search for configuration files. Adds `search_parents` argument on `@config_file`. Closes {issue}`651`.
 - Allow fine-tuning of configuration file format pattern matching. Replaces `formats` argument on `@config_file` by `file_format_patterns`.
 - Adds `search_pattern_flags` and `file_pattern_flags` arguments on `@config_file` to allow user to tweak pattern matching behavior.
-- Remove `glob.BRACE` from default search pattern flags now that we have file format patterns. Also remove `glob.IGNORECASE` to make case-sensitivity determined by the underlying platform.
+- Use `|` as separator for multiple file patterns instead of `{,}` syntax. Replace `glob.BRACE` by `glob.SPLIT` for search pattern flags. Force `glob.SPLIT` for file pattern flags.
+- Remove `glob.IGNORECASE` flag to make case-sensitivity determined by the underlying platform at runtime.
+- Force `glob.NODIR` for search pattern flags to speed up search.
 - Rename `click_extra.config.Formats` enum to `click_extra.config.ConfigFormat`. Expose it at the root `click_extra` module.
 - Eat our own dog food: add a `click-extra` CLI to run self-tests.
 - Override base decorators and classes with Click Extra's own variants:
