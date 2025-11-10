@@ -173,12 +173,12 @@ class ConfigFormat(Enum):
     @property
     def enabled(self) -> bool:
         """Returns ``True`` if the format is supported, ``False`` otherwise."""
-        return self.value[1]
+        return self.value[1]  # type ignore: [no-any-return]
 
     @property
     def patterns(self) -> tuple[str]:
         """Returns the default file patterns associated to the format."""
-        return self.value[0]
+        return self.value[0]  # type ignore: [no-any-return]
 
 
 CONFIG_OPTION_NAME = "config"
@@ -409,9 +409,8 @@ class ConfigOption(ExtraOption, ParamStructure):
             ~/(...)/multiple_envvars.py/*.{toml,json,ini}
         """
         extra = super().get_help_extra(ctx)
-        default = Path(self.get_default(ctx))
         if self.search_pattern_flags & glob.GLOBTILDE:
-            default = shrinkuser(default)
+            default = shrinkuser(Path(self.get_default(ctx)))
         extra["default"] = default
         return extra
 
@@ -740,7 +739,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         info_msg = partial(echo, err=True)
 
         if path_pattern is NO_CONFIG:
-            logger.debug(f"{NO_CONFIG} received.")  # type: ignore[unreachable]
+            logger.debug(f"{NO_CONFIG} received.")
             info_msg("Skip configuration file loading altogether.")
             return
 
