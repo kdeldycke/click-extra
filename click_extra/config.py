@@ -412,7 +412,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         )
 
     @cached_property
-    def excluded_params(self) -> set[str]:
+    def excluded_params(self) -> frozenset[str]:
         """Generates the default list of fully-qualified IDs to exclude.
 
         .. caution::
@@ -424,7 +424,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             not have fetched the CLI name.
         """
         cli = get_current_context().find_root().command
-        return set(
+        return frozenset(
             f"{cli.name}{ParamStructure.SEP}{p}" for p in DEFAULT_EXCLUDED_PARAMS
         )
 
