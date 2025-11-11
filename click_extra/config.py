@@ -514,8 +514,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             return
 
         # Magic patterns needs special handling for parent search.
-
-        # XXXXXXXXXXXX below is experimental to dissect the magic pattern into folder and file parts.
+        raise NotImplementedError("Parent search for magic patterns not implemented.")
 
     def search_and_read_file(self, pattern: str) -> Iterable[tuple[Path | URL, str]]:
         """Search filesystem or URL for files matching the ``pattern``.
