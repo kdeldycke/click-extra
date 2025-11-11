@@ -233,21 +233,7 @@ NO_CONFIG = Sentinel.NO_CONFIG
 class ConfigOption(ExtraOption, ParamStructure):
     """A pre-configured option adding ``--config CONFIG_PATH``."""
 
-    file_format_patterns: dict[ConfigFormat, tuple[str, ...]]
-
-    file_pattern_flags: int
-
-    roaming: bool
-
-    force_posix: bool
-
-    search_pattern_flags: int
-
-    search_parents: bool
-
     # excluded_params: frozenset[str]
-
-    strict: bool
 
     def __init__(
         self,
@@ -293,50 +279,10 @@ class ConfigOption(ExtraOption, ParamStructure):
             Default search pattern must follow the syntax of `wcmatch.glob
             <https://facelessuser.github.io/wcmatch/glob/#syntax>`_.
 
-        - ``file_format_patterns`` is a mapping of ``ConfigFormat`` to their associated
-          file patterns. Can be a string or a sequence of strings. This defines which
-          configuration file formats are supported, and which file patterns are used to
-          search for them.
-
-          .. attention::
-              File patterns must follow the syntax of `wcmatch.fnmatch
-              <https://facelessuser.github.io/wcmatch/fnmatch/#syntax>`_.
-
-          .. note::
-              All formats depending on third-party dependencies that are not installed
-              will be ignored.
-
-        - ``file_pattern_flags`` are flags provided to all calls of ``fnmatch.fnmatch``.
-          Applies to the matching of file names against supported format patterns
-          specified in ``file_format_patterns``.
-
-          .. important::
-              The ``SPLIT`` flag is always forced, as our multi-pattern design relies on
-              it.
-
-        - ``roaming`` and ``force_posix`` are `fed to click.get_app_dir()
-          <https://click.palletsprojects.com/en/stable/api/#click.get_app_dir>`_ to
-          setup the default configuration folder.
-
-        - ``search_pattern_flags`` are flags provided to all calls of ``wcmatch.glob``.
-          Applies to both the default pattern and any user-provided pattern.
-
-          .. important::
-              The ``NODIR`` flag is always forced, to optimize the search for files
-              only.
-
-        - ``search_parents`` indicates whether to walk back the tree of parent folders
-          when searching for configuration files.
-
         - ``excluded_params`` are parameters which, if present in the configuration
           file, will be ignored and not applied to the CLI. Items are expected to be the
           fully-qualified ID of the parameter, as produced in the output of
           ``--show-params``. Will default to the value of ``DEFAULT_EXCLUDED_PARAMS``.
-
-        - ``strict``
-            - If ``True``, raise an error if the configuration file contain parameters
-              not recognized by the CLI.
-            - If ``False``, silently ignore unrecognized parameters.
         """
         logger = logging.getLogger("click_extra")
 
@@ -344,6 +290,21 @@ class ConfigOption(ExtraOption, ParamStructure):
             param_decls = ("--config", CONFIG_OPTION_NAME)
 
         # Setup supported file format patterns.
+        self.file_format_patterns: dict[ConfigFormat, tuple[str, ...]]
+        """Mapping of ``ConfigFormat`` to their associated file patterns.
+
+        Can be a string or a sequence of strings. This defines which configuration file
+        formats are supported, and which file patterns are used to search for them.
+
+        .. note::
+            All formats depending on third-party dependencies that are not installed
+            will be ignored.
+
+        .. attention::
+            File patterns must follow the syntax of `wcmatch.fnmatch
+            <https://facelessuser.github.io/wcmatch/fnmatch/#syntax>`_.
+        """
+
         if isinstance(file_format_patterns, ConfigFormat):
             self.file_format_patterns = {
                 file_format_patterns: file_format_patterns.patterns
@@ -382,20 +343,48 @@ class ConfigOption(ExtraOption, ParamStructure):
         if not file_pattern_flags & glob.SPLIT:
             logger.warning("Forcing SPLIT flag for file patterns.")
             file_pattern_flags |= glob.SPLIT
+
         self.file_pattern_flags = file_pattern_flags
+        """Flags provided to all calls of ``wcmatch.fnmatch``.
+
+        Applies to the matching of file names against supported format patterns
+        specified in ``file_format_patterns``.
+
+        .. important::
+            The ``SPLIT`` flag is always forced, as our multi-pattern design relies on
+            it.
+        """
 
         # Setup the configuration for default folder search.
         self.roaming = roaming
         self.force_posix = force_posix
+        """Configuration for default folder search.
+
+        ``roaming`` and ``force_posix`` are `fed to click.get_app_dir()
+        <https://click.palletsprojects.com/en/stable/api/#click.get_app_dir>`_ to
+        determine the location of the default configuration folder.
+        """
+
         kwargs.setdefault("default", self.default_pattern)
 
         # Force NODIR to optimize search for files only.
         if not search_pattern_flags & glob.NODIR:
             logger.warning("Forcing NODIR flag for search patterns.")
             search_pattern_flags |= glob.NODIR
+
         self.search_pattern_flags = search_pattern_flags
+        """Flags provided to all calls of ``wcmatch.glob``.
+
+        Applies to both the default pattern and any user-provided pattern.
+
+        .. important::
+            The ``NODIR`` flag is always forced, to optimize the search for files only.
+        """
 
         self.search_parents = search_parents
+        """Indicates whether to walk back the tree of parent folders when searching for
+        configuration files.
+        """
 
         # If the user provided its own excluded params, freeze them now and store it
         # to prevent the dynamic default property to be called.
@@ -403,6 +392,12 @@ class ConfigOption(ExtraOption, ParamStructure):
             self.excluded_params = frozenset(excluded_params)
 
         self.strict = strict
+        """Defines the strictness of the configuration loading.
+
+        - If ``True``, raise an error if the configuration file contain parameters not
+          recognized by the CLI.
+        - If ``False``, silently ignore unrecognized parameters.
+        """
 
         kwargs.setdefault("callback", self.load_conf)
 

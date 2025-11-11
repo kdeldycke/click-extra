@@ -635,7 +635,7 @@ def cli(int_param):
 Notice how all formats are merged into the same pattern:
 
 ```{click:run}
-:emphasize-lines: 9
+:emphasize-lines: 8
 result = invoke(cli, args=["--help"])
 assert "*.toml|config*.js|*.js" in result.stdout
 ```
