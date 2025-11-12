@@ -85,7 +85,7 @@ dependencies = [
     # discussed upstream at: https://github.com/mahmoud/boltons/issues/334
     "boltons >= 25.0.0",
     # Click 8.3.0 to fix several issues with flag values, and flag envvars: https://github.com/pallets/click/pull/3030
-    "click >= 8.3.0",
+    "click >= 8.3.1",
     # Cloup 3.0.7 fix issues with metavars: https://github.com/kdeldycke/click-extra/pull/1281
     "cloup >= 3.0.7",
     # deepmerge 2.0 is the first version used in Click Extra.
@@ -101,6 +101,9 @@ dependencies = [
     # wcmatch 10.0 fix some inconsistencies in globbing and symlinks.
     "wcmatch >= 10.0",
 ]
+
+[tool.uv.sources]
+click = { git = "https://github.com/kdeldycke/click", branch = "hide-sentinel-in-callbacks" }
 
 [project.optional-dependencies]
 ### Groups below are runtime extra dependencies, so we're also rely on >= specifiers as explained above.
