@@ -485,6 +485,10 @@ Patterns provided to `@config_option`'s `default` argument:
   - [`GLOBTILDE`](https://facelessuser.github.io/wcmatch/glob/#globtilde): allow user's home path `~` to be expanded.
   - [`NODIR`](https://facelessuser.github.io/wcmatch/glob/#nodir): restricts results to files.
 
+```{important}
+The `NODIR` flag is always forced, to optimize the search for files only.
+```
+
 The flags above can be changed via the [`search_pattern_flags` argument of the decorator](config.md#click_extra.config.ConfigOption). So to make the matching case-insensitive, add the `IGNORECASE` flag:
 
 ```{code-block} python
@@ -508,8 +512,8 @@ from wcmatch.glob import (
 
 But because of the way flags works, you have to re-specify all flags you want to keep, including the default ones.
 
-```{important}
-The `NODIR` flag is always forced, to optimize the search for files only.
+```{seealso}
+This is the same pinciple as [File pattern flags](#file-pattern-flags).
 ```
 
 ### Multi-format matching
@@ -670,6 +674,10 @@ from wcmatch.fnmatch import NEGATE, SPLIT, IGNORECASE
 ```
 
 But because of the way flags works, you have to re-specify all flags you want to keep, including the default ones.
+
+```{seealso}
+This is the same pinciple as [search pattern specifications](#search-pattern-specifications).
+```
 
 ### Excluding files
 
