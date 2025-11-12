@@ -234,16 +234,18 @@ If you have difficulties identifying your options and their IDs, run your CLI wi
 
 Several dialects are supported:
 
-| Format | Description | Extensions | Enabled by default |
-| :----- | :---------- | :---------------- | :----------------- |
-| [`TOML`](#toml) | - | `*.toml` | ✅ |
-| [`YAML`](#yaml) | - | `*.yaml`, `*.yml` | ❌ |
-| [`JSON`](#json) | - | `*.json` | ✅ |
-| [`JSON5`](#json5) | A [superset of JSON made for configuration file](https://json5.org) | `*.json5` | ❌ |
-| [`JSONC`](#jsonc) | Like JSON, but with comments and trailing commas | `*.jsonc` | ❌ |
-| [`HJSON`](#hjson) | Another flavor of a [user-friendly JSON](https://hjson.github.io) | `*.hjson` | ❌ |
-| [`INI`](#ini) | With extended interpolation, multi-level sections and non-native types (`list`, `set`, …) | `*.ini` | ✅ |
-| [`XML`](#xml) | - | `*.xml` | ❌ |
+| Format | Extensions | Description | Enabled by default |
+| :----- | :--------- | :---------- | :----------------- |
+| [`TOML`](#toml) | `*.toml` | - | ✅ |
+| [`YAML`](#yaml) | `*.yaml`, `*.yml` | - | ❌ |
+| [`JSON`](#json) | `*.json` | - | ✅ |
+| [`JSON5`](#json5) | `*.json5` | A [superset of JSON made for configuration file](https://json5.org) | ❌ |
+| [`JSONC`](#jsonc) | `*.jsonc` | Like JSON, but with comments and trailing commas | ❌ |
+| [`HJSON`](#hjson) | `*.hjson` | Another flavor of a [user-friendly JSON](https://hjson.github.io) | ❌ |
+| [`INI`](#ini) | `*.ini` | With extended interpolation, multi-level sections and non-native types (`list`, `set`, …) | ✅ |
+| [`XML`](#xml) | `*.xml` | - | ❌ |
+
+Formats depending on third-party packages are not enabled by default. You need to [install Click Extra with the corresponding extra dependency group](install.md#configuration-file-formats) to enable them.
 
 ### TOML
 
@@ -478,12 +480,14 @@ Patterns provided to `@config_option`'s `default` argument:
   - Windows is insensitive to case,
   - Unix and macOS are case-sensitive.
 - Are setup with the following default flags:
-  - [`GLOBSTAR`](https://facelessuser.github.io/wcmatch/glob/#globstar): recursive directory search via `**` glob notation.
-  - [`FOLLOW`](https://facelessuser.github.io/wcmatch/glob/#follow): traverse symlink directories.
-  - [`DOTGLOB`](https://facelessuser.github.io/wcmatch/glob/#dotglob): include file or directory starting with a literal dot (`.`).
-  - [`SPLIT`](https://facelessuser.github.io/wcmatch/glob/#split): allow multiple patterns separated by `|`.
-  - [`GLOBTILDE`](https://facelessuser.github.io/wcmatch/glob/#globtilde): allow user's home path `~` to be expanded.
-  - [`NODIR`](https://facelessuser.github.io/wcmatch/glob/#nodir): restricts results to files.
+  | Flag | Description |
+  | :--- | :---------- |
+  | [`GLOBSTAR`](https://facelessuser.github.io/wcmatch/glob/#globstar) | Recursive directory search via `**` glob notation. |
+  | [`FOLLOW`](https://facelessuser.github.io/wcmatch/glob/#follow) | Traverse symlink directories. |
+  | [`DOTGLOB`](https://facelessuser.github.io/wcmatch/glob/#dotglob) | Include file or directory starting with a literal dot (`.`). |
+  | [`SPLIT`](https://facelessuser.github.io/wcmatch/glob/#split) | Allow multiple patterns separated by `|`. |
+  | [`GLOBTILDE`](https://facelessuser.github.io/wcmatch/glob/#globtilde) | Allow user's home path `~` to be expanded. |
+  | [`NODIR`](https://facelessuser.github.io/wcmatch/glob/#nodir) | Restricts results to files. |
 
 ```{important}
 The `NODIR` flag is always forced, to optimize the search for files only.
@@ -513,7 +517,7 @@ from wcmatch.glob import (
 But because of the way flags works, you have to re-specify all flags you want to keep, including the default ones.
 
 ```{seealso}
-This is the same pinciple as [File pattern flags](#file-pattern-flags).
+This is the same pinciple as [file pattern flags](#file-pattern-flags).
 ```
 
 ### Multi-format matching
@@ -658,8 +662,10 @@ The `file_pattern_flags` argument controls the matching behavior of file pattern
 
 These flags are defined in [`wcmatch.fnmatch`](https://facelessuser.github.io/wcmatch/fnmatch/#flags) and default to:
 
-- [`NEGATE`](https://facelessuser.github.io/wcmatch/fnmatch/#negate): adds support of `!` negation to define exclusions.
-- [`SPLIT`](https://facelessuser.github.io/wcmatch/fnmatch/#split): allow multiple patterns separated by `|`.
+| Flag | Description |
+| :--- | :---------- |
+| [`NEGATE`](https://facelessuser.github.io/wcmatch/fnmatch/#negate) | Adds support of `!` negation to define exclusions. |
+| [`SPLIT`](https://facelessuser.github.io/wcmatch/fnmatch/#split) | Allow multiple patterns separated by `|`. |
 
 ```{important}
 The `SPLIT` flag is always forced, as our multi-pattern design relies on it.
