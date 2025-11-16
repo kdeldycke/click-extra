@@ -20,8 +20,8 @@ jobs:
 
   tests:
     strategy:
-      # The matrix is huge, so fail fast.
-      fail-fast: true
+      # We delegate the failure decision to each job, by the way of the "continue-on-error" flag.
+      fail-fast: false
       matrix:
         # Available OS: https://github.com/actions/runner-images#available-images
         # Only targets 2 variants per platforms to keep the matrix small.
@@ -65,6 +65,7 @@ jobs:
         #         - "3.12"
         #         - "3.13"
         #         - "3.15"
+        #         - "3.15t"
         #     - click-version: main
         #       os:
         #         - ubuntu-24.04
@@ -76,6 +77,7 @@ jobs:
         #         - "3.12"
         #         - "3.13"
         #         - "3.15"
+        #         - "3.15t"
         #     - cloup-version: master
         #       os:
         #         - ubuntu-24.04
@@ -87,6 +89,7 @@ jobs:
         #         - "3.12"
         #         - "3.13"
         #         - "3.15"
+        #         - "3.15t"
         exclude:
           # Only targets the latest OS for each platform.
           - os: ubuntu-24.04
@@ -121,9 +124,20 @@ jobs:
             click-version: main
           - python-version: "3.15"
             cloup-version: master
+          - python-version: "3.15t"
+            click-version: stable
+          - python-version: "3.15t"
+            click-version: main
+          - python-version: "3.15t"
+            cloup-version: master
         include:
           # Default all jobs as stable, unless marked otherwise below.
           - state: stable
+          # XXX Python 3.15 is still in development.
+          - state: unstable
+            python-version: "3.15"
+          - state: unstable
+            python-version: "3.15t"
     name: |
       ${{ matrix.state == 'stable' && '✅' || '⁉️' }}
       ${{ matrix.os }},
