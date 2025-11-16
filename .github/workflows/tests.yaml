@@ -20,7 +20,8 @@ jobs:
 
   tests:
     strategy:
-      fail-fast: false
+      # The matrix is huge, so fail fast.
+      fail-fast: true
       matrix:
         # Available OS: https://github.com/actions/runner-images#available-images
         # Only targets 2 variants per platforms to keep the matrix small.
@@ -123,9 +124,6 @@ jobs:
         include:
           # Default all jobs as stable, unless marked otherwise below.
           - state: stable
-          # XXX Python 3.15 is still in development.
-          - state: unstable
-            python-version: "3.15"
     name: |
       ${{ matrix.state == 'stable' && '✅' || '⁉️' }}
       ${{ matrix.os }},
