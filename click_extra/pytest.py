@@ -339,22 +339,25 @@ default_config_file_pattern = (
 default_debug_uncolored_config = (
     rf"debug: Load configuration matching .+{default_config_file_pattern}\n"
     rf"debug: Search filesystem for .+{default_config_file_pattern}\n"
-    r"debug: No configuration file found.\n"
+    + (
+        r"debug: Windows pattern converted from"
+        rf" .+{default_config_file_pattern} to .+{default_config_file_pattern}\n"
+        if is_windows()
+        else ""
+    )
+    + r"debug: No configuration file found.\n"
 )
 default_debug_colored_config = (
     rf"\x1b\[34mdebug\x1b\[0m: Load configuration matching .+{default_config_file_pattern}\n"
     rf"\x1b\[34mdebug\x1b\[0m: Search filesystem for .+{default_config_file_pattern}\n"
-    r"\x1b\[34mdebug\x1b\[0m: No configuration file found.\n"
-)
-if is_windows():
-    default_debug_uncolored_config += (
-        r"debug: Windows pattern converted from"
-        rf" .+{default_config_file_pattern} to .+{default_config_file_pattern}\n"
-    )
-    default_debug_colored_config += (
+    + (
         r"\x1b\[34mdebug\x1b\[0m: Windows pattern converted from"
         rf" .+{default_config_file_pattern} to .+{default_config_file_pattern}\n"
+        if is_windows()
+        else ""
     )
+    + r"\x1b\[34mdebug\x1b\[0m: No configuration file found.\n"
+)
 
 
 default_debug_uncolored_version_details = (
