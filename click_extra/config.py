@@ -780,7 +780,6 @@ class ConfigOption(ExtraOption, ParamStructure):
             ctx.default_map = {}
         ctx.default_map.update(clean_conf.get(ctx.find_root().command.name, {}))
 
-
     def load_conf(
         self,
         ctx: click.Context,
