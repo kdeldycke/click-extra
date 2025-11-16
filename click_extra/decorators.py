@@ -15,6 +15,8 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Decorators for group, commands and options."""
 
+from __future__ import annotations
+
 from functools import wraps
 
 import click
