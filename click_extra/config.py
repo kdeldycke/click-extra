@@ -412,10 +412,10 @@ class ConfigOption(ExtraOption, ParamStructure):
         )
 
     @cached_property
-    def excluded_params(self) -> frozenset[str]:
+    def excluded_params(self) -> frozenset[str]:  # type: ignore[override]
         """Generates the default list of fully-qualified IDs to exclude.
 
-        .. caution::
+        .. danger::
             It is only called once to produce the default exclusion list if the user did
             not provided its own.
 
