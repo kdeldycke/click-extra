@@ -4,8 +4,8 @@
   </a>
 </p>
 
-[![Last release](https://img.shields.io/pypi/v/click-extra.svg)](https://pypi.python.org/pypi/click-extra)
-[![Python versions](https://img.shields.io/pypi/pyversions/click-extra.svg)](https://pypi.python.org/pypi/click-extra)
+[![Last release](https://img.shields.io/pypi/v/click-extra.svg)](https://pypi.org/project/click-extra/)
+[![Python versions](https://img.shields.io/pypi/pyversions/click-extra.svg)](https://pypi.org/project/click-extra/)
 [![Downloads](https://static.pepy.tech/badge/click-extra/month)](https://pepy.tech/projects/click-extra)
 [![Unittests status](https://github.com/kdeldycke/click-extra/actions/workflows/tests.yaml/badge.svg?branch=main)](https://github.com/kdeldycke/click-extra/actions/workflows/tests.yaml?query=branch%3Amain)
 [![Coverage status](https://codecov.io/gh/kdeldycke/click-extra/graph/badge.svg?token=PMEcGfrVEs)](https://codecov.io/gh/kdeldycke/click-extra)
