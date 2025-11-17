@@ -1,9 +1,6 @@
 # Changelog
 
-## [7.0.0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v6.2.0...main)
-
-> [!IMPORTANT]
-> This version is not released yet and is under active development.
+## [7.0.0 (2025-11-17)](https://github.com/kdeldycke/click-extra/compare/v6.2.0...v7.0.0)
 
 - Allow parent directories search for configuration files. Adds `search_parents` argument on `@config_file`. Closes {issue}`651`.
 - Allow fine-tuning of configuration file format pattern matching. Replaces `formats` argument on `@config_file` by `file_format_patterns`.
