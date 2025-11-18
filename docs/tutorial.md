@@ -221,3 +221,52 @@ import click_extra as clickx
 def first(foo): ...
 ```
 ````
+
+## Standalone script
+
+You can create a full-featured CLI based on Click Extra, without any Python project boilerplate.
+
+The trick is to [rely on `uv` to run simple Python scripts](https://docs.astral.sh/uv/guides/scripts/).
+
+Taking the canonical example again, you can create a file named `hello.py` with this content:
+
+```{code-block} python
+:caption: `hello.py`
+:linenos:
+:emphasize-lines: 1-6
+#!/usr/bin/env -S uv run --script
+# /// script
+# dependencies = [
+#   "click-extra >= 7.0.0",
+# ]
+# ///
+
+from click_extra import command, echo, option
+
+
+@command
+@option("--count", default=1, help="Number of greetings.")
+@option("--name", prompt="Your name", help="The person to greet.")
+def hello(count, name):
+    """Simple program that greets NAME for a total of COUNT times."""
+    for _ in range(count):
+        echo(f"Hello, {name}!")
+
+
+if __name__ == "__main__":
+    hello()
+```
+
+See the first few commented lines? The first line is a shebang that [tells the OS to run the script with `uv`](https://docs.astral.sh/uv/guides/scripts/#using-a-shebang-to-create-an-executable-file). The other comments are [script dependencies](https://docs.astral.sh/uv/guides/scripts/#declaring-script-dependencies).
+
+Now all you need to do is to make the script executable and run it:
+
+```{code-block} shell-session
+$ chmod +x ./hello.py
+$ ./hello.py --help
+```
+
+The magic happens because `uv` will read the script comments and install `click-extra` and its dependencies in an isolated environment before running the Python code.
+
+And just like that, you have a self-contained, single-file CLI, with all the features of Click Extra, including multi-platform support.
+
