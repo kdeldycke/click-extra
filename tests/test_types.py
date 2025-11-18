@@ -93,29 +93,73 @@ def test_click_choice_behavior() -> None:
 
 
 @pytest.mark.parametrize(
-    ("enum_definition", "expected_choices"),
+    ("enum_definition", "choice_source", "result"),
     (
         # String-based Enum.
         (
             Enum("Status", {"PENDING": "pending", "APPROVED": "approved"}),
+            ChoiceSource.STR,
             ("Status.PENDING", "Status.APPROVED"),
+        ),
+        (
+            Enum("Status", {"PENDING": "pending", "APPROVED": "approved"}),
+            ChoiceSource.NAME,
+            ("PENDING", "APPROVED"),
+        ),
+        (
+            Enum("Status", {"PENDING": "pending", "APPROVED": "approved"}),
+            ChoiceSource.VALUE,
+            ("pending", "approved"),
         ),
         # Integer-based Enum.
         (
             Enum("Color", {"RED": 1, "GREEN": 2, "BLUE": 3}),
+            ChoiceSource.STR,
             ("Color.RED", "Color.GREEN", "Color.BLUE"),
+        ),
+        (
+            Enum("Color", {"RED": 1, "GREEN": 2, "BLUE": 3}),
+            ChoiceSource.NAME,
+            ("RED", "GREEN", "BLUE"),
+        ),
+        (
+            Enum("Color", {"RED": 1, "GREEN": 2, "BLUE": 3}),
+            ChoiceSource.VALUE,
+            "<Color.RED: 1> produced non-string choice 1",
         ),
         # Auto-numbered Enum.
         (
             Enum("Permission", {"READ": auto(), "WRITE": auto(), "EXECUTE": auto()}),
+            ChoiceSource.STR,
             ("Permission.READ", "Permission.WRITE", "Permission.EXECUTE"),
+        ),
+        (
+            Enum("Permission", {"READ": auto(), "WRITE": auto(), "EXECUTE": auto()}),
+            ChoiceSource.NAME,
+            ("READ", "WRITE", "EXECUTE"),
+        ),
+        (
+            Enum("Permission", {"READ": auto(), "WRITE": auto(), "EXECUTE": auto()}),
+            ChoiceSource.VALUE,
+            "<Permission.READ: 1> produced non-string choice 1",
         ),
         # IntEnum.
         (
             IntEnum("Priority", {"LOW": auto(), "MEDIUM": auto(), "HIGH": auto()}),
+            ChoiceSource.STR,
             ("1", "2", "3")
             if sys.version_info >= (3, 11)
-            else ("Priority.LOW", "Priority.MEDIUM", "Priority.HIGH"),
+            else ("LOW", "MEDIUM", "HIGH"),
+        ),
+        (
+            IntEnum("Priority", {"LOW": auto(), "MEDIUM": auto(), "HIGH": auto()}),
+            ChoiceSource.NAME,
+            ("LOW", "MEDIUM", "HIGH"),
+        ),
+        (
+            IntEnum("Priority", {"LOW": auto(), "MEDIUM": auto(), "HIGH": auto()}),
+            ChoiceSource.VALUE,
+            "<Priority.LOW: 1> produced non-string choice 1",
         ),
         # Difference between Enum and StrEnum: StrEnum defines __str__() to return
         # the value.
@@ -123,6 +167,7 @@ def test_click_choice_behavior() -> None:
             Enum(
                 "MyEnum", {"FIRST_VALUE": "first_value", "SECOND_VALUE": "second-value"}
             ),
+            ChoiceSource.STR,
             ("MyEnum.FIRST_VALUE", "MyEnum.SECOND_VALUE"),
         ),
         (
@@ -130,32 +175,83 @@ def test_click_choice_behavior() -> None:
                 "MyEnum",
                 {"FIRST_VALUE": "first_value", "SECOND_VALUE": "second-value"},
             ),
+            ChoiceSource.STR,
             ("first_value", "second-value"),
         ),
         (
             StrEnum("MyEnum", {"FIRST_VALUE": auto(), "SECOND_VALUE": auto()}),
+            ChoiceSource.STR,
+            ("first_value", "second_value"),
+        ),
+        (
+            StrEnum("MyEnum", {"FIRST_VALUE": auto(), "SECOND_VALUE": auto()}),
+            ChoiceSource.NAME,
+            ("FIRST_VALUE", "SECOND_VALUE"),
+        ),
+        (
+            StrEnum("MyEnum", {"FIRST_VALUE": auto(), "SECOND_VALUE": auto()}),
+            ChoiceSource.VALUE,
             ("first_value", "second_value"),
         ),
         # Flag enums.
         (
             Flag("Features", {"FEATURE_A": auto(), "FEATURE_B": auto()}),
+            ChoiceSource.STR,
             ("Features.FEATURE_A", "Features.FEATURE_B"),
+        ),
+        (
+            Flag("Features", {"FEATURE_A": auto(), "FEATURE_B": auto()}),
+            ChoiceSource.NAME,
+            ("FEATURE_A", "FEATURE_B"),
+        ),
+        (
+            Flag("Features", {"FEATURE_A": auto(), "FEATURE_B": auto()}),
+            ChoiceSource.VALUE,
+            "<Features.FEATURE_A: 1> produced non-string choice 1",
         ),
         # IntFlag enums.
         (
             IntFlag(
                 "Options", {"OPTION_X": auto(), "OPTION_Y": auto(), "OPTION_Z": auto()}
             ),
+            ChoiceSource.STR,
             ("1", "2", "4")
             if sys.version_info >= (3, 11)
             else ("Options.OPTION_X", "Options.OPTION_Y", "Options.OPTION_Z"),
         ),
+        (
+            IntFlag(
+                "Options", {"OPTION_X": auto(), "OPTION_Y": auto(), "OPTION_Z": auto()}
+            ),
+            ChoiceSource.NAME,
+            ("OPTION_X", "OPTION_Y", "OPTION_Z"),
+        ),
+        (
+            IntFlag(
+                "Options", {"OPTION_X": auto(), "OPTION_Y": auto(), "OPTION_Z": auto()}
+            ),
+            ChoiceSource.VALUE,
+            "<Options.OPTION_X: 1> produced non-string choice 1",
+        ),
     ),
 )
-def test_enum_default_string_choices(enum_definition, expected_choices) -> None:
-    enum_choice = EnumChoice(enum_definition)
+def test_enum_string_choices(
+    enum_definition: Enum, choice_source: ChoiceSource, result: tuple[str, ...] | str
+) -> None:
 
-    assert enum_choice.choices == expected_choices
+    # Expecting an error message.
+    if isinstance(result, str):
+        with pytest.raises(TypeError) as exc_info:
+            EnumChoice(enum_definition, choice_source=choice_source)
+
+        assert exc_info.value.args[0] == f"{result} when using {choice_source!r}."
+        return
+
+    # Normal case: valid string choices.
+    enum_choice = EnumChoice(enum_definition, choice_source=choice_source)
+
+    assert enum_choice.choices == result
+    assert len(enum_choice.choices) == len(set(enum_choice.choices))
 
 
 class MyEnum(Enum):
@@ -274,18 +370,8 @@ def test_enum_choice_case_sensitivity(case_sensitive: bool) -> None:
         )
 
 
-def test_enum_choice_non_string() -> None:
-    class BadEnum(IntEnum):
-        FIRST = auto()
-        SECOND = auto()
 
-    with pytest.raises(TypeError) as exc_info:
-        EnumChoice(BadEnum, choice_source=ChoiceSource.VALUE)
 
-    assert exc_info.value.args[0] == (
-        "<BadEnum.FIRST: 1> produced non-string choice 1 when using "
-        "<ChoiceSource.VALUE: 'value'>."
-    )
 
 
 def test_enum_choice_duplicate_string() -> None:
