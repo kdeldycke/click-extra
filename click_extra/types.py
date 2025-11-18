@@ -16,7 +16,7 @@
 
 from __future__ import annotations
 
-from enum import Enum
+import enum
 
 import click
 
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from typing import Any
 
 
-class ChoiceSource(Enum):
+class ChoiceSource(enum.Enum):
     """Source of choices for ``EnumChoice``."""
 
     # KEY and NAME are synonyms.
@@ -67,25 +67,27 @@ class EnumChoice(click.Choice):
 
     def __init__(
         self,
-        choices: type[Enum],
+        choices: type[enum.Enum],
         case_sensitive: bool = False,
-        choice_source: ChoiceSource | str | Callable[[Enum], str] = ChoiceSource.STR,
+        choice_source: ChoiceSource
+        | str
+        | Callable[[enum.Enum], str] = ChoiceSource.STR,
     ) -> None:
         """Same as ``click.Choice``, but takes an ``Enum`` as ``choices``.
 
         Also defaults to case-insensitive matching.
         """
-        self._enum: type[Enum]
+        self._enum: type[enum.Enum]
         """The ``Enum`` class used for choices."""
 
-        self._enum_map: dict[str, Enum]
+        self._enum_map: dict[str, enum.Enum]
         """Mapping of choice strings to ``Enum`` members."""
 
-        self._choice_source: ChoiceSource | Callable[[Enum], str]
+        self._choice_source: ChoiceSource | Callable[[enum.Enum], str]
         """The source used to derive choice strings from Enum members."""
 
         # Keep the Enum class around.
-        assert issubclass(choices, Enum), (
+        assert issubclass(choices, enum.Enum), (
             f"choice_enum must be a subclass of Enum, got {choices!r}."
         )
         self._enum = choices
@@ -110,7 +112,7 @@ class EnumChoice(click.Choice):
 
         super().__init__(choices=self._enum_map, case_sensitive=case_sensitive)
 
-    def get_choice_string(self, member: Enum) -> str:
+    def get_choice_string(self, member: enum.Enum) -> str:
         """Derivate the choice string from the given ``Enum``'s ``member``."""
         if self._choice_source in (ChoiceSource.KEY, ChoiceSource.NAME):
             choice = member.name
@@ -137,18 +139,20 @@ class EnumChoice(click.Choice):
 
         return choice
 
-    def normalize_choice(self, choice: Enum | str, ctx: click.Context | None) -> str:
+    def normalize_choice(
+        self, choice: enum.Enum | str, ctx: click.Context | None
+    ) -> str:
         """Expand the parent's ``normalize_choice()`` to accept ``Enum`` members as input.
 
         Parent method expects a string, but here we allow passing ``Enum`` members too.
         """
-        if isinstance(choice, Enum):
+        if isinstance(choice, enum.Enum):
             choice = self.get_choice_string(choice)
         return super().normalize_choice(choice, ctx)
 
     def convert(
         self, value: Any, param: click.Parameter | None, ctx: click.Context | None
-    ) -> Enum:
+    ) -> enum.Enum:
         """Convert the input value to the corresponding ``Enum`` member.
 
         The parent's ``convert()`` is going to return the choice string, which we
