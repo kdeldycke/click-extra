@@ -1,9 +1,6 @@
 # Changelog
 
-## [7.0.1 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.0.0...main)
-
-> [!IMPORTANT]
-> This version is not released yet and is under active development.
+## [7.0.1 (2025-11-18)](https://github.com/kdeldycke/click-extra/compare/v7.0.0...v7.0.1)
 
 - Restore support for `@extra_command`, `@extra_group` and `@extra_version_option`, but mark them as deprecated.
 
