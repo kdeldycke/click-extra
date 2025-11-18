@@ -135,11 +135,11 @@ help_option = decorator_factory(click.decorators.help_option, *DEFAULT_HELP_NAME
 version_option = decorator_factory(dec=option, cls=ExtraVersionOption)
 
 
-# Introduce new commands decorators exclusive to Click Extra.
+# Introduce new commands decorators specific to Click Extra.
 lazy_group = decorator_factory(dec=group, cls=LazyGroup)
 
 
-# Introduce new parameter decorators exclusive to Click Extra.
+# Introduce new parameter decorators specific to Click Extra.
 color_option = decorator_factory(dec=option, cls=ColorOption)
 config_option = decorator_factory(dec=option, cls=ConfigOption)
 no_config_option = decorator_factory(dec=option, cls=NoConfigOption)
