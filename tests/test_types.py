@@ -111,6 +111,46 @@ def test_click_choice_behavior() -> None:
             ChoiceSource.VALUE,
             ("pending", "approved"),
         ),
+        # Aliases in string-based Enum are hidden by default.
+        (
+            Enum(
+                "State",
+                {
+                    "NEW": "new",
+                    "IN_PROGRESS": "in_progress",
+                    "ONGOING": "in_progress",  # Alias for IN_PROGRESS
+                    "COMPLETED": "completed",
+                },
+            ),
+            ChoiceSource.STR,
+            ("State.NEW", "State.IN_PROGRESS", "State.COMPLETED"),
+        ),
+        (
+            Enum(
+                "State",
+                {
+                    "NEW": "new",
+                    "IN_PROGRESS": "in_progress",
+                    "ONGOING": "in_progress",  # Alias for IN_PROGRESS
+                    "COMPLETED": "completed",
+                },
+            ),
+            ChoiceSource.NAME,
+            ("NEW", "IN_PROGRESS", "COMPLETED"),
+        ),
+        (
+            Enum(
+                "State",
+                {
+                    "NEW": "new",
+                    "IN_PROGRESS": "in_progress",
+                    "ONGOING": "in_progress",  # Alias for IN_PROGRESS
+                    "COMPLETED": "completed",
+                },
+            ),
+            ChoiceSource.VALUE,
+            ("new", "in_progress", "completed"),
+        ),
         # Integer-based Enum.
         (
             Enum("Color", {"RED": 1, "GREEN": 2, "BLUE": 3}),
@@ -126,6 +166,46 @@ def test_click_choice_behavior() -> None:
             Enum("Color", {"RED": 1, "GREEN": 2, "BLUE": 3}),
             ChoiceSource.VALUE,
             "<Color.RED: 1> produced non-string choice 1",
+        ),
+        # Aliases in integer-based Enum are hidden by default.
+        (
+            Enum(
+                "Level",
+                {
+                    "LOW": 1,
+                    "MEDIUM": 2,
+                    "NORMAL": 2,  # Alias for MEDIUM
+                    "HIGH": 3,
+                },
+            ),
+            ChoiceSource.STR,
+            ("Level.LOW", "Level.MEDIUM", "Level.HIGH"),
+        ),
+        (
+            Enum(
+                "Level",
+                {
+                    "LOW": 1,
+                    "MEDIUM": 2,
+                    "NORMAL": 2,  # Alias for MEDIUM
+                    "HIGH": 3,
+                },
+            ),
+            ChoiceSource.NAME,
+            ("LOW", "MEDIUM", "HIGH"),
+        ),
+        (
+            Enum(
+                "Level",
+                {
+                    "LOW": 1,
+                    "MEDIUM": 2,
+                    "NORMAL": 2,  # Alias for MEDIUM
+                    "HIGH": 3,
+                },
+            ),
+            ChoiceSource.VALUE,
+            "<Level.LOW: 1> produced non-string choice 1",
         ),
         # Auto-numbered Enum.
         (
@@ -253,6 +333,109 @@ def test_enum_string_choices(
     assert enum_choice.choices == result
     assert len(enum_choice.choices) == len(set(enum_choice.choices))
 
+    for choice_str, member in zip(enum_choice.choices, enum_definition):
+        # Conversion from choice strings to Enum members.
+        assert enum_choice.convert(choice_str, None, None) == member
+
+        # Conversion from Enum members should be idempotent.
+        assert enum_choice.convert(member, None, None) == member
+
+
+@pytest.mark.parametrize(
+    ("enum_definition", "choice_source", "show_aliases", "result"),
+    (
+        # String-based Enum.
+        (
+            Enum("Status", {"PENDING": "pending", "APPROVED": "approved"}),
+            ChoiceSource.STR,
+            False,
+            ("Status.PENDING", "Status.APPROVED"),
+        ),
+        (
+            Enum("Status", {"PENDING": "pending", "APPROVED": "approved"}),
+            ChoiceSource.STR,
+            True,
+            RuntimeError,
+        ),
+        (
+            Enum("Status", {"PENDING": "pending", "APPROVED": "approved"}),
+            ChoiceSource.NAME,
+            True,
+            ("PENDING", "APPROVED", "aliased_pending"),
+        ),
+        (
+            Enum("Status", {"PENDING": "pending", "APPROVED": "approved"}),
+            ChoiceSource.VALUE,
+            True,
+            ("pending", "approved", "aliased_approved"),
+        ),
+        # Integer-based Enum.
+        (
+            Enum("Color", {"RED": 1, "GREEN": 2, "BLUE": 3}),
+            ChoiceSource.NAME,
+            True,
+            ("RED", "GREEN", "BLUE", "aliased_pending"),
+        ),
+        (
+            Enum("Color", {"RED": 1, "GREEN": 2, "BLUE": 3}),
+            ChoiceSource.VALUE,
+            True,
+            "<Color.RED: 1> produced non-string choice 1",
+        ),
+    ),
+)
+def test_enum_choice_show_aliases(
+    enum_definition: Enum,
+    choice_source: ChoiceSource,
+    show_aliases: bool,
+    result: tuple[str, ...] | Exception | str,
+) -> None:
+    """Test that EnumChoice correctly handles Enum with aliases."""
+
+    if result is RuntimeError:
+        with pytest.raises(result) as exc_info:
+            EnumChoice(
+                enum_definition, choice_source=choice_source, show_aliases=show_aliases
+            )
+
+        assert exc_info.value.args[0] == (
+            f"Cannot use {choice_source!r} with show_aliases=True."
+        )
+        return
+
+    elif isinstance(result, str):
+        with pytest.raises(TypeError) as exc_info:
+            EnumChoice(
+                enum_definition, choice_source=choice_source, show_aliases=show_aliases
+            )
+
+        assert exc_info.value.args[0] == f"{result} when using {choice_source!r}."
+        return
+
+    # Augment the Enum with both key/name and value aliases.
+    tuple(enum_definition)[0]._add_alias_("aliased_pending")
+    tuple(enum_definition)[1]._add_value_alias_("aliased_approved")
+
+    enum_choice = EnumChoice(
+        enum_definition, choice_source=choice_source, show_aliases=show_aliases
+    )
+    assert enum_choice.choices == result
+    assert len(enum_choice.choices) == len(set(enum_choice.choices))
+
+    # Map choice strings to Enum members, including aliases.
+    choice_to_member = list(zip(enum_choice.choices, enum_definition))
+    if "aliased_pending" in result:
+        choice_to_member.append(("aliased_pending", tuple(enum_definition)[0]))
+    if "aliased_approved" in result:
+        choice_to_member.append(("aliased_approved", tuple(enum_definition)[1]))
+
+    for choice_str, member in choice_to_member:
+        # Conversion from choice strings to Enum members.
+        assert enum_choice.convert(choice_str, None, None) == member
+
+        # Conversion from Enum members should be idempotent.
+        assert enum_choice.convert(member, None, None) == member
+
 
 class MyEnum(Enum):
     """Produce different strings for keys/names, values and str()."""
@@ -368,10 +551,6 @@ def test_enum_choice_case_sensitivity(case_sensitive: bool) -> None:
         assert exc_info.value.args[0] == (
             "'SeCoNd-VaLuE' is not one of 'first-value', 'second-value'."
         )
-
-
-
-
 
 
 def test_enum_choice_duplicate_string() -> None:

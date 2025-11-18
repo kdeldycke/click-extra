@@ -72,11 +72,13 @@ class EnumChoice(click.Choice):
         choice_source: ChoiceSource
         | str
         | Callable[[enum.Enum], str] = ChoiceSource.STR,
+        show_aliases: bool = False,
     ) -> None:
         """Same as ``click.Choice``, but takes an ``Enum`` as ``choices``.
 
         Also defaults to case-insensitive matching.
         """
+
         self._enum: type[enum.Enum]
         """The ``Enum`` class used for choices."""
 
@@ -85,6 +87,14 @@ class EnumChoice(click.Choice):
 
         self._choice_source: ChoiceSource | Callable[[enum.Enum], str]
         """The source used to derive choice strings from Enum members."""
+
+        self._show_aliases = show_aliases
+        """Whether to show member aliases in help messages.
+
+        .. attention::
+            Only works with ``ChoiceSource.KEY``, ``ChoiceSource.NAME`` and
+            ``ChoiceSource.VALUE``.
+        """
 
         # Keep the Enum class around.
         assert issubclass(choices, enum.Enum), (
@@ -100,17 +110,45 @@ class EnumChoice(click.Choice):
 
         # Build the mapping of choice strings to Enum members.
         self._enum_map = {}
-        for member in self._enum:
-            choice = self.get_choice_string(member)
-            if choice in self._enum_map:
-                raise ValueError(
-                    f"{self._enum} has duplicated choice string {choice!r} for "
-                    f"members {self._enum_map[choice]!r} and {member!r} when using "
-                    f"{self._choice_source!r}."
+
+        # Rely on Enum internals to extract all members, including aliases.
+        if self._show_aliases:
+            if self._choice_source in (ChoiceSource.KEY, ChoiceSource.NAME):
+                member_source = self._enum.__members__
+            elif self._choice_source == ChoiceSource.VALUE:
+                member_source = self._enum._value2member_map_
+            else:
+                raise RuntimeError(
+                    f"Cannot use {self._choice_source!r} with show_aliases=True."
                 )
-            self._enum_map[choice] = member
+
+            for choice, member in member_source.items():
+                self._check_choice_str(member, choice)
+                self._enum_map[choice] = member
+
+        # No need to include aliases in the choices: iterate the Enum to let it
+        # provide us with the canonical members.
+        else:
+            for member in self._enum:
+                choice = self.get_choice_string(member)
+                # Duplicates are still under the responsibility of the user.
+                if choice in self._enum_map:
+                    raise ValueError(
+                        f"{self._enum} has duplicated choice string {choice!r} for "
+                        f"members {self._enum_map[choice]!r} and {member!r} when using "
+                        f"{self._choice_source!r}."
+                    )
+                self._enum_map[choice] = member
 
         super().__init__(choices=self._enum_map, case_sensitive=case_sensitive)
+
+    def _check_choice_str(self, member: enum.Enum, choice: Any) -> None:
+        """Check that the derived choice string is indeed a string."""
+        if not isinstance(choice, str):
+            raise TypeError(
+                f"{member!r} produced non-string choice {choice!r} when using "
+                f"{self._choice_source!r}."
+            )
 
     def get_choice_string(self, member: enum.Enum) -> str:
         """Derivate the choice string from the given ``Enum``'s ``member``."""
@@ -131,12 +169,7 @@ class EnumChoice(click.Choice):
                     f"cannot call {self._choice_source!r} on for {member!r}: {ex}"
                 ) from ex
 
-        if not isinstance(choice, str):
-            raise TypeError(
-                f"{member!r} produced non-string choice {choice!r} when using "
-                f"{self._choice_source!r}."
-            )
-
+        self._check_choice_str(member, choice)
         return choice
 
     def normalize_choice(
