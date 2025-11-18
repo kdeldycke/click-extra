@@ -238,3 +238,24 @@ __version__ = "7.0.1"
     __version__ = "1.2.3"  # Final Release
     __version__ = "1.2.3.post1"  # Post Release 1
 """
+
+
+def __getattr__(name: str) -> object:
+    import warnings
+
+    old_to_new = {
+        "extra_command": command,
+        "extra_group": group,
+        "extra_version_option": version_option,
+    }
+
+    if name in old_to_new:
+        warnings.warn(
+            f"'{name}' is deprecated and will be removed in Click Extra 8.0.0. Use"
+            f" '{old_to_new[name].__name__}' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return old_to_new[name]
+
+    raise AttributeError(name)
