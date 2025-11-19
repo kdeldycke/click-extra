@@ -468,6 +468,73 @@ assert "[default: html]" in result.stdout
 ```
 ````
 
+### Aliases
+
+`EnumChoice` also supports aliases on both names and values.
+
+Here's an example using aliases:
+
+```{click:example}
+:emphasize-lines: 10,14-15,20,25,30
+from enum import Enum
+
+from click import command, option, echo
+from click_extra import EnumChoice
+
+
+class State(Enum):
+    NEW = "new"
+    IN_PROGRESS = "in_progress"
+    ONGOING = "in_progress"  # Alias for IN_PROGRESS
+    COMPLETED = "completed"
+
+# Dynamiccally add names and values aliases.
+State.NEW._add_alias_("fresh")  # Alias for NEW
+State.COMPLETED._add_value_alias_("done")  # Alias for COMPLETED
+
+@command
+@option(
+    "--state",
+    type=EnumChoice(State, choice_source="name"),
+    show_choices=True,
+)
+@option(
+    "--state-name",
+    type=EnumChoice(State, choice_source="name", show_aliases=True),
+    show_choices=True,
+)
+@option(
+    "--state-value",
+    type=EnumChoice(State, choice_source="value", show_aliases=True),
+    show_choices=True,
+)
+def cli(state, state_name, state_value):
+    echo(f"Selected state:       {state!r}")
+    echo(f"Selected state-name:  {state_name!r}")
+    echo(f"Selected state-value: {state_value!r}")
+```
+
+You can now see the name aliases `ongoing` and `fresh` are now featured in the help message if `show_aliases=True`, as well as the value alias `done`:
+
+```{click:run}
+:emphasize-lines: 6-7
+result = invoke(cli, args=["--help"])
+assert "--state [new|in_progress|completed]" in result.stdout
+assert "--state-name [new|in_progress|ongoing|completed|fresh]" in result.stdout
+assert "--state-value [new|in_progress|completed|done]" in result.stdout
+```
+
+And both names and values aliases are properly recognized, and normalized to their corresponding canonocal `Enum` members:
+
+```{click:run}
+result = invoke(cli, args=["--state", "IN_PROGRESS", "--state-name", "ongoing", "--state-value", "done"])
+assert result.output == (
+    "Selected state:       <State.IN_PROGRESS: 'in_progress'>\n"
+    "Selected state-name:  <State.IN_PROGRESS: 'in_progress'>\n"
+    "Selected state-value: <State.COMPLETED: 'completed'>\n"
+)
+```
+
 ## `click_extra.types` API
 
 ```{eval-rst}
