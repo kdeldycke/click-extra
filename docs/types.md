@@ -527,7 +527,7 @@ assert "--state-value [new|in_progress|completed|done]" in result.stdout
 And both names and values aliases are properly recognized, and normalized to their corresponding canonocal `Enum` members:
 
 ```{click:run}
-result = invoke(cli, args=["--state", "IN_PROGRESS", "--state-name", "ongoing", "--state-value", "done"])
+result = invoke(cli, args=["--state", "in_progress", "--state-name", "ongoing", "--state-value", "done"])
 assert result.output == (
     "Selected state:       <State.IN_PROGRESS: 'in_progress'>\n"
     "Selected state-name:  <State.IN_PROGRESS: 'in_progress'>\n"
