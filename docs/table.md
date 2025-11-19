@@ -22,7 +22,7 @@ def table_command(ctx):
     ctx.print_table(data, headers)
 ```
 
-As you can see above, this option adds a ready-to-use `print_table()` method to the context object.
+As you can see above, this option registers a ready-to-use `print_table()` method to the context object.
 
 The default help message for this option list all available table formats:
 
@@ -69,6 +69,12 @@ This example has been selected so you can see how `print_table()` handles:
 - Mixed data types (integers, floats, `None`, strings)
 - ANSI color codes (added with the `click_extra.style()` function)
 - Unicode characters (like the emojis)
+```
+
+```{hint}
+There's another method called `render_table()` that is registered in the context alongside `print_table()`.
+
+It works the same way, but instead of printing the table to the console, it returns the rendered table as a string.
 ```
 
 ### Table formats

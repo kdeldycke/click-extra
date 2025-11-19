@@ -325,7 +325,18 @@ class TableFormatOption(ExtraOption):
     the rendering style of a table.
 
     The selected table format ID is made available in the context in
-    ``ctx.meta["click_extra.table_format"]``.
+    ``ctx.meta["click_extra.table_format"]``, and two helper methods are added to
+    the context:
+    - ``ctx.render_table(table_data, headers, **kwargs)``: renders and returns
+      the table as a string,
+    - ``ctx.print_table(table_data, headers, **kwargs)``: renders and prints
+      the table to the console.
+
+    Where:
+    - ``table_data`` is a 2-dimensional iterable of iterables for rows and cells values,
+    - ``headers`` is a list of string to be used as column headers,
+    - ``**kwargs`` are any extra keyword arguments supported by the underlying table
+      formatting function.
     """
 
     def __init__(
@@ -359,18 +370,14 @@ class TableFormatOption(ExtraOption):
         param: click.Parameter,
         table_format: TableFormat | None,
     ) -> None:
-        """Save table format in the context, and adds ``print_table()`` to it.
-
-        The ``print_table(table_data, headers, **kwargs)`` method added to the context
-        is a ready-to-use helper that takes for parameters:
-
-        - ``table_data``: a 2-dimensional iterable of iterables for rows and cells
-          values,
-        - ``headers``: a list of string to be used as column headers,
-        - ``**kwargs``: any extra keyword argument supported by the underlying
-          table rendering function.
-        """
+        """Save in the context: ``table_format``, ``render_table`` & ``print_table``."""
         ctx.meta["click_extra.table_format"] = table_format
+
+        ctx.render_table = partial(  # type: ignore[attr-defined]
+            render_table,
+            table_format=table_format,
+        )
+
         ctx.print_table = partial(  # type: ignore[attr-defined]
             print_table,
             table_format=table_format,
