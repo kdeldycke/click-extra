@@ -341,6 +341,9 @@ def test_enum_string_choices(
         assert enum_choice.convert(member, None, None) == member
 
 
+@pytest.mark.skipif(
+    sys.version_info < (3, 11), reason="Enum aliasing not supported in Python < 3.11"
+)
 @pytest.mark.parametrize(
     ("enum_definition", "choice_source", "show_aliases", "result"),
     (
