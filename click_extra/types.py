@@ -116,7 +116,7 @@ class EnumChoice(click.Choice):
             if self._choice_source in (ChoiceSource.KEY, ChoiceSource.NAME):
                 member_source = self._enum.__members__
             elif self._choice_source == ChoiceSource.VALUE:
-                member_source = self._enum._value2member_map_
+                member_source = self._enum._value2member_map_  # type: ignore[assignment]
             else:
                 raise RuntimeError(
                     f"Cannot use {self._choice_source!r} with show_aliases=True."

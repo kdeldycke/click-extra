@@ -316,7 +316,9 @@ def test_click_choice_behavior() -> None:
     ),
 )
 def test_enum_string_choices(
-    enum_definition: Enum, choice_source: ChoiceSource, result: tuple[str, ...] | str
+    enum_definition: type[Enum],
+    choice_source: ChoiceSource,
+    result: tuple[str, ...] | str,
 ) -> None:
 
     # Expecting an error message.
@@ -333,7 +335,7 @@ def test_enum_string_choices(
     assert enum_choice.choices == result
     assert len(enum_choice.choices) == len(set(enum_choice.choices))
 
-    for choice_str, member in zip(enum_choice.choices, enum_definition):
+    for choice_str, member in zip(enum_choice.choices, list(enum_definition)):
         # Conversion from choice strings to Enum members.
         assert enum_choice.convert(choice_str, None, None) == member
 
@@ -383,20 +385,20 @@ def test_enum_string_choices(
             Enum("Color", {"RED": 1, "GREEN": 2, "BLUE": 3}),
             ChoiceSource.VALUE,
             True,
-            "<Color.RED: 1> produced non-string choice 1",
+            TypeError,
         ),
     ),
 )
 def test_enum_choice_show_aliases(
-    enum_definition: Enum,
+    enum_definition: type[Enum],
     choice_source: ChoiceSource,
     show_aliases: bool,
-    result: tuple[str, ...] | Exception | str,
+    result: tuple[str, ...] | type[RuntimeError] | type[TypeError],
 ) -> None:
     """Test that EnumChoice correctly handles Enum with aliases."""
 
     if result is RuntimeError:
-        with pytest.raises(result) as exc_info:
+        with pytest.raises(RuntimeError) as exc_info:
             EnumChoice(
                 enum_definition, choice_source=choice_source, show_aliases=show_aliases
             )
@@ -406,18 +408,19 @@ def test_enum_choice_show_aliases(
         )
         return
 
-    elif isinstance(result, str):
-        with pytest.raises(TypeError) as exc_info:
+    elif result is TypeError:
+        with pytest.raises(TypeError) as type_exc_info:
             EnumChoice(
                 enum_definition, choice_source=choice_source, show_aliases=show_aliases
             )
 
-        assert exc_info.value.args[0] == f"{result} when using {choice_source!r}."
+        assert "produced non-string choice" in type_exc_info.value.args[0]
+        assert f"when using {choice_source!r}." in type_exc_info.value.args[0]
         return
 
     # Augment the Enum with both key/name and value aliases.
-    tuple(enum_definition)[0]._add_alias_("aliased_pending")
-    tuple(enum_definition)[1]._add_value_alias_("aliased_approved")
+    list(enum_definition)[0]._add_alias_("aliased_pending")  # type: ignore[attr-defined]
+    list(enum_definition)[1]._add_value_alias_("aliased_approved")  # type: ignore[attr-defined]
 
     enum_choice = EnumChoice(
         enum_definition, choice_source=choice_source, show_aliases=show_aliases
@@ -426,11 +429,11 @@ def test_enum_choice_show_aliases(
     assert len(enum_choice.choices) == len(set(enum_choice.choices))
 
     # Map choice strings to Enum members, including aliases.
-    choice_to_member = list(zip(enum_choice.choices, enum_definition))
-    if "aliased_pending" in result:
-        choice_to_member.append(("aliased_pending", tuple(enum_definition)[0]))
-    if "aliased_approved" in result:
-        choice_to_member.append(("aliased_approved", tuple(enum_definition)[1]))
+    choice_to_member = list(zip(enum_choice.choices, list(enum_definition)))
+    if isinstance(result, tuple) and "aliased_pending" in result:
+        choice_to_member.append(("aliased_pending", list(enum_definition)[0]))
+    if isinstance(result, tuple) and "aliased_approved" in result:
+        choice_to_member.append(("aliased_approved", list(enum_definition)[1]))
 
     for choice_str, member in choice_to_member:
         # Conversion from choice strings to Enum members.
