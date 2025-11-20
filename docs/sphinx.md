@@ -372,7 +372,7 @@ assert result.exit_code == 0, "CLI execution failed"
 assert not result.stderr, "Found error messages in <stderr>"
 ```
 
-```{hint}
+```{caution}
 `:show-results:`/`:hide-results:` options have no effect on the `click:example` directive and will be ignored. That's because this directive does not execute the CLI: it only displays its source code.
 ```
 
@@ -380,7 +380,7 @@ assert not result.stderr, "Found error messages in <stderr>"
 
 You can also use the `click:run` directive without a preceding `click:example` block. This is useful when you want to demonstrate the usage of a CLI defined elsewhere, for example in your package's source code.
 
-In the example below, we import the `click_extra.cli.click_extra` function, which is defined in the `click_extra/cli/click_extra.py` source file. There is no need to redefine the CLI in a `click:example` block beforehand:
+In the example below, we import the `click_extra.cli.click_extra` function, which is defined in the [`click_extra/cli.py`](https://github.com/kdeldycke/click-extra/blob/main/click_extra/cli.py) source file. There is no need to redefine the CLI in a `click:example` block beforehand:
 
 ``````{tab-set}
 `````{tab-item} MyST Markdown
