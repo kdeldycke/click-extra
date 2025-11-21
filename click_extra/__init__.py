@@ -226,7 +226,7 @@ __all__ = [  # noqa: F405
 """
 
 
-__version__ = "7.1.0"
+__version__ = "7.1.1"
 """Examples of valid version strings according :pep:`440#version-scheme`:
 
 .. code-block:: python
