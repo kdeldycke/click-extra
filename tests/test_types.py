@@ -229,14 +229,12 @@ def test_click_choice_behavior() -> None:
             ChoiceSource.STR,
             ("1", "2", "3")
             if sys.version_info >= (3, 11)
-            else ("LOW", "MEDIUM", "HIGH"),
+            else ("Prdiority.LOW", "Priority.MEDIUM", "Priority.HIGH"),
         ),
         (
             IntEnum("Priority", {"LOW": auto(), "MEDIUM": auto(), "HIGH": auto()}),
             ChoiceSource.NAME,
-            ("LOW", "MEDIUM", "HIGH")
-            if sys.version_info >= (3, 11)
-            else ("Priority.LOW", "Priority.MEDIUM", "Priority.HIGH"),
+            ("LOW", "MEDIUM", "HIGH"),
         ),
         (
             IntEnum("Priority", {"LOW": auto(), "MEDIUM": auto(), "HIGH": auto()}),
