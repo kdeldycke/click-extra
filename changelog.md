@@ -1,9 +1,6 @@
 # Changelog
 
-## [7.1.0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.0.1...main)
-
-> [!IMPORTANT]
-> This version is not released yet and is under active development.
+## [7.1.0 (2025-11-21)](https://github.com/kdeldycke/click-extra/compare/v7.0.1...v7.1.0)
 
 - Add support for aliases in `EnumChoice` type.
 - Register pre-configured `render_table()` utility in the context when `table_format` is set, in the same spirit as `print_table()`.
