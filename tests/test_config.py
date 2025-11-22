@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 from textwrap import dedent
@@ -23,8 +24,11 @@ from textwrap import dedent
 import click
 import pytest
 from boltons.pathutils import shrinkuser
+from extra_platforms import is_macos, is_unix_without_macos, is_windows
 
 from click_extra import (
+    ConfigFormat,
+    ConfigOption,
     config_option,
     echo,
     get_app_dir,
@@ -32,6 +36,7 @@ from click_extra import (
     no_config_option,
     option,
     pass_context,
+    search_params,
 )
 from click_extra.colorize import _escape_for_help_screen
 from click_extra.pytest import (
@@ -718,3 +723,82 @@ def test_multiple_cli_shared_conf(invoke, create_config):
     assert result.stdout == "int = 5\n"
     assert result.stderr == "Skip configuration file loading altogether.\n"
     assert result.exit_code == 0
+
+
+@pytest.mark.parametrize(
+    ("file_format_patterns", "expected_pattern"),
+    [
+        pytest.param(
+            None,
+            "*.toml|*.yaml|*.yml|*.json|*.json5|*.jsonc|*.hjson|*.ini|*.xml",
+            id="default_all_formats",
+        ),
+        pytest.param(ConfigFormat.TOML, "*.toml", id="single_format"),
+        pytest.param(ConfigFormat.YAML, "*.yaml|*.yml", id="yaml_multiple_patterns"),
+        pytest.param(
+            [ConfigFormat.TOML, ConfigFormat.JSON],
+            "*.toml|*.json",
+            id="multiple_formats_iterable",
+        ),
+        pytest.param(
+            {
+                ConfigFormat.TOML: ("*.toml", "*.tml"),
+                ConfigFormat.JSON: "*.json",
+            },
+            "*.toml|*.tml|*.json",
+            id="custom_patterns_dict",
+        ),
+        pytest.param(
+            {
+                ConfigFormat.TOML: ("*.toml", "*.config"),
+                ConfigFormat.JSON: ("*.json", "*.config"),
+            },
+            "*.toml|*.config|*.json",
+            id="deduplicated_patterns",
+        ),
+    ],
+)
+def test_file_pattern(file_format_patterns, expected_pattern):
+    """Test the file_pattern property with different file format configurations."""
+    opt = ConfigOption(file_format_patterns=file_format_patterns)
+    assert opt.file_pattern == expected_pattern
+
+
+@pytest.mark.parametrize(
+    ("roaming", "force_posix", "current_platform", "expected_path"),
+    [
+        (True, False, is_macos(), "~/Library/Application Support/test-cli/"),
+        (False, False, is_macos(), "~/Library/Application Support/test-cli/"),
+        (True, True, is_macos(), "~/.test-cli/"),
+        (False, True, is_macos(), "~/.test-cli/"),
+        (True, False, is_unix_without_macos(), "~/.config/test-cli/"),
+        (False, False, is_unix_without_macos(), "~/.config/test-cli/"),
+        (True, True, is_unix_without_macos(), "~/.test-cli/"),
+        (False, True, is_unix_without_macos(), "~/.test-cli/"),
+        (True, False, is_windows(), "~\\AppData\\Roaming\\test-cli\\"),
+        (False, False, is_windows(), "~\\AppData\\Local\\test-cli\\"),
+        (True, True, is_windows(), "~/.test-cli/"),
+        (False, True, is_windows(), "~/.test-cli/"),
+    ],
+)
+def test_default_pattern_roaming_force_posix(
+    roaming, force_posix, current_platform, expected_path
+):
+    """Test that roaming and force_posix affect the default pattern generation."""
+    if not current_platform:
+        pytest.skip("Platform-specific test.")
+
+    @click.command
+    @config_option(roaming=roaming, force_posix=force_posix)
+    def test_cli():
+        pass
+
+    # Create a context and call default_pattern directly.
+    with click.Context(test_cli, info_name="test-cli"):
+        config_opt = search_params(test_cli.params, ConfigOption)
+
+        assert config_opt.default_pattern() == (
+            str(Path(expected_path).expanduser())
+            + os.path.sep
+            + config_opt.file_pattern
+        )
