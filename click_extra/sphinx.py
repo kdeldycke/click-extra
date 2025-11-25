@@ -516,7 +516,7 @@ def delete_example_runner_state(app: Sphinx, doctree: nodes.document) -> None:
     """
     runner = getattr(doctree, "click_example_runner", None)
     if runner is not None:
-        del doctree.click_example_runner
+        delattr(doctree, "click_example_runner")
 
 
 GITHUB_ALERT_PATTERN = re.compile(
