@@ -27,7 +27,7 @@ jobs:
         # Only targets 2 variants per platforms to keep the matrix small.
         os:
           - ubuntu-24.04-arm # arm64
-          - ubuntu-24.04     # x86
+          - ubuntu-slim      # x86
           - macos-26         # arm64
           - macos-15-intel   # x86
           - windows-11-arm   # arm64
@@ -56,7 +56,7 @@ jobs:
         #   exclude:
         #     - click-version: stable
         #       os:
-        #         - ubuntu-24.04
+        #         - ubuntu-slim
         #         - macos-15-intel
         #         - windows-2025
         #       python-version:
@@ -68,7 +68,7 @@ jobs:
         #         - "3.15t"
         #     - click-version: main
         #       os:
-        #         - ubuntu-24.04
+        #         - ubuntu-slim
         #         - macos-15-intel
         #         - windows-2025
         #       python-version:
@@ -80,7 +80,7 @@ jobs:
         #         - "3.15t"
         #     - cloup-version: master
         #       os:
-        #         - ubuntu-24.04
+        #         - ubuntu-slim
         #         - macos-15-intel
         #         - windows-2025
         #       python-version:
@@ -92,11 +92,11 @@ jobs:
         #         - "3.15t"
         exclude:
           # Only targets the latest OS for each platform.
-          - os: ubuntu-24.04
+          - os: ubuntu-slim
             click-version: stable
-          - os: ubuntu-24.04
+          - os: ubuntu-slim
             click-version: main
-          - os: ubuntu-24.04
+          - os: ubuntu-slim
             cloup-version: master
           - os: macos-15-intel
             click-version: stable
@@ -148,7 +148,7 @@ jobs:
     # We keep going when a job flagged as not stable fails.
     continue-on-error: ${{ matrix.state == 'unstable' }}
     steps:
-      - uses: actions/checkout@v5.0.1
+      - uses: actions/checkout@v6.0.0
       - uses: astral-sh/setup-uv@v7.1.4
       - name: Install Python ${{ matrix.python-version }}
         # If UV cannot find the requested Python version, it exits with code 2, which let the job pass unnoticed on

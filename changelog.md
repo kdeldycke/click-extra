@@ -6,6 +6,8 @@
 > This version is not released yet and is under active development.
 
 - Add support for auto-conversion of GitHub alerts into MyST admonitions in Sphinx extension.
+- Run tests on `ubuntu-slim` GitHub Actions runner.
+- Run docs update job on `ubuntu-slim` runner.
 
 ## [7.1.0 (2025-11-21)](https://github.com/kdeldycke/click-extra/compare/v7.0.1...v7.1.0)
 
