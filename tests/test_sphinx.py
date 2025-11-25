@@ -26,6 +26,7 @@ from typing import Generator, Sequence
 
 import pytest
 from sphinx.application import Sphinx
+from sphinx.errors import ConfigError
 from sphinx.util.docutils import docutils_namespace
 
 
@@ -1142,3 +1143,341 @@ def test_exit_exception_percolate(sphinx_app):
         + "Something went wrong!\n"
         + "</pre></div>"
     ) in html_output
+
+
+GITHUB_ALERT_NOTE_TEST_CASE = DirectiveTestCase(
+    name="github_alert_note",
+    format_type=FormatType.MYST,
+    document="""
+        > [!NOTE]
+        > This is a note.
+        > With multiple lines.
+
+        Regular text after.
+    """,
+    html_matches=(
+        '<div class="admonition note">',
+        '<p class="admonition-title">Note</p>',
+        "<p>This is a note.\nWith multiple lines.</p>",
+        "</div>",
+    ),
+)
+
+GITHUB_ALERT_TIP_TEST_CASE = DirectiveTestCase(
+    name="github_alert_tip",
+    format_type=FormatType.MYST,
+    document="""
+        > [!TIP]
+        > This is a tip.
+    """,
+    html_matches=(
+        '<div class="admonition tip">',
+        '<p class="admonition-title">Tip</p>',
+        "<p>This is a tip.</p>",
+        "</div>",
+    ),
+)
+
+GITHUB_ALERT_IMPORTANT_TEST_CASE = DirectiveTestCase(
+    name="github_alert_important",
+    format_type=FormatType.MYST,
+    document="""
+        > [!IMPORTANT]
+        > This is important.
+    """,
+    html_matches=(
+        '<div class="admonition important">',
+        '<p class="admonition-title">Important</p>',
+        "<p>This is important.</p>",
+        "</div>",
+    ),
+)
+
+GITHUB_ALERT_WARNING_TEST_CASE = DirectiveTestCase(
+    name="github_alert_warning",
+    format_type=FormatType.MYST,
+    document="""
+        > [!WARNING]
+        > This is a warning.
+    """,
+    html_matches=(
+        '<div class="admonition warning">',
+        '<p class="admonition-title">Warning</p>',
+        "<p>This is a warning.</p>",
+        "</div>",
+    ),
+)
+
+GITHUB_ALERT_CAUTION_TEST_CASE = DirectiveTestCase(
+    name="github_alert_caution",
+    format_type=FormatType.MYST,
+    document="""
+        > [!CAUTION]
+        > This is a caution.
+    """,
+    html_matches=(
+        '<div class="admonition caution">',
+        '<p class="admonition-title">Caution</p>',
+        "<p>This is a caution.</p>",
+        "</div>",
+    ),
+)
+
+GITHUB_ALERT_EMPTY_LINE_TEST_CASE = DirectiveTestCase(
+    name="github_alert_empty_line",
+    format_type=FormatType.MYST,
+    document="""
+        > [!NOTE]
+        > First paragraph.
+        >
+        > Second paragraph.
+    """,
+    html_matches=(
+        '<div class="admonition note">',
+        "<p>First paragraph.</p>",
+        "<p>Second paragraph.</p>",
+        "</div>",
+    ),
+)
+
+GITHUB_ALERT_MULTIPLE_TEST_CASE = DirectiveTestCase(
+    name="github_alert_multiple",
+    format_type=FormatType.MYST,
+    document="""
+        > [!NOTE]
+        > A note.
+
+        Some text between.
+
+        > [!WARNING]
+        > A warning.
+    """,
+    html_matches=(
+        '<div class="admonition note">',
+        "<p>A note.</p>",
+        "</div>",
+        '<div class="admonition warning">',
+        "<p>A warning.</p>",
+        "</div>",
+    ),
+)
+
+GITHUB_ALERT_EXTRA_SPACES_TEST_CASE = DirectiveTestCase(
+    name="github_alert_extra_spaces",
+    format_type=FormatType.MYST,
+    document="""
+        > [!NOTE]
+        >  This line has an extra space after >.
+        >   This line has two extra spaces.
+        >    This line has three extra spaces.
+    """,
+    html_matches=(
+        '<div class="admonition note">',
+        '<p class="admonition-title">Note</p>',
+        "<p>This line has an extra space after &gt;.\n"
+        "This line has two extra spaces.\n"
+        "This line has three extra spaces.</p>",
+        "</div>",
+    ),
+)
+
+GITHUB_ALERT_NO_SPACE_AFTER_BRACKET_TEST_CASE = DirectiveTestCase(
+    name="github_alert_no_space_after_bracket",
+    format_type=FormatType.MYST,
+    document="""
+        > [!TIP]
+        >No space after the bracket.
+    """,
+    html_matches=(
+        '<div class="admonition tip">',
+        '<p class="admonition-title">Tip</p>',
+        "<p>No space after the bracket.</p>",
+        "</div>",
+    ),
+)
+
+GITHUB_ALERT_MIXED_SPACING_TEST_CASE = DirectiveTestCase(
+    name="github_alert_mixed_spacing",
+    format_type=FormatType.MYST,
+    document="""
+        > [!WARNING]
+        > Normal spacing.
+        >  Extra space.
+        >No space.
+        >   Lots of spaces.
+    """,
+    html_matches=(
+        '<div class="admonition warning">',
+        '<p class="admonition-title">Warning</p>',
+        "<p>Normal spacing.\nExtra space.\nNo space.\nLots of spaces.</p>",
+        "</div>",
+    ),
+)
+
+GITHUB_ALERT_LEADING_SPACES_TEST_CASE = DirectiveTestCase(
+    name="github_alert_leading_spaces",
+    format_type=FormatType.MYST,
+    document="""
+        >    [!TIP]
+        > This alert has extra spaces before the directive.
+    """,
+    html_matches=(
+        '<div class="admonition tip">',
+        '<p class="admonition-title">Tip</p>',
+        "<p>This alert has extra spaces before the directive.</p>",
+        "</div>",
+    ),
+)
+
+GITHUB_ALERT_INVALID_SPACE_AFTER_BANG_TEST_CASE = DirectiveTestCase(
+    name="github_alert_invalid_space_after_bang",
+    format_type=FormatType.MYST,
+    document="""
+        > [! TIP]
+        > This should remain a regular blockquote.
+    """,
+    html_matches=(
+        "<blockquote>",
+        "<p>[! TIP]\nThis should remain a regular blockquote.</p>",
+        "</blockquote>",
+    ),
+)
+
+GITHUB_ALERT_INVALID_SPACE_BEFORE_BANG_TEST_CASE = DirectiveTestCase(
+    name="github_alert_invalid_space_before_bang",
+    format_type=FormatType.MYST,
+    document="""
+        > [ !TIP]
+        > This should remain a regular blockquote.
+    """,
+    html_matches=(
+        "<blockquote>",
+        "<p>[ !TIP]\nThis should remain a regular blockquote.</p>",
+        "</blockquote>",
+    ),
+)
+
+GITHUB_ALERT_INVALID_SPACE_BEFORE_BRACKET_TEST_CASE = DirectiveTestCase(
+    name="github_alert_invalid_space_before_bracket",
+    format_type=FormatType.MYST,
+    document="""
+        > [!TIP ]
+        > This should remain a regular blockquote.
+    """,
+    html_matches=(
+        "<blockquote>",
+        "<p>[!TIP ]\nThis should remain a regular blockquote.</p>",
+        "</blockquote>",
+    ),
+)
+
+GITHUB_ALERT_INVALID_LOWERCASE_TEST_CASE = DirectiveTestCase(
+    name="github_alert_invalid_lowercase",
+    format_type=FormatType.MYST,
+    document="""
+        > [!tip]
+        > This should remain a regular blockquote.
+    """,
+    html_matches=(
+        "<blockquote>",
+        "<p>[!tip]\nThis should remain a regular blockquote.</p>",
+        "</blockquote>",
+    ),
+)
+
+
+@pytest.mark.parametrize(
+    "test_case",
+    [
+        GITHUB_ALERT_NOTE_TEST_CASE,
+        GITHUB_ALERT_TIP_TEST_CASE,
+        GITHUB_ALERT_IMPORTANT_TEST_CASE,
+        GITHUB_ALERT_WARNING_TEST_CASE,
+        GITHUB_ALERT_CAUTION_TEST_CASE,
+        GITHUB_ALERT_EMPTY_LINE_TEST_CASE,
+        GITHUB_ALERT_MULTIPLE_TEST_CASE,
+        GITHUB_ALERT_EXTRA_SPACES_TEST_CASE,
+        GITHUB_ALERT_NO_SPACE_AFTER_BRACKET_TEST_CASE,
+        GITHUB_ALERT_MIXED_SPACING_TEST_CASE,
+        GITHUB_ALERT_LEADING_SPACES_TEST_CASE,
+        GITHUB_ALERT_INVALID_SPACE_AFTER_BANG_TEST_CASE,
+        GITHUB_ALERT_INVALID_SPACE_BEFORE_BANG_TEST_CASE,
+        GITHUB_ALERT_INVALID_SPACE_BEFORE_BRACKET_TEST_CASE,
+        GITHUB_ALERT_INVALID_LOWERCASE_TEST_CASE,
+    ],
+    ids=lambda tc: tc.name,
+)
+def test_github_alert_conversion(sphinx_app, test_case):
+    """Test GitHub alert syntax is converted to MyST directives."""
+    if not test_case.supports_format(sphinx_app.format_type):
+        pytest.skip(
+            f"Test case '{test_case.name}' only supports {test_case.format_type}"
+        )
+
+    content = sphinx_app.generate_test_content(test_case)
+    html_output = sphinx_app.build_document(content)
+
+    for fragment in test_case.html_matches:
+        assert fragment in html_output
+
+
+def test_github_alert_no_colon_fence(tmp_path):
+    """Test that ConfigError is raised when colon_fence is not enabled."""
+
+    srcdir = tmp_path / "source"
+    outdir = tmp_path / "build"
+    doctreedir = outdir / ".doctrees"
+
+    srcdir.mkdir()
+    outdir.mkdir()
+
+    # Configuration without colon_fence
+    conf = {
+        "master_doc": "index",
+        "extensions": ["click_extra.sphinx", "myst_parser"],
+        "myst_enable_extensions": [],  # Missing colon_fence
+    }
+    config_content = "\n".join(f"{key} = {repr(value)}" for key, value in conf.items())
+    (srcdir / "conf.py").write_text(config_content)
+
+    content = dedent("""
+        > [!NOTE]
+        > This should fail.
+    """)
+    (srcdir / "index.md").write_text(content)
+
+    with docutils_namespace():
+        app = Sphinx(
+            str(srcdir),
+            str(srcdir),
+            str(outdir),
+            str(doctreedir),
+            "html",
+            verbosity=0,
+            warning=None,
+        )
+        with pytest.raises(ConfigError) as exc_info:
+            app.build()
+
+        assert "colon_fence" in str(exc_info.value)
+
+
+def test_content_without_alerts_unchanged(sphinx_app_myst):
+    """Test that content without GitHub alerts passes through unchanged."""
+    content = dedent("""
+        # Regular Heading
+
+        Regular paragraph text.
+
+        > Regular blockquote without alert syntax.
+
+        ```python
+        print("code block")
+        ```
+    """)
+
+    html_output = sphinx_app_myst.build_document(content)
+
+    assert "<h1>Regular Heading" in html_output
+    assert "<p>Regular paragraph text.</p>" in html_output
+    assert "<blockquote>" in html_output

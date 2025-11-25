@@ -70,6 +70,10 @@ Here is the list of issues and bugs from other projects that `click-extra` has a
 
 - [`#5482` - ANSI shell sessions in Sphinx documentation](https://github.com/kovidgoyal/kitty/discussions/5482)
 
+## [`MyST-Parser`](https://github.com/executablebooks/MyST-Parser)
+
+- [`#845` - Add an extension to support GitHub alerts](https://github.com/executablebooks/MyST-Parser/issues/845)
+
 ## [`nbsphinx`](https://github.com/spatialaudio/nbsphinx)
 
 - [`#852` - Sphinx & Pygments integration for ANSI rendering](https://github.com/spatialaudio/nbsphinx/issues/852)

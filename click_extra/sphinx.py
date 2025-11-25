@@ -42,11 +42,12 @@ except ImportError:
 
 import ast
 import contextlib
+import re
 import shlex
 import subprocess
 import sys
 import tempfile
-from functools import cached_property, partial
+from functools import cache, cached_property, partial
 
 import click
 from click.testing import EchoingStdin
@@ -55,6 +56,7 @@ from docutils.statemachine import StringList
 from sphinx.directives import SphinxDirective, directives
 from sphinx.directives.code import CodeBlock
 from sphinx.domains import Domain
+from sphinx.errors import ConfigError
 from sphinx.highlighting import PygmentsBridge
 
 from . import __version__
@@ -512,14 +514,102 @@ def delete_example_runner_state(app: Sphinx, doctree: nodes.document) -> None:
     """Close and remove the :class:`ExampleRunner` instance once the
     document has been read.
     """
-    if hasattr(doctree, "click_example_runner"):
-        runner = getattr(doctree, "click_example_runner", None)
-        if runner is not None:
-            del doctree.click_example_runner
+    runner = getattr(doctree, "click_example_runner", None)
+    if runner is not None:
+        del doctree.click_example_runner
+
+
+GITHUB_ALERT_PATTERN = re.compile(
+    r"^(\s*)>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*$"
+)
+"""Regex pattern to match GitHub alerts opening lines.
+
+.. seealso::
+    - GitHub documentation for `alerts syntax
+    <https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts>`_.
+    - Announcement for `alert support starting 2023-12-14
+    <https://github.blog/changelog/2023-12-14-new-markdown-extension-alerts-provide-distinctive-styling-for-significant-content/>`_.
+"""
+
+GITHUB_ALERT_CONTENT_PATTERN = re.compile(r"^(\s*)>(.*)$")
+"""Regex pattern to match GitHub alert content lines."""
+
+
+@cache
+def check_colon_fence(app: Sphinx) -> None:
+    """Check that `colon_fence support
+    <https://myst-parser.readthedocs.io/en/latest/syntax/optional.html#code-fences-using-colons>`_
+    is enabled for MyST.
+
+    :raises ConfigError: If `colon_fence` is not in `myst_enable_extensions`.
+    """
+    myst_extensions = getattr(app.config, "myst_enable_extensions", [])
+    if "colon_fence" not in myst_extensions:
+        raise ConfigError(
+            "GitHub alerts conversion requires 'colon_fence' in "
+            "myst_enable_extensions. Add it to your conf.py:\n"
+            "    myst_enable_extensions = [..., 'colon_fence']"
+        )
+
+
+def replace_github_alerts(text: str) -> str | None:
+    """Transform GitHub alerts into MyST admonitions.
+
+    Identify GitHub alerts in the provided ``text`` and transform them into
+    colon-fenced ``:::`` MyST admonitions.
+
+    Returns ``None`` if no transformation was applied, else returns the transformed
+    text.
+    """
+    lines = text.split("\n")
+    result = []
+    in_alert = False
+    indent = ""
+    modified = False
+
+    for line in lines:
+        match = GITHUB_ALERT_PATTERN.match(line)
+        if match:
+            indent, alert_type = match.groups()
+            result.append(f"{indent}:::{{{alert_type.lower()}}}")
+            in_alert = True
+            modified = True
+            continue
+
+        if in_alert:
+            content_match = GITHUB_ALERT_CONTENT_PATTERN.match(line)
+            if content_match:
+                result.append(indent + content_match.group(2).lstrip())
+            else:
+                result.append(f"{indent}:::")
+                result.append(line)
+                in_alert = False
+                continue
+        else:
+            result.append(line)
+
+    if in_alert:
+        result.append(":::")
+
+    return "\n".join(result) if modified else None
+
+
+def convert_github_alerts(app: Sphinx, *args) -> None:
+    """Convert GitHub alerts into MyST admonitions in content blocks."""
+    content = args[-1]
+
+    for i, orig_content in enumerate(content):
+        transformed = replace_github_alerts(orig_content)
+        if transformed is not None:
+            check_colon_fence(app)
+            content[i] = transformed
 
 
 def setup(app: Sphinx) -> ExtensionMetadata:
-    """Register new directives, augmented with ANSI coloring.
+    """Register Click Extra specific extensions to Sphinx.
+
+    - new directives, augmented with ANSI coloring.
+    - support for GitHub alerts syntax in included files and regular source files.
 
     .. caution::
         This function forces the Sphinx app to use
@@ -529,9 +619,13 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     # Set Sphinx's default HTML formatter to an ANSI capable one.
     PygmentsBridge.html_formatter = AnsiHtmlFormatter
 
-    # Register directives to Sphinx.
+    # Register click:example and click:run directives.
     app.add_domain(ClickDomain)
     app.connect("doctree-read", delete_example_runner_state)
+
+    # Register GitHub alerts converter.
+    app.connect("source-read", convert_github_alerts)
+    app.connect("include-read", convert_github_alerts)
 
     return {
         "version": __version__,
