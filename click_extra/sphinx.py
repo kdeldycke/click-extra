@@ -47,6 +47,7 @@ import shlex
 import subprocess
 import sys
 import tempfile
+from dataclasses import dataclass
 from functools import cache, cached_property, partial
 
 import click
@@ -641,14 +642,16 @@ def replace_github_alerts(text: str) -> str | None:
 
         is_blank = line.strip() == ""
 
-        match = GITHUB_ALERT_PATTERN.match(line)
-        if match:
-            state.alert_indent, alert_type = match.groups()
-            result.append(f"{state.alert_indent}:::{{{alert_type.lower()}}}")
-            state.in_alert = True
-            state.modified = True
-            state.prev_line_blank = is_blank
-            continue
+        # Only check for new alert if we're not already inside one
+        if not state.in_alert:
+            match = GITHUB_ALERT_PATTERN.match(line)
+            if match:
+                state.alert_indent, alert_type = match.groups()
+                result.append(f"{state.alert_indent}:::{{{alert_type.lower()}}}")
+                state.in_alert = True
+                state.modified = True
+                state.prev_line_blank = is_blank
+                continue
 
         if state.in_alert:
             content_match = GITHUB_ALERT_CONTENT_PATTERN.match(line)

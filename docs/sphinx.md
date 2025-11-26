@@ -636,6 +636,17 @@ These will render in Sphinx as:
 > [!WARNING]
 > Reader discretion is strongly advised.
 
+### Rules
+
+Playing with alerts on various GitHub websites, I reverse-engineered the following specifications:
+
+- alert type must be in **UPPERCASE**: `[!TIP]`, not `[!tip]`
+- no spaces in the directive: `[! NOTE]`, `[!NOTE ]` or `[ !NOTE]` are invalid
+- must be the first thing in the blockquote: `> Hello [!NOTE] This is a note.` is interpreted as a normal blockquote, not an alert
+- only the first line of the blockquote is parsed for the alert type: subsequent lines are considered part of the alert content
+- the alert content can span multiple lines, as long as they are part of the same blockquote
+- empty blockquotes are ignored: `> [!TIP]` without any content is not rendered
+
 ## ANSI shell sessions
 
 Sphinx extensions from Click Extra automaticcaly integrates the [new ANSI-capable lexers for Pygments](pygments.md#lexers).

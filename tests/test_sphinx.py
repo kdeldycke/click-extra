@@ -1414,6 +1414,52 @@ GITHUB_ALERT_INVALID_LOWERCASE_TEST_CASE = DirectiveTestCase(
     ),
 )
 
+GITHUB_ALERT_DUPLICATE_DIRECTIVE_TEST_CASE = DirectiveTestCase(
+    name="github_alert_duplicate_directive",
+    format_type=FormatType.MYST,
+    document="""
+        > [!TIP]
+        > [!TIP]
+        > Hello.
+    """,
+    html_matches=(
+        '<div class="admonition tip">\n'
+        '<p class="admonition-title">Tip</p>\n'
+        "<p>[!TIP]\n"
+        "Hello.</p>\n"
+        "</div>\n",
+    ),
+)
+
+GITHUB_ALERT_EMPTY_DIRECTIVE_TEST_CASE = DirectiveTestCase(
+    name="github_alert_empty_directive",
+    format_type=FormatType.MYST,
+    document="""
+        > [!TIP]
+    """,
+    html_matches=(
+        '          <div class="body" role="main">\n'
+        "            \n"
+        "  \n"
+        "\n"
+        "          </div>\n",
+    ),
+)
+
+
+GITHUB_ALERT_INVALID_TEXT_BEFORE_TEST_CASE = DirectiveTestCase(
+    name="github_alert_invalid_text_before",
+    format_type=FormatType.MYST,
+    document="""
+        > Hello [!NOTE] This is a note.
+    """,
+    html_matches=(
+        "<blockquote>\n"
+        "<div><p>Hello [!NOTE] This is a note.</p>\n"
+        "</div></blockquote>\n",
+    ),
+)
+
 GITHUB_ALERT_IN_CODE_BLOCK_TEST_CASE = DirectiveTestCase(
     name="github_alert_in_code_block",
     format_type=FormatType.MYST,
@@ -1563,16 +1609,24 @@ GITHUB_ALERT_MIXED_CODE_BLOCKS_TEST_CASE = DirectiveTestCase(
         '<div class="admonition note">\n'
         '<p class="admonition-title">Note</p>\n'
         "<p>This should be converted to an admonition.</p>\n"
-        "</div>\n",
+        "</div>\n"
         # Code block - not converted
-        '<span class="k">&gt; </span><span class="ge">[!NOTE]</span>\n',
+        + HTML["markdown_highlight"]
+        + '<span class="k">&gt; </span><span class="ge">[!NOTE]</span>\n'
+        '<span class="k">&gt; </span><span class="ge">This should NOT be converted (inside code block).</span>\n'
+        "</pre></div>\n"
+        "</div>\n"
         # Second alert - converted
         '<div class="admonition warning">\n'
         '<p class="admonition-title">Warning</p>\n'
         "<p>This should also be converted to an admonition.</p>\n"
-        "</div>\n",
+        "</div>\n"
         # Tilde code block - not converted
-        '<span class="k">&gt; </span><span class="ge">[!WARNING]</span>\n',
+        + HTML["markdown_highlight"]
+        + '<span class="k">&gt; </span><span class="ge">[!WARNING]</span>\n'
+        '<span class="k">&gt; </span><span class="ge">This should NOT be converted (inside tilde block).</span>\n'
+        "</pre></div>\n"
+        "</div>\n"
         # Third alert - converted
         '<div class="admonition tip">\n'
         '<p class="admonition-title">Tip</p>\n'
@@ -1601,6 +1655,9 @@ GITHUB_ALERT_MIXED_CODE_BLOCKS_TEST_CASE = DirectiveTestCase(
         GITHUB_ALERT_INVALID_SPACE_BEFORE_BANG_TEST_CASE,
         GITHUB_ALERT_INVALID_SPACE_BEFORE_BRACKET_TEST_CASE,
         GITHUB_ALERT_INVALID_LOWERCASE_TEST_CASE,
+        GITHUB_ALERT_DUPLICATE_DIRECTIVE_TEST_CASE,
+        GITHUB_ALERT_EMPTY_DIRECTIVE_TEST_CASE,
+        GITHUB_ALERT_INVALID_TEXT_BEFORE_TEST_CASE,
         GITHUB_ALERT_IN_CODE_BLOCK_TEST_CASE,
         GITHUB_ALERT_IN_CODE_BLOCK_TILDE_TEST_CASE,
         GITHUB_ALERT_IN_CODE_BLOCK_FOUR_BACKTICKS_TEST_CASE,
