@@ -222,6 +222,7 @@ class DirectiveTestCase:
 # Common HTML fragments for assertions.
 HTML = {
     "python_highlight": '<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>',
+    "markdown_highlight": '<div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span>',
     "shell_session": '<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span>',
     "sql_highlight": '<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span>',
     "import_click": '<span class="kn">from</span><span class="w"> </span><span class="nn">click</span><span class="w"> </span><span class="kn">import</span> <span class="n">command</span><span class="p">,</span> <span class="n">echo</span>\n',
@@ -1413,6 +1414,24 @@ GITHUB_ALERT_INVALID_LOWERCASE_TEST_CASE = DirectiveTestCase(
     ),
 )
 
+GITHUB_ALERT_IN_CODE_BLOCK_TEST_CASE = DirectiveTestCase(
+    name="github_alert_in_code_block",
+    format_type=FormatType.MYST,
+    document="""
+        ```markdown
+        > [!NOTE]
+        > This is inside a code block and should not be converted.
+        ```
+    """,
+    html_matches=(
+        HTML["markdown_highlight"]
+        + '<span class="k">&gt; </span><span class="ge">[!NOTE]</span>\n'
+        '<span class="k">&gt; </span><span class="ge">This is inside a code block and should not be converted.</span>\n'
+        "</pre></div>\n"
+        "</div>\n",
+    ),
+)
+
 
 @pytest.mark.parametrize(
     "test_case",
@@ -1433,6 +1452,7 @@ GITHUB_ALERT_INVALID_LOWERCASE_TEST_CASE = DirectiveTestCase(
         GITHUB_ALERT_INVALID_SPACE_BEFORE_BANG_TEST_CASE,
         GITHUB_ALERT_INVALID_SPACE_BEFORE_BRACKET_TEST_CASE,
         GITHUB_ALERT_INVALID_LOWERCASE_TEST_CASE,
+        GITHUB_ALERT_IN_CODE_BLOCK_TEST_CASE,
     ],
     ids=lambda tc: tc.name,
 )

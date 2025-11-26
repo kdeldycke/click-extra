@@ -534,6 +534,9 @@ GITHUB_ALERT_PATTERN = re.compile(
 GITHUB_ALERT_CONTENT_PATTERN = re.compile(r"^(\s*)>(.*)$")
 """Regex pattern to match GitHub alert content lines."""
 
+CODE_FENCE_PATTERN = re.compile(r"^(\s*)(`{3,}|~{3,})")
+"""Regex pattern to match code fence opening/closing lines."""
+
 
 @cache
 def check_colon_fence(app: Sphinx) -> None:
@@ -558,16 +561,59 @@ def replace_github_alerts(text: str) -> str | None:
     Identify GitHub alerts in the provided ``text`` and transform them into
     colon-fenced ``:::`` MyST admonitions.
 
+    Code blocks (fenced with ``` or ~~~) are detected and their content is
+    preserved unchanged.
+
     Returns ``None`` if no transformation was applied, else returns the transformed
     text.
     """
     lines = text.split("\n")
     result = []
     in_alert = False
+    in_code_block = False
+    code_fence_char = ""
+    code_fence_len = 0
+    code_fence_indent = ""
     indent = ""
     modified = False
 
     for line in lines:
+        # Check for code fence boundaries
+        fence_match = CODE_FENCE_PATTERN.match(line)
+        if fence_match:
+            fence_indent = fence_match.group(1)
+            fence_chars = fence_match.group(2)
+            fence_char = fence_chars[0]
+            fence_len = len(fence_chars)
+
+            if not in_code_block:
+                # Opening a code block
+                in_code_block = True
+                code_fence_char = fence_char
+                code_fence_len = fence_len
+                code_fence_indent = fence_indent
+                result.append(line)
+                continue
+            elif (
+                fence_char == code_fence_char
+                and fence_len >= code_fence_len
+                and fence_indent == code_fence_indent
+                and line.strip() == fence_chars
+            ):
+                # Closing the code block (same or more fence chars, same indent,
+                # no content after fence)
+                in_code_block = False
+                code_fence_char = ""
+                code_fence_len = 0
+                code_fence_indent = ""
+                result.append(line)
+                continue
+
+        # Inside a code block, pass through unchanged
+        if in_code_block:
+            result.append(line)
+            continue
+
         match = GITHUB_ALERT_PATTERN.match(line)
         if match:
             indent, alert_type = match.groups()
@@ -609,7 +655,7 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     """Register Click Extra specific extensions to Sphinx.
 
     - new directives, augmented with ANSI coloring.
-    - support for GitHub alerts syntax in included files and regular source files.
+    - support for GitHub alerts syntax in *included* and regular *source* files.
 
     .. caution::
         This function forces the Sphinx app to use

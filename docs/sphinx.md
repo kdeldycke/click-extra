@@ -30,7 +30,7 @@ I recommend using one of these themes, which works well with Click Extra:
 - ![GitHub stars](https://img.shields.io/github/stars/lepture/shibuya?label=%E2%AD%90&style=flat-square) [Shibuya](https://github.com/lepture/shibuya) - Which is [explicitly supporting Click Extra](https://shibuya.lepture.com/extensions/click-extra/) as of `2025.9.22`.
 ```
 
-## `click` directives
+## `click:` directives
 
 Click Extra adds two new directives:
 
@@ -41,7 +41,7 @@ Thanks to these, you can directly demonstrate the usage of your CLI in your docu
 
 These directives supports both [MyST Markdown](https://myst-parser.readthedocs.io) and [reStructuredText](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html) syntax.
 
-## Usage
+### Usage
 
 Here is how to define a simple Click-based CLI with the `click:example` directive:
 
@@ -182,7 +182,7 @@ in its Markdown source files](https://github.com/kdeldycke/click-extra/tree/main
 inspiration.
 ```
 
-## Options
+### Options
 
 You can pass options to both the `click:example` and `click:run` directives to customize their behavior:
 
@@ -201,7 +201,7 @@ You can pass options to both the `click:example` and `click:run` directives to c
 | `:show-results:`/`:hide-results:` | Flags to force the results of the CLI invocation to be rendered or not. Only applies to `click:run`. Is silently ignored in `click:example`. | `:show-results:` or `:hide-results:` |
 | `:show-prompt:`/`:hide-prompt:` | TODO | TODO |
 
-### `code-block` options
+#### `code-block` options
 
 Because the `click:example` and `click:run` directives produces code blocks, they inherits the [same options as the Sphinx `code-block` directive](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-code-block).
 
@@ -262,7 +262,7 @@ def hello_world(name):
     echo(f"Hello, {style(name, fg='red')}!")
 ```
 
-### Display options
+#### Display options
 
 You can also control the display of the source code and the results of the CLI invocation with the `:show-source:`/`:hide-source:` and `:show-results:`/`:hide-results:` options.
 
@@ -376,7 +376,7 @@ assert not result.stderr, "Found error messages in <stderr>"
 `:show-results:`/`:hide-results:` options have no effect on the `click:example` directive and will be ignored. That's because this directive does not execute the CLI: it only displays its source code.
 ```
 
-## Standalone `click:run` blocks
+### Standalone `click:run` blocks
 
 You can also use the `click:run` directive without a preceding `click:example` block. This is useful when you want to demonstrate the usage of a CLI defined elsewhere, for example in your package's source code.
 
@@ -411,7 +411,7 @@ from click_extra.cli import click_extra
 invoke(click_extra, args=["--version"])
 ```
 
-## Inline tests
+### Inline tests
 
 The `click:run` directive can also be used to embed tests in your documentation.
 
@@ -533,6 +533,108 @@ assert result.exit_code == 0, "CLI execution failed"
 assert not result.stderr, "Found error messages in <stderr>"
 assert "Usage: yo-cli [OPTIONS]" in result.stdout, "Usage line not found in help screen"
 ```
+
+### Syntax highlight language
+
+By default, code blocks produced by the directives are automatically highlighted with these languages:
+- `click:example`: [`python`](https://pygments.org/docs/lexers/#pygments.lexers.python.PythonLexer)
+- `click:run`: [`ansi-shell-session`](pygments.md#lexer-variants)
+
+If for any reason you want to override these defaults, you can pass the language as an optional parameter to the directive.
+
+Let's say you have a CLI that is only printing SQL queries in its output:
+
+```{click:example}
+:emphasize-lines: 6
+from click_extra import echo, command, option
+
+@command
+@option("--name")
+def sql_output(name):
+    sql_query = f"SELECT * FROM users WHERE name = '{name}';"
+    echo(sql_query)
+```
+
+Then you can force the SQL Pygments highlighter on its output by passing the [short name of that lexer (i.e. `sql`)](https://pygments.org/docs/lexers/#pygments.lexers.sql.SqlLexer) as the first argument to the directive:
+
+````{code-block} markdown
+:emphasize-lines: 1
+```{click:run} sql
+invoke(sql_output, args=["--name", "Joe"])
+```
+````
+
+And renders to:
+
+```{click:run} sql
+:emphasize-lines: 2
+invoke(sql_output, args=["--name", "Joe"])
+```
+
+See how the output (i.e. the second line above) is now rendered with the `sql` Pygments lexer, which is more appropriate for SQL queries. But of course it also parse and renders the whole block as if it is SQL code, which mess up the rendering of the first line, as it is a shell command.
+
+In fact, if you look at Sphinx logs, you will see that a warning has been raised because of that:
+
+```{code-block} text
+.../docs/sphinx.md:257: WARNING: Lexing literal_block "$ sql-output --name Joe\nSELECT * FROM users WHERE name = 'Joe';" as "sql" resulted in an error at token: '$'. Retrying in relaxed mode. [misc.highlighting_failure]
+```
+
+```{hint}
+Alternatively, you can force syntax highlight with the `:language:` option, which takes precedence over the default language of the directive.
+```
+
+## GitHub alerts
+
+Click Extra's Sphinx extension automatically converts [GitHub-flavored Markdown alerts](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts) into [MyST admonitions](https://mystmd.org/guide/admonitions).
+
+This allows you to write documentation that renders correctly both on GitHub and in your Sphinx-generated documentation.
+
+### Setup
+
+To use GitHub alerts, you need to enable the `colon_fence` extension in your Sphinx configuration:
+
+```{code-block} python
+:caption: `conf.py`
+:emphasize-lines: 6
+extensions = [
+    ...
+    "click_extra.sphinx",
+]
+
+myst_enable_extensions = ["colon_fence"]
+```
+
+### Supported alert types
+
+GitHub supports five alert types, all of which are converted to their corresponding MyST admonitions:
+
+| GitHub alert | MyST admonition |
+|--------------|-----------------|
+| `> [!NOTE]`<br>`> This is a note.` | `:::note`<br>`This is a note.`<br>`:::` |
+| `> [!TIP]`<br>`> 25% if the service is good.` | `:::tip`<br>`25% if the service is good.`<br>`:::` |
+| `> [!IMPORTANT]`<br>`> Tech is not neutral, nor is it apolitical.` | `:::important`<br>`Tech is not neutral, nor is it apolitical.`<br>`:::` |
+| `> [!WARNING]`<br>`> Reader discretion is strongly advised.` | `:::warning`<br>`Reader discretion is strongly advised.`<br>`:::` |
+| `> [!CAUTION]`<br>`> Cliff ahead: Don't drive off it.` | `:::caution`<br>`Cliff ahead: Don't drive off it.`<br>`:::` |
+
+### Usage
+
+Write alerts using GitHub's blockquote syntax:
+
+```{code-block} markdown
+> [!NOTE]
+> This is a note that will render as an admonition in Sphinx.
+
+> [!WARNING]
+> Reader discretion is strongly advised.
+```
+
+These will render in Sphinx as:
+
+> [!NOTE]
+> This is a note that will render as an admonition in Sphinx.
+
+> [!WARNING]
+> Reader discretion is strongly advised.
 
 ## ANSI shell sessions
 
@@ -675,55 +777,6 @@ If not, you are likely to encounter execution tracebacks such as:
 NameError: name 'yo_cli' is not defined
 ```
 ````
-
-## Syntax highlight language
-
-By default, code blocks produced by the directives are automatically highlighted with these languages:
-- `click:example`: [`python`](https://pygments.org/docs/lexers/#pygments.lexers.python.PythonLexer)
-- `click:run`: [`ansi-shell-session`](pygments.md#lexer-variants)
-
-If for any reason you want to override these defaults, you can pass the language as an optional parameter to the directive.
-
-Let's say you have a CLI that is only printing SQL queries in its output:
-
-```{click:example}
-:emphasize-lines: 6
-from click_extra import echo, command, option
-
-@command
-@option("--name")
-def sql_output(name):
-    sql_query = f"SELECT * FROM users WHERE name = '{name}';"
-    echo(sql_query)
-```
-
-Then you can force the SQL Pygments highlighter on its output by passing the [short name of that lexer (i.e. `sql`)](https://pygments.org/docs/lexers/#pygments.lexers.sql.SqlLexer) as the first argument to the directive:
-
-````{code-block} markdown
-:emphasize-lines: 1
-```{click:run} sql
-invoke(sql_output, args=["--name", "Joe"])
-```
-````
-
-And renders to:
-
-```{click:run} sql
-:emphasize-lines: 2
-invoke(sql_output, args=["--name", "Joe"])
-```
-
-See how the output (i.e. the second line above) is now rendered with the `sql` Pygments lexer, which is more appropriate for SQL queries. But of course it also parse and renders the whole block as if it is SQL code, which mess up the rendering of the first line, as it is a shell command.
-
-In fact, if you look at Sphinx logs, you will see that a warning has been raised because of that:
-
-```{code-block} text
-.../docs/sphinx.md:257: WARNING: Lexing literal_block "$ sql-output --name Joe\nSELECT * FROM users WHERE name = 'Joe';" as "sql" resulted in an error at token: '$'. Retrying in relaxed mode. [misc.highlighting_failure]
-```
-
-```{hint}
-Alternatively, you can force syntax highlight with the `:language:` option, which takes precedence over the default language of the directive.
-```
 
 ## `click_extra.sphinx` API
 
