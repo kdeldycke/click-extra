@@ -380,15 +380,15 @@ assert not result.stderr, "Found error messages in <stderr>"
 
 You can also use the `click:run` directive without a preceding `click:example` block. This is useful when you want to demonstrate the usage of a CLI defined elsewhere, for example in your package's source code.
 
-In the example below, we import the `click_extra.cli.click_extra` function, which is defined in the [`click_extra/cli.py`](https://github.com/kdeldycke/click-extra/blob/main/click_extra/cli.py) source file. There is no need to redefine the CLI in a `click:example` block beforehand:
+In the example below, we import the `click_extra.cli.demo` function, which is defined in the [`click_extra/cli.py`](https://github.com/kdeldycke/click-extra/blob/main/click_extra/cli.py) source file. There is no need to redefine the CLI in a `click:example` block beforehand:
 
 ``````{tab-set}
 `````{tab-item} MyST Markdown
 :sync: myst
 ````{code-block} markdown
 ```{click:run}
-from click_extra.cli import click_extra
-invoke(click_extra, args=["--version"])
+from click_extra.cli import demo
+invoke(demo, args=["--version"])
 ```
 ````
 `````
@@ -398,8 +398,8 @@ invoke(click_extra, args=["--version"])
 ```{code-block} rst
 .. click:run::
 
-   from click_extra.cli import click_extra
-   invoke(click_extra, args=["--version"])
+   from click_extra.cli import demo
+   invoke(demo, args=["--version"])
 ```
 `````
 ``````
@@ -407,8 +407,8 @@ invoke(click_extra, args=["--version"])
 And the execution of that CLI renders just fine:
 
 ```{click:run}
-from click_extra.cli import click_extra
-invoke(click_extra, args=["--version"])
+from click_extra.cli import demo
+invoke(demo, args=["--version"])
 ```
 
 ### Inline tests
