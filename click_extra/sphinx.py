@@ -537,6 +537,9 @@ GITHUB_ALERT_CONTENT_PATTERN = re.compile(r"^(\s*)>(.*)$")
 CODE_FENCE_PATTERN = re.compile(r"^(\s*)(`{3,}|~{3,})")
 """Regex pattern to match code fence opening/closing lines."""
 
+INDENTED_CODE_BLOCK_PATTERN = re.compile(r"^( {4}|\t)")
+"""Regex pattern to match indented code block lines (4 spaces or 1 tab)."""
+
 
 @cache
 def check_colon_fence(app: Sphinx) -> None:
@@ -561,8 +564,8 @@ def replace_github_alerts(text: str) -> str | None:
     Identify GitHub alerts in the provided ``text`` and transform them into
     colon-fenced ``:::`` MyST admonitions.
 
-    Code blocks (fenced with ``` or ~~~) are detected and their content is
-    preserved unchanged.
+    Code blocks (fenced with ``` or ~~~, or indented with 4 spaces/tab) are
+    detected and their content is preserved unchanged.
 
     Returns ``None`` if no transformation was applied, else returns the transformed
     text.
@@ -576,9 +579,11 @@ def replace_github_alerts(text: str) -> str | None:
     code_fence_indent = ""
     indent = ""
     modified = False
+    # Track if previous line was blank (needed for indented code block detection).
+    prev_line_blank = True
 
     for line in lines:
-        # Check for code fence boundaries
+        # Check for code fence boundaries.
         fence_match = CODE_FENCE_PATTERN.match(line)
         if fence_match:
             fence_indent = fence_match.group(1)
@@ -587,12 +592,13 @@ def replace_github_alerts(text: str) -> str | None:
             fence_len = len(fence_chars)
 
             if not in_code_block:
-                # Opening a code block
+                # Opening a code block.
                 in_code_block = True
                 code_fence_char = fence_char
                 code_fence_len = fence_len
                 code_fence_indent = fence_indent
                 result.append(line)
+                prev_line_blank = False
                 continue
             elif (
                 fence_char == code_fence_char
@@ -601,18 +607,33 @@ def replace_github_alerts(text: str) -> str | None:
                 and line.strip() == fence_chars
             ):
                 # Closing the code block (same or more fence chars, same indent,
-                # no content after fence)
+                # no content after fence).
                 in_code_block = False
                 code_fence_char = ""
                 code_fence_len = 0
                 code_fence_indent = ""
                 result.append(line)
+                prev_line_blank = False
                 continue
 
-        # Inside a code block, pass through unchanged
+        # Inside a fenced code block, pass through unchanged.
         if in_code_block:
             result.append(line)
+            prev_line_blank = False
             continue
+
+        # Check for indented code block (4 spaces or tab after blank line).
+        # In Markdown, a line indented with 4 spaces after a blank line is a code block.
+        if prev_line_blank and INDENTED_CODE_BLOCK_PATTERN.match(line):
+            # This is an indented code block line, pass through unchanged.
+            result.append(line)
+            # Stay in "indented code block mode" - prev_line_blank stays False
+            # so subsequent indented lines are also treated as code.
+            prev_line_blank = False
+            continue
+
+        # Check if current line is blank.
+        is_blank = line.strip() == ""
 
         match = GITHUB_ALERT_PATTERN.match(line)
         if match:
@@ -620,6 +641,7 @@ def replace_github_alerts(text: str) -> str | None:
             result.append(f"{indent}:::{{{alert_type.lower()}}}")
             in_alert = True
             modified = True
+            prev_line_blank = is_blank
             continue
 
         if in_alert:
@@ -630,9 +652,12 @@ def replace_github_alerts(text: str) -> str | None:
                 result.append(f"{indent}:::")
                 result.append(line)
                 in_alert = False
+                prev_line_blank = is_blank
                 continue
         else:
             result.append(line)
+
+        prev_line_blank = is_blank
 
     if in_alert:
         result.append(":::")

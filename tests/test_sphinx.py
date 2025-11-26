@@ -1432,6 +1432,154 @@ GITHUB_ALERT_IN_CODE_BLOCK_TEST_CASE = DirectiveTestCase(
     ),
 )
 
+GITHUB_ALERT_IN_CODE_BLOCK_TILDE_TEST_CASE = DirectiveTestCase(
+    name="github_alert_in_code_block_tilde",
+    format_type=FormatType.MYST,
+    document="""
+        ~~~markdown
+        > [!NOTE]
+        > This is inside a tilde code block.
+        ~~~
+    """,
+    html_matches=(
+        HTML["markdown_highlight"]
+        + '<span class="k">&gt; </span><span class="ge">[!NOTE]</span>\n'
+        '<span class="k">&gt; </span><span class="ge">This is inside a tilde code block.</span>\n'
+        "</pre></div>\n",
+    ),
+)
+
+GITHUB_ALERT_IN_CODE_BLOCK_FOUR_BACKTICKS_TEST_CASE = DirectiveTestCase(
+    name="github_alert_in_code_block_four_backticks",
+    format_type=FormatType.MYST,
+    document="""
+        ````markdown
+        > [!WARNING]
+        > This is inside a 4-backtick code block.
+        ```
+        nested code fence
+        ```
+        ````
+    """,
+    html_matches=(
+        HTML["markdown_highlight"]
+        + '<span class="k">&gt; </span><span class="ge">[!WARNING]</span>\n'
+        '<span class="k">&gt; </span><span class="ge">This is inside a 4-backtick code block.</span>\n'
+        '<span class="sb">```</span>\n'
+        '<span class="sb">nested code fence</span>\n'
+        '<span class="sb">```</span>\n'
+        "</pre></div>\n"
+        "</div>\n",
+    ),
+)
+
+GITHUB_ALERT_IN_CODE_BLOCK_NO_LANGUAGE_TEST_CASE = DirectiveTestCase(
+    name="github_alert_in_code_block_no_language",
+    format_type=FormatType.MYST,
+    document="""
+        ```
+        > [!TIP]
+        > This is inside a code block without language.
+        ```
+    """,
+    html_matches=(
+        '<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>'
+        "&gt; [!TIP]\n"
+        "&gt; This is inside a code block without language.\n"
+        "</pre></div>\n",
+    ),
+)
+
+GITHUB_ALERT_IN_INDENTED_CODE_BLOCK_4_SPACES_TEST_CASE = DirectiveTestCase(
+    name="github_alert_in_indented_code_block_4_spaces",
+    format_type=FormatType.MYST,
+    document="""
+        Some text before.
+
+            > [!TIP]
+            > This is inside a code block without language.
+
+        Some text after.
+    """,
+    # 4-space indentation creates a code block in Markdown.
+    html_matches=(
+        "<p>Some text before.</p>\n"
+        '<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>'
+        "&gt; [!TIP]\n"
+        "&gt; This is inside a code block without language.\n"
+        "</pre></div>\n"
+        "<p>Some text after.</p>\n",
+    ),
+)
+
+GITHUB_ALERT_IN_INDENTED_CODE_BLOCK_2_SPACES_TEST_CASE = DirectiveTestCase(
+    name="github_alert_in_indented_code_block_2_spaces",
+    format_type=FormatType.MYST,
+    document="""
+        Some text before.
+
+          > [!TIP]
+          > This is inside a 2-space indented block.
+
+        Some text after.
+    """,
+    # 2-space indentation is not enough to create a code block, so the alert is converted.
+    html_matches=(
+        "<p>Some text before.</p>\n"
+        '<div class="admonition tip">\n'
+        '<p class="admonition-title">Tip</p>\n'
+        "<p>This is inside a 2-space indented block.</p>\n"
+        "</div>\n"
+        "<p>Some text after.</p>\n",
+    ),
+)
+
+GITHUB_ALERT_MIXED_CODE_BLOCKS_TEST_CASE = DirectiveTestCase(
+    name="github_alert_mixed_code_blocks",
+    format_type=FormatType.MYST,
+    document="""
+        > [!NOTE]
+        > This should be converted to an admonition.
+
+        ```markdown
+        > [!NOTE]
+        > This should NOT be converted (inside code block).
+        ```
+
+        > [!WARNING]
+        > This should also be converted to an admonition.
+
+        ~~~markdown
+        > [!WARNING]
+        > This should NOT be converted (inside tilde block).
+        ~~~
+
+        > [!TIP]
+        > Final admonition.
+    """,
+    html_matches=(
+        # First alert - converted
+        '<div class="admonition note">\n'
+        '<p class="admonition-title">Note</p>\n'
+        "<p>This should be converted to an admonition.</p>\n"
+        "</div>\n",
+        # Code block - not converted
+        '<span class="k">&gt; </span><span class="ge">[!NOTE]</span>\n',
+        # Second alert - converted
+        '<div class="admonition warning">\n'
+        '<p class="admonition-title">Warning</p>\n'
+        "<p>This should also be converted to an admonition.</p>\n"
+        "</div>\n",
+        # Tilde code block - not converted
+        '<span class="k">&gt; </span><span class="ge">[!WARNING]</span>\n',
+        # Third alert - converted
+        '<div class="admonition tip">\n'
+        '<p class="admonition-title">Tip</p>\n'
+        "<p>Final admonition.</p>\n"
+        "</div>\n",
+    ),
+)
+
 
 @pytest.mark.parametrize(
     "test_case",
@@ -1453,6 +1601,12 @@ GITHUB_ALERT_IN_CODE_BLOCK_TEST_CASE = DirectiveTestCase(
         GITHUB_ALERT_INVALID_SPACE_BEFORE_BRACKET_TEST_CASE,
         GITHUB_ALERT_INVALID_LOWERCASE_TEST_CASE,
         GITHUB_ALERT_IN_CODE_BLOCK_TEST_CASE,
+        GITHUB_ALERT_IN_CODE_BLOCK_TILDE_TEST_CASE,
+        GITHUB_ALERT_IN_CODE_BLOCK_FOUR_BACKTICKS_TEST_CASE,
+        GITHUB_ALERT_IN_CODE_BLOCK_NO_LANGUAGE_TEST_CASE,
+        GITHUB_ALERT_IN_INDENTED_CODE_BLOCK_4_SPACES_TEST_CASE,
+        GITHUB_ALERT_IN_INDENTED_CODE_BLOCK_2_SPACES_TEST_CASE,
+        GITHUB_ALERT_MIXED_CODE_BLOCKS_TEST_CASE,
     ],
     ids=lambda tc: tc.name,
 )
