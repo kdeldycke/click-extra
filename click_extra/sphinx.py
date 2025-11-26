@@ -558,6 +558,49 @@ def check_colon_fence(app: Sphinx) -> None:
         )
 
 
+@dataclass
+class AlertParserState:
+    """State machine for parsing GitHub alerts."""
+
+    in_alert: bool = False
+    in_code_block: bool = False
+    code_fence_char: str = ""
+    code_fence_len: int = 0
+    code_fence_indent: str = ""
+    alert_indent: str = ""
+    prev_line_blank: bool = True
+    modified: bool = False
+
+    def reset_code_fence(self) -> None:
+        self.in_code_block = False
+        self.code_fence_char = ""
+        self.code_fence_len = 0
+        self.code_fence_indent = ""
+
+    def enter_code_fence(self, char: str, length: int, indent: str) -> None:
+        self.in_code_block = True
+        self.code_fence_char = char
+        self.code_fence_len = length
+        self.code_fence_indent = indent
+
+    def handle_fence(
+        self, fence_char: str, fence_len: int, fence_indent: str, line: str
+    ) -> bool:
+        """Handle fence matching. Returns True if fence was processed."""
+        if not self.in_code_block:
+            self.enter_code_fence(fence_char, fence_len, fence_indent)
+            return True
+        elif (
+            fence_char == self.code_fence_char
+            and fence_len >= self.code_fence_len
+            and fence_indent == self.code_fence_indent
+            and line.strip() == fence_char * fence_len
+        ):
+            self.reset_code_fence()
+            return True
+        return False
+
+
 def replace_github_alerts(text: str) -> str | None:
     """Transform GitHub alerts into MyST admonitions.
 
@@ -572,15 +615,7 @@ def replace_github_alerts(text: str) -> str | None:
     """
     lines = text.split("\n")
     result = []
-    in_alert = False
-    in_code_block = False
-    code_fence_char = ""
-    code_fence_len = 0
-    code_fence_indent = ""
-    indent = ""
-    modified = False
-    # Track if previous line was blank (needed for indented code block detection).
-    prev_line_blank = True
+    state = AlertParserState()
 
     for line in lines:
         # Check for code fence boundaries.
@@ -591,78 +626,49 @@ def replace_github_alerts(text: str) -> str | None:
             fence_char = fence_chars[0]
             fence_len = len(fence_chars)
 
-            if not in_code_block:
-                # Opening a code block.
-                in_code_block = True
-                code_fence_char = fence_char
-                code_fence_len = fence_len
-                code_fence_indent = fence_indent
+            if state.handle_fence(fence_char, fence_len, fence_indent, line):
                 result.append(line)
-                prev_line_blank = False
-                continue
-            elif (
-                fence_char == code_fence_char
-                and fence_len >= code_fence_len
-                and fence_indent == code_fence_indent
-                and line.strip() == fence_chars
-            ):
-                # Closing the code block (same or more fence chars, same indent,
-                # no content after fence).
-                in_code_block = False
-                code_fence_char = ""
-                code_fence_len = 0
-                code_fence_indent = ""
-                result.append(line)
-                prev_line_blank = False
                 continue
 
-        # Inside a fenced code block, pass through unchanged.
-        if in_code_block:
+        if state.in_code_block:
             result.append(line)
-            prev_line_blank = False
             continue
 
-        # Check for indented code block (4 spaces or tab after blank line).
-        # In Markdown, a line indented with 4 spaces after a blank line is a code block.
-        if prev_line_blank and INDENTED_CODE_BLOCK_PATTERN.match(line):
-            # This is an indented code block line, pass through unchanged.
+        if state.prev_line_blank and INDENTED_CODE_BLOCK_PATTERN.match(line):
             result.append(line)
-            # Stay in "indented code block mode" - prev_line_blank stays False
-            # so subsequent indented lines are also treated as code.
-            prev_line_blank = False
+            state.prev_line_blank = False
             continue
 
-        # Check if current line is blank.
         is_blank = line.strip() == ""
 
         match = GITHUB_ALERT_PATTERN.match(line)
         if match:
-            indent, alert_type = match.groups()
-            result.append(f"{indent}:::{{{alert_type.lower()}}}")
-            in_alert = True
-            modified = True
-            prev_line_blank = is_blank
+            state.alert_indent, alert_type = match.groups()
+            result.append(f"{state.alert_indent}:::{{{alert_type.lower()}}}")
+            state.in_alert = True
+            state.modified = True
+            state.prev_line_blank = is_blank
             continue
 
-        if in_alert:
+        if state.in_alert:
             content_match = GITHUB_ALERT_CONTENT_PATTERN.match(line)
             if content_match:
-                result.append(indent + content_match.group(2).lstrip())
+                result.append(state.alert_indent + content_match.group(2).lstrip())
             else:
-                result.append(f"{indent}:::")
+                result.append(f"{state.alert_indent}:::")
                 result.append(line)
-                in_alert = False
-                prev_line_blank = is_blank
+                state.in_alert = False
+                state.prev_line_blank = is_blank
                 continue
         else:
             result.append(line)
 
-        prev_line_blank = is_blank
+        state.prev_line_blank = is_blank
 
-    if in_alert:
+    if state.in_alert:
         result.append(":::")
 
-    return "\n".join(result) if modified else None
+    return "\n".join(result) if state.modified else None
 
 
 def convert_github_alerts(app: Sphinx, *args) -> None:
