@@ -1156,10 +1156,12 @@ GITHUB_ALERT_NOTE_TEST_CASE = DirectiveTestCase(
         Regular text after.
     """,
     html_matches=(
-        '<div class="admonition note">',
-        '<p class="admonition-title">Note</p>',
-        "<p>This is a note.\nWith multiple lines.</p>",
-        "</div>",
+        '<div class="admonition note">\n'
+        '<p class="admonition-title">Note</p>\n'
+        "<p>This is a note.\n"
+        "With multiple lines.</p>\n"
+        "</div>\n"
+        "<p>Regular text after.</p>\n",
     ),
 )
 
@@ -1171,10 +1173,10 @@ GITHUB_ALERT_TIP_TEST_CASE = DirectiveTestCase(
         > This is a tip.
     """,
     html_matches=(
-        '<div class="admonition tip">',
-        '<p class="admonition-title">Tip</p>',
-        "<p>This is a tip.</p>",
-        "</div>",
+        '<div class="admonition tip">\n'
+        '<p class="admonition-title">Tip</p>\n'
+        "<p>This is a tip.</p>\n"
+        "</div>\n",
     ),
 )
 
@@ -1186,10 +1188,10 @@ GITHUB_ALERT_IMPORTANT_TEST_CASE = DirectiveTestCase(
         > This is important.
     """,
     html_matches=(
-        '<div class="admonition important">',
-        '<p class="admonition-title">Important</p>',
-        "<p>This is important.</p>",
-        "</div>",
+        '<div class="admonition important">\n'
+        '<p class="admonition-title">Important</p>\n'
+        "<p>This is important.</p>\n"
+        "</div>\n",
     ),
 )
 
@@ -1201,10 +1203,10 @@ GITHUB_ALERT_WARNING_TEST_CASE = DirectiveTestCase(
         > This is a warning.
     """,
     html_matches=(
-        '<div class="admonition warning">',
-        '<p class="admonition-title">Warning</p>',
-        "<p>This is a warning.</p>",
-        "</div>",
+        '<div class="admonition warning">\n'
+        '<p class="admonition-title">Warning</p>\n'
+        "<p>This is a warning.</p>\n"
+        "</div>\n",
     ),
 )
 
@@ -1216,10 +1218,25 @@ GITHUB_ALERT_CAUTION_TEST_CASE = DirectiveTestCase(
         > This is a caution.
     """,
     html_matches=(
-        '<div class="admonition caution">',
-        '<p class="admonition-title">Caution</p>',
-        "<p>This is a caution.</p>",
-        "</div>",
+        '<div class="admonition caution">\n'
+        '<p class="admonition-title">Caution</p>\n'
+        "<p>This is a caution.</p>\n"
+        "</div>\n",
+    ),
+)
+
+GITHUB_ALERT_UNKNOWN_TYPE_TEST_CASE = DirectiveTestCase(
+    name="github_alert_unknown_type",
+    format_type=FormatType.MYST,
+    document="""
+        > [!RANDOM]
+        > This is not a known alert type.
+    """,
+    html_matches=(
+        "<blockquote>\n"
+        "<div><p>[!RANDOM]\n"
+        "This is not a known alert type.</p>\n"
+        "</div></blockquote>\n",
     ),
 )
 
@@ -1233,10 +1250,11 @@ GITHUB_ALERT_EMPTY_LINE_TEST_CASE = DirectiveTestCase(
         > Second paragraph.
     """,
     html_matches=(
-        '<div class="admonition note">',
-        "<p>First paragraph.</p>",
-        "<p>Second paragraph.</p>",
-        "</div>",
+        '<div class="admonition note">\n'
+        '<p class="admonition-title">Note</p>\n'
+        "<p>First paragraph.</p>\n"
+        "<p>Second paragraph.</p>\n"
+        "</div>\n",
     ),
 )
 
@@ -1253,12 +1271,15 @@ GITHUB_ALERT_MULTIPLE_TEST_CASE = DirectiveTestCase(
         > A warning.
     """,
     html_matches=(
-        '<div class="admonition note">',
-        "<p>A note.</p>",
-        "</div>",
-        '<div class="admonition warning">',
-        "<p>A warning.</p>",
-        "</div>",
+        '<div class="admonition note">\n'
+        '<p class="admonition-title">Note</p>\n'
+        "<p>A note.</p>\n"
+        "</div>\n"
+        "<p>Some text between.</p>\n"
+        '<div class="admonition warning">\n'
+        '<p class="admonition-title">Warning</p>\n'
+        "<p>A warning.</p>\n"
+        "</div>\n",
     ),
 )
 
@@ -1272,12 +1293,12 @@ GITHUB_ALERT_EXTRA_SPACES_TEST_CASE = DirectiveTestCase(
         >    This line has three extra spaces.
     """,
     html_matches=(
-        '<div class="admonition note">',
-        '<p class="admonition-title">Note</p>',
+        '<div class="admonition note">\n'
+        '<p class="admonition-title">Note</p>\n'
         "<p>This line has an extra space after &gt;.\n"
         "This line has two extra spaces.\n"
-        "This line has three extra spaces.</p>",
-        "</div>",
+        "This line has three extra spaces.</p>\n"
+        "</div>\n",
     ),
 )
 
@@ -1289,10 +1310,10 @@ GITHUB_ALERT_NO_SPACE_AFTER_BRACKET_TEST_CASE = DirectiveTestCase(
         >No space after the bracket.
     """,
     html_matches=(
-        '<div class="admonition tip">',
-        '<p class="admonition-title">Tip</p>',
-        "<p>No space after the bracket.</p>",
-        "</div>",
+        '<div class="admonition tip">\n'
+        '<p class="admonition-title">Tip</p>\n'
+        "<p>No space after the bracket.</p>\n"
+        "</div>\n",
     ),
 )
 
@@ -1307,10 +1328,13 @@ GITHUB_ALERT_MIXED_SPACING_TEST_CASE = DirectiveTestCase(
         >   Lots of spaces.
     """,
     html_matches=(
-        '<div class="admonition warning">',
-        '<p class="admonition-title">Warning</p>',
-        "<p>Normal spacing.\nExtra space.\nNo space.\nLots of spaces.</p>",
-        "</div>",
+        '<div class="admonition warning">\n'
+        '<p class="admonition-title">Warning</p>\n'
+        "<p>Normal spacing.\n"
+        "Extra space.\n"
+        "No space.\n"
+        "Lots of spaces.</p>\n"
+        "</div>\n",
     ),
 )
 
@@ -1322,10 +1346,10 @@ GITHUB_ALERT_LEADING_SPACES_TEST_CASE = DirectiveTestCase(
         > This alert has extra spaces before the directive.
     """,
     html_matches=(
-        '<div class="admonition tip">',
-        '<p class="admonition-title">Tip</p>',
-        "<p>This alert has extra spaces before the directive.</p>",
-        "</div>",
+        '<div class="admonition tip">\n'
+        '<p class="admonition-title">Tip</p>\n'
+        "<p>This alert has extra spaces before the directive.</p>\n"
+        "</div>\n",
     ),
 )
 
@@ -1337,9 +1361,10 @@ GITHUB_ALERT_INVALID_SPACE_AFTER_BANG_TEST_CASE = DirectiveTestCase(
         > This should remain a regular blockquote.
     """,
     html_matches=(
-        "<blockquote>",
-        "<p>[! TIP]\nThis should remain a regular blockquote.</p>",
-        "</blockquote>",
+        "<blockquote>\n"
+        "<div><p>[! TIP]\n"
+        "This should remain a regular blockquote.</p>\n"
+        "</div></blockquote>\n",
     ),
 )
 
@@ -1351,9 +1376,10 @@ GITHUB_ALERT_INVALID_SPACE_BEFORE_BANG_TEST_CASE = DirectiveTestCase(
         > This should remain a regular blockquote.
     """,
     html_matches=(
-        "<blockquote>",
-        "<p>[ !TIP]\nThis should remain a regular blockquote.</p>",
-        "</blockquote>",
+        "<blockquote>\n"
+        "<div><p>[ !TIP]\n"
+        "This should remain a regular blockquote.</p>\n"
+        "</div></blockquote>\n",
     ),
 )
 
@@ -1365,9 +1391,10 @@ GITHUB_ALERT_INVALID_SPACE_BEFORE_BRACKET_TEST_CASE = DirectiveTestCase(
         > This should remain a regular blockquote.
     """,
     html_matches=(
-        "<blockquote>",
-        "<p>[!TIP ]\nThis should remain a regular blockquote.</p>",
-        "</blockquote>",
+        "<blockquote>\n"
+        "<div><p>[!TIP ]\n"
+        "This should remain a regular blockquote.</p>\n"
+        "</div></blockquote>\n",
     ),
 )
 
@@ -1379,9 +1406,10 @@ GITHUB_ALERT_INVALID_LOWERCASE_TEST_CASE = DirectiveTestCase(
         > This should remain a regular blockquote.
     """,
     html_matches=(
-        "<blockquote>",
-        "<p>[!tip]\nThis should remain a regular blockquote.</p>",
-        "</blockquote>",
+        "<blockquote>\n"
+        "<div><p>[!tip]\n"
+        "This should remain a regular blockquote.</p>\n"
+        "</div></blockquote>\n",
     ),
 )
 
@@ -1394,6 +1422,7 @@ GITHUB_ALERT_INVALID_LOWERCASE_TEST_CASE = DirectiveTestCase(
         GITHUB_ALERT_IMPORTANT_TEST_CASE,
         GITHUB_ALERT_WARNING_TEST_CASE,
         GITHUB_ALERT_CAUTION_TEST_CASE,
+        GITHUB_ALERT_UNKNOWN_TYPE_TEST_CASE,
         GITHUB_ALERT_EMPTY_LINE_TEST_CASE,
         GITHUB_ALERT_MULTIPLE_TEST_CASE,
         GITHUB_ALERT_EXTRA_SPACES_TEST_CASE,
