@@ -173,7 +173,7 @@ jobs:
       - name: Run stable CLI
         run: |
           uvx    -- click-extra --version
-          uv run --from click-extra -- click-extra-demo --version
+          uv run --with click-extra -- click-extra-demo --version
       - name: Run dev CLI
         run: |
           uvx    --from git+https://github.com/kdeldycke/click-extra -- click-extra-demo --version
