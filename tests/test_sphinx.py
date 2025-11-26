@@ -1504,10 +1504,11 @@ GITHUB_ALERT_IN_INDENTED_CODE_BLOCK_4_SPACES_TEST_CASE = DirectiveTestCase(
     # 4-space indentation creates a code block in Markdown.
     html_matches=(
         "<p>Some text before.</p>\n"
-        '<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>'
+        '<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>'
         "&gt; [!TIP]\n"
         "&gt; This is inside a code block without language.\n"
         "</pre></div>\n"
+        "</div>\n"
         "<p>Some text after.</p>\n",
     ),
 )
