@@ -1,5 +1,10 @@
 # Changelog
 
+## [7.2.1 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.2.0...main)
+
+> [!IMPORTANT]
+> This version is not released yet and is under active development.
+
 ## [7.2.0 (2025-11-26)](https://github.com/kdeldycke/click-extra/compare/v7.1.0...v7.2.0)
 
 - Add support for auto-conversion of GitHub alerts into MyST admonitions in Sphinx extension.
