@@ -1510,6 +1510,23 @@ GITHUB_ALERT_IN_CODE_BLOCK_TILDE_TEST_CASE = DirectiveTestCase(
     ),
 )
 
+GITHUB_ALERT_IN_CODE_BLOCK_NO_LANGUAGE_TEST_CASE = DirectiveTestCase(
+    name="github_alert_in_code_block_no_language",
+    format_type=FormatType.MYST,
+    document="""
+        ```
+        > [!TIP]
+        > This is inside a code block without language.
+        ```
+    """,
+    html_matches=(
+        '<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>'
+        "&gt; [!TIP]\n"
+        "&gt; This is inside a code block without language.\n"
+        "</pre></div>\n",
+    ),
+)
+
 GITHUB_ALERT_IN_CODE_BLOCK_FOUR_BACKTICKS_TEST_CASE = DirectiveTestCase(
     name="github_alert_in_code_block_four_backticks",
     format_type=FormatType.MYST,
@@ -1534,20 +1551,21 @@ GITHUB_ALERT_IN_CODE_BLOCK_FOUR_BACKTICKS_TEST_CASE = DirectiveTestCase(
     ),
 )
 
-GITHUB_ALERT_IN_CODE_BLOCK_NO_LANGUAGE_TEST_CASE = DirectiveTestCase(
-    name="github_alert_in_code_block_no_language",
+GITHUB_ALERT_IN_CODE_BLOCK_DIRECTIVE_TEST_CASE = DirectiveTestCase(
+    name="github_alert_in_code_block_directive",
     format_type=FormatType.MYST,
     document="""
-        ```
-        > [!TIP]
-        > This is inside a code block without language.
+        ```{code-block} markdown
+        > [!NOTE]
+        > This is inside a code-block directive and should not be converted.
         ```
     """,
     html_matches=(
-        '<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>'
-        "&gt; [!TIP]\n"
-        "&gt; This is inside a code block without language.\n"
-        "</pre></div>\n",
+        HTML["markdown_highlight"]
+        + '<span class="k">&gt; </span><span class="ge">[!NOTE]</span>\n'
+        '<span class="k">&gt; </span><span class="ge">This is inside a code-block directive and should not be converted.</span>\n'
+        "</pre></div>\n"
+        "</div>\n",
     ),
 )
 
@@ -1677,8 +1695,9 @@ GITHUB_ALERT_MIXED_CODE_BLOCKS_TEST_CASE = DirectiveTestCase(
         GITHUB_ALERT_INVALID_TEXT_BEFORE_TEST_CASE,
         GITHUB_ALERT_IN_CODE_BLOCK_TEST_CASE,
         GITHUB_ALERT_IN_CODE_BLOCK_TILDE_TEST_CASE,
-        GITHUB_ALERT_IN_CODE_BLOCK_FOUR_BACKTICKS_TEST_CASE,
         GITHUB_ALERT_IN_CODE_BLOCK_NO_LANGUAGE_TEST_CASE,
+        GITHUB_ALERT_IN_CODE_BLOCK_FOUR_BACKTICKS_TEST_CASE,
+        GITHUB_ALERT_IN_CODE_BLOCK_DIRECTIVE_TEST_CASE,
         GITHUB_ALERT_IN_INDENTED_CODE_BLOCK_4_SPACES_TEST_CASE,
         GITHUB_ALERT_IN_INDENTED_CODE_BLOCK_2_SPACES_TEST_CASE,
         GITHUB_ALERT_MIXED_CODE_BLOCKS_TEST_CASE,

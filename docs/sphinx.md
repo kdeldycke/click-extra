@@ -606,15 +606,15 @@ myst_enable_extensions = ["colon_fence"]
 
 ### Supported alert types
 
-GitHub supports five alert types, all of which are converted to their corresponding MyST admonitions:
+GitHub supports five alert types, all of which are replaced behind the scenes with their corresponding MyST admonitions:
 
 | GitHub alert | MyST admonition |
 |--------------|-----------------|
-| `> [!NOTE]`<br>`> This is a note.` | `:::note`<br>`This is a note.`<br>`:::` |
-| `> [!TIP]`<br>`> 25% if the service is good.` | `:::tip`<br>`25% if the service is good.`<br>`:::` |
-| `> [!IMPORTANT]`<br>`> Tech is not neutral, nor is it apolitical.` | `:::important`<br>`Tech is not neutral, nor is it apolitical.`<br>`:::` |
-| `> [!WARNING]`<br>`> Reader discretion is strongly advised.` | `:::warning`<br>`Reader discretion is strongly advised.`<br>`:::` |
-| `> [!CAUTION]`<br>`> Cliff ahead: Don't drive off it.` | `:::caution`<br>`Cliff ahead: Don't drive off it.`<br>`:::` |
+| <div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span><span class="k">&gt; </span><span class="ge">[!NOTE]</span><br><span class="k">&gt; </span><span class="ge">This is a note.</span></pre></div></div> | <div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span><span class="ge">:::note</span><br><span class="ge">This is a note.</span><br><span class="ge">:::</span></pre></div></div> |
+| <div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span><span class="k">&gt; </span><span class="ge">[!TIP]</span><br><span class="k">&gt; </span><span class="ge">25% if the service is good.</span></pre></div></div> | <div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span><span class="ge">:::tip</span><br><span class="ge">25% if the service is good.</span><br><span class="ge">:::</span></pre></div></div> |
+| <div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span><span class="k">&gt; </span><span class="ge">[!IMPORTANT]</span><br><span class="k">&gt; </span><span class="ge">Tech is not neutral, nor is it apolitical.</span></pre></div></div> | <div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span><span class="ge">:::important</span><br><span class="ge">Tech is not neutral, nor is it apolitical.</span><br><span class="ge">:::</span></pre></div></div> |
+| <div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span><span class="k">&gt; </span><span class="ge">[!WARNING]</span><br><span class="k">&gt; </span><span class="ge">Reader discretion is strongly advised.</span></pre></div></div> | <div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span><span class="ge">:::warning</span><br><span class="ge">Reader discretion is strongly advised.</span><br><span class="ge">:::</span></pre></div></div> |
+| <div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span><span class="k">&gt; </span><span class="ge">[!CAUTION]</span><br><span class="k">&gt; </span><span class="ge">Cliff ahead: Don't drive off it.</span></pre></div></div> | <div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span><span class="ge">:::caution</span><br><span class="ge">Cliff ahead: Don't drive off it.</span><br><span class="ge">:::</span></pre></div></div> |
 
 ### Usage
 
