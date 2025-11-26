@@ -781,8 +781,8 @@ def test_file_pattern(file_format_patterns, expected_pattern):
         (False, True, is_unix_without_macos(), "~/.test-cli/"),
         (True, False, is_windows(), "~\\AppData\\Roaming\\test-cli\\"),
         (False, False, is_windows(), "~\\AppData\\Local\\test-cli\\"),
-        (True, True, is_windows(), "~/.test-cli/"),
-        (False, True, is_windows(), "~/.test-cli/"),
+        (True, True, is_windows(), "~\\AppData\\Roaming\\test-cli\\"),
+        (False, True, is_windows(), "~\\AppData\\Local\\test-cli\\"),
     ],
 )
 def test_default_pattern_roaming_force_posix(
