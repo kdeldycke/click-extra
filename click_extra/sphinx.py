@@ -548,7 +548,7 @@ def check_colon_fence(app: Sphinx) -> None:
     <https://myst-parser.readthedocs.io/en/latest/syntax/optional.html#code-fences-using-colons>`_
     is enabled for MyST.
 
-    :raises ConfigError: If `colon_fence` is not in `myst_enable_extensions`.
+    :raises ConfigError: If ``colon_fence`` is not in ``myst_enable_extensions``.
     """
     myst_extensions = getattr(app.config, "myst_enable_extensions", [])
     if "colon_fence" not in myst_extensions:
@@ -608,7 +608,7 @@ def replace_github_alerts(text: str) -> str | None:
     Identify GitHub alerts in the provided ``text`` and transform them into
     colon-fenced ``:::`` MyST admonitions.
 
-    Code blocks (fenced with ``` or ~~~, or indented with 4 spaces/tab) are
+    Code blocks (fenced with ``` or ``~~~``, or indented with 4 spaces/tab) are
     detected and their content is preserved unchanged.
 
     Returns ``None`` if no transformation was applied, else returns the transformed
