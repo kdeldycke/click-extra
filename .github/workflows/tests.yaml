@@ -172,7 +172,7 @@ jobs:
           uv run python -m click_extra --version
       - name: Run stable CLI
         run: |
-          uvx    -- click-extra --version
+          uvx    --from click-extra -- click-extra-demo --version
           uv run --with click-extra -- click-extra-demo --version
       - name: Run dev CLI
         run: |

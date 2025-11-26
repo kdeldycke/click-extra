@@ -1,45 +1,45 @@
 # {octicon}`download` Installation
 
-## Demo application
+Click Extra is [distributed on PyPi](https://pypi.org/project/click-extra/).
+
+So you can install the latest stable release with your favorite package manager [like `pip`](https://pip.pypa.io):
+
+```{code-block} shell-session
+$ pip install click-extra
+```
+
+## Demo CLI
 
 You can try Click Extra right now in your terminal, without installing any dependency or virtual env [thanks to `uvx`](https://docs.astral.sh/uv/guides/tools/):
 
 `````{tab-set}
 ````{tab-item} Latest version
 ```shell-session
-$ uvx -- click-extra
+$ uvx --from click-extra -- click-extra-demo
 ```
 ````
 
 ````{tab-item} Specific version
 ```shell-session
-$ uvx -- click-extra@7.0.0
+$ uvx --from click-extra@7.2.0 -- click-extra-demo
 ```
 ````
 
 ````{tab-item} Development version
 ```shell-session
-$ uvx --from git+https://github.com/kdeldycke/click-extra -- click-extra
+$ uvx --from git+https://github.com/kdeldycke/click-extra -- click-extra-demo
 ```
 ````
 `````
 
-This will download `click-extra`, the package, and run `click-extra`, a demo CLI application included in the package.
+This will download `click-extra` (the package), and run `click-extra-demo`, a demo CLI included in the package.
 
-The `click-extra` demo application showcases various features of Click Extra, such as enhanced help formatting, colored output, and more.
+The `click-extra-demo` CLI showcases various features of Click Extra, such as enhanced help formatting, colored output, and more.
 
-So by default it will display the help message of the demo application:
-
-```{code-block} shell-session
-$ uvx -- click-extra
-Installed 16 packages in 14ms
-Usage: click-extra [OPTIONS] COMMAND [ARGS]...
-```
-
-Which is the same as running it with the `--help` option:
+By default it will display the help message of the demo application:
 
 ```{code-block} shell-session
-$ uvx -- click-extra --help
+$ uvx --from click-extra -- click-extra-demo
 Installed 16 packages in 14ms
 Usage: click-extra [OPTIONS] COMMAND [ARGS]...
 ```
@@ -47,9 +47,9 @@ Usage: click-extra [OPTIONS] COMMAND [ARGS]...
 And so you can explore the various possibilities of the demo application, like showing the current version:
 
 ```{code-block} shell-session
-$ uvx -- click-extra --help
+$ uvx --from click-extra -- click-extra-demo --version
 Installed 16 packages in 14ms
-Click Extra Demo Application Version 7.0.0
+demo, version 7.2.0
 ```
 
 This is a great way to play with Click Extra and check that it runs fine on your system, and renders properly in your terminal.
@@ -65,19 +65,9 @@ Python 3.14.0 free-threading build (main, Oct 28 2025, 11:52:40) [Clang 20.1.4 ]
 Type "help", "copyright", "credits" or "license" for more information.
 >>> import click_extra
 >>> click_extra.__version__
-'7.1.1'
+'7.2.0'
 >>>
 ```
-
-## With `pip`
-
-This package is [available on PyPi](https://pypi.python.org/pypi/click-extra), so you can install the latest stable release and its dependencies with a simple `pip` call:
-
-```{code-block} shell-session
-$ pip install click-extra
-```
-
-See also [pip installation instructions](https://pip.pypa.io/en/stable/installing/).
 
 ## Default dependencies
 
