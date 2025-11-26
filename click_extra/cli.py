@@ -20,5 +20,5 @@ from . import group
 
 
 @group
-def click_extra():
+def demo():
     pass

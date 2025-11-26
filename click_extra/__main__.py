@@ -40,9 +40,9 @@ def main():
 
     That way we can deduce all three cases from the entry point.
     """
-    from click_extra.cli import click_extra
+    from click_extra.cli import demo
 
-    click_extra(prog_name=click_extra.name)
+    demo(prog_name=demo.name)
 
 
 if __name__ == "__main__":

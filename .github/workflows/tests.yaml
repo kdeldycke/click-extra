@@ -163,18 +163,21 @@ jobs:
         run: >
           uv --no-progress sync --frozen --all-extras
 
-      - name: Check launchable modules
+      - name: Run local CLI
+        run: |
+          uv run click-extra-demo --version
+      - name: Run CLI from module
         run: |
           uv run        -m click_extra --version
           uv run python -m click_extra --version
-      - name: Check launchable stable CLI
+      - name: Run stable CLI
         run: |
           uvx    -- click-extra --version
           uv run -- click-extra --version
-      - name: Check launchable dev CLI
+      - name: Run dev CLI
         run: |
-          uvx    --from git+https://github.com/kdeldycke/click-extra -- click-extra --version
-          uv run --with git+https://github.com/kdeldycke/click-extra -- click-extra --version
+          uvx    --from git+https://github.com/kdeldycke/click-extra -- click-extra-demo --version
+          uv run --with git+https://github.com/kdeldycke/click-extra -- click-extra-demo --version
 
       - name: Unittests
         run: >
