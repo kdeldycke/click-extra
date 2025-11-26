@@ -1303,6 +1303,21 @@ GITHUB_ALERT_EXTRA_SPACES_TEST_CASE = DirectiveTestCase(
     ),
 )
 
+GITHUB_ALERT_NO_SPACE_AFTER_CHEVRON_TEST_CASE = DirectiveTestCase(
+    name="github_alert_no_space_after_chevron",
+    format_type=FormatType.MYST,
+    document="""
+        >[!TIP]
+        > This alert has no space after the chevron on the first line.
+    """,
+    html_matches=(
+        '<div class="admonition tip">\n'
+        '<p class="admonition-title">Tip</p>\n'
+        "<p>This alert has no space after the chevron on the first line.</p>\n"
+        "</div>\n",
+    ),
+)
+
 GITHUB_ALERT_NO_SPACE_AFTER_BRACKET_TEST_CASE = DirectiveTestCase(
     name="github_alert_no_space_after_bracket",
     format_type=FormatType.MYST,
@@ -1648,6 +1663,7 @@ GITHUB_ALERT_MIXED_CODE_BLOCKS_TEST_CASE = DirectiveTestCase(
         GITHUB_ALERT_EMPTY_LINE_TEST_CASE,
         GITHUB_ALERT_MULTIPLE_TEST_CASE,
         GITHUB_ALERT_EXTRA_SPACES_TEST_CASE,
+        GITHUB_ALERT_NO_SPACE_AFTER_CHEVRON_TEST_CASE,
         GITHUB_ALERT_NO_SPACE_AFTER_BRACKET_TEST_CASE,
         GITHUB_ALERT_MIXED_SPACING_TEST_CASE,
         GITHUB_ALERT_LEADING_SPACES_TEST_CASE,
