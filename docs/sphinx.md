@@ -640,7 +640,7 @@ These will render in Sphinx as:
 
 Playing with alerts on various GitHub websites, I reverse-engineered the following specifications:
 
-- alert type must be in **UPPERCASE**: `[!TIP]`, not `[!tip]`
+- alert type must be in uppercase: `[!TIP]`, not `[!tip]`
 - no spaces in the directive: `[! NOTE]`, `[!NOTE ]` or `[ !NOTE]` are invalid
 - must be the first thing in the blockquote: `> Hello [!NOTE] This is a note.` is interpreted as a normal blockquote, not an alert
 - only the first line of the blockquote is parsed for the alert type: subsequent lines are considered part of the alert content
