@@ -1585,7 +1585,8 @@ GITHUB_ALERT_IN_INDENTED_CODE_BLOCK_2_SPACES_TEST_CASE = DirectiveTestCase(
 
         Some text after.
     """,
-    # 2-space indentation is not enough to create a code block, so the alert is converted.
+    # 2-space indentation is not enough to create a code block, so the alert
+    # is converted.
     html_matches=(
         "<p>Some text before.</p>\n"
         '<div class="admonition tip">\n'
