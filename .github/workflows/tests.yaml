@@ -165,7 +165,7 @@ jobs:
 
       - name: Run local CLI
         run: |
-          uv run click-extra-demo --version
+          uv run -- click-extra-demo --version
       - name: Run CLI from module
         run: |
           uv run        -m click_extra --version
@@ -173,7 +173,7 @@ jobs:
       - name: Run stable CLI
         run: |
           uvx    -- click-extra --version
-          uv run -- click-extra --version
+          uv run --from click-extra -- click-extra-demo --version
       - name: Run dev CLI
         run: |
           uvx    --from git+https://github.com/kdeldycke/click-extra -- click-extra-demo --version
