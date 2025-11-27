@@ -25,7 +25,7 @@ It also comes with [workarounds and patches](https://kdeldycke.github.io/click-e
 You can try Click Extra right now in your terminal, without installing any dependency or virtual env [thanks to `uvx`](https://docs.astral.sh/uv/guides/tools/):
 
 ```shell-session
-$ uvx click-extra
+$ uvx --from click-extra -- click-extra-demo
 ```
 
 This is a great way to play with Click Extra and check that it runs fine on your system, and renders properly in your terminal.
