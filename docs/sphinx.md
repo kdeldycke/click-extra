@@ -622,7 +622,7 @@ GitHub supports five alert types, all of which are replaced behind the scenes wi
     > Useful information.
     ```
   - ```markdown
-    :::note
+    :::{note}
     Useful information.
     :::
     ```
@@ -635,7 +635,7 @@ GitHub supports five alert types, all of which are replaced behind the scenes wi
     > Helpful advice.
     ```
   - ```markdown
-    :::tip
+    :::{tip}
     Helpful advice.
     :::
     ```
@@ -648,7 +648,7 @@ GitHub supports five alert types, all of which are replaced behind the scenes wi
     > Key information.
     ```
   - ```markdown
-    :::important
+    :::{important}
     Key information.
     :::
     ```
@@ -661,7 +661,7 @@ GitHub supports five alert types, all of which are replaced behind the scenes wi
     > Potential issues.
     ```
   - ```markdown
-    :::warning
+    :::{warning}
     Potential issues.
     :::
     ```
@@ -674,7 +674,7 @@ GitHub supports five alert types, all of which are replaced behind the scenes wi
     > Negative consequences.
     ```
   - ```markdown
-    :::caution
+    :::{caution}
     Negative consequences.
     :::
     ```
