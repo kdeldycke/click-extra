@@ -585,7 +585,7 @@ Alternatively, you can force syntax highlight with the `:language:` option, whic
 
 ## GitHub alerts
 
-Click Extra's Sphinx extension automatically converts [GitHub-flavored Markdown alerts](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts) into [MyST admonitions](https://mystmd.org/guide/admonitions).
+Click Extra's Sphinx extension automatically converts [GitHub-flavored Markdown alerts](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts) into [MyST admonitions](https://myst-parser.readthedocs.io/en/latest/syntax/admonitions.html).
 
 This allows you to write documentation that renders correctly both on GitHub and in your Sphinx-generated documentation.
 
@@ -608,13 +608,80 @@ myst_enable_extensions = ["colon_fence"]
 
 GitHub supports five alert types, all of which are replaced behind the scenes with their corresponding MyST admonitions:
 
-| GitHub alert | MyST admonition |
-|--------------|-----------------|
-| <div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span><span class="k">&gt; </span><span class="ge">[!NOTE]</span><br><span class="k">&gt; </span><span class="ge">This is a note.</span></pre></div></div> | <div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span><span class="ge">:::note</span><br><span class="ge">This is a note.</span><br><span class="ge">:::</span></pre></div></div> |
-| <div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span><span class="k">&gt; </span><span class="ge">[!TIP]</span><br><span class="k">&gt; </span><span class="ge">25% if the service is good.</span></pre></div></div> | <div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span><span class="ge">:::tip</span><br><span class="ge">25% if the service is good.</span><br><span class="ge">:::</span></pre></div></div> |
-| <div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span><span class="k">&gt; </span><span class="ge">[!IMPORTANT]</span><br><span class="k">&gt; </span><span class="ge">Tech is not neutral, nor is it apolitical.</span></pre></div></div> | <div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span><span class="ge">:::important</span><br><span class="ge">Tech is not neutral, nor is it apolitical.</span><br><span class="ge">:::</span></pre></div></div> |
-| <div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span><span class="k">&gt; </span><span class="ge">[!WARNING]</span><br><span class="k">&gt; </span><span class="ge">Reader discretion is strongly advised.</span></pre></div></div> | <div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span><span class="ge">:::warning</span><br><span class="ge">Reader discretion is strongly advised.</span><br><span class="ge">:::</span></pre></div></div> |
-| <div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span><span class="k">&gt; </span><span class="ge">[!CAUTION]</span><br><span class="k">&gt; </span><span class="ge">Cliff ahead: Don't drive off it.</span></pre></div></div> | <div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span><span class="ge">:::caution</span><br><span class="ge">Cliff ahead: Don't drive off it.</span><br><span class="ge">:::</span></pre></div></div> |
+```{list-table}
+:header-rows: 1
+:widths: 10 30 30 30
+
+* - Type
+  - GitHub syntax
+  - MyST syntax
+  - Rendered
+* - Note
+  - ```markdown
+    > [!NOTE]
+    > Useful information.
+    ```
+  - ```markdown
+    :::note
+    Useful information.
+    :::
+    ```
+  - ```{note}
+    Useful information.
+    ```
+* - Tip
+  - ```markdown
+    > [!TIP]
+    > Helpful advice.
+    ```
+  - ```markdown
+    :::tip
+    Helpful advice.
+    :::
+    ```
+  - ```{tip}
+    Helpful advice.
+    ```
+* - Important
+  - ```markdown
+    > [!IMPORTANT]
+    > Key information.
+    ```
+  - ```markdown
+    :::important
+    Key information.
+    :::
+    ```
+  - ```{important}
+    Key information.
+    ```
+* - Warning
+  - ```markdown
+    > [!WARNING]
+    > Potential issues.
+    ```
+  - ```markdown
+    :::warning
+    Potential issues.
+    :::
+    ```
+  - ```{warning}
+    Potential issues.
+    ```
+* - Caution
+  - ```markdown
+    > [!CAUTION]
+    > Negative consequences.
+    ```
+  - ```markdown
+    :::caution
+    Negative consequences.
+    :::
+    ```
+  - ```{caution}
+    Negative consequences.
+    ```
+```
 
 ### Usage
 
