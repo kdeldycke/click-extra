@@ -81,7 +81,7 @@ RST_INDENT = " " * 3
 """The indentation used for rST code blocks lines."""
 
 
-class EOFEchoingStdin(EchoingStdin):
+class TerminatedEchoingStdin(EchoingStdin):
     """Like :class:`click.testing.EchoingStdin` but adds a visible
     ``^D`` in place of the EOT character (``\x04``).
 
@@ -104,10 +104,10 @@ class EOFEchoingStdin(EchoingStdin):
 
 
 @contextlib.contextmanager
-def patch_modules():
-    """Patch modules to work better with :meth:`ClickRunner.invoke`.
+def patch_subprocess():
+    """Patch subprocess to work better with :meth:`ClickRunner.invoke`.
 
-    ``subprocess.call` output is redirected to ``click.echo`` so it
+    ``subprocess.call`` output is redirected to ``click.echo`` so it
     shows up in the example output.
     """
     old_call = subprocess.call
@@ -159,7 +159,7 @@ class ClickRunner(ExtraCliRunner):
             # class that outputs "^D". At this point we know sys.stdin
             # has been patched so it's safe to reassign the class.
             # Remove this once EchoingStdin is overridable.
-            buffer.__class__ = EOFEchoingStdin
+            buffer.__class__ = TerminatedEchoingStdin
             yield streams
 
     def invoke(  # type: ignore[override]
@@ -221,7 +221,7 @@ class ClickRunner(ExtraCliRunner):
         # Get the user-friendly location string as provided by Sphinx.
         location = directive.get_location()
 
-        with patch_modules():
+        with patch_subprocess():
             code = compile(source_code, location, "exec")
             exec(code, self.namespace)
 
@@ -324,13 +324,13 @@ class ClickDirective(SphinxDirective):
     recognized.
     """
 
-    default_show_source: bool = True
+    show_source_by_default: bool = True
     """Whether to render the source code of the example in the code block."""
-    default_show_results: bool = True
+    show_results_by_default: bool = True
     """Whether to render the results of the example in the code block."""
 
-    runner_func_id: str
-    """The name of the function to call on the :class:`ClickRunner` instance."""
+    runner_method: str
+    """The name of the method to call on the :class:`ClickRunner` instance."""
 
     @property
     def runner(self) -> ClickRunner:
@@ -377,9 +377,9 @@ class ClickDirective(SphinxDirective):
         """Whether to show the source code of the example in the code block.
 
         The last occurrence of either ``show-source`` or ``hide-source`` options
-        wins. If neither is set, the default is taken from ``default_show_source``.
+        wins. If neither is set, the default is taken from ``show_source_by_default``.
         """
-        show_source = self.default_show_source
+        show_source = self.show_source_by_default
         for option_id in self.options:
             if option_id == "show-source":
                 show_source = True
@@ -392,9 +392,9 @@ class ClickDirective(SphinxDirective):
         """Whether to show the results of running the example in the code block.
 
         The last occurrence of either ``show-results`` or ``hide-results`` options
-        wins. If neither is set, the default is taken from ``default_show_results``.
+        wins. If neither is set, the default is taken from ``show_results_by_default``.
         """
-        show_results = self.default_show_results
+        show_results = self.show_results_by_default
         for option_id in self.options:
             if option_id == "show-results":
                 show_results = True
@@ -437,10 +437,10 @@ class ClickDirective(SphinxDirective):
         return block
 
     def run(self) -> list[nodes.Node]:
-        assert hasattr(self.runner, self.runner_func_id), (
-            f"{self.runner!r} does not have a function named {self.runner_func_id!r}."
+        assert hasattr(self.runner, self.runner_method), (
+            f"{self.runner!r} does not have a method named {self.runner_method!r}."
         )
-        runner_func = getattr(self.runner, self.runner_func_id)
+        runner_func = getattr(self.runner, self.runner_method)
         results = runner_func(self)
 
         # If neither source code nor results are requested, we don't render anything.
@@ -452,7 +452,7 @@ class ClickDirective(SphinxDirective):
             language = self.language
             # If we are running a CLI, we force rendering the source code as a
             # Python code block.
-            if self.runner_func_id == "run_cli":
+            if self.runner_method == "run_cli":
                 language = SourceDirective.default_language
             lines.extend(self.render_code_block(self.content, language))
         if self.show_results:
@@ -480,9 +480,9 @@ class SourceDirective(ClickDirective):
     """
 
     default_language = "python"
-    default_show_source = True
-    default_show_results = False
-    runner_func_id = "execute_source"
+    show_source_by_default = True
+    show_results_by_default = False
+    runner_method = "execute_source"
 
 
 class RunDirective(ClickDirective):
@@ -494,9 +494,9 @@ class RunDirective(ClickDirective):
     """
 
     default_language = "ansi-shell-session"
-    default_show_source = False
-    default_show_results = True
-    runner_func_id = "run_cli"
+    show_source_by_default = False
+    show_results_by_default = True
+    runner_method = "run_cli"
 
 
 class DeprecatedExampleDirective(SourceDirective):
@@ -534,7 +534,7 @@ class ClickDomain(Domain):
     }
 
 
-def delete_runner_state(app: Sphinx, doctree: nodes.document) -> None:
+def cleanup_runner(app: Sphinx, doctree: nodes.document) -> None:
     """Close and remove the :class:`ClickRunner` instance once the
     document has been read.
     """
@@ -724,7 +724,7 @@ def setup(app: Sphinx) -> ExtensionMetadata:
 
     # Register click:source and click:run directives.
     app.add_domain(ClickDomain)
-    app.connect("doctree-read", delete_runner_state)
+    app.connect("doctree-read", cleanup_runner)
 
     # Register GitHub alerts converter.
     app.connect("source-read", convert_github_alerts)
