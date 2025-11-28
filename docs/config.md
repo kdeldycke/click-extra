@@ -8,7 +8,7 @@ data structure to mirror the CLI.
 
 The `@config_option` decorator provided by Click Extra can be used as-is with vanilla Click:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 2,7
 from click import group, option, echo
 from click_extra import config_option
@@ -415,7 +415,7 @@ To mirror the latter, the `@config_option` decorator accept a `roaming` and `for
 
 Let's change the default in the following example:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 6
 from click import command
 
@@ -449,7 +449,7 @@ But there is still a lot of cases for which the XDG doesn't cut it, like on othe
 
 You can directly provide a customized search pattern to the `default` argument of the decorator:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 6
 from click import command
 
@@ -545,7 +545,7 @@ To influence which formats are supported, see the next section.
 
 If you want to limit the formats supported by your CLI, you can use the `file_format_patterns` argument to specify which formats are allowed:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 7
 from click import command, option, echo
 
@@ -568,7 +568,7 @@ assert "*.json|*.toml]" in result.stdout
 
 You can also specify a single format:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 7
 from click import command, option, echo
 
@@ -591,7 +591,7 @@ assert "*.xml]" in result.stdout
 
 Each format is associated with [default file patterns](#formats). But you can also change these with the same `file_format_patterns` argument:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 8-11
 from click import command, option, echo
 
@@ -621,7 +621,7 @@ assert "*.toml|my_app.conf|settings*.js|*.json]" in result.stdout
 
 The syntax of `file_format_patterns` argument allows you to specify either a list of formats, a single format, or a mapping of formats to patterns. And we can even have multiple formats share the same pattern:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 8-12
 from click import command, option, echo
 
@@ -706,7 +706,7 @@ This demonstrate the popular case on Unix-like systems, where the configuration 
 
 Here is how to set up `@config_option` for a pre-defined `.commandrc` file in YAML:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 7-8
 from click import command
 

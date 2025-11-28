@@ -60,7 +60,7 @@ Write examples and tutorial.
 
 Here is a little CLI to demonstrate the rendering of colors and styles, based on [`cloup.styling.Style`](https://cloup.readthedocs.io/en/stable/autoapi/cloup/styling/index.html#cloup.styling.Style):
 
-```{click:example}
+```{click:source}
 from click import command
 from click_extra import Color, style, Choice, option, print_table
 

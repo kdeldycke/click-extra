@@ -49,7 +49,7 @@ But we made its values more user-friendly:
 
 Now let's combine this `Enum` with `click.Choice` into a simple CLI:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 15,17
 from enum import Enum
 
@@ -127,7 +127,7 @@ To change this behavior, we need `EnumChoice`.
 
 Let's use `click_extra.EnumChoice` instead of `click.Choice`, and then override the `__str__` method of our `Enum`:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 4,12-13,19
 from enum import Enum
 
@@ -190,7 +190,7 @@ invoke(cli, args=["--format", "oThER-forMAt"])
 
 If you want to restore case-sensitive matching, you can enable it by setting the `case_sensitive` parameter to `True`:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 19
 from enum import Enum
 
@@ -236,7 +236,7 @@ That's done by setting the `choice_source` parameter to one of:
 
 Here is an example using `ChoiceSource.KEY`, which is equivalent to `click.Choice` behavior:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 4,19
 from enum import Enum
 
@@ -305,7 +305,7 @@ In addition to the [built-in choice sources](#choice-source) detailed above, you
 
 This is practical when you want to use a specific attribute or method of the `Enum` members as choice strings. Here's an example:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 12-13,19
 from enum import Enum
 
@@ -347,7 +347,7 @@ To fix this limitation, you have to use `EnumChoice` with `@click_extra.option` 
 
 For example, using `@click_extra.option`:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 17,19,21-22
 from enum import Enum
 
@@ -389,7 +389,7 @@ assert "[default: html]" in result.stdout
 ````{warning}
 Without Click Extra's `@option` or `@argument`, Click's default help formatter is used, which always displays the default value using the `Enum.name`, even when using `EnumChoice`:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 17,19
 from enum import Enum
 
@@ -430,7 +430,7 @@ assert "[default: HTML]" in result.stdout
 
 You can still work around this limitation by forcing the default value:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 21
 from enum import Enum
 
@@ -474,7 +474,7 @@ assert "[default: html]" in result.stdout
 
 Here's an example using aliases:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 10,14-15,20,25,30
 from enum import Enum
 

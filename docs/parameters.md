@@ -12,7 +12,7 @@ It produces a comprehensive table of all the metadata about each of your CLI par
 
 The default `@command` decorator come with the `--show-params` option, so you can call it right away:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 3
 from click_extra import command, option, echo
 

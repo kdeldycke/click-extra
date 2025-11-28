@@ -221,8 +221,7 @@ class ExtraCliRunner(click.testing.CliRunner):
 
         # Pop out the ``args`` parameter from ``extra`` and append it to the positional
         # arguments. This situation append when the ``args`` parameter is passed as a
-        # keyword argument in
-        # ``pallets_sphinx_themes.themes.click.domain.ExampleRunner.invoke()``.
+        # keyword argument in ``click_extra.sphinx.ClickRunner.invoke()``.
         cli_args = list(args)
         if "args" in extra:
             cli_args.extend(extra.pop("args"))

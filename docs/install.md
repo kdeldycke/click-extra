@@ -123,7 +123,7 @@ $ pip install click-extra[pygments]
 
 ### For Sphinx
 
-Register new [`click:example` and `click:run` directives](sphinx.md):
+Register new [`click:source` and `click:run` directives](sphinx.md):
 
 ```{code-block} shell-session
 $ pip install click-extra[sphinx]

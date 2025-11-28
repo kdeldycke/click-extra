@@ -59,6 +59,7 @@ from sphinx.directives.code import CodeBlock
 from sphinx.domains import Domain
 from sphinx.errors import ConfigError
 from sphinx.highlighting import PygmentsBridge
+from sphinx.util import logging
 
 from . import __version__
 from .pygments import AnsiHtmlFormatter
@@ -73,16 +74,18 @@ if TYPE_CHECKING:
     from sphinx.util.typing import ExtensionMetadata, OptionSpec
 
 
+logger = logging.getLogger(__name__)
+
+
 RST_INDENT = " " * 3
 """The indentation used for rST code blocks lines."""
 
 
-class EofEchoingStdin(EchoingStdin):
+class EOFEchoingStdin(EchoingStdin):
     """Like :class:`click.testing.EchoingStdin` but adds a visible
     ``^D`` in place of the EOT character (``\x04``).
 
-    :meth:`ExampleRunner.invoke` adds ``\x04`` when
-    ``terminate_input=True``.
+    :meth:`ClickRunner.invoke` adds ``\x04`` when ``terminate_input=True``.
     """
 
     def _echo(self, rv: bytes) -> bytes:
@@ -102,7 +105,7 @@ class EofEchoingStdin(EchoingStdin):
 
 @contextlib.contextmanager
 def patch_modules():
-    """Patch modules to work better with :meth:`ExampleRunner.invoke`.
+    """Patch modules to work better with :meth:`ClickRunner.invoke`.
 
     ``subprocess.call` output is redirected to ``click.echo`` so it
     shows up in the example output.
@@ -126,8 +129,8 @@ def patch_modules():
         subprocess.call = old_call
 
 
-class ExampleRunner(ExtraCliRunner):
-    """:class:`click.testing.CliRunner` with additional features.
+class ClickRunner(ExtraCliRunner):
+    """A sub-class of :class:`click.testing.CliRunner` with additional features.
 
     This class inherits from ``click_extra.testing.ExtraCliRunner`` to have full
     control of contextual color settings by the way of the ``color`` parameter. It also
@@ -156,7 +159,7 @@ class ExampleRunner(ExtraCliRunner):
             # class that outputs "^D". At this point we know sys.stdin
             # has been patched so it's safe to reassign the class.
             # Remove this once EchoingStdin is overridable.
-            buffer.__class__ = EofEchoingStdin
+            buffer.__class__ = EOFEchoingStdin
             yield streams
 
     def invoke(  # type: ignore[override]
@@ -327,19 +330,19 @@ class ClickDirective(SphinxDirective):
     """Whether to render the results of the example in the code block."""
 
     runner_func_id: str
-    """The name of the function to call on the :class:`ExampleRunner` instance."""
+    """The name of the function to call on the :class:`ClickRunner` instance."""
 
     @property
-    def runner(self) -> ExampleRunner:
-        """Get or create the :class:`ExampleRunner` instance associated with
+    def runner(self) -> ClickRunner:
+        """Get or create the :class:`ClickRunner` instance associated with
         a document.
 
         Creates one runner per document.
         """
-        runner = getattr(self.state.document, "click_example_runner", None)
+        runner = getattr(self.state.document, "click_runner", None)
         if runner is None:
-            runner = ExampleRunner()
-            setattr(self.state.document, "click_example_runner", runner)
+            runner = ClickRunner()
+            setattr(self.state.document, "click_runner", runner)
         return runner
 
     @cached_property
@@ -450,7 +453,7 @@ class ClickDirective(SphinxDirective):
             # If we are running a CLI, we force rendering the source code as a
             # Python code block.
             if self.runner_func_id == "run_example":
-                language = DeclareExampleDirective.default_language
+                language = SourceDirective.default_language
             lines.extend(self.render_code_block(self.content, language))
         if self.show_results:
             lines.extend(self.render_code_block(results, self.language))
@@ -468,8 +471,8 @@ class ClickDirective(SphinxDirective):
         return section.children
 
 
-class DeclareExampleDirective(ClickDirective):
-    """Directive to declare a Click CLI example.
+class SourceDirective(ClickDirective):
+    """Directive to declare a Click CLI source code.
 
     This directive is used to declare a Click CLI example in the
     documentation. It renders the source code of the example in a
@@ -482,7 +485,7 @@ class DeclareExampleDirective(ClickDirective):
     runner_func_id = "declare_example"
 
 
-class RunExampleDirective(ClickDirective):
+class RunDirective(ClickDirective):
     """Directive to run a Click CLI example.
 
     This directive is used to run a Click CLI example in the
@@ -496,28 +499,48 @@ class RunExampleDirective(ClickDirective):
     runner_func_id = "run_example"
 
 
+class DeprecatedExampleDirective(SourceDirective):
+    """Deprecated alias for SourceDirective.
+
+    .. deprecated::
+        Use ``click:source`` instead of ``click:example``.
+    """
+
+    def run(self) -> list[nodes.Node]:
+        logger.warning(
+            "The 'click:example' directive is deprecated and will be remove in "
+            "Click Extra 8.0.0. Use 'click:source' instead.",
+            type="click",
+            subtype="deprecated",
+            location=self.get_location(),
+        )
+        return super().run()
+
+
 class ClickDomain(Domain):
     """Setup new directives under the same ``click`` namespace:
 
-    - ``click:example`` which renders a Click CLI source code
+    - ``click:source`` which renders a Click CLI source code
+    - ``click:example``, an alias to ``click:source`` (deprecated)
     - ``click:run`` which renders the results of running a Click CLI
     """
 
     name = "click"
     label = "Click"
     directives = {
-        "example": DeclareExampleDirective,
-        "run": RunExampleDirective,
+        "source": SourceDirective,
+        "example": DeprecatedExampleDirective,
+        "run": RunDirective,
     }
 
 
-def delete_example_runner_state(app: Sphinx, doctree: nodes.document) -> None:
-    """Close and remove the :class:`ExampleRunner` instance once the
+def delete_runner_state(app: Sphinx, doctree: nodes.document) -> None:
+    """Close and remove the :class:`ClickRunner` instance once the
     document has been read.
     """
-    runner = getattr(doctree, "click_example_runner", None)
+    runner = getattr(doctree, "click_runner", None)
     if runner is not None:
-        delattr(doctree, "click_example_runner")
+        delattr(doctree, "click_runner")
 
 
 GITHUB_ALERT_PATTERN = re.compile(
@@ -699,9 +722,9 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     # Set Sphinx's default HTML formatter to an ANSI capable one.
     PygmentsBridge.html_formatter = AnsiHtmlFormatter
 
-    # Register click:example and click:run directives.
+    # Register click:source and click:run directives.
     app.add_domain(ClickDomain)
-    app.connect("doctree-read", delete_example_runner_state)
+    app.connect("doctree-read", delete_runner_state)
 
     # Register GitHub alerts converter.
     app.connect("source-read", convert_github_alerts)

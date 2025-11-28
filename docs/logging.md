@@ -19,7 +19,7 @@ Default behavior is to:
 
 This option is part of `@command` and `@group` by default:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 3
 from click_extra import command, echo
 
@@ -61,7 +61,7 @@ In the rest of this documentation, we will mainly focus on the canonical `--verb
 
 The verbosity option can be used independently of `@command`, and you can attach it to a vanilla Click command:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 6
 import logging
 import click
@@ -98,7 +98,7 @@ The `--verbosity` option is by default attached to the [global `root` logger](ht
 
 This allows you to use module-level helpers like [`logging.debug`](https://docs.python.org/3/library/logging.html?highlight=logging#logging.Logger.debug). That way you don't have to worry about setting up your own logger. And logging messages can be easily produced with minimal code:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 1, 9-13
 import logging
 import click
@@ -189,7 +189,7 @@ assert result.stderr == dedent("""\
 ````{caution}
 `root` is the default logger associated with `--verbosity`. Which means that, if not configured, **all loggers will be printed at the verbosity level set by the option**:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 1, 9, 14
 import logging
 import click
@@ -244,7 +244,7 @@ The preferred way to customize log messages is to create your own logger and att
 
 This can be done with [`new_extra_logger`](#click_extra.logging.new_extra_logger). Here is how we can for example change the format of the log messages:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 5-8, 11, 18
 import logging
 from click import command
@@ -295,7 +295,7 @@ assert dedent("""\
 
 Now if we don't explicitly pass the custom logger to the `--verbosity` option, the default `root` logger will be tied to it instead:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 11
 import logging
 from click import command
@@ -353,7 +353,7 @@ This is the reason why, in the example above, the `root` and `app_logger` logger
 
 Let's experiment with that property and set the `propagate` attribute to `True`:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 7
 import logging
 from click import command
@@ -399,7 +399,7 @@ The reason for that hierarchycal design is to allow for [dot-separated logger na
 ````{tip}
 You can creatively configure loggers to produce any kind of messages, like this JSON-like format:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 7
 import logging
 from click import command
@@ -431,7 +431,7 @@ Because loggers are registered in a global registry, you can set them up in one 
 
 But for convenience, you can pass the logger object directly to the option:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 5, 8
 import logging
 from click import command
@@ -467,7 +467,7 @@ assert dedent("""\
 
 If you want to change the global configuration of all loggers, you can rely on `new_extra_logger`. Because the latter defaults to the `root` logger, any default logger propagating their messages to it will be affected:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 5, 8
 import logging
 from click import command
@@ -513,7 +513,7 @@ assert dedent("""\
 
 You can get the name of the current verbosity level from the context or the logger itself:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 9, 11
 import logging
 from click import command, echo, pass_context

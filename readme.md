@@ -73,7 +73,7 @@ To undestrand how we ended up with the result above, [go read the tutorial](http
 - `--time`/`--no-time` flag to measure duration of command execution
 - Global `show_choices` to activate selection of choices on user input prompts
 - [Lazy-loading of subcommands](https://kdeldycke.github.io/click-extra/commands.html#lazily-loading-subcommands) from module paths to speed up CLI startup time
-- [`click:example` and `click:run` Sphinx directives](https://kdeldycke.github.io/click-extra/sphinx.html) in MyST Markdown and reStructuredText to document CLI source code and their execution
+- [`click:source` and `click:run` Sphinx directives](https://kdeldycke.github.io/click-extra/sphinx.html) in MyST Markdown and reStructuredText to document CLI source code and their execution
 - [Inline testing of CLI examples](https://kdeldycke.github.io/click-extra/sphinx.html#inline-tests) in documentation
 - Render [GitHub alerts](https://kdeldycke.github.io/click-extra/sphinx.html#github-alerts) into MyST admonitions
 - [ANSI-capable Pygments lexers](https://kdeldycke.github.io/click-extra/pygments.html#lexers) for shell session and console output

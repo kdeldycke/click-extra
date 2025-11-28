@@ -6,7 +6,7 @@ Click Extra can measure the execution time of a CLI via a dedicated `--time`/`--
 
 Here how to use the standalone decorator:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 6
 from time import sleep
 from click import command, echo, pass_context
@@ -41,7 +41,7 @@ assert re.fullmatch(
 
 You can get the timestamp of the CLI start from the context:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 8
 from click import command, echo, pass_context
 from click_extra import timer_option

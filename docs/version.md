@@ -14,7 +14,7 @@ Click Extra provides its own version option which, compared to [Click's built-in
 
 Here is how the defaults looks like:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 5
 import click
 import click_extra
@@ -87,7 +87,7 @@ Some Click's built-in variables are not recognized:
 
 You can compose your own version string by passing the `message` argument:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 5
 import click
 import click_extra
@@ -199,7 +199,7 @@ Each variable listed in the section above can be rendered in its own style. They
 
 Here is an example:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 7-10
 import click
 from click_extra import version_option, Style
@@ -232,7 +232,7 @@ The [`Style()` helper is defined by Cloup](https://cloup.readthedocs.io/en/stabl
 
 You can pass `None` to any of the style parameters to disable styling for the corresponding variable:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 6-8
 import click
 from click_extra import version_option
@@ -259,7 +259,7 @@ The `{env_info}` variable compiles all sorts of environment information.
 
 Here is how it looks like:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 5
 import click
 from click_extra import version_option
@@ -284,7 +284,7 @@ The JSON output is scrubbed out of identifiable information by default: current 
 
 Another trick consist in picking into the content of `{env_info}` to produce highly customized version strings. This can be done because `{env_info}` is kept as a `dict`:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 6
 import click
 from click_extra import version_option
@@ -311,7 +311,7 @@ assert re.fullmatch((
 
 When the `DEBUG` level is enabled, all available variables will be printed in the log:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 5-6
 import click
 from click_extra import version_option, verbosity_option, echo
@@ -336,7 +336,7 @@ assert "\n\x1b[34mdebug\x1b[0m: Version string template variables:\n" in result.
 
 You can get the uncolored, Python values used in the composition of the version message from the context:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 8-11
 import click
 from click_extra import echo, pass_context, version_option
@@ -380,7 +380,7 @@ These variables are presented in their original Python type. If most of these va
 
 You can render the version string manually by calling the option's internal methods:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 9-10
 import click
 from click_extra import echo, pass_context, version_option, ExtraVersionOption, search_params

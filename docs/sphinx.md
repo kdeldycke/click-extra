@@ -34,23 +34,27 @@ I recommend using one of these themes, which works well with Click Extra:
 
 Click Extra adds two new directives:
 
-- `click:example` to display any Click-based Python code blocks in Sphinx.
+- `click:source` to define and show the source code of a Click CLI in Sphinx.
 - `click:run` to invoke the CLI defined above, and display the results as if was executed in a terminal session.
 
 Thanks to these, you can directly demonstrate the usage of your CLI in your documentation. You no longer have to maintain screenshots of you CLIs. Or copy and paste their outputs to keep them in sync with the latest revision. Click Extra will do that job for you.
 
 These directives supports both [MyST Markdown](https://myst-parser.readthedocs.io) and [reStructuredText](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html) syntax.
 
+```{hint}
+`click:source` directive has an alias called `click:example`. Both behaves exactly the same way, but `click:example` is deprecated and will be removed in a future major release.
+```
+
 ### Usage
 
-Here is how to define a simple Click-based CLI with the `click:example` directive:
+Here is how to define a simple Click-based CLI with the `click:source` directive:
 
 ``````{tab-set}
 `````{tab-item} MyST Markdown
 :sync: myst
 ````{code-block} markdown
 :emphasize-lines: 1
-```{click:example}
+```{click:source}
 from click_extra import echo, command, option, style
 
 @command
@@ -66,7 +70,7 @@ def hello_world(name):
 :sync: rst
 ```{code-block} rst
 :emphasize-lines: 1
-.. click:example::
+.. click:source::
 
     from click_extra import echo, command, option, style
 
@@ -79,7 +83,7 @@ def hello_world(name):
 `````
 ``````
 
-After defining the CLI source code in the `click:example` directive above, you can invoke it with the `click:run` directive.
+After defining the CLI source code in the `click:source` directive above, you can invoke it with the `click:run` directive.
 
 The `click:run` directive expects a Python code block that uses the `invoke` function. This function is specifically designed to run Click-based CLIs and handle their execution and output.
 
@@ -109,7 +113,7 @@ invoke(hello_world, args=["--help"])
 
 Placed in your Sphinx documentation, the two blocks above renders to:
 
-```{click:example}
+```{click:source}
 from click_extra import echo, command, option, style
 
 @command
@@ -171,20 +175,20 @@ assert result.output == 'Hello, \x1b[31mJoe\x1b[0m!\n'
 ```
 
 ```{hint}
-`click:example` and `click:run` directives works well with standard vanilla `click`-based CLIs.
+`click:source` and `click:run` directives works well with standard vanilla `click`-based CLIs.
 
 In the example above, we choose to import our CLI primitives from the `click-extra` module instead, to demonstrate the coloring of terminal session outputs, as `click-extra` provides [fancy coloring of help screens](colorize.md) by default.
 ```
 
 ```{seealso}
-Click Extra's own documentation extensively use `click:example` and `click:run` directives. [Look around
+Click Extra's own documentation extensively use `click:source` and `click:run` directives. [Look around
 in its Markdown source files](https://github.com/kdeldycke/click-extra/tree/main/docs) for advanced examples and
 inspiration.
 ```
 
 ### Options
 
-You can pass options to both the `click:example` and `click:run` directives to customize their behavior:
+You can pass options to both the `click:source` and `click:run` directives to customize their behavior:
 
 | Option | Description | Example |
 |--------|-------------|---------|
@@ -198,12 +202,12 @@ You can pass options to both the `click:example` and `click:run` directives to c
 | [`:dedent:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-dedent) | Specify the number of spaces to remove from the beginning of each line. | `:dedent: 4` |
 | [`:language:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-literalinclude-language) | Specify the programming language for syntax highlighting. This can be used as an alternative to [passing the language as an argument](#syntax-highlight-language). | `:language: sql` |
 | `:show-source:`/`:hide-source:` | Flags to force the source code within the directive to be rendered or not. | `:show-source:` or `:hide-source:` |
-| `:show-results:`/`:hide-results:` | Flags to force the results of the CLI invocation to be rendered or not. Only applies to `click:run`. Is silently ignored in `click:example`. | `:show-results:` or `:hide-results:` |
+| `:show-results:`/`:hide-results:` | Flags to force the results of the CLI invocation to be rendered or not. Only applies to `click:run`. Is silently ignored in `click:source`. | `:show-results:` or `:hide-results:` |
 | `:show-prompt:`/`:hide-prompt:` | TODO | TODO |
 
 #### `code-block` options
 
-Because the `click:example` and `click:run` directives produces code blocks, they inherits the [same options as the Sphinx `code-block` directive](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-code-block).
+Because the `click:source` and `click:run` directives produces code blocks, they inherits the [same options as the Sphinx `code-block` directive](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-code-block).
 
 For example, you can highlight some lines of with the `:emphasize-lines:` option, display line numbers with the `:linenos:` option, and set a caption with the `:caption:` option:
 
@@ -212,7 +216,7 @@ For example, you can highlight some lines of with the `:emphasize-lines:` option
 :sync: myst
 ````{code-block} markdown
 :emphasize-lines: 2-4
-```{click:example}
+```{click:source}
 :caption: A magnificent ✨ Hello World CLI!
 :linenos:
 :emphasize-lines: 4,7
@@ -231,7 +235,7 @@ def hello_world(name):
 :sync: rst
 ```{code-block} rst
 :emphasize-lines: 2-4
-.. click:example::
+.. click:source::
    :caption: A magnificent ✨ Hello World CLI!
    :linenos:
    :emphasize-lines: 4,7
@@ -249,7 +253,7 @@ def hello_world(name):
 
 Which renders to:
 
-```{click:example}
+```{click:source}
 :caption: A magnificent ✨ Hello World CLI!
 :linenos:
 :emphasize-lines: 4,7
@@ -267,17 +271,17 @@ def hello_world(name):
 You can also control the display of the source code and the results of the CLI invocation with the `:show-source:`/`:hide-source:` and `:show-results:`/`:hide-results:` options.
 
 By default:
-- `click:example` displays the source code of the CLI. Because its content is not executed, no results are displayed. This is equivalent to having both `:show-source:` and `:hide-results:` options.
+- `click:source` displays the source code of the CLI. Because its content is not executed, no results are displayed. This is equivalent to having both `:show-source:` and `:hide-results:` options.
 - `click:run` displays the results of the CLI invocation, but does not display the source code. This is equivalent to having both `:hide-source:` and `:show-results:` options.
 
-But you can override this behavior by explicitly setting the options. Let's say [you only want to display the result](https://github.com/kdeldycke/click-extra/issues/719) of the CLI invocation, without showing the source code defining that CLI. Then you can add `:hide-source:` to the `click:example` directive:
+But you can override this behavior by explicitly setting the options. Let's say [you only want to display the result](https://github.com/kdeldycke/click-extra/issues/719) of the CLI invocation, without showing the source code defining that CLI. Then you can add `:hide-source:` to the `click:source` directive:
 
 ``````{tab-set}
 `````{tab-item} MyST Markdown
 :sync: myst
 ````{code-block} markdown
 :emphasize-lines: 2
-```{click:example}
+```{click:source}
 :hide-source:
 from click_extra import echo, command, style
 
@@ -296,7 +300,7 @@ invoke(simple_print)
 :sync: rst
 ```{code-block} rst
 :emphasize-lines: 2
-.. click:example::
+.. click:source::
    :hide-source:
 
    from click_extra import echo, command, style
@@ -312,9 +316,9 @@ invoke(simple_print)
 `````
 ``````
 
-Which only renders the `click:run` directive, as the `click:example` doesn't display anything:
+Which only renders the `click:run` directive, as the `click:source` doesn't display anything:
 
-```{click:example}
+```{click:source}
 :hide-source:
 from click_extra import echo, command, style
 
@@ -373,14 +377,14 @@ assert not result.stderr, "Found error messages in <stderr>"
 ```
 
 ```{caution}
-`:show-results:`/`:hide-results:` options have no effect on the `click:example` directive and will be ignored. That's because this directive does not execute the CLI: it only displays its source code.
+`:show-results:`/`:hide-results:` options have no effect on the `click:source` directive and will be ignored. That's because this directive does not execute the CLI: it only displays its source code.
 ```
 
 ### Standalone `click:run` blocks
 
-You can also use the `click:run` directive without a preceding `click:example` block. This is useful when you want to demonstrate the usage of a CLI defined elsewhere, for example in your package's source code.
+You can also use the `click:run` directive without a preceding `click:source` block. This is useful when you want to demonstrate the usage of a CLI defined elsewhere, for example in your package's source code.
 
-In the example below, we import the `click_extra.cli.demo` function, which is defined in the [`click_extra/cli.py`](https://github.com/kdeldycke/click-extra/blob/main/click_extra/cli.py) source file. There is no need to redefine the CLI in a `click:example` block beforehand:
+In the example below, we import the `click_extra.cli.demo` function, which is defined in the [`click_extra/cli.py`](https://github.com/kdeldycke/click-extra/blob/main/click_extra/cli.py) source file. There is no need to redefine the CLI in a `click:source` block beforehand:
 
 ``````{tab-set}
 `````{tab-item} MyST Markdown
@@ -423,7 +427,7 @@ For example, here is a simple CLI:
 `````{tab-item} MyST Markdown
 :sync: myst
 ````{code-block} markdown
-```{click:example}
+```{click:source}
 from click import echo, command
 
 @command
@@ -436,7 +440,7 @@ def yo_cli():
 `````{tab-item} reStructuredText
 :sync: rst
 ```{code-block} rst
-.. click:example::
+.. click:source::
 
    from click import echo, command
 
@@ -447,7 +451,7 @@ def yo_cli():
 `````
 ``````
 
-Let's put the code above in a `click:example` directive. And then put the following Python code into a `click:run` block:
+Let's put the code above in a `click:source` directive. And then put the following Python code into a `click:run` block:
 
 ``````{tab-set}
 `````{tab-item} MyST Markdown
@@ -516,7 +520,7 @@ Having your build fails when something unexpected happens is a great signal to c
 
 On the other hand, if the build succeed, the `click:run` block will render as usual with the result of the invocation:
 
-```{click:example}
+```{click:source}
 :hide-source:
 from click import echo, command
 
@@ -537,14 +541,14 @@ assert "Usage: yo-cli [OPTIONS]" in result.stdout, "Usage line not found in help
 ### Syntax highlight language
 
 By default, code blocks produced by the directives are automatically highlighted with these languages:
-- `click:example`: [`python`](https://pygments.org/docs/lexers/#pygments.lexers.python.PythonLexer)
+- `click:source`: [`python`](https://pygments.org/docs/lexers/#pygments.lexers.python.PythonLexer)
 - `click:run`: [`ansi-shell-session`](pygments.md#lexer-variants)
 
 If for any reason you want to override these defaults, you can pass the language as an optional parameter to the directive.
 
 Let's say you have a CLI that is only printing SQL queries in its output:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 6
 from click_extra import echo, command, option
 
@@ -811,12 +815,12 @@ Before MyST was fully integrated into Sphinx, many projects used a mixed syntax 
 
 This rely on MyST's ability to embed reStructuredText within MyST documents, via the [`{eval-rst}` directive](https://myst-parser.readthedocs.io/en/latest/syntax/roles-and-directives.html#how-directives-parse-content).
 
-So instead of using the `{click:example}` and `{click:run}` MyST directive, you can wrap your reStructuredText code blocks with `{eval-rst}`:
+So instead of using the `{click:source}` and `{click:run}` MyST directive, you can wrap your reStructuredText code blocks with `{eval-rst}`:
 
 ````{code-block} markdown
 :emphasize-lines: 1
 ```{eval-rst}
-.. click:example::
+.. click:source::
 
    from click import echo, command
 
@@ -833,7 +837,7 @@ So instead of using the `{click:example}` and `{click:run}` MyST directive, you 
 Which renders to:
 
 ```{eval-rst}
-.. click:example::
+.. click:source::
 
    from click import echo, command
 
@@ -847,7 +851,7 @@ Which renders to:
 ```
 
 ````{warning}
-CLI states and references are lost as soon as an `{eval-rst}` block ends. So a `.. click:example::` directive needs to have all its associated `.. click:run::` calls within the same rST block.
+CLI states and references are lost as soon as an `{eval-rst}` block ends. So a `.. click:source::` directive needs to have all its associated `.. click:run::` calls within the same rST block.
 
 If not, you are likely to encounter execution tracebacks such as:
 ```pytb

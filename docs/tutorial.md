@@ -12,7 +12,7 @@ Into this:
 
 The [canonical `click` example](https://github.com/pallets/click?tab=readme-ov-file#a-simple-example) is implemented that way:
 
-```{click:example}
+```{click:source}
 import click
 
 @click.command
@@ -45,7 +45,7 @@ assert result.output == dedent(
 
 To augment the example above with [all the bells and whistles](index.md#features) `click-extra` has in store, you just need to import the same decorators and functions from its namespace:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 1,3-5,9
 import click_extra
 
@@ -87,7 +87,7 @@ If you do not like the opiniated way the `@click_extra.command` decorator is set
 
 If, for example, you're only interested in using the [`--config` option](config.md), you're free to to use it with a standard Click CLI. Just take the `@config_option` decorator from `click_extra` and add it to your command:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 2, 7
 import click
 from click_extra import config_option
@@ -112,7 +112,7 @@ assert "--config CONFIG_PATH" in result.output
 
 This option behave like any Click option and can be customized easily:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 7
 import click
 from click_extra import config_option
@@ -139,7 +139,7 @@ All Click Extra primitives are sub-classes of Cloup's and supports all its featu
 
 Like [option groups](https://cloup.readthedocs.io/en/stable/pages/option-groups.html):
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 2,5,8-14
 import click
 import cloup

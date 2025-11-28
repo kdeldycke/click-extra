@@ -82,7 +82,7 @@ The `@command` and `@group` decorators are [pre-configured with a set of default
 
 You can remove all default options by resetting the `params` argument to `None`:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 3
 from click_extra import command
 
@@ -112,7 +112,7 @@ As you can see, all options are stripped out, but the colouring and formatting o
 
 To override the default options, you can provide the `params=` argument to the command. But note how we use classes instead of option decorators:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 4-7
 from click_extra import command, ConfigOption, VerbosityOption
 
@@ -147,7 +147,7 @@ This let you replace the preset options by your own set, tweak their order and f
 :class: caution
 If you try to add option decorators to a command which already have them by default, you will end up with duplicate entries ([as seen in issue #232](https://github.com/kdeldycke/click-extra/issues/232)):
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 4
 from click_extra import command, version_option
 
@@ -193,7 +193,7 @@ For example, the [`--verbosity` option defaults to the `WARNING` level](logging.
 
 If you manage your own `--verbosity` option, you can [pass the `default` argument to its decorator like we did above](#change-default-options):
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 2,5
 import click
 from click_extra import verbosity_option
@@ -206,7 +206,7 @@ def cli():
 
 This also works in its class form:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 2,4
 import click
 from click_extra import VerbosityOption
@@ -218,7 +218,7 @@ def cli():
 
 With a `@click_extra.command` instead of `@click.command`, it is the same, you also have the alternative to pass a `default_map` via the `context_settings`:
 
-```{click:example}
+```{click:source}
 :emphasize-lines: 1,3
 import click_extra
 

@@ -121,20 +121,20 @@ class SphinxAppWrapper:
         if test_case.document is not None:
             return test_case.document
 
-        # Produce click:example and click:run directives in the appropriate format.
+        # Produce click:source and click:run directives in the appropriate format.
         lines = []
 
-        if test_case.example_block:
+        if test_case.source_block:
             if self.format_type == FormatType.RST:
-                lines.append(".. click:example::")
+                lines.append(".. click:source::")
                 # We need a blank line if there are no options.
-                if not test_case.example_block.startswith(":"):
+                if not test_case.source_block.startswith(":"):
                     lines.append("")
-                lines.append(indent(test_case.example_block, " " * 4))
+                lines.append(indent(test_case.source_block, " " * 4))
             elif self.format_type == FormatType.MYST:
                 lines += [
-                    "```{click:example}",
-                    test_case.example_block,
+                    "```{click:source}",
+                    test_case.source_block,
                     "```",
                 ]
 
@@ -183,7 +183,7 @@ class DirectiveTestCase:
 
     name: str
     format_type: FormatType | None = None
-    example_block: str | None = None
+    source_block: str | None = None
     run_block: str | None = None
     document: str | None = None
     html_matches: Sequence[str] | None = None
@@ -193,9 +193,9 @@ class DirectiveTestCase:
 
         # Validate mutually exclusive options
         if self.document is not None:
-            if self.example_block is not None or self.run_block is not None:
+            if self.source_block is not None or self.run_block is not None:
                 raise ValueError(
-                    "DirectiveTestCase: 'document' cannot be used with 'example_block' or 'run_block'"
+                    "DirectiveTestCase: 'document' cannot be used with 'source_block' or 'run_block'"
                 )
             if self.format_type is None:
                 raise ValueError(
@@ -203,8 +203,8 @@ class DirectiveTestCase:
                 )
 
         # Dedent code fields to remove leading and trailing whitespace.
-        if self.example_block:
-            self.example_block = cleandoc(self.example_block)
+        if self.source_block:
+            self.source_block = cleandoc(self.source_block)
         if self.run_block:
             self.run_block = cleandoc(self.run_block)
         if self.document:
@@ -244,7 +244,7 @@ def test_sphinx_extension_setup(sphinx_app):
 BASIC_DIRECTIVES_TEST_CASE = DirectiveTestCase(
     # Test minimal documents with directives in both RST and MyST formats.
     name="basic",
-    example_block="""
+    source_block="""
         from click import command, echo
 
         @command
@@ -274,7 +274,7 @@ BASIC_DIRECTIVES_TEST_CASE = DirectiveTestCase(
 LINENOS_TEST_CASE = DirectiveTestCase(
     # Test that :linenos: option adds line numbers to code blocks.
     name="linenos",
-    example_block="""
+    source_block="""
         :linenos:
 
         from click import command, echo
@@ -314,7 +314,7 @@ LINENOS_TEST_CASE = DirectiveTestCase(
 LINENOS_START_TEST_CASE = DirectiveTestCase(
     # Test that :lineno-start: shifts the starting line number.
     name="linenos_start",
-    example_block="""
+    source_block="""
         :linenos:
         :lineno-start: 5
 
@@ -354,9 +354,9 @@ LINENOS_START_TEST_CASE = DirectiveTestCase(
 )
 
 HIDE_SOURCE_TEST_CASE = DirectiveTestCase(
-    # Test that :hide-source: hides source code in click:example directive.
+    # Test that :hide-source: hides source code in click:source directive.
     name="hide_source",
-    example_block="""
+    source_block="""
         :hide-source:
 
         from click import command, echo
@@ -367,7 +367,7 @@ HIDE_SOURCE_TEST_CASE = DirectiveTestCase(
     """,
     run_block="invoke(simple_print)",
     html_matches=(
-        # Check from the start of the body to make sure the click:example is gone.
+        # Check from the start of the body to make sure the click:source is gone.
         '          <div class="body" role="main">\n'
         + "            \n  "
         + HTML["shell_session"]
@@ -380,7 +380,7 @@ HIDE_SOURCE_TEST_CASE = DirectiveTestCase(
 SHOW_SOURCE_TEST_CASE = DirectiveTestCase(
     # Test that :show-source: option shows source code in click:run directive.
     name="show_source",
-    example_block="""
+    source_block="""
         from click import command, echo
 
         @command
@@ -393,7 +393,7 @@ SHOW_SOURCE_TEST_CASE = DirectiveTestCase(
         invoke(simple_print)
     """,
     html_matches=(
-        # Example directive should show source.
+        # Source directive should show source.
         (
             HTML["python_highlight"]
             + HTML["import_click"]
@@ -423,7 +423,7 @@ SHOW_SOURCE_TEST_CASE = DirectiveTestCase(
 HIDE_RESULTS_TEST_CASE = DirectiveTestCase(
     # Test that :hide-results: option hides execution results in click:run directive.
     name="hide_results",
-    example_block="""
+    source_block="""
         from click import command, echo
 
         @command
@@ -436,7 +436,7 @@ HIDE_RESULTS_TEST_CASE = DirectiveTestCase(
         invoke(simple_print)
     """,
     html_matches=(
-        # Example directive should show source.
+        # Source directive should show source.
         (
             HTML["python_highlight"]
             + HTML["import_click"]
@@ -452,7 +452,7 @@ HIDE_RESULTS_TEST_CASE = DirectiveTestCase(
 SHOW_RESULTS_TEST_CASE = DirectiveTestCase(
     # Test that :show-results: option shows execution results (default behavior).
     name="show_results",
-    example_block="""
+    source_block="""
         from click import command, echo
 
         @command
@@ -465,7 +465,7 @@ SHOW_RESULTS_TEST_CASE = DirectiveTestCase(
         invoke(simple_print)
     """,
     html_matches=(
-        # Example directive should show source.
+        # Source directive should show source.
         (
             HTML["python_highlight"]
             + HTML["import_click"]
@@ -488,7 +488,7 @@ SHOW_RESULTS_TEST_CASE = DirectiveTestCase(
 OPTION_COMBINATIONS_TEST_CASE = DirectiveTestCase(
     # Test various combinations of display options.
     name="option_combinations",
-    example_block="""
+    source_block="""
         :show-source:
         :hide-results:
 
@@ -506,7 +506,7 @@ OPTION_COMBINATIONS_TEST_CASE = DirectiveTestCase(
         invoke(simple_print)
     """,
     html_matches=(
-        # Example directive should show source.
+        # Source directive should show source.
         (
             HTML["python_highlight"]
             + HTML["import_click"]
@@ -536,7 +536,7 @@ OPTION_COMBINATIONS_TEST_CASE = DirectiveTestCase(
 MIXED_OUTPUT_TEST_CASE = DirectiveTestCase(
     # Test directives that print to both stdout and stderr with proper rendering.
     name="mixed_output",
-    example_block="""
+    source_block="""
         import sys
 
         from click import command, echo
@@ -567,7 +567,7 @@ MIXED_OUTPUT_TEST_CASE = DirectiveTestCase(
 ISOLATED_FILESYSTEM_TEST_CASE = DirectiveTestCase(
     # Test that isolated_filesystem works properly in click:run directives.
     name="isolated_filesystem",
-    example_block="""
+    source_block="""
         from click import command, echo
 
         @command
@@ -597,7 +597,7 @@ RST_WITHIN_MYST_EVAL_TEST_CASE = DirectiveTestCase(
     format_type=FormatType.MYST,
     document="""
         ```{eval-rst}
-        .. click:example::
+        .. click:source::
 
             from click import command, echo
 
@@ -666,7 +666,7 @@ def test_directive_functionality(sphinx_app, test_case):
 def test_directive_option_format(sphinx_app_rst):
     """rST will fail to render if an ``:option:`` is not followed by an empty line."""
     content = dedent("""
-        .. click:example::
+        .. click:source::
             :linenos:
             from click import command, echo
 
@@ -692,7 +692,7 @@ def test_directive_option_language_override(sphinx_app):
 
     if format_type == FormatType.RST:
         content = dedent("""
-            .. click:example::
+            .. click:source::
 
                 from click import command, echo, option
 
@@ -708,7 +708,7 @@ def test_directive_option_language_override(sphinx_app):
         """)
     elif format_type == FormatType.MYST:
         content = dedent("""
-            ```{click:example}
+            ```{click:source}
             from click import command, echo, option
 
             @command
@@ -739,7 +739,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
 
     if format_type == FormatType.RST:
         content = dedent("""
-            .. click:example::
+            .. click:source::
 
                 from click import command, echo
 
@@ -747,7 +747,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
                 def cmd1():
                     echo("Command 1")
 
-            .. click:example::
+            .. click:source::
 
                 @command
                 def cmd2():
@@ -763,7 +763,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
         """)
     elif format_type == FormatType.MYST:
         content = dedent("""
-            ```{click:example}
+            ```{click:source}
             from click import command, echo
 
             @command
@@ -771,7 +771,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
                 echo("Command 1")
             ```
 
-            ```{click:example}
+            ```{click:source}
             @command
             def cmd2():
                 echo("Command 2")
@@ -837,7 +837,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
 
 
 
-            .. click:example::
+            .. click:source::
 
                 from click import command, echo
 
@@ -860,7 +860,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
 
 
 
-            ```{{click:example}}
+            ```{{click:source}}
             from click import command, echo
 
             @command
@@ -1076,7 +1076,7 @@ def test_exit_exception_percolate(sphinx_app):
 
     if format_type == FormatType.RST:
         content = dedent("""
-            .. click:example::
+            .. click:source::
 
                 import sys
 
@@ -1106,7 +1106,7 @@ def test_exit_exception_percolate(sphinx_app):
         """)
     elif format_type == FormatType.MYST:
         content = dedent("""
-            ```{click:example}
+            ```{click:source}
             import sys
 
             from click import command, echo, option
