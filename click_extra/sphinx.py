@@ -213,7 +213,7 @@ class ClickRunner(ExtraCliRunner):
         output_lines.extend(result.output.splitlines())
         return result
 
-    def declare_example(self, directive: SphinxDirective) -> None:
+    def execute_source(self, directive: SphinxDirective) -> None:
         """Execute the given code, adding it to the runner's namespace."""
         # Use directive.content instead of directive.block_text as the latter
         # include the directive text itself in rST.
@@ -225,10 +225,10 @@ class ClickRunner(ExtraCliRunner):
             code = compile(source_code, location, "exec")
             exec(code, self.namespace)
 
-    def run_example(self, directive: SphinxDirective) -> list[str]:
+    def run_cli(self, directive: SphinxDirective) -> list[str]:
         """Execute the given ``source_code``.
 
-        Returns a simulation of terminaml execution, including a mix of input, output,
+        Returns a simulation of terminal execution, including a mix of input, output,
         prompts and tracebacks.
 
         The execution context is augmented, so you can refer directly to these
@@ -282,7 +282,7 @@ class ClickRunner(ExtraCliRunner):
                     raise RuntimeError(
                         f"Local variable {node.id!r} at "
                         f"{location}:{directive.name}:{doc_lineno} conflicts with "
-                        f"the one automaticcaly provided by the {directive.name} "
+                        f"the one automatically provided by the {directive.name} "
                         "directive.\n"
                         f"Line: {python_line}"
                     )
@@ -452,7 +452,7 @@ class ClickDirective(SphinxDirective):
             language = self.language
             # If we are running a CLI, we force rendering the source code as a
             # Python code block.
-            if self.runner_func_id == "run_example":
+            if self.runner_func_id == "run_cli":
                 language = SourceDirective.default_language
             lines.extend(self.render_code_block(self.content, language))
         if self.show_results:
@@ -482,7 +482,7 @@ class SourceDirective(ClickDirective):
     default_language = "python"
     default_show_source = True
     default_show_results = False
-    runner_func_id = "declare_example"
+    runner_func_id = "execute_source"
 
 
 class RunDirective(ClickDirective):
@@ -496,7 +496,7 @@ class RunDirective(ClickDirective):
     default_language = "ansi-shell-session"
     default_show_source = False
     default_show_results = True
-    runner_func_id = "run_example"
+    runner_func_id = "run_cli"
 
 
 class DeprecatedExampleDirective(SourceDirective):
