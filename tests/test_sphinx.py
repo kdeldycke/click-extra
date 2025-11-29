@@ -190,10 +190,13 @@ class DirectiveTestCase:
     source_block: str | None = None
     run_block: str | None = None
     document: str | None = None
-    html_matches: Sequence[str] | None = None
+    html_matches: Sequence[str] | str | None = None
 
     def __post_init__(self):
-        self.html_matches = self.html_matches or tuple()
+        if not self.html_matches:
+            self.html_matches = tuple()
+        elif isinstance(self.html_matches, str):
+            self.html_matches = (self.html_matches,)
 
         # Validate mutually exclusive options
         if self.document is not None:
@@ -373,15 +376,13 @@ HIDE_SOURCE_TEST_CASE = DirectiveTestCase(
             echo("Just a string to print.")
     """,
     run_block="invoke(simple_print)",
-    html_matches=(
-        # Check from the start of the body to make sure the click:source is gone.
-        '          <div class="body" role="main">\n'
-        + "            \n  "
-        + HTML["shell_session"]
-        + '<span class="gp">$ </span>simple-print\n'
-        + "Just a string to print.\n"
-        + "</pre></div>\n",
-    ),
+    # Check from the start of the body to make sure the click:source is gone.
+    html_matches='          <div class="body" role="main">\n'
+    + "            \n  "
+    + HTML["shell_session"]
+    + '<span class="gp">$ </span>simple-print\n'
+    + "Just a string to print.\n"
+    + "</pre></div>\n",
 )
 
 SHOW_SOURCE_TEST_CASE = DirectiveTestCase(
@@ -442,18 +443,14 @@ HIDE_RESULTS_TEST_CASE = DirectiveTestCase(
 
         invoke(simple_print)
     """,
-    html_matches=(
-        # Source directive should show source.
-        (
-            HTML["python_highlight"]
-            + HTML["import_click"]
-            + "\n"
-            + '<span class="nd">@command</span>\n'
-            + '<span class="k">def</span><span class="w"> </span><span class="nf">simple_print</span><span class="p">():</span>\n'
-            + '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Just a string to print.&quot;</span><span class="p">)</span>\n'
-            + "</pre></div>\n"
-        ),
-    ),
+    # Source directive should show source.
+    html_matches=HTML["python_highlight"]
+    + HTML["import_click"]
+    + "\n"
+    + '<span class="nd">@command</span>\n'
+    + '<span class="k">def</span><span class="w"> </span><span class="nf">simple_print</span><span class="p">():</span>\n'
+    + '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;Just a string to print.&quot;</span><span class="p">)</span>\n'
+    + "</pre></div>\n",
 )
 
 SHOW_RESULTS_TEST_CASE = DirectiveTestCase(
@@ -557,18 +554,14 @@ MIXED_OUTPUT_TEST_CASE = DirectiveTestCase(
             print(f"Direct {style('stderr', fg=Color.red)} print", file=sys.stderr)
     """,
     run_block="invoke(mixed_output)",
-    html_matches=(
-        # Should show mixed stdout/stderr output with colors.
-        (
-            HTML["shell_session"]
-            + '<span class="gp">$ </span>mixed-output\n'
-            + 'This goes to <span class=" -Color -Color-Blue -C-Blue">stdout</span>\n'
-            + 'This is an <span class=" -Color -Color-Red -C-Red">error</span>\n'
-            + 'Direct <span class=" -Color -Color-Blue -C-Blue">stdout</span> print\n'
-            + 'Direct <span class=" -Color -Color-Red -C-Red">stderr</span> print\n'
-            + "</pre></div>"
-        ),
-    ),
+    # Should show mixed stdout/stderr output with colors.
+    html_matches=HTML["shell_session"]
+    + '<span class="gp">$ </span>mixed-output\n'
+    + 'This goes to <span class=" -Color -Color-Blue -C-Blue">stdout</span>\n'
+    + 'This is an <span class=" -Color -Color-Red -C-Red">error</span>\n'
+    + 'Direct <span class=" -Color -Color-Blue -C-Blue">stdout</span> print\n'
+    + 'Direct <span class=" -Color -Color-Red -C-Red">stderr</span> print\n'
+    + "</pre></div>",
 )
 
 ISOLATED_FILESYSTEM_TEST_CASE = DirectiveTestCase(
@@ -587,15 +580,11 @@ ISOLATED_FILESYSTEM_TEST_CASE = DirectiveTestCase(
                 f.write("Hello File!")
             invoke(greet)
     """,
-    html_matches=(
-        # Should show command execution within isolated filesystem.
-        (
-            HTML["shell_session"]
-            + '<span class="gp">$ </span>greet\n'
-            + "Hello World!\n"
-            + "</pre></div>\n"
-        ),
-    ),
+    # Should show command execution within isolated filesystem.
+    html_matches=HTML["shell_session"]
+    + '<span class="gp">$ </span>greet\n'
+    + "Hello World!\n"
+    + "</pre></div>\n",
 )
 
 RST_WITHIN_MYST_EVAL_TEST_CASE = DirectiveTestCase(
@@ -635,6 +624,32 @@ RST_WITHIN_MYST_EVAL_TEST_CASE = DirectiveTestCase(
         ),
     ),
 )
+
+
+def python_block(*lines: str) -> str:
+    """Build expected Python highlight block."""
+    return HTML["python_highlight"] + "".join(lines) + "</pre></div>\n"
+
+
+def shell_block(*lines: str) -> str:
+    """Build expected shell session block."""
+    return HTML["shell_session"] + "".join(lines) + "</pre></div>\n"
+
+
+def admonition_block(admonition_type: str, content: str) -> str:
+    """Build expected admonition block.
+
+    Args:
+        admonition_type: The type of admonition (note, tip, warning, etc.)
+        content: The inner HTML content of the admonition (without the title)
+    """
+    title = admonition_type.capitalize()
+    return (
+        f'<div class="admonition {admonition_type}">\n'
+        f'<p class="admonition-title">{title}</p>\n'
+        f"{content}"
+        "</div>\n"
+    )
 
 
 @pytest.mark.parametrize(
@@ -1162,14 +1177,10 @@ GITHUB_ALERT_NOTE_TEST_CASE = DirectiveTestCase(
 
         Regular text after.
     """,
-    html_matches=(
-        '<div class="admonition note">\n'
-        '<p class="admonition-title">Note</p>\n'
-        "<p>This is a note.\n"
-        "With multiple lines.</p>\n"
-        "</div>\n"
-        "<p>Regular text after.</p>\n",
-    ),
+    html_matches=admonition_block(
+        "note", "<p>This is a note.\nWith multiple lines.</p>\n"
+    )
+    + "<p>Regular text after.</p>\n",
 )
 
 GITHUB_ALERT_TIP_TEST_CASE = DirectiveTestCase(
@@ -1179,12 +1190,7 @@ GITHUB_ALERT_TIP_TEST_CASE = DirectiveTestCase(
         > [!TIP]
         > This is a tip.
     """,
-    html_matches=(
-        '<div class="admonition tip">\n'
-        '<p class="admonition-title">Tip</p>\n'
-        "<p>This is a tip.</p>\n"
-        "</div>\n",
-    ),
+    html_matches=admonition_block("tip", "<p>This is a tip.</p>\n"),
 )
 
 GITHUB_ALERT_IMPORTANT_TEST_CASE = DirectiveTestCase(
@@ -1194,12 +1200,7 @@ GITHUB_ALERT_IMPORTANT_TEST_CASE = DirectiveTestCase(
         > [!IMPORTANT]
         > This is important.
     """,
-    html_matches=(
-        '<div class="admonition important">\n'
-        '<p class="admonition-title">Important</p>\n'
-        "<p>This is important.</p>\n"
-        "</div>\n",
-    ),
+    html_matches=admonition_block("important", "<p>This is important.</p>\n"),
 )
 
 GITHUB_ALERT_WARNING_TEST_CASE = DirectiveTestCase(
@@ -1209,12 +1210,7 @@ GITHUB_ALERT_WARNING_TEST_CASE = DirectiveTestCase(
         > [!WARNING]
         > This is a warning.
     """,
-    html_matches=(
-        '<div class="admonition warning">\n'
-        '<p class="admonition-title">Warning</p>\n'
-        "<p>This is a warning.</p>\n"
-        "</div>\n",
-    ),
+    html_matches=admonition_block("warning", "<p>This is a warning.</p>\n"),
 )
 
 GITHUB_ALERT_CAUTION_TEST_CASE = DirectiveTestCase(
@@ -1224,12 +1220,7 @@ GITHUB_ALERT_CAUTION_TEST_CASE = DirectiveTestCase(
         > [!CAUTION]
         > This is a caution.
     """,
-    html_matches=(
-        '<div class="admonition caution">\n'
-        '<p class="admonition-title">Caution</p>\n'
-        "<p>This is a caution.</p>\n"
-        "</div>\n",
-    ),
+    html_matches=admonition_block("caution", "<p>This is a caution.</p>\n"),
 )
 
 GITHUB_ALERT_UNKNOWN_TYPE_TEST_CASE = DirectiveTestCase(
@@ -1239,12 +1230,10 @@ GITHUB_ALERT_UNKNOWN_TYPE_TEST_CASE = DirectiveTestCase(
         > [!RANDOM]
         > This is not a known alert type.
     """,
-    html_matches=(
-        "<blockquote>\n"
-        "<div><p>[!RANDOM]\n"
-        "This is not a known alert type.</p>\n"
-        "</div></blockquote>\n",
-    ),
+    html_matches="<blockquote>\n"
+    "<div><p>[!RANDOM]\n"
+    "This is not a known alert type.</p>\n"
+    "</div></blockquote>\n",
 )
 
 GITHUB_ALERT_EMPTY_LINE_TEST_CASE = DirectiveTestCase(
@@ -1256,12 +1245,8 @@ GITHUB_ALERT_EMPTY_LINE_TEST_CASE = DirectiveTestCase(
         >
         > Second paragraph.
     """,
-    html_matches=(
-        '<div class="admonition note">\n'
-        '<p class="admonition-title">Note</p>\n'
-        "<p>First paragraph.</p>\n"
-        "<p>Second paragraph.</p>\n"
-        "</div>\n",
+    html_matches=admonition_block(
+        "note", "<p>First paragraph.</p>\n<p>Second paragraph.</p>\n"
     ),
 )
 
@@ -1277,17 +1262,9 @@ GITHUB_ALERT_MULTIPLE_TEST_CASE = DirectiveTestCase(
         > [!WARNING]
         > A warning.
     """,
-    html_matches=(
-        '<div class="admonition note">\n'
-        '<p class="admonition-title">Note</p>\n'
-        "<p>A note.</p>\n"
-        "</div>\n"
-        "<p>Some text between.</p>\n"
-        '<div class="admonition warning">\n'
-        '<p class="admonition-title">Warning</p>\n'
-        "<p>A warning.</p>\n"
-        "</div>\n",
-    ),
+    html_matches=admonition_block("note", "<p>A note.</p>\n")
+    + "<p>Some text between.</p>\n"
+    + admonition_block("warning", "<p>A warning.</p>\n"),
 )
 
 GITHUB_ALERT_EXTRA_SPACES_TEST_CASE = DirectiveTestCase(
@@ -1299,13 +1276,11 @@ GITHUB_ALERT_EXTRA_SPACES_TEST_CASE = DirectiveTestCase(
         >   This line has two extra spaces.
         >    This line has three extra spaces.
     """,
-    html_matches=(
-        '<div class="admonition note">\n'
-        '<p class="admonition-title">Note</p>\n'
+    html_matches=admonition_block(
+        "note",
         "<p>This line has an extra space after &gt;.\n"
         "This line has two extra spaces.\n"
-        "This line has three extra spaces.</p>\n"
-        "</div>\n",
+        "This line has three extra spaces.</p>\n",
     ),
 )
 
@@ -1316,11 +1291,9 @@ GITHUB_ALERT_NO_SPACE_AFTER_CHEVRON_TEST_CASE = DirectiveTestCase(
         >[!TIP]
         > This alert has no space after the chevron on the first line.
     """,
-    html_matches=(
-        '<div class="admonition tip">\n'
-        '<p class="admonition-title">Tip</p>\n'
-        "<p>This alert has no space after the chevron on the first line.</p>\n"
-        "</div>\n",
+    html_matches=admonition_block(
+        "tip",
+        "<p>This alert has no space after the chevron on the first line.</p>\n",
     ),
 )
 
@@ -1331,12 +1304,7 @@ GITHUB_ALERT_NO_SPACE_AFTER_BRACKET_TEST_CASE = DirectiveTestCase(
         > [!TIP]
         >No space after the bracket.
     """,
-    html_matches=(
-        '<div class="admonition tip">\n'
-        '<p class="admonition-title">Tip</p>\n'
-        "<p>No space after the bracket.</p>\n"
-        "</div>\n",
-    ),
+    html_matches=admonition_block("tip", "<p>No space after the bracket.</p>\n"),
 )
 
 GITHUB_ALERT_MIXED_SPACING_TEST_CASE = DirectiveTestCase(
@@ -1349,14 +1317,9 @@ GITHUB_ALERT_MIXED_SPACING_TEST_CASE = DirectiveTestCase(
         >No space.
         >   Lots of spaces.
     """,
-    html_matches=(
-        '<div class="admonition warning">\n'
-        '<p class="admonition-title">Warning</p>\n'
-        "<p>Normal spacing.\n"
-        "Extra space.\n"
-        "No space.\n"
-        "Lots of spaces.</p>\n"
-        "</div>\n",
+    html_matches=admonition_block(
+        "warning",
+        "<p>Normal spacing.\nExtra space.\nNo space.\nLots of spaces.</p>\n",
     ),
 )
 
@@ -1367,11 +1330,9 @@ GITHUB_ALERT_LEADING_SPACES_TEST_CASE = DirectiveTestCase(
         >    [!TIP]
         > This alert has extra spaces before the directive.
     """,
-    html_matches=(
-        '<div class="admonition tip">\n'
-        '<p class="admonition-title">Tip</p>\n'
-        "<p>This alert has extra spaces before the directive.</p>\n"
-        "</div>\n",
+    html_matches=admonition_block(
+        "tip",
+        "<p>This alert has extra spaces before the directive.</p>\n",
     ),
 )
 
@@ -1382,12 +1343,10 @@ GITHUB_ALERT_INVALID_SPACE_AFTER_BANG_TEST_CASE = DirectiveTestCase(
         > [! TIP]
         > This should remain a regular blockquote.
     """,
-    html_matches=(
-        "<blockquote>\n"
-        "<div><p>[! TIP]\n"
-        "This should remain a regular blockquote.</p>\n"
-        "</div></blockquote>\n",
-    ),
+    html_matches="<blockquote>\n"
+    "<div><p>[! TIP]\n"
+    "This should remain a regular blockquote.</p>\n"
+    "</div></blockquote>\n",
 )
 
 GITHUB_ALERT_INVALID_SPACE_BEFORE_BANG_TEST_CASE = DirectiveTestCase(
@@ -1397,12 +1356,10 @@ GITHUB_ALERT_INVALID_SPACE_BEFORE_BANG_TEST_CASE = DirectiveTestCase(
         > [ !TIP]
         > This should remain a regular blockquote.
     """,
-    html_matches=(
-        "<blockquote>\n"
-        "<div><p>[ !TIP]\n"
-        "This should remain a regular blockquote.</p>\n"
-        "</div></blockquote>\n",
-    ),
+    html_matches="<blockquote>\n"
+    "<div><p>[ !TIP]\n"
+    "This should remain a regular blockquote.</p>\n"
+    "</div></blockquote>\n",
 )
 
 GITHUB_ALERT_INVALID_SPACE_BEFORE_BRACKET_TEST_CASE = DirectiveTestCase(
@@ -1412,12 +1369,10 @@ GITHUB_ALERT_INVALID_SPACE_BEFORE_BRACKET_TEST_CASE = DirectiveTestCase(
         > [!TIP ]
         > This should remain a regular blockquote.
     """,
-    html_matches=(
-        "<blockquote>\n"
-        "<div><p>[!TIP ]\n"
-        "This should remain a regular blockquote.</p>\n"
-        "</div></blockquote>\n",
-    ),
+    html_matches="<blockquote>\n"
+    "<div><p>[!TIP ]\n"
+    "This should remain a regular blockquote.</p>\n"
+    "</div></blockquote>\n",
 )
 
 GITHUB_ALERT_INVALID_LOWERCASE_TEST_CASE = DirectiveTestCase(
@@ -1427,12 +1382,10 @@ GITHUB_ALERT_INVALID_LOWERCASE_TEST_CASE = DirectiveTestCase(
         > [!tip]
         > This should remain a regular blockquote.
     """,
-    html_matches=(
-        "<blockquote>\n"
-        "<div><p>[!tip]\n"
-        "This should remain a regular blockquote.</p>\n"
-        "</div></blockquote>\n",
-    ),
+    html_matches="<blockquote>\n"
+    "<div><p>[!tip]\n"
+    "This should remain a regular blockquote.</p>\n"
+    "</div></blockquote>\n",
 )
 
 GITHUB_ALERT_DUPLICATE_DIRECTIVE_TEST_CASE = DirectiveTestCase(
@@ -1443,13 +1396,7 @@ GITHUB_ALERT_DUPLICATE_DIRECTIVE_TEST_CASE = DirectiveTestCase(
         > [!TIP]
         > Hello.
     """,
-    html_matches=(
-        '<div class="admonition tip">\n'
-        '<p class="admonition-title">Tip</p>\n'
-        "<p>[!TIP]\n"
-        "Hello.</p>\n"
-        "</div>\n",
-    ),
+    html_matches=admonition_block("tip", "<p>[!TIP]\nHello.</p>\n"),
 )
 
 GITHUB_ALERT_EMPTY_DIRECTIVE_TEST_CASE = DirectiveTestCase(
@@ -1458,13 +1405,11 @@ GITHUB_ALERT_EMPTY_DIRECTIVE_TEST_CASE = DirectiveTestCase(
     document="""
         > [!TIP]
     """,
-    html_matches=(
-        '          <div class="body" role="main">\n'
-        "            \n"
-        "  \n"
-        "\n"
-        "          </div>\n",
-    ),
+    html_matches='          <div class="body" role="main">\n'
+    "            \n"
+    "  \n"
+    "\n"
+    "          </div>\n",
 )
 
 
@@ -1474,11 +1419,9 @@ GITHUB_ALERT_INVALID_TEXT_BEFORE_TEST_CASE = DirectiveTestCase(
     document="""
         > Hello [!NOTE] This is a note.
     """,
-    html_matches=(
-        "<blockquote>\n"
-        "<div><p>Hello [!NOTE] This is a note.</p>\n"
-        "</div></blockquote>\n",
-    ),
+    html_matches="<blockquote>\n"
+    "<div><p>Hello [!NOTE] This is a note.</p>\n"
+    "</div></blockquote>\n",
 )
 
 GITHUB_ALERT_IN_CODE_BLOCK_TEST_CASE = DirectiveTestCase(
@@ -1490,13 +1433,11 @@ GITHUB_ALERT_IN_CODE_BLOCK_TEST_CASE = DirectiveTestCase(
         > This is inside a code block and should not be converted.
         ```
     """,
-    html_matches=(
-        HTML["markdown_highlight"]
-        + '<span class="k">&gt; </span><span class="ge">[!NOTE]</span>\n'
-        '<span class="k">&gt; </span><span class="ge">This is inside a code block and should not be converted.</span>\n'
-        "</pre></div>\n"
-        "</div>\n",
-    ),
+    html_matches=HTML["markdown_highlight"]
+    + '<span class="k">&gt; </span><span class="ge">[!NOTE]</span>\n'
+    '<span class="k">&gt; </span><span class="ge">This is inside a code block and should not be converted.</span>\n'
+    "</pre></div>\n"
+    "</div>\n",
 )
 
 GITHUB_ALERT_IN_CODE_BLOCK_TILDE_TEST_CASE = DirectiveTestCase(
@@ -1508,12 +1449,10 @@ GITHUB_ALERT_IN_CODE_BLOCK_TILDE_TEST_CASE = DirectiveTestCase(
         > This is inside a tilde code block.
         ~~~
     """,
-    html_matches=(
-        HTML["markdown_highlight"]
-        + '<span class="k">&gt; </span><span class="ge">[!NOTE]</span>\n'
-        '<span class="k">&gt; </span><span class="ge">This is inside a tilde code block.</span>\n'
-        "</pre></div>\n",
-    ),
+    html_matches=HTML["markdown_highlight"]
+    + '<span class="k">&gt; </span><span class="ge">[!NOTE]</span>\n'
+    '<span class="k">&gt; </span><span class="ge">This is inside a tilde code block.</span>\n'
+    "</pre></div>\n",
 )
 
 GITHUB_ALERT_IN_CODE_BLOCK_NO_LANGUAGE_TEST_CASE = DirectiveTestCase(
@@ -1525,12 +1464,10 @@ GITHUB_ALERT_IN_CODE_BLOCK_NO_LANGUAGE_TEST_CASE = DirectiveTestCase(
         > This is inside a code block without language.
         ```
     """,
-    html_matches=(
-        '<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>'
-        "&gt; [!TIP]\n"
-        "&gt; This is inside a code block without language.\n"
-        "</pre></div>\n",
-    ),
+    html_matches='<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>'
+    "&gt; [!TIP]\n"
+    "&gt; This is inside a code block without language.\n"
+    "</pre></div>\n",
 )
 
 GITHUB_ALERT_IN_CODE_BLOCK_FOUR_BACKTICKS_TEST_CASE = DirectiveTestCase(
@@ -1545,16 +1482,14 @@ GITHUB_ALERT_IN_CODE_BLOCK_FOUR_BACKTICKS_TEST_CASE = DirectiveTestCase(
         ```
         ````
     """,
-    html_matches=(
-        HTML["markdown_highlight"]
-        + '<span class="k">&gt; </span><span class="ge">[!WARNING]</span>\n'
-        '<span class="k">&gt; </span><span class="ge">This is inside a 4-backtick code block.</span>\n'
-        '<span class="sb">```</span>\n'
-        '<span class="sb">nested code fence</span>\n'
-        '<span class="sb">```</span>\n'
-        "</pre></div>\n"
-        "</div>\n",
-    ),
+    html_matches=HTML["markdown_highlight"]
+    + '<span class="k">&gt; </span><span class="ge">[!WARNING]</span>\n'
+    '<span class="k">&gt; </span><span class="ge">This is inside a 4-backtick code block.</span>\n'
+    '<span class="sb">```</span>\n'
+    '<span class="sb">nested code fence</span>\n'
+    '<span class="sb">```</span>\n'
+    "</pre></div>\n"
+    "</div>\n",
 )
 
 GITHUB_ALERT_IN_CODE_BLOCK_DIRECTIVE_TEST_CASE = DirectiveTestCase(
@@ -1566,13 +1501,11 @@ GITHUB_ALERT_IN_CODE_BLOCK_DIRECTIVE_TEST_CASE = DirectiveTestCase(
         > This is inside a code-block directive and should not be converted.
         ```
     """,
-    html_matches=(
-        HTML["markdown_highlight"]
-        + '<span class="k">&gt; </span><span class="ge">[!NOTE]</span>\n'
-        '<span class="k">&gt; </span><span class="ge">This is inside a code-block directive and should not be converted.</span>\n'
-        "</pre></div>\n"
-        "</div>\n",
-    ),
+    html_matches=HTML["markdown_highlight"]
+    + '<span class="k">&gt; </span><span class="ge">[!NOTE]</span>\n'
+    '<span class="k">&gt; </span><span class="ge">This is inside a code-block directive and should not be converted.</span>\n'
+    "</pre></div>\n"
+    "</div>\n",
 )
 
 GITHUB_ALERT_IN_INDENTED_CODE_BLOCK_4_SPACES_TEST_CASE = DirectiveTestCase(
@@ -1587,15 +1520,13 @@ GITHUB_ALERT_IN_INDENTED_CODE_BLOCK_4_SPACES_TEST_CASE = DirectiveTestCase(
         Some text after.
     """,
     # 4-space indentation creates a code block in Markdown.
-    html_matches=(
-        "<p>Some text before.</p>\n"
-        '<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>'
-        "&gt; [!TIP]\n"
-        "&gt; This is inside a code block without language.\n"
-        "</pre></div>\n"
-        "</div>\n"
-        "<p>Some text after.</p>\n",
-    ),
+    html_matches="<p>Some text before.</p>\n"
+    '<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>'
+    "&gt; [!TIP]\n"
+    "&gt; This is inside a code block without language.\n"
+    "</pre></div>\n"
+    "</div>\n"
+    "<p>Some text after.</p>\n",
 )
 
 GITHUB_ALERT_IN_INDENTED_CODE_BLOCK_2_SPACES_TEST_CASE = DirectiveTestCase(
@@ -1611,14 +1542,9 @@ GITHUB_ALERT_IN_INDENTED_CODE_BLOCK_2_SPACES_TEST_CASE = DirectiveTestCase(
     """,
     # 2-space indentation is not enough to create a code block, so the alert
     # is converted.
-    html_matches=(
-        "<p>Some text before.</p>\n"
-        '<div class="admonition tip">\n'
-        '<p class="admonition-title">Tip</p>\n'
-        "<p>This is inside a 2-space indented block.</p>\n"
-        "</div>\n"
-        "<p>Some text after.</p>\n",
-    ),
+    html_matches="<p>Some text before.</p>\n"
+    + admonition_block("tip", "<p>This is inside a 2-space indented block.</p>\n")
+    + "<p>Some text after.</p>\n",
 )
 
 GITHUB_ALERT_MIXED_CODE_BLOCKS_TEST_CASE = DirectiveTestCase(
@@ -1644,35 +1570,28 @@ GITHUB_ALERT_MIXED_CODE_BLOCKS_TEST_CASE = DirectiveTestCase(
         > [!TIP]
         > Final admonition.
     """,
-    html_matches=(
-        # First alert - converted
-        '<div class="admonition note">\n'
-        '<p class="admonition-title">Note</p>\n'
-        "<p>This should be converted to an admonition.</p>\n"
-        "</div>\n"
-        # Code block - not converted
-        + HTML["markdown_highlight"]
-        + '<span class="k">&gt; </span><span class="ge">[!NOTE]</span>\n'
-        '<span class="k">&gt; </span><span class="ge">This should NOT be converted (inside code block).</span>\n'
-        "</pre></div>\n"
-        "</div>\n"
-        # Second alert - converted
-        '<div class="admonition warning">\n'
-        '<p class="admonition-title">Warning</p>\n'
-        "<p>This should also be converted to an admonition.</p>\n"
-        "</div>\n"
-        # Tilde code block - not converted
-        + HTML["markdown_highlight"]
-        + '<span class="k">&gt; </span><span class="ge">[!WARNING]</span>\n'
-        '<span class="k">&gt; </span><span class="ge">This should NOT be converted (inside tilde block).</span>\n'
-        "</pre></div>\n"
-        "</div>\n"
-        # Third alert - converted
-        '<div class="admonition tip">\n'
-        '<p class="admonition-title">Tip</p>\n'
-        "<p>Final admonition.</p>\n"
-        "</div>\n",
-    ),
+    # First alert - converted
+    html_matches=admonition_block(
+        "note", "<p>This should be converted to an admonition.</p>\n"
+    )
+    # Code block - not converted
+    + HTML["markdown_highlight"]
+    + '<span class="k">&gt; </span><span class="ge">[!NOTE]</span>\n'
+    '<span class="k">&gt; </span><span class="ge">This should NOT be converted (inside code block).</span>\n'
+    "</pre></div>\n"
+    "</div>\n"
+    # Second alert - converted
+    + admonition_block(
+        "warning", "<p>This should also be converted to an admonition.</p>\n"
+    )
+    # Tilde code block - not converted
+    + HTML["markdown_highlight"]
+    + '<span class="k">&gt; </span><span class="ge">[!WARNING]</span>\n'
+    '<span class="k">&gt; </span><span class="ge">This should NOT be converted (inside tilde block).</span>\n'
+    "</pre></div>\n"
+    "</div>\n"
+    # Third alert - converted
+     + admonition_block("tip", "<p>Final admonition.</p>\n"),
 )
 
 
