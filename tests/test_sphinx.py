@@ -1699,16 +1699,23 @@ def test_content_without_alerts_unchanged(sphinx_app_myst):
 
     html_output = sphinx_app_myst.build_document(content)
 
-    assert "<h1>Regular Heading" in html_output
-    assert "<p>Regular paragraph text.</p>" in html_output
-    assert "<blockquote>" in html_output
+    expected_fragments = (
+        "<h1>Regular Heading",
+        "<p>Regular paragraph text.</p>",
+        "<blockquote>\n<div><p>Regular blockquote without alert syntax.</p>\n</div></blockquote>",
+        HTML["python_highlight"]
+        + '<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;code block&quot;</span><span class="p">)</span>\n'
+        + "</pre></div>",
+    )
+
+    for fragment in expected_fragments:
+        assert fragment in html_output
 
 
 def test_github_alert_in_included_file(sphinx_app_myst_with_include):
     """Test that GitHub alerts in included files are properly converted."""
     sphinx_app, srcdir = sphinx_app_myst_with_include
 
-    # Create an external file with GitHub alerts
     included_content = dedent("""\
         > [!NOTE]
         > This note is from an included file.
@@ -1720,7 +1727,6 @@ def test_github_alert_in_included_file(sphinx_app_myst_with_include):
     """)
     (srcdir / "included.md").write_text(included_content)
 
-    # Create the main document that includes the external file
     main_content = dedent("""\
         # Main Document
 
@@ -1732,19 +1738,22 @@ def test_github_alert_in_included_file(sphinx_app_myst_with_include):
 
     html_output = sphinx_app.build_document(main_content)
 
-    # Check that alerts from included file are converted
-    assert '<div class="admonition note">' in html_output
-    assert "<p>This note is from an included file.</p>" in html_output
-    assert '<div class="admonition warning">' in html_output
-    assert "<p>This warning is also from the included file.</p>" in html_output
-    assert "<p>Text after include.</p>" in html_output
+    expected = (
+        admonition_block("note", "<p>This note is from an included file.</p>\n")
+        + "<p>Some regular text.</p>\n"
+        + admonition_block(
+            "warning", "<p>This warning is also from the included file.</p>\n"
+        )
+        + "<p>Text after include.</p>\n"
+    )
+
+    assert expected in html_output
 
 
 def test_github_alert_in_included_file_with_start_after(sphinx_app_myst_with_include):
     """Test GitHub alerts in included files with :start-after: option."""
     sphinx_app, srcdir = sphinx_app_myst_with_include
 
-    # Create an external file with a marker and GitHub alerts
     included_content = dedent("""\
         # Header to Skip
 
@@ -1773,9 +1782,12 @@ def test_github_alert_in_included_file_with_start_after(sphinx_app_myst_with_inc
     assert "Header to Skip" not in html_output
     assert "This content should be skipped" not in html_output
 
-    # The alert after the marker should be converted
-    assert '<div class="admonition tip">' in html_output
-    assert "<p>This tip appears after the marker.</p>" in html_output
+    # Check the expected content is present
+    expected = (
+        admonition_block("tip", "<p>This tip appears after the marker.</p>\n")
+        + "<p>Important information here.</p>\n"
+    )
+    assert expected in html_output
 
 
 def test_github_alert_in_included_file_with_end_before(sphinx_app_myst_with_include):
@@ -1803,11 +1815,13 @@ def test_github_alert_in_included_file_with_end_before(sphinx_app_myst_with_incl
 
     html_output = sphinx_app.build_document(main_content)
 
-    # The alert before the marker should be converted
-    assert '<div class="admonition important">' in html_output
-    assert "<p>This important note should be included.</p>" in html_output
+    # Check the expected content is present
+    expected = admonition_block(
+        "important", "<p>This important note should be included.</p>\n"
+    )
+    assert expected in html_output
 
-    # The alert after the marker should not appear
+    # The content after the marker should not appear
     assert "admonition caution" not in html_output
     assert "This caution should NOT be included" not in html_output
 
@@ -1816,7 +1830,6 @@ def test_github_alert_in_included_file_nested_directory(sphinx_app_myst_with_inc
     """Test GitHub alerts in included files from nested directories."""
     sphinx_app, srcdir = sphinx_app_myst_with_include
 
-    # Create a nested directory structure
     docs_dir = srcdir / "docs"
     docs_dir.mkdir()
 
@@ -1835,8 +1848,10 @@ def test_github_alert_in_included_file_nested_directory(sphinx_app_myst_with_inc
 
     html_output = sphinx_app.build_document(main_content)
 
-    assert '<div class="admonition note">' in html_output
-    assert "<p>This note is from a nested directory.</p>" in html_output
+    expected = admonition_block(
+        "note", "<p>This note is from a nested directory.</p>\n"
+    )
+    assert expected in html_output
 
 
 def test_github_alert_in_included_file_with_code_block(sphinx_app_myst_with_include):
@@ -1864,12 +1879,15 @@ def test_github_alert_in_included_file_with_code_block(sphinx_app_myst_with_incl
 
     html_output = sphinx_app.build_document(main_content)
 
-    # Real alerts should be converted
-    assert '<div class="admonition note">' in html_output
-    assert '<div class="admonition tip">' in html_output
-
-    # Code block should preserve the syntax
-    assert "highlight-markdown" in html_output
+    expected = (
+        admonition_block("note", "<p>This should be converted to an admonition.</p>\n")
+        + HTML["markdown_highlight"]
+        + '<span class="k">&gt; </span><span class="ge">[!NOTE]</span>\n'
+        '<span class="k">&gt; </span><span class="ge">This should stay as code.</span>\n'
+        "</pre></div>\n"
+        "</div>\n" + admonition_block("tip", "<p>This should also be converted.</p>\n")
+    )
+    assert expected in html_output
 
 
 def test_github_alert_mixed_direct_and_included(sphinx_app_myst_with_include):
@@ -1895,10 +1913,9 @@ def test_github_alert_mixed_direct_and_included(sphinx_app_myst_with_include):
 
     html_output = sphinx_app.build_document(main_content)
 
-    # All three alerts should be converted
-    assert '<div class="admonition note">' in html_output
-    assert "<p>Direct note in main document.</p>" in html_output
-    assert '<div class="admonition warning">' in html_output
-    assert "<p>Warning from included file.</p>" in html_output
-    assert '<div class="admonition tip">' in html_output
-    assert "<p>Another direct tip.</p>" in html_output
+    expected = (
+        admonition_block("note", "<p>Direct note in main document.</p>\n")
+        + admonition_block("warning", "<p>Warning from included file.</p>\n")
+        + admonition_block("tip", "<p>Another direct tip.</p>\n")
+    )
+    assert expected in html_output
