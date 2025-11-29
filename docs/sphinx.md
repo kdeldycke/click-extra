@@ -595,7 +595,7 @@ This allows you to write documentation that renders correctly both on GitHub and
 
 ### Setup
 
-To use GitHub alerts, you need to enable the `colon_fence` extension in your Sphinx configuration:
+To use GitHub alerts, you need to enable the [`colon_fence` extension](https://myst-parser.readthedocs.io/en/latest/syntax/optional.html#code-fences-using-colons) in your Sphinx configuration:
 
 ```{code-block} python
 :caption: `conf.py`
