@@ -43,12 +43,10 @@ class SphinxAppWrapper:
     def __init__(self, app: Sphinx, format_type: FormatType):
         self.app = app
         self.format_type = format_type
-        # Delegate all other attributes to the wrapped app.
-        self._app = app
 
     def __getattr__(self, name):
         """Delegate attribute access to the wrapped Sphinx app."""
-        return getattr(self._app, name)
+        return getattr(self.app, name)
 
     @classmethod
     def create(
