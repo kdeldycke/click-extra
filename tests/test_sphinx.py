@@ -216,6 +216,9 @@ class DirectiveTestCase:
         """
         return self.format_type is None or self.format_type == format_type
 
+    def __str__(self) -> str:
+        return self.name
+
 
 # Common HTML fragments for assertions.
 HTML = {
@@ -643,7 +646,6 @@ RST_WITHIN_MYST_EVAL_TEST_CASE = DirectiveTestCase(
         ISOLATED_FILESYSTEM_TEST_CASE,
         RST_WITHIN_MYST_EVAL_TEST_CASE,
     ],
-    ids=lambda tc: tc.name,
 )
 def test_directive_functionality(sphinx_app, test_case):
     """Test standard directive functionalities in both rST and MyST."""
@@ -1700,7 +1702,6 @@ GITHUB_ALERT_MIXED_CODE_BLOCKS_TEST_CASE = DirectiveTestCase(
         GITHUB_ALERT_IN_INDENTED_CODE_BLOCK_2_SPACES_TEST_CASE,
         GITHUB_ALERT_MIXED_CODE_BLOCKS_TEST_CASE,
     ],
-    ids=lambda tc: tc.name,
 )
 def test_github_alert_conversion(sphinx_app, test_case):
     """Test GitHub alert syntax is converted to MyST directives."""
