@@ -475,6 +475,178 @@ def test_all_alert_types(alert_type):
                 ::::"""),
             id="mixed_nesting_with_colon_counts",
         ),
+        pytest.param(
+            dedent("""\
+                ````{note}
+                The next info should be nested
+
+                > [!WARNING]
+                > Here's my GitHub alert warning.
+                ````"""),
+            dedent("""\
+                ````{note}
+                The next info should be nested
+
+                :::{warning}
+                Here's my GitHub alert warning.
+                :::
+                ````"""),
+            id="backtick_fence_with_nested_github_alert",
+        ),
+        pytest.param(
+            dedent("""\
+                ````{note}
+                The warning block will be properly-parsed
+
+                   > [!WARNING]
+                   > Here's my indented warning.
+
+                But the next block will be parsed as raw text
+
+                    > [!TIP]
+                    > Here's my raw text tip that isn't parsed...
+                ````"""),
+            dedent("""\
+                ````{note}
+                The warning block will be properly-parsed
+
+                   :::{warning}
+                   Here's my indented warning.
+                   :::
+
+                But the next block will be parsed as raw text
+
+                    > [!TIP]
+                    > Here's my raw text tip that isn't parsed...
+                ````"""),
+            id="backtick_fence_indentation_matters",
+        ),
+        pytest.param(
+            dedent("""\
+                ``````{note}
+                The next info should be nested
+                `````{warning}
+                Here's my warning
+
+                > [!TIP]
+                > GitHub alert inside deeply nested directives.
+
+                ````{admonition} Custom Title
+                ```python
+                print('nested code')
+                ```
+                ````
+                `````
+                ``````"""),
+            dedent("""\
+                ``````{note}
+                The next info should be nested
+                `````{warning}
+                Here's my warning
+
+                :::{tip}
+                GitHub alert inside deeply nested directives.
+                :::
+
+                ````{admonition} Custom Title
+                ```python
+                print('nested code')
+                ```
+                ````
+                `````
+                ``````"""),
+            id="deeply_nested_backtick_fences_with_code",
+        ),
+        pytest.param(
+            dedent("""\
+                ````{note}
+                > [!TIP]
+                > First alert.
+
+                ```{warning}
+                Nested MyST warning.
+                ```
+
+                > [!CAUTION]
+                > Second alert after nested directive.
+                ````"""),
+            dedent("""\
+                ````{note}
+                :::{tip}
+                First alert.
+                :::
+
+                ```{warning}
+                Nested MyST warning.
+                ```
+
+                :::{caution}
+                Second alert after nested directive.
+                :::
+                ````"""),
+            id="multiple_alerts_around_nested_directive",
+        ),
+        pytest.param(
+            dedent("""\
+                `````{note}
+                Outer note.
+
+                ````{tip}
+                > [!WARNING]
+                > Alert inside tip.
+
+                ```{important}
+                Deeply nested important.
+                ```
+                ````
+                `````"""),
+            dedent("""\
+                `````{note}
+                Outer note.
+
+                ````{tip}
+                :::{warning}
+                Alert inside tip.
+                :::
+
+                ```{important}
+                Deeply nested important.
+                ```
+                ````
+                `````"""),
+            id="alert_between_nested_directives",
+        ),
+        pytest.param(
+            dedent("""\
+                ````{note}
+                > [!TIP]
+                > This should convert.
+
+                ```markdown
+                > [!TIP]
+                > This should NOT convert (code block).
+                ```
+
+                > [!WARNING]
+                > This should also convert.
+                ````"""),
+            dedent("""\
+                ````{note}
+                :::{tip}
+                This should convert.
+                :::
+
+                ```markdown
+                > [!TIP]
+                > This should NOT convert (code block).
+                ```
+
+                :::{warning}
+                This should also convert.
+                :::
+                ````"""),
+            id="alerts_and_code_block_inside_directive",
+        ),
     ],
 )
 def test_alert_conversion(text, expected):

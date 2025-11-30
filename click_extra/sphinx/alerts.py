@@ -18,7 +18,6 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
 from functools import cache
 
 from sphinx.errors import ConfigError
@@ -43,11 +42,19 @@ GITHUB_ALERT_PATTERN = re.compile(
 GITHUB_ALERT_CONTENT_PATTERN = re.compile(r"^(\s*)>(.*)$")
 """Regex pattern to match GitHub alert content lines."""
 
-CODE_FENCE_PATTERN = re.compile(r"^(\s*)(`{3,}|~{3,})")
+CODE_FENCE_PATTERN = re.compile(r"^(\s*)(`{3,}|~{3,})(.*)$")
 """Regex pattern to match code fence opening/closing lines."""
 
 INDENTED_CODE_BLOCK_PATTERN = re.compile(r"^( {4}|\t)")
 """Regex pattern to match indented code block lines (4 spaces or 1 tab)."""
+
+# Directives whose content should be preserved unchanged like code blocks
+CODE_CONTENT_DIRECTIVES = frozenset({
+    "code-block",
+    "sourcecode",
+    "literalinclude",
+    "code",
+})
 
 
 @cache
@@ -67,125 +74,123 @@ def check_colon_fence(app: Sphinx) -> None:
         )
 
 
-@dataclass
-class AlertParserState:
-    """State machine for parsing GitHub alerts."""
-
-    in_alert: bool = False
-    in_code_block: bool = False
-    code_fence_char: str = ""
-    code_fence_len: int = 0
-    code_fence_indent: str = ""
-    alert_indent: str = ""
-    prev_line_blank: bool = True
-    modified: bool = False
-
-    def reset_code_fence(self) -> None:
-        self.in_code_block = False
-        self.code_fence_char = ""
-        self.code_fence_len = 0
-        self.code_fence_indent = ""
-
-    def enter_code_fence(self, char: str, length: int, indent: str) -> None:
-        self.in_code_block = True
-        self.code_fence_char = char
-        self.code_fence_len = length
-        self.code_fence_indent = indent
-
-    def handle_fence(
-        self, fence_char: str, fence_len: int, fence_indent: str, line: str
-    ) -> bool:
-        """Handle fence matching. Returns True if fence was processed."""
-        if not self.in_code_block:
-            self.enter_code_fence(fence_char, fence_len, fence_indent)
-            return True
-        elif (
-            fence_char == self.code_fence_char
-            and fence_len >= self.code_fence_len
-            and fence_indent == self.code_fence_indent
-            and line.strip() == fence_char * fence_len
-        ):
-            self.reset_code_fence()
-            return True
-        return False
-
-
 def replace_github_alerts(text: str) -> str | None:
     """Transform GitHub alerts into MyST admonitions.
 
     Identify GitHub alerts in the provided ``text`` and transform them into
     colon-fenced ``:::`` MyST admonitions.
 
-    Code blocks (fenced with ``` or ``~~~``, or indented with 4 spaces/tab) are
-    detected and their content is preserved unchanged.
-
     Returns ``None`` if no transformation was applied, else returns the transformed
     text.
     """
     lines = text.split("\n")
     result = []
-    state = AlertParserState()
+    # State tracking
+    in_alert = False
+    alert_indent = ""
+    prev_line_blank = True
+    modified = False
+    # Fence stack: list of (char, length, indent, is_code_block)
+    fence_stack: list[tuple[str, int, str, bool]] = []
+
+    def in_code_block() -> bool:
+        return any(f[3] for f in fence_stack)
+
+    def process_fence(indent: str, chars: str, after: str) -> bool:
+        """Process fence line. Returns True if it closes an existing fence."""
+        char, length = chars[0], len(chars)
+
+        # Check if this closes an existing fence
+        for i in range(len(fence_stack) - 1, -1, -1):
+            f_char, f_len, f_indent, _ = fence_stack[i]
+            if (
+                char == f_char
+                and length >= f_len
+                and indent == f_indent
+                and not after.strip()
+            ):
+                fence_stack[:] = fence_stack[:i]
+                return True
+
+        # Opening a new fence - determine if it's a code block
+        after_stripped = after.strip()
+        is_code = True
+        if after_stripped.startswith("{") and "}" in after_stripped:
+            directive = after_stripped[1 : after_stripped.find("}")].split()[0]
+            is_code = directive in CODE_CONTENT_DIRECTIVES
+
+        fence_stack.append((char, length, indent, is_code))
+        return False
 
     for line in lines:
-        # Check for code fence boundaries.
         fence_match = CODE_FENCE_PATTERN.match(line)
+
         if fence_match:
-            fence_indent = fence_match.group(1)
-            fence_chars = fence_match.group(2)
-            fence_char = fence_chars[0]
-            fence_len = len(fence_chars)
+            indent, chars, after = fence_match.groups()
 
-            if state.handle_fence(fence_char, fence_len, fence_indent, line):
-                result.append(line)
-                continue
+            # Close alert if fence would close a parent fence
+            if in_alert:
+                for f_char, f_len, f_indent, _ in reversed(fence_stack):
+                    if (
+                        chars[0] == f_char
+                        and len(chars) >= f_len
+                        and indent == f_indent
+                        and not after.strip()
+                    ):
+                        result.append(f"{alert_indent}:::")
+                        in_alert = False
+                        break
 
-        if state.in_code_block:
+            process_fence(indent, chars, after)
             result.append(line)
+            prev_line_blank = False
             continue
 
-        if state.prev_line_blank and INDENTED_CODE_BLOCK_PATTERN.match(line):
+        if in_code_block():
             result.append(line)
-            state.prev_line_blank = False
+            prev_line_blank = not line.strip()
             continue
 
-        is_blank = line.strip() == ""
+        if prev_line_blank and INDENTED_CODE_BLOCK_PATTERN.match(line):
+            result.append(line)
+            prev_line_blank = False
+            continue
 
-        # Only check for new alert if we're not already inside one
-        if not state.in_alert:
+        is_blank = not line.strip()
+
+        # Check for new alert start
+        if not in_alert:
             match = GITHUB_ALERT_PATTERN.match(line)
             if match:
-                state.alert_indent, alert_type = match.groups()
-                result.append(f"{state.alert_indent}:::{{{alert_type.lower()}}}")
-                state.in_alert = True
-                state.modified = True
-                state.prev_line_blank = is_blank
+                alert_indent, alert_type = match.groups()
+                result.append(f"{alert_indent}:::{{{alert_type.lower()}}}")
+                in_alert = True
+                modified = True
+                prev_line_blank = is_blank
                 continue
 
-        if state.in_alert:
+        if in_alert:
             content_match = GITHUB_ALERT_CONTENT_PATTERN.match(line)
             if content_match:
-                result.append(state.alert_indent + content_match.group(2).lstrip())
+                result.append(alert_indent + content_match.group(2).lstrip())
             else:
-                result.append(f"{state.alert_indent}:::")
+                result.append(f"{alert_indent}:::")
                 result.append(line)
-                state.in_alert = False
-                state.prev_line_blank = is_blank
-                continue
+                in_alert = False
         else:
             result.append(line)
 
-        state.prev_line_blank = is_blank
+        prev_line_blank = is_blank
 
-    if state.in_alert:
+    if in_alert:
         result.append(":::")
 
-    return "\n".join(result) if state.modified else None
+    return "\n".join(result) if modified else None
 
 
 def convert_github_alerts(app: Sphinx, *args) -> None:
     """Convert GitHub alerts into MyST admonitions in content blocks."""
     content = args[-1]
-
     for i, orig_content in enumerate(content):
         transformed = replace_github_alerts(orig_content)
         if transformed is not None:
