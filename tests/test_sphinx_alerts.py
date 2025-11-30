@@ -387,6 +387,94 @@ def test_all_alert_types(alert_type):
                 :::"""),
             id="mixed_code_blocks_comprehensive",
         ),
+        pytest.param(
+            dedent("""\
+                > [!NOTE]
+                > Outer note.
+                >
+                > :::{tip}
+                > Nested tip using MyST syntax.
+                > :::"""),
+            dedent("""\
+                :::{note}
+                Outer note.
+
+                :::{tip}
+                Nested tip using MyST syntax.
+                :::
+                :::"""),
+            id="github_alert_with_nested_myst_directive",
+        ),
+        pytest.param(
+            dedent("""\
+                :::{note}
+                Outer MyST note.
+
+                > [!WARNING]
+                > Nested GitHub alert inside MyST directive.
+                :::"""),
+            dedent("""\
+                :::{note}
+                Outer MyST note.
+
+                :::{warning}
+                Nested GitHub alert inside MyST directive.
+                :::
+                :::"""),
+            id="myst_directive_with_nested_github_alert",
+        ),
+        pytest.param(
+            dedent("""\
+                > [!NOTE]
+                > Level 1.
+                >
+                > ::::{tip}
+                > Level 2.
+                >
+                > :::{warning}
+                > Level 3.
+                > :::
+                > ::::"""),
+            dedent("""\
+                :::{note}
+                Level 1.
+
+                ::::{tip}
+                Level 2.
+
+                :::{warning}
+                Level 3.
+                :::
+                ::::
+                :::"""),
+            id="deeply_nested_directives",
+        ),
+        pytest.param(
+            dedent("""\
+                ::::{note}
+                Outer note with 4 colons.
+
+                > [!TIP]
+                > GitHub alert inside.
+
+                :::{warning}
+                MyST warning inside.
+                :::
+                ::::"""),
+            dedent("""\
+                ::::{note}
+                Outer note with 4 colons.
+
+                :::{tip}
+                GitHub alert inside.
+                :::
+
+                :::{warning}
+                MyST warning inside.
+                :::
+                ::::"""),
+            id="mixed_nesting_with_colon_counts",
+        ),
     ],
 )
 def test_alert_conversion(text, expected):
@@ -512,6 +600,58 @@ MIXED_CODE_BLOCKS_TEST_CASE = DirectiveTestCase(
 )
 
 
+NESTED_ADMONITION_TEST_CASE = DirectiveTestCase(
+    name="nested_admonitions_rendering",
+    format_type=FormatType.MYST,
+    document="""
+        ::::{note}
+        This is the outer note.
+
+        > [!TIP]
+        > This is a nested GitHub alert.
+
+        :::{warning}
+        This is a nested MyST warning.
+        :::
+        ::::
+    """,
+    html_matches=admonition_block(
+        "note",
+        "<p>This is the outer note.</p>\n"
+        + admonition_block("tip", "<p>This is a nested GitHub alert.</p>\n")
+        + admonition_block("warning", "<p>This is a nested MyST warning.</p>\n"),
+    ),
+)
+
+
+TRIPLE_NESTED_TEST_CASE = DirectiveTestCase(
+    name="triple_nested_admonitions",
+    format_type=FormatType.MYST,
+    document="""
+        :::::{note}
+        Level 1.
+
+        ::::{tip}
+        Level 2.
+
+        > [!WARNING]
+        > Level 3 GitHub alert.
+
+        ::::
+        :::::
+    """,
+    html_matches=admonition_block(
+        "note",
+        "<p>Level 1.</p>\n"
+        + admonition_block(
+            "tip",
+            "<p>Level 2.</p>\n"
+            + admonition_block("warning", "<p>Level 3 GitHub alert.</p>\n"),
+        ),
+    ),
+)
+
+
 @pytest.mark.parametrize(
     "test_case",
     [
@@ -520,6 +660,8 @@ MIXED_CODE_BLOCKS_TEST_CASE = DirectiveTestCase(
         CODE_BLOCK_DIRECTIVE_TEST_CASE,
         INDENTED_CODE_BLOCK_TEST_CASE,
         MIXED_CODE_BLOCKS_TEST_CASE,
+        NESTED_ADMONITION_TEST_CASE,
+        TRIPLE_NESTED_TEST_CASE,
     ],
 )
 def test_sphinx_integration(sphinx_app, test_case):
