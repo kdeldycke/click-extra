@@ -34,6 +34,12 @@ $ uvx --from click-extra@7.2.0 -- click-extra-demo
 $ uvx --from git+https://github.com/kdeldycke/click-extra -- click-extra-demo
 ```
 ````
+
+````{tab-item} Local version
+```shell-session
+$ uvx --from file:///Users/me/code/click-extra -- click-extra-demo
+```
+````
 `````
 
 This will download `click-extra` (the package), and run `click-extra-demo`, a demo CLI included in the package.

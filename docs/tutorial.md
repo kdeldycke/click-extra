@@ -233,12 +233,10 @@ Taking the canonical example again, you can create a file named `hello.py` with 
 ```{code-block} python
 :caption: `hello.py`
 :linenos:
-:emphasize-lines: 1-6
+:emphasize-lines: 1-4
 #!/usr/bin/env -S uv run --script
 # /// script
-# dependencies = [
-#   "click-extra >= 7.0.0",
-# ]
+# dependencies = ["click-extra >= 7.0.0"]
 # ///
 
 from click_extra import command, echo, option
@@ -270,3 +268,48 @@ The magic happens because `uv` will read the script comments and install `click-
 
 And just like that, you have a self-contained, single-file CLI, with all the features of Click Extra, including multi-platform support.
 
+``````{hint}
+You can target specific versions of Click Extra in your script dependencies:
+
+`````{tab-set}
+````{tab-item} Latest version
+```{code-block} python
+:emphasize-lines: 3
+#!/usr/bin/env -S uv run --script
+# /// script
+# dependencies = ["click-extra"]
+# ///
+```
+````
+
+````{tab-item} Specific version
+```{code-block} python
+:emphasize-lines: 3
+#!/usr/bin/env -S uv run --script
+# /// script
+# dependencies = ["click-extra == 7.2.0"]
+# ///
+```
+````
+
+````{tab-item} Development version
+```{code-block} python
+:emphasize-lines: 3
+#!/usr/bin/env -S uv run --script
+# /// script
+# dependencies = ["click-extra @ git+https://github.com/kdeldycke/click-extra"]
+# ///
+```
+````
+
+````{tab-item} Local version
+```{code-block} python
+:emphasize-lines: 3
+#!/usr/bin/env -S uv run --script
+# /// script
+# dependencies = ["click-extra @ file:///Users/me/code/click-extra"]
+# ///
+```
+````
+`````
+``````
