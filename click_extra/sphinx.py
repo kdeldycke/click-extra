@@ -502,7 +502,7 @@ class RunDirective(ClickDirective):
 class DeprecatedExampleDirective(SourceDirective):
     """Deprecated alias for SourceDirective.
 
-    .. deprecated::
+    .. deprecated:: 7.3.0
         Use ``click:source`` instead of ``click:example``.
     """
 
