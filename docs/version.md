@@ -39,7 +39,9 @@ assert result.output == "\x1b[97mcli\x1b[0m, version \x1b[32m1.2.3\x1b[0m\n"
 ```
 
 ```{hint}
-In this example I have hard-coded the version to `1.2.3` for the sake of demonstration. In most cases, you do not need to force it. By default, the version will be automatically fetched from the `__version__` attribute of the module where the command is defined.
+In the examples of this page the version is hard-coded to `1.2.3` for the sake of demonstration.
+
+In most cases, you do not need to force it, as the version will be automatically [fetched from the package metadata](#variables) of the CLI or the [`__version__` attribute](#standalone-script) of the command.
 ```
 
 ## Variables
@@ -50,7 +52,7 @@ The message template is a [format string](https://docs.python.org/3/library/stri
 f"{prog_name}, version {version}"
 ```
 
-```{important}
+```{caution}
 This is different from Click, which uses [the `%(prog)s, version %(version)s` template](https://github.com/pallets/click/blob/b498906/src/click/decorators.py#L455).
 
 Click is based on [old-school `printf`-style formatting](https://docs.python.org/3/library/stdtypes.html#printf-style-string-formatting), which relies on variables of the `%(variable)s` form.
@@ -78,7 +80,7 @@ You can customize the message template with the following variables:
 | [`{prog_name}`](#click_extra.version.ExtraVersionOption.prog_name)             | The name of the program, from Click's point of view.                                                                                                                                   |
 | [`{env_info}`](#click_extra.version.ExtraVersionOption.env_info)               | The [environment information](https://boltons.readthedocs.io/en/latest/ecoutils.html#boltons.ecoutils.get_profile) in JSON.                                                            |
 
-```{caution}
+```{error}
 Some Click's built-in variables are not recognized:
 - `%(package)s` should be replaced by `{package_name}`
 - `%(prog)s` should be replaced by `{prog_name}`
@@ -88,30 +90,28 @@ Some Click's built-in variables are not recognized:
 You can compose your own version string by passing the `message` argument:
 
 ```{click:source}
-:emphasize-lines: 5
+:emphasize-lines: 6
 import click
 import click_extra
 
 @click.command
-@click_extra.version_option(message="✨ {prog_name} v{version} - {package_name}")
+@click_extra.version_option(
+    message="✨ {prog_name} v{version} - {package_name}",
+    version="1.2.3",
+)
 def my_own_cli():
     pass
 ```
 
 ```{click:run}
-from click_extra import __version__
 result = invoke(my_own_cli, args=["--version"])
 assert result.output == (
-    "✨ \x1b[97mmy-own-cli\x1b[0m "
-    f"v\x1b[32m{__version__}\x1b[0m - "
-    "\x1b[97mclick_extra\x1b[0m\n"
+    "✨ \x1b[97mmy-own-cli\x1b[0m v\x1b[32m1.2.3\x1b[0m - \x1b[97mclick_extra.sphinx\x1b[0m\n"
 )
 ```
 
-```{note}
-Notice here how the `{package_name}` string takes the `click_extra` value. That's because this snippet of code is dynamiccaly executed by Sphinx in the context of Click Extra itself. And as a result, the `{version}` string takes the value of the current version of Click Extra (i.e.  `click_extra.__version__`).
-
-You will not have this behavior once your get your CLI packaged: your CLI will properly inherits its metadata automatically from your package.
+```{caution}
+This results reports the package name as `click_extra.sphinx` because we are running the example from the `click-extra` documentation build environment. This is just a quirk of the documentation setup and will not affect your own CLI.
 ```
 
 ## Standalone script
@@ -120,8 +120,14 @@ The `--version` option works with standalone scripts.
 
 Let's put this code in a file named `greet.py`:
 
-```{code-block} python
+```{click:source}
 :caption: `greet.py`
+:linenos:
+#!/usr/bin/env -S uv run --script
+# /// script
+# dependencies = ["click-extra"]
+# ///
+
 import click_extra
 
 
@@ -136,18 +142,24 @@ if __name__ == "__main__":
 
 Here is the result of the `--version` option:
 
-```{code-block} ansi-shell-session
-$ python ./greet.py --version
-[97mgreet.py[0m, version [32mNone[0m
+```{click:run}
+result = invoke(greet, args=["--version"])
+assert result.output == "\x1b[97mgreet\x1b[0m, version \x1b[32mNone\x1b[0m\n"
 ```
 
-Because the script is not packaged, the `{package_name}` is set to the script file name (`greet.py`) and `{version}` variable to `None`.
+Because the script is not packaged, the `{version}` variable is `None`.
 
-But Click Extra recognize a `__version__` variable. So you can force the version string in your script:
+But Click Extra recognize the `__version__` variable, to force it in your script:
 
-```{code-block} python
+```{click:source}
 :caption: `greet.py`
-:emphasize-lines: 4
+:emphasize-lines: 9
+:linenos:
+#!/usr/bin/env -S uv run --script
+# /// script
+# dependencies = ["click-extra"]
+# ///
+
 import click_extra
 
 
@@ -163,9 +175,8 @@ if __name__ == "__main__":
     greet()
 ```
 
-```{code-block} ansi-shell-session
-$ python ./greet.py --version
-[97mgreet.py[0m, version [32m0.9.3-alpha[0m
+```{click:run}
+result = invoke(greet, args=["--version"])
 ```
 
 ```{caution}
@@ -211,18 +222,18 @@ from click_extra import version_option, Style
     prog_name_style=Style(fg="green", bold=True),
     version_style=Style(fg="bright_yellow", bg="red"),
     package_name_style=Style(fg="bright_blue", italic=True),
+    version="1.2.3",
 )
 def cli():
     pass
 ```
 
 ```{click:run}
-from click_extra import __version__
 result = invoke(cli, args=["--version"])
 assert result.output == (
     "\x1b[32m\x1b[1mcli\x1b[0m\x1b[36m "
-    f"v\x1b[0m\x1b[93m\x1b[41m{__version__}\x1b[0m\x1b[36m 🔥 "
-    "\x1b[0m\x1b[94m\x1b[3mclick_extra\x1b[0m\x1b[36m ( ͡❛\u202f͜ʖ ͡❛)\x1b[0m\n"
+    "v\x1b[0m\x1b[93m\x1b[41m1.2.3\x1b[0m\x1b[36m 🔥 "
+    "\x1b[0m\x1b[94m\x1b[3mclick_extra.sphinx\x1b[0m\x1b[36m ( ͡❛\u202f͜ʖ ͡❛)\x1b[0m\n"
 )
 ```
 
@@ -242,15 +253,15 @@ from click_extra import version_option
     message_style=None,
     version_style=None,
     prog_name_style=None,
+    version="1.2.3",
 )
 def cli():
     pass
 ```
 
 ```{click:run}
-from click_extra import __version__
 result = invoke(cli, args=["--version"])
-assert result.output == f"cli, version {__version__}\n"
+assert result.output == f"cli, version 1.2.3\n"
 ```
 
 ## Environment information
@@ -291,7 +302,8 @@ from click_extra import version_option
 
 @click.command
 @version_option(
-    message="{prog_name} {version}, from {module_file} (Python {env_info[python][version]})"
+    message="{prog_name} {version}, from {module_file} (Python {env_info[python][version]})",
+    version="1.2.3",
 )
 def custom_env_info():
     pass
@@ -299,10 +311,9 @@ def custom_env_info():
 
 ```{click:run}
 import re
-from click_extra import __version__
 result = invoke(custom_env_info, args=["--version"])
 assert re.fullmatch((
-    rf"\x1b\[97mcustom-env-info\x1b\[0m \x1b\[32m{__version__}\x1b\[0m, "
+    r"\x1b\[97mcustom-env-info\x1b\[0m \x1b\[32m1.2.3\x1b\[0m, "
     r"from .+ \(Python \x1b\[90m3\.\d+\.\d+ .+\x1b\[0m\)\n"
 ), result.output)
 ```
@@ -317,7 +328,7 @@ import click
 from click_extra import version_option, verbosity_option, echo
 
 @click.command
-@version_option
+@version_option(version="1.2.3")
 @verbosity_option
 def version_in_logs():
     echo("Standard operation")
@@ -327,7 +338,6 @@ Which is great to see how each variable is populated and styled:
 
 ```{click:run}
 import re
-from click_extra import __version__
 result = invoke(version_in_logs, ["--verbosity", "DEBUG"])
 assert "\n\x1b[34mdebug\x1b[0m: Version string template variables:\n" in result.output
 ```
@@ -342,7 +352,7 @@ import click
 from click_extra import echo, pass_context, version_option
 
 @click.command
-@version_option
+@version_option(version="1.2.3")
 @pass_context
 def version_metadata(ctx):
     version = ctx.meta["click_extra.version"]
@@ -362,11 +372,10 @@ invoke(version_metadata, ["--version"])
 
 ```{click:run}
 import re
-from click_extra import __version__
 result = invoke(version_metadata)
 assert re.fullmatch((
-    rf"version = {__version__}\n"
-    r"package_name = click_extra\n"
+    r"version = 1.2.3\n"
+    r"package_name = click_extra.sphinx\n"
     r"prog_name = version-metadata\n"
     r"env_info = {'.+'}\n"
 ), result.output)
@@ -386,7 +395,7 @@ import click
 from click_extra import echo, pass_context, version_option, ExtraVersionOption, search_params
 
 @click.command
-@version_option
+@version_option(version="1.2.3")
 @pass_context
 def template_rendering(ctx):
     # Search for a ``--version`` parameter.
@@ -405,11 +414,10 @@ invoke(template_rendering, ["--version"])
 
 ```{click:run}
 import re
-from click_extra import __version__
 result = invoke(template_rendering)
 assert re.fullmatch((
     r"Version string ~> "
-    rf"\x1b\[97mtemplate-rendering\x1b\[0m, version \x1b\[32m{__version__}\x1b\[0m\n"
+    r"\x1b\[97mtemplate-rendering\x1b\[0m, version \x1b\[32m1.2.3\x1b\[0m\n"
 ), result.output)
 ```
 

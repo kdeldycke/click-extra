@@ -17,10 +17,12 @@
 
 from __future__ import annotations
 
+import importlib
 import inspect
 import logging
 import os
 import subprocess
+import sys
 from functools import cached_property
 from gettext import gettext as _
 from importlib import metadata
@@ -273,31 +275,60 @@ class ExtraVersionOption(ExtraOption):
             raise RuntimeError(f"Cannot find module of {frame!r}")
 
         # If the module is a generated entry point script (e.g., .venv/bin/cli-name),
-        # try to find the actual CLI module by inspecting the frame's local variables
-        # or the import chain.
+        # try to find the actual CLI module.
         if module.__name__ == "__main__" and not module.__package__:
-            # Check if this is a pip-generated entry point by looking at the frame's
-            # code for imports from a real package.
             module_file = getattr(module, "__file__", None)
             if module_file:
                 module_path = Path(module_file)
                 # Entry points are typically in bin/ or Scripts/ directories
                 if module_path.parent.name in ("bin", "Scripts"):
-                    # Try to find the actual module from the frame's globals
-                    # Entry point scripts typically import a 'main' function
-                    for name, obj in frame.f_globals.items():
-                        if callable(obj) and hasattr(obj, "__module__"):
-                            # Get the module where this callable is defined
-                            import sys
+                    script_name = module_path.name
 
-                            actual_module_name = obj.__module__
-                            if actual_module_name in sys.modules:
-                                actual_module = sys.modules[actual_module_name]
-                                # Prefer this module if it has package info
-                                if getattr(actual_module, "__package__", None):
-                                    return actual_module
+                    # Try to find the package via entry_points API
+                    actual_module = self._resolve_entry_point_module(script_name)
+                    if actual_module:
+                        return actual_module
+
+                    # Fallback: inspect frame globals for imported callables
+                    actual_module = self._resolve_module_from_frame(frame)
+                    if actual_module:
+                        return actual_module
 
         return module
+
+    @staticmethod
+    def _resolve_entry_point_module(script_name: str) -> ModuleType | None:
+        """Resolve the module from a console_scripts entry point name."""
+        # Search through all entry points in the 'console_scripts' group.
+        eps = metadata.entry_points()
+
+        # Python 3.10+ returns SelectableGroups, 3.9 returns a dict.
+        if sys.version_info >= (3, 10):
+            console_scripts = eps.select(group="console_scripts")
+        else:
+            console_scripts = eps.get("console_scripts", ())  # type: ignore[union-attr]
+
+        for ep in console_scripts:
+            if ep.name == script_name:
+                # ep.value is like "click_extra.__main__:main".
+                module_name = ep.value.split(":")[0]
+                if module_name in sys.modules:
+                    return sys.modules[module_name]
+                return importlib.import_module(module_name)
+
+        return None
+
+    @staticmethod
+    def _resolve_module_from_frame(frame: FrameType) -> ModuleType | None:
+        """Fallback: find module from callables in frame's globals."""
+        for name, obj in frame.f_globals.items():
+            if callable(obj) and hasattr(obj, "__module__"):
+                actual_module_name = obj.__module__
+                if actual_module_name in sys.modules:
+                    actual_module = sys.modules[actual_module_name]
+                    if getattr(actual_module, "__package__", None):
+                        return actual_module
+        return None
 
     @cached_property
     def module_name(self) -> str:
@@ -407,13 +438,13 @@ class ExtraVersionOption(ExtraOption):
     def git_repo_path(self) -> Path | None:
         """Find the Git repository root directory."""
         if self.module_file:
-            # Start from the module's directory
+            # Start from the module's directory.
             current_path = Path(self.module_file).parent
         else:
-            # Fallback to current working directory
+            # Fallback to current working directory.
             current_path = Path.cwd()
 
-        # Walk up the directory tree to find .git
+        # Walk up the directory tree to find .git.
         for path in [current_path] + list(current_path.parents):
             if (path / ".git").exists():
                 return path
