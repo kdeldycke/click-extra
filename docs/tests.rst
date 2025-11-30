@@ -89,6 +89,22 @@ tests.test\_sphinx module
    :show-inheritance:
    :undoc-members:
 
+tests.test\_sphinx\_alerts module
+---------------------------------
+
+.. automodule:: tests.test_sphinx_alerts
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+tests.test\_sphinx\_click module
+--------------------------------
+
+.. automodule:: tests.test_sphinx_click
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 tests.test\_table module
 ------------------------
 
