@@ -6,6 +6,14 @@ click\_extra package
    :show-inheritance:
    :undoc-members:
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   click_extra.sphinx
+
 Submodules
 ----------
 
@@ -93,14 +101,6 @@ click\_extra.pytest module
 --------------------------
 
 .. automodule:: click_extra.pytest
-   :members:
-   :show-inheritance:
-   :undoc-members:
-
-click\_extra.sphinx module
---------------------------
-
-.. automodule:: click_extra.sphinx
    :members:
    :show-inheritance:
    :undoc-members:
