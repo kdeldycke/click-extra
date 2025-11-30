@@ -24,239 +24,378 @@ from sphinx.application import Sphinx
 from sphinx.errors import ConfigError
 from sphinx.util.docutils import docutils_namespace
 
+from click_extra.sphinx.alerts import replace_github_alerts
+
 from .conftest import HTML, DirectiveTestCase, FormatType, admonition_block
 
-GITHUB_ALERT_NOTE_TEST_CASE = DirectiveTestCase(
-    name="github_alert_note",
-    format_type=FormatType.MYST,
-    document="""
-        > [!NOTE]
-        > This is a note.
-        > With multiple lines.
 
-        Regular text after.
-    """,
-    html_matches=admonition_block(
-        "note", "<p>This is a note.\nWith multiple lines.</p>\n"
-    )
-    + "<p>Regular text after.</p>\n",
+@pytest.mark.parametrize(
+    "alert_type",
+    ["NOTE", "TIP", "IMPORTANT", "WARNING", "CAUTION"],
 )
+def test_all_alert_types(alert_type):
+    """Test all supported alert types are converted correctly."""
+    text = dedent(f"""\
+        > [!{alert_type}]
+        > Content.""")
+    expected = dedent(f"""\
+        :::{{{alert_type.lower()}}}
+        Content.
+        :::""")
+    assert replace_github_alerts(text) == expected
 
-GITHUB_ALERT_TIP_TEST_CASE = DirectiveTestCase(
-    name="github_alert_tip",
-    format_type=FormatType.MYST,
-    document="""
-        > [!TIP]
-        > This is a tip.
-    """,
-    html_matches=admonition_block("tip", "<p>This is a tip.</p>\n"),
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        pytest.param(
+            dedent("""\
+                > [!NOTE]
+                > This is a note.
+                > With multiple lines.
+
+                Regular text after."""),
+            dedent("""\
+                :::{note}
+                This is a note.
+                With multiple lines.
+                :::
+
+                Regular text after."""),
+            id="note_alert",
+        ),
+        pytest.param(
+            dedent("""\
+                > [!RANDOM]
+                > This is not a known alert type."""),
+            None,
+            id="unknown_type_unchanged",
+        ),
+        pytest.param(
+            dedent("""\
+                > Regular blockquote
+                > without alert syntax."""),
+            None,
+            id="no_alerts_returns_none",
+        ),
+        pytest.param(
+            dedent("""\
+                > [!NOTE]
+                > First paragraph.
+                >
+                > Second paragraph."""),
+            dedent("""\
+                :::{note}
+                First paragraph.
+
+                Second paragraph.
+                :::"""),
+            id="empty_line_in_alert",
+        ),
+        pytest.param(
+            dedent("""\
+                > [!NOTE]
+                > A note.
+
+                Some text between.
+
+                > [!WARNING]
+                > A warning."""),
+            dedent("""\
+                :::{note}
+                A note.
+                :::
+
+                Some text between.
+
+                :::{warning}
+                A warning.
+                :::"""),
+            id="multiple_alerts",
+        ),
+        pytest.param(
+            dedent("""\
+                > [!NOTE]
+                >  This line has an extra space after >.
+                >   This line has two extra spaces.
+                >    This line has three extra spaces."""),
+            dedent("""\
+                :::{note}
+                This line has an extra space after >.
+                This line has two extra spaces.
+                This line has three extra spaces.
+                :::"""),
+            id="extra_spaces_after_chevron",
+        ),
+        pytest.param(
+            dedent("""\
+                >[!TIP]
+                > This alert has no space after the chevron on the first line."""),
+            dedent("""\
+                :::{tip}
+                This alert has no space after the chevron on the first line.
+                :::"""),
+            id="no_space_after_chevron_on_first_line",
+        ),
+        pytest.param(
+            dedent("""\
+                > [!TIP]
+                >No space after the bracket."""),
+            dedent("""\
+                :::{tip}
+                No space after the bracket.
+                :::"""),
+            id="no_space_after_bracket",
+        ),
+        pytest.param(
+            dedent("""\
+                > [!WARNING]
+                > Normal spacing.
+                >  Extra space.
+                >No space.
+                >   Lots of spaces."""),
+            dedent("""\
+                :::{warning}
+                Normal spacing.
+                Extra space.
+                No space.
+                Lots of spaces.
+                :::"""),
+            id="mixed_spacing",
+        ),
+        pytest.param(
+            dedent("""\
+                >    [!TIP]
+                > This alert has extra spaces before the directive."""),
+            dedent("""\
+                :::{tip}
+                This alert has extra spaces before the directive.
+                :::"""),
+            id="leading_spaces_before_directive",
+        ),
+        pytest.param(
+            dedent("""\
+                > [! TIP]
+                > This should remain a regular blockquote."""),
+            None,
+            id="invalid_space_after_bang",
+        ),
+        pytest.param(
+            dedent("""\
+                > [ !TIP]
+                > This should remain a regular blockquote."""),
+            None,
+            id="invalid_space_before_bang",
+        ),
+        pytest.param(
+            dedent("""\
+                > [!TIP ]
+                > This should remain a regular blockquote."""),
+            None,
+            id="invalid_space_before_closing_bracket",
+        ),
+        pytest.param(
+            dedent("""\
+                > [!tip]
+                > Lowercase should not match."""),
+            None,
+            id="lowercase_invalid",
+        ),
+        pytest.param(
+            dedent("""\
+                > [!TIP]
+                > [!TIP]
+                > Hello."""),
+            dedent("""\
+                :::{tip}
+                [!TIP]
+                Hello.
+                :::"""),
+            id="duplicate_directive",
+        ),
+        pytest.param(
+            "> [!TIP]",
+            dedent("""\
+                :::{tip}
+                :::"""),
+            id="empty_alert",
+        ),
+        pytest.param(
+            "> Hello [!NOTE] This is a note.",
+            None,
+            id="invalid_text_before_directive",
+        ),
+        pytest.param(
+            dedent("""\
+                # Regular Heading
+
+                Regular paragraph text.
+
+                > Regular blockquote without alert syntax.
+
+                ```python
+                print("code block")
+                ```"""),
+            None,
+            id="content_without_alerts_unchanged",
+        ),
+        pytest.param(
+            dedent("""\
+                ```markdown
+                > [!NOTE]
+                > Inside code block.
+                ```"""),
+            None,
+            id="code_block_preserved",
+        ),
+        pytest.param(
+            dedent("""\
+                ~~~markdown
+                > [!NOTE]
+                > This is inside a tilde code block.
+                ~~~"""),
+            None,
+            id="code_block_tilde_preserved",
+        ),
+        pytest.param(
+            dedent("""\
+                ```
+                > [!TIP]
+                > This is inside a code block without language.
+                ```"""),
+            None,
+            id="code_block_no_language_preserved",
+        ),
+        pytest.param(
+            dedent("""\
+                ````markdown
+                > [!WARNING]
+                > This is inside a 4-backtick code block.
+                ```
+                nested code fence
+                ```
+                ````"""),
+            None,
+            id="code_block_four_backticks_preserved",
+        ),
+        pytest.param(
+            dedent("""\
+                ```{code-block} markdown
+                > [!NOTE]
+                > This is inside a code-block directive.
+                ```"""),
+            None,
+            id="code_block_directive_preserved",
+        ),
+        pytest.param(
+            dedent("""\
+                Some text before.
+
+                    > [!TIP]
+                    > This is inside a code block without language.
+
+                Some text after."""),
+            None,
+            id="indented_code_block_4_spaces_preserved",
+        ),
+        pytest.param(
+            dedent("""\
+                Some text before.
+
+                  > [!TIP]
+                  > This is inside a 2-space indented block.
+
+                Some text after."""),
+            dedent("""\
+                Some text before.
+
+                  :::{tip}
+                  This is inside a 2-space indented block.
+                  :::
+
+                Some text after."""),
+            id="indented_2_spaces_converted",
+        ),
+        pytest.param(
+            dedent("""\
+                > [!NOTE]
+                > Real alert.
+
+                ```
+                > [!NOTE]
+                > In code block.
+                ```
+
+                > [!TIP]
+                > Another alert."""),
+            dedent("""\
+                :::{note}
+                Real alert.
+                :::
+
+                ```
+                > [!NOTE]
+                > In code block.
+                ```
+
+                :::{tip}
+                Another alert.
+                :::"""),
+            id="mixed_alerts_and_code_blocks",
+        ),
+        pytest.param(
+            dedent("""\
+                > [!NOTE]
+                > This should be converted to an admonition.
+
+                ```markdown
+                > [!NOTE]
+                > This should NOT be converted (inside code block).
+                ```
+
+                > [!WARNING]
+                > This should also be converted to an admonition.
+
+                ~~~markdown
+                > [!WARNING]
+                > This should NOT be converted (inside tilde block).
+                ~~~
+
+                > [!TIP]
+                > Final admonition."""),
+            dedent("""\
+                :::{note}
+                This should be converted to an admonition.
+                :::
+
+                ```markdown
+                > [!NOTE]
+                > This should NOT be converted (inside code block).
+                ```
+
+                :::{warning}
+                This should also be converted to an admonition.
+                :::
+
+                ~~~markdown
+                > [!WARNING]
+                > This should NOT be converted (inside tilde block).
+                ~~~
+
+                :::{tip}
+                Final admonition.
+                :::"""),
+            id="mixed_code_blocks_comprehensive",
+        ),
+    ],
 )
+def test_alert_conversion(text, expected):
+    """Test GitHub alerts are converted to MyST admonitions.
 
-GITHUB_ALERT_IMPORTANT_TEST_CASE = DirectiveTestCase(
-    name="github_alert_important",
-    format_type=FormatType.MYST,
-    document="""
-        > [!IMPORTANT]
-        > This is important.
-    """,
-    html_matches=admonition_block("important", "<p>This is important.</p>\n"),
-)
+    When expected is None, no conversion should occur.
+    """
+    assert replace_github_alerts(text) == expected
 
-GITHUB_ALERT_WARNING_TEST_CASE = DirectiveTestCase(
-    name="github_alert_warning",
-    format_type=FormatType.MYST,
-    document="""
-        > [!WARNING]
-        > This is a warning.
-    """,
-    html_matches=admonition_block("warning", "<p>This is a warning.</p>\n"),
-)
-
-GITHUB_ALERT_CAUTION_TEST_CASE = DirectiveTestCase(
-    name="github_alert_caution",
-    format_type=FormatType.MYST,
-    document="""
-        > [!CAUTION]
-        > This is a caution.
-    """,
-    html_matches=admonition_block("caution", "<p>This is a caution.</p>\n"),
-)
-
-GITHUB_ALERT_UNKNOWN_TYPE_TEST_CASE = DirectiveTestCase(
-    name="github_alert_unknown_type",
-    format_type=FormatType.MYST,
-    document="""
-        > [!RANDOM]
-        > This is not a known alert type.
-    """,
-    html_matches="<blockquote>\n"
-    "<div><p>[!RANDOM]\n"
-    "This is not a known alert type.</p>\n"
-    "</div></blockquote>\n",
-)
-
-GITHUB_ALERT_EMPTY_LINE_TEST_CASE = DirectiveTestCase(
-    name="github_alert_empty_line",
-    format_type=FormatType.MYST,
-    document="""
-        > [!NOTE]
-        > First paragraph.
-        >
-        > Second paragraph.
-    """,
-    html_matches=admonition_block(
-        "note", "<p>First paragraph.</p>\n<p>Second paragraph.</p>\n"
-    ),
-)
-
-GITHUB_ALERT_MULTIPLE_TEST_CASE = DirectiveTestCase(
-    name="github_alert_multiple",
-    format_type=FormatType.MYST,
-    document="""
-        > [!NOTE]
-        > A note.
-
-        Some text between.
-
-        > [!WARNING]
-        > A warning.
-    """,
-    html_matches=admonition_block("note", "<p>A note.</p>\n")
-    + "<p>Some text between.</p>\n"
-    + admonition_block("warning", "<p>A warning.</p>\n"),
-)
-
-GITHUB_ALERT_EXTRA_SPACES_TEST_CASE = DirectiveTestCase(
-    name="github_alert_extra_spaces",
-    format_type=FormatType.MYST,
-    document="""
-        > [!NOTE]
-        >  This line has an extra space after >.
-        >   This line has two extra spaces.
-        >    This line has three extra spaces.
-    """,
-    html_matches=admonition_block(
-        "note",
-        "<p>This line has an extra space after &gt;.\n"
-        "This line has two extra spaces.\n"
-        "This line has three extra spaces.</p>\n",
-    ),
-)
-
-GITHUB_ALERT_NO_SPACE_AFTER_CHEVRON_TEST_CASE = DirectiveTestCase(
-    name="github_alert_no_space_after_chevron",
-    format_type=FormatType.MYST,
-    document="""
-        >[!TIP]
-        > This alert has no space after the chevron on the first line.
-    """,
-    html_matches=admonition_block(
-        "tip",
-        "<p>This alert has no space after the chevron on the first line.</p>\n",
-    ),
-)
-
-GITHUB_ALERT_NO_SPACE_AFTER_BRACKET_TEST_CASE = DirectiveTestCase(
-    name="github_alert_no_space_after_bracket",
-    format_type=FormatType.MYST,
-    document="""
-        > [!TIP]
-        >No space after the bracket.
-    """,
-    html_matches=admonition_block("tip", "<p>No space after the bracket.</p>\n"),
-)
-
-GITHUB_ALERT_MIXED_SPACING_TEST_CASE = DirectiveTestCase(
-    name="github_alert_mixed_spacing",
-    format_type=FormatType.MYST,
-    document="""
-        > [!WARNING]
-        > Normal spacing.
-        >  Extra space.
-        >No space.
-        >   Lots of spaces.
-    """,
-    html_matches=admonition_block(
-        "warning",
-        "<p>Normal spacing.\nExtra space.\nNo space.\nLots of spaces.</p>\n",
-    ),
-)
-
-GITHUB_ALERT_LEADING_SPACES_TEST_CASE = DirectiveTestCase(
-    name="github_alert_leading_spaces",
-    format_type=FormatType.MYST,
-    document="""
-        >    [!TIP]
-        > This alert has extra spaces before the directive.
-    """,
-    html_matches=admonition_block(
-        "tip",
-        "<p>This alert has extra spaces before the directive.</p>\n",
-    ),
-)
-
-GITHUB_ALERT_INVALID_SPACE_AFTER_BANG_TEST_CASE = DirectiveTestCase(
-    name="github_alert_invalid_space_after_bang",
-    format_type=FormatType.MYST,
-    document="""
-        > [! TIP]
-        > This should remain a regular blockquote.
-    """,
-    html_matches="<blockquote>\n"
-    "<div><p>[! TIP]\n"
-    "This should remain a regular blockquote.</p>\n"
-    "</div></blockquote>\n",
-)
-
-GITHUB_ALERT_INVALID_SPACE_BEFORE_BANG_TEST_CASE = DirectiveTestCase(
-    name="github_alert_invalid_space_before_bang",
-    format_type=FormatType.MYST,
-    document="""
-        > [ !TIP]
-        > This should remain a regular blockquote.
-    """,
-    html_matches="<blockquote>\n"
-    "<div><p>[ !TIP]\n"
-    "This should remain a regular blockquote.</p>\n"
-    "</div></blockquote>\n",
-)
-
-GITHUB_ALERT_INVALID_SPACE_BEFORE_BRACKET_TEST_CASE = DirectiveTestCase(
-    name="github_alert_invalid_space_before_bracket",
-    format_type=FormatType.MYST,
-    document="""
-        > [!TIP ]
-        > This should remain a regular blockquote.
-    """,
-    html_matches="<blockquote>\n"
-    "<div><p>[!TIP ]\n"
-    "This should remain a regular blockquote.</p>\n"
-    "</div></blockquote>\n",
-)
-
-GITHUB_ALERT_INVALID_LOWERCASE_TEST_CASE = DirectiveTestCase(
-    name="github_alert_invalid_lowercase",
-    format_type=FormatType.MYST,
-    document="""
-        > [!tip]
-        > This should remain a regular blockquote.
-    """,
-    html_matches="<blockquote>\n"
-    "<div><p>[!tip]\n"
-    "This should remain a regular blockquote.</p>\n"
-    "</div></blockquote>\n",
-)
-
-GITHUB_ALERT_DUPLICATE_DIRECTIVE_TEST_CASE = DirectiveTestCase(
-    name="github_alert_duplicate_directive",
-    format_type=FormatType.MYST,
-    document="""
-        > [!TIP]
-        > [!TIP]
-        > Hello.
-    """,
-    html_matches=admonition_block("tip", "<p>[!TIP]\nHello.</p>\n"),
-)
 
 GITHUB_ALERT_EMPTY_DIRECTIVE_TEST_CASE = DirectiveTestCase(
     name="github_alert_empty_directive",
@@ -272,17 +411,6 @@ GITHUB_ALERT_EMPTY_DIRECTIVE_TEST_CASE = DirectiveTestCase(
 )
 
 
-GITHUB_ALERT_INVALID_TEXT_BEFORE_TEST_CASE = DirectiveTestCase(
-    name="github_alert_invalid_text_before",
-    format_type=FormatType.MYST,
-    document="""
-        > Hello [!NOTE] This is a note.
-    """,
-    html_matches="<blockquote>\n"
-    "<div><p>Hello [!NOTE] This is a note.</p>\n"
-    "</div></blockquote>\n",
-)
-
 GITHUB_ALERT_IN_CODE_BLOCK_TEST_CASE = DirectiveTestCase(
     name="github_alert_in_code_block",
     format_type=FormatType.MYST,
@@ -295,58 +423,6 @@ GITHUB_ALERT_IN_CODE_BLOCK_TEST_CASE = DirectiveTestCase(
     html_matches=HTML["markdown_highlight"]
     + '<span class="k">&gt; </span><span class="ge">[!NOTE]</span>\n'
     '<span class="k">&gt; </span><span class="ge">This is inside a code block and should not be converted.</span>\n'
-    "</pre></div>\n"
-    "</div>\n",
-)
-
-GITHUB_ALERT_IN_CODE_BLOCK_TILDE_TEST_CASE = DirectiveTestCase(
-    name="github_alert_in_code_block_tilde",
-    format_type=FormatType.MYST,
-    document="""
-        ~~~markdown
-        > [!NOTE]
-        > This is inside a tilde code block.
-        ~~~
-    """,
-    html_matches=HTML["markdown_highlight"]
-    + '<span class="k">&gt; </span><span class="ge">[!NOTE]</span>\n'
-    '<span class="k">&gt; </span><span class="ge">This is inside a tilde code block.</span>\n'
-    "</pre></div>\n",
-)
-
-GITHUB_ALERT_IN_CODE_BLOCK_NO_LANGUAGE_TEST_CASE = DirectiveTestCase(
-    name="github_alert_in_code_block_no_language",
-    format_type=FormatType.MYST,
-    document="""
-        ```
-        > [!TIP]
-        > This is inside a code block without language.
-        ```
-    """,
-    html_matches='<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>'
-    "&gt; [!TIP]\n"
-    "&gt; This is inside a code block without language.\n"
-    "</pre></div>\n",
-)
-
-GITHUB_ALERT_IN_CODE_BLOCK_FOUR_BACKTICKS_TEST_CASE = DirectiveTestCase(
-    name="github_alert_in_code_block_four_backticks",
-    format_type=FormatType.MYST,
-    document="""
-        ````markdown
-        > [!WARNING]
-        > This is inside a 4-backtick code block.
-        ```
-        nested code fence
-        ```
-        ````
-    """,
-    html_matches=HTML["markdown_highlight"]
-    + '<span class="k">&gt; </span><span class="ge">[!WARNING]</span>\n'
-    '<span class="k">&gt; </span><span class="ge">This is inside a 4-backtick code block.</span>\n'
-    '<span class="sb">```</span>\n'
-    '<span class="sb">nested code fence</span>\n'
-    '<span class="sb">```</span>\n'
     "</pre></div>\n"
     "</div>\n",
 )
@@ -386,24 +462,6 @@ GITHUB_ALERT_IN_INDENTED_CODE_BLOCK_4_SPACES_TEST_CASE = DirectiveTestCase(
     "</pre></div>\n"
     "</div>\n"
     "<p>Some text after.</p>\n",
-)
-
-GITHUB_ALERT_IN_INDENTED_CODE_BLOCK_2_SPACES_TEST_CASE = DirectiveTestCase(
-    name="github_alert_in_indented_code_block_2_spaces",
-    format_type=FormatType.MYST,
-    document="""
-        Some text before.
-
-          > [!TIP]
-          > This is inside a 2-space indented block.
-
-        Some text after.
-    """,
-    # 2-space indentation is not enough to create a code block, so the alert
-    # is converted.
-    html_matches="<p>Some text before.</p>\n"
-    + admonition_block("tip", "<p>This is inside a 2-space indented block.</p>\n")
-    + "<p>Some text after.</p>\n",
 )
 
 GITHUB_ALERT_MIXED_CODE_BLOCKS_TEST_CASE = DirectiveTestCase(
@@ -457,38 +515,15 @@ GITHUB_ALERT_MIXED_CODE_BLOCKS_TEST_CASE = DirectiveTestCase(
 @pytest.mark.parametrize(
     "test_case",
     [
-        GITHUB_ALERT_NOTE_TEST_CASE,
-        GITHUB_ALERT_TIP_TEST_CASE,
-        GITHUB_ALERT_IMPORTANT_TEST_CASE,
-        GITHUB_ALERT_WARNING_TEST_CASE,
-        GITHUB_ALERT_CAUTION_TEST_CASE,
-        GITHUB_ALERT_UNKNOWN_TYPE_TEST_CASE,
-        GITHUB_ALERT_EMPTY_LINE_TEST_CASE,
-        GITHUB_ALERT_MULTIPLE_TEST_CASE,
-        GITHUB_ALERT_EXTRA_SPACES_TEST_CASE,
-        GITHUB_ALERT_NO_SPACE_AFTER_CHEVRON_TEST_CASE,
-        GITHUB_ALERT_NO_SPACE_AFTER_BRACKET_TEST_CASE,
-        GITHUB_ALERT_MIXED_SPACING_TEST_CASE,
-        GITHUB_ALERT_LEADING_SPACES_TEST_CASE,
-        GITHUB_ALERT_INVALID_SPACE_AFTER_BANG_TEST_CASE,
-        GITHUB_ALERT_INVALID_SPACE_BEFORE_BANG_TEST_CASE,
-        GITHUB_ALERT_INVALID_SPACE_BEFORE_BRACKET_TEST_CASE,
-        GITHUB_ALERT_INVALID_LOWERCASE_TEST_CASE,
-        GITHUB_ALERT_DUPLICATE_DIRECTIVE_TEST_CASE,
-        GITHUB_ALERT_EMPTY_DIRECTIVE_TEST_CASE,
-        GITHUB_ALERT_INVALID_TEXT_BEFORE_TEST_CASE,
-        GITHUB_ALERT_IN_CODE_BLOCK_TEST_CASE,
-        GITHUB_ALERT_IN_CODE_BLOCK_TILDE_TEST_CASE,
-        GITHUB_ALERT_IN_CODE_BLOCK_NO_LANGUAGE_TEST_CASE,
-        GITHUB_ALERT_IN_CODE_BLOCK_FOUR_BACKTICKS_TEST_CASE,
-        GITHUB_ALERT_IN_CODE_BLOCK_DIRECTIVE_TEST_CASE,
-        GITHUB_ALERT_IN_INDENTED_CODE_BLOCK_4_SPACES_TEST_CASE,
-        GITHUB_ALERT_IN_INDENTED_CODE_BLOCK_2_SPACES_TEST_CASE,
-        GITHUB_ALERT_MIXED_CODE_BLOCKS_TEST_CASE,
+        GITHUB_ALERT_EMPTY_DIRECTIVE_TEST_CASE,  # Empty admonition rendering
+        GITHUB_ALERT_IN_CODE_BLOCK_TEST_CASE,  # Pygments highlighting integration
+        GITHUB_ALERT_IN_CODE_BLOCK_DIRECTIVE_TEST_CASE,  # MyST directive interaction
+        GITHUB_ALERT_IN_INDENTED_CODE_BLOCK_4_SPACES_TEST_CASE,  # Indented code rendering
+        GITHUB_ALERT_MIXED_CODE_BLOCKS_TEST_CASE,  # Comprehensive integration
     ],
 )
-def test_github_alert_conversion(sphinx_app, test_case):
-    """Test GitHub alert syntax is converted to MyST directives."""
+def test_sphinx_integration(sphinx_app, test_case):
+    """Integration-critical tests that verify Sphinx rendering behavior."""
     if not test_case.supports_format(sphinx_app.format_type):
         pytest.skip(
             f"Test case '{test_case.name}' only supports {test_case.format_type}"
@@ -540,35 +575,6 @@ def test_github_alert_no_colon_fence(tmp_path):
             app.build()
 
         assert "colon_fence" in str(exc_info.value)
-
-
-def test_content_without_alerts_unchanged(sphinx_app_myst):
-    """Test that content without GitHub alerts passes through unchanged."""
-    content = dedent("""
-        # Regular Heading
-
-        Regular paragraph text.
-
-        > Regular blockquote without alert syntax.
-
-        ```python
-        print("code block")
-        ```
-    """)
-
-    html_output = sphinx_app_myst.build_document(content)
-
-    expected_fragments = (
-        "<h1>Regular Heading",
-        "<p>Regular paragraph text.</p>",
-        "<blockquote>\n<div><p>Regular blockquote without alert syntax.</p>\n</div></blockquote>",
-        HTML["python_highlight"]
-        + '<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;code block&quot;</span><span class="p">)</span>\n'
-        + "</pre></div>",
-    )
-
-    for fragment in expected_fragments:
-        assert fragment in html_output
 
 
 def test_github_alert_in_included_file(sphinx_app_myst_with_include):
