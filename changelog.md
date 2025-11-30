@@ -7,6 +7,7 @@
 
 - Add `click:source` directive as an alias to `click:example` directive in Sphinx extension.
 - Flag `click:example` directive as deprecated in favor of `click:source`.
+- Fix fetching version when the CLI is implemented as a standalone script and not as a package module.
 
 ## [7.2.0 (2025-11-26)](https://github.com/kdeldycke/click-extra/compare/v7.1.0...v7.2.0)
 

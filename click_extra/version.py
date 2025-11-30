@@ -272,6 +272,31 @@ class ExtraVersionOption(ExtraOption):
         if not module:
             raise RuntimeError(f"Cannot find module of {frame!r}")
 
+        # If the module is a generated entry point script (e.g., .venv/bin/cli-name),
+        # try to find the actual CLI module by inspecting the frame's local variables
+        # or the import chain.
+        if module.__name__ == "__main__" and not module.__package__:
+            # Check if this is a pip-generated entry point by looking at the frame's
+            # code for imports from a real package.
+            module_file = getattr(module, "__file__", None)
+            if module_file:
+                module_path = Path(module_file)
+                # Entry points are typically in bin/ or Scripts/ directories
+                if module_path.parent.name in ("bin", "Scripts"):
+                    # Try to find the actual module from the frame's globals
+                    # Entry point scripts typically import a 'main' function
+                    for name, obj in frame.f_globals.items():
+                        if callable(obj) and hasattr(obj, "__module__"):
+                            # Get the module where this callable is defined
+                            import sys
+
+                            actual_module_name = obj.__module__
+                            if actual_module_name in sys.modules:
+                                actual_module = sys.modules[actual_module_name]
+                                # Prefer this module if it has package info
+                                if getattr(actual_module, "__package__", None):
+                                    return actual_module
+
         return module
 
     @cached_property
