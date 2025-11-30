@@ -175,7 +175,7 @@ typing = [
 docs = [
     "furo ~= 2025.9.25",
     "myst-parser ~= 4.0.0",
-    # Sphinx  8.0.0 is the first version to drop Python 3.9, like us.
+    # Sphinx 8.0.0 is the first version to drop Python 3.9, like us.
     "sphinx >= 8.0.0",
     # sphinx-autodoc-typehints 2.4.0 is the first version that is aligned to our Python >= 3.10 requirement.
     "sphinx-autodoc-typehints >= 2.4.0",
