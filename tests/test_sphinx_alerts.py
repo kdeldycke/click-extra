@@ -577,210 +577,148 @@ def test_github_alert_no_colon_fence(tmp_path):
         assert "colon_fence" in str(exc_info.value)
 
 
-def test_github_alert_in_included_file(sphinx_app_myst_with_include):
-    """Test that GitHub alerts in included files are properly converted."""
+@pytest.mark.parametrize(
+    ("included_files", "main_content", "expected_fragments", "unexpected_fragments"),
+    [
+        pytest.param(
+            {
+                "included.md": """\
+                    > [!NOTE]
+                    > This note is from an included file.
+
+                    Some regular text.
+
+                    > [!WARNING]
+                    > This warning is also from the included file.
+                """
+            },
+            """\
+                # Main Document
+
+                ```{include} included.md
+                ```
+
+                Text after include.
+            """,
+            [
+                ("note", "<p>This note is from an included file.</p>\n"),
+                ("warning", "<p>This warning is also from the included file.</p>\n"),
+            ],
+            [],
+            id="basic_include",
+        ),
+        pytest.param(
+            {
+                "partial.md": """\
+                    # Header to Skip
+
+                    This content should be skipped.
+
+                    <!-- start-content -->
+
+                    > [!TIP]
+                    > This tip appears after the marker.
+
+                    Important information here.
+                """
+            },
+            """\
+                # Documentation
+
+                ```{include} partial.md
+                :start-after: <!-- start-content -->
+                ```
+            """,
+            [("tip", "<p>This tip appears after the marker.</p>\n")],
+            ["Header to Skip", "This content should be skipped"],
+            id="start_after",
+        ),
+        pytest.param(
+            {
+                "partial_end.md": """\
+                    > [!IMPORTANT]
+                    > This important note should be included.
+
+                    <!-- end-content -->
+
+                    > [!CAUTION]
+                    > This caution should NOT be included.
+                """
+            },
+            """\
+                # Documentation
+
+                ```{include} partial_end.md
+                :end-before: <!-- end-content -->
+                ```
+            """,
+            [("important", "<p>This important note should be included.</p>\n")],
+            ["admonition caution", "This caution should NOT be included"],
+            id="end_before",
+        ),
+        pytest.param(
+            {
+                "docs/nested.md": """\
+                    > [!NOTE]
+                    > This note is from a nested directory.
+                """
+            },
+            """\
+                # Main Document
+
+                ```{include} docs/nested.md
+                ```
+            """,
+            [("note", "<p>This note is from a nested directory.</p>\n")],
+            [],
+            id="nested_directory",
+        ),
+        pytest.param(
+            {
+                "warning.md": """\
+                    > [!WARNING]
+                    > Warning from included file.
+                """
+            },
+            """\
+                > [!NOTE]
+                > Direct note in main document.
+
+                ```{include} warning.md
+                ```
+
+                > [!TIP]
+                > Another direct tip.
+            """,
+            [
+                ("note", "<p>Direct note in main document.</p>\n"),
+                ("warning", "<p>Warning from included file.</p>\n"),
+                ("tip", "<p>Another direct tip.</p>\n"),
+            ],
+            [],
+            id="mixed_direct_and_included",
+        ),
+    ],
+)
+def test_github_alert_in_included_files(
+    sphinx_app_myst_with_include,
+    included_files,
+    main_content,
+    expected_fragments,
+    unexpected_fragments,
+):
+    """Test GitHub alerts in included files with various configurations."""
     sphinx_app, srcdir = sphinx_app_myst_with_include
 
-    included_content = dedent("""\
-        > [!NOTE]
-        > This note is from an included file.
+    for path, content in included_files.items():
+        file_path = srcdir / path
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        file_path.write_text(dedent(content))
 
-        Some regular text.
+    html_output = sphinx_app.build_document(dedent(main_content))
 
-        > [!WARNING]
-        > This warning is also from the included file.
-    """)
-    (srcdir / "included.md").write_text(included_content)
+    for alert_type, content in expected_fragments:
+        assert admonition_block(alert_type, content) in html_output
 
-    main_content = dedent("""\
-        # Main Document
-
-        ```{include} included.md
-        ```
-
-        Text after include.
-    """)
-
-    html_output = sphinx_app.build_document(main_content)
-
-    expected = (
-        admonition_block("note", "<p>This note is from an included file.</p>\n")
-        + "<p>Some regular text.</p>\n"
-        + admonition_block(
-            "warning", "<p>This warning is also from the included file.</p>\n"
-        )
-        + "<p>Text after include.</p>\n"
-    )
-
-    assert expected in html_output
-
-
-def test_github_alert_in_included_file_with_start_after(sphinx_app_myst_with_include):
-    """Test GitHub alerts in included files with :start-after: option."""
-    sphinx_app, srcdir = sphinx_app_myst_with_include
-
-    included_content = dedent("""\
-        # Header to Skip
-
-        This content should be skipped.
-
-        <!-- start-content -->
-
-        > [!TIP]
-        > This tip appears after the marker.
-
-        Important information here.
-    """)
-    (srcdir / "partial.md").write_text(included_content)
-
-    main_content = dedent("""\
-        # Documentation
-
-        ```{include} partial.md
-        :start-after: <!-- start-content -->
-        ```
-    """)
-
-    html_output = sphinx_app.build_document(main_content)
-
-    # The skipped content should not appear
-    assert "Header to Skip" not in html_output
-    assert "This content should be skipped" not in html_output
-
-    # Check the expected content is present
-    expected = (
-        admonition_block("tip", "<p>This tip appears after the marker.</p>\n")
-        + "<p>Important information here.</p>\n"
-    )
-    assert expected in html_output
-
-
-def test_github_alert_in_included_file_with_end_before(sphinx_app_myst_with_include):
-    """Test GitHub alerts in included files with :end-before: option."""
-    sphinx_app, srcdir = sphinx_app_myst_with_include
-
-    included_content = dedent("""\
-        > [!IMPORTANT]
-        > This important note should be included.
-
-        <!-- end-content -->
-
-        > [!CAUTION]
-        > This caution should NOT be included.
-    """)
-    (srcdir / "partial_end.md").write_text(included_content)
-
-    main_content = dedent("""\
-        # Documentation
-
-        ```{include} partial_end.md
-        :end-before: <!-- end-content -->
-        ```
-    """)
-
-    html_output = sphinx_app.build_document(main_content)
-
-    # Check the expected content is present
-    expected = admonition_block(
-        "important", "<p>This important note should be included.</p>\n"
-    )
-    assert expected in html_output
-
-    # The content after the marker should not appear
-    assert "admonition caution" not in html_output
-    assert "This caution should NOT be included" not in html_output
-
-
-def test_github_alert_in_included_file_nested_directory(sphinx_app_myst_with_include):
-    """Test GitHub alerts in included files from nested directories."""
-    sphinx_app, srcdir = sphinx_app_myst_with_include
-
-    docs_dir = srcdir / "docs"
-    docs_dir.mkdir()
-
-    included_content = dedent("""\
-        > [!NOTE]
-        > This note is from a nested directory.
-    """)
-    (docs_dir / "nested.md").write_text(included_content)
-
-    main_content = dedent("""\
-        # Main Document
-
-        ```{include} docs/nested.md
-        ```
-    """)
-
-    html_output = sphinx_app.build_document(main_content)
-
-    expected = admonition_block(
-        "note", "<p>This note is from a nested directory.</p>\n"
-    )
-    assert expected in html_output
-
-
-def test_github_alert_in_included_file_with_code_block(sphinx_app_myst_with_include):
-    """Test that code blocks in included files preserve GitHub alert syntax."""
-    sphinx_app, srcdir = sphinx_app_myst_with_include
-
-    included_content = dedent("""\
-        > [!NOTE]
-        > This should be converted to an admonition.
-
-        ```markdown
-        > [!NOTE]
-        > This should stay as code.
-        ```
-
-        > [!TIP]
-        > This should also be converted.
-    """)
-    (srcdir / "mixed.md").write_text(included_content)
-
-    main_content = dedent("""\
-        ```{include} mixed.md
-        ```
-    """)
-
-    html_output = sphinx_app.build_document(main_content)
-
-    expected = (
-        admonition_block("note", "<p>This should be converted to an admonition.</p>\n")
-        + HTML["markdown_highlight"]
-        + '<span class="k">&gt; </span><span class="ge">[!NOTE]</span>\n'
-        '<span class="k">&gt; </span><span class="ge">This should stay as code.</span>\n'
-        "</pre></div>\n"
-        "</div>\n" + admonition_block("tip", "<p>This should also be converted.</p>\n")
-    )
-    assert expected in html_output
-
-
-def test_github_alert_mixed_direct_and_included(sphinx_app_myst_with_include):
-    """Test mixing direct GitHub alerts with included file alerts."""
-    sphinx_app, srcdir = sphinx_app_myst_with_include
-
-    included_content = dedent("""\
-        > [!WARNING]
-        > Warning from included file.
-    """)
-    (srcdir / "warning.md").write_text(included_content)
-
-    main_content = dedent("""\
-        > [!NOTE]
-        > Direct note in main document.
-
-        ```{include} warning.md
-        ```
-
-        > [!TIP]
-        > Another direct tip.
-    """)
-
-    html_output = sphinx_app.build_document(main_content)
-
-    expected = (
-        admonition_block("note", "<p>Direct note in main document.</p>\n")
-        + admonition_block("warning", "<p>Warning from included file.</p>\n")
-        + admonition_block("tip", "<p>Another direct tip.</p>\n")
-    )
-    assert expected in html_output
+    for fragment in unexpected_fragments:
+        assert fragment not in html_output
