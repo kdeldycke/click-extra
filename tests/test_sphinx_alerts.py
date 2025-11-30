@@ -397,8 +397,8 @@ def test_alert_conversion(text, expected):
     assert replace_github_alerts(text) == expected
 
 
-GITHUB_ALERT_EMPTY_DIRECTIVE_TEST_CASE = DirectiveTestCase(
-    name="github_alert_empty_directive",
+EMPTY_DIRECTIVE_TEST_CASE = DirectiveTestCase(
+    name="empty_admonition_rendering",
     format_type=FormatType.MYST,
     document="""
         > [!TIP]
@@ -411,8 +411,8 @@ GITHUB_ALERT_EMPTY_DIRECTIVE_TEST_CASE = DirectiveTestCase(
 )
 
 
-GITHUB_ALERT_IN_CODE_BLOCK_TEST_CASE = DirectiveTestCase(
-    name="github_alert_in_code_block",
+CODE_BLOCK_TEST_CASE = DirectiveTestCase(
+    name="pygments_highlighting_integration",
     format_type=FormatType.MYST,
     document="""
         ```markdown
@@ -427,8 +427,8 @@ GITHUB_ALERT_IN_CODE_BLOCK_TEST_CASE = DirectiveTestCase(
     "</div>\n",
 )
 
-GITHUB_ALERT_IN_CODE_BLOCK_DIRECTIVE_TEST_CASE = DirectiveTestCase(
-    name="github_alert_in_code_block_directive",
+CODE_BLOCK_DIRECTIVE_TEST_CASE = DirectiveTestCase(
+    name="myst_code_block_directive_interaction",
     format_type=FormatType.MYST,
     document="""
         ```{code-block} markdown
@@ -443,8 +443,8 @@ GITHUB_ALERT_IN_CODE_BLOCK_DIRECTIVE_TEST_CASE = DirectiveTestCase(
     "</div>\n",
 )
 
-GITHUB_ALERT_IN_INDENTED_CODE_BLOCK_4_SPACES_TEST_CASE = DirectiveTestCase(
-    name="github_alert_in_indented_code_block_4_spaces",
+INDENTED_CODE_BLOCK_TEST_CASE = DirectiveTestCase(
+    name="indented_code_block_rendering",
     format_type=FormatType.MYST,
     document="""
         Some text before.
@@ -464,8 +464,8 @@ GITHUB_ALERT_IN_INDENTED_CODE_BLOCK_4_SPACES_TEST_CASE = DirectiveTestCase(
     "<p>Some text after.</p>\n",
 )
 
-GITHUB_ALERT_MIXED_CODE_BLOCKS_TEST_CASE = DirectiveTestCase(
-    name="github_alert_mixed_code_blocks",
+MIXED_CODE_BLOCKS_TEST_CASE = DirectiveTestCase(
+    name="comprehensive_mixed_alerts_and_code_blocks",
     format_type=FormatType.MYST,
     document="""
         > [!NOTE]
@@ -515,11 +515,11 @@ GITHUB_ALERT_MIXED_CODE_BLOCKS_TEST_CASE = DirectiveTestCase(
 @pytest.mark.parametrize(
     "test_case",
     [
-        GITHUB_ALERT_EMPTY_DIRECTIVE_TEST_CASE,  # Empty admonition rendering
-        GITHUB_ALERT_IN_CODE_BLOCK_TEST_CASE,  # Pygments highlighting integration
-        GITHUB_ALERT_IN_CODE_BLOCK_DIRECTIVE_TEST_CASE,  # MyST directive interaction
-        GITHUB_ALERT_IN_INDENTED_CODE_BLOCK_4_SPACES_TEST_CASE,  # Indented code rendering
-        GITHUB_ALERT_MIXED_CODE_BLOCKS_TEST_CASE,  # Comprehensive integration
+        EMPTY_DIRECTIVE_TEST_CASE,
+        CODE_BLOCK_TEST_CASE,
+        CODE_BLOCK_DIRECTIVE_TEST_CASE,
+        INDENTED_CODE_BLOCK_TEST_CASE,
+        MIXED_CODE_BLOCKS_TEST_CASE,
     ],
 )
 def test_sphinx_integration(sphinx_app, test_case):
