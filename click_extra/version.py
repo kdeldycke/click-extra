@@ -355,7 +355,21 @@ class ExtraVersionOption(ExtraOption):
             codebases, as `Click removed it in version 8.2.0
             <https://github.com/pallets/click/issues/2598>`_.
         """
+        # First, try to get __version__ from the detected module.
         version = getattr(self.module, "__version__", None)
+
+        # If not found, try to get it from the command's callback globals.
+        # This handles cases where the command is defined in a different context
+        # (e.g., Sphinx documentation blocks, or standalone scripts).
+        if version is None:
+            ctx = get_current_context(silent=True)
+            if ctx and ctx.command and hasattr(ctx.command, "callback"):
+                callback = ctx.command.callback
+                if callback is not None:
+                    # Get the callback's globals (where __version__ might be defined).
+                    callback_globals = getattr(callback, "__globals__", {})
+                    version = callback_globals.get("__version__")
+
         if version is not None and not isinstance(version, str):
             raise ValueError(
                 f"Module version {version!r} expected to be a string or None."

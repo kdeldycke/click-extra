@@ -177,6 +177,7 @@ if __name__ == "__main__":
 
 ```{click:run}
 result = invoke(greet, args=["--version"])
+assert result.output == "\x1b[97mgreet\x1b[0m, version \x1b[32m0.9.3-alpha\x1b[0m\n"
 ```
 
 ```{caution}
