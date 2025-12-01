@@ -1,9 +1,6 @@
 # Changelog
 
-## [7.3.0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.2.0...main)
-
-> [!IMPORTANT]
-> This version is not released yet and is under active development.
+## [7.3.0 (2025-12-01)](https://github.com/kdeldycke/click-extra/compare/v7.2.0...v7.3.0)
 
 - Add `click:source` directive as an alias to `click:example` directive in Sphinx extension.
 - Flag `click:example` directive as deprecated in favor of `click:source`.
