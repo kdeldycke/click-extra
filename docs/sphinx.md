@@ -711,12 +711,125 @@ These will render in Sphinx as:
 
 Playing with alerts on various GitHub websites, I reverse-engineered the following specifications:
 
-- alert type must be in uppercase: `[!TIP]`, not `[!tip]`
-- no spaces in the directive: `[! NOTE]`, `[!NOTE ]` or `[ !NOTE]` are invalid
-- must be the first thing in the blockquote: `> Hello [!NOTE] This is a note.` is interpreted as a normal blockquote, not an alert
-- only the first line of the blockquote is parsed for the alert type: subsequent lines are considered part of the alert content
-- the alert content can span multiple lines, as long as they are part of the same blockquote
-- empty blockquotes are ignored: `> [!TIP]` without any content is not rendered
+- Alert type must be in uppercase: `[!TIP]`, not `[!tip]`.
+- No spaces in the directive: `[! NOTE]`, `[!NOTE ]` or `[ !NOTE]` are invalid.
+- Must be the first thing in the blockquote: `> Hello [!NOTE] This is a note.` is interpreted as a normal blockquote, not an alert.
+- Only the first line of the blockquote is parsed for the alert type: subsequent lines are considered part of the alert content.
+- The alert content can span multiple lines, as long as they are part of the same blockquote.
+- Empty blockquotes are ignored: `> [!TIP]` without any content is not rendered.
+- Nested blockquotes are supported: the alert content can contain other blockquotes, lists, code blocks, etc.
+
+### Nested alerts
+
+GitHub alerts support nested content, including other blockquotes, lists, code blocks, and even nested alerts. This allows for complex documentation structures that render correctly both on GitHub and in Sphinx.
+
+You can include various Markdown elements inside an alert:
+
+```{code-block} markdown
+> [!NOTE]
+> This alert contains:
+> - A bullet list
+> - With multiple items
+>
+> And a code block:
+> ```python
+> print("Hello, world!")
+> ```
+```
+
+Which renders as:
+
+> [!NOTE]
+> This alert contains:
+> - A bullet list
+> - With multiple items
+>
+> And a code block:
+> ```python
+> print("Hello, world!")
+> ```
+
+You can nest alerts within alerts for hierarchical information:
+
+```{code-block} markdown
+> [!WARNING]
+> Be careful with this operation.
+>
+> > [!TIP]
+> > If you encounter issues, try restarting the service.
+```
+
+Which renders as:
+
+> [!WARNING]
+> Be careful with this operation.
+>
+> > [!TIP]
+> > If you encounter issues, try restarting the service.
+
+You can also mix GitHub alerts with MyST directives inside container directives:
+
+`````{code-block} markdown
+````{note}
+> [!TIP]
+> First alert.
+
+```{warning}
+Nested MyST warning.
+```
+
+> [!CAUTION]
+> Second alert after nested directive.
+````
+`````
+
+````{note}
+> [!TIP]
+> First alert.
+
+```{warning}
+Nested MyST warning.
+```
+
+> [!CAUTION]
+> Second alert after nested directive.
+````
+
+For more complex documentation, you can combine multiple nested elements such as blockquotes, numbered lists, nested alerts, and code blocks:
+
+```{code-block} markdown
+> [!IMPORTANT]
+> Before proceeding, ensure you have:
+>
+> 1. Backed up your data
+> 2. Reviewed the changelog
+>
+> > This is important context that applies to all the steps above.
+>
+> > [!CAUTION]
+> > This action cannot be undone.
+>
+> ```bash
+> $ make backup
+> ```
+```
+
+Which renders as:
+
+> [!IMPORTANT]
+> Before proceeding, ensure you have:
+>
+> 1. Backed up your data
+> 2. Reviewed the changelog
+>
+> > This is important context that applies to all the steps above.
+>
+> > [!CAUTION]
+> > This action cannot be undone.
+>
+> ```bash
+> $ make backup
+> ```
 
 ## ANSI shell sessions
 

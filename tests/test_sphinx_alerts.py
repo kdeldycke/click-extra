@@ -570,8 +570,13 @@ def test_all_alert_types(alert_type):
                 > [!CAUTION]
                 > Second alert after nested directive.
                 ````"""),
+            # XXX We cannot just add :::{tip} after ````{note}, as it is misinterpreted
+            # as an admonition's :parameter:. We should probably fix the parser to use
+            # ```{tip} instead of :::{tip} in the future and keep track of the indention.
+            # In the mean time, the trick is to introduce an empty line before :::{tip}.
             dedent("""\
                 ````{note}
+
                 :::{tip}
                 First alert.
                 :::
@@ -605,6 +610,7 @@ def test_all_alert_types(alert_type):
                 Outer note.
 
                 ````{tip}
+
                 :::{warning}
                 Alert inside tip.
                 :::
@@ -632,6 +638,7 @@ def test_all_alert_types(alert_type):
                 ````"""),
             dedent("""\
                 ````{note}
+
                 :::{tip}
                 This should convert.
                 :::
@@ -646,6 +653,82 @@ def test_all_alert_types(alert_type):
                 :::
                 ````"""),
             id="alerts_and_code_block_inside_directive",
+        ),
+        pytest.param(
+            dedent("""\
+                > [!NOTE]
+                > This alert contains:
+                > - A bullet list
+                > - With multiple items
+                >
+                > And a code block:
+                > ```python
+                > print("Hello, world!")
+                > ```"""),
+            dedent("""\
+                :::{note}
+                This alert contains:
+                - A bullet list
+                - With multiple items
+
+                And a code block:
+                ```python
+                print("Hello, world!")
+                ```
+                :::"""),
+            id="alert_with_list_and_code_block",
+        ),
+        pytest.param(
+            dedent("""\
+                > [!WARNING]
+                > Be careful with this operation.
+                >
+                > > [!TIP]
+                > > If you encounter issues, try restarting the service."""),
+            dedent("""\
+                ::::{warning}
+                Be careful with this operation.
+
+                :::{tip}
+                If you encounter issues, try restarting the service.
+                :::
+                ::::"""),
+            id="nested_alert_within_alert",
+        ),
+        pytest.param(
+            dedent("""\
+                > [!IMPORTANT]
+                > Before proceeding, ensure you have:
+                >
+                > 1. Backed up your data
+                > 2. Reviewed the changelog
+                >
+                > > This is important context that applies to all the steps above.
+                >
+                > > [!CAUTION]
+                > > This action cannot be undone.
+                >
+                > ```bash
+                > $ make backup
+                > ```"""),
+            dedent("""\
+                ::::{important}
+                Before proceeding, ensure you have:
+
+                1. Backed up your data
+                2. Reviewed the changelog
+
+                > This is important context that applies to all the steps above.
+
+                :::{caution}
+                This action cannot be undone.
+                :::
+
+                ```bash
+                $ make backup
+                ```
+                ::::"""),
+            id="complex_nested_with_list_blockquote_alert_and_code",
         ),
     ],
 )
@@ -824,6 +907,69 @@ TRIPLE_NESTED_TEST_CASE = DirectiveTestCase(
 )
 
 
+BACKTICK_FENCE_MIXED_DIRECTIVES_TEST_CASE = DirectiveTestCase(
+    name="backtick_fence_with_alerts_and_myst_directive",
+    format_type=FormatType.MYST,
+    document="""
+        ````{note}
+        > [!TIP]
+        > First alert.
+
+        ```{warning}
+        Nested MyST warning.
+        ```
+
+        > [!CAUTION]
+        > Second alert after nested directive.
+        ````
+    """,
+    html_matches=admonition_block(
+        "note",
+        admonition_block("tip", "<p>First alert.</p>\n")
+        + admonition_block("warning", "<p>Nested MyST warning.</p>\n")
+        + admonition_block("caution", "<p>Second alert after nested directive.</p>\n"),
+    ),
+)
+
+
+COMPLEX_NESTED_CONTENT_TEST_CASE = DirectiveTestCase(
+    name="complex_nested_with_list_blockquote_alert_and_code",
+    format_type=FormatType.MYST,
+    document="""
+        > [!IMPORTANT]
+        > Before proceeding, ensure you have:
+        >
+        > 1. Backed up your data
+        > 2. Reviewed the changelog
+        >
+        > > This is important context that applies to all the steps above.
+        >
+        > > [!CAUTION]
+        > > This action cannot be undone.
+        >
+        > ```bash
+        > $ make backup
+        > ```
+    """,
+    html_matches=admonition_block(
+        "important",
+        "<p>Before proceeding, ensure you have:</p>\n"
+        '<ol class="arabic simple">\n'
+        "<li><p>Backed up your data</p></li>\n"
+        "<li><p>Reviewed the changelog</p></li>\n"
+        "</ol>\n"
+        "<blockquote>\n"
+        "<div><p>This is important context that applies to all the steps above.</p>\n"
+        "</div></blockquote>\n"
+        + admonition_block("caution", "<p>This action cannot be undone.</p>\n")
+        + '<div class="highlight-bash notranslate"><div class="highlight">'
+        '<pre><span></span>$<span class="w"> </span>make<span class="w"> </span>backup\n'
+        "</pre></div>\n"
+        "</div>\n",
+    ),
+)
+
+
 @pytest.mark.parametrize(
     "test_case",
     [
@@ -834,6 +980,8 @@ TRIPLE_NESTED_TEST_CASE = DirectiveTestCase(
         MIXED_CODE_BLOCKS_TEST_CASE,
         NESTED_ADMONITION_TEST_CASE,
         TRIPLE_NESTED_TEST_CASE,
+        BACKTICK_FENCE_MIXED_DIRECTIVES_TEST_CASE,
+        COMPLEX_NESTED_CONTENT_TEST_CASE,
     ],
 )
 def test_sphinx_integration(sphinx_app, test_case):
