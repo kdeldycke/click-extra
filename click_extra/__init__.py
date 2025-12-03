@@ -233,18 +233,24 @@ def __getattr__(name: str) -> object:
     import warnings
 
     old_to_new = {
-        "extra_command": command,
-        "extra_group": group,
-        "extra_version_option": version_option,
+        "extra_command": (command, "command"),
+        "extra_group": (group, "group"),
+        "extra_version_option": (version_option, "version_option"),
     }
 
     if name in old_to_new:
+        import pdb
+
+        pdb.set_trace()
+
+        func, new_name = old_to_new[name]
+
         warnings.warn(
-            f"'{name}' is deprecated and will be removed in Click Extra 8.0.0. Use"
-            f" '{old_to_new[name].__name__}' instead.",
+            f"{name!r} is deprecated and will be removed in Click Extra 8.0.0. Use"
+            f" {new_name!r} instead.",
             DeprecationWarning,
             stacklevel=2,
         )
-        return old_to_new[name]
+        return func
 
     raise AttributeError(name)
