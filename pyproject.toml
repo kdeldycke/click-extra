@@ -158,7 +158,7 @@ test = [
     "pytest-cov ~= 7.0.0",
     "pytest-github-actions-annotate-failures ~= 0.3.0",
     "pytest-httpserver ~= 1.1.0",
-    "pytest-randomly ~= 4.0.0",
+    "pytest-randomly ~= 4.0.1",
     # Sphinx  8.0.0 is the first version to drop Python 3.9, like us.
     "sphinx >= 8.0.0",
     "tomli >= 2.3.0 ; python_version < '3.11'",
