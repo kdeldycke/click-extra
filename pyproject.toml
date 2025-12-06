@@ -121,8 +121,8 @@ hjson = [
     "hjson >= 3.1.0",
 ]
 xml = [
-    # xmltodict 0.15.1 prevent XML injection.
-    "xmltodict >= 0.15.1",
+    # xmltodict 1.0.0 is just the first major release.
+    "xmltodict >= 1.0.0",
 ]
 pygments = [
     # Pygments 2.14.0 is the first version with lexers.algebra.GAPConsoleLexer that is referenced in our code.
