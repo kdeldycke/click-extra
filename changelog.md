@@ -7,6 +7,7 @@
 
 - Add cooldown period for dependabot and `uv.lock` updates.
 - Uncap all dependencies.
+- Replace `tool.uv` section by `build-system`.
 - Merge all label jobs into a single one.
 - Unlock a CPU core stuck at 100% utilization on `macos-15-intel`.
 
