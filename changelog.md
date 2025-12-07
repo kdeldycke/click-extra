@@ -6,6 +6,8 @@
 > This version is not released yet and is under active development.
 
 - Merge all label jobs into a single one.
+- Unlock a CPU core stuck at 100% utilization on `macos-15-intel`.
+
 ## [7.3.0 (2025-12-01)](https://github.com/kdeldycke/click-extra/compare/v7.2.0...v7.3.0)
 
 - Add `click:source` directive as an alias to `click:example` directive in Sphinx extension.
