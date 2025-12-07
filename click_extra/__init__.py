@@ -239,12 +239,7 @@ def __getattr__(name: str) -> object:
     }
 
     if name in old_to_new:
-        import pdb
-
-        pdb.set_trace()
-
         func, new_name = old_to_new[name]
-
         warnings.warn(
             f"{name!r} is deprecated and will be removed in Click Extra 8.0.0. Use"
             f" {new_name!r} instead.",
