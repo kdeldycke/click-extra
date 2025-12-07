@@ -167,7 +167,7 @@ jobs:
       - name: Install project
         # Install all extras, so we can check any incompatibility.
         run: >
-          uv --no-progress sync --frozen --all-extras
+          uv --no-progress sync --frozen --all-extras --group test
 
       - name: Run local CLI
         run: |
