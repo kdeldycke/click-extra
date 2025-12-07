@@ -22,6 +22,8 @@
 
 from __future__ import annotations
 
+from click_extra.cli import demo
+
 
 def main():
     """Execute the CLI but force its name to not let Click defaults to:
@@ -40,8 +42,6 @@ def main():
 
     That way we can deduce all three cases from the entry point.
     """
-    from click_extra.cli import demo
-
     demo(prog_name=demo.name)
 
 
