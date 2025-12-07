@@ -1,9 +1,6 @@
 # Changelog
 
-## [7.4.0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.3.0...main)
-
-> [!IMPORTANT]
-> This version is not released yet and is under active development.
+## [7.4.0 (2025-12-07)](https://github.com/kdeldycke/click-extra/compare/v7.3.0...v7.4.0)
 
 - Add cooldown period for dependabot and `uv.lock` updates.
 - Uncap all dependencies.
