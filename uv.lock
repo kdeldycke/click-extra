@@ -8,7 +8,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2025-12-01T00:00:00Z"
+exclude-newer = "2025-12-02T00:00:00Z"
 
 [[package]]
 name = "accessible-pygments"
