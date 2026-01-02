@@ -5,6 +5,13 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Move auto-lock time from 8:43 to 4:43.
+- Set cooldown period via the `pyproject.toml`.
+- Add Download link to project metadata.
+- Include license file in package.
+- Replace deprecated `codecov/test-results-action` by `codecov/codecov-action`.
+- Remove utilization workaround for `macos-15-intel`.
+
 ## [7.4.0 (2025-12-07)](https://github.com/kdeldycke/click-extra/compare/v7.3.0...v7.4.0)
 
 - Add cooldown period for dependabot and `uv.lock` updates.

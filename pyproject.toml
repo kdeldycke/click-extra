@@ -7,6 +7,7 @@ requires-python = ">= 3.10"
 description = "🌈 Drop-in replacement for Click to make user-friendly and colorful CLI"
 authors = [{ name = "Kevin Deldycke", email = "kevin@deldycke.com" }]
 readme = "readme.md"
+license-files = ["license"]
 keywords = [
     'ansi-colors',
     'cli',
@@ -191,12 +192,12 @@ docs = [
 docs = { requires-python = ">= 3.14" }
 
 [project.urls]
-"Homepage" = 'https://github.com/kdeldycke/click-extra'
-"Documentation" = 'https://kdeldycke.github.io/click-extra'
-"Repository" = 'https://github.com/kdeldycke/click-extra'
-"Funding" = "https://github.com/sponsors/kdeldycke"
-"Issues" = "https://github.com/kdeldycke/click-extra/issues"
+"Homepage" = "https://github.com/kdeldycke/click-extra"
+"Download" = "https://github.com/kdeldycke/click-extra/releases/tag/v7.4.1"
 "Changelog" = "https://github.com/kdeldycke/click-extra/blob/main/changelog.md"
+"Issues" = "https://github.com/kdeldycke/click-extra/issues"
+"Repository" = "https://github.com/kdeldycke/click-extra"
+"Funding" = "https://github.com/sponsors/kdeldycke"
 
 [project.scripts]
 click-extra-demo = "click_extra.__main__:main"
@@ -208,6 +209,10 @@ build-backend = "uv_build"
 [tool.uv.build-backend]
 # Package is at root level, not in "./src/".
 module-root = ""
+
+[tool.uv]
+# Cooldown period.
+exclude-newer = "1 week"
 
 [project.entry-points."pygments.formatters"]
 ansi-html-formatter = "click_extra.pygments:AnsiHtmlFormatter"
@@ -278,10 +283,16 @@ glob = "./**/__init__.py"
 ignore_missing_version = true
 
 [[tool.bumpversion.files]]
-# Update version in project section.
+# Update version in [project] section.
 filename = "./pyproject.toml"
 search = 'version = "{current_version}"'
 replace = 'version = "{new_version}"'
+
+[[tool.bumpversion.files]]
+# Update version in download URL.
+filename = "./pyproject.toml"
+search = 'releases/tag/v{current_version}'
+replace = 'releases/tag/v{new_version}'
 
 [[tool.bumpversion.files]]
 # Update the version in standard Markdown changelog.

@@ -148,12 +148,6 @@ jobs:
     # We keep going when a job flagged as not stable fails.
     continue-on-error: ${{ matrix.state == 'unstable' }}
     steps:
-      - name: Unlock CPU on macos-15-intel
-        if: matrix.os == 'macos-15-intel'
-        # See https://github.com/actions/runner-images/issues/13358
-        run: |
-          sudo defaults -currentHost write /Library/Preferences/com.apple.powerlogd SMCMonitorCadence 0
-          sudo killall PerfPowerServices || true
       - uses: actions/checkout@v6.0.1
       - uses: astral-sh/setup-uv@v7.1.6
       - name: Install Python ${{ matrix.python-version }}
@@ -201,6 +195,6 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
       - name: Codecov - test results
         if: ${{ !cancelled() }}
-        uses: codecov/test-results-action@v1.1.1
+        uses: codecov/codecov-action@v5.5.2
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
