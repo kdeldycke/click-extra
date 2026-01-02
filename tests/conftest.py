@@ -25,7 +25,7 @@ from textwrap import indent
 from typing import Generator, Sequence
 
 import pytest
-from extra_platforms.pytest import skip_windows  # type: ignore[attr-defined]
+from extra_platforms.pytest import skip_windows
 from sphinx.application import Sphinx
 from sphinx.util.docutils import docutils_namespace
 
