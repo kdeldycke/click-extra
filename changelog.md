@@ -1,5 +1,10 @@
 # Changelog
 
+## [7.4.2 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.4.1...main)
+
+> [!IMPORTANT]
+> This version is not released yet and is under active development.
+
 ## [7.4.1 (2026-01-02)](https://github.com/kdeldycke/click-extra/compare/v7.4.0...v7.4.1)
 
 - Move auto-lock time from 8:43 to 4:43.
