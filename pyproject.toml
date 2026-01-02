@@ -91,8 +91,8 @@ dependencies = [
     "cloup >= 3.0.7",
     # deepmerge 2.0 is the first version used in Click Extra.
     "deepmerge >= 2.0",
-    # We depends on some internals changed in extra-platforms 6.0.0.
-    "extra-platforms >= 6.0.0",
+    # extra-platforms 5.0.0 is the first version to re-introduce support for Python 3.10.
+    "extra-platforms >= 5.0.0",
     # requests 2.32.5 adds support for Python 3.14.
     "requests >= 2.32.5",
     # tabulate 0.9 is the first to add `*grid` and `*outline` formats.
@@ -103,13 +103,9 @@ dependencies = [
     "wcmatch >= 10.0",
 ]
 
-[tool.uv.sources]
-extra-platforms = { git = "https://github.com/kdeldycke/extra-platforms", branch = "main" }
-
 # Package referenced above and also featured in [project.optional-dependencies] or [dependency-groups]
 # will be set without version specifier as they are already constrained.
 [project.optional-dependencies]
-### Groups below are runtime extra dependencies, so we're also rely on >= specifiers as explained above.
 yaml = [
     # PyYAML 6.0.3 is the first version to support Python 3.14.
     "pyyaml >= 6.0.3",
