@@ -62,7 +62,7 @@ from boltons.pathutils import shrinkuser
 from boltons.urlutils import URL
 from deepmerge import always_merger
 from extra_platforms import is_windows
-from extra_platforms.platform import _recursive_update, _remove_blanks
+from extra_platforms._utils import _recursive_update, _remove_blanks
 from wcmatch import fnmatch, glob
 
 from . import (

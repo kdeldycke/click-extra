@@ -24,11 +24,7 @@ from textwrap import dedent
 import click
 import pytest
 from boltons.pathutils import shrinkuser
-from extra_platforms import (  # type: ignore[attr-defined]
-    is_macos,
-    is_unix_without_macos,
-    is_windows,
-)
+from extra_platforms import is_macos, is_unix_without_macos, is_windows
 
 from click_extra import (
     ConfigFormat,
