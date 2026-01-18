@@ -193,6 +193,8 @@ docs = [
 [tool.uv.dependency-groups]
 # We rely on recent Python features in some of our {click:run} directives.
 docs = { requires-python = ">= 3.14" }
+# XXX Disable exclusion of brand new extra-platforms releases.
+exclude-newer-package = { extra-platforms = "0 day" }
 
 [project.urls]
 "Homepage" = "https://github.com/kdeldycke/click-extra"
