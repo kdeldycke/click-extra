@@ -8,11 +8,11 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-01-11T12:05:50.167608Z"
+exclude-newer = "2026-01-11T13:30:20.421432Z"
 exclude-newer-span = "P1W"
 
 [options.exclude-newer-package]
-extra-platforms = { timestamp = "2026-01-18T12:05:50.167617Z", span = "PT0S" }
+extra-platforms = { timestamp = "2026-01-18T13:30:20.421629Z", span = "PT0S" }
 
 [[package]]
 name = "accessible-pygments"
