@@ -181,7 +181,7 @@ fancy_outline_table = """\
 
 github_table = """\
 | Day    | Temperature |
-| :----- | :---------- |
+| ------ | ----------- |
 | 1      | 42.9        |
 | 2      |             |
 | Friday | Hot 🥵      |
@@ -592,14 +592,31 @@ def test_all_table_rendering(
 class TestGitHubTableAlignment:
     """Tests for GitHub table alignment hints support."""
 
-    def test_default_left_alignment(self):
-        """Default alignment is left for all columns."""
+    def test_default_no_alignment(self):
+        """Default alignment is none (no hint) for all columns."""
         from click_extra.table import render_table
 
         result = render_table(
             [["Alice", "24"], ["Bob", "19"]],
             ["Name", "Age"],
             TableFormat.GITHUB,
+        )
+        assert result == (
+            "| Name  | Age |\n"
+            "| ----- | --- |\n"
+            "| Alice | 24  |\n"
+            "| Bob   | 19  |"
+        )
+
+    def test_left_alignment(self):
+        """Left alignment renders as ``:---``."""
+        from click_extra.table import render_table
+
+        result = render_table(
+            [["Alice", "24"], ["Bob", "19"]],
+            ["Name", "Age"],
+            TableFormat.GITHUB,
+            colalign=("left", "left"),
         )
         assert result == (
             "| Name  | Age |\n"
@@ -687,7 +704,24 @@ class TestGitHubTableAlignment:
         )
         assert result == (
             "| Name  | Age |\n"
-            "| :---- | :-- |\n"
+            "| ----- | --- |\n"
             "| Alice |     |\n"
             "|       | 19  |"
+        )
+
+    def test_unknown_alignment(self):
+        """Unknown alignment values produce plain dashes (no hint)."""
+        from click_extra.table import render_table
+
+        result = render_table(
+            [["Alice", "24"], ["Bob", "19"]],
+            ["Name", "Age"],
+            TableFormat.GITHUB,
+            colalign=("left", "unknown"),
+        )
+        assert result == (
+            "| Name  | Age |\n"
+            "| :---- | --- |\n"
+            "| Alice | 24  |\n"
+            "| Bob   | 19  |"
         )

@@ -25,7 +25,7 @@ from io import StringIO
 from typing import Literal
 
 import tabulate
-import wcwidth
+import wcwidth  # type: ignore[import-untyped]
 from tabulate import DataRow, Line
 from tabulate import TableFormat as TabulateTableFormat
 
@@ -74,10 +74,6 @@ That way we produce a table that doesn't need any supplement linting.
     - https://github.com/astanin/python-tabulate/issues/364
     - https://github.com/astanin/python-tabulate/issues/335
 """
-
-
-ColumnAlignment = Literal["left", "center", "right"]
-"""Type alias for column alignment values."""
 
 
 class TableFormat(Enum):
@@ -316,13 +312,11 @@ def _render_github(
     for row in table_data:
         data_list.append(["" if cell is None else str(cell) for cell in row])
 
-    # Convert colalign to alignments list, defaulting to left alignment.
-    alignments: list[ColumnAlignment] = ["left"] * len(header_list)
+    # Convert colalign to alignments list, defaulting to no alignment hint.
+    # Unknown alignment values are preserved and result in plain dashes (no hint).
+    alignments: list[str | None] = [None] * len(header_list)
     if colalign:
-        alignments = [
-            a if a in ("left", "center", "right") else "left"
-            for a in colalign
-        ]
+        alignments = list(colalign)
 
     def visible_width(s: str) -> int:
         """Return the display width of a string, accounting for unicode characters.
@@ -362,10 +356,11 @@ def _render_github(
         elif align == "right":
             sep = f"{'-' * (width - 1)}:"
         else:
+            # No alignment hint for unknown or None alignment values.
             sep = "-" * width
         separators.append(sep)
 
-    def pad_cell(content: str, width: int, align: ColumnAlignment) -> str:
+    def pad_cell(content: str, width: int, align: str | None) -> str:
         """Pad a cell to the target display width with proper alignment."""
         content_width = visible_width(content)
         padding_needed = width - content_width
@@ -375,7 +370,7 @@ def _render_github(
             return " " * left_pad + content + " " * right_pad
         elif align == "right":
             return " " * padding_needed + content
-        else:  # left or default
+        else:  # left, None, or unknown: left-pad by default
             return content + " " * padding_needed
 
     # Build header row.
