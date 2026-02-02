@@ -91,8 +91,8 @@ dependencies = [
     "cloup >= 3.0.7",
     # deepmerge 2.0 is the first version used in Click Extra.
     "deepmerge >= 2.0",
-    # We depends on some internals changed in extra-platforms 7.0.0.
-    "extra-platforms >= 7.0.0",
+    # We depends on some internals changed in extra-platforms 8.0.0.
+    "extra-platforms >= 8.0.0",
     # requests 2.32.5 adds support for Python 3.14.
     "requests >= 2.32.5",
     # tabulate 0.9 is the first to add `*grid` and `*outline` formats.

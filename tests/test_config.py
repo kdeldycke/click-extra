@@ -24,7 +24,7 @@ from textwrap import dedent
 import click
 import pytest
 from boltons.pathutils import shrinkuser
-from extra_platforms import is_macos, is_unix_without_macos, is_windows
+from extra_platforms import is_macos, is_unix_not_macos, is_windows
 
 from click_extra import (
     ConfigFormat,
@@ -771,10 +771,10 @@ def test_file_pattern(file_format_patterns, expected_pattern):
         (False, False, is_macos(), "~/Library/Application Support/test-cli/"),
         (True, True, is_macos(), "~/.test-cli/"),
         (False, True, is_macos(), "~/.test-cli/"),
-        (True, False, is_unix_without_macos(), "~/.config/test-cli/"),
-        (False, False, is_unix_without_macos(), "~/.config/test-cli/"),
-        (True, True, is_unix_without_macos(), "~/.test-cli/"),
-        (False, True, is_unix_without_macos(), "~/.test-cli/"),
+        (True, False, is_unix_not_macos(), "~/.config/test-cli/"),
+        (False, False, is_unix_not_macos(), "~/.config/test-cli/"),
+        (True, True, is_unix_not_macos(), "~/.test-cli/"),
+        (False, True, is_unix_not_macos(), "~/.test-cli/"),
         (True, False, is_windows(), "~\\AppData\\Roaming\\test-cli\\"),
         (False, False, is_windows(), "~\\AppData\\Local\\test-cli\\"),
         (True, True, is_windows(), "~\\AppData\\Roaming\\test-cli\\"),

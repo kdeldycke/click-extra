@@ -12,6 +12,7 @@
 - Include license file in package.
 - Replace deprecated `codecov/test-results-action` by `codecov/codecov-action`.
 - Remove utilization workaround for `macos-15-intel`.
+- Bump requirement of `extra-platforms` to 8.0.0.
 
 ## [7.4.0 (2025-12-07)](https://github.com/kdeldycke/click-extra/compare/v7.3.0...v7.4.0)
 
