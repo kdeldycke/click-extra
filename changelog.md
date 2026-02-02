@@ -5,6 +5,7 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Fix `TableFormat.GITHUB` to render proper alignment hints in the separator row (`:---`, `:---:`, `---:`).
 - Move auto-lock time from 8:43 to 4:43.
 - Set cooldown period via the `pyproject.toml`.
 - Add Download link to project metadata.

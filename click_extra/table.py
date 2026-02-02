@@ -22,12 +22,14 @@ from enum import Enum
 from functools import partial
 from gettext import gettext as _
 from io import StringIO
+from typing import Literal
 
 import tabulate
+import wcwidth
 from tabulate import DataRow, Line
 from tabulate import TableFormat as TabulateTableFormat
 
-from . import EnumChoice, echo
+from . import EnumChoice, echo, unstyle
 from .parameters import ExtraOption
 
 TYPE_CHECKING = False
@@ -72,6 +74,10 @@ That way we produce a table that doesn't need any supplement linting.
     - https://github.com/astanin/python-tabulate/issues/364
     - https://github.com/astanin/python-tabulate/issues/335
 """
+
+
+ColumnAlignment = Literal["left", "center", "right"]
+"""Type alias for column alignment values."""
 
 
 class TableFormat(Enum):
@@ -267,6 +273,134 @@ def _render_tabulate(
     return tabulate.tabulate(table_data, headers, **defaults)  # type: ignore[arg-type]
 
 
+def _render_github(
+    table_data: Sequence[Sequence[str | None]],
+    headers: Sequence[str | None] | None = None,
+    colalign: Sequence[str] | None = None,
+    **kwargs,
+) -> str:
+    """Render a GitHub-flavored Markdown table with alignment hints.
+
+    Produces a markdown table with alignment hints in the separator row:
+    - ``:---`` for left alignment
+    - ``:---:`` for center alignment
+    - ``---:`` for right alignment
+
+    Uses display width (not character count) for proper unicode/emoji padding,
+    matching the behavior of ``mdformat`` linter.
+
+    .. note::
+        This is a local implementation because tabulate does not support alignment
+        hints in the ``github`` format. The ``colalign`` parameter is ignored for
+        the separator row, which always renders as ``|--------|`` instead of
+        ``:-------|`` or ``|------:`` for left/right alignment.
+
+        This was reported upstream but not fixed:
+
+        - https://github.com/astanin/python-tabulate/issues/53
+        - https://github.com/astanin/python-tabulate/pull/261#issuecomment-3833075937
+
+    Args:
+        table_data: 2D sequence of cell values.
+        headers: Column headers.
+        colalign: Column alignments as expected by tabulate (e.g., ``("left", "right")``).
+        **kwargs: Ignored (for compatibility with other render functions).
+    """
+    # Convert headers, defaulting None values to empty strings.
+    header_list: list[str] = []
+    if headers:
+        header_list = ["" if h is None else str(h) for h in headers]
+
+    # Convert table data, defaulting None values to empty strings.
+    data_list: list[list[str]] = []
+    for row in table_data:
+        data_list.append(["" if cell is None else str(cell) for cell in row])
+
+    # Convert colalign to alignments list, defaulting to left alignment.
+    alignments: list[ColumnAlignment] = ["left"] * len(header_list)
+    if colalign:
+        alignments = [
+            a if a in ("left", "center", "right") else "left"
+            for a in colalign
+        ]
+
+    def visible_width(s: str) -> int:
+        """Return the display width of a string, accounting for unicode characters.
+
+        Uses ``wcwidth`` to calculate the proper display width of unicode and emoji
+        characters. This matches the behavior of ``mdformat`` linter. ANSI escape
+        codes are stripped before measuring.
+
+        .. note::
+            This is a local patch while waiting for a new python-tabulate release. See:
+
+            - https://github.com/astanin/python-tabulate/pull/391
+            - https://github.com/astanin/python-tabulate/pull/387
+            - https://github.com/astanin/python-tabulate/issues/389
+        """
+        # Strip ANSI escape codes before measuring width.
+        s = unstyle(s)
+        width = wcwidth.wcswidth(s)
+        # wcswidth returns -1 for control characters; fall back to len() in that case.
+        return len(s) if width < 0 else width
+
+    # Calculate column widths based on display width (for proper unicode/emoji
+    # handling). This matches the behavior of mdformat linter.
+    col_widths = []
+    for col_index, header in enumerate(header_list):
+        cells = [row[col_index] for row in data_list] + [header]
+        col_widths.append(max(visible_width(c) for c in cells))
+
+    # Build separator row with proper alignment hints.
+    separators = []
+    for col_index, width in enumerate(col_widths):
+        align = alignments[col_index]
+        if align == "left":
+            sep = f":{'-' * (width - 1)}"
+        elif align == "center":
+            sep = f":{'-' * (width - 2)}:"
+        elif align == "right":
+            sep = f"{'-' * (width - 1)}:"
+        else:
+            sep = "-" * width
+        separators.append(sep)
+
+    def pad_cell(content: str, width: int, align: ColumnAlignment) -> str:
+        """Pad a cell to the target display width with proper alignment."""
+        content_width = visible_width(content)
+        padding_needed = width - content_width
+        if align == "center":
+            left_pad = padding_needed // 2
+            right_pad = padding_needed - left_pad
+            return " " * left_pad + content + " " * right_pad
+        elif align == "right":
+            return " " * padding_needed + content
+        else:  # left or default
+            return content + " " * padding_needed
+
+    # Build header row.
+    header_cells = [
+        pad_cell(h, col_widths[i], alignments[i]) for i, h in enumerate(header_list)
+    ]
+
+    # Build data rows.
+    data_rows = []
+    for row in data_list:
+        row_cells = [
+            pad_cell(cell, col_widths[i], alignments[i]) for i, cell in enumerate(row)
+        ]
+        data_rows.append(row_cells)
+
+    # Assemble the table.
+    lines = []
+    lines.append("| " + " | ".join(header_cells) + " |")
+    lines.append("| " + " | ".join(separators) + " |")
+    for row_cells in data_rows:
+        lines.append("| " + " | ".join(row_cells) + " |")
+
+    return "\n".join(lines)
+
+
 def _select_table_funcs(
     table_format: TableFormat | None = None,
 ) -> tuple[Callable[..., str], Callable[[str], None]]:
@@ -280,7 +414,7 @@ def _select_table_funcs(
     line terminations, avoid extra line returns and keep ANSI coloring.
 
     .. todo::
-        Consider to always strips ANSI coloring for CSV formats.
+        Consider to force stripping of ANSI coloring for CSV and other markup formats.
     """
     print_func = echo
     match table_format:
@@ -294,6 +428,8 @@ def _select_table_funcs(
             return partial(_render_csv, table_format=table_format), print_func
         case TableFormat.VERTICAL:
             return _render_vertical, print_func
+        case TableFormat.GITHUB:
+            return _render_github, print_func
         case _:
             return partial(_render_tabulate, table_format=table_format), print_func
 

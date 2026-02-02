@@ -181,7 +181,7 @@ fancy_outline_table = """\
 
 github_table = """\
 | Day    | Temperature |
-| ------ | ----------- |
+| :----- | :---------- |
 | 1      | 42.9        |
 | 2      |             |
 | Friday | Hot 🥵      |
@@ -587,3 +587,107 @@ def test_all_table_rendering(
     assert result.stdout == f"Table format: {format_name}\n{expected}"
     assert not result.stderr
     assert result.exit_code == 0
+
+
+class TestGitHubTableAlignment:
+    """Tests for GitHub table alignment hints support."""
+
+    def test_default_left_alignment(self):
+        """Default alignment is left for all columns."""
+        from click_extra.table import render_table
+
+        result = render_table(
+            [["Alice", "24"], ["Bob", "19"]],
+            ["Name", "Age"],
+            TableFormat.GITHUB,
+        )
+        assert result == (
+            "| Name  | Age |\n"
+            "| :---- | :-- |\n"
+            "| Alice | 24  |\n"
+            "| Bob   | 19  |"
+        )
+
+    def test_right_alignment(self):
+        """Right alignment renders as ``---:``."""
+        from click_extra.table import render_table
+
+        result = render_table(
+            [["Alice", "24"], ["Bob", "19"]],
+            ["Name", "Age"],
+            TableFormat.GITHUB,
+            colalign=("left", "right"),
+        )
+        assert result == (
+            "| Name  | Age |\n"
+            "| :---- | --: |\n"
+            "| Alice |  24 |\n"
+            "| Bob   |  19 |"
+        )
+
+    def test_center_alignment(self):
+        """Center alignment renders as ``:---:``."""
+        from click_extra.table import render_table
+
+        result = render_table(
+            [["Alice", "24"], ["Bob", "19"]],
+            ["Name", "Age"],
+            TableFormat.GITHUB,
+            colalign=("center", "center"),
+        )
+        assert result == (
+            "| Name  | Age |\n"
+            "| :---: | :-: |\n"
+            "| Alice | 24  |\n"
+            "|  Bob  | 19  |"
+        )
+
+    def test_mixed_alignment(self):
+        """Mixed alignments render correctly."""
+        from click_extra.table import render_table
+
+        result = render_table(
+            [["Alice", "24", "NYC"], ["Bob", "19", "LA"]],
+            ["Name", "Age", "City"],
+            TableFormat.GITHUB,
+            colalign=("left", "right", "center"),
+        )
+        assert result == (
+            "| Name  | Age | City |\n"
+            "| :---- | --: | :--: |\n"
+            "| Alice |  24 | NYC  |\n"
+            "| Bob   |  19 |  LA  |"
+        )
+
+    def test_emoji_width(self):
+        """Emojis are handled with proper display width."""
+        from click_extra.table import render_table
+
+        result = render_table(
+            [["🐧", "Linux"], ["🍎", "macOS"]],
+            ["Icon", "OS"],
+            TableFormat.GITHUB,
+            colalign=("center", "left"),
+        )
+        assert result == (
+            "| Icon | OS    |\n"
+            "| :--: | :---- |\n"
+            "|  🐧  | Linux |\n"
+            "|  🍎  | macOS |"
+        )
+
+    def test_none_values(self):
+        """None values are rendered as empty strings."""
+        from click_extra.table import render_table
+
+        result = render_table(
+            [["Alice", None], [None, "19"]],
+            ["Name", "Age"],
+            TableFormat.GITHUB,
+        )
+        assert result == (
+            "| Name  | Age |\n"
+            "| :---- | :-- |\n"
+            "| Alice |     |\n"
+            "|       | 19  |"
+        )
