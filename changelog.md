@@ -1,9 +1,6 @@
 # Changelog
 
-## [7.5.0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.4.0...main)
-
-> [!IMPORTANT]
-> This version is not released yet and is under active development.
+## [7.5.0 (2026-02-02)](https://github.com/kdeldycke/click-extra/compare/v7.4.0...v7.5.0)
 
 - Fix `TableFormat.GITHUB` to render proper alignment hints in the separator row (`:---`, `:---:`, `---:`).
 - Move auto-lock time from 8:43 to 4:43.
