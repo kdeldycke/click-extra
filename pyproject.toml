@@ -1,7 +1,7 @@
 [project]
 # Docs: https://packaging.python.org/en/latest/guides/writing-pyproject-toml/
 name = "click-extra"
-version = "7.4.1"
+version = "7.5.0"
 # Python versions and their status: https://devguide.python.org/versions/
 requires-python = ">= 3.10"
 description = "🌈 Drop-in replacement for Click to make user-friendly and colorful CLI"
@@ -192,7 +192,7 @@ docs = { requires-python = ">= 3.14" }
 
 [project.urls]
 "Homepage" = "https://github.com/kdeldycke/click-extra"
-"Download" = "https://github.com/kdeldycke/click-extra/releases/tag/v7.4.1"
+"Download" = "https://github.com/kdeldycke/click-extra/releases/tag/v7.5.0"
 "Changelog" = "https://github.com/kdeldycke/click-extra/blob/main/changelog.md"
 "Issues" = "https://github.com/kdeldycke/click-extra/issues"
 "Repository" = "https://github.com/kdeldycke/click-extra"
@@ -275,7 +275,7 @@ addopts = [
 xfail_strict = true
 
 [tool.bumpversion]
-current_version = "7.4.1"
+current_version = "7.5.0"
 allow_dirty = true
 
 [[tool.bumpversion.files]]
