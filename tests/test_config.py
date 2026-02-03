@@ -26,7 +26,7 @@ import pytest
 from boltons.pathutils import shrinkuser
 from extra_platforms import (
     is_macos,
-    is_unix_not_macos, # type: ignore[attr-defined]
+    is_unix_not_macos,  # type: ignore[attr-defined]
     is_windows,
 )
 
