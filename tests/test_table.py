@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import csv
+from textwrap import dedent
 
 import pytest
 import tabulate
@@ -601,12 +602,11 @@ class TestGitHubTableAlignment:
             ["Name", "Age"],
             TableFormat.GITHUB,
         )
-        assert result == (
-            "| Name  | Age |\n"
-            "| ----- | --- |\n"
-            "| Alice | 24  |\n"
-            "| Bob   | 19  |"
-        )
+        assert result == dedent("""\
+            | Name  | Age |
+            | ----- | --- |
+            | Alice | 24  |
+            | Bob   | 19  |""")
 
     def test_left_alignment(self):
         """Left alignment renders as ``:---``."""
@@ -618,12 +618,11 @@ class TestGitHubTableAlignment:
             TableFormat.GITHUB,
             colalign=("left", "left"),
         )
-        assert result == (
-            "| Name  | Age |\n"
-            "| :---- | :-- |\n"
-            "| Alice | 24  |\n"
-            "| Bob   | 19  |"
-        )
+        assert result == dedent("""\
+            | Name  | Age |
+            | :---- | :-- |
+            | Alice | 24  |
+            | Bob   | 19  |""")
 
     def test_right_alignment(self):
         """Right alignment renders as ``---:``."""
@@ -635,12 +634,11 @@ class TestGitHubTableAlignment:
             TableFormat.GITHUB,
             colalign=("left", "right"),
         )
-        assert result == (
-            "| Name  | Age |\n"
-            "| :---- | --: |\n"
-            "| Alice |  24 |\n"
-            "| Bob   |  19 |"
-        )
+        assert result == dedent("""\
+            | Name  | Age |
+            | :---- | --: |
+            | Alice |  24 |
+            | Bob   |  19 |""")
 
     def test_center_alignment(self):
         """Center alignment renders as ``:---:``."""
@@ -652,12 +650,11 @@ class TestGitHubTableAlignment:
             TableFormat.GITHUB,
             colalign=("center", "center"),
         )
-        assert result == (
-            "| Name  | Age |\n"
-            "| :---: | :-: |\n"
-            "| Alice | 24  |\n"
-            "|  Bob  | 19  |"
-        )
+        assert result == dedent("""\
+            | Name  | Age |
+            | :---: | :-: |
+            | Alice | 24  |
+            |  Bob  | 19  |""")
 
     def test_mixed_alignment(self):
         """Mixed alignments render correctly."""
@@ -669,12 +666,11 @@ class TestGitHubTableAlignment:
             TableFormat.GITHUB,
             colalign=("left", "right", "center"),
         )
-        assert result == (
-            "| Name  | Age | City |\n"
-            "| :---- | --: | :--: |\n"
-            "| Alice |  24 | NYC  |\n"
-            "| Bob   |  19 |  LA  |"
-        )
+        assert result == dedent("""\
+            | Name  | Age | City |
+            | :---- | --: | :--: |
+            | Alice |  24 | NYC  |
+            | Bob   |  19 |  LA  |""")
 
     def test_emoji_width(self):
         """Emojis are handled with proper display width."""
@@ -686,12 +682,11 @@ class TestGitHubTableAlignment:
             TableFormat.GITHUB,
             colalign=("center", "left"),
         )
-        assert result == (
-            "| Icon | OS    |\n"
-            "| :--: | :---- |\n"
-            "|  🐧  | Linux |\n"
-            "|  🍎  | macOS |"
-        )
+        assert result == dedent("""\
+            | Icon | OS    |
+            | :--: | :---- |
+            |  🐧  | Linux |
+            |  🍎  | macOS |""")
 
     def test_none_values(self):
         """None values are rendered as empty strings."""
@@ -702,12 +697,11 @@ class TestGitHubTableAlignment:
             ["Name", "Age"],
             TableFormat.GITHUB,
         )
-        assert result == (
-            "| Name  | Age |\n"
-            "| ----- | --- |\n"
-            "| Alice |     |\n"
-            "|       | 19  |"
-        )
+        assert result == dedent("""\
+            | Name  | Age |
+            | ----- | --- |
+            | Alice |     |
+            |       | 19  |""")
 
     def test_unknown_alignment(self):
         """Unknown alignment values produce plain dashes (no hint)."""
@@ -719,9 +713,8 @@ class TestGitHubTableAlignment:
             TableFormat.GITHUB,
             colalign=("left", "unknown"),
         )
-        assert result == (
-            "| Name  | Age |\n"
-            "| :---- | --- |\n"
-            "| Alice | 24  |\n"
-            "| Bob   | 19  |"
-        )
+        assert result == dedent("""\
+            | Name  | Age |
+            | :---- | --- |
+            | Alice | 24  |
+            | Bob   | 19  |""")
