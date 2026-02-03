@@ -22,7 +22,6 @@ from enum import Enum
 from functools import partial
 from gettext import gettext as _
 from io import StringIO
-from typing import Literal
 
 import tabulate
 import wcwidth  # type: ignore[import-untyped]
