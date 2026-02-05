@@ -520,6 +520,16 @@ class ClickDomain(Domain):
         "run": RunDirective,
     }
 
+    def merge_domaindata(self, docnames: list[str], otherdata: dict) -> None:
+        """Merge domain data from parallel processes.
+
+        .. caution::
+            This domain is stateless and safe to run in parallel. However, Sphinx
+            requires this method to be defined for any domain that declares
+            ``parallel_read_safe = True``, even as a no-op.
+        """
+        pass
+
 
 def cleanup_runner(app: Sphinx, doctree: nodes.document) -> None:
     """Close and remove the :class:`ClickRunner` instance once the
