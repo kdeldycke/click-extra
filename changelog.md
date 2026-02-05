@@ -1,5 +1,10 @@
 # Changelog
 
+## [7.5.2 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.5.1...main)
+
+> [!IMPORTANT]
+> This version is not released yet and is under active development.
+
 ## [7.5.1 (2026-02-05)](https://github.com/kdeldycke/click-extra/compare/v7.5.0...v7.5.1)
 
 - Add new `aligned` table format with single-space column separators and no borders.
