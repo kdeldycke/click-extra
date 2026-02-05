@@ -90,6 +90,7 @@ They're divided in 2 categories:
 
 | Format ID | Description | Implementation | Markup |
 |--------|-------------|--------|----------------|
+| `aligned` | Compact table with single-space column separators and no borders | Click Extra | ❌ |
 | `asciidoc` | [AsciiDoc table](https://docs.asciidoctor.org/asciidoc/latest/tables/build-a-basic-table/) | `python-tabulate` | ✅ |
 | `csv` | [Comma-separated values](https://en.wikipedia.org/wiki/Comma-separated_values) | `csv`| ✅ |
 | `csv-excel` | CSV with [Excel dialect](https://docs.python.org/3/library/csv.html#csv.excel) | `csv`| ✅ |
@@ -134,6 +135,11 @@ They're divided in 2 categories:
 
 ```{todo}
 Explain extra parameters supported by `print_table()` for each category of formats.
+```
+
+```{click:run}
+:emphasize-lines: 1
+invoke(table_command, args=["--table-format", "aligned"])
 ```
 
 ```{click:run}

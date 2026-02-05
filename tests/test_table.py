@@ -91,17 +91,25 @@ def test_unrecognized_format(invoke, cmd_decorator, cmd_type):
         f"Usage: table-cli [OPTIONS]{group_help}\n"
         "Try 'table-cli --help' for help.\n\n"
         "Error: Invalid value for '--table-format': 'random' is not one of "
-        "'asciidoc', 'csv', 'csv-excel', 'csv-excel-tab', 'csv-unix', 'double-grid', "
-        "'double-outline', 'fancy-grid', 'fancy-outline', 'github', 'grid', "
-        "'heavy-grid', 'heavy-outline', 'html', 'jira', 'latex', 'latex-booktabs', "
-        "'latex-longtable', 'latex-raw', 'mediawiki', 'mixed-grid', 'mixed-outline', "
-        "'moinmoin', 'orgtbl', 'outline', 'pipe', 'plain', 'presto', 'pretty', "
-        "'psql', 'rounded-grid', 'rounded-outline', 'rst', 'simple', 'simple-grid', "
-        "'simple-outline', 'textile', 'tsv', 'unsafehtml', 'vertical', 'youtrack'.\n"
+        "'aligned', 'asciidoc', 'csv', 'csv-excel', 'csv-excel-tab', 'csv-unix', "
+        "'double-grid', 'double-outline', 'fancy-grid', 'fancy-outline', 'github', "
+        "'grid', 'heavy-grid', 'heavy-outline', 'html', 'jira', 'latex', "
+        "'latex-booktabs', 'latex-longtable', 'latex-raw', 'mediawiki', 'mixed-grid', "
+        "'mixed-outline', 'moinmoin', 'orgtbl', 'outline', 'pipe', 'plain', 'presto', "
+        "'pretty', 'psql', 'rounded-grid', 'rounded-outline', 'rst', 'simple', "
+        "'simple-grid', 'simple-outline', 'textile', 'tsv', 'unsafehtml', 'vertical', "
+        "'youtrack'.\n"
     )
 
     assert result.exit_code == 2
 
+
+aligned_table = """\
+Day    Temperature
+1      42.9
+2
+Friday Hot 🥵
+"""
 
 asciidoc_table = (
     '[cols="8<,13<",options="header"]\n'
@@ -499,6 +507,7 @@ youtrack_table = """\
 """
 
 expected_renderings = {
+    TableFormat.ALIGNED: aligned_table,
     TableFormat.ASCIIDOC: asciidoc_table,
     TableFormat.CSV: csv_table,
     TableFormat.CSV_EXCEL: csv_excel_table,

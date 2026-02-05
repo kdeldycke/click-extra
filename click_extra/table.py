@@ -44,6 +44,16 @@ tabulate.MIN_PADDING = 0
 
 tabulate._table_formats.update(  # type: ignore[attr-defined]
     {
+        "aligned": TabulateTableFormat(
+            lineabove=None,
+            linebelowheader=None,
+            linebetweenrows=None,
+            linebelow=None,
+            headerrow=DataRow("", " ", ""),
+            datarow=DataRow("", " ", ""),
+            padding=0,
+            with_header_hide=None,
+        ),
         "github": TabulateTableFormat(
             lineabove=Line("| ", "-", " | ", " |"),
             linebelowheader=Line("| ", "-", " | ", " |"),
@@ -56,22 +66,28 @@ tabulate._table_formats.update(  # type: ignore[attr-defined]
         ),
     },
 )
-"""Tweak table separators to match MyST and GFM syntax.
+"""Custom table formats registered with tabulate.
 
-I.e. add a space between the column separator and the dashes filling a cell:
+``aligned``
+    A minimal format with single-space column separators and no borders or decorations.
+    Similar to ``plain`` but more compact (single space instead of double space between
+    columns). Useful for bar plugin output or other contexts requiring minimal formatting.
 
-``|---|---|---|`` → ``| --- | --- | --- |``
+``github``
+    Tweaked table separators to match MyST and GFM syntax. Adds a space between the
+    column separator and the dashes filling a cell:
+    ``|---|---|---|`` → ``| --- | --- | --- |``
 
-That way we produce a table that doesn't need any supplement linting.
+    That way we produce a table that doesn't need any supplement linting.
 
-.. todo::
-    This has been merged upstream and can be removed once python-tabulate v0.9.1 is
-    released:
+    .. todo::
+        This has been merged upstream and can be removed once python-tabulate v0.9.1 is
+        released:
 
-    - https://github.com/astanin/python-tabulate/pull/261
-    - https://github.com/astanin/python-tabulate/pull/341
-    - https://github.com/astanin/python-tabulate/issues/364
-    - https://github.com/astanin/python-tabulate/issues/335
+        - https://github.com/astanin/python-tabulate/pull/261
+        - https://github.com/astanin/python-tabulate/pull/341
+        - https://github.com/astanin/python-tabulate/issues/364
+        - https://github.com/astanin/python-tabulate/issues/335
 """
 
 
@@ -88,6 +104,7 @@ class TableFormat(Enum):
         <https://github.com/astanin/python-tabulate/issues/375>`_.
     """
 
+    ALIGNED = "aligned"
     ASCIIDOC = "asciidoc"
     CSV = "csv"
     CSV_EXCEL = "csv-excel"
@@ -422,6 +439,7 @@ def _select_table_funcs(
             return partial(_render_csv, table_format=table_format), print_func
         case TableFormat.VERTICAL:
             return _render_vertical, print_func
+        # Bypass tabulate's own GitHub format, which doesn't support alignment hints for markdown tables.
         case TableFormat.GITHUB:
             return _render_github, print_func
         case _:

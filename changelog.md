@@ -5,6 +5,7 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Add new `aligned` table format with single-space column separators and no borders.
 - Fix parallel mode support in Sphinx extension. Closes {issue}`1482`.
 
 ## [7.5.0 (2026-02-02)](https://github.com/kdeldycke/click-extra/compare/v7.4.0...v7.5.0)
