@@ -231,7 +231,7 @@ Here is the list of new ANSI-capable lexers and the [original lexers](https://py
 <!-- lexer-table-start -->
 
 | Original Lexer                                                                                             | Original IDs                                     | ANSI variants                                                   |
-| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | --------------------------------------------------------------- |
+| :--------------------------------------------------------------------------------------------------------- | :----------------------------------------------- | :-------------------------------------------------------------- |
 | [`BashSessionLexer`](https://pygments.org/docs/lexers/#pygments.lexers.shell.BashSessionLexer)             | `console`, `shell-session`                       | `ansi-console`, `ansi-shell-session`                            |
 | [`DylanConsoleLexer`](https://pygments.org/docs/lexers/#pygments.lexers.dylan.DylanConsoleLexer)           | `dylan-console`, `dylan-repl`                    | `ansi-dylan-console`, `ansi-dylan-repl`                         |
 | [`ElixirConsoleLexer`](https://pygments.org/docs/lexers/#pygments.lexers.erlang.ElixirConsoleLexer)        | `iex`                                            | `ansi-iex`                                                      |
