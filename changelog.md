@@ -5,6 +5,10 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Replace Dependabot by Renovate.
+- Move `click_extra/docs_update.py` to `docs/docs_update.py`.
+- Add `pygments-ansi-color` to `docs` dependency group for lexer table generation.
+
 ## [7.5.1 (2026-02-05)](https://github.com/kdeldycke/click-extra/compare/v7.5.0...v7.5.1)
 
 - Add new `aligned` table format with single-space column separators and no borders.

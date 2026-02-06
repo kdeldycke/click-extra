@@ -57,14 +57,6 @@ click\_extra.decorators module
    :show-inheritance:
    :undoc-members:
 
-click\_extra.docs\_update module
---------------------------------
-
-.. automodule:: click_extra.docs_update
-   :members:
-   :show-inheritance:
-   :undoc-members:
-
 click\_extra.envvar module
 --------------------------
 

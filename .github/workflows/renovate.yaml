@@ -1,0 +1,17 @@
+---
+name: Renovate
+"on":
+  push:
+    branches:
+      - main
+    paths:
+      - renovate.json5
+  schedule:
+    # Run weekly, every Monday at 17:03.
+    - cron: "3 17 * * 1"
+  workflow_dispatch:
+
+jobs:
+
+  renovate:
+    uses: kdeldycke/workflows/.github/workflows/renovate.yaml@v5.6.2

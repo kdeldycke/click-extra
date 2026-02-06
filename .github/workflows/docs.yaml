@@ -10,31 +10,4 @@ name: Docs
 jobs:
 
   docs:
-    uses: kdeldycke/workflows/.github/workflows/docs.yaml@v4.25.4
-
-  update-docs:
-    needs: docs
-    runs-on: ubuntu-slim
-    steps:
-      - uses: actions/checkout@v6.0.1
-      - uses: astral-sh/setup-uv@v7.2.0
-      - name: Generate dynamic doc
-        run: |
-          uv --no-progress run --frozen --extra pygments -m click_extra.docs_update
-      - uses: peter-evans/create-pull-request@v8.0.0
-        with:
-          assignees: ${{ github.actor }}
-          commit-message: "[autofix] Regenerate documentation"
-          title: "[autofix] Regenerate documentation"
-          body: >
-            <details><summary><code>Workflow metadata</code></summary>
-
-
-            > [Auto-generated on run `#${{ github.run_id }}`](${{ github.event.repository.html_url }}/actions/runs/${{
-            github.run_id }}) by `${{ github.job }}` job from [`docs.yaml`](${{ github.event.repository.html_url
-            }}/blob/${{ github.sha }}/.github/workflows/docs.yaml) workflow.
-
-
-            </details>
-          labels: "📚 documentation"
-          branch: update-docs
+    uses: kdeldycke/workflows/.github/workflows/docs.yaml@v5.6.2
