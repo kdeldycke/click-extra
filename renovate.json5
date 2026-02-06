@@ -1,0 +1,60 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: ["config:recommended", "abandonments:recommended"],
+
+  // Keep lock files up-to-date, including transitive dependencies.
+  // Runs on every Renovate execution rather than the default weekly schedule.
+  lockFileMaintenance: {
+    enabled: true,
+    schedule: ["at any time"],
+    semanticCommits: "disabled",
+    commitMessagePrefix: "[deps]",
+    commitMessageAction: "Sync `uv.lock`",
+  },
+
+  // PR and issue settings.
+  labels: ["📦 dependencies"],
+  dependencyDashboardLabels: ["📦 dependencies"],
+
+  // Schedule settings.
+  timezone: "UTC",
+  schedule: ["at any time"],
+
+  // Commit message format: "[deps] Update click to <8.4".
+  semanticCommits: "disabled",
+  commitMessagePrefix: "[deps]",
+  commitMessageTopic: "{{{depName}}}",
+
+  // Stabilization periods. Must be > 7 days to match pyproject.toml's exclude-newer.
+  minimumReleaseAge: "8 days",
+  packageRules: [
+    {
+      description: "Major updates have a longer stabilization period.",
+      matchUpdateTypes: ["major"],
+      minimumReleaseAge: "29 days",
+    },
+    {
+      description: "Minor updates have a moderate stabilization period.",
+      matchUpdateTypes: ["minor"],
+      minimumReleaseAge: "11 days",
+    },
+    {
+      // Must be > 7 days to match pyproject.toml's exclude-newer buffer.
+      description: "Patch updates have a shorter stabilization period.",
+      matchUpdateTypes: ["patch"],
+      minimumReleaseAge: "8 days",
+    },
+    {
+      description: "Flag dependencies with no recent releases.",
+      matchCurrentAge: "> 1 year",
+      addLabels: ["⚠️ stale dependency"],
+    },
+  ],
+
+  // Security updates: raise PRs immediately when vulnerabilities are detected.
+  // Requires "Dependabot alerts" read permission on the token.
+  vulnerabilityAlerts: {
+    enabled: true,
+    labels: ["📦 dependencies", "💣 security"],
+  }
+}
