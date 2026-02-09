@@ -53,6 +53,7 @@ CODE_CONTENT_DIRECTIVES = frozenset({
     "sourcecode",
     "literalinclude",
     "code",
+    "list-table",
 })
 
 

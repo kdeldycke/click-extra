@@ -730,6 +730,46 @@ def test_all_alert_types(alert_type):
                 ::::"""),
             id="complex_nested_with_list_blockquote_alert_and_code",
         ),
+        pytest.param(
+            dedent("""\
+                ```{list-table}
+                :header-rows: 1
+                :widths: 10 30 30 30
+
+                * - Type
+                  - GitHub syntax
+                  - MyST syntax
+                  - Rendered
+                * - Note
+                  - ```markdown
+                    > [!NOTE]
+                    > Useful information.
+                    ```
+                  - ```markdown
+                    :::{note}
+                    Useful information.
+                    :::
+                    ```
+                  - ```{note}
+                    Useful information.
+                    ```
+                * - Tip
+                  - ```markdown
+                    > [!TIP]
+                    > Helpful advice.
+                    ```
+                  - ```markdown
+                    :::{tip}
+                    Helpful advice.
+                    :::
+                    ```
+                  - ```{tip}
+                    Helpful advice.
+                    ```
+                ```"""),
+            None,
+            id="list_table_with_alert_examples_preserved",
+        ),
     ],
 )
 def test_alert_conversion(text, expected):

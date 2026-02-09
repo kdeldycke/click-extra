@@ -5,6 +5,7 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Fix GitHub alerts converter mangling `list-table` directive content. Closes {issue}`1490`.
 - Replace Dependabot by Renovate.
 - Move `click_extra/docs_update.py` to `docs/docs_update.py`.
 - Add `pygments-ansi-color` to `docs` dependency group for lexer table generation.
