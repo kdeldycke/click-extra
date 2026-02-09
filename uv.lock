@@ -12,7 +12,7 @@ resolution-markers = [
 exclude-newer = "2026-02-02T00:00:00Z"
 
 [options.exclude-newer-package]
-extra-platforms = { timestamp = "2026-02-09T10:29:50.846955722Z", span = "PT0S" }
+extra-platforms = { timestamp = "2026-02-09T17:26:45.789488335Z", span = "PT0S" }
 
 [[package]]
 name = "accessible-pygments"
@@ -284,12 +284,12 @@ typing = [
 
 [package.metadata]
 requires-dist = [
-    { name = "boltons", specifier = ">=25.0.0" },
+    { name = "boltons", specifier = ">=25" },
     { name = "click", specifier = ">=8.3.1" },
     { name = "cloup", specifier = ">=3.0.7" },
-    { name = "deepmerge", specifier = ">=2.0" },
+    { name = "deepmerge", specifier = ">=2" },
     { name = "docutils", marker = "extra == 'sphinx'", specifier = ">=0.20" },
-    { name = "extra-platforms", specifier = ">=8.0.0" },
+    { name = "extra-platforms", specifier = ">=8" },
     { name = "hjson", marker = "extra == 'hjson'", specifier = ">=3.1.0" },
     { name = "json-with-comments", marker = "extra == 'jsonc'", specifier = ">=1.2.10" },
     { name = "json5", marker = "extra == 'json5'", specifier = ">=0.12.1" },
@@ -302,8 +302,8 @@ requires-dist = [
     { name = "requests", specifier = ">=2.32.5" },
     { name = "sphinx", marker = "extra == 'sphinx'", specifier = ">=8.0.0" },
     { name = "tabulate", extras = ["widechars"], specifier = ">=0.9" },
-    { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2.3.0" },
-    { name = "wcmatch", specifier = ">=10.0" },
+    { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2.3" },
+    { name = "wcmatch", specifier = ">=10" },
     { name = "xmltodict", marker = "extra == 'xml'", specifier = ">=1.0.0" },
 ]
 provides-extras = ["yaml", "json5", "jsonc", "hjson", "xml", "pygments", "sphinx", "pytest"]
@@ -311,29 +311,29 @@ provides-extras = ["yaml", "json5", "jsonc", "hjson", "xml", "pygments", "sphinx
 [package.metadata.requires-dev]
 docs = [
     { name = "furo", marker = "python_full_version >= '3.14'", specifier = ">=2025.9.25" },
-    { name = "myst-parser", marker = "python_full_version >= '3.14'", specifier = ">=4.0.0" },
-    { name = "pygments-ansi-color", marker = "python_full_version >= '3.14'", specifier = ">=0.3.0" },
+    { name = "myst-parser", marker = "python_full_version >= '3.14'", specifier = ">=4" },
+    { name = "pygments-ansi-color", marker = "python_full_version >= '3.14'", specifier = ">=0.3" },
     { name = "sphinx", marker = "python_full_version >= '3.14'" },
-    { name = "sphinx-autodoc-typehints", marker = "python_full_version >= '3.14'", specifier = ">=2.4.0" },
+    { name = "sphinx-autodoc-typehints", marker = "python_full_version >= '3.14'", specifier = ">=2.4" },
     { name = "sphinx-copybutton", marker = "python_full_version >= '3.14'", specifier = ">=0.5.2" },
-    { name = "sphinx-design", marker = "python_full_version >= '3.14'", specifier = ">=0.6.0" },
-    { name = "sphinx-issues", marker = "python_full_version >= '3.14'", specifier = ">=5.0.0" },
+    { name = "sphinx-design", marker = "python_full_version >= '3.14'", specifier = ">=0.6" },
+    { name = "sphinx-issues", marker = "python_full_version >= '3.14'", specifier = ">=5" },
     { name = "sphinxcontrib-mermaid", marker = "python_full_version >= '3.14'", specifier = ">=1.2.3" },
-    { name = "sphinxext-opengraph", marker = "python_full_version >= '3.14'", specifier = ">=0.13.0" },
-    { name = "tomli", marker = "python_version < '0'", specifier = ">=2.3.0" },
+    { name = "sphinxext-opengraph", marker = "python_full_version >= '3.14'", specifier = ">=0.13" },
+    { name = "tomli", marker = "python_version < '0'", specifier = ">=2.3" },
 ]
 test = [
-    { name = "backports-strenum", marker = "python_full_version < '3.11'", specifier = ">=1.3.0" },
-    { name = "coverage", extras = ["toml"], specifier = ">=7.12.0" },
-    { name = "extra-platforms", extras = ["pytest"], specifier = ">=5.0.0" },
-    { name = "myst-parser", specifier = ">=4.0.0" },
+    { name = "backports-strenum", marker = "python_full_version < '3.11'", specifier = ">=1.3" },
+    { name = "coverage", extras = ["toml"], specifier = ">=7.12" },
+    { name = "extra-platforms", extras = ["pytest"], specifier = ">=5" },
+    { name = "myst-parser", specifier = ">=4" },
     { name = "pytest" },
-    { name = "pytest-cov", specifier = ">=7.0.0" },
-    { name = "pytest-github-actions-annotate-failures", specifier = ">=0.3.0" },
-    { name = "pytest-httpserver", specifier = ">=1.1.0" },
+    { name = "pytest-cov", specifier = ">=7" },
+    { name = "pytest-github-actions-annotate-failures", specifier = ">=0.3" },
+    { name = "pytest-httpserver", specifier = ">=1.1" },
     { name = "pytest-randomly", specifier = ">=4.0.1" },
     { name = "sphinx" },
-    { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2.3.0" },
+    { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2.3" },
 ]
 typing = [
     { name = "types-boltons", specifier = ">=25.0.0.20250919" },
@@ -520,7 +520,7 @@ name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/79/66800aadf48771f6b62f7eb014e352e5d06856655206165d775e675a02c9/exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219", size = 30371, upload-time = "2025-11-21T23:01:54.787Z" }
 wheels = [
