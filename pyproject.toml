@@ -211,6 +211,37 @@ build-backend = "uv_build"
 # Package is at root level, not in "./src/".
 module-root = ""
 
+# Ruff linter/formatter configuration for Python projects.
+#
+# Native format - can be used standalone as ruff.toml or .ruff.toml.
+# When merged into pyproject.toml via `gha-utils bundled init ruff`,
+# the [tool.ruff] prefix is added automatically.
+
+[tool.ruff]
+preview = true
+fix = true
+unsafe-fixes = true
+show-fixes = true
+
+[tool.ruff.lint]
+# Allow rules to add `from __future__ import annotations` in cases where
+# this would simplify a fix or enable a new diagnostic.
+# https://docs.astral.sh/ruff/settings/#lint_future-annotations
+future-annotations = true
+
+# D400: First line should end with a period.
+#   Allows docstrings to end up with any punctuation, not just a period.
+#   See: https://github.com/astral-sh/ruff/issues/1858#issuecomment-1382640623
+# ERA001: Found commented-out code.
+#   Do not remove commented code, as it might be used for documentation.
+#   See: https://docs.astral.sh/ruff/rules/#eradicate-era
+ignore = ["D400", "ERA001"]
+
+[tool.ruff.format]
+# Enable reformatting of code snippets in docstrings.
+# https://docs.astral.sh/ruff/formatter/#docstring-formatting
+docstring-code-format = true
+
 [tool.uv]
 # Cooldown period.
 exclude-newer = "2026-02-02T00:00:00Z"
