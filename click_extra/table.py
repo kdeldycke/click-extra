@@ -439,7 +439,8 @@ def _select_table_funcs(
             return partial(_render_csv, table_format=table_format), print_func
         case TableFormat.VERTICAL:
             return _render_vertical, print_func
-        # Bypass tabulate's own GitHub format, which doesn't support alignment hints for markdown tables.
+        # Bypass tabulate's own GitHub format, which doesn't support alignment
+        # hints for markdown tables.
         case TableFormat.GITHUB:
             return _render_github, print_func
         case _:

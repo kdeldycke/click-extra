@@ -27,7 +27,9 @@ project_root = Path(__file__).parent.parent
 
 # Generate the Markdown table mapping Pygments lexers to their ANSI variants.
 table = []
-for orig_lexer, ansi_lexer in sorted(lexer_map.items(), key=lambda i: i[0].__qualname__):
+for orig_lexer, ansi_lexer in sorted(
+    lexer_map.items(), key=lambda i: i[0].__qualname__
+):
     table.append(
         [
             f"[`{orig_lexer.__qualname__}`](https://pygments.org/docs/lexers/#"
