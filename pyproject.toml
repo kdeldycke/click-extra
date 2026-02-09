@@ -213,7 +213,7 @@ module-root = ""
 
 [tool.uv]
 # Cooldown period.
-exclude-newer = "1 week"
+exclude-newer = "2026-02-02T00:00:00Z"
 # XXX Disable exclusion of brand new extra-platforms releases.
 exclude-newer-package = { extra-platforms = "0 day" }
 
