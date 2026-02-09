@@ -305,16 +305,24 @@ default.extend-ignore-identifiers-re = [
 # https://docs.pytest.org/en/latest/customize.html#pyproject-toml
 addopts = [
   "--durations=10",
-  "--cov=click_extra",
-  "--cov-branch",
-  "--cov-precision=2",
+  "--cov",
   "--cov-report=term",
   "--cov-report=xml",
+  # Codecov.io's test analytics requires a JUnit XML file:
+  # https://docs.codecov.com/docs/test-analytics#1-output-a-junit-xml-file-in-your-ci
   "--junitxml=junit.xml",
   "--override-ini=junit_family=legacy",
 ]
 # Make sure tests that are expected to fail do not resurect and start working all of a sudden.
 xfail_strict = true
+
+[tool.coverage.run]
+# https://coverage.readthedocs.io/en/latest/config.html
+source = [ "click_extra" ]
+branch = true
+
+[tool.coverage.report]
+precision = 2
 
 [tool.bumpversion]
 current_version = "7.5.2"
