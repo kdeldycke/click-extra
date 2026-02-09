@@ -24,7 +24,7 @@ from gettext import gettext as _
 from io import StringIO
 
 import tabulate
-import wcwidth  # type: ignore[import-untyped]
+import wcwidth
 from tabulate import DataRow, Line
 from tabulate import TableFormat as TabulateTableFormat
 
