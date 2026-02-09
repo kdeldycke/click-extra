@@ -74,8 +74,6 @@ classifiers = [
   "Topic :: Utilities",
   "Typing :: Typed",
 ]
-# Package referenced above and also featured in [project.optional-dependencies] or [dependency-groups]
-# will be set without version specifier as they are already constrained.
 # Semantic versioning works in theory. In practice, it is hard to guarantee.
 # That's why we rely on >= specifier instead of ~= to relax constraints. This gives more freedom to packagers to
 # release hotfixes for security vulnerabilities in the future.
@@ -110,12 +108,13 @@ dependencies = [
 ]
 
 [project.entry-points]
-"pygments.formatters".ansi-html-formatter = "click_extra.pygments:AnsiHtmlFormatter"
 # Make additional fixtures available to pytest.
 # See: https://docs.pytest.org/en/latest/how-to/writing_plugins.html#making-your-plugin-installable-by-others
 pytest11.click-extra = "click_extra.pytest"
 # The name of the entrypoint value doesn’t really matter, Pygments extracts required metadata from the class definition.
 # Source: https://pygments.org/docs/plugins/#defining-plugins-through-entrypoints
+"pygments.filters".ansi-filter = "click_extra.pygments:AnsiFilter"
+"pygments.formatters".ansi-html-formatter = "click_extra.pygments:AnsiHtmlFormatter"
 "pygments.lexers".ansi-bash-session = "click_extra.pygments:AnsiBashSessionLexer"
 "pygments.lexers".ansi-dylan-console = "click_extra.pygments:AnsiDylanConsoleLexer"
 "pygments.lexers".ansi-elixir-console = "click_extra.pygments:AnsiElixirConsoleLexer"
@@ -133,7 +132,7 @@ pytest11.click-extra = "click_extra.pytest"
 "pygments.lexers".ansi-ruby-console = "click_extra.pygments:AnsiRubyConsoleLexer"
 "pygments.lexers".ansi-sqlite-console = "click_extra.pygments:AnsiSqliteConsoleLexer"
 "pygments.lexers".ansi-tcsh-session = "click_extra.pygments:AnsiTcshSessionLexer"
-"pygments.filters".ansi-filter = "click_extra.pygments:AnsiFilter"
+
 [project.optional-dependencies]
 yaml = [
   # PyYAML 6.0.3 is the first version to support Python 3.14.
@@ -238,12 +237,6 @@ exclude-newer-package = { extra-platforms = "0 day" }
 # Package is at root level, not in "./src/".
 module-root = ""
 
-# Ruff linter/formatter configuration for Python projects.
-#
-# Native format - can be used standalone as ruff.toml or .ruff.toml.
-# When merged into pyproject.toml via `gha-utils bundled init ruff`,
-# the [tool.ruff] prefix is added automatically.
-
 [tool.uv.dependency-groups]
 # We rely on recent Python features in some of our {click:run} directives.
 docs = { requires-python = ">= 3.14" }
@@ -253,7 +246,6 @@ preview = true
 fix = true
 unsafe-fixes = true
 show-fixes = true
-
 # Enable reformatting of code snippets in docstrings.
 # https://docs.astral.sh/ruff/formatter/#docstring-formatting
 format.docstring-code-format = true
