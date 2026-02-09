@@ -253,7 +253,7 @@ class ClickRunner(ExtraCliRunner):
                     python_lineno = node.lineno
                     python_line = source_lines[python_lineno - 1]
                     # Compute the absolute line number in the document.
-                    if directive.is_myst_syntax:  # type:ignore[attr-defined]
+                    if directive.is_myst_syntax:
                         # In MyST, the content offset is the position of the first line
                         # of the source code, relative to the directive itself.
                         doc_lineno = (
@@ -343,7 +343,7 @@ class ClickDirective(SphinxDirective):
         if "language" in self.options:
             return self.options["language"]  # type: ignore[no-any-return]
         if self.arguments:
-            return self.arguments[0]
+            return str(self.arguments[0])
         return self.default_language
 
     @cached_property
@@ -392,7 +392,7 @@ class ClickDirective(SphinxDirective):
     @cached_property
     def is_myst_syntax(self) -> bool:
         """Check if the current directive is written with MyST syntax."""
-        return self.state.__module__.split(".", 1)[0] == "myst_parser"
+        return bool(self.state.__module__.split(".", 1)[0] == "myst_parser")
 
     def render_code_block(self, lines: Iterable[str], language: str) -> list[str]:
         """Render the code block with the source code and results."""
@@ -409,10 +409,9 @@ class ClickDirective(SphinxDirective):
             # Indent the line in rST code block.
             block.append(line if self.is_myst_syntax else RST_INDENT + line)
 
-        # rST code directives needs a blank line before the body of the block else the
-        # first line will be interpreted as a directive option.
-        if not self.is_myst_syntax:
-            block.append("")
+        # Both rST and MyST need a blank line before the body of the block else the
+        # first line will be interpreted as a directive option or argument.
+        block.append("")
 
         for line in lines:
             block.append(line if self.is_myst_syntax else RST_INDENT + line)

@@ -83,7 +83,7 @@ def render_matrix(matrix):
     table = []
 
     if matrix == "colors":
-        table_headers = ["Foreground ↴ \ Background →"] + all_colors
+        table_headers = ["Foreground ↴ \\ Background →"] + all_colors
         for fg_color in all_colors:
             line = [
                 style(fg_color, fg=fg_color)
@@ -95,7 +95,7 @@ def render_matrix(matrix):
             table.append(line)
 
     elif matrix == "styles":
-        table_headers = ["Color ↴ \ Style →"] + all_styles
+        table_headers = ["Color ↴ \\ Style →"] + all_styles
         for color_name in all_colors:
             line = [
                 style(color_name, fg=color_name)
