@@ -14,4 +14,4 @@ name: Renovate
 jobs:
 
   renovate:
-    uses: kdeldycke/workflows/.github/workflows/renovate.yaml@v5.6.2
+    uses: kdeldycke/workflows/.github/workflows/renovate.yaml@v5.7.0
