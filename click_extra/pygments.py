@@ -142,7 +142,7 @@ def collect_session_lexers() -> Iterator[type[Lexer]]:
     .. hint::
 
         To help maintain this list, there is `a test that will fail
-        <https://github.com/kdeldycke/click-extra/blob/main/click_extra/tests/test_pygments.py>`_
+        <https://github.com/kdeldycke/click-extra/blob/main/tests/test_pygments.py>`_
         if a new REPL/terminal-like lexer is added to Pygments but not referenced here.
     """
     yield from [

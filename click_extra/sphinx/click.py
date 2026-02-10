@@ -19,7 +19,7 @@
     These directives are based on `Pallets' Sphinx Themes
     <https://github.com/pallets/pallets-sphinx-themes/blob/main/src/pallets_sphinx_themes/themes/click/domain.py>`_,
     `released under a BSD-3-Clause license
-    <https://github.com/pallets/pallets-sphinx-themes/tree/main?tab=BSD-3-Clause-1-ov-file#readme>`_.
+    <https://github.com/pallets/pallets-sphinx-themes/blob/main/LICENSE.txt>`_.
 
     Compared to the latter, it:
 
@@ -299,7 +299,7 @@ class ClickDirective(SphinxDirective):
     """Options supported by this directive.
 
     Support the `same options
-    <https://github.com/sphinx-doc/sphinx/blob/ead64df/sphinx/directives/code.py#L108-L117>`_
+    <https://github.com/sphinx-doc/sphinx/blob/cc7c6f4/sphinx/directives/code.py#L108-L117>`_
     as :class:`sphinx.directives.code.CodeBlock`, and some specific to Click
     directives.
     """

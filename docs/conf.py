@@ -114,6 +114,16 @@ html_theme_options = {
     ),
 }
 
+# Linkcheck configuration.
+# GitHub renders issue comments, README tab anchors and blob line anchors with
+# JavaScript, so the linkcheck builder cannot find them in the static HTML.
+linkcheck_anchors_ignore = [
+    r"issuecomment-\d+",
+    r"a-simple-example",
+    r"readme",
+    r"L\d+",
+]
+
 # Footer content.
 html_last_updated_fmt = "%Y-%m-%d"
 copyright = f"{author} and contributors"

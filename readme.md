@@ -54,7 +54,7 @@ To undestrand how we ended up with the result above, [go read the tutorial](http
 - Remote loading of [configuration from URLs](https://kdeldycke.github.io/click-extra/config.html#remote-url)
 - Optional [strict validation](https://kdeldycke.github.io/click-extra/config.html#strictness) of configuration
 - Respect the [default application path](https://kdeldycke.github.io/click-extra/config.html#default-folder) on each platform (XDG spec. on Linux)
-- [Glob search patterns](https://kdeldycke.github.io/click-extra/config.html#pattern-matching) for configuration files
+- [Glob search patterns](https://kdeldycke.github.io/click-extra/config.html#search-pattern) for configuration files
 - A `--no-config` option to disable configuration file loading
 - Respect of `CLI` > `Configuration` > `Environment` > `Defaults` [precedence](https://kdeldycke.github.io/click-extra/config.html#precedence)
 - Normalization and discoverability of environment variables
@@ -76,7 +76,7 @@ To undestrand how we ended up with the result above, [go read the tutorial](http
 - [`click:source` and `click:run` Sphinx directives](https://kdeldycke.github.io/click-extra/sphinx.html) in MyST Markdown and reStructuredText to document CLI source code and their execution
 - [Inline testing of CLI examples](https://kdeldycke.github.io/click-extra/sphinx.html#inline-tests) in documentation
 - Render [GitHub alerts](https://kdeldycke.github.io/click-extra/sphinx.html#github-alerts) into MyST admonitions
-- [ANSI-capable Pygments lexers](https://kdeldycke.github.io/click-extra/pygments.html#lexers) for shell session and console output
+- [ANSI-capable Pygments lexers](https://kdeldycke.github.io/click-extra/pygments.html#ansi-language-lexers) for shell session and console output
 - [Fixes 50+ bugs](https://kdeldycke.github.io/click-extra/issues.html) from other Click-related projects
 - Rely on [Cloup](https://github.com/janluke/cloup) to add:
   - option groups

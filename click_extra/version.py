@@ -50,7 +50,7 @@ class ExtraVersionOption(ExtraOption):
 
     .. note::
         This started as a `copy of the standard @click.version_option() decorator
-        <https://github.com/pallets/click/blob/dc918b4/src/click/decorators.py#L399-L466>`_,
+        <https://github.com/pallets/click/blob/cdab890/src/click/decorators.py#L421-L524>`_,
         but is **no longer a drop-in replacement**. Hence the ``Extra`` prefix.
 
         This address the following Click issues:

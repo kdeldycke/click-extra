@@ -52,7 +52,7 @@ class LogLevel(IntEnum):
     """Mapping of :ref:`canonical log level names <levels>` to their integer level.
 
     That's our own version of `logging._nameToLevel
-    <https://github.com/python/cpython/blob/a379749/Lib/logging/__init__.py#L115-L124>`_,
+    <https://github.com/python/cpython/blob/3.14/Lib/logging/__init__.py#L115-L124>`_,
     but:
 
     - sorted from lowest to highest verbosity,
@@ -61,7 +61,7 @@ class LogLevel(IntEnum):
         - ``WARN``, which :meth:`is obsolete <logging.Logger.warning>`
         - ``FATAL``, which `shouldn't be used <https://github.com/python/cpython/issues/85013>`_
           and has been `replaced by CRITICAL
-          <https://github.com/python/cpython/blob/8597be46135a0f4a53e99dade67724bbb8e3c1c9/Lib/logging/__init__.py#L2148-L2152>`_
+          <https://github.com/python/cpython/blob/3.14/Lib/logging/__init__.py#L2150-L2154>`_
     """
 
     CRITICAL = logging.CRITICAL
@@ -79,7 +79,7 @@ DEFAULT_LEVEL: LogLevel = LogLevel.WARNING
 """:data:`WARNING <logging.WARNING>` is the default level we expect any loggers to starts their lives at.
 
 :data:`WARNING <logging.WARNING>` has been chosen as it is `the level at which the default Python's
-global root logger is set up <https://github.com/python/cpython/blob/0df7c3a/Lib/logging/__init__.py#L1945>`_.
+global root logger is set up <https://github.com/python/cpython/blob/3.14/Lib/logging/__init__.py#L1997>`_.
 
 This value is also used as the default level for :class:`VerbosityOption` .
 """
@@ -105,7 +105,7 @@ class ExtraStreamHandler(StreamHandler):
         """The stream to which logs are written.
 
         A proxy of the parent :class:`logging.StreamHandler`'s `stream attribute
-        <https://github.com/python/cpython/blob/eed7865ceea83f56e46307c9dc78cb53526071f6/Lib/logging/__init__.py#L1128>`_.
+        <https://github.com/python/cpython/blob/3.14/Lib/logging/__init__.py#L1129>`_.
 
         Redefined here to enforce checks on the stream value.
         """

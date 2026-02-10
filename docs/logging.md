@@ -94,7 +94,7 @@ assert "We're printing stuff." in result.stderr
 
 ### Default logger
 
-The `--verbosity` option is by default attached to the [global `root` logger](https://github.com/python/cpython/blob/a59dc1fb4324589427c5c84229eb2c0872f29ca0/Lib/logging/__init__.py#L1945).
+The `--verbosity` option is by default attached to the [global `root` logger](https://github.com/python/cpython/blob/3.14/Lib/logging/__init__.py#L1997).
 
 This allows you to use module-level helpers like [`logging.debug`](https://docs.python.org/3/library/logging.html?highlight=logging#logging.Logger.debug). That way you don't have to worry about setting up your own logger. And logging messages can be easily produced with minimal code:
 
@@ -345,7 +345,7 @@ assert dedent("""\
 ```
 
 ````{important}
-By design, [new loggers are always created as sub-loggers](https://github.com/python/cpython/blob/a3797492179c249417a06d2499a7d535d453ac2c/Doc/library/logging.rst?plain=1#L70-L71) of `root`. And as such, their messages are propagated back to it.
+By design, [new loggers are always created as sub-loggers](https://github.com/python/cpython/blob/3.14/Doc/library/logging.rst?plain=1#L112-L113) of `root`. And as such, their messages are propagated back to it.
 
 But [new_extra_logger](#click_extra.logging.new_extra_logger) always creates new loggers by setting their `propagate` attribute to `False`. This means that messages of new loggers won't be propagated to their parents.
 

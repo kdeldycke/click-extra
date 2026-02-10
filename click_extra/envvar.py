@@ -47,7 +47,7 @@ def merge_envvar_ids(*envvar_ids: TEnvVarID | TNestedEnvVarIDs) -> tuple[str, ..
         `On Windows, environment variable names are case-insensitive
         <https://docs.python.org/3/library/os.html#os.environ>`_, so we `normalize them
         to uppercase as the standard library does
-        <https://github.com/python/cpython/blob/ffef9b0/Lib/os.py#L777-L786>`_.
+        <https://github.com/python/cpython/blob/3.14/Lib/os.py#L770-L782>`_.
 
     Returns a tuple of strings. The result is ready to be used as the ``envvar``
     parameter for Click's options or arguments.
@@ -117,7 +117,7 @@ def param_envvar_ids(
         `On Windows, environment variable names are case-insensitive
         <https://docs.python.org/3/library/os.html#os.environ>`_, so we `normalize them
         to uppercase as the standard library does
-        <https://github.com/python/cpython/blob/ffef9b0/Lib/os.py#L777-L786>`_.
+        <https://github.com/python/cpython/blob/3.14/Lib/os.py#L770-L782>`_.
     """
     return merge_envvar_ids(param.envvar, param_auto_envvar_id(param, ctx))
 
@@ -126,7 +126,7 @@ def env_copy(extend: TEnvVars | None = None) -> TEnvVars | None:
     """Returns a copy of the current environment variables and eventually ``extend`` it.
 
     Mimics `Python's original implementation
-    <https://github.com/python/cpython/blob/7b5b429/Lib/subprocess.py#L1648-L1649>`_ by
+    <https://github.com/python/cpython/blob/3.14/Lib/subprocess.py#L1907-L1908>`_ by
     returning ``None`` if no ``extend`` content are provided.
 
     Environment variables are expected to be a ``dict`` of ``str:str``.
