@@ -136,43 +136,43 @@ pytest11.click-extra = "click_extra.pytest"
 [project.optional-dependencies]
 yaml = [
   # PyYAML 6.0.3 is the first version to support Python 3.14.
-  "pyyaml >= 6.0.3",
+  "pyyaml>=6.0.3",
 ]
 json5 = [
   # json5 0.12.1 is the first version we used in Click Extra.
-  "json5 >= 0.12.1",
+  "json5>=0.12.1",
 ]
 jsonc = [
   # json-with-comments 1.2.10 is the first version we used in Click Extra.
-  "json-with-comments >= 1.2.10",
+  "json-with-comments>=1.2.10",
 ]
 hjson = [
   # hjson 3.1.0 is the first version we used in Click Extra.
-  "hjson >= 3.1.0",
+  "hjson>=3.1",
 ]
 xml = [
   # xmltodict 1.0.0 is just the first major release.
-  "xmltodict >= 1.0.0",
+  "xmltodict>=1",
 ]
 pygments = [
   # Pygments 2.14.0 is the first version with lexers.algebra.GAPConsoleLexer that is referenced in our code.
-  "pygments >= 2.14",
+  "pygments>=2.14",
   # pygments-ansi-color 0.3.0 is the first version to set the default theme of ANSI colors.
-  "pygments-ansi-color >= 0.3.0",
+  "pygments-ansi-color>=0.3",
 ]
 sphinx = [
   # docutils 0.20 is the minimal version for Sphinx 8.0.0.
-  "docutils >= 0.20",
+  "docutils>=0.20",
   # Pygments 2.14.0 is the first version with lexers.algebra.GAPConsoleLexer that is referenced in our code.
-  "pygments >= 2.14",
+  "pygments>=2.14",
   # pygments-ansi-color 0.3.0 is the first version to set the default theme of ANSI colors.
-  "pygments-ansi-color >= 0.3.0",
+  "pygments-ansi-color>=0.3",
   # Sphinx  8.0.0 is the first version to drop Python 3.9, like us.
-  "sphinx >= 8.0.0",
+  "sphinx>=8",
 ]
 pytest = [
   # pytest 9.0.0 is the first supporting native TOML configuration files.
-  "pytest >= 9.0.0",
+  "pytest>=9",
 ]
 
 [project.scripts]
@@ -228,18 +228,14 @@ typing = [
 ]
 
 [tool.uv]
+# We rely on recent Python features in some of our {click:run} directives.
+dependency-groups.docs = { requires-python = ">= 3.14" }
 # Cooldown period.
 exclude-newer = "2026-02-02T00:00:00Z"
 # XXX Disable exclusion of brand new extra-platforms releases.
 exclude-newer-package = { extra-platforms = "0 day" }
-
-[tool.uv.build-backend]
 # Package is at root level, not in "./src/".
-module-root = ""
-
-[tool.uv.dependency-groups]
-# We rely on recent Python features in some of our {click:run} directives.
-docs = { requires-python = ">= 3.14" }
+build-backend.module-root = ""
 
 [tool.ruff]
 preview = true
@@ -316,13 +312,11 @@ addopts = [
 # Make sure tests that are expected to fail do not resurect and start working all of a sudden.
 xfail_strict = true
 
-[tool.coverage.run]
+[tool.coverage]
+run.branch = true
 # https://coverage.readthedocs.io/en/latest/config.html
-source = [ "click_extra" ]
-branch = true
-
-[tool.coverage.report]
-precision = 2
+run.source = [ "click_extra" ]
+report.precision = 2
 
 [tool.bumpversion]
 current_version = "7.5.2"
@@ -342,8 +336,8 @@ replace = 'version = "{new_version}"'
 [[tool.bumpversion.files]]
 # Update version in download URL.
 filename = "./pyproject.toml"
-search = 'releases/tag/v{current_version}'
-replace = 'releases/tag/v{new_version}'
+search = "releases/tag/v{current_version}"
+replace = "releases/tag/v{new_version}"
 
 [[tool.bumpversion.files]]
 # Update the version in standard Markdown changelog.
@@ -371,15 +365,10 @@ warn_unused_ignores = true
 warn_return_any = true
 warn_unreachable = true
 pretty = true
-
-[[tool.mypy.overrides]]
-ignore_missing_imports = true
-module = [ "hjson", "jsonc" ]
-
-[[tool.mypy.overrides]]
-# Sphinx uses Python 3.12+ type statement syntax (PEP 695), which causes
-# mypy to fail with syntax errors when checking against older Python versions.
-# XXX This is a temporary workaround until we drop support for Python 3.10 and 3.11 for Click Extra.
-ignore_missing_imports = true
-follow_imports = "skip"
-module = [ "sphinx.*" ]
+overrides = [
+  { ignore_missing_imports = true, module = [ "hjson", "jsonc" ] },
+  # Sphinx uses Python 3.12+ type statement syntax (PEP 695), which causes
+  # mypy to fail with syntax errors when checking against older Python versions.
+  # XXX This is a temporary workaround until we drop support for Python 3.10 and 3.11 for Click Extra.
+  { ignore_missing_imports = true, follow_imports = "skip", module = [ "sphinx.*" ] },
+]
