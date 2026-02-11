@@ -9,4 +9,4 @@ name: Lint
 jobs:
 
   lint:
-    uses: kdeldycke/workflows/.github/workflows/lint.yaml@v5.7.0
+    uses: kdeldycke/workflows/.github/workflows/lint.yaml@v5.8.0
