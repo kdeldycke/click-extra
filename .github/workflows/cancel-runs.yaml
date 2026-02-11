@@ -1,0 +1,11 @@
+---
+name: Cancel runs
+"on":
+  pull_request:
+    types:
+      - closed
+
+jobs:
+
+  cancel-runs:
+    uses: kdeldycke/workflows/.github/workflows/cancel-runs.yaml@v5.8.0
