@@ -5,6 +5,7 @@ name: Renovate
     branches:
       - main
     paths:
+      - .github/workflows/renovate.yaml
       - renovate.json5
   schedule:
     # Run weekly, every Monday at 17:03.

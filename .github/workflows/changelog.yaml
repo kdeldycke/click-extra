@@ -1,6 +1,10 @@
 ---
 name: Changelog & versions
 "on":
+  workflow_dispatch:
+  schedule:
+    # Run daily to bump versions.
+    - cron: "0 6 * * *"
   push:
     branches:
       - main
@@ -11,6 +15,13 @@ name: Changelog & versions
       - "requirements/*.txt"
       # Trigger on any workflow change to make sure version gets hard-coded everywhere.
       - .github/workflows/*.yaml
+  workflow_run:
+    workflows:
+      - "Build & release"
+    types:
+      - completed
+    branches:
+      - main
 
 jobs:
 

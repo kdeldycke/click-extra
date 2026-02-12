@@ -1,6 +1,7 @@
 ---
 name: Autofix
 "on":
+  workflow_dispatch:
   push:
     # Only targets main branch to avoid amplification effects of auto-fixing
     # the exact same stuff in multiple non-rebased branches.
