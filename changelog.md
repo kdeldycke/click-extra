@@ -1,5 +1,10 @@
 # Changelog
 
+## [7.5.3 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.5.2...main)
+
+> [!IMPORTANT]
+> This version is not released yet and is under active development.
+
 ## [7.5.2 (2026-02-12)](https://github.com/kdeldycke/click-extra/compare/v7.5.1...v7.5.2)
 
 - Fix GitHub alerts converter mangling `list-table` directive content. Closes {issue}`1490`.

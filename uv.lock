@@ -12,7 +12,7 @@ resolution-markers = [
 exclude-newer = "2026-02-05T00:00:00Z"
 
 [options.exclude-newer-package]
-extra-platforms = { timestamp = "2026-02-12T07:31:50.797058Z", span = "PT0S" }
+extra-platforms = { timestamp = "2026-02-12T07:38:27.788282265Z", span = "PT0S" }
 
 [[package]]
 name = "accessible-pygments"
@@ -196,7 +196,7 @@ wheels = [
 
 [[package]]
 name = "click-extra"
-version = "7.5.2"
+version = "7.5.3"
 source = { editable = "." }
 dependencies = [
     { name = "boltons" },
