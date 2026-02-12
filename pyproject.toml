@@ -231,7 +231,7 @@ typing = [
 # We rely on recent Python features in some of our {click:run} directives.
 dependency-groups.docs = { requires-python = ">= 3.14" }
 # Cooldown period.
-exclude-newer = "2026-02-02T00:00:00Z"
+exclude-newer = "2026-02-05T00:00:00Z"
 # XXX Disable exclusion of brand new extra-platforms releases.
 exclude-newer-package = { extra-platforms = "0 day" }
 # Package is at root level, not in "./src/".
