@@ -13,7 +13,9 @@ It produces a comprehensive table of all the metadata about each of your CLI par
 The default `@command` decorator come with the `--show-params` option, so you can call it right away:
 
 ```{click:source}
-:emphasize-lines: 3
+---
+emphasize-lines: 3
+---
 from click_extra import command, option, echo
 
 @command
@@ -25,7 +27,9 @@ def cli(int_param1, int_param2):
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 result = invoke(cli, args=["--int-param1", "3", "--show-params"])
 assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM1\x1b[0m   │ \x1b[32m\x1b[2m\x1b[3m10\x1b[0m " in result.stdout
 assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM2\x1b[0m   │ \x1b[32m\x1b[2m\x1b[3m555\x1b[0m " in result.stdout
@@ -42,7 +46,9 @@ See in the rendered table above how `--int-param1` is set to `3`, because it was
 The default table produced by `--show-params` can be a bit overwhelming, so you can change its rendering with the [`--table-format` option](table.md#table-formats):
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 result = invoke(cli, args=["--table-format", "vertical", "--show-params"])
 assert "***************************[ 1. row ]***************************\n" in result.stdout
 assert "\x1b[1mEnv. vars.\x1b[0m       | \x1b[33m\x1b[2mCLI_INT_PARAM1\x1b[0m\n" in result.stdout
@@ -58,7 +64,9 @@ Because both options are eager, the order in which they are passed matters. `--t
 By default, the table produced by `--show-params` is colorized to highlight important bits. If you do not like colors, you can disable them with the [`--no-color` option](colorize.md#color-option):
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 result = invoke(cli, args=["--no-color", "--show-params"])
 assert "│ CLI_INT_PARAM1   │ 10 " in result.stdout
 assert "│ CLI_INT_PARAM2   │ 555 " in result.stdout
@@ -73,7 +81,9 @@ Because both options are eager, the order in which they are passed matters. `--n
 If you need to dive deeper into parameters and their values, there is a lot of metadata available in the context. Here are some pointers:
 
 ```{code-block} python
-:emphasize-lines: 13-15
+---
+emphasize-lines: 13-15
+---
 from click import option, echo, pass_context
 
 from click_extra import config_option, group
