@@ -232,8 +232,6 @@ typing = [
 dependency-groups.docs = { requires-python = ">= 3.14" }
 # Cooldown period.
 exclude-newer = "2026-02-05T00:00:00Z"
-# XXX Disable exclusion of brand new extra-platforms releases.
-exclude-newer-package = { extra-platforms = "0 day" }
 # Package is at root level, not in "./src/".
 build-backend.module-root = ""
 

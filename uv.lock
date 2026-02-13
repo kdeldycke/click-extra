@@ -11,9 +11,6 @@ resolution-markers = [
 [options]
 exclude-newer = "2026-02-05T00:00:00Z"
 
-[options.exclude-newer-package]
-extra-platforms = { timestamp = "2026-02-12T07:38:27.788282265Z", span = "PT0S" }
-
 [[package]]
 name = "accessible-pygments"
 version = "0.0.5"
@@ -529,14 +526,14 @@ wheels = [
 
 [[package]]
 name = "extra-platforms"
-version = "9.0.0"
+version = "8.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "distro" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/86/b4/0be4651d157c60a6378b0ebe3a05852a39ddd77655677e3abbd8078dea10/extra_platforms-9.0.0.tar.gz", hash = "sha256:cc01b94a210e59c2871ca3077876c0040f9ed41d0baefb5821cd783fc81bbb22", size = 57290, upload-time = "2026-02-12T05:48:51.033Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/69/13/f3c798301018f336533918768fe64a3aeab02e9e3d110ff778296e50b8e0/extra_platforms-8.0.0.tar.gz", hash = "sha256:39c5f47f071f8710ce3cba8373fd7744a2a3dc37d5716cc227c23b47e211e5b5", size = 56441, upload-time = "2026-02-02T17:54:17.17Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4d/fc/a35e444368f154ee7242b2c2aac9d377bcb9c3d0999f433a4097fe1ce99c/extra_platforms-9.0.0-py3-none-any.whl", hash = "sha256:93489a4117950a7e85c26f4fc4148d8ff031be3d69db713171e7adefee4439ae", size = 61803, upload-time = "2026-02-12T05:48:49.237Z" },
+    { url = "https://files.pythonhosted.org/packages/dc/82/c98ca964746efe66ce126844871e3a33b20f3ac7854e9eb5831e820ce87a/extra_platforms-8.0.0-py3-none-any.whl", hash = "sha256:44c2815b6dbd73f5eaf961ebeb2d6cca224a6ccf156c298cf6a088ad8ea1b2c6", size = 62029, upload-time = "2026-02-02T17:54:14.553Z" },
 ]
 
 [package.optional-dependencies]
