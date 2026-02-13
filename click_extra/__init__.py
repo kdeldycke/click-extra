@@ -226,7 +226,7 @@ __all__ = [  # noqa: F405
 """
 
 
-__version__ = "7.5.3"
+__version__ = "7.5.4"
 
 
 def __getattr__(name: str) -> object:
