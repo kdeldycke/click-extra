@@ -811,11 +811,11 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         if path_pattern is NO_CONFIG:
             logger.debug(f"{NO_CONFIG} received.")
-            explicit = ctx.get_parameter_source(self.name) in (
+            explicit = ctx.get_parameter_source(self.name) in (  # type: ignore[arg-type]
                 ParameterSource.COMMANDLINE,
                 ParameterSource.ENVIRONMENT,
                 ParameterSource.PROMPT,
-            )
+            )  # type: ignore[operator]
             if explicit:
                 info_msg("Skip configuration file loading altogether.")
             else:
