@@ -8,4 +8,4 @@ name: Cancel runs
 jobs:
 
   cancel-runs:
-    uses: kdeldycke/workflows/.github/workflows/cancel-runs.yaml@v5.8.0
+    uses: kdeldycke/workflows/.github/workflows/cancel-runs.yaml@v5.10.4
