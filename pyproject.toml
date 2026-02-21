@@ -293,6 +293,12 @@ default.extend-ignore-identifiers-re = [
   # 890 │             "H\x1b[32mey\x1b[0m-xx-xxx-\x1b[32mhe\x1b[0mY-xXxXxxxxx-\x1b[32mhey\x1b[0m",
   #     ╰╴                     ━━━
   "mey",
+  # error: `certifi` should be `certify`, `certifies`, `certified`
+  #     ╭▸ ./docs/assets/dependencies.mmd:5:5
+  #     │
+  # 5   │     certifi["certifi\n2025.11.12"]
+  #     ╰╴    ━━━━━━━
+  "certifi",
 ]
 
 [tool.pytest]
