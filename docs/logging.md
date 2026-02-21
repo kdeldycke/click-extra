@@ -20,7 +20,9 @@ Default behavior is to:
 This option is part of `@command` and `@group` by default:
 
 ```{click:source}
-:emphasize-lines: 3
+---
+emphasize-lines: 3
+---
 from click_extra import command, echo
 
 @command
@@ -31,7 +33,9 @@ def my_cli():
 See that `--verbosity` is featured in the help screen:
 
 ```{click:run}
-:emphasize-lines: 20-21
+---
+emphasize-lines: 20-21
+---
 result = invoke(my_cli, args=["--help"])
 assert "--verbosity" in result.stdout, "missing --verbosity option"
 ```
@@ -39,7 +43,9 @@ assert "--verbosity" in result.stdout, "missing --verbosity option"
 This option can be invoked to display all the gory details of your CLI with the `DEBUG` level:
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 result = invoke(my_cli, args=["--verbosity", "DEBUG"])
 assert "Set <Logger click_extra (DEBUG)> to DEBUG." in result.stderr, "missing DEBUG message"
 assert "Set <RootLogger root (DEBUG)> to DEBUG." in result.stderr, "missing DEBUG message"
@@ -62,7 +68,9 @@ In the rest of this documentation, we will mainly focus on the canonical `--verb
 The verbosity option can be used independently of `@command`, and you can attach it to a vanilla Click command:
 
 ```{click:source}
-:emphasize-lines: 6
+---
+emphasize-lines: 6
+---
 import logging
 import click
 import click_extra
@@ -75,7 +83,9 @@ def vanilla_command():
 ```
 
 ```{click:run}
-:emphasize-lines: 5
+---
+emphasize-lines: 5
+---
 result = invoke(vanilla_command, args=["--help"])
 assert "--verbosity LEVEL  Either CRITICAL, ERROR, WARNING, INFO, DEBUG." in result.stdout, "missing --verbosity option"
 ```
@@ -99,7 +109,9 @@ The `--verbosity` option is by default attached to the [global `root` logger](ht
 This allows you to use module-level helpers like [`logging.debug`](https://docs.python.org/3/library/logging.html?highlight=logging#logging.Logger.debug). That way you don't have to worry about setting up your own logger. And logging messages can be easily produced with minimal code:
 
 ```{click:source}
-:emphasize-lines: 1, 9-13
+---
+emphasize-lines: 1, 9-13
+---
 import logging
 import click
 import click_extra
@@ -245,7 +257,9 @@ The preferred way to customize log messages is to create your own logger and att
 This can be done with [`new_extra_logger`](#click_extra.logging.new_extra_logger). Here is how we can for example change the format of the log messages:
 
 ```{click:source}
-:emphasize-lines: 5-8, 11, 18
+---
+emphasize-lines: 5-8, 11, 18
+---
 import logging
 from click import command
 from click_extra import new_extra_logger, verbosity_option
@@ -296,7 +310,9 @@ assert dedent("""\
 Now if we don't explicitly pass the custom logger to the `--verbosity` option, the default `root` logger will be tied to it instead:
 
 ```{click:source}
-:emphasize-lines: 11
+---
+emphasize-lines: 11
+---
 import logging
 from click import command
 from click_extra import new_extra_logger, verbosity_option
@@ -468,7 +484,9 @@ assert dedent("""\
 If you want to change the global configuration of all loggers, you can rely on `new_extra_logger`. Because the latter defaults to the `root` logger, any default logger propagating their messages to it will be affected:
 
 ```{click:source}
-:emphasize-lines: 5, 8
+---
+emphasize-lines: 5, 8
+---
 import logging
 from click import command
 from click_extra import new_extra_logger, verbosity_option
@@ -514,7 +532,9 @@ assert dedent("""\
 You can get the name of the current verbosity level from the context or the logger itself:
 
 ```{click:source}
-:emphasize-lines: 9, 11
+---
+emphasize-lines: 9, 11
+---
 import logging
 from click import command, echo, pass_context
 from click_extra import verbosity_option

@@ -46,7 +46,9 @@ assert result.output == dedent(
 To augment the example above with [all the bells and whistles](index.md#features) `click-extra` has in store, you just need to import the same decorators and functions from its namespace:
 
 ```{click:source}
-:emphasize-lines: 1,3-5,9
+---
+emphasize-lines: 1,3-5,9
+---
 import click_extra
 
 @click_extra.command
@@ -88,7 +90,9 @@ If you do not like the opiniated way the `@click_extra.command` decorator is set
 If, for example, you're only interested in using the [`--config` option](config.md), you're free to to use it with a standard Click CLI. Just take the `@config_option` decorator from `click_extra` and add it to your command:
 
 ```{click:source}
-:emphasize-lines: 2, 7
+---
+emphasize-lines: 2, 7
+---
 import click
 from click_extra import config_option
 
@@ -105,7 +109,9 @@ def hello(count, name):
 Which now renders to:
 
 ```{click:run}
-:emphasize-lines: 9-12
+---
+emphasize-lines: 9-12
+---
 result = invoke(hello, args=["--help"])
 assert "--config CONFIG_PATH" in result.output
 ```
@@ -113,7 +119,9 @@ assert "--config CONFIG_PATH" in result.output
 This option behave like any Click option and can be customized easily:
 
 ```{click:source}
-:emphasize-lines: 7
+---
+emphasize-lines: 7
+---
 import click
 from click_extra import config_option
 
@@ -128,7 +136,9 @@ def hello(count, name):
 ```
 
 ```{click:run}
-:emphasize-lines: 9-10
+---
+emphasize-lines: 9-10
+---
 result = invoke(hello, args=["--help"])
 assert "--hello-conf CONF_FILE  Loads CLI config." in result.output
 ```
@@ -140,7 +150,9 @@ All Click Extra primitives are sub-classes of Cloup's and supports all its featu
 Like [option groups](https://cloup.readthedocs.io/en/stable/pages/option-groups.html):
 
 ```{click:source}
-:emphasize-lines: 2,5,8-14
+---
+emphasize-lines: 2,5,8-14
+---
 import click
 import cloup
 from click_extra import config_option
@@ -164,7 +176,9 @@ def hello(count, name, foo, bar, hello_conf):
 See how the configuration option is grouped with others:
 
 ```{click:run}
-:emphasize-lines: 6-10
+---
+emphasize-lines: 6-10
+---
 from textwrap import dedent
 result = invoke(hello, args=["--help"])
 assert dedent(
@@ -184,19 +198,19 @@ Notice in the example above how the `@command()` decorator from Cloup is used wi
 
 Click Extra provides these additional, pre-configured options decorators you can use standalone. Some of them are [included by default in the `@extra_command` and `@extra_group`](commands.md#click_extra.commands.default_extra_params) decorators (see the last column):
 
-| Decorator |  Specification | Default |
-|-----------|----------------| ----|
-| [`@timer_option`](timer.md) | `--time / --no-time` | ✅ |
-| [`@color_option`](colorize.md#color-option)   | `--color, --ansi / --no-color, --no-ansi` | ✅ |
-| [`@config_option`](config.md#standalone-option) | `--config CONFIG_PATH` | ✅ |
-| [`@no_config_option`](config.md#) | `--no-config` | ✅ |
-| [`@show_params_option`](parameters.md#show-params-option) | `--show-params` | ✅ |
-| [`@table_format_option`](table.md) | `--table-format FORMAT` | ✅ |
-| [`@verbosity_option`](logging.md#colored-verbosity) | `--verbosity LEVEL` | ✅ |
-| [`@verbose_option`](logging.md#click_extra.logging.VerboseOption) | `-v, --verbose` | ✅ |
-| [`@version_option`](version.md)| `--version` | ✅ |
-| [`@help_option`](colorize.md#click_extra.colorize.HelpExtraFormatter) | `-h, --help` | ✅ |
-| [`@telemetry_option`](click_extra.md#module-click_extra.telemetry) | `--telemetry / --no-telemetry` |❌|
+| Decorator                                                             | Specification                             | Default |
+| --------------------------------------------------------------------- | ----------------------------------------- | ------- |
+| [`@timer_option`](timer.md)                                           | `--time / --no-time`                      | ✅      |
+| [`@color_option`](colorize.md#color-option)                           | `--color, --ansi / --no-color, --no-ansi` | ✅      |
+| [`@config_option`](config.md#standalone-option)                       | `--config CONFIG_PATH`                    | ✅      |
+| [`@no_config_option`](config.md#)                                     | `--no-config`                             | ✅      |
+| [`@show_params_option`](parameters.md#show-params-option)             | `--show-params`                           | ✅      |
+| [`@table_format_option`](table.md)                                    | `--table-format FORMAT`                   | ✅      |
+| [`@verbosity_option`](logging.md#colored-verbosity)                   | `--verbosity LEVEL`                       | ✅      |
+| [`@verbose_option`](logging.md#click_extra.logging.VerboseOption)     | `-v, --verbose`                           | ✅      |
+| [`@version_option`](version.md)                                       | `--version`                               | ✅      |
+| [`@help_option`](colorize.md#click_extra.colorize.HelpExtraFormatter) | `-h, --help`                              | ✅      |
+| [`@telemetry_option`](click_extra.md#module-click_extra.telemetry)    | `--telemetry / --no-telemetry`            | ❌      |
 
 ```{note}
 Because single-letter options are a scarce resource, Click Extra does not impose them on you. All the options above are specified with their long names only. You can always customize them to add a short name if you wish.

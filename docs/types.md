@@ -50,7 +50,9 @@ But we made its values more user-friendly:
 Now let's combine this `Enum` with `click.Choice` into a simple CLI:
 
 ```{click:source}
-:emphasize-lines: 15,17
+---
+emphasize-lines: 15,17
+---
 from enum import Enum
 
 from click import command, option, echo, Choice
@@ -95,19 +97,25 @@ assert result.output == "Selected format: <Format.OTHER_FORMAT: 'other-format'>\
 However, using the `value` fails:
 
 ```{click:run}
-:emphasize-lines: 5
+---
+emphasize-lines: 5
+---
 result = invoke(cli, args=["--format", "text"])
 assert "'text' is not one of 'TEXT', 'HTML', 'OTHER_FORMAT'." in result.stderr
 ```
 
 ```{click:run}
-:emphasize-lines: 5
+---
+emphasize-lines: 5
+---
 result = invoke(cli, args=["--format", "html"])
 assert "'html' is not one of 'TEXT', 'HTML', 'OTHER_FORMAT'." in result.stderr
 ```
 
 ```{click:run}
-:emphasize-lines: 5
+---
+emphasize-lines: 5
+---
 result = invoke(cli, args=["--format", "other-format"])
 assert "'other-format' is not one of 'TEXT', 'HTML', 'OTHER_FORMAT'." in result.stderr
 ```
@@ -115,7 +123,9 @@ assert "'other-format' is not one of 'TEXT', 'HTML', 'OTHER_FORMAT'." in result.
 This preference for `Enum.name` is also reflected in the help message, both for choices and default value:
 
 ```{click:run}
-:emphasize-lines: 5-6
+---
+emphasize-lines: 5-6
+---
 result = invoke(cli, args=["--help"])
 assert "--format [TEXT|HTML|OTHER_FORMAT]" in result.stdout
 assert "[default: HTML]" in result.stdout
@@ -128,7 +138,9 @@ To change this behavior, we need `EnumChoice`.
 Let's use `click_extra.EnumChoice` instead of `click.Choice`, and then override the `__str__` method of our `Enum`:
 
 ```{click:source}
-:emphasize-lines: 4,12-13,19
+---
+emphasize-lines: 4,12-13,19
+---
 from enum import Enum
 
 from click import command, option, echo
@@ -158,7 +170,9 @@ def cli(format):
 This renders into much better help messages:
 
 ```{click:run}
-:emphasize-lines: 5
+---
+emphasize-lines: 5
+---
 result = invoke(cli, args=["--help"])
 assert "--format [text|html|other-format]" in result.stdout
 ```
@@ -173,7 +187,9 @@ assert result.output == "Selected format: <Format.OTHER_FORMAT: 'other-format'>\
 And not the `Enum.name`:
 
 ```{click:run}
-:emphasize-lines: 5
+---
+emphasize-lines: 5
+---
 result = invoke(cli, args=["--format", "OTHER_FORMAT"])
 assert "'OTHER_FORMAT' is not one of 'text', 'html', 'other-format'." in result.stderr
 ```
@@ -191,7 +207,9 @@ invoke(cli, args=["--format", "oThER-forMAt"])
 If you want to restore case-sensitive matching, you can enable it by setting the `case_sensitive` parameter to `True`:
 
 ```{click:source}
-:emphasize-lines: 19
+---
+emphasize-lines: 19
+---
 from enum import Enum
 
 from click import command, option, echo
@@ -219,7 +237,9 @@ def cli(format):
 ```
 
 ```{click:run}
-:emphasize-lines: 5
+---
+emphasize-lines: 5
+---
 result = invoke(cli, args=["--format", "oThER-forMAt"])
 assert "'oThER-forMAt' is not one of 'text', 'html', 'other-format'." in result.stderr
 ```
@@ -237,7 +257,9 @@ That's done by setting the `choice_source` parameter to one of:
 Here is an example using `ChoiceSource.KEY`, which is equivalent to `click.Choice` behavior:
 
 ```{click:source}
-:emphasize-lines: 4,19
+---
+emphasize-lines: 4,19
+---
 from enum import Enum
 
 from click import command, option, echo
@@ -274,7 +296,9 @@ assert result.output == "Selected format: <Format.OTHER_FORMAT: 'other-format'>\
 And not the `str()` representation:
 
 ```{click:run}
-:emphasize-lines: 5
+---
+emphasize-lines: 5
+---
 result = invoke(cli, args=["--format", "other-format"])
 assert "'other-format' is not one of 'text', 'html', 'other_format'." in result.stderr
 ```
@@ -282,7 +306,9 @@ assert "'other-format' is not one of 'text', 'html', 'other_format'." in result.
 Still, as you can see above, the choice strings are [lower-cased, as per `EnumChoice` default](#case-sensitivity). And this is also reflected in the help message:
 
 ```{click:run}
-:emphasize-lines: 5
+---
+emphasize-lines: 5
+---
 result = invoke(cli, args=["--help"])
 assert "--format [text|html|other_format]" in result.stdout
 ```
@@ -306,7 +332,9 @@ In addition to the [built-in choice sources](#choice-source) detailed above, you
 This is practical when you want to use a specific attribute or method of the `Enum` members as choice strings. Here's an example:
 
 ```{click:source}
-:emphasize-lines: 12-13,19
+---
+emphasize-lines: 12-13,19
+---
 from enum import Enum
 
 from click import command, option, echo
@@ -334,7 +362,9 @@ def cli(format):
 ```
 
 ```{click:run}
-:emphasize-lines: 5
+---
+emphasize-lines: 5
+---
 result = invoke(cli, args=["--help"])
 assert "--format [custom-text|custom-html|custom-other-format]" in result.stdout
 ```
@@ -348,7 +378,9 @@ To fix this limitation, you have to use `EnumChoice` with `@click_extra.option` 
 For example, using `@click_extra.option`:
 
 ```{click:source}
-:emphasize-lines: 17,19,21-22
+---
+emphasize-lines: 17,19,21-22
+---
 from enum import Enum
 
 import click
@@ -380,7 +412,9 @@ def cli(format):
 This renders into much better help messages, where the default value is displayed using the choice strings:
 
 ```{click:run}
-:emphasize-lines: 6
+---
+emphasize-lines: 6
+---
 result = invoke(cli, args=["--help"])
 assert "--format [text|html|other-format]" in result.stdout
 assert "[default: html]" in result.stdout
@@ -475,7 +509,9 @@ assert "[default: html]" in result.stdout
 Here's an example using aliases:
 
 ```{click:source}
-:emphasize-lines: 10,14-15,20,25,30
+---
+emphasize-lines: 10,14-15,20,25,30
+---
 from enum import Enum
 
 from click import command, option, echo
@@ -517,7 +553,9 @@ def cli(state, state_name, state_value):
 You can now see the name aliases `ongoing` and `fresh` are now featured in the help message if `show_aliases=True`, as well as the value alias `done`:
 
 ```{click:run}
-:emphasize-lines: 6-7
+---
+emphasize-lines: 6-7
+---
 result = invoke(cli, args=["--help"])
 assert "--state [new|in_progress|completed]" in result.stdout
 assert "--state-name [new|in_progress|ongoing|completed|fresh]" in result.stdout

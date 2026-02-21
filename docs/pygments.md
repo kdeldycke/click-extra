@@ -83,7 +83,9 @@ $ cat ./cowsay.ans
 We can run our formatter on that file:
 
 ```{code-block} python
-:emphasize-lines: 10, 12
+---
+emphasize-lines: 10, 12
+---
 from pathlib import Path
 
 from pygments import highlight
@@ -129,7 +131,9 @@ The code above prints the following HTML:
 And here is how to obtain the corresponding CSS style:
 
 ```{code-block} python
-:emphasize-lines: 5
+---
+emphasize-lines: 5
+---
 from pygments.formatters import get_formatter_by_name
 
 formatter = get_formatter_by_name("ansi-html")
