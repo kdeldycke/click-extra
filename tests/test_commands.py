@@ -588,7 +588,15 @@ def test_raw_args(invoke):
         "@cloup.command()",
     ),
 )
-def test_lazy_group(invoke, tmp_path, lazy_cmd_decorator):
+@pytest.mark.parametrize(
+    "lazy_group_decorator",
+    (
+        "@click.group(cls=LazyGroup,",
+        "@cloup.group(cls=LazyGroup,",
+        "@click_extra.group(cls=LazyGroup,",
+    ),
+)
+def test_lazy_group(invoke, tmp_path, lazy_cmd_decorator, lazy_group_decorator):
     """Test extends the `snippet from Click documentation
     <https://click.palletsprojects.com/en/stable/complex/#using-lazygroup-to-define-a-cli>`_.
     """
@@ -635,7 +643,7 @@ def test_lazy_group(invoke, tmp_path, lazy_cmd_decorator):
 
     (tmp_path / "bar_cmd.py").write_text(
         dedent(
-            """
+            f"""
             import click
             import cloup
             import click_extra
@@ -646,14 +654,13 @@ def test_lazy_group(invoke, tmp_path, lazy_cmd_decorator):
 
             print("<bar_cmd module loaded>")
 
-            @click.group(
-                cls=LazyGroup,
-                lazy_subcommands={"baz_cmd": "baz_cmd.baz_cli"},
+            {lazy_group_decorator}
+                lazy_subcommands={{"baz_cmd": "baz_cmd.baz_cli"}},
                 help="bar command for lazy example.",
             )
             @option("--bar-param", default=11)
             def bar_cli(bar_param):
-                echo(f"bar_param = {bar_param}")
+                echo(f"bar_param = {{bar_param}}")
             """
         )
     )
