@@ -6,6 +6,7 @@
 > This version is not released yet and is under active development.
 
 - Implement `resolve_any_xref` in `ClickDomain` to prevent MyST-Parser warning. Closes {issue}`1502`.
+- Fix subcommand conflict detection checking against root-level params instead of parent params. Closes {pr}`1286`.
 
 ## [7.5.2 (2026-02-12)](https://github.com/kdeldycke/click-extra/compare/v7.5.1...v7.5.2)
 
