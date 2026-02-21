@@ -167,7 +167,7 @@
 > `6.0.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/6.0.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v6.0.0).
 
 - Add new variables for version string template: `{git_repo_path}`, `{git_branch}`, `{git_long_hash}`, `{git_short_hash}` and `{git_date}`.
-- Add a new `--no-config` option on  `@extra_command` and `@extra_group` to disable configuration files. Closes {issue}`750`.
+- Add a new `--no-config` option on `@extra_command` and `@extra_group` to disable configuration files. Closes {issue}`750`.
 - Add `--table-format` option by default on `@extra_command` and `@extra_group`.
 - Let `--table-format` and `--no-color` affect the rendering of `--show-params` table.
 - Swap `Class` and `Spec.` columns in `--show-params` output.

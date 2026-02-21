@@ -15,7 +15,9 @@ Click Extra provides its own version option which, compared to [Click's built-in
 Here is how the defaults looks like:
 
 ```{click:source}
-:emphasize-lines: 5
+---
+emphasize-lines: 5
+---
 import click
 import click_extra
 
@@ -26,7 +28,9 @@ def cli():
 ```
 
 ```{click:run}
-:emphasize-lines: 5
+---
+emphasize-lines: 5
+---
 result = invoke(cli, args=["--help"])
 assert "--version" in result.output
 ```
@@ -65,17 +69,17 @@ You can customize the message template with the following variables:
 | Variable                                                                       | Description                                                                                                                                                                            |
 | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`{module}`](#click_extra.version.ExtraVersionOption.module)                   | The [module object](https://docs.python.org/3/glossary.html#term-module) in which the command is implemented.                                                                          |
-| [`{module_name}`](#click_extra.version.ExtraVersionOption.module_name)         | The [`__name__` of the module](https://docs.python.org/3/reference/datamodel.html#module.__name__) in which the command is implemented.                                                            |
-| [`{module_file}`](#click_extra.version.ExtraVersionOption.module_file)         | The [full path of the file](https://docs.python.org/3/reference/datamodel.html#module.__file__) in which the command is implemented.                                                               |
+| [`{module_name}`](#click_extra.version.ExtraVersionOption.module_name)         | The [`__name__` of the module](https://docs.python.org/3/reference/datamodel.html#module.__name__) in which the command is implemented.                                                |
+| [`{module_file}`](#click_extra.version.ExtraVersionOption.module_file)         | The [full path of the file](https://docs.python.org/3/reference/datamodel.html#module.__file__) in which the command is implemented.                                                   |
 | [`{module_version}`](#click_extra.version.ExtraVersionOption.module_version)   | The string found in the local `__version__` variable of the module.                                                                                                                    |
-| [`{package_name}`](#click_extra.version.ExtraVersionOption.package_name)       | The [name of the package](https://docs.python.org/3/reference/datamodel.html#module.__package__) in which the CLI is distributed.                                                                  |
+| [`{package_name}`](#click_extra.version.ExtraVersionOption.package_name)       | The [name of the package](https://docs.python.org/3/reference/datamodel.html#module.__package__) in which the CLI is distributed.                                                      |
 | [`{package_version}`](#click_extra.version.ExtraVersionOption.package_version) | The [version from the package metadata](https://docs.python.org/3/library/importlib.metadata.html?highlight=metadata%20version#distribution-versions) in which the CLI is distributed. |
 | [`{exec_name}`](#click_extra.version.ExtraVersionOption.exec_name)             | User-friendly name of the executed CLI. Returns `{module_name}`, `{package_name}` or script's filename, in this order.                                                                 |
 | [`{version}`](#click_extra.version.ExtraVersionOption.version)                 | Version of the CLI. Returns `{module_version}`, `{package_version}` or `None`, in this order.                                                                                          |
 | [`{git_repo_path}`](#click_extra.version.ExtraVersionOption.git_repo_path)     | The full path to the Git repository root directory, or `None` if not in a Git repository.                                                                                              |
 | [`{git_branch}`](#click_extra.version.ExtraVersionOption.git_branch)           | The current Git branch name, or `None` if not in a Git repository or Git is not available.                                                                                             |
-| [`{git_long_hash}`](#click_extra.version.ExtraVersionOption.git_long_hash)     | The full Git commit hash of the current `HEAD`, or `None` if not in a Git repository or Git is not available.                                                                           |
-| [`{git_short_hash}`](#click_extra.version.ExtraVersionOption.git_short_hash)   | The short Git commit hash of the current `HEAD`, or `None` if not in a Git repository or Git is not available.                                                                          |
+| [`{git_long_hash}`](#click_extra.version.ExtraVersionOption.git_long_hash)     | The full Git commit hash of the current `HEAD`, or `None` if not in a Git repository or Git is not available.                                                                          |
+| [`{git_short_hash}`](#click_extra.version.ExtraVersionOption.git_short_hash)   | The short Git commit hash of the current `HEAD`, or `None` if not in a Git repository or Git is not available.                                                                         |
 | [`{git_date}`](#click_extra.version.ExtraVersionOption.git_date)               | The commit date of the current `HEAD` in ISO format (`YYYY-MM-DD HH:MM:SS +ZZZZ`), or `None` if not in a Git repository or Git is not available.                                       |
 | [`{prog_name}`](#click_extra.version.ExtraVersionOption.prog_name)             | The name of the program, from Click's point of view.                                                                                                                                   |
 | [`{env_info}`](#click_extra.version.ExtraVersionOption.env_info)               | The [environment information](https://boltons.readthedocs.io/en/latest/ecoutils.html#boltons.ecoutils.get_profile) in JSON.                                                            |
@@ -90,7 +94,9 @@ Some Click's built-in variables are not recognized:
 You can compose your own version string by passing the `message` argument:
 
 ```{click:source}
-:emphasize-lines: 6
+---
+emphasize-lines: 6
+---
 import click
 import click_extra
 
@@ -190,29 +196,31 @@ It is supported by Click Extra as a convenience for script developers.
 
 Each variable listed in the section above can be rendered in its own style. They all have dedicated parameters you can pass to the `version_option` decorator:
 
-| Parameter                 | Description                                 | Default Style |
-| ------------------------- | ------------------------------------------- | ------------- |
-| `message_style`           | Style of the whole message.               | `None` |
-| `module_style`            | Style for `{module}` variable.           | `None` |
-| `module_name_style`       | Style for `{module_name}` variable.      | `default_theme.invoked_command` |
-| `module_file_style`       | Style for `{module_file}` variable.      | `None` |
-| `module_version_style`    | Style for `{module_version}` variable.   | `Style(fg="green")` |
-| `package_name_style`      | Style for `{package_name}` variable.     | `default_theme.invoked_command` |
-| `package_version_style`   | Style for `{package_version}` variable.  | `Style(fg="green")` |
-| `exec_name_style`         | Style for `{exec_name}` variable.        | `default_theme.invoked_command` |
-| `version_style`           | Style for `{version}` variable.          | `Style(fg="green")` |
-| `git_repo_path_style`     | Style for `{git_repo_path}` variable.    | `Style(fg="bright_black")` |
-| `git_branch_style`        | Style for `{git_branch}` variable.       | `Style(fg="cyan")` |
-| `git_long_hash_style`     | Style for `{git_long_hash}` variable.    | `Style(fg="yellow")` |
-| `git_short_hash_style`    | Style for `{git_short_hash}` variable.   | `Style(fg="yellow")` |
-| `git_date_style`          | Style for `{git_date}` variable.         | `Style(fg="bright_black")` |
-| `prog_name_style`         | Style for `{prog_name}` variable.        | `default_theme.invoked_command` |
-| `env_info_style`          | Style for `{env_info}` variable.         | `Style(fg="bright_black")` |
+| Parameter               | Description                             | Default Style                   |
+| ----------------------- | --------------------------------------- | ------------------------------- |
+| `message_style`         | Style of the whole message.             | `None`                          |
+| `module_style`          | Style for `{module}` variable.          | `None`                          |
+| `module_name_style`     | Style for `{module_name}` variable.     | `default_theme.invoked_command` |
+| `module_file_style`     | Style for `{module_file}` variable.     | `None`                          |
+| `module_version_style`  | Style for `{module_version}` variable.  | `Style(fg="green")`             |
+| `package_name_style`    | Style for `{package_name}` variable.    | `default_theme.invoked_command` |
+| `package_version_style` | Style for `{package_version}` variable. | `Style(fg="green")`             |
+| `exec_name_style`       | Style for `{exec_name}` variable.       | `default_theme.invoked_command` |
+| `version_style`         | Style for `{version}` variable.         | `Style(fg="green")`             |
+| `git_repo_path_style`   | Style for `{git_repo_path}` variable.   | `Style(fg="bright_black")`      |
+| `git_branch_style`      | Style for `{git_branch}` variable.      | `Style(fg="cyan")`              |
+| `git_long_hash_style`   | Style for `{git_long_hash}` variable.   | `Style(fg="yellow")`            |
+| `git_short_hash_style`  | Style for `{git_short_hash}` variable.  | `Style(fg="yellow")`            |
+| `git_date_style`        | Style for `{git_date}` variable.        | `Style(fg="bright_black")`      |
+| `prog_name_style`       | Style for `{prog_name}` variable.       | `default_theme.invoked_command` |
+| `env_info_style`        | Style for `{env_info}` variable.        | `Style(fg="bright_black")`      |
 
 Here is an example:
 
 ```{click:source}
-:emphasize-lines: 7-10
+---
+emphasize-lines: 7-10
+---
 import click
 from click_extra import version_option, Style
 
@@ -245,7 +253,9 @@ The [`Style()` helper is defined by Cloup](https://cloup.readthedocs.io/en/stabl
 You can pass `None` to any of the style parameters to disable styling for the corresponding variable:
 
 ```{click:source}
-:emphasize-lines: 6-8
+---
+emphasize-lines: 6-8
+---
 import click
 from click_extra import version_option
 
@@ -272,7 +282,9 @@ The `{env_info}` variable compiles all sorts of environment information.
 Here is how it looks like:
 
 ```{click:source}
-:emphasize-lines: 5
+---
+emphasize-lines: 5
+---
 import click
 from click_extra import version_option
 
@@ -297,7 +309,9 @@ The JSON output is scrubbed out of identifiable information by default: current 
 Another trick consist in picking into the content of `{env_info}` to produce highly customized version strings. This can be done because `{env_info}` is kept as a `dict`:
 
 ```{click:source}
-:emphasize-lines: 6
+---
+emphasize-lines: 6
+---
 import click
 from click_extra import version_option
 
@@ -324,7 +338,9 @@ assert re.fullmatch((
 When the `DEBUG` level is enabled, all available variables will be printed in the log:
 
 ```{click:source}
-:emphasize-lines: 5-6
+---
+emphasize-lines: 5-6
+---
 import click
 from click_extra import version_option, verbosity_option, echo
 
@@ -348,7 +364,9 @@ assert "\n\x1b[34mdebug\x1b[0m: Version string template variables:\n" in result.
 You can get the uncolored, Python values used in the composition of the version message from the context:
 
 ```{click:source}
-:emphasize-lines: 8-11
+---
+emphasize-lines: 8-11
+---
 import click
 from click_extra import echo, pass_context, version_option
 
@@ -391,7 +409,9 @@ These variables are presented in their original Python type. If most of these va
 You can render the version string manually by calling the option's internal methods:
 
 ```{click:source}
-:emphasize-lines: 9-10
+---
+emphasize-lines: 9-10
+---
 import click
 from click_extra import echo, pass_context, version_option, ExtraVersionOption, search_params
 
