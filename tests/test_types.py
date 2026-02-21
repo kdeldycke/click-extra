@@ -743,3 +743,51 @@ def test_enum_choice_default_value(
 
     assert not result.stderr
     assert result.exit_code == 0
+
+
+@pytest.mark.parametrize(
+    # XXX Reuse the same no_extra=True workaround as test_enum_choice_command to
+    # avoid the double <Option my_enum> issue with click_extra.command().
+    "cmd_decorator",
+    command_decorators(no_groups=True, no_extra=True),
+)
+@pytest.mark.parametrize(
+    "opt_decorator",
+    option_decorators(no_arguments=True, with_parenthesis=False),
+)
+@pytest.mark.parametrize(
+    ("choice_source", "cli_value"),
+    (
+        (ChoiceSource.STR, "my-first-value"),
+        (ChoiceSource.VALUE, "first-value"),
+        (ChoiceSource.KEY, "FIRST_VALUE"),
+    ),
+)
+def test_enum_choice_callback(
+    invoke, cmd_decorator, opt_decorator, choice_source, cli_value
+) -> None:
+    """Test that option callbacks receive properly converted Enum members."""
+    callback_received: list[MyEnum] = []
+
+    def my_callback(ctx, param, value):
+        """Callback that checks it receives an Enum member, not a string."""
+        if value is not None:
+            callback_received.append(value)
+        return value
+
+    @cmd_decorator
+    @opt_decorator(
+        "--my-enum",
+        type=EnumChoice(MyEnum, choice_source=choice_source),
+        callback=my_callback,
+    )
+    def cli(my_enum: MyEnum) -> None:
+        echo(f"my_enum: {my_enum!r}")
+
+    result = invoke(cli, ["--my-enum", cli_value])
+    assert result.exit_code == 0
+    assert result.stdout == f"my_enum: {MyEnum.FIRST_VALUE!r}\n"
+    assert not result.stderr
+    assert len(callback_received) >= 1
+    assert all(isinstance(v, MyEnum) for v in callback_received)
+    assert all(v is MyEnum.FIRST_VALUE for v in callback_received)

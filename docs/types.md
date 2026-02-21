@@ -8,7 +8,7 @@ A collection of custom Click parameter types for common use-cases.
 
 But this is not always what we want, especially when the `Enum`'s names are not user-friendly (e.g. they contain underscores, uppercase letters, etc.). This custom `EnumChoice` type solve this issue by allowing you to select which part of the `Enum` members to use as choice strings.
 
-### `Click.Choice` limits
+### Limits of `Click.Choice`
 
 Let's start with a simple example to demonstrate the limitations of `click.Choice`. Starting with this `Format` definition:
 
