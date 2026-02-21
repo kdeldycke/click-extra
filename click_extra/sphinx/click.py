@@ -57,7 +57,12 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
     from typing import ClassVar
 
+    from docutils.nodes import Element
+
+    from sphinx.addnodes import pending_xref
     from sphinx.application import Sphinx
+    from sphinx.builders import Builder
+    from sphinx.environment import BuildEnvironment
     from sphinx.util.typing import OptionSpec
 
 
@@ -528,6 +533,25 @@ class ClickDomain(Domain):
             ``parallel_read_safe = True``, even as a no-op.
         """
         pass
+
+    def resolve_any_xref(
+        self,
+        env: BuildEnvironment,
+        fromdocname: str,
+        builder: Builder,
+        target: str,
+        node: pending_xref,
+        contnode: Element,
+    ) -> list[tuple[str, nodes.reference]]:
+        """Resolve cross-references from ``any`` role.
+
+        This domain only provides directives and has no roles or objects, so
+        there is nothing to resolve. Returns an empty list to prevent
+        MyST-Parser from raising a warning about an unimplemented method.
+
+        .. seealso:: https://github.com/kdeldycke/click-extra/issues/1502
+        """
+        return []
 
 
 def cleanup_runner(app: Sphinx, doctree: nodes.document) -> None:

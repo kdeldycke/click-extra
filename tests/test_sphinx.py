@@ -28,3 +28,20 @@ def test_sphinx_extension_setup(sphinx_app):
     assert "source" in sphinx_app.env.get_domain("click").directives
     assert "example" in sphinx_app.env.get_domain("click").directives
     assert "run" in sphinx_app.env.get_domain("click").directives
+
+
+def test_resolve_any_xref(sphinx_app):
+    """Test that ``resolve_any_xref`` is implemented and returns an empty list.
+
+    .. seealso:: https://github.com/kdeldycke/click-extra/issues/1502
+    """
+    domain = sphinx_app.env.get_domain("click")
+    result = domain.resolve_any_xref(
+        env=sphinx_app.env,
+        fromdocname="index",
+        builder=sphinx_app.builder,
+        target="anything",
+        node=None,
+        contnode=None,
+    )
+    assert result == []
