@@ -26,4 +26,4 @@ name: Changelog & versions
 jobs:
 
   changelog:
-    uses: kdeldycke/workflows/.github/workflows/changelog.yaml@v5.10.4
+    uses: kdeldycke/workflows/.github/workflows/changelog.yaml@v5.11.1

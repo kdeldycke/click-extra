@@ -14,4 +14,4 @@ name: Labels
 jobs:
 
   labels:
-    uses: kdeldycke/workflows/.github/workflows/labels.yaml@v5.10.4
+    uses: kdeldycke/workflows/.github/workflows/labels.yaml@v5.11.1
