@@ -537,6 +537,5 @@ $RECYCLE.BIN/
 
 junit.xml
 
-# Claude Code
-.claude/
-
+# Claude Code local settings.
+.claude/settings.local.json
