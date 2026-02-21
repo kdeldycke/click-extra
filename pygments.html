@@ -1,0 +1,1352 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta property="og:title" content=" Pygments" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="pygments.html" />
+<meta property="og:site_name" content="Click Extra" />
+<meta property="og:description" content="Pygments: Click Extra plugs into Pygments to allow for the rendering of ANSI codes in various terminal output. Integration: As soon as click-extra is installed, all its additional components are au..." />
+<meta name="description" content="Pygments: Click Extra plugs into Pygments to allow for the rendering of ANSI codes in various terminal output. Integration: As soon as click-extra is installed, all its additional components are au..." />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="Sphinx" href="sphinx.html"><link rel="prev" title="Types" href="types.html">
+        <link rel="prefetch" href="_static/logo-square.svg" as="image">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>Pygments - Click Extra</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80449d92" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+<div class="announcement">
+  <aside class="announcement-content">
+     Click Extra works fine, but is <em>maintained by only one person</em> 😶‍🌫️.<br/>You can help if you <strong><a class='reference external' href='https://github.com/sponsors/kdeldycke'>purchase business support 🤝</a></strong> or <strong><a class='reference external' href='https://github.com/sponsors/kdeldycke'>sponsor the project 🫶</a></strong>. 
+  </aside>
+</div>
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">Click Extra</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="_static/logo-square.svg" alt="Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html"><svg aria-hidden="true" class="sd-octicon sd-octicon-download" height="1.0em" version="1.1" viewbox="0 0 16 16" width="1.0em"><path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z"></path><path d="M7.25 7.689V2a.75.75 0 0 1 1.5 0v5.689l1.97-1.969a.749.749 0 1 1 1.06 1.06l-3.25 3.25a.749.749 0 0 1-1.06 0L4.22 6.78a.749.749 0 1 1 1.06-1.06l1.97 1.969Z"></path></svg> Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html"><svg aria-hidden="true" class="sd-octicon sd-octicon-mortar-board" height="1.0em" version="1.1" viewbox="0 0 16 16" width="1.0em"><path d="M7.693 1.066a.747.747 0 0 1 .614 0l7.25 3.25a.75.75 0 0 1 0 1.368L13 6.831v2.794c0 1.024-.81 1.749-1.66 2.173-.893.447-2.075.702-3.34.702-.278 0-.55-.012-.816-.036a.75.75 0 0 1 .133-1.494c.22.02.45.03.683.03 1.082 0 2.025-.221 2.67-.543.69-.345.83-.682.83-.832V7.503L8.307 8.934a.747.747 0 0 1-.614 0L4 7.28v1.663c.296.105.575.275.812.512.438.438.688 1.059.688 1.796v3a.75.75 0 0 1-.75.75h-3a.75.75 0 0 1-.75-.75v-3c0-.737.25-1.358.688-1.796.237-.237.516-.407.812-.512V6.606L.443 5.684a.75.75 0 0 1 0-1.368ZM2.583 5 8 7.428 13.416 5 8 2.572ZM2.5 11.25v2.25H4v-2.25c0-.388-.125-.611-.25-.735a.697.697 0 0 0-.5-.203.707.707 0 0 0-.5.203c-.125.124-.25.347-.25.735Z"></path></svg> Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html"><svg aria-hidden="true" class="sd-octicon sd-octicon-command-palette" height="1.0em" version="1.1" viewbox="0 0 16 16" width="1.0em"><path d="m6.354 8.04-4.773 4.773a.75.75 0 1 0 1.061 1.06L7.945 8.57a.75.75 0 0 0 0-1.06L2.642 2.206a.75.75 0 0 0-1.06 1.061L6.353 8.04ZM8.75 11.5a.75.75 0 0 0 0 1.5h5.5a.75.75 0 0 0 0-1.5h-5.5Z"></path></svg> Commands &amp; groups</a></li>
+<li class="toctree-l1"><a class="reference internal" href="config.html"><svg aria-hidden="true" class="sd-octicon sd-octicon-sliders" height="1.0em" version="1.1" viewbox="0 0 16 16" width="1.0em"><path d="M15 2.75a.75.75 0 0 1-.75.75h-4a.75.75 0 0 1 0-1.5h4a.75.75 0 0 1 .75.75Zm-8.5.75v1.25a.75.75 0 0 0 1.5 0v-4a.75.75 0 0 0-1.5 0V2H1.75a.75.75 0 0 0 0 1.5H6.5Zm1.25 5.25a.75.75 0 0 0 0-1.5h-6a.75.75 0 0 0 0 1.5h6ZM15 8a.75.75 0 0 1-.75.75H11.5V10a.75.75 0 1 1-1.5 0V6a.75.75 0 0 1 1.5 0v1.25h2.75A.75.75 0 0 1 15 8Zm-9 5.25v-2a.75.75 0 0 0-1.5 0v1.25H1.75a.75.75 0 0 0 0 1.5H4.5v1.25a.75.75 0 0 0 1.5 0v-2Zm9 0a.75.75 0 0 1-.75.75h-6a.75.75 0 0 1 0-1.5h6a.75.75 0 0 1 .75.75Z"></path></svg> Configuration files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="colorize.html"><svg aria-hidden="true" class="sd-octicon sd-octicon-paintbrush" height="1.0em" version="1.1" viewbox="0 0 16 16" width="1.0em"><path d="M11.134 1.535c.7-.509 1.416-.942 2.076-1.155.649-.21 1.463-.267 2.069.34.603.601.568 1.411.368 2.07-.202.668-.624 1.39-1.125 2.096-1.011 1.424-2.496 2.987-3.775 4.249-1.098 1.084-2.132 1.839-3.04 2.3a3.744 3.744 0 0 1-1.055 3.217c-.431.431-1.065.691-1.657.861-.614.177-1.294.287-1.914.357A21.151 21.151 0 0 1 .797 16H.743l.007-.75H.749L.742 16a.75.75 0 0 1-.743-.742l.743-.008-.742.007v-.054a21.25 21.25 0 0 1 .13-2.284c.067-.647.187-1.287.358-1.914.17-.591.43-1.226.86-1.657a3.746 3.746 0 0 1 3.227-1.054c.466-.893 1.225-1.907 2.314-2.982 1.271-1.255 2.833-2.75 4.245-3.777ZM1.62 13.089c-.051.464-.086.929-.104 1.395.466-.018.932-.053 1.396-.104a10.511 10.511 0 0 0 1.668-.309c.526-.151.856-.325 1.011-.48a2.25 2.25 0 1 0-3.182-3.182c-.155.155-.329.485-.48 1.01a10.515 10.515 0 0 0-.309 1.67Zm10.396-10.34c-1.224.89-2.605 2.189-3.822 3.384l1.718 1.718c1.21-1.205 2.51-2.597 3.387-3.833.47-.662.78-1.227.912-1.662.134-.444.032-.551.009-.575h-.001V1.78c-.014-.014-.113-.113-.548.027-.432.14-.995.462-1.655.942Zm-4.832 7.266-.001.001a9.859 9.859 0 0 0 1.63-1.142L7.155 7.216a9.7 9.7 0 0 0-1.161 1.607c.482.302.889.71 1.19 1.192Z"></path></svg> Colored help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logging.html"><svg aria-hidden="true" class="sd-octicon sd-octicon-log" height="1.0em" version="1.1" viewbox="0 0 16 16" width="1.0em"><path d="M5 8.25a.75.75 0 0 1 .75-.75h4a.75.75 0 0 1 0 1.5h-4A.75.75 0 0 1 5 8.25ZM4 10.5A.75.75 0 0 0 4 12h4a.75.75 0 0 0 0-1.5H4Z"></path><path d="M13-.005c1.654 0 3 1.328 3 3 0 .982-.338 1.933-.783 2.818-.443.879-1.028 1.758-1.582 2.588l-.011.017c-.568.853-1.104 1.659-1.501 2.446-.398.789-.623 1.494-.623 2.136a1.5 1.5 0 1 0 2.333-1.248.75.75 0 0 1 .834-1.246A3 3 0 0 1 13 16H3a3 3 0 0 1-3-3c0-1.582.891-3.135 1.777-4.506.209-.322.418-.637.623-.946.473-.709.923-1.386 1.287-2.048H2.51c-.576 0-1.381-.133-1.907-.783A2.68 2.68 0 0 1 0 2.995a3 3 0 0 1 3-3Zm0 1.5a1.5 1.5 0 0 0-1.5 1.5c0 .476.223.834.667 1.132A.75.75 0 0 1 11.75 5.5H5.368c-.467 1.003-1.141 2.015-1.773 2.963-.192.289-.381.571-.558.845C2.13 10.711 1.5 11.916 1.5 13A1.5 1.5 0 0 0 3 14.5h7.401A2.989 2.989 0 0 1 10 13c0-.979.338-1.928.784-2.812.441-.874 1.023-1.748 1.575-2.576l.017-.026c.568-.853 1.103-1.658 1.501-2.448.398-.79.623-1.497.623-2.143 0-.838-.669-1.5-1.5-1.5Zm-10 0a1.5 1.5 0 0 0-1.5 1.5c0 .321.1.569.27.778.097.12.325.227.74.227h7.674A2.737 2.737 0 0 1 10 2.995c0-.546.146-1.059.401-1.5Z"></path></svg> Logging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="table.html"><svg aria-hidden="true" class="sd-octicon sd-octicon-table" height="1.0em" version="1.1" viewbox="0 0 16 16" width="1.0em"><path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v12.5A1.75 1.75 0 0 1 14.25 16H1.75A1.75 1.75 0 0 1 0 14.25ZM6.5 6.5v8h7.75a.25.25 0 0 0 .25-.25V6.5Zm8-1.5V1.75a.25.25 0 0 0-.25-.25H6.5V5Zm-13 1.5v7.75c0 .138.112.25.25.25H5v-8ZM5 5V1.5H1.75a.25.25 0 0 0-.25.25V5Z"></path></svg> Table</a></li>
+<li class="toctree-l1"><a class="reference internal" href="version.html"><svg aria-hidden="true" class="sd-octicon sd-octicon-versions" height="1.0em" version="1.1" viewbox="0 0 16 16" width="1.0em"><path d="M7.75 14A1.75 1.75 0 0 1 6 12.25v-8.5C6 2.784 6.784 2 7.75 2h6.5c.966 0 1.75.784 1.75 1.75v8.5A1.75 1.75 0 0 1 14.25 14Zm-.25-1.75c0 .138.112.25.25.25h6.5a.25.25 0 0 0 .25-.25v-8.5a.25.25 0 0 0-.25-.25h-6.5a.25.25 0 0 0-.25.25ZM4.9 3.508a.75.75 0 0 1-.274 1.025.249.249 0 0 0-.126.217v6.5c0 .09.048.173.126.217a.75.75 0 0 1-.752 1.298A1.75 1.75 0 0 1 3 11.25v-6.5c0-.649.353-1.214.874-1.516a.75.75 0 0 1 1.025.274ZM1.625 5.533h.001a.249.249 0 0 0-.126.217v4.5c0 .09.048.173.126.217a.75.75 0 0 1-.752 1.298A1.748 1.748 0 0 1 0 10.25v-4.5a1.748 1.748 0 0 1 .873-1.516.75.75 0 1 1 .752 1.299Z"></path></svg> Version</a></li>
+<li class="toctree-l1"><a class="reference internal" href="timer.html"><svg aria-hidden="true" class="sd-octicon sd-octicon-stopwatch" height="1.0em" version="1.1" viewbox="0 0 16 16" width="1.0em"><path d="M5.75.75A.75.75 0 0 1 6.5 0h3a.75.75 0 0 1 0 1.5h-.75v1l-.001.041a6.724 6.724 0 0 1 3.464 1.435l.007-.006.75-.75a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734l-.75.75-.006.007a6.75 6.75 0 1 1-10.548 0L2.72 5.03l-.75-.75a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l.75.75.007.006A6.72 6.72 0 0 1 7.25 2.541V1.5H6.5a.75.75 0 0 1-.75-.75ZM8 14.5a5.25 5.25 0 1 0-.001-10.501A5.25 5.25 0 0 0 8 14.5Zm.389-6.7 1.33-1.33a.75.75 0 1 1 1.061 1.06L9.45 8.861A1.503 1.503 0 0 1 8 10.75a1.499 1.499 0 1 1 .389-2.95Z"></path></svg> Timer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parameters.html"><svg aria-hidden="true" class="sd-octicon sd-octicon-tasklist" height="1.0em" version="1.1" viewbox="0 0 16 16" width="1.0em"><path d="M2 2h4a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Zm4.655 8.595a.75.75 0 0 1 0 1.06L4.03 14.28a.75.75 0 0 1-1.06 0l-1.5-1.5a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215l.97.97 2.095-2.095a.75.75 0 0 1 1.06 0ZM9.75 2.5h5.5a.75.75 0 0 1 0 1.5h-5.5a.75.75 0 0 1 0-1.5Zm0 5h5.5a.75.75 0 0 1 0 1.5h-5.5a.75.75 0 0 1 0-1.5Zm0 5h5.5a.75.75 0 0 1 0 1.5h-5.5a.75.75 0 0 1 0-1.5Zm-7.25-9v3h3v-3Z"></path></svg> Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="types.html"><svg aria-hidden="true" class="sd-octicon sd-octicon-file-binary" height="1.0em" version="1.1" viewbox="0 0 16 16" width="1.0em"><path d="M4 1.75C4 .784 4.784 0 5.75 0h5.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v8.586A1.75 1.75 0 0 1 14.25 15h-9a.75.75 0 0 1 0-1.5h9a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 10 4.25V1.5H5.75a.25.25 0 0 0-.25.25v2a.75.75 0 0 1-1.5 0Zm-4 6C0 6.784.784 6 1.75 6h1.5C4.216 6 5 6.784 5 7.75v2.5A1.75 1.75 0 0 1 3.25 12h-1.5A1.75 1.75 0 0 1 0 10.25ZM6.75 6h1.5a.75.75 0 0 1 .75.75v3.75h.75a.75.75 0 0 1 0 1.5h-3a.75.75 0 0 1 0-1.5h.75v-3h-.75a.75.75 0 0 1 0-1.5Zm-5 1.5a.25.25 0 0 0-.25.25v2.5c0 .138.112.25.25.25h1.5a.25.25 0 0 0 .25-.25v-2.5a.25.25 0 0 0-.25-.25Zm9.75-5.938V4.25c0 .138.112.25.25.25h2.688l-.011-.013-2.914-2.914-.013-.011Z"></path></svg> Types</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#"><svg aria-hidden="true" class="sd-octicon sd-octicon-file-code" height="1.0em" version="1.1" viewbox="0 0 16 16" width="1.0em"><path d="M4 1.75C4 .784 4.784 0 5.75 0h5.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v8.586A1.75 1.75 0 0 1 14.25 15h-9a.75.75 0 0 1 0-1.5h9a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 10 4.25V1.5H5.75a.25.25 0 0 0-.25.25v2.5a.75.75 0 0 1-1.5 0Zm1.72 4.97a.75.75 0 0 1 1.06 0l2 2a.75.75 0 0 1 0 1.06l-2 2a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734l1.47-1.47-1.47-1.47a.75.75 0 0 1 0-1.06ZM3.28 7.78 1.81 9.25l1.47 1.47a.751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018l-2-2a.75.75 0 0 1 0-1.06l2-2a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Zm8.22-6.218V4.25c0 .138.112.25.25.25h2.688l-.011-.013-2.914-2.914-.013-.011Z"></path></svg> Pygments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sphinx.html"><svg aria-hidden="true" class="sd-octicon sd-octicon-book" height="1.0em" version="1.1" viewbox="0 0 16 16" width="1.0em"><path d="M0 1.75A.75.75 0 0 1 .75 1h4.253c1.227 0 2.317.59 3 1.501A3.743 3.743 0 0 1 11.006 1h4.245a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75h-4.507a2.25 2.25 0 0 0-1.591.659l-.622.621a.75.75 0 0 1-1.06 0l-.622-.621A2.25 2.25 0 0 0 5.258 13H.75a.75.75 0 0 1-.75-.75Zm7.251 10.324.004-5.073-.002-2.253A2.25 2.25 0 0 0 5.003 2.5H1.5v9h3.757a3.75 3.75 0 0 1 1.994.574ZM8.755 4.75l-.004 7.322a3.752 3.752 0 0 1 1.992-.572H14.5v-9h-3.495a2.25 2.25 0 0 0-2.25 2.25Z"></path></svg> Sphinx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="testing.html"><svg aria-hidden="true" class="sd-octicon sd-octicon-shield-check" height="1.0em" version="1.1" viewbox="0 0 16 16" width="1.0em"><path d="m8.533.133 5.25 1.68A1.75 1.75 0 0 1 15 3.48V7c0 1.566-.32 3.182-1.303 4.682-.983 1.498-2.585 2.813-5.032 3.855a1.697 1.697 0 0 1-1.33 0c-2.447-1.042-4.049-2.357-5.032-3.855C1.32 10.182 1 8.566 1 7V3.48a1.75 1.75 0 0 1 1.217-1.667l5.25-1.68a1.748 1.748 0 0 1 1.066 0Zm-.61 1.429.001.001-5.25 1.68a.251.251 0 0 0-.174.237V7c0 1.36.275 2.666 1.057 3.859.784 1.194 2.121 2.342 4.366 3.298a.196.196 0 0 0 .154 0c2.245-.957 3.582-2.103 4.366-3.297C13.225 9.666 13.5 8.358 13.5 7V3.48a.25.25 0 0 0-.174-.238l-5.25-1.68a.25.25 0 0 0-.153 0ZM11.28 6.28l-3.5 3.5a.75.75 0 0 1-1.06 0l-1.5-1.5a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215l.97.97 2.97-2.97a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Z"></path></svg> CLI testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pytest.html"><svg aria-hidden="true" class="sd-octicon sd-octicon-meter" height="1.0em" version="1.1" viewbox="0 0 16 16" width="1.0em"><path d="M8 1.5a6.5 6.5 0 1 0 6.016 4.035.75.75 0 0 1 1.388-.57 8 8 0 1 1-4.37-4.37.75.75 0 1 1-.569 1.389A6.473 6.473 0 0 0 8 1.5Zm6.28.22a.75.75 0 0 1 0 1.06l-4.063 4.064a2.5 2.5 0 1 1-1.06-1.06L13.22 1.72a.75.75 0 0 1 1.06 0ZM7 8a1 1 0 1 0 2 0 1 1 0 0 0-2 0Z"></path></svg> Pytest</a></li>
+<li class="toctree-l1"><a class="reference internal" href="telemetry.html"><svg aria-hidden="true" class="sd-octicon sd-octicon-broadcast" height="1.0em" version="1.1" viewbox="0 0 16 16" width="1.0em"><path d="M8.75 8.582v5.668a.75.75 0 0 1-1.5 0V8.582a1.75 1.75 0 1 1 1.5 0Zm3.983-7.125a.75.75 0 0 1 1.06.026A7.976 7.976 0 0 1 16 7c0 2.139-.84 4.083-2.207 5.517a.75.75 0 1 1-1.086-1.034A6.474 6.474 0 0 0 14.5 7a6.474 6.474 0 0 0-1.793-4.483.75.75 0 0 1 .026-1.06Zm-9.466 0c.3.286.312.76.026 1.06A6.474 6.474 0 0 0 1.5 7a6.47 6.47 0 0 0 1.793 4.483.75.75 0 0 1-1.086 1.034A7.973 7.973 0 0 1 0 7c0-2.139.84-4.083 2.207-5.517a.75.75 0 0 1 1.06-.026Zm8.556 2.321A4.988 4.988 0 0 1 13 7a4.988 4.988 0 0 1-1.177 3.222.75.75 0 1 1-1.146-.967A3.487 3.487 0 0 0 11.5 7c0-.86-.309-1.645-.823-2.255a.75.75 0 0 1 1.146-.967Zm-6.492.958A3.48 3.48 0 0 0 4.5 7a3.48 3.48 0 0 0 .823 2.255.75.75 0 0 1-1.146.967A4.981 4.981 0 0 1 3 7a4.982 4.982 0 0 1 1.188-3.236.75.75 0 1 1 1.143.972Z"></path></svg> Telemetry</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="click_extra.html">API</a><input aria-label="Toggle navigation of API" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="click_extra.sphinx.html">click_extra.sphinx package</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tests.html">tests package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html"><svg aria-hidden="true" class="sd-octicon sd-octicon-diff" height="1.0em" version="1.1" viewbox="0 0 16 16" width="1.0em"><path d="M8.75 1.75V5H12a.75.75 0 0 1 0 1.5H8.75v3.25a.75.75 0 0 1-1.5 0V6.5H4A.75.75 0 0 1 4 5h3.25V1.75a.75.75 0 0 1 1.5 0ZM4 13h8a.75.75 0 0 1 0 1.5H4A.75.75 0 0 1 4 13Z"></path></svg> Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="issues.html"><svg aria-hidden="true" class="sd-octicon sd-octicon-bug" height="1.0em" version="1.1" viewbox="0 0 16 16" width="1.0em"><path d="M4.72.22a.75.75 0 0 1 1.06 0l1 .999a3.488 3.488 0 0 1 2.441 0l.999-1a.748.748 0 0 1 1.265.332.75.75 0 0 1-.205.729l-.775.776c.616.63.995 1.493.995 2.444v.327c0 .1-.009.197-.025.292.408.14.764.392 1.029.722l1.968-.787a.75.75 0 0 1 .556 1.392L13 7.258V9h2.25a.75.75 0 0 1 0 1.5H13v.5c0 .409-.049.806-.141 1.186l2.17.868a.75.75 0 0 1-.557 1.392l-2.184-.873A4.997 4.997 0 0 1 8 16a4.997 4.997 0 0 1-4.288-2.427l-2.183.873a.75.75 0 0 1-.558-1.392l2.17-.868A5.036 5.036 0 0 1 3 11v-.5H.75a.75.75 0 0 1 0-1.5H3V7.258L.971 6.446a.75.75 0 0 1 .558-1.392l1.967.787c.265-.33.62-.583 1.03-.722a1.677 1.677 0 0 1-.026-.292V4.5c0-.951.38-1.814.995-2.444L4.72 1.28a.75.75 0 0 1 0-1.06Zm.53 6.28a.75.75 0 0 0-.75.75V11a3.5 3.5 0 1 0 7 0V7.25a.75.75 0 0 0-.75-.75ZM6.173 5h3.654A.172.172 0 0 0 10 4.827V4.5a2 2 0 1 0-4 0v.327c0 .096.077.173.173.173Z"></path></svg> Fixed issues</a></li>
+<li class="toctree-l1"><a class="reference internal" href="todolist.html"><svg aria-hidden="true" class="sd-octicon sd-octicon-checklist" height="1.0em" version="1.1" viewbox="0 0 16 16" width="1.0em"><path d="M2.5 1.75v11.5c0 .138.112.25.25.25h3.17a.75.75 0 0 1 0 1.5H2.75A1.75 1.75 0 0 1 1 13.25V1.75C1 .784 1.784 0 2.75 0h8.5C12.216 0 13 .784 13 1.75v7.736a.75.75 0 0 1-1.5 0V1.75a.25.25 0 0 0-.25-.25h-8.5a.25.25 0 0 0-.25.25Zm13.274 9.537v-.001l-4.557 4.45a.75.75 0 0 1-1.055-.008l-1.943-1.95a.75.75 0 0 1 1.062-1.058l1.419 1.425 4.026-3.932a.75.75 0 1 1 1.048 1.074ZM4.75 4h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM4 7.75A.75.75 0 0 1 4.75 7h2a.75.75 0 0 1 0 1.5h-2A.75.75 0 0 1 4 7.75Z"></path></svg> Todo-list</a></li>
+<li class="toctree-l1"><a class="reference internal" href="code-of-conduct.html"><svg aria-hidden="true" class="sd-octicon sd-octicon-code-of-conduct" height="1.0em" version="1.1" viewbox="0 0 16 16" width="1.0em"><path d="M8.048 2.241c.964-.709 2.079-1.238 3.325-1.241a4.616 4.616 0 0 1 3.282 1.355c.41.408.757.86.996 1.428.238.568.348 1.206.347 1.968 0 2.193-1.505 4.254-3.081 5.862-1.496 1.526-3.213 2.796-4.249 3.563l-.22.163a.749.749 0 0 1-.895 0l-.221-.163c-1.036-.767-2.753-2.037-4.249-3.563C1.51 10.008.007 7.952.002 5.762a4.614 4.614 0 0 1 1.353-3.407C3.123.585 6.223.537 8.048 2.24Zm-1.153.983c-1.25-1.033-3.321-.967-4.48.191a3.115 3.115 0 0 0-.913 2.335c0 1.556 1.109 3.24 2.652 4.813C5.463 11.898 6.96 13.032 8 13.805c.353-.262.758-.565 1.191-.905l-1.326-1.223a.75.75 0 0 1 1.018-1.102l1.48 1.366c.328-.281.659-.577.984-.887L9.99 9.802a.75.75 0 1 1 1.019-1.103l1.384 1.28c.295-.329.566-.661.81-.995L12.92 8.7l-1.167-1.168c-.674-.671-1.78-.664-2.474.03-.268.269-.538.537-.802.797-.893.882-2.319.843-3.185-.032-.346-.35-.693-.697-1.043-1.047a.75.75 0 0 1-.04-1.016c.162-.191.336-.401.52-.623.62-.748 1.356-1.637 2.166-2.417Zm7.112 4.442c.313-.65.491-1.293.491-1.916v-.001c0-.614-.088-1.045-.23-1.385-.143-.339-.357-.633-.673-.949a3.111 3.111 0 0 0-2.218-.915c-1.092.003-2.165.627-3.226 1.602-.823.755-1.554 1.637-2.228 2.45l-.127.154.562.566a.755.755 0 0 0 1.066.02l.794-.79c1.258-1.258 3.312-1.31 4.594-.032.396.394.792.791 1.173 1.173Z"></path></svg> Code of conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html"><svg aria-hidden="true" class="sd-octicon sd-octicon-law" height="1.0em" version="1.1" viewbox="0 0 16 16" width="1.0em"><path d="M8.75.75V2h.985c.304 0 .603.08.867.231l1.29.736c.038.022.08.033.124.033h2.234a.75.75 0 0 1 0 1.5h-.427l2.111 4.692a.75.75 0 0 1-.154.838l-.53-.53.529.531-.001.002-.002.002-.006.006-.006.005-.01.01-.045.04c-.21.176-.441.327-.686.45C14.556 10.78 13.88 11 13 11a4.498 4.498 0 0 1-2.023-.454 3.544 3.544 0 0 1-.686-.45l-.045-.04-.016-.015-.006-.006-.004-.004v-.001a.75.75 0 0 1-.154-.838L12.178 4.5h-.162c-.305 0-.604-.079-.868-.231l-1.29-.736a.245.245 0 0 0-.124-.033H8.75V13h2.5a.75.75 0 0 1 0 1.5h-6.5a.75.75 0 0 1 0-1.5h2.5V3.5h-.984a.245.245 0 0 0-.124.033l-1.289.737c-.265.15-.564.23-.869.23h-.162l2.112 4.692a.75.75 0 0 1-.154.838l-.53-.53.529.531-.001.002-.002.002-.006.006-.016.015-.045.04c-.21.176-.441.327-.686.45C4.556 10.78 3.88 11 3 11a4.498 4.498 0 0 1-2.023-.454 3.544 3.544 0 0 1-.686-.45l-.045-.04-.016-.015-.006-.006-.004-.004v-.001a.75.75 0 0 1-.154-.838L2.178 4.5H1.75a.75.75 0 0 1 0-1.5h2.234a.249.249 0 0 0 .125-.033l1.288-.737c.265-.15.564-.23.869-.23h.984V.75a.75.75 0 0 1 1.5 0Zm2.945 8.477c.285.135.718.273 1.305.273s1.02-.138 1.305-.273L13 6.327Zm-10 0c.285.135.718.273 1.305.273s1.02-.138 1.305-.273L3 6.327Z"></path></svg> License</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/kdeldycke/click-extra">GitHub repository</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/sponsors/kdeldycke">Funding</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/kdeldycke/click-extra/blob/main/docs/pygments.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/kdeldycke/click-extra/edit/main/docs/pygments.md" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="pygments">
+<h1><svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-file-code" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.75C4 .784 4.784 0 5.75 0h5.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v8.586A1.75 1.75 0 0 1 14.25 15h-9a.75.75 0 0 1 0-1.5h9a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 10 4.25V1.5H5.75a.25.25 0 0 0-.25.25v2.5a.75.75 0 0 1-1.5 0Zm1.72 4.97a.75.75 0 0 1 1.06 0l2 2a.75.75 0 0 1 0 1.06l-2 2a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734l1.47-1.47-1.47-1.47a.75.75 0 0 1 0-1.06ZM3.28 7.78 1.81 9.25l1.47 1.47a.751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018l-2-2a.75.75 0 0 1 0-1.06l2-2a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Zm8.22-6.218V4.25c0 .138.112.25.25.25h2.688l-.011-.013-2.914-2.914-.013-.011Z"></path></svg> Pygments<a class="headerlink" href="#pygments" title="Link to this heading">¶</a></h1>
+<p>Click Extra plugs into Pygments to allow for the rendering of ANSI codes in various terminal output.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>For these helpers to work, you need to install <code class="docutils literal notranslate"><span class="pre">click_extra</span></code>’s additional dependencies from the <code class="docutils literal notranslate"><span class="pre">pygments</span></code> extra group:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>pip<span class="w"> </span>install<span class="w"> </span>click_extra<span class="o">[</span>pygments<span class="o">]</span>
+</pre></div>
+</div>
+</div>
+<section id="integration">
+<h2>Integration<a class="headerlink" href="#integration" title="Link to this heading">¶</a></h2>
+<p>As soon as <a class="reference internal" href="install.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">click-extra</span></code> is installed</span></a>, all its additional components are automaticcaly registered to Pygments.</p>
+<p>Here is a quick way to check the new plugins are visible to Pygments’ regular API:</p>
+<ul>
+<li><p>Formatter:</p>
+<div class="highlight-ansi-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pygments.formatters</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_formatter_by_name</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">get_formatter_by_name</span><span class="p">(</span><span class="s2">&quot;ansi-html&quot;</span><span class="p">)</span>
+&lt;click_extra.pygments.AnsiHtmlFormatter object at 0x1011ff1d0&gt;
+</pre></div>
+</div>
+</li>
+<li><p>Filter:</p>
+<div class="highlight-ansi-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pygments.filters</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_filter_by_name</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">get_filter_by_name</span><span class="p">(</span><span class="s2">&quot;ansi-filter&quot;</span><span class="p">)</span>
+&lt;click_extra.pygments.AnsiFilter object at 0x103aaa790&gt;
+</pre></div>
+</div>
+</li>
+<li><p>Lexers:</p>
+<div class="highlight-ansi-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pygments.lexers</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_lexer_by_name</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">get_lexer_by_name</span><span class="p">(</span><span class="s2">&quot;ansi-shell-session&quot;</span><span class="p">)</span>
+&lt;pygments.lexers.AnsiBashSessionLexer&gt;
+</pre></div>
+</div>
+</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">click-extra</span></code> is installed but you don’t see these new components, you are probably running the snippets above in the wrong Python interpreter.</p>
+<p>For instance, you may be running them in a virtual environment. In that case, make sure the virtual environment is activated, and you can <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">click_extra</span></code> from it.</p>
+</div>
+</section>
+<section id="ansi-html-formatter">
+<h2>ANSI HTML formatter<a class="headerlink" href="#ansi-html-formatter" title="Link to this heading">¶</a></h2>
+<p>The new <code class="docutils literal notranslate"><span class="pre">ansi-html</span></code> formatter interpret ANSI Pygments tokens and renders them into HTML. It is also responsible for producing the corresponding CSS style to color the HTML elements.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This <code class="docutils literal notranslate"><span class="pre">ansi-html</span></code> formatter is designed to only work with the <code class="docutils literal notranslate"><span class="pre">ansi-color</span></code> lexer. These two components are the only one capable of producing ANSI tokens (<code class="docutils literal notranslate"><span class="pre">ansi-color</span></code>) and rendering them in HTML (<code class="docutils literal notranslate"><span class="pre">ansi-html</span></code>).</p>
+<p><a class="reference external" href="https://github.com/chriskuehl/pygments-ansi-color/blob/2ef0410763eff53f0af736c2f08ebd16fa4abb83/pygments_ansi_color/__init__.py#L203"><code class="docutils literal notranslate"><span class="pre">ansi-color</span></code> is implement by <code class="docutils literal notranslate"><span class="pre">pygments_ansi_color.AnsiColorLexer</span></code></a> on which Click Extra depends. So after Click Extra installation, <code class="docutils literal notranslate"><span class="pre">ansi-color</span></code> will be available to Pygments:</p>
+<div class="highlight-ansi-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pygments.lexers</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_lexer_by_name</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">get_lexer_by_name</span><span class="p">(</span><span class="s2">&quot;ansi-color&quot;</span><span class="p">)</span>
+&lt;pygments.lexers.AnsiColorLexer&gt;
+</pre></div>
+</div>
+</div>
+<section id="formatter-usage">
+<h3>Formatter usage<a class="headerlink" href="#formatter-usage" title="Link to this heading">¶</a></h3>
+<p>To test it, let’s generate a <code class="docutils literal notranslate"><span class="pre">cowsay.ans</span></code> file that is full of ANSI colors:</p>
+<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>fortune<span class="w"> </span><span class="p">|</span><span class="w"> </span>cowsay<span class="w"> </span><span class="p">|</span><span class="w"> </span>lolcat<span class="w"> </span>--force<span class="w"> </span>&gt;<span class="w"> </span>./cowsay.ans
+<span class="gp">$ </span>cat<span class="w"> </span>./cowsay.ans
+<span class=" -Color -Color-C154 -C-C154"> __</span><span class=" -Color -Color-C148 -C-C148">_</span><span class=" -Color -Color-C184 -C-C184">___________</span><span class=" -Color -Color-C178 -C-C178">_</span><span class=" -Color -Color-C214 -C-C214">_________</span><span class=" -Color -Color-C208 -C-C208">________ </span>
+<span class=" -Color -Color-C148 -C-C148">/</span><span class=" -Color -Color-C184 -C-C184"> Reality is</span><span class=" -Color -Color-C178 -C-C178"> </span><span class=" -Color -Color-C214 -C-C214">for peopl</span><span class=" -Color -Color-C208 -C-C208">e who lack</span><span class=" -Color -Color-C209 -C-C209"> </span><span class=" -Color -Color-C203 -C-C203">\</span>
+<span class=" -Color -Color-C184 -C-C184">\ imagina</span><span class=" -Color -Color-C178 -C-C178">t</span><span class=" -Color -Color-C214 -C-C214">ion.     </span><span class=" -Color -Color-C208 -C-C208">          </span><span class=" -Color -Color-C209 -C-C209"> </span><span class=" -Color -Color-C203 -C-C203">   /</span>
+<span class=" -Color -Color-C184 -C-C184"> -----</span><span class=" -Color -Color-C178 -C-C178">-</span><span class=" -Color -Color-C214 -C-C214">---------</span><span class=" -Color -Color-C208 -C-C208">----------</span><span class=" -Color -Color-C209 -C-C209">-</span><span class=" -Color -Color-C203 -C-C203">------ </span>
+<span class=" -Color -Color-C184 -C-C184">   </span><span class=" -Color -Color-C178 -C-C178"> </span><span class=" -Color -Color-C214 -C-C214">    \   ^</span><span class=" -Color -Color-C208 -C-C208">__^</span>
+<span class=" -Color -Color-C178 -C-C178"> </span><span class=" -Color -Color-C214 -C-C214">        \</span><span class=" -Color -Color-C208 -C-C208">  (oo)\___</span><span class=" -Color -Color-C209 -C-C209">_</span><span class=" -Color -Color-C203 -C-C203">___</span>
+<span class=" -Color -Color-C214 -C-C214">       </span><span class=" -Color -Color-C208 -C-C208">     (__)\</span><span class=" -Color -Color-C209 -C-C209"> </span><span class=" -Color -Color-C203 -C-C203">      )\/\</span>
+<span class=" -Color -Color-C214 -C-C214">    </span><span class=" -Color -Color-C208 -C-C208">          </span><span class=" -Color -Color-C209 -C-C209"> </span><span class=" -Color -Color-C203 -C-C203"> ||----w |</span>
+<span class=" -Color -Color-C214 -C-C214"> </span><span class=" -Color -Color-C208 -C-C208">          </span><span class=" -Color -Color-C209 -C-C209"> </span><span class=" -Color -Color-C203 -C-C203">    ||     </span><span class=" -Color -Color-C198 -C-C198">||</span>
+</pre></div>
+</div>
+<p>We can run our formatter on that file:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pygments</span><span class="w"> </span><span class="kn">import</span> <span class="n">highlight</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pygments.lexers</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_lexer_by_name</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pygments.formatters</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_formatter_by_name</span>
+
+<span class="n">lexer</span> <span class="o">=</span> <span class="n">get_lexer_by_name</span><span class="p">(</span><span class="s2">&quot;ansi-color&quot;</span><span class="p">)</span>
+<span class="n">formatter</span> <span class="o">=</span> <span class="n">get_formatter_by_name</span><span class="p">(</span><span class="s2">&quot;ansi-html&quot;</span><span class="p">)</span>
+
+<span class="hll"><span class="n">ansi_content</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;./cowsay.ans&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">()</span>
+</span>
+<span class="hll"><span class="nb">print</span><span class="p">(</span><span class="n">highlight</span><span class="p">(</span><span class="n">ansi_content</span><span class="p">,</span> <span class="n">lexer</span><span class="p">,</span> <span class="n">formatter</span><span class="p">))</span>
+</span></pre></div>
+</div>
+<div class="admonition hint">
+<p class="admonition-title">Hint</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">ansi-color</span></code> lexer parse raw ANSI codes and transform them into custom Pygments tokens, for the formatter to render.</p>
+<p><a class="reference external" href="https://pygments.org/docs/api/#pygments.highlight">Pygments’ <code class="docutils literal notranslate"><span class="pre">highlight()</span></code></a> is the utility method tying the lexer and formatter together to generate the final output.</p>
+</div>
+<p>The code above prints the following HTML:</p>
+<div class="highlight-html notranslate"><div class="highlight"><pre><span></span><span class="p">&lt;</span><span class="nt">div</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;highlight&quot;</span><span class="p">&gt;</span>
+ <span class="p">&lt;</span><span class="nt">pre</span><span class="p">&gt;</span>
+      <span class="p">&lt;</span><span class="nt">span</span><span class="p">&gt;&lt;/</span><span class="nt">span</span><span class="p">&gt;</span>
+      <span class="p">&lt;</span><span class="nt">span</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;-Color -Color-C154 -C-C154&quot;</span><span class="p">&gt;</span> __<span class="p">&lt;/</span><span class="nt">span</span><span class="p">&gt;</span>
+      <span class="p">&lt;</span><span class="nt">span</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;-Color -Color-C148 -C-C148&quot;</span><span class="p">&gt;</span>_<span class="p">&lt;/</span><span class="nt">span</span><span class="p">&gt;</span>
+      <span class="p">&lt;</span><span class="nt">span</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;-Color -Color-C184 -C-C184&quot;</span><span class="p">&gt;</span>___________<span class="p">&lt;/</span><span class="nt">span</span><span class="p">&gt;</span>
+      <span class="p">&lt;</span><span class="nt">span</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;-Color -Color-C178 -C-C178&quot;</span><span class="p">&gt;</span>_<span class="p">&lt;/</span><span class="nt">span</span><span class="p">&gt;</span>
+      <span class="p">&lt;</span><span class="nt">span</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;-Color -Color-C214 -C-C214&quot;</span><span class="p">&gt;</span>_________<span class="p">&lt;/</span><span class="nt">span</span><span class="p">&gt;</span>
+      <span class="p">&lt;</span><span class="nt">span</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;-Color -Color-C208 -C-C208&quot;</span><span class="p">&gt;</span>________ <span class="p">&lt;/</span><span class="nt">span</span><span class="p">&gt;</span>
+      <span class="p">&lt;</span><span class="nt">span</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;-Color -Color-C148 -C-C148&quot;</span><span class="p">&gt;</span>/<span class="p">&lt;/</span><span class="nt">span</span><span class="p">&gt;</span>
+      <span class="p">&lt;</span><span class="nt">span</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;-Color -Color-C184 -C-C184&quot;</span><span class="p">&gt;</span> Reality is<span class="p">&lt;/</span><span class="nt">span</span><span class="p">&gt;</span>
+      <span class="p">&lt;</span><span class="nt">span</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;-Color -Color-C178 -C-C178&quot;</span><span class="p">&gt;</span> <span class="p">&lt;/</span><span class="nt">span</span><span class="p">&gt;</span>
+      <span class="p">&lt;</span><span class="nt">span</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;-Color -Color-C214 -C-C214&quot;</span><span class="p">&gt;</span>for people<span class="p">&lt;/</span><span class="nt">span</span><span class="p">&gt;</span>
+      <span class="p">&lt;</span><span class="nt">span</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;-Color -Color-C208 -C-C208&quot;</span><span class="p">&gt;</span> who lack<span class="p">&lt;/</span><span class="nt">span</span><span class="p">&gt;</span>
+      …
+   <span class="p">&lt;/</span><span class="nt">pre</span><span class="p">&gt;</span>
+<span class="p">&lt;/</span><span class="nt">div</span><span class="p">&gt;</span>
+</pre></div>
+</div>
+<p>And here is how to obtain the corresponding CSS style:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pygments.formatters</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_formatter_by_name</span>
+
+<span class="n">formatter</span> <span class="o">=</span> <span class="n">get_formatter_by_name</span><span class="p">(</span><span class="s2">&quot;ansi-html&quot;</span><span class="p">)</span>
+
+<span class="hll"><span class="nb">print</span><span class="p">(</span><span class="n">formatter</span><span class="o">.</span><span class="n">get_style_defs</span><span class="p">(</span><span class="s2">&quot;.highlight&quot;</span><span class="p">))</span>
+</span></pre></div>
+</div>
+<div class="highlight-css notranslate"><div class="highlight"><pre><span></span><span class="nt">pre</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">line-height</span><span class="p">:</span><span class="w"> </span><span class="mi">125</span><span class="kt">%</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="p">.</span><span class="nc">highlight</span><span class="w"> </span><span class="p">.</span><span class="nc">hll</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">background-color</span><span class="p">:</span><span class="w"> </span><span class="mh">#ffffcc</span>
+<span class="p">}</span>
+
+<span class="p">.</span><span class="nc">highlight</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">background</span><span class="p">:</span><span class="w"> </span><span class="mh">#f8f8f8</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="p">.</span><span class="nc">highlight</span><span class="w"> </span><span class="p">.</span><span class="nc">c</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">color</span><span class="p">:</span><span class="w"> </span><span class="mh">#3D7B7B</span><span class="p">;</span>
+<span class="w">    </span><span class="k">font-style</span><span class="p">:</span><span class="w"> </span><span class="kc">italic</span>
+<span class="p">}</span>
+
+<span class="c">/* Comment */</span>
+<span class="p">.</span><span class="nc">highlight</span><span class="w"> </span><span class="p">.</span><span class="nc">err</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">border</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="kt">px</span><span class="w"> </span><span class="kc">solid</span><span class="w"> </span><span class="mh">#FF0000</span>
+<span class="p">}</span>
+
+<span class="c">/* Error */</span>
+<span class="p">.</span><span class="nc">highlight</span><span class="w"> </span><span class="p">.</span><span class="nc">o</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">color</span><span class="p">:</span><span class="w"> </span><span class="mh">#666666</span>
+<span class="p">}</span>
+
+<span class="c">/* Operator */</span>
+<span class="p">.</span><span class="nc">highlight</span><span class="w"> </span><span class="p">.</span><span class="nc">-C-BGBlack</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">background-color</span><span class="p">:</span><span class="w"> </span><span class="mh">#000000</span>
+<span class="p">}</span>
+
+<span class="c">/* C.BGBlack */</span>
+<span class="p">.</span><span class="nc">highlight</span><span class="w"> </span><span class="p">.</span><span class="nc">-C-BGBlue</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">background-color</span><span class="p">:</span><span class="w"> </span><span class="mh">#3465a4</span>
+<span class="p">}</span>
+
+<span class="c">/* C.BGBlue */</span>
+<span class="p">.</span><span class="nc">highlight</span><span class="w"> </span><span class="p">.</span><span class="nc">-C-BGBrightBlack</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">background-color</span><span class="p">:</span><span class="w"> </span><span class="mh">#676767</span>
+<span class="p">}</span>
+
+<span class="c">/* C.BGBrightBlack */</span>
+<span class="p">.</span><span class="nc">highlight</span><span class="w"> </span><span class="p">.</span><span class="nc">-C-BGBrightBlue</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">background-color</span><span class="p">:</span><span class="w"> </span><span class="mh">#6871ff</span>
+<span class="p">}</span>
+
+<span class="c">/* C.BGBrightBlue */</span>
+<span class="p">.</span><span class="nc">highlight</span><span class="w"> </span><span class="p">.</span><span class="nc">-C-BGC0</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">background-color</span><span class="p">:</span><span class="w"> </span><span class="mh">#000000</span>
+<span class="p">}</span>
+
+<span class="c">/* C.BGC0 */</span>
+<span class="p">.</span><span class="nc">highlight</span><span class="w"> </span><span class="p">.</span><span class="nc">-C-BGC100</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">background-color</span><span class="p">:</span><span class="w"> </span><span class="mh">#878700</span>
+<span class="p">}</span>
+
+<span class="c">/* C.BGC100 */</span>
+<span class="p">.</span><span class="nc">highlight</span><span class="w"> </span><span class="p">.</span><span class="nc">-C-BGC101</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">background-color</span><span class="p">:</span><span class="w"> </span><span class="mh">#87875f</span>
+<span class="p">}</span>
+
+<span class="c">/* C.BGC101 */</span>
+<span class="c">/* … */</span>
+</pre></div>
+</div>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">ansi-color</span></code> lexer/<code class="docutils literal notranslate"><span class="pre">ansi-html</span></code> formatter combo can only render pure ANSI content. It cannot interpret the regular Pygments tokens produced by <a class="reference external" href="https://pygments.org/languages/">the usual language lexers</a>.</p>
+<p>That’s why we also maintain a collection of <a class="reference internal" href="#ansi-language-lexers"><span class="xref myst">ANSI-capable lexers for numerous languages</span></a>, as detailed below.</p>
+</div>
+</section>
+</section>
+<section id="ansi-filter">
+<h2>ANSI filter<a class="headerlink" href="#ansi-filter" title="Link to this heading">¶</a></h2>
+<div class="admonition-todo admonition" id="id1">
+<p class="admonition-title">Todo</p>
+<p>Write example and tutorial.</p>
+</div>
+</section>
+<section id="ansi-language-lexers">
+<h2>ANSI language lexers<a class="headerlink" href="#ansi-language-lexers" title="Link to this heading">¶</a></h2>
+<p>Some <a class="reference external" href="https://pygments.org/languages/">languages supported by Pygments</a> are command lines or code, mixed with <a class="reference internal" href="#click_extra.pygments.DEFAULT_TOKEN_TYPE" title="click_extra.pygments.DEFAULT_TOKEN_TYPE"><span class="xref myst py py-data">generic output</span></a>.</p>
+<p>For example, the <a class="reference external" href="https://pygments.org/docs/terminal-sessions/"><code class="docutils literal notranslate"><span class="pre">console</span></code> lexer can be used to highlight shell sessions</a>. The general structure of the shell session will be highlighted by the <code class="docutils literal notranslate"><span class="pre">console</span></code> lexer, including the leading prompt. But the ANSI codes in the output will not be interpreted by <code class="docutils literal notranslate"><span class="pre">console</span></code> and will be rendered as plain text.</p>
+<p>To fix that, Click Extra implements ANSI-capable lexers. These can parse both the language syntax and the ANSI codes in the output. So you can use the <code class="docutils literal notranslate"><span class="pre">ansi-console</span></code> lexer instead of <code class="docutils literal notranslate"><span class="pre">console</span></code>, and this <code class="docutils literal notranslate"><span class="pre">ansi-</span></code>-prefixed variant will highlight shell sessions with ANSI codes.</p>
+<section id="lexer-variants">
+<h3>Lexer variants<a class="headerlink" href="#lexer-variants" title="Link to this heading">¶</a></h3>
+<p>Here is the list of new ANSI-capable lexers and the <a class="reference external" href="https://pygments.org/languages/">original lexers</a> they are based on:</p>
+<!-- lexer-table-start -->
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>Original Lexer</p></th>
+<th class="head text-left"><p>Original IDs</p></th>
+<th class="head text-left"><p>ANSI variants</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><a class="reference external" href="https://pygments.org/docs/lexers/#pygments.lexers.shell.BashSessionLexer"><code class="docutils literal notranslate"><span class="pre">BashSessionLexer</span></code></a></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">console</span></code>, <code class="docutils literal notranslate"><span class="pre">shell-session</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ansi-console</span></code>, <code class="docutils literal notranslate"><span class="pre">ansi-shell-session</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><a class="reference external" href="https://pygments.org/docs/lexers/#pygments.lexers.dylan.DylanConsoleLexer"><code class="docutils literal notranslate"><span class="pre">DylanConsoleLexer</span></code></a></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">dylan-console</span></code>, <code class="docutils literal notranslate"><span class="pre">dylan-repl</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ansi-dylan-console</span></code>, <code class="docutils literal notranslate"><span class="pre">ansi-dylan-repl</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><a class="reference external" href="https://pygments.org/docs/lexers/#pygments.lexers.erlang.ElixirConsoleLexer"><code class="docutils literal notranslate"><span class="pre">ElixirConsoleLexer</span></code></a></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">iex</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ansi-iex</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><a class="reference external" href="https://pygments.org/docs/lexers/#pygments.lexers.erlang.ErlangShellLexer"><code class="docutils literal notranslate"><span class="pre">ErlangShellLexer</span></code></a></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">erl</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ansi-erl</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><a class="reference external" href="https://pygments.org/docs/lexers/#pygments.lexers.algebra.GAPConsoleLexer"><code class="docutils literal notranslate"><span class="pre">GAPConsoleLexer</span></code></a></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">gap-console</span></code>, <code class="docutils literal notranslate"><span class="pre">gap-repl</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ansi-gap-console</span></code>, <code class="docutils literal notranslate"><span class="pre">ansi-gap-repl</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><a class="reference external" href="https://pygments.org/docs/lexers/#pygments.lexers.julia.JuliaConsoleLexer"><code class="docutils literal notranslate"><span class="pre">JuliaConsoleLexer</span></code></a></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">jlcon</span></code>, <code class="docutils literal notranslate"><span class="pre">julia-repl</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ansi-jlcon</span></code>, <code class="docutils literal notranslate"><span class="pre">ansi-julia-repl</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><a class="reference external" href="https://pygments.org/docs/lexers/#pygments.lexers.shell.MSDOSSessionLexer"><code class="docutils literal notranslate"><span class="pre">MSDOSSessionLexer</span></code></a></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">doscon</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ansi-doscon</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><a class="reference external" href="https://pygments.org/docs/lexers/#pygments.lexers.matlab.MatlabSessionLexer"><code class="docutils literal notranslate"><span class="pre">MatlabSessionLexer</span></code></a></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">matlabsession</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ansi-matlabsession</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><a class="reference external" href="https://pygments.org/docs/lexers/#pygments.lexers.special.OutputLexer"><code class="docutils literal notranslate"><span class="pre">OutputLexer</span></code></a></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">output</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ansi-output</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><a class="reference external" href="https://pygments.org/docs/lexers/#pygments.lexers.sql.PostgresConsoleLexer"><code class="docutils literal notranslate"><span class="pre">PostgresConsoleLexer</span></code></a></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">postgres-console</span></code>, <code class="docutils literal notranslate"><span class="pre">postgresql-console</span></code>, <code class="docutils literal notranslate"><span class="pre">psql</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ansi-postgres-console</span></code>, <code class="docutils literal notranslate"><span class="pre">ansi-postgresql-console</span></code>, <code class="docutils literal notranslate"><span class="pre">ansi-psql</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><a class="reference external" href="https://pygments.org/docs/lexers/#pygments.lexers.shell.PowerShellSessionLexer"><code class="docutils literal notranslate"><span class="pre">PowerShellSessionLexer</span></code></a></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ps1con</span></code>, <code class="docutils literal notranslate"><span class="pre">pwsh-session</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ansi-ps1con</span></code>, <code class="docutils literal notranslate"><span class="pre">ansi-pwsh-session</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><a class="reference external" href="https://pygments.org/docs/lexers/#pygments.lexers.php.PsyshConsoleLexer"><code class="docutils literal notranslate"><span class="pre">PsyshConsoleLexer</span></code></a></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">psysh</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ansi-psysh</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><a class="reference external" href="https://pygments.org/docs/lexers/#pygments.lexers.python.PythonConsoleLexer"><code class="docutils literal notranslate"><span class="pre">PythonConsoleLexer</span></code></a></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">pycon</span></code>, <code class="docutils literal notranslate"><span class="pre">python-console</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ansi-pycon</span></code>, <code class="docutils literal notranslate"><span class="pre">ansi-python-console</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><a class="reference external" href="https://pygments.org/docs/lexers/#pygments.lexers.r.RConsoleLexer"><code class="docutils literal notranslate"><span class="pre">RConsoleLexer</span></code></a></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">rconsole</span></code>, <code class="docutils literal notranslate"><span class="pre">rout</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ansi-rconsole</span></code>, <code class="docutils literal notranslate"><span class="pre">ansi-rout</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><a class="reference external" href="https://pygments.org/docs/lexers/#pygments.lexers.ruby.RubyConsoleLexer"><code class="docutils literal notranslate"><span class="pre">RubyConsoleLexer</span></code></a></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">irb</span></code>, <code class="docutils literal notranslate"><span class="pre">rbcon</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ansi-irb</span></code>, <code class="docutils literal notranslate"><span class="pre">ansi-rbcon</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><a class="reference external" href="https://pygments.org/docs/lexers/#pygments.lexers.sql.SqliteConsoleLexer"><code class="docutils literal notranslate"><span class="pre">SqliteConsoleLexer</span></code></a></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">sqlite3</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ansi-sqlite3</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><a class="reference external" href="https://pygments.org/docs/lexers/#pygments.lexers.shell.TcshSessionLexer"><code class="docutils literal notranslate"><span class="pre">TcshSessionLexer</span></code></a></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">tcshcon</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ansi-tcshcon</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- lexer-table-end -->
+</section>
+<section id="lexers-usage">
+<h3>Lexers usage<a class="headerlink" href="#lexers-usage" title="Link to this heading">¶</a></h3>
+<p>Let’s test one of these lexers. We are familiar with Python so we’ll focus on the <code class="docutils literal notranslate"><span class="pre">pycon</span></code> Python console lexer.</p>
+<p>First, we will generate some random art in an interactive Python shell:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">itertools</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[3</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">m</span><span class="se">{{}}\033</span><span class="s2">[0m&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">)]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rainbow</span> <span class="o">=</span> <span class="n">itertools</span><span class="o">.</span><span class="n">cycle</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">letters</span> <span class="o">=</span> <span class="p">[</span><span class="nb">next</span><span class="p">(</span><span class="n">rainbow</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="s2">&quot;║▌█║ ANSI Art ▌│║▌&quot;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">art</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">letters</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">art</span>
+<span class="go">&#39;\x1b[35m║\x1b[0m\x1b[36m▌\x1b[0m\x1b[31m█\x1b[0m\x1b[32m║\x1b[0m\x1b[33m \x1b[0m\x1b[34mA\x1b[0m\x1b[35mN\x1b[0m\x1b[36mS\x1b[0m\x1b[31mI\x1b[0m\x1b[32m \x1b[0m\x1b[33mA\x1b[0m\x1b[34mr\x1b[0m\x1b[35mt\x1b[0m\x1b[36m \x1b[0m\x1b[31m▌\x1b[0m\x1b[32m│\x1b[0m\x1b[33m║\x1b[0m\x1b[34m▌\x1b[0m&#39;</span>
+</pre></div>
+</div>
+<p>The code block above is a typical Python console session. You have interactive prompt (<code class="docutils literal notranslate"><span class="pre">&gt;&gt;&gt;</span></code>), pure Python code, and the output of these invocations. It is rendered here with Pygments’ original <code class="docutils literal notranslate"><span class="pre">pycon</span></code> lexer.</p>
+<p>You can see that the raw Python string <code class="docutils literal notranslate"><span class="pre">art</span></code> contain ANSI escape sequences (<code class="docutils literal notranslate"><span class="pre">\x1b[XXm</span></code>). When we print this string and give the results to Pygments, the ANSI codes are not interpreted and the output is rendered as-is:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">art</span><span class="p">)</span>
+<span class="go">[35m║[0m[36m▌[0m[31m█[0m[32m║[0m[33m [0m[34mA[0m[35mN[0m[36mS[0m[31mI[0m[32m [0m[33mA[0m[34mr[0m[35mt[0m[36m [0m[31m▌[0m[32m│[0m[33m║[0m[34m▌[0m</span>
+</pre></div>
+</div>
+<p>If you try to run the snippet above in your own Python console, you will see that the result of the <code class="docutils literal notranslate"><span class="pre">print(art)</span></code> is colored.</p>
+<p>That’s why you need Click Extra’s lexers. If we switch to the new <code class="docutils literal notranslate"><span class="pre">ansi-pycon</span></code> lexer, the output is colored, replicating exactly what you are expecting in your console:</p>
+<div class="highlight-ansi-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">art</span><span class="p">)</span>
+<span class=" -Color -Color-Magenta -C-Magenta">║</span><span class=" -Color -Color-Cyan -C-Cyan">▌</span><span class=" -Color -Color-Red -C-Red">█</span><span class=" -Color -Color-Green -C-Green">║</span><span class=" -Color -Color-Yellow -C-Yellow"> </span><span class=" -Color -Color-Blue -C-Blue">A</span><span class=" -Color -Color-Magenta -C-Magenta">N</span><span class=" -Color -Color-Cyan -C-Cyan">S</span><span class=" -Color -Color-Red -C-Red">I</span><span class=" -Color -Color-Green -C-Green"> </span><span class=" -Color -Color-Yellow -C-Yellow">A</span><span class=" -Color -Color-Blue -C-Blue">r</span><span class=" -Color -Color-Magenta -C-Magenta">t</span><span class=" -Color -Color-Cyan -C-Cyan"> </span><span class=" -Color -Color-Red -C-Red">▌</span><span class=" -Color -Color-Green -C-Green">│</span><span class=" -Color -Color-Yellow -C-Yellow">║</span><span class=" -Color -Color-Blue -C-Blue">▌</span>
+</pre></div>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>All these new lexers <a class="reference external" href="https://kdeldycke.github.io/click-extra/sphinx.html#ansi-shell-sessions">can be used in Sphinx</a> out of the box, with <a class="reference external" href="https://kdeldycke.github.io/click-extra/sphinx.html#setup">a bit of configuration</a>.</p>
+</div>
+</section>
+<section id="lexer-design">
+<h3>Lexer design<a class="headerlink" href="#lexer-design" title="Link to this heading">¶</a></h3>
+<p>We can check how <code class="docutils literal notranslate"><span class="pre">pygments_ansi_color</span></code>’s <code class="docutils literal notranslate"><span class="pre">ansi-color</span></code> lexer transforms a raw string into ANSI tokens:</p>
+<div class="highlight-ansi-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pygments.lexers</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_lexer_by_name</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ansi_lexer</span> <span class="o">=</span> <span class="n">get_lexer_by_name</span><span class="p">(</span><span class="s2">&quot;ansi-color&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tokens</span> <span class="o">=</span> <span class="n">ansi_lexer</span><span class="o">.</span><span class="n">get_tokens</span><span class="p">(</span><span class="n">art</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">tuple</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
+((Token.Color.Magenta, &#39;║&#39;), (Token.Text, &#39;&#39;), (Token.Color.Cyan, &#39;▌&#39;), (Token.Text, &#39;&#39;), (Token.Color.Red, &#39;█&#39;), (Token.Text, &#39;&#39;), (Token.Color.Green, &#39;║&#39;), (Token.Text, &#39;&#39;), (Token.Color.Yellow, &#39; &#39;), (Token.Text, &#39;&#39;), (Token.Color.Blue, &#39;A&#39;), (Token.Text, &#39;&#39;), (Token.Color.Magenta, &#39;N&#39;), (Token.Text, &#39;&#39;), (Token.Color.Cyan, &#39;S&#39;), (Token.Text, &#39;&#39;), (Token.Color.Red, &#39;I&#39;), (Token.Text, &#39;&#39;), (Token.Color.Green, &#39; &#39;), (Token.Text, &#39;&#39;), (Token.Color.Yellow, &#39;A&#39;), (Token.Text, &#39;&#39;), (Token.Color.Blue, &#39;r&#39;), (Token.Text, &#39;&#39;), (Token.Color.Magenta, &#39;t&#39;), (Token.Text, &#39;&#39;), (Token.Color.Cyan, &#39; &#39;), (Token.Text, &#39;&#39;), (Token.Color.Red, &#39;▌&#39;), (Token.Text, &#39;&#39;), (Token.Color.Green, &#39;│&#39;), (Token.Text, &#39;&#39;), (Token.Color.Yellow, &#39;║&#39;), (Token.Text, &#39;&#39;), (Token.Color.Blue, &#39;▌&#39;), (Token.Text, &#39;\n&#39;))
+</pre></div>
+</div>
+<p>See how the raw string is split into Pygments tokens, including the new <code class="docutils literal notranslate"><span class="pre">Token.Color</span></code> tokens. These tokens are then ready to be rendered by <a class="reference internal" href="#ansi-html-formatter"><span class="xref myst">our own <code class="docutils literal notranslate"><span class="pre">ansi-html</span></code> formatter</span></a>.</p>
+</section>
+</section>
+<section id="pygmentize-command-line">
+<h2><code class="docutils literal notranslate"><span class="pre">pygmentize</span></code> command line<a class="headerlink" href="#pygmentize-command-line" title="Link to this heading">¶</a></h2>
+<p>Because they’re properly registered to Pygments, all these new components can be invoked with the <a class="reference external" href="https://pygments.org/docs/cmdline/"><code class="docutils literal notranslate"><span class="pre">pygmentize</span></code> CLI</a>.</p>
+<p>For example, here is how we can render the <code class="docutils literal notranslate"><span class="pre">cowsay.ans</span></code> file from the <a class="reference internal" href="#formatter-usage"><span class="xref myst">example above</span></a> into a standalone HTML file:</p>
+<div class="highlight-ansi-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>pygmentize<span class="w"> </span>-f<span class="w"> </span>ansi-html<span class="w"> </span>-O<span class="w"> </span>full<span class="w"> </span>-o<span class="w"> </span>cowsay.html<span class="w"> </span>./cowsay.ans
+<span class="gp">$ </span>cat<span class="w"> </span>cowsay.html
+</pre></div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">cowsay.html</span></code> file generated by <code class="docutils literal notranslate"><span class="pre">pygmentize</span></code> CLI</span><a class="headerlink" href="#id2" title="Link to this code">¶</a></div>
+<div class="highlight-html notranslate"><div class="highlight"><pre><span></span><span class="cp">&lt;!DOCTYPE html PUBLIC &quot;-//W3C//DTD HTML 4.01//EN&quot; &quot;http://www.w3.org/TR/html4/strict.dtd&quot;&gt;</span>
+<span class="cm">&lt;!--</span>
+<span class="cm">generated by Pygments &lt;https://pygments.org/&gt;</span>
+<span class="cm">Copyright 2006-2023 by the Pygments team.</span>
+<span class="cm">Licensed under the BSD license, see LICENSE for details.</span>
+<span class="cm">--&gt;</span>
+<span class="p">&lt;</span><span class="nt">html</span><span class="p">&gt;</span>
+ <span class="p">&lt;</span><span class="nt">head</span><span class="p">&gt;</span>
+  <span class="p">&lt;</span><span class="nt">title</span><span class="p">&gt;</span>
+  <span class="p">&lt;/</span><span class="nt">title</span><span class="p">&gt;</span>
+  <span class="p">&lt;</span><span class="nt">meta</span> <span class="na">content</span><span class="o">=</span><span class="s">&quot;text/html; charset=utf-8&quot;</span> <span class="na">http-equiv</span><span class="o">=</span><span class="s">&quot;content-type&quot;</span><span class="p">/&gt;</span>
+  <span class="p">&lt;</span><span class="nt">style</span> <span class="na">type</span><span class="o">=</span><span class="s">&quot;text/css&quot;</span><span class="p">&gt;</span>
+<span class="w">   </span><span class="c">/*</span>
+<span class="c">         generated by Pygments &lt;https://pygments.org/&gt;</span>
+<span class="c">         Copyright 2006-2023 by the Pygments team.</span>
+<span class="c">         Licensed under the BSD license, see LICENSE for details.</span>
+<span class="c">         */</span>
+<span class="w">         </span><span class="nt">pre</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">line-height</span><span class="p">:</span><span class="w"> </span><span class="mi">125</span><span class="kt">%</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="w">         </span><span class="nt">body</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">background</span><span class="p">:</span><span class="w"> </span><span class="mh">#f8f8f8</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="w">         </span><span class="nt">body</span><span class="w"> </span><span class="p">.</span><span class="nc">c</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">color</span><span class="p">:</span><span class="w"> </span><span class="mh">#3D7B7B</span><span class="p">;</span><span class="w"> </span><span class="k">font-style</span><span class="p">:</span><span class="w"> </span><span class="kc">italic</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="c">/* Comment */</span>
+<span class="w">         </span><span class="nt">body</span><span class="w"> </span><span class="p">.</span><span class="nc">err</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">border</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="kt">px</span><span class="w"> </span><span class="kc">solid</span><span class="w"> </span><span class="mh">#FF0000</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="c">/* Error */</span>
+<span class="w">         </span><span class="nt">body</span><span class="w"> </span><span class="p">.</span><span class="nc">o</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">color</span><span class="p">:</span><span class="w"> </span><span class="mh">#666666</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="c">/* Operator */</span>
+<span class="w">         </span><span class="nt">body</span><span class="w"> </span><span class="p">.</span><span class="nc">-Color-BGBlack</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">background-color</span><span class="p">:</span><span class="w"> </span><span class="mh">#000000</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="c">/* Color.BGBlack */</span>
+<span class="w">         </span><span class="nt">body</span><span class="w"> </span><span class="p">.</span><span class="nc">-Color-BGBlue</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">background-color</span><span class="p">:</span><span class="w"> </span><span class="mh">#3465a4</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="c">/* Color.BGBlue */</span>
+<span class="w">         </span><span class="nt">body</span><span class="w"> </span><span class="p">.</span><span class="nc">-Color-BGBrightBlack</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">background-color</span><span class="p">:</span><span class="w"> </span><span class="mh">#676767</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="c">/* Color.BGBrightBlack */</span>
+<span class="w">         </span><span class="nt">body</span><span class="w"> </span><span class="p">.</span><span class="nc">-Color-BGBrightBlue</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">background-color</span><span class="p">:</span><span class="w"> </span><span class="mh">#6871ff</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="c">/* Color.BGBrightBlue */</span>
+<span class="w">         </span><span class="nt">body</span><span class="w"> </span><span class="p">.</span><span class="nc">-Color-BGCyan</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">background-color</span><span class="p">:</span><span class="w"> </span><span class="mh">#34e2e2</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="c">/* Color.BGCyan */</span>
+<span class="w">         </span><span class="nt">body</span><span class="w"> </span><span class="p">.</span><span class="nc">-Color-BGGreen</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">background-color</span><span class="p">:</span><span class="w"> </span><span class="mh">#8ae234</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="c">/* Color.BGGreen */</span>
+<span class="w">         </span><span class="c">/* … */</span>
+<span class="w">  </span><span class="p">&lt;/</span><span class="nt">style</span><span class="p">&gt;</span>
+ <span class="p">&lt;/</span><span class="nt">head</span><span class="p">&gt;</span>
+ <span class="p">&lt;</span><span class="nt">body</span><span class="p">&gt;</span>
+  <span class="p">&lt;</span><span class="nt">h2</span><span class="p">&gt;</span>
+  <span class="p">&lt;/</span><span class="nt">h2</span><span class="p">&gt;</span>
+  <span class="p">&lt;</span><span class="nt">div</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;highlight&quot;</span><span class="p">&gt;</span>
+   <span class="p">&lt;</span><span class="nt">pre</span><span class="p">&gt;</span>
+            <span class="p">&lt;</span><span class="nt">span</span><span class="p">&gt;&lt;/</span><span class="nt">span</span><span class="p">&gt;</span>
+            <span class="p">&lt;</span><span class="nt">span</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;-Color -Color-C154&quot;</span><span class="p">&gt;</span> __<span class="p">&lt;/</span><span class="nt">span</span><span class="p">&gt;</span>
+            <span class="p">&lt;</span><span class="nt">span</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;-Color -Color-C148&quot;</span><span class="p">&gt;</span>_<span class="p">&lt;/</span><span class="nt">span</span><span class="p">&gt;</span>
+            <span class="p">&lt;</span><span class="nt">span</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;-Color -Color-C184&quot;</span><span class="p">&gt;</span>___________<span class="p">&lt;/</span><span class="nt">span</span><span class="p">&gt;</span>
+            <span class="p">&lt;</span><span class="nt">span</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;-Color -Color-C178&quot;</span><span class="p">&gt;</span>_<span class="p">&lt;/</span><span class="nt">span</span><span class="p">&gt;</span>
+            <span class="p">&lt;</span><span class="nt">span</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;-Color -Color-C214&quot;</span><span class="p">&gt;</span>_________<span class="p">&lt;/</span><span class="nt">span</span><span class="p">&gt;</span>
+            <span class="p">&lt;</span><span class="nt">span</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;-Color -Color-C208&quot;</span><span class="p">&gt;</span>________ <span class="p">&lt;/</span><span class="nt">span</span><span class="p">&gt;</span>
+            <span class="p">&lt;</span><span class="nt">span</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;-Color -Color-C148&quot;</span><span class="p">&gt;</span>/<span class="p">&lt;/</span><span class="nt">span</span><span class="p">&gt;</span>
+            <span class="p">&lt;</span><span class="nt">span</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;-Color -Color-C184&quot;</span><span class="p">&gt;</span> Reality is<span class="p">&lt;/</span><span class="nt">span</span><span class="p">&gt;</span>
+            <span class="p">&lt;</span><span class="nt">span</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;-Color -Color-C178&quot;</span><span class="p">&gt;</span> <span class="p">&lt;/</span><span class="nt">span</span><span class="p">&gt;</span>
+            <span class="p">&lt;</span><span class="nt">span</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;-Color -Color-C214&quot;</span><span class="p">&gt;</span>for people<span class="p">&lt;/</span><span class="nt">span</span><span class="p">&gt;</span>
+            <span class="p">&lt;</span><span class="nt">span</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;-Color -Color-C208&quot;</span><span class="p">&gt;</span> who lack<span class="p">&lt;/</span><span class="nt">span</span><span class="p">&gt;</span>
+            …
+         <span class="p">&lt;/</span><span class="nt">pre</span><span class="p">&gt;</span>
+  <span class="p">&lt;/</span><span class="nt">div</span><span class="p">&gt;</span>
+ <span class="p">&lt;/</span><span class="nt">body</span><span class="p">&gt;</span>
+<span class="p">&lt;/</span><span class="nt">html</span><span class="p">&gt;</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="click-extra-pygments-api">
+<h2><code class="docutils literal notranslate"><span class="pre">click_extra.pygments</span></code> API<a class="headerlink" href="#click-extra-pygments-api" title="Link to this heading">¶</a></h2>
+<pre  class="mermaid">
+        classDiagram
+  ExtendedColorHtmlFormatterMixin &lt;|-- AnsiHtmlFormatter
+  Filter &lt;|-- AnsiFilter
+  HtmlFormatter &lt;|-- AnsiHtmlFormatter
+  Lexer &lt;|-- AnsiLexerFiltersMixin
+  LexerMeta &lt;|-- AnsiSessionLexer
+    </pre><p id="module-click_extra.pygments">Helpers and utilities to allow Pygments to parse and render ANSI codes.</p>
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.pygments.DEFAULT_TOKEN_TYPE">
+<span class="sig-prename descclassname"><span class="pre">click_extra.pygments.</span></span><span class="sig-name descname"><span class="pre">DEFAULT_TOKEN_TYPE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('Generic',</span> <span class="pre">'Output')</span></span><a class="headerlink" href="#click_extra.pygments.DEFAULT_TOKEN_TYPE" title="Link to this definition">¶</a></dt>
+<dd><p>Default Pygments’ token type to render with ANSI support.</p>
+<p>We defaults to <code class="docutils literal notranslate"><span class="pre">Generic.Output</span></code> tokens, as this is the token type used by all REPL-
+like and terminal lexers.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="click_extra.pygments.AnsiFilter">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">click_extra.pygments.</span></span><span class="sig-name descname"><span class="pre">AnsiFilter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">options</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/pygments.html#AnsiFilter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.pygments.AnsiFilter" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Filter</span></code></p>
+<p>Custom filter transforming a particular kind of token (<code class="docutils literal notranslate"><span class="pre">Generic.Output</span></code> by
+defaults) into ANSI tokens.</p>
+<p>Initialize a <code class="docutils literal notranslate"><span class="pre">AnsiColorLexer</span></code> and configure the <code class="docutils literal notranslate"><span class="pre">token_type</span></code> to be
+colorized.</p>
+<div class="admonition-todo admonition" id="id1">
+<p class="admonition-title">Todo</p>
+<p>Allow multiple <code class="docutils literal notranslate"><span class="pre">token_type</span></code> to be configured for colorization (if
+traditions are changed on Pygments’ side).</p>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="click_extra.pygments.AnsiFilter.filter">
+<span class="sig-name descname"><span class="pre">filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lexer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stream</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/pygments.html#AnsiFilter.filter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.pygments.AnsiFilter.filter" title="Link to this definition">¶</a></dt>
+<dd><p>Transform each token of <code class="docutils literal notranslate"><span class="pre">token_type</span></code> type into a stream of ANSI tokens.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">_TokenType</span></code>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="click_extra.pygments.AnsiSessionLexer">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">click_extra.pygments.</span></span><span class="sig-name descname"><span class="pre">AnsiSessionLexer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bases</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dct</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/pygments.html#AnsiSessionLexer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.pygments.AnsiSessionLexer" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">LexerMeta</span></code></p>
+<p>Custom metaclass used as a class factory to derive an ANSI variant of default
+shell session lexers.</p>
+<p>Setup class properties’ defaults for new ANSI-capable lexers.</p>
+<ul class="simple">
+<li><p>Adds an <code class="docutils literal notranslate"><span class="pre">ANSI</span></code> prefix to the lexer’s name.</p></li>
+<li><dl class="simple">
+<dt>Replaces all <code class="docutils literal notranslate"><span class="pre">aliases</span></code> IDs from the parent lexer with variants prefixed with</dt><dd><p><code class="docutils literal notranslate"><span class="pre">ansi-</span></code>.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="click_extra.pygments.AnsiLexerFiltersMixin">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">click_extra.pygments.</span></span><span class="sig-name descname"><span class="pre">AnsiLexerFiltersMixin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/pygments.html#AnsiLexerFiltersMixin"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.pygments.AnsiLexerFiltersMixin" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Lexer</span></code></p>
+<p>Adds a <code class="docutils literal notranslate"><span class="pre">TokenMergeFilter</span></code> and <code class="docutils literal notranslate"><span class="pre">AnsiOutputFilter</span></code> to the list of filters.</p>
+<p>The session lexers we inherits from are parsing the code block line by line so
+they can differentiate inputs and outputs. Each output line ends up
+encapsulated into a <code class="docutils literal notranslate"><span class="pre">Generic.Output</span></code> token. We apply the <code class="docutils literal notranslate"><span class="pre">TokenMergeFilter</span></code>
+filter to reduce noise and have each contiguous output lines part of the same
+single token.</p>
+<p>Then we apply our custom <code class="docutils literal notranslate"><span class="pre">AnsiOutputFilter</span></code> to transform any
+<code class="docutils literal notranslate"><span class="pre">Generic.Output</span></code> monoblocks into ANSI tokens.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="click_extra.pygments.collect_session_lexers">
+<span class="sig-prename descclassname"><span class="pre">click_extra.pygments.</span></span><span class="sig-name descname"><span class="pre">collect_session_lexers</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/pygments.html#collect_session_lexers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.pygments.collect_session_lexers" title="Link to this definition">¶</a></dt>
+<dd><p>Retrieve all lexers producing shell-like sessions in Pygments.</p>
+<p>This function contain a manually-maintained list of lexers, to which we dynamiccaly
+adds lexers inheriting from <code class="docutils literal notranslate"><span class="pre">ShellSessionBaseLexer</span></code>.</p>
+<div class="admonition hint">
+<p class="admonition-title">Hint</p>
+<p>To help maintain this list, there is <a class="reference external" href="https://github.com/kdeldycke/click-extra/blob/main/tests/test_pygments.py">a test that will fail</a>
+if a new REPL/terminal-like lexer is added to Pygments but not referenced here.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#type" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">type</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Lexer</span></code>]]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="click_extra.pygments.lexer_map">
+<span class="sig-prename descclassname"><span class="pre">click_extra.pygments.</span></span><span class="sig-name descname"><span class="pre">lexer_map</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{&lt;class</span> <span class="pre">'pygments.lexers.algebra.GAPConsoleLexer'&gt;:</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexer.AnsiGAPConsoleLexer'&gt;,</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexers.dylan.DylanConsoleLexer'&gt;:</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexer.AnsiDylanConsoleLexer'&gt;,</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexers.erlang.ElixirConsoleLexer'&gt;:</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexer.AnsiElixirConsoleLexer'&gt;,</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexers.erlang.ErlangShellLexer'&gt;:</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexer.AnsiErlangShellLexer'&gt;,</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexers.julia.JuliaConsoleLexer'&gt;:</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexer.AnsiJuliaConsoleLexer'&gt;,</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexers.matlab.MatlabSessionLexer'&gt;:</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexer.AnsiMatlabSessionLexer'&gt;,</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexers.php.PsyshConsoleLexer'&gt;:</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexer.AnsiPsyshConsoleLexer'&gt;,</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexers.python.PythonConsoleLexer'&gt;:</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexer.AnsiPythonConsoleLexer'&gt;,</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexers.r.RConsoleLexer'&gt;:</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexer.AnsiRConsoleLexer'&gt;,</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexers.ruby.RubyConsoleLexer'&gt;:</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexer.AnsiRubyConsoleLexer'&gt;,</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexers.shell.BashSessionLexer'&gt;:</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexer.AnsiBashSessionLexer'&gt;,</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexers.shell.MSDOSSessionLexer'&gt;:</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexer.AnsiMSDOSSessionLexer'&gt;,</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexers.shell.PowerShellSessionLexer'&gt;:</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexer.AnsiPowerShellSessionLexer'&gt;,</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexers.shell.TcshSessionLexer'&gt;:</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexer.AnsiTcshSessionLexer'&gt;,</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexers.special.OutputLexer'&gt;:</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexer.AnsiOutputLexer'&gt;,</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexers.sql.PostgresConsoleLexer'&gt;:</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexer.AnsiPostgresConsoleLexer'&gt;,</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexers.sql.SqliteConsoleLexer'&gt;:</span> <span class="pre">&lt;class</span> <span class="pre">'pygments.lexer.AnsiSqliteConsoleLexer'&gt;}</span></span><a class="headerlink" href="#click_extra.pygments.lexer_map" title="Link to this definition">¶</a></dt>
+<dd><p>Map original lexer to their ANSI variant.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="click_extra.pygments.AnsiHtmlFormatter">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">click_extra.pygments.</span></span><span class="sig-name descname"><span class="pre">AnsiHtmlFormatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/click_extra/pygments.html#AnsiHtmlFormatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#click_extra.pygments.AnsiHtmlFormatter" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ExtendedColorHtmlFormatterMixin</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">HtmlFormatter</span></code></p>
+<p>Extend standard Pygments’ <code class="docutils literal notranslate"><span class="pre">HtmlFormatter</span></code>.</p>
+<p><a class="reference external" href="https://github.com/chriskuehl/pygments-ansi-color#optional-enable-256-color-support">Adds support for ANSI 256 colors</a>.</p>
+<p>Intercept the <code class="docutils literal notranslate"><span class="pre">style</span></code> argument to augment it with ANSI colors support.</p>
+<p>Creates a new style instance that inherits from the one provided by the user,
+but updates its <code class="docutils literal notranslate"><span class="pre">styles</span></code> attribute to add ANSI colors support from
+<code class="docutils literal notranslate"><span class="pre">pygments_ansi_color</span></code>.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.pygments.AnsiHtmlFormatter.name">
+<span class="sig-name descname"><span class="pre">name</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'ANSI</span> <span class="pre">HTML'</span></span><a class="headerlink" href="#click_extra.pygments.AnsiHtmlFormatter.name" title="Link to this definition">¶</a></dt>
+<dd><p>Full name for the formatter, in human-readable form.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="click_extra.pygments.AnsiHtmlFormatter.aliases">
+<span class="sig-name descname"><span class="pre">aliases</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['ansi-html']</span></span><a class="headerlink" href="#click_extra.pygments.AnsiHtmlFormatter.aliases" title="Link to this definition">¶</a></dt>
+<dd><p>A list of short, unique identifiers that can be used to lookup
+the formatter from a list, e.g. using <code class="xref py py-func docutils literal notranslate"><span class="pre">get_formatter_by_name()</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="sphinx.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title"><svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-book" viewBox="0 0 16 16" aria-hidden="true"><path d="M0 1.75A.75.75 0 0 1 .75 1h4.253c1.227 0 2.317.59 3 1.501A3.743 3.743 0 0 1 11.006 1h4.245a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75h-4.507a2.25 2.25 0 0 0-1.591.659l-.622.621a.75.75 0 0 1-1.06 0l-.622-.621A2.25 2.25 0 0 0 5.258 13H.75a.75.75 0 0 1-.75-.75Zm7.251 10.324.004-5.073-.002-2.253A2.25 2.25 0 0 0 5.003 2.5H1.5v9h3.757a3.75 3.75 0 0 1 1.994.574ZM8.755 4.75l-.004 7.322a3.752 3.752 0 0 1 1.992-.572H14.5v-9h-3.495a2.25 2.25 0 0 0-2.25 2.25Z"></path></svg> Sphinx</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="types.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title"><svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-file-binary" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.75C4 .784 4.784 0 5.75 0h5.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v8.586A1.75 1.75 0 0 1 14.25 15h-9a.75.75 0 0 1 0-1.5h9a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 10 4.25V1.5H5.75a.25.25 0 0 0-.25.25v2a.75.75 0 0 1-1.5 0Zm-4 6C0 6.784.784 6 1.75 6h1.5C4.216 6 5 6.784 5 7.75v2.5A1.75 1.75 0 0 1 3.25 12h-1.5A1.75 1.75 0 0 1 0 10.25ZM6.75 6h1.5a.75.75 0 0 1 .75.75v3.75h.75a.75.75 0 0 1 0 1.5h-3a.75.75 0 0 1 0-1.5h.75v-3h-.75a.75.75 0 0 1 0-1.5Zm-5 1.5a.25.25 0 0 0-.25.25v2.5c0 .138.112.25.25.25h1.5a.25.25 0 0 0 .25-.25v-2.5a.25.25 0 0 0-.25-.25Zm9.75-5.938V4.25c0 .138.112.25.25.25h2.688l-.011-.013-2.914-2.914-.013-.011Z"></path></svg> Types</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; Kevin Deldycke and contributors
+            </div>
+            Made with 
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            <div class="last-updated">
+              Last updated on 2026-02-21</div>
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#"><svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-file-code" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.75C4 .784 4.784 0 5.75 0h5.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v8.586A1.75 1.75 0 0 1 14.25 15h-9a.75.75 0 0 1 0-1.5h9a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 10 4.25V1.5H5.75a.25.25 0 0 0-.25.25v2.5a.75.75 0 0 1-1.5 0Zm1.72 4.97a.75.75 0 0 1 1.06 0l2 2a.75.75 0 0 1 0 1.06l-2 2a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734l1.47-1.47-1.47-1.47a.75.75 0 0 1 0-1.06ZM3.28 7.78 1.81 9.25l1.47 1.47a.751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018l-2-2a.75.75 0 0 1 0-1.06l2-2a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Zm8.22-6.218V4.25c0 .138.112.25.25.25h2.688l-.011-.013-2.914-2.914-.013-.011Z"></path></svg> Pygments</a><ul>
+<li><a class="reference internal" href="#integration">Integration</a></li>
+<li><a class="reference internal" href="#ansi-html-formatter">ANSI HTML formatter</a><ul>
+<li><a class="reference internal" href="#formatter-usage">Formatter usage</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ansi-filter">ANSI filter</a></li>
+<li><a class="reference internal" href="#ansi-language-lexers">ANSI language lexers</a><ul>
+<li><a class="reference internal" href="#lexer-variants">Lexer variants</a></li>
+<li><a class="reference internal" href="#lexers-usage">Lexers usage</a></li>
+<li><a class="reference internal" href="#lexer-design">Lexer design</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pygmentize-command-line"><code class="docutils literal notranslate"><span class="pre">pygmentize</span></code> command line</a></li>
+<li><a class="reference internal" href="#click-extra-pygments-api"><code class="docutils literal notranslate"><span class="pre">click_extra.pygments</span></code> API</a><ul>
+<li><a class="reference internal" href="#click_extra.pygments.DEFAULT_TOKEN_TYPE"><code class="docutils literal notranslate"><span class="pre">DEFAULT_TOKEN_TYPE</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.pygments.AnsiFilter"><code class="docutils literal notranslate"><span class="pre">AnsiFilter</span></code></a><ul>
+<li><a class="reference internal" href="#click_extra.pygments.AnsiFilter.filter"><code class="docutils literal notranslate"><span class="pre">AnsiFilter.filter()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#click_extra.pygments.AnsiSessionLexer"><code class="docutils literal notranslate"><span class="pre">AnsiSessionLexer</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.pygments.AnsiLexerFiltersMixin"><code class="docutils literal notranslate"><span class="pre">AnsiLexerFiltersMixin</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.pygments.collect_session_lexers"><code class="docutils literal notranslate"><span class="pre">collect_session_lexers()</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.pygments.lexer_map"><code class="docutils literal notranslate"><span class="pre">lexer_map</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.pygments.AnsiHtmlFormatter"><code class="docutils literal notranslate"><span class="pre">AnsiHtmlFormatter</span></code></a><ul>
+<li><a class="reference internal" href="#click_extra.pygments.AnsiHtmlFormatter.name"><code class="docutils literal notranslate"><span class="pre">AnsiHtmlFormatter.name</span></code></a></li>
+<li><a class="reference internal" href="#click_extra.pygments.AnsiHtmlFormatter.aliases"><code class="docutils literal notranslate"><span class="pre">AnsiHtmlFormatter.aliases</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=c403aa1a"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+    <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = `pre.mermaid {
+    /* Same as .mermaid-container > pre */
+    display: block;
+    width: 100%;
+}
+
+pre.mermaid > svg {
+    /* Same as .mermaid-container > pre > svg */
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}`;
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = `.mermaid-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.mermaid-container > pre {
+    display: block;
+    width: 100%;
+}
+
+.mermaid-container > pre > svg {
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+
+.mermaid-fullscreen-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+}
+
+.mermaid-fullscreen-btn:hover {
+    opacity: 100% !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-btn.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-btn.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 95vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 9999;
+    padding: 20px;
+    overflow: auto;
+}
+
+.mermaid-fullscreen-modal.dark-theme {
+    background: rgba(0, 0, 0, 0.98);
+}
+
+.mermaid-fullscreen-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen.dark-theme {
+    background: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mermaid-container-fullscreen pre.mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen .mermaid svg {
+    height: 100% !important;
+    width: 100% !important;
+    cursor: grab;
+}
+
+.mermaid-fullscreen-close {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
+    color: #333;
+}
+
+.mermaid-fullscreen-close:hover {
+    background: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-close.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-close.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal .mermaid-fullscreen-btn {
+    display: none !important;
+}`;
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        all_mermaids.forEach((el) => {
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+        await mermaid.run();
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+
+    if ("True" === "True") {
+        const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll(".mermaid svg");
+            if(all_mermaids.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else if(svgs.size() !== mermaids_to_add_zoom) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else {
+                svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                        inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                });
+            }
+        }
+    } else if(all_mermaids.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if ("True" !== "True") return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.style.opacity = '50%';
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scroll, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.sdisplay = 'block';
+
+                if ("True" === "True") {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+const load = async () => {
+    initStyles();
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...JSON.parse(
+                    `{"startOnLoad": false}`
+                ),
+                ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...JSON.parse(
+        `{"startOnLoad": false}`
+    ),
+    ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+    }
+);
+
+window.addEventListener("load", load);</script>
+    </body>
+</html>
