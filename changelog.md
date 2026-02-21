@@ -1,5 +1,10 @@
 # Changelog
 
+## [7.5.4.dev0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.5.3...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [7.5.3 (2026-02-21)](https://github.com/kdeldycke/click-extra/compare/v7.5.2...v7.5.3)
 
 - Allow disabling of autodiscovery of configuration files by setting `default=NO_CONFIG` on `@config_option`. Closes {issue}`1495`.
