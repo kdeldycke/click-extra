@@ -5,6 +5,7 @@
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
 
+- Allow disabling of autodiscovery of configuration files by setting `default=NO_CONFIG` on `@config_option`. Closes {issue}`1495`.
 - Implement `resolve_any_xref` in `ClickDomain` to prevent MyST-Parser warning. Closes {issue}`1502`.
 - Fix subcommand conflict detection checking against root-level params instead of parent params. Closes {pr}`1286`.
 

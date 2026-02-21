@@ -230,6 +230,31 @@ You need to provide the fully-qualified ID of the option you're looking to block
 If you have difficulties identifying your options and their IDs, run your CLI with the [`--show-params` option](#show-params-option) for introspection.
 ```
 
+## Disabling autodiscovery
+
+By default, `@config_option` automatically searches for configuration files in the [default application folder](#default-folder). If you want to disable this autodiscovery and only load a configuration file when the user explicitly passes `--config <path>`, use the `NO_CONFIG` sentinel as the default:
+
+```{code-block} python
+:emphasize-lines: 2,7
+from click import group, option, echo
+from click_extra import config_option, NO_CONFIG
+
+@group(context_settings={"show_default": True})
+@option("--dummy-flag/--no-flag")
+@config_option(default=NO_CONFIG)
+def my_cli(dummy_flag):
+    echo(f"dummy_flag is {dummy_flag!r}")
+```
+
+With this setup:
+
+- The `--help` output shows `[default: disabled]` instead of a filesystem path.
+- Running the CLI without `--config` produces no configuration-related output on stderr.
+- Users can still explicitly pass `--config <path>` to load a specific configuration file.
+- The `--no-config` flag (if added via `@no_config_option`) still prints the "Skip configuration file loading altogether." message when used explicitly.
+
+This is useful for CLIs where configuration files are opt-in rather than opt-out, or when you want to avoid side effects from automatically discovered configuration files during development or testing.
+
 ## Formats
 
 Several dialects are supported:

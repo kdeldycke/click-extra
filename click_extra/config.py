@@ -480,9 +480,13 @@ class ConfigOption(ExtraOption, ParamStructure):
             This only applies when the ``GLOBTILDE`` flag is set in ``search_pattern_flags``.
         """
         extra = super().get_help_extra(ctx)
-        if self.search_pattern_flags & glob.GLOBTILDE:
-            default = shrinkuser(Path(self.get_default(ctx)))
-        extra["default"] = default
+        default = self.get_default(ctx)
+        if default is NO_CONFIG:
+            extra["default"] = "disabled"
+        elif self.search_pattern_flags & glob.GLOBTILDE:
+            extra["default"] = shrinkuser(Path(default))
+        else:
+            extra["default"] = str(default)
         return extra
 
     def parent_patterns(self, pattern: str) -> Iterable[str]:
@@ -807,7 +811,15 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         if path_pattern is NO_CONFIG:
             logger.debug(f"{NO_CONFIG} received.")
-            info_msg("Skip configuration file loading altogether.")
+            explicit = ctx.get_parameter_source(self.name) in (
+                ParameterSource.COMMANDLINE,
+                ParameterSource.ENVIRONMENT,
+                ParameterSource.PROMPT,
+            )
+            if explicit:
+                info_msg("Skip configuration file loading altogether.")
+            else:
+                logger.debug("Configuration file autodiscovery disabled by default.")
             return
 
         explicit_conf = ctx.get_parameter_source(self.name) in (  # type: ignore[arg-type]

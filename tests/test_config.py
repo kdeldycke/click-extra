@@ -30,6 +30,7 @@ from extra_platforms import is_unix_not_macos  # type: ignore[attr-defined]
 from click_extra import (
     ConfigFormat,
     ConfigOption,
+    NO_CONFIG,
     config_option,
     echo,
     get_app_dir,
@@ -803,3 +804,61 @@ def test_default_pattern_roaming_force_posix(
             + os.path.sep
             + config_opt.file_pattern
         )
+
+
+def test_config_option_default_no_config(invoke, create_config):
+    """ConfigOption with default=NO_CONFIG disables autodiscovery."""
+
+    @click.group
+    @option("--dummy-flag/--no-flag")
+    @config_option(default=NO_CONFIG)
+    def no_autodiscovery_cli(dummy_flag):
+        echo(f"dummy_flag = {dummy_flag!r}")
+
+    @no_autodiscovery_cli.command()
+    @option("--int-param", type=int, default=10)
+    def default_command(int_param):
+        echo(f"int_parameter = {int_param!r}")
+
+    # --help shows "disabled" as default.
+    result = invoke(no_autodiscovery_cli, "--help", color=False)
+    assert result.exit_code == 0
+    assert "disabled" in result.stdout
+
+    # Running without --config produces no stderr.
+    result = invoke(no_autodiscovery_cli, "default")
+    assert result.exit_code == 0
+    assert result.stdout == "dummy_flag = False\nint_parameter = 10\n"
+    assert not result.stderr
+
+    # Explicit --config still loads the file.
+    conf_path = create_config(
+        "custom.toml",
+        dedent("""\
+            [no-autodiscovery-cli]
+            dummy_flag = true
+        """),
+    )
+    result = invoke(no_autodiscovery_cli, "--config", str(conf_path), "default")
+    assert result.exit_code == 0
+    assert "dummy_flag = True" in result.stdout
+
+
+def test_no_config_explicit_with_default_no_config(invoke):
+    """--no-config still prints the skip message even when NO_CONFIG is the default."""
+
+    @click.group
+    @option("--dummy-flag/--no-flag")
+    @config_option(default=NO_CONFIG)
+    @no_config_option
+    def no_autodiscovery_cli2(dummy_flag):
+        echo(f"dummy_flag = {dummy_flag!r}")
+
+    @no_autodiscovery_cli2.command()
+    def default_command():
+        echo("ok")
+
+    # Explicit --no-config should print the skip message.
+    result = invoke(no_autodiscovery_cli2, "--no-config", "default")
+    assert result.exit_code == 0
+    assert result.stderr == "Skip configuration file loading altogether.\n"
