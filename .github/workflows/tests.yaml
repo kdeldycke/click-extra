@@ -46,6 +46,7 @@ jobs:
           - released
           - stable
           - main
+          - hide-unset-in-lookup_default
         cloup-version:
           - released
           - master
@@ -97,17 +98,23 @@ jobs:
           - os: ubuntu-slim
             click-version: main
           - os: ubuntu-slim
+            click-version: hide-unset-in-lookup_default
+          - os: ubuntu-slim
             cloup-version: master
           - os: macos-15-intel
             click-version: stable
           - os: macos-15-intel
             click-version: main
           - os: macos-15-intel
+            click-version: hide-unset-in-lookup_default
+          - os: macos-15-intel
             cloup-version: master
           - os: windows-2025
             click-version: stable
           - os: windows-2025
             click-version: main
+          - os: windows-2025
+            click-version: hide-unset-in-lookup_default
           - os: windows-2025
             cloup-version: master
           # Exclude old Python version. Only test on latest stable release.
@@ -116,6 +123,8 @@ jobs:
           - python-version: "3.10"
             click-version: main
           - python-version: "3.10"
+            click-version: hide-unset-in-lookup_default
+          - python-version: "3.10"
             cloup-version: master
           # Exclude Python's dev version.
           - python-version: "3.15"
@@ -123,11 +132,15 @@ jobs:
           - python-version: "3.15"
             click-version: main
           - python-version: "3.15"
+            click-version: hide-unset-in-lookup_default
+          - python-version: "3.15"
             cloup-version: master
           - python-version: "3.15t"
             click-version: stable
           - python-version: "3.15t"
             click-version: main
+          - python-version: "3.15t"
+            click-version: hide-unset-in-lookup_default
           - python-version: "3.15t"
             cloup-version: master
         include:
@@ -182,7 +195,9 @@ jobs:
       - name: Unittests
         run: >
           uv --no-progress run --frozen
-          ${{ matrix.click-version != 'released'
+          ${{ matrix.click-version == 'hide-unset-in-lookup_default'
+          && '--with "git+https://github.com/kdeldycke/click.git@hide-unset-in-lookup_default"'
+          || matrix.click-version != 'released'
           && format('--with "git+https://github.com/pallets/click.git@{0}"', matrix.click-version) || '' }}
           ${{ matrix.cloup-version != 'released'
           && format('--with "git+https://github.com/janluke/cloup.git@{0}"', matrix.cloup-version) || ''}}
