@@ -259,7 +259,7 @@ def test_color_option_precedence(invoke):
 
     Eager parameters are evaluated in the order as they were provided on the command
     line by the user as expleined in:
-    https://click.palletsprojects.com/en/8.0.x/advanced/#callback-evaluation-order
+    https://click.palletsprojects.com/en/stable/click-concepts/#callback-evaluation-order
 
     .. todo::
 

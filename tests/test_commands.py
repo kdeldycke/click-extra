@@ -207,7 +207,7 @@ def test_help_eagerness(
     assert_output_regex,
 ):
     """See:
-    https://click.palletsprojects.com/en/stable/advanced/#callback-evaluation-order
+    https://click.palletsprojects.com/en/stable/click-concepts/#callback-evaluation-order
     """
     result = invoke(all_command_cli, params, color=False)
     assert "It works!" not in result.stdout
