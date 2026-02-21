@@ -230,8 +230,12 @@ typing = [
 [tool.uv]
 # We rely on recent Python features in some of our {click:run} directives.
 dependency-groups.docs = { requires-python = ">= 3.14" }
-# Cooldown period.
-exclude-newer = "2026-02-09T00:00:00Z"
+# Cooldown period: 7-day buffer before using newly released packages.
+# Relative dates are fine here because the Renovate lock-maintenance job
+# (sync-uv-lock) reverts uv.lock when the only diff is timestamp noise.
+exclude-newer = "1 week"
+# Exclude gha-utils from the cooldown period.
+exclude-newer-package = { "nuitka" = "0 day" }
 # Package is at root level, not in "./src/".
 build-backend.module-root = ""
 
