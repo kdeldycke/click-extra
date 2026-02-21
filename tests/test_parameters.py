@@ -642,6 +642,67 @@ def test_recurse_subcommands(invoke):
     assert result.exit_code == 0
 
 
+def test_subcommand_conflicts_with_parent_param(invoke):
+    """A subcommand whose name matches its direct parent's param is a real conflict.
+
+    In a config file, the key would be ambiguous: is it the param value or the
+    subcommand section?
+
+    .. code-block:: toml
+
+        [root.alpha]
+        # "foo" is ambiguous: is it the --foo param or the [root.alpha.foo] subcommand?
+        foo = ???
+
+    See: https://github.com/kdeldycke/click-extra/pull/1286
+    """
+
+    @click.group(params=[ShowParamsOption()])
+    def root():
+        pass
+
+    @root.group()
+    @option("--foo")
+    def alpha(foo):
+        pass
+
+    @alpha.command("foo")
+    def alpha_foo_cmd():
+        """Subcommand named 'foo', same as alpha's --foo param."""
+        pass
+
+    result = invoke(root, "--show-params", color=False)
+    assert result.exit_code == 1
+    assert "alpha.foo subcommand conflicts with" in str(result.exception)
+
+
+def test_nested_subcommand_no_false_conflict_with_root_param(invoke):
+    """A nested subcommand can share a name with a root-level param without conflict.
+
+    The config paths are distinct (``root.verbose`` vs ``root.alpha.verbose``), so there
+    is no ambiguity.
+
+    See: https://github.com/kdeldycke/click-extra/pull/1286
+    """
+
+    @click.group(params=[ShowParamsOption()])
+    @option("--verbose", is_flag=True)
+    def root(verbose):
+        pass
+
+    @root.group()
+    def alpha():
+        pass
+
+    @alpha.command("verbose")
+    def alpha_verbose_cmd():
+        """Subcommand named 'verbose', same as root's --verbose param."""
+        pass
+
+    result = invoke(root, "--show-params", color=False)
+    assert result.exit_code == 0
+
+
 # Shuffle the order of declaration to ensure behavior stability.
 @pytest.mark.parametrize(
     ("opt1", "opt2"),
