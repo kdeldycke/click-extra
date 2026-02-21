@@ -1,9 +1,11 @@
 # Changelog
 
-## [7.5.3.dev0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.5.2...main)
+## [7.5.4.dev0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.5.3...main)
 
-> [!IMPORTANT]
-> This version is not released yet and is under active development.
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
+## [7.5.3 (2026-02-21)](https://github.com/kdeldycke/click-extra/compare/v7.5.2...v7.5.3)
 
 - Allow disabling of autodiscovery of configuration files by setting `default=NO_CONFIG` on `@config_option`. Closes {issue}`1495`.
 - Implement `resolve_any_xref` in `ClickDomain` to prevent MyST-Parser warning. Closes {issue}`1502`.
