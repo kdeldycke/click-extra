@@ -1,6 +1,6 @@
 # Changelog
 
-## [7.5.3.dev0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.5.2...main)
+## [7.6.0.dev0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.5.2...main)
 
 > [!IMPORTANT]
 > This version is not released yet and is under active development.
