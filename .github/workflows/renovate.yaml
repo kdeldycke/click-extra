@@ -1,18 +1,19 @@
 ---
-name: Renovate
+name: 🆕 Renovate
 "on":
+  schedule:
+    - cron: "3 17 * * 1"
+  workflow_dispatch:
   push:
     branches:
       - main
     paths:
       - .github/workflows/renovate.yaml
       - renovate.json5
-  schedule:
-    # Run weekly, every Monday at 17:03.
-    - cron: "3 17 * * 1"
-  workflow_dispatch:
+      - gha_utils/data/renovate.json5
 
 jobs:
 
   renovate:
     uses: kdeldycke/workflows/.github/workflows/renovate.yaml@v5.12.0
+    secrets: inherit
