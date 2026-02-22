@@ -9,11 +9,11 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-02-14T17:13:05.69989Z"
+exclude-newer = "2026-02-15T17:37:10.329722201Z"
 exclude-newer-span = "P1W"
 
 [options.exclude-newer-package]
-nuitka = { timestamp = "2026-02-21T17:13:05.699897Z", span = "PT0S" }
+nuitka = { timestamp = "2026-02-22T17:37:10.32972707Z", span = "PT0S" }
 
 [[package]]
 name = "accessible-pygments"
@@ -197,7 +197,7 @@ wheels = [
 
 [[package]]
 name = "click-extra"
-version = "7.5.3"
+version = "7.5.3.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "boltons" },
@@ -544,14 +544,14 @@ wheels = [
 
 [[package]]
 name = "extra-platforms"
-version = "9.0.0"
+version = "9.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "distro" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/86/b4/0be4651d157c60a6378b0ebe3a05852a39ddd77655677e3abbd8078dea10/extra_platforms-9.0.0.tar.gz", hash = "sha256:cc01b94a210e59c2871ca3077876c0040f9ed41d0baefb5821cd783fc81bbb22", size = 57290, upload-time = "2026-02-12T05:48:51.033Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5c/90/4ee45c61e78f3a0d78bbea09180a3f0d2eda24e1b605bde94e50ae1ab850/extra_platforms-9.1.0.tar.gz", hash = "sha256:338df341e7ce284b67c6546a0c61187239d8ee167c6c5aa2bbda20a44fdd5d5d", size = 61912, upload-time = "2026-02-15T14:58:57.849Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4d/fc/a35e444368f154ee7242b2c2aac9d377bcb9c3d0999f433a4097fe1ce99c/extra_platforms-9.0.0-py3-none-any.whl", hash = "sha256:93489a4117950a7e85c26f4fc4148d8ff031be3d69db713171e7adefee4439ae", size = 61803, upload-time = "2026-02-12T05:48:49.237Z" },
+    { url = "https://files.pythonhosted.org/packages/f6/09/fdd8bd7670ebc3d7a65e57bd23b0cc9ea74f75328d100118d3aa24e9b781/extra_platforms-9.1.0-py3-none-any.whl", hash = "sha256:92a8aba2396cb6154536d4cb0831e0cc70d239dcae2d2b422c673fe09bcdf841", size = 66515, upload-time = "2026-02-15T14:58:59.369Z" },
 ]
 
 [package.optional-dependencies]
@@ -1460,9 +1460,9 @@ wheels = [
 
 [[package]]
 name = "xmltodict"
-version = "1.0.2"
+version = "1.0.3"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/6a/aa/917ceeed4dbb80d2f04dbd0c784b7ee7bba8ae5a54837ef0e5e062cd3cfb/xmltodict-1.0.2.tar.gz", hash = "sha256:54306780b7c2175a3967cad1db92f218207e5bc1aba697d887807c0fb68b7649", size = 25725, upload-time = "2025-09-17T21:59:26.459Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a9/66/d1242ce8748c698e0036837dfbb530480e31f11d3ecf7101cd4e30d29913/xmltodict-1.0.3.tar.gz", hash = "sha256:3bf1f49c7836df34cf6d9cc7e690c4351f7dfff2ab0b8a1988bba4a9b9474909", size = 25170, upload-time = "2026-02-15T04:05:05.728Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c0/20/69a0e6058bc5ea74892d089d64dfc3a62ba78917ec5e2cfa70f7c92ba3a5/xmltodict-1.0.2-py3-none-any.whl", hash = "sha256:62d0fddb0dcbc9f642745d8bbf4d81fd17d6dfaec5a15b5c1876300aad92af0d", size = 13893, upload-time = "2025-09-17T21:59:24.859Z" },
+    { url = "https://files.pythonhosted.org/packages/82/df/5c50d5bfc886cf61e665f34925e70c7d5ab1d39db0bcc4a03f6fdae3cd76/xmltodict-1.0.3-py3-none-any.whl", hash = "sha256:35d65d5c08f2a1121df338a0c4e49ca638480fa7c1b899ded45e0759bf32e40e", size = 13295, upload-time = "2026-02-15T04:05:04.407Z" },
 ]
