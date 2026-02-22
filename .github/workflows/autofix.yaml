@@ -12,3 +12,4 @@ jobs:
 
   autofix:
     uses: kdeldycke/workflows/.github/workflows/autofix.yaml@v5.12.0
+    secrets: inherit
