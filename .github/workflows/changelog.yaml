@@ -1,9 +1,8 @@
 ---
-name: Changelog & versions
+name: 🆙 Changelog & versions
 "on":
   workflow_dispatch:
   schedule:
-    # Run daily to bump versions.
     - cron: "0 6 * * *"
   push:
     branches:
@@ -11,10 +10,8 @@ name: Changelog & versions
     paths:
       - changelog.md
       - "**/pyproject.toml"
-      - "*requirements.txt"
-      - "requirements/*.txt"
-      # Trigger on any workflow change to make sure version gets hard-coded everywhere.
-      - .github/workflows/*.yaml
+      - ".github/workflows/*.yaml"
+      - uv.lock
   workflow_run:
     workflows:
       - "Build & release"
@@ -27,3 +24,4 @@ jobs:
 
   changelog:
     uses: kdeldycke/workflows/.github/workflows/changelog.yaml@v5.12.0
+    secrets: inherit

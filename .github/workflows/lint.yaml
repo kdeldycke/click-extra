@@ -1,10 +1,14 @@
 ---
-name: Lint
+name: 🧹 Lint
 "on":
+  workflow_dispatch:
   push:
     branches:
       - main
   pull_request:
+    branches-ignore:
+      - prepare-release
+      - "renovate/**"
 
 jobs:
 
