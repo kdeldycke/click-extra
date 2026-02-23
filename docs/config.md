@@ -472,7 +472,9 @@ But there is still a lot of cases for which the XDG doesn't cut it, like on othe
 
 ### Custom pattern
 
-You can directly provide a customized search pattern to the `default` argument of the decorator:
+You can also provide a custom path to the configuration file via the `--config` option added to your CLI by the `@config_option` decorator.
+
+To change the default search pattern, pass a customized value to the `default` argument of the decorator:
 
 ```{click:source}
 :emphasize-lines: 6
