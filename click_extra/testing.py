@@ -154,14 +154,7 @@ class ExtraCliRunner(click.testing.CliRunner):
     """Augment :class:`click.testing.CliRunner` with extra features and bug fixes."""
 
     force_color: bool = False
-    """Global class attribute to override the ``color`` parameter in ``invoke``.
-
-    .. note::
-        This was initially developed to force the initialization of the runner during
-        the setup of Sphinx new directives (:func:`click_extra.sphinx.setup`). This
-        was the only way we found, as to patch some code we had to operate at the class
-        level.
-    """
+    """Global class attribute to override the ``color`` parameter in ``invoke``."""
 
     def invoke(  # type: ignore[override]
         self,
@@ -220,8 +213,8 @@ class ExtraCliRunner(click.testing.CliRunner):
             extra = {}
 
         # Pop out the ``args`` parameter from ``extra`` and append it to the positional
-        # arguments. This situation append when the ``args`` parameter is passed as a
-        # keyword argument in ``click_extra.sphinx.ClickRunner.invoke()``.
+        # arguments. This handles the case where ``args`` is passed as a keyword
+        # argument, as in vanilla Click's ``CliRunner.invoke()`` API.
         cli_args = list(args)
         if "args" in extra:
             cli_args.extend(extra.pop("args"))

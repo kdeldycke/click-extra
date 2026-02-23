@@ -42,15 +42,13 @@ import tempfile
 from functools import cached_property, partial
 
 import click
-from click.testing import EchoingStdin
+from click.testing import CliRunner, EchoingStdin
 from docutils import nodes
 from docutils.statemachine import StringList
 from sphinx.directives import SphinxDirective, directives
 from sphinx.directives.code import CodeBlock
 from sphinx.domains import Domain
 from sphinx.util import logging
-
-from ..testing import ExtraCliRunner
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -121,17 +119,12 @@ def patch_subprocess():
         subprocess.call = old_call
 
 
-class ClickRunner(ExtraCliRunner):
-    """A sub-class of :class:`click.testing.CliRunner` with additional features.
+class ClickRunner(CliRunner):
+    """A sub-class of :class:`click.testing.CliRunner` for Sphinx directive execution.
 
-    This class inherits from ``click_extra.testing.ExtraCliRunner`` to have full
-    control of contextual color settings by the way of the ``color`` parameter. It also
-    produce unfiltered ANSI codes so that the ``Directive`` sub-classes below can
+    Produces unfiltered ANSI codes so that the ``Directive`` sub-classes below can
     render colors in the HTML output.
     """
-
-    force_color = True
-    """Force color rendering in ``invoke`` calls."""
 
     def __init__(self):
         super().__init__(echo_stdin=True)
@@ -197,7 +190,8 @@ class ClickRunner(ExtraCliRunner):
                 input += "\x04"
 
         result = super().invoke(
-            cli=cli, args=args, input=input, env=env, prog_name=prog_name, **extra
+            cli=cli, args=args, input=input, env=env, prog_name=prog_name,
+            color=True, **extra,
         )
         # TODO: Maybe we can intercept the exception here either make it:
         # - part of the output in the rendered Sphinx code block, or
@@ -226,7 +220,7 @@ class ClickRunner(ExtraCliRunner):
         The execution context is augmented, so you can refer directly to these
         functions in the provided ``source_code``:
 
-        - :meth:`invoke()`: which is the same as :meth:`ExtraCliRunner.invoke`
+        - :meth:`invoke()`: which is the same as :meth:`ClickRunner.invoke`
         - :meth:`isolated_filesystem()`: A context manager that changes to a temporary
           directory while executing the block.
 
