@@ -46,6 +46,7 @@ from click_extra import (
     option,
     pass_context,
     search_params,
+    validate_config_option,
 )
 from click_extra.colorize import _escape_for_help_screen
 from click_extra.pytest import (
@@ -1795,3 +1796,153 @@ def test_pyproject_toml_overrides_defaults(
     assert result.stdout == (
         "dummy_flag = True\nmy_list = ('pip', 'npm', 'gem')\nint_parameter = 3\n"
     )
+
+
+def test_validate_config_valid(invoke, create_config):
+    """--validate-config with a valid config file exits 0."""
+    conf_text = dedent("""\
+        [validate-cli]
+        dummy_flag = true
+        my_list = ["pip", "npm"]
+
+        [validate-cli.sub]
+        int_param = 3
+        """)
+    conf_path = create_config("valid.toml", conf_text)
+
+    @click.group
+    @option("--dummy-flag/--no-flag")
+    @option("--my-list", multiple=True)
+    @config_option
+    @validate_config_option
+    def validate_cli(dummy_flag, my_list):
+        echo(f"dummy_flag = {dummy_flag!r}")
+
+    @validate_cli.command
+    @option("--int-param", type=int, default=10)
+    def sub(int_param):
+        echo(f"int_parameter = {int_param!r}")
+
+    result = invoke(validate_cli, "--validate-config", str(conf_path), color=False)
+    assert result.exit_code == 0
+    assert "is valid" in result.stderr
+
+
+def test_validate_config_invalid_keys(invoke, create_config):
+    """--validate-config with unrecognized keys exits 1."""
+    conf_text = dedent("""\
+        [validate-cli]
+        dummy_flag = true
+        unknown_key = "bad"
+
+        [validate-cli.sub]
+        int_param = 3
+        random_stuff = "will be rejected"
+        """)
+    conf_path = create_config("invalid.toml", conf_text)
+
+    @click.group
+    @option("--dummy-flag/--no-flag")
+    @option("--my-list", multiple=True)
+    @config_option
+    @validate_config_option
+    def validate_cli(dummy_flag, my_list):
+        echo(f"dummy_flag = {dummy_flag!r}")
+
+    @validate_cli.command
+    @option("--int-param", type=int, default=10)
+    def sub(int_param):
+        echo(f"int_parameter = {int_param!r}")
+
+    result = invoke(validate_cli, "--validate-config", str(conf_path), color=False)
+    assert result.exit_code == 1
+    assert "validation error" in result.stderr.lower()
+
+
+def test_validate_config_unparseable(invoke, create_config):
+    """--validate-config with garbage content exits 2."""
+    conf_path = create_config("garbage.toml", "{{{{ not valid anything >>>")
+
+    @click.group
+    @option("--dummy-flag/--no-flag")
+    @config_option
+    @validate_config_option
+    def validate_cli(dummy_flag):
+        echo(f"dummy_flag = {dummy_flag!r}")
+
+    @validate_cli.command
+    def sub():
+        pass
+
+    result = invoke(validate_cli, "--validate-config", str(conf_path), color=False)
+    assert result.exit_code == 2
+    assert "Error parsing" in result.stderr
+
+
+def test_validate_config_missing_file(invoke, tmp_path):
+    """--validate-config with a nonexistent file is caught by Click's Path(exists=True)."""
+
+    @click.group
+    @option("--dummy-flag/--no-flag")
+    @config_option
+    @validate_config_option
+    def validate_cli(dummy_flag):
+        echo(f"dummy_flag = {dummy_flag!r}")
+
+    @validate_cli.command
+    def sub():
+        pass
+
+    missing = str(tmp_path / "nonexistent.toml")
+    result = invoke(validate_cli, "--validate-config", missing, color=False)
+    assert result.exit_code == 2
+
+
+def test_validate_config_requires_config_option(invoke):
+    """--validate-config without @config_option raises RuntimeError."""
+
+    @click.command
+    @validate_config_option
+    def missing_config():
+        echo("Hello, World!")
+
+    result = invoke(missing_config, "--validate-config", "/dev/null")
+
+    assert result.exception
+    assert type(result.exception) is RuntimeError
+    assert "ValidateConfigOption must be used alongside ConfigOption" in str(
+        result.exception
+    )
+    assert not result.output
+    assert result.exit_code == 1
+
+
+def test_validate_config_pyproject_toml(invoke, create_config):
+    """--validate-config works with pyproject.toml [tool.*] sections."""
+    conf_text = dedent("""\
+        [build-system]
+        requires = ["setuptools"]
+
+        [tool.validate-cli]
+        dummy_flag = true
+
+        [tool.validate-cli.sub]
+        int_param = 3
+        """)
+    conf_path = create_config("pyproject.toml", conf_text)
+
+    @click.group
+    @option("--dummy-flag/--no-flag")
+    @config_option
+    @validate_config_option
+    def validate_cli(dummy_flag):
+        echo(f"dummy_flag = {dummy_flag!r}")
+
+    @validate_cli.command
+    @option("--int-param", type=int, default=10)
+    def sub(int_param):
+        echo(f"int_parameter = {int_param!r}")
+
+    result = invoke(validate_cli, "--validate-config", str(conf_path), color=False)
+    assert result.exit_code == 0
+    assert "is valid" in result.stderr

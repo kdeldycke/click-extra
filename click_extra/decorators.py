@@ -30,7 +30,7 @@ from .commands import (
     LazyGroup,
     default_extra_params,
 )
-from .config import ConfigOption, NoConfigOption
+from .config import ConfigOption, NoConfigOption, ValidateConfigOption
 from .logging import VerboseOption, VerbosityOption
 from .parameters import Argument, Option, ShowParamsOption
 from .table import TableFormatOption
@@ -143,6 +143,7 @@ lazy_group = decorator_factory(dec=group, cls=LazyGroup)
 color_option = decorator_factory(dec=option, cls=ColorOption)
 config_option = decorator_factory(dec=option, cls=ConfigOption)
 no_config_option = decorator_factory(dec=option, cls=NoConfigOption)
+validate_config_option = decorator_factory(dec=option, cls=ValidateConfigOption)
 show_params_option = decorator_factory(dec=option, cls=ShowParamsOption)
 table_format_option = decorator_factory(dec=option, cls=TableFormatOption)
 telemetry_option = decorator_factory(dec=option, cls=TelemetryOption)

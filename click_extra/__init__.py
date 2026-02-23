@@ -43,7 +43,7 @@ from .commands import (
     ExtraGroup,
     LazyGroup,
 )
-from .config import ConfigFormat, ConfigOption, NO_CONFIG, NoConfigOption, VCS
+from .config import ConfigFormat, ConfigOption, NO_CONFIG, NoConfigOption, ValidateConfigOption, VCS
 from .decorators import (  # type: ignore[no-redef]
     argument,
     color_option,
@@ -55,6 +55,7 @@ from .decorators import (  # type: ignore[no-redef]
     no_config_option,
     option,
     show_params_option,
+    validate_config_option,
     table_format_option,
     telemetry_option,
     timer_option,
@@ -207,6 +208,8 @@ __all__ = [  # noqa: F405
     "unstyle",
     "UsageError",
     "UUID",
+    "validate_config_option",
+    "ValidateConfigOption",
     "VCS",
     "verbose_option",
     "VerboseOption",

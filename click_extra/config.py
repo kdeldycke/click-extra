@@ -67,6 +67,7 @@ from wcmatch import fnmatch, glob
 
 from . import (
     UNPROCESSED,
+    Path as ClickPath,
     ParameterSource,
     echo,
     get_app_dir,
@@ -1071,3 +1072,77 @@ class NoConfigOption(ExtraOption):
                 f"{'/'.join(param.opts)} {self.__class__.__name__} must be used "
                 f"alongside {ConfigOption.__name__}."
             )
+
+
+class ValidateConfigOption(ExtraOption):
+    """A pre-configured option adding ``--validate-config CONFIG_PATH``.
+
+    Loads the config file at the given path, validates it against the CLI's
+    parameter structure in strict mode, reports results, and exits.
+    """
+
+    def __init__(
+        self,
+        param_decls=None,
+        type=ClickPath(exists=True, dir_okay=False, resolve_path=True),
+        is_eager=True,
+        expose_value=False,
+        help=_("Validate the configuration file and exit."),
+        **kwargs,
+    ):
+        if not param_decls:
+            param_decls = ("--validate-config",)
+
+        kwargs.setdefault("callback", self.validate_config)
+
+        super().__init__(
+            param_decls=param_decls,
+            type=type,
+            is_eager=is_eager,
+            expose_value=expose_value,
+            help=help,
+            **kwargs,
+        )
+
+    def validate_config(self, ctx, param, value):
+        """Load, parse, and validate the configuration file, then exit."""
+        if not value:
+            return
+
+        info_msg = partial(echo, err=True)
+
+        # Find the sibling ConfigOption to reuse its parsing machinery.
+        config_option = search_params(ctx.command.params, ConfigOption)
+        if config_option is None:
+            raise RuntimeError(
+                f"{'/'.join(param.opts)} {self.__class__.__name__} must be "
+                f"used alongside {ConfigOption.__name__}."
+            )
+
+        # Read and parse the config file.
+        try:
+            conf_path, user_conf = config_option.read_and_parse_conf(value)
+        except FileNotFoundError:
+            info_msg(f"Configuration file not found: {value}")
+            ctx.exit(2)
+            return
+
+        if user_conf is None:
+            info_msg(
+                f"Error parsing {value} as "
+                f"{', '.join(map(str, config_option.file_format_patterns))}."
+            )
+            ctx.exit(2)
+            return
+
+        # Validate in strict mode — _recursive_update raises ValueError
+        # on unrecognized keys.
+        try:
+            _recursive_update(config_option.params_template, user_conf, strict=True)
+        except ValueError as exc:
+            info_msg(f"Configuration validation error: {exc}")
+            ctx.exit(1)
+            return
+
+        info_msg(f"Configuration file {value} is valid.")
+        ctx.exit(0)

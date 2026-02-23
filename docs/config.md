@@ -203,6 +203,92 @@ Load configuration matching cli.toml
 ValueError: Parameter 'random_param' is not allowed in configuration file.
 ```
 
+```{tip}
+If you want to check a configuration file for unrecognized keys without running the CLI, see the [`--validate-config` option](#validating-configuration-files) below.
+```
+
+## Validating configuration files
+
+The `@validate_config_option` decorator adds a `--validate-config CONFIG_PATH` option that checks whether a configuration file is well-formed and contains only recognized parameters, then exits. This is useful for CI pipelines, editor integrations, or simply verifying a configuration file before deploying it.
+
+Reusing the [standalone option example](#standalone-option) above:
+
+```{code-block} python
+:emphasize-lines: 2,8
+from click import group, option, echo
+from click_extra import config_option, validate_config_option
+
+@group
+@option("--dummy-flag/--no-flag")
+@option("--my-list", multiple=True)
+@config_option
+@validate_config_option
+def my_cli(dummy_flag, my_list):
+    echo(f"dummy_flag    is {dummy_flag!r}")
+    echo(f"my_list       is {my_list!r}")
+
+@my_cli.command
+@option("--int-param", type=int, default=10)
+def subcommand(int_param):
+    echo(f"int_parameter is {int_param!r}")
+```
+
+A valid configuration file:
+
+```{code-block} toml
+:caption: `good.toml`
+[my-cli]
+dummy_flag = true
+my_list = ["pip", "npm"]
+
+[my-cli.subcommand]
+int_param = 3
+```
+
+```{code-block} shell-session
+$ my-cli --validate-config good.toml
+Configuration file good.toml is valid.
+$ echo $?
+0
+```
+
+A configuration file with unrecognized keys:
+
+```{code-block} toml
+:caption: `bad.toml`
+[my-cli]
+dummy_flag = true
+unknown_key = "oops"
+```
+
+```{code-block} shell-session
+$ my-cli --validate-config bad.toml
+Configuration validation error: Parameter 'unknown_key' found in second dict but not in first.
+$ echo $?
+1
+```
+
+An unparseable file produces exit code 2:
+
+```{code-block} shell-session
+$ my-cli --validate-config garbage.txt
+Error parsing garbage.txt as toml, yaml, json, ini, xml, pyproject_toml.
+$ echo $?
+2
+```
+
+The exit codes are:
+
+| Exit code | Meaning |
+| :-------- | :------ |
+| `0` | Configuration file is valid |
+| `1` | Validation error (unrecognized keys) |
+| `2` | File not found or cannot be parsed |
+
+```{note}
+`--validate-config` always validates in strict mode, regardless of the `strict` setting on `@config_option`. It requires a sibling `@config_option` decorator to be present on the same command.
+```
+
 ## Excluding parameters
 
 The [`excluded_params`](#click_extra.config.ConfigOption.excluded_params) argument allows you to block some of your CLI options to be loaded from configuration. By setting this argument, you will prevent your CLI users to set these parameters in their configuration file.

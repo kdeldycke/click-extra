@@ -29,7 +29,7 @@ import click
 import cloup
 
 from .colorize import ColorOption, ExtraHelpColorsMixin, HelpExtraFormatter
-from .config import ConfigOption, NoConfigOption
+from .config import ConfigOption, NoConfigOption, ValidateConfigOption
 from .envvar import clean_envvar_id, param_envvar_ids
 from .logging import VerboseOption, VerbosityOption
 from .parameters import ExtraOption, ShowParamsOption, search_params
@@ -121,6 +121,7 @@ def default_extra_params() -> list[click.Option]:
             ``--config`` is at the top so it can have a direct influence on the default
             behavior and value of the other options.
     #. ``--no-config``
+    #. ``--validate-config CONFIG_PATH``
     #. ``--color``, ``--ansi`` / ``--no-color``, ``--no-ansi``
     #. ``--show-params``
     #. ``--table-format FORMAT``
@@ -160,6 +161,7 @@ def default_extra_params() -> list[click.Option]:
         ColorOption(),
         ConfigOption(),
         NoConfigOption(),
+        ValidateConfigOption(),
         ShowParamsOption(),
         TableFormatOption(),
         VerbosityOption(),

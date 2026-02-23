@@ -362,12 +362,12 @@ def test_integrated_show_params_option(invoke, create_config):
             # On Windows, backslashes are double-escaped in Path string repr.
             (
                 f"'{Path(get_app_dir('show-params-cli')).resolve()}{sep}"
-                "*.toml|*.yaml|*.yml|*.json|*.json5|*.jsonc|*.hjson|*.ini|*.xml'"
+                "*.toml|*.yaml|*.yml|*.json|*.json5|*.jsonc|*.hjson|*.ini|*.xml|pyproject.toml'"
             ).replace("\\", "\\\\")
             if is_windows
             else (
                 f"'{Path(get_app_dir('show-params-cli')).resolve()}{sep}"
-                "*.toml|*.yaml|*.yml|*.json|*.json5|*.jsonc|*.hjson|*.ini|*.xml'"
+                "*.toml|*.yaml|*.yml|*.json|*.json5|*.jsonc|*.hjson|*.ini|*.xml|pyproject.toml'"
             ),
             repr(str(conf_path)),
             "COMMANDLINE",
@@ -496,6 +496,20 @@ def test_integrated_show_params_option(invoke, create_config):
             "SHOW_PARAMS_CLI_TIME",
             False,
             False,
+            "DEFAULT",
+        ),
+        (
+            "show-params-cli.validate_config",
+            "--validate-config FILE",
+            "click_extra.config.ValidateConfigOption",
+            "click.types.Path",
+            "str",
+            "✘",
+            "✘",
+            "✓",
+            "SHOW_PARAMS_CLI_VALIDATE_CONFIG",
+            UNSET,
+            UNSET,
             "DEFAULT",
         ),
         (
