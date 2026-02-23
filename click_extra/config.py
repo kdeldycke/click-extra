@@ -180,6 +180,7 @@ class ConfigFormat(Enum):
     HJSON = (("*.hjson",), hjson_support)
     INI = (("*.ini",), True)
     XML = (("*.xml",), xml_support)
+    PYPROJECT_TOML = (("pyproject.toml",), True)
 
     def __str__(self) -> str:
         return self.name.lower()
@@ -738,6 +739,9 @@ class ConfigOption(ExtraOption, ParamStructure):
                         conf = self.load_ini_config(content)
                     case ConfigFormat.XML:
                         conf = xmltodict.parse(content)
+                    case ConfigFormat.PYPROJECT_TOML:
+                        full_conf = tomllib.loads(content)
+                        conf = full_conf.get("tool", {})
 
             except Exception as ex:
                 logger.debug(f"{fmt} parsing failed: {ex}")
@@ -790,6 +794,16 @@ class ConfigOption(ExtraOption, ParamStructure):
                 for fmt, patterns in self.file_format_patterns.items()
                 if fnmatch.fnmatch(filename, patterns, flags=self.file_pattern_flags)
             )
+
+            # PYPROJECT_TOML is a specialization of TOML that unwraps [tool].
+            # When both match, drop generic TOML so [tool] unwrapping takes effect.
+            if (
+                ConfigFormat.PYPROJECT_TOML in matching_formats
+                and ConfigFormat.TOML in matching_formats
+            ):
+                matching_formats = tuple(
+                    f for f in matching_formats if f is not ConfigFormat.TOML
+                )
 
             if not matching_formats:
                 logger.debug(f"{location} does not match {self.file_pattern}.")

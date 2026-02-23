@@ -5,6 +5,7 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Add `ConfigFormat.PYPROJECT_TOML` format for `[tool.*]` section support in `pyproject.toml`. Closes {issue}`1524`.
 - Stop parent directory walk on inaccessible directories.
 - Add `stop_at` parameter to `@config_option` to limit parent directory walking. Supports explicit `Path`, or the `VCS` sentinel to stop at the nearest repository root. Closes {issue}`651`.
 - Add `VCS` sentinel and `VCS_DIRS` constant for VCS root detection.

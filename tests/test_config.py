@@ -290,6 +290,35 @@ XML_FILE, XML_DATA = (
     },
 )
 
+PYPROJECT_TOML_FILE, PYPROJECT_TOML_DATA = (
+    dedent("""\
+        [build-system]
+        requires = ["setuptools"]
+
+        [tool.config-cli1]
+        verbosity = "DEBUG"
+        blahblah = 234
+        dummy_flag = true
+        my_list = ["pip", "npm", "gem"]
+
+        [tool.config-cli1.default]
+        int_param = 3
+        random_stuff = "will be ignored"
+        """),
+    {
+        "config-cli1": {
+            "verbosity": "DEBUG",
+            "blahblah": 234,
+            "dummy_flag": True,
+            "my_list": ["pip", "npm", "gem"],
+            "default": {
+                "int_param": 3,
+                "random_stuff": "will be ignored",
+            },
+        },
+    },
+)
+
 all_config_formats = pytest.mark.parametrize(
     ("conf_name, conf_text, conf_data"),
     (
@@ -363,7 +392,7 @@ def test_conf_default_path(invoke, simple_config_cli):
         for line in result.stdout.split("--config CONFIG_PATH")[1].splitlines()
     )
     assert (
-        "*.toml|*.yaml|*.yml|*.json|*.json5|*.jsonc|*.hjson|*.ini|*.xml]" in help_screen
+        "*.toml|*.yaml|*.yml|*.json|*.json5|*.jsonc|*.hjson|*.ini|*.xml|pyproject.toml]" in help_screen
     )
 
     assert not result.stderr
@@ -1109,7 +1138,7 @@ def test_lazy_group_config_no_config_flag(invoke, create_config, tmp_path):
     [
         pytest.param(
             None,
-            "*.toml|*.yaml|*.yml|*.json|*.json5|*.jsonc|*.hjson|*.ini|*.xml",
+            "*.toml|*.yaml|*.yml|*.json|*.json5|*.jsonc|*.hjson|*.ini|*.xml|pyproject.toml",
             id="default_all_formats",
         ),
         pytest.param(ConfigFormat.TOML, "*.toml", id="single_format"),
@@ -1689,3 +1718,80 @@ def test_no_enabled_formats_raises():
     ):
         with pytest.raises(ValueError, match="No configuration format is enabled"):
             ConfigOption(file_format_patterns=ConfigFormat.TOML)
+
+
+def test_pyproject_toml_in_defaults():
+    """ConfigOption() with default file_format_patterns includes PYPROJECT_TOML."""
+    opt = ConfigOption()
+    assert ConfigFormat.PYPROJECT_TOML in opt.file_format_patterns
+
+
+def test_pyproject_toml_tool_extraction(simple_config_cli):
+    """parse_conf with PYPROJECT_TOML returns the [tool] subsection."""
+    opt = ConfigOption(
+        file_format_patterns={ConfigFormat.PYPROJECT_TOML: ("pyproject.toml",)},
+    )
+    results = list(
+        opt.parse_conf(PYPROJECT_TOML_FILE, formats=[ConfigFormat.PYPROJECT_TOML])
+    )
+    assert len(results) == 1
+    assert results[0] == PYPROJECT_TOML_DATA
+
+
+def test_pyproject_toml_no_tool_section(simple_config_cli):
+    """pyproject.toml without [tool] returns empty dict."""
+    content = dedent("""\
+        [build-system]
+        requires = ["setuptools"]
+        """)
+    opt = ConfigOption(
+        file_format_patterns={ConfigFormat.PYPROJECT_TOML: ("pyproject.toml",)},
+    )
+    results = list(
+        opt.parse_conf(content, formats=[ConfigFormat.PYPROJECT_TOML])
+    )
+    # parse_conf yields the empty dict; downstream read_and_parse_conf skips it.
+    assert len(results) == 1
+    assert results[0] == {}
+
+
+def test_file_pattern_with_pyproject_toml():
+    """Explicit file_format_patterns with PYPROJECT_TOML works."""
+    opt = ConfigOption(
+        file_format_patterns={ConfigFormat.PYPROJECT_TOML: ("pyproject.toml",)},
+    )
+    assert ConfigFormat.PYPROJECT_TOML in opt.file_format_patterns
+    assert opt.file_pattern == "pyproject.toml"
+
+
+def test_pyproject_toml_overrides_defaults(
+    invoke,
+    create_config,
+):
+    """End-to-end: a CLI with default formats reads from pyproject.toml."""
+    conf_path = create_config("pyproject.toml", PYPROJECT_TOML_FILE)
+
+    @click.group
+    @option("--dummy-flag/--no-flag")
+    @option("--my-list", multiple=True)
+    @config_option
+    def config_cli1(dummy_flag, my_list):
+        echo(f"dummy_flag = {dummy_flag!r}")
+        echo(f"my_list = {my_list!r}")
+
+    @config_cli1.command()
+    @option("--int-param", type=int, default=10)
+    def default_command(int_param):
+        echo(f"int_parameter = {int_param!r}")
+
+    result = invoke(
+        config_cli1,
+        "--config",
+        str(conf_path),
+        "default",
+        color=False,
+    )
+    assert result.exit_code == 0
+    assert result.stdout == (
+        "dummy_flag = True\nmy_list = ('pip', 'npm', 'gem')\nint_parameter = 3\n"
+    )

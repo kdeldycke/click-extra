@@ -37,7 +37,7 @@ result = invoke(my_cli, args=["--help"])
 assert "--config CONFIG_PATH" in result.stdout
 ```
 
-See in the result above, there is an explicit mention of the default location of the configuration file (`[default: ~/.config/my-cli/*.toml|*.yaml|*.yml|*.json|*.json5|*.jsonc|*.hjson|*.ini|*.xml]`). This improves discoverability, and [makes sysadmins happy](https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations), especially those not familiar with your CLI.
+See in the result above, there is an explicit mention of the default location of the configuration file (`[default: ~/.config/my-cli/*.toml|*.yaml|*.yml|*.json|*.json5|*.jsonc|*.hjson|*.ini|*.xml|pyproject.toml]`). This improves discoverability, and [makes sysadmins happy](https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations), especially those not familiar with your CLI.
 
 A bare call returns:
 
@@ -269,6 +269,7 @@ Several dialects are supported:
 | [`HJSON`](#hjson) | `*.hjson` | Another flavor of a [user-friendly JSON](https://hjson.github.io) | ❌ |
 | [`INI`](#ini) | `*.ini` | With extended interpolation, multi-level sections and non-native types (`list`, `set`, …) | ✅ |
 | [`XML`](#xml) | `*.xml` | - | ❌ |
+| [`PYPROJECT_TOML`](#pyproject-toml) | `pyproject.toml` | Reads `[tool.*]` sections from `pyproject.toml` | ✅ |
 
 Formats depending on third-party packages are not enabled by default. You need to [install Click Extra with the corresponding extra dependency group](install.md#configuration-file-formats) to enable them.
 
@@ -399,6 +400,39 @@ XML support requires additional packages. You need to [install `click-extra[xml]
 Write example.
 ```
 
+### pyproject.toml
+
+The `PYPROJECT_TOML` format reads `[tool.<cli-name>]` sections from a `pyproject.toml` file, following [PEP 518](https://peps.python.org/pep-0518/). This is useful for any CLI tool that wants to store its configuration alongside project metadata — not just Python projects. Tools like [ruff](https://docs.astral.sh/ruff/), [taplo](https://taplo.tamasfe.dev/), and [lychee](https://github.com/lycheeverse/lychee) all use this convention.
+
+`PYPROJECT_TOML` is included in the default format patterns, so it is automatically discovered alongside other formats. The `[tool]` wrapper is automatically unwrapped: `merge_default_map` sees `{"cli": {"int_param": 3}}` — exactly the same structure as a regular TOML config file.
+
+Given a `pyproject.toml` in the search path:
+
+```{code-block} toml
+:caption: `pyproject.toml`
+[build-system]
+requires = ["setuptools"]
+
+[tool.cli]
+int_param = 3
+```
+
+This is especially powerful combined with `search_parents` to walk up from a project directory:
+
+```{code-block} python
+from click import command, option, echo
+
+from click_extra import config_option, VCS
+
+@command
+@option("--int-param", type=int, default=10)
+@config_option(search_parents=True, stop_at=VCS)
+def cli(int_param):
+    echo(f"int_parameter is {int_param!r}")
+```
+
+Running `cli` from anywhere inside the project tree will find `pyproject.toml` at the repository root and apply `[tool.cli]` values.
+
 ## Search pattern
 
 The configuration file is searched with a wildcard-based glob pattern.
@@ -414,7 +448,7 @@ By default, the pattern is `<app_dir>/*.toml|*.json|*.ini`, where:
 - `*.toml|*.json|*.ini` are the [extensions of formats](#formats) enabled by default
 
 ```{hint}
-Depending on the formats you enabled in your installation of Click Extra, the default extensions may vary. For example, if you installed Click Extra with all extra dependencies, the default extensions would extended to `*.toml|*.yaml|*.yml|*.json|*.json5|*.jsonc|*.hjson|*.ini|*.xml`.
+Depending on the formats you enabled in your installation of Click Extra, the default extensions may vary. For example, if you installed Click Extra with all extra dependencies, the default extensions would extended to `*.toml|*.yaml|*.yml|*.json|*.json5|*.jsonc|*.hjson|*.ini|*.xml|pyproject.toml`.
 ```
 
 ```{tip}
@@ -457,7 +491,7 @@ See how the default to `--config` option has been changed to `~/.cli/`:
 ```{click:run}
 :emphasize-lines: 6
 result = invoke(cli, args=["--help"])
-assert "~/.cli/*.toml|*.yaml|*.yml|*.json|*.json5|*.jsonc|*.hjson|*.ini|*.xml]" in result.stdout.replace("\n                        ", "")
+assert "~/.cli/*.toml|*.yaml|*.yml|*.json|*.json5|*.jsonc|*.hjson|*.ini|*.xml|pyproject.toml]" in result.stdout.replace("\n                        ", "")
 ```
 
 ```{seealso}
