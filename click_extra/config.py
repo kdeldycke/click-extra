@@ -283,6 +283,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         search_parents: bool = False,
         stop_at: Path | str | Literal[Sentinel.VCS] | None = None,
         excluded_params: Iterable[str] | None = None,
+        included_params: Iterable[str] | None = None,
         strict: bool = False,
         **kwargs,
     ) -> None:
@@ -303,6 +304,10 @@ class ConfigOption(ExtraOption, ParamStructure):
           file, will be ignored and not applied to the CLI. Items are expected to be the
           fully-qualified ID of the parameter, as produced in the output of
           ``--show-params``. Will default to the value of ``DEFAULT_EXCLUDED_PARAMS``.
+
+        - ``included_params`` is the inverse of ``excluded_params``: only the listed
+          parameters will be loaded from the configuration file. Cannot be used together
+          with ``excluded_params``.
         """
         logger = logging.getLogger("click_extra")
 
@@ -414,10 +419,20 @@ class ConfigOption(ExtraOption, ParamStructure):
         - A ``Path`` or ``str`` — stop at that directory.
         """
 
+        if excluded_params is not None and included_params is not None:
+            msg = "excluded_params and included_params are mutually exclusive."
+            raise ValueError(msg)
+
         # If the user provided its own excluded params, freeze them now and store it
         # to prevent the dynamic default property to be called.
         if excluded_params is not None:
             self.excluded_params = frozenset(excluded_params)
+
+        # Freeze and store included_params. The resolution into
+        # excluded_params happens in build_param_trees().
+        self.included_params: frozenset[str] | None = (
+            frozenset(included_params) if included_params is not None else None
+        )
 
         self.strict = strict
         """Defines the strictness of the configuration loading.

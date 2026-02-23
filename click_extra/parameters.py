@@ -155,6 +155,7 @@ class ParamStructure:
         self,
         *args,
         excluded_params: Iterable[str] | None = None,
+        included_params: Iterable[str] | None = None,
         **kwargs,
     ) -> None:
         """Allow a list of paramerers to be blocked from the parameter structure.
@@ -162,9 +163,20 @@ class ParamStructure:
         Items of ``excluded_params`` are expected to be the fully-qualified ID of the
         parameter. Which is the dot-separated ID that is prefixed by the CLI name,
         featured in the first column of the table.
+
+        ``included_params`` is the inverse: only the listed parameters will be allowed.
+        Cannot be used together with ``excluded_params``.
         """
+        if excluded_params and included_params:
+            msg = "excluded_params and included_params are mutually exclusive."
+            raise ValueError(msg)
+
         self.excluded_params: frozenset[str] = (
             frozenset(excluded_params) if excluded_params else frozenset()
+        )
+
+        self.included_params: frozenset[str] | None = (
+            frozenset(included_params) if included_params is not None else None
         )
 
         super().__init__(*args, **kwargs)
@@ -337,7 +349,17 @@ class ParamStructure:
 
         This removes parameters whose fully-qualified IDs are in the ``excluded_params``
         blocklist.
+
+        If ``included_params`` was provided, it is resolved into ``excluded_params``
+        here, where all parameter IDs are available.
         """
+        # Resolve included_params into excluded_params before filtering.
+        if self.included_params is not None:
+            all_param_ids = frozenset(
+                self.SEP.join(keys) for keys, _ in self.walk_params()
+            )
+            self.excluded_params = all_param_ids - self.included_params
+
         template: dict[str, Any] = {}
         types: dict[str, Any] = {}
         objects: dict[str, Any] = {}

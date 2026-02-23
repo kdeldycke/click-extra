@@ -1655,6 +1655,68 @@ def test_excluded_params(invoke, create_config):
     assert "flag_b=False" in result.stdout
 
 
+def test_included_params(invoke, create_config):
+    """Only parameters in included_params are loaded from config."""
+    conf_file = dedent(
+        """\
+        [included-cli]
+        flag_a = true
+        flag_b = true
+        """
+    )
+    conf_path = create_config("included.toml", conf_file)
+
+    @click.command
+    @option("--flag-a/--no-flag-a")
+    @option("--flag-b/--no-flag-b")
+    @config_option(included_params=("included-cli.flag_a",))
+    def included_cli(flag_a, flag_b):
+        echo(f"flag_a={flag_a!r}")
+        echo(f"flag_b={flag_b!r}")
+
+    result = invoke(included_cli, "--config", str(conf_path), color=False)
+    assert result.exit_code == 0
+    # flag_a is in the allowlist, so it's loaded from config.
+    assert "flag_a=True" in result.stdout
+    # flag_b is not in the allowlist, so it keeps its default.
+    assert "flag_b=False" in result.stdout
+
+
+def test_included_params_empty(invoke, create_config):
+    """An empty included_params excludes all params from config."""
+    conf_file = dedent(
+        """\
+        [empty-included-cli]
+        flag_a = true
+        flag_b = true
+        """
+    )
+    conf_path = create_config("empty_included.toml", conf_file)
+
+    @click.command
+    @option("--flag-a/--no-flag-a")
+    @option("--flag-b/--no-flag-b")
+    @config_option(included_params=())
+    def empty_included_cli(flag_a, flag_b):
+        echo(f"flag_a={flag_a!r}")
+        echo(f"flag_b={flag_b!r}")
+
+    result = invoke(empty_included_cli, "--config", str(conf_path), color=False)
+    assert result.exit_code == 0
+    # Both flags keep their defaults since nothing is included.
+    assert "flag_a=False" in result.stdout
+    assert "flag_b=False" in result.stdout
+
+
+def test_included_and_excluded_params_conflict():
+    """Providing both included_params and excluded_params raises ValueError."""
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        ConfigOption(
+            excluded_params=("foo.bar",),
+            included_params=("foo.baz",),
+        )
+
+
 def test_multiple_files_matching_glob(invoke, create_config, tmp_path):
     """When multiple files match a glob, only the first parseable one is used."""
     # Create two config files with different values in the same directory.
