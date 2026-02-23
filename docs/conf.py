@@ -129,3 +129,6 @@ html_last_updated_fmt = "%Y-%m-%d"
 copyright = f"{author} and contributors"
 html_show_copyright = True
 html_show_sphinx = False
+
+html_static_path = ["_static"]
+html_css_files = ["custom.css"]

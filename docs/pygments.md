@@ -384,4 +384,5 @@ Licensed under the BSD license, see LICENSE for details.
    :members:
    :undoc-members:
    :show-inheritance:
+   :exclude-members: color_tokens
 ```
