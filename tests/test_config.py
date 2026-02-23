@@ -669,6 +669,132 @@ def test_conf_metadata(
         assert result.exit_code == 0
 
 
+def test_default_map_populated(invoke, create_config):
+    """Verify default_map structure when config values match CLI parameters.
+
+    Complements test_conf_metadata which only checks the empty default_map case
+    (where no config values match the CLI's parameter structure).
+    """
+    conf_file = dedent(
+        """
+        [default-map-cli]
+        flag_a = true
+
+        [default-map-cli.sub]
+        int_param = 7
+        """
+    )
+    conf_path = create_config("map.toml", conf_file)
+
+    @click.group
+    @option("--flag-a/--no-flag-a")
+    @config_option
+    @pass_context
+    def default_map_cli(ctx, flag_a):
+        echo(f"flag_a={flag_a!r}")
+        # After config loading, the group's default_map has group-level values
+        # consumed by Click, plus the subcommand's nested section.
+        echo(f"default_map={ctx.default_map}")
+
+    @default_map_cli.command()
+    @option("--int-param", type=int, default=10)
+    @pass_context
+    def sub(ctx, int_param):
+        echo(f"int_param={int_param!r}")
+        echo(f"sub_default_map={ctx.default_map}")
+
+    result = invoke(
+        default_map_cli, "--config", str(conf_path), "sub", color=False,
+    )
+    assert result.exit_code == 0
+    assert "flag_a=True" in result.stdout
+    assert "int_param=7" in result.stdout
+    # Group's default_map retains the subcommand section after param resolution.
+    assert "default_map={'flag_a': True, 'sub': {'int_param': 7}}" in result.stdout
+    # Click passes default_map["sub"] to the subcommand's context.
+    assert "sub_default_map={'int_param': 7}" in result.stdout
+
+
+def test_default_map_none_without_config(invoke):
+    """Verify default_map is left alone when --no-config is used."""
+
+    @click.group
+    @option("--flag/--no-flag")
+    @config_option
+    @no_config_option
+    @pass_context
+    def noconfig_map_cli(ctx, flag):
+        echo(f"default_map={ctx.default_map}")
+
+    @noconfig_map_cli.command()
+    def sub():
+        echo("ok")
+
+    result = invoke(noconfig_map_cli, "--no-config", "sub", color=False)
+    assert result.exit_code == 0
+    assert "default_map=None" in result.stdout
+
+
+def test_nested_subcommand_config(invoke, create_config):
+    """Config propagates through group -> subgroup -> leaf command."""
+    conf_file = dedent(
+        """
+        [nested-cli]
+        top_param = "from_config"
+
+        [nested-cli.mid]
+        mid_param = "from_config"
+
+        [nested-cli.mid.leaf]
+        leaf_param = 42
+        """
+    )
+    conf_path = create_config("nested.toml", conf_file)
+
+    @group()
+    @option("--top-param", default="default")
+    def nested_cli(top_param):
+        echo(f"top_param={top_param!r}")
+
+    @nested_cli.group()
+    @option("--mid-param", default="default")
+    def mid(mid_param):
+        echo(f"mid_param={mid_param!r}")
+
+    @mid.command()
+    @option("--leaf-param", type=int, default=0)
+    def leaf(leaf_param):
+        echo(f"leaf_param={leaf_param!r}")
+
+    result = invoke(
+        nested_cli, "--config", str(conf_path), "mid", "leaf", color=False,
+    )
+    assert result.exit_code == 0
+    assert "top_param='from_config'" in result.stdout
+    assert "mid_param='from_config'" in result.stdout
+    assert "leaf_param=42" in result.stdout
+
+    # CLI params still override config at every level.
+    result = invoke(
+        nested_cli,
+        "--config",
+        str(conf_path),
+        "--top-param",
+        "override",
+        "mid",
+        "--mid-param",
+        "override",
+        "leaf",
+        "--leaf-param",
+        "99",
+        color=False,
+    )
+    assert result.exit_code == 0
+    assert "top_param='override'" in result.stdout
+    assert "mid_param='override'" in result.stdout
+    assert "leaf_param=99" in result.stdout
+
+
 def test_multiple_cli_shared_conf(invoke, create_config):
     """Two CLIs sharing the same configuration file.
 
