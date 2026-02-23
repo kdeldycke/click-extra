@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 import sys
@@ -421,6 +422,38 @@ def test_conf_not_found(invoke, simple_config_cli, conf_path):
     assert result.exit_code == 2
 
 
+def test_conf_unparseable(invoke, simple_config_cli, create_config):
+    """Explicit --config pointing to a file with garbage content."""
+    conf_path = create_config("garbage.toml", "{{{{ not valid anything >>>")
+    result = invoke(
+        simple_config_cli,
+        "--config",
+        str(conf_path),
+        "default",
+        color=False,
+    )
+    assert not result.stdout
+    assert f"Load configuration matching {conf_path}\n" in result.stderr
+    assert "critical: Error parsing file as" in result.stderr
+    assert result.exit_code == 2
+
+
+def test_conf_empty_file(invoke, simple_config_cli, create_config):
+    """Explicit --config pointing to an empty file."""
+    conf_path = create_config("empty.toml", "")
+    result = invoke(
+        simple_config_cli,
+        "--config",
+        str(conf_path),
+        "default",
+        color=False,
+    )
+    assert not result.stdout
+    assert f"Load configuration matching {conf_path}\n" in result.stderr
+    assert "critical: Error parsing file as" in result.stderr
+    assert result.exit_code == 2
+
+
 def test_no_config_option(invoke, simple_config_cli, create_config):
     conf_path = create_config("dummy.toml", TOML_FILE)
 
@@ -454,8 +487,38 @@ def test_standalone_no_config_option(invoke):
     assert result.exit_code == 1
 
 
-def test_strict_conf(invoke, create_config):
-    """Same test as the one shown in the readme, but in strict validation mode."""
+@pytest.mark.parametrize(
+    ("conf_text", "expect_error"),
+    [
+        pytest.param(
+            dedent("""\
+                [config-cli3]
+                dummy_flag = true
+                my_list = ["item 1", "item #2", "Very Last Item!"]
+
+                [config-cli3.subcommand]
+                int_param = 3
+                random_stuff = "will be ignored"
+            """),
+            True,
+            id="unknown-param-rejected",
+        ),
+        pytest.param(
+            dedent("""\
+                [config-cli3]
+                dummy_flag = true
+                my_list = ["item 1", "item #2"]
+
+                [config-cli3.subcommand]
+                int_param = 3
+            """),
+            False,
+            id="clean-config-accepted",
+        ),
+    ],
+)
+def test_strict_conf(invoke, create_config, conf_text, expect_error):
+    """Strict mode rejects unknown params but accepts clean configs."""
 
     @click.group
     @option("--dummy-flag/--no-flag")
@@ -470,34 +533,25 @@ def test_strict_conf(invoke, create_config):
     def subcommand(int_param):
         echo(f"int_parameter is {int_param!r}")
 
-    conf_file = dedent(
-        """
-        # My default configuration file.
-
-        [config-cli3]
-        dummy_flag = true   # New boolean default.
-        my_list = ["item 1", "item #2", "Very Last Item!"]
-
-        [config-cli3.subcommand]
-        int_param = 3
-        random_stuff = "will be ignored"
-        """,
-    )
-
-    conf_path = create_config("messy.toml", conf_file)
+    conf_path = create_config("strict.toml", conf_text)
 
     result = invoke(config_cli3, "--config", str(conf_path), "subcommand", color=False)
 
-    assert result.exception
-    assert type(result.exception) is ValueError
-    assert (
-        str(result.exception)
-        == "Parameter 'random_stuff' found in second dict but not in first."
-    )
+    if expect_error:
+        assert result.exception
+        assert type(result.exception) is ValueError
+        assert (
+            str(result.exception)
+            == "Parameter 'random_stuff' found in second dict but not in first."
+        )
+        assert not result.stdout
+        assert result.exit_code == 1
+    else:
+        assert result.exit_code == 0
+        assert "dummy_flag    is True" in result.stdout
+        assert "int_parameter is 3" in result.stdout
 
-    assert not result.stdout
     assert f"Load configuration matching {conf_path}\n" in result.stderr
-    assert result.exit_code == 1
 
 
 @all_config_formats
@@ -663,6 +717,23 @@ def test_conf_metadata(
         assert result.exit_code == 0
 
 
+def test_conf_metadata_no_config(invoke):
+    """ctx.meta entries are not set when --no-config skips loading."""
+
+    @click.command
+    @config_option
+    @no_config_option
+    @pass_context
+    def config_metadata_noconf(ctx):
+        echo(f"conf_source={ctx.meta.get('click_extra.conf_source', 'MISSING')}")
+        echo(f"conf_full={ctx.meta.get('click_extra.conf_full', 'MISSING')}")
+
+    result = invoke(config_metadata_noconf, "--no-config", color=False)
+    assert result.exit_code == 0
+    assert "conf_source=MISSING" in result.stdout
+    assert "conf_full=MISSING" in result.stdout
+
+
 def test_default_map_populated(invoke, create_config):
     """Verify default_map structure when config values match CLI parameters.
 
@@ -783,6 +854,10 @@ def test_nested_subcommand_config(invoke, create_config):
                 "99",
             ),
             ("top_param='override'", "mid_param='override'", "leaf_param=99"),
+        ),
+        (
+            ("--no-config", "mid", "leaf"),
+            ("top_param='default'", "mid_param='default'", "leaf_param=0"),
         ),
     ):
         result = invoke(nested_cli, *cli_args, color=False)
@@ -1308,3 +1383,96 @@ def test_no_config_explicit_with_default_no_config(invoke):
     result = invoke(no_autodiscovery_cli2, "--no-config", "default")
     assert result.exit_code == 0
     assert result.stderr == "Skip configuration file loading altogether.\n"
+
+
+def test_excluded_params(invoke, create_config):
+    """Custom excluded_params prevents config values from being applied."""
+    conf_file = dedent(
+        """\
+        [excluded-cli]
+        flag_a = true
+        flag_b = true
+        """
+    )
+    conf_path = create_config("excluded.toml", conf_file)
+
+    @click.command
+    @option("--flag-a/--no-flag-a")
+    @option("--flag-b/--no-flag-b")
+    @config_option(excluded_params=("excluded-cli.flag_b",))
+    def excluded_cli(flag_a, flag_b):
+        echo(f"flag_a={flag_a!r}")
+        echo(f"flag_b={flag_b!r}")
+
+    result = invoke(excluded_cli, "--config", str(conf_path), color=False)
+    assert result.exit_code == 0
+    # flag_a is loaded from config.
+    assert "flag_a=True" in result.stdout
+    # flag_b is excluded, so it keeps its default.
+    assert "flag_b=False" in result.stdout
+
+
+def test_multiple_files_matching_glob(invoke, create_config, tmp_path):
+    """When multiple files match a glob, only the first parseable one is used."""
+    # Create two config files with different values in the same directory.
+    # One sets param_a, the other sets param_b. Only one file should be loaded.
+    (tmp_path / "first.toml").write_text(
+        dedent("""\
+            [glob-cli]
+            param_a = "from_first"
+            param_b = "from_first"
+        """)
+    )
+    (tmp_path / "second.toml").write_text(
+        dedent("""\
+            [glob-cli]
+            param_a = "from_second"
+            param_b = "from_second"
+        """)
+    )
+
+    search_path = tmp_path / "*.toml"
+
+    @click.command
+    @option("--param-a", default="default_a")
+    @option("--param-b", default="default_b")
+    @config_option(default=search_path)
+    def glob_cli(param_a, param_b):
+        echo(f"param_a={param_a!r}")
+        echo(f"param_b={param_b!r}")
+
+    result = invoke(glob_cli, color=False)
+    assert result.exit_code == 0
+    # Both params come from the same file — values are not merged across files.
+    assert (
+        "param_a='from_first'" in result.stdout
+        and "param_b='from_first'" in result.stdout
+    ) or (
+        "param_a='from_second'" in result.stdout
+        and "param_b='from_second'" in result.stdout
+    )
+
+
+def test_forced_flags_warnings(caplog):
+    """Warnings fire when SPLIT or NODIR flags are missing."""
+    from wcmatch import fnmatch, glob
+
+    with caplog.at_level(logging.WARNING, logger="click_extra"):
+        ConfigOption(
+            file_pattern_flags=fnmatch.NEGATE,  # missing SPLIT
+            search_pattern_flags=glob.GLOBSTAR | glob.FOLLOW,  # missing NODIR
+        )
+
+    assert "Forcing SPLIT flag" in caplog.text
+    assert "Forcing NODIR flag" in caplog.text
+
+
+def test_no_enabled_formats_raises():
+    """ValueError raised when all formats are disabled."""
+    import unittest.mock
+
+    with unittest.mock.patch.object(
+        ConfigFormat, "enabled", new_callable=lambda: property(lambda self: False)
+    ):
+        with pytest.raises(ValueError, match="No configuration format is enabled"):
+            ConfigOption(file_format_patterns=ConfigFormat.TOML)
