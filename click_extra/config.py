@@ -173,18 +173,23 @@ class ConfigFormat(Enum):
         / `hujson <https://github.com/tailscale/hujson>`_ format?
     """
 
-    TOML = (("*.toml",), True)
-    YAML = (("*.yaml", "*.yml"), yaml_support)
-    JSON = (("*.json",), True)
-    JSON5 = (("*.json5",), json5_support)
-    JSONC = (("*.jsonc",), jsonc_support)
-    HJSON = (("*.hjson",), hjson_support)
-    INI = (("*.ini",), True)
-    XML = (("*.xml",), xml_support)
-    PYPROJECT_TOML = (("pyproject.toml",), True)
+    TOML = (("*.toml",), True, "TOML")
+    YAML = (("*.yaml", "*.yml"), yaml_support, "YAML")
+    JSON = (("*.json",), True, "JSON")
+    JSON5 = (("*.json5",), json5_support, "JSON5")
+    JSONC = (("*.jsonc",), jsonc_support, "JSONC")
+    HJSON = (("*.hjson",), hjson_support, "Hjson")
+    INI = (("*.ini",), True, "INI")
+    XML = (("*.xml",), xml_support, "XML")
+    PYPROJECT_TOML = (("pyproject.toml",), True, "pyproject.toml")
 
     def __str__(self) -> str:
-        return self.name.lower()
+        return self.label
+
+    @property
+    def label(self) -> str:
+        """Human-friendly name of the format for display in messages."""
+        return self.value[2]  # type: ignore[no-any-return]
 
     @property
     def enabled(self) -> bool:
@@ -1007,9 +1012,10 @@ class ConfigOption(ExtraOption, ParamStructure):
         # couldn't be parsed, so we can just log it and continue.
         else:
             if user_conf is None:
+                formats = list(map(str, self.file_format_patterns))
                 message = (
                     "Error parsing file as "
-                    f"{', '.join(map(str, self.file_format_patterns))}."
+                    f"{', '.join(formats[:-1])} or {formats[-1]}."
                 )
                 if explicit_conf:
                     logger.critical(message)
@@ -1143,9 +1149,10 @@ class ValidateConfigOption(ExtraOption):
             return
 
         if user_conf is None:
+            formats = list(map(str, config_option.file_format_patterns))
             info_msg(
                 f"Error parsing {value} as "
-                f"{', '.join(map(str, config_option.file_format_patterns))}."
+                f"{', '.join(formats[:-1])} or {formats[-1]}."
             )
             ctx.exit(2)
             return

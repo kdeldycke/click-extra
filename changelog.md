@@ -5,13 +5,14 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
-- Add `--validate-config` option (``ValidateConfigOption``) to validate configuration files against CLI parameters without running the command.
+- Add `--validate-config` option to validate configuration files.
 - Add `ConfigFormat.PYPROJECT_TOML` format for `[tool.*]` section support in `pyproject.toml`. Closes {issue}`1524`.
 - Stop parent directory walk on inaccessible directories.
-- Add `stop_at` parameter to `@config_option` to limit parent directory walking. Supports explicit `Path`, or the `VCS` sentinel to stop at the nearest repository root. Closes {issue}`651`.
+- Add `stop_at` parameter to `@config_option` to limit parent directory walking. Closes {issue}`651`.
 - Add `VCS` sentinel and `VCS_DIRS` constant for VCS root detection.
 - Resolve relative paths to absolute in `parent_patterns` before yielding.
 - Add `included_params` allowlist to `ConfigOption` and `@config_option`, the inverse of `excluded_params`. Closes {issue}`1362`.
+- Add human-friendly display labels to `ConfigFormat`.
 - Hard code icon workaround for Sphinx index entries.
 
 ## [7.5.3 (2026-02-22)](https://github.com/kdeldycke/click-extra/compare/v7.5.2...v7.5.3)

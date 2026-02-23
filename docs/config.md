@@ -272,7 +272,7 @@ An unparseable file produces exit code 2:
 
 ```{code-block} shell-session
 $ my-cli --validate-config garbage.txt
-Error parsing garbage.txt as toml, yaml, json, ini, xml, pyproject_toml.
+Error parsing garbage.txt as TOML, YAML, JSON, INI, XML or pyproject.toml.
 $ echo $?
 2
 ```
