@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import os
 import re
+import sys
 from pathlib import Path
 from textwrap import dedent
 
@@ -30,6 +31,7 @@ from extra_platforms import is_unix_not_macos  # type: ignore[attr-defined]
 from click_extra import (
     ConfigFormat,
     ConfigOption,
+    LazyGroup,
     NO_CONFIG,
     config_option,
     echo,
@@ -725,6 +727,189 @@ def test_multiple_cli_shared_conf(invoke, create_config):
     assert result.stdout == "int = 5\n"
     assert result.stderr == "Skip configuration file loading altogether.\n"
     assert result.exit_code == 0
+
+
+def test_lazy_group_config(invoke, create_config, tmp_path):
+    """Test that lazy groups work with config files.
+
+    Refs: https://github.com/kdeldycke/click-extra/issues/1332
+    """
+    conf_file = dedent(
+        """
+        [lazy-config-cli]
+        dummy_flag = true
+
+        [lazy-config-cli.foo_cmd]
+        foo_param = "from_config"
+
+        [lazy-config-cli.bar_cmd]
+        bar_flag = true
+        """
+    )
+    conf_path = create_config("lazy_config.toml", conf_file)
+
+    (tmp_path / "lazy_cfg_foo.py").write_text(
+        dedent("""\
+            import click
+
+            @click.command()
+            @click.option("--foo-param", default="default_foo")
+            def foo_cli(foo_param):
+                click.echo(f"foo_param = {foo_param!r}")
+        """)
+    )
+
+    (tmp_path / "lazy_cfg_bar.py").write_text(
+        dedent("""\
+            import click
+
+            @click.command()
+            @click.option("--bar-flag/--no-bar-flag", default=False)
+            def bar_cli(bar_flag):
+                click.echo(f"bar_flag = {bar_flag!r}")
+        """)
+    )
+
+    module_names = ("lazy_cfg_foo", "lazy_cfg_bar")
+
+    def make_cli():
+        """Create a fresh CLI instance.
+
+        Each invocation needs its own CLI because LazyGroup caches resolved
+        commands and the ConfigOption caches its params_template. A stale
+        cache would prevent config values from reaching lazy subcommands on
+        subsequent invocations.
+        """
+        for name in module_names:
+            sys.modules.pop(name, None)
+
+        @group(
+            cls=LazyGroup,
+            lazy_subcommands={
+                "foo_cmd": "lazy_cfg_foo.foo_cli",
+                "bar_cmd": "lazy_cfg_bar.bar_cli",
+            },
+        )
+        @option("--dummy-flag/--no-flag")
+        def lazy_config_cli(dummy_flag):
+            echo(f"dummy_flag = {dummy_flag!r}")
+
+        return lazy_config_cli
+
+    sys.path.insert(0, str(tmp_path))
+    try:
+        # Config values propagate to group and lazy subcommand.
+        cli = make_cli()
+        result = invoke(cli, "--config", str(conf_path), "foo_cmd", color=False)
+        assert result.exit_code == 0
+        assert "dummy_flag = True" in result.stdout
+        assert "foo_param = 'from_config'" in result.stdout
+
+        # Config values propagate to a different lazy subcommand.
+        cli = make_cli()
+        result = invoke(cli, "--config", str(conf_path), "bar_cmd", color=False)
+        assert result.exit_code == 0
+        assert "dummy_flag = True" in result.stdout
+        assert "bar_flag = True" in result.stdout
+
+        # CLI params override config values.
+        cli = make_cli()
+        result = invoke(
+            cli,
+            "--config",
+            str(conf_path),
+            "--no-flag",
+            "foo_cmd",
+            "--foo-param",
+            "override",
+            color=False,
+        )
+        assert result.exit_code == 0
+        assert "dummy_flag = False" in result.stdout
+        assert "foo_param = 'override'" in result.stdout
+
+    finally:
+        sys.path.remove(str(tmp_path))
+        for name in module_names:
+            sys.modules.pop(name, None)
+
+
+def test_lazy_group_config_no_config_flag(invoke, create_config, tmp_path):
+    """Test that --no-config works with lazy groups."""
+    conf_file = dedent(
+        """
+        [lazy-noconfig-cli]
+        param_value = "from_config"
+
+        [lazy-noconfig-cli.sub_cmd]
+        sub_param = "sub_from_config"
+        """
+    )
+    conf_path = create_config("lazy_noconfig.toml", conf_file)
+
+    (tmp_path / "lazy_nocfg_sub.py").write_text(
+        dedent("""\
+            import click
+
+            @click.command()
+            @click.option("--sub-param", default="sub_default")
+            def sub_cli(sub_param):
+                click.echo(f"sub_param = {sub_param!r}")
+        """)
+    )
+
+    module_names = ("lazy_nocfg_sub",)
+
+    def make_cli():
+        for name in module_names:
+            sys.modules.pop(name, None)
+
+        @group(
+            cls=LazyGroup,
+            lazy_subcommands={"sub_cmd": "lazy_nocfg_sub.sub_cli"},
+        )
+        @option("--param-value", default="default_value")
+        def lazy_noconfig_cli(param_value):
+            echo(f"param_value = {param_value!r}")
+
+        return lazy_noconfig_cli
+
+    sys.path.insert(0, str(tmp_path))
+    try:
+        # With config: values from file are applied.
+        cli = make_cli()
+        result = invoke(cli, "--config", str(conf_path), "sub_cmd", color=False)
+        assert result.exit_code == 0
+        assert "param_value = 'from_config'" in result.stdout
+        assert "sub_param = 'sub_from_config'" in result.stdout
+
+        # --no-config: defaults are used.
+        cli = make_cli()
+        result = invoke(cli, "--no-config", "sub_cmd", color=False)
+        assert result.exit_code == 0
+        assert "param_value = 'default_value'" in result.stdout
+        assert "sub_param = 'sub_default'" in result.stdout
+        assert "Skip configuration file loading altogether." in result.stderr
+
+        # --no-config overrides --config.
+        cli = make_cli()
+        result = invoke(
+            cli,
+            "--config",
+            str(conf_path),
+            "--no-config",
+            "sub_cmd",
+            color=False,
+        )
+        assert result.exit_code == 0
+        assert "param_value = 'default_value'" in result.stdout
+        assert "sub_param = 'sub_default'" in result.stdout
+        assert "Skip configuration file loading altogether." in result.stderr
+
+    finally:
+        sys.path.remove(str(tmp_path))
+        for name in module_names:
+            sys.modules.pop(name, None)
 
 
 @pytest.mark.parametrize(
