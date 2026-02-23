@@ -513,8 +513,9 @@ class ConfigOption(ExtraOption, ParamStructure):
             search_path = Path(pattern).resolve()
             if search_path.is_file():
                 search_path = search_path.parent
-
-            yield from map(str, (search_path, *search_path.parents))
+                yield from map(str, (search_path, *search_path.parents))
+            else:
+                yield from map(str, search_path.parents)
             return
 
         # Magic patterns needs special handling for parent search.

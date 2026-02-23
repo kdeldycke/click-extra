@@ -25,14 +25,17 @@ from textwrap import dedent
 import click
 import pytest
 from boltons.pathutils import shrinkuser
-from extra_platforms import is_macos, is_windows
-from extra_platforms import is_unix_not_macos  # type: ignore[attr-defined]
+from extra_platforms import (
+    is_macos,
+    is_unix_not_macos,  # type: ignore[attr-defined]
+    is_windows,
+)
 
 from click_extra import (
+    NO_CONFIG,
     ConfigFormat,
     ConfigOption,
     LazyGroup,
-    NO_CONFIG,
     config_option,
     echo,
     get_app_dir,
@@ -397,23 +400,14 @@ def test_conf_default_pathlib_type(invoke, create_config):
     assert result.exit_code == 0
 
 
-def test_conf_not_exist(invoke, simple_config_cli):
-    conf_path = Path("dummy.toml")
-    result = invoke(
-        simple_config_cli,
-        "--config",
-        str(conf_path),
-        "default",
-        color=False,
-    )
-    assert not result.stdout
-    assert f"Load configuration matching {conf_path}\n" in result.stderr
-    assert "critical: No configuration file found.\n" in result.stderr
-    assert result.exit_code == 2
-
-
-def test_conf_not_file(invoke, simple_config_cli):
-    conf_path = Path().parent
+@pytest.mark.parametrize(
+    "conf_path",
+    [
+        pytest.param(Path("dummy.toml"), id="not-exist"),
+        pytest.param(Path().parent, id="not-file"),
+    ],
+)
+def test_conf_not_found(invoke, simple_config_cli, conf_path):
     result = invoke(
         simple_config_cli,
         "--config",
@@ -704,7 +698,11 @@ def test_default_map_populated(invoke, create_config):
         echo(f"sub_default_map={ctx.default_map}")
 
     result = invoke(
-        default_map_cli, "--config", str(conf_path), "sub", color=False,
+        default_map_cli,
+        "--config",
+        str(conf_path),
+        "sub",
+        color=False,
     )
     assert result.exit_code == 0
     assert "flag_a=True" in result.stdout
@@ -766,33 +764,31 @@ def test_nested_subcommand_config(invoke, create_config):
     def leaf(leaf_param):
         echo(f"leaf_param={leaf_param!r}")
 
-    result = invoke(
-        nested_cli, "--config", str(conf_path), "mid", "leaf", color=False,
-    )
-    assert result.exit_code == 0
-    assert "top_param='from_config'" in result.stdout
-    assert "mid_param='from_config'" in result.stdout
-    assert "leaf_param=42" in result.stdout
-
-    # CLI params still override config at every level.
-    result = invoke(
-        nested_cli,
-        "--config",
-        str(conf_path),
-        "--top-param",
-        "override",
-        "mid",
-        "--mid-param",
-        "override",
-        "leaf",
-        "--leaf-param",
-        "99",
-        color=False,
-    )
-    assert result.exit_code == 0
-    assert "top_param='override'" in result.stdout
-    assert "mid_param='override'" in result.stdout
-    assert "leaf_param=99" in result.stdout
+    for cli_args, expected in (
+        (
+            ("--config", str(conf_path), "mid", "leaf"),
+            ("top_param='from_config'", "mid_param='from_config'", "leaf_param=42"),
+        ),
+        (
+            (
+                "--config",
+                str(conf_path),
+                "--top-param",
+                "override",
+                "mid",
+                "--mid-param",
+                "override",
+                "leaf",
+                "--leaf-param",
+                "99",
+            ),
+            ("top_param='override'", "mid_param='override'", "leaf_param=99"),
+        ),
+    ):
+        result = invoke(nested_cli, *cli_args, color=False)
+        assert result.exit_code == 0
+        for exp in expected:
+            assert exp in result.stdout
 
 
 def test_multiple_cli_shared_conf(invoke, create_config):
@@ -834,25 +830,26 @@ def test_multiple_cli_shared_conf(invoke, create_config):
     def second_cli(int_param):
         echo(f"int = {int_param!r}")
 
-    result = invoke(first_cli, color=False)
-    assert result.stdout == "int = 7\n"
-    assert not result.stderr
-    assert result.exit_code == 0
-
-    result = invoke(second_cli, color=False)
-    assert result.stdout == "int = 11\n"
-    assert not result.stderr
-    assert result.exit_code == 0
-
-    result = invoke(first_cli, "--no-config", color=False)
-    assert result.stdout == "int = 3\n"
-    assert result.stderr == "Skip configuration file loading altogether.\n"
-    assert result.exit_code == 0
-
-    result = invoke(second_cli, "--no-config", color=False)
-    assert result.stdout == "int = 5\n"
-    assert result.stderr == "Skip configuration file loading altogether.\n"
-    assert result.exit_code == 0
+    for cli, args, expected_stdout, expected_stderr in (
+        (first_cli, (), "int = 7\n", ""),
+        (second_cli, (), "int = 11\n", ""),
+        (
+            first_cli,
+            ("--no-config",),
+            "int = 3\n",
+            "Skip configuration file loading altogether.\n",
+        ),
+        (
+            second_cli,
+            ("--no-config",),
+            "int = 5\n",
+            "Skip configuration file loading altogether.\n",
+        ),
+    ):
+        result = invoke(cli, *args, color=False)
+        assert result.stdout == expected_stdout
+        assert result.stderr == expected_stderr
+        assert result.exit_code == 0
 
 
 def test_lazy_group_config(invoke, create_config, tmp_path):
@@ -901,10 +898,11 @@ def test_lazy_group_config(invoke, create_config, tmp_path):
     def make_cli():
         """Create a fresh CLI instance.
 
-        Each invocation needs its own CLI because LazyGroup caches resolved
-        commands and the ConfigOption caches its params_template. A stale
-        cache would prevent config values from reaching lazy subcommands on
-        subsequent invocations.
+        .. caution::
+            Each invocation needs its own CLI because LazyGroup caches resolved
+            commands and the ConfigOption caches its params_template. A stale
+            cache would prevent config values from reaching lazy subcommands on
+            subsequent invocations.
         """
         for name in module_names:
             sys.modules.pop(name, None)
@@ -924,35 +922,32 @@ def test_lazy_group_config(invoke, create_config, tmp_path):
 
     sys.path.insert(0, str(tmp_path))
     try:
-        # Config values propagate to group and lazy subcommand.
-        cli = make_cli()
-        result = invoke(cli, "--config", str(conf_path), "foo_cmd", color=False)
-        assert result.exit_code == 0
-        assert "dummy_flag = True" in result.stdout
-        assert "foo_param = 'from_config'" in result.stdout
-
-        # Config values propagate to a different lazy subcommand.
-        cli = make_cli()
-        result = invoke(cli, "--config", str(conf_path), "bar_cmd", color=False)
-        assert result.exit_code == 0
-        assert "dummy_flag = True" in result.stdout
-        assert "bar_flag = True" in result.stdout
-
-        # CLI params override config values.
-        cli = make_cli()
-        result = invoke(
-            cli,
-            "--config",
-            str(conf_path),
-            "--no-flag",
-            "foo_cmd",
-            "--foo-param",
-            "override",
-            color=False,
-        )
-        assert result.exit_code == 0
-        assert "dummy_flag = False" in result.stdout
-        assert "foo_param = 'override'" in result.stdout
+        for cli_args, expected in (
+            (
+                ("--config", str(conf_path), "foo_cmd"),
+                ("dummy_flag = True", "foo_param = 'from_config'"),
+            ),
+            (
+                ("--config", str(conf_path), "bar_cmd"),
+                ("dummy_flag = True", "bar_flag = True"),
+            ),
+            (
+                (
+                    "--config",
+                    str(conf_path),
+                    "--no-flag",
+                    "foo_cmd",
+                    "--foo-param",
+                    "override",
+                ),
+                ("dummy_flag = False", "foo_param = 'override'"),
+            ),
+        ):
+            cli = make_cli()
+            result = invoke(cli, *cli_args, color=False)
+            assert result.exit_code == 0
+            for exp in expected:
+                assert exp in result.stdout
 
     finally:
         sys.path.remove(str(tmp_path))
@@ -1002,35 +997,30 @@ def test_lazy_group_config_no_config_flag(invoke, create_config, tmp_path):
 
     sys.path.insert(0, str(tmp_path))
     try:
-        # With config: values from file are applied.
-        cli = make_cli()
-        result = invoke(cli, "--config", str(conf_path), "sub_cmd", color=False)
-        assert result.exit_code == 0
-        assert "param_value = 'from_config'" in result.stdout
-        assert "sub_param = 'sub_from_config'" in result.stdout
-
-        # --no-config: defaults are used.
-        cli = make_cli()
-        result = invoke(cli, "--no-config", "sub_cmd", color=False)
-        assert result.exit_code == 0
-        assert "param_value = 'default_value'" in result.stdout
-        assert "sub_param = 'sub_default'" in result.stdout
-        assert "Skip configuration file loading altogether." in result.stderr
-
-        # --no-config overrides --config.
-        cli = make_cli()
-        result = invoke(
-            cli,
-            "--config",
-            str(conf_path),
-            "--no-config",
-            "sub_cmd",
-            color=False,
-        )
-        assert result.exit_code == 0
-        assert "param_value = 'default_value'" in result.stdout
-        assert "sub_param = 'sub_default'" in result.stdout
-        assert "Skip configuration file loading altogether." in result.stderr
+        for cli_args, expected_stdout, skip_msg in (
+            (
+                ("--config", str(conf_path), "sub_cmd"),
+                ("param_value = 'from_config'", "sub_param = 'sub_from_config'"),
+                False,
+            ),
+            (
+                ("--no-config", "sub_cmd"),
+                ("param_value = 'default_value'", "sub_param = 'sub_default'"),
+                True,
+            ),
+            (
+                ("--config", str(conf_path), "--no-config", "sub_cmd"),
+                ("param_value = 'default_value'", "sub_param = 'sub_default'"),
+                True,
+            ),
+        ):
+            cli = make_cli()
+            result = invoke(cli, *cli_args, color=False)
+            assert result.exit_code == 0
+            for exp in expected_stdout:
+                assert exp in result.stdout
+            if skip_msg:
+                assert "Skip configuration file loading altogether." in result.stderr
 
     finally:
         sys.path.remove(str(tmp_path))
@@ -1115,6 +1105,151 @@ def test_default_pattern_roaming_force_posix(
             + os.path.sep
             + config_opt.file_pattern
         )
+
+
+@pytest.mark.parametrize(
+    ("search_parents", "subdirs", "create_file", "expected_start"),
+    [
+        pytest.param(
+            False,
+            ("subdir",),
+            True,
+            lambda p: [str(p / "subdir" / "config.toml")],
+            id="no-search",
+        ),
+        pytest.param(
+            True,
+            ("level1", "level2", "level3"),
+            True,
+            lambda p: [
+                str(p / "level1" / "level2" / "level3" / "config.toml"),
+                str(p / "level1" / "level2" / "level3"),
+                str(p / "level1" / "level2"),
+                str(p / "level1"),
+                str(p),
+            ],
+            id="file-path",
+        ),
+        pytest.param(
+            True,
+            ("level1", "level2", "level3"),
+            False,
+            lambda p: [
+                str(p / "level1" / "level2" / "level3"),
+                str(p / "level1" / "level2"),
+                str(p / "level1"),
+                str(p),
+            ],
+            id="directory-path",
+        ),
+        pytest.param(
+            True,
+            (),
+            True,
+            lambda p: [str(p / "config.toml"), str(p)],
+            id="shallow-reaches-root",
+        ),
+        pytest.param(
+            True,
+            ("a", "b", "c"),
+            True,
+            lambda p: [
+                str(p / "a" / "b" / "c" / "config.toml"),
+                str(p / "a" / "b" / "c"),
+                str(p / "a" / "b"),
+                str(p / "a"),
+                str(p),
+            ],
+            id="deep-order",
+        ),
+    ],
+)
+def test_parent_patterns(
+    tmp_path, search_parents, subdirs, create_file, expected_start
+):
+    deep_path = tmp_path
+    for subdir in subdirs:
+        deep_path = deep_path / subdir
+    deep_path.mkdir(parents=True, exist_ok=True)
+
+    if create_file:
+        config_file = deep_path / "config.toml"
+        config_file.write_text("[test]\nvalue = 1")
+        input_path = str(config_file)
+    else:
+        input_path = str(deep_path)
+
+    @click.command
+    @config_option(search_parents=search_parents)
+    def test_cli():
+        pass
+
+    with click.Context(test_cli, info_name="test-cli"):
+        config_opt = search_params(test_cli.params, ConfigOption)
+        patterns = list(config_opt.parent_patterns(input_path))
+
+    expected = expected_start(tmp_path)
+    for i, exp in enumerate(expected):
+        assert patterns[i] == exp, f"Pattern {i} mismatch"
+
+    assert all(isinstance(p, str) for p in patterns)
+
+    if search_parents:
+        assert all(Path(p).is_absolute() for p in patterns)
+        root_path = Path("/") if not is_windows() else Path(tmp_path.drive + "\\")
+        assert Path(patterns[-1]) == root_path
+
+
+def test_parent_patterns_with_magic_pattern():
+    """Test parent_patterns with a glob pattern containing magic characters."""
+
+    @click.command
+    @config_option(search_parents=True)
+    def test_cli():
+        pass
+
+    with click.Context(test_cli, info_name="test-cli"):
+        config_opt = search_params(test_cli.params, ConfigOption)
+
+        with pytest.raises(
+            NotImplementedError,
+            match="Parent search for magic patterns not implemented",
+        ):
+            list(config_opt.parent_patterns("/some/path/*.toml"))
+
+
+def test_parent_patterns_relative_path(tmp_path):
+    """Test parent_patterns resolves relative paths to absolute."""
+    deep_path = tmp_path / "level1" / "level2"
+    deep_path.mkdir(parents=True)
+    config_file = deep_path / "config.toml"
+    config_file.write_text("[test]\nvalue = 1")
+
+    @click.command
+    @config_option(search_parents=True)
+    def test_cli():
+        pass
+
+    # Change to the parent directory to create a relative path
+    import os
+
+    old_cwd = os.getcwd()
+    try:
+        os.chdir(tmp_path / "level1")
+        relative_path = "level2/config.toml"
+
+        with click.Context(test_cli, info_name="test-cli"):
+            config_opt = search_params(test_cli.params, ConfigOption)
+
+            patterns = list(config_opt.parent_patterns(relative_path))
+
+            # All patterns should be absolute
+            assert all(Path(p).is_absolute() for p in patterns)
+
+            # First pattern should resolve to the config file
+            assert Path(patterns[0]) == config_file
+    finally:
+        os.chdir(old_cwd)
 
 
 def test_config_option_default_no_config(invoke, create_config):
