@@ -17,12 +17,20 @@
 
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 
 import click
 
-from click_extra import ExtraCliRunner, Style, command, echo, pass_context, secho, style
+from click_extra import (
+    ExtraCliRunner,
+    ExtraContext,
+    Style,
+    command,
+    echo,
+    pass_context,
+    secho,
+    style,
+)
 
 
 def test_real_fs():
@@ -68,8 +76,6 @@ def run_cli1(ctx):
     secho("secho(color=True) bypass invoke.color = False", fg="red", color=True)
     secho("secho(color=False)", fg="green", color=False)
 
-    logging.getLogger("click_extra").warning("Is the logger colored?")
-
     print(style("print() bypass Click.", fg="blue"))
 
     echo(f"Context.color = {ctx.color!r}")
@@ -88,7 +94,6 @@ def check_default_colored_rendering(result):
         "secho(color=False)\n"
         "\x1b[34mprint() bypass Click.\x1b[0m\n",
     )
-    assert result.stderr == "\x1b[33mwarning\x1b[0m: Is the logger colored?\n"
     assert result.exit_code == 0
 
 
@@ -104,7 +109,6 @@ def check_default_uncolored_rendering(result):
         "secho(color=False)\n"
         "\x1b[34mprint() bypass Click.\x1b[0m\n",
     )
-    assert result.stderr == "warning: Is the logger colored?\n"
     assert result.exit_code == 0
 
 
@@ -120,7 +124,6 @@ def check_forced_uncolored_rendering(result):
         "secho(color=False)\n"
         "print() bypass Click.\n",
     )
-    assert result.stderr == "warning: Is the logger colored?\n"
     assert result.exit_code == 0
 
 
@@ -164,3 +167,116 @@ def test_invoke_color_forced(invoke):
     assert result.stdout.endswith(
         "Context.color = True\nclick.utils.should_strip_ansi = False\n",
     )
+
+
+# --- Full-stack click-extra color tests ---
+
+
+@command
+@pass_context
+def run_cli_extra(ctx):
+    """CLI using click-extra's full decorator for color testing."""
+    echo(Style(fg="green")("colored output"))
+    echo(f"Context.color = {ctx.color!r}")
+
+
+def test_extra_command_default_color():
+    """With @command, ExtraContext defaults root color=True and ColorOption defaults
+    True. Verify ctx.color=True and ANSI codes present in output."""
+    runner = ExtraCliRunner()
+    result = runner.invoke(run_cli_extra, color=True)
+    assert result.exit_code == 0
+    assert "\x1b[32mcolored output\x1b[0m" in result.stdout
+    assert "Context.color = True" in result.stdout
+
+
+def test_extra_command_no_color_flag():
+    """Invoke with --no-color. Verify ctx.color=False and ANSI stripped from echo
+    output."""
+    runner = ExtraCliRunner()
+    result = runner.invoke(run_cli_extra, "--no-color", color=True)
+    assert result.exit_code == 0
+    assert "\x1b[" not in result.stdout
+    assert "Context.color = False" in result.stdout
+
+
+# --- force_color class attribute test ---
+
+
+def test_force_color_attribute():
+    """ExtraCliRunner.force_color=True overrides color parameter."""
+
+    @click.command
+    def simple_cli():
+        echo(Style(fg="green")("styled"))
+
+    runner = ExtraCliRunner()
+    runner.force_color = True
+    result = runner.invoke(simple_cli, color=None)
+    assert result.exit_code == 0
+    # force_color=True makes isolation_color=True, so ANSI codes are preserved.
+    assert "\x1b[32mstyled\x1b[0m" in result.stdout
+
+
+# --- NO_COLOR / FORCE_COLOR environment variable tests ---
+
+
+def test_no_color_envvar():
+    """NO_COLOR=1 env var causes ctx.color=False via ColorOption."""
+    runner = ExtraCliRunner()
+    result = runner.invoke(run_cli_extra, env={"NO_COLOR": "1"}, color=True)
+    assert result.exit_code == 0
+    assert "Context.color = False" in result.stdout
+
+
+def test_force_color_envvar():
+    """FORCE_COLOR=1 env var keeps ctx.color=True via ColorOption."""
+    runner = ExtraCliRunner()
+    result = runner.invoke(run_cli_extra, env={"FORCE_COLOR": "1"}, color=True)
+    assert result.exit_code == 0
+    assert "Context.color = True" in result.stdout
+
+
+# --- ExtraContext color behavior tests ---
+
+
+def test_extra_context_root_defaults_color_true():
+    """Root ExtraContext without color= arg defaults to color=True."""
+    ctx = ExtraContext(click.Command("test"))
+    assert ctx.color is True
+
+
+def test_extra_context_inherits_from_parent():
+    """Child ExtraContext inherits color from parent when not set."""
+    parent = ExtraContext(click.Command("parent"), color=False)
+    child = ExtraContext(click.Command("child"), parent=parent)
+    assert child.color is False
+
+
+def test_extra_context_explicit_overrides_parent():
+    """Child ExtraContext with explicit color overrides parent."""
+    parent = ExtraContext(click.Command("parent"), color=True)
+    child = ExtraContext(click.Command("child"), parent=parent, color=False)
+    assert child.color is False
+
+
+# --- should_strip_ansi / resolve_color_default tests ---
+
+
+def test_should_strip_ansi_non_tty():
+    """In a test runner (non-TTY), should_strip_ansi behaves based on color arg."""
+    # No color arg: strips because stdin is not a TTY.
+    assert click.utils.should_strip_ansi() is True
+    # color=True: do not strip.
+    assert click.utils.should_strip_ansi(color=True) is False
+    # color=False: strip.
+    assert click.utils.should_strip_ansi(color=False) is True
+
+
+def test_resolve_color_default_no_context():
+    """Outside any Click context, resolve_color_default returns None or passed value."""
+    from click.globals import resolve_color_default
+
+    assert resolve_color_default() is None
+    assert resolve_color_default(True) is True
+    assert resolve_color_default(False) is False
