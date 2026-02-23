@@ -488,7 +488,7 @@ Write example.
 
 ### pyproject.toml
 
-The `PYPROJECT_TOML` format reads `[tool.<cli-name>]` sections from a `pyproject.toml` file, following [PEP 518](https://peps.python.org/pep-0518/). This is useful for any CLI tool that wants to store its configuration alongside project metadata — not just Python projects. Tools like [ruff](https://docs.astral.sh/ruff/), [taplo](https://taplo.tamasfe.dev/), and [lychee](https://github.com/lycheeverse/lychee) all use this convention.
+The `PYPROJECT_TOML` format reads `[tool.<cli-name>]` sections from a `pyproject.toml` file, following [PEP 518](https://peps.python.org/pep-0518/). This is useful for any CLI tool that wants to store its configuration alongside project metadata — not just Python projects. Tools like [ruff](https://docs.astral.sh/ruff/), [taplo](https://taplo.tamasfe.dev/), and [lychee](https://github.com/lycheeverse/lychee), which are not Python projects, all use this convention, to play nice with other communities and increase adoption.
 
 `PYPROJECT_TOML` is included in the default format patterns, so it is automatically discovered alongside other formats. The `[tool]` wrapper is automatically unwrapped: `merge_default_map` sees `{"cli": {"int_param": 3}}` — exactly the same structure as a regular TOML config file.
 
@@ -496,6 +496,7 @@ Given a `pyproject.toml` in the search path:
 
 ```{code-block} toml
 :caption: `pyproject.toml`
+:emphasize-lines: 4-5
 [build-system]
 requires = ["setuptools"]
 
@@ -506,6 +507,7 @@ int_param = 3
 This is especially powerful combined with `search_parents` to walk up from a project directory:
 
 ```{code-block} python
+:emphasize-lines: 7
 from click import command, option, echo
 
 from click_extra import config_option, VCS
@@ -759,7 +761,7 @@ def cli(int_param):
 Again, this is reflected in the help:
 
 ```{click:run}
-:emphasize-lines: 9
+:emphasize-lines: 8
 result = invoke(cli, args=["--help"])
 assert "*.toml|my_app.conf|settings*.js|*.json]" in result.stdout
 ```
@@ -924,7 +926,7 @@ The parent directory walk stops as soon as it hits any of the following boundari
 
 ```{code-block} python
 :caption: Stop at the project's VCS root
-:emphasize-lines: 2,7
+:emphasize-lines: 3,6
 from click import command
 
 from click_extra import VCS, config_option
