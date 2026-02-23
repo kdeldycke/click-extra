@@ -532,9 +532,10 @@ class LazyGroup(ExtraGroup):
         # For nested lazy groups, walk from the current context up to the root
         # to collect intermediate group names, then descend through the config.
         path: list[str] = []
-        current = ctx
-        while current is not root_ctx:
-            path.append(current.command.name)
+        current: click.Context | None = ctx
+        while current is not None and current is not root_ctx:
+            if current.command.name is not None:
+                path.append(current.command.name)
             current = current.parent
         path.reverse()
 
