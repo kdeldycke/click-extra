@@ -1275,22 +1275,53 @@ def test_parent_patterns(
         assert Path(patterns[-1]) == root_path
 
 
-def test_parent_patterns_with_magic_pattern():
-    """Test parent_patterns with a glob pattern containing magic characters."""
+@pytest.mark.parametrize(
+    ("pattern_factory", "expected_factory"),
+    [
+        pytest.param(
+            lambda p: str(p / "a" / "b" / "*.toml"),
+            lambda p: [
+                str(p / "a" / "b" / "*.toml"),
+                str(p / "a" / "*.toml"),
+                str(p / "*.toml"),
+                *(str(parent / "*.toml") for parent in p.parents),
+            ],
+            id="file-glob-at-leaf",
+        ),
+        pytest.param(
+            lambda p: "*.toml",
+            lambda p: ["*.toml"],
+            id="entirely-magic",
+        ),
+        pytest.param(
+            lambda p: str(p / "proj*" / "config.toml"),
+            lambda p: [
+                str(p / "proj*" / "config.toml"),
+                *(
+                    str(parent / Path("proj*") / "config.toml")
+                    for parent in p.parents
+                ),
+            ],
+            id="magic-in-directory",
+        ),
+    ],
+)
+def test_parent_patterns_with_magic_pattern(tmp_path, pattern_factory, expected_factory):
+    """Test parent_patterns with glob patterns containing magic characters."""
 
     @click.command
     @config_option(search_parents=True)
     def test_cli():
         pass
 
+    pattern = pattern_factory(tmp_path)
+    expected = expected_factory(tmp_path)
+
     with click.Context(test_cli, info_name="test-cli"):
         config_opt = search_params(test_cli.params, ConfigOption)
+        patterns = list(config_opt.parent_patterns(pattern))
 
-        with pytest.raises(
-            NotImplementedError,
-            match="Parent search for magic patterns not implemented",
-        ):
-            list(config_opt.parent_patterns("/some/path/*.toml"))
+    assert patterns == expected
 
 
 @pytest.mark.xfail(reason="Relative path resolution not yet implemented")

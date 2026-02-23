@@ -498,6 +498,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         Stops when reaching the root folder.
         """
+
         # Return the original pattern as-is.
         yield pattern
 
@@ -518,8 +519,25 @@ class ConfigOption(ExtraOption, ParamStructure):
                 yield from map(str, search_path.parents)
             return
 
-        # Magic patterns needs special handling for parent search.
-        raise NotImplementedError("Parent search for magic patterns not implemented.")
+        # Magic patterns: split into non-magic directory prefix and magic suffix,
+        # then walk up from the prefix, appending the suffix at each level.
+        parts = Path(pattern).parts
+        magic_idx = next(
+            i
+            for i, part in enumerate(parts)
+            if glob.is_magic(part, flags=self.search_pattern_flags)
+        )
+
+        # Entirely magic pattern (e.g., "*.toml") — no directory prefix to walk up.
+        if magic_idx == 0:
+            logger.debug("Entirely magic pattern, skipping parent search.")
+            return
+
+        prefix = Path(*parts[:magic_idx]).resolve()
+        suffix = str(Path(*parts[magic_idx:]))
+
+        for parent in prefix.parents:
+            yield str(parent / suffix)
 
     def search_and_read_file(self, pattern: str) -> Iterable[tuple[Path | URL, str]]:
         """Search filesystem or URL for files matching the ``pattern``.
