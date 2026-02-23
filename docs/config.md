@@ -758,6 +758,35 @@ assert "[default: ~/*]" in result.stdout
 Depending on how you set up your patterns, files starting with a dot (`.`) may not be matched by default. Make sure to include the [`DOTMATCH`](https://facelessuser.github.io/wcmatch/fnmatch/#dotmatch) flag in `file_pattern_flags` if needed.
 ```
 
+### Parent folder search
+
+By default, configuration files are only searched in the [default application folder](#default-folder). With `search_parents=True`, Click Extra also walks up the directory tree from the search location to the filesystem root, looking for matching files at each level:
+
+```{click:source}
+:emphasize-lines: 6
+from click import command
+
+from click_extra import config_option
+
+@command
+@config_option(search_parents=True)
+def cli():
+    pass
+```
+
+For a CLI named `cli` on a Unix system, this searches for configuration files in:
+
+1. `~/.config/cli/*.toml|*.yaml|…` *(the default location)*
+2. `~/.config/*.toml|*.yaml|…`
+3. `~/*.toml|*.yaml|…`
+4. `/*.toml|*.yaml|…`
+
+The first successfully [parsed file wins](#parsing-priority). This is useful for monorepo or project-local configuration, where a config file placed higher in the tree acts as a fallback.
+
+```{note}
+Parent search works with both plain paths and [glob patterns](#search-pattern-specifications). For glob patterns, the non-magic directory prefix is identified and walked up, while the magic suffix (e.g., `*.toml|*.yaml`) is appended at each level. Entirely magic patterns like `*.toml` have no directory prefix to walk up, so only the original pattern is searched.
+```
+
 ### Remote URL
 
 Remote URL can be passed directly to the `--config` option:
