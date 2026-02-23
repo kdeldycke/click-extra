@@ -1304,6 +1304,44 @@ def test_parent_patterns(
             ],
             id="magic-in-directory",
         ),
+        pytest.param(
+            lambda p: str(p / "a" / "*.toml|*.yaml|*.yml"),
+            lambda p: [
+                str(p / "a" / "*.toml|*.yaml|*.yml"),
+                str(p / "*.toml|*.yaml|*.yml"),
+                *(str(parent / "*.toml|*.yaml|*.yml") for parent in p.parents),
+            ],
+            id="pipe-separated-multi-glob",
+        ),
+        pytest.param(
+            lambda p: str(p / "proj*" / "*.toml"),
+            lambda p: [
+                str(p / "proj*" / "*.toml"),
+                *(
+                    str(parent / Path("proj*", "*.toml"))
+                    for parent in p.parents
+                ),
+            ],
+            id="multiple-magic-parts-in-suffix",
+        ),
+        pytest.param(
+            lambda p: str(p / "*.toml"),
+            lambda p: [
+                str(p / "*.toml"),
+                *(str(parent / "*.toml") for parent in p.parents),
+            ],
+            id="single-depth-magic",
+        ),
+        pytest.param(
+            lambda p: "~/a/b/*.toml",
+            lambda p: ["~/a/b/*.toml"],
+            id="tilde-is-magic",
+        ),
+        pytest.param(
+            lambda p: str(Path("**", "config.toml")),
+            lambda p: [str(Path("**", "config.toml"))],
+            id="globstar-entirely-magic",
+        ),
     ],
 )
 def test_parent_patterns_with_magic_pattern(tmp_path, pattern_factory, expected_factory):
@@ -1322,6 +1360,23 @@ def test_parent_patterns_with_magic_pattern(tmp_path, pattern_factory, expected_
         patterns = list(config_opt.parent_patterns(pattern))
 
     assert patterns == expected
+
+
+def test_parent_patterns_magic_no_search(tmp_path):
+    """Magic pattern with search_parents=False yields only the original."""
+
+    @click.command
+    @config_option(search_parents=False)
+    def test_cli():
+        pass
+
+    pattern = str(tmp_path / "a" / "*.toml|*.yaml")
+
+    with click.Context(test_cli, info_name="test-cli"):
+        config_opt = search_params(test_cli.params, ConfigOption)
+        patterns = list(config_opt.parent_patterns(pattern))
+
+    assert patterns == [pattern]
 
 
 @pytest.mark.xfail(reason="Relative path resolution not yet implemented")
