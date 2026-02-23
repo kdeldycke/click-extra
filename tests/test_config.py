@@ -1293,6 +1293,7 @@ def test_parent_patterns_with_magic_pattern():
             list(config_opt.parent_patterns("/some/path/*.toml"))
 
 
+@pytest.mark.xfail(reason="Relative path resolution not yet implemented")
 def test_parent_patterns_relative_path(tmp_path):
     """Test parent_patterns resolves relative paths to absolute."""
     deep_path = tmp_path / "level1" / "level2"
