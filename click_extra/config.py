@@ -138,6 +138,19 @@ except ImportError:
     )
 
 
+VCS_DIRS = (".git", ".hg", ".svn", ".bzr", "CVS", ".darcs")
+"""VCS directory names used to identify version control system roots.
+
+Includes:
+- ``.git`` — Git
+- ``.hg`` — Mercurial
+- ``.svn`` — Subversion
+- ``.bzr`` — Bazaar
+- ``CVS`` — CVS (note: uppercase, no leading dot)
+- ``.darcs`` — Darcs
+"""
+
+
 class ConfigFormat(Enum):
     """All configuration formats, associated to their support status.
 
@@ -221,6 +234,7 @@ class Sentinel(Enum):
     """
 
     NO_CONFIG = object()
+    VCS = object()
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}"
@@ -228,6 +242,9 @@ class Sentinel(Enum):
 
 NO_CONFIG = Sentinel.NO_CONFIG
 """Sentinel used to indicate that no configuration file must be used at all."""
+
+VCS = Sentinel.VCS
+"""Sentinel used to stop parent directory walking at the nearest VCS root."""
 
 
 class ConfigOption(ExtraOption, ParamStructure):
@@ -262,6 +279,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             | glob.NODIR
         ),
         search_parents: bool = False,
+        stop_at: Path | str | Literal[Sentinel.VCS] | None = None,
         excluded_params: Iterable[str] | None = None,
         strict: bool = False,
         **kwargs,
@@ -386,6 +404,14 @@ class ConfigOption(ExtraOption, ParamStructure):
         configuration files.
         """
 
+        self.stop_at = stop_at
+        """Boundary for parent directory walking.
+
+        - ``None`` — walk up to filesystem root (default).
+        - ``VCS`` — stop at the nearest VCS root (``.git`` or ``.hg``).
+        - A ``Path`` or ``str`` — stop at that directory.
+        """
+
         # If the user provided its own excluded params, freeze them now and store it
         # to prevent the dynamic default property to be called.
         if excluded_params is not None:
@@ -489,44 +515,113 @@ class ConfigOption(ExtraOption, ParamStructure):
             extra["default"] = str(default)
         return extra
 
+    @staticmethod
+    def _find_vcs_root(start: Path) -> Path | None:
+        """Walk up from ``start`` looking for a VCS root directory.
+
+        Returns the directory containing one of the VCS directories defined in
+        ``VCS_DIRS``, or ``None`` if no VCS root is found before reaching the
+        filesystem root.
+        """
+        current = start if start.is_dir() else start.parent
+        for directory in (current, *current.parents):
+            if any((directory / vcs_dir).exists() for vcs_dir in VCS_DIRS):
+                return directory
+        return None
+
+    def _resolve_stop_at(self, start_dir: Path) -> Path | None:
+        """Resolve the ``stop_at`` value to an absolute ``Path`` or ``None``.
+
+        - ``None`` → ``None`` (no boundary).
+        - ``VCS`` → calls ``_find_vcs_root(start_dir)``.
+        - ``Path`` or other ``str`` → resolves to absolute.
+        """
+        if self.stop_at is None:
+            return None
+        if self.stop_at is VCS:
+            return self._find_vcs_root(start_dir)
+        return Path(self.stop_at).resolve()
+
+    @staticmethod
+    def _should_stop_walking(directory: Path, stop_at: Path | None) -> bool:
+        """Return ``True`` if the parent-directory walk should stop.
+
+        Stops when:
+        - ``stop_at`` is set and ``directory`` is not equal to or a child of it.
+        - The directory exists but is not readable.
+        """
+        if stop_at is not None:
+            try:
+                directory.relative_to(stop_at)
+            except ValueError:
+                return True
+        return bool(directory.exists() and not os.access(directory, os.R_OK))
+
     def parent_patterns(self, pattern: str) -> Iterable[str]:
         """Generate patterns for parent directories lookup.
 
         Yields patterns for each parent directory of the given ``pattern``.
 
-        The first yielded pattern is the original one.
+        The first yielded pattern is always the resolved version of the original.
 
-        Stops when reaching the root folder.
+        Stops when reaching the root folder, the ``stop_at`` boundary, or an
+        inaccessible directory.
         """
+        logger = logging.getLogger("click_extra")
 
-        # Return the original pattern as-is.
+        # Normalize path separators for magic detection: on Windows, backslashes
+        # in paths are mistaken for glob escape characters by wcmatch.
+        def is_magic(p: str) -> bool:
+            return glob.is_magic(p.replace("\\", "/"), flags=self.search_pattern_flags)
+
+        # Phase 1: resolve the pattern to absolute before yielding.
+        if not is_magic(pattern):
+            # Non-magic pattern: resolve the whole thing.
+            pattern = str(Path(pattern).resolve())
+        else:
+            # Magic pattern: resolve the non-magic prefix, keep magic suffix.
+            parts = Path(pattern).parts
+            magic_idx = next(i for i, part in enumerate(parts) if is_magic(part))
+            if magic_idx > 0:
+                resolved_prefix = Path(*parts[:magic_idx]).resolve()
+                suffix = str(Path(*parts[magic_idx:]))
+                pattern = str(resolved_prefix / suffix)
+
+        # Yield the (now absolute) pattern.
         yield pattern
 
         # No parent search requested, stop here.
         if not self.search_parents:
             return
 
-        logger = logging.getLogger("click_extra")
         logger.debug("Parent search enabled.")
 
         # The pattern is a regular path: no magic is involved. Simply walk up.
-        if not glob.is_magic(pattern, flags=self.search_pattern_flags):
-            search_path = Path(pattern).resolve()
+        if not is_magic(pattern):
+            search_path = Path(pattern)
             if search_path.is_file():
                 search_path = search_path.parent
-                yield from map(str, (search_path, *search_path.parents))
+            base_dir = search_path
+            stop_at = self._resolve_stop_at(base_dir)
+
+            parents: Iterable[Path]
+            if search_path == Path(pattern):
+                # pattern was a directory
+                parents = search_path.parents
             else:
-                yield from map(str, search_path.parents)
+                parents = (search_path, *search_path.parents)
+
+            for parent in parents:
+                if self._should_stop_walking(parent, stop_at):
+                    logger.debug(f"Stopped walking at {parent}")
+                    return
+                yield str(parent)
             return
 
         # Magic patterns: split into non-magic directory prefix and magic suffix,
         # then walk up from the prefix, appending the suffix at each level.
         parts = Path(pattern).parts
-        magic_idx = next(
-            i
-            for i, part in enumerate(parts)
-            if glob.is_magic(part, flags=self.search_pattern_flags)
-        )
+        magic_idx = next(i for i, part in enumerate(parts) if is_magic(part))
 
         # Entirely magic pattern (e.g., "*.toml") — no directory prefix to walk up.
         if magic_idx == 0:
@@ -535,8 +630,12 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         prefix = Path(*parts[:magic_idx]).resolve()
         suffix = str(Path(*parts[magic_idx:]))
+        stop_at = self._resolve_stop_at(prefix)
 
         for parent in prefix.parents:
+            if self._should_stop_walking(parent, stop_at):
+                logger.debug(f"Stopped walking at {parent}")
+                return
             yield str(parent / suffix)
 
     def search_and_read_file(self, pattern: str) -> Iterable[tuple[Path | URL, str]]:

@@ -43,7 +43,7 @@ from .commands import (
     ExtraGroup,
     LazyGroup,
 )
-from .config import ConfigFormat, ConfigOption, NO_CONFIG, NoConfigOption
+from .config import ConfigFormat, ConfigOption, NO_CONFIG, NoConfigOption, VCS
 from .decorators import (  # type: ignore[no-redef]
     argument,
     color_option,
@@ -207,6 +207,7 @@ __all__ = [  # noqa: F405
     "unstyle",
     "UsageError",
     "UUID",
+    "VCS",
     "verbose_option",
     "VerboseOption",
     "verbosity_option",

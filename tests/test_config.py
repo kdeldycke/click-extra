@@ -34,6 +34,7 @@ from extra_platforms import (  # type: ignore[attr-defined]
 
 from click_extra import (
     NO_CONFIG,
+    VCS,
     ConfigFormat,
     ConfigOption,
     LazyGroup,
@@ -1379,7 +1380,6 @@ def test_parent_patterns_magic_no_search(tmp_path):
     assert patterns == [pattern]
 
 
-@pytest.mark.xfail(reason="Relative path resolution not yet implemented")
 def test_parent_patterns_relative_path(tmp_path):
     """Test parent_patterns resolves relative paths to absolute."""
     deep_path = tmp_path / "level1" / "level2"
@@ -1412,6 +1412,132 @@ def test_parent_patterns_relative_path(tmp_path):
             assert Path(patterns[0]) == config_file
     finally:
         os.chdir(old_cwd)
+
+
+def test_parent_patterns_stop_at_path(tmp_path):
+    """stop_at as a path limits the parent directory walk."""
+    deep_path = tmp_path / "a" / "b" / "c"
+    deep_path.mkdir(parents=True)
+    config_file = deep_path / "config.toml"
+    config_file.write_text("[test]\nvalue = 1")
+
+    boundary = tmp_path / "a"
+
+    @click.command
+    @config_option(search_parents=True, stop_at=boundary)
+    def test_cli():
+        pass
+
+    with click.Context(test_cli, info_name="test-cli"):
+        config_opt = search_params(test_cli.params, ConfigOption)
+        patterns = list(config_opt.parent_patterns(str(config_file)))
+
+    # Should yield: resolved config_file, then c/, b/, a/
+    # But NOT tmp_path or anything above boundary.
+    assert Path(patterns[0]) == config_file
+    for p in patterns:
+        # Every directory yielded should be inside or equal to the boundary.
+        assert Path(p).is_relative_to(boundary), f"{p} is outside boundary {boundary}"
+
+
+@pytest.mark.parametrize(
+    ("has_vcs", "expected_bounded"),
+    [
+        pytest.param(True, True, id="with-vcs-root"),
+        pytest.param(False, False, id="no-vcs-root"),
+    ],
+)
+def test_parent_patterns_stop_at_vcs(tmp_path, has_vcs, expected_bounded):
+    """stop_at=VCS stops at VCS root, or walks to filesystem root if none."""
+    vcs_root = tmp_path / "repo"
+    vcs_root.mkdir()
+    if has_vcs:
+        (vcs_root / ".git").mkdir()
+
+    deep_path = vcs_root / "src" / "pkg"
+    deep_path.mkdir(parents=True)
+
+    @click.command
+    @config_option(search_parents=True, stop_at=VCS)
+    def test_cli():
+        pass
+
+    pattern = str(deep_path / "*.toml")
+
+    with click.Context(test_cli, info_name="test-cli"):
+        config_opt = search_params(test_cli.params, ConfigOption)
+        patterns = list(config_opt.parent_patterns(pattern))
+
+    assert patterns[0] == str(deep_path / "*.toml")
+
+    if expected_bounded:
+        for p in patterns:
+            parent_dir = Path(p).parent if "*" in p else Path(p)
+            assert parent_dir.is_relative_to(vcs_root), (
+                f"{p} is outside VCS root {vcs_root}"
+            )
+    else:
+        root_path = Path("/") if not is_windows() else Path(tmp_path.drive + "\\")
+        last_parent = Path(patterns[-1]).parent
+        assert last_parent == root_path
+
+
+def test_parent_patterns_inaccessible_directory(tmp_path):
+    """Walk stops at an inaccessible directory."""
+    deep_path = tmp_path / "a" / "b" / "c"
+    deep_path.mkdir(parents=True)
+    config_file = deep_path / "config.toml"
+    config_file.write_text("[test]\nvalue = 1")
+
+    @click.command
+    @config_option(search_parents=True)
+    def test_cli():
+        pass
+
+    from unittest.mock import patch
+
+    original_access = os.access
+
+    def fake_access(path, mode, **kwargs):
+        if Path(path).resolve() == (tmp_path / "a").resolve():
+            return False
+        return original_access(path, mode, **kwargs)
+
+    with click.Context(test_cli, info_name="test-cli"):
+        config_opt = search_params(test_cli.params, ConfigOption)
+        with patch("click_extra.config.os.access", side_effect=fake_access):
+            patterns = list(config_opt.parent_patterns(str(config_file)))
+
+    # Should stop before tmp_path/a (inaccessible).
+    assert Path(patterns[0]) == config_file
+    for p in patterns:
+        assert Path(p) != tmp_path / "a"
+        assert Path(p) != tmp_path
+
+
+@pytest.mark.parametrize(
+    ("vcs_dir", "expected"),
+    [
+        pytest.param(".git", "found", id="git"),
+        pytest.param(".hg", "found", id="hg"),
+        pytest.param(None, None, id="no-vcs"),
+    ],
+)
+def test_find_vcs_root(tmp_path, vcs_dir, expected):
+    """Test _find_vcs_root with .git, .hg, and no VCS markers."""
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    if vcs_dir:
+        (repo / vcs_dir).mkdir()
+
+    deep = repo / "a" / "b"
+    deep.mkdir(parents=True)
+
+    result = ConfigOption._find_vcs_root(deep)
+    if expected:
+        assert result == repo
+    else:
+        assert result is None
 
 
 def test_config_option_default_no_config(invoke, create_config):
