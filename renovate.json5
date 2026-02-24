@@ -2,16 +2,6 @@
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
   extends: ["config:recommended", "abandonments:recommended"],
 
-  // Keep lock files up-to-date, including transitive dependencies.
-  // Runs on every Renovate execution rather than the default weekly schedule.
-  lockFileMaintenance: {
-    enabled: true,
-    schedule: ["at any time"],
-    semanticCommits: "disabled",
-    commitMessagePrefix: "[deps]",
-    commitMessageAction: "Sync `uv.lock`",
-  },
-
   // PR and issue settings.
   labels: ["📦 dependencies"],
   dependencyDashboardLabels: ["📦 dependencies"],
@@ -20,10 +10,10 @@
   timezone: "UTC",
   schedule: ["at any time"],
 
-  // Commit message format: "[deps] Update click to <8.4".
+  // Commit message format: "Update `click` to `<8.4`".
   semanticCommits: "disabled",
-  commitMessagePrefix: "[deps]",
-  commitMessageTopic: "{{{depName}}}",
+  commitMessageTopic: "`{{{depName}}}`",
+  commitMessageExtra: "to `{{{newValue}}}`",
 
   // Stabilization periods. Must be > 7 days to match pyproject.toml's exclude-newer.
   minimumReleaseAge: "8 days",
@@ -45,9 +35,37 @@
       minimumReleaseAge: "8 days",
     },
     {
+      description: "Backtick-wrap GitHub Actions names in commit messages.",
+      matchManagers: ["github-actions"],
+      commitMessageTopic: "`{{{depName}}}` action",
+    },
+    {
       description: "Flag dependencies with no recent releases.",
       matchCurrentAge: "> 1 year",
       addLabels: ["⚠️ stale dependency"],
+    },
+    {
+      description: "Update SHA-256 checksums after binary version bumps.",
+      matchFileNames: [".github/workflows/**"],
+      postUpgradeTasks: {
+        commands: [
+          "bash -c 'curl -fsSL https://github.com/astral-sh/uv/releases/download/0.10.4/uv-x86_64-unknown-linux-gnu.tar.gz --output /tmp/uv.tar.gz && echo 6b52a47358deea1c5e173278bf46b2b489747a59ae31f2a4362ed5c6c1c269f7  /tmp/uv.tar.gz | sha256sum --check && tar xzf /tmp/uv.tar.gz --strip-components=1 -C /tmp && /tmp/uvx --no-progress gha-utils==5.13.0 update-checksums {{{packageFile}}}'",
+        ],
+        fileFilters: [".github/workflows/**"],
+        executionMode: "update",
+      },
+    },
+    {
+      description: "Update uv SHA-256 checksum after version bump in Renovate config.",
+      matchDepNames: ["astral-sh/uv"],
+      matchFileNames: ["renovate.json5"],
+      postUpgradeTasks: {
+        commands: [
+          "bash -c 'curl -fsSL https://github.com/astral-sh/uv/releases/download/{{{newVersion}}}/uv-x86_64-unknown-linux-gnu.tar.gz --output /tmp/uv.tar.gz && sed -i \"/sha256sum/s/[a-f0-9]\\{64\\}/$(sha256sum /tmp/uv.tar.gz | cut -c1-64)/\" {{{packageFile}}}'",
+        ],
+        fileFilters: ["renovate.json5"],
+        executionMode: "update",
+      },
     },
   ],
 
