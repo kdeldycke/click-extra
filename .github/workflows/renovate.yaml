@@ -10,7 +10,7 @@ name: 🆕 Renovate
     paths:
       - .github/workflows/renovate.yaml
       - renovate.json5
-      - gha_utils/data/renovate.json5
+      - repomatic/data/renovate.json5
 
 jobs:
 

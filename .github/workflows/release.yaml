@@ -9,7 +9,7 @@ name: 🚀 Build & release
       - prepare-release
       - "renovate/**"
     paths:
-      - "gha_utils/**"
+      - "repomatic/**"
       - "tests/**"
       - pyproject.toml
       - uv.lock
