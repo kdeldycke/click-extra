@@ -430,6 +430,15 @@ class ExtraGroup(ExtraCommand, cloup.Group):  # type: ignore[misc]
             default_subcmds = self._get_default_subcommands(ctx)
             if default_subcmds is not None:
                 ctx._protected_args = list(default_subcmds)
+        elif ctx._protected_args or ctx.args:
+            # CLI subcommands were given explicitly; log if config defaults exist.
+            default_subcmds = self._get_default_subcommands(ctx)
+            if default_subcmds is not None:
+                logger = logging.getLogger("click_extra")
+                logger.debug(
+                    f"CLI subcommands provided; ignoring {DEFAULT_SUBCOMMANDS_KEY}"
+                    f" config: {default_subcmds!r}."
+                )
         return super().invoke(ctx)
 
     def _get_default_subcommands(self, ctx: click.Context) -> list[str] | None:
@@ -470,6 +479,22 @@ class ExtraGroup(ExtraCommand, cloup.Group):  # type: ignore[misc]
 
         if not raw:
             return None
+
+        # Deduplicate, keeping first occurrence, and warn on duplicates.
+        seen: set[str] = set()
+        deduped: list[str] = []
+        for name in raw:
+            if name in seen:
+                continue
+            seen.add(name)
+            deduped.append(name)
+        if len(deduped) < len(raw):
+            logger = logging.getLogger("click_extra")
+            logger.warning(
+                f"Duplicate entries in {DEFAULT_SUBCOMMANDS_KEY}: {raw!r}. "
+                f"Keeping first occurrences: {deduped!r}."
+            )
+        raw = deduped
 
         # Non-chained groups can only have one default subcommand.
         if not self.chain and len(raw) > 1:

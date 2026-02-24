@@ -2329,3 +2329,69 @@ def test_default_subcommand_no_config(invoke):
     # Without a subcommand and no config, the group should not run any subcommand.
     result = invoke(no_conf_cli, "--no-config", color=False)
     assert "backup ran" not in result.output
+
+
+def test_default_subcommand_duplicates_warning(invoke, create_config):
+    """Duplicate entries in _default_subcommands are deduplicated with a warning."""
+    conf_text = dedent("""\
+        [dup-cli]
+        _default_subcommands = ["backup", "sync", "backup"]
+        """)
+    conf_path = create_config("dup-cli.toml", conf_text)
+
+    @group(chain=True)
+    def dup_cli():
+        pass
+
+    @dup_cli.command()
+    def backup():
+        echo("backup ran")
+
+    @dup_cli.command()
+    def sync():
+        echo("sync ran")
+
+    result = invoke(
+        dup_cli, "--config", str(conf_path), "--verbosity", "WARNING", color=False
+    )
+    assert result.exit_code == 0
+    assert "backup ran" in result.output
+    assert "sync ran" in result.output
+    # backup should only run once despite being listed twice.
+    assert result.output.count("backup ran") == 1
+    assert "Duplicate entries" in result.stderr
+
+
+def test_default_subcommand_cli_override_debug_log(invoke, create_config):
+    """Debug log emitted when CLI subcommands override config defaults."""
+    conf_text = dedent("""\
+        [log-cli]
+        _default_subcommands = ["backup"]
+        """)
+    conf_path = create_config("log-cli.toml", conf_text)
+
+    @group
+    def log_cli():
+        pass
+
+    @log_cli.command()
+    def backup():
+        echo("backup ran")
+
+    @log_cli.command()
+    def sync():
+        echo("sync ran")
+
+    result = invoke(
+        log_cli,
+        "--config",
+        str(conf_path),
+        "--verbosity",
+        "DEBUG",
+        "sync",
+        color=False,
+    )
+    assert result.exit_code == 0
+    assert "sync ran" in result.output
+    assert "backup ran" not in result.output
+    assert "ignoring _default_subcommands" in result.stderr.lower()
