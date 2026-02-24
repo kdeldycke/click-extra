@@ -17,6 +17,9 @@
 
 ## [7.5.3 (2026-02-22)](https://github.com/kdeldycke/click-extra/compare/v7.5.2...v7.5.3)
 
+> [!NOTE]
+> `7.5.3` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.5.3/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.5.3).
+
 - Allow disabling of autodiscovery of configuration files by setting `default=NO_CONFIG` on `@config_option`. Closes {issue}`1495`.
 - Implement `resolve_any_xref` in `ClickDomain` to prevent MyST-Parser warning. Closes {issue}`1502`.
 - Fix subcommand conflict detection checking against root-level params instead of parent params. Closes {pr}`1286`.
