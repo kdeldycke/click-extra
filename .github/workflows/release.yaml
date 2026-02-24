@@ -19,5 +19,5 @@ name: 🚀 Build & release
 jobs:
 
   release:
-    uses: kdeldycke/workflows/.github/workflows/release.yaml@v5.13.0
+    uses: kdeldycke/repomatic/.github/workflows/release.yaml@v6.0.1
     secrets: inherit

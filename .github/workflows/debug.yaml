@@ -13,4 +13,4 @@ name: Debug
 jobs:
 
   debug:
-    uses: kdeldycke/workflows/.github/workflows/debug.yaml@main
+    uses: kdeldycke/repomatic/.github/workflows/debug.yaml@v6.0.1

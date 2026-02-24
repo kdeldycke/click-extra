@@ -8,4 +8,4 @@ name: 🔒 Autolock
 jobs:
 
   autolock:
-    uses: kdeldycke/workflows/.github/workflows/autolock.yaml@v5.13.0
+    uses: kdeldycke/repomatic/.github/workflows/autolock.yaml@v6.0.1

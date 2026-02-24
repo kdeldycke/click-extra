@@ -23,5 +23,5 @@ name: 🆙 Changelog & versions
 jobs:
 
   changelog:
-    uses: kdeldycke/workflows/.github/workflows/changelog.yaml@v5.13.0
+    uses: kdeldycke/repomatic/.github/workflows/changelog.yaml@v6.0.1
     secrets: inherit
