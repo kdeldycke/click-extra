@@ -27,8 +27,8 @@ def cli(int_param1, int_param2):
 ```{click:run}
 :emphasize-lines: 1
 result = invoke(cli, args=["--int-param1", "3", "--show-params"])
-assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM1\x1b[0m   │ \x1b[32m\x1b[2m\x1b[3m10\x1b[0m " in result.stdout
-assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM2\x1b[0m   │ \x1b[32m\x1b[2m\x1b[3m555\x1b[0m " in result.stdout
+assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM1\x1b[0m      │ \x1b[32m\x1b[2m\x1b[3m10\x1b[0m " in result.stdout
+assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM2\x1b[0m      │ \x1b[32m\x1b[2m\x1b[3m555\x1b[0m " in result.stdout
 ```
 
 See in the rendered table above how `--int-param1` is set to `3`, because it was explicitly set on the command line. While `--int-param2` still gets its value from its `555` default.
@@ -60,8 +60,8 @@ By default, the table produced by `--show-params` is colorized to highlight impo
 ```{click:run}
 :emphasize-lines: 1
 result = invoke(cli, args=["--no-color", "--show-params"])
-assert "│ CLI_INT_PARAM1   │ 10 " in result.stdout
-assert "│ CLI_INT_PARAM2   │ 555 " in result.stdout
+assert "│ CLI_INT_PARAM1      │ 10 " in result.stdout
+assert "│ CLI_INT_PARAM2      │ 555 " in result.stdout
 ```
 
 ```{caution}

@@ -160,13 +160,13 @@ def cli():
 See how the `--version` option gets duplicated at the end:
 
 ```{click:run}
-:emphasize-lines: 23,24
+:emphasize-lines: 26,27
 from textwrap import dedent
 result = invoke(cli, args=["--help"])
 assert (
-    "  \x1b[36m--version\x1b[0m             Show the version and exit.\n"
-    "  \x1b[36m--version\x1b[0m             Show the version and exit.\n"
-    "  \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m            Show this message and exit.\n"
+    "  \x1b[36m--version\x1b[0m               Show the version and exit.\n"
+    "  \x1b[36m--version\x1b[0m               Show the version and exit.\n"
+    "  \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m              Show this message and exit.\n"
 ) in result.output
 ```
 
@@ -230,11 +230,10 @@ def cli():
 Which results in `[default: INFO]` being featured in the help message:
 
 ```{click:run}
-:emphasize-lines: 20
+:emphasize-lines: 22
 result = invoke(cli, args=["--help"])
 assert (
-    "  \x1b[2m[\x1b[0m\x1b[2mdefault:\n"
-    "                        \x1b[0m\x1b[32m\x1b[2m\x1b[3mINFO\x1b[0m\x1b[2m]\x1b[0m\n"
+    "                          \x1b[2m[\x1b[0m\x1b[2mdefault: \x1b[0m\x1b[32m\x1b[2m\x1b[3mINFO\x1b[0m\x1b[2m]\x1b[0m\n"
 ) in result.stdout
 ```
 

@@ -443,6 +443,9 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         self.excluded_params = frozenset()
         """Deactivates the blocking of any parameter."""
 
+        self.included_params = None
+        """No allowlist filter; show all parameters."""
+
         super().__init__(
             param_decls=param_decls,
             is_flag=is_flag,
