@@ -1,5 +1,5 @@
 ---
-name: Renovate
+name: 🆕 Renovate
 "on":
   schedule:
     - cron: "3 17 * * 1"
@@ -15,4 +15,5 @@ name: Renovate
 jobs:
 
   renovate:
-    uses: kdeldycke/workflows/.github/workflows/renovate.yaml@main
+    uses: kdeldycke/workflows/.github/workflows/renovate.yaml@v5.13.0
+    secrets: inherit

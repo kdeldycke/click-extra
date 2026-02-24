@@ -1,5 +1,5 @@
 ---
-name: Changelog & versions
+name: 🆙 Changelog & versions
 "on":
   workflow_dispatch:
   schedule:
@@ -23,4 +23,5 @@ name: Changelog & versions
 jobs:
 
   changelog:
-    uses: kdeldycke/workflows/.github/workflows/changelog.yaml@main
+    uses: kdeldycke/workflows/.github/workflows/changelog.yaml@v5.13.0
+    secrets: inherit
