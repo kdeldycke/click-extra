@@ -1,0 +1,25 @@
+rules:
+  # Needs follow-up PR to add `persist-credentials: false` on all checkout steps.
+  artipacked:
+    disable: true
+
+  # workflow_run in changelog.yaml is safe by design: it provides timing (ensuring tags exist after
+  # the release workflow), not code execution from untrusted sources. See CLAUDE.md § workflow_run.
+  dangerous-triggers:
+    ignore:
+      - changelog.yaml
+
+  # Needs follow-up PR to add explicit `permissions:` blocks to all workflows.
+  excessive-permissions:
+    disable: true
+
+  # zizmor crashes on multiline `${{ }}` expressions in autofix.yaml and changelog.yaml.
+  # See: https://github.com/woodruffw/zizmor/issues/TODO
+  template-injection:
+    disable: true
+
+  # Repo uses tag-based pins by design; Renovate manages version updates.
+  unpinned-uses:
+    config:
+      policies:
+        "*": ref-pin
