@@ -281,6 +281,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             glob.GLOBSTAR
             | glob.FOLLOW
             | glob.DOTGLOB
+            | glob.BRACE
             | glob.SPLIT
             | glob.GLOBTILDE
             | glob.NODIR
@@ -397,6 +398,11 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         kwargs.setdefault("default", self.default_pattern)
 
+        # Force BRACE to ensure multi-format default patterns expand correctly.
+        if not search_pattern_flags & glob.BRACE:
+            logger.warning("Forcing BRACE flag for search patterns.")
+            search_pattern_flags |= glob.BRACE
+
         # Force NODIR to optimize search for files only.
         if not search_pattern_flags & glob.NODIR:
             logger.warning("Forcing NODIR flag for search patterns.")
@@ -408,6 +414,9 @@ class ConfigOption(ExtraOption, ParamStructure):
         Applies to both the default pattern and any user-provided pattern.
 
         .. important::
+            The ``BRACE`` flag is always forced, so that multi-format default
+            patterns using ``{pat1,pat2,...}`` syntax expand correctly.
+
             The ``NODIR`` flag is always forced, to optimize the search for files only.
         """
 
@@ -480,21 +489,26 @@ class ConfigOption(ExtraOption, ParamStructure):
     def file_pattern(self) -> str:
         """Compile all file patterns from the supported formats.
 
-        Use ``|`` split notation to combine multiple patterns.
+        Uses ``,`` (comma) notation to combine multiple patterns, suitable for
+        ``wcmatch`` brace expansion (``{pat1,pat2,...}``).
 
         Returns a single pattern string.
         """
         patterns = unique(flatten(self.file_format_patterns.values()))
-        return "|".join(patterns)
+        return ",".join(patterns)
 
     def default_pattern(self) -> str:
         """Returns the default pattern used to search for the configuration file.
 
-        Defaults to ``<app_dir>/*.toml|*.json|*.ini``. Where ``<app_dir>`` is produced by
-        the `clickget_app_dir() method
+        Defaults to ``<app_dir>/{*.toml,*.json,*.ini}``. Where ``<app_dir>`` is
+        produced by the `click.get_app_dir() method
         <https://click.palletsprojects.com/en/stable/api/#click.get_app_dir>`_.
         The result depends on OS and is influenced by the ``roaming`` and
         ``force_posix`` properties.
+
+        Multiple file format patterns are wrapped with ``{…}`` brace-expansion
+        syntax so that ``wcmatch.glob`` correctly applies the directory prefix
+        to every sub-pattern.
 
         .. todo::
             Use `platformdirs <https://github.com/tox-dev/platformdirs>`_ for more
@@ -507,7 +521,10 @@ class ConfigOption(ExtraOption, ParamStructure):
         app_dir = Path(
             get_app_dir(cli_name, roaming=self.roaming, force_posix=self.force_posix),
         ).resolve()
-        return f"{app_dir}{os.path.sep}{self.file_pattern}"
+        fp = self.file_pattern
+        # Wrap multi-pattern with braces for BRACE expansion.
+        suffix = f"{{{fp}}}" if "," in fp else fp
+        return f"{app_dir}{os.path.sep}{suffix}"
 
     def get_help_extra(self, ctx: click.Context) -> click.types.OptionHelpExtra:
         """Replaces the default value of the configuration option.
@@ -516,13 +533,13 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         .. code-block:: text
 
-            ~/folder/my_cli/*.toml|*.json|*.ini
+            ~/folder/my_cli/{*.toml,*.json,*.ini}
 
         Instead of the full absolute path:
 
         .. code-block:: text
 
-            /home/user/folder/my_cli/*.toml|*.json|*.ini
+            /home/user/folder/my_cli/{*.toml,*.json,*.ini}
 
         .. caution::
             This only applies when the ``GLOBTILDE`` flag is set in ``search_pattern_flags``.
@@ -579,12 +596,18 @@ class ConfigOption(ExtraOption, ParamStructure):
                 return True
         return bool(directory.exists() and not os.access(directory, os.R_OK))
 
-    def parent_patterns(self, pattern: str) -> Iterable[str]:
-        """Generate patterns for parent directories lookup.
+    def parent_patterns(
+        self, pattern: str
+    ) -> Iterable[tuple[str | None, str]]:
+        """Generate ``(root_dir, file_pattern)`` pairs for searching.
 
-        Yields patterns for each parent directory of the given ``pattern``.
+        Each yielded pair can be passed directly to
+        ``glob.iglob(file_pattern, root_dir=root_dir)`` so that every
+        sub-pattern (whether from ``BRACE`` or ``SPLIT`` expansion) is
+        correctly scoped to the same directory.
 
-        The first yielded pattern is always the resolved version of the original.
+        ``root_dir`` is ``None`` for entirely magic patterns that will be
+        evaluated relative to the current working directory.
 
         Stops when reaching the root folder, the ``stop_at`` boundary, or an
         inaccessible directory.
@@ -596,69 +619,47 @@ class ConfigOption(ExtraOption, ParamStructure):
         def is_magic(p: str) -> bool:
             return glob.is_magic(p.replace("\\", "/"), flags=self.search_pattern_flags)
 
-        # Phase 1: resolve the pattern to absolute before yielding.
+        # Split pattern into non-magic directory prefix (root_dir) and magic
+        # file suffix (file_pattern).
+        root_dir: Path | None
         if not is_magic(pattern):
-            # Non-magic pattern: resolve the whole thing.
-            pattern = str(Path(pattern).resolve())
+            resolved = Path(pattern).resolve()
+            if resolved.is_file():
+                root_dir = resolved.parent
+                file_pattern = resolved.name
+            else:
+                root_dir = resolved
+                file_pattern = ""
         else:
-            # Magic pattern: resolve the non-magic prefix, keep magic suffix.
             parts = Path(pattern).parts
             magic_idx = next(i for i, part in enumerate(parts) if is_magic(part))
-            if magic_idx > 0:
-                resolved_prefix = Path(*parts[:magic_idx]).resolve()
-                suffix = str(Path(*parts[magic_idx:]))
-                pattern = str(resolved_prefix / suffix)
+            if magic_idx == 0:
+                # Entirely magic (e.g., "{*.toml,*.yaml}").
+                root_dir = None
+                file_pattern = pattern
+            else:
+                root_dir = Path(*parts[:magic_idx]).resolve()
+                file_pattern = str(Path(*parts[magic_idx:]))
 
-        # Yield the (now absolute) pattern.
-        yield pattern
+        # Yield the original location.
+        root_str = str(root_dir) if root_dir is not None else None
+        yield root_str, file_pattern
 
-        # No parent search requested, stop here.
         if not self.search_parents:
             return
 
-        logger.debug("Parent search enabled.")
-
-        # The pattern is a regular path: no magic is involved. Simply walk up.
-        if not is_magic(pattern):
-            search_path = Path(pattern)
-            if search_path.is_file():
-                search_path = search_path.parent
-            base_dir = search_path
-            stop_at = self._resolve_stop_at(base_dir)
-
-            parents: Iterable[Path]
-            if search_path == Path(pattern):
-                # pattern was a directory
-                parents = search_path.parents
-            else:
-                parents = (search_path, *search_path.parents)
-
-            for parent in parents:
-                if self._should_stop_walking(parent, stop_at):
-                    logger.debug(f"Stopped walking at {parent}")
-                    return
-                yield str(parent)
-            return
-
-        # Magic patterns: split into non-magic directory prefix and magic suffix,
-        # then walk up from the prefix, appending the suffix at each level.
-        parts = Path(pattern).parts
-        magic_idx = next(i for i, part in enumerate(parts) if is_magic(part))
-
-        # Entirely magic pattern (e.g., "*.toml") — no directory prefix to walk up.
-        if magic_idx == 0:
+        if root_dir is None:
             logger.debug("Entirely magic pattern, skipping parent search.")
             return
 
-        prefix = Path(*parts[:magic_idx]).resolve()
-        suffix = str(Path(*parts[magic_idx:]))
-        stop_at = self._resolve_stop_at(prefix)
+        logger.debug("Parent search enabled.")
+        stop_at = self._resolve_stop_at(root_dir)
 
-        for parent in prefix.parents:
+        for parent in root_dir.parents:
             if self._should_stop_walking(parent, stop_at):
                 logger.debug(f"Stopped walking at {parent}")
                 return
-            yield str(parent / suffix)
+            yield str(parent), file_pattern
 
     def search_and_read_file(self, pattern: str) -> Iterable[tuple[Path | URL, str]]:
         """Search filesystem or URL for files matching the ``pattern``.
@@ -708,10 +709,15 @@ class ConfigOption(ExtraOption, ParamStructure):
                 pattern = str(win_path.as_posix())
                 logger.debug(f"Windows pattern converted from {win_path} to {pattern}")
 
-            for search_pattern in self.parent_patterns(pattern):
-                for file in glob.iglob(search_pattern, flags=self.search_pattern_flags):
-                    logger.debug(f"Found candidate: {file}")
-                    file_path = Path(file).resolve()
+            for root_dir, file_pattern in self.parent_patterns(pattern):
+                for file in glob.iglob(
+                    file_pattern,
+                    root_dir=root_dir,
+                    flags=self.search_pattern_flags,
+                ):
+                    base = Path(root_dir) if root_dir else Path()
+                    file_path = (base / file).resolve()
+                    logger.debug(f"Found candidate: {file_path}")
                     if not file_path.is_file():
                         logger.debug(f"Skipping non-file {file_path}")
                         continue

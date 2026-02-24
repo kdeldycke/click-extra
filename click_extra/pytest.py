@@ -337,8 +337,8 @@ default_debug_colored_verbose_log = (
 
 
 default_config_file_pattern = (
-    r"\*\.toml\|\*\.yaml\|\*\.yml\|\*\.json\|\*\.json5\|\*\.jsonc\|\*\.hjson\|\*\.ini\|"
-    r"\*\.xml\|pyproject\.toml"
+    r"\{\*\.toml,\*\.yaml,\*\.yml,\*\.json,\*\.json5,\*\.jsonc,\*\.hjson,\*\.ini,"
+    r"\*\.xml,pyproject\.toml\}"
 )
 default_debug_uncolored_config = (
     rf"debug: Load configuration matching .+{default_config_file_pattern}\n"

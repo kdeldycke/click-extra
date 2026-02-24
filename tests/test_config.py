@@ -393,7 +393,7 @@ def test_conf_default_path(invoke, simple_config_cli):
         for line in result.stdout.split("--config CONFIG_PATH")[1].splitlines()
     )
     assert (
-        "*.toml|*.yaml|*.yml|*.json|*.json5|*.jsonc|*.hjson|*.ini|*.xml|pyproject.toml]" in help_screen
+        "{*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,pyproject.toml}]" in help_screen
     )
 
     assert not result.stderr
@@ -1139,14 +1139,14 @@ def test_lazy_group_config_no_config_flag(invoke, create_config, tmp_path):
     [
         pytest.param(
             None,
-            "*.toml|*.yaml|*.yml|*.json|*.json5|*.jsonc|*.hjson|*.ini|*.xml|pyproject.toml",
+            "*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,pyproject.toml",
             id="default_all_formats",
         ),
         pytest.param(ConfigFormat.TOML, "*.toml", id="single_format"),
-        pytest.param(ConfigFormat.YAML, "*.yaml|*.yml", id="yaml_multiple_patterns"),
+        pytest.param(ConfigFormat.YAML, "*.yaml,*.yml", id="yaml_multiple_patterns"),
         pytest.param(
             [ConfigFormat.TOML, ConfigFormat.JSON],
-            "*.toml|*.json",
+            "*.toml,*.json",
             id="multiple_formats_iterable",
         ),
         pytest.param(
@@ -1154,7 +1154,7 @@ def test_lazy_group_config_no_config_flag(invoke, create_config, tmp_path):
                 ConfigFormat.TOML: ("*.toml", "*.tml"),
                 ConfigFormat.JSON: "*.json",
             },
-            "*.toml|*.tml|*.json",
+            "*.toml,*.tml,*.json",
             id="custom_patterns_dict",
         ),
         pytest.param(
@@ -1162,7 +1162,7 @@ def test_lazy_group_config_no_config_flag(invoke, create_config, tmp_path):
                 ConfigFormat.TOML: ("*.toml", "*.config"),
                 ConfigFormat.JSON: ("*.json", "*.config"),
             },
-            "*.toml|*.config|*.json",
+            "*.toml,*.config,*.json",
             id="deduplicated_patterns",
         ),
     ],
@@ -1206,10 +1206,12 @@ def test_default_pattern_roaming_force_posix(
     with click.Context(test_cli, info_name="test-cli"):
         config_opt = search_params(test_cli.params, ConfigOption)
 
+        fp = config_opt.file_pattern
+        suffix = f"{{{fp}}}" if "," in fp else fp
         assert config_opt.default_pattern() == (
             str(Path(expected_path).expanduser())
             + os.path.sep
-            + config_opt.file_pattern
+            + suffix
         )
 
 
@@ -1220,7 +1222,7 @@ def test_default_pattern_roaming_force_posix(
             False,
             ("subdir",),
             True,
-            lambda p: [str(p / "subdir" / "config.toml")],
+            lambda p: [(str(p / "subdir"), "config.toml")],
             id="no-search",
         ),
         pytest.param(
@@ -1228,11 +1230,10 @@ def test_default_pattern_roaming_force_posix(
             ("level1", "level2", "level3"),
             True,
             lambda p: [
-                str(p / "level1" / "level2" / "level3" / "config.toml"),
-                str(p / "level1" / "level2" / "level3"),
-                str(p / "level1" / "level2"),
-                str(p / "level1"),
-                str(p),
+                (str(p / "level1" / "level2" / "level3"), "config.toml"),
+                (str(p / "level1" / "level2"), "config.toml"),
+                (str(p / "level1"), "config.toml"),
+                (str(p), "config.toml"),
             ],
             id="file-path",
         ),
@@ -1241,10 +1242,10 @@ def test_default_pattern_roaming_force_posix(
             ("level1", "level2", "level3"),
             False,
             lambda p: [
-                str(p / "level1" / "level2" / "level3"),
-                str(p / "level1" / "level2"),
-                str(p / "level1"),
-                str(p),
+                (str(p / "level1" / "level2" / "level3"), ""),
+                (str(p / "level1" / "level2"), ""),
+                (str(p / "level1"), ""),
+                (str(p), ""),
             ],
             id="directory-path",
         ),
@@ -1252,7 +1253,7 @@ def test_default_pattern_roaming_force_posix(
             True,
             (),
             True,
-            lambda p: [str(p / "config.toml"), str(p)],
+            lambda p: [(str(p), "config.toml")],
             id="shallow-reaches-root",
         ),
         pytest.param(
@@ -1260,11 +1261,10 @@ def test_default_pattern_roaming_force_posix(
             ("a", "b", "c"),
             True,
             lambda p: [
-                str(p / "a" / "b" / "c" / "config.toml"),
-                str(p / "a" / "b" / "c"),
-                str(p / "a" / "b"),
-                str(p / "a"),
-                str(p),
+                (str(p / "a" / "b" / "c"), "config.toml"),
+                (str(p / "a" / "b"), "config.toml"),
+                (str(p / "a"), "config.toml"),
+                (str(p), "config.toml"),
             ],
             id="deep-order",
         ),
@@ -1298,12 +1298,12 @@ def test_parent_patterns(
     for i, exp in enumerate(expected):
         assert patterns[i] == exp, f"Pattern {i} mismatch"
 
-    assert all(isinstance(p, str) for p in patterns)
+    assert all(isinstance(p, tuple) and len(p) == 2 for p in patterns)
 
     if search_parents:
-        assert all(Path(p).is_absolute() for p in patterns)
+        assert all(Path(root_dir).is_absolute() for root_dir, _ in patterns)
         root_path = Path("/") if not is_windows() else Path(tmp_path.drive + "\\")
-        assert Path(patterns[-1]) == root_path
+        assert Path(patterns[-1][0]) == root_path
 
 
 @pytest.mark.parametrize(
@@ -1312,24 +1312,24 @@ def test_parent_patterns(
         pytest.param(
             lambda p: str(p / "a" / "b" / "*.toml"),
             lambda p: [
-                str(p / "a" / "b" / "*.toml"),
-                str(p / "a" / "*.toml"),
-                str(p / "*.toml"),
-                *(str(parent / "*.toml") for parent in p.parents),
+                (str(p / "a" / "b"), "*.toml"),
+                (str(p / "a"), "*.toml"),
+                (str(p), "*.toml"),
+                *((str(parent), "*.toml") for parent in p.parents),
             ],
             id="file-glob-at-leaf",
         ),
         pytest.param(
             lambda p: "*.toml",
-            lambda p: ["*.toml"],
+            lambda p: [(None, "*.toml")],
             id="entirely-magic",
         ),
         pytest.param(
             lambda p: str(p / "proj*" / "config.toml"),
             lambda p: [
-                str(p / "proj*" / "config.toml"),
+                (str(p), str(Path("proj*") / "config.toml")),
                 *(
-                    str(parent / Path("proj*") / "config.toml")
+                    (str(parent), str(Path("proj*") / "config.toml"))
                     for parent in p.parents
                 ),
             ],
@@ -1338,18 +1338,18 @@ def test_parent_patterns(
         pytest.param(
             lambda p: str(p / "a" / "*.toml|*.yaml|*.yml"),
             lambda p: [
-                str(p / "a" / "*.toml|*.yaml|*.yml"),
-                str(p / "*.toml|*.yaml|*.yml"),
-                *(str(parent / "*.toml|*.yaml|*.yml") for parent in p.parents),
+                (str(p / "a"), "*.toml|*.yaml|*.yml"),
+                (str(p), "*.toml|*.yaml|*.yml"),
+                *((str(parent), "*.toml|*.yaml|*.yml") for parent in p.parents),
             ],
             id="pipe-separated-multi-glob",
         ),
         pytest.param(
             lambda p: str(p / "proj*" / "*.toml"),
             lambda p: [
-                str(p / "proj*" / "*.toml"),
+                (str(p), str(Path("proj*", "*.toml"))),
                 *(
-                    str(parent / Path("proj*", "*.toml"))
+                    (str(parent), str(Path("proj*", "*.toml")))
                     for parent in p.parents
                 ),
             ],
@@ -1358,19 +1358,19 @@ def test_parent_patterns(
         pytest.param(
             lambda p: str(p / "*.toml"),
             lambda p: [
-                str(p / "*.toml"),
-                *(str(parent / "*.toml") for parent in p.parents),
+                (str(p), "*.toml"),
+                *((str(parent), "*.toml") for parent in p.parents),
             ],
             id="single-depth-magic",
         ),
         pytest.param(
             lambda p: "~/a/b/*.toml",
-            lambda p: ["~/a/b/*.toml"],
+            lambda p: [(None, "~/a/b/*.toml")],
             id="tilde-is-magic",
         ),
         pytest.param(
             lambda p: str(Path("**", "config.toml")),
-            lambda p: [str(Path("**", "config.toml"))],
+            lambda p: [(None, str(Path("**", "config.toml")))],
             id="globstar-entirely-magic",
         ),
     ],
@@ -1407,7 +1407,7 @@ def test_parent_patterns_magic_no_search(tmp_path):
         config_opt = search_params(test_cli.params, ConfigOption)
         patterns = list(config_opt.parent_patterns(pattern))
 
-    assert patterns == [pattern]
+    assert patterns == [(str(tmp_path / "a"), "*.toml|*.yaml")]
 
 
 def test_parent_patterns_relative_path(tmp_path):
@@ -1435,11 +1435,16 @@ def test_parent_patterns_relative_path(tmp_path):
 
             patterns = list(config_opt.parent_patterns(relative_path))
 
-            # All patterns should be absolute
-            assert all(Path(p).is_absolute() for p in patterns)
+            # All root_dirs should be absolute
+            assert all(
+                Path(root_dir).is_absolute()
+                for root_dir, _ in patterns
+            )
 
-            # First pattern should resolve to the config file
-            assert Path(patterns[0]) == config_file
+            # First pattern should resolve to the config file's parent
+            root_dir, file_pattern = patterns[0]
+            assert Path(root_dir) == config_file.parent
+            assert file_pattern == config_file.name
     finally:
         os.chdir(old_cwd)
 
@@ -1462,12 +1467,15 @@ def test_parent_patterns_stop_at_path(tmp_path):
         config_opt = search_params(test_cli.params, ConfigOption)
         patterns = list(config_opt.parent_patterns(str(config_file)))
 
-    # Should yield: resolved config_file, then c/, b/, a/
-    # But NOT tmp_path or anything above boundary.
-    assert Path(patterns[0]) == config_file
-    for p in patterns:
-        # Every directory yielded should be inside or equal to the boundary.
-        assert Path(p).is_relative_to(boundary), f"{p} is outside boundary {boundary}"
+    # First yield should be (parent_of_file, filename).
+    root_dir, file_pattern = patterns[0]
+    assert Path(root_dir) == config_file.parent
+    assert file_pattern == config_file.name
+    # Every root_dir should be inside or equal to the boundary.
+    for root_dir, _ in patterns:
+        assert Path(root_dir).is_relative_to(boundary), (
+            f"{root_dir} is outside boundary {boundary}"
+        )
 
 
 @pytest.mark.parametrize(
@@ -1498,18 +1506,16 @@ def test_parent_patterns_stop_at_vcs(tmp_path, has_vcs, expected_bounded):
         config_opt = search_params(test_cli.params, ConfigOption)
         patterns = list(config_opt.parent_patterns(pattern))
 
-    assert patterns[0] == str(deep_path / "*.toml")
+    assert patterns[0] == (str(deep_path), "*.toml")
 
     if expected_bounded:
-        for p in patterns:
-            parent_dir = Path(p).parent if "*" in p else Path(p)
-            assert parent_dir.is_relative_to(vcs_root), (
-                f"{p} is outside VCS root {vcs_root}"
+        for root_dir, _ in patterns:
+            assert Path(root_dir).is_relative_to(vcs_root), (
+                f"{root_dir} is outside VCS root {vcs_root}"
             )
     else:
         root_path = Path("/") if not is_windows() else Path(tmp_path.drive + "\\")
-        last_parent = Path(patterns[-1]).parent
-        assert last_parent == root_path
+        assert Path(patterns[-1][0]) == root_path
 
 
 def test_parent_patterns_inaccessible_directory(tmp_path):
@@ -1538,11 +1544,14 @@ def test_parent_patterns_inaccessible_directory(tmp_path):
         with patch("click_extra.config.os.access", side_effect=fake_access):
             patterns = list(config_opt.parent_patterns(str(config_file)))
 
+    # First yield: (parent_of_file, filename).
+    root_dir, file_pattern = patterns[0]
+    assert Path(root_dir) == config_file.parent
+    assert file_pattern == config_file.name
     # Should stop before tmp_path/a (inaccessible).
-    assert Path(patterns[0]) == config_file
-    for p in patterns:
-        assert Path(p) != tmp_path / "a"
-        assert Path(p) != tmp_path
+    for root_dir, _ in patterns:
+        assert Path(root_dir) != tmp_path / "a"
+        assert Path(root_dir) != tmp_path
 
 
 @pytest.mark.parametrize(
@@ -1759,17 +1768,85 @@ def test_multiple_files_matching_glob(invoke, create_config, tmp_path):
 
 
 def test_forced_flags_warnings(caplog):
-    """Warnings fire when SPLIT or NODIR flags are missing."""
+    """Warnings fire when SPLIT, BRACE or NODIR flags are missing."""
     from wcmatch import fnmatch, glob
 
     with caplog.at_level(logging.WARNING, logger="click_extra"):
         ConfigOption(
             file_pattern_flags=fnmatch.NEGATE,  # missing SPLIT
-            search_pattern_flags=glob.GLOBSTAR | glob.FOLLOW,  # missing NODIR
+            search_pattern_flags=glob.GLOBSTAR | glob.FOLLOW,  # missing BRACE and NODIR
         )
 
     assert "Forcing SPLIT flag" in caplog.text
+    assert "Forcing BRACE flag" in caplog.text
     assert "Forcing NODIR flag" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "ext",
+    [
+        pytest.param("toml", id="toml"),
+        pytest.param("yaml", id="yaml"),
+        pytest.param("json", id="json"),
+        pytest.param("ini", id="ini"),
+    ],
+)
+def test_brace_multi_format_search(invoke, tmp_path, ext):
+    """All format extensions are found in the search directory.
+
+    Regression test: before BRACE expansion, only the first format in the
+    default pattern got the directory prefix — others were searched in CWD.
+    """
+    conf_texts = {
+        "toml": '[brace-cli]\nint_param = 42\n',
+        "yaml": 'brace-cli:\n  int_param: 42\n',
+        "json": '{"brace-cli": {"int_param": 42}}\n',
+        "ini": '[brace-cli]\nint_param = 42\n',
+    }
+    config_file = tmp_path / f"config.{ext}"
+    config_file.write_text(conf_texts[ext])
+
+    # Build a brace-expansion search pattern covering all test formats.
+    search_pattern = str(tmp_path / "{*.toml,*.yaml,*.json,*.ini}")
+
+    @click.command
+    @option("--int-param", type=int, default=0)
+    @config_option(default=search_pattern)
+    def brace_cli(int_param):
+        echo(f"int_param={int_param!r}")
+
+    result = invoke(brace_cli, color=False)
+    assert result.exit_code == 0
+    assert "int_param=42" in result.stdout
+
+
+def test_root_dir_parent_search_finds_non_toml(invoke, tmp_path):
+    """Parent search with root_dir correctly finds non-TOML config in parents.
+
+    Before the root_dir refactoring, SPLIT patterns like ``*.toml|*.yaml``
+    only applied the directory prefix to the first sub-pattern. Now with
+    root_dir, all sub-patterns are scoped to the correct directory.
+    """
+    parent_dir = tmp_path / "project"
+    parent_dir.mkdir()
+    child_dir = parent_dir / "src"
+    child_dir.mkdir()
+
+    # Place a YAML config only in the parent, not the child.
+    yaml_config = parent_dir / "config.yaml"
+    yaml_config.write_text("parent-cli:\n  int_param: 99\n")
+
+    search_pattern = str(child_dir / "*.toml|*.yaml")
+
+    @click.command
+    @option("--int-param", type=int, default=0)
+    @config_option(default=search_pattern, search_parents=True, stop_at=tmp_path)
+    def parent_cli(int_param):
+        echo(f"int_param={int_param!r}")
+
+    result = invoke(parent_cli, color=False)
+    assert result.exit_code == 0
+    assert "int_param=99" in result.stdout
 
 
 def test_no_enabled_formats_raises():

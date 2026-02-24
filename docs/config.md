@@ -37,7 +37,7 @@ result = invoke(my_cli, args=["--help"])
 assert "--config CONFIG_PATH" in result.stdout
 ```
 
-See in the result above, there is an explicit mention of the default location of the configuration file (`[default: ~/.config/my-cli/*.toml|*.yaml|*.yml|*.json|*.json5|*.jsonc|*.hjson|*.ini|*.xml|pyproject.toml]`). This improves discoverability, and [makes sysadmins happy](https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations), especially those not familiar with your CLI.
+See in the result above, there is an explicit mention of the default location of the configuration file (`[default: ~/.config/my-cli/{*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,pyproject.toml}]`). This improves discoverability, and [makes sysadmins happy](https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations), especially those not familiar with your CLI.
 
 A bare call returns:
 
@@ -530,13 +530,13 @@ There is multiple stages to locate and parse the configuration file:
 2. Match each file against the supported formats, in order, until one is successfully parsed
 3. Use the first successfully parsed file as the configuration source
 
-By default, the pattern is `<app_dir>/*.toml|*.json|*.ini`, where:
+By default, the pattern is `<app_dir>/{*.toml,*.json,*.ini}`, where:
 
 - `<app_dir>` is the [default application folder](#default-folder)
-- `*.toml|*.json|*.ini` are the [extensions of formats](#formats) enabled by default
+- `{*.toml,*.json,*.ini}` are the [extensions of formats](#formats) enabled by default, wrapped in brace-expansion syntax
 
 ```{hint}
-Depending on the formats you enabled in your installation of Click Extra, the default extensions may vary. For example, if you installed Click Extra with all extra dependencies, the default extensions would extended to `*.toml|*.yaml|*.yml|*.json|*.json5|*.jsonc|*.hjson|*.ini|*.xml|pyproject.toml`.
+Depending on the formats you enabled in your installation of Click Extra, the default extensions may vary. For example, if you installed Click Extra with all extra dependencies, the default extensions would be extended to `{*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,pyproject.toml}`.
 ```
 
 ```{tip}
@@ -579,7 +579,7 @@ See how the default to `--config` option has been changed to `~/.cli/`:
 ```{click:run}
 :emphasize-lines: 6
 result = invoke(cli, args=["--help"])
-assert "~/.cli/*.toml|*.yaml|*.yml|*.json|*.json5|*.jsonc|*.hjson|*.ini|*.xml|pyproject.toml]" in result.stdout.replace("\n                        ", "")
+assert "~/.cli/{*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,pyproject.toml}]" in result.stdout.replace("\n                        ", "")
 ```
 
 ```{seealso}
@@ -634,22 +634,24 @@ Patterns provided to `@config_option`'s `default` argument:
   | [`GLOBSTAR`](https://facelessuser.github.io/wcmatch/glob/#globstar) | Recursive directory search via `**` glob notation. |
   | [`FOLLOW`](https://facelessuser.github.io/wcmatch/glob/#follow) | Traverse symlink directories. |
   | [`DOTGLOB`](https://facelessuser.github.io/wcmatch/glob/#dotglob) | Include file or directory starting with a literal dot (`.`). |
-  | [`SPLIT`](https://facelessuser.github.io/wcmatch/glob/#split) | Allow multiple patterns separated by `|`. |
+  | [`BRACE`](https://facelessuser.github.io/wcmatch/glob/#brace) | Expand `{pat1,pat2,...}` brace expressions into multiple patterns. |
+  | [`SPLIT`](https://facelessuser.github.io/wcmatch/glob/#split) | Allow multiple patterns separated by `\|`. |
   | [`GLOBTILDE`](https://facelessuser.github.io/wcmatch/glob/#globtilde) | Allow user's home path `~` to be expanded. |
   | [`NODIR`](https://facelessuser.github.io/wcmatch/glob/#nodir) | Restricts results to files. |
 
 ```{important}
-The `NODIR` flag is always forced, to optimize the search for files only.
+The `BRACE` flag is always forced, so that multi-format default patterns using `{pat1,pat2,...}` syntax expand correctly. The `NODIR` flag is always forced, to optimize the search for files only.
 ```
 
 The flags above can be changed via the [`search_pattern_flags` argument of the decorator](config.md#click_extra.config.ConfigOption). So to make the matching case-insensitive, add the `IGNORECASE` flag:
 
 ```{code-block} python
-:emphasize-lines: 8,13
+:emphasize-lines: 8,9,14
 from wcmatch.glob import (
     GLOBSTAR,
     FOLLOW,
     DOTGLOB,
+    BRACE,
     SPLIT,
     GLOBTILDE,
     NODIR,
@@ -657,8 +659,8 @@ from wcmatch.glob import (
 )
 
 @config_option(
-    file_pattern_flags=(
-        GLOBSTAR | FOLLOW | DOTGLOB | SPLIT | GLOBTILDE | NODIR | IGNORECASE
+    search_pattern_flags=(
+        GLOBSTAR | FOLLOW | DOTGLOB | BRACE | SPLIT | GLOBTILDE | NODIR | IGNORECASE
     )
 )
 ```
@@ -671,7 +673,7 @@ This is the same pinciple as [file pattern flags](#file-pattern-flags).
 
 ### Multi-format matching
 
-The default behavior consist in searching for all files matching the default `*.toml|*.json|*.ini` pattern. Or more, depending on the [extra dependencies](install.md#configuration-file-formats) installed with Click Extra.
+The default behavior consist in searching for all files matching the default `{*.toml,*.json,*.ini}` pattern. Or more, depending on the [extra dependencies](install.md#configuration-file-formats) installed with Click Extra.
 
 As soon as files are located, they are matched against each supported format, in order, until one is successfully parsed.
 
@@ -712,7 +714,7 @@ Notice how the default search pattern has been restricted to only `*.json` and `
 ```{click:run}
 :emphasize-lines: 8
 result = invoke(cli, args=["--help"])
-assert "*.json|*.toml]" in result.stdout
+assert "{*.json,*.toml}]" in result.stdout
 ```
 
 You can also specify a single format:
@@ -763,7 +765,7 @@ Again, this is reflected in the help:
 ```{click:run}
 :emphasize-lines: 8
 result = invoke(cli, args=["--help"])
-assert "*.toml|my_app.conf|settings*.js|*.json]" in result.stdout
+assert "{*.toml,my_app.conf,settings*.js,*.json}]" in result.stdout
 ```
 
 ### Parsing priority
@@ -794,7 +796,7 @@ Notice how all formats are merged into the same pattern:
 ```{click:run}
 :emphasize-lines: 8
 result = invoke(cli, args=["--help"])
-assert "*.toml|config*.js|*.js" in result.stdout
+assert "{*.toml,config*.js,*.js}" in result.stdout
 ```
 
 What will happen in this case is that the search will try to parse matching files first as `JSON5`, then as `JSON`. The first format that successfully parses the file will be used.
@@ -898,15 +900,15 @@ def cli():
 
 For a CLI named `cli` on a Unix system, this searches for configuration files in:
 
-1. `~/.config/cli/*.toml|*.yaml|…` *(the default location)*
-2. `~/.config/*.toml|*.yaml|…`
-3. `~/*.toml|*.yaml|…`
-4. `/*.toml|*.yaml|…`
+1. `~/.config/cli/{*.toml,*.yaml,…}` *(the default location)*
+2. `~/.config/{*.toml,*.yaml,…}`
+3. `~/{*.toml,*.yaml,…}`
+4. `/{*.toml,*.yaml,…}`
 
 The first successfully [parsed file wins](#parsing-priority). This is useful for monorepo or project-local configuration, where a config file placed higher in the tree acts as a fallback.
 
 ```{note}
-Parent search works with both plain paths and [glob patterns](#search-pattern-specifications). For glob patterns, the non-magic directory prefix is identified and walked up, while the magic suffix (e.g., `*.toml|*.yaml`) is appended at each level. Entirely magic patterns like `*.toml` have no directory prefix to walk up, so only the original pattern is searched.
+Parent search works with both plain paths and [glob patterns](#search-pattern-specifications). For glob patterns, the non-magic directory prefix is identified and the file pattern is searched at each parent level via `root_dir`. Entirely magic patterns like `*.toml` have no directory prefix to walk up, so only the original pattern is searched.
 ```
 
 #### Walk boundaries
