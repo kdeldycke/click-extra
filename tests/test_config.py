@@ -2085,3 +2085,247 @@ def test_validate_config_pyproject_toml(invoke, create_config):
     result = invoke(validate_cli, "--validate-config", str(conf_path), color=False)
     assert result.exit_code == 0
     assert "is valid" in result.stderr
+
+
+# --- _default_subcommands tests ---
+
+
+def test_default_subcommand_basic(invoke, create_config):
+    """Group invoked without args runs the config-listed default subcommand."""
+    conf_text = dedent("""\
+        [default-sub-cli]
+        _default_subcommands = ["backup"]
+        """)
+    conf_path = create_config("default-sub-cli.toml", conf_text)
+
+    @group
+    def default_sub_cli():
+        pass
+
+    @default_sub_cli.command()
+    def backup():
+        echo("backup ran")
+
+    @default_sub_cli.command()
+    def sync():
+        echo("sync ran")
+
+    result = invoke(default_sub_cli, "--config", str(conf_path), color=False)
+    assert result.exit_code == 0
+    assert "backup ran" in result.output
+    assert "sync ran" not in result.output
+
+
+def test_default_subcommand_cli_override(invoke, create_config):
+    """Explicit subcommand on CLI ignores config defaults."""
+    conf_text = dedent("""\
+        [cli-override]
+        _default_subcommands = ["backup"]
+        """)
+    conf_path = create_config("cli-override.toml", conf_text)
+
+    @group
+    def cli_override():
+        pass
+
+    @cli_override.command()
+    def backup():
+        echo("backup ran")
+
+    @cli_override.command()
+    def sync():
+        echo("sync ran")
+
+    result = invoke(cli_override, "--config", str(conf_path), "sync", color=False)
+    assert result.exit_code == 0
+    assert "sync ran" in result.output
+    assert "backup ran" not in result.output
+
+
+def test_default_subcommand_chained(invoke, create_config):
+    """chain=True group runs multiple config-listed subcommands in order."""
+    conf_text = dedent("""\
+        [chained-cli]
+        _default_subcommands = ["backup", "sync"]
+        """)
+    conf_path = create_config("chained-cli.toml", conf_text)
+
+    @group(chain=True)
+    def chained_cli():
+        pass
+
+    @chained_cli.command()
+    def backup():
+        echo("backup ran")
+
+    @chained_cli.command()
+    def sync():
+        echo("sync ran")
+
+    result = invoke(chained_cli, "--config", str(conf_path), color=False)
+    assert result.exit_code == 0
+    assert "backup ran" in result.output
+    assert "sync ran" in result.output
+    # Verify order: backup before sync.
+    assert result.output.index("backup ran") < result.output.index("sync ran")
+
+
+def test_default_subcommand_non_chained_multi_error(invoke, create_config):
+    """Non-chained group with >1 default subcommand fails with clear message."""
+    conf_text = dedent("""\
+        [multi-err-cli]
+        _default_subcommands = ["backup", "sync"]
+        """)
+    conf_path = create_config("multi-err-cli.toml", conf_text)
+
+    @group
+    def multi_err_cli():
+        pass
+
+    @multi_err_cli.command()
+    def backup():
+        echo("backup ran")
+
+    @multi_err_cli.command()
+    def sync():
+        echo("sync ran")
+
+    result = invoke(multi_err_cli, "--config", str(conf_path), color=False)
+    assert result.exit_code != 0
+    assert "at most 1" in result.output or "at most 1" in result.stderr
+
+
+def test_default_subcommand_unknown_error(invoke, create_config):
+    """Config lists nonexistent subcommand -> error."""
+    conf_text = dedent("""\
+        [unknown-cli]
+        _default_subcommands = ["nonexistent"]
+        """)
+    conf_path = create_config("unknown-cli.toml", conf_text)
+
+    @group
+    def unknown_cli():
+        pass
+
+    @unknown_cli.command()
+    def backup():
+        echo("backup ran")
+
+    result = invoke(unknown_cli, "--config", str(conf_path), color=False)
+    assert result.exit_code != 0
+    assert "not found" in result.output or "not found" in result.stderr
+
+
+def test_default_subcommand_invalid_type(invoke, create_config):
+    """_default_subcommands = "not-a-list" -> error."""
+    conf_text = dedent("""\
+        [invalid-type-cli]
+        _default_subcommands = "not-a-list"
+        """)
+    conf_path = create_config("invalid-type-cli.toml", conf_text)
+
+    @group
+    def invalid_type_cli():
+        pass
+
+    @invalid_type_cli.command()
+    def backup():
+        echo("backup ran")
+
+    result = invoke(invalid_type_cli, "--config", str(conf_path), color=False)
+    assert result.exit_code != 0
+    assert "must be a list" in result.output or "must be a list" in result.stderr
+
+
+def test_default_subcommand_strict_mode_tolerance(invoke, create_config):
+    """strict=True config with _default_subcommands doesn't raise."""
+    conf_text = dedent("""\
+        [strict-cli]
+        _default_subcommands = ["backup"]
+        """)
+    conf_path = create_config("strict-cli.toml", conf_text)
+
+    @click.group
+    @config_option(strict=True)
+    def strict_cli():
+        pass
+
+    @strict_cli.command()
+    def backup():
+        echo("backup ran")
+
+    result = invoke(strict_cli, "--config", str(conf_path), "backup", color=False)
+    assert result.exit_code == 0
+    assert "backup ran" in result.output
+
+
+def test_default_subcommand_validate_config_tolerance(invoke, create_config):
+    """--validate-config with _default_subcommands reports valid."""
+    conf_text = dedent("""\
+        [validate-ds-cli]
+        _default_subcommands = ["sub"]
+        dummy_flag = true
+
+        [validate-ds-cli.sub]
+        int_param = 3
+        """)
+    conf_path = create_config("validate-ds-cli.toml", conf_text)
+
+    @click.group
+    @option("--dummy-flag/--no-flag")
+    @config_option
+    @validate_config_option
+    def validate_ds_cli(dummy_flag):
+        echo(f"dummy_flag = {dummy_flag!r}")
+
+    @validate_ds_cli.command()
+    @option("--int-param", type=int, default=10)
+    def sub(int_param):
+        echo(f"int_parameter = {int_param!r}")
+
+    result = invoke(
+        validate_ds_cli, "--validate-config", str(conf_path), color=False
+    )
+    assert result.exit_code == 0
+    assert "is valid" in result.stderr
+
+
+def test_default_subcommand_with_options(invoke, create_config):
+    """Default subcommand receives its config-provided options."""
+    conf_text = dedent("""\
+        [opts-cli]
+        _default_subcommands = ["backup"]
+
+        [opts-cli.backup]
+        path = "/home"
+        """)
+    conf_path = create_config("opts-cli.toml", conf_text)
+
+    @group
+    def opts_cli():
+        pass
+
+    @opts_cli.command()
+    @option("--path", default="/tmp")
+    def backup(path):
+        echo(f"path={path}")
+
+    result = invoke(opts_cli, "--config", str(conf_path), color=False)
+    assert result.exit_code == 0
+    assert "path=/home" in result.output
+
+
+def test_default_subcommand_no_config(invoke):
+    """Normal behavior when no config file is loaded."""
+
+    @group
+    def no_conf_cli():
+        pass
+
+    @no_conf_cli.command()
+    def backup():
+        echo("backup ran")
+
+    # Without a subcommand and no config, the group should not run any subcommand.
+    result = invoke(no_conf_cli, "--no-config", color=False)
+    assert "backup ran" not in result.output

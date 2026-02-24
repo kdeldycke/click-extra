@@ -341,6 +341,75 @@ With this setup:
 
 This is useful for CLIs where configuration files are opt-in rather than opt-out, or when you want to avoid side effects from automatically discovered configuration files during development or testing.
 
+## Default subcommands
+
+You can specify which subcommands run by default when a group is invoked without any explicit subcommands on the CLI. This is done via the `_default_subcommands` reserved configuration key.
+
+Given this CLI:
+
+```python
+from click_extra import group, command, echo, config_option, option
+
+@group
+@config_option
+def my_cli():
+    pass
+
+@my_cli.command()
+@option("--path", default="/tmp")
+def backup(path):
+    echo(f"Backing up {path}")
+
+@my_cli.command()
+def sync():
+    echo("Syncing")
+```
+
+And this TOML configuration:
+
+```toml
+[my-cli]
+_default_subcommands = ["backup"]
+
+[my-cli.backup]
+path = "/home"
+```
+
+Running `my-cli` alone will automatically invoke the `backup` subcommand:
+
+```shell-session
+$ my-cli
+Backing up /home
+```
+
+### Chained commands
+
+For groups created with `chain=True`, you can list multiple default subcommands. They run in the order specified:
+
+```toml
+[my-cli]
+_default_subcommands = ["backup", "sync"]
+```
+
+```shell-session
+$ my-cli
+Backing up /home
+Syncing
+```
+
+```{note}
+Non-chained groups only accept a single default subcommand. Listing more than one will produce an error.
+```
+
+### CLI precedence
+
+If the user names subcommands explicitly on the command line, the `_default_subcommands` configuration is ignored:
+
+```shell-session
+$ my-cli sync
+Syncing
+```
+
 ## Formats
 
 Several dialects are supported:

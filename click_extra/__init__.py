@@ -43,7 +43,7 @@ from .commands import (
     ExtraGroup,
     LazyGroup,
 )
-from .config import ConfigFormat, ConfigOption, NO_CONFIG, NoConfigOption, ValidateConfigOption, VCS
+from .config import ConfigFormat, ConfigOption, DEFAULT_SUBCOMMANDS_KEY, NO_CONFIG, NoConfigOption, ValidateConfigOption, VCS
 from .decorators import (  # type: ignore[no-redef]
     argument,
     color_option,
@@ -120,6 +120,7 @@ __all__ = [  # noqa: F405
     "ConstraintMixin",
     "Context",
     "DateTime",
+    "DEFAULT_SUBCOMMANDS_KEY",
     "dir_path",
     "echo",
     "echo_via_pager",

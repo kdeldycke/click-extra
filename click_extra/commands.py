@@ -29,7 +29,12 @@ import click
 import cloup
 
 from .colorize import ColorOption, ExtraHelpColorsMixin, HelpExtraFormatter
-from .config import ConfigOption, NoConfigOption, ValidateConfigOption
+from .config import (
+    DEFAULT_SUBCOMMANDS_KEY,
+    ConfigOption,
+    NoConfigOption,
+    ValidateConfigOption,
+)
 from .envvar import clean_envvar_id, param_envvar_ids
 from .logging import VerboseOption, VerbosityOption
 from .parameters import ExtraOption, ShowParamsOption, search_params
@@ -411,6 +416,77 @@ class ExtraGroup(ExtraCommand, cloup.Group):  # type: ignore[misc]
 
     See: https://click.palletsprojects.com/en/stable/api/#click.Group.group_class
     """
+
+    def invoke(self, ctx: click.Context) -> Any:
+        """Inject ``_default_subcommands`` from config when no subcommand is given on
+        the CLI.
+
+        If the user has not provided any subcommands explicitly, and the loaded
+        configuration contains a ``_default_subcommands`` list for this group, those
+        subcommands are injected into ``ctx.protected_args`` so that Click's normal
+        ``Group.invoke()`` dispatches them.
+        """
+        if not ctx._protected_args and not ctx.args:
+            default_subcmds = self._get_default_subcommands(ctx)
+            if default_subcmds is not None:
+                ctx._protected_args = list(default_subcmds)
+        return super().invoke(ctx)
+
+    def _get_default_subcommands(self, ctx: click.Context) -> list[str] | None:
+        """Read and validate ``_default_subcommands`` from the loaded configuration."""
+        full_config = ctx.meta.get("click_extra.conf_full")
+        if not full_config:
+            return None
+
+        root_ctx = ctx.find_root()
+        config_branch = full_config.get(root_ctx.command.name)
+        if not isinstance(config_branch, dict):
+            return None
+
+        # Walk from root context down to the current group.
+        path: list[str] = []
+        current: click.Context | None = ctx
+        while current is not None and current is not root_ctx:
+            if current.command.name is not None:
+                path.append(current.command.name)
+            current = current.parent
+        path.reverse()
+
+        for segment in path:
+            config_branch = config_branch.get(segment)
+            if not isinstance(config_branch, dict):
+                return None
+
+        raw = config_branch.get(DEFAULT_SUBCOMMANDS_KEY)
+        if raw is None:
+            return None
+
+        # Validate type.
+        if not isinstance(raw, list) or not all(isinstance(s, str) for s in raw):
+            raise click.UsageError(
+                f"{DEFAULT_SUBCOMMANDS_KEY} must be a list of strings, "
+                f"got {raw!r}."
+            )
+
+        if not raw:
+            return None
+
+        # Non-chained groups can only have one default subcommand.
+        if not self.chain and len(raw) > 1:
+            raise click.UsageError(
+                f"Non-chained group {self.name!r} can have at most 1 default "
+                f"subcommand, got {len(raw)}: {raw!r}."
+            )
+
+        # Validate that all subcommands exist.
+        for name in raw:
+            if self.get_command(ctx, name) is None:
+                raise click.UsageError(
+                    f"Default subcommand {name!r} not found in "
+                    f"group {self.name!r}."
+                )
+
+        return raw
 
 
 class LazyGroup(ExtraGroup):

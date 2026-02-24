@@ -230,6 +230,42 @@ Defaults to:
 """
 
 
+DEFAULT_SUBCOMMANDS_KEY = "_default_subcommands"
+"""Reserved configuration key for specifying default subcommands.
+
+When a group is invoked without explicit subcommands on the CLI, the subcommands
+listed under this key execute automatically in order. CLI always wins: if the user
+names subcommands explicitly, the config is ignored.
+
+Example TOML configuration:
+
+.. code-block:: toml
+
+    [my-cli]
+    _default_subcommands = ["backup", "sync"]
+
+    [my-cli.backup]
+    path = "/home"
+"""
+
+_RESERVED_CONFIG_KEYS = frozenset({DEFAULT_SUBCOMMANDS_KEY})
+"""Configuration keys with special meaning that should not be treated as parameters."""
+
+
+def _strip_reserved_keys(
+    conf: dict, keys: frozenset[str] | None = None
+) -> dict:
+    """Recursively return a copy of *conf* with reserved keys removed at every level."""
+    if keys is None:
+        keys = _RESERVED_CONFIG_KEYS
+    cleaned: dict = {}
+    for k, v in conf.items():
+        if k in keys:
+            continue
+        cleaned[k] = _strip_reserved_keys(v, keys) if isinstance(v, dict) else v
+    return cleaned
+
+
 class Sentinel(Enum):
     """Enum used to define sentinel values.
 
@@ -932,7 +968,9 @@ class ConfigOption(ExtraOption, ParamStructure):
         will filter out all unrecognized options not supported by the command. Then
         cleans up blank values and update the context's ``default_map``.
         """
-        filtered_conf = _recursive_update(self.params_template, user_conf, self.strict)
+        filtered_conf = _recursive_update(
+            self.params_template, _strip_reserved_keys(user_conf), self.strict
+        )
 
         # Clean-up the conf by removing all blank values left-over by the template
         # structure.
@@ -1166,7 +1204,11 @@ class ValidateConfigOption(ExtraOption):
         # Validate in strict mode — _recursive_update raises ValueError
         # on unrecognized keys.
         try:
-            _recursive_update(config_option.params_template, user_conf, strict=True)
+            _recursive_update(
+                config_option.params_template,
+                _strip_reserved_keys(user_conf),
+                strict=True,
+            )
         except ValueError as exc:
             info_msg(f"Configuration validation error: {exc}")
             ctx.exit(1)
