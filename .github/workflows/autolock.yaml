@@ -1,5 +1,5 @@
 ---
-name: 🔒 Autolock
+name: Autolock
 "on":
   workflow_dispatch:
   schedule:
@@ -8,4 +8,4 @@ name: 🔒 Autolock
 jobs:
 
   autolock:
-    uses: kdeldycke/workflows/.github/workflows/autolock.yaml@v5.11.0
+    uses: kdeldycke/workflows/.github/workflows/autolock.yaml@main

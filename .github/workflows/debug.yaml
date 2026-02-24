@@ -1,5 +1,5 @@
 ---
-name: 🩺 Debug
+name: Debug
 "on":
   push:
     branches:
@@ -13,4 +13,4 @@ name: 🩺 Debug
 jobs:
 
   debug:
-    uses: kdeldycke/workflows/.github/workflows/debug.yaml@v5.11.0
+    uses: kdeldycke/workflows/.github/workflows/debug.yaml@main

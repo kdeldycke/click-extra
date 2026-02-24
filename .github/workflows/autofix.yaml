@@ -1,5 +1,5 @@
 ---
-name: 🪄 Autofix
+name: Autofix
 "on":
   workflow_dispatch:
   push:
@@ -9,5 +9,4 @@ name: 🪄 Autofix
 jobs:
 
   autofix:
-    uses: kdeldycke/workflows/.github/workflows/autofix.yaml@v5.11.0
-    secrets: inherit
+    uses: kdeldycke/workflows/.github/workflows/autofix.yaml@main
