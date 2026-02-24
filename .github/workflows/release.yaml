@@ -1,10 +1,13 @@
 ---
-name: Build & release
+name: 🚀 Build & release
 "on":
   push:
     branches:
       - main
   pull_request:
+    branches-ignore:
+      - prepare-release
+      - "renovate/**"
     paths:
       - "gha_utils/**"
       - "tests/**"
@@ -16,5 +19,5 @@ name: Build & release
 jobs:
 
   release:
-    uses: kdeldycke/workflows/.github/workflows/release.yaml@main
+    uses: kdeldycke/workflows/.github/workflows/release.yaml@v5.13.0
     secrets: inherit
