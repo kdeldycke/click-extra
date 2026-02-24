@@ -22,7 +22,7 @@ import logging
 import re
 import subprocess
 from contextlib import nullcontext
-from functools import partial
+from functools import cached_property, partial
 from textwrap import indent
 from unittest.mock import patch
 
@@ -150,6 +150,29 @@ We need to collect them to help us identify which extra parameters passed to
 """
 
 
+class ExtraResult(click.testing.Result):
+    """A ``Result`` subclass with automatic traceback formatting.
+
+    Enhances ``__repr__`` so that pytest assertion failures show the full
+    traceback instead of just the exception type.
+    """
+
+    @cached_property
+    def formatted_exception(self) -> str | None:
+        """Full formatted traceback, or ``None`` if no exception occurred."""
+        if self.exception is None:
+            return None
+        if self.exc_info:
+            return ExceptionInfo.from_exc_info(*self.exc_info).get_formatted()
+        return f"Exception occurred: {self.exception}"
+
+    def __repr__(self) -> str:
+        if self.formatted_exception:
+            return f"<{type(self).__name__}\n{self.formatted_exception}>"
+        exc_str = repr(self.exception) if self.exception else "okay"
+        return f"<{type(self).__name__} {exc_str}>"
+
+
 class ExtraCliRunner(click.testing.CliRunner):
     """Augment :class:`click.testing.CliRunner` with extra features and bug fixes."""
 
@@ -165,7 +188,7 @@ class ExtraCliRunner(click.testing.CliRunner):
         catch_exceptions: bool = True,
         color: bool | Literal["forced"] | None = None,
         **extra: Any,
-    ) -> click.testing.Result:
+    ) -> ExtraResult:
         """Same as ``click.testing.CliRunner.invoke()`` with extra features.
 
         - The first positional parameter is the CLI to invoke. The remaining positional
@@ -266,6 +289,9 @@ class ExtraCliRunner(click.testing.CliRunner):
                 **extra,
             )
 
+        # Upgrade the result to our subclass for automatic traceback formatting.
+        result.__class__ = ExtraResult
+
         # ``color`` has been explicitly set to ``False``, so strip all ANSI codes.
         if color is False:
             result.stdout_bytes = strip_ansi(result.stdout_bytes)  # type: ignore[assignment,arg-type]
@@ -278,12 +304,8 @@ class ExtraCliRunner(click.testing.CliRunner):
             env=env,
         )
 
-        if result.exception:
-            if result.exc_info:
-                msg = ExceptionInfo.from_exc_info(*result.exc_info).get_formatted()
-            else:
-                msg = f"Exception occurred: {result.exception}"
-            print(msg)
+        if result.formatted_exception:
+            print(result.formatted_exception)
 
         return result
 
