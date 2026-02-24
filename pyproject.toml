@@ -392,6 +392,6 @@ overrides = [
 ]
 
 [tool.gha-utils]
-workflow-sync-exclude = ["debug.yaml"]
+workflow-sync-exclude = [ "debug.yaml" ]
 dependency-graph-all-groups = false
 dependency-graph-all-extras = true
