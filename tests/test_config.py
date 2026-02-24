@@ -2090,56 +2090,43 @@ def test_validate_config_pyproject_toml(invoke, create_config):
 # --- _default_subcommands tests ---
 
 
-def test_default_subcommand_basic(invoke, create_config):
-    """Group invoked without args runs the config-listed default subcommand."""
+@pytest.mark.parametrize(
+    ("cli_subcmd", "expected", "unexpected"),
+    [
+        pytest.param(None, "backup ran", "sync ran", id="config-default"),
+        pytest.param("sync", "sync ran", "backup ran", id="cli-override"),
+    ],
+)
+def test_default_subcommand_selection(
+    invoke, create_config, cli_subcmd, expected, unexpected
+):
+    """Config default is used when no subcommand given; CLI wins otherwise."""
     conf_text = dedent("""\
-        [default-sub-cli]
+        [ds-cli]
         _default_subcommands = ["backup"]
         """)
-    conf_path = create_config("default-sub-cli.toml", conf_text)
+    conf_path = create_config("ds-cli.toml", conf_text)
 
     @group
-    def default_sub_cli():
+    def ds_cli():
         pass
 
-    @default_sub_cli.command()
+    @ds_cli.command()
     def backup():
         echo("backup ran")
 
-    @default_sub_cli.command()
+    @ds_cli.command()
     def sync():
         echo("sync ran")
 
-    result = invoke(default_sub_cli, "--config", str(conf_path), color=False)
+    args = ["--config", str(conf_path)]
+    if cli_subcmd is not None:
+        args.append(cli_subcmd)
+
+    result = invoke(ds_cli, *args, color=False)
     assert result.exit_code == 0
-    assert "backup ran" in result.output
-    assert "sync ran" not in result.output
-
-
-def test_default_subcommand_cli_override(invoke, create_config):
-    """Explicit subcommand on CLI ignores config defaults."""
-    conf_text = dedent("""\
-        [cli-override]
-        _default_subcommands = ["backup"]
-        """)
-    conf_path = create_config("cli-override.toml", conf_text)
-
-    @group
-    def cli_override():
-        pass
-
-    @cli_override.command()
-    def backup():
-        echo("backup ran")
-
-    @cli_override.command()
-    def sync():
-        echo("sync ran")
-
-    result = invoke(cli_override, "--config", str(conf_path), "sync", color=False)
-    assert result.exit_code == 0
-    assert "sync ran" in result.output
-    assert "backup ran" not in result.output
+    assert expected in result.output
+    assert unexpected not in result.output
 
 
 def test_default_subcommand_chained(invoke, create_config):
@@ -2170,71 +2157,42 @@ def test_default_subcommand_chained(invoke, create_config):
     assert result.output.index("backup ran") < result.output.index("sync ran")
 
 
-def test_default_subcommand_non_chained_multi_error(invoke, create_config):
-    """Non-chained group with >1 default subcommand fails with clear message."""
-    conf_text = dedent("""\
-        [multi-err-cli]
-        _default_subcommands = ["backup", "sync"]
+@pytest.mark.parametrize(
+    ("conf_value", "error_fragment"),
+    [
+        pytest.param(
+            '["backup", "sync"]', "at most 1", id="non-chained-multi"
+        ),
+        pytest.param('["nonexistent"]', "not found", id="unknown-subcommand"),
+        pytest.param('"not-a-list"', "must be a list", id="invalid-type"),
+    ],
+)
+def test_default_subcommand_config_errors(
+    invoke, create_config, conf_value, error_fragment
+):
+    """Bad _default_subcommands values produce clear errors."""
+    conf_text = dedent(f"""\
+        [err-cli]
+        _default_subcommands = {conf_value}
         """)
-    conf_path = create_config("multi-err-cli.toml", conf_text)
+    conf_path = create_config("err-cli.toml", conf_text)
 
     @group
-    def multi_err_cli():
+    def err_cli():
         pass
 
-    @multi_err_cli.command()
+    @err_cli.command()
     def backup():
         echo("backup ran")
 
-    @multi_err_cli.command()
+    @err_cli.command()
     def sync():
         echo("sync ran")
 
-    result = invoke(multi_err_cli, "--config", str(conf_path), color=False)
+    result = invoke(err_cli, "--config", str(conf_path), color=False)
     assert result.exit_code != 0
-    assert "at most 1" in result.output or "at most 1" in result.stderr
-
-
-def test_default_subcommand_unknown_error(invoke, create_config):
-    """Config lists nonexistent subcommand -> error."""
-    conf_text = dedent("""\
-        [unknown-cli]
-        _default_subcommands = ["nonexistent"]
-        """)
-    conf_path = create_config("unknown-cli.toml", conf_text)
-
-    @group
-    def unknown_cli():
-        pass
-
-    @unknown_cli.command()
-    def backup():
-        echo("backup ran")
-
-    result = invoke(unknown_cli, "--config", str(conf_path), color=False)
-    assert result.exit_code != 0
-    assert "not found" in result.output or "not found" in result.stderr
-
-
-def test_default_subcommand_invalid_type(invoke, create_config):
-    """_default_subcommands = "not-a-list" -> error."""
-    conf_text = dedent("""\
-        [invalid-type-cli]
-        _default_subcommands = "not-a-list"
-        """)
-    conf_path = create_config("invalid-type-cli.toml", conf_text)
-
-    @group
-    def invalid_type_cli():
-        pass
-
-    @invalid_type_cli.command()
-    def backup():
-        echo("backup ran")
-
-    result = invoke(invalid_type_cli, "--config", str(conf_path), color=False)
-    assert result.exit_code != 0
-    assert "must be a list" in result.output or "must be a list" in result.stderr
+    combined = result.output + result.stderr
+    assert error_fragment in combined
 
 
 def test_default_subcommand_strict_mode_tolerance(invoke, create_config):
