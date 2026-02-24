@@ -9,5 +9,5 @@ name: 🪄 Autofix
 jobs:
 
   autofix:
-    uses: kdeldycke/workflows/.github/workflows/autofix.yaml@v5.12.0
+    uses: kdeldycke/workflows/.github/workflows/autofix.yaml@v5.11.0
     secrets: inherit

@@ -234,8 +234,6 @@ dependency-groups.docs = { requires-python = ">= 3.14" }
 # Relative dates are fine here because the Renovate lock-maintenance job
 # (sync-uv-lock) reverts uv.lock when the only diff is timestamp noise.
 exclude-newer = "1 week"
-# Exclude gha-utils from the cooldown period.
-exclude-newer-package = { "nuitka" = "0 day" }
 # Package is at root level, not in "./src/".
 build-backend.module-root = ""
 
@@ -392,3 +390,8 @@ overrides = [
   # XXX This is a temporary workaround until we drop support for Python 3.10 and 3.11 for Click Extra.
   { ignore_missing_imports = true, module = [ "sphinx.*" ], follow_imports = "skip" },
 ]
+
+[tool.gha-utils]
+workflow-sync-exclude = ["debug.yaml"]
+dependency-graph-all-groups = false
+dependency-graph-all-extras = true
