@@ -287,7 +287,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             | glob.NODIR
         ),
         search_parents: bool = False,
-        stop_at: Path | str | Literal[Sentinel.VCS] | None = None,
+        stop_at: Path | str | Literal[Sentinel.VCS] | None = Sentinel.VCS,
         excluded_params: Iterable[str] | None = None,
         included_params: Iterable[str] | None = None,
         strict: bool = False,
@@ -428,8 +428,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         self.stop_at = stop_at
         """Boundary for parent directory walking.
 
-        - ``None`` — walk up to filesystem root (default).
-        - ``VCS`` — stop at the nearest VCS root (``.git`` or ``.hg``).
+        - ``None`` — walk up to filesystem root.
+        - ``VCS`` — stop at the nearest VCS root (``.git`` or ``.hg``) (default).
         - A ``Path`` or ``str`` — stop at that directory.
         """
 

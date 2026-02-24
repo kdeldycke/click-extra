@@ -8,7 +8,7 @@
 - Add `--validate-config` option to validate configuration files.
 - Add `ConfigFormat.PYPROJECT_TOML` format for `[tool.*]` section support in `pyproject.toml`. Closes {issue}`1524`.
 - Stop parent directory walk on inaccessible directories.
-- Add `stop_at` parameter to `@config_option` to limit parent directory walking. Closes {issue}`651`.
+- Add `stop_at` parameter to `@config_option` to limit parent directory walking. Defaults to `VCS`. Closes {issue}`651`.
 - Add `VCS` sentinel and `VCS_DIRS` constant for VCS root detection.
 - Resolve relative paths to absolute in `parent_patterns` before yielding.
 - Add `included_params` allowlist to `ConfigOption` and `@config_option`, the inverse of `excluded_params`. Closes {issue}`1362`.

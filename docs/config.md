@@ -510,16 +510,16 @@ This is especially powerful combined with `search_parents` to walk up from a pro
 :emphasize-lines: 7
 from click import command, option, echo
 
-from click_extra import config_option, VCS
+from click_extra import config_option
 
 @command
 @option("--int-param", type=int, default=10)
-@config_option(search_parents=True, stop_at=VCS)
+@config_option(search_parents=True)
 def cli(int_param):
     echo(f"int_parameter is {int_param!r}")
 ```
 
-Running `cli` from anywhere inside the project tree will find `pyproject.toml` at the repository root and apply `[tool.cli]` values.
+Running `cli` from anywhere inside the project tree will find `pyproject.toml` at the repository root and apply `[tool.cli]` values. The walk automatically stops at the VCS root (the default `stop_at=VCS` behavior).
 
 ## Search pattern
 
@@ -913,31 +913,13 @@ Parent search works with both plain paths and [glob patterns](#search-pattern-sp
 
 #### Walk boundaries
 
-```{warning}
-Walking up the entire directory tree can produce unintended matches. For example, when using the [default pattern](#default-folder) with `search_parents=True`, a configuration file in `$HOME` could shadow the one in `~/.config/app/`.
-
-Use the `stop_at` parameter to limit how far the parent lookup goes.
-```
-
 The parent directory walk stops as soon as it hits any of the following boundaries:
 
 - **Filesystem root** — the walk always stops at `/` (or the drive root on Windows).
 - **Inaccessible directory** — if a parent directory exists but is not readable, the walk stops immediately.
+- **VCS root** (`stop_at=VCS`, the default) — the walk stops at the nearest repository root (a directory containing `.git` or `.hg`). If no VCS root is found, the walk continues to the filesystem root.
 - **Explicit path** (`stop_at="/some/path"`) — the walk stops as soon as it leaves the given directory.
-- **VCS root** (`stop_at=VCS`) — the walk stops at the nearest repository root (a directory containing `.git` or `.hg`). If no VCS root is found, the walk continues to the filesystem root.
-
-```{code-block} python
-:caption: Stop at the project's VCS root
-:emphasize-lines: 3,6
-from click import command
-
-from click_extra import VCS, config_option
-
-@command
-@config_option(search_parents=True, stop_at=VCS)
-def cli():
-    pass
-```
+- **No boundary** (`stop_at=None`) — the walk continues all the way to the filesystem root.
 
 ```{code-block} python
 :caption: Stop at an explicit directory
@@ -952,8 +934,21 @@ def cli():
     pass
 ```
 
+```{code-block} python
+:caption: Walk to the filesystem root
+:emphasize-lines: 6
+from click import command
+
+from click_extra import config_option
+
+@command
+@config_option(search_parents=True, stop_at=None)
+def cli():
+    pass
+```
+
 ```{tip}
-`stop_at=VCS` is recommended for project-local configuration. It mirrors the behavior of tools like `bump-my-version` and prevents the walk from escaping the repository into unrelated parent directories.
+The default `stop_at=VCS` mirrors the behavior of tools like `bump-my-version` and prevents the walk from escaping the repository into unrelated parent directories.
 ```
 
 ### Remote URL
