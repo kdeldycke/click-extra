@@ -479,7 +479,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             self.excluded_params = frozenset(excluded_params)
 
         # Freeze and store included_params. The resolution into
-        # excluded_params happens in build_param_trees().
+        # excluded_params happens in params_objects.
         self.included_params: frozenset[str] | None = (
             frozenset(included_params) if included_params is not None else None
         )
@@ -901,8 +901,8 @@ class ConfigOption(ExtraOption, ParamStructure):
             for option_id in ini_config.options(section_id):
                 # Fetch the expected type of the CLI parameter.
                 try:
-                    target_types = self.get_tree_value(
-                        self.params_types, section_id, option_id
+                    target_params = self.get_tree_value(
+                        self.params_objects, section_id, option_id
                     )
                 # The item in the INI config file does not correspond to any existing
                 # parameter in the CLI structure.
@@ -913,9 +913,10 @@ class ConfigOption(ExtraOption, ParamStructure):
                 else:
                     # Because one variable name can be shared by multiple options, we
                     # need to fetch all of those we detected in the CLI structure.
-                    assert isinstance(target_types, list)
+                    assert isinstance(target_params, list)
                     # We deduplicate them to simplify the next steps. If we are lucky,
                     # all options sharing the same name also share the same type.
+                    target_types = [self.get_param_type(p) for p in target_params]
                     dedup_types = set(target_types)
 
                     # XXX This case is tricky and not even covered in Click unittests.

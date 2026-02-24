@@ -345,7 +345,7 @@ class ParamStructure:
         )
 
     def build_param_trees(self) -> None:
-        """Build all parameters tree structure in one go and cache them.
+        """Build the parameters tree structure and cache it.
 
         This removes parameters whose fully-qualified IDs are in the ``excluded_params``
         blocklist.
@@ -360,25 +360,25 @@ class ParamStructure:
             )
             self.excluded_params = all_param_ids - self.included_params
 
-        template: dict[str, Any] = {}
-        types: dict[str, Any] = {}
         objects: dict[str, Any] = {}
 
         for keys, param in self.walk_params():
             if self.SEP.join(keys) in self.excluded_params:
                 continue
 
-            template = always_merger.merge(template, self.init_tree_dict(*keys))
-            types = always_merger.merge(
-                types, self.init_tree_dict(*keys, leaf=[self.get_param_type(param)])
-            )
             objects = always_merger.merge(
                 objects, self.init_tree_dict(*keys, leaf=[param])
             )
 
-        self.params_template = template
-        self.params_types = types
         self.params_objects = objects
+
+    @staticmethod
+    def _nullify_leaves(tree: dict[str, Any]) -> dict[str, Any]:
+        """Derive a template shape from a tree by replacing all leaves with ``None``."""
+        return {
+            k: ParamStructure._nullify_leaves(v) if isinstance(v, dict) else None
+            for k, v in tree.items()
+        }
 
     @cached_property
     def params_template(self) -> dict[str, Any]:
@@ -387,18 +387,7 @@ class ParamStructure:
 
         Perfect to serve as a template for configuration files.
         """
-        self.build_param_trees()
-        return self.params_template
-
-    @cached_property
-    def params_types(self) -> dict[str, Any]:
-        """Returns a tree-like dictionary whose keys shadows the CLI options and
-        subcommands and values are their expected Python type.
-
-        Perfect to parse configuration files and user-provided parameters.
-        """
-        self.build_param_trees()
-        return self.params_types
+        return self._nullify_leaves(self.params_objects)
 
     @cached_property
     def params_objects(self) -> dict[str, Any]:
@@ -534,15 +523,12 @@ class ShowParamsOption(ExtraOption, ParamStructure):
 
         # Walk through the the tree of parameters and get their fully-qualified path.
         for path, instances in self.flatten_tree_dict(self.params_objects).items():
-            # Get the Python types of the parameters at this path.
             tree_keys = path.split(self.SEP)
-            python_types = self.get_tree_value(self.params_types, *tree_keys)
-            assert len(python_types) == len(instances)
 
             # Multiple parameters can share the same path, if for instance they are
             # sharing the same variable name.
-            for index, instance in enumerate(instances):
-                python_type = python_types[index]
+            for instance in instances:
+                python_type = self.get_param_type(instance)
                 assert instance.name == tree_keys[-1]
 
                 param_value, source = get_param_value(instance)
