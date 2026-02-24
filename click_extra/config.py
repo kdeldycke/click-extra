@@ -49,6 +49,7 @@ import json
 import logging
 import os
 import sys
+from collections import ChainMap
 from collections.abc import Iterable
 from configparser import ConfigParser, ExtendedInterpolation
 from enum import Enum
@@ -968,6 +969,10 @@ class ConfigOption(ExtraOption, ParamStructure):
         Merge the user configuration into the pre-computed template structure, which
         will filter out all unrecognized options not supported by the command. Then
         cleans up blank values and update the context's ``default_map``.
+
+        Uses a `~collections.ChainMap` so each config source keeps its own layer.
+        The first layer wins on key lookup, which makes parameter-source precedence
+        explicit and future-proofs for multi-file config loading.
         """
         filtered_conf = _recursive_update(
             self.params_template, _strip_reserved_keys(user_conf), self.strict
@@ -977,10 +982,11 @@ class ConfigOption(ExtraOption, ParamStructure):
         # structure.
         clean_conf = _remove_blanks(filtered_conf, remove_str=False)
 
-        # Update the default_map.
-        if ctx.default_map is None:
-            ctx.default_map = {}
-        ctx.default_map.update(clean_conf.get(ctx.find_root().command.name, {}))
+        # Layer the config values on top of any existing default_map via ChainMap.
+        # Click only calls .get() on default_map, which ChainMap supports with
+        # first-match-wins semantics.
+        local_conf = clean_conf.get(ctx.find_root().command.name, {})
+        ctx.default_map = ChainMap(local_conf, ctx.default_map or {})
 
     def load_conf(
         self,
