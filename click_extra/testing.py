@@ -40,7 +40,7 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from contextlib import AbstractContextManager
-    from typing import IO, Any, Literal, cast
+    from typing import IO, Any, Literal
 
     from ._types import TArg, TEnvVars, TNestedArgs
 
@@ -290,9 +290,8 @@ class ExtraCliRunner(click.testing.CliRunner):
             )
 
         # Upgrade the result to our subclass for automatic traceback formatting.
-        # Mypy cannot track runtime ``__class__`` reassignment, so we cast.
         result.__class__ = ExtraResult
-        extra_result = cast("ExtraResult", result)
+        extra_result: ExtraResult = result  # type: ignore[assignment]
 
         # ``color`` has been explicitly set to ``False``, so strip all ANSI codes.
         if color is False:
