@@ -701,6 +701,8 @@ class ConfigOption(ExtraOption, ParamStructure):
             return None
         if self.stop_at is VCS:
             return self._find_vcs_root(start_dir)
+        # Mypy cannot narrow ``Literal[Sentinel.VCS]`` via the ``is`` check above.
+        assert isinstance(self.stop_at, (str, Path))
         return Path(self.stop_at).resolve()
 
     @staticmethod
@@ -1120,6 +1122,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         if isinstance(path_pattern, Path):
             # Normalize the path without checking for its existence.
             path_pattern = str(path_pattern.resolve(strict=False))
+        # NO_CONFIG was handled above with an early return. Help mypy see that.
+        assert isinstance(path_pattern, str)
         message = f"Load configuration matching {path_pattern}"
         if explicit_conf:
             info_msg(message)

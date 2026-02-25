@@ -40,7 +40,7 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from contextlib import AbstractContextManager
-    from typing import IO, Any, Literal
+    from typing import IO, Any, Literal, cast
 
     from ._types import TArg, TEnvVars, TNestedArgs
 
@@ -290,24 +290,26 @@ class ExtraCliRunner(click.testing.CliRunner):
             )
 
         # Upgrade the result to our subclass for automatic traceback formatting.
+        # Mypy cannot track runtime ``__class__`` reassignment, so we cast.
         result.__class__ = ExtraResult
+        extra_result = cast("ExtraResult", result)
 
         # ``color`` has been explicitly set to ``False``, so strip all ANSI codes.
         if color is False:
-            result.stdout_bytes = strip_ansi(result.stdout_bytes)  # type: ignore[assignment,arg-type]
-            result.stderr_bytes = strip_ansi(result.stderr_bytes)  # type: ignore[assignment,arg-type]
-            result.output_bytes = strip_ansi(result.output_bytes)  # type: ignore[assignment,arg-type]
+            extra_result.stdout_bytes = strip_ansi(extra_result.stdout_bytes)  # type: ignore[assignment,arg-type]
+            extra_result.stderr_bytes = strip_ansi(extra_result.stderr_bytes)  # type: ignore[assignment,arg-type]
+            extra_result.output_bytes = strip_ansi(extra_result.output_bytes)  # type: ignore[assignment,arg-type]
 
         print_cli_run(
             [self.get_default_prog_name(cli), *clean_args],
-            result,
+            extra_result,
             env=env,
         )
 
-        if result.formatted_exception:
-            print(result.formatted_exception)
+        if extra_result.formatted_exception:
+            print(extra_result.formatted_exception)
 
-        return result
+        return extra_result
 
 
 def unescape_regex(text: str) -> str:
