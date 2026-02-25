@@ -810,7 +810,10 @@ def test_default_map_populated(invoke, create_config):
     assert "flag_a=True" in result.stdout
     assert "int_param=7" in result.stdout
     # Group's default_map retains the subcommand section after param resolution.
-    assert "default_map={'flag_a': True, 'sub': {'int_param': 7}}" in result.stdout
+    assert (
+        "default_map=ChainMap({'flag_a': True, 'sub': {'int_param': 7}}, {})"
+        in result.stdout
+    )
     # Click passes default_map["sub"] to the subcommand's context.
     assert "sub_default_map={'int_param': 7}" in result.stdout
 

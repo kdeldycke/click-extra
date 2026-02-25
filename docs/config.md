@@ -999,7 +999,7 @@ def cli():
 ```{click:run}
 :emphasize-lines: 6
 result = invoke(cli, args=["--help"])
-assert "[default: ~/.commandrc]" in result.stdout
+assert "[default: ~/.commandrc]" in " ".join(result.stdout.split())
 ```
 
 ```{caution}
