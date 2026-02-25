@@ -6,6 +6,7 @@
 > This version is **not released yet** and is under active development.
 
 - Add `_default_subcommands` reserved configuration key to auto-invoke subcommands when none are provided on the CLI. Closes {issue}`1405`.
+- Add `_prepend_subcommands` reserved configuration key to always prepend subcommands to every invocation (requires `chain=True`). Closes {issue}`1405`.
 - Add `--validate-config` option to validate configuration files.
 - Add `ConfigFormat.PYPROJECT_TOML` format for `[tool.*]` section support in `pyproject.toml`. Closes {issue}`1524`.
 - Stop parent directory walk on inaccessible directories.

@@ -249,7 +249,25 @@ Example TOML configuration:
     path = "/home"
 """
 
-_RESERVED_CONFIG_KEYS = frozenset({DEFAULT_SUBCOMMANDS_KEY})
+PREPEND_SUBCOMMANDS_KEY = "_prepend_subcommands"
+"""Reserved configuration key for prepending subcommands to every invocation.
+
+Unlike ``_default_subcommands`` which only fires when no subcommands are given on the
+CLI, ``_prepend_subcommands`` always prepends the listed subcommands. This is useful
+for always injecting a ``debug`` subcommand on a dev machine, for example.
+
+Only works with ``chain=True`` groups (non-chained groups resolve exactly one
+subcommand, so prepending would break the user's intended command).
+
+Example TOML configuration:
+
+.. code-block:: toml
+
+    [my-cli]
+    _prepend_subcommands = ["debug"]
+"""
+
+_RESERVED_CONFIG_KEYS = frozenset({DEFAULT_SUBCOMMANDS_KEY, PREPEND_SUBCOMMANDS_KEY})
 """Configuration keys with special meaning that should not be treated as parameters."""
 
 

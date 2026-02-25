@@ -31,6 +31,7 @@ import cloup
 from .colorize import ColorOption, ExtraHelpColorsMixin, HelpExtraFormatter
 from .config import (
     DEFAULT_SUBCOMMANDS_KEY,
+    PREPEND_SUBCOMMANDS_KEY,
     ConfigOption,
     NoConfigOption,
     ValidateConfigOption,
@@ -418,13 +419,16 @@ class ExtraGroup(ExtraCommand, cloup.Group):  # type: ignore[misc]
     """
 
     def invoke(self, ctx: click.Context) -> Any:
-        """Inject ``_default_subcommands`` from config when no subcommand is given on
-        the CLI.
+        """Inject ``_default_subcommands`` and ``_prepend_subcommands`` from config.
 
         If the user has not provided any subcommands explicitly, and the loaded
         configuration contains a ``_default_subcommands`` list for this group, those
         subcommands are injected into ``ctx.protected_args`` so that Click's normal
         ``Group.invoke()`` dispatches them.
+
+        ``_prepend_subcommands`` always prepends subcommands to the invocation,
+        regardless of whether CLI subcommands were provided. Only works with
+        ``chain=True`` groups.
         """
         if not ctx._protected_args and not ctx.args:
             default_subcmds = self._get_default_subcommands(ctx)
@@ -439,6 +443,16 @@ class ExtraGroup(ExtraCommand, cloup.Group):  # type: ignore[misc]
                     f"CLI subcommands provided; ignoring {DEFAULT_SUBCOMMANDS_KEY}"
                     f" config: {default_subcmds!r}."
                 )
+
+        # Always prepend _prepend_subcommands, regardless of CLI args.
+        prepend_subcmds = self._get_prepend_subcommands(ctx)
+        if prepend_subcmds is not None:
+            logger = logging.getLogger("click_extra")
+            logger.info(
+                f"Prepending {PREPEND_SUBCOMMANDS_KEY} config: {prepend_subcmds!r}."
+            )
+            ctx._protected_args = list(prepend_subcmds) + ctx._protected_args
+
         return super().invoke(ctx)
 
     def _get_default_subcommands(self, ctx: click.Context) -> list[str] | None:
@@ -507,6 +521,76 @@ class ExtraGroup(ExtraCommand, cloup.Group):  # type: ignore[misc]
             if self.get_command(ctx, name) is None:
                 raise click.UsageError(
                     f"Default subcommand {name!r} not found in group {self.name!r}."
+                )
+
+        return raw
+
+    def _get_prepend_subcommands(self, ctx: click.Context) -> list[str] | None:
+        """Read and validate ``_prepend_subcommands`` from the loaded configuration."""
+        full_config = ctx.meta.get("click_extra.conf_full")
+        if not full_config:
+            return None
+
+        root_ctx = ctx.find_root()
+        config_branch = full_config.get(root_ctx.command.name)
+        if not isinstance(config_branch, dict):
+            return None
+
+        # Walk from root context down to the current group.
+        path: list[str] = []
+        current: click.Context | None = ctx
+        while current is not None and current is not root_ctx:
+            if current.command.name is not None:
+                path.append(current.command.name)
+            current = current.parent
+        path.reverse()
+
+        for segment in path:
+            config_branch = config_branch.get(segment)
+            if not isinstance(config_branch, dict):
+                return None
+
+        raw = config_branch.get(PREPEND_SUBCOMMANDS_KEY)
+        if raw is None:
+            return None
+
+        # Validate type.
+        if not isinstance(raw, list) or not all(isinstance(s, str) for s in raw):
+            raise click.UsageError(
+                f"{PREPEND_SUBCOMMANDS_KEY} must be a list of strings, got {raw!r}."
+            )
+
+        if not raw:
+            return None
+
+        # Prepend subcommands only work with chained groups.
+        if not self.chain:
+            raise click.UsageError(
+                f"{PREPEND_SUBCOMMANDS_KEY} requires chain=True on group"
+                f" {self.name!r}."
+            )
+
+        # Deduplicate, keeping first occurrence, and warn on duplicates.
+        seen: set[str] = set()
+        deduped: list[str] = []
+        for name in raw:
+            if name in seen:
+                continue
+            seen.add(name)
+            deduped.append(name)
+        if len(deduped) < len(raw):
+            logger = logging.getLogger("click_extra")
+            logger.warning(
+                f"Duplicate entries in {PREPEND_SUBCOMMANDS_KEY}: {raw!r}. "
+                f"Keeping first occurrences: {deduped!r}."
+            )
+        raw = deduped
+
+        # Validate that all subcommands exist.
+        for name in raw:
+            if self.get_command(ctx, name) is None:
+                raise click.UsageError(
+                    f"Prepend subcommand {name!r} not found in group {self.name!r}."
                 )
 
         return raw

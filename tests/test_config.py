@@ -2395,6 +2395,318 @@ def test_default_subcommand_cli_override_debug_log(invoke, create_config):
     assert "ignoring _default_subcommands" in result.stderr.lower()
 
 
+# --- _prepend_subcommands tests ---
+
+
+@pytest.mark.parametrize(
+    ("cli_subcmd", "expected", "unexpected"),
+    [
+        pytest.param("sync", "sync ran", "", id="with-cli-arg"),
+        pytest.param(None, "", "sync ran", id="no-cli-args"),
+    ],
+)
+def test_prepend_subcommand_selection(
+    invoke, create_config, cli_subcmd, expected, unexpected
+):
+    """Prepend fires regardless of whether a CLI subcommand is given."""
+    conf_text = dedent("""\
+        [prepend-cli]
+        _prepend_subcommands = ["debug"]
+        """)
+    conf_path = create_config("prepend-cli.toml", conf_text)
+
+    @group(chain=True)
+    def prepend_cli():
+        pass
+
+    @prepend_cli.command()
+    def debug():
+        echo("debug ran")
+
+    @prepend_cli.command()
+    def sync():
+        echo("sync ran")
+
+    args = ["--config", str(conf_path)]
+    if cli_subcmd is not None:
+        args.append(cli_subcmd)
+
+    result = invoke(prepend_cli, *args, color=False)
+    assert result.exit_code == 0
+    assert "debug ran" in result.output
+    if expected:
+        assert expected in result.output
+        # debug must come before the CLI subcommand.
+        assert result.output.index("debug ran") < result.output.index(expected)
+    if unexpected:
+        assert unexpected not in result.output
+
+
+@pytest.mark.parametrize(
+    ("cli_subcmd", "expect_backup"),
+    [
+        pytest.param(None, False, id="no-cli-defaults-apply"),
+        pytest.param("sync", False, id="cli-overrides-defaults"),
+    ],
+)
+def test_prepend_subcommand_with_defaults(
+    invoke, create_config, cli_subcmd, expect_backup
+):
+    """Prepend always applies; defaults only fire when no CLI subcommand given."""
+    conf_text = dedent("""\
+        [pd-cli]
+        _default_subcommands = ["sync"]
+        _prepend_subcommands = ["debug"]
+        """)
+    conf_path = create_config("pd-cli.toml", conf_text)
+
+    @group(chain=True)
+    def pd_cli():
+        pass
+
+    @pd_cli.command()
+    def debug():
+        echo("debug ran")
+
+    @pd_cli.command()
+    def backup():
+        echo("backup ran")
+
+    @pd_cli.command()
+    def sync():
+        echo("sync ran")
+
+    args = ["--config", str(conf_path)]
+    if cli_subcmd is not None:
+        args.append(cli_subcmd)
+
+    result = invoke(pd_cli, *args, color=False)
+    assert result.exit_code == 0
+    assert "debug ran" in result.output
+    assert "sync ran" in result.output
+    assert result.output.index("debug ran") < result.output.index("sync ran")
+    if expect_backup:
+        assert "backup ran" in result.output
+    else:
+        assert "backup ran" not in result.output
+
+
+def test_prepend_subcommand_non_chained_error(invoke, create_config):
+    """Error on non-chained group."""
+    conf_text = dedent("""\
+        [nc-cli]
+        _prepend_subcommands = ["debug"]
+        """)
+    conf_path = create_config("nc-cli.toml", conf_text)
+
+    @group
+    def nc_cli():
+        pass
+
+    @nc_cli.command()
+    def debug():
+        echo("debug ran")
+
+    @nc_cli.command()
+    def sync():
+        echo("sync ran")
+
+    result = invoke(nc_cli, "--config", str(conf_path), "sync", color=False)
+    assert result.exit_code != 0
+    combined = result.output + result.stderr
+    assert "chain=True" in combined
+
+
+@pytest.mark.parametrize(
+    ("conf_value", "error_fragment"),
+    [
+        pytest.param('"not-a-list"', "must be a list", id="invalid-type"),
+        pytest.param('["nonexistent"]', "not found", id="unknown-subcommand"),
+    ],
+)
+def test_prepend_subcommand_config_errors(
+    invoke, create_config, conf_value, error_fragment
+):
+    """Bad _prepend_subcommands values produce clear errors."""
+    conf_text = dedent(f"""\
+        [perr-cli]
+        _prepend_subcommands = {conf_value}
+        """)
+    conf_path = create_config("perr-cli.toml", conf_text)
+
+    @group(chain=True)
+    def perr_cli():
+        pass
+
+    @perr_cli.command()
+    def backup():
+        echo("backup ran")
+
+    result = invoke(perr_cli, "--config", str(conf_path), color=False)
+    assert result.exit_code != 0
+    combined = result.output + result.stderr
+    assert error_fragment in combined
+
+
+def test_prepend_subcommand_strict_mode_tolerance(invoke, create_config):
+    """strict=True config with _prepend_subcommands doesn't raise."""
+    conf_text = dedent("""\
+        [strict-p-cli]
+        _prepend_subcommands = ["backup"]
+        """)
+    conf_path = create_config("strict-p-cli.toml", conf_text)
+
+    @click.group(chain=True)
+    @config_option(strict=True)
+    def strict_p_cli():
+        pass
+
+    @strict_p_cli.command()
+    def backup():
+        echo("backup ran")
+
+    result = invoke(strict_p_cli, "--config", str(conf_path), "backup", color=False)
+    assert result.exit_code == 0
+    assert "backup ran" in result.output
+
+
+def test_prepend_subcommand_validate_config_tolerance(invoke, create_config):
+    """--validate-config with _prepend_subcommands reports valid."""
+    conf_text = dedent("""\
+        [validate-ps-cli]
+        _prepend_subcommands = ["sub"]
+        dummy_flag = true
+
+        [validate-ps-cli.sub]
+        int_param = 3
+        """)
+    conf_path = create_config("validate-ps-cli.toml", conf_text)
+
+    @click.group(chain=True)
+    @option("--dummy-flag/--no-flag")
+    @config_option
+    @validate_config_option
+    def validate_ps_cli(dummy_flag):
+        echo(f"dummy_flag = {dummy_flag!r}")
+
+    @validate_ps_cli.command()
+    @option("--int-param", type=int, default=10)
+    def sub(int_param):
+        echo(f"int_parameter = {int_param!r}")
+
+    result = invoke(
+        validate_ps_cli, "--validate-config", str(conf_path), color=False
+    )
+    assert result.exit_code == 0
+    assert "is valid" in result.stderr
+
+
+def test_prepend_subcommand_duplicates_warning(invoke, create_config):
+    """Duplicate entries in _prepend_subcommands are deduplicated with a warning."""
+    conf_text = dedent("""\
+        [pdup-cli]
+        _prepend_subcommands = ["debug", "debug"]
+        """)
+    conf_path = create_config("pdup-cli.toml", conf_text)
+
+    @group(chain=True)
+    def pdup_cli():
+        pass
+
+    @pdup_cli.command()
+    def debug():
+        echo("debug ran")
+
+    @pdup_cli.command()
+    def sync():
+        echo("sync ran")
+
+    result = invoke(
+        pdup_cli,
+        "--config",
+        str(conf_path),
+        "--verbosity",
+        "WARNING",
+        "sync",
+        color=False,
+    )
+    assert result.exit_code == 0
+    assert "debug ran" in result.output
+    assert "sync ran" in result.output
+    # debug should only run once despite being listed twice.
+    assert result.output.count("debug ran") == 1
+    assert "Duplicate entries" in result.stderr
+
+
+def test_prepend_subcommand_info_log(invoke, create_config):
+    """INFO log emitted when _prepend_subcommands are injected."""
+    conf_text = dedent("""\
+        [plog-cli]
+        _prepend_subcommands = ["debug"]
+        """)
+    conf_path = create_config("plog-cli.toml", conf_text)
+
+    @group(chain=True)
+    def plog_cli():
+        pass
+
+    @plog_cli.command()
+    def debug():
+        echo("debug ran")
+
+    @plog_cli.command()
+    def sync():
+        echo("sync ran")
+
+    result = invoke(
+        plog_cli,
+        "--config",
+        str(conf_path),
+        "--verbosity",
+        "INFO",
+        "sync",
+        color=False,
+    )
+    assert result.exit_code == 0
+    assert "debug ran" in result.output
+    assert "sync ran" in result.output
+    assert "prepending _prepend_subcommands" in result.stderr.lower()
+
+
+def test_prepend_subcommand_multiple(invoke, create_config):
+    """Multiple prepend subcommands run in order."""
+    conf_text = dedent("""\
+        [pmulti-cli]
+        _prepend_subcommands = ["init", "debug"]
+        """)
+    conf_path = create_config("pmulti-cli.toml", conf_text)
+
+    @group(chain=True)
+    def pmulti_cli():
+        pass
+
+    @pmulti_cli.command()
+    def init():
+        echo("init ran")
+
+    @pmulti_cli.command()
+    def debug():
+        echo("debug ran")
+
+    @pmulti_cli.command()
+    def sync():
+        echo("sync ran")
+
+    result = invoke(pmulti_cli, "--config", str(conf_path), "sync", color=False)
+    assert result.exit_code == 0
+    assert "init ran" in result.output
+    assert "debug ran" in result.output
+    assert "sync ran" in result.output
+    # Verify order: init, debug, sync.
+    assert result.output.index("init ran") < result.output.index("debug ran")
+    assert result.output.index("debug ran") < result.output.index("sync ran")
+
+
 # --- _check_pattern_sanity tests ---
 
 

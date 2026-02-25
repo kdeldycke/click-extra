@@ -447,6 +447,53 @@ $ my-cli sync
 Syncing
 ```
 
+### Prepend subcommands
+
+The `_prepend_subcommands` key always prepends subcommands to every invocation, regardless of whether CLI subcommands are provided. This is useful for always injecting a subcommand (e.g. `debug`) on a dev machine.
+
+```{important}
+`_prepend_subcommands` only works with `chain=True` groups. Non-chained groups resolve exactly one subcommand, so prepending would break the user's intended command.
+```
+
+```toml
+:emphasize-lines: 2
+[my-cli]
+_prepend_subcommands = ["debug"]
+```
+
+Running `my-cli sync` effectively becomes `my-cli debug sync`:
+
+```shell-session
+:emphasize-lines: 2-3
+$ my-cli sync
+Debug mode activated
+Syncing
+```
+
+### `_default_subcommands` with `_prepend_subcommands`
+
+When both keys are set and no CLI subcommands are given, `_default_subcommands` fires first, then `_prepend_subcommands` is prepended. The result is `[*prepend, *defaults]`:
+
+```toml
+[my-cli]
+_default_subcommands = ["sync"]
+_prepend_subcommands = ["debug"]
+```
+
+```shell-session
+$ my-cli
+Debug mode activated
+Syncing
+```
+
+When CLI subcommands are given explicitly, `_default_subcommands` is ignored but `_prepend_subcommands` still applies:
+
+```shell-session
+$ my-cli backup
+Debug mode activated
+Backing up /tmp
+```
+
 ## Formats
 
 Several dialects are supported:

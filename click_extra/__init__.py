@@ -49,6 +49,7 @@ from .config import (
     DEFAULT_SUBCOMMANDS_KEY,
     NO_CONFIG,
     NoConfigOption,
+    PREPEND_SUBCOMMANDS_KEY,
     ValidateConfigOption,
     VCS,
 )
@@ -191,6 +192,7 @@ __all__ = [  # noqa: F405
     "Path",
     "path",
     "pause",
+    "PREPEND_SUBCOMMANDS_KEY",
     "print_table",
     "progressbar",
     "prompt",
