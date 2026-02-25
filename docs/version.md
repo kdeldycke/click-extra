@@ -242,6 +242,19 @@ result = invoke(prebaked_cli, args=["--version"])
 assert result.output == "\x1b[97mprebaked-cli\x1b[0m, version \x1b[32m1.2.3.dev0+abc1234\x1b[0m\n"
 ```
 
+### Version lifecycle
+
+The version resolution adapts to the runtime environment:
+
+| Scenario | `__version__` in source | Git available? | `{version}` output |
+|---|---|---|---|
+| **Local dev** (from source) | `1.0.0.dev0` | Yes | `1.0.0.dev0+abc1234` |
+| **Nuitka binary** (pre-baked) | `1.0.0.dev0+abc1234` | No | `1.0.0.dev0+abc1234` |
+| **Nuitka binary** (not pre-baked) | `1.0.0.dev0` | No | `1.0.0.dev0` |
+| **Release** | `1.0.0` | — | `1.0.0` |
+
+For Nuitka binaries, the recommended workflow is to inject the commit hash into `__version__` **before** compilation. [Repomatic](https://github.com/kdeldycke/repomatic) automates this via its `prebake-version` command.
+
 ## Colors
 
 Each variable listed in the section above can be rendered in its own style. They all have dedicated parameters you can pass to the `version_option` decorator:
