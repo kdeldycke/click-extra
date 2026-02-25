@@ -584,9 +584,9 @@ XML support requires additional packages. You need to [install `click-extra[xml]
 Write example.
 ```
 
-### pyproject.toml
+### `pyproject.toml`
 
-The `PYPROJECT_TOML` format reads `[tool.<cli-name>]` sections from a `pyproject.toml` file, following [PEP 518](https://peps.python.org/pep-0518/). This is useful for any CLI tool that wants to store its configuration alongside project metadata — not just Python projects. Tools like [ruff](https://docs.astral.sh/ruff/), [taplo](https://taplo.tamasfe.dev/), and [lychee](https://github.com/lycheeverse/lychee), which are not Python projects, all use this convention, to play nice with other communities and increase adoption.
+The `PYPROJECT_TOML` format reads `[tool.<cli-name>]` sections from a `pyproject.toml` file, following [PEP 518](https://peps.python.org/pep-0518/). This is useful for any CLI tool that wants to store its configuration alongside project metadata — not just Python projects. Tools like [ruff](https://docs.astral.sh/ruff/configuration/#configuring-ruff) and [typos](https://github.com/crate-ci/typos/blob/master/docs/reference.md), which are not Python projects, all use this convention, to play nice with other communities and increase adoption.
 
 `PYPROJECT_TOML` is included in the default format patterns, so it is automatically discovered alongside other formats. The `[tool]` wrapper is automatically unwrapped: `merge_default_map` sees `{"cli": {"int_param": 3}}` — exactly the same structure as a regular TOML config file.
 
@@ -618,6 +618,24 @@ def cli(int_param):
 ```
 
 Running `cli` from anywhere inside the project tree will find `pyproject.toml` at the repository root and apply `[tool.cli]` values. The walk automatically stops at the VCS root (the default `stop_at=VCS` behavior).
+
+```{seealso}
+Other non-Python tools that support `[tool.*]` in `pyproject.toml`:
+[uv](https://docs.astral.sh/uv/concepts/configuration-files/),
+[ty](https://docs.astral.sh/ty/),
+[maturin](https://www.maturin.rs/config),
+[Pyright](https://github.com/microsoft/pyright/blob/main/docs/configuration.md),
+[Tombi](https://tombi-toml.github.io/tombi/docs/configuration/),
+and [rumdl](https://github.com/rvben/rumdl).
+
+Other tools are following suit:
+[lychee#1930](https://github.com/lycheeverse/lychee/issues/1930),
+[zizmor#322](https://github.com/orgs/zizmorcore/discussions/322#discussioncomment-15919620),
+[taplo#603](https://github.com/tamasfe/taplo/issues/603),
+[actionlint#623](https://github.com/rhysd/actionlint/issues/623),
+[biome#9239](https://github.com/biomejs/biome/discussions/9239),
+[sh#1268](https://github.com/mvdan/sh/issues/1268).
+```
 
 ## Search pattern
 
