@@ -400,7 +400,7 @@ def sync():
 
 And this TOML configuration:
 
-```toml
+```{code-block} toml
 :emphasize-lines: 2
 [my-cli]
 _default_subcommands = ["backup"]
@@ -411,7 +411,7 @@ path = "/home"
 
 Running `my-cli` alone will automatically invoke the `backup` subcommand:
 
-```shell-session
+```{code-block} shell-session
 :emphasize-lines: 2
 $ my-cli
 Backing up /home
@@ -421,13 +421,13 @@ Backing up /home
 
 For groups created with `chain=True`, you can list multiple default subcommands. They run in the order specified:
 
-```toml
+```{code-block} toml
 :emphasize-lines: 2
 [my-cli]
 _default_subcommands = ["backup", "sync"]
 ```
 
-```shell-session
+```{code-block} shell-session
 :emphasize-lines: 2-3
 $ my-cli
 Backing up /home
@@ -455,15 +455,15 @@ The `_prepend_subcommands` key always prepends subcommands to every invocation, 
 `_prepend_subcommands` only works with `chain=True` groups. Non-chained groups resolve exactly one subcommand, so prepending would break the user's intended command.
 ```
 
-```toml
-:emphasize-lines: 2
+```{code-block} toml
+:emphasize-lines: 2-3
 [my-cli]
 _prepend_subcommands = ["debug"]
 ```
 
 Running `my-cli sync` effectively becomes `my-cli debug sync`:
 
-```shell-session
+```{code-block} shell-session
 :emphasize-lines: 2-3
 $ my-cli sync
 Debug mode activated
