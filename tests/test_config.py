@@ -393,7 +393,8 @@ def test_conf_default_path(invoke, simple_config_cli):
         for line in result.stdout.split("--config CONFIG_PATH")[1].splitlines()
     )
     assert (
-        "{*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,pyproject.toml}]" in help_screen
+        "{*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,pyproject.toml}]"
+        in help_screen
     )
 
     assert not result.stderr
@@ -1212,9 +1213,7 @@ def test_default_pattern_roaming_force_posix(
         fp = config_opt.file_pattern
         suffix = f"{{{fp}}}" if "," in fp else fp
         assert config_opt.default_pattern() == (
-            str(Path(expected_path).expanduser())
-            + os.path.sep
-            + suffix
+            str(Path(expected_path).expanduser()) + os.path.sep + suffix
         )
 
 
@@ -1351,10 +1350,7 @@ def test_parent_patterns(
             lambda p: str(p / "proj*" / "*.toml"),
             lambda p: [
                 (str(p), str(Path("proj*", "*.toml"))),
-                *(
-                    (str(parent), str(Path("proj*", "*.toml")))
-                    for parent in p.parents
-                ),
+                *((str(parent), str(Path("proj*", "*.toml"))) for parent in p.parents),
             ],
             id="multiple-magic-parts-in-suffix",
         ),
@@ -1378,7 +1374,9 @@ def test_parent_patterns(
         ),
     ],
 )
-def test_parent_patterns_with_magic_pattern(tmp_path, pattern_factory, expected_factory):
+def test_parent_patterns_with_magic_pattern(
+    tmp_path, pattern_factory, expected_factory
+):
     """Test parent_patterns with glob patterns containing magic characters."""
 
     @click.command
@@ -1439,10 +1437,7 @@ def test_parent_patterns_relative_path(tmp_path):
             patterns = list(config_opt.parent_patterns(relative_path))
 
             # All root_dirs should be absolute
-            assert all(
-                Path(root_dir).is_absolute()
-                for root_dir, _ in patterns
-            )
+            assert all(Path(root_dir).is_absolute() for root_dir, _ in patterns)
 
             # First pattern should resolve to the config file's parent
             root_dir, file_pattern = patterns[0]
@@ -1801,10 +1796,10 @@ def test_brace_multi_format_search(invoke, tmp_path, ext):
     default pattern got the directory prefix — others were searched in CWD.
     """
     conf_texts = {
-        "toml": '[brace-cli]\nint_param = 42\n',
-        "yaml": 'brace-cli:\n  int_param: 42\n',
+        "toml": "[brace-cli]\nint_param = 42\n",
+        "yaml": "brace-cli:\n  int_param: 42\n",
         "json": '{"brace-cli": {"int_param": 42}}\n',
-        "ini": '[brace-cli]\nint_param = 42\n',
+        "ini": "[brace-cli]\nint_param = 42\n",
     }
     config_file = tmp_path / f"config.{ext}"
     config_file.write_text(conf_texts[ext])
@@ -1890,9 +1885,7 @@ def test_pyproject_toml_no_tool_section(simple_config_cli):
     opt = ConfigOption(
         file_format_patterns={ConfigFormat.PYPROJECT_TOML: ("pyproject.toml",)},
     )
-    results = list(
-        opt.parse_conf(content, formats=[ConfigFormat.PYPROJECT_TOML])
-    )
+    results = list(opt.parse_conf(content, formats=[ConfigFormat.PYPROJECT_TOML]))
     # parse_conf yields the empty dict; downstream read_and_parse_conf skips it.
     assert len(results) == 1
     assert results[0] == {}
@@ -2211,9 +2204,7 @@ def test_default_subcommand_chained(invoke, create_config):
 @pytest.mark.parametrize(
     ("conf_value", "error_fragment"),
     [
-        pytest.param(
-            '["backup", "sync"]', "at most 1", id="non-chained-multi"
-        ),
+        pytest.param('["backup", "sync"]', "at most 1", id="non-chained-multi"),
         pytest.param('["nonexistent"]', "not found", id="unknown-subcommand"),
         pytest.param('"not-a-list"', "must be a list", id="invalid-type"),
     ],
@@ -2292,9 +2283,7 @@ def test_default_subcommand_validate_config_tolerance(invoke, create_config):
     def sub(int_param):
         echo(f"int_parameter = {int_param!r}")
 
-    result = invoke(
-        validate_ds_cli, "--validate-config", str(conf_path), color=False
-    )
+    result = invoke(validate_ds_cli, "--validate-config", str(conf_path), color=False)
     assert result.exit_code == 0
     assert "is valid" in result.stderr
 
@@ -2418,8 +2407,13 @@ def test_sanity_broad_glob_narrow_format(caplog):
             default="~/*",
             file_format_patterns={ConfigFormat.YAML: ".commandrc"},
             search_pattern_flags=(
-                glob.GLOBSTAR | glob.FOLLOW | glob.DOTGLOB | glob.BRACE
-                | glob.SPLIT | glob.GLOBTILDE | glob.NODIR
+                glob.GLOBSTAR
+                | glob.FOLLOW
+                | glob.DOTGLOB
+                | glob.BRACE
+                | glob.SPLIT
+                | glob.GLOBTILDE
+                | glob.NODIR
             ),
         )
 
@@ -2436,8 +2430,13 @@ def test_sanity_broad_glob_wildcard_format(caplog):
             default="~/*",
             file_format_patterns={ConfigFormat.YAML: "*.yaml"},
             search_pattern_flags=(
-                glob.GLOBSTAR | glob.FOLLOW | glob.DOTGLOB | glob.BRACE
-                | glob.SPLIT | glob.GLOBTILDE | glob.NODIR
+                glob.GLOBSTAR
+                | glob.FOLLOW
+                | glob.DOTGLOB
+                | glob.BRACE
+                | glob.SPLIT
+                | glob.GLOBTILDE
+                | glob.NODIR
             ),
         )
 
@@ -2453,8 +2452,13 @@ def test_sanity_disjoint_patterns(caplog):
             default="/etc/myapp/config.conf",
             file_format_patterns={ConfigFormat.TOML: "*.toml"},
             search_pattern_flags=(
-                glob.GLOBSTAR | glob.FOLLOW | glob.DOTGLOB | glob.BRACE
-                | glob.SPLIT | glob.GLOBTILDE | glob.NODIR
+                glob.GLOBSTAR
+                | glob.FOLLOW
+                | glob.DOTGLOB
+                | glob.BRACE
+                | glob.SPLIT
+                | glob.GLOBTILDE
+                | glob.NODIR
             ),
         )
 
@@ -2470,8 +2474,13 @@ def test_sanity_disjoint_matching_literal(caplog):
             default="/etc/myapp/config.toml",
             file_format_patterns={ConfigFormat.TOML: "*.toml"},
             search_pattern_flags=(
-                glob.GLOBSTAR | glob.FOLLOW | glob.DOTGLOB | glob.BRACE
-                | glob.SPLIT | glob.GLOBTILDE | glob.NODIR
+                glob.GLOBSTAR
+                | glob.FOLLOW
+                | glob.DOTGLOB
+                | glob.BRACE
+                | glob.SPLIT
+                | glob.GLOBTILDE
+                | glob.NODIR
             ),
         )
 
@@ -2486,8 +2495,13 @@ def test_sanity_format_extension_mismatch(caplog):
         ConfigOption(
             file_format_patterns={ConfigFormat.YAML: "*.toml"},
             search_pattern_flags=(
-                glob.GLOBSTAR | glob.FOLLOW | glob.DOTGLOB | glob.BRACE
-                | glob.SPLIT | glob.GLOBTILDE | glob.NODIR
+                glob.GLOBSTAR
+                | glob.FOLLOW
+                | glob.DOTGLOB
+                | glob.BRACE
+                | glob.SPLIT
+                | glob.GLOBTILDE
+                | glob.NODIR
             ),
         )
 
@@ -2502,8 +2516,13 @@ def test_sanity_format_extension_correct(caplog):
         ConfigOption(
             file_format_patterns={ConfigFormat.YAML: "*.yaml"},
             search_pattern_flags=(
-                glob.GLOBSTAR | glob.FOLLOW | glob.DOTGLOB | glob.BRACE
-                | glob.SPLIT | glob.GLOBTILDE | glob.NODIR
+                glob.GLOBSTAR
+                | glob.FOLLOW
+                | glob.DOTGLOB
+                | glob.BRACE
+                | glob.SPLIT
+                | glob.GLOBTILDE
+                | glob.NODIR
             ),
         )
 
@@ -2519,8 +2538,12 @@ def test_sanity_dotfile_without_dotglob(caplog):
             default="~/.myapprc",
             file_format_patterns={ConfigFormat.YAML: "*.yaml"},
             search_pattern_flags=(
-                glob.GLOBSTAR | glob.FOLLOW | glob.BRACE
-                | glob.SPLIT | glob.GLOBTILDE | glob.NODIR
+                glob.GLOBSTAR
+                | glob.FOLLOW
+                | glob.BRACE
+                | glob.SPLIT
+                | glob.GLOBTILDE
+                | glob.NODIR
             ),
         )
 
@@ -2536,8 +2559,12 @@ def test_sanity_dotfile_format_without_dotglob(caplog):
             default="~/configs/*",
             file_format_patterns={ConfigFormat.YAML: ".myapprc"},
             search_pattern_flags=(
-                glob.GLOBSTAR | glob.FOLLOW | glob.BRACE
-                | glob.SPLIT | glob.GLOBTILDE | glob.NODIR
+                glob.GLOBSTAR
+                | glob.FOLLOW
+                | glob.BRACE
+                | glob.SPLIT
+                | glob.GLOBTILDE
+                | glob.NODIR
             ),
         )
 
@@ -2553,8 +2580,13 @@ def test_sanity_dotfile_with_dotglob(caplog):
             default="~/.myapprc",
             file_format_patterns={ConfigFormat.YAML: "*.yaml"},
             search_pattern_flags=(
-                glob.GLOBSTAR | glob.FOLLOW | glob.DOTGLOB | glob.BRACE
-                | glob.SPLIT | glob.GLOBTILDE | glob.NODIR
+                glob.GLOBSTAR
+                | glob.FOLLOW
+                | glob.DOTGLOB
+                | glob.BRACE
+                | glob.SPLIT
+                | glob.GLOBTILDE
+                | glob.NODIR
             ),
         )
 
@@ -2569,8 +2601,13 @@ def test_sanity_no_explicit_default(caplog):
         ConfigOption(
             file_format_patterns={ConfigFormat.YAML: "*.yaml"},
             search_pattern_flags=(
-                glob.GLOBSTAR | glob.FOLLOW | glob.DOTGLOB | glob.BRACE
-                | glob.SPLIT | glob.GLOBTILDE | glob.NODIR
+                glob.GLOBSTAR
+                | glob.FOLLOW
+                | glob.DOTGLOB
+                | glob.BRACE
+                | glob.SPLIT
+                | glob.GLOBTILDE
+                | glob.NODIR
             ),
         )
 
@@ -2586,8 +2623,13 @@ def test_sanity_format_mismatch_without_explicit_default(caplog):
         ConfigOption(
             file_format_patterns={ConfigFormat.YAML: "*.toml"},
             search_pattern_flags=(
-                glob.GLOBSTAR | glob.FOLLOW | glob.DOTGLOB | glob.BRACE
-                | glob.SPLIT | glob.GLOBTILDE | glob.NODIR
+                glob.GLOBSTAR
+                | glob.FOLLOW
+                | glob.DOTGLOB
+                | glob.BRACE
+                | glob.SPLIT
+                | glob.GLOBTILDE
+                | glob.NODIR
             ),
         )
 

@@ -253,9 +253,7 @@ _RESERVED_CONFIG_KEYS = frozenset({DEFAULT_SUBCOMMANDS_KEY})
 """Configuration keys with special meaning that should not be treated as parameters."""
 
 
-def _strip_reserved_keys(
-    conf: dict, keys: frozenset[str] | None = None
-) -> dict:
+def _strip_reserved_keys(conf: dict, keys: frozenset[str] | None = None) -> dict:
     """Recursively return a copy of *conf* with reserved keys removed at every level."""
     if keys is None:
         keys = _RESERVED_CONFIG_KEYS
@@ -555,9 +553,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         # Check 1: broad glob + all-literal format patterns
         if default_is_magic:
             all_literal = all(
-                not glob.is_magic(
-                    p.replace("\\", "/"), flags=self.search_pattern_flags
-                )
+                not glob.is_magic(p.replace("\\", "/"), flags=self.search_pattern_flags)
                 for p in all_format_patterns
             )
             if all_literal:
@@ -722,9 +718,7 @@ class ConfigOption(ExtraOption, ParamStructure):
                 return True
         return bool(directory.exists() and not os.access(directory, os.R_OK))
 
-    def parent_patterns(
-        self, pattern: str
-    ) -> Iterable[tuple[str | None, str]]:
+    def parent_patterns(self, pattern: str) -> Iterable[tuple[str | None, str]]:
         """Generate ``(root_dir, file_pattern)`` pairs for searching.
 
         Each yielded pair can be passed directly to
@@ -1154,8 +1148,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             if user_conf is None:
                 formats = list(map(str, self.file_format_patterns))
                 message = (
-                    "Error parsing file as "
-                    f"{', '.join(formats[:-1])} or {formats[-1]}."
+                    f"Error parsing file as {', '.join(formats[:-1])} or {formats[-1]}."
                 )
                 if explicit_conf:
                     logger.critical(message)
@@ -1291,8 +1284,7 @@ class ValidateConfigOption(ExtraOption):
         if user_conf is None:
             formats = list(map(str, config_option.file_format_patterns))
             info_msg(
-                f"Error parsing {value} as "
-                f"{', '.join(formats[:-1])} or {formats[-1]}."
+                f"Error parsing {value} as {', '.join(formats[:-1])} or {formats[-1]}."
             )
             ctx.exit(2)
             return
