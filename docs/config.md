@@ -989,7 +989,7 @@ from click_extra import config_option, ConfigFormat
 
 @command(context_settings={"show_default": True})
 @config_option(
-    default="~/*",
+    default="~/.commandrc",
     file_format_patterns={ConfigFormat.YAML: ".commandrc"}
 )
 def cli():
@@ -999,7 +999,7 @@ def cli():
 ```{click:run}
 :emphasize-lines: 6
 result = invoke(cli, args=["--help"])
-assert "[default: ~/*]" in result.stdout
+assert "[default: ~/.commandrc]" in result.stdout
 ```
 
 ```{caution}

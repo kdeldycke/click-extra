@@ -55,7 +55,7 @@ from configparser import ConfigParser, ExtendedInterpolation
 from enum import Enum
 from functools import cached_property, partial
 from gettext import gettext as _
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import requests
 from boltons.iterutils import flatten, unique
@@ -504,6 +504,95 @@ class ConfigOption(ExtraOption, ParamStructure):
             expose_value=expose_value,
             **kwargs,
         )
+
+        self._check_pattern_sanity()
+
+    def _check_pattern_sanity(self) -> None:
+        """Emit DEBUG-level logs for common ``ConfigOption`` misconfigurations.
+
+        The checks help developers catch suboptimal patterns early when running
+        with debug logging enabled. Four categories are covered:
+
+        1. Broad glob + narrow (all-literal) format patterns.
+        2. Literal default whose filename doesn't match any format pattern.
+        3. Format/extension mismatch (unconditional).
+        4. Dotfile referenced without ``DOTGLOB`` in ``search_pattern_flags``.
+        """
+        logger = logging.getLogger("click_extra")
+
+        # --- Check 3 (unconditional): format/extension mismatch ---
+        # Build a reverse map: extension → canonical ConfigFormats.
+        ext_to_formats: dict[str, set[ConfigFormat]] = {}
+        for fmt in ConfigFormat:
+            for pat in fmt.patterns:
+                ext = PurePosixPath(pat).suffix
+                if ext:
+                    ext_to_formats.setdefault(ext, set()).add(fmt)
+
+        for fmt, patterns in self.file_format_patterns.items():
+            for pat in patterns:
+                ext = PurePosixPath(pat).suffix
+                if ext and ext in ext_to_formats:
+                    canonical = ext_to_formats[ext]
+                    if fmt not in canonical:
+                        canonical_names = ", ".join(sorted(f.name for f in canonical))
+                        logger.debug(
+                            f"Format pattern {pat!r} mapped to {fmt.name} but "
+                            f"extension {ext!r} is canonically associated with "
+                            f"{canonical_names}."
+                        )
+
+        # --- Checks 1, 2, 4 require an explicit default ---
+        if not isinstance(self.default, str):
+            return
+
+        file_part = PurePosixPath(self.default).name
+        default_is_magic = glob.is_magic(
+            self.default.replace("\\", "/"), flags=self.search_pattern_flags
+        )
+        all_format_patterns = tuple(flatten(self.file_format_patterns.values()))
+
+        # Check 1: broad glob + all-literal format patterns
+        if default_is_magic:
+            all_literal = all(
+                not glob.is_magic(
+                    p.replace("\\", "/"), flags=self.search_pattern_flags
+                )
+                for p in all_format_patterns
+            )
+            if all_literal:
+                logger.debug(
+                    f"Broad search pattern {self.default!r} with literal format "
+                    f"patterns {all_format_patterns!r}. The glob may scan many "
+                    f"files only to discard most of them."
+                )
+
+        # Check 2: literal default that never matches any format pattern
+        if not default_is_magic:
+            pattern_str = "|".join(all_format_patterns)
+            if not fnmatch.fnmatch(
+                file_part, pattern_str, flags=self.file_pattern_flags
+            ):
+                logger.debug(
+                    f"Literal search pattern {self.default!r} does not match "
+                    f"any format pattern ({pattern_str!r}). No config will ever "
+                    f"be found."
+                )
+
+        # Check 4: dotfile without DOTGLOB
+        if not (self.search_pattern_flags & glob.DOTGLOB):
+            dotfiles: list[str] = []
+            if file_part.startswith("."):
+                dotfiles.append(self.default)
+            for pat in all_format_patterns:
+                if PurePosixPath(pat).name.startswith("."):
+                    dotfiles.append(pat)
+            if dotfiles:
+                logger.debug(
+                    f"Dotfile(s) {dotfiles!r} referenced but DOTGLOB is not set "
+                    f"in search_pattern_flags. Hidden files may be skipped by "
+                    f"glob."
+                )
 
     @cached_property
     def excluded_params(self) -> frozenset[str]:  # type: ignore[override]

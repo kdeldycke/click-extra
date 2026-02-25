@@ -1998,6 +1998,54 @@ def test_validate_config_invalid_keys(invoke, create_config):
     assert "validation error" in result.stderr.lower()
 
 
+@pytest.mark.parametrize(
+    ("default_pattern", "expected_help_default"),
+    [
+        pytest.param("~/*", "~/*", id="broad_glob"),
+        pytest.param("~/.commandrc", "~/.commandrc", id="exact_path"),
+    ],
+)
+def test_extensionless_config(
+    invoke, create_config, default_pattern, expected_help_default
+):
+    """Both broad and exact default patterns resolve the same .commandrc file.
+
+    The ``default`` parameter is printed as-is on the help screen, so an exact
+    path is more informative than a broad glob, but both locate the same file.
+    """
+    conf_text = dedent("""\
+        extensionless-cli:
+            dummy_flag: true
+        """)
+    conf_path = create_config(".commandrc", conf_text)
+
+    @click.command(context_settings={"show_default": True})
+    @option("--dummy-flag/--no-flag")
+    @config_option(
+        default=default_pattern,
+        file_format_patterns={ConfigFormat.YAML: ".commandrc"},
+    )
+    def extensionless_cli(dummy_flag):
+        echo(f"dummy_flag = {dummy_flag!r}")
+
+    # Help screen shows the raw default pattern as-is.
+    result = invoke(extensionless_cli, "--help", color=False)
+    assert result.exit_code == 0
+    # Join wrapped lines to match the default value regardless of terminal width.
+    help_screen = " ".join(result.stdout.split())
+    assert f"[default: {expected_help_default}]" in help_screen
+
+    # Both patterns resolve the same config file.
+    result = invoke(
+        extensionless_cli,
+        "--config",
+        str(conf_path),
+        color=False,
+    )
+    assert result.exit_code == 0
+    assert result.stdout == "dummy_flag = True\n"
+
+
 def test_validate_config_unparseable(invoke, create_config):
     """--validate-config with garbage content exits 2."""
     conf_path = create_config("garbage.toml", "{{{{ not valid anything >>>")
@@ -2353,3 +2401,191 @@ def test_default_subcommand_cli_override_debug_log(invoke, create_config):
     assert "sync ran" in result.output
     assert "backup ran" not in result.output
     assert "ignoring _default_subcommands" in result.stderr.lower()
+
+
+# --- _check_pattern_sanity tests ---
+
+
+def test_sanity_broad_glob_narrow_format(caplog):
+    """Broad glob + all-literal format patterns triggers a debug log."""
+    from wcmatch import glob
+
+    with caplog.at_level(logging.DEBUG, logger="click_extra"):
+        ConfigOption(
+            default="~/*",
+            file_format_patterns={ConfigFormat.YAML: ".commandrc"},
+            search_pattern_flags=(
+                glob.GLOBSTAR | glob.FOLLOW | glob.DOTGLOB | glob.BRACE
+                | glob.SPLIT | glob.GLOBTILDE | glob.NODIR
+            ),
+        )
+
+    assert "Broad search pattern" in caplog.text
+    assert "literal format patterns" in caplog.text
+
+
+def test_sanity_broad_glob_wildcard_format(caplog):
+    """Broad glob + wildcard format patterns does NOT trigger the warning."""
+    from wcmatch import glob
+
+    with caplog.at_level(logging.DEBUG, logger="click_extra"):
+        ConfigOption(
+            default="~/*",
+            file_format_patterns={ConfigFormat.YAML: "*.yaml"},
+            search_pattern_flags=(
+                glob.GLOBSTAR | glob.FOLLOW | glob.DOTGLOB | glob.BRACE
+                | glob.SPLIT | glob.GLOBTILDE | glob.NODIR
+            ),
+        )
+
+    assert "Broad search pattern" not in caplog.text
+
+
+def test_sanity_disjoint_patterns(caplog):
+    """Literal default not matching any format pattern triggers a debug log."""
+    from wcmatch import glob
+
+    with caplog.at_level(logging.DEBUG, logger="click_extra"):
+        ConfigOption(
+            default="/etc/myapp/config.conf",
+            file_format_patterns={ConfigFormat.TOML: "*.toml"},
+            search_pattern_flags=(
+                glob.GLOBSTAR | glob.FOLLOW | glob.DOTGLOB | glob.BRACE
+                | glob.SPLIT | glob.GLOBTILDE | glob.NODIR
+            ),
+        )
+
+    assert "does not match any format pattern" in caplog.text
+
+
+def test_sanity_disjoint_matching_literal(caplog):
+    """Literal default matching a format pattern does NOT trigger the warning."""
+    from wcmatch import glob
+
+    with caplog.at_level(logging.DEBUG, logger="click_extra"):
+        ConfigOption(
+            default="/etc/myapp/config.toml",
+            file_format_patterns={ConfigFormat.TOML: "*.toml"},
+            search_pattern_flags=(
+                glob.GLOBSTAR | glob.FOLLOW | glob.DOTGLOB | glob.BRACE
+                | glob.SPLIT | glob.GLOBTILDE | glob.NODIR
+            ),
+        )
+
+    assert "does not match any format pattern" not in caplog.text
+
+
+def test_sanity_format_extension_mismatch(caplog):
+    """Format pattern extension mismatching its format triggers a debug log."""
+    from wcmatch import glob
+
+    with caplog.at_level(logging.DEBUG, logger="click_extra"):
+        ConfigOption(
+            file_format_patterns={ConfigFormat.YAML: "*.toml"},
+            search_pattern_flags=(
+                glob.GLOBSTAR | glob.FOLLOW | glob.DOTGLOB | glob.BRACE
+                | glob.SPLIT | glob.GLOBTILDE | glob.NODIR
+            ),
+        )
+
+    assert "canonically associated" in caplog.text
+
+
+def test_sanity_format_extension_correct(caplog):
+    """Correctly-matched format extension does NOT trigger the warning."""
+    from wcmatch import glob
+
+    with caplog.at_level(logging.DEBUG, logger="click_extra"):
+        ConfigOption(
+            file_format_patterns={ConfigFormat.YAML: "*.yaml"},
+            search_pattern_flags=(
+                glob.GLOBSTAR | glob.FOLLOW | glob.DOTGLOB | glob.BRACE
+                | glob.SPLIT | glob.GLOBTILDE | glob.NODIR
+            ),
+        )
+
+    assert "canonically associated" not in caplog.text
+
+
+def test_sanity_dotfile_without_dotglob(caplog):
+    """Dotfile in default without DOTGLOB triggers a debug log."""
+    from wcmatch import glob
+
+    with caplog.at_level(logging.DEBUG, logger="click_extra"):
+        ConfigOption(
+            default="~/.myapprc",
+            file_format_patterns={ConfigFormat.YAML: "*.yaml"},
+            search_pattern_flags=(
+                glob.GLOBSTAR | glob.FOLLOW | glob.BRACE
+                | glob.SPLIT | glob.GLOBTILDE | glob.NODIR
+            ),
+        )
+
+    assert "DOTGLOB is not set" in caplog.text
+
+
+def test_sanity_dotfile_format_without_dotglob(caplog):
+    """Dotfile in format patterns without DOTGLOB triggers a debug log."""
+    from wcmatch import glob
+
+    with caplog.at_level(logging.DEBUG, logger="click_extra"):
+        ConfigOption(
+            default="~/configs/*",
+            file_format_patterns={ConfigFormat.YAML: ".myapprc"},
+            search_pattern_flags=(
+                glob.GLOBSTAR | glob.FOLLOW | glob.BRACE
+                | glob.SPLIT | glob.GLOBTILDE | glob.NODIR
+            ),
+        )
+
+    assert "DOTGLOB is not set" in caplog.text
+
+
+def test_sanity_dotfile_with_dotglob(caplog):
+    """Dotfile with DOTGLOB does NOT trigger the warning."""
+    from wcmatch import glob
+
+    with caplog.at_level(logging.DEBUG, logger="click_extra"):
+        ConfigOption(
+            default="~/.myapprc",
+            file_format_patterns={ConfigFormat.YAML: "*.yaml"},
+            search_pattern_flags=(
+                glob.GLOBSTAR | glob.FOLLOW | glob.DOTGLOB | glob.BRACE
+                | glob.SPLIT | glob.GLOBTILDE | glob.NODIR
+            ),
+        )
+
+    assert "DOTGLOB is not set" not in caplog.text
+
+
+def test_sanity_no_explicit_default(caplog):
+    """Without an explicit string default, checks 1/2/4 are skipped."""
+    from wcmatch import glob
+
+    with caplog.at_level(logging.DEBUG, logger="click_extra"):
+        ConfigOption(
+            file_format_patterns={ConfigFormat.YAML: "*.yaml"},
+            search_pattern_flags=(
+                glob.GLOBSTAR | glob.FOLLOW | glob.DOTGLOB | glob.BRACE
+                | glob.SPLIT | glob.GLOBTILDE | glob.NODIR
+            ),
+        )
+
+    assert "Broad search pattern" not in caplog.text
+    assert "does not match" not in caplog.text
+
+
+def test_sanity_format_mismatch_without_explicit_default(caplog):
+    """Check 3 (format mismatch) runs even without explicit default."""
+    from wcmatch import glob
+
+    with caplog.at_level(logging.DEBUG, logger="click_extra"):
+        ConfigOption(
+            file_format_patterns={ConfigFormat.YAML: "*.toml"},
+            search_pattern_flags=(
+                glob.GLOBSTAR | glob.FOLLOW | glob.DOTGLOB | glob.BRACE
+                | glob.SPLIT | glob.GLOBTILDE | glob.NODIR
+            ),
+        )
+
+    assert "canonically associated" in caplog.text
