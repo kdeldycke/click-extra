@@ -473,8 +473,7 @@ class ExtraGroup(ExtraCommand, cloup.Group):  # type: ignore[misc]
         # Validate type.
         if not isinstance(raw, list) or not all(isinstance(s, str) for s in raw):
             raise click.UsageError(
-                f"{DEFAULT_SUBCOMMANDS_KEY} must be a list of strings, "
-                f"got {raw!r}."
+                f"{DEFAULT_SUBCOMMANDS_KEY} must be a list of strings, got {raw!r}."
             )
 
         if not raw:
@@ -507,8 +506,7 @@ class ExtraGroup(ExtraCommand, cloup.Group):  # type: ignore[misc]
         for name in raw:
             if self.get_command(ctx, name) is None:
                 raise click.UsageError(
-                    f"Default subcommand {name!r} not found in "
-                    f"group {self.name!r}."
+                    f"Default subcommand {name!r} not found in group {self.name!r}."
                 )
 
         return raw

@@ -190,8 +190,13 @@ class ClickRunner(CliRunner):
                 input += "\x04"
 
         result = super().invoke(
-            cli=cli, args=args, input=input, env=env, prog_name=prog_name,
-            color=True, **extra,
+            cli=cli,
+            args=args,
+            input=input,
+            env=env,
+            prog_name=prog_name,
+            color=True,
+            **extra,
         )
         # TODO: Maybe we can intercept the exception here either make it:
         # - part of the output in the rendered Sphinx code block, or
