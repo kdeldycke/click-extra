@@ -291,3 +291,62 @@ def test_color_option_precedence(invoke):
     )
     assert not result.stderr
     assert result.exit_code == 0
+
+
+@pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
+def test_dev_version_appends_git_hash(invoke, cmd_decorator):
+    """A ``.dev`` version gets a ``+hash`` suffix appended (or not, if git is
+    unavailable)."""
+
+    @cmd_decorator
+    @version_option(module_version="1.0.0.dev1")
+    def dev_cli():
+        echo("It works!")
+
+    result = invoke(dev_cli, "--version", color=False)
+    ver = strip_ansi(result.output).split("version ")[-1].strip()
+    # Either plain dev version (no git) or with +hash suffix.
+    assert re.fullmatch(r"1\.0\.0\.dev1(\+[a-f0-9]{4,40})?", ver)
+    assert result.exit_code == 0
+
+
+@pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
+def test_prebaked_dev_version_not_double_suffixed(invoke, cmd_decorator):
+    """A version with an existing ``+`` is returned as-is — no second hash appended."""
+
+    @cmd_decorator
+    @version_option(module_version="1.0.0.dev1+abc1234")
+    def prebaked_cli():
+        echo("It works!")
+
+    result = invoke(prebaked_cli, "--version", color=False)
+    ver = strip_ansi(result.output).split("version ")[-1].strip()
+    assert ver == "1.0.0.dev1+abc1234"
+    assert result.exit_code == 0
+
+
+@pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
+def test_release_version_unchanged(invoke, cmd_decorator):
+    """A non-dev version is never modified."""
+
+    @cmd_decorator
+    @version_option(module_version="2.5.0")
+    def release_cli():
+        echo("It works!")
+
+    result = invoke(release_cli, "--version", color=False)
+    ver = strip_ansi(result.output).split("version ")[-1].strip()
+    assert ver == "2.5.0"
+    assert result.exit_code == 0
+
+
+def __test_inplace_context():
+    @click.command
+    @version_option
+    def cli():
+        pass
+
+    with cli.make_context("foo", []) as ctx:
+        for field in ExtraVersionOption.template_fields:
+            value = ctx.meta[f"click_extra.{field}"]
+            assert value is not None

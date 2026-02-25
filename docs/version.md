@@ -218,6 +218,30 @@ For example, a version like `1.2.3.dev0` becomes `1.2.3.dev0+6e59c8c1` during de
 
 If Git is not available or the CLI is not running from a Git repository, the plain `.dev` version is returned as-is.
 
+### Pre-baked versions
+
+If the version string already contains a `+` (a [PEP 440 local version identifier](https://peps.python.org/pep-0440/#local-version-identifiers)), Click Extra assumes the hash was pre-baked at build time and returns the version as-is, without appending a second hash.
+
+This is useful for CI pipelines or [Nuitka](https://nuitka.net) binaries where `git` is not available at runtime but the build step can inject the commit hash into `__version__` before compilation:
+
+```{click:source}
+:emphasize-lines: 5
+import click
+import click_extra
+
+__version__ = "1.2.3.dev0+abc1234"
+
+@click.command
+@click_extra.version_option()
+def prebaked_cli():
+    pass
+```
+
+```{click:run}
+result = invoke(prebaked_cli, args=["--version"])
+assert result.output == "\x1b[97mprebaked-cli\x1b[0m, version \x1b[32m1.2.3.dev0+abc1234\x1b[0m\n"
+```
+
 ## Colors
 
 Each variable listed in the section above can be rendered in its own style. They all have dedicated parameters you can pass to the `version_option` decorator:

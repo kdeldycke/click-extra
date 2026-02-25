@@ -18,6 +18,7 @@
 - Switch back from `SPLIT` to `BRACE` flag for multi-format config file patterns. Fixes a bug where only the first format received the directory prefix with `SPLIT`.
 - Hard code icon workaround for Sphinx index entries.
 - Automatically append Git short hash as a PEP 440 local version identifier to `.dev` versions (e.g., `1.2.3.dev0+abc1234`).
+- Skip Git hash suffix for versions that already contain `+` (pre-baked local identifiers) to avoid invalid double-suffixed versions.
 
 ## [7.5.3 (2026-02-22)](https://github.com/kdeldycke/click-extra/compare/v7.5.2...v7.5.3)
 

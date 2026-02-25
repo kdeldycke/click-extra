@@ -446,9 +446,14 @@ class ExtraVersionOption(ExtraOption):
         versions like ``1.2.3.dev0+abc1234``. This helps identify the exact commit a
         dev build was produced from. If Git is unavailable, the plain dev version is
         returned.
+
+        Versions that already contain a ``+`` (i.e., a pre-baked local version
+        identifier, typically set at build time by CI pipelines) are returned as-is
+        to avoid producing invalid double-suffixed versions like
+        ``1.2.3.dev0+abc1234+xyz5678``.
         """
         ver = self.module_version or self.package_version
-        if ver and ".dev" in ver:
+        if ver and ".dev" in ver and "+" not in ver:
             git_hash = self.git_short_hash
             if git_hash:
                 return f"{ver}+{git_hash}"
