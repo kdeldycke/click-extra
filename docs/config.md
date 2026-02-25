@@ -246,6 +246,7 @@ int_param = 3
 ```
 
 ```{code-block} shell-session
+:emphasize-lines: 1-2
 $ my-cli --validate-config good.toml
 Configuration file good.toml is valid.
 $ echo $?
@@ -256,12 +257,14 @@ A configuration file with unrecognized keys:
 
 ```{code-block} toml
 :caption: `bad.toml`
+:emphasize-lines: 3
 [my-cli]
 dummy_flag = true
 unknown_key = "oops"
 ```
 
 ```{code-block} shell-session
+:emphasize-lines: 2
 $ my-cli --validate-config bad.toml
 Configuration validation error: Parameter 'unknown_key' found in second dict but not in first.
 $ echo $?
@@ -271,6 +274,7 @@ $ echo $?
 An unparseable file produces exit code 2:
 
 ```{code-block} shell-session
+:emphasize-lines: 2,4
 $ my-cli --validate-config garbage.txt
 Error parsing garbage.txt as TOML, YAML, JSON, INI, XML or pyproject.toml.
 $ echo $?
@@ -286,7 +290,7 @@ The exit codes are:
 | `2` | File not found or cannot be parsed |
 
 ```{note}
-`--validate-config` always validates in strict mode, regardless of the `strict` setting on `@config_option`. It requires a sibling `@config_option` decorator to be present on the same command.
+`--validate-config` always validates in [strict mode](#strictness), regardless of the `strict` setting on `@config_option`. It requires a sibling `@config_option` decorator to be present on the same command.
 ```
 
 ## Excluding parameters
@@ -321,7 +325,7 @@ If you have difficulties identifying your options and their IDs, run your CLI wi
 The [`included_params`](#click_extra.config.ConfigOption.included_params) argument is the inverse of `excluded_params`: only the listed parameters will be loaded from the configuration file. All other parameters found in the configuration will be ignored.
 
 ```{code-block} python
-:emphasize-lines: 7
+:emphasize-lines: 6,8
 from click import command, option, echo
 
 from click_extra import config_option
@@ -350,7 +354,7 @@ Like `excluded_params`, you need to provide the fully-qualified ID of the option
 By default, `@config_option` automatically searches for configuration files in the [default application folder](#default-folder). If you want to disable this autodiscovery and only load a configuration file when the user explicitly passes `--config <path>`, use the `NO_CONFIG` sentinel as the default:
 
 ```{code-block} python
-:emphasize-lines: 2,7
+:emphasize-lines: 2,6
 from click import group, option, echo
 from click_extra import config_option, NO_CONFIG
 
@@ -397,6 +401,7 @@ def sync():
 And this TOML configuration:
 
 ```toml
+:emphasize-lines: 2
 [my-cli]
 _default_subcommands = ["backup"]
 
@@ -407,6 +412,7 @@ path = "/home"
 Running `my-cli` alone will automatically invoke the `backup` subcommand:
 
 ```shell-session
+:emphasize-lines: 2
 $ my-cli
 Backing up /home
 ```
@@ -416,11 +422,13 @@ Backing up /home
 For groups created with `chain=True`, you can list multiple default subcommands. They run in the order specified:
 
 ```toml
+:emphasize-lines: 2
 [my-cli]
 _default_subcommands = ["backup", "sync"]
 ```
 
 ```shell-session
+:emphasize-lines: 2-3
 $ my-cli
 Backing up /home
 Syncing
@@ -588,7 +596,7 @@ Write example.
 
 The `PYPROJECT_TOML` format reads `[tool.<cli-name>]` sections from a `pyproject.toml` file, following [PEP 518](https://peps.python.org/pep-0518/). This is useful for any CLI tool that wants to store its configuration alongside project metadata — not just Python projects. Tools like [ruff](https://docs.astral.sh/ruff/configuration/#configuring-ruff) and [typos](https://github.com/crate-ci/typos/blob/master/docs/reference.md), which are not Python projects, all use this convention, to play nice with other communities and increase adoption.
 
-`PYPROJECT_TOML` is included in the default format patterns, so it is automatically discovered alongside other formats. The `[tool]` wrapper is automatically unwrapped: `merge_default_map` sees `{"cli": {"int_param": 3}}` — exactly the same structure as a regular TOML config file.
+`PYPROJECT_TOML` is included in the default format patterns, so it is automatically discovered alongside other formats. The `[tool]` wrapper is automatically unwrapped: `merge_default_map` sees `{"cli": {"int_param": 3}}` — exactly the [same structure as a regular TOML config file](#toml).
 
 Given a `pyproject.toml` in the search path:
 
@@ -617,7 +625,7 @@ def cli(int_param):
     echo(f"int_parameter is {int_param!r}")
 ```
 
-Running `cli` from anywhere inside the project tree will find `pyproject.toml` at the repository root and apply `[tool.cli]` values. The walk automatically stops at the VCS root (the default `stop_at=VCS` behavior).
+Running `cli` from anywhere inside the project tree will find `pyproject.toml` at the repository root and apply `[tool.cli]` values. The walk [automatically stops at the VCS root](#walk-boundaries).
 
 ```{seealso}
 Other non-Python tools that support `[tool.*]` in `pyproject.toml`:
@@ -721,7 +729,7 @@ from click import command
 from click_extra import config_option
 
 @command(context_settings={"show_default": True})
-@config_option(default="~/my_special_folder/*.toml|*.conf")
+@config_option(default="~/my_special_folder/*.toml")
 def cli():
     pass
 ```
@@ -729,7 +737,7 @@ def cli():
 ```{click:run}
 :emphasize-lines: 7
 result = invoke(cli, args=["--help"])
-assert "~/my_special_folder/*.toml|*.conf]" in result.stdout
+assert "~/my_special_folder/*.toml]" in result.stdout
 ```
 
 The rules for the pattern are described in the next section.
