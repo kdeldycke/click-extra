@@ -453,7 +453,7 @@ def test_conf_not_found(invoke, simple_config_cli, conf_path):
     assert result.exit_code == 2
 
 
-def test_conf_unparseable(invoke, simple_config_cli, create_config):
+def test_conf_unparsable(invoke, simple_config_cli, create_config):
     """Explicit --config pointing to a file with garbage content."""
     conf_path = create_config("garbage.toml", "{{{{ not valid anything >>>")
     result = invoke(
@@ -2049,7 +2049,7 @@ def test_extensionless_config(
     assert result.stdout == "dummy_flag = True\n"
 
 
-def test_validate_config_unparseable(invoke, create_config):
+def test_validate_config_unparsable(invoke, create_config):
     """--validate-config with garbage content exits 2."""
     conf_path = create_config("garbage.toml", "{{{{ not valid anything >>>")
 

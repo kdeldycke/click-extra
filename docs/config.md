@@ -271,7 +271,7 @@ $ echo $?
 1
 ```
 
-An unparseable file produces exit code 2:
+An unparsable file produces exit code 2:
 
 ```{code-block} shell-session
 :emphasize-lines: 2,4
