@@ -316,6 +316,35 @@ You need to provide the fully-qualified ID of the option you're looking to block
 If you have difficulties identifying your options and their IDs, run your CLI with the [`--show-params` option](#show-params-option) for introspection.
 ```
 
+## Including parameters
+
+The [`included_params`](#click_extra.config.ConfigOption.included_params) argument is the inverse of `excluded_params`: only the listed parameters will be loaded from the configuration file. All other parameters found in the configuration will be ignored.
+
+```{code-block} python
+:emphasize-lines: 7
+from click import command, option, echo
+
+from click_extra import config_option
+
+@command
+@option("--flag-a/--no-flag-a")
+@option("--flag-b/--no-flag-b")
+@config_option(included_params=("my-cli.flag_a",))
+def my_cli(flag_a, flag_b):
+    echo(f"flag_a={flag_a!r}")
+    echo(f"flag_b={flag_b!r}")
+```
+
+In the example above, only `flag_a` will be loaded from configuration. `flag_b` will keep its CLI default even if it is present in the configuration file.
+
+```{caution}
+`included_params` and `excluded_params` are mutually exclusive. Providing both will raise a `ValueError`.
+```
+
+```{hint}
+Like `excluded_params`, you need to provide the fully-qualified ID of the option. Run your CLI with the [`--show-params` option](#show-params-option) to discover parameter IDs.
+```
+
 ## Disabling autodiscovery
 
 By default, `@config_option` automatically searches for configuration files in the [default application folder](#default-folder). If you want to disable this autodiscovery and only load a configuration file when the user explicitly passes `--config <path>`, use the `NO_CONFIG` sentinel as the default:
