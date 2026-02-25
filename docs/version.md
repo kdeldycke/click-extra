@@ -80,6 +80,10 @@ You can customize the message template with the following variables:
 | [`{prog_name}`](#click_extra.version.ExtraVersionOption.prog_name)             | The name of the program, from Click's point of view.                                                                                                                                   |
 | [`{env_info}`](#click_extra.version.ExtraVersionOption.env_info)               | The [environment information](https://boltons.readthedocs.io/en/latest/ecoutils.html#boltons.ecoutils.get_profile) in JSON.                                                            |
 
+```{note}
+The ``git_*`` variables are evaluated at runtime by calling ``git``. They return ``None`` in environments where Git is not available (e.g., standalone Nuitka binaries, Docker containers without Git). This is distinct from ``{version}``, which can be [pre-baked at build time](#pre-baked-versions) to include the commit hash.
+```
+
 ```{error}
 Some Click's built-in variables are not recognized:
 - `%(package)s` should be replaced by `{package_name}`
