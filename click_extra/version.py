@@ -439,14 +439,20 @@ class ExtraVersionOption(ExtraOption):
         Else returns the package version if the CLI is implemented in a package, using
         `importlib.metadata.version()
         <https://docs.python.org/3/library/importlib.metadata.html?highlight=metadata#distribution-versions>`_.
+
+        For development versions (containing ``.dev``), automatically appends the Git
+        short hash as a `PEP 440 local version identifier
+        <https://peps.python.org/pep-0440/#local-version-identifiers>`_, producing
+        versions like ``1.2.3.dev0+abc1234``. This helps identify the exact commit a
+        dev build was produced from. If Git is unavailable, the plain dev version is
+        returned.
         """
-        if self.module_version:
-            return self.module_version
-
-        if self.package_version:
-            return self.package_version
-
-        return None
+        ver = self.module_version or self.package_version
+        if ver and ".dev" in ver:
+            git_hash = self.git_short_hash
+            if git_hash:
+                return f"{ver}+{git_hash}"
+        return ver or None
 
     @cached_property
     def git_repo_path(self) -> Path | None:

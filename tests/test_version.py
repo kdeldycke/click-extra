@@ -51,6 +51,10 @@ from click_extra.pytest import (
 
 from .conftest import skip_windows_colors
 
+# Regex matching the version with optional PEP 440 local version suffix for dev
+# versions (e.g., "7.6.0.dev0+abc1234").
+_ver = re.escape(__version__) + r"(\+[a-f0-9]{4,40})?"
+
 
 @skip_windows_colors
 @pytest.mark.parametrize("cmd_decorator", command_decorators())
@@ -62,8 +66,9 @@ def test_standalone_version_option(invoke, cmd_decorator, option_decorator):
         echo("It works!")
 
     result = invoke(standalone_option, "--version", color=True)
-    assert result.output == (
-        f"\x1b[97mstandalone-option\x1b[0m, version \x1b[32m{__version__}\x1b[0m\n"
+    assert re.fullmatch(
+        rf"\x1b\[97mstandalone-option\x1b\[0m, version \x1b\[32m{_ver}\x1b\[0m\n",
+        result.output,
     )
     assert result.exit_code == 0
 
@@ -86,7 +91,7 @@ def test_debug_output(invoke, cmd_decorator, option_decorator, assert_output_reg
             default_debug_colored_logging
             + default_debug_colored_version_details
             + r"\x1b\[97mdebug-output\x1b\[0m, "
-            rf"version \x1b\[32m{re.escape(__version__)}\x1b\[0m\n"
+            rf"version \x1b\[32m{_ver}\x1b\[0m\n"
             + default_debug_colored_log_end
         ),
     )
@@ -116,13 +121,13 @@ def test_set_version(invoke):
         (
             "{prog_name}, version {version}",
             r"\x1b\[97mcolor-cli3\x1b\[0m, "
-            rf"version \x1b\[32m{re.escape(__version__)}"
+            rf"version \x1b\[32m{_ver}"
             r"\x1b\[0m\n",
         ),
         (
             "{prog_name}, version {version}\n{env_info}",
             r"\x1b\[97mcolor-cli3\x1b\[0m, "
-            rf"version \x1b\[32m{re.escape(__version__)}"
+            rf"version \x1b\[32m{_ver}"
             r"\x1b\[0m\n"
             r"\x1b\[90m{'.+'}"
             r"\x1b\[0m\n",
@@ -130,7 +135,7 @@ def test_set_version(invoke):
         (
             "{prog_name} v{version} - {package_name}",
             r"\x1b\[97mcolor-cli3\x1b\[0m "
-            rf"v\x1b\[32m{re.escape(__version__)}"
+            rf"v\x1b\[32m{_ver}"
             r"\x1b\[0m - "
             r"\x1b\[97mclick_extra"
             r"\x1b\[0m\n",
@@ -138,7 +143,7 @@ def test_set_version(invoke):
         (
             "{prog_name}, version {version} (Python {env_info[python][version]})",
             r"\x1b\[97mcolor-cli3\x1b\[0m, "
-            rf"version \x1b\[32m{re.escape(__version__)}\x1b\[0m "
+            rf"version \x1b\[32m{_ver}\x1b\[0m "
             r"\(Python \x1b\[90m3\.\d+\.\d+.+\x1b\[0m\)\n",
         ),
     ),
@@ -189,10 +194,11 @@ def test_custom_message_style(invoke, cmd_decorator):
         pass
 
     result = invoke(custom_style, "--version", color=True)
-    assert result.output == (
-        "\x1b[32m\x1b[1mcustom-style\x1b[0m\x1b[36m "
-        f"v\x1b[0m\x1b[93m\x1b[41m{__version__}\x1b[0m\x1b[36m - "
-        "\x1b[0m\x1b[94m\x1b[3mclick_extra\x1b[0m\x1b[36m (latest)\x1b[0m\n"
+    assert re.fullmatch(
+        r"\x1b\[32m\x1b\[1mcustom-style\x1b\[0m\x1b\[36m "
+        rf"v\x1b\[0m\x1b\[93m\x1b\[41m{_ver}\x1b\[0m\x1b\[36m - "
+        r"\x1b\[0m\x1b\[94m\x1b\[3mclick_extra\x1b\[0m\x1b\[36m \(latest\)\x1b\[0m\n",
+        result.output,
     )
     assert not result.stderr
     assert result.exit_code == 0
@@ -218,9 +224,9 @@ def test_context_meta(invoke, cmd_decorator, assert_output_regex):
             r"module_file = .+testing\.py\n"
             rf"module_version = None\n"
             r"package_name = click_extra\n"
-            rf"package_version = {__version__}\n"
+            r"package_version = \S+\n"
             r"exec_name = click_extra\.testing\n"
-            rf"version = {__version__}\n"
+            r"version = \S+\n"
             r"git_repo_path = .+\n"
             r"git_branch = .+\n"
             r"git_long_hash = [a-f0-9]{40}\n"

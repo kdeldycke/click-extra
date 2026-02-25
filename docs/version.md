@@ -71,7 +71,7 @@ You can customize the message template with the following variables:
 | [`{package_name}`](#click_extra.version.ExtraVersionOption.package_name)       | The [name of the package](https://docs.python.org/3/reference/datamodel.html#module.__package__) in which the CLI is distributed.                                                                  |
 | [`{package_version}`](#click_extra.version.ExtraVersionOption.package_version) | The [version from the package metadata](https://docs.python.org/3/library/importlib.metadata.html?highlight=metadata%20version#distribution-versions) in which the CLI is distributed. |
 | [`{exec_name}`](#click_extra.version.ExtraVersionOption.exec_name)             | User-friendly name of the executed CLI. Returns `{module_name}`, `{package_name}` or script's filename, in this order.                                                                 |
-| [`{version}`](#click_extra.version.ExtraVersionOption.version)                 | Version of the CLI. Returns `{module_version}`, `{package_version}` or `None`, in this order.                                                                                          |
+| [`{version}`](#click_extra.version.ExtraVersionOption.version)                 | Version of the CLI. Returns `{module_version}`, `{package_version}` or `None`, in this order. For [`.dev` versions](#development-versions), automatically appends the Git commit hash. |
 | [`{git_repo_path}`](#click_extra.version.ExtraVersionOption.git_repo_path)     | The full path to the Git repository root directory, or `None` if not in a Git repository.                                                                                              |
 | [`{git_branch}`](#click_extra.version.ExtraVersionOption.git_branch)           | The current Git branch name, or `None` if not in a Git repository or Git is not available.                                                                                             |
 | [`{git_long_hash}`](#click_extra.version.ExtraVersionOption.git_long_hash)     | The full Git commit hash of the current `HEAD`, or `None` if not in a Git repository or Git is not available.                                                                           |
@@ -185,6 +185,38 @@ The `__version__` variable is [not an enforced Python standard](https://peps.pyt
 
 It is supported by Click Extra as a convenience for script developers.
 ```
+
+## Development versions
+
+When the version string contains `.dev` (as in [PEP 440 development releases](https://peps.python.org/pep-0440/#developmental-releases)), Click Extra automatically appends the Git short commit hash as a [PEP 440 local version identifier](https://peps.python.org/pep-0440/#local-version-identifiers).
+
+This lets you identify exactly which commit a development build was produced from:
+
+```{click:source}
+:emphasize-lines: 5
+import click
+import click_extra
+
+__version__ = "1.2.3.dev0"
+
+@click.command
+@click_extra.version_option()
+def dev_cli():
+    pass
+```
+
+```{click:run}
+import re
+result = invoke(dev_cli, args=["--version"])
+assert re.fullmatch(
+    r"\x1b\[97mdev-cli\x1b\[0m, version \x1b\[32m1\.2\.3\.dev0(\+[a-f0-9]{4,40})?\x1b\[0m\n",
+    result.output,
+)
+```
+
+For example, a version like `1.2.3.dev0` becomes `1.2.3.dev0+6e59c8c1` during development. Release versions (without `.dev`) are never modified.
+
+If Git is not available or the CLI is not running from a Git repository, the plain `.dev` version is returned as-is.
 
 ## Colors
 
