@@ -179,6 +179,8 @@ color_envvars = {
     "NOCOLORS": False,
     "NO_COLOR": False,
     "NO_COLORS": False,
+    # LLM agents have no use for ANSI codes.
+    "LLM": False,
 }
 """List of environment variables recognized as flags to switch color rendering on or
 off.
@@ -192,6 +194,7 @@ Source:
 - https://github.com/pallets/click/issues/1090
 - https://github.com/pallets/click/issues/1498
 - https://github.com/pallets/click/issues/3022
+- https://blog.codemine.be/posts/2026/20260222-be-quiet/
 """
 
 

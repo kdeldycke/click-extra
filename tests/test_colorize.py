@@ -51,7 +51,7 @@ from click_extra import (
     style,
     verbosity_option,
 )
-from click_extra.colorize import default_theme as theme
+from click_extra.colorize import color_envvars, default_theme as theme
 from click_extra.colorize import highlight
 from click_extra.pytest import (
     command_decorators,
@@ -732,6 +732,13 @@ def test_standalone_color_option(
         ({"NO_COLOR": "False"}, True),
         ({"NO_COLOR": "false"}, True),
         ({"NO_COLOR": "0"}, True),
+        ({"LLM": "True"}, False),
+        ({"LLM": "true"}, False),
+        ({"LLM": "1"}, False),
+        ({"LLM": ""}, False),
+        ({"LLM": "False"}, True),
+        ({"LLM": "false"}, True),
+        ({"LLM": "0"}, True),
         (None, True),
     ),
 )
@@ -756,6 +763,11 @@ def test_no_color_env_convention(
     @color_option
     def color_cli7():
         echo(Style(fg="yellow")("It works!"))
+
+    # Unset all recognized color env vars so the outer environment (e.g.
+    # LLM=1 set by AI agents) doesn't leak into the baseline case.
+    if env is None:
+        env = {var: None for var in color_envvars if var in os.environ}
 
     result = invoke(color_cli7, param, color=True, env=env)
 

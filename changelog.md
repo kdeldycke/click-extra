@@ -19,6 +19,7 @@
 - Hard code icon workaround for Sphinx index entries.
 - Automatically append Git short hash as a PEP 440 local version identifier to `.dev` versions (e.g., `1.2.3.dev0+abc1234`).
 - Skip Git hash suffix for versions that already contain `+` (pre-baked local identifiers) to avoid invalid double-suffixed versions.
+- Recognize `LLM` environment variable to strip ANSI codes when running under an AI agent.
 
 ## [7.5.3 (2026-02-22)](https://github.com/kdeldycke/click-extra/compare/v7.5.2...v7.5.3)
 
