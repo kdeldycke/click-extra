@@ -2081,15 +2081,17 @@ def test_validate_config_missing_file(invoke, tmp_path):
     assert result.exit_code == 2
 
 
-def test_validate_config_requires_config_option(invoke):
+def test_validate_config_requires_config_option(invoke, tmp_path):
     """--validate-config without @config_option raises RuntimeError."""
+    dummy = tmp_path / "dummy.toml"
+    dummy.touch()
 
     @click.command
     @validate_config_option
     def missing_config():
         echo("Hello, World!")
 
-    result = invoke(missing_config, "--validate-config", "/dev/null")
+    result = invoke(missing_config, "--validate-config", str(dummy))
 
     assert result.exception
     assert type(result.exception) is RuntimeError

@@ -689,7 +689,15 @@ class ConfigOption(ExtraOption, ParamStructure):
         if default is NO_CONFIG:
             extra["default"] = "disabled"
         elif self.search_pattern_flags & glob.GLOBTILDE:
-            extra["default"] = shrinkuser(Path(default))
+            # When the default already starts with ``~`` (user-supplied tilde
+            # pattern), use it as-is.  Passing through ``Path()`` would
+            # normalise forward slashes to backslashes on Windows.
+            default_str = str(default)
+            extra["default"] = (
+                default_str
+                if default_str.startswith("~")
+                else shrinkuser(Path(default))
+            )
         else:
             extra["default"] = str(default)
         return extra
