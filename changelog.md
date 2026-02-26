@@ -1,5 +1,10 @@
 # Changelog
 
+## [7.6.1.dev0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.6.0...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [7.6.0 (2026-02-26)](https://github.com/kdeldycke/click-extra/compare/v7.5.3...v7.6.0)
 
 - Add `_default_subcommands` reserved configuration key to auto-invoke subcommands when none are provided on the CLI. Closes {issue}`1405`.
