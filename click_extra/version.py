@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import ast
 import importlib
 import inspect
 import logging
@@ -43,7 +44,6 @@ if TYPE_CHECKING:
     from typing import Any
 
     from cloup.styling import IStyle
-
 
 class ExtraVersionOption(ExtraOption):
     """Gather CLI metadata and prints a colored version string.
@@ -458,6 +458,90 @@ class ExtraVersionOption(ExtraOption):
             if git_hash:
                 return f"{ver}+{git_hash}"
         return ver or None
+
+    @staticmethod
+    def prebake_version(
+        file_path: Path, local_version: str,
+    ) -> str | None:
+        """Pre-bake a ``__version__`` string with a `PEP 440 local version
+        identifier
+        <https://peps.python.org/pep-0440/#local-version-identifiers>`_.
+
+        Reads *file_path*, finds the ``__version__`` assignment via
+        :mod:`ast`, and — if the version contains ``.dev`` and does not
+        already contain ``+`` — appends ``+<local_version>``.
+
+        This is the compile-time complement to the runtime ``version``
+        property: Nuitka/PyInstaller binaries cannot run ``git`` at runtime,
+        so the hash must be baked into ``__version__`` in the source file
+        **before** compilation.
+
+        Returns the new version string on success, or ``None`` if no change
+        was made (release version, already pre-baked, or no ``__version__``
+        found).
+        """
+        source = file_path.read_text(encoding="utf-8")
+
+        tree = ast.parse(source, filename=str(file_path))
+        for node in ast.iter_child_nodes(tree):
+            # Look for top-level: __version__ = "<value>".
+            if not (
+                isinstance(node, ast.Assign)
+                and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+                and node.targets[0].id == "__version__"
+                and isinstance(node.value, ast.Constant)
+                and isinstance(node.value.value, str)
+            ):
+                continue
+
+            version = node.value.value
+
+            if ".dev" not in version:
+                logging.info(
+                    "Release version %r in %s — skipping.",
+                    version,
+                    file_path,
+                )
+                return None
+
+            if "+" in version:
+                logging.info(
+                    "Version %r in %s already has a local"
+                    " identifier — skipping.",
+                    version,
+                    file_path,
+                )
+                return None
+
+            new_version = f"{version}+{local_version}"
+
+            # Replace only the string literal in-place using AST
+            # positions, preserving surrounding content and quoting.
+            lines = source.splitlines(keepends=True)
+            line = lines[node.value.end_lineno - 1]
+            # end_col_offset points past the closing quote.
+            col_end = node.value.end_col_offset
+            # The closing quote character.
+            quote = line[col_end - 1]
+            # Insert the local version just before the closing quote.
+            new_line = (
+                line[: col_end - 1] + "+" + local_version + quote
+                + line[col_end:]
+            )
+            lines[node.value.end_lineno - 1] = new_line
+            file_path.write_text("".join(lines), encoding="utf-8")
+
+            logging.info(
+                "Pre-baked %s: %r → %r",
+                file_path,
+                version,
+                new_version,
+            )
+            return new_version
+
+        logging.warning("No __version__ found in %s", file_path)
+        return None
 
     @cached_property
     def git_repo_path(self) -> Path | None:
