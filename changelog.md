@@ -1,5 +1,10 @@
 # Changelog
 
+## [7.6.3.dev0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.6.2...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [7.6.2 (2026-02-27)](https://github.com/kdeldycke/click-extra/compare/v7.6.1...v7.6.2)
 
 - Add `ExtraVersionOption.prebake_version()` static method to pre-bake `__version__` strings with Git hashes at compile time, complementing the runtime `version` property for Nuitka/PyInstaller binaries.
