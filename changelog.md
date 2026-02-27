@@ -1,9 +1,6 @@
 # Changelog
 
-## [7.6.1.dev0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.6.0...main)
-
-> [!WARNING]
-> This version is **not released yet** and is under active development.
+## [7.6.1 (2026-02-27)](https://github.com/kdeldycke/click-extra/compare/v7.6.0...v7.6.1)
 
 - Fix test failures when optional config format dependencies are not installed. Closes {issue}`1538`.
 
