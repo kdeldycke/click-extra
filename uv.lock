@@ -9,7 +9,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-02-19T06:01:03.951657887Z"
+exclude-newer = "2026-02-20T11:30:57.903947818Z"
 exclude-newer-span = "P1W"
 
 [[package]]
@@ -194,7 +194,7 @@ wheels = [
 
 [[package]]
 name = "click-extra"
-version = "7.6.1.dev0"
+version = "7.6.2.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "boltons" },
