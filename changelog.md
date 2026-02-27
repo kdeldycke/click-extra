@@ -5,7 +5,6 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
-- Fix `--show-params` not reflecting `included_params` correctly by forcing `build_param_trees()` resolution before checking `excluded_params`.
 - Fix test failures when optional config format dependencies are not installed. Closes {issue}`1538`.
 
 ## [7.6.0 (2026-02-26)](https://github.com/kdeldycke/click-extra/compare/v7.5.3...v7.6.0)
