@@ -91,8 +91,7 @@ def test_debug_output(invoke, cmd_decorator, option_decorator, assert_output_reg
             default_debug_colored_logging
             + default_debug_colored_version_details
             + r"\x1b\[97mdebug-output\x1b\[0m, "
-            rf"version \x1b\[32m{_ver}\x1b\[0m\n"
-            + default_debug_colored_log_end
+            rf"version \x1b\[32m{_ver}\x1b\[0m\n" + default_debug_colored_log_end
         ),
     )
 
@@ -222,7 +221,7 @@ def test_context_meta(invoke, cmd_decorator, assert_output_regex):
             r"module = <module 'click_extra\.testing' from '.+testing\.py'>\n"
             r"module_name = click_extra\.testing\n"
             r"module_file = .+testing\.py\n"
-            rf"module_version = None\n"
+            r"module_version = None\n"
             r"package_name = click_extra\n"
             r"package_version = \S+\n"
             r"exec_name = click_extra\.testing\n"
