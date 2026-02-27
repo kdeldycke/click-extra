@@ -749,8 +749,11 @@ See how the default to `--config` option has been changed to `~/.cli/`:
 
 ```{click:run}
 :emphasize-lines: 6
+from boltons.iterutils import flatten, unique
+from click_extra import ConfigFormat
 result = invoke(cli, args=["--help"])
-assert "~/.cli/{*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,pyproject.toml}]" in result.stdout.replace("\n                        ", "")
+fp = ",".join(unique(flatten(f.patterns for f in ConfigFormat if f.enabled)))
+assert f"~/.cli/{{{fp}}}]" in result.stdout.replace("\n                        ", "")
 ```
 
 ```{seealso}

@@ -25,6 +25,7 @@ from typing import Sequence
 
 import click
 import pytest
+from boltons.iterutils import flatten, unique
 from boltons.strutils import strip_ansi
 from extra_platforms import is_windows
 
@@ -37,6 +38,7 @@ from click_extra import (
     UNSET,
     UUID,
     Choice,
+    ConfigFormat,
     DateTime,
     File,
     FloatRange,
@@ -329,12 +331,12 @@ def test_integrated_show_params_option(invoke, create_config):
             # On Windows, backslashes are double-escaped in Path string repr.
             (
                 f"'{Path(get_app_dir('show-params-cli')).resolve()}{sep}"
-                "{*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,pyproject.toml}'"
+                f"{{{','.join(unique(flatten(f.patterns for f in ConfigFormat if f.enabled)))}}}'"
             ).replace("\\", "\\\\")
             if is_windows
             else (
                 f"'{Path(get_app_dir('show-params-cli')).resolve()}{sep}"
-                "{*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,pyproject.toml}'"
+                f"{{{','.join(unique(flatten(f.patterns for f in ConfigFormat if f.enabled)))}}}'"
             ),
             repr(str(conf_path)),
             "COMMANDLINE",

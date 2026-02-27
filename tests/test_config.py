@@ -25,6 +25,7 @@ from textwrap import dedent
 
 import click
 import pytest
+from boltons.iterutils import flatten, unique
 from boltons.pathutils import shrinkuser
 from extra_platforms import (  # type: ignore[attr-defined]
     is_macos,
@@ -392,10 +393,8 @@ def test_conf_default_path(invoke, simple_config_cli):
         line.strip()
         for line in result.stdout.split("--config CONFIG_PATH")[1].splitlines()
     )
-    assert (
-        "{*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,pyproject.toml}]"
-        in help_screen
-    )
+    fp = ",".join(unique(flatten(f.patterns for f in ConfigFormat if f.enabled)))
+    assert f"{{{fp}}}]" in help_screen
 
     assert not result.stderr
     assert result.exit_code == 0
@@ -1143,7 +1142,15 @@ def test_lazy_group_config_no_config_flag(invoke, create_config, tmp_path):
     [
         pytest.param(
             None,
-            "*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,pyproject.toml",
+            ",".join(
+                unique(
+                    flatten(
+                        fmt.patterns
+                        for fmt in ConfigFormat
+                        if fmt.enabled
+                    )
+                )
+            ),
             id="default_all_formats",
         ),
         pytest.param(ConfigFormat.TOML, "*.toml", id="single_format"),
