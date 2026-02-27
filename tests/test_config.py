@@ -1143,13 +1143,7 @@ def test_lazy_group_config_no_config_flag(invoke, create_config, tmp_path):
         pytest.param(
             None,
             ",".join(
-                unique(
-                    flatten(
-                        fmt.patterns
-                        for fmt in ConfigFormat
-                        if fmt.enabled
-                    )
-                )
+                unique(flatten(fmt.patterns for fmt in ConfigFormat if fmt.enabled))
             ),
             id="default_all_formats",
         ),
@@ -2603,9 +2597,7 @@ def test_prepend_subcommand_validate_config_tolerance(invoke, create_config):
     def sub(int_param):
         echo(f"int_parameter = {int_param!r}")
 
-    result = invoke(
-        validate_ps_cli, "--validate-config", str(conf_path), color=False
-    )
+    result = invoke(validate_ps_cli, "--validate-config", str(conf_path), color=False)
     assert result.exit_code == 0
     assert "is valid" in result.stderr
 

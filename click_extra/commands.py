@@ -566,8 +566,7 @@ class ExtraGroup(ExtraCommand, cloup.Group):  # type: ignore[misc]
         # Prepend subcommands only work with chained groups.
         if not self.chain:
             raise click.UsageError(
-                f"{PREPEND_SUBCOMMANDS_KEY} requires chain=True on group"
-                f" {self.name!r}."
+                f"{PREPEND_SUBCOMMANDS_KEY} requires chain=True on group {self.name!r}."
             )
 
         # Deduplicate, keeping first occurrence, and warn on duplicates.

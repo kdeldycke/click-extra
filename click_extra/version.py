@@ -45,6 +45,7 @@ if TYPE_CHECKING:
 
     from cloup.styling import IStyle
 
+
 class ExtraVersionOption(ExtraOption):
     """Gather CLI metadata and prints a colored version string.
 
@@ -461,7 +462,8 @@ class ExtraVersionOption(ExtraOption):
 
     @staticmethod
     def prebake_version(
-        file_path: Path, local_version: str,
+        file_path: Path,
+        local_version: str,
     ) -> str | None:
         """Pre-bake a ``__version__`` string with a `PEP 440 local version
         identifier
@@ -507,8 +509,7 @@ class ExtraVersionOption(ExtraOption):
 
             if "+" in version:
                 logging.info(
-                    "Version %r in %s already has a local"
-                    " identifier — skipping.",
+                    "Version %r in %s already has a local identifier — skipping.",
                     version,
                     file_path,
                 )
@@ -526,8 +527,7 @@ class ExtraVersionOption(ExtraOption):
             quote = line[col_end - 1]
             # Insert the local version just before the closing quote.
             new_line = (
-                line[: col_end - 1] + "+" + local_version + quote
-                + line[col_end:]
+                line[: col_end - 1] + "+" + local_version + quote + line[col_end:]
             )
             lines[node.value.end_lineno - 1] = new_line
             file_path.write_text("".join(lines), encoding="utf-8")
