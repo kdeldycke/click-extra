@@ -1,5 +1,10 @@
 # Changelog
 
+## [7.6.4.dev0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.6.3...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [7.6.3 (2026-03-02)](https://github.com/kdeldycke/click-extra/compare/v7.6.2...v7.6.3)
 
 - Fix `test_default_pattern_roaming_force_posix` test failures when `XDG_CONFIG_HOME` is set. Closes {issue}`1541`.
