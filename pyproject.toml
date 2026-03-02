@@ -391,6 +391,12 @@ overrides = [
   { ignore_missing_imports = true, module = [ "sphinx.*" ], follow_imports = "skip" },
 ]
 
+[tool.repomatic]
+# Pass -m flag so Nuitka treats click_extra/__main__.py as a package entry point,
+# which properly sets __package__ and avoids the "specify its containing directory"
+# warning.
+nuitka-extra-args = [ "--python-flag=-m" ]
+
 [tool.gha-utils]
 workflow-sync-exclude = [ "debug.yaml" ]
 dependency-graph-all-groups = false
