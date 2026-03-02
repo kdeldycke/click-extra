@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Fix `test_default_pattern_roaming_force_posix` test failures when `XDG_CONFIG_HOME` is set. Closes {issue}`1541`.
+
 ## [7.6.2 (2026-02-27)](https://github.com/kdeldycke/click-extra/compare/v7.6.1...v7.6.2)
 
 - Add `ExtraVersionOption.prebake_version()` static method to pre-bake `__version__` strings with Git hashes at compile time, complementing the runtime `version` property for Nuitka/PyInstaller binaries.

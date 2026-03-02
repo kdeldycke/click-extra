@@ -32,6 +32,7 @@ from extra_platforms import (  # type: ignore[attr-defined]
     is_unix_not_macos,
     is_windows,
 )
+from extra_platforms.pytest import unless_unix_not_macos  # type: ignore[attr-defined]
 
 from click_extra import (
     NO_CONFIG,
@@ -1196,11 +1197,14 @@ def test_file_pattern(file_format_patterns, expected_pattern):
     ],
 )
 def test_default_pattern_roaming_force_posix(
-    roaming, force_posix, current_platform, expected_path
+    roaming, force_posix, current_platform, expected_path, monkeypatch
 ):
     """Test that roaming and force_posix affect the default pattern generation."""
     if not current_platform:
         pytest.skip("Platform-specific test.")
+
+    # Ensure XDG_CONFIG_HOME doesn't override the default config directory.
+    monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
 
     @click.command
     @config_option(roaming=roaming, force_posix=force_posix)
@@ -1216,6 +1220,33 @@ def test_default_pattern_roaming_force_posix(
         assert config_opt.default_pattern() == (
             str(Path(expected_path).expanduser()) + os.path.sep + suffix
         )
+
+
+@unless_unix_not_macos
+@pytest.mark.parametrize("force_posix", [True, False])
+def test_default_pattern_xdg_config_home(force_posix, tmp_path, monkeypatch):
+    """Test that default_pattern respects XDG_CONFIG_HOME on Linux."""
+    custom_config = tmp_path / "custom-config"
+    custom_config.mkdir()
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(custom_config))
+
+    @click.command
+    @config_option(force_posix=force_posix)
+    def test_cli():
+        pass
+
+    with click.Context(test_cli, info_name="test-cli"):
+        config_opt = search_params(test_cli.params, ConfigOption)
+        pattern = config_opt.default_pattern()
+
+        if force_posix:
+            # force_posix ignores XDG_CONFIG_HOME and uses ~/.test-cli/.
+            assert pattern.startswith(
+                str(Path("~/.test-cli").expanduser().resolve())
+            )
+        else:
+            # XDG_CONFIG_HOME is resolved into the pattern.
+            assert pattern.startswith(str(custom_config.resolve() / "test-cli"))
 
 
 @pytest.mark.parametrize(
