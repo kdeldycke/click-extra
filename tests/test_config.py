@@ -1241,9 +1241,7 @@ def test_default_pattern_xdg_config_home(force_posix, tmp_path, monkeypatch):
 
         if force_posix:
             # force_posix ignores XDG_CONFIG_HOME and uses ~/.test-cli/.
-            assert pattern.startswith(
-                str(Path("~/.test-cli").expanduser().resolve())
-            )
+            assert pattern.startswith(str(Path("~/.test-cli").expanduser().resolve()))
         else:
             # XDG_CONFIG_HOME is resolved into the pattern.
             assert pattern.startswith(str(custom_config.resolve() / "test-cli"))
