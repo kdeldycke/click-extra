@@ -74,11 +74,14 @@ jobs:
         run: |
           set +e
           echo "=== --version ==="
-          ./demo-dir.bin --version 2>&1; echo "exit: $?"
+          VERSION_OUTPUT=$(./demo-dir.bin --version 2>&1)
+          echo "$VERSION_OUTPUT"; echo "exit: $?"
           echo "=== stdout bytes ==="
           ./demo-dir.bin --version 2>/dev/null | wc -c
           echo "=== stderr bytes ==="
           ./demo-dir.bin --version 2>&1 1>/dev/null | wc -c
+          echo "=== version contains a number (not None) ==="
+          echo "$VERSION_OUTPUT" | grep -qP 'version.*[0-9]+\.[0-9]+' && echo "PASS: version contains digits" || echo "FAIL: version is missing or None"
           echo "=== --help ==="
           ./demo-dir.bin --help 2>&1; echo "exit: $?"
           echo "=== --verbosity DEBUG --version (frame chain) ==="

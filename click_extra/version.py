@@ -382,6 +382,14 @@ class ExtraVersionOption(ExtraOption):
                     callback_globals = getattr(callback, "__globals__", {})
                     version = callback_globals.get("__version__")
 
+        # If still not found, check the parent package. This handles
+        # ``__main__`` entry points where ``__version__`` is defined in
+        # the package's ``__init__.py`` (e.g. Nuitka-compiled binaries).
+        if version is None and self.package_name:
+            parent = sys.modules.get(self.package_name)
+            if parent:
+                version = getattr(parent, "__version__", None)
+
         if version is not None and not isinstance(version, str):
             raise ValueError(
                 f"Module version {version!r} expected to be a string or None."
