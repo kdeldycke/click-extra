@@ -1,0 +1,107 @@
+---
+# Temporary workflow to diagnose Nuitka onefile binary producing no output.
+# Remove once the root cause is identified and fixed.
+name: 🔬 Debug Nuitka binary
+"on":
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/debug-nuitka.yaml
+      - click_extra/__main__.py
+      - pyproject.toml
+  workflow_dispatch:
+
+concurrency:
+  group: debug-nuitka-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  debug-nuitka:
+    runs-on: ubuntu-24.04
+    steps:
+
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v7.3.0
+
+      - name: Setup venv
+        run: uv --no-progress venv --python 3.13
+
+      - name: Install project
+        run: uv --no-progress sync --frozen
+
+      - name: Install Nuitka
+        run: uv --no-progress pip install 'nuitka[onefile]==2.8.10'
+
+      - name: Verify CLI works via Python
+        run: |
+          echo "=== python -m click_extra --version ==="
+          uv run python -m click_extra --version
+          echo "=== console_scripts entry point ==="
+          uv run click-extra-demo --version
+
+      # --- Approach 1: current (file path, no flags) ---
+      - name: "Build: file path (current)"
+        run: >
+          uv run nuitka --onefile --assume-yes-for-downloads
+          --output-filename=demo-file.bin click_extra/__main__.py
+
+      - name: "Test: file path"
+        run: |
+          echo "=== --version ==="
+          ./demo-file.bin --version; echo "exit: $?"
+          echo "=== stdout bytes ==="
+          ./demo-file.bin --version | wc -c
+          echo "=== stderr ==="
+          ./demo-file.bin --version 2>&1 1>/dev/null | wc -c
+          echo "=== --help ==="
+          ./demo-file.bin --help; echo "exit: $?"
+
+      # --- Approach 2: package directory + -m flag (Nuitka recommended) ---
+      - name: "Build: package directory + -m"
+        run: >
+          uv run nuitka --onefile --assume-yes-for-downloads
+          --python-flag=-m --output-filename=demo-dir.bin click_extra/
+
+      - name: "Test: package directory + -m"
+        run: |
+          echo "=== --version ==="
+          ./demo-dir.bin --version; echo "exit: $?"
+          echo "=== stdout bytes ==="
+          ./demo-dir.bin --version | wc -c
+          echo "=== stderr ==="
+          ./demo-dir.bin --version 2>&1 1>/dev/null | wc -c
+          echo "=== --help ==="
+          ./demo-dir.bin --help; echo "exit: $?"
+
+      # --- Approach 3: standalone mode (no onefile bootstrap) ---
+      - name: "Build: standalone"
+        run: >
+          uv run nuitka --standalone --assume-yes-for-downloads
+          --output-filename=demo-standalone click_extra/__main__.py
+
+      - name: "Test: standalone"
+        run: |
+          echo "=== --version ==="
+          ./__main__.dist/demo-standalone --version; echo "exit: $?"
+          echo "=== stdout bytes ==="
+          ./__main__.dist/demo-standalone --version | wc -c
+          echo "=== --help ==="
+          ./__main__.dist/demo-standalone --help; echo "exit: $?"
+
+      # --- Approach 4: file path + --python-flag=-m ---
+      - name: "Build: file path + -m flag"
+        run: >
+          uv run nuitka --onefile --assume-yes-for-downloads
+          --python-flag=-m --output-filename=demo-file-m.bin
+          click_extra/__main__.py
+
+      - name: "Test: file path + -m flag"
+        run: |
+          echo "=== --version ==="
+          ./demo-file-m.bin --version; echo "exit: $?"
+          echo "=== stdout bytes ==="
+          ./demo-file-m.bin --version | wc -c
+          echo "=== --help ==="
+          ./demo-file-m.bin --help; echo "exit: $?"
