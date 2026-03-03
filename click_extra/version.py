@@ -259,12 +259,23 @@ class ExtraVersionOption(ExtraOption):
             # which the user's CLI is implemented.
             return frame
 
-        # Our heuristics to locate the CLI implementation failed.
+        # Our heuristics to locate the CLI implementation failed. Fall back to
+        # the outermost frame in the stack. This happens in Nuitka-compiled
+        # binaries where the entry point module's ``__name__`` may be a
+        # submodule of the Click ecosystem package (e.g.
+        # ``click_extra.__main__``) and all frames get skipped.
         logger = logging.getLogger("click_extra")
         count_size = len(str(len(frame_chain)))
         for counter, (p_name, f_name) in enumerate(frame_chain):
             logger.debug(f"Frame {counter:<{count_size}} # {p_name}:{f_name}")
-        raise RuntimeError("Could not find the frame in which the CLI is implemented.")
+
+        # The outermost frame is the last one returned by inspect.stack().
+        outermost = inspect.stack()[-1].frame
+        logger.debug(
+            "cli_frame heuristics exhausted, falling back to outermost frame: "
+            f"{outermost.f_globals.get('__name__')}:{outermost.f_code.co_name}"
+        )
+        return outermost
 
     @cached_property
     def module(self) -> ModuleType:
