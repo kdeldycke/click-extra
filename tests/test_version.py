@@ -25,6 +25,7 @@
 
 from __future__ import annotations
 
+import inspect
 import re
 
 import click
@@ -221,7 +222,7 @@ def test_context_meta(invoke, cmd_decorator, assert_output_regex):
             r"module = <module 'click_extra\.testing' from '.+testing\.py'>\n"
             r"module_name = click_extra\.testing\n"
             r"module_file = .+testing\.py\n"
-            r"module_version = None\n"
+            rf"module_version = {re.escape(__version__)}\n"
             r"package_name = click_extra\n"
             r"package_version = \S+\n"
             r"exec_name = click_extra\.testing\n"
@@ -239,6 +240,47 @@ def test_context_meta(invoke, cmd_decorator, assert_output_regex):
 
     assert not result.stderr
     assert result.exit_code == 0
+
+
+@pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
+def test_module_version_parent_package_fallback(invoke, cmd_decorator):
+    """``module_version`` falls back to parent package's ``__version__``."""
+
+    @cmd_decorator
+    @version_option
+    @pass_context
+    def parent_fallback_cli(ctx):
+        echo(f"module_version = {ctx.meta['click_extra.module_version']}")
+
+    result = invoke(parent_fallback_cli, color=False)
+
+    # The CLI is defined in click_extra.testing (which has no __version__), but
+    # the parent package click_extra does. The fallback should find it.
+    assert result.exit_code == 0
+    assert f"module_version = {__version__}" in result.output
+
+
+def test_cli_frame_fallback(monkeypatch):
+    """``cli_frame()`` falls back to the outermost frame when all frames are
+    from the Click ecosystem."""
+    original_stack = inspect.stack
+
+    def patched_stack():
+        """Make every frame look like it belongs to click_extra."""
+        frames = original_stack()
+        for frame_info in frames:
+            frame_info.frame.f_globals.setdefault("__name__", "")
+            # Temporarily override __name__ so the heuristic skips all frames.
+            frame_info.frame.f_globals["__name__"] = (
+                "click_extra." + frame_info.function
+            )
+        return frames
+
+    monkeypatch.setattr(inspect, "stack", patched_stack)
+
+    # Should not raise RuntimeError; instead falls back to outermost frame.
+    frame = ExtraVersionOption.cli_frame()
+    assert frame is not None
 
 
 @pytest.mark.parametrize(
