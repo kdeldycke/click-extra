@@ -385,7 +385,15 @@ class ExtraVersionOption(ExtraOption):
         # If still not found, check the parent package. This handles
         # ``__main__`` entry points where ``__version__`` is defined in
         # the package's ``__init__.py`` (e.g. Nuitka-compiled binaries).
-        if version is None and self.package_name:
+        # Skip modules belonging to the Click ecosystem because
+        # ``cli_frame()`` may resolve to a CliRunner frame instead of
+        # the user's module, producing false-positive lookups.
+        if (
+            version is None
+            and self.package_name
+            and self.module_name.split(".")[0]
+            not in ("click", "click_extra", "cloup")
+        ):
             parent = sys.modules.get(self.package_name)
             if parent:
                 version = getattr(parent, "__version__", None)
@@ -538,17 +546,18 @@ class ExtraVersionOption(ExtraOption):
 
             # Replace only the string literal in-place using AST
             # positions, preserving surrounding content and quoting.
-            lines = source.splitlines(keepends=True)
-            line = lines[node.value.end_lineno - 1]
-            # end_col_offset points past the closing quote.
+            end_lineno = node.value.end_lineno
             col_end = node.value.end_col_offset
+            assert end_lineno is not None and col_end is not None
+            lines = source.splitlines(keepends=True)
+            line = lines[end_lineno - 1]
             # The closing quote character.
             quote = line[col_end - 1]
             # Insert the local version just before the closing quote.
             new_line = (
                 line[: col_end - 1] + "+" + local_version + quote + line[col_end:]
             )
-            lines[node.value.end_lineno - 1] = new_line
+            lines[end_lineno - 1] = new_line
             file_path.write_text("".join(lines), encoding="utf-8")
 
             logging.info(

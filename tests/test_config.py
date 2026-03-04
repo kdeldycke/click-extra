@@ -32,7 +32,7 @@ from extra_platforms import (  # type: ignore[attr-defined]
     is_unix_not_macos,
     is_windows,
 )
-from extra_platforms.pytest import unless_unix_not_macos  # type: ignore[attr-defined]
+from extra_platforms.pytest import unless_unix_not_macos
 
 from click_extra import (
     NO_CONFIG,

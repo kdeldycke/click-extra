@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import inspect
 import re
+import sys
 
 import click
 import pytest
@@ -222,7 +223,7 @@ def test_context_meta(invoke, cmd_decorator, assert_output_regex):
             r"module = <module 'click_extra\.testing' from '.+testing\.py'>\n"
             r"module_name = click_extra\.testing\n"
             r"module_file = .+testing\.py\n"
-            rf"module_version = {re.escape(__version__)}\n"
+            r"module_version = None\n"
             r"package_name = click_extra\n"
             r"package_version = \S+\n"
             r"exec_name = click_extra\.testing\n"
@@ -242,22 +243,33 @@ def test_context_meta(invoke, cmd_decorator, assert_output_regex):
     assert result.exit_code == 0
 
 
-@pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
-def test_module_version_parent_package_fallback(invoke, cmd_decorator):
-    """``module_version`` falls back to parent package's ``__version__``."""
+def test_module_version_parent_package_fallback(monkeypatch):
+    """``module_version`` falls back to parent package's ``__version__``.
 
-    @cmd_decorator
-    @version_option
-    @pass_context
-    def parent_fallback_cli(ctx):
-        echo(f"module_version = {ctx.meta['click_extra.module_version']}")
+    Simulates the Nuitka use-case: a CLI whose module is ``myapp.__main__``
+    (no ``__version__``), with the parent package ``myapp`` providing it.
+    """
+    import types
 
-    result = invoke(parent_fallback_cli, color=False)
+    # Create a fake parent package with __version__.
+    fake_parent = types.ModuleType("myapp")
+    fake_parent.__version__ = "1.2.3"
+    fake_parent.__package__ = "myapp"
 
-    # The CLI is defined in click_extra.testing (which has no __version__), but
-    # the parent package click_extra does. The fallback should find it.
-    assert result.exit_code == 0
-    assert f"module_version = {__version__}" in result.output
+    # Create a fake __main__ submodule without __version__.
+    fake_main = types.ModuleType("myapp.__main__")
+    fake_main.__package__ = "myapp"
+
+    monkeypatch.setitem(sys.modules, "myapp", fake_parent)
+    monkeypatch.setitem(sys.modules, "myapp.__main__", fake_main)
+
+    opt = ExtraVersionOption(["--version"])
+    # Bypass cli_frame resolution by setting the module directly.
+    monkeypatch.setattr(
+        type(opt), "module", property(lambda self: fake_main),
+    )
+
+    assert opt.module_version == "1.2.3"
 
 
 def test_cli_frame_fallback(monkeypatch):
