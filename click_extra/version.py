@@ -391,8 +391,7 @@ class ExtraVersionOption(ExtraOption):
         if (
             version is None
             and self.package_name
-            and self.module_name.split(".")[0]
-            not in ("click", "click_extra", "cloup")
+            and self.module_name.split(".")[0] not in ("click", "click_extra", "cloup")
         ):
             parent = sys.modules.get(self.package_name)
             if parent:
