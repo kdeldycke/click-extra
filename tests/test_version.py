@@ -266,7 +266,9 @@ def test_module_version_parent_package_fallback(monkeypatch):
     opt = ExtraVersionOption(["--version"])
     # Bypass cli_frame resolution by setting the module directly.
     monkeypatch.setattr(
-        type(opt), "module", property(lambda self: fake_main),
+        type(opt),
+        "module",
+        property(lambda self: fake_main),
     )
 
     assert opt.module_version == "1.2.3"
