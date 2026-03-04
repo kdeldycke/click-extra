@@ -1,5 +1,10 @@
 # Changelog
 
+## [7.6.5.dev0 (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.6.4...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [7.6.4 (2026-03-04)](https://github.com/kdeldycke/click-extra/compare/v7.6.3...v7.6.4)
 
 - Fix `ExtraVersionOption.cli_frame()` crashing in Nuitka-compiled binaries where all stack frames belong to the Click ecosystem.
