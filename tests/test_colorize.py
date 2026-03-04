@@ -67,6 +67,7 @@ from click_extra.pytest import (
 from .conftest import skip_windows_colors
 
 
+@pytest.mark.once
 def test_theme_definition():
     """Ensure we do not leave any property we would have inherited from cloup and
     logging primitives."""

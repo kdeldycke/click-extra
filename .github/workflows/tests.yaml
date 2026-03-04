@@ -30,6 +30,19 @@ concurrency:
 
 jobs:
 
+  once-tests:
+    name: 🔂 Once tests
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - uses: astral-sh/setup-uv@v7.3.0
+      - name: Install Python
+        run: uv --no-progress venv --python 3.14
+      - name: Install project
+        run: uv --no-progress sync --frozen --all-extras --group test
+      - name: Run once-only tests
+        run: uv --no-progress run --frozen -- pytest -m once
+
   tests:
     strategy:
       # We delegate the failure decision to each job, by the way of the "continue-on-error" flag.
@@ -199,7 +212,7 @@ jobs:
           ${{ matrix.cloup-version != 'released'
           && format('--with "git+https://github.com/janluke/cloup.git@{0}"', matrix.cloup-version) || ''}}
           --
-          pytest
+          pytest -m "not once"
 
       - name: Codecov - coverage
         uses: codecov/codecov-action@v5.5.2

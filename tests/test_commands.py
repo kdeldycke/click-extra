@@ -50,6 +50,7 @@ from click_extra.pytest import (
 )
 
 
+@pytest.mark.once
 def test_module_root_declarations():
     def fetch_root_members(module):
         """Fetch all members exposed at the module root."""

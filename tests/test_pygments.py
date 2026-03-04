@@ -22,6 +22,7 @@ from importlib import metadata
 from operator import itemgetter
 from pathlib import Path
 
+import pytest
 import requests
 from boltons.strutils import camel2under
 from boltons.typeutils import issubclass
@@ -44,6 +45,7 @@ else:
 PROJECT_ROOT = Path(__file__).parent.parent
 
 
+@pytest.mark.once
 def test_ansi_lexers_candidates(tmp_path):
     """Look into Pygments test suite to find all ANSI lexers candidates.
 
@@ -157,6 +159,7 @@ def check_entry_points(entry_points: dict[str, str], *section_path: str) -> None
     assert project_entry_points == entry_points
 
 
+@pytest.mark.once
 def test_formatter_entry_points():
     entry_points = {}
     for name in collect_classes(Formatter):
@@ -166,6 +169,7 @@ def test_formatter_entry_points():
     check_entry_points(entry_points, "project", "entry-points", "pygments.formatters")
 
 
+@pytest.mark.once
 def test_filter_entry_points():
     entry_points = {}
     for name in collect_classes(Filter):
@@ -175,6 +179,7 @@ def test_filter_entry_points():
     check_entry_points(entry_points, "project", "entry-points", "pygments.filters")
 
 
+@pytest.mark.once
 def test_lexer_entry_points():
     entry_points = {}
     for lexer in collect_session_lexers():
@@ -194,24 +199,28 @@ def test_lexer_entry_points():
     check_entry_points(entry_points, "project", "entry-points", "pygments.lexers")
 
 
+@pytest.mark.once
 def test_registered_formatters():
     for klass in collect_classes(Formatter).values():
         for alias in klass.aliases:
             get_formatter_by_name(alias)
 
 
+@pytest.mark.once
 def test_registered_filters():
     for name in collect_classes(Filter):
         entry_id = camel2under(name).replace("_", "-")
         get_filter_by_name(entry_id)
 
 
+@pytest.mark.once
 def test_registered_lexers():
     for klass in collect_classes(Lexer).values():
         for alias in klass.aliases:
             get_lexer_by_name(alias)
 
 
+@pytest.mark.once
 def test_ansi_lexers_doc():
     doc_content = PROJECT_ROOT.joinpath("docs/pygments.md").read_text(encoding="utf-8")
     for lexer in collect_session_lexers():

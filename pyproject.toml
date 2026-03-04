@@ -305,6 +305,9 @@ default.extend-ignore-identifiers-re = [
 
 [tool.pytest]
 # https://docs.pytest.org/en/latest/customize.html#pyproject-toml
+markers = [
+  "once: Tests that only need to run once, not across the full CI matrix.",
+]
 addopts = [
   "--durations=10",
   "--cov",

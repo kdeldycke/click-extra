@@ -34,6 +34,7 @@ from click_extra import (
 from click_extra.pytest import command_decorators
 
 
+@pytest.mark.once
 def test_table_formats_definition():
     """Check all table formats are accounted for and properly named."""
     # Formats from tabulate.

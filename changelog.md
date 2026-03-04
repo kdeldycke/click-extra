@@ -8,6 +8,7 @@
 - Fix `ExtraVersionOption.cli_frame()` crashing in Nuitka-compiled binaries where all stack frames belong to the Click ecosystem.
 - Fix `ExtraVersionOption.module_version` returning `None` in `__main__` entry points by checking the parent package's `__version__`.
 - Fix test plan for Nuitka-compiled binary.
+- Add `@pytest.mark.once` marker for platform-independent structural tests. Run them in a single CI job instead of across the full matrix.
 
 ## [7.6.3 (2026-03-02)](https://github.com/kdeldycke/click-extra/compare/v7.6.2...v7.6.3)
 
