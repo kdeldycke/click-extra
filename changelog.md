@@ -11,17 +11,29 @@
 
 ## [7.6.3 (2026-03-02)](https://github.com/kdeldycke/click-extra/compare/v7.6.2...v7.6.3)
 
+> [!NOTE]
+> `7.6.3` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.6.3/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.6.3).
+
 - Fix `test_default_pattern_roaming_force_posix` test failures when `XDG_CONFIG_HOME` is set. Closes {issue}`1541`.
 
 ## [7.6.2 (2026-02-27)](https://github.com/kdeldycke/click-extra/compare/v7.6.1...v7.6.2)
+
+> [!NOTE]
+> `7.6.2` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.6.2/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.6.2).
 
 - Add `ExtraVersionOption.prebake_version()` static method to pre-bake `__version__` strings with Git hashes at compile time, complementing the runtime `version` property for Nuitka/PyInstaller binaries.
 
 ## [7.6.1 (2026-02-27)](https://github.com/kdeldycke/click-extra/compare/v7.6.0...v7.6.1)
 
+> [!NOTE]
+> `7.6.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.6.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.6.1).
+
 - Fix test failures when optional config format dependencies are not installed. Closes {issue}`1538`.
 
 ## [7.6.0 (2026-02-26)](https://github.com/kdeldycke/click-extra/compare/v7.5.3...v7.6.0)
+
+> [!NOTE]
+> `7.6.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.6.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.6.0).
 
 - Add `_default_subcommands` reserved configuration key to auto-invoke subcommands when none are provided on the CLI. Closes {issue}`1405`.
 - Add `_prepend_subcommands` reserved configuration key to always prepend subcommands to every invocation (requires `chain=True`). Closes {issue}`1405`.
