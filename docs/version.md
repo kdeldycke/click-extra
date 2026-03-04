@@ -84,6 +84,15 @@ You can customize the message template with the following variables:
 The ``git_*`` variables are evaluated at runtime by calling ``git``. They return ``None`` in environments where Git is not available (e.g., standalone Nuitka binaries, Docker containers without Git). This is distinct from ``{version}``, which can be [pre-baked at build time](#pre-baked-versions) to include the commit hash.
 ```
 
+```{hint}
+The `{version}` variable is resolved in this order:
+
+1. A `__version__` variable defined alongside your CLI (see [standalone scripts](#standalone-script)).
+2. A `__version__` variable in the parent package's `__init__.py` (for `__main__` entry points, e.g. Nuitka-compiled binaries).
+3. The version from package metadata via [`importlib.metadata`](https://docs.python.org/3/library/importlib.metadata.html#distribution-versions) — this is the most common source for installed packages.
+4. `None` if none of the above succeeds (e.g. unpackaged scripts without `__version__`).
+```
+
 ```{error}
 Some Click's built-in variables are not recognized:
 - `%(package)s` should be replaced by `{package_name}`
