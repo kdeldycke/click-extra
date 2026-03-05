@@ -53,15 +53,15 @@ class TimerOption(ExtraOption):
         Computes and print the execution time at the end of the CLI, if option has been
         activated.
         """
-        # Take timestamp snapshot.
-        self.start_time = perf_counter()
+        if not value:
+            return
 
+        # Only capture the start time when the user requested timing.
+        self.start_time = perf_counter()
         ctx.meta["click_extra.start_time"] = self.start_time
 
-        # Skip timekeeping if option is not active.
-        if value:
-            # Register printing at the end of execution.
-            ctx.call_on_close(self.print_timer)
+        # Register printing at the end of execution.
+        ctx.call_on_close(self.print_timer)
 
     def __init__(
         self,
