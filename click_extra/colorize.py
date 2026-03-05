@@ -34,7 +34,7 @@ from boltons.strutils import complement_int_list, int_ranges_from_int_list
 from cloup._util import identity
 from cloup.styling import Color
 
-from . import ParameterSource, Style, get_current_context
+from . import ParameterSource, Style
 from .parameters import ExtraOption
 
 TYPE_CHECKING = False
@@ -258,18 +258,9 @@ class ColorOption(ExtraOption):
                 # One env var is enough to activate colorization.
                 value = True in colorize_from_env
 
-        # There is an undocumented color flag in context:
-        # https://github.com/pallets/click/blob/65eceb0/src/click/globals.py#L56-L69
+        # Set the official context color flag. This is used by Click's
+        # ``resolve_color_default()`` → ``should_strip_ansi()`` chain in ``echo()``.
         ctx.color = value
-
-        if not value:
-
-            def restore_original_styling():
-                """Reset color flag in context."""
-                ctx = get_current_context()
-                ctx.color = None
-
-            ctx.call_on_close(restore_original_styling)
 
     def __init__(
         self,

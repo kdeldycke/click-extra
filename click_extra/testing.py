@@ -246,11 +246,10 @@ class ExtraCliRunner(click.testing.CliRunner):
 
         if color == "forced":
             # Pass the color argument as an extra parameter to the invoked CLI.
+            # This works around Click issue #2110: ``CliRunner.invoke(color=True)``
+            # controls the test "terminal" but cannot simultaneously pass ``color``
+            # through to ``Context``.
             extra["color"] = True
-            # TODO: investigate the possibility of forcing coloring on ``echo`` too,
-            # because by default, Windows is rendered colorless:
-            # https://github.com/pallets/click/blob/0c85d80/src/click/utils.py#L295-L296
-            # echo_extra["color"] = True
 
         # The class attribute ``force_color`` overrides the ``color`` parameter.
         if self.force_color:

@@ -53,8 +53,12 @@ class ExtraContext(cloup.Context):
     """Like ``cloup._context.Context``, but with the ability to populate the context's
     ``meta`` property at instantiation.
 
-    Also inherits ``color`` property from parent context. And sets it to `True` for
-    parentless contexts at instantiatiom, so we can always have colorized output.
+    Also defaults ``color`` to ``True`` for root contexts (i.e. without a parent), so
+    help screens are always colorized — even when piped. Click's own default is ``None``
+    (auto-detect via TTY), which strips colors in non-interactive contexts.
+
+    Parent-to-child color inheritance is handled by Click itself at ``Context.__init__``
+    time, so no property override is needed.
 
     .. todo::
         Propose addition of ``meta`` keyword upstream to Click.
@@ -66,44 +70,21 @@ class ExtraContext(cloup.Context):
     def __init__(self, *args, meta: dict[str, Any] | None = None, **kwargs) -> None:
         """Like parent's context but with an extra ``meta`` keyword-argument.
 
-        Also force ``color`` property default to `True` if not provided by user and
-        this context has no parent.
+        Also force ``color`` default to ``True`` if not provided by user and this
+        context has no parent.
         """
         super().__init__(*args, **kwargs)
+
+        # Click defaults root ``ctx.color`` to ``None`` (auto-detect via TTY), which
+        # strips colors when piped. Override to ``True`` for parentless contexts so
+        # help screens are always colorized by default. The ``ColorOption`` callback
+        # will set the final value later, respecting ``--no-color`` and env vars.
+        if not self.parent and self.color is None:
+            self.color = True
 
         # Update the context's meta property with the one provided by user.
         if meta:
             self._meta.update(meta)
-
-        # Transfer user color setting to our internally managed value.
-        self._color: bool | None = kwargs.get("color", None)
-
-        # A Context created from scratch, i.e. without a parent, and whose color
-        # setting is set to auto-detect (i.e. is None), will defaults to forced
-        # colorized output.
-        if not self.parent and self._color is None:
-            self._color = True
-
-    @property
-    def color(self) -> bool | None:
-        """Overrides ``Context.color`` to allow inheritance from parent context.
-
-        Returns the color setting of the parent context if it exists and the color is
-        not set on the current context.
-        """
-        if self._color is None and self.parent:
-            return self.parent.color
-        return self._color
-
-    @color.setter
-    def color(self, value: bool | None) -> None:
-        """Set the color value of the current context."""
-        self._color = value
-
-    @color.deleter
-    def color(self) -> None:
-        """Reset the color value so it defaults to inheritance from parent's."""
-        self._color = None
 
 
 def default_extra_params() -> list[click.Option]:
