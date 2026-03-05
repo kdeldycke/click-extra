@@ -22,6 +22,8 @@ import pytest
 import tabulate
 from extra_platforms import is_windows
 
+from boltons.strutils import strip_ansi
+
 from click_extra import (
     Color,
     TableFormat,
@@ -31,6 +33,7 @@ from click_extra import (
     table_format_option,
 )
 from click_extra.pytest import command_decorators
+from click_extra.table import MARKUP_FORMATS
 
 
 @pytest.mark.once
@@ -602,11 +605,53 @@ def test_all_table_rendering(
 
         ctx.print_table(data, headers)
 
-    # XXX Strip colors for now, while we figure how to lock down the handling of ANSI
-    # codes in the various table formats.
     result = invoke(table_cli, "--table-format", format_name, color=False)
     if not is_windows():
         expected = expected.replace("\r\n", "\n")
     assert result.stdout == f"Table format: {format_name}\n{expected}"
     assert not result.stderr
     assert result.exit_code == 0
+
+
+@pytest.mark.parametrize(
+    "format_id",
+    (pytest.param(f, id=str(f)) for f in MARKUP_FORMATS),
+)
+def test_markup_strips_ansi_by_default(invoke, format_id):
+    """Markup formats strip ANSI codes when ``--color`` is not forced."""
+    from click_extra import command
+
+    @command
+    @table_format_option
+    @pass_context
+    def table_cli(ctx):
+        data = ((style("hello", fg=Color.red),),)
+        ctx.print_table(data, headers=("greeting",))
+
+    # color=True tells the CliRunner to preserve ANSI in captured output so we
+    # can inspect what print_table actually wrote.
+    result = invoke(table_cli, "--table-format", format_id, color=True)
+    assert result.exit_code == 0
+    assert result.stdout == strip_ansi(result.stdout)
+
+
+@pytest.mark.parametrize(
+    "format_id",
+    (pytest.param(f, id=str(f)) for f in MARKUP_FORMATS),
+)
+def test_markup_preserves_ansi_with_color_flag(invoke, format_id):
+    """``--color`` overrides ANSI stripping for markup formats."""
+    from click_extra import command
+
+    @command
+    @table_format_option
+    @pass_context
+    def table_cli(ctx):
+        data = ((style("hello", fg=Color.red),),)
+        ctx.print_table(data, headers=("greeting",))
+
+    result = invoke(
+        table_cli, "--color", "--table-format", format_id, color=True
+    )
+    assert result.exit_code == 0
+    assert result.stdout != strip_ansi(result.stdout)
