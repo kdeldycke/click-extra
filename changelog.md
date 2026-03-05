@@ -11,6 +11,9 @@
 
 ## [7.6.4 (2026-03-04)](https://github.com/kdeldycke/click-extra/compare/v7.6.3...v7.6.4)
 
+> [!NOTE]
+> `7.6.4` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.6.4/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.6.4).
+
 - Fix `ExtraVersionOption.cli_frame()` crashing in Nuitka-compiled binaries where all stack frames belong to the Click ecosystem.
 - Fix `ExtraVersionOption.module_version` returning `None` in `__main__` entry points by checking the parent package's `__version__`.
 - Fix test plan for Nuitka-compiled binary.
