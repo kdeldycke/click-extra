@@ -38,7 +38,7 @@ from .config import (
 )
 from .envvar import clean_envvar_id, param_envvar_ids
 from .logging import VerboseOption, VerbosityOption
-from .parameters import ExtraOption, ShowParamsOption, search_params
+from .parameters import ExtraOption, ShowParamsOption
 from .table import TableFormatOption
 from .timer import TimerOption
 from .version import ExtraVersionOption
@@ -169,16 +169,12 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
     def __init__(
         self,
         *args,
-        version: str | None = None,
         extra_option_at_end: bool = True,
         populate_auto_envvars: bool = True,
         **kwargs: Any,
     ) -> None:
         """List of extra parameters:
 
-        :param version: allows a version string to be set directly on the command. Will
-            be passed to the first instance of ``ExtraVersionOption`` parameter
-            attached to the command.
         :param extra_option_at_end: `reorders all parameters attached to the command
             <https://kdeldycke.github.io/click-extra/commands.html#option-order>`_, by
             moving all instances of ``ExtraOption`` at the end of the parameter list.
@@ -313,11 +309,6 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
         if populate_auto_envvars:
             for param in self.params:
                 param.envvar = param_envvar_ids(param, self.context_settings)
-
-        if version:
-            version_param = search_params(self.params, ExtraVersionOption)
-            if version_param:
-                version_param.version = version  # type: ignore[union-attr]
 
         if extra_option_at_end:
             self.params.sort(key=lambda p: isinstance(p, ExtraOption))

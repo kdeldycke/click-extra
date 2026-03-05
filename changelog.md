@@ -8,6 +8,7 @@
 - Lazily evaluate version metadata fields in `ctx.meta`. Only fields actually accessed (or referenced in the message template) are resolved, avoiding unnecessary Git subprocess calls and environment profiling on every CLI invocation.
 - Only capture timer start time when `--time` is actually requested.
 - Strip ANSI color codes from markup table formats (`csv`, `html`, `latex`, `rst`, etc.) by default. Use `--color` to preserve them.
+- Remove `version` parameter from `ExtraCommand` and `ExtraGroup`. Set the version directly on `ExtraVersionOption` instead (via `@version_option(version="...")` or in the `params=` list).
 
 ## [7.6.5 (2026-03-05)](https://github.com/kdeldycke/click-extra/compare/v7.6.4...v7.6.5)
 

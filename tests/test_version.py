@@ -44,6 +44,7 @@ from click_extra import (
     verbosity_option,
     version_option,
 )
+from click_extra.commands import default_extra_params
 from click_extra.pytest import (
     command_decorators,
     default_debug_colored_log_end,
@@ -332,7 +333,14 @@ def test_cli_frame_fallback(monkeypatch):
     (None, "--help", "blah", ("--config", "random.toml")),
 )
 def test_integrated_version_option_precedence(invoke, params):
-    @group(version="1.2.3.4")
+    def versioned_extra_params():
+        params = default_extra_params()
+        for p in params:
+            if isinstance(p, ExtraVersionOption):
+                p.version = "1.2.3.4"
+        return params
+
+    @group(params=versioned_extra_params)
     def color_cli4():
         echo("It works!")
 

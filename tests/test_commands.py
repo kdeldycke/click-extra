@@ -32,6 +32,7 @@ import pytest
 
 import click_extra
 from click_extra import (
+    ExtraVersionOption,
     LazyGroup,
     command,
     echo,
@@ -41,6 +42,7 @@ from click_extra import (
     pass_context,
     version_option,
 )
+from click_extra.commands import default_extra_params
 from click_extra.pytest import (
     command_decorators,
     default_debug_uncolored_log_end,
@@ -93,7 +95,14 @@ def test_module_root_declarations():
 def all_command_cli():
     """A CLI that is mixing all variations and flavors of subcommands."""
 
-    @group(version="2021.10.08")
+    def versioned_extra_params():
+        params = default_extra_params()
+        for p in params:
+            if isinstance(p, ExtraVersionOption):
+                p.version = "2021.10.08"
+        return params
+
+    @group(params=versioned_extra_params)
     def command_cli1():
         echo("It works!")
 
