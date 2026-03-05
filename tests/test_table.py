@@ -17,7 +17,6 @@
 from __future__ import annotations
 
 import csv
-from textwrap import dedent
 
 import pytest
 import tabulate
@@ -611,5 +610,3 @@ def test_all_table_rendering(
     assert result.stdout == f"Table format: {format_name}\n{expected}"
     assert not result.stderr
     assert result.exit_code == 0
-
-
