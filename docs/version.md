@@ -472,6 +472,10 @@ assert re.fullmatch((
 These variables are presented in their original Python type. If most of these variables are strings, others like `env_info` retains their original `dict` type.
 ```
 
+```{note}
+Metadata values in `ctx.meta` are **lazily evaluated**: a field like `env_info` or `git_long_hash` is only computed the first time you access it. If your command only reads `ctx.meta["click_extra.version"]`, the expensive Git subprocess calls and environment profiling are never executed.
+```
+
 ## Template rendering
 
 You can render the version string manually by calling the option's internal methods:

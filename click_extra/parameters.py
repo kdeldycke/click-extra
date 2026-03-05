@@ -121,6 +121,47 @@ class Option(_ParameterMixin, cloup.Option):
     """
 
 
+class _LazyMetaDict(dict):
+    """Dict subclass that lazily resolves fields on first access.
+
+    Installed as ``ctx._meta`` so that ``ctx.meta["click_extra.<field>"]``
+    transparently evaluates the corresponding ``@cached_property`` on the
+    source object only when the key is actually read.
+    """
+
+    def __init__(
+        self,
+        base: dict[str, Any],
+        source: object,
+        fields: tuple[str, ...],
+    ) -> None:
+        super().__init__(base)
+        self._source = source
+        self._lazy_keys = {f"click_extra.{f}": f for f in fields}
+
+    def _resolve(self, key: str) -> Any:
+        """Resolve a lazy key, cache the result, and return it."""
+        value = getattr(self._source, self._lazy_keys[key])
+        # Store as a regular entry so subsequent reads are plain dict lookups.
+        dict.__setitem__(self, key, value)
+        return value
+
+    def __getitem__(self, key: str) -> Any:
+        if key in self._lazy_keys and not dict.__contains__(self, key):
+            return self._resolve(key)
+        return super().__getitem__(key)
+
+    def __contains__(self, key: object) -> bool:
+        return key in self._lazy_keys or super().__contains__(key)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        if key in self._lazy_keys:
+            if dict.__contains__(self, key):
+                return super().__getitem__(key)
+            return self._resolve(key)
+        return super().get(key, default)
+
+
 class ExtraOption(Option):
     """Dedicated to option implemented by ``click-extra`` itself.
 

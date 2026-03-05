@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Lazily evaluate version metadata fields in `ctx.meta`. Only fields actually accessed (or referenced in the message template) are resolved, avoiding unnecessary Git subprocess calls and environment profiling on every CLI invocation.
+
 ## [7.6.5 (2026-03-05)](https://github.com/kdeldycke/click-extra/compare/v7.6.4...v7.6.5)
 
 - Bump `tabulate` requirement from `>=0.9` to `>=0.10`.

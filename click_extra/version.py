@@ -35,7 +35,7 @@ from boltons.formatutils import BaseFormatField, tokenize_format_str
 
 from . import Style, echo, get_current_context
 from .colorize import default_theme
-from .parameters import ExtraOption
+from .parameters import ExtraOption, _LazyMetaDict
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -745,7 +745,14 @@ class ExtraVersionOption(ExtraOption):
         if template is None:
             template = self.colored_template()
 
-        return template.format(**{v: getattr(self, v) for v in self.template_fields})
+        # Only resolve fields that actually appear in the template, so unused
+        # properties (git calls, env_info, etc.) are never evaluated.
+        used_fields = {
+            seg.base_name
+            for seg in tokenize_format_str(template, resolve_pos=False)
+            if isinstance(seg, BaseFormatField)
+        }
+        return template.format(**{v: getattr(self, v) for v in used_fields})
 
     def print_debug_message(self) -> None:
         """Render in debug logs all template fields in color.
@@ -778,11 +785,22 @@ class ExtraVersionOption(ExtraOption):
 
         Also stores all version string elements in the Context's ``meta`` `dict`.
         """
-        # Populate the context's meta dict with the version string elements.
-        for var in self.template_fields:
-            ctx.meta[f"click_extra.{var}"] = getattr(self, var)
+        # Install a lazy dict so that version fields in ctx.meta are only
+        # evaluated when actually accessed, avoiding unnecessary git calls,
+        # environment profiling, and stack inspection on every invocation.
+        ctx._meta = _LazyMetaDict(ctx._meta, self, self.template_fields)
 
-        # Always print debug messages, even if --version is not called.
+        # Eagerly resolve ``module`` now: cli_frame() relies on stack
+        # inspection that only produces the correct result during the eager
+        # callback. Once cached, all dependent properties (module_name,
+        # package_name, etc.) will use this cached value regardless of when
+        # they are accessed.
+        self.module  # noqa: B018
+
+        # Always log all template fields at DEBUG level, even if --version is
+        # not called. This provides valuable execution context in bug reports.
+        # The debug check inside the method ensures fields are only resolved
+        # (and thus the lazy dict entries materialized) when DEBUG is active.
         self.print_debug_message()
 
         if not value or ctx.resilient_parsing:

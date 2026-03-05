@@ -243,6 +243,36 @@ def test_context_meta(invoke, cmd_decorator, assert_output_regex):
     assert result.exit_code == 0
 
 
+@pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
+def test_context_meta_laziness(invoke, cmd_decorator):
+    """Accessing a single field from ``ctx.meta`` must not evaluate unrelated fields.
+
+    Ensures that the ``_LazyVersionDict`` defers property evaluation: reading
+    ``click_extra.version`` should not trigger expensive properties like
+    ``env_info`` or git fields.
+    """
+
+    @cmd_decorator
+    @version_option(version="1.0.0")
+    @pass_context
+    def lazy_cli(ctx):
+        # Access only the version field.
+        echo(f"version = {ctx.meta['click_extra.version']}")
+
+    result = invoke(lazy_cli)
+    assert result.exit_code == 0
+    assert "version = 1.0.0" in result.output
+
+    # Retrieve the ExtraVersionOption instance from the command.
+    version_param = next(
+        p for p in lazy_cli.params if isinstance(p, ExtraVersionOption)
+    )
+    # Fields that were never accessed should NOT have been cached.
+    assert "env_info" not in version_param.__dict__
+    assert "git_date" not in version_param.__dict__
+    assert "git_long_hash" not in version_param.__dict__
+
+
 def test_module_version_parent_package_fallback(monkeypatch):
     """``module_version`` falls back to parent package's ``__version__``.
 
