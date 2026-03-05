@@ -33,7 +33,7 @@ from click_extra import (
     table_format_option,
 )
 from click_extra.pytest import command_decorators
-from click_extra.table import MARKUP_FORMATS
+from click_extra.table import TableFormat
 
 
 @pytest.mark.once
@@ -615,7 +615,7 @@ def test_all_table_rendering(
 
 @pytest.mark.parametrize(
     "format_id",
-    (pytest.param(f, id=str(f)) for f in MARKUP_FORMATS),
+    (pytest.param(f, id=str(f)) for f in TableFormat if f.is_markup),
 )
 def test_markup_strips_ansi_by_default(invoke, format_id):
     """Markup formats strip ANSI codes when ``--color`` is not forced."""
@@ -637,7 +637,7 @@ def test_markup_strips_ansi_by_default(invoke, format_id):
 
 @pytest.mark.parametrize(
     "format_id",
-    (pytest.param(f, id=str(f)) for f in MARKUP_FORMATS),
+    (pytest.param(f, id=str(f)) for f in TableFormat if f.is_markup),
 )
 def test_markup_preserves_ansi_with_color_flag(invoke, format_id):
     """``--color`` overrides ANSI stripping for markup formats."""

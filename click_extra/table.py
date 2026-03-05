@@ -36,8 +36,6 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    import click
-
 
 tabulate.MIN_PADDING = 0
 """Neutralize spurious double-spacing in table rendering."""
@@ -130,35 +128,43 @@ class TableFormat(Enum):
     def __str__(self):
         return self.name.lower().replace("_", "-")
 
+    @property
+    def is_markup(self) -> bool:
+        """Whether this format is a markup rendering.
 
-MARKUP_FORMATS = {
-    TableFormat.ASCIIDOC,
-    TableFormat.CSV,
-    TableFormat.CSV_EXCEL,
-    TableFormat.CSV_EXCEL_TAB,
-    TableFormat.CSV_UNIX,
-    TableFormat.GITHUB,
-    TableFormat.HTML,
-    TableFormat.JIRA,
-    TableFormat.LATEX,
-    TableFormat.LATEX_BOOKTABS,
-    TableFormat.LATEX_LONGTABLE,
-    TableFormat.LATEX_RAW,
-    TableFormat.MEDIAWIKI,
-    TableFormat.MOINMOIN,
-    TableFormat.ORGTBL,
-    TableFormat.PIPE,
-    TableFormat.RST,
-    TableFormat.TEXTILE,
-    TableFormat.TSV,
-    TableFormat.UNSAFEHTML,
-    TableFormat.YOUTRACK,
-}
-"""Subset of table formats that are considered as markup rendering.
+        Markup formats have ANSI color codes stripped from their output by default.
+        Use the ``--color`` flag to preserve them.
+        """
+        return self in MARKUP_FORMATS
 
-As such, ANSI color codes are stripped from their output by default.
-Use the ``--color`` flag to preserve them.
-"""
+
+MARKUP_FORMATS = frozenset(
+    {
+        TableFormat.ASCIIDOC,
+        TableFormat.CSV,
+        TableFormat.CSV_EXCEL,
+        TableFormat.CSV_EXCEL_TAB,
+        TableFormat.CSV_UNIX,
+        TableFormat.GITHUB,
+        TableFormat.HTML,
+        TableFormat.JIRA,
+        TableFormat.LATEX,
+        TableFormat.LATEX_BOOKTABS,
+        TableFormat.LATEX_LONGTABLE,
+        TableFormat.LATEX_RAW,
+        TableFormat.MEDIAWIKI,
+        TableFormat.MOINMOIN,
+        TableFormat.ORGTBL,
+        TableFormat.PIPE,
+        TableFormat.RST,
+        TableFormat.TEXTILE,
+        TableFormat.TSV,
+        TableFormat.UNSAFEHTML,
+        TableFormat.YOUTRACK,
+    },
+)
+"""Subset of table formats that are considered as markup rendering."""
+
 
 DEFAULT_FORMAT = TableFormat.ROUNDED_OUTLINE
 """Default table format, if none is specified."""
@@ -322,7 +328,7 @@ def print_table(
     output = render_func(table_data, headers, **kwargs)
 
     # Strip ANSI codes from markup formats unless color is explicitly forced.
-    if table_format in MARKUP_FORMATS:
+    if table_format and table_format.is_markup:
         ctx = click.get_current_context(silent=True)
         if ctx is None or ctx.color is not True:
             output = strip_ansi(output)
