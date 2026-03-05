@@ -372,13 +372,24 @@ class ExtraHelpColorsMixin:  # (Command)??
             options.update(param.opts)
             options.update(param.secondary_opts)
 
+            # Only Choice and DateTime types produce their own structured
+            # metavar (with delimiters like brackets and pipes). All other
+            # types fall back to a plain uppercased name (e.g. TEXT, INTEGER).
             if isinstance(param.type, click.Choice):
                 choices.update(
                     i.name if isinstance(i, Enum) else str(i)
                     for i in param.type.choices
                 )
+            elif isinstance(param.type, click.DateTime):
+                # Highlight each datetime format string as a choice.
+                choices.update(param.type.formats)
+            else:
+                metavars.add(param.make_metavar(ctx=ctx))
 
-            metavars.add(param.make_metavar(ctx=ctx))
+            # A user-provided metavar (e.g. ``metavar="LEVEL"``) is always
+            # a plain token worth highlighting, even for Choice/DateTime.
+            if param.metavar:
+                metavars.add(param.metavar)
 
             if param.envvar:
                 if isinstance(param.envvar, str):

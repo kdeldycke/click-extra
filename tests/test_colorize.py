@@ -367,6 +367,42 @@ class HashType(Enum):
                 + ".",
             ),
         ),
+        # DateTime formats highlighted as choices.
+        (
+            ExtraOption(
+                ["--date"],
+                type=click.DateTime(["%Y-%m-%d"]),
+                help="A date in %Y-%m-%d format.",
+            ),
+            (
+                " "
+                + theme.option("--date")
+                + " "
+                + "["
+                + theme.choice("%Y-%m-%d")
+                + "] ",
+                " A date in "
+                + theme.choice("%Y-%m-%d")
+                + " format.",
+            ),
+        ),
+        # Custom metavar on a Choice type is highlighted as metavar.
+        (
+            ExtraOption(
+                ["--level"],
+                type=click.Choice(["low", "mid", "high"]),
+                metavar="LEVEL",
+                help="Set LEVEL priority.",
+            ),
+            (
+                " "
+                + theme.option("--level")
+                + " "
+                + theme.metavar("LEVEL")
+                + " ",
+                " Set " + theme.metavar("LEVEL") + " priority.",
+            ),
+        ),
         # Tuple option.
         (
             ExtraOption(["--item"], type=(str, int), help="Option with tuple type."),
