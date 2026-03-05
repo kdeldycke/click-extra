@@ -65,8 +65,8 @@ tabulate._table_formats.update(  # type: ignore[attr-defined]
 
 # Patch the ``github`` format to support alignment colons in separator rows, matching
 # the ``pipe`` format. Backport of https://github.com/astanin/python-tabulate/pull/410
-# type: ignore[attr-defined]
-tabulate._table_formats["github"] = tabulate._table_formats["pipe"]
+_fmts = tabulate._table_formats  # type: ignore[attr-defined]
+_fmts["github"] = _fmts["pipe"]
 
 
 class TableFormat(Enum):
