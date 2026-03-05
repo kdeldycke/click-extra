@@ -50,6 +50,7 @@ from click_extra import (
     search_params,
     validate_config_option,
 )
+from click_extra.config import _expand_dotted_keys
 from click_extra.colorize import _escape_for_help_screen
 from click_extra.pytest import (
     default_debug_uncolored_log_end,
@@ -2976,3 +2977,399 @@ def test_sanity_format_mismatch_without_explicit_default(caplog):
         )
 
     assert "canonically associated" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("input_conf", "expected"),
+    (
+        pytest.param(
+            {"a": 1, "b": 2},
+            {"a": 1, "b": 2},
+            id="no_dots",
+        ),
+        pytest.param(
+            {"a.b": 1},
+            {"a": {"b": 1}},
+            id="single_dotted_key",
+        ),
+        pytest.param(
+            {"a.b.c": 1},
+            {"a": {"b": {"c": 1}}},
+            id="multi_level_dotted_key",
+        ),
+        pytest.param(
+            {"a.b": 1, "a": {"c": 2}},
+            {"a": {"b": 1, "c": 2}},
+            id="mixed_dotted_and_nested",
+        ),
+        pytest.param(
+            {"a": {"b.c": 1, "d": 2}},
+            {"a": {"b": {"c": 1}, "d": 2}},
+            id="nested_dotted_key",
+        ),
+        pytest.param(
+            {"a.b": 1, "a.c": 2},
+            {"a": {"b": 1, "c": 2}},
+            id="multiple_dotted_same_prefix",
+        ),
+        pytest.param(
+            {"a.b": {"c": 3}, "a": {"d": 4}},
+            {"a": {"b": {"c": 3}, "d": 4}},
+            id="dotted_key_with_dict_value",
+        ),
+        pytest.param(
+            {},
+            {},
+            id="empty",
+        ),
+    ),
+)
+def test_expand_dotted_keys(input_conf, expected):
+    assert _expand_dotted_keys(input_conf) == expected
+
+
+@pytest.mark.parametrize(
+    ("conf_name", "conf_text"),
+    (
+        pytest.param(
+            "dotted.toml",
+            dedent("""\
+                [config-cli1]
+                "default.int_param" = 77
+                dummy_flag = true
+                my_list = ["pip", "npm", "gem"]
+                verbosity = "DEBUG"
+                """),
+            id="toml",
+        ),
+        pytest.param(
+            "dotted.json",
+            dedent("""\
+                {
+                    "config-cli1": {
+                        "default.int_param": 77,
+                        "dummy_flag": true,
+                        "my_list": ["pip", "npm", "gem"],
+                        "verbosity": "DEBUG"
+                    }
+                }
+                """),
+            id="json",
+        ),
+        pytest.param(
+            "dotted.yaml",
+            dedent("""\
+                config-cli1:
+                    "default.int_param": 77
+                    dummy_flag: true
+                    my_list:
+                      - pip
+                      - npm
+                      - gem
+                    verbosity: DEBUG
+                """),
+            id="yaml",
+        ),
+    ),
+)
+def test_dotted_keys_in_config(
+    invoke, simple_config_cli, create_config, conf_name, conf_text
+):
+    """Dotted keys in config files are expanded into nested structures."""
+    conf_path = create_config(conf_name, conf_text)
+    result = invoke(
+        simple_config_cli,
+        "--config",
+        str(conf_path),
+        "default",
+        color=False,
+    )
+    assert result.exit_code == 0
+    assert result.stdout == (
+        "dummy_flag = True\nmy_list = ('pip', 'npm', 'gem')\nint_parameter = 77\n"
+    )
+
+
+@pytest.mark.parametrize(
+    ("input_conf", "warning_fragment"),
+    (
+        pytest.param(
+            {"a": 1, "a.b": 2},
+            "Configuration key 'a.b' conflicts with 'a'",
+            id="scalar_then_dotted",
+        ),
+        pytest.param(
+            {"a.b": 2, "a": 1},
+            "Configuration key 'a' conflicts with 'a'",
+            id="dotted_then_scalar",
+        ),
+        pytest.param(
+            {"a": None, "a.b": 2},
+            "Configuration key 'a.b' conflicts with 'a'",
+            id="none_then_dotted",
+        ),
+        pytest.param(
+            {"a.b": 2, "a": None},
+            "Configuration key 'a' conflicts with 'a'",
+            id="dotted_then_none",
+        ),
+        pytest.param(
+            {"a.b.c": 1, "a.b": 2},
+            "Configuration key 'a.b' conflicts with 'a.b'",
+            id="deep_conflict",
+        ),
+        pytest.param(
+            {"a.b": 2, "a.b.c": 1},
+            "Configuration key 'a.b.c' conflicts with 'a.b'",
+            id="deep_conflict_reversed",
+        ),
+        pytest.param(
+            {"a": False, "a.b": 2},
+            "Configuration key 'a.b' conflicts with 'a'",
+            id="false_then_dotted",
+        ),
+        pytest.param(
+            {"a": 0, "a.b": 2},
+            "Configuration key 'a.b' conflicts with 'a'",
+            id="zero_then_dotted",
+        ),
+        pytest.param(
+            {"a": "", "a.b": 2},
+            "Configuration key 'a.b' conflicts with 'a'",
+            id="empty_string_then_dotted",
+        ),
+        pytest.param(
+            {"a": [], "a.b": 2},
+            "Configuration key 'a.b' conflicts with 'a'",
+            id="empty_list_then_dotted",
+        ),
+        pytest.param(
+            {"a.b": 2, "a": False},
+            "Configuration key 'a' conflicts with 'a'",
+            id="dotted_then_false",
+        ),
+        pytest.param(
+            {"a.b": 2, "a": 0},
+            "Configuration key 'a' conflicts with 'a'",
+            id="dotted_then_zero",
+        ),
+    ),
+)
+def test_expand_dotted_keys_conflict_warning(caplog, input_conf, warning_fragment):
+    """Scalar/dict conflicts on the same key emit a warning."""
+    with caplog.at_level(logging.WARNING, logger="click_extra"):
+        _expand_dotted_keys(input_conf)
+    assert warning_fragment in caplog.text
+
+
+@pytest.mark.parametrize(
+    "input_conf",
+    (
+        pytest.param({"...": 1}, id="only_dots"),
+        pytest.param({".a": 1}, id="leading_dot"),
+        pytest.param({"a.": 1}, id="trailing_dot"),
+    ),
+)
+def test_expand_dotted_keys_empty_segments(caplog, input_conf):
+    """Dotted keys with empty segments are skipped with a warning."""
+    with caplog.at_level(logging.WARNING, logger="click_extra"):
+        result = _expand_dotted_keys(input_conf)
+    assert result == {}
+    assert "contains empty segments" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("input_conf", "expected"),
+    (
+        pytest.param(
+            {"a": {"b": 4}, "a.b": 2},
+            {"a": {"b": 2}},
+            id="dict_then_dotted_same_leaf",
+        ),
+        pytest.param(
+            {"a.b": 2, "a": {"b": 4}},
+            {"a": {"b": 4}},
+            id="dotted_then_dict_same_leaf",
+        ),
+        pytest.param(
+            {"a": {}, "a.b": 2},
+            {"a": {"b": 2}},
+            id="empty_dict_then_dotted",
+        ),
+        pytest.param(
+            {"a.b": None},
+            {"a": {"b": None}},
+            id="dotted_with_none_value",
+        ),
+        pytest.param(
+            {"a.b": [1, 2]},
+            {"a": {"b": [1, 2]}},
+            id="dotted_with_list_value",
+        ),
+        # Falsy values as leaves.
+        pytest.param(
+            {"a.b": False},
+            {"a": {"b": False}},
+            id="dotted_with_false",
+        ),
+        pytest.param(
+            {"a.b": 0},
+            {"a": {"b": 0}},
+            id="dotted_with_zero",
+        ),
+        pytest.param(
+            {"a.b": 0.0},
+            {"a": {"b": 0.0}},
+            id="dotted_with_zero_float",
+        ),
+        pytest.param(
+            {"a.b": ""},
+            {"a": {"b": ""}},
+            id="dotted_with_empty_string",
+        ),
+        pytest.param(
+            {"a.b": []},
+            {"a": {"b": []}},
+            id="dotted_with_empty_list",
+        ),
+        pytest.param(
+            {"a.b": ()},
+            {"a": {"b": ()}},
+            id="dotted_with_empty_tuple",
+        ),
+        # Truthy values as leaves.
+        pytest.param(
+            {"a.b": True},
+            {"a": {"b": True}},
+            id="dotted_with_true",
+        ),
+        pytest.param(
+            {"a.b": 1},
+            {"a": {"b": 1}},
+            id="dotted_with_one",
+        ),
+        pytest.param(
+            {"a.b": " "},
+            {"a": {"b": " "}},
+            id="dotted_with_whitespace",
+        ),
+        # Falsy values at intermediate positions.
+        pytest.param(
+            {"a": False, "a.b": 2},
+            {"a": {"b": 2}},
+            id="false_then_dotted",
+        ),
+        pytest.param(
+            {"a": 0, "a.b": 2},
+            {"a": {"b": 2}},
+            id="zero_then_dotted",
+        ),
+        pytest.param(
+            {"a": "", "a.b": 2},
+            {"a": {"b": 2}},
+            id="empty_string_then_dotted",
+        ),
+        pytest.param(
+            {"a": [], "a.b": 2},
+            {"a": {"b": 2}},
+            id="empty_list_then_dotted",
+        ),
+        # Dotted then falsy plain key.
+        pytest.param(
+            {"a.b": 2, "a": False},
+            {"a": False},
+            id="dotted_then_false",
+        ),
+        pytest.param(
+            {"a.b": 2, "a": 0},
+            {"a": 0},
+            id="dotted_then_zero",
+        ),
+        # Empty dict merges cleanly (no data loss).
+        pytest.param(
+            {"a.b": 2, "a": {}},
+            {"a": {"b": 2}},
+            id="dotted_then_empty_dict",
+        ),
+    ),
+)
+def test_expand_dotted_keys_edge_cases(input_conf, expected):
+    assert _expand_dotted_keys(input_conf) == expected
+
+
+@pytest.mark.parametrize(
+    ("input_conf", "error_fragment"),
+    (
+        pytest.param(
+            {"a": 1, "a.b": 2},
+            "Configuration key 'a.b' conflicts with 'a'",
+            id="scalar_then_dotted",
+        ),
+        pytest.param(
+            {"a.b": 2, "a": 1},
+            "Configuration key 'a' conflicts with 'a'",
+            id="dotted_then_scalar",
+        ),
+        pytest.param(
+            {"a.b.c": 1, "a.b": 2},
+            "Configuration key 'a.b' conflicts with 'a.b'",
+            id="deep_conflict",
+        ),
+        pytest.param(
+            {"a": None, "a.b": 2},
+            "Configuration key 'a.b' conflicts with 'a'",
+            id="none_then_dotted",
+        ),
+    ),
+)
+def test_expand_dotted_keys_strict_conflict(input_conf, error_fragment):
+    """Strict mode raises ValueError on type conflicts."""
+    with pytest.raises(ValueError, match=error_fragment):
+        _expand_dotted_keys(input_conf, strict=True)
+
+
+@pytest.mark.parametrize(
+    "input_conf",
+    (
+        pytest.param({"...": 1}, id="only_dots"),
+        pytest.param({".a": 1}, id="leading_dot"),
+        pytest.param({"a.": 1}, id="trailing_dot"),
+    ),
+)
+def test_expand_dotted_keys_strict_empty_segments(input_conf):
+    """Strict mode raises ValueError on dotted keys with empty segments."""
+    with pytest.raises(ValueError, match="contains empty segments"):
+        _expand_dotted_keys(input_conf, strict=True)
+
+
+def test_strict_conf_dotted_key_conflict(invoke, create_config):
+    """Strict mode rejects configs with dotted-key type conflicts."""
+
+    @click.group
+    @option("--dummy-flag/--no-flag")
+    @config_option(strict=True)
+    def strict_cli(dummy_flag):
+        echo(f"dummy_flag is {dummy_flag!r}")
+
+    @strict_cli.command
+    @option("--int-param", type=int, default=10)
+    def subcommand(int_param):
+        echo(f"int_parameter is {int_param!r}")
+
+    conf_path = create_config(
+        "conflict.json",
+        dedent("""\
+            {
+                "strict-cli": {
+                    "subcommand": "not_a_dict",
+                    "subcommand.int_param": 3
+                }
+            }
+            """),
+    )
+
+    result = invoke(strict_cli, "--config", str(conf_path), "subcommand", color=False)
+    assert result.exception
+    assert type(result.exception) is ValueError
+    assert "conflicts" in str(result.exception)
+    assert result.exit_code == 1

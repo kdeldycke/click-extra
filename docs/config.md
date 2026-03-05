@@ -93,6 +93,114 @@ my_list       is ('item 1', 'item #2', 'Very Last Item!')
 int_parameter is 3
 ```
 
+## Dotted keys
+
+Configuration files support dotted keys as a shorthand for nested structures. Instead of writing:
+
+```{code-block} toml
+:caption: Nested structure
+[my-cli.subcommand]
+int_param = 3
+```
+
+You can write:
+
+```{code-block} toml
+:caption: Dotted key equivalent
+[my-cli]
+"subcommand.int_param" = 3
+```
+
+Both forms are equivalent. You can also freely mix them in the same file:
+
+```{code-block} json
+:caption: Mixed dotted and nested keys in JSON
+{
+    "my-cli": {
+        "dummy_flag": true,
+        "subcommand.int_param": 3,
+        "subcommand": {
+            "other_param": "value"
+        }
+    }
+}
+```
+
+Dotted keys are expanded into nested dicts and deep-merged before the configuration is applied. This works across all [supported formats](#formats), and at any nesting depth (e.g. `"subcommand.nested.option"` expands to three levels).
+
+```{hint}
+This is especially handy in formats like JSON that have no native section syntax, letting you keep a flat structure when the nesting would be excessive.
+```
+
+### Merge rules
+
+When dotted keys and nested structures target the same leaf, the **last one in file order wins**:
+
+```{code-block} json
+:caption: Last value wins
+{
+    "my-cli": {
+        "subcommand": {"int_param": 3},
+        "subcommand.int_param": 77
+    }
+}
+```
+
+Here `int_param` resolves to `77` because the dotted key appears after the nested one.
+
+### Conflicts
+
+A conflict occurs when the same key is used as both a scalar and a namespace. For example:
+
+```{code-block} json
+:caption: Conflicting types on the same key
+{
+    "my-cli": {
+        "subcommand": "some_value",
+        "subcommand.int_param": 3
+    }
+}
+```
+
+Here `subcommand` is a plain string, but `subcommand.int_param` requires it to be a dict. By default, Click Extra logs a warning and the **last value wins** — in this case, `subcommand` becomes `{"int_param": 3}`, silently dropping `"some_value"`.
+
+In [`strict` mode](#strictness), conflicts and invalid dotted keys raise a `ValueError` instead of being silently resolved.
+
+The same conflict detection applies at deeper levels:
+
+```{code-block} json
+:caption: Deep conflict
+{
+    "my-cli": {
+        "subcommand.int_param.nested": 1,
+        "subcommand.int_param": 2
+    }
+}
+```
+
+Here `int_param` is set to both `{"nested": 1}` (via the first key) and `2` (via the second). A warning is logged and `int_param` resolves to `2`.
+
+```{note}
+Most formats prevent these conflicts at parse time — TOML rejects a key used as both a scalar and a table, YAML forbids duplicate keys — so in practice this mainly affects JSON.
+```
+
+### Invalid dotted keys
+
+Dotted keys with empty segments (leading, trailing, or consecutive dots) are skipped with a warning:
+
+```{code-block} json
+:caption: Invalid keys that are skipped
+{
+    "my-cli": {
+        ".option": 1,
+        "option.": 2,
+        "sub..option": 3
+    }
+}
+```
+
+All three keys above are ignored. Use `--verbosity WARNING` or higher to see the warnings. In [`strict` mode](#strictness), they raise a `ValueError`.
+
 ## Precedence
 
 The configuration loader fetch values according the following precedence:

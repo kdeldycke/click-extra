@@ -10,6 +10,7 @@
 - Strip ANSI color codes from markup table formats (`csv`, `html`, `latex`, `rst`, etc.) by default. Use `--color` to preserve them.
 - Add `TableFormat.is_markup` property.
 - Remove `version` parameter from `ExtraCommand` and `ExtraGroup`. Set the version directly on `ExtraVersionOption` instead (via `@version_option(version="...")` or in the `params=` list).
+- Expand dotted keys in configuration files (e.g. `"subcommand.option": value`) into nested dicts before merging. Allows mixing flat dot-notation and nested structures in any supported format. Warns on type conflicts and invalid keys; raises `ValueError` in `strict` mode.
 
 ## [7.6.5 (2026-03-05)](https://github.com/kdeldycke/click-extra/compare/v7.6.4...v7.6.5)
 

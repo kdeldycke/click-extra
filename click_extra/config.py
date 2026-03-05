@@ -37,6 +37,10 @@
 
     Help message would be: *you can use this option with other options or environment
     variables to have them set in the generated configuration*.
+
+Dotted keys in configuration files (e.g. ``"subcommand.option": value``) are
+automatically expanded into nested dicts before merging, so users can freely mix
+flat dot-notation and nested structures in any supported format.
 """
 
 from __future__ import annotations
@@ -277,6 +281,97 @@ def _strip_reserved_keys(conf: dict, keys: frozenset[str] | None = None) -> dict
             continue
         cleaned[k] = _strip_reserved_keys(v, keys) if isinstance(v, dict) else v
     return cleaned
+
+
+def _check_type_conflict(
+    target: dict,
+    parts: list[str],
+    new_value: object,
+    label: str,
+    strict: bool,
+) -> None:
+    """Walk *parts* into *target* and warn on scalar/dict mismatches.
+
+    Checks every level (intermediate and leaf) so that deep conflicts like
+    ``{"a.b.c": 1, "a.b": 2}`` are caught.
+
+    In strict mode, raises ``ValueError`` instead of logging a warning.
+    """
+    logger = logging.getLogger("click_extra")
+    node = target
+    for i, part in enumerate(parts):
+        if part not in node:
+            return
+        existing = node[part]
+        is_last = i == len(parts) - 1
+        if is_last:
+            # Leaf: flag when one side is a dict and the other is not.
+            if isinstance(existing, dict) != isinstance(new_value, dict):
+                msg = (
+                    f"Configuration key {label!r} conflicts with "
+                    f"{'.'.join(parts[:i + 1])!r}: "
+                    f"mixing scalar and nested values."
+                )
+                if strict:
+                    raise ValueError(msg)
+                logger.warning(f"{msg} Last value wins.")
+            return
+        # Intermediate segment: the new value expects a dict here.
+        if not isinstance(existing, dict):
+            msg = (
+                f"Configuration key {label!r} conflicts with "
+                f"{'.'.join(parts[:i + 1])!r}: "
+                f"mixing scalar and nested values."
+            )
+            if strict:
+                raise ValueError(msg)
+            logger.warning(f"{msg} Last value wins.")
+            return
+        node = existing
+
+
+def _expand_dotted_keys(conf: dict, strict: bool = False) -> dict:
+    """Expand dotted keys into nested dicts, then deep-merge.
+
+    Allows configuration files to mix flat dot-notation and nested structures::
+
+        {"subcommand.option_a": 1, "subcommand": {"option_b": 2}}
+
+    becomes::
+
+        {"subcommand": {"option_a": 1, "option_b": 2}}
+
+    Recurses into nested dicts so dotted keys at any level are expanded.
+
+    In non-strict mode, logs a warning when a key resolves to both a scalar
+    and a dict (e.g. ``{"a": 1, "a.b": 2}``), as one value will silently
+    override the other.
+
+    In strict mode, raises ``ValueError`` on type conflicts and invalid
+    dotted keys (empty segments).
+    """
+    logger = logging.getLogger("click_extra")
+    expanded: dict = {}
+    for key, value in conf.items():
+        if isinstance(value, dict):
+            value = _expand_dotted_keys(value, strict=strict)
+        if "." in key:
+            parts = key.split(".")
+            if not all(parts):
+                msg = (
+                    f"Configuration key {key!r} contains empty segments."
+                )
+                if strict:
+                    raise ValueError(msg)
+                logger.warning(f"Ignoring {msg.lower()}")
+                continue
+            nested = ParamStructure.init_tree_dict(*parts, leaf=value)
+            _check_type_conflict(expanded, parts, value, key, strict)
+            expanded = always_merger.merge(expanded, nested)
+        else:
+            _check_type_conflict(expanded, [key], value, key, strict)
+            expanded = always_merger.merge(expanded, {key: value})
+    return expanded
 
 
 class Sentinel(Enum):
@@ -1083,8 +1178,11 @@ class ConfigOption(ExtraOption, ParamStructure):
         The first layer wins on key lookup, which makes parameter-source precedence
         explicit and future-proofs for multi-file config loading.
         """
+        normalized_conf = _expand_dotted_keys(
+            _strip_reserved_keys(user_conf), strict=self.strict
+        )
         filtered_conf = _recursive_update(
-            self.params_template, _strip_reserved_keys(user_conf), self.strict
+            self.params_template, normalized_conf, self.strict
         )
 
         # Clean-up the conf by removing all blank values left-over by the template
@@ -1340,7 +1438,9 @@ class ValidateConfigOption(ExtraOption):
         try:
             _recursive_update(
                 config_option.params_template,
-                _strip_reserved_keys(user_conf),
+                _expand_dotted_keys(
+                    _strip_reserved_keys(user_conf), strict=True
+                ),
                 strict=True,
             )
         except ValueError as exc:
