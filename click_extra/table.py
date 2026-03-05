@@ -23,7 +23,9 @@ from functools import partial
 from gettext import gettext as _
 from io import StringIO
 
+import click
 import tabulate
+from boltons.strutils import strip_ansi
 from tabulate import DataRow
 from tabulate import TableFormat as TabulateTableFormat
 
@@ -153,6 +155,9 @@ MARKUP_FORMATS = {
     TableFormat.YOUTRACK,
 }
 """Subset of table formats that are considered as markup rendering.
+
+As such, ANSI color codes are stripped from their output by default.
+Use the ``--color`` flag to preserve them.
 """
 
 DEFAULT_FORMAT = TableFormat.ROUNDED_OUTLINE
@@ -273,10 +278,7 @@ def _select_table_funcs(
     to this the ``--color``/``--no-color`` option is automatically supported.
 
     For CSV formats we returns the Python standard ``print()`` function, to preserve
-    line terminations, avoid extra line returns and keep ANSI coloring.
-
-    .. todo::
-        Consider to force stripping of ANSI coloring for CSV and other markup formats.
+    line terminations and avoid extra line returns.
     """
     print_func = echo
     match table_format:
@@ -311,9 +313,21 @@ def print_table(
     table_format: TableFormat | None = None,
     **kwargs,
 ) -> None:
-    """Render a table and print it to the console."""
+    """Render a table and print it to the console.
+
+    For markup formats, ANSI color codes are stripped from the output unless
+    ``--color`` is explicitly set.
+    """
     render_func, print_func = _select_table_funcs(table_format)
-    print_func(render_func(table_data, headers, **kwargs))
+    output = render_func(table_data, headers, **kwargs)
+
+    # Strip ANSI codes from markup formats unless color is explicitly forced.
+    if table_format in MARKUP_FORMATS:
+        ctx = click.get_current_context(silent=True)
+        if ctx is None or ctx.color is not True:
+            output = strip_ansi(output)
+
+    print_func(output)
 
 
 class TableFormatOption(ExtraOption):

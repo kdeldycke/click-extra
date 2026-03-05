@@ -133,6 +133,12 @@ They're divided in 2 categories:
 | `vertical` | Vertical table layout | `cli-helpers` | ❌ |
 | `youtrack` | [YouTrack markup](https://www.jetbrains.com/help/youtrack/server/youtrack-markdown-syntax-issues.html#tables) | `python-tabulate` | ✅ |
 
+```{attention}
+By default, markup formats strip ANSI color codes from the output, to avoid injecting escape sequences into structured content like HTML, LaTeX, or CSV.
+
+If you want to keep them, force the `--color` option when invoking the command.
+```
+
 ```{todo}
 Explain extra parameters supported by `print_table()` for each category of formats.
 ```
