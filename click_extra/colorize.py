@@ -376,6 +376,8 @@ class ExtraHelpColorsMixin:  # (Command)??
             # metavar (with delimiters like brackets and pipes). All other
             # types fall back to a plain uppercased name (e.g. TEXT, INTEGER).
             if isinstance(param.type, click.Choice):
+                # Click's Choice type use the enum member names, not their values:
+                # https://github.com/pallets/click/issues/2911#issuecomment-2891534372
                 choices.update(
                     i.name if isinstance(i, Enum) else str(i)
                     for i in param.type.choices
