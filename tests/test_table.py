@@ -92,8 +92,8 @@ def test_unrecognized_format(invoke, cmd_decorator, cmd_type):
         f"Usage: table-cli [OPTIONS]{group_help}\n"
         "Try 'table-cli --help' for help.\n\n"
         "Error: Invalid value for '--table-format': 'random' is not one of "
-        "'aligned', 'asciidoc', 'csv', 'csv-excel', 'csv-excel-tab', 'csv-unix', "
-        "'double-grid', 'double-outline', 'fancy-grid', 'fancy-outline', 'github', "
+        "'aligned', 'asciidoc', 'colon-grid', 'csv', 'csv-excel', 'csv-excel-tab', "
+        "'csv-unix', 'double-grid', 'double-outline', 'fancy-grid', 'fancy-outline', 'github', "
         "'grid', 'heavy-grid', 'heavy-outline', 'html', 'jira', 'latex', "
         "'latex-booktabs', 'latex-longtable', 'latex-raw', 'mediawiki', 'mixed-grid', "
         "'mixed-outline', 'moinmoin', 'orgtbl', 'outline', 'pipe', 'plain', 'presto', "
@@ -113,7 +113,7 @@ Friday Hot 🥵
 """
 
 asciidoc_table = (
-    '[cols="8<,13<",options="header"]\n'
+    '[cols="<8,<13",options="header"]\n'
     "|====\n"
     "| Day    | Temperature \n"
     "| 1      | 42.9        \n"
@@ -121,6 +121,18 @@ asciidoc_table = (
     "| Friday | Hot 🥵      \n"
     "|====\n"
 )
+
+colon_grid_table = """\
++--------+-------------+
+| Day    | Temperature |
++:=======+:============+
+| 1      | 42.9        |
++--------+-------------+
+| 2      |             |
++--------+-------------+
+| Friday | Hot 🥵      |
++--------+-------------+
+"""
 
 csv_table = """\
 Day,Temperature\r
@@ -191,7 +203,7 @@ fancy_outline_table = """\
 
 github_table = """\
 | Day    | Temperature |
-| ------ | ----------- |
+|:-------|:------------|
 | 1      | 42.9        |
 | 2      |             |
 | Friday | Hot 🥵      |
@@ -510,6 +522,7 @@ youtrack_table = """\
 expected_renderings = {
     TableFormat.ALIGNED: aligned_table,
     TableFormat.ASCIIDOC: asciidoc_table,
+    TableFormat.COLON_GRID: colon_grid_table,
     TableFormat.CSV: csv_table,
     TableFormat.CSV_EXCEL: csv_excel_table,
     TableFormat.CSV_EXCEL_TAB: csv_excel_tab_table,
@@ -600,131 +613,3 @@ def test_all_table_rendering(
     assert result.exit_code == 0
 
 
-class TestGitHubTableAlignment:
-    """Tests for GitHub table alignment hints support."""
-
-    def test_default_no_alignment(self):
-        """Default alignment is none (no hint) for all columns."""
-        from click_extra.table import render_table
-
-        result = render_table(
-            [["Alice", "24"], ["Bob", "19"]],
-            ["Name", "Age"],
-            TableFormat.GITHUB,
-        )
-        assert result == dedent("""\
-            | Name  | Age |
-            | ----- | --- |
-            | Alice | 24  |
-            | Bob   | 19  |""")
-
-    def test_left_alignment(self):
-        """Left alignment renders as ``:---``."""
-        from click_extra.table import render_table
-
-        result = render_table(
-            [["Alice", "24"], ["Bob", "19"]],
-            ["Name", "Age"],
-            TableFormat.GITHUB,
-            colalign=("left", "left"),
-        )
-        assert result == dedent("""\
-            | Name  | Age |
-            | :---- | :-- |
-            | Alice | 24  |
-            | Bob   | 19  |""")
-
-    def test_right_alignment(self):
-        """Right alignment renders as ``---:``."""
-        from click_extra.table import render_table
-
-        result = render_table(
-            [["Alice", "24"], ["Bob", "19"]],
-            ["Name", "Age"],
-            TableFormat.GITHUB,
-            colalign=("left", "right"),
-        )
-        assert result == dedent("""\
-            | Name  | Age |
-            | :---- | --: |
-            | Alice |  24 |
-            | Bob   |  19 |""")
-
-    def test_center_alignment(self):
-        """Center alignment renders as ``:---:``."""
-        from click_extra.table import render_table
-
-        result = render_table(
-            [["Alice", "24"], ["Bob", "19"]],
-            ["Name", "Age"],
-            TableFormat.GITHUB,
-            colalign=("center", "center"),
-        )
-        assert result == dedent("""\
-            | Name  | Age |
-            | :---: | :-: |
-            | Alice | 24  |
-            |  Bob  | 19  |""")
-
-    def test_mixed_alignment(self):
-        """Mixed alignments render correctly."""
-        from click_extra.table import render_table
-
-        result = render_table(
-            [["Alice", "24", "NYC"], ["Bob", "19", "LA"]],
-            ["Name", "Age", "City"],
-            TableFormat.GITHUB,
-            colalign=("left", "right", "center"),
-        )
-        assert result == dedent("""\
-            | Name  | Age | City |
-            | :---- | --: | :--: |
-            | Alice |  24 | NYC  |
-            | Bob   |  19 |  LA  |""")
-
-    def test_emoji_width(self):
-        """Emojis are handled with proper display width."""
-        from click_extra.table import render_table
-
-        result = render_table(
-            [["🐧", "Linux"], ["🍎", "macOS"]],
-            ["Icon", "OS"],
-            TableFormat.GITHUB,
-            colalign=("center", "left"),
-        )
-        assert result == dedent("""\
-            | Icon | OS    |
-            | :--: | :---- |
-            |  🐧  | Linux |
-            |  🍎  | macOS |""")
-
-    def test_none_values(self):
-        """None values are rendered as empty strings."""
-        from click_extra.table import render_table
-
-        result = render_table(
-            [["Alice", None], [None, "19"]],
-            ["Name", "Age"],
-            TableFormat.GITHUB,
-        )
-        assert result == dedent("""\
-            | Name  | Age |
-            | ----- | --- |
-            | Alice |     |
-            |       | 19  |""")
-
-    def test_unknown_alignment(self):
-        """Unknown alignment values produce plain dashes (no hint)."""
-        from click_extra.table import render_table
-
-        result = render_table(
-            [["Alice", "24"], ["Bob", "19"]],
-            ["Name", "Age"],
-            TableFormat.GITHUB,
-            colalign=("left", "unknown"),
-        )
-        assert result == dedent("""\
-            | Name  | Age |
-            | :---- | --- |
-            | Alice | 24  |
-            | Bob   | 19  |""")

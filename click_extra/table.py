@@ -24,11 +24,10 @@ from gettext import gettext as _
 from io import StringIO
 
 import tabulate
-import wcwidth
-from tabulate import DataRow, Line
+from tabulate import DataRow
 from tabulate import TableFormat as TabulateTableFormat
 
-from . import EnumChoice, echo, unstyle
+from . import EnumChoice, echo
 from .parameters import ExtraOption
 
 TYPE_CHECKING = False
@@ -54,16 +53,6 @@ tabulate._table_formats.update(  # type: ignore[attr-defined]
             padding=0,
             with_header_hide=None,
         ),
-        "github": TabulateTableFormat(
-            lineabove=Line("| ", "-", " | ", " |"),
-            linebelowheader=Line("| ", "-", " | ", " |"),
-            linebetweenrows=None,
-            linebelow=None,
-            headerrow=DataRow("| ", " | ", " |"),
-            datarow=DataRow("| ", " | ", " |"),
-            padding=0,
-            with_header_hide=["lineabove"],
-        ),
     },
 )
 """Custom table formats registered with tabulate.
@@ -72,23 +61,11 @@ tabulate._table_formats.update(  # type: ignore[attr-defined]
     A minimal format with single-space column separators and no borders or decorations.
     Similar to ``plain`` but more compact (single space instead of double space between
     columns). Useful for bar plugin output or other contexts requiring minimal formatting.
-
-``github``
-    Tweaked table separators to match MyST and GFM syntax. Adds a space between the
-    column separator and the dashes filling a cell:
-    ``|---|---|---|`` → ``| --- | --- | --- |``
-
-    That way we produce a table that doesn't need any supplement linting.
-
-    .. todo::
-        This has been merged upstream and can be removed once python-tabulate v0.9.1 is
-        released:
-
-        - https://github.com/astanin/python-tabulate/pull/261
-        - https://github.com/astanin/python-tabulate/pull/341
-        - https://github.com/astanin/python-tabulate/issues/364
-        - https://github.com/astanin/python-tabulate/issues/335
 """
+
+# Patch the ``github`` format to support alignment colons in separator rows, matching
+# the ``pipe`` format. Backport of https://github.com/astanin/python-tabulate/pull/410
+tabulate._table_formats["github"] = tabulate._table_formats["pipe"]  # type: ignore[attr-defined]
 
 
 class TableFormat(Enum):
@@ -99,13 +76,13 @@ class TableFormat(Enum):
 
     .. warning::
         The ``youtrack`` format is missing in action from any official JetBrains
-        documentation. So maybe it has been silently deprecated? Hence my
-        `proposal to remove it in python-tabulate#375
+        documentation. It `will be removed in python-tabulate v0.11
         <https://github.com/astanin/python-tabulate/issues/375>`_.
     """
 
     ALIGNED = "aligned"
     ASCIIDOC = "asciidoc"
+    COLON_GRID = "colon-grid"
     CSV = "csv"
     CSV_EXCEL = "csv-excel"
     CSV_EXCEL_TAB = "csv-excel-tab"
@@ -285,133 +262,6 @@ def _render_tabulate(
     return tabulate.tabulate(table_data, headers, **defaults)  # type: ignore[arg-type]
 
 
-def _render_github(
-    table_data: Sequence[Sequence[str | None]],
-    headers: Sequence[str | None] | None = None,
-    colalign: Sequence[str] | None = None,
-    **kwargs,
-) -> str:
-    """Render a GitHub-flavored Markdown table with alignment hints.
-
-    Produces a markdown table with alignment hints in the separator row:
-    - ``:---`` for left alignment
-    - ``:---:`` for center alignment
-    - ``---:`` for right alignment
-
-    Uses display width (not character count) for proper unicode/emoji padding,
-    matching the behavior of ``mdformat`` linter.
-
-    .. note::
-        This is a local implementation because tabulate does not support alignment
-        hints in the ``github`` format. The ``colalign`` parameter is ignored for
-        the separator row, which always renders as ``|--------|`` instead of
-        ``:-------|`` or ``|------:`` for left/right alignment.
-
-        This was reported upstream but not fixed:
-
-        - https://github.com/astanin/python-tabulate/issues/53
-        - https://github.com/astanin/python-tabulate/pull/261#issuecomment-3833075937
-
-    Args:
-        table_data: 2D sequence of cell values.
-        headers: Column headers.
-        colalign: Column alignments as expected by tabulate (e.g., ``("left", "right")``).
-        **kwargs: Ignored (for compatibility with other render functions).
-    """
-    # Convert headers, defaulting None values to empty strings.
-    header_list: list[str] = []
-    if headers:
-        header_list = ["" if h is None else str(h) for h in headers]
-
-    # Convert table data, defaulting None values to empty strings.
-    data_list: list[list[str]] = []
-    for row in table_data:
-        data_list.append(["" if cell is None else str(cell) for cell in row])
-
-    # Convert colalign to alignments list, defaulting to no alignment hint.
-    # Unknown alignment values are preserved and result in plain dashes (no hint).
-    alignments: list[str | None] = [None] * len(header_list)
-    if colalign:
-        alignments = list(colalign)
-
-    def visible_width(s: str) -> int:
-        """Return the display width of a string, accounting for unicode characters.
-
-        Uses ``wcwidth`` to calculate the proper display width of unicode and emoji
-        characters. This matches the behavior of ``mdformat`` linter. ANSI escape
-        codes are stripped before measuring.
-
-        .. note::
-            This is a local patch while waiting for a new python-tabulate release. See:
-
-            - https://github.com/astanin/python-tabulate/pull/391
-            - https://github.com/astanin/python-tabulate/pull/387
-            - https://github.com/astanin/python-tabulate/issues/389
-        """
-        # Strip ANSI escape codes before measuring width.
-        s = unstyle(s)
-        width = wcwidth.wcswidth(s)
-        # wcswidth returns -1 for control characters; fall back to len() in that case.
-        return len(s) if width < 0 else width
-
-    # Calculate column widths based on display width (for proper unicode/emoji
-    # handling). This matches the behavior of mdformat linter.
-    col_widths = []
-    for col_index, header in enumerate(header_list):
-        cells = [row[col_index] for row in data_list] + [header]
-        col_widths.append(max(visible_width(c) for c in cells))
-
-    # Build separator row with proper alignment hints.
-    separators = []
-    for col_index, width in enumerate(col_widths):
-        align = alignments[col_index]
-        if align == "left":
-            sep = f":{'-' * (width - 1)}"
-        elif align == "center":
-            sep = f":{'-' * (width - 2)}:"
-        elif align == "right":
-            sep = f"{'-' * (width - 1)}:"
-        else:
-            # No alignment hint for unknown or None alignment values.
-            sep = "-" * width
-        separators.append(sep)
-
-    def pad_cell(content: str, width: int, align: str | None) -> str:
-        """Pad a cell to the target display width with proper alignment."""
-        content_width = visible_width(content)
-        padding_needed = width - content_width
-        if align == "center":
-            left_pad = padding_needed // 2
-            right_pad = padding_needed - left_pad
-            return " " * left_pad + content + " " * right_pad
-        elif align == "right":
-            return " " * padding_needed + content
-        else:  # left, None, or unknown: left-pad by default
-            return content + " " * padding_needed
-
-    # Build header row.
-    header_cells = [
-        pad_cell(h, col_widths[i], alignments[i]) for i, h in enumerate(header_list)
-    ]
-
-    # Build data rows.
-    data_rows = []
-    for row in data_list:
-        row_cells = [
-            pad_cell(cell, col_widths[i], alignments[i]) for i, cell in enumerate(row)
-        ]
-        data_rows.append(row_cells)
-
-    # Assemble the table.
-    lines = []
-    lines.append("| " + " | ".join(header_cells) + " |")
-    lines.append("| " + " | ".join(separators) + " |")
-    for row_cells in data_rows:
-        lines.append("| " + " | ".join(row_cells) + " |")
-
-    return "\n".join(lines)
-
-
 def _select_table_funcs(
     table_format: TableFormat | None = None,
 ) -> tuple[Callable[..., str], Callable[[str], None]]:
@@ -439,10 +289,6 @@ def _select_table_funcs(
             return partial(_render_csv, table_format=table_format), print_func
         case TableFormat.VERTICAL:
             return _render_vertical, print_func
-        # Bypass tabulate's own GitHub format, which doesn't support alignment
-        # hints for markdown tables.
-        case TableFormat.GITHUB:
-            return _render_github, print_func
         case _:
             return partial(_render_tabulate, table_format=table_format), print_func
 

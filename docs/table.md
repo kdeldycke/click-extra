@@ -54,7 +54,7 @@ from textwrap import dedent
 
 result = invoke(table_command, args=["--table-format", "asciidoc"])
 assert result.stdout == (
-    '[cols="8<,13<",options="header"]\n'
+    '[cols="<8,<13",options="header"]\n'
     '|====\n'
     '| Day    | Temperature \n'
     '| 1      | 42.9        \n'

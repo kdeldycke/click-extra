@@ -5,6 +5,10 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Bump `tabulate` requirement from `>=0.9` to `>=0.10`.
+- Add new `colon-grid` table format.
+- Replace custom `github` table renderer with tabulate's `pipe` format. Backport of [python-tabulate#410](https://github.com/astanin/python-tabulate/pull/410).
+
 ## [7.6.4 (2026-03-04)](https://github.com/kdeldycke/click-extra/compare/v7.6.3...v7.6.4)
 
 - Fix `ExtraVersionOption.cli_frame()` crashing in Nuitka-compiled binaries where all stack frames belong to the Click ecosystem.

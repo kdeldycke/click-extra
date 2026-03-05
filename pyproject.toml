@@ -99,8 +99,8 @@ dependencies = [
   "extra-platforms>=8",
   # requests 2.32.5 adds support for Python 3.14.
   "requests>=2.32.5",
-  # tabulate 0.9 is the first to add `*grid` and `*outline` formats.
-  "tabulate[widechars]>=0.9",
+  # tabulate 0.10 adds the `colon_grid` format.
+  "tabulate[widechars]>=0.10",
   # tomllib is not part of the standard library before Python 3.11. Version 2.3.0 is the first to support Python 3.14.
   "tomli>=2.3; python_version<'3.11'",
   # wcmatch 10.0 fix some inconsistencies in globbing and symlinks.
@@ -234,6 +234,8 @@ dependency-groups.docs = { requires-python = ">= 3.14" }
 # Relative dates are fine here because the Renovate lock-maintenance job
 # (sync-uv-lock) reverts uv.lock when the only diff is timestamp noise.
 exclude-newer = "1 week"
+# Exclude tabulate from the cooldown period.
+exclude-newer-package = { "tabulate" = "0 day" }
 # Package is at root level, not in "./src/".
 build-backend.module-root = ""
 
