@@ -1136,6 +1136,8 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         if path_pattern is NO_CONFIG:
             logger.debug(f"{NO_CONFIG} received.")
+            # TODO: simplify to ``source < ParameterSource.DEFAULT_MAP`` once
+            # https://github.com/pallets/click/pull/3248 is merged.
             explicit = ctx.get_parameter_source(self.name) in (  # type: ignore[arg-type]
                 ParameterSource.COMMANDLINE,
                 ParameterSource.ENVIRONMENT,
@@ -1147,6 +1149,8 @@ class ConfigOption(ExtraOption, ParamStructure):
                 logger.debug("Configuration file autodiscovery disabled by default.")
             return
 
+        # TODO: simplify to ``source < ParameterSource.DEFAULT_MAP`` once
+        # https://github.com/pallets/click/pull/3248 is merged.
         explicit_conf = ctx.get_parameter_source(self.name) in (  # type: ignore[arg-type]
             ParameterSource.COMMANDLINE,
             ParameterSource.ENVIRONMENT,

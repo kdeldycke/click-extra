@@ -97,12 +97,15 @@ int_parameter is 3
 
 The configuration loader fetch values according the following precedence:
 
-- `CLI parameters`
-  - ↖ `Configuration file`
+- `Interactive prompt`
+  - ↖ `CLI parameters`
     - ↖ `Environment variables`
-      - ↖ `Defaults`
+      - ↖ `Configuration file`
+        - ↖ `Defaults`
 
 The parameter will take the first value set in that chain.
+
+Configuration file values are loaded into Click's `default_map`, so they are reported as {attr}`~click.ParameterSource.DEFAULT_MAP` and sit below environment variables in the hierarchy.
 
 See how inline parameters takes priority on defaults from the previous example:
 
