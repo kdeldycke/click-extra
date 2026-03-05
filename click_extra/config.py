@@ -37,10 +37,6 @@
 
     Help message would be: *you can use this option with other options or environment
     variables to have them set in the generated configuration*.
-
-.. todo::
-    Add a ``ParameterSource.CONFIG_FILE`` entry to the ``ParameterSource`` enum?
-    Also see: https://github.com/pallets/click/issues/2879
 """
 
 from __future__ import annotations
@@ -598,9 +594,11 @@ class ConfigOption(ExtraOption, ParamStructure):
             dotfiles: list[str] = []
             if file_part.startswith("."):
                 dotfiles.append(self.default)
-            for pat in all_format_patterns:
-                if PurePosixPath(pat).name.startswith("."):
-                    dotfiles.append(pat)
+            dotfiles.extend(
+                pat
+                for pat in all_format_patterns
+                if PurePosixPath(pat).name.startswith(".")
+            )
             if dotfiles:
                 logger.debug(
                     f"Dotfile(s) {dotfiles!r} referenced but DOTGLOB is not set "
@@ -1105,7 +1103,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         param: click.Parameter,
         path_pattern: str | Path | Literal[Sentinel.NO_CONFIG],
     ) -> None:
-        """Fetch parameters values from configuration file and sets them as defaults.
+        """Fetch parameter values from a configuration file and set them as defaults.
 
         User configuration is merged to the `context's default_map
         <https://click.palletsprojects.com/en/stable/commands/#overriding-defaults>`_,
@@ -1113,8 +1111,20 @@ class ConfigOption(ExtraOption, ParamStructure):
         <https://click.palletsprojects.com/en/stable/commands/#context-defaults>`_.
 
         By relying on Click's ``default_map``, we make sure that precedence is
-        respected. And direct CLI parameters, environment variables or interactive
-        prompts takes precedence over any values from the config file.
+        respected. Direct CLI parameters, environment variables or interactive prompts
+        take precedence over any values from the config file.
+
+        ..hint::
+            Once loading is complete, the resolved file path and its full parsed content
+            are stored in ``ctx.meta["click_extra.conf_source"]`` and
+            ``ctx.meta["click_extra.conf_full"]`` respectively. This is the recommended
+            way to identify which configuration file was loaded.
+
+            We intentionally do not
+            add a custom ``ParameterSource.CONFIG_FILE`` enum member: ``ParameterSource``
+            is a closed enum in Click, and monkeypatching it would be fragile. Besides,
+            config values end up in ``default_map``, so Click already reports them as
+            ``ParameterSource.DEFAULT_MAP``, which is accurate.
         """
         logger = logging.getLogger("click_extra")
 
@@ -1191,8 +1201,10 @@ class ConfigOption(ExtraOption, ParamStructure):
                 self.merge_default_map(ctx, user_conf)
                 logger.debug(f"New defaults: {ctx.default_map}")
 
-        # Save the location and content of the configuration file into the context's
-        # meta dict, for the convenience of CLI developers.
+        # Expose the resolved config file path and its full parsed content via
+        # ctx.meta, so downstream CLI code can inspect what was loaded and from where.
+        # See the load_conf docstring for why we use ctx.meta instead of a custom
+        # ParameterSource enum member.
         ctx.meta["click_extra.conf_source"] = conf_path
         ctx.meta["click_extra.conf_full"] = user_conf
 
@@ -1305,7 +1317,7 @@ class ValidateConfigOption(ExtraOption):
 
         # Read and parse the config file.
         try:
-            conf_path, user_conf = config_option.read_and_parse_conf(value)
+            _conf_path, user_conf = config_option.read_and_parse_conf(value)
         except FileNotFoundError:
             info_msg(f"Configuration file not found: {value}")
             ctx.exit(2)
