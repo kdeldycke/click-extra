@@ -527,6 +527,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         logger = logging.getLogger("click_extra")
 
         get_param_value: Callable[[Any], Any]
+        opts: dict = {}
 
         if "click_extra.raw_args" in ctx.meta:
             raw_args = ctx.meta.get("click_extra.raw_args", [])
