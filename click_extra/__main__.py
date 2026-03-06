@@ -26,23 +26,15 @@ from click_extra.cli import demo
 
 
 def main():
-    """Execute the CLI but force its name to not let Click defaults to:
+    """Indirection required to reconcile all invocation methods:
 
-    .. code-block:: shell-session
-        $ python -m click_extra --version
-        python -m click_extra, version 7.0.0
+    - ``python -m click_extra``
+    - entry point scripts: ``click-extra``, ``click-extra-demo``
+    - Nuitka: ``python -m nuitka (...) click_extra/__main__.py``
 
-    Indirection via this ``main()`` method was `required to reconcile
-    <https://github.com/python-poetry/poetry/issues/5981>`_:
-
-        - plain inline package call: ``python -m click_extra``,
-        - Poetry's script entry point: ``click-extra = 'click_extra.__main__:main``,
-        - Nuitka's main module invocation requirement:
-          ``python -m nuitka (...) click_extra/__main__.py``
-
-    That way we can deduce all three cases from the entry point.
+    See `poetry#5981 <https://github.com/python-poetry/poetry/issues/5981>`_.
     """
-    demo(prog_name=demo.name)
+    demo()
 
 
 if __name__ == "__main__":

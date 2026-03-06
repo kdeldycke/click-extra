@@ -19,37 +19,37 @@ You can try Click Extra right now in your terminal, without installing any depen
 `````{tab-set}
 ````{tab-item} Latest version
 ```shell-session
-$ uvx --from click-extra -- click-extra-demo
+$ uvx click-extra
 ```
 ````
 
 ````{tab-item} Specific version
 ```shell-session
-$ uvx --from click-extra@7.2.0 -- click-extra-demo
+$ uvx click-extra@7.2.0
 ```
 ````
 
 ````{tab-item} Development version
 ```shell-session
-$ uvx --from git+https://github.com/kdeldycke/click-extra -- click-extra-demo
+$ uvx --from git+https://github.com/kdeldycke/click-extra -- click-extra
 ```
 ````
 
 ````{tab-item} Local version
 ```shell-session
-$ uvx --from file:///Users/me/code/click-extra -- click-extra-demo
+$ uvx --from file:///Users/me/code/click-extra -- click-extra
 ```
 ````
 `````
 
-This will download `click-extra` (the package), and run `click-extra-demo`, a demo CLI included in the package.
+This will download and run `click-extra`, a demo CLI included in the package.
 
-The `click-extra-demo` CLI showcases various features of Click Extra, such as enhanced help formatting, colored output, and more.
+The demo CLI showcases various features of Click Extra, such as enhanced help formatting, colored output, and more.
 
 By default it will display the help message of the demo application:
 
 ```{code-block} shell-session
-$ uvx --from click-extra -- click-extra-demo
+$ uvx click-extra
 Installed 16 packages in 14ms
 Usage: click-extra [OPTIONS] COMMAND [ARGS]...
 ```
@@ -57,9 +57,9 @@ Usage: click-extra [OPTIONS] COMMAND [ARGS]...
 And so you can explore the various possibilities of the demo application, like showing the current version:
 
 ```{code-block} shell-session
-$ uvx --from click-extra -- click-extra-demo --version
+$ uvx click-extra --version
 Installed 16 packages in 14ms
-demo, version 7.2.0
+Click Extra demo, version 7.2.0
 ```
 
 This is a great way to play with Click Extra and check that it runs fine on your system, and renders properly in your terminal.
