@@ -57,9 +57,10 @@ def timer_command(ctx):
 ```{click:run}
 import re
 
-result = invoke(timer_command)
+result = invoke(timer_command, args=["--time"])
 assert re.fullmatch(
-    r"Start timestamp: (?P<time>[0-9.]+)\n",
+    r"Start timestamp: (?P<time>[0-9.]+)\n"
+    r"Execution time: (?P<elapsed>[0-9.]+) seconds.\n",
     result.stdout,
 )
 ```
