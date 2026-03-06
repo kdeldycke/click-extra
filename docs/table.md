@@ -79,14 +79,16 @@ It works the same way, but instead of printing the table to the console, it retu
 
 ### Table formats
 
-Table formats are aggregated from 3 sources:
+Table formats are aggregated from these sources:
 - [`python-tabulate`](https://github.com/astanin/python-tabulate)
 - [`cli-helpers`](https://github.com/dbcli/cli_helpers)
 - Python's [`csv` module](https://docs.python.org/3/library/csv.html) from the standard library
+- Python's [`json` module](https://docs.python.org/3/library/json.html) from the standard library
+- [`PyYAML`](https://pyyaml.org) (requires the [`[yaml]` extra](install.md#extra-dependencies))
 
 They're divided in 2 categories:
 - Formats that produce **plain text** output (like ASCII tables, grid tables, etc.) and are often composed of Unicode box-drawing characters, to be displayed in a terminal.
-- Formats that produce **markup language** output (like HTML, Markdown, LaTeX, etc.) and are expected to be rendered by a supporting viewer. This category also includes CSV and TSV formats, which are plain text but meant to be processed by other tools.
+- Formats that produce **markup language** output (like HTML, Markdown, LaTeX, etc.) and are expected to be rendered by a supporting viewer. This category also includes CSV, TSV, and structured serialization formats (JSON, YAML), which are plain text but meant to be processed by other tools.
 
 | Format ID | Description | Implementation | Markup |
 |--------|-------------|--------|----------------|
@@ -106,6 +108,7 @@ They're divided in 2 categories:
 | `heavy-outline` | Heavy-line outline table | `python-tabulate` | ❌ |
 | `html` | [HTML table](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/table) | `python-tabulate` | ✅ |
 | `jira` | [Jira-style markup](https://confluence.atlassian.com/doc/confluence-wiki-markup-251003035.html#ConfluenceWikiMarkup-Tables) | `python-tabulate` | ✅ |
+| `json` | [JSON](https://www.json.org) array of objects | `json` | ✅ |
 | `latex` | [LaTeX table](https://en.wikibooks.org/wiki/LaTeX/Tables) | `python-tabulate` | ✅ |
 | `latex-booktabs` | [LaTeX table with booktabs package](https://ctan.org/pkg/booktabs) | `python-tabulate` | ✅ |
 | `latex-longtable` | [LaTeX longtable environment](https://ctan.org/pkg/longtable) | `python-tabulate` | ✅ |
@@ -131,6 +134,7 @@ They're divided in 2 categories:
 | `tsv` | [Tab-separated values](https://en.wikipedia.org/wiki/Tab-separated_values) | `python-tabulate` | ✅ |
 | `unsafehtml` | [HTML table](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/table) without escaping | `python-tabulate` | ✅ |
 | `vertical` | Vertical table layout | `cli-helpers` | ❌ |
+| `yaml` | [YAML](https://yaml.org) sequence of mappings | [`PyYAML`](install.md#extra-dependencies) | ✅ |
 | `youtrack` | [YouTrack markup](https://www.jetbrains.com/help/youtrack/server/youtrack-markdown-syntax-issues.html#tables) | `python-tabulate` | ✅ |
 
 ```{attention}
@@ -221,6 +225,11 @@ invoke(table_command, args=["--table-format", "html"])
 ```{click:run}
 :emphasize-lines: 1
 invoke(table_command, args=["--table-format", "jira"])
+```
+
+```{click:run}
+:emphasize-lines: 1
+invoke(table_command, args=["--table-format", "json"])
 ```
 
 ```{click:run}
@@ -346,6 +355,11 @@ invoke(table_command, args=["--table-format", "unsafehtml"])
 ```{click:run}
 :emphasize-lines: 1
 invoke(table_command, args=["--table-format", "vertical"])
+```
+
+```{click:run}
+:emphasize-lines: 1
+invoke(table_command, args=["--table-format", "yaml"])
 ```
 
 ```{click:run}

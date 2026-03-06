@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import csv
+import json
 from enum import Enum
 from functools import partial
 from gettext import gettext as _
@@ -98,6 +99,7 @@ class TableFormat(Enum):
     HEAVY_OUTLINE = "heavy-outline"
     HTML = "html"
     JIRA = "jira"
+    JSON = "json"
     LATEX = "latex"
     LATEX_BOOKTABS = "latex-booktabs"
     LATEX_LONGTABLE = "latex-longtable"
@@ -123,6 +125,7 @@ class TableFormat(Enum):
     TSV = "tsv"
     UNSAFEHTML = "unsafehtml"
     VERTICAL = "vertical"
+    YAML = "yaml"
     YOUTRACK = "youtrack"
 
     def __str__(self):
@@ -148,6 +151,7 @@ MARKUP_FORMATS = frozenset(
         TableFormat.GITHUB,
         TableFormat.HTML,
         TableFormat.JIRA,
+        TableFormat.JSON,
         TableFormat.LATEX,
         TableFormat.LATEX_BOOKTABS,
         TableFormat.LATEX_LONGTABLE,
@@ -160,6 +164,7 @@ MARKUP_FORMATS = frozenset(
         TableFormat.TEXTILE,
         TableFormat.TSV,
         TableFormat.UNSAFEHTML,
+        TableFormat.YAML,
         TableFormat.YOUTRACK,
     },
 )
@@ -211,6 +216,55 @@ def _render_csv(
             writer.writerow(headers)
         writer.writerows(table_data)
         return output.getvalue()
+
+
+def _rows_as_dicts(
+    table_data: Sequence[Sequence[str | None]],
+    headers: Sequence[str | None] | None = None,
+) -> list[dict[str, str | None]] | list[list[str | None]]:
+    """Convert table data to a list of dicts keyed by headers.
+
+    Falls back to a list of lists when no headers are provided.
+    """
+    if headers:
+        return [dict(zip(headers, row)) for row in table_data]
+    return [list(row) for row in table_data]
+
+
+def _render_json(
+    table_data: Sequence[Sequence[str | None]],
+    headers: Sequence[str | None] | None = None,
+    **kwargs,
+) -> str:
+    """Render a table as JSON."""
+    data = _rows_as_dicts(table_data, headers)
+    defaults = {"ensure_ascii": False, "indent": 2}
+    defaults.update(kwargs)
+    return json.dumps(data, **defaults) + "\n"
+
+
+def _render_yaml(
+    table_data: Sequence[Sequence[str | None]],
+    headers: Sequence[str | None] | None = None,
+    **kwargs,
+) -> str:
+    """Render a table as YAML.
+
+    Requires the ``pyyaml`` package (installable via the ``[yaml]`` extra).
+    """
+    try:
+        import yaml
+    except ImportError as exc:
+        msg = (
+            "PyYAML is required for YAML table output."
+            " Install it with: pip install click-extra[yaml]"
+        )
+        raise ImportError(msg) from exc
+
+    data = _rows_as_dicts(table_data, headers)
+    defaults: dict = {"allow_unicode": True, "default_flow_style": False}
+    defaults.update(kwargs)
+    return yaml.dump(data, **defaults)
 
 
 def _render_vertical(
@@ -296,6 +350,12 @@ def _select_table_funcs(
         ):
             print_func = partial(print, end="")
             return partial(_render_csv, table_format=table_format), print_func
+        case TableFormat.JSON:
+            print_func = partial(print, end="")
+            return _render_json, print_func
+        case TableFormat.YAML:
+            print_func = partial(print, end="")
+            return _render_yaml, print_func
         case TableFormat.VERTICAL:
             return _render_vertical, print_func
         case _:
@@ -313,6 +373,23 @@ def render_table(
     return render_func(table_data, headers, **kwargs)
 
 
+def _strip_ansi_cells(
+    table_data: Sequence[Sequence[str | None]],
+    headers: Sequence[str | None] | None = None,
+) -> tuple[list[list[str | None]], Sequence[str | None] | None]:
+    """Strip ANSI escape codes from all string cells and headers."""
+    cleaned_data: list[list[str | None]] = [
+        [strip_ansi(v) if isinstance(v, str) else v for v in row]
+        for row in table_data
+    ]
+    cleaned_headers = (
+        [strip_ansi(h) if isinstance(h, str) else h for h in headers]
+        if headers
+        else headers
+    )
+    return cleaned_data, cleaned_headers
+
+
 def print_table(
     table_data: Sequence[Sequence[str | None]],
     headers: Sequence[str | None] | None = None,
@@ -321,19 +398,19 @@ def print_table(
 ) -> None:
     """Render a table and print it to the console.
 
-    For markup formats, ANSI color codes are stripped from the output unless
-    ``--color`` is explicitly set.
+    For markup formats, ANSI color codes are stripped from cell values before
+    rendering unless ``--color`` is explicitly set.
     """
-    render_func, print_func = _select_table_funcs(table_format)
-    output = render_func(table_data, headers, **kwargs)
-
-    # Strip ANSI codes from markup formats unless color is explicitly forced.
+    # Strip ANSI codes from cell data before rendering for markup formats.
+    # Pre-render stripping is necessary because some renderers (JSON, YAML) escape
+    # raw ESC bytes, making post-render strip_ansi() ineffective.
     if table_format and table_format.is_markup:
         ctx = click.get_current_context(silent=True)
         if ctx is None or ctx.color is not True:
-            output = strip_ansi(output)
+            table_data, headers = _strip_ansi_cells(table_data, headers)
 
-    print_func(output)
+    render_func, print_func = _select_table_funcs(table_format)
+    print_func(render_func(table_data, headers, **kwargs))
 
 
 class TableFormatOption(ExtraOption):

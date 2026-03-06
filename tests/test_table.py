@@ -52,6 +52,9 @@ def test_table_formats_definition():
     # Formats inherited from previous legacy cli-helpers dependency.
     cli_helpers_formats = [("CSV", "csv"), ("VERTICAL", "vertical")]
 
+    # Structured data serialization formats.
+    serialization_formats = [("JSON", "json"), ("YAML", "yaml")]
+
     table_formats = set((f.name, f.value) for f in TableFormat)
 
     # All tabulate formats are listed in our TableFormat enum.
@@ -63,14 +66,18 @@ def test_table_formats_definition():
     # All legacy cli-helpers formats are listed in our TableFormat enum.
     assert set(cli_helpers_formats) <= table_formats
 
+    # All serialization formats are listed in our TableFormat enum.
+    assert set(serialization_formats) <= table_formats
+
     # No duplicates.
-    assert len(tabulate_formats) + len(csv_dialects) + len(cli_helpers_formats) == len(
-        table_formats
+    all_formats = (
+        set(tabulate_formats)
+        | set(csv_dialects)
+        | set(cli_helpers_formats)
+        | set(serialization_formats)
     )
-    assert (
-        set(tabulate_formats) | set(csv_dialects) | set(cli_helpers_formats)
-        == table_formats
-    )
+    assert len(all_formats) == len(table_formats)
+    assert all_formats == table_formats
 
     # Sorted alphabetically by format name.
     assert list(f.name for f in TableFormat) == sorted(f.name for f in TableFormat)
@@ -96,11 +103,11 @@ def test_unrecognized_format(invoke, cmd_decorator, cmd_type):
         "Error: Invalid value for '--table-format': 'random' is not one of "
         "'aligned', 'asciidoc', 'colon-grid', 'csv', 'csv-excel', 'csv-excel-tab', "
         "'csv-unix', 'double-grid', 'double-outline', 'fancy-grid', 'fancy-outline', 'github', "
-        "'grid', 'heavy-grid', 'heavy-outline', 'html', 'jira', 'latex', "
+        "'grid', 'heavy-grid', 'heavy-outline', 'html', 'jira', 'json', 'latex', "
         "'latex-booktabs', 'latex-longtable', 'latex-raw', 'mediawiki', 'mixed-grid', "
         "'mixed-outline', 'moinmoin', 'orgtbl', 'outline', 'pipe', 'plain', 'presto', "
         "'pretty', 'psql', 'rounded-grid', 'rounded-outline', 'rst', 'simple', "
-        "'simple-grid', 'simple-outline', 'textile', 'tsv', 'unsafehtml', 'vertical', "
+        "'simple-grid', 'simple-outline', 'textile', 'tsv', 'unsafehtml', 'vertical', 'yaml', "
         "'youtrack'.\n"
     )
 
@@ -256,6 +263,23 @@ html_table = """\
 <tr><td>Friday</td><td>Hot 🥵     </td></tr>
 </tbody>
 </table>
+"""
+
+json_table = """\
+[
+  {
+    "Day": 1,
+    "Temperature": 42.9
+  },
+  {
+    "Day": 2,
+    "Temperature": null
+  },
+  {
+    "Day": "Friday",
+    "Temperature": "Hot 🥵"
+  }
+]
 """
 
 jira_table = """\
@@ -514,6 +538,15 @@ vertical_table = (
     "Temperature | Hot 🥵\n"
 )
 
+yaml_table = """\
+- Day: 1
+  Temperature: 42.9
+- Day: 2
+  Temperature: null
+- Day: Friday
+  Temperature: Hot 🥵
+"""
+
 youtrack_table = """\
 ||  Day     ||  Temperature  ||
 |  1       |  42.9         |
@@ -539,6 +572,7 @@ expected_renderings = {
     TableFormat.HEAVY_OUTLINE: heavy_outline_table,
     TableFormat.HTML: html_table,
     TableFormat.JIRA: jira_table,
+    TableFormat.JSON: json_table,
     TableFormat.LATEX: latex_table,
     TableFormat.LATEX_BOOKTABS: latex_booktabs_table,
     TableFormat.LATEX_LONGTABLE: latex_longtable_table,
@@ -564,6 +598,7 @@ expected_renderings = {
     TableFormat.TSV: tsv_table,
     TableFormat.UNSAFEHTML: unsafehtml_table,
     TableFormat.VERTICAL: vertical_table,
+    TableFormat.YAML: yaml_table,
     TableFormat.YOUTRACK: youtrack_table,
 }
 
@@ -635,9 +670,19 @@ def test_markup_strips_ansi_by_default(invoke, format_id):
     assert result.stdout == strip_ansi(result.stdout)
 
 
+# Structured serializers escape ESC bytes (JSON: \u001b, YAML: \e), so strip_ansi
+# cannot detect preserved ANSI codes in the serialized output. These formats handle
+# ANSI stripping pre-serialization and are excluded from the post-render check.
+_SERIALIZATION_FORMATS = frozenset({TableFormat.JSON, TableFormat.YAML})
+
+
 @pytest.mark.parametrize(
     "format_id",
-    (pytest.param(f, id=str(f)) for f in TableFormat if f.is_markup),
+    (
+        pytest.param(f, id=str(f))
+        for f in TableFormat
+        if f.is_markup and f not in _SERIALIZATION_FORMATS
+    ),
 )
 def test_markup_preserves_ansi_with_color_flag(invoke, format_id):
     """``--color`` overrides ANSI stripping for markup formats."""
