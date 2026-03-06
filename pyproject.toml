@@ -150,6 +150,10 @@ hjson = [
   # hjson 3.1.0 is the first version we used in Click Extra.
   "hjson>=3.1",
 ]
+toml = [
+  # tomlkit 0.13.0 is the first version to support Python 3.13.
+  "tomlkit>=0.13",
+]
 xml = [
   # xmltodict 1.0.0 is just the first major release.
   "xmltodict>=1",

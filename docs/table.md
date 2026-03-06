@@ -84,11 +84,12 @@ Table formats are aggregated from these sources:
 - [`cli-helpers`](https://github.com/dbcli/cli_helpers)
 - Python's [`csv` module](https://docs.python.org/3/library/csv.html) from the standard library
 - Python's [`json` module](https://docs.python.org/3/library/json.html) from the standard library
+- [`tomlkit`](https://github.com/sdispater/tomlkit) (requires the [`[toml]` extra](install.md#extra-dependencies))
 - [`PyYAML`](https://pyyaml.org) (requires the [`[yaml]` extra](install.md#extra-dependencies))
 
 They're divided in 2 categories:
 - Formats that produce **plain text** output (like ASCII tables, grid tables, etc.) and are often composed of Unicode box-drawing characters, to be displayed in a terminal.
-- Formats that produce **markup language** output (like HTML, Markdown, LaTeX, etc.) and are expected to be rendered by a supporting viewer. This category also includes CSV, TSV, and structured serialization formats (JSON, YAML), which are plain text but meant to be processed by other tools.
+- Formats that produce **markup language** output (like HTML, Markdown, LaTeX, etc.) and are expected to be rendered by a supporting viewer. This category also includes CSV, TSV, and structured serialization formats (JSON, TOML, YAML), which are plain text but meant to be processed by other tools.
 
 | Format ID | Description | Implementation | Markup |
 |--------|-------------|--------|----------------|
@@ -131,6 +132,7 @@ They're divided in 2 categories:
 | `simple-grid` | Simple grid table | `python-tabulate` | ❌ |
 | `simple-outline` | Simple outline table | `python-tabulate` | ❌ |
 | `textile` | [Textile markup](https://textile-lang.com/doc/tables) | `python-tabulate` | ✅ |
+| `toml` | [TOML](https://toml.io) array of tables | [`tomlkit`](install.md#extra-dependencies) | ✅ |
 | `tsv` | [Tab-separated values](https://en.wikipedia.org/wiki/Tab-separated_values) | `python-tabulate` | ✅ |
 | `unsafehtml` | [HTML table](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/table) without escaping | `python-tabulate` | ✅ |
 | `vertical` | Vertical table layout | `cli-helpers` | ❌ |
@@ -340,6 +342,11 @@ invoke(table_command, args=["--table-format", "simple-outline"])
 ```{click:run}
 :emphasize-lines: 1
 invoke(table_command, args=["--table-format", "textile"])
+```
+
+```{click:run}
+:emphasize-lines: 1
+invoke(table_command, args=["--table-format", "toml"])
 ```
 
 ```{click:run}

@@ -122,6 +122,7 @@ class TableFormat(Enum):
     SIMPLE_GRID = "simple-grid"
     SIMPLE_OUTLINE = "simple-outline"
     TEXTILE = "textile"
+    TOML = "toml"
     TSV = "tsv"
     UNSAFEHTML = "unsafehtml"
     VERTICAL = "vertical"
@@ -162,6 +163,7 @@ MARKUP_FORMATS = frozenset(
         TableFormat.PIPE,
         TableFormat.RST,
         TableFormat.TEXTILE,
+        TableFormat.TOML,
         TableFormat.TSV,
         TableFormat.UNSAFEHTML,
         TableFormat.YAML,
@@ -173,6 +175,9 @@ MARKUP_FORMATS = frozenset(
 
 DEFAULT_FORMAT = TableFormat.ROUNDED_OUTLINE
 """Default table format, if none is specified."""
+
+TOML_TABLE_KEY = "record"
+"""Top-level key used for TOML array-of-tables output."""
 
 
 def _get_csv_dialect(table_format: TableFormat | None = None) -> str:
@@ -267,6 +272,43 @@ def _render_yaml(
     return yaml.dump(data, **defaults)
 
 
+def _render_toml(
+    table_data: Sequence[Sequence[str | None]],
+    headers: Sequence[str | None] | None = None,
+    **kwargs,
+) -> str:
+    """Render a table as TOML using array-of-tables syntax.
+
+    ``None`` values are omitted (TOML has no null type). Requires the ``tomlkit``
+    package (installable via the ``[toml]`` extra).
+    """
+    try:
+        import tomlkit
+    except ImportError as exc:
+        msg = (
+            "tomlkit is required for TOML table output."
+            " Install it with: pip install click-extra[toml]"
+        )
+        raise ImportError(msg) from exc
+
+    aot = tomlkit.aot()
+    for row in table_data:
+        t = tomlkit.table()
+        if headers:
+            for key, value in zip(headers, row):
+                if value is not None and key is not None:
+                    t.add(key, value)
+        else:
+            for i, value in enumerate(row):
+                if value is not None:
+                    t.add(str(i), value)
+        aot.append(t)
+
+    doc = tomlkit.document()
+    doc.add(TOML_TABLE_KEY, aot)
+    return tomlkit.dumps(doc)
+
+
 def _render_vertical(
     table_data: Sequence[Sequence[str | None]],
     headers: Sequence[str | None] | None = None,
@@ -356,6 +398,9 @@ def _select_table_funcs(
         case TableFormat.YAML:
             print_func = partial(print, end="")
             return _render_yaml, print_func
+        case TableFormat.TOML:
+            print_func = partial(print, end="")
+            return _render_toml, print_func
         case TableFormat.VERTICAL:
             return _render_vertical, print_func
         case _:

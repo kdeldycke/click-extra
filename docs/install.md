@@ -93,31 +93,39 @@ For additional features, you may need to install extra dependencies.
 
 ### Configuration file formats
 
-- [YAML configuration files](config.md#yaml) support:
+These extras add support for additional [configuration file formats](config.md#formats):
+
+- [YAML](config.md#yaml) configuration files and [`yaml` table format](table.md#table-formats):
 
   ```{code-block} shell-session
   $ pip install click-extra[yaml]
   ```
 
-- [XML configuration files](config.md#xml) support:
+- [TOML](table.md#table-formats) table format output (TOML configuration files are [supported by default](config.md#toml)):
+
+  ```{code-block} shell-session
+  $ pip install click-extra[toml]
+  ```
+
+- [XML](config.md#xml) configuration files:
 
   ```{code-block} shell-session
   $ pip install click-extra[xml]
   ```
 
-- [JSON5 configuration files](config.md#json5) support:
+- [JSON5](config.md#json5) configuration files:
 
   ```{code-block} shell-session
   $ pip install click-extra[json5]
   ```
 
-- [JSONC configuration files](config.md#jsonc) support:
+- [JSONC](config.md#jsonc) configuration files:
 
   ```{code-block} shell-session
   $ pip install click-extra[jsonc]
   ```
 
-- [HJSON configuration files](config.md#hjson) support:
+- [HJSON](config.md#hjson) configuration files:
 
   ```{code-block} shell-session
   $ pip install click-extra[hjson]
@@ -133,7 +141,7 @@ $ pip install click-extra[pygments]
 
 ### For Sphinx
 
-Register new [`click:source` and `click:run` directives](sphinx.md):
+Register new [`click:source` and `click:run` directives](sphinx.md) for live CLI documentation:
 
 ```{code-block} shell-session
 $ pip install click-extra[sphinx]

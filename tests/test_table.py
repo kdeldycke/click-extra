@@ -53,7 +53,7 @@ def test_table_formats_definition():
     cli_helpers_formats = [("CSV", "csv"), ("VERTICAL", "vertical")]
 
     # Structured data serialization formats.
-    serialization_formats = [("JSON", "json"), ("YAML", "yaml")]
+    serialization_formats = [("JSON", "json"), ("TOML", "toml"), ("YAML", "yaml")]
 
     table_formats = set((f.name, f.value) for f in TableFormat)
 
@@ -107,7 +107,7 @@ def test_unrecognized_format(invoke, cmd_decorator, cmd_type):
         "'latex-booktabs', 'latex-longtable', 'latex-raw', 'mediawiki', 'mixed-grid', "
         "'mixed-outline', 'moinmoin', 'orgtbl', 'outline', 'pipe', 'plain', 'presto', "
         "'pretty', 'psql', 'rounded-grid', 'rounded-outline', 'rst', 'simple', "
-        "'simple-grid', 'simple-outline', 'textile', 'tsv', 'unsafehtml', 'vertical', 'yaml', "
+        "'simple-grid', 'simple-outline', 'textile', 'toml', 'tsv', 'unsafehtml', 'vertical', 'yaml', "
         "'youtrack'.\n"
     )
 
@@ -511,6 +511,19 @@ textile_table = """\
 |<. Friday  |<. Hot 🥵      |
 """
 
+toml_table = """\
+[[record]]
+Day = 1
+Temperature = 42.9
+
+[[record]]
+Day = 2
+
+[[record]]
+Day = "Friday"
+Temperature = "Hot 🥵"
+"""
+
 tsv_table = "Day   \tTemperature\n1     \t42.9\n2\nFriday\tHot 🥵\n"
 
 unsafehtml_table = """\
@@ -595,6 +608,7 @@ expected_renderings = {
     TableFormat.SIMPLE_GRID: simple_grid_table,
     TableFormat.SIMPLE_OUTLINE: simple_outline_table,
     TableFormat.TEXTILE: textile_table,
+    TableFormat.TOML: toml_table,
     TableFormat.TSV: tsv_table,
     TableFormat.UNSAFEHTML: unsafehtml_table,
     TableFormat.VERTICAL: vertical_table,
@@ -673,7 +687,9 @@ def test_markup_strips_ansi_by_default(invoke, format_id):
 # Structured serializers escape ESC bytes (JSON: \u001b, YAML: \e), so strip_ansi
 # cannot detect preserved ANSI codes in the serialized output. These formats handle
 # ANSI stripping pre-serialization and are excluded from the post-render check.
-_SERIALIZATION_FORMATS = frozenset({TableFormat.JSON, TableFormat.YAML})
+_SERIALIZATION_FORMATS = frozenset(
+    {TableFormat.JSON, TableFormat.TOML, TableFormat.YAML}
+)
 
 
 @pytest.mark.parametrize(
