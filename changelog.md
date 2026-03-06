@@ -12,7 +12,7 @@
 - Add `json` and `yaml` table formats for `--table-format`.
 - Remove `version` parameter from `ExtraCommand` and `ExtraGroup`. Set the version directly on `ExtraVersionOption` instead (via `@version_option(version="...")` or in the `params=` list).
 - Add `click-extra` entry point so `uvx click-extra` works out of the box. The `click-extra-demo` alias is kept for backward compatibility.
-- Add `prog_name` parameter to `ExtraCommand` and `ExtraGroup`. Forwards to `ExtraVersionOption.prog_name`, mirroring Click's `@version_option(prog_name=...)` but set at the command level.
+- Add `version_fields` parameter to `ExtraCommand` and `ExtraGroup`. Forwards any `ExtraVersionOption` template field (e.g. `prog_name`, `version`, `git_branch`) from the command decorator without replacing the default params list.
 - Rename demo CLI version name from `demo` to `Click Extra demo`.
 - Fix `--show-params` ignoring `--table-format` when it appears first on the command line. Both options are eager; when `--show-params` fires before `--table-format`, it now resolves the table format manually.
 - Expand dotted keys in configuration files (e.g. `"subcommand.option": value`) into nested dicts before merging. Allows mixing flat dot-notation and nested structures in any supported format. Warns on type conflicts and invalid keys; raises `ValueError` in `strict` mode.

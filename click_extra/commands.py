@@ -169,18 +169,20 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
     def __init__(
         self,
         *args,
-        prog_name: str | None = None,
+        version_fields: dict[str, Any] | None = None,
         extra_option_at_end: bool = True,
         populate_auto_envvars: bool = True,
         **kwargs: Any,
     ) -> None:
         """List of extra parameters:
 
-        :param prog_name: human-readable program name forwarded to
-            ``ExtraVersionOption.prog_name``.  When set, ``--version`` prints
-            this value instead of the Click command ``name``.  Mirrors Click's
-            ``@version_option(prog_name=...)`` but set at the command level so
-            you don't have to replace the default ``params`` list.
+        :param version_fields: dictionary of
+            ``ExtraVersionOption`` template field overrides forwarded to the
+            version option.  Accepts any field from
+            ``ExtraVersionOption.template_fields`` (e.g. ``prog_name``,
+            ``version``, ``git_branch``).  Lets you customize ``--version``
+            output from the command decorator without replacing the default
+            ``params`` list.
         :param extra_option_at_end: `reorders all parameters attached to the command
             <https://kdeldycke.github.io/click-extra/commands.html#option-order>`_, by
             moving all instances of ``ExtraOption`` at the end of the parameter list.
@@ -312,12 +314,18 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
             del default_ctx_settings[setting]
         self.context_settings: dict[str, Any] = default_ctx_settings
 
-        # Forward prog_name to the version option, mirroring Click's
-        # @version_option(prog_name=...) but set at the command level.
-        if prog_name is not None:
+        # Forward version template fields to the version option.
+        if version_fields:
             for param in self.params:
                 if isinstance(param, ExtraVersionOption):
-                    param.prog_name = prog_name
+                    for field_id, field_value in version_fields.items():
+                        if field_id not in param.template_fields:
+                            msg = (
+                                f"Unknown version field {field_id!r}."
+                                f" Must be one of {param.template_fields}."
+                            )
+                            raise TypeError(msg)
+                        setattr(param, field_id, field_value)
 
         if populate_auto_envvars:
             for param in self.params:

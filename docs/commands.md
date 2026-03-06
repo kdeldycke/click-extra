@@ -241,17 +241,17 @@ assert (
 The advantage of the `context_settings` method we demonstrated above, is that it let you change the default of the `--verbosity` option provided by Click Extra, [without having to touch the `params` argument](#change-default-options).
 ```
 
-### Program name
+### Version fields
 
 Click's `@version_option(prog_name=...)` lets you customize the name displayed by `--version`. But with Click Extra's default options, the `ExtraVersionOption` is created for you — so there's no decorator call to pass `prog_name` to.
 
-The `prog_name` parameter on `@command` and `@group` solves this. It forwards the value to the `ExtraVersionOption` in the default params list, without replacing it:
+The `version_fields` parameter on `@command` and `@group` solves this. It forwards values to the `ExtraVersionOption` in the default params list, without replacing it. It accepts any field from `ExtraVersionOption.template_fields`:
 
 ```{click:source}
 :emphasize-lines: 3
 from click_extra import command
 
-@command(name="my-tool", prog_name="My Tool")
+@command(name="my-tool", version_fields={"prog_name": "My Tool"})
 def my_tool():
     """My Tool CLI."""
 ```
@@ -272,6 +272,29 @@ assert "\x1b[97mMy Tool\x1b[0m" in result.output
 
 ```{hint}
 When `prog_name` is not set, `--version` falls back to the command `name`, which is Click's standard behavior.
+```
+
+Multiple fields can be overridden at once, including the version message template:
+
+```{click:source}
+from click_extra import command
+
+@command(
+    version_fields={
+        "prog_name": "Acme CLI",
+        "version": "42.0",
+        "git_branch": "release/42",
+    },
+)
+def acme():
+    pass
+```
+
+```{click:run}
+result = invoke(acme, args=["--version"])
+assert result.exit_code == 0
+assert "Acme CLI" in result.output
+assert "42.0" in result.output
 ```
 
 ## Lazily loading subcommands

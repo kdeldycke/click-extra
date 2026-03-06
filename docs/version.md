@@ -129,9 +129,9 @@ This results reports the package name as `click_extra.sphinx` because we are run
 
 ## Overriding variables from the command
 
-The [`prog_name` parameter on `@command` and `@group`](commands.md#program-name) lets you decouple the usage-line name from the version display name without touching the default params list.
+The [`version_fields` parameter on `@command` and `@group`](commands.md#version-fields) lets you override any template field without touching the default params list.
 
-Any other template field can be forced directly on the `ExtraVersionOption` instance via the [`params=` argument](commands.md#change-default-options):
+Fields can also be forced directly on the `ExtraVersionOption` instance via the [`params=` argument](commands.md#change-default-options):
 
 ```{click:source}
 :emphasize-lines: 4-9

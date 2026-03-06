@@ -19,6 +19,6 @@ from __future__ import annotations
 from . import group
 
 
-@group(name="click-extra", prog_name="Click Extra demo")
+@group(name="click-extra", version_fields={"prog_name": "Click Extra demo"})
 def demo():
     """Click Extra demo CLI."""

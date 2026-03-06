@@ -354,10 +354,10 @@ def test_integrated_version_option_precedence(invoke, params):
 
 
 @skip_windows_colors
-def test_prog_name_forwarded_to_version_option(invoke):
-    """``prog_name`` on ``@command``/``@group`` is forwarded to ``ExtraVersionOption``."""
+def test_version_fields_forwarded_to_version_option(invoke):
+    """``version_fields`` on ``@command`` forwards to ``ExtraVersionOption``."""
 
-    @command(name="my-tool", prog_name="My Tool")
+    @command(name="my-tool", version_fields={"prog_name": "My Tool"})
     def prog_name_cli():
         echo("It works!")
 
@@ -380,10 +380,10 @@ def test_prog_name_forwarded_to_version_option(invoke):
 
 
 @skip_windows_colors
-def test_prog_name_forwarded_on_group(invoke):
-    """``prog_name`` works on ``@group`` too."""
+def test_version_fields_forwarded_on_group(invoke):
+    """``version_fields`` works on ``@group`` too."""
 
-    @group(name="my-grp", prog_name="My Group")
+    @group(name="my-grp", version_fields={"prog_name": "My Group"})
     def prog_name_grp():
         pass
 
@@ -394,6 +394,39 @@ def test_prog_name_forwarded_on_group(invoke):
     result = invoke(prog_name_grp, "--help", color=True)
     assert "\x1b[97mmy-grp\x1b[0m" in result.output
     assert result.exit_code == 0
+
+
+@skip_windows_colors
+def test_version_fields_multiple(invoke):
+    """Multiple fields can be overridden at once."""
+
+    @command(
+        version_fields={
+            "prog_name": "Acme CLI",
+            "version": "42.0",
+            "git_branch": "release/42",
+        },
+    )
+    def multi_cli():
+        pass
+
+    result = invoke(
+        multi_cli,
+        "--version",
+        color=False,
+    )
+    assert result.exit_code == 0
+    assert "Acme CLI" in result.output
+    assert "42.0" in result.output
+
+
+def test_version_fields_rejects_unknown(invoke):
+    """Unknown field names raise ``TypeError``."""
+    with pytest.raises(TypeError, match="Unknown version field 'bogus'"):
+
+        @command(version_fields={"bogus": "oops"})
+        def bad_cli():
+            pass
 
 
 @skip_windows_colors
