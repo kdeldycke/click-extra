@@ -258,9 +258,7 @@ def _rows_as_dicts(
     Falls back to a list of lists when no headers are provided.
     """
     if headers:
-        return [
-            {str(k): v for k, v in zip(headers, row)} for row in table_data
-        ]
+        return [{str(k): v for k, v in zip(headers, row)} for row in table_data]
     return [list(row) for row in table_data]
 
 
@@ -406,9 +404,7 @@ def _render_xml(
         "full_document": False,
     }
     defaults.update(kwargs)
-    result: str = xmltodict.unparse(
-        {XML_ROOT_KEY: {RECORD_KEY: records}}, **defaults
-    )
+    result: str = xmltodict.unparse({XML_ROOT_KEY: {RECORD_KEY: records}}, **defaults)
     return result + "\n"
 
 
@@ -533,8 +529,7 @@ def _strip_ansi_cells(
 ) -> tuple[list[list[str | None]], Sequence[str | None] | None]:
     """Strip ANSI escape codes from all string cells and headers."""
     cleaned_data: list[list[str | None]] = [
-        [strip_ansi(v) if isinstance(v, str) else v for v in row]
-        for row in table_data
+        [strip_ansi(v) if isinstance(v, str) else v for v in row] for row in table_data
     ]
     cleaned_headers = (
         [strip_ansi(h) if isinstance(h, str) else h for h in headers]
@@ -566,7 +561,9 @@ def print_table(
         color_explicit = False
         if ctx is not None:
             source = ctx.get_parameter_source("color")
-            color_explicit = ctx.color is True and source == click.core.ParameterSource.COMMANDLINE
+            color_explicit = (
+                ctx.color is True and source == click.core.ParameterSource.COMMANDLINE
+            )
         if not color_explicit:
             table_data, headers = _strip_ansi_cells(table_data, headers)
 

@@ -309,7 +309,7 @@ def _check_type_conflict(
             if isinstance(existing, dict) != isinstance(new_value, dict):
                 msg = (
                     f"Configuration key {label!r} conflicts with "
-                    f"{'.'.join(parts[:i + 1])!r}: "
+                    f"{'.'.join(parts[: i + 1])!r}: "
                     f"mixing scalar and nested values."
                 )
                 if strict:
@@ -320,7 +320,7 @@ def _check_type_conflict(
         if not isinstance(existing, dict):
             msg = (
                 f"Configuration key {label!r} conflicts with "
-                f"{'.'.join(parts[:i + 1])!r}: "
+                f"{'.'.join(parts[: i + 1])!r}: "
                 f"mixing scalar and nested values."
             )
             if strict:
@@ -358,9 +358,7 @@ def _expand_dotted_keys(conf: dict, strict: bool = False) -> dict:
         if "." in key:
             parts = key.split(".")
             if not all(parts):
-                msg = (
-                    f"Configuration key {key!r} contains empty segments."
-                )
+                msg = f"Configuration key {key!r} contains empty segments."
                 if strict:
                     raise ValueError(msg)
                 logger.warning(f"Ignoring {msg.lower()}")
@@ -1438,9 +1436,7 @@ class ValidateConfigOption(ExtraOption):
         try:
             _recursive_update(
                 config_option.params_template,
-                _expand_dotted_keys(
-                    _strip_reserved_keys(user_conf), strict=True
-                ),
+                _expand_dotted_keys(_strip_reserved_keys(user_conf), strict=True),
                 strict=True,
             )
         except ValueError as exc:
