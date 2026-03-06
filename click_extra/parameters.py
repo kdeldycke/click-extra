@@ -518,7 +518,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         # Imported here to avoid circular imports.
         from .colorize import KO, OK, default_theme
         from .config import ConfigOption
-        from .table import print_table
+        from .table import SERIALIZATION_FORMATS, print_table
 
         # Exit early if the callback was processed but the option wasn't set.
         if not value:
@@ -563,84 +563,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         # This is just a check to please the type checker.
         assert config_option is None or isinstance(config_option, ConfigOption)
 
-        table = []
-
-        # Walk through the the tree of parameters and get their fully-qualified path.
-        for path, instances in self.flatten_tree_dict(self.params_objects).items():
-            tree_keys = path.split(self.SEP)
-
-            # Multiple parameters can share the same path, if for instance they are
-            # sharing the same variable name.
-            for instance in instances:
-                python_type = self.get_param_type(instance)
-                assert instance.name == tree_keys[-1]
-
-                param_value, source = get_param_value(instance)
-                param_class = instance.__class__
-
-                # Collect param's spec and hidden status.
-                hidden = None
-                param_spec = None
-                # Hidden property is only supported by Option, not Argument.
-                # TODO: Allow arguments to produce their spec.
-                if hasattr(instance, "hidden"):
-                    hidden = OK if instance.hidden is True else KO
-
-                    # No-op context manager without any effects.
-                    hidden_param_bypass: ContextManager = nullcontext()
-                    # If the parameter is hidden, we need to temporarily disable this flag
-                    # to let Click produce a help record.
-                    # See: https://github.com/kdeldycke/click-extra/issues/689
-                    # TODO: Submit a PR to Click to separate production of param spec and
-                    # help record. That way we can always produce the param spec even if
-                    # the parameter is hidden.
-                    if instance.hidden:
-                        hidden_param_bypass = patch.object(instance, "hidden", False)
-                    with hidden_param_bypass:
-                        help_record = instance.get_help_record(ctx)
-                        if help_record:
-                            param_spec = help_record[0]
-
-                # Check if the parameter is allowed in the configuration file.
-                allowed_in_conf = None
-                if config_option:
-                    allowed_in_conf = (
-                        KO if path in config_option.excluded_params else OK
-                    )
-
-                line = (
-                    default_theme.invoked_command(path),
-                    param_spec,
-                    f"{param_class.__module__}.{param_class.__qualname__}",
-                    f"{instance.type.__module__}.{instance.type.__class__.__name__}",
-                    python_type.__name__,
-                    hidden,
-                    OK if instance.expose_value is True else KO,
-                    allowed_in_conf,
-                    ", ".join(
-                        map(default_theme.envvar, param_envvar_ids(instance, ctx))
-                    ),
-                    default_theme.default(repr(instance.get_default(ctx))),
-                    repr(param_value),
-                    source.name if source else None,
-                )
-                table.append(line)
-
-        def sort_by_depth(line):
-            """Sort parameters by depth first, then IDs, so that top-level parameters
-            are kept to the top."""
-            param_path = line[0]
-            tree_keys = param_path.split(self.SEP)
-            return len(tree_keys), param_path
-
-        header_style = Style(bold=True)
-        header_labels = tuple(map(header_style, self.TABLE_HEADERS))
-
-        # Pick the ready-made print_table() function if available in the context, as
-        # this one will be already configured with the appropriate table format from
-        # --table-format option. When --show-params appears before --table-format on
-        # the CLI (both are eager, processed in CLI argument order), resolve the table
-        # format manually so the output respects the user's choice.
+        # Resolve the table format early so we know whether to emit typed values.
         if not hasattr(ctx, "print_table"):
             from .table import TableFormatOption
 
@@ -657,6 +580,129 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                     else table_option.get_default(ctx),
                 )
         print_func = getattr(ctx, "print_table", print_table)
+
+        # Check if the resolved format is a structured serialization format.
+        table_format = None
+        if hasattr(print_func, "keywords"):
+            table_format = print_func.keywords.get("table_format")
+        is_structured = table_format in SERIALIZATION_FORMATS
+
+        table = []
+
+        # Walk through the the tree of parameters and get their fully-qualified path.
+        for path, instances in self.flatten_tree_dict(self.params_objects).items():
+            tree_keys = path.split(self.SEP)
+
+            # Multiple parameters can share the same path, if for instance they are
+            # sharing the same variable name.
+            for instance in instances:
+                python_type = self.get_param_type(instance)
+                assert instance.name == tree_keys[-1]
+
+                param_value, source = get_param_value(instance)
+                param_class = instance.__class__
+
+                # Collect param's spec.
+                param_spec = None
+                # Hidden property is only supported by Option, not Argument.
+                # TODO: Allow arguments to produce their spec.
+                if hasattr(instance, "hidden"):
+                    # No-op context manager without any effects.
+                    hidden_param_bypass: ContextManager = nullcontext()
+                    # If the parameter is hidden, we need to temporarily disable this flag
+                    # to let Click produce a help record.
+                    # See: https://github.com/kdeldycke/click-extra/issues/689
+                    # TODO: Submit a PR to Click to separate production of param spec and
+                    # help record. That way we can always produce the param spec even if
+                    # the parameter is hidden.
+                    if instance.hidden:
+                        hidden_param_bypass = patch.object(instance, "hidden", False)
+                    with hidden_param_bypass:
+                        help_record = instance.get_help_record(ctx)
+                        if help_record:
+                            param_spec = help_record[0]
+
+                # Check if the parameter is allowed in the configuration file.
+                # Access params_objects first to ensure included_params has been
+                # resolved into excluded_params via build_param_trees().
+                allowed_in_conf_bool = None
+                if config_option:
+                    config_option.params_template  # noqa: B018
+                    allowed_in_conf_bool = (
+                        path not in config_option.excluded_params
+                    )
+
+                if is_structured:
+                    # Emit native types for serialization formats.
+                    # Sanitize values that aren't natively serializable.
+                    default_val = instance.get_default(ctx)
+                    if not isinstance(
+                        default_val, (str, int, float, bool, list, type(None))
+                    ):
+                        default_val = repr(default_val)
+                    if not isinstance(
+                        param_value, (str, int, float, bool, list, type(None))
+                    ):
+                        param_value = repr(param_value)
+                    line = (
+                        path,
+                        param_spec,
+                        f"{param_class.__module__}.{param_class.__qualname__}",
+                        f"{instance.type.__module__}"
+                        f".{instance.type.__class__.__name__}",
+                        python_type.__name__,
+                        getattr(instance, "hidden", None),
+                        instance.expose_value,
+                        allowed_in_conf_bool,
+                        list(param_envvar_ids(instance, ctx)),
+                        default_val,
+                        param_value,
+                        source.name if source else None,
+                    )
+                else:
+                    hidden = None
+                    if hasattr(instance, "hidden"):
+                        hidden = OK if instance.hidden is True else KO
+                    allowed_in_conf = None
+                    if allowed_in_conf_bool is not None:
+                        allowed_in_conf = (
+                            OK if allowed_in_conf_bool else KO
+                        )
+                    line = (
+                        default_theme.invoked_command(path),
+                        param_spec,
+                        f"{param_class.__module__}.{param_class.__qualname__}",
+                        f"{instance.type.__module__}"
+                        f".{instance.type.__class__.__name__}",
+                        python_type.__name__,
+                        hidden,
+                        OK if instance.expose_value is True else KO,
+                        allowed_in_conf,
+                        ", ".join(
+                            map(
+                                default_theme.envvar,
+                                param_envvar_ids(instance, ctx),
+                            )
+                        ),
+                        default_theme.default(repr(instance.get_default(ctx))),
+                        repr(param_value),
+                        source.name if source else None,
+                    )
+                table.append(line)
+
+        def sort_by_depth(line):
+            """Sort parameters by depth first, then IDs, so that top-level parameters
+            are kept to the top."""
+            param_path = line[0]
+            tree_keys = param_path.split(self.SEP)
+            return len(tree_keys), param_path
+
+        if is_structured:
+            header_labels = self.TABLE_HEADERS
+        else:
+            header_style = Style(bold=True)
+            header_labels = tuple(map(header_style, self.TABLE_HEADERS))
+
         print_func(sorted(table, key=sort_by_depth), headers=header_labels)
 
         ctx.exit()

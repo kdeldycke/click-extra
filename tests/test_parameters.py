@@ -441,7 +441,7 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.table_format",
-            "--table-format [aligned|asciidoc|colon-grid|csv|csv-excel|csv-excel-tab|csv-unix|double-grid|double-outline|fancy-grid|fancy-outline|github|grid|heavy-grid|heavy-outline|html|jira|latex|latex-booktabs|latex-longtable|latex-raw|mediawiki|mixed-grid|mixed-outline|moinmoin|orgtbl|outline|pipe|plain|presto|pretty|psql|rounded-grid|rounded-outline|rst|simple|simple-grid|simple-outline|textile|tsv|unsafehtml|vertical|youtrack]",
+            "--table-format [aligned|asciidoc|colon-grid|csv|csv-excel|csv-excel-tab|csv-unix|double-grid|double-outline|fancy-grid|fancy-outline|github|grid|heavy-grid|heavy-outline|hjson|html|jira|json|json5|jsonc|latex|latex-booktabs|latex-longtable|latex-raw|mediawiki|mixed-grid|mixed-outline|moinmoin|orgtbl|outline|pipe|plain|presto|pretty|psql|rounded-grid|rounded-outline|rst|simple|simple-grid|simple-outline|textile|toml|tsv|unsafehtml|vertical|xml|yaml|youtrack]",
             "click_extra.table.TableFormatOption",
             "click_extra.types.EnumChoice",
             "str",
@@ -553,6 +553,48 @@ def test_show_params_table_format_ordering(invoke, args_order):
     # All data rows must have the same number of columns as the header.
     for line in lines[1:]:
         assert line.count(",") >= len(ShowParamsOption.TABLE_HEADERS) - 1
+
+
+@pytest.mark.parametrize(
+    "table_format",
+    ("json", "yaml", "toml", "hjson"),
+)
+def test_show_params_native_types(invoke, table_format):
+    """Serialization formats emit native types instead of styled glyphs."""
+
+    @command
+    @option("--flag/--no-flag", default=True)
+    def typed_cli(flag):
+        echo(f"flag is {flag!r}")
+
+    result = invoke(
+        typed_cli,
+        "--show-params",
+        f"--table-format={table_format}",
+        color=False,
+    )
+
+    assert result.exit_code == 0
+    output = result.stdout
+
+    # Glyphs must not appear in structured output.
+    assert "✓" not in output
+    assert "✘" not in output
+
+    # Boolean values must be native, not stringified repr().
+    assert "'True'" not in output
+    assert "'False'" not in output
+
+    # Check format-specific native boolean representations.
+    if table_format == "json":
+        assert '"Hidden": false' in output
+        assert '"Exposed": false' in output
+    elif table_format in ("yaml", "hjson"):
+        assert "Hidden: false" in output
+        assert "Exposed: false" in output
+    elif table_format == "toml":
+        assert "Hidden = false" in output
+        assert "Exposed = false" in output
 
 
 def test_recurse_subcommands(invoke):
@@ -758,7 +800,7 @@ def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
         ],
         [
             "show-params.table_format",
-            "--table-format [aligned|asciidoc|colon-grid|csv|csv-excel|csv-excel-tab|csv-unix|double-grid|double-outline|fancy-grid|fancy-outline|github|grid|heavy-grid|heavy-outline|html|jira|latex|latex-booktabs|latex-longtable|latex-raw|mediawiki|mixed-grid|mixed-outline|moinmoin|orgtbl|outline|pipe|plain|presto|pretty|psql|rounded-grid|rounded-outline|rst|simple|simple-grid|simple-outline|textile|tsv|unsafehtml|vertical|youtrack]",
+            "--table-format [aligned|asciidoc|colon-grid|csv|csv-excel|csv-excel-tab|csv-unix|double-grid|double-outline|fancy-grid|fancy-outline|github|grid|heavy-grid|heavy-outline|hjson|html|jira|json|json5|jsonc|latex|latex-booktabs|latex-longtable|latex-raw|mediawiki|mixed-grid|mixed-outline|moinmoin|orgtbl|outline|pipe|plain|presto|pretty|psql|rounded-grid|rounded-outline|rst|simple|simple-grid|simple-outline|textile|toml|tsv|unsafehtml|vertical|xml|yaml|youtrack]",
             "click_extra.table.TableFormatOption",
             "click_extra.types.EnumChoice",
             "str",
@@ -787,20 +829,40 @@ def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
     # --table-format is explicitly set from now on, so its source is COMMANDLINE.
     expected_table[2][11] = "COMMANDLINE"
 
+    # Serialization formats emit native types instead of styled glyphs.
+    from click_extra.table import SERIALIZATION_FORMATS
+
+    if table_format in SERIALIZATION_FORMATS:
+        for row in expected_table:
+            for i, cell in enumerate(row):
+                if cell == "✘":
+                    row[i] = False
+                elif cell == "✓":
+                    row[i] = True
+            if row[5] == "":
+                row[5] = None
+            if row[7] == "":
+                row[7] = None
+            row[8] = [row[8]] if row[8] else []
+            if isinstance(row[9], str) and row[9].startswith("'") and row[9].endswith("'"):
+                row[9] = row[9][1:-1]
+            if row[10] == "None":
+                row[10] = None
+            if row[11] == "":
+                row[11] = None
+
     # Check the explicit rendering style of the table. Ignore colors, they'll be
     # checked in the next test.
     result = invoke(
         show_params, "--table-format", table_format, "--show-params", color=False
     )
 
-    rendered_table = (
-        render_table(
-            expected_table,
-            headers=ShowParamsOption.TABLE_HEADERS,
-            table_format=table_format,
-        )
-        + "\n"
+    rendered = render_table(
+        expected_table,
+        headers=ShowParamsOption.TABLE_HEADERS,
+        table_format=table_format,
     )
+    rendered_table = rendered if rendered.endswith("\n") else rendered + "\n"
 
     # Compare content line by line to simplify reporting of differences.
     output_lines = result.stdout.strip().splitlines()
@@ -887,7 +949,7 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
         ],
         [
             "show-params.table_format",
-            "--table-format [aligned|asciidoc|colon-grid|csv|csv-excel|csv-excel-tab|csv-unix|double-grid|double-outline|fancy-grid|fancy-outline|github|grid|heavy-grid|heavy-outline|html|jira|latex|latex-booktabs|latex-longtable|latex-raw|mediawiki|mixed-grid|mixed-outline|moinmoin|orgtbl|outline|pipe|plain|presto|pretty|psql|rounded-grid|rounded-outline|rst|simple|simple-grid|simple-outline|textile|tsv|unsafehtml|vertical|youtrack]",
+            "--table-format [aligned|asciidoc|colon-grid|csv|csv-excel|csv-excel-tab|csv-unix|double-grid|double-outline|fancy-grid|fancy-outline|github|grid|heavy-grid|heavy-outline|hjson|html|jira|json|json5|jsonc|latex|latex-booktabs|latex-longtable|latex-raw|mediawiki|mixed-grid|mixed-outline|moinmoin|orgtbl|outline|pipe|plain|presto|pretty|psql|rounded-grid|rounded-outline|rst|simple|simple-grid|simple-outline|textile|toml|tsv|unsafehtml|vertical|xml|yaml|youtrack]",
             "click_extra.table.TableFormatOption",
             "click_extra.types.EnumChoice",
             "str",
@@ -934,19 +996,48 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
     # --table-format is explicitly set from now on, so its source is COMMANDLINE.
     expected_table[3][11] = "COMMANDLINE"
 
+    # Serialization formats emit native types instead of styled glyphs.
+    from click_extra.table import SERIALIZATION_FORMATS
+
+    if table_format in SERIALIZATION_FORMATS:
+        for row in expected_table:
+            # Replace glyph strings with native booleans.
+            for i, cell in enumerate(row):
+                if cell == "✘":
+                    row[i] = False
+                elif cell == "✓":
+                    row[i] = True
+            # Hidden: empty string means None (Arguments have no hidden attr).
+            if row[5] == "":
+                row[5] = None
+            # Allowed in conf?: empty string means no config option (None).
+            if row[7] == "":
+                row[7] = None
+            # Env. vars. become a list (index 8).
+            row[8] = [row[8]] if row[8] else []
+            # Default value: strip repr quotes (index 9).
+            if isinstance(row[9], str) and row[9].startswith("'") and row[9].endswith("'"):
+                row[9] = row[9][1:-1]
+            # Value: "None" string becomes None (index 10).
+            if row[10] == "None":
+                row[10] = None
+            # Source: empty string means None.
+            if row[11] == "":
+                row[11] = None
+
     # Check the explicit rendering style of the table.
     result = invoke(
         show_params, "--no-color", "--table-format", table_format, "--show-params"
     )
 
-    rendered_table = (
-        render_table(
-            expected_table,
-            headers=ShowParamsOption.TABLE_HEADERS,
-            table_format=table_format,
-        )
-        + "\n"
+    rendered = render_table(
+        expected_table,
+        headers=ShowParamsOption.TABLE_HEADERS,
+        table_format=table_format,
     )
+    # Tabulate-based formats don't end with a newline; echo() adds one.
+    # Serialization/CSV/vertical formats already include a trailing newline.
+    rendered_table = rendered if rendered.endswith("\n") else rendered + "\n"
 
     # Compare content line by line to simplify reporting of differences.
     output_lines = result.stdout.strip().splitlines()

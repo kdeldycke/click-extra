@@ -12,6 +12,7 @@
 - Add `TableFormat.is_markup` property.
 - Strip ANSI color codes from markup table formats (`csv`, `html`, `latex`, `rst`, etc.) by default. Use `--color` to preserve them.
 - Add `[toml]` extra dependency group for TOML table output via `tomlkit`.
+- Emit native types (booleans, nulls, lists) in `--show-params` output for structured serialization formats (JSON, YAML, TOML, HJSON, XML).
 - Fix `--show-params` ignoring `--table-format` when it appears first on the command line.
 - Expand dotted keys in configuration files (e.g. `"subcommand.option": value`) into nested dicts before merging, to allow for mixing flat dot-notation and nested structures.
 - Only capture timer start time when `--time` is actually requested.
