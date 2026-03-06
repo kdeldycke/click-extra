@@ -5,18 +5,17 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
-- Lazily evaluate version metadata fields in `ctx.meta`. Only fields actually accessed (or referenced in the message template) are resolved, avoiding unnecessary Git subprocess calls and environment profiling on every CLI invocation.
-- Only capture timer start time when `--time` is actually requested.
-- Strip ANSI color codes from markup table formats (`csv`, `html`, `latex`, `rst`, etc.) by default. Use `--color` to preserve them.
-- Add `TableFormat.is_markup` property.
-- Add `hjson`, `json`, `json5`, `jsonc`, `toml`, `xml` and `yaml` table formats for `--table-format`. Renders table data as structured serialization. `json5` and `jsonc` are aliases for `json`. `null` values are preserved in JSON, HJSON and YAML; omitted in TOML and XML (no null type). HJSON, TOML, XML and YAML require their respective optional extras.
-- Add `[toml]` extra dependency group for TOML table output via `tomlkit`.
-- Remove `version` parameter from `ExtraCommand` and `ExtraGroup`. Set the version directly on `ExtraVersionOption` instead (via `@version_option(version="...")` or in the `params=` list).
-- Add `click-extra` entry point so `uvx click-extra` works out of the box. The `click-extra-demo` alias is kept for backward compatibility.
 - Add `version_fields` parameter to `ExtraCommand` and `ExtraGroup`. Forwards any `ExtraVersionOption` template field (e.g. `prog_name`, `version`, `git_branch`) from the command decorator without replacing the default params list.
-- Rename demo CLI version name from `demo` to `Click Extra demo`.
-- Fix `--show-params` ignoring `--table-format` when it appears first on the command line. Both options are eager; when `--show-params` fires before `--table-format`, it now resolves the table format manually.
-- Expand dotted keys in configuration files (e.g. `"subcommand.option": value`) into nested dicts before merging. Allows mixing flat dot-notation and nested structures in any supported format. Warns on type conflicts and invalid keys; raises `ValueError` in `strict` mode.
+- Lazily evaluate version metadata fields in `ctx.meta`.
+- Remove `version` parameter from `ExtraCommand` and `ExtraGroup`.
+- Add `hjson`, `json`, `json5`, `jsonc`, `toml`, `xml` and `yaml` table formats for `--table-format`.
+- Add `TableFormat.is_markup` property.
+- Strip ANSI color codes from markup table formats (`csv`, `html`, `latex`, `rst`, etc.) by default. Use `--color` to preserve them.
+- Add `[toml]` extra dependency group for TOML table output via `tomlkit`.
+- Fix `--show-params` ignoring `--table-format` when it appears first on the command line.
+- Expand dotted keys in configuration files (e.g. `"subcommand.option": value`) into nested dicts before merging, to allow for mixing flat dot-notation and nested structures.
+- Only capture timer start time when `--time` is actually requested.
+- Add `click-extra` entry point so `uvx click-extra` works out of the box. The `click-extra-demo` alias is kept for backward compatibility.
 
 ## [7.6.5 (2026-03-05)](https://github.com/kdeldycke/click-extra/compare/v7.6.4...v7.6.5)
 
