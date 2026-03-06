@@ -9,11 +9,11 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-02-26T15:48:57.037964978Z"
+exclude-newer = "2026-02-27T17:55:44.355829Z"
 exclude-newer-span = "P1W"
 
 [options.exclude-newer-package]
-tabulate = { timestamp = "2026-03-05T15:48:57.0379711Z", span = "PT0S" }
+tabulate = { timestamp = "2026-03-06T17:55:44.355835Z", span = "PT0S" }
 
 [[package]]
 name = "accessible-pygments"
@@ -500,15 +500,6 @@ wheels = [
 ]
 
 [[package]]
-name = "distro"
-version = "1.9.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/fc/f8/98eea607f65de6527f8a2e8885fc8015d3e6f5775df186e443e0964a11c3/distro-1.9.0.tar.gz", hash = "sha256:2fa77c6fd8940f116ee1d6b94a2f90b13b5ea8d019b98bc8bafdcabcdd9bdbed", size = 60722, upload-time = "2023-12-24T09:54:32.31Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/12/b3/231ffd4ab1fc9d679809f356cebee130ac7daa00d6d6f3206dd4fd137e9e/distro-1.9.0-py3-none-any.whl", hash = "sha256:7bffd925d65168f85027d8da9af6bddab658135b840670a223589bc0c8ef02b2", size = 20277, upload-time = "2023-12-24T09:54:30.421Z" },
-]
-
-[[package]]
 name = "docutils"
 version = "0.21.2"
 source = { registry = "https://pypi.org/simple" }
@@ -539,7 +530,7 @@ name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/79/66800aadf48771f6b62f7eb014e352e5d06856655206165d775e675a02c9/exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219", size = 30371, upload-time = "2025-11-21T23:01:54.787Z" }
 wheels = [
@@ -548,14 +539,11 @@ wheels = [
 
 [[package]]
 name = "extra-platforms"
-version = "9.2.0"
+version = "10.0.0"
 source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "distro" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/c9/24/86310a73bff679fc3f172e42c3631bf45a5f122a2e5f8670cfc802594ab5/extra_platforms-9.2.0.tar.gz", hash = "sha256:cd59681eff8bb199befe1292fe9f5ef7a314cd7b9302d38401c2fe3bd89168dc", size = 67198, upload-time = "2026-02-16T17:23:00.193Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3d/cf/9489ef8efcff20a772ab7d3b6fb8d28efdbc8e0e46c3ed9a77dc03c2efe7/extra_platforms-10.0.0.tar.gz", hash = "sha256:a9b08246ff249aba59af9760ee914543543aa1d008294ef823479380487e5a97", size = 70453, upload-time = "2026-02-27T15:15:45.462Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e3/b6/2ed9c7dbafdbfa216c1daff4a222d4b2e9ed9667a8f93ceb19c204ca79f0/extra_platforms-9.2.0-py3-none-any.whl", hash = "sha256:dfd134c712db98aa912d3a569388558ae857bbf94e4d9e083c0c832e610356fb", size = 72009, upload-time = "2026-02-16T17:23:01.315Z" },
+    { url = "https://files.pythonhosted.org/packages/a8/94/9656ca2ee155d9661fb4e8410a8392c3002f9bb1a4cad51e95619b9bae26/extra_platforms-10.0.0-py3-none-any.whl", hash = "sha256:0f96efac26175d0c81edce274ed04ac43a2d3bb5f94c03ed9d3ee06cb8ef597a", size = 75379, upload-time = "2026-02-27T15:15:46.845Z" },
 ]
 
 [package.optional-dependencies]
