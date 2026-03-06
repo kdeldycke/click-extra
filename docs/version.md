@@ -77,7 +77,7 @@ You can customize the message template with the following variables:
 | [`{git_long_hash}`](#click_extra.version.ExtraVersionOption.git_long_hash)     | The full Git commit hash of the current `HEAD`, or `None` if not in a Git repository or Git is not available.                                                                           |
 | [`{git_short_hash}`](#click_extra.version.ExtraVersionOption.git_short_hash)   | The short Git commit hash of the current `HEAD`, or `None` if not in a Git repository or Git is not available.                                                                          |
 | [`{git_date}`](#click_extra.version.ExtraVersionOption.git_date)               | The commit date of the current `HEAD` in ISO format (`YYYY-MM-DD HH:MM:SS +ZZZZ`), or `None` if not in a Git repository or Git is not available.                                       |
-| [`{prog_name}`](#click_extra.version.ExtraVersionOption.prog_name)             | The name of the program, from Click's point of view.                                                                                                                                   |
+| [`{prog_name}`](#click_extra.version.ExtraVersionOption.prog_name)             | The display name of the program. Defaults to Click's `info_name`, but can be [overridden via `prog_name` on the command decorator](commands.md#program-name).                          |
 | [`{env_info}`](#click_extra.version.ExtraVersionOption.env_info)               | The [environment information](https://boltons.readthedocs.io/en/latest/ecoutils.html#boltons.ecoutils.get_profile) in JSON.                                                            |
 
 ```{note}
@@ -125,6 +125,37 @@ assert result.output == (
 
 ```{caution}
 This results reports the package name as `click_extra.sphinx` because we are running the example from the `click-extra` documentation build environment. This is just a quirk of the documentation setup and will not affect your own CLI.
+```
+
+## Overriding variables from the command
+
+The [`prog_name` parameter on `@command` and `@group`](commands.md#program-name) lets you decouple the usage-line name from the version display name without touching the default params list.
+
+Any other template field can be forced directly on the `ExtraVersionOption` instance via the [`params=` argument](commands.md#change-default-options):
+
+```{click:source}
+:emphasize-lines: 4-9
+import click
+from click_extra import ExtraVersionOption
+
+@click.command(params=[
+    ExtraVersionOption(
+        prog_name="Acme CLI",
+        version="42.0",
+        message="{prog_name} {version} (branch: {git_branch})",
+        git_branch="release/42",
+    ),
+])
+def acme():
+    pass
+```
+
+```{click:run}
+result = invoke(acme, args=["--version"])
+assert result.exit_code == 0
+assert "Acme CLI" in result.output
+assert "42.0" in result.output
+assert "release/42" in result.output
 ```
 
 ## Standalone script

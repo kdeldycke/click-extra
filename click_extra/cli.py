@@ -19,6 +19,6 @@ from __future__ import annotations
 from . import group
 
 
-@group
+@group(name="click-extra", prog_name="Click Extra demo")
 def demo():
-    pass
+    """Click Extra demo CLI."""

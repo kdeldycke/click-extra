@@ -169,12 +169,18 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
     def __init__(
         self,
         *args,
+        prog_name: str | None = None,
         extra_option_at_end: bool = True,
         populate_auto_envvars: bool = True,
         **kwargs: Any,
     ) -> None:
         """List of extra parameters:
 
+        :param prog_name: human-readable program name forwarded to
+            ``ExtraVersionOption.prog_name``.  When set, ``--version`` prints
+            this value instead of the Click command ``name``.  Mirrors Click's
+            ``@version_option(prog_name=...)`` but set at the command level so
+            you don't have to replace the default ``params`` list.
         :param extra_option_at_end: `reorders all parameters attached to the command
             <https://kdeldycke.github.io/click-extra/commands.html#option-order>`_, by
             moving all instances of ``ExtraOption`` at the end of the parameter list.
@@ -305,6 +311,13 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
         for setting in extra_option_settings:
             del default_ctx_settings[setting]
         self.context_settings: dict[str, Any] = default_ctx_settings
+
+        # Forward prog_name to the version option, mirroring Click's
+        # @version_option(prog_name=...) but set at the command level.
+        if prog_name is not None:
+            for param in self.params:
+                if isinstance(param, ExtraVersionOption):
+                    param.prog_name = prog_name
 
         if populate_auto_envvars:
             for param in self.params:

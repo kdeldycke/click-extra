@@ -38,6 +38,7 @@ from click_extra import (
     Style,
     __version__,
     color_option,
+    command,
     echo,
     group,
     pass_context,
@@ -349,6 +350,49 @@ def test_integrated_version_option_precedence(invoke, params):
         "\x1b[97mcolor-cli4\x1b[0m, version \x1b[32m1.2.3.4\x1b[0m\n"
     )
     assert not result.stderr
+    assert result.exit_code == 0
+
+
+@skip_windows_colors
+def test_prog_name_forwarded_to_version_option(invoke):
+    """``prog_name`` on ``@command``/``@group`` is forwarded to ``ExtraVersionOption``."""
+
+    @command(name="my-tool", prog_name="My Tool")
+    def prog_name_cli():
+        echo("It works!")
+
+    # prog_name controls --version output.
+    result = invoke(prog_name_cli, "--version", color=True)
+    assert "\x1b[97mMy Tool\x1b[0m, version" in result.output
+    assert result.exit_code == 0
+
+    # name controls the usage line.
+    result = invoke(prog_name_cli, "--help", color=True)
+    assert "\x1b[97mmy-tool\x1b[0m" in result.output
+    assert result.exit_code == 0
+
+    # All default extra options are preserved.
+    result = invoke(prog_name_cli, "--help", color=False)
+    assert "--time" in result.output
+    assert "--color" in result.output
+    assert "--config" in result.output
+    assert "--version" in result.output
+
+
+@skip_windows_colors
+def test_prog_name_forwarded_on_group(invoke):
+    """``prog_name`` works on ``@group`` too."""
+
+    @group(name="my-grp", prog_name="My Group")
+    def prog_name_grp():
+        pass
+
+    result = invoke(prog_name_grp, "--version", color=True)
+    assert "\x1b[97mMy Group\x1b[0m, version" in result.output
+    assert result.exit_code == 0
+
+    result = invoke(prog_name_grp, "--help", color=True)
+    assert "\x1b[97mmy-grp\x1b[0m" in result.output
     assert result.exit_code == 0
 
 
