@@ -638,7 +638,24 @@ class ShowParamsOption(ExtraOption, ParamStructure):
 
         # Pick the ready-made print_table() function if available in the context, as
         # this one will be already configured with the appropriate table format from
-        # --table-format option.
+        # --table-format option. When --show-params appears before --table-format on
+        # the CLI (both are eager, processed in CLI argument order), resolve the table
+        # format manually so the output respects the user's choice.
+        if not hasattr(ctx, "print_table"):
+            from .table import TableFormatOption
+
+            table_option = search_params(
+                ctx.command.get_params(ctx), TableFormatOption
+            )
+            if table_option:
+                table_fmt, _ = table_option.consume_value(ctx, opts)
+                table_option.init_formatter(
+                    ctx,
+                    table_option,
+                    table_option.type.convert(table_fmt, table_option, ctx)
+                    if table_fmt
+                    else table_option.get_default(ctx),
+                )
         print_func = getattr(ctx, "print_table", print_table)
         print_func(sorted(table, key=sort_by_depth), headers=header_labels)
 

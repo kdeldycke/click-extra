@@ -531,6 +531,30 @@ def test_integrated_show_params_option(invoke, create_config):
     assert result.exit_code == 0
 
 
+@pytest.mark.parametrize(
+    "args_order",
+    permutations(("--show-params", "--table-format=csv", "--no-color")),
+    ids=lambda p: " ".join(p),
+)
+def test_show_params_table_format_ordering(invoke, args_order):
+    """``--show-params`` respects ``--table-format`` regardless of CLI order."""
+
+    @command
+    @option("--name", default="world")
+    def ordering_cli(name):
+        echo(f"Hello, {name}!")
+
+    result = invoke(ordering_cli, *args_order, color=False)
+
+    assert result.exit_code == 0
+    # CSV format: first line is the header row, comma-separated.
+    lines = result.stdout.strip().splitlines()
+    assert lines[0] == ",".join(ShowParamsOption.TABLE_HEADERS)
+    # All data rows must have the same number of columns as the header.
+    for line in lines[1:]:
+        assert line.count(",") >= len(ShowParamsOption.TABLE_HEADERS) - 1
+
+
 def test_recurse_subcommands(invoke):
     @group(params=[ShowParamsOption()])
     def show_params_cli_main():

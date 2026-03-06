@@ -13,6 +13,7 @@
 - Add `click-extra` entry point so `uvx click-extra` works out of the box. The `click-extra-demo` alias is kept for backward compatibility.
 - Add `prog_name` parameter to `ExtraCommand` and `ExtraGroup`. Forwards to `ExtraVersionOption.prog_name`, mirroring Click's `@version_option(prog_name=...)` but set at the command level.
 - Rename demo CLI version name from `demo` to `Click Extra demo`.
+- Fix `--show-params` ignoring `--table-format` when it appears first on the command line. Both options are eager; when `--show-params` fires before `--table-format`, it now resolves the table format manually.
 - Expand dotted keys in configuration files (e.g. `"subcommand.option": value`) into nested dicts before merging. Allows mixing flat dot-notation and nested structures in any supported format. Warns on type conflicts and invalid keys; raises `ValueError` in `strict` mode.
 
 ## [7.6.5 (2026-03-05)](https://github.com/kdeldycke/click-extra/compare/v7.6.4...v7.6.5)
