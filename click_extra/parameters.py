@@ -568,9 +568,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         if not hasattr(ctx, "print_table"):
             from .table import TableFormatOption
 
-            table_option = search_params(
-                ctx.command.get_params(ctx), TableFormatOption
-            )
+            table_option = search_params(ctx.command.get_params(ctx), TableFormatOption)
             if table_option and isinstance(table_option, TableFormatOption):
                 table_fmt, _ = table_option.consume_value(ctx, opts)
                 table_option.init_formatter(
@@ -629,9 +627,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 allowed_in_conf_bool = None
                 if config_option:
                     config_option.params_template  # noqa: B018
-                    allowed_in_conf_bool = (
-                        path not in config_option.excluded_params
-                    )
+                    allowed_in_conf_bool = path not in config_option.excluded_params
 
                 if is_structured:
                     # Emit native types for serialization formats.
@@ -666,9 +662,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                         hidden = OK if instance.hidden is True else KO
                     allowed_in_conf = None
                     if allowed_in_conf_bool is not None:
-                        allowed_in_conf = (
-                            OK if allowed_in_conf_bool else KO
-                        )
+                        allowed_in_conf = OK if allowed_in_conf_bool else KO
                     line = (
                         default_theme.invoked_command(path),
                         param_spec,

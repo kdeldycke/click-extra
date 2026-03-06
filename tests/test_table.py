@@ -751,8 +751,6 @@ def test_markup_preserves_ansi_with_color_flag(invoke, format_id):
         data = ((style("hello", fg=Color.red),),)
         ctx.print_table(data, headers=("greeting",))
 
-    result = invoke(
-        table_cli, "--color", "--table-format", format_id, color=True
-    )
+    result = invoke(table_cli, "--color", "--table-format", format_id, color=True)
     assert result.exit_code == 0
     assert result.stdout != strip_ansi(result.stdout)

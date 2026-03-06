@@ -381,9 +381,7 @@ class HashType(Enum):
                 + "["
                 + theme.choice("%Y-%m-%d")
                 + "] ",
-                " A date in "
-                + theme.choice("%Y-%m-%d")
-                + " format.",
+                " A date in " + theme.choice("%Y-%m-%d") + " format.",
             ),
         ),
         # Custom metavar on a Choice type is highlighted as metavar.
@@ -395,11 +393,7 @@ class HashType(Enum):
                 help="Set LEVEL priority.",
             ),
             (
-                " "
-                + theme.option("--level")
-                + " "
-                + theme.metavar("LEVEL")
-                + " ",
+                " " + theme.option("--level") + " " + theme.metavar("LEVEL") + " ",
                 " Set " + theme.metavar("LEVEL") + " priority.",
             ),
         ),

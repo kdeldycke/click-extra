@@ -844,7 +844,11 @@ def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
             if row[7] == "":
                 row[7] = None
             row[8] = [row[8]] if row[8] else []
-            if isinstance(row[9], str) and row[9].startswith("'") and row[9].endswith("'"):
+            if (
+                isinstance(row[9], str)
+                and row[9].startswith("'")
+                and row[9].endswith("'")
+            ):
                 row[9] = row[9][1:-1]
             if row[10] == "None":
                 row[10] = None
@@ -1016,7 +1020,11 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
             # Env. vars. become a list (index 8).
             row[8] = [row[8]] if row[8] else []
             # Default value: strip repr quotes (index 9).
-            if isinstance(row[9], str) and row[9].startswith("'") and row[9].endswith("'"):
+            if (
+                isinstance(row[9], str)
+                and row[9].startswith("'")
+                and row[9].endswith("'")
+            ):
                 row[9] = row[9][1:-1]
             # Value: "None" string becomes None (index 10).
             if row[10] == "None":
