@@ -587,7 +587,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             table_format = print_func.keywords.get("table_format")
         is_structured = table_format in SERIALIZATION_FORMATS
 
-        table = []
+        table: list[tuple[Any, ...]] = []
 
         # Walk through the the tree of parameters and get their fully-qualified path.
         for path, instances in self.flatten_tree_dict(self.params_objects).items():
@@ -644,7 +644,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                         param_value, (str, int, float, bool, list, type(None))
                     ):
                         param_value = repr(param_value)
-                    line = (
+                    line: tuple[Any, ...] = (
                         path,
                         param_spec,
                         f"{param_class.__module__}.{param_class.__qualname__}",
@@ -697,6 +697,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             tree_keys = param_path.split(self.SEP)
             return len(tree_keys), param_path
 
+        header_labels: tuple[Any, ...]
         if is_structured:
             header_labels = self.TABLE_HEADERS
         else:
