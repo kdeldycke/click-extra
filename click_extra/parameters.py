@@ -570,7 +570,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             table_option = search_params(
                 ctx.command.get_params(ctx), TableFormatOption
             )
-            if table_option:
+            if table_option and isinstance(table_option, TableFormatOption):
                 table_fmt, _ = table_option.consume_value(ctx, opts)
                 table_option.init_formatter(
                     ctx,

@@ -26,7 +26,6 @@ from boltons.strutils import strip_ansi
 
 from click_extra import (
     Color,
-    TableFormat,
     echo,
     pass_context,
     style,

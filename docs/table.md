@@ -59,7 +59,7 @@ assert result.stdout == (
     '| Day    | Temperature \n'
     '| 1      | 42.9        \n'
     '| 2      |             \n'
-    '| \x1b[34mFriday\x1b[0m | \x1b[31m\x1b[1mHot 🥵\x1b[0m      \n'
+    '| Friday | Hot 🥵      \n'
     '|====\n'
 )
 ```

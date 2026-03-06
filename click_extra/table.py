@@ -258,7 +258,9 @@ def _rows_as_dicts(
     Falls back to a list of lists when no headers are provided.
     """
     if headers:
-        return [dict(zip(headers, row)) for row in table_data]
+        return [
+            {str(k): v for k, v in zip(headers, row)} for row in table_data
+        ]
     return [list(row) for row in table_data]
 
 
@@ -269,7 +271,7 @@ def _render_json(
 ) -> str:
     """Render a table as JSON."""
     data = _rows_as_dicts(table_data, headers)
-    defaults = {"ensure_ascii": False, "indent": 2}
+    defaults: dict = {"ensure_ascii": False, "indent": 2}
     defaults.update(kwargs)
     return json.dumps(data, **defaults) + "\n"
 
@@ -295,7 +297,7 @@ def _render_yaml(
     data = _rows_as_dicts(table_data, headers)
     defaults: dict = {"allow_unicode": True, "default_flow_style": False}
     defaults.update(kwargs)
-    return yaml.dump(data, **defaults)
+    return str(yaml.dump(data, **defaults))
 
 
 def _render_toml(
@@ -356,7 +358,7 @@ def _render_hjson(
     data = _rows_as_dicts(table_data, headers)
     defaults: dict = {"ensure_ascii": False}
     defaults.update(kwargs)
-    return hjson.dumps(data, **defaults) + "\n"
+    return str(hjson.dumps(data, **defaults)) + "\n"
 
 
 def _render_xml(
@@ -378,9 +380,18 @@ def _render_xml(
         )
         raise ImportError(msg) from exc
 
+    def _xml_safe_name(name: str) -> str:
+        """Replace characters invalid in XML element names."""
+        safe = "".join(c if c.isalnum() or c in "_.-" else "_" for c in name)
+        return safe.lstrip("0123456789.-") or "_"
+
     if headers:
         records = [
-            {k: v for k, v in zip(headers, row) if v is not None and k is not None}
+            {
+                _xml_safe_name(k): v
+                for k, v in zip(headers, row)
+                if v is not None and k is not None
+            }
             for row in table_data
         ]
     else:
@@ -395,7 +406,10 @@ def _render_xml(
         "full_document": False,
     }
     defaults.update(kwargs)
-    return xmltodict.unparse({XML_ROOT_KEY: {RECORD_KEY: records}}, **defaults) + "\n"
+    result: str = xmltodict.unparse(
+        {XML_ROOT_KEY: {RECORD_KEY: records}}, **defaults
+    )
+    return result + "\n"
 
 
 def _render_vertical(
@@ -546,7 +560,14 @@ def print_table(
     # raw ESC bytes, making post-render strip_ansi() ineffective.
     if table_format and table_format.is_markup:
         ctx = click.get_current_context(silent=True)
-        if ctx is None or ctx.color is not True:
+        # Only preserve ANSI codes when --color was explicitly passed on the
+        # command line. The default True from ColorOption should not prevent
+        # stripping.
+        color_explicit = False
+        if ctx is not None:
+            source = ctx.get_parameter_source("color")
+            color_explicit = ctx.color is True and source == click.core.ParameterSource.COMMANDLINE
+        if not color_explicit:
             table_data, headers = _strip_ansi_cells(table_data, headers)
 
     render_func, print_func = _select_table_funcs(table_format)
