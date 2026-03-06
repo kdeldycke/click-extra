@@ -84,12 +84,14 @@ Table formats are aggregated from these sources:
 - [`cli-helpers`](https://github.com/dbcli/cli_helpers)
 - Python's [`csv` module](https://docs.python.org/3/library/csv.html) from the standard library
 - Python's [`json` module](https://docs.python.org/3/library/json.html) from the standard library
+- [`hjson`](https://hjson.github.io) (requires the [`[hjson]` extra](install.md#extra-dependencies))
 - [`tomlkit`](https://github.com/sdispater/tomlkit) (requires the [`[toml]` extra](install.md#extra-dependencies))
+- [`xmltodict`](https://github.com/martinblech/xmltodict) (requires the [`[xml]` extra](install.md#extra-dependencies))
 - [`PyYAML`](https://pyyaml.org) (requires the [`[yaml]` extra](install.md#extra-dependencies))
 
 They're divided in 2 categories:
 - Formats that produce **plain text** output (like ASCII tables, grid tables, etc.) and are often composed of Unicode box-drawing characters, to be displayed in a terminal.
-- Formats that produce **markup language** output (like HTML, Markdown, LaTeX, etc.) and are expected to be rendered by a supporting viewer. This category also includes CSV, TSV, and structured serialization formats (JSON, TOML, YAML), which are plain text but meant to be processed by other tools.
+- Formats that produce **markup language** output (like HTML, Markdown, LaTeX, etc.) and are expected to be rendered by a supporting viewer. This category also includes CSV, TSV, and structured serialization formats (HJSON, JSON, JSON5, JSONC, TOML, XML, YAML), which are plain text but meant to be processed by other tools.
 
 | Format ID | Description | Implementation | Markup |
 |--------|-------------|--------|----------------|
@@ -107,9 +109,12 @@ They're divided in 2 categories:
 | `grid` | Grid table with ASCII characters, also supported by [Pandoc](https://pandoc.org/MANUAL.html#extension-grid_tables) and [reStructuredText](https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#grid-tables) | `python-tabulate` | ❌ |
 | `heavy-grid` | Heavy-line grid table | `python-tabulate` | ❌ |
 | `heavy-outline` | Heavy-line outline table | `python-tabulate` | ❌ |
+| `hjson` | [HJSON](https://hjson.github.io) array of objects | [`hjson`](install.md#extra-dependencies) | ✅ |
 | `html` | [HTML table](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/table) | `python-tabulate` | ✅ |
 | `jira` | [Jira-style markup](https://confluence.atlassian.com/doc/confluence-wiki-markup-251003035.html#ConfluenceWikiMarkup-Tables) | `python-tabulate` | ✅ |
 | `json` | [JSON](https://www.json.org) array of objects | `json` | ✅ |
+| `json5` | Alias for `json` ([JSON5](https://json5.org) is a superset of JSON) | `json` | ✅ |
+| `jsonc` | Alias for `json` ([JSONC](https://code.visualstudio.com/docs/languages/json#_json-with-comments) is JSON with comments) | `json` | ✅ |
 | `latex` | [LaTeX table](https://en.wikibooks.org/wiki/LaTeX/Tables) | `python-tabulate` | ✅ |
 | `latex-booktabs` | [LaTeX table with booktabs package](https://ctan.org/pkg/booktabs) | `python-tabulate` | ✅ |
 | `latex-longtable` | [LaTeX longtable environment](https://ctan.org/pkg/longtable) | `python-tabulate` | ✅ |
@@ -136,6 +141,7 @@ They're divided in 2 categories:
 | `tsv` | [Tab-separated values](https://en.wikipedia.org/wiki/Tab-separated_values) | `python-tabulate` | ✅ |
 | `unsafehtml` | [HTML table](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/table) without escaping | `python-tabulate` | ✅ |
 | `vertical` | Vertical table layout | `cli-helpers` | ❌ |
+| `xml` | [XML](https://www.w3.org/XML/) document | [`xmltodict`](install.md#extra-dependencies) | ✅ |
 | `yaml` | [YAML](https://yaml.org) sequence of mappings | [`PyYAML`](install.md#extra-dependencies) | ✅ |
 | `youtrack` | [YouTrack markup](https://www.jetbrains.com/help/youtrack/server/youtrack-markdown-syntax-issues.html#tables) | `python-tabulate` | ✅ |
 
@@ -221,6 +227,11 @@ invoke(table_command, args=["--table-format", "heavy-outline"])
 
 ```{click:run}
 :emphasize-lines: 1
+invoke(table_command, args=["--table-format", "hjson"])
+```
+
+```{click:run}
+:emphasize-lines: 1
 invoke(table_command, args=["--table-format", "html"])
 ```
 
@@ -232,6 +243,16 @@ invoke(table_command, args=["--table-format", "jira"])
 ```{click:run}
 :emphasize-lines: 1
 invoke(table_command, args=["--table-format", "json"])
+```
+
+```{click:run}
+:emphasize-lines: 1
+invoke(table_command, args=["--table-format", "json5"])
+```
+
+```{click:run}
+:emphasize-lines: 1
+invoke(table_command, args=["--table-format", "jsonc"])
 ```
 
 ```{click:run}
@@ -362,6 +383,11 @@ invoke(table_command, args=["--table-format", "unsafehtml"])
 ```{click:run}
 :emphasize-lines: 1
 invoke(table_command, args=["--table-format", "vertical"])
+```
+
+```{click:run}
+:emphasize-lines: 1
+invoke(table_command, args=["--table-format", "xml"])
 ```
 
 ```{click:run}

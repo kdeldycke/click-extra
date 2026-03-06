@@ -9,8 +9,8 @@
 - Only capture timer start time when `--time` is actually requested.
 - Strip ANSI color codes from markup table formats (`csv`, `html`, `latex`, `rst`, etc.) by default. Use `--color` to preserve them.
 - Add `TableFormat.is_markup` property.
-- Add `json`, `toml` and `yaml` table formats for `--table-format`.
-- Add `[toml]` extra dependency group for TOML writing support.
+- Add `hjson`, `json`, `json5`, `jsonc`, `toml`, `xml` and `yaml` table formats for `--table-format`. Renders table data as structured serialization. `json5` and `jsonc` are aliases for `json`. `null` values are preserved in JSON, HJSON and YAML; omitted in TOML and XML (no null type). HJSON, TOML, XML and YAML require their respective optional extras.
+- Add `[toml]` extra dependency group for TOML table output via `tomlkit`.
 - Remove `version` parameter from `ExtraCommand` and `ExtraGroup`. Set the version directly on `ExtraVersionOption` instead (via `@version_option(version="...")` or in the `params=` list).
 - Add `click-extra` entry point so `uvx click-extra` works out of the box. The `click-extra-demo` alias is kept for backward compatibility.
 - Add `version_fields` parameter to `ExtraCommand` and `ExtraGroup`. Forwards any `ExtraVersionOption` template field (e.g. `prog_name`, `version`, `git_branch`) from the command decorator without replacing the default params list.

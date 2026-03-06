@@ -97,9 +97,12 @@ class TableFormat(Enum):
     GRID = "grid"
     HEAVY_GRID = "heavy-grid"
     HEAVY_OUTLINE = "heavy-outline"
+    HJSON = "hjson"
     HTML = "html"
     JIRA = "jira"
     JSON = "json"
+    JSON5 = "json5"
+    JSONC = "jsonc"
     LATEX = "latex"
     LATEX_BOOKTABS = "latex-booktabs"
     LATEX_LONGTABLE = "latex-longtable"
@@ -126,6 +129,7 @@ class TableFormat(Enum):
     TSV = "tsv"
     UNSAFEHTML = "unsafehtml"
     VERTICAL = "vertical"
+    XML = "xml"
     YAML = "yaml"
     YOUTRACK = "youtrack"
 
@@ -150,9 +154,12 @@ MARKUP_FORMATS = frozenset(
         TableFormat.CSV_EXCEL_TAB,
         TableFormat.CSV_UNIX,
         TableFormat.GITHUB,
+        TableFormat.HJSON,
         TableFormat.HTML,
         TableFormat.JIRA,
         TableFormat.JSON,
+        TableFormat.JSON5,
+        TableFormat.JSONC,
         TableFormat.LATEX,
         TableFormat.LATEX_BOOKTABS,
         TableFormat.LATEX_LONGTABLE,
@@ -166,6 +173,7 @@ MARKUP_FORMATS = frozenset(
         TableFormat.TOML,
         TableFormat.TSV,
         TableFormat.UNSAFEHTML,
+        TableFormat.XML,
         TableFormat.YAML,
         TableFormat.YOUTRACK,
     },
@@ -176,8 +184,26 @@ MARKUP_FORMATS = frozenset(
 DEFAULT_FORMAT = TableFormat.ROUNDED_OUTLINE
 """Default table format, if none is specified."""
 
-TOML_TABLE_KEY = "record"
-"""Top-level key used for TOML array-of-tables output."""
+RECORD_KEY = "record"
+"""Key used for each record in structured formats that require named containers
+(TOML ``[[record]]``, XML ``<record>``)."""
+
+XML_ROOT_KEY = "records"
+"""Root element name for XML table output."""
+
+SERIALIZATION_FORMATS = frozenset(
+    {
+        TableFormat.HJSON,
+        TableFormat.JSON,
+        TableFormat.JSON5,
+        TableFormat.JSONC,
+        TableFormat.TOML,
+        TableFormat.XML,
+        TableFormat.YAML,
+    },
+)
+"""Structured serialization formats whose renderers escape raw ESC bytes, making
+post-render ``strip_ansi()`` ineffective."""
 
 
 def _get_csv_dialect(table_format: TableFormat | None = None) -> str:
@@ -305,8 +331,71 @@ def _render_toml(
         aot.append(t)
 
     doc = tomlkit.document()
-    doc.add(TOML_TABLE_KEY, aot)
+    doc.add(RECORD_KEY, aot)
     return tomlkit.dumps(doc)
+
+
+def _render_hjson(
+    table_data: Sequence[Sequence[str | None]],
+    headers: Sequence[str | None] | None = None,
+    **kwargs,
+) -> str:
+    """Render a table as HJSON.
+
+    Requires the ``hjson`` package (installable via the ``[hjson]`` extra).
+    """
+    try:
+        import hjson
+    except ImportError as exc:
+        msg = (
+            "hjson is required for HJSON table output."
+            " Install it with: pip install click-extra[hjson]"
+        )
+        raise ImportError(msg) from exc
+
+    data = _rows_as_dicts(table_data, headers)
+    defaults: dict = {"ensure_ascii": False}
+    defaults.update(kwargs)
+    return hjson.dumps(data, **defaults) + "\n"
+
+
+def _render_xml(
+    table_data: Sequence[Sequence[str | None]],
+    headers: Sequence[str | None] | None = None,
+    **kwargs,
+) -> str:
+    """Render a table as XML.
+
+    ``None`` values are omitted. Requires the ``xmltodict`` package (installable
+    via the ``[xml]`` extra).
+    """
+    try:
+        import xmltodict
+    except ImportError as exc:
+        msg = (
+            "xmltodict is required for XML table output."
+            " Install it with: pip install click-extra[xml]"
+        )
+        raise ImportError(msg) from exc
+
+    if headers:
+        records = [
+            {k: v for k, v in zip(headers, row) if v is not None and k is not None}
+            for row in table_data
+        ]
+    else:
+        records = [
+            {str(i): v for i, v in enumerate(row) if v is not None}
+            for row in table_data
+        ]
+
+    defaults: dict = {
+        "pretty": True,
+        "encoding": "unicode",
+        "full_document": False,
+    }
+    defaults.update(kwargs)
+    return xmltodict.unparse({XML_ROOT_KEY: {RECORD_KEY: records}}, **defaults) + "\n"
 
 
 def _render_vertical(
@@ -392,15 +481,21 @@ def _select_table_funcs(
         ):
             print_func = partial(print, end="")
             return partial(_render_csv, table_format=table_format), print_func
-        case TableFormat.JSON:
+        case TableFormat.HJSON:
+            print_func = partial(print, end="")
+            return _render_hjson, print_func
+        case TableFormat.JSON | TableFormat.JSON5 | TableFormat.JSONC:
             print_func = partial(print, end="")
             return _render_json, print_func
-        case TableFormat.YAML:
-            print_func = partial(print, end="")
-            return _render_yaml, print_func
         case TableFormat.TOML:
             print_func = partial(print, end="")
             return _render_toml, print_func
+        case TableFormat.XML:
+            print_func = partial(print, end="")
+            return _render_xml, print_func
+        case TableFormat.YAML:
+            print_func = partial(print, end="")
+            return _render_yaml, print_func
         case TableFormat.VERTICAL:
             return _render_vertical, print_func
         case _:

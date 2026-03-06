@@ -91,26 +91,14 @@ This is a graph of the default, main dependencies of the Python package:
 
 For additional features, you may need to install extra dependencies.
 
-### Configuration file formats
+### Data formats
 
-These extras add support for additional [configuration file formats](config.md#formats):
+These extras add support for additional [configuration file formats](config.md#formats) and [table output formats](table.md#table-formats):
 
-- [YAML](config.md#yaml) configuration files and [`yaml` table format](table.md#table-formats):
-
-  ```{code-block} shell-session
-  $ pip install click-extra[yaml]
-  ```
-
-- [TOML](table.md#table-formats) table format output (TOML configuration files are [supported by default](config.md#toml)):
+- [HJSON](config.md#hjson) configuration files and [`hjson` table format](table.md#table-formats):
 
   ```{code-block} shell-session
-  $ pip install click-extra[toml]
-  ```
-
-- [XML](config.md#xml) configuration files:
-
-  ```{code-block} shell-session
-  $ pip install click-extra[xml]
+  $ pip install click-extra[hjson]
   ```
 
 - [JSON5](config.md#json5) configuration files:
@@ -125,10 +113,22 @@ These extras add support for additional [configuration file formats](config.md#f
   $ pip install click-extra[jsonc]
   ```
 
-- [HJSON](config.md#hjson) configuration files:
+- [`toml` table format](table.md#table-formats) output (TOML [configuration files](config.md#toml) are supported by default):
 
   ```{code-block} shell-session
-  $ pip install click-extra[hjson]
+  $ pip install click-extra[toml]
+  ```
+
+- [XML](config.md#xml) configuration files and [`xml` table format](table.md#table-formats):
+
+  ```{code-block} shell-session
+  $ pip install click-extra[xml]
+  ```
+
+- [YAML](config.md#yaml) configuration files and [`yaml` table format](table.md#table-formats):
+
+  ```{code-block} shell-session
+  $ pip install click-extra[yaml]
   ```
 
 ### For Pygments
