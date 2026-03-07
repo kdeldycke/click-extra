@@ -9,11 +9,11 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-02-28T14:40:06.727288373Z"
+exclude-newer = "2026-02-28T14:41:16.953768615Z"
 exclude-newer-span = "P1W"
 
 [options.exclude-newer-package]
-tabulate = { timestamp = "2026-03-07T14:40:06.727293182Z", span = "PT0S" }
+tabulate = { timestamp = "2026-03-07T14:41:16.953774326Z", span = "PT0S" }
 
 [[package]]
 name = "accessible-pygments"
@@ -197,7 +197,7 @@ wheels = [
 
 [[package]]
 name = "click-extra"
-version = "7.7.1.dev0"
+version = "7.7.2.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "boltons" },
