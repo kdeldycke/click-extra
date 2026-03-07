@@ -38,6 +38,21 @@ jobs:
       - uses: astral-sh/setup-uv@v7.3.0
       - name: Install Python
         run: uv --no-progress venv --python 3.14
+
+      - name: Run stable CLI
+        run: |
+          uvx                            click-extra        --version
+          uvx     --from click-extra  -- click-extra-demo   --version
+          uv run  --with click-extra  -- click-extra        --version
+          uv run  --with click-extra  -- click-extra-demo   --version
+
+      - name: Run dev CLI
+        run: |
+          uvx     --from git+https://github.com/kdeldycke/click-extra -- click-extra        --version
+          uvx     --from git+https://github.com/kdeldycke/click-extra -- click-extra-demo   --version
+          uv run  --with git+https://github.com/kdeldycke/click-extra -- click-extra        --version
+          uv run  --with git+https://github.com/kdeldycke/click-extra -- click-extra-demo   --version
+
       - name: Install project
         run: uv --no-progress sync --frozen --all-extras --group test
       - name: Run once-only tests
@@ -190,22 +205,10 @@ jobs:
 
       - name: Run local CLI
         run: |
-          uv run -- click-extra --version
-          uv run -- click-extra-demo --version
-      - name: Run CLI from module
-        run: |
-          uv run        -m click_extra --version
-          uv run python -m click_extra --version
-      - name: Run stable CLI
-        run: |
-          uvx    --from click-extra -- click-extra-demo --version
-          uv run --with click-extra -- click-extra-demo --version
-      - name: Run dev CLI
-        run: |
-          uvx    --from git+https://github.com/kdeldycke/click-extra -- click-extra --version
-          uv run --with git+https://github.com/kdeldycke/click-extra -- click-extra --version
-          uvx    --from git+https://github.com/kdeldycke/click-extra -- click-extra-demo --version
-          uv run --with git+https://github.com/kdeldycke/click-extra -- click-extra-demo --version
+          uv run -- click-extra         --version
+          uv run -- click-extra-demo    --version
+          uv run        -m click_extra  --version
+          uv run python -m click_extra  --version
 
       - name: Unittests
         run: >
