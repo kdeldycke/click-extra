@@ -19,5 +19,7 @@ name: 🚀 Build & release
 jobs:
 
   release:
-    uses: kdeldycke/repomatic/.github/workflows/release.yaml@v6.0.1
-    secrets: inherit
+    uses: kdeldycke/repomatic/.github/workflows/release.yaml@v6.3.0
+    secrets:
+      PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+      WORKFLOW_UPDATE_GITHUB_PAT: ${{ secrets.WORKFLOW_UPDATE_GITHUB_PAT }}

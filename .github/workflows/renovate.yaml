@@ -15,5 +15,6 @@ name: 🆕 Renovate
 jobs:
 
   renovate:
-    uses: kdeldycke/repomatic/.github/workflows/renovate.yaml@v6.0.1
-    secrets: inherit
+    uses: kdeldycke/repomatic/.github/workflows/renovate.yaml@v6.3.0
+    secrets:
+      WORKFLOW_UPDATE_GITHUB_PAT: ${{ secrets.WORKFLOW_UPDATE_GITHUB_PAT }}
