@@ -6,16 +6,6 @@
 # (1.2.3.dev0+abc1234) versions.
 
 
-# Diagnostic: check if binary produces ANY output on stderr (no stdout assertion).
-# This helps debug Nuitka onefile binaries where stdout may be empty.
-- cli_parameters:
-    - --verbosity
-    - DEBUG
-    - --version
-  exit_code: 0
-  stderr_regex_matches: "."
-
-
 # Check the CLI reports its version on stdout.
 - cli_parameters: --version
   exit_code: 0
