@@ -252,13 +252,23 @@ show-fixes = true
 # Enable reformatting of code snippets in docstrings.
 # https://docs.astral.sh/ruff/formatter/#docstring-formatting
 format.docstring-code-format = true
+# B008: Do not perform function call in argument defaults.
+#   Click's API requires function calls in defaults (e.g. `_()` for i18n,
+#   `EnumChoice()`, `Style()`, `ClickPath()`). This is intentional.
 # D400: First line should end with a period.
 #   Allows docstrings to end up with any punctuation, not just a period.
 #   See: https://github.com/astral-sh/ruff/issues/1858#issuecomment-1382640623
 # ERA001: Found commented-out code.
 #   Do not remove commented code, as it might be used for documentation.
 #   See: https://docs.astral.sh/ruff/rules/#eradicate-era
-lint.ignore = [ "B008", "D400", "ERA001", "LOG015" ]
+# LOG015: Root logger call.
+#   Tests intentionally call root logger methods to verify capture behavior.
+#   Utility functions also use root logger as a convenience.
+# RUF022: `__all__` is not sorted.
+#   Enforce case-insensitive alphabetical sorting instead of isort-style
+#   (SCREAMING_SNAKE_CASE → CamelCase → lowercase) grouping. Order is
+#   enforced by test_module_root_declarations in tests/test_commands.py.
+lint.ignore = [ "B008", "D400", "ERA001", "LOG015", "RUF022" ]
 # Allow rules to add `from __future__ import annotations` in cases where
 # this would simplify a fix or enable a new diagnostic.
 # https://docs.astral.sh/ruff/settings/#lint_future-annotations
