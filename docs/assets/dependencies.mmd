@@ -19,7 +19,6 @@ flowchart LR
     bracex(["`bracex`"])
     certifi(["`certifi`"])
     charset_normalizer(["`charset-normalizer`"])
-    distro(["`distro`"])
     idna(["`idna`"])
     wcwidth(["`wcwidth`"])
 
@@ -33,6 +32,10 @@ flowchart LR
 
     subgraph ext_jsonc [--extra jsonc]
         json_with_comments{{"`json-with-comments >=1.2.10`"}}
+    end
+
+    subgraph ext_toml [--extra toml]
+        tomlkit{{"`tomlkit >=0.13`"}}
     end
 
     subgraph ext_xml [--extra xml]
@@ -105,7 +108,7 @@ flowchart LR
     click_extra ==>|" >=8.3.1 "| click_0
     click_extra ==>|" >=3.0.7 "| cloup
     click_extra ==>|" >=5 "| extra_platforms
-    click_extra ==>|" >=0.9 "| tabulate
+    click_extra ==>|" >=0.10 "| tabulate
     click_extra ==>|" >=10 "| wcmatch
     click_extra ==>|" >=25 "| boltons
     click_extra ==>|" >=2 "| deepmerge
@@ -160,7 +163,6 @@ flowchart LR
     cloup --> typing_extensions
     coverage ==> tomli
     extra_platforms ==> pytest
-    extra_platforms --> distro
     pygments_ansi_color ==> pygments
     pytest_github_actions_annotate_failures ==> pytest
     pytest_httpserver --> werkzeug
@@ -186,6 +188,7 @@ flowchart LR
     click_extra -.-> ext_hjson
     click_extra -.-> ext_json5
     click_extra -.-> ext_jsonc
+    click_extra -.-> ext_toml
     click_extra -.-> ext_xml
     click_extra -.-> grp_docs
     click_extra -.-> grp_test
@@ -206,7 +209,6 @@ flowchart LR
     click colorama "https://pypi.org/project/colorama/" _blank
     click coverage "https://pypi.org/project/coverage/" _blank
     click deepmerge "https://pypi.org/project/deepmerge/" _blank
-    click distro "https://pypi.org/project/distro/" _blank
     click docutils "https://pypi.org/project/docutils/" _blank
     click exceptiongroup "https://pypi.org/project/exceptiongroup/" _blank
     click extra_platforms "https://pypi.org/project/extra-platforms/" _blank
@@ -253,6 +255,7 @@ flowchart LR
     click sphinxext_opengraph "https://pypi.org/project/sphinxext-opengraph/" _blank
     click tabulate "https://pypi.org/project/tabulate/" _blank
     click tomli "https://pypi.org/project/tomli/" _blank
+    click tomlkit "https://pypi.org/project/tomlkit/" _blank
     click types_boltons "https://pypi.org/project/types-boltons/" _blank
     click types_docutils "https://pypi.org/project/types-docutils/" _blank
     click types_pygments "https://pypi.org/project/types-pygments/" _blank
@@ -299,6 +302,7 @@ flowchart LR
     style sphinxext_opengraph stroke-width:3px
     style tabulate stroke-width:3px
     style tomli stroke-width:3px
+    style tomlkit stroke-width:3px
     style types_boltons stroke-width:3px
     style types_docutils stroke-width:3px
     style types_pygments stroke-width:3px
@@ -313,6 +317,7 @@ flowchart LR
     style ext_hjson fill:#7B1FA220,stroke:#BA68C8
     style ext_json5 fill:#7B1FA220,stroke:#BA68C8
     style ext_jsonc fill:#7B1FA220,stroke:#BA68C8
+    style ext_toml fill:#7B1FA220,stroke:#BA68C8
     style ext_xml fill:#7B1FA220,stroke:#BA68C8
     style grp_docs fill:#546E7A20,stroke:#90A4AE
     style grp_test fill:#546E7A20,stroke:#90A4AE
