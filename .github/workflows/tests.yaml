@@ -41,17 +41,44 @@ jobs:
 
       - name: Run stable CLI
         run: |
-          uvx                            click-extra        --version
-          uvx     --from click-extra  -- click-extra-demo   --version
-          uv run  --with click-extra  -- click-extra        --version
-          uv run  --with click-extra  -- click-extra-demo   --version
+          uvx                                     click-extra       --version
+          uvx     --from click-extra  --          click-extra-demo  --version
+          uv run  --with click-extra  --          click-extra       --version
+          uv run  --with click-extra  --          click-extra-demo  --version
+          uv run  --with click-extra  -m          click_extra       --version
+          uv run  --with click-extra  python -m   click_extra       --version
 
       - name: Run dev CLI
         run: |
-          uvx     --from git+https://github.com/kdeldycke/click-extra -- click-extra        --version
-          uvx     --from git+https://github.com/kdeldycke/click-extra -- click-extra-demo   --version
-          uv run  --with git+https://github.com/kdeldycke/click-extra -- click-extra        --version
-          uv run  --with git+https://github.com/kdeldycke/click-extra -- click-extra-demo   --version
+          uvx     --from git+https://github.com/kdeldycke/click-extra   --          click-extra       --version
+          uvx     --from git+https://github.com/kdeldycke/click-extra   --          click-extra-demo  --version
+          uv run  --with git+https://github.com/kdeldycke/click-extra   --          click-extra       --version
+          uv run  --with git+https://github.com/kdeldycke/click-extra   --          click-extra-demo  --version
+          uv run  --with git+https://github.com/kdeldycke/click-extra   -m          click_extra       --version
+          uv run  --with git+https://github.com/kdeldycke/click-extra   python -m   click_extra       --version
+
+      - name: Run stable CLI via uv tool
+        run: |
+          uv tool install click-extra
+          click-extra       --version
+          click-extra-demo  --version
+          uv tool uninstall click-extra
+
+      - name: Run dev CLI via uv tool
+        run: |
+          uv tool install git+https://github.com/kdeldycke/click-extra
+          click-extra       --version
+          click-extra-demo  --version
+          uv tool uninstall click-extra
+
+      - name: Run CLI via pipx
+        run: |
+          uv tool install pipx
+          pipx run                                                      click-extra       --version
+          pipx run --spec click-extra                                   click-extra-demo  --version
+          pipx run --spec git+https://github.com/kdeldycke/click-extra  click-extra       --version
+          pipx run --spec git+https://github.com/kdeldycke/click-extra  click-extra-demo  --version
+          uv tool uninstall pipx
 
       - name: Install project
         run: uv --no-progress sync --frozen --all-extras --group test
@@ -204,6 +231,7 @@ jobs:
           uv --no-progress sync --frozen --all-extras --group test
 
       - name: Run local CLI
+        shell: bash
         run: |
           uv run -- click-extra         --version
           uv run -- click-extra-demo    --version
