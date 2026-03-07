@@ -20,6 +20,9 @@
 
 ## [7.6.5 (2026-03-05)](https://github.com/kdeldycke/click-extra/compare/v7.6.4...v7.6.5)
 
+> [!NOTE]
+> `7.6.5` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.6.5/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.6.5).
+
 - Bump `tabulate` requirement from `>=0.9` to `>=0.10`.
 - Add new `colon-grid` table format.
 - Replace custom `github` table renderer with tabulate's `pipe` format. Backport of [python-tabulate#410](https://github.com/astanin/python-tabulate/pull/410).
