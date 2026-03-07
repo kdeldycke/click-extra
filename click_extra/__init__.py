@@ -100,7 +100,7 @@ from .testing import ExtraCliRunner
 from .timer import TimerOption
 from .version import ExtraVersionOption
 
-__all__ = [  # noqa: F405
+__all__ = [
     "Abort",
     "annotations",
     "Argument",
