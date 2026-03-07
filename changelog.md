@@ -5,7 +5,10 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
-## [7.7.0 (2026-03-07)](https://github.com/kdeldycke/click-extra/compare/v7.6.5...v7.7.0)
+## [`7.7.0` (2026-03-07)](https://github.com/kdeldycke/click-extra/compare/v7.6.5...v7.7.0)
+
+> [!NOTE]
+> `7.7.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.7.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.7.0).
 
 - Add `version_fields` parameter to `ExtraCommand` and `ExtraGroup`. Forwards any `ExtraVersionOption` template field (e.g. `prog_name`, `version`, `git_branch`) from the command decorator without replacing the default params list.
 - Lazily evaluate version metadata fields in `ctx.meta`.
@@ -20,13 +23,16 @@
 - Only capture timer start time when `--time` is actually requested.
 - Add `click-extra` entry point so `uvx click-extra` works out of the box. The `click-extra-demo` alias is kept for backward compatibility.
 
-## [7.6.5 (2026-03-05)](https://github.com/kdeldycke/click-extra/compare/v7.6.4...v7.6.5)
+## [`7.6.5` (2026-03-05)](https://github.com/kdeldycke/click-extra/compare/v7.6.4...v7.6.5)
+
+> [!NOTE]
+> `7.6.5` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.6.5/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.6.5).
 
 - Bump `tabulate` requirement from `>=0.9` to `>=0.10`.
 - Add new `colon-grid` table format.
 - Replace custom `github` table renderer with tabulate's `pipe` format. Backport of [python-tabulate#410](https://github.com/astanin/python-tabulate/pull/410).
 
-## [7.6.4 (2026-03-04)](https://github.com/kdeldycke/click-extra/compare/v7.6.3...v7.6.4)
+## [`7.6.4` (2026-03-04)](https://github.com/kdeldycke/click-extra/compare/v7.6.3...v7.6.4)
 
 > [!NOTE]
 > `7.6.4` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.6.4/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.6.4).
@@ -36,28 +42,28 @@
 - Fix test plan for Nuitka-compiled binary.
 - Add `@pytest.mark.once` marker for platform-independent structural tests. Run them in a single CI job instead of across the full matrix.
 
-## [7.6.3 (2026-03-02)](https://github.com/kdeldycke/click-extra/compare/v7.6.2...v7.6.3)
+## [`7.6.3` (2026-03-02)](https://github.com/kdeldycke/click-extra/compare/v7.6.2...v7.6.3)
 
 > [!NOTE]
 > `7.6.3` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.6.3/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.6.3).
 
 - Fix `test_default_pattern_roaming_force_posix` test failures when `XDG_CONFIG_HOME` is set. Closes {issue}`1541`.
 
-## [7.6.2 (2026-02-27)](https://github.com/kdeldycke/click-extra/compare/v7.6.1...v7.6.2)
+## [`7.6.2` (2026-02-27)](https://github.com/kdeldycke/click-extra/compare/v7.6.1...v7.6.2)
 
 > [!NOTE]
 > `7.6.2` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.6.2/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.6.2).
 
 - Add `ExtraVersionOption.prebake_version()` static method to pre-bake `__version__` strings with Git hashes at compile time, complementing the runtime `version` property for Nuitka/PyInstaller binaries.
 
-## [7.6.1 (2026-02-27)](https://github.com/kdeldycke/click-extra/compare/v7.6.0...v7.6.1)
+## [`7.6.1` (2026-02-27)](https://github.com/kdeldycke/click-extra/compare/v7.6.0...v7.6.1)
 
 > [!NOTE]
 > `7.6.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.6.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.6.1).
 
 - Fix test failures when optional config format dependencies are not installed. Closes {issue}`1538`.
 
-## [7.6.0 (2026-02-26)](https://github.com/kdeldycke/click-extra/compare/v7.5.3...v7.6.0)
+## [`7.6.0` (2026-02-26)](https://github.com/kdeldycke/click-extra/compare/v7.5.3...v7.6.0)
 
 > [!NOTE]
 > `7.6.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.6.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.6.0).
@@ -78,7 +84,7 @@
 - Skip Git hash suffix for versions that already contain `+` (pre-baked local identifiers) to avoid invalid double-suffixed versions.
 - Recognize `LLM` environment variable to strip ANSI codes when running under an AI agent.
 
-## [7.5.3 (2026-02-22)](https://github.com/kdeldycke/click-extra/compare/v7.5.2...v7.5.3)
+## [`7.5.3` (2026-02-22)](https://github.com/kdeldycke/click-extra/compare/v7.5.2...v7.5.3)
 
 > [!NOTE]
 > `7.5.3` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.5.3/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.5.3).
@@ -87,7 +93,7 @@
 - Implement `resolve_any_xref` in `ClickDomain` to prevent MyST-Parser warning. Closes {issue}`1502`.
 - Fix subcommand conflict detection checking against root-level params instead of parent params. Closes {pr}`1286`.
 
-## [7.5.2 (2026-02-12)](https://github.com/kdeldycke/click-extra/compare/v7.5.1...v7.5.2)
+## [`7.5.2` (2026-02-12)](https://github.com/kdeldycke/click-extra/compare/v7.5.1...v7.5.2)
 
 > [!NOTE]
 > `7.5.2` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.5.2/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.5.2).
@@ -97,7 +103,7 @@
 - Move `click_extra/docs_update.py` to `docs/docs_update.py`.
 - Add `pygments-ansi-color` to `docs` dependency group for lexer table generation.
 
-## [7.5.1 (2026-02-05)](https://github.com/kdeldycke/click-extra/compare/v7.5.0...v7.5.1)
+## [`7.5.1` (2026-02-05)](https://github.com/kdeldycke/click-extra/compare/v7.5.0...v7.5.1)
 
 > [!NOTE]
 > `7.5.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.5.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.5.1).
@@ -105,7 +111,7 @@
 - Add new `aligned` table format with single-space column separators and no borders.
 - Fix parallel mode support in Sphinx extension. Closes {issue}`1482`.
 
-## [7.5.0 (2026-02-03)](https://github.com/kdeldycke/click-extra/compare/v7.4.0...v7.5.0)
+## [`7.5.0` (2026-02-03)](https://github.com/kdeldycke/click-extra/compare/v7.4.0...v7.5.0)
 
 > [!NOTE]
 > `7.5.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.5.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.5.0).
@@ -119,7 +125,7 @@
 - Remove utilization workaround for `macos-15-intel`.
 - Bump requirement of `extra-platforms` to 8.0.0.
 
-## [7.4.0 (2025-12-08)](https://github.com/kdeldycke/click-extra/compare/v7.3.0...v7.4.0)
+## [`7.4.0` (2025-12-08)](https://github.com/kdeldycke/click-extra/compare/v7.3.0...v7.4.0)
 
 > [!NOTE]
 > `7.4.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.4.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.4.0).
@@ -130,7 +136,7 @@
 - Merge all label jobs into a single one.
 - Unlock a CPU core stuck at 100% utilization on `macos-15-intel`.
 
-## [7.3.0 (2025-12-01)](https://github.com/kdeldycke/click-extra/compare/v7.2.0...v7.3.0)
+## [`7.3.0` (2025-12-01)](https://github.com/kdeldycke/click-extra/compare/v7.2.0...v7.3.0)
 
 > [!NOTE]
 > `7.3.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.3.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.3.0).
@@ -140,7 +146,7 @@
 - Add support for nested GitHub alerts.
 - Fix fetching version when the CLI is implemented as a standalone script and not as a package module.
 
-## [7.2.0 (2025-11-26)](https://github.com/kdeldycke/click-extra/compare/v7.1.0...v7.2.0)
+## [`7.2.0` (2025-11-26)](https://github.com/kdeldycke/click-extra/compare/v7.1.0...v7.2.0)
 
 > [!NOTE]
 > `7.2.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.2.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.2.0).
@@ -150,7 +156,7 @@
 - Run tests on `ubuntu-slim` GitHub Actions runner.
 - Run docs update job on `ubuntu-slim` runner.
 
-## [7.1.0 (2025-11-21)](https://github.com/kdeldycke/click-extra/compare/v7.0.1...v7.1.0)
+## [`7.1.0` (2025-11-21)](https://github.com/kdeldycke/click-extra/compare/v7.0.1...v7.1.0)
 
 > [!NOTE]
 > `7.1.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.1.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.1.0).
@@ -158,14 +164,14 @@
 - Add support for aliases in `EnumChoice` type.
 - Register pre-configured `render_table()` utility in the context when `table_format` is set, in the same spirit as `print_table()`.
 
-## [7.0.1 (2025-11-18)](https://github.com/kdeldycke/click-extra/compare/v7.0.0...v7.0.1)
+## [`7.0.1` (2025-11-18)](https://github.com/kdeldycke/click-extra/compare/v7.0.0...v7.0.1)
 
 > [!NOTE]
 > `7.0.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.0.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.0.1).
 
 - Restore support for `@extra_command`, `@extra_group` and `@extra_version_option`, but mark them as deprecated.
 
-## [7.0.0 (2025-11-18)](https://github.com/kdeldycke/click-extra/compare/v6.2.0...v7.0.0)
+## [`7.0.0` (2025-11-18)](https://github.com/kdeldycke/click-extra/compare/v6.2.0...v7.0.0)
 
 > [!NOTE]
 > `7.0.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.0.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.0.0).
@@ -193,7 +199,7 @@
 - Normalize the default value of `EnumChoice` parameters to their string choice representation in help screens.
 - Run tests on Python `3.14t` and `3.15t` free-threaded variants.
 
-## [6.2.0 (2025-11-04)](https://github.com/kdeldycke/click-extra/compare/v6.1.0...v6.2.0)
+## [`6.2.0` (2025-11-04)](https://github.com/kdeldycke/click-extra/compare/v6.1.0...v6.2.0)
 
 > [!NOTE]
 > `6.2.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/6.2.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v6.2.0).
@@ -203,7 +209,7 @@
 - Re-introduce `tomli` dependency for Python 3.10 users.
 - Skip tests on intermediate Python versions (`3.11`, `3.12` and `3.13`) to reduce CI load.
 
-## [6.1.0 (2025-10-29)](https://github.com/kdeldycke/click-extra/compare/v6.0.3...v6.1.0)
+## [`6.1.0` (2025-10-29)](https://github.com/kdeldycke/click-extra/compare/v6.0.3...v6.1.0)
 
 > [!NOTE]
 > `6.1.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/6.1.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v6.1.0).
@@ -216,21 +222,21 @@
 - Upgrade tests runs from `macos-13` to `macos-15-intel`, and from `macos-15` to `macos-26`.
 - Use `astral-sh/setup-uv` action to install `uv`.
 
-## [6.0.3 (2025-10-13)](https://github.com/kdeldycke/click-extra/compare/v6.0.2...v6.0.3)
+## [`6.0.3` (2025-10-13)](https://github.com/kdeldycke/click-extra/compare/v6.0.2...v6.0.3)
 
 > [!NOTE]
 > `6.0.3` is available on [🐍 PyPI](https://pypi.org/project/click-extra/6.0.3/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v6.0.3).
 
 - Fix `regex_fullmatch_line_by_line` to accept compiled regex patterns as well as string patterns.
 
-## [6.0.2 (2025-10-11)](https://github.com/kdeldycke/click-extra/compare/v6.0.1...v6.0.2)
+## [`6.0.2` (2025-10-11)](https://github.com/kdeldycke/click-extra/compare/v6.0.1...v6.0.2)
 
 > [!NOTE]
 > `6.0.2` is available on [🐍 PyPI](https://pypi.org/project/click-extra/6.0.2/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v6.0.2).
 
 - Add a new `regex_fullmatch_line_by_line` utility to compare a wall of text against a regex, line by line, and raise a custom `RegexLineMismatch` exception on the first mismatch.
 
-## [6.0.1 (2025-10-08)](https://github.com/kdeldycke/click-extra/compare/v6.0.0...v6.0.1)
+## [`6.0.1` (2025-10-08)](https://github.com/kdeldycke/click-extra/compare/v6.0.0...v6.0.1)
 
 > [!NOTE]
 > `6.0.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/6.0.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v6.0.1).
@@ -239,7 +245,7 @@
 - Add official support of Python 3.14.
 - Run tests on Python 3.15-dev.
 
-## [6.0.0 (2025-09-25)](https://github.com/kdeldycke/click-extra/compare/v5.1.1...v6.0.0)
+## [`6.0.0` (2025-09-25)](https://github.com/kdeldycke/click-extra/compare/v5.1.1...v6.0.0)
 
 > [!NOTE]
 > `6.0.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/6.0.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v6.0.0).
@@ -277,14 +283,14 @@
 - Add unit tests for Sphinx extension.
 - Render GitHub-Flavored Markdown admonitions in Sphinx.
 
-## [5.1.1 (2025-08-24)](https://github.com/kdeldycke/click-extra/compare/v5.1.0...v5.1.1)
+## [`5.1.1` (2025-08-24)](https://github.com/kdeldycke/click-extra/compare/v5.1.0...v5.1.1)
 
 > [!NOTE]
 > `5.1.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/5.1.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v5.1.1).
 
 - Relax Click dependency to account for yanked release. Closes {issue}`1307`.
 
-## [5.1.0 (2025-08-03)](https://github.com/kdeldycke/click-extra/compare/v5.0.2...v5.1.0)
+## [`5.1.0` (2025-08-03)](https://github.com/kdeldycke/click-extra/compare/v5.0.2...v5.1.0)
 
 > [!NOTE]
 > `5.1.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/5.1.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v5.1.0).
@@ -300,7 +306,7 @@
 - Force requirement on `cloup >= 3.0.7`.
 - Be more informative when error is found in `click:example` and `click:run` Sphinx directives by displaying the path of the original document and the line number of the error.
 
-## [5.0.2 (2025-05-31)](https://github.com/kdeldycke/click-extra/compare/v5.0.1...v5.0.2)
+## [`5.0.2` (2025-05-31)](https://github.com/kdeldycke/click-extra/compare/v5.0.1...v5.0.2)
 
 > [!NOTE]
 > `5.0.2` is available on [🐍 PyPI](https://pypi.org/project/click-extra/5.0.2/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v5.0.2).
@@ -308,7 +314,7 @@
 - Set `ExtraCommand` default `prog_name` to CLI's `name` to avoid it to be named `python -m <module_name>` if invoked out of a module.
 - Tweak exit code rendering of CLI runs.
 
-## [5.0.1 (2025-05-28)](https://github.com/kdeldycke/click-extra/compare/v5.0.0...v5.0.1)
+## [`5.0.1` (2025-05-28)](https://github.com/kdeldycke/click-extra/compare/v5.0.0...v5.0.1)
 
 > [!NOTE]
 > `5.0.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/5.0.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v5.0.1).
@@ -316,7 +322,7 @@
 - Fix highlighting of deprecated messages.
 - Use ASCII characters instead of unicode for prompt rendering in messages.
 
-## [5.0.0 (2025-05-13)](https://github.com/kdeldycke/click-extra/compare/v4.15.0...v5.0.0)
+## [`5.0.0` (2025-05-13)](https://github.com/kdeldycke/click-extra/compare/v4.15.0...v5.0.0)
 
 > [!NOTE]
 > `5.0.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/5.0.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v5.0.0).
@@ -329,7 +335,7 @@
 - Add `windows-11-arm` to the test matrix.
 - Remove tests on `ubuntu-22.04-arm`, `ubuntu-22.04` and `windows-2022` to keep matrix small.
 
-## [4.15.0 (2025-03-05)](https://github.com/kdeldycke/click-extra/compare/v4.14.2...v4.15.0)
+## [`4.15.0` (2025-03-05)](https://github.com/kdeldycke/click-extra/compare/v4.14.2...v4.15.0)
 
 > [!NOTE]
 > `4.15.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.15.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.15.0).
@@ -343,7 +349,7 @@
 - Add missing line returns in `render_cli_run()`.
 - Prefix all types with capital-`T`.
 
-## [4.14.2 (2025-02-23)](https://github.com/kdeldycke/click-extra/compare/v4.14.1...v4.14.2)
+## [`4.14.2` (2025-02-23)](https://github.com/kdeldycke/click-extra/compare/v4.14.1...v4.14.2)
 
 > [!NOTE]
 > `4.14.2` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.14.2/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.14.2).
@@ -353,14 +359,14 @@
 - Relax requirement on `extra-platforms`.
 - Add tests on `windows-2025`. Remove tests on `windows-2019`.
 
-## [4.14.1 (2025-02-02)](https://github.com/kdeldycke/click-extra/compare/v4.14.0...v4.14.1)
+## [`4.14.1` (2025-02-02)](https://github.com/kdeldycke/click-extra/compare/v4.14.0...v4.14.1)
 
 > [!NOTE]
 > `4.14.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.14.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.14.1).
 
 - Fix upload of Python package to GitHub release on tagging.
 
-## [4.14.0 (2025-02-02)](https://github.com/kdeldycke/click-extra/compare/v4.13.2...v4.14.0)
+## [`4.14.0` (2025-02-02)](https://github.com/kdeldycke/click-extra/compare/v4.13.2...v4.14.0)
 
 > [!NOTE]
 > `4.14.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.14.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.14.0).
@@ -375,7 +381,7 @@
 - Fix upload of Python package to GitHub release on tagging.
 - Remove dependency on `pytest-cases`.
 
-## [4.13.2 (2025-01-28)](https://github.com/kdeldycke/click-extra/compare/v4.13.1...v4.13.2)
+## [`4.13.2` (2025-01-28)](https://github.com/kdeldycke/click-extra/compare/v4.13.1...v4.13.2)
 
 > [!NOTE]
 > `4.13.2` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.13.2/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.13.2).
@@ -383,14 +389,14 @@
 - Re-release to fix Github publishing.
 - Reactivates some color tests on Windows.
 
-## [4.13.1 (2025-01-28)](https://github.com/kdeldycke/click-extra/compare/v4.13.0...v4.13.1)
+## [`4.13.1` (2025-01-28)](https://github.com/kdeldycke/click-extra/compare/v4.13.0...v4.13.1)
 
 > [!NOTE]
 > `4.13.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.13.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.13.1).
 
 - Re-release to fix Github publishing.
 
-## [4.13.0 (2025-01-28)](https://github.com/kdeldycke/click-extra/compare/v4.12.0...v4.13.0)
+## [`4.13.0` (2025-01-28)](https://github.com/kdeldycke/click-extra/compare/v4.12.0...v4.13.0)
 
 > [!NOTE]
 > `4.13.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.13.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.13.0).
@@ -404,7 +410,7 @@
 - Rewrite the logging documentation with all use-cases and custom configuration examples. Closes {issue}`989`.
 - Removes old platforms page from documentation.
 
-## [4.12.0 (2025-01-20)](https://github.com/kdeldycke/click-extra/compare/v4.11.7...v4.12.0)
+## [`4.12.0` (2025-01-20)](https://github.com/kdeldycke/click-extra/compare/v4.11.7...v4.12.0)
 
 > [!NOTE]
 > `4.12.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.12.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.12.0).
@@ -415,14 +421,14 @@
 - Add tests on `ubuntu-24.04-arm` and `ubuntu-22.04-arm`.
 - Use `uv` to install specific versions of Python.
 
-## [4.11.7 (2024-12-01)](https://github.com/kdeldycke/click-extra/compare/v4.11.6...v4.11.7)
+## [`4.11.7` (2024-12-01)](https://github.com/kdeldycke/click-extra/compare/v4.11.6...v4.11.7)
 
 > [!NOTE]
 > `4.11.7` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.11.7/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.11.7).
 
 - Remove support for comments in JSON configuration files. Remove dependency on unmaintained `commentjson`. Closes [`click-extra#1152`](https://github.com/kdeldycke/click-extra/issues/1152).
 
-## [4.11.6 (2024-11-29)](https://github.com/kdeldycke/click-extra/compare/v4.11.5...v4.11.6)
+## [`4.11.6` (2024-11-29)](https://github.com/kdeldycke/click-extra/compare/v4.11.5...v4.11.6)
 
 > [!NOTE]
 > `4.11.6` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.11.6/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.11.6).
@@ -433,42 +439,42 @@
 - Display generated help option in `--show-params` results.
 - Force UTF-8 encoding everywhere.
 
-## [4.11.5 (2024-11-18)](https://github.com/kdeldycke/click-extra/compare/v4.11.4...v4.11.5)
+## [`4.11.5` (2024-11-18)](https://github.com/kdeldycke/click-extra/compare/v4.11.4...v4.11.5)
 
 > [!NOTE]
 > `4.11.5` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.11.5/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.11.5).
 
 - Allow `replace_content()` utility method to replace any content found after the start tag.
 
-## [4.11.4 (2024-11-14)](https://github.com/kdeldycke/click-extra/compare/v4.11.3...v4.11.4)
+## [`4.11.4` (2024-11-14)](https://github.com/kdeldycke/click-extra/compare/v4.11.3...v4.11.4)
 
 > [!NOTE]
 > `4.11.4` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.11.4/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.11.4).
 
 - Ignore hidden options when coloring help screen.
 
-## [4.11.3 (2024-11-12)](https://github.com/kdeldycke/click-extra/compare/v4.11.2...v4.11.3)
+## [`4.11.3` (2024-11-12)](https://github.com/kdeldycke/click-extra/compare/v4.11.2...v4.11.3)
 
 > [!NOTE]
 > `4.11.3` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.11.3/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.11.3).
 
 - Aligns dependencies.
 
-## [4.11.2 (2024-11-11)](https://github.com/kdeldycke/click-extra/compare/v4.11.1...v4.11.2)
+## [`4.11.2` (2024-11-11)](https://github.com/kdeldycke/click-extra/compare/v4.11.1...v4.11.2)
 
 > [!NOTE]
 > `4.11.2` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.11.2/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.11.2).
 
 - Aligns dependencies.
 
-## [4.11.1 (2024-10-27)](https://github.com/kdeldycke/click-extra/compare/v4.11.0...v4.11.1)
+## [`4.11.1` (2024-10-27)](https://github.com/kdeldycke/click-extra/compare/v4.11.0...v4.11.1)
 
 > [!NOTE]
 > `4.11.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.11.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.11.1).
 
 - Fix tests against development version of Click.
 
-## [4.11.0 (2024-10-08)](https://github.com/kdeldycke/click-extra/compare/v4.10.0...v4.11.0)
+## [`4.11.0` (2024-10-08)](https://github.com/kdeldycke/click-extra/compare/v4.10.0...v4.11.0)
 
 > [!NOTE]
 > `4.11.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.11.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.11.0).
@@ -479,7 +485,7 @@
 - Add tests on `ubuntu-24.04`. Remove tests on `ubuntu-20.04`.
 - Upgrade tests from `macos-14` to `macos-15`.
 
-## [4.10.0 (2024-09-05)](https://github.com/kdeldycke/click-extra/compare/v4.9.0...v4.10.0)
+## [`4.10.0` (2024-09-05)](https://github.com/kdeldycke/click-extra/compare/v4.9.0...v4.10.0)
 
 > [!NOTE]
 > `4.10.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.10.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.10.0).
@@ -487,7 +493,7 @@
 - Move all platform detection utilities to its own standalone [Extra Platforms project](https://github.com/kdeldycke/extra-platforms).
 - Add dependency on `extra-platforms`.
 
-## [4.9.0 (2024-07-25)](https://github.com/kdeldycke/click-extra/compare/v4.8.3...v4.9.0)
+## [`4.9.0` (2024-07-25)](https://github.com/kdeldycke/click-extra/compare/v4.8.3...v4.9.0)
 
 > [!NOTE]
 > `4.9.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.9.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.9.0).
@@ -497,28 +503,28 @@
 - Mark Python 3.13-dev tests as stable.
 - Remove dependency on `regex`.
 
-## [4.8.3 (2024-05-25)](https://github.com/kdeldycke/click-extra/compare/v4.8.2...v4.8.3)
+## [`4.8.3` (2024-05-25)](https://github.com/kdeldycke/click-extra/compare/v4.8.2...v4.8.3)
 
 > [!NOTE]
 > `4.8.3` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.8.3/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.8.3).
 
 - Fix string interpolation in log message.
 
-## [4.8.2 (2024-05-25)](https://github.com/kdeldycke/click-extra/compare/v4.8.1...v4.8.2)
+## [`4.8.2` (2024-05-25)](https://github.com/kdeldycke/click-extra/compare/v4.8.1...v4.8.2)
 
 > [!NOTE]
 > `4.8.2` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.8.2/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.8.2).
 
 - Do not raise error if package version cannot be fetched.
 
-## [4.8.1 (2024-05-23)](https://github.com/kdeldycke/click-extra/compare/v4.8.0...v4.8.1)
+## [`4.8.1` (2024-05-23)](https://github.com/kdeldycke/click-extra/compare/v4.8.0...v4.8.1)
 
 > [!NOTE]
 > `4.8.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.8.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.8.1).
 
 - Do not fail on `docs_update` import if `pygments` is not installed.
 
-## [4.8.0 (2024-05-23)](https://github.com/kdeldycke/click-extra/compare/v4.7.5...v4.8.0)
+## [`4.8.0` (2024-05-23)](https://github.com/kdeldycke/click-extra/compare/v4.7.5...v4.8.0)
 
 > [!NOTE]
 > `4.8.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.8.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.8.0).
@@ -530,14 +536,14 @@
 - Remove direct dependency on `mypy`.
 - Allow running tests with Python 3.8 and 3.9 on `macos-14` runners.
 
-## [4.7.5 (2024-04-05)](https://github.com/kdeldycke/click-extra/compare/v4.7.4...v4.7.5)
+## [`4.7.5` (2024-04-05)](https://github.com/kdeldycke/click-extra/compare/v4.7.4...v4.7.5)
 
 > [!NOTE]
 > `4.7.5` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.7.5/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.7.5).
 
 - Remove bypass of `cloup.Color` re-import.
 
-## [4.7.4 (2024-02-23)](https://github.com/kdeldycke/click-extra/compare/v4.7.3...v4.7.4)
+## [`4.7.4` (2024-02-23)](https://github.com/kdeldycke/click-extra/compare/v4.7.3...v4.7.4)
 
 > [!NOTE]
 > `4.7.4` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.7.4/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.7.4).
@@ -546,21 +552,21 @@
 - Force closing of context before exiting CLIs to provoque callback calls and prevent state leaks.
 - Run tests on `macos-14`. Remove tests on `macos-12`.
 
-## [4.7.3 (2024-01-07)](https://github.com/kdeldycke/click-extra/compare/v4.7.2...v4.7.3)
+## [`4.7.3` (2024-01-07)](https://github.com/kdeldycke/click-extra/compare/v4.7.2...v4.7.3)
 
 > [!NOTE]
 > `4.7.3` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.7.3/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.7.3).
 
 - Run tests on Python 3.13-dev branch.
 
-## [4.7.2 (2023-11-08)](https://github.com/kdeldycke/click-extra/compare/v4.7.1...v4.7.2)
+## [`4.7.2` (2023-11-08)](https://github.com/kdeldycke/click-extra/compare/v4.7.1...v4.7.2)
 
 > [!NOTE]
 > `4.7.2` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.7.2/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.7.2).
 
 - Run tests on released Python 3.12 version.
 
-## [4.7.1 (2023-09-29)](https://github.com/kdeldycke/click-extra/compare/v4.7.0...v4.7.1)
+## [`4.7.1` (2023-09-29)](https://github.com/kdeldycke/click-extra/compare/v4.7.0...v4.7.1)
 
 > [!NOTE]
 > `4.7.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.7.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.7.1).
@@ -569,7 +575,7 @@
 - Recognize custom parameter type as string-based. Closes {issue}`721`.
 - Rely on `bump-my-version` to update citation file metadata.
 
-## [4.7.0 (2023-09-04)](https://github.com/kdeldycke/click-extra/compare/v4.6.5...v4.7.0)
+## [`4.7.0` (2023-09-04)](https://github.com/kdeldycke/click-extra/compare/v4.6.5...v4.7.0)
 
 > [!NOTE]
 > `4.7.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.7.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.7.0).
@@ -579,14 +585,14 @@
 - Remove support for Click-specific `%(prog)` and `%(package)` variables in version string.
 - Print all versions string variables in debug mode.
 
-## [4.6.5 (2023-09-01)](https://github.com/kdeldycke/click-extra/compare/v4.6.4...v4.6.5)
+## [`4.6.5` (2023-09-01)](https://github.com/kdeldycke/click-extra/compare/v4.6.4...v4.6.5)
 
 > [!NOTE]
 > `4.6.5` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.6.5/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.6.5).
 
 - Highlight required label and value range in option description. Closes {issue}`748`.
 
-## [4.6.4 (2023-08-23)](https://github.com/kdeldycke/click-extra/compare/v4.6.3...v4.6.4)
+## [`4.6.4` (2023-08-23)](https://github.com/kdeldycke/click-extra/compare/v4.6.3...v4.6.4)
 
 > [!NOTE]
 > `4.6.4` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.6.4/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.6.4).
@@ -598,14 +604,14 @@
 - Run tests on `macos-13`. Remove tests on `macos-11`.
 - Ignore unstable tests on upcoming Click `8.2.x` / `main` branch.
 
-## [4.6.3 (2023-07-16)](https://github.com/kdeldycke/click-extra/compare/v4.6.2...v4.6.3)
+## [`4.6.3` (2023-07-16)](https://github.com/kdeldycke/click-extra/compare/v4.6.2...v4.6.3)
 
 > [!NOTE]
 > `4.6.3` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.6.3/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.6.3).
 
 - Forces `ExtraContext` to properly close itself before exiting the program, to trigger all callbacks.
 
-## [4.6.2 (2023-07-15)](https://github.com/kdeldycke/click-extra/compare/v4.6.1...v4.6.2)
+## [`4.6.2` (2023-07-15)](https://github.com/kdeldycke/click-extra/compare/v4.6.1...v4.6.2)
 
 > [!NOTE]
 > `4.6.2` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.6.2/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.6.2).
@@ -613,14 +619,14 @@
 - Remove workaround for Cloup handling of `command_class` default on custom groups.
 - Force `@extra_group` to produce sub-groups of the same class.
 
-## [4.6.1 (2023-07-13)](https://github.com/kdeldycke/click-extra/compare/v4.6.0...v4.6.1)
+## [`4.6.1` (2023-07-13)](https://github.com/kdeldycke/click-extra/compare/v4.6.0...v4.6.1)
 
 > [!NOTE]
 > `4.6.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.6.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.6.1).
 
 - Inspect in `--version` the whole execution stack to find the package in which the user's CLI is implemented.
 
-## [4.6.0 (2023-07-12)](https://github.com/kdeldycke/click-extra/compare/v4.5.0...v4.6.0)
+## [`4.6.0` (2023-07-12)](https://github.com/kdeldycke/click-extra/compare/v4.5.0...v4.6.0)
 
 > [!NOTE]
 > `4.6.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.6.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.6.0).
@@ -633,7 +639,7 @@
 - Swap `Exposed` and `Allowed in conf?` columns in `--show-params` output.
 - Add a `hidden` column to `--show-params` output. Refs {issue}`689`.
 
-## [4.5.0 (2023-07-06)](https://github.com/kdeldycke/click-extra/compare/v4.4.0...v4.5.0)
+## [`4.5.0` (2023-07-06)](https://github.com/kdeldycke/click-extra/compare/v4.4.0...v4.5.0)
 
 > [!NOTE]
 > `4.5.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.5.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.5.0).
@@ -650,7 +656,7 @@
 - Automaticcaly augment version string with environment info in `DEBUG` log level.
 - Expose `click_extra.search_params` utility.
 
-## [4.4.0 (2023-06-16)](https://github.com/kdeldycke/click-extra/compare/v4.3.0...v4.4.0)
+## [`4.4.0` (2023-06-16)](https://github.com/kdeldycke/click-extra/compare/v4.3.0...v4.4.0)
 
 > [!NOTE]
 > `4.4.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.4.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.4.0).
@@ -663,7 +669,7 @@
 - Remove `bump2version` from dev dependencies, and let the external workflows install it.
 - Remove workaround for `pallets-sphinx-themes`'s outdated reference to old `click`'s Python 2 compatibility hack.
 
-## [4.3.0 (2023-06-02)](https://github.com/kdeldycke/click-extra/compare/v4.2.0...v4.3.0)
+## [`4.3.0` (2023-06-02)](https://github.com/kdeldycke/click-extra/compare/v4.2.0...v4.3.0)
 
 > [!NOTE]
 > `4.3.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.3.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.3.0).
@@ -681,7 +687,7 @@
 - Regroup all testing and CLI execution utilities.
 - Activate zoom on big Mermaid graphs.
 
-## [4.2.0 (2023-05-24)](https://github.com/kdeldycke/click-extra/compare/v4.1.0...v4.2.0)
+## [`4.2.0` (2023-05-24)](https://github.com/kdeldycke/click-extra/compare/v4.1.0...v4.2.0)
 
 > [!NOTE]
 > `4.2.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.2.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.2.0).
@@ -695,7 +701,7 @@
 - Remove main dependency on `furo`, make it a development dependency.
 - Remove the custom `ansi-click-extra-furo-style` Pygments style for Furo and its `AnsiClickExtraFuroStyle` class.
 
-## [4.1.0 (2023-05-12)](https://github.com/kdeldycke/click-extra/compare/v4.0.0...v4.1.0)
+## [`4.1.0` (2023-05-12)](https://github.com/kdeldycke/click-extra/compare/v4.0.0...v4.1.0)
 
 > [!NOTE]
 > `4.1.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.1.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.1.0).
@@ -708,7 +714,7 @@
 - Test continuously against Click and Cloup development version. Closes {issue}`525`.
 - Move `click_extra.commands.TimerOption` to `click_extra.timer.TimerOption`.
 
-## [4.0.0 (2023-05-08)](https://github.com/kdeldycke/click-extra/compare/v3.10.0...v4.0.0)
+## [`4.0.0` (2023-05-08)](https://github.com/kdeldycke/click-extra/compare/v3.10.0...v4.0.0)
 
 > [!NOTE]
 > `4.0.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.0.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.0.0).
@@ -732,7 +738,7 @@
 - Force closing of the context before stopping the execution flow, to make sure all callbacks are called.
 - Fix rendering of GitHub-Flavored Markdown tables in canonical format.
 
-## [3.10.0 (2023-04-04)](https://github.com/kdeldycke/click-extra/compare/v3.9.0...v3.10.0)
+## [`3.10.0` (2023-04-04)](https://github.com/kdeldycke/click-extra/compare/v3.9.0...v3.10.0)
 
 > [!NOTE]
 > `3.10.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.10.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.10.0).
@@ -740,7 +746,7 @@
 - Colorize help screens of subcommands spawned out of an `@extra_group`. Closes {issue}`479`.
 - Remove deprecated `click_extra.platform`.
 
-## [3.9.0 (2023-04-01)](https://github.com/kdeldycke/click-extra/compare/v3.8.3...v3.9.0)
+## [`3.9.0` (2023-04-01)](https://github.com/kdeldycke/click-extra/compare/v3.8.3...v3.9.0)
 
 > [!NOTE]
 > `3.9.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.9.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.9.0).
@@ -750,14 +756,14 @@
 - Add main dependency on `furo` which is referenced in ANSI-aware Pygment styles.
 - Move all documentation assets to `assets` subfolder.
 
-## [3.8.3 (2023-02-25)](https://github.com/kdeldycke/click-extra/compare/v3.8.2...v3.8.3)
+## [`3.8.3` (2023-02-25)](https://github.com/kdeldycke/click-extra/compare/v3.8.2...v3.8.3)
 
 > [!NOTE]
 > `3.8.3` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.8.3/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.8.3).
 
 - Let `--version` option output system details when run on `python >= 3.10`.
 
-## [3.8.2 (2023-02-20)](https://github.com/kdeldycke/click-extra/compare/v3.8.1...v3.8.2)
+## [`3.8.2` (2023-02-20)](https://github.com/kdeldycke/click-extra/compare/v3.8.1...v3.8.2)
 
 > [!NOTE]
 > `3.8.2` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.8.2/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.8.2).
@@ -766,14 +772,14 @@
 - Renders platform groups in documentation in Mermaid format instead of Graphviz. Add new dependency on `sphinxcontrib-mermaid`, removed dependency on `graphviz`.
 - Produce dependency graph in Mermaid instead of Graphviz.
 
-## [3.8.1 (2023-02-15)](https://github.com/kdeldycke/click-extra/compare/v3.8.0...v3.8.1)
+## [`3.8.1` (2023-02-15)](https://github.com/kdeldycke/click-extra/compare/v3.8.0...v3.8.1)
 
 > [!NOTE]
 > `3.8.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.8.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.8.1).
 
 - Code, comments and documentation style change to conform to new QA workflows based on `ruff`.
 
-## [3.8.0 (2023-01-25)](https://github.com/kdeldycke/click-extra/compare/v3.7.0...v3.8.0)
+## [`3.8.0` (2023-01-25)](https://github.com/kdeldycke/click-extra/compare/v3.7.0...v3.8.0)
 
 > [!NOTE]
 > `3.8.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.8.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.8.0).
@@ -787,7 +793,7 @@
 - Produce platform graph dynamically.
 - Rename `docs.py` to `docs_update.py` and allow this module to be called directly.
 
-## [3.7.0 (2023-01-03)](https://github.com/kdeldycke/click-extra/compare/v3.6.0...v3.7.0)
+## [`3.7.0` (2023-01-03)](https://github.com/kdeldycke/click-extra/compare/v3.6.0...v3.7.0)
 
 > [!NOTE]
 > `3.7.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.7.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.7.0).
@@ -797,7 +803,7 @@
 - Add test to search in Pygments' test data for REPL/terminal-like lexers, as candidates for ANSI-coloring.
 - Depends on `importlib_metadata` for `Python < 3.8`.
 
-## [3.6.0 (2022-12-28)](https://github.com/kdeldycke/click-extra/compare/v3.5.0...v3.6.0)
+## [`3.6.0` (2022-12-28)](https://github.com/kdeldycke/click-extra/compare/v3.5.0...v3.6.0)
 
 > [!NOTE]
 > `3.6.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.6.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.6.0).
@@ -808,7 +814,7 @@
 - Split version code to its own file and tests.
 - Run tests on Python `3.12-dev`.
 
-## [3.5.0 (2022-12-09)](https://github.com/kdeldycke/click-extra/compare/v3.4.1...v3.5.0)
+## [`3.5.0` (2022-12-09)](https://github.com/kdeldycke/click-extra/compare/v3.4.1...v3.5.0)
 
 > [!NOTE]
 > `3.5.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.5.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.5.0).
@@ -818,7 +824,7 @@
 - Rename `ignored_params` argument to `exclude_params` on the `ConfigOption` class.
 - Blocking parameters from configuration files now requires the fully qualified ID. Which adds support for selectively blocking parameters at any subcommand level.
 
-## [3.4.1 (2022-12-08)](https://github.com/kdeldycke/click-extra/compare/v3.4.0...v3.4.1)
+## [`3.4.1` (2022-12-08)](https://github.com/kdeldycke/click-extra/compare/v3.4.0...v3.4.1)
 
 > [!NOTE]
 > `3.4.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.4.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.4.1).
@@ -827,7 +833,7 @@
 - Fix highlighting of hard-coded deprecated labels in option help.
 - Document parameter introspection. Closes {issue}`319`.
 
-## [3.4.0 (2022-12-01)](https://github.com/kdeldycke/click-extra/compare/v3.3.4...v3.4.0)
+## [`3.4.0` (2022-12-01)](https://github.com/kdeldycke/click-extra/compare/v3.3.4...v3.4.0)
 
 > [!NOTE]
 > `3.4.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.4.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.4.0).
@@ -835,38 +841,38 @@
 - Streamline setup of Sphinx extensions.
 - Document `click:example` and `click:run` Sphinx extensions.
 
-## [3.3.4 (2022-11-14)](https://github.com/kdeldycke/click-extra/compare/v3.3.3...v3.3.4)
+## [`3.3.4` (2022-11-14)](https://github.com/kdeldycke/click-extra/compare/v3.3.3...v3.3.4)
 
 > [!NOTE]
 > `3.3.4` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.3.4/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.3.4).
 
 - Fix some types.
 
-## [3.3.3 (2022-11-14)](https://github.com/kdeldycke/click-extra/compare/v3.3.2...v3.3.3)
+## [`3.3.3` (2022-11-14)](https://github.com/kdeldycke/click-extra/compare/v3.3.2...v3.3.3)
 
 > [!NOTE]
 > `3.3.3` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.3.3/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.3.3).
 
 - Fix release workflow.
 
-## [3.3.2 (2022-11-14)](https://github.com/kdeldycke/click-extra/compare/v3.3.1...v3.3.2)
-
-> [!WARNING]
-> `3.3.2` is **not available** on 🐍 PyPI.
+## [`3.3.2` (2022-11-14)](https://github.com/kdeldycke/click-extra/compare/v3.3.1...v3.3.2)
 
 > [!NOTE]
 > `3.3.2` is available on [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.3.2).
 
+> [!WARNING]
+> `3.3.2` is **not available** on 🐍 PyPI.
+
 - Remove use of deprecated `::set-output` directives and replace them by environment files.
 
-## [3.3.1 (2022-11-11)](https://github.com/kdeldycke/click-extra/compare/v3.3.0...v3.3.1)
+## [`3.3.1` (2022-11-11)](https://github.com/kdeldycke/click-extra/compare/v3.3.0...v3.3.1)
 
 > [!NOTE]
 > `3.3.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.3.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.3.1).
 
 - Keep a copy of the table format ID in the context when set.
 
-## [3.3.0 (2022-11-11)](https://github.com/kdeldycke/click-extra/compare/v3.2.5...v3.3.0)
+## [`3.3.0` (2022-11-11)](https://github.com/kdeldycke/click-extra/compare/v3.2.5...v3.3.0)
 
 > [!NOTE]
 > `3.3.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.3.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.3.0).
@@ -882,7 +888,7 @@
 - Deactivate number alignment and extra-spacing in table rendering by default.
 - Remove tests on Pypy. Nobody asked for it and I need to speed up tests.
 
-## [3.2.5 (2022-09-30)](https://github.com/kdeldycke/click-extra/compare/v3.2.4...v3.2.5)
+## [`3.2.5` (2022-09-30)](https://github.com/kdeldycke/click-extra/compare/v3.2.4...v3.2.5)
 
 > [!NOTE]
 > `3.2.5` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.2.5/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.2.5).
@@ -890,7 +896,7 @@
 - Fix argument's property getter in `--show-params`.
 - Remove GitHub edit link workaround in documentation.
 
-## [3.2.4 (2022-09-27)](https://github.com/kdeldycke/click-extra/compare/v3.2.3...v3.2.4)
+## [`3.2.4` (2022-09-27)](https://github.com/kdeldycke/click-extra/compare/v3.2.3...v3.2.4)
 
 > [!NOTE]
 > `3.2.4` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.2.4/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.2.4).
@@ -898,28 +904,28 @@
 - Add citation file.
 - Fix type casting.
 
-## [3.2.3 (2022-09-27)](https://github.com/kdeldycke/click-extra/compare/v3.2.2...v3.2.3)
+## [`3.2.3` (2022-09-27)](https://github.com/kdeldycke/click-extra/compare/v3.2.2...v3.2.3)
 
 > [!NOTE]
 > `3.2.3` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.2.3/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.2.3).
 
 - Increase type coverage.
 
-## [3.2.2 (2022-09-26)](https://github.com/kdeldycke/click-extra/compare/v3.2.1...v3.2.2)
+## [`3.2.2` (2022-09-26)](https://github.com/kdeldycke/click-extra/compare/v3.2.1...v3.2.2)
 
 > [!NOTE]
 > `3.2.2` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.2.2/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.2.2).
 
 - Fix bad typing import.
 
-## [3.2.1 (2022-09-26)](https://github.com/kdeldycke/click-extra/compare/v3.2.0...v3.2.1)
+## [`3.2.1` (2022-09-26)](https://github.com/kdeldycke/click-extra/compare/v3.2.0...v3.2.1)
 
 > [!NOTE]
 > `3.2.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.2.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.2.1).
 
 - Move some command utility from test machinery to `run` submodule.
 
-## [3.2.0 (2022-09-25)](https://github.com/kdeldycke/click-extra/compare/v3.1.0...v3.2.0)
+## [`3.2.0` (2022-09-25)](https://github.com/kdeldycke/click-extra/compare/v3.1.0...v3.2.0)
 
 > [!NOTE]
 > `3.2.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.2.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.2.0).
@@ -933,7 +939,7 @@
 - Use the `Formats` enum to encode for default configuration file extensions.
 - Re-introduce `*.yml` as a possible extension for YAML files.
 
-## [3.1.0 (2022-09-20)](https://github.com/kdeldycke/click-extra/compare/v3.0.1...v3.1.0)
+## [`3.1.0` (2022-09-20)](https://github.com/kdeldycke/click-extra/compare/v3.0.1...v3.1.0)
 
 > [!NOTE]
 > `3.1.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.1.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.1.0).
@@ -948,14 +954,14 @@
 - Document preset options overriding. Closes {issue}`232`.
 - Document configuration option pattern matching and default folder. Closes {issue}`197` and {issue}`211`.
 
-## [3.0.1 (2022-08-07)](https://github.com/kdeldycke/click-extra/compare/v3.0.0...v3.0.1)
+## [`3.0.1` (2022-08-07)](https://github.com/kdeldycke/click-extra/compare/v3.0.0...v3.0.1)
 
 > [!NOTE]
 > `3.0.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.0.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.0.1).
 
 - Fix wrong dependency bump on `pytest-cov` produced by major release.
 
-## [3.0.0 (2022-08-07)](https://github.com/kdeldycke/click-extra/compare/v2.1.3...v3.0.0)
+## [`3.0.0` (2022-08-07)](https://github.com/kdeldycke/click-extra/compare/v2.1.3...v3.0.0)
 
 > [!NOTE]
 > `3.0.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.0.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.0.0).
@@ -983,7 +989,7 @@
 - Run tests on `ubuntu-22.04` and `macos-12`.
 - Remove tests on deprecated `macos-10.15`.
 
-## [2.1.3 (2022-07-08)](https://github.com/kdeldycke/click-extra/compare/v2.1.2...v2.1.3)
+## [`2.1.3` (2022-07-08)](https://github.com/kdeldycke/click-extra/compare/v2.1.2...v2.1.3)
 
 > [!NOTE]
 > `2.1.3` is available on [🐍 PyPI](https://pypi.org/project/click-extra/2.1.3/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v2.1.3).
@@ -991,7 +997,7 @@
 - Do not render `None` cells in tables with `<null>` string.
 - Disable workflow grouping and concurrency management.
 
-## [2.1.2 (2022-06-27)](https://github.com/kdeldycke/click-extra/compare/v2.1.1...v2.1.2)
+## [`2.1.2` (2022-06-27)](https://github.com/kdeldycke/click-extra/compare/v2.1.1...v2.1.2)
 
 > [!NOTE]
 > `2.1.2` is available on [🐍 PyPI](https://pypi.org/project/click-extra/2.1.2/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v2.1.2).
@@ -999,7 +1005,7 @@
 - Fix auto-mapping and recognition of all missing Click option types in config module. Closes {issue}`170`.
 - Fix CI workflow grouping.
 
-## [2.1.1 (2022-05-22)](https://github.com/kdeldycke/click-extra/compare/v2.1.0...v2.1.1)
+## [`2.1.1` (2022-05-22)](https://github.com/kdeldycke/click-extra/compare/v2.1.0...v2.1.1)
 
 > [!NOTE]
 > `2.1.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/2.1.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v2.1.1).
@@ -1008,7 +1014,7 @@
 - Group workflow jobs so new commits cancels in-progress execution triggered by previous commits.
 - Run tests on early Python 3.11 releases.
 
-## [2.1.0 (2022-04-22)](https://github.com/kdeldycke/click-extra/compare/v2.0.2...v2.1.0)
+## [`2.1.0` (2022-04-22)](https://github.com/kdeldycke/click-extra/compare/v2.0.2...v2.1.0)
 
 > [!NOTE]
 > `2.1.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/2.1.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v2.1.0).
@@ -1016,7 +1022,7 @@
 - Add a `highlight` utility to style substrings.
 - Add `regex` dependency.
 
-## [2.0.2 (2022-04-14)](https://github.com/kdeldycke/click-extra/compare/v2.0.1...v2.0.2)
+## [`2.0.2` (2022-04-14)](https://github.com/kdeldycke/click-extra/compare/v2.0.1...v2.0.2)
 
 > [!NOTE]
 > `2.0.2` is available on [🐍 PyPI](https://pypi.org/project/click-extra/2.0.2/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v2.0.2).
@@ -1028,7 +1034,7 @@
 - Replace `sphinx_tabs` by `sphinx-design`.
 - Add edit link to documentation pages.
 
-## [2.0.1 (2022-04-13)](https://github.com/kdeldycke/click-extra/compare/v2.0.0...v2.0.1)
+## [`2.0.1` (2022-04-13)](https://github.com/kdeldycke/click-extra/compare/v2.0.0...v2.0.1)
 
 > [!NOTE]
 > `2.0.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/2.0.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v2.0.1).
@@ -1037,7 +1043,7 @@
 - Fix Sphinx documentation update and publishing.
 - Run tests on `pypy-3.7`.
 
-## [2.0.0 (2022-04-11)](https://github.com/kdeldycke/click-extra/compare/v1.9.0...v2.0.0)
+## [`2.0.0` (2022-04-11)](https://github.com/kdeldycke/click-extra/compare/v1.9.0...v2.0.0)
 
 > [!NOTE]
 > `2.0.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/2.0.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v2.0.0).
@@ -1053,7 +1059,7 @@
 - Add a logo.
 - Outsource documentation publishing to external workflow.
 
-## [1.9.0 (2022-04-08)](https://github.com/kdeldycke/click-extra/compare/v1.8.0...v1.9.0)
+## [`1.9.0` (2022-04-08)](https://github.com/kdeldycke/click-extra/compare/v1.8.0...v1.9.0)
 
 > [!NOTE]
 > `1.9.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/1.9.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v1.9.0).
@@ -1065,14 +1071,14 @@
 - Ignore `help` boolean in configuration files.
 - Add new dependency on `mergedeep`.
 
-## [1.8.0 (2022-04-03)](https://github.com/kdeldycke/click-extra/compare/v1.7.0...v1.8.0)
+## [`1.8.0` (2022-04-03)](https://github.com/kdeldycke/click-extra/compare/v1.7.0...v1.8.0)
 
 > [!NOTE]
 > `1.8.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/1.8.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v1.8.0).
 
 - Split the `print_cli_output` method to expose the simpler `format_cli` utility.
 
-## [1.7.0 (2022-03-31)](https://github.com/kdeldycke/click-extra/compare/v1.6.4...v1.7.0)
+## [`1.7.0` (2022-03-31)](https://github.com/kdeldycke/click-extra/compare/v1.6.4...v1.7.0)
 
 > [!NOTE]
 > `1.7.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/1.7.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v1.7.0).
@@ -1081,21 +1087,21 @@
 - Remove `click_extra.run.run` and rebase all run utilities around `subprocess.run`.
 - Use the `tomllib` from the standard library starting with Python 3.11.
 
-## [1.6.4 (2022-03-04)](https://github.com/kdeldycke/click-extra/compare/v1.6.3...v1.6.4)
+## [`1.6.4` (2022-03-04)](https://github.com/kdeldycke/click-extra/compare/v1.6.3...v1.6.4)
 
 > [!NOTE]
 > `1.6.4` is available on [🐍 PyPI](https://pypi.org/project/click-extra/1.6.4/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v1.6.4).
 
 - Fix extension of default environment variables.
 
-## [1.6.3 (2022-03-04)](https://github.com/kdeldycke/click-extra/compare/v1.6.2...v1.6.3)
+## [`1.6.3` (2022-03-04)](https://github.com/kdeldycke/click-extra/compare/v1.6.2...v1.6.3)
 
 > [!NOTE]
 > `1.6.3` is available on [🐍 PyPI](https://pypi.org/project/click-extra/1.6.3/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v1.6.3).
 
 - Add support for environment variables to run utilities.
 
-## [1.6.2 (2022-03-03)](https://github.com/kdeldycke/click-extra/compare/v1.6.1...v1.6.2)
+## [`1.6.2` (2022-03-03)](https://github.com/kdeldycke/click-extra/compare/v1.6.1...v1.6.2)
 
 > [!NOTE]
 > `1.6.2` is available on [🐍 PyPI](https://pypi.org/project/click-extra/1.6.2/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v1.6.2).
@@ -1104,7 +1110,7 @@
   for `python >= 3.10`.
 - Reactivate all tests on Python 3.10.
 
-## [1.6.1 (2022-03-02)](https://github.com/kdeldycke/click-extra/compare/v1.6.0...v1.6.1)
+## [`1.6.1` (2022-03-02)](https://github.com/kdeldycke/click-extra/compare/v1.6.0...v1.6.1)
 
 > [!NOTE]
 > `1.6.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/1.6.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v1.6.1).
@@ -1112,7 +1118,7 @@
 - Expose some `cloup` versions of `click` utilities at the root of
   `click_extra`.
 
-## [1.6.0 (2022-03-02)](https://github.com/kdeldycke/click-extra/compare/v1.5.0...v1.6.0)
+## [`1.6.0` (2022-03-02)](https://github.com/kdeldycke/click-extra/compare/v1.5.0...v1.6.0)
 
 > [!NOTE]
 > `1.6.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/1.6.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v1.6.0).
@@ -1123,7 +1129,7 @@
 - Document default help screen comparison between simple `click` CLI and
   enhanced `click-extra` CLI.
 
-## [1.5.0 (2022-02-21)](https://github.com/kdeldycke/click-extra/compare/v1.4.1...v1.5.0)
+## [`1.5.0` (2022-02-21)](https://github.com/kdeldycke/click-extra/compare/v1.4.1...v1.5.0)
 
 > [!NOTE]
 > `1.5.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/1.5.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v1.5.0).
@@ -1133,7 +1139,7 @@
   provided.
 - Print configuration file default location in help screens.
 
-## [1.4.1 (2022-02-13)](https://github.com/kdeldycke/click-extra/compare/v1.4.0...v1.4.1)
+## [`1.4.1` (2022-02-13)](https://github.com/kdeldycke/click-extra/compare/v1.4.0...v1.4.1)
 
 > [!NOTE]
 > `1.4.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/1.4.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v1.4.1).
@@ -1147,7 +1153,7 @@
 - Remove dev dependencies on `check-wheel-contents`, `graphviz`, `pipdeptree`
   and `twine`.
 
-## [1.4.0 (2022-01-08)](https://github.com/kdeldycke/click-extra/compare/v1.3.0...v1.4.0)
+## [`1.4.0` (2022-01-08)](https://github.com/kdeldycke/click-extra/compare/v1.3.0...v1.4.0)
 
 > [!NOTE]
 > `1.4.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/1.4.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v1.4.0).
@@ -1159,7 +1165,7 @@
 - Use external workflows for GitHub actions.
 - Automate version and changelog management.
 
-## [1.3.0 (2021-11-28)](https://github.com/kdeldycke/click-extra/compare/v1.2.2...v1.3.0)
+## [`1.3.0` (2021-11-28)](https://github.com/kdeldycke/click-extra/compare/v1.2.2...v1.3.0)
 
 > [!NOTE]
 > `1.3.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/1.3.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v1.3.0).
@@ -1168,7 +1174,7 @@
 - Auto-detect configuration file on loading.
 - Add `pyyaml` dependency.
 
-## [1.2.2 (2021-11-04)](https://github.com/kdeldycke/click-extra/compare/v1.2.1...v1.2.2)
+## [`1.2.2` (2021-11-04)](https://github.com/kdeldycke/click-extra/compare/v1.2.1...v1.2.2)
 
 > [!NOTE]
 > `1.2.2` is available on [🐍 PyPI](https://pypi.org/project/click-extra/1.2.2/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v1.2.2).
@@ -1176,14 +1182,14 @@
 - Evaluate format option dynamically at use to let third-party register new
   rendering formats.
 
-## [1.2.1 (2021-11-04)](https://github.com/kdeldycke/click-extra/compare/v1.2.0...v1.2.1)
+## [`1.2.1` (2021-11-04)](https://github.com/kdeldycke/click-extra/compare/v1.2.0...v1.2.1)
 
 > [!NOTE]
 > `1.2.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/1.2.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v1.2.1).
 
 - Fix creation of post-release version bump PR on tagging.
 
-## [1.2.0 (2021-11-03)](https://github.com/kdeldycke/click-extra/compare/v1.1.1...v1.2.0)
+## [`1.2.0` (2021-11-03)](https://github.com/kdeldycke/click-extra/compare/v1.1.1...v1.2.0)
 
 > [!NOTE]
 > `1.2.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/1.2.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v1.2.0).
@@ -1195,34 +1201,34 @@
 - Add new dependency on `cli-helper` and `tabulate`.
 - Automate post-release version bump.
 
-## [1.1.1 (2021-11-01)](https://github.com/kdeldycke/click-extra/compare/v1.1.0...v1.1.1)
+## [`1.1.1` (2021-11-01)](https://github.com/kdeldycke/click-extra/compare/v1.1.0...v1.1.1)
 
 > [!NOTE]
 > `1.1.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/1.1.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v1.1.1).
 
 - Fix printing of additional non-grouped default options in help screen.
 
-## [1.1.0 (2021-10-28)](https://github.com/kdeldycke/click-extra/compare/v1.0.1...v1.1.0)
+## [`1.1.0` (2021-10-28)](https://github.com/kdeldycke/click-extra/compare/v1.0.1...v1.1.0)
 
 > [!NOTE]
 > `1.1.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/1.1.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v1.1.0).
 
 - Add a `--config`/`-C` option to load CLI configuration from a TOML file.
 
-## [1.0.1 (2021-10-27)](https://github.com/kdeldycke/click-extra/compare/v1.0.0...v1.0.1)
+## [`1.0.1` (2021-10-27)](https://github.com/kdeldycke/click-extra/compare/v1.0.0...v1.0.1)
 
 > [!NOTE]
 > `1.0.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/1.0.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v1.0.1).
 
 - Re-release previous version with fixed dependency.
 
-## [1.0.0 (2021-10-27)](https://github.com/kdeldycke/click-extra/compare/v0.0.1...v1.0.0)
-
-> [!WARNING]
-> `1.0.0` is **not available** on 🐍 PyPI.
+## [`1.0.0` (2021-10-27)](https://github.com/kdeldycke/click-extra/compare/v0.0.1...v1.0.0)
 
 > [!NOTE]
 > `1.0.0` is available on [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v1.0.0).
+
+> [!WARNING]
+> `1.0.0` is **not available** on 🐍 PyPI.
 
 - Add colorization of options, choices and metavars in help screens.
 - Add `--color`/`--no-color` option flag (aliased to `--ansi`/`--no-ansi`).
@@ -1234,7 +1240,7 @@
 - Add new conditional markers for `pytest`: `@skip_{linux,macos,windows}`,
   `@unless_{linux,macos,windows}`, `@destructive` and `@non_destructive`.
 
-## [0.0.1 (2021-10-18)](https://github.com/kdeldycke/click-extra/compare/88b81e...v0.0.1)
+## [`0.0.1` (2021-10-18)](https://github.com/kdeldycke/click-extra/compare/88b81e...v0.0.1)
 
 > [!NOTE]
 > `0.0.1` is the *first version* available on [🐍 PyPI](https://pypi.org/project/click-extra/0.0.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v0.0.1).
