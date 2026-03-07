@@ -20,9 +20,8 @@ import csv
 
 import pytest
 import tabulate
-from extra_platforms import is_windows
-
 from boltons.strutils import strip_ansi
+from extra_platforms import is_windows
 
 from click_extra import (
     Color,
@@ -62,7 +61,7 @@ def test_table_formats_definition():
         ("YAML", "yaml"),
     ]
 
-    table_formats = set((f.name, f.value) for f in TableFormat)
+    table_formats = {(f.name, f.value) for f in TableFormat}
 
     # All tabulate formats are listed in our TableFormat enum.
     assert set(tabulate_formats) <= table_formats
@@ -87,7 +86,7 @@ def test_table_formats_definition():
     assert all_formats == table_formats
 
     # Sorted alphabetically by format name.
-    assert list(f.name for f in TableFormat) == sorted(f.name for f in TableFormat)
+    assert [f.name for f in TableFormat] == sorted(f.name for f in TableFormat)
 
 
 @pytest.mark.parametrize(

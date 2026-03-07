@@ -54,6 +54,7 @@ from pygments_ansi_color import (
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
+    from typing import ClassVar
 
     from pygments.token import _TokenType
 
@@ -185,7 +186,7 @@ class AnsiHtmlFormatter(ExtendedColorHtmlFormatterMixin, HtmlFormatter):
     """
 
     name = "ANSI HTML"
-    aliases = ["ansi-html"]
+    aliases: ClassVar[list[str]] = ["ansi-html"]
 
     def __init__(self, **kwargs) -> None:
         """Intercept the ``style`` argument to augment it with ANSI colors support.

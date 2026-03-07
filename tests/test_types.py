@@ -393,7 +393,7 @@ def test_enum_choice_show_aliases(
     enum_definition: type[Enum],
     choice_source: ChoiceSource,
     show_aliases: bool,
-    result: tuple[str, ...] | type[RuntimeError] | type[TypeError],
+    result: type[RuntimeError | TypeError] | tuple[str, ...],
 ) -> None:
     """Test that EnumChoice correctly handles Enum with aliases."""
 
@@ -419,7 +419,7 @@ def test_enum_choice_show_aliases(
         return
 
     # Augment the Enum with both key/name and value aliases.
-    list(enum_definition)[0]._add_alias_("aliased_pending")  # type: ignore[attr-defined]
+    next(iter(enum_definition))._add_alias_("aliased_pending")  # type: ignore[attr-defined]
     list(enum_definition)[1]._add_value_alias_("aliased_approved")  # type: ignore[attr-defined]
 
     enum_choice = EnumChoice(
@@ -431,7 +431,7 @@ def test_enum_choice_show_aliases(
     # Map choice strings to Enum members, including aliases.
     choice_to_member = list(zip(enum_choice.choices, list(enum_definition)))
     if isinstance(result, tuple) and "aliased_pending" in result:
-        choice_to_member.append(("aliased_pending", list(enum_definition)[0]))
+        choice_to_member.append(("aliased_pending", next(iter(enum_definition))))
     if isinstance(result, tuple) and "aliased_approved" in result:
         choice_to_member.append(("aliased_approved", list(enum_definition)[1]))
 

@@ -50,8 +50,8 @@ from click_extra import (
     search_params,
     validate_config_option,
 )
-from click_extra.config import _expand_dotted_keys
 from click_extra.colorize import _escape_for_help_screen
+from click_extra.config import _expand_dotted_keys
 from click_extra.pytest import (
     default_debug_uncolored_log_end,
     default_debug_uncolored_log_start,
@@ -1884,9 +1884,8 @@ def test_no_enabled_formats_raises():
 
     with unittest.mock.patch.object(
         ConfigFormat, "enabled", new_callable=lambda: property(lambda self: False)
-    ):
-        with pytest.raises(ValueError, match="No configuration format is enabled"):
-            ConfigOption(file_format_patterns=ConfigFormat.TOML)
+    ), pytest.raises(ValueError, match="No configuration format is enabled"):
+        ConfigOption(file_format_patterns=ConfigFormat.TOML)
 
 
 def test_pyproject_toml_in_defaults():

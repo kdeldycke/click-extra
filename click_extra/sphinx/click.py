@@ -56,7 +56,6 @@ if TYPE_CHECKING:
     from typing import ClassVar
 
     from docutils.nodes import Element
-
     from sphinx.addnodes import pending_xref
     from sphinx.application import Sphinx
     from sphinx.builders import Builder
@@ -214,7 +213,7 @@ class ClickRunner(CliRunner):
 
         with patch_subprocess():
             code = compile(source_code, location, "exec")
-            exec(code, self.namespace)
+            exec(code, self.namespace)  # noqa: S102
 
     def run_cli(self, directive: SphinxDirective) -> list[str]:
         """Execute the given ``source_code``.
@@ -249,37 +248,40 @@ class ClickRunner(CliRunner):
         # Check for local variable conflicts.
         tree = ast.parse(source_code, location)
         for node in ast.walk(tree):
-            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
-                if node.id in local_vars:
-                    # Get the source lines for better error reporting.
-                    source_lines = source_code.splitlines()
-                    # Get the line number relative to the source code.
-                    python_lineno = node.lineno
-                    python_line = source_lines[python_lineno - 1]
-                    # Compute the absolute line number in the document.
-                    if directive.is_myst_syntax:
-                        # In MyST, the content offset is the position of the first line
-                        # of the source code, relative to the directive itself.
-                        doc_lineno = (
-                            directive.lineno + directive.content_offset + python_lineno
-                        )
-                        # XXX MyST absolute error line reporting is broken in some
-                        # situations, see:
-                        # https://github.com/executablebooks/MyST-Parser/pull/1048
-                    else:
-                        # In rST, the content offset is the absolute position at which
-                        # the source code starts in the document.
-                        doc_lineno = directive.content_offset + python_lineno
-                    raise RuntimeError(
-                        f"Local variable {node.id!r} at "
-                        f"{location}:{directive.name}:{doc_lineno} conflicts with "
-                        f"the one automatically provided by the {directive.name} "
-                        "directive.\n"
-                        f"Line: {python_line}"
+            if (
+                isinstance(node, ast.Name)
+                and isinstance(node.ctx, ast.Store)
+                and node.id in local_vars
+            ):
+                # Get the source lines for better error reporting.
+                source_lines = source_code.splitlines()
+                # Get the line number relative to the source code.
+                python_lineno = node.lineno
+                python_line = source_lines[python_lineno - 1]
+                # Compute the absolute line number in the document.
+                if directive.is_myst_syntax:
+                    # In MyST, the content offset is the position of the first line
+                    # of the source code, relative to the directive itself.
+                    doc_lineno = (
+                        directive.lineno + directive.content_offset + python_lineno
                     )
+                    # XXX MyST absolute error line reporting is broken in some
+                    # situations, see:
+                    # https://github.com/executablebooks/MyST-Parser/pull/1048
+                else:
+                    # In rST, the content offset is the absolute position at which
+                    # the source code starts in the document.
+                    doc_lineno = directive.content_offset + python_lineno
+                raise RuntimeError(
+                    f"Local variable {node.id!r} at "
+                    f"{location}:{directive.name}:{doc_lineno} conflicts with "
+                    f"the one automatically provided by the {directive.name} "
+                    "directive.\n"
+                    f"Line: {python_line}"
+                )
 
         code = compile(source_code, location, "exec")
-        exec(code, self.namespace, local_vars)
+        exec(code, self.namespace, local_vars)  # noqa: S102
         return buffer
 
 
@@ -333,7 +335,7 @@ class ClickDirective(SphinxDirective):
         runner = getattr(self.state.document, "click_runner", None)
         if runner is None:
             runner = ClickRunner()
-            setattr(self.state.document, "click_runner", runner)
+            self.state.document.click_runner = runner
         return runner
 
     @cached_property
@@ -409,16 +411,19 @@ class ClickDirective(SphinxDirective):
         block.append(f"{code_directive} {language}")
 
         # Re-attach each option to the code block.
-        for line in self.code_block_options:
-            # Indent the line in rST code block.
-            block.append(line if self.is_myst_syntax else RST_INDENT + line)
+        # Indent the line in rST code block.
+        block.extend(
+            line if self.is_myst_syntax else RST_INDENT + line
+            for line in self.code_block_options
+        )
 
         # Both rST and MyST need a blank line before the body of the block else the
         # first line will be interpreted as a directive option or argument.
         block.append("")
 
-        for line in lines:
-            block.append(line if self.is_myst_syntax else RST_INDENT + line)
+        block.extend(
+            line if self.is_myst_syntax else RST_INDENT + line for line in lines
+        )
 
         # In MyST, we need to close the code block.
         if self.is_myst_syntax:
@@ -517,7 +522,7 @@ class ClickDomain(Domain):
 
     name = "click"
     label = "Click"
-    directives = {
+    directives: ClassVar[dict] = {
         "source": SourceDirective,
         "example": DeprecatedExampleDirective,
         "run": RunDirective,
@@ -531,7 +536,6 @@ class ClickDomain(Domain):
             requires this method to be defined for any domain that declares
             ``parallel_read_safe = True``, even as a no-op.
         """
-        pass
 
     def resolve_any_xref(
         self,

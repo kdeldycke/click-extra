@@ -136,11 +136,7 @@ def test_ansi_lexers_candidates(tmp_path):
 def collect_classes(klass, prefix="Ansi"):
     """Returns all classes defined in ``click_extra.pygments`` that are a subclass of
     ``klass``, and whose name starts with the provided ``prefix``."""
-    klasses = {}
-    for name, var in extra_pygments.__dict__.items():
-        if issubclass(var, klass) and name.startswith(prefix):
-            klasses[name] = var
-    return klasses
+    return {name: var for name, var in extra_pygments.__dict__.items() if issubclass(var, klass) and name.startswith(prefix)}
 
 
 def get_pyproject_section(*section_path: str) -> dict[str, str]:

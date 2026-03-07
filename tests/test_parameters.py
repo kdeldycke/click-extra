@@ -17,11 +17,11 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from itertools import permutations
 from os.path import sep
 from pathlib import Path
 from textwrap import dedent
-from typing import Sequence
 
 import click
 import pytest
@@ -718,7 +718,6 @@ def test_subcommand_conflicts_with_parent_param(invoke):
     @alpha.command("foo")
     def alpha_foo_cmd():
         """Subcommand named 'foo', same as alpha's --foo param."""
-        pass
 
     result = invoke(root, "--show-params", color=False)
     assert result.exit_code == 1
@@ -746,7 +745,6 @@ def test_nested_subcommand_no_false_conflict_with_root_param(invoke):
     @alpha.command("verbose")
     def alpha_verbose_cmd():
         """Subcommand named 'verbose', same as root's --verbose param."""
-        pass
 
     result = invoke(root, "--show-params", color=False)
     assert result.exit_code == 0

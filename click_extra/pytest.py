@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 try:
-    import pytest  # noqa: F401
+    import pytest
 except ImportError:
     raise ImportError(
         "You need to install click_extra[pytest] extra dependencies to use this module."

@@ -314,11 +314,7 @@ class ExtraVersionOption(ExtraOption):
         # Search through all entry points in the 'console_scripts' group.
         eps = metadata.entry_points()
 
-        # Python 3.10+ returns SelectableGroups, 3.9 returns a dict.
-        if sys.version_info >= (3, 10):
-            console_scripts = eps.select(group="console_scripts")
-        else:
-            console_scripts = eps.get("console_scripts", ())  # type: ignore[union-attr]
+        console_scripts = eps.select(group="console_scripts")  # type: ignore[union-attr]
 
         for ep in console_scripts:
             if ep.name == script_name:
@@ -333,7 +329,7 @@ class ExtraVersionOption(ExtraOption):
     @staticmethod
     def _resolve_module_from_frame(frame: FrameType) -> ModuleType | None:
         """Fallback: find module from callables in frame's globals."""
-        for name, obj in frame.f_globals.items():
+        for obj in frame.f_globals.values():
             if callable(obj) and hasattr(obj, "__module__"):
                 actual_module_name = obj.__module__
                 if actual_module_name in sys.modules:

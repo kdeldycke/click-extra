@@ -88,15 +88,18 @@ def decorator_factory(dec, *new_args, **new_defaults):
             args = new_args
 
         # Validate that the provided 'cls' is a subclass of the default one.
-        if "cls" in new_defaults and "cls" in kwargs:
-            if not issubclass(kwargs["cls"], new_defaults["cls"]):
-                mro_list = ", ".join(
-                    f"{k.__module__}.{k.__name__}" for k in kwargs["cls"].__mro__
-                )
-                raise TypeError(
-                    f"The 'cls' argument must be a subclass of "
-                    f"{new_defaults['cls'].__name__}, got: {mro_list}"
-                )
+        if (
+            "cls" in new_defaults
+            and "cls" in kwargs
+            and not issubclass(kwargs["cls"], new_defaults["cls"])
+        ):
+            mro_list = ", ".join(
+                f"{k.__module__}.{k.__name__}" for k in kwargs["cls"].__mro__
+            )
+            raise TypeError(
+                f"The 'cls' argument must be a subclass of "
+                f"{new_defaults['cls'].__name__}, got: {mro_list}"
+            )
 
         # Use a copy of the defaults to avoid modifying the original dict.
         new_kwargs = new_defaults.copy()

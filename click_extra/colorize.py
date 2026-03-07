@@ -40,6 +40,7 @@ from .parameters import ExtraOption
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Sequence
+    from typing import ClassVar
 
     from cloup.styling import IStyle
 
@@ -414,7 +415,7 @@ class ExtraHelpColorsMixin:  # (Command)??
 
         # Collect all deprecated messages on subcommands and parameters.
         for obj in chain(subcommands, command.get_params(ctx)):
-            if getattr(obj, "deprecated"):
+            if obj.deprecated:
                 # Generated deprecated message as Click does:
                 # https://github.com/pallets/click/blob/c9f7d9d/src/click/core.py#L1061-L1065
                 # https://github.com/pallets/click/blob/c9f7d9d/src/click/core.py#L1098-L1102
@@ -501,23 +502,23 @@ class HelpExtraFormatter(cloup.HelpFormatter):
         super().__init__(*args, **kwargs)
 
     # Lists of extra keywords to highlight.
-    cli_names: set[str] = set()
-    subcommands: set[str] = set()
-    command_aliases: set[str] = set()
-    long_options: set[str] = set()
-    short_options: set[str] = set()
-    choices: set[str] = set()
-    metavars: set[str] = set()
-    envvars: set[str] = set()
-    defaults: set[str] = set()
-    deprecated_messages: set[str] = set()
+    cli_names: set[str] = set()  # noqa: RUF012
+    subcommands: set[str] = set()  # noqa: RUF012
+    command_aliases: set[str] = set()  # noqa: RUF012
+    long_options: set[str] = set()  # noqa: RUF012
+    short_options: set[str] = set()  # noqa: RUF012
+    choices: set[str] = set()  # noqa: RUF012
+    metavars: set[str] = set()  # noqa: RUF012
+    envvars: set[str] = set()  # noqa: RUF012
+    defaults: set[str] = set()  # noqa: RUF012
+    deprecated_messages: set[str] = set()  # noqa: RUF012
 
     # TODO: Highlight extra keywords <stdout> or <stderr>
 
     # TODO: add collection of regexps as pre-compiled constants, so we can
     # inspect them and get some performances improvements.
 
-    style_aliases = {
+    style_aliases: ClassVar[dict[str, str]] = {
         # Layout elements of the square brackets trailing each option.
         "bracket_1": "bracket",
         "envvar_label": "bracket",
@@ -540,7 +541,7 @@ class HelpExtraFormatter(cloup.HelpFormatter):
     the canonical style to that regex-specific group ID.
     """
 
-    @cache
+    @cache  # noqa: B019
     def get_style_id(self, group_id: str) -> str:
         """Get the style ID to apply to a group.
 
@@ -549,7 +550,7 @@ class HelpExtraFormatter(cloup.HelpFormatter):
         """
         return self.style_aliases.get(group_id, group_id)
 
-    @cache
+    @cache  # noqa: B019
     def colorize_group(self, str_to_style: str, group_id: str) -> str:
         """Colorize a string according to the style of the group ID."""
         style = getattr(self.theme, self.get_style_id(group_id))

@@ -46,7 +46,7 @@ from .version import ExtraVersionOption
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Sequence
-    from typing import Any, NoReturn
+    from typing import Any
 
 
 class ExtraContext(cloup.Context):
@@ -344,7 +344,7 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
         args: Sequence[str] | None = None,
         prog_name: str | None = None,
         **kwargs: Any,
-    ) -> Any | NoReturn:
+    ) -> Any:
         """Pre-invocation step that is instantiating the context, then call ``invoke()``
         within it.
 
@@ -673,7 +673,7 @@ class LazyGroup(ExtraGroup):
         mod = importlib.import_module(modname)
         cmd_object = getattr(mod, cmd_object_name)
         if not isinstance(cmd_object, click.Command):
-            raise ValueError(
+            raise TypeError(
                 f"Lazy loading of {import_path!r} failed by returning a non-command "
                 f"object: {cmd_object!r}"
             )

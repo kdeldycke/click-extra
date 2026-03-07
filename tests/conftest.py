@@ -17,12 +17,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Generator, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from inspect import cleandoc
 from pathlib import Path
 from textwrap import indent
-from typing import Generator, Sequence
 
 import pytest
 from extra_platforms.pytest import skip_windows
@@ -87,7 +87,7 @@ class SphinxAppWrapper:
 
         # Write the conf.py file.
         config_content = "\n".join(
-            f"{key} = {repr(value)}" for key, value in conf.items()
+            f"{key} = {value!r}" for key, value in conf.items()
         )
         (srcdir / "conf.py").write_text(config_content)
 
@@ -209,7 +209,7 @@ class DirectiveTestCase:
 
     def __post_init__(self):
         if not self.html_matches:
-            self.html_matches = tuple()
+            self.html_matches = ()
         elif isinstance(self.html_matches, str):
             self.html_matches = (self.html_matches,)
 

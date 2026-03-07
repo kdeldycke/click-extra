@@ -20,12 +20,12 @@ from __future__ import annotations
 # Import all click's module-level content to allow for drop-in replacement.
 # XXX Star import is really badly supported by mypy for now and leads to lots of
 # "Module 'XXX' has no attribute 'YYY'". See: https://github.com/python/mypy/issues/4930
-from click import *  # noqa: F403
+from click import *
 from click._utils import UNSET
 from click.core import ParameterSource
 
 # Overrides click helpers with cloup's.
-from cloup import *  # type: ignore[no-redef, assignment] # noqa: F403
+from cloup import *  # type: ignore[no-redef, assignment]
 
 # XXX Import types first to avoid circular imports. The True condition is a hack to
 # prevent ruff from re-ordering imports.
@@ -44,14 +44,14 @@ from .commands import (
     LazyGroup,
 )
 from .config import (
-    ConfigFormat,
-    ConfigOption,
     DEFAULT_SUBCOMMANDS_KEY,
     NO_CONFIG,
-    NoConfigOption,
     PREPEND_SUBCOMMANDS_KEY,
-    ValidateConfigOption,
     VCS,
+    ConfigFormat,
+    ConfigOption,
+    NoConfigOption,
+    ValidateConfigOption,
 )
 from .decorators import (  # type: ignore[no-redef]
     argument,
@@ -64,10 +64,10 @@ from .decorators import (  # type: ignore[no-redef]
     no_config_option,
     option,
     show_params_option,
-    validate_config_option,
     table_format_option,
     telemetry_option,
     timer_option,
+    validate_config_option,
     verbose_option,
     verbosity_option,
     version_option,

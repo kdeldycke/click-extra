@@ -258,7 +258,7 @@ format.docstring-code-format = true
 # ERA001: Found commented-out code.
 #   Do not remove commented code, as it might be used for documentation.
 #   See: https://docs.astral.sh/ruff/rules/#eradicate-era
-lint.ignore = [ "D400", "ERA001" ]
+lint.ignore = [ "B008", "D400", "ERA001", "LOG015" ]
 # Allow rules to add `from __future__ import annotations` in cases where
 # this would simplify a fix or enable a new diagnostic.
 # https://docs.astral.sh/ruff/settings/#lint_future-annotations

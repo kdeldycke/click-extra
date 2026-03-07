@@ -35,7 +35,8 @@ from .envvar import param_envvar_ids
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator, Sequence
-    from typing import Any, ContextManager
+    from contextlib import AbstractContextManager
+    from typing import Any, ClassVar
 
 
 def search_params(
@@ -320,7 +321,7 @@ class ParamStructure:
         # Subcommand-specific options.
         yield from self._recurse_cmd(cli, top_level_params, (cli.name,))
 
-    TYPE_MAP: dict[type[ParamType], type[str | int | float | bool | list]] = {
+    TYPE_MAP: ClassVar[dict[type[ParamType], type[str | int | float | bool | list]]] = {
         click.types.StringParamType: str,
         click.types.IntParamType: int,
         click.types.FloatParamType: float,
@@ -607,7 +608,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 # TODO: Allow arguments to produce their spec.
                 if hasattr(instance, "hidden"):
                     # No-op context manager without any effects.
-                    hidden_param_bypass: ContextManager = nullcontext()
+                    hidden_param_bypass: AbstractContextManager = nullcontext()
                     # If the parameter is hidden, we need to temporarily disable this flag
                     # to let Click produce a help record.
                     # See: https://github.com/kdeldycke/click-extra/issues/689

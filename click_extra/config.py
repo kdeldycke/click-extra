@@ -68,11 +68,13 @@ from wcmatch import fnmatch, glob
 
 from . import (
     UNPROCESSED,
-    Path as ClickPath,
     ParameterSource,
     echo,
     get_app_dir,
     get_current_context,
+)
+from . import (
+    Path as ClickPath,
 )
 from .parameters import ExtraOption, ParamStructure, search_params
 
@@ -92,7 +94,7 @@ if TYPE_CHECKING:
 
 yaml_support = True
 try:
-    import yaml  # noqa: F401
+    import yaml
 except ImportError:
     yaml_support = False
     logging.getLogger("click_extra").debug(
@@ -102,7 +104,7 @@ except ImportError:
 
 json5_support = True
 try:
-    import json5  # noqa: F401
+    import json5
 except ImportError:
     json5_support = False
     logging.getLogger("click_extra").debug(
@@ -112,7 +114,7 @@ except ImportError:
 
 jsonc_support = True
 try:
-    import jsonc  # noqa: F401
+    import jsonc
 except ImportError:
     jsonc_support = False
     logging.getLogger("click_extra").debug(
@@ -122,7 +124,7 @@ except ImportError:
 
 hjson_support = True
 try:
-    import hjson  # noqa: F401
+    import hjson
 except ImportError:
     hjson_support = False
     logging.getLogger("click_extra").debug(
@@ -132,7 +134,7 @@ except ImportError:
 
 xml_support = True
 try:
-    import xmltodict  # noqa: F401
+    import xmltodict
 except ImportError:
     xml_support = False
     logging.getLogger("click_extra").debug(
@@ -383,7 +385,7 @@ class Sentinel(Enum):
     """
 
     NO_CONFIG = object()
-    VCS = object()
+    VCS = object()  # noqa: PIE796
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}"
@@ -1009,7 +1011,7 @@ class ConfigOption(ExtraOption, ParamStructure):
                         full_conf = tomllib.loads(content)
                         conf = full_conf.get("tool", {})
 
-            except Exception as ex:
+            except Exception as ex:  # noqa: BLE001
                 logger.debug(f"{fmt} parsing failed: {ex}")
                 continue
 

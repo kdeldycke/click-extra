@@ -78,8 +78,7 @@ def test_module_root_declarations():
         if isinstance(node, ast.Assign):
             for target in node.targets:
                 if target.id == "__all__":
-                    for element in node.value.elts:
-                        click_extra_members.append(element.value)
+                    click_extra_members.extend(element.value for element in node.value.elts)
 
     assert click_members <= set(click_extra_members)
     assert cloup_members <= set(click_extra_members)

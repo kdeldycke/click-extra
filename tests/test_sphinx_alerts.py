@@ -1054,7 +1054,7 @@ def test_github_alert_no_colon_fence(tmp_path):
         "extensions": ["click_extra.sphinx", "myst_parser"],
         "myst_enable_extensions": [],  # Missing colon_fence
     }
-    config_content = "\n".join(f"{key} = {repr(value)}" for key, value in conf.items())
+    config_content = "\n".join(f"{key} = {value!r}" for key, value in conf.items())
     (srcdir / "conf.py").write_text(config_content)
 
     content = dedent("""

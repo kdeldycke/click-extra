@@ -129,7 +129,7 @@ class ExtraStreamHandler(StreamHandler):
             raise
 
         # If exception occurs, dump the traceback to stderr.
-        except Exception:
+        except Exception:  # noqa: BLE001
             self.handleError(record)
 
 
@@ -259,10 +259,12 @@ def extraBasicConfig(
     getLogger("click_extra").debug(f"Call basicConfig({call_str})")
 
     # Consume along the way each kwargs' parameter not recognized by basicConfig.
-    with patch.object(logging, "StreamHandler", kwargs.pop("stream_handler_class")):
-        with patch.object(logging, "FileHandler", kwargs.pop("file_handler_class")):
-            with patch.object(logging, "Formatter", kwargs.pop("formatter_class")):
-                basicConfig(**kwargs)
+    with (
+        patch.object(logging, "StreamHandler", kwargs.pop("stream_handler_class")),
+        patch.object(logging, "FileHandler", kwargs.pop("file_handler_class")),
+        patch.object(logging, "Formatter", kwargs.pop("formatter_class")),
+    ):
+        basicConfig(**kwargs)
 
 
 def new_extra_logger(
