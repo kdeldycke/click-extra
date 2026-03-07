@@ -83,7 +83,9 @@ $ cat ./cowsay.ans
 We can run our formatter on that file:
 
 ```{code-block} python
-:emphasize-lines: 10, 12
+---
+emphasize-lines: 10, 12
+---
 from pathlib import Path
 
 from pygments import highlight
@@ -129,7 +131,9 @@ The code above prints the following HTML:
 And here is how to obtain the corresponding CSS style:
 
 ```{code-block} python
-:emphasize-lines: 5
+---
+emphasize-lines: 5
+---
 from pygments.formatters import get_formatter_by_name
 
 formatter = get_formatter_by_name("ansi-html")
@@ -231,7 +235,7 @@ Here is the list of new ANSI-capable lexers and the [original lexers](https://py
 <!-- lexer-table-start -->
 
 | Original Lexer                                                                                             | Original IDs                                     | ANSI variants                                                   |
-|:-----------------------------------------------------------------------------------------------------------|:-------------------------------------------------|:----------------------------------------------------------------|
+| :--------------------------------------------------------------------------------------------------------- | :----------------------------------------------- | :-------------------------------------------------------------- |
 | [`BashSessionLexer`](https://pygments.org/docs/lexers/#pygments.lexers.shell.BashSessionLexer)             | `console`, `shell-session`                       | `ansi-console`, `ansi-shell-session`                            |
 | [`DylanConsoleLexer`](https://pygments.org/docs/lexers/#pygments.lexers.dylan.DylanConsoleLexer)           | `dylan-console`, `dylan-repl`                    | `ansi-dylan-console`, `ansi-dylan-repl`                         |
 | [`ElixirConsoleLexer`](https://pygments.org/docs/lexers/#pygments.lexers.erlang.ElixirConsoleLexer)        | `iex`                                            | `ansi-iex`                                                      |
