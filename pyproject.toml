@@ -378,23 +378,16 @@ search = "releases/tag/v{current_version}"
 replace = "releases/tag/v{new_version}"
 
 [[tool.bumpversion.files]]
-# Update the version in standard Markdown changelog.
+# Update the version in Markdown changelog.
 filename = "./changelog.md"
-search = "## [{current_version} (unreleased)]("
-replace = "## [{new_version} (unreleased)]("
+search = "## [`{current_version}` (unreleased)]("
+replace = "## [`{new_version}` (unreleased)]("
 
 [[tool.bumpversion.files]]
 # Update the version in the citation file.
 filename = "./citation.cff"
 search = "version: {current_version}"
 replace = "version: {new_version}"
-
-[[tool.bumpversion.files]]
-# Update the release date in the citation file.
-filename = "./citation.cff"
-regex = true
-search = "date-released: \\d{{4}}-\\d{{2}}-\\d{{2}}"
-replace = "date-released: {utcnow:%Y-%m-%d}"
 
 [tool.mypy]
 warn_unused_configs = true
