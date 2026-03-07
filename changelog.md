@@ -5,6 +5,9 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Check more variations of local, stable and dev CLI invocations.
+- Fix ruff `0.15.5` lint errors.
+
 ## [`7.7.0` (2026-03-07)](https://github.com/kdeldycke/click-extra/compare/v7.6.5...v7.7.0)
 
 > [!NOTE]
