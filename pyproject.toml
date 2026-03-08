@@ -378,10 +378,10 @@ search = "releases/tag/v{current_version}"
 replace = "releases/tag/v{new_version}"
 
 [[tool.bumpversion.files]]
-# Update the version in standard Markdown changelog.
+# Update the version in Markdown changelog.
 filename = "./changelog.md"
-search = "## [{current_version} (unreleased)]("
-replace = "## [{new_version} (unreleased)]("
+search = "## [`{current_version}` (unreleased)]("
+replace = "## [`{new_version}` (unreleased)]("
 
 [[tool.bumpversion.files]]
 # Update the version in the citation file.
