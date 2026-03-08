@@ -13,4 +13,4 @@ name: 🧹 Lint
 jobs:
 
   lint:
-    uses: kdeldycke/repomatic/.github/workflows/lint.yaml@v6.3.0
+    uses: kdeldycke/repomatic/.github/workflows/lint.yaml@v6.3.2

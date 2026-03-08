@@ -9,6 +9,6 @@ name: 🪄 Autofix
 jobs:
 
   autofix:
-    uses: kdeldycke/repomatic/.github/workflows/autofix.yaml@v6.3.0
+    uses: kdeldycke/repomatic/.github/workflows/autofix.yaml@v6.3.2
     secrets:
       WORKFLOW_UPDATE_GITHUB_PAT: ${{ secrets.WORKFLOW_UPDATE_GITHUB_PAT }}

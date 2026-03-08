@@ -8,18 +8,12 @@ name: 🚀 Build & release
     branches-ignore:
       - prepare-release
       - "renovate/**"
-    paths:
-      - "repomatic/**"
-      - "tests/**"
-      - pyproject.toml
-      - uv.lock
-      - .github/workflows/release.yaml
   workflow_dispatch:
 
 jobs:
 
   release:
-    uses: kdeldycke/repomatic/.github/workflows/release.yaml@v6.3.0
+    uses: kdeldycke/repomatic/.github/workflows/release.yaml@v6.3.2
     secrets:
       PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
       WORKFLOW_UPDATE_GITHUB_PAT: ${{ secrets.WORKFLOW_UPDATE_GITHUB_PAT }}

@@ -7,11 +7,6 @@ name: 🆙 Changelog & versions
   push:
     branches:
       - main
-    paths:
-      - changelog.md
-      - "**/pyproject.toml"
-      - ".github/workflows/*.yaml"
-      - uv.lock
   workflow_run:
     workflows:
       - "Build & release"
@@ -23,6 +18,6 @@ name: 🆙 Changelog & versions
 jobs:
 
   changelog:
-    uses: kdeldycke/repomatic/.github/workflows/changelog.yaml@v6.3.0
+    uses: kdeldycke/repomatic/.github/workflows/changelog.yaml@v6.3.2
     secrets:
       WORKFLOW_UPDATE_GITHUB_PAT: ${{ secrets.WORKFLOW_UPDATE_GITHUB_PAT }}

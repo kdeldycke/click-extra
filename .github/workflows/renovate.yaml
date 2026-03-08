@@ -7,14 +7,10 @@ name: 🆕 Renovate
   push:
     branches:
       - main
-    paths:
-      - .github/workflows/renovate.yaml
-      - renovate.json5
-      - repomatic/data/renovate.json5
 
 jobs:
 
   renovate:
-    uses: kdeldycke/repomatic/.github/workflows/renovate.yaml@v6.3.0
+    uses: kdeldycke/repomatic/.github/workflows/renovate.yaml@v6.3.2
     secrets:
       WORKFLOW_UPDATE_GITHUB_PAT: ${{ secrets.WORKFLOW_UPDATE_GITHUB_PAT }}
