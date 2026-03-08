@@ -45,7 +45,7 @@ from .version import ExtraVersionOption
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
     from typing import Any
 
 
@@ -170,6 +170,8 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
         self,
         *args,
         version_fields: dict[str, Any] | None = None,
+        config_schema: type | Callable[[dict[str, Any]], Any] | None = None,
+        fallback_sections: Sequence[str] = (),
         extra_option_at_end: bool = True,
         populate_auto_envvars: bool = True,
         **kwargs: Any,
@@ -326,6 +328,18 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
                             )
                             raise TypeError(msg)
                         setattr(param, field_id, field_value)
+
+        # Forward config schema and fallback sections to the config option.
+        if config_schema is not None or fallback_sections:
+            for param in self.params:
+                if isinstance(param, ConfigOption):
+                    if config_schema is not None:
+                        param.config_schema = config_schema
+                        param._config_schema_callable = (
+                            param._make_schema_callable(config_schema)
+                        )
+                    if fallback_sections:
+                        param.fallback_sections = tuple(fallback_sections)
 
         if populate_auto_envvars:
             for param in self.params:

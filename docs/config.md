@@ -1254,6 +1254,206 @@ URLs do not support multi-format matching. You need to provide a direct link to 
 Glob patterns are also not supported for URLs. Unless you want to let your users download the whole internet…
 ```
 
+## Typed configuration schema
+
+By default, `ConfigOption` only feeds configuration values that match CLI options into the context's `default_map`. Any other keys in the configuration file are silently ignored. This works well when the configuration file mirrors the CLI structure, but some applications need access to *additional* configuration that doesn't correspond to any CLI option.
+
+The `config_schema` parameter solves this by extracting the app's configuration section, normalizing its keys, and producing a typed object available to all commands via `ctx.meta["click_extra.tool_config"]`.
+
+### Dataclass schema
+
+The most common pattern is a Python dataclass. Click Extra auto-detects dataclass types, normalizes hyphenated keys to underscores, and filters to known fields:
+
+```{click:source}
+from dataclasses import dataclass, field
+from click_extra import command, echo, group, option, pass_context
+from click_extra.config import get_tool_config
+
+@dataclass
+class AppConfig:
+    """Typed configuration for my-app."""
+    extra_categories: list[str] = field(default_factory=list)
+    output_format: str = "text"
+
+@group(config_schema=AppConfig)
+@option("--verbose/--no-verbose")
+@pass_context
+def my_app(ctx, verbose):
+    """An app with typed configuration."""
+    config = get_tool_config(ctx)
+    if config is not None:
+        echo(f"output_format: {config.output_format}")
+        echo(f"extra_categories: {config.extra_categories}")
+
+@my_app.command()
+@option("--name", default="World")
+def greet(name):
+    """Say hello."""
+    echo(f"Hello, {name}!")
+```
+
+With a TOML configuration file:
+
+```{code-block} toml
+:caption: `~/.config/my-app/config.toml`
+[my-app]
+verbose = true
+extra-categories = ["docs", "tests"]
+output-format = "json"
+
+[my-app.greet]
+name = "Alice"
+```
+
+The CLI options (`verbose`, `name`) are fed into `default_map` as before. The additional keys (`extra-categories`, `output-format`) are normalized (hyphens to underscores) and passed to the `AppConfig` dataclass. Fields not present in the file get their dataclass defaults.
+
+```{click:run}
+result = invoke(my_app, args=["--help"])
+assert result.exit_code == 0
+assert "--verbose" in result.stdout
+```
+
+### Callable schema
+
+Any callable that accepts a `dict` and returns an object can be used as `config_schema`. This supports Pydantic models, attrs classes, or custom factories:
+
+```{click:source}
+from types import SimpleNamespace
+from click_extra import echo, group, pass_context
+from click_extra.config import get_tool_config, normalize_config_keys
+
+def parse_config(raw):
+    """Custom config parser that normalizes keys."""
+    return SimpleNamespace(**normalize_config_keys(raw))
+
+@group(config_schema=parse_config)
+@pass_context
+def callable_app(ctx):
+    """An app with a callable schema."""
+    config = get_tool_config(ctx)
+    if config is not None:
+        echo(f"value: {config.custom_value}")
+
+@callable_app.command()
+def run():
+    """Run the app."""
+    echo("done")
+```
+
+```{click:run}
+result = invoke(callable_app, args=["--help"])
+assert result.exit_code == 0
+```
+
+### Retrieving the config object
+
+The typed configuration is stored in `ctx.meta["click_extra.tool_config"]` and can be accessed in two ways:
+
+```python
+# Via the convenience helper (uses current context by default):
+from click_extra.config import get_tool_config
+config = get_tool_config()
+
+# Or directly from the context:
+config = ctx.find_root().meta.get("click_extra.tool_config")
+```
+
+If no configuration file was found or no `config_schema` was set, `get_tool_config()` returns `None`.
+
+### Format-agnostic
+
+The `config_schema` feature works with all configuration formats supported by `ConfigOption` — TOML, YAML, JSON, JSON5, JSONC, Hjson, INI, and XML. The parsed configuration is normalized into a Python dict before the schema is applied, so the same schema works regardless of the source format.
+
+For example, the same `AppConfig` dataclass works with YAML:
+
+```{code-block} yaml
+:caption: `~/.config/my-app/config.yaml`
+my-app:
+  extra-categories:
+    - docs
+    - tests
+  output-format: json
+```
+
+Or JSON:
+
+```{code-block} json
+:caption: `~/.config/my-app/config.json`
+{
+    "my-app": {
+        "extra-categories": ["docs", "tests"],
+        "output-format": "json"
+    }
+}
+```
+
+### Key normalization
+
+Configuration formats commonly use kebab-case (`extra-categories`), while Python identifiers use snake_case (`extra_categories`). The `normalize_config_keys` utility handles this conversion recursively:
+
+```python
+from click_extra.config import normalize_config_keys
+
+raw = {"extra-categories": ["a", "b"], "nested-section": {"sub-key": 1}}
+normalized = normalize_config_keys(raw)
+# {"extra_categories": ["a", "b"], "nested_section": {"sub_key": 1}}
+```
+
+For dataclass schemas, this normalization is applied automatically. For callable schemas, call `normalize_config_keys` explicitly if needed.
+
+## Fallback sections
+
+When a CLI tool is renamed, existing configuration files may still use the old section name. The `fallback_sections` parameter lets you accept legacy names with a deprecation warning:
+
+```{click:source}
+from dataclasses import dataclass
+from click_extra import echo, group, pass_context
+from click_extra.config import get_tool_config
+
+@dataclass
+class ToolConfig:
+    value: str = "default"
+
+@group(
+    config_schema=ToolConfig,
+    fallback_sections=("old-tool-name", "even-older-name"),
+)
+@pass_context
+def new_tool(ctx):
+    """A tool that was renamed."""
+    config = get_tool_config(ctx)
+    if config is not None:
+        echo(f"value: {config.value}")
+
+@new_tool.command()
+def run():
+    """Run the tool."""
+    echo("done")
+```
+
+With the following TOML:
+
+```{code-block} toml
+:caption: Legacy configuration still using the old name.
+[old-tool-name]
+value = "from-legacy"
+```
+
+The CLI loads the `[old-tool-name]` section and logs a deprecation warning to stderr:
+
+```text
+Config section [old-tool-name] is deprecated, migrate to [new-tool].
+```
+
+If both `[new-tool]` and `[old-tool-name]` exist, the current name always wins, and a warning is emitted about the leftover legacy section.
+
+```{click:run}
+result = invoke(new_tool, args=["--help"])
+assert result.exit_code == 0
+```
+
+This works identically across all configuration formats (TOML, YAML, JSON, INI, etc.), since the section lookup operates on the normalized dict structure after parsing.
+
 ## `click_extra.config` API
 
 ```{eval-rst}

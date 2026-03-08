@@ -86,7 +86,7 @@ else:
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
     from typing import Any, Literal
 
     import click
@@ -374,6 +374,47 @@ def _expand_dotted_keys(conf: dict, strict: bool = False) -> dict:
     return expanded
 
 
+def normalize_config_keys(conf: dict[str, Any]) -> dict[str, Any]:
+    """Normalize configuration keys to valid Python identifiers.
+
+    Recursively replaces hyphens with underscores in all dict keys, using the
+    same ``str.replace("-", "_")`` transform that Click applies internally when
+    deriving parameter names from option declarations (e.g. ``--foo-bar`` becomes
+    ``foo_bar``).  Click does not expose this as a public function, so we
+    replicate the one-liner here.
+
+    Handles the convention mismatch between configuration formats (TOML, YAML,
+    JSON all commonly use kebab-case) and Python identifiers.  Works with all
+    configuration formats supported by ``ConfigOption``.
+
+    .. todo::
+        Propose upstream to Click to extract the inline ``name.replace("-", "_")``
+        into a private ``_normalize_param_name`` helper, so downstream projects
+        like Click Extra can reuse it instead of duplicating the transform.
+    """
+    normalized: dict[str, Any] = {}
+    for key, value in conf.items():
+        py_key = key.replace("-", "_")
+        if isinstance(value, dict):
+            value = normalize_config_keys(value)
+        normalized[py_key] = value
+    return normalized
+
+
+def get_tool_config(ctx: click.Context | None = None) -> Any:
+    """Retrieve the typed tool configuration from the context.
+
+    Returns the object stored in ``ctx.meta["click_extra.tool_config"]`` by
+    ``ConfigOption`` when a ``config_schema`` is set, or ``None`` if no schema
+    was configured or no configuration was loaded.
+
+    :param ctx: Click context. Defaults to the current context.
+    """
+    if ctx is None:
+        ctx = get_current_context()
+    return ctx.find_root().meta.get("click_extra.tool_config")
+
+
 class Sentinel(Enum):
     """Enum used to define sentinel values.
 
@@ -435,6 +476,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         excluded_params: Iterable[str] | None = None,
         included_params: Iterable[str] | None = None,
         strict: bool = False,
+        config_schema: type | Callable[[dict[str, Any]], Any] | None = None,
+        fallback_sections: Sequence[str] = (),
         **kwargs,
     ) -> None:
         """Takes as input a path to a file or folder, a glob pattern, or an URL.
@@ -599,6 +642,37 @@ class ConfigOption(ExtraOption, ParamStructure):
           recognized by the CLI.
         - If ``False``, silently ignore unrecognized parameters.
         """
+
+        self.config_schema = config_schema
+        """Optional schema for structured access to configuration values.
+
+        When set, the app's configuration section is extracted from the parsed
+        config file, normalized (hyphens replaced with underscores), and passed
+        to this callable to produce a typed configuration object.
+
+        Supports:
+
+        - **Dataclass types** — detected via ``__dataclass_fields__`` and
+          instantiated with normalized keys filtered to known fields.
+        - **Any callable** ``dict → T`` — called directly with the normalized
+          dict.  Works with Pydantic's ``Model.model_validate``, attrs, or
+          custom factory functions.
+
+        The resulting object is stored in
+        ``ctx.meta["click_extra.tool_config"]`` and can be retrieved via
+        `get_tool_config`.
+        """
+
+        self.fallback_sections: Sequence[str] = tuple(fallback_sections)
+        """Legacy section names to try when the app's own section is empty.
+
+        Useful when a CLI tool has been renamed: old configuration files that
+        still use ``[tool.old-name]`` (TOML), ``old-name:`` (YAML), or
+        ``{"old-name": …}`` (JSON) are recognized with a deprecation warning.
+        Works with all configuration formats.
+        """
+
+        self._config_schema_callable = self._make_schema_callable(config_schema)
 
         kwargs.setdefault("callback", self.load_conf)
 
@@ -1167,6 +1241,87 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         return conf
 
+    @staticmethod
+    def _make_schema_callable(
+        schema: type | Callable[[dict[str, Any]], Any] | None,
+    ) -> Callable[[dict[str, Any]], Any] | None:
+        """Wrap a schema type into a callable that accepts a raw config dict.
+
+        - **Dataclass types** (detected via ``__dataclass_fields__``) are
+          auto-wrapped: keys are normalized (hyphens → underscores) and filtered
+          to known fields before instantiation.
+        - **Any other callable** is returned as-is.  The caller is responsible
+          for key normalization if needed.
+        - ``None`` returns ``None``.
+        """
+        if schema is None:
+            return None
+
+        if hasattr(schema, "__dataclass_fields__"):
+            from dataclasses import fields as dc_fields
+
+            def _from_dataclass(raw: dict[str, Any]) -> Any:
+                normalized = normalize_config_keys(raw)
+                known = {f.name for f in dc_fields(schema)}  # type: ignore[arg-type]
+                return schema(**{k: v for k, v in normalized.items() if k in known})
+
+            return _from_dataclass
+
+        # Already a callable (Pydantic .model_validate, custom function, etc.).
+        return schema
+
+    def _resolve_app_section(
+        self,
+        conf: dict[str, Any],
+        app_name: str,
+    ) -> dict[str, Any]:
+        """Extract the app's configuration section from the parsed config.
+
+        Looks for ``conf[app_name]`` first.  If empty, tries each name in
+        ``fallback_sections`` in order, logging a deprecation warning on match.
+        Works identically for all configuration formats.
+        """
+        logger = logging.getLogger("click_extra")
+        section = conf.get(app_name)
+        if isinstance(section, dict) and section:
+            # Warn about leftover legacy sections.
+            for old_name in self.fallback_sections:
+                if old_name in conf:
+                    logger.warning(
+                        f"Config section [{old_name}] is deprecated and "
+                        f"should be removed. Using [{app_name}]."
+                    )
+            return section
+
+        for old_name in self.fallback_sections:
+            section = conf.get(old_name)
+            if isinstance(section, dict) and section:
+                logger.warning(
+                    f"Config section [{old_name}] is deprecated, "
+                    f"migrate to [{app_name}]."
+                )
+                return section
+        return {}
+
+    def _apply_config_schema(
+        self,
+        ctx: click.Context,
+        user_conf: dict[str, Any],
+    ) -> None:
+        """Apply the config schema to the app's section and store the result.
+
+        Extracts the app-specific section from the full parsed config, passes
+        it through the schema callable, and stores the result in
+        ``ctx.meta["click_extra.tool_config"]``.
+        """
+        if self._config_schema_callable is None:
+            return
+        app_name = ctx.find_root().command.name
+        app_section = self._resolve_app_section(user_conf, app_name)
+        ctx.meta["click_extra.tool_config"] = self._config_schema_callable(
+            app_section,
+        )
+
     def merge_default_map(self, ctx: click.Context, user_conf: dict) -> None:
         """Save the user configuration into the context's ``default_map``.
 
@@ -1302,6 +1457,8 @@ class ConfigOption(ExtraOption, ParamStructure):
                 logger.debug(f"Initial defaults: {ctx.default_map}")
                 self.merge_default_map(ctx, user_conf)
                 logger.debug(f"New defaults: {ctx.default_map}")
+                # Build typed config object if a schema was provided.
+                self._apply_config_schema(ctx, user_conf)
 
         # Expose the resolved config file path and its full parsed content via
         # ctx.meta, so downstream CLI code can inspect what was loaded and from where.

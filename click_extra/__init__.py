@@ -52,6 +52,8 @@ from .config import (
     ConfigOption,
     NoConfigOption,
     ValidateConfigOption,
+    get_tool_config,
+    normalize_config_keys,
 )
 from .decorators import (  # type: ignore[no-redef]
     argument,
@@ -154,6 +156,7 @@ __all__ = [
     "get_binary_stream",
     "get_current_context",
     "get_text_stream",
+    "get_tool_config",
     "getchar",
     "Group",
     "group",
@@ -174,6 +177,7 @@ __all__ = [
     "new_extra_logger",
     "NO_CONFIG",
     "no_config_option",
+    "normalize_config_keys",
     "NoConfigOption",
     "NoSuchOption",
     "open_file",

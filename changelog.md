@@ -5,6 +5,10 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Add `config_schema` parameter to `ConfigOption` and `ExtraCommand`/`ExtraGroup` for typed configuration access via dataclasses or custom callables.
+- Add `fallback_sections` parameter for legacy configuration section name migration with deprecation warnings.
+- Add `normalize_config_keys()` utility to convert kebab-case config keys to snake_case Python identifiers.
+- Add `get_tool_config()` helper to retrieve typed configuration from context.
 - Check more variations of local, stable and dev CLI invocations.
 - Fix ruff `0.15.5` lint errors.
 

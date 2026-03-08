@@ -3372,3 +3372,371 @@ def test_strict_conf_dotted_key_conflict(invoke, create_config):
     assert type(result.exception) is ValueError
     assert "conflicts" in str(result.exception)
     assert result.exit_code == 1
+
+
+# --- config_schema and fallback_sections tests ---
+
+
+def test_normalize_config_keys():
+    from click_extra.config import normalize_config_keys
+
+    assert normalize_config_keys({}) == {}
+    assert normalize_config_keys({"foo-bar": 1}) == {"foo_bar": 1}
+    assert normalize_config_keys({"a-b": {"c-d": 2}}) == {"a_b": {"c_d": 2}}
+    # Keys without hyphens are unchanged.
+    assert normalize_config_keys({"snake_case": 3}) == {"snake_case": 3}
+
+
+def test_config_schema_dataclass(invoke, create_config):
+    """Dataclass schemas are auto-detected and instantiated with normalized keys."""
+    from dataclasses import dataclass, field
+
+    from click_extra.config import get_tool_config
+
+    @dataclass
+    class AppConfig:
+        extra_stuff: str = "default_value"
+        my_list: list[str] = field(default_factory=list)
+
+    @group(config_schema=AppConfig)
+    @option("--dummy-flag/--no-flag")
+    @pass_context
+    def schema_cli(ctx, dummy_flag):
+        config = get_tool_config(ctx)
+        echo(f"dummy_flag   is {dummy_flag!r}")
+        echo(f"extra_stuff  is {config.extra_stuff!r}")
+        echo(f"my_list      is {config.my_list!r}")
+
+    @schema_cli.command()
+    @option("--int-param", type=int, default=10)
+    def subcommand(int_param):
+        echo(f"int_param    is {int_param!r}")
+
+    conf_path = create_config(
+        "schema.toml",
+        dedent("""\
+            [schema-cli]
+            dummy_flag = true
+            extra-stuff = "from_config"
+            my-list = ["a", "b"]
+
+            [schema-cli.subcommand]
+            int_param = 42
+            """),
+    )
+
+    result = invoke(
+        schema_cli, "--config", str(conf_path), "subcommand", color=False
+    )
+    assert result.exit_code == 0
+    # CLI options use underscores in the default_map.
+    assert "dummy_flag   is True" in result.stdout
+    # Schema normalizes hyphens to underscores.
+    assert "extra_stuff  is 'from_config'" in result.stdout
+    assert "my_list      is ['a', 'b']" in result.stdout
+    assert "int_param    is 42" in result.stdout
+
+
+def test_config_schema_callable(invoke, create_config):
+    """A plain callable can be used as config_schema."""
+    from types import SimpleNamespace
+
+    from click_extra.config import get_tool_config, normalize_config_keys
+
+    def my_schema(raw):
+        return SimpleNamespace(**normalize_config_keys(raw))
+
+    @group(config_schema=my_schema)
+    @option("--dummy-flag/--no-flag")
+    @pass_context
+    def callable_cli(ctx, dummy_flag):
+        config = get_tool_config(ctx)
+        echo(f"extra is {config.extra_value!r}")
+
+    @callable_cli.command()
+    def subcommand():
+        echo("ok")
+
+    conf_path = create_config(
+        "callable.toml",
+        dedent("""\
+            [callable-cli]
+            extra-value = "hello"
+            """),
+    )
+
+    result = invoke(
+        callable_cli, "--config", str(conf_path), "subcommand", color=False
+    )
+    assert result.exit_code == 0
+    assert "extra is 'hello'" in result.stdout
+
+
+def test_config_schema_no_config_file(invoke):
+    """When no config file is found, tool_config is not set."""
+    from dataclasses import dataclass
+
+    from click_extra.config import get_tool_config
+
+    @dataclass
+    class AppConfig:
+        value: str = "default"
+
+    @group(config_schema=AppConfig)
+    @pass_context
+    def no_file_cli(ctx):
+        config = get_tool_config(ctx)
+        echo(f"config is {config!r}")
+
+    @no_file_cli.command()
+    def subcommand():
+        echo("ok")
+
+    result = invoke(no_file_cli, "subcommand", color=False)
+    assert result.exit_code == 0
+    assert "config is None" in result.stdout
+
+
+def test_config_schema_dataclass_defaults(invoke, create_config):
+    """Dataclass defaults are used for fields not present in the config file."""
+    from dataclasses import dataclass
+
+    from click_extra.config import get_tool_config
+
+    @dataclass
+    class AppConfig:
+        present: str = "default_present"
+        missing: str = "default_missing"
+
+    @group(config_schema=AppConfig)
+    @pass_context
+    def defaults_cli(ctx):
+        config = get_tool_config(ctx)
+        echo(f"present is {config.present!r}")
+        echo(f"missing is {config.missing!r}")
+
+    @defaults_cli.command()
+    def subcommand():
+        echo("ok")
+
+    conf_path = create_config(
+        "defaults.toml",
+        dedent("""\
+            [defaults-cli]
+            present = "from_file"
+            """),
+    )
+
+    result = invoke(
+        defaults_cli, "--config", str(conf_path), "subcommand", color=False
+    )
+    assert result.exit_code == 0
+    assert "present is 'from_file'" in result.stdout
+    assert "missing is 'default_missing'" in result.stdout
+
+
+def test_fallback_sections(invoke, create_config):
+    """Legacy section names are recognized with a deprecation warning."""
+    from dataclasses import dataclass
+
+    from click_extra.config import get_tool_config
+
+    @dataclass
+    class AppConfig:
+        value: str = "default"
+
+    @group(config_schema=AppConfig, fallback_sections=("old-name", "older-name"))
+    @pass_context
+    def fallback_cli(ctx):
+        config = get_tool_config(ctx)
+        echo(f"value is {config.value!r}")
+
+    @fallback_cli.command()
+    def subcommand():
+        echo("ok")
+
+    # Config uses the old section name.
+    conf_path = create_config(
+        "fallback.toml",
+        dedent("""\
+            [old-name]
+            value = "from_legacy"
+            """),
+    )
+
+    result = invoke(
+        fallback_cli, "--config", str(conf_path), "subcommand", color=False
+    )
+    assert result.exit_code == 0
+    assert "value is 'from_legacy'" in result.stdout
+    assert "deprecated" in result.stderr.lower()
+
+
+def test_fallback_sections_prefers_current(invoke, create_config):
+    """When both current and legacy sections exist, current wins."""
+    from dataclasses import dataclass
+
+    from click_extra.config import get_tool_config
+
+    @dataclass
+    class AppConfig:
+        value: str = "default"
+
+    @group(config_schema=AppConfig, fallback_sections=("old-name",))
+    @pass_context
+    def current_cli(ctx):
+        config = get_tool_config(ctx)
+        echo(f"value is {config.value!r}")
+
+    @current_cli.command()
+    def subcommand():
+        echo("ok")
+
+    conf_path = create_config(
+        "both.toml",
+        dedent("""\
+            [current-cli]
+            value = "current"
+
+            [old-name]
+            value = "legacy"
+            """),
+    )
+
+    result = invoke(
+        current_cli, "--config", str(conf_path), "subcommand", color=False
+    )
+    assert result.exit_code == 0
+    assert "value is 'current'" in result.stdout
+    # Should still warn about leftover legacy section.
+    assert "deprecated" in result.stderr.lower()
+
+
+@pytest.mark.parametrize(
+    ("conf_name", "conf_text"),
+    [
+        (
+            "schema.yaml",
+            dedent("""\
+                yaml-cli:
+                  extra-stuff: from_yaml
+                  my-flag: true
+                """),
+        ),
+        (
+            "schema.json",
+            dedent("""\
+                {
+                    "yaml-cli": {
+                        "extra-stuff": "from_json",
+                        "my-flag": true
+                    }
+                }
+                """),
+        ),
+    ],
+    ids=["yaml", "json"],
+)
+def test_config_schema_multiple_formats(invoke, create_config, conf_name, conf_text):
+    """Config schema works with YAML and JSON, not just TOML."""
+    from dataclasses import dataclass
+
+    from click_extra.config import get_tool_config
+
+    @dataclass
+    class AppConfig:
+        extra_stuff: str = "default"
+        my_flag: bool = False
+
+    @group(config_schema=AppConfig)
+    @option("--my-flag/--no-flag")
+    @pass_context
+    def yaml_cli(ctx, my_flag):
+        config = get_tool_config(ctx)
+        echo(f"extra_stuff is {config.extra_stuff!r}")
+
+    @yaml_cli.command()
+    def subcommand():
+        echo("ok")
+
+    conf_path = create_config(conf_name, conf_text)
+
+    result = invoke(
+        yaml_cli, "--config", str(conf_path), "subcommand", color=False
+    )
+    assert result.exit_code == 0
+    expected = "from_yaml" if conf_name.endswith(".yaml") else "from_json"
+    assert f"extra_stuff is '{expected}'" in result.stdout
+
+
+def test_config_schema_on_config_option_directly(invoke, create_config):
+    """Config schema can be set directly on ConfigOption via the decorator."""
+    from dataclasses import dataclass
+
+    from click import group as click_group
+
+    from click_extra.config import get_tool_config
+
+    @dataclass
+    class AppConfig:
+        extra: str = "default"
+
+    @click_group(context_settings={"show_default": True})
+    @config_option(config_schema=AppConfig)
+    @pass_context
+    def direct_cli(ctx):
+        config = get_tool_config(ctx)
+        echo(f"extra is {config.extra!r}")
+
+    @direct_cli.command()
+    def subcommand():
+        echo("ok")
+
+    conf_path = create_config(
+        "direct.toml",
+        dedent("""\
+            [direct-cli]
+            extra = "works"
+            """),
+    )
+
+    result = invoke(
+        direct_cli, "--config", str(conf_path), "subcommand", color=False
+    )
+    assert result.exit_code == 0
+    assert "extra is 'works'" in result.stdout
+
+
+def test_get_tool_config_defaults_to_current_context(invoke, create_config):
+    """get_tool_config() works without passing ctx explicitly."""
+    from dataclasses import dataclass
+
+    from click_extra.config import get_tool_config
+
+    @dataclass
+    class AppConfig:
+        value: str = "default"
+
+    @group(config_schema=AppConfig)
+    def auto_ctx_cli():
+        # Call without explicit ctx.
+        config = get_tool_config()
+        echo(f"value is {config.value!r}")
+
+    @auto_ctx_cli.command()
+    def subcommand():
+        echo("ok")
+
+    conf_path = create_config(
+        "auto.toml",
+        dedent("""\
+            [auto-ctx-cli]
+            value = "auto"
+            """),
+    )
+
+    result = invoke(
+        auto_ctx_cli, "--config", str(conf_path), "subcommand", color=False
+    )
+    assert result.exit_code == 0
+    assert "value is 'auto'" in result.stdout
