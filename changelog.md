@@ -1,5 +1,10 @@
 # Changelog
 
+## [`7.8.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.8.0...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`7.8.0` (2026-03-09)](https://github.com/kdeldycke/click-extra/compare/v7.7.0...v7.8.0)
 
 - Add `config_schema` parameter to `ConfigOption` and `ExtraCommand`/`ExtraGroup` for typed configuration access via dataclasses or custom callables.
