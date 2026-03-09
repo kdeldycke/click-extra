@@ -18,12 +18,10 @@ options, and how they interact with each others."""
 
 from __future__ import annotations
 
-import ast
 import inspect
 import os
 import sys
 from contextlib import nullcontext
-from pathlib import Path
 from textwrap import dedent
 
 import click
@@ -54,40 +52,21 @@ from click_extra.pytest import (
 
 @pytest.mark.once
 def test_module_root_declarations():
-    def fetch_root_members(module):
-        """Fetch all members exposed at the module root."""
-        members = set()
-        for name, member in inspect.getmembers(module):
-            # Exclude private members.
-            if name.startswith("_"):
-                continue
-            # Exclude automatic imports of submodules as we inspect __init__'s content
-            # only.
-            if inspect.ismodule(member):
-                continue
-            members.add(name)
-        return members
+    """Verify ``click_extra.__all__`` is a superset of click and cloup.
 
-    click_members = fetch_root_members(click)
+    Sort order is enforced by ``ruff`` (RUF022).
+    """
+    click_extra_members = set(click_extra.__all__)
+
+    click_members = {
+        name
+        for name, member in inspect.getmembers(click)
+        if not name.startswith("_") and not inspect.ismodule(member)
+    }
+    assert click_members <= click_extra_members
 
     cloup_members = {m for m in cloup.__all__ if not m.startswith("_")}
-
-    tree = ast.parse(Path(inspect.getfile(click_extra)).read_bytes())
-    click_extra_members = []
-    for node in tree.body:
-        if isinstance(node, ast.Assign):
-            for target in node.targets:
-                if target.id == "__all__":
-                    click_extra_members.extend(element.value for element in node.value.elts)
-
-    assert click_members <= set(click_extra_members)
-    assert cloup_members <= set(click_extra_members)
-
-    expected_members = sorted(
-        click_members.union(cloup_members).union(click_extra_members),
-        key=lambda m: (m.lower(), m),
-    )
-    assert expected_members == click_extra_members
+    assert cloup_members <= click_extra_members
 
 
 @pytest.fixture

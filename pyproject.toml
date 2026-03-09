@@ -264,11 +264,7 @@ format.docstring-code-format = true
 # LOG015: Root logger call.
 #   Tests intentionally call root logger methods to verify capture behavior.
 #   Utility functions also use root logger as a convenience.
-# RUF022: `__all__` is not sorted.
-#   Enforce case-insensitive alphabetical sorting instead of isort-style
-#   (SCREAMING_SNAKE_CASE → CamelCase → lowercase) grouping. Order is
-#   enforced by test_module_root_declarations in tests/test_commands.py.
-lint.ignore = [ "B008", "D400", "ERA001", "LOG015", "RUF022" ]
+lint.ignore = [ "B008", "D400", "ERA001", "LOG015" ]
 # Allow rules to add `from __future__ import annotations` in cases where
 # this would simplify a fix or enable a new diagnostic.
 # https://docs.astral.sh/ruff/settings/#lint_future-annotations

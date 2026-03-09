@@ -10,6 +10,7 @@
 - Add `normalize_config_keys()` utility to convert kebab-case config keys to snake_case Python identifiers.
 - Add `get_tool_config()` helper to retrieve typed configuration from context.
 - Check more variations of local, stable and dev CLI invocations.
+- Adopt `RUF022` rule to let `ruff` enforce `__all__` sorting.
 - Fix ruff `0.15.5` lint errors.
 
 ## [`7.7.0` (2026-03-07)](https://github.com/kdeldycke/click-extra/compare/v7.6.5...v7.7.0)
