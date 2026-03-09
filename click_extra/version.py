@@ -314,7 +314,7 @@ class ExtraVersionOption(ExtraOption):
         # Search through all entry points in the 'console_scripts' group.
         eps = metadata.entry_points()
 
-        console_scripts = eps.select(group="console_scripts")  # type: ignore[union-attr]
+        console_scripts = eps.select(group="console_scripts")
 
         for ep in console_scripts:
             if ep.name == script_name:

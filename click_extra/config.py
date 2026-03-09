@@ -1263,7 +1263,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             def _from_dataclass(raw: dict[str, Any]) -> Any:
                 normalized = normalize_config_keys(raw)
                 known = {f.name for f in dc_fields(schema)}  # type: ignore[arg-type]
-                return schema(**{k: v for k, v in normalized.items() if k in known})
+                return schema(**{k: v for k, v in normalized.items() if k in known})  # type: ignore[call-arg]
 
             return _from_dataclass
 
@@ -1316,7 +1316,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         """
         if self._config_schema_callable is None:
             return
-        app_name = ctx.find_root().command.name
+        app_name = ctx.find_root().command.name or ctx.info_name or ""
         app_section = self._resolve_app_section(user_conf, app_name)
         ctx.meta["click_extra.tool_config"] = self._config_schema_callable(
             app_section,

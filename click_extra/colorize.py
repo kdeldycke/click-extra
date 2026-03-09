@@ -415,14 +415,15 @@ class ExtraHelpColorsMixin:  # (Command)??
 
         # Collect all deprecated messages on subcommands and parameters.
         for obj in chain(subcommands, command.get_params(ctx)):
-            if obj.deprecated:
+            deprecated = getattr(obj, "deprecated", None)
+            if deprecated:
                 # Generated deprecated message as Click does:
                 # https://github.com/pallets/click/blob/c9f7d9d/src/click/core.py#L1061-L1065
                 # https://github.com/pallets/click/blob/c9f7d9d/src/click/core.py#L1098-L1102
                 # https://github.com/pallets/click/blob/c9f7d9d/src/click/core.py#L2556-L2560
                 deprecated_messages.add(
-                    f"(DEPRECATED: {param.deprecated})"
-                    if isinstance(param.deprecated, str)
+                    f"(DEPRECATED: {deprecated})"
+                    if isinstance(deprecated, str)
                     else "(DEPRECATED)"
                 )
 
