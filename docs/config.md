@@ -494,15 +494,18 @@ Given this CLI:
 ```python
 from click_extra import group, command, echo, config_option, option
 
+
 @group
 @config_option
 def my_cli():
     pass
 
+
 @my_cli.command()
 @option("--path", default="/tmp")
 def backup(path):
     echo(f"Backing up {path}")
+
 
 @my_cli.command()
 def sync():
@@ -1352,6 +1355,7 @@ The typed configuration is stored in `ctx.meta["click_extra.tool_config"]` and c
 ```python
 # Via the convenience helper (uses current context by default):
 from click_extra.config import get_tool_config
+
 config = get_tool_config()
 
 # Or directly from the context:

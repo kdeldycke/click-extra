@@ -1882,9 +1882,12 @@ def test_no_enabled_formats_raises():
     """ValueError raised when all formats are disabled."""
     import unittest.mock
 
-    with unittest.mock.patch.object(
-        ConfigFormat, "enabled", new_callable=lambda: property(lambda self: False)
-    ), pytest.raises(ValueError, match="No configuration format is enabled"):
+    with (
+        unittest.mock.patch.object(
+            ConfigFormat, "enabled", new_callable=lambda: property(lambda self: False)
+        ),
+        pytest.raises(ValueError, match="No configuration format is enabled"),
+    ):
         ConfigOption(file_format_patterns=ConfigFormat.TOML)
 
 
@@ -3425,9 +3428,7 @@ def test_config_schema_dataclass(invoke, create_config):
             """),
     )
 
-    result = invoke(
-        schema_cli, "--config", str(conf_path), "subcommand", color=False
-    )
+    result = invoke(schema_cli, "--config", str(conf_path), "subcommand", color=False)
     assert result.exit_code == 0
     # CLI options use underscores in the default_map.
     assert "dummy_flag   is True" in result.stdout
@@ -3465,9 +3466,7 @@ def test_config_schema_callable(invoke, create_config):
             """),
     )
 
-    result = invoke(
-        callable_cli, "--config", str(conf_path), "subcommand", color=False
-    )
+    result = invoke(callable_cli, "--config", str(conf_path), "subcommand", color=False)
     assert result.exit_code == 0
     assert "extra is 'hello'" in result.stdout
 
@@ -3527,9 +3526,7 @@ def test_config_schema_dataclass_defaults(invoke, create_config):
             """),
     )
 
-    result = invoke(
-        defaults_cli, "--config", str(conf_path), "subcommand", color=False
-    )
+    result = invoke(defaults_cli, "--config", str(conf_path), "subcommand", color=False)
     assert result.exit_code == 0
     assert "present is 'from_file'" in result.stdout
     assert "missing is 'default_missing'" in result.stdout
@@ -3564,9 +3561,7 @@ def test_fallback_sections(invoke, create_config):
             """),
     )
 
-    result = invoke(
-        fallback_cli, "--config", str(conf_path), "subcommand", color=False
-    )
+    result = invoke(fallback_cli, "--config", str(conf_path), "subcommand", color=False)
     assert result.exit_code == 0
     assert "value is 'from_legacy'" in result.stdout
     assert "deprecated" in result.stderr.lower()
@@ -3603,9 +3598,7 @@ def test_fallback_sections_prefers_current(invoke, create_config):
             """),
     )
 
-    result = invoke(
-        current_cli, "--config", str(conf_path), "subcommand", color=False
-    )
+    result = invoke(current_cli, "--config", str(conf_path), "subcommand", color=False)
     assert result.exit_code == 0
     assert "value is 'current'" in result.stdout
     # Should still warn about leftover legacy section.
@@ -3661,9 +3654,7 @@ def test_config_schema_multiple_formats(invoke, create_config, conf_name, conf_t
 
     conf_path = create_config(conf_name, conf_text)
 
-    result = invoke(
-        yaml_cli, "--config", str(conf_path), "subcommand", color=False
-    )
+    result = invoke(yaml_cli, "--config", str(conf_path), "subcommand", color=False)
     assert result.exit_code == 0
     expected = "from_yaml" if conf_name.endswith(".yaml") else "from_json"
     assert f"extra_stuff is '{expected}'" in result.stdout
@@ -3700,9 +3691,7 @@ def test_config_schema_on_config_option_directly(invoke, create_config):
             """),
     )
 
-    result = invoke(
-        direct_cli, "--config", str(conf_path), "subcommand", color=False
-    )
+    result = invoke(direct_cli, "--config", str(conf_path), "subcommand", color=False)
     assert result.exit_code == 0
     assert "extra is 'works'" in result.stdout
 
@@ -3735,8 +3724,6 @@ def test_get_tool_config_defaults_to_current_context(invoke, create_config):
             """),
     )
 
-    result = invoke(
-        auto_ctx_cli, "--config", str(conf_path), "subcommand", color=False
-    )
+    result = invoke(auto_ctx_cli, "--config", str(conf_path), "subcommand", color=False)
     assert result.exit_code == 0
     assert "value is 'auto'" in result.stdout
