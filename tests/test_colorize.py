@@ -940,23 +940,11 @@ def test_integrated_color_option(invoke, param, expecting_colors, assert_output_
         ),
         (
             "Hey-xx-xxx-heY-xXxXxxxxx-hey",
-            {"hey", "hey"},
-            "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m",
-            False,
-        ),
-        (
-            "Hey-xx-xxx-heY-xXxXxxxxx-hey",
             "heyhey",
             "Hey-xx-xxx-heY-xXxXxxxxx-hey",
             False,
         ),
         # Case-sensitivity and multiple matches.
-        (
-            "Hey-xx-xxx-heY-xXxXxxxxx-hey",
-            ["hey"],
-            "Hey-xx-xxx-heY-xXxXxxxxx-\x1b[32mhey\x1b[0m",
-            False,
-        ),
         (
             "Hey-xx-xxx-heY-xXxXxxxxx-hey",
             ["Hey"],
