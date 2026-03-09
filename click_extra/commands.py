@@ -335,8 +335,8 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
                 if isinstance(param, ConfigOption):
                     if config_schema is not None:
                         param.config_schema = config_schema
-                        param._config_schema_callable = (
-                            param._make_schema_callable(config_schema)
+                        param._config_schema_callable = param._make_schema_callable(
+                            config_schema
                         )
                     if fallback_sections:
                         param.fallback_sections = tuple(fallback_sections)

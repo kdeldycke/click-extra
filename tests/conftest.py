@@ -86,9 +86,7 @@ class SphinxAppWrapper:
             conf["myst_enable_extensions"] = ["colon_fence"]
 
         # Write the conf.py file.
-        config_content = "\n".join(
-            f"{key} = {value!r}" for key, value in conf.items()
-        )
+        config_content = "\n".join(f"{key} = {value!r}" for key, value in conf.items())
         (srcdir / "conf.py").write_text(config_content)
 
         with docutils_namespace():
