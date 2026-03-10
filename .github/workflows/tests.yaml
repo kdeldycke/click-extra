@@ -6,7 +6,7 @@ name: 🔬 Tests
     branches:
       - main
     paths:
-      - repomatic/**
+      - click_extra/**
       - tests/**
       - pyproject.toml
       - uv.lock
@@ -15,7 +15,7 @@ name: 🔬 Tests
     branches-ignore:
       - prepare-release
     paths:
-      - repomatic/**
+      - click_extra/**
       - tests/**
       - pyproject.toml
       - uv.lock
