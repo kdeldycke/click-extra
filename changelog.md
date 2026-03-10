@@ -7,6 +7,9 @@
 
 ## [`7.8.0` (2026-03-09)](https://github.com/kdeldycke/click-extra/compare/v7.7.0...v7.8.0)
 
+> [!NOTE]
+> `7.8.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.8.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.8.0).
+
 - Add `config_schema` parameter to `ConfigOption` and `ExtraCommand`/`ExtraGroup` for typed configuration access via dataclasses or custom callables.
 - Add `fallback_sections` parameter for legacy configuration section name migration with deprecation warnings.
 - Add `normalize_config_keys()` utility to convert kebab-case config keys to snake_case Python identifiers.
