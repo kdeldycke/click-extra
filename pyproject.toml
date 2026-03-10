@@ -408,8 +408,6 @@ overrides = [
 ]
 
 [tool.repomatic]
-
-[tool.gha-utils]
-workflow-sync-exclude = [ "debug.yaml" ]
-dependency-graph-all-groups = false
-dependency-graph-all-extras = true
+dependency-graph.all-extras = true
+dependency-graph.all-groups = false
+workflow.sync-exclude = [ "debug.yaml" ]
