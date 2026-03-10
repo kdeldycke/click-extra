@@ -69,12 +69,10 @@ from wcmatch import fnmatch, glob
 from . import (
     UNPROCESSED,
     ParameterSource,
+    Path as ClickPath,
     echo,
     get_app_dir,
     get_current_context,
-)
-from . import (
-    Path as ClickPath,
 )
 from .parameters import ExtraOption, ParamStructure, search_params
 

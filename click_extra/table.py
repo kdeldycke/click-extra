@@ -27,8 +27,7 @@ from io import StringIO
 import click
 import tabulate
 from boltons.strutils import strip_ansi
-from tabulate import DataRow
-from tabulate import TableFormat as TabulateTableFormat
+from tabulate import DataRow, TableFormat as TabulateTableFormat
 
 from . import EnumChoice, echo
 from .parameters import ExtraOption
