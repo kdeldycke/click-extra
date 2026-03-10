@@ -3,6 +3,7 @@
   extends: ["config:recommended", "abandonments:recommended"],
 
   // PR and issue settings.
+  assignees: ["kdeldycke"],
   labels: ["📦 dependencies"],
   dependencyDashboardLabels: ["📦 dependencies"],
 
@@ -165,6 +166,16 @@
       depNameTemplate: "biomejs/biome",
       datasourceTemplate: "github-releases",
       extractVersionTemplate: "^@biomejs/biome@(?<version>.*)$",
+    },
+    {
+      description: "Update uv version in postUpgradeTasks download URL.",
+      customType: "regex",
+      fileMatch: ["renovate\\.json5$"],
+      matchStrings: [
+        "uv/releases/download/(?<currentValue>[0-9.]+)/",
+      ],
+      depNameTemplate: "astral-sh/uv",
+      datasourceTemplate: "github-releases",
     },
   ],
 }

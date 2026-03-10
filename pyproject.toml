@@ -263,12 +263,16 @@ format.docstring-code-format = true
 #   Tests intentionally call root logger methods to verify capture behavior.
 #   Utility functions also use root logger as a convenience.
 lint.ignore = [ "B008", "D400", "ERA001", "LOG015" ]
+lint.isort.combine-as-imports = true
 # Allow rules to add `from __future__ import annotations` in cases where
 # this would simplify a fix or enable a new diagnostic.
 # https://docs.astral.sh/ruff/settings/#lint_future-annotations
 lint.future-annotations = true
 
 [tool.typos]
+default.extend-identifiers = { Github = "GitHub", IOS = "iOS", Javascript = "JavaScript", MacOS = "macOS", PyPi = "PyPI", Typescript = "TypeScript" }
+# Skip content between <!-- typos:off --> and <!-- typos:on --> markers.
+default.extend-ignore-re = [ "(?s)<!-- typos:off -->.*?<!-- typos:on -->" ]
 default.extend-ignore-identifiers-re = [
   # error: `valu` should be `value`
   #     ╭▸ ./tests/test_types.py:127:11
