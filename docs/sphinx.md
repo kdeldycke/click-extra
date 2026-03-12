@@ -190,20 +190,20 @@ inspiration.
 
 You can pass options to both the `click:source` and `click:run` directives to customize their behavior:
 
-| Option | Description | Example |
-|--------|-------------|---------|
-| [`:linenos:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-linenos) | Display line numbers. | `:linenos:` |
-| [`:lineno-start:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-lineno-start) | Specify the starting line number. | `:lineno-start: 10` |
-| [`:emphasize-lines:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-emphasize-lines) | Highlight specific lines. | `:emphasize-lines: 2,4-6` |
-| [`:force:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-force) | Ignore minor errors on highlighting. | `:force:` |
-| [`:caption:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-caption) | Set a caption for the code block. | `:caption: My Code Example` |
-| [`:name:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-name) | Set a name for the code block (useful for cross-referencing). | `:name: example-1` |
-| [`:class:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-class) | Set a CSS class for the code block. | `:class: highlight` |
-| [`:dedent:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-dedent) | Specify the number of spaces to remove from the beginning of each line. | `:dedent: 4` |
-| [`:language:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-literalinclude-language) | Specify the programming language for syntax highlighting. This can be used as an alternative to [passing the language as an argument](#syntax-highlight-language). | `:language: sql` |
-| `:show-source:`/`:hide-source:` | Flags to force the source code within the directive to be rendered or not. | `:show-source:` or `:hide-source:` |
-| `:show-results:`/`:hide-results:` | Flags to force the results of the CLI invocation to be rendered or not. Only applies to `click:run`. Is silently ignored in `click:source`. | `:show-results:` or `:hide-results:` |
-| `:show-prompt:`/`:hide-prompt:` | TODO | TODO |
+| Option                                                                                                                                         | Description                                                                                                                                                        | Example                              |
+| ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ |
+| [`:linenos:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-linenos)                 | Display line numbers.                                                                                                                                              | `:linenos:`                          |
+| [`:lineno-start:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-lineno-start)       | Specify the starting line number.                                                                                                                                  | `:lineno-start: 10`                  |
+| [`:emphasize-lines:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-emphasize-lines) | Highlight specific lines.                                                                                                                                          | `:emphasize-lines: 2,4-6`            |
+| [`:force:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-force)                     | Ignore minor errors on highlighting.                                                                                                                               | `:force:`                            |
+| [`:caption:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-caption)                 | Set a caption for the code block.                                                                                                                                  | `:caption: My Code Example`          |
+| [`:name:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-name)                       | Set a name for the code block (useful for cross-referencing).                                                                                                      | `:name: example-1`                   |
+| [`:class:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-class)                     | Set a CSS class for the code block.                                                                                                                                | `:class: highlight`                  |
+| [`:dedent:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-dedent)                   | Specify the number of spaces to remove from the beginning of each line.                                                                                            | `:dedent: 4`                         |
+| [`:language:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-literalinclude-language)           | Specify the programming language for syntax highlighting. This can be used as an alternative to [passing the language as an argument](#syntax-highlight-language). | `:language: sql`                     |
+| `:show-source:`/`:hide-source:`                                                                                                                | Flags to force the source code within the directive to be rendered or not.                                                                                         | `:show-source:` or `:hide-source:`   |
+| `:show-results:`/`:hide-results:`                                                                                                              | Flags to force the results of the CLI invocation to be rendered or not. Only applies to `click:run`. Is silently ignored in `click:source`.                        | `:show-results:` or `:hide-results:` |
+| `:show-prompt:`/`:hide-prompt:`                                                                                                                | TODO                                                                                                                                                               | TODO                                 |
 
 #### `code-block` options
 
@@ -254,9 +254,11 @@ def hello_world(name):
 Which renders to:
 
 ```{click:source}
-:caption: A magnificent ✨ Hello World CLI!
-:linenos:
-:emphasize-lines: 4,7
+---
+caption: A magnificent ✨ Hello World CLI!
+linenos:
+emphasize-lines: 4,7
+---
 from click_extra import echo, command, option, style
 
 @command
@@ -271,6 +273,7 @@ def hello_world(name):
 You can also control the display of the source code and the results of the CLI invocation with the `:show-source:`/`:hide-source:` and `:show-results:`/`:hide-results:` options.
 
 By default:
+
 - `click:source` displays the source code of the CLI. Because its content is not executed, no results are displayed. This is equivalent to having both `:show-source:` and `:hide-results:` options.
 - `click:run` displays the results of the CLI invocation, but does not display the source code. This is equivalent to having both `:hide-source:` and `:show-results:` options.
 
@@ -319,7 +322,9 @@ invoke(simple_print)
 Which only renders the `click:run` directive, as the `click:source` doesn't display anything:
 
 ```{click:source}
-:hide-source:
+---
+hide-source:
+---
 from click_extra import echo, command, style
 
 @command
@@ -368,7 +373,9 @@ assert not result.stderr, "Found error messages in <stderr>"
 In this particular mode the `click:run` produced two code blocks, one for the source code, and one for the results of the invocation:
 
 ```{click:run}
-:show-source:
+---
+show-source:
+---
 result = invoke(simple_print)
 
 # Some inline tests.
@@ -488,7 +495,9 @@ See how we collect here the `result` of the `invoke` command, and separately ins
 If for any reason our CLI changes and its help screen is no longer what we expect, the test will fail and the documentation build will break with a message similar to:
 
 ```{code-block} text
-:emphasize-lines: 22
+---
+emphasize-lines: 22
+---
 Versions
 ========
 
@@ -521,7 +530,9 @@ Having your build fails when something unexpected happens is a great signal to c
 On the other hand, if the build succeed, the `click:run` block will render as usual with the result of the invocation:
 
 ```{click:source}
-:hide-source:
+---
+hide-source:
+---
 from click import echo, command
 
 @command
@@ -530,7 +541,9 @@ def yo_cli():
 ```
 
 ```{click:run}
-:emphasize-lines: 2
+---
+emphasize-lines: 2
+---
 result = invoke(yo_cli, args=["--help"])
 
 assert result.exit_code == 0, "CLI execution failed"
@@ -541,6 +554,7 @@ assert "Usage: yo-cli [OPTIONS]" in result.stdout, "Usage line not found in help
 ### Syntax highlight language
 
 By default, code blocks produced by the directives are automatically highlighted with these languages:
+
 - `click:source`: [`python`](https://pygments.org/docs/lexers/#pygments.lexers.python.PythonLexer)
 - `click:run`: [`ansi-shell-session`](pygments.md#lexer-variants)
 
@@ -549,7 +563,9 @@ If for any reason you want to override these defaults, you can pass the language
 Let's say you have a CLI that is only printing SQL queries in its output:
 
 ```{click:source}
-:emphasize-lines: 6
+---
+emphasize-lines: 6
+---
 from click_extra import echo, command, option
 
 @command
@@ -562,7 +578,9 @@ def sql_output(name):
 Then you can force the SQL Pygments highlighter on its output by passing the [short name of that lexer (i.e. `sql`)](https://pygments.org/docs/lexers/#pygments.lexers.sql.SqlLexer) as the first argument to the directive:
 
 ````{code-block} markdown
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 ```{click:run} sql
 invoke(sql_output, args=["--name", "Joe"])
 ```
@@ -571,7 +589,9 @@ invoke(sql_output, args=["--name", "Joe"])
 And renders to:
 
 ```{click:run} sql
-:emphasize-lines: 2
+---
+emphasize-lines: 2
+---
 invoke(sql_output, args=["--name", "Joe"])
 ```
 
@@ -612,10 +632,11 @@ myst_enable_extensions = ["colon_fence"]
 
 GitHub supports five alert types, all of which are replaced behind the scenes with their corresponding MyST admonitions:
 
-```{list-table}
-:header-rows: 1
-:widths: 10 30 30 30
-
+````{list-table}
+---
+header-rows: 1
+widths: 10 30 30 30
+---
 * - Type
   - GitHub syntax
   - MyST syntax
@@ -685,7 +706,7 @@ GitHub supports five alert types, all of which are replaced behind the scenes wi
   - ```{caution}
     Negative consequences.
     ```
-```
+````
 
 ### Usage
 
@@ -725,7 +746,7 @@ GitHub alerts support nested content, including other blockquotes, lists, code b
 
 You can include various Markdown elements inside an alert:
 
-```{code-block} markdown
+````{code-block} markdown
 > [!NOTE]
 > This alert contains:
 > - A bullet list
@@ -735,16 +756,18 @@ You can include various Markdown elements inside an alert:
 > ```python
 > print("Hello, world!")
 > ```
-```
+````
 
 Which renders as:
 
 > [!NOTE]
 > This alert contains:
+>
 > - A bullet list
 > - With multiple items
 >
 > And a code block:
+>
 > ```python
 > print("Hello, world!")
 > ```
@@ -797,7 +820,7 @@ Nested MyST warning.
 
 For more complex documentation, you can combine multiple nested elements such as blockquotes, numbered lists, nested alerts, and code blocks:
 
-```{code-block} markdown
+````{code-block} markdown
 > [!IMPORTANT]
 > Before proceeding, ensure you have:
 >
@@ -812,7 +835,7 @@ For more complex documentation, you can combine multiple nested elements such as
 > ```bash
 > $ make backup
 > ```
-```
+````
 
 Which renders as:
 
@@ -931,7 +954,9 @@ This rely on MyST's ability to embed reStructuredText within MyST documents, via
 So instead of using the `{click:source}` and `{click:run}` MyST directive, you can wrap your reStructuredText code blocks with `{eval-rst}`:
 
 ````{code-block} markdown
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 ```{eval-rst}
 .. click:source::
 
