@@ -9,7 +9,9 @@ data structure to mirror the CLI.
 The `@config_option` decorator provided by Click Extra can be used as-is with vanilla Click:
 
 ```{click:source}
-:emphasize-lines: 2,7
+---
+emphasize-lines: 2,7
+---
 from click import group, option, echo
 from click_extra import config_option
 
@@ -32,7 +34,9 @@ The code above is saved into a file named `my_cli.py`.
 It produces the following help screen:
 
 ```{click:run}
-:emphasize-lines: 7-10
+---
+emphasize-lines: 7-10
+---
 result = invoke(my_cli, args=["--help"])
 assert "--config CONFIG_PATH" in result.stdout
 ```
@@ -98,7 +102,9 @@ int_parameter is 3
 Configuration files support dotted keys as a shorthand for nested structures. Instead of writing:
 
 ```{code-block} toml
-:caption: Nested structure
+---
+caption: Nested structure
+---
 [my-cli.subcommand]
 int_param = 3
 ```
@@ -106,7 +112,9 @@ int_param = 3
 You can write:
 
 ```{code-block} toml
-:caption: Dotted key equivalent
+---
+caption: Dotted key equivalent
+---
 [my-cli]
 "subcommand.int_param" = 3
 ```
@@ -114,7 +122,9 @@ You can write:
 Both forms are equivalent. You can also freely mix them in the same file:
 
 ```{code-block} json
-:caption: Mixed dotted and nested keys in JSON
+---
+caption: Mixed dotted and nested keys in JSON
+---
 {
     "my-cli": {
         "dummy_flag": true,
@@ -137,7 +147,9 @@ This is especially handy in formats like JSON that have no native section syntax
 When dotted keys and nested structures target the same leaf, the **last one in file order wins**:
 
 ```{code-block} json
-:caption: Last value wins
+---
+caption: Last value wins
+---
 {
     "my-cli": {
         "subcommand": {"int_param": 3},
@@ -153,7 +165,9 @@ Here `int_param` resolves to `77` because the dotted key appears after the neste
 A conflict occurs when the same key is used as both a scalar and a namespace. For example:
 
 ```{code-block} json
-:caption: Conflicting types on the same key
+---
+caption: Conflicting types on the same key
+---
 {
     "my-cli": {
         "subcommand": "some_value",
@@ -169,7 +183,9 @@ In [`strict` mode](#strictness), conflicts and invalid dotted keys raise a `Valu
 The same conflict detection applies at deeper levels:
 
 ```{code-block} json
-:caption: Deep conflict
+---
+caption: Deep conflict
+---
 {
     "my-cli": {
         "subcommand.int_param.nested": 1,
@@ -189,7 +205,9 @@ Most formats prevent these conflicts at parse time — TOML rejects a key used a
 Dotted keys with empty segments (leading, trailing, or consecutive dots) are skipped with a warning:
 
 ```{code-block} json
-:caption: Invalid keys that are skipped
+---
+caption: Invalid keys that are skipped
+---
 {
     "my-cli": {
         ".option": 1,
@@ -218,7 +236,9 @@ Configuration file values are loaded into Click's `default_map`, so they are rep
 See how inline parameters takes priority on defaults from the previous example:
 
 ```{code-block} shell-session
-:emphasize-lines: 1, 4
+---
+emphasize-lines: 1, 4
+---
 $ my-cli subcommand --int-param 555
 dummy_flag    is True
 my_list       is ('item 1', 'item #2', 'Very Last Item!')
@@ -232,7 +252,9 @@ After gathering all the configuration from the different sources, and assembling
 You can still access the full configuration by looking into the context's `meta` attribute:
 
 ```{code-block} python
-:emphasize-lines: 9-12
+---
+emphasize-lines: 9-12
+---
 from click_extra import option, echo, pass_context, command, config_option
 
 
@@ -258,7 +280,9 @@ dummy_flag = true
 ```
 
 ```{code-block} shell-session
-:emphasize-lines: 3-6
+---
+emphasize-lines: 3-6
+---
 $ my-cli --config ./conf.toml --int-param 999
 Load configuration matching ./conf.toml
 Configuration location: /home/me/conf.toml
@@ -292,7 +316,9 @@ random_param = "forbidden"
 The use of `strict=True` parameter in the CLI below:
 
 ```{code-block} python
-:emphasize-lines: 7
+---
+emphasize-lines: 7
+---
 from click import command, option, echo
 
 from click_extra import config_option
@@ -307,7 +333,9 @@ def cli(int_param):
 Will raise an error and stop the CLI execution on unrecognized `random_param` value:
 
 ```{code-block} shell-session
-:emphasize-lines: 4
+---
+emphasize-lines: 4
+---
 $ cli --config "cli.toml"
 Load configuration matching cli.toml
 (...)
@@ -325,7 +353,9 @@ The `@validate_config_option` decorator adds a `--validate-config CONFIG_PATH` o
 Reusing the [standalone option example](#standalone-option) above:
 
 ```{code-block} python
-:emphasize-lines: 2,8
+---
+emphasize-lines: 2,8
+---
 from click import group, option, echo
 from click_extra import config_option, validate_config_option
 
@@ -357,7 +387,9 @@ int_param = 3
 ```
 
 ```{code-block} shell-session
-:emphasize-lines: 1-2
+---
+emphasize-lines: 1-2
+---
 $ my-cli --validate-config good.toml
 Configuration file good.toml is valid.
 $ echo $?
@@ -375,7 +407,9 @@ unknown_key = "oops"
 ```
 
 ```{code-block} shell-session
-:emphasize-lines: 2
+---
+emphasize-lines: 2
+---
 $ my-cli --validate-config bad.toml
 Configuration validation error: Parameter 'unknown_key' found in second dict but not in first.
 $ echo $?
@@ -385,7 +419,9 @@ $ echo $?
 An unparsable file produces exit code 2:
 
 ```{code-block} shell-session
-:emphasize-lines: 2,4
+---
+emphasize-lines: 2,4
+---
 $ my-cli --validate-config garbage.txt
 Error parsing garbage.txt as TOML, YAML, JSON, INI, XML or pyproject.toml.
 $ echo $?
@@ -394,11 +430,11 @@ $ echo $?
 
 The exit codes are:
 
-| Exit code | Meaning |
-| :-------- | :------ |
-| `0` | Configuration file is valid |
-| `1` | Validation error (unrecognized keys) |
-| `2` | File not found or cannot be parsed |
+| Exit code | Meaning                              |
+| :-------- | :----------------------------------- |
+| `0`       | Configuration file is valid          |
+| `1`       | Validation error (unrecognized keys) |
+| `2`       | File not found or cannot be parsed   |
 
 ```{note}
 `--validate-config` always validates in [strict mode](#strictness), regardless of the `strict` setting on `@config_option`. It requires a sibling `@config_option` decorator to be present on the same command.
@@ -413,7 +449,9 @@ It [defaults to the value of `DEFAULT_EXCLUDED_PARAMS`](#click_extra.config.DEFA
 You can set your own list of option to ignore with the `excluded_params` argument:
 
 ```{code-block} python
-:emphasize-lines: 7
+---
+emphasize-lines: 7
+---
 from click import command, option, echo
 
 from click_extra import config_option
@@ -436,7 +474,9 @@ If you have difficulties identifying your options and their IDs, run your CLI wi
 The [`included_params`](#click_extra.config.ConfigOption.included_params) argument is the inverse of `excluded_params`: only the listed parameters will be loaded from the configuration file. All other parameters found in the configuration will be ignored.
 
 ```{code-block} python
-:emphasize-lines: 6,8
+---
+emphasize-lines: 6,8
+---
 from click import command, option, echo
 
 from click_extra import config_option
@@ -465,7 +505,9 @@ Like `excluded_params`, you need to provide the fully-qualified ID of the option
 By default, `@config_option` automatically searches for configuration files in the [default application folder](#default-folder). If you want to disable this autodiscovery and only load a configuration file when the user explicitly passes `--config <path>`, use the `NO_CONFIG` sentinel as the default:
 
 ```{code-block} python
-:emphasize-lines: 2,6
+---
+emphasize-lines: 2,6
+---
 from click import group, option, echo
 from click_extra import config_option, NO_CONFIG
 
@@ -515,7 +557,9 @@ def sync():
 And this TOML configuration:
 
 ```{code-block} toml
-:emphasize-lines: 2
+---
+emphasize-lines: 2
+---
 [my-cli]
 _default_subcommands = ["backup"]
 
@@ -526,7 +570,9 @@ path = "/home"
 Running `my-cli` alone will automatically invoke the `backup` subcommand:
 
 ```{code-block} shell-session
-:emphasize-lines: 2
+---
+emphasize-lines: 2
+---
 $ my-cli
 Backing up /home
 ```
@@ -536,13 +582,17 @@ Backing up /home
 For groups created with `chain=True`, you can list multiple default subcommands. They run in the order specified:
 
 ```{code-block} toml
-:emphasize-lines: 2
+---
+emphasize-lines: 2
+---
 [my-cli]
 _default_subcommands = ["backup", "sync"]
 ```
 
 ```{code-block} shell-session
-:emphasize-lines: 2-3
+---
+emphasize-lines: 2-3
+---
 $ my-cli
 Backing up /home
 Syncing
@@ -570,7 +620,9 @@ The `_prepend_subcommands` key always prepends subcommands to every invocation, 
 ```
 
 ```{code-block} toml
-:emphasize-lines: 2-3
+---
+emphasize-lines: 2-3
+---
 [my-cli]
 _prepend_subcommands = ["debug"]
 ```
@@ -578,7 +630,9 @@ _prepend_subcommands = ["debug"]
 Running `my-cli sync` effectively becomes `my-cli debug sync`:
 
 ```{code-block} shell-session
-:emphasize-lines: 2-3
+---
+emphasize-lines: 2-3
+---
 $ my-cli sync
 Debug mode activated
 Syncing
@@ -612,17 +666,17 @@ Backing up /tmp
 
 Several dialects are supported:
 
-| Format | Extensions | Description | Enabled by default |
-| :----- | :--------- | :---------- | :----------------- |
-| [`TOML`](#toml) | `*.toml` | - | ✅ |
-| [`YAML`](#yaml) | `*.yaml`, `*.yml` | - | ❌ |
-| [`JSON`](#json) | `*.json` | - | ✅ |
-| [`JSON5`](#json5) | `*.json5` | A [superset of JSON made for configuration file](https://json5.org) | ❌ |
-| [`JSONC`](#jsonc) | `*.jsonc` | Like JSON, but with comments and trailing commas | ❌ |
-| [`HJSON`](#hjson) | `*.hjson` | Another flavor of a [user-friendly JSON](https://hjson.github.io) | ❌ |
-| [`INI`](#ini) | `*.ini` | With extended interpolation, multi-level sections and non-native types (`list`, `set`, …) | ✅ |
-| [`XML`](#xml) | `*.xml` | - | ❌ |
-| [`PYPROJECT_TOML`](#pyproject-toml) | `pyproject.toml` | Reads `[tool.*]` sections from `pyproject.toml` | ✅ |
+| Format                              | Extensions        | Description                                                                               | Enabled by default |
+| :---------------------------------- | :---------------- | :---------------------------------------------------------------------------------------- | :----------------- |
+| [`TOML`](#toml)                     | `*.toml`          | -                                                                                         | ✅                 |
+| [`YAML`](#yaml)                     | `*.yaml`, `*.yml` | -                                                                                         | ❌                 |
+| [`JSON`](#json)                     | `*.json`          | -                                                                                         | ✅                 |
+| [`JSON5`](#json5)                   | `*.json5`         | A [superset of JSON made for configuration file](https://json5.org)                       | ❌                 |
+| [`JSONC`](#jsonc)                   | `*.jsonc`         | Like JSON, but with comments and trailing commas                                          | ❌                 |
+| [`HJSON`](#hjson)                   | `*.hjson`         | Another flavor of a [user-friendly JSON](https://hjson.github.io)                         | ❌                 |
+| [`INI`](#ini)                       | `*.ini`           | With extended interpolation, multi-level sections and non-native types (`list`, `set`, …) | ✅                 |
+| [`XML`](#xml)                       | `*.xml`           | -                                                                                         | ❌                 |
+| [`PYPROJECT_TOML`](#pyproject-toml) | `pyproject.toml`  | Reads `[tool.*]` sections from `pyproject.toml`                                           | ✅                 |
 
 Formats depending on third-party packages are not enabled by default. You need to [install Click Extra with the corresponding extra dependency group](install.md#configuration-file-formats) to enable them.
 
@@ -664,7 +718,9 @@ garbage: >
 ```
 
 ```{code-block} shell-session
-:emphasize-lines: 2-4
+---
+emphasize-lines: 2-4
+---
 $ my-cli --config "~/.config/my-cli/config.yaml" subcommand
 dummy_flag    is True
 my_list       is ('point 1', 'point #2', 'Very Last Point!')
@@ -698,7 +754,9 @@ Again, same for JSON:
 ```
 
 ```{code-block} shell-session
-:emphasize-lines: 2-4
+---
+emphasize-lines: 2-4
+---
 $ my-cli --config "~/.config/my-cli/config.json" subcommand
 dummy_flag    is True
 my_list       is ('item 1', 'item #2', 'Very Last Item!')
@@ -778,7 +836,9 @@ int_param = 3
 This is especially powerful combined with `search_parents` to walk up from a project directory:
 
 ```{code-block} python
-:emphasize-lines: 7
+---
+emphasize-lines: 7
+---
 from click import command, option, echo
 
 from click_extra import config_option
@@ -798,11 +858,11 @@ When both a dedicated configuration file (e.g., `my-cli.toml`) and a `pyproject.
 
 This is the de facto standard across the ecosystem. Every major tool that supports both a dedicated config file and `pyproject.toml` follows the same strict precedence — dedicated file wins, `pyproject.toml` is ignored entirely:
 
-| Tool | Precedence rule |
-| :--- | :-------------- |
-| [ruff](https://docs.astral.sh/ruff/configuration/#config-file-discovery) | `.ruff.toml` > `ruff.toml` > `pyproject.toml` |
-| [uv](https://docs.astral.sh/uv/concepts/configuration-files/#configuration-files) | `uv.toml` > `pyproject.toml` |
-| [typos](https://github.com/crate-ci/typos/blob/master/docs/reference.md#sources) | `typos.toml` / `_typos.toml` / `.typos.toml` > `Cargo.toml` > `pyproject.toml` |
+| Tool                                                                              | Precedence rule                                                                |
+| :-------------------------------------------------------------------------------- | :----------------------------------------------------------------------------- |
+| [ruff](https://docs.astral.sh/ruff/configuration/#config-file-discovery)          | `.ruff.toml` > `ruff.toml` > `pyproject.toml`                                  |
+| [uv](https://docs.astral.sh/uv/concepts/configuration-files/#configuration-files) | `uv.toml` > `pyproject.toml`                                                   |
+| [typos](https://github.com/crate-ci/typos/blob/master/docs/reference.md#sources)  | `typos.toml` / `_typos.toml` / `.typos.toml` > `Cargo.toml` > `pyproject.toml` |
 
 The rationale:
 
@@ -833,6 +893,7 @@ Other tools are following suit:
 The configuration file is searched with a wildcard-based glob pattern.
 
 There is multiple stages to locate and parse the configuration file:
+
 1. Locate all files matching the search pattern
 2. Match each file against the supported formats, in order, until one is successfully parsed
 3. Use the first successfully parsed file as the configuration source
@@ -870,7 +931,9 @@ To mirror the latter, the `@config_option` decorator accept a `roaming` and `for
 Let's change the default in the following example:
 
 ```{click:source}
-:emphasize-lines: 6
+---
+emphasize-lines: 6
+---
 from click import command
 
 from click_extra import config_option
@@ -884,7 +947,9 @@ def cli():
 See how the default to `--config` option has been changed to `~/.cli/`:
 
 ```{click:run}
-:emphasize-lines: 6
+---
+emphasize-lines: 6
+---
 from boltons.iterutils import flatten, unique
 from click_extra import ConfigFormat
 result = invoke(cli, args=["--help"])
@@ -909,7 +974,9 @@ You can also provide a custom path to the configuration file via the `--config` 
 To change the default search pattern, pass a customized value to the `default` argument of the decorator:
 
 ```{click:source}
-:emphasize-lines: 6
+---
+emphasize-lines: 6
+---
 from click import command
 
 from click_extra import config_option
@@ -921,7 +988,9 @@ def cli():
 ```
 
 ```{click:run}
-:emphasize-lines: 7
+---
+emphasize-lines: 7
+---
 result = invoke(cli, args=["--help"])
 assert "~/my_special_folder/*.toml]" in result.stdout
 ```
@@ -939,15 +1008,15 @@ Patterns provided to `@config_option`'s `default` argument:
   - Windows is insensitive to case,
   - Unix and macOS are case-sensitive.
 - Are setup with the following default flags:
-  | Flag | Description |
-  | :--- | :---------- |
-  | [`GLOBSTAR`](https://facelessuser.github.io/wcmatch/glob/#globstar) | Recursive directory search via `**` glob notation. |
-  | [`FOLLOW`](https://facelessuser.github.io/wcmatch/glob/#follow) | Traverse symlink directories. |
-  | [`DOTGLOB`](https://facelessuser.github.io/wcmatch/glob/#dotglob) | Include file or directory starting with a literal dot (`.`). |
-  | [`BRACE`](https://facelessuser.github.io/wcmatch/glob/#brace) | Expand `{pat1,pat2,...}` brace expressions into multiple patterns. |
-  | [`SPLIT`](https://facelessuser.github.io/wcmatch/glob/#split) | Allow multiple patterns separated by `\|`. |
-  | [`GLOBTILDE`](https://facelessuser.github.io/wcmatch/glob/#globtilde) | Allow user's home path `~` to be expanded. |
-  | [`NODIR`](https://facelessuser.github.io/wcmatch/glob/#nodir) | Restricts results to files. |
+  | Flag                                                                  | Description                                                        |
+  | :-------------------------------------------------------------------- | :----------------------------------------------------------------- |
+  | [`GLOBSTAR`](https://facelessuser.github.io/wcmatch/glob/#globstar)   | Recursive directory search via `**` glob notation.                 |
+  | [`FOLLOW`](https://facelessuser.github.io/wcmatch/glob/#follow)       | Traverse symlink directories.                                      |
+  | [`DOTGLOB`](https://facelessuser.github.io/wcmatch/glob/#dotglob)     | Include file or directory starting with a literal dot (`.`).       |
+  | [`BRACE`](https://facelessuser.github.io/wcmatch/glob/#brace)         | Expand `{pat1,pat2,...}` brace expressions into multiple patterns. |
+  | [`SPLIT`](https://facelessuser.github.io/wcmatch/glob/#split)         | Allow multiple patterns separated by `\|`.                         |
+  | [`GLOBTILDE`](https://facelessuser.github.io/wcmatch/glob/#globtilde) | Allow user's home path `~` to be expanded.                         |
+  | [`NODIR`](https://facelessuser.github.io/wcmatch/glob/#nodir)         | Restricts results to files.                                        |
 
 ```{important}
 The `BRACE` flag is always forced, so that multi-format default patterns using `{pat1,pat2,...}` syntax expand correctly. The `NODIR` flag is always forced, to optimize the search for files only.
@@ -956,7 +1025,9 @@ The `BRACE` flag is always forced, so that multi-format default patterns using `
 The flags above can be changed via the [`search_pattern_flags` argument of the decorator](config.md#click_extra.config.ConfigOption). So to make the matching case-insensitive, add the `IGNORECASE` flag:
 
 ```{code-block} python
-:emphasize-lines: 8,9,14
+---
+emphasize-lines: 8,9,14
+---
 from wcmatch.glob import (
     GLOBSTAR,
     FOLLOW,
@@ -1007,7 +1078,9 @@ To influence which formats are supported, see the next section.
 If you want to limit the formats supported by your CLI, you can use the `file_format_patterns` argument to specify which formats are allowed:
 
 ```{click:source}
-:emphasize-lines: 7
+---
+emphasize-lines: 7
+---
 from click import command, option, echo
 
 from click_extra import config_option, ConfigFormat
@@ -1022,7 +1095,9 @@ def cli(int_param):
 Notice how the default search pattern has been restricted to only `*.json` and `*.toml` files, and also that the order is reflected in the help:
 
 ```{click:run}
-:emphasize-lines: 8
+---
+emphasize-lines: 8
+---
 result = invoke(cli, args=["--help"])
 assert "{*.json,*.toml}]" in result.stdout
 ```
@@ -1030,7 +1105,9 @@ assert "{*.json,*.toml}]" in result.stdout
 You can also specify a single format:
 
 ```{click:source}
-:emphasize-lines: 7
+---
+emphasize-lines: 7
+---
 from click import command, option, echo
 
 from click_extra import config_option, ConfigFormat
@@ -1043,7 +1120,9 @@ def cli(int_param):
 ```
 
 ```{click:run}
-:emphasize-lines: 8
+---
+emphasize-lines: 8
+---
 result = invoke(cli, args=["--help"])
 assert "*.xml]" in result.stdout
 ```
@@ -1053,7 +1132,9 @@ assert "*.xml]" in result.stdout
 Each format is associated with [default file patterns](#formats). But you can also change these with the same `file_format_patterns` argument:
 
 ```{click:source}
-:emphasize-lines: 8-11
+---
+emphasize-lines: 8-11
+---
 from click import command, option, echo
 
 from click_extra import config_option, ConfigFormat
@@ -1073,7 +1154,9 @@ def cli(int_param):
 Again, this is reflected in the help:
 
 ```{click:run}
-:emphasize-lines: 8
+---
+emphasize-lines: 8
+---
 result = invoke(cli, args=["--help"])
 assert "{*.toml,my_app.conf,settings*.js,*.json}]" in result.stdout
 ```
@@ -1083,7 +1166,9 @@ assert "{*.toml,my_app.conf,settings*.js,*.json}]" in result.stdout
 The syntax of `file_format_patterns` argument allows you to specify either a list of formats, a single format, or a mapping of formats to patterns. And we can even have multiple formats share the same pattern:
 
 ```{click:source}
-:emphasize-lines: 8-12
+---
+emphasize-lines: 8-12
+---
 from click import command, option, echo
 
 from click_extra import config_option, ConfigFormat
@@ -1104,7 +1189,9 @@ def cli(int_param):
 Notice how all formats are merged into the same pattern:
 
 ```{click:run}
-:emphasize-lines: 8
+---
+emphasize-lines: 8
+---
 result = invoke(cli, args=["--help"])
 assert "{*.toml,config*.js,*.js}" in result.stdout
 ```
@@ -1123,10 +1210,10 @@ The `file_pattern_flags` argument controls the matching behavior of file pattern
 
 These flags are defined in [`wcmatch.fnmatch`](https://facelessuser.github.io/wcmatch/fnmatch/#flags) and default to:
 
-| Flag | Description |
-| :--- | :---------- |
+| Flag                                                               | Description                                        |
+| :----------------------------------------------------------------- | :------------------------------------------------- |
 | [`NEGATE`](https://facelessuser.github.io/wcmatch/fnmatch/#negate) | Adds support of `!` negation to define exclusions. |
-| [`SPLIT`](https://facelessuser.github.io/wcmatch/fnmatch/#split) | Allow multiple patterns separated by `|`. |
+| [`SPLIT`](https://facelessuser.github.io/wcmatch/fnmatch/#split)   | Allow multiple patterns separated by \`            |
 
 ```{important}
 The `SPLIT` flag is always forced, as our multi-pattern design relies on it.
@@ -1153,7 +1240,9 @@ This is the same pinciple as [search pattern specifications](#search-pattern-spe
 To ignore, for example, all your template files residing alongside real configuration files. Then, to exclude all files starting with `template_` in their name, you can do:
 
 ```{code-block} python
-:emphasize-lines: 3
+---
+emphasize-lines: 3
+---
 @config_option(
     file_format_patterns={
         ConfigFormat.TOML: ["*.toml", "!template_*.toml"],
@@ -1168,7 +1257,9 @@ This demonstrate the popular case on Unix-like systems, where the configuration 
 Here is how to set up `@config_option` for a pre-defined `.commandrc` file in YAML:
 
 ```{click:source}
-:emphasize-lines: 7-8
+---
+emphasize-lines: 7-8
+---
 from click import command
 
 from click_extra import config_option, ConfigFormat
@@ -1183,7 +1274,9 @@ def cli():
 ```
 
 ```{click:run}
-:emphasize-lines: 6
+---
+emphasize-lines: 6
+---
 result = invoke(cli, args=["--help"])
 assert "[default: ~/.commandrc]" in " ".join(result.stdout.split())
 ```
@@ -1197,7 +1290,9 @@ Depending on how you set up your patterns, files starting with a dot (`.`) may n
 By default, configuration files are only searched in the [default application folder](#default-folder). With `search_parents=True`, Click Extra also walks up the directory tree from the search location to the filesystem root, looking for matching files at each level:
 
 ```{click:source}
-:emphasize-lines: 6
+---
+emphasize-lines: 6
+---
 from click import command
 
 from click_extra import config_option
@@ -1232,8 +1327,10 @@ The parent directory walk stops as soon as it hits any of the following boundari
 - **No boundary** (`stop_at=None`) — the walk continues all the way to the filesystem root.
 
 ```{code-block} python
-:caption: Stop at an explicit directory
-:emphasize-lines: 6
+---
+caption: Stop at an explicit directory
+emphasize-lines: 6
+---
 from click import command
 
 from click_extra import config_option
@@ -1245,8 +1342,10 @@ def cli():
 ```
 
 ```{code-block} python
-:caption: Walk to the filesystem root
-:emphasize-lines: 6
+---
+caption: Walk to the filesystem root
+emphasize-lines: 6
+---
 from click import command
 
 from click_extra import config_option
@@ -1266,7 +1365,9 @@ The default `stop_at=VCS` mirrors the behavior of tools like `bump-my-version` a
 Remote URL can be passed directly to the `--config` option:
 
 ```{code-block} shell-session
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 $ my-cli --config "https://example.com/dummy/configuration.yaml" subcommand
 dummy_flag    is True
 my_list       is ('point 1', 'point #2', 'Very Last Point!')
@@ -1460,7 +1561,9 @@ def run():
 With the following TOML:
 
 ```{code-block} toml
-:caption: Legacy configuration still using the old name.
+---
+caption: Legacy configuration still using the old name.
+---
 [old-tool-name]
 value = "from-legacy"
 ```

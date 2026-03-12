@@ -5,7 +5,9 @@ Click Extra provides a way to render tables in the terminal.
 Here how to use the standalone table rendering option decorator:
 
 ```{click:source}
-:emphasize-lines: 5,14
+---
+emphasize-lines: 5,14
+---
 import click
 from click_extra import pass_context, table_format_option, style, Color
 
@@ -27,7 +29,9 @@ As you can see above, this option registers a ready-to-use `print_table()` metho
 The default help message for this option list all available table formats:
 
 ```{click:run}
-:emphasize-lines: 5-6
+---
+emphasize-lines: 5-6
+---
 result = invoke(table_command, args=["--help"])
 assert "--table-format" in result.stdout
 ```
@@ -80,6 +84,7 @@ It works the same way, but instead of printing the table to the console, it retu
 ### Table formats
 
 Table formats are aggregated from these sources:
+
 - [`python-tabulate`](https://github.com/astanin/python-tabulate)
 - [`cli-helpers`](https://github.com/dbcli/cli_helpers)
 - Python's [`csv` module](https://docs.python.org/3/library/csv.html) from the standard library
@@ -90,60 +95,61 @@ Table formats are aggregated from these sources:
 - [`PyYAML`](https://pyyaml.org) (requires the [`[yaml]` extra](install.md#extra-dependencies))
 
 They're divided in 2 categories:
+
 - Formats that produce **plain text** output (like ASCII tables, grid tables, etc.) and are often composed of Unicode box-drawing characters, to be displayed in a terminal.
 - Formats that produce **markup language** output (like HTML, Markdown, LaTeX, etc.) and are expected to be rendered by a supporting viewer. This category also includes CSV, TSV, and structured serialization formats (HJSON, JSON, JSON5, JSONC, TOML, XML, YAML), which are plain text but meant to be processed by other tools.
 
-| Format ID | Description | Implementation | Markup |
-|--------|-------------|--------|----------------|
-| `aligned` | Compact table with single-space column separators and no borders | Click Extra | ❌ |
-| `asciidoc` | [AsciiDoc table](https://docs.asciidoctor.org/asciidoc/latest/tables/build-a-basic-table/) | `python-tabulate` | ✅ |
-| `csv` | [Comma-separated values](https://en.wikipedia.org/wiki/Comma-separated_values) | `csv`| ✅ |
-| `csv-excel` | CSV with [Excel dialect](https://docs.python.org/3/library/csv.html#csv.excel) | `csv`| ✅ |
-| `csv-excel-tab` | CSV with [Excel tab dialect](https://docs.python.org/3/library/csv.html#csv.excel_tab) | `csv`| ✅ |
-| `csv-unix` | CSV with [Unix dialect](https://docs.python.org/3/library/csv.html#csv.unix_dialect) | `csv`| ✅ |
-| `double-grid` | Double-line grid table | `python-tabulate` | ❌ |
-| `double-outline` | Double-line outline table | `python-tabulate` | ❌ |
-| `fancy-grid` | Grid with Unicode box-drawing characters | `python-tabulate` | ❌ |
-| `fancy-outline` | Outline with Unicode box-drawing characters | `python-tabulate` | ❌ |
-| `github` | [GitHub-flavored Markdown table](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-tables) | `python-tabulate` | ✅ |
-| `grid` | Grid table with ASCII characters, also supported by [Pandoc](https://pandoc.org/MANUAL.html#extension-grid_tables) and [reStructuredText](https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#grid-tables) | `python-tabulate` | ❌ |
-| `heavy-grid` | Heavy-line grid table | `python-tabulate` | ❌ |
-| `heavy-outline` | Heavy-line outline table | `python-tabulate` | ❌ |
-| `hjson` | [HJSON](https://hjson.github.io) array of objects | [`hjson`](install.md#extra-dependencies) | ✅ |
-| `html` | [HTML table](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/table) | `python-tabulate` | ✅ |
-| `jira` | [Jira-style markup](https://confluence.atlassian.com/doc/confluence-wiki-markup-251003035.html#ConfluenceWikiMarkup-Tables) | `python-tabulate` | ✅ |
-| `json` | [JSON](https://www.json.org) array of objects | `json` | ✅ |
-| `json5` | Alias for `json` ([JSON5](https://json5.org) is a superset of JSON) | `json` | ✅ |
-| `jsonc` | Alias for `json` ([JSONC](https://code.visualstudio.com/docs/languages/json#_json-with-comments) is JSON with comments) | `json` | ✅ |
-| `latex` | [LaTeX table](https://en.wikibooks.org/wiki/LaTeX/Tables) | `python-tabulate` | ✅ |
-| `latex-booktabs` | [LaTeX table with booktabs package](https://ctan.org/pkg/booktabs) | `python-tabulate` | ✅ |
-| `latex-longtable` | [LaTeX longtable environment](https://ctan.org/pkg/longtable) | `python-tabulate` | ✅ |
-| `latex-raw` | [LaTeX table](https://en.wikibooks.org/wiki/LaTeX/Tables) without escaping | `python-tabulate` | ✅ |
-| `mediawiki` | [MediaWiki markup](https://en.wikipedia.org/wiki/Help:Table) | `python-tabulate` | ✅ |
-| `mixed-grid` | Mixed-line grid table | `python-tabulate` | ❌ |
-| `mixed-outline` | Mixed-line outline table | `python-tabulate` | ❌ |
-| `moinmoin` | [MoinMoin wiki markup](https://moinmo.in/HelpOnTables) | `python-tabulate` | ✅ |
-| `orgtbl` | [Emacs org-mode table](https://orgmode.org/manual/Tables.html) | `python-tabulate` | ✅ |
-| `outline` | Simple outline table | `python-tabulate` | ❌ |
-| `pipe` | [PHP Markdown Extra pipes](https://michelf.ca/projects/php-markdown/extra/#table), also [supported by Pandoc](https://pandoc.org/MANUAL.html#extension-pipe_tables) | `python-tabulate` | ✅ |
-| `plain` | Plain text, no formatting | `python-tabulate` | ❌ |
-| `presto` | Presto SQL output style | `python-tabulate` | ❌ |
-| `pretty` | Pretty ASCII table | `python-tabulate` | ❌ |
-| `psql` | PostgreSQL output style | `python-tabulate` | ❌ |
-| `rounded-grid` | Rounded grid table | `python-tabulate` | ❌ |
-| `rounded-outline` | Rounded outline table | `python-tabulate` | ❌ |
-| `rst` | [reStructuredText simple table](https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#simple-tables) | `python-tabulate` | ✅ |
-| `simple` | Simple table with spaces, also [supported by Pandoc](https://pandoc.org/MANUAL.html#extension-simple_tables) | `python-tabulate` | ❌ |
-| `simple-grid` | Simple grid table | `python-tabulate` | ❌ |
-| `simple-outline` | Simple outline table | `python-tabulate` | ❌ |
-| `textile` | [Textile markup](https://textile-lang.com/doc/tables) | `python-tabulate` | ✅ |
-| `toml` | [TOML](https://toml.io) array of tables | [`tomlkit`](install.md#extra-dependencies) | ✅ |
-| `tsv` | [Tab-separated values](https://en.wikipedia.org/wiki/Tab-separated_values) | `python-tabulate` | ✅ |
-| `unsafehtml` | [HTML table](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/table) without escaping | `python-tabulate` | ✅ |
-| `vertical` | Vertical table layout | `cli-helpers` | ❌ |
-| `xml` | [XML](https://www.w3.org/XML/) document | [`xmltodict`](install.md#extra-dependencies) | ✅ |
-| `yaml` | [YAML](https://yaml.org) sequence of mappings | [`PyYAML`](install.md#extra-dependencies) | ✅ |
-| `youtrack` | [YouTrack markup](https://www.jetbrains.com/help/youtrack/server/youtrack-markdown-syntax-issues.html#tables) | `python-tabulate` | ✅ |
+| Format ID         | Description                                                                                                                                                                                                               | Implementation                               | Markup |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- | ------ |
+| `aligned`         | Compact table with single-space column separators and no borders                                                                                                                                                          | Click Extra                                  | ❌     |
+| `asciidoc`        | [AsciiDoc table](https://docs.asciidoctor.org/asciidoc/latest/tables/build-a-basic-table/)                                                                                                                                | `python-tabulate`                            | ✅     |
+| `csv`             | [Comma-separated values](https://en.wikipedia.org/wiki/Comma-separated_values)                                                                                                                                            | `csv`                                        | ✅     |
+| `csv-excel`       | CSV with [Excel dialect](https://docs.python.org/3/library/csv.html#csv.excel)                                                                                                                                            | `csv`                                        | ✅     |
+| `csv-excel-tab`   | CSV with [Excel tab dialect](https://docs.python.org/3/library/csv.html#csv.excel_tab)                                                                                                                                    | `csv`                                        | ✅     |
+| `csv-unix`        | CSV with [Unix dialect](https://docs.python.org/3/library/csv.html#csv.unix_dialect)                                                                                                                                      | `csv`                                        | ✅     |
+| `double-grid`     | Double-line grid table                                                                                                                                                                                                    | `python-tabulate`                            | ❌     |
+| `double-outline`  | Double-line outline table                                                                                                                                                                                                 | `python-tabulate`                            | ❌     |
+| `fancy-grid`      | Grid with Unicode box-drawing characters                                                                                                                                                                                  | `python-tabulate`                            | ❌     |
+| `fancy-outline`   | Outline with Unicode box-drawing characters                                                                                                                                                                               | `python-tabulate`                            | ❌     |
+| `github`          | [GitHub-flavored Markdown table](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-tables)                                                            | `python-tabulate`                            | ✅     |
+| `grid`            | Grid table with ASCII characters, also supported by [Pandoc](https://pandoc.org/MANUAL.html#extension-grid_tables) and [reStructuredText](https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#grid-tables) | `python-tabulate`                            | ❌     |
+| `heavy-grid`      | Heavy-line grid table                                                                                                                                                                                                     | `python-tabulate`                            | ❌     |
+| `heavy-outline`   | Heavy-line outline table                                                                                                                                                                                                  | `python-tabulate`                            | ❌     |
+| `hjson`           | [HJSON](https://hjson.github.io) array of objects                                                                                                                                                                         | [`hjson`](install.md#extra-dependencies)     | ✅     |
+| `html`            | [HTML table](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/table)                                                                                                                                             | `python-tabulate`                            | ✅     |
+| `jira`            | [Jira-style markup](https://confluence.atlassian.com/doc/confluence-wiki-markup-251003035.html#ConfluenceWikiMarkup-Tables)                                                                                               | `python-tabulate`                            | ✅     |
+| `json`            | [JSON](https://www.json.org) array of objects                                                                                                                                                                             | `json`                                       | ✅     |
+| `json5`           | Alias for `json` ([JSON5](https://json5.org) is a superset of JSON)                                                                                                                                                       | `json`                                       | ✅     |
+| `jsonc`           | Alias for `json` ([JSONC](https://code.visualstudio.com/docs/languages/json#_json-with-comments) is JSON with comments)                                                                                                   | `json`                                       | ✅     |
+| `latex`           | [LaTeX table](https://en.wikibooks.org/wiki/LaTeX/Tables)                                                                                                                                                                 | `python-tabulate`                            | ✅     |
+| `latex-booktabs`  | [LaTeX table with booktabs package](https://ctan.org/pkg/booktabs)                                                                                                                                                        | `python-tabulate`                            | ✅     |
+| `latex-longtable` | [LaTeX longtable environment](https://ctan.org/pkg/longtable)                                                                                                                                                             | `python-tabulate`                            | ✅     |
+| `latex-raw`       | [LaTeX table](https://en.wikibooks.org/wiki/LaTeX/Tables) without escaping                                                                                                                                                | `python-tabulate`                            | ✅     |
+| `mediawiki`       | [MediaWiki markup](https://en.wikipedia.org/wiki/Help:Table)                                                                                                                                                              | `python-tabulate`                            | ✅     |
+| `mixed-grid`      | Mixed-line grid table                                                                                                                                                                                                     | `python-tabulate`                            | ❌     |
+| `mixed-outline`   | Mixed-line outline table                                                                                                                                                                                                  | `python-tabulate`                            | ❌     |
+| `moinmoin`        | [MoinMoin wiki markup](https://moinmo.in/HelpOnTables)                                                                                                                                                                    | `python-tabulate`                            | ✅     |
+| `orgtbl`          | [Emacs org-mode table](https://orgmode.org/manual/Tables.html)                                                                                                                                                            | `python-tabulate`                            | ✅     |
+| `outline`         | Simple outline table                                                                                                                                                                                                      | `python-tabulate`                            | ❌     |
+| `pipe`            | [PHP Markdown Extra pipes](https://michelf.ca/projects/php-markdown/extra/#table), also [supported by Pandoc](https://pandoc.org/MANUAL.html#extension-pipe_tables)                                                       | `python-tabulate`                            | ✅     |
+| `plain`           | Plain text, no formatting                                                                                                                                                                                                 | `python-tabulate`                            | ❌     |
+| `presto`          | Presto SQL output style                                                                                                                                                                                                   | `python-tabulate`                            | ❌     |
+| `pretty`          | Pretty ASCII table                                                                                                                                                                                                        | `python-tabulate`                            | ❌     |
+| `psql`            | PostgreSQL output style                                                                                                                                                                                                   | `python-tabulate`                            | ❌     |
+| `rounded-grid`    | Rounded grid table                                                                                                                                                                                                        | `python-tabulate`                            | ❌     |
+| `rounded-outline` | Rounded outline table                                                                                                                                                                                                     | `python-tabulate`                            | ❌     |
+| `rst`             | [reStructuredText simple table](https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#simple-tables)                                                                                                         | `python-tabulate`                            | ✅     |
+| `simple`          | Simple table with spaces, also [supported by Pandoc](https://pandoc.org/MANUAL.html#extension-simple_tables)                                                                                                              | `python-tabulate`                            | ❌     |
+| `simple-grid`     | Simple grid table                                                                                                                                                                                                         | `python-tabulate`                            | ❌     |
+| `simple-outline`  | Simple outline table                                                                                                                                                                                                      | `python-tabulate`                            | ❌     |
+| `textile`         | [Textile markup](https://textile-lang.com/doc/tables)                                                                                                                                                                     | `python-tabulate`                            | ✅     |
+| `toml`            | [TOML](https://toml.io) array of tables                                                                                                                                                                                   | [`tomlkit`](install.md#extra-dependencies)   | ✅     |
+| `tsv`             | [Tab-separated values](https://en.wikipedia.org/wiki/Tab-separated_values)                                                                                                                                                | `python-tabulate`                            | ✅     |
+| `unsafehtml`      | [HTML table](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/table) without escaping                                                                                                                            | `python-tabulate`                            | ✅     |
+| `vertical`        | Vertical table layout                                                                                                                                                                                                     | `cli-helpers`                                | ❌     |
+| `xml`             | [XML](https://www.w3.org/XML/) document                                                                                                                                                                                   | [`xmltodict`](install.md#extra-dependencies) | ✅     |
+| `yaml`            | [YAML](https://yaml.org) sequence of mappings                                                                                                                                                                             | [`PyYAML`](install.md#extra-dependencies)    | ✅     |
+| `youtrack`        | [YouTrack markup](https://www.jetbrains.com/help/youtrack/server/youtrack-markdown-syntax-issues.html#tables)                                                                                                             | `python-tabulate`                            | ✅     |
 
 ```{attention}
 By default, markup formats strip ANSI color codes from the output, to avoid injecting escape sequences into structured content like HTML, LaTeX, or CSV.
@@ -156,247 +162,345 @@ Explain extra parameters supported by `print_table()` for each category of forma
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "aligned"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "asciidoc"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "csv"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "csv-excel"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "csv-excel-tab"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "csv-unix"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "double-grid"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "double-outline"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "fancy-grid"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "fancy-outline"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "github"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "grid"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "heavy-grid"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "heavy-outline"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "hjson"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "html"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "jira"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "json"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "json5"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "jsonc"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "latex"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "latex-booktabs"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "latex-longtable"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "latex-raw"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "mediawiki"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "mixed-grid"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "mixed-outline"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "moinmoin"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "orgtbl"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "outline"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "pipe"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "plain"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "presto"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "pretty"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "psql"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "rounded-grid"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "rounded-outline"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "rst"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "simple"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "simple-grid"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "simple-outline"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "textile"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "toml"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "tsv"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "unsafehtml"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "vertical"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "xml"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "yaml"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+---
+emphasize-lines: 1
+---
 invoke(table_command, args=["--table-format", "youtrack"])
 ```
 
@@ -405,7 +509,9 @@ invoke(table_command, args=["--table-format", "youtrack"])
 You can get the ID of the current table format from the context:
 
 ```{click:source}
-:emphasize-lines: 8-9
+---
+emphasize-lines: 8-9
+---
 import click
 from click_extra import echo, pass_context, table_format_option
 
@@ -422,7 +528,9 @@ def vanilla_command(ctx):
 ```
 
 ```{click:run}
-:emphasize-lines: 2
+---
+emphasize-lines: 2
+---
 result = invoke(vanilla_command, args=["--table-format", "fancy-outline"])
 assert "Table format: fancy-outline" in result.stdout
 ```
