@@ -243,7 +243,7 @@ __all__ = [
 """
 
 
-__version__ = "7.8.1.dev0"
+__version__ = "7.8.2.dev0"
 
 
 def __getattr__(name: str) -> object:
