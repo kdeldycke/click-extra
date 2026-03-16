@@ -50,7 +50,7 @@
       matchFileNames: [".github/workflows/**"],
       postUpgradeTasks: {
         commands: [
-          "bash -c 'curl -fsSL https://github.com/astral-sh/uv/releases/download/0.10.7/uv-x86_64-unknown-linux-gnu.tar.gz --output /tmp/uv.tar.gz && echo 9ac6cee4e379a5abfca06e78a777b26b7ba1f81cb7935b97054d80d85ac00774  /tmp/uv.tar.gz | sha256sum --check && tar xzf /tmp/uv.tar.gz --strip-components=1 -C /tmp && /tmp/uvx --no-progress repomatic==6.4.0 update-checksums {{{packageFile}}}'",
+          "bash -c 'curl -fsSL https://github.com/astral-sh/uv/releases/download/0.10.9/uv-x86_64-unknown-linux-gnu.tar.gz --output /tmp/uv.tar.gz && echo 20d79708222611fa540b5c9ed84f352bcd3937740e51aacc0f8b15b271c57594  /tmp/uv.tar.gz | sha256sum --check && tar xzf /tmp/uv.tar.gz --strip-components=1 -C /tmp && /tmp/uvx --no-progress repomatic==6.4.0 update-checksums {{{packageFile}}}'",
         ],
         fileFilters: [".github/workflows/**"],
         executionMode: "update",
