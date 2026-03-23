@@ -812,20 +812,25 @@ The rationale:
 
 ```{seealso}
 Other non-Python tools that support `[tool.*]` in `pyproject.toml`:
-[uv](https://docs.astral.sh/uv/concepts/configuration-files/),
-[ty](https://docs.astral.sh/ty/),
+[basedpyright](https://docs.basedpyright.com/latest/configuration/config-files/),
 [maturin](https://www.maturin.rs/config),
+[pixi](https://pixi.prefix.dev/latest/python/pyproject_toml/),
+[Pyrefly](https://pyrefly.org/en/docs/configuration/),
 [Pyright](https://github.com/microsoft/pyright/blob/main/docs/configuration.md),
+[rumdl](https://github.com/rvben/rumdl),
 [Tombi](https://tombi-toml.github.io/tombi/docs/configuration/),
-and [rumdl](https://github.com/rvben/rumdl).
+[ty](https://docs.astral.sh/ty/),
+[typos](https://github.com/crate-ci/typos/blob/master/docs/reference.md),
+[uv](https://docs.astral.sh/uv/concepts/configuration-files/),
+and [Zuban](https://docs.zubanls.com/en/latest/usage.html).
 
 Other tools are following suit:
-[lychee#1930](https://github.com/lycheeverse/lychee/issues/1930),
-[zizmor#322](https://github.com/orgs/zizmorcore/discussions/322#discussioncomment-15919620),
-[taplo#603](https://github.com/tamasfe/taplo/issues/603),
 [actionlint#623](https://github.com/rhysd/actionlint/issues/623),
 [biome#9239](https://github.com/biomejs/biome/discussions/9239),
-[sh#1268](https://github.com/mvdan/sh/issues/1268).
+[gitleaks#2066](https://github.com/gitleaks/gitleaks/issues/2066),
+[lychee#1930](https://github.com/lycheeverse/lychee/issues/1930),
+[taplo#603](https://github.com/tamasfe/taplo/issues/603),
+[zizmor#322](https://github.com/orgs/zizmorcore/discussions/322#discussioncomment-15919620).
 ```
 
 ## Search pattern
