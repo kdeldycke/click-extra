@@ -831,6 +831,7 @@ Other tools are following suit:
 [lychee#1930](https://github.com/lycheeverse/lychee/issues/1930),
 [taplo#603](https://github.com/tamasfe/taplo/issues/603),
 [zizmor#322](https://github.com/orgs/zizmorcore/discussions/322#discussioncomment-15919620).
+[sh#1268](https://github.com/mvdan/sh/issues/1268) was declined.
 ```
 
 ## Search pattern
