@@ -412,4 +412,4 @@ overrides = [
 [tool.repomatic]
 dependency-graph.all-extras = true
 dependency-graph.all-groups = false
-workflow.sync-exclude = [ "debug.yaml" ]
+exclude = [ "workflows/debug.yaml" ]
