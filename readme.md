@@ -99,10 +99,3 @@ Check these projects to get real-life examples of `click-extra` usage:
   proxy for naming services on a local network.
 
 Feel free to send a PR to add your project in this list if you are relying on Click Extra in any way.
-
-## Development
-
-[Development guidelines](https://kdeldycke.github.io/meta-package-manager/development.html)
-are the same as
-[parent project `mpm`](https://github.com/kdeldycke/meta-package-manager), from
-which `click-extra` originated.
