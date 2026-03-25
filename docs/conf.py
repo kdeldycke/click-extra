@@ -1,19 +1,15 @@
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib  # type: ignore[import-not-found]
+import tomllib  # type: ignore[import-not-found]  # stdlib >=3.11; docs require >=3.14.
 
 
 project_path = Path(__file__).parent.parent.resolve()
 
 # Fetch general information about the project from pyproject.toml.
 toml_path = project_path / "pyproject.toml"
-toml_config = tomllib.loads(toml_path.read_text())
+toml_config = tomllib.loads(toml_path.read_text(encoding="utf-8"))
 
 # Redistribute pyproject.toml config to Sphinx.
 project_id = toml_config["project"]["name"]
@@ -74,7 +70,13 @@ nitpicky = True
 autoclass_content = "both"
 # Keep the same ordering as in original source code.
 autodoc_member_order = "bysource"
-autodoc_default_flags = ["members", "undoc-members", "show-inheritance"]
+always_use_bars_union = True
+
+autodoc_default_options = {
+    "members": True,
+    "undoc-members": True,
+    "show-inheritance": True,
+}
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
@@ -122,6 +124,11 @@ linkcheck_anchors_ignore = [
     r"a-simple-example",
     r"readme",
     r"L\d+",
+]
+
+linkcheck_ignore = [
+    # These sites return 403 to bots but are valid.
+    r"https://guix\.gnu\.org",
 ]
 
 # Footer content.

@@ -218,7 +218,6 @@ docs = [
   "sphinx-issues>=5",
   "sphinxcontrib-mermaid>=1.2.3",
   "sphinxext-opengraph>=0.13",
-  "tomli>=2.3; python_version<'3.11'",
 ]
 typing = [
   "types-boltons>=25.0.0.20250919",

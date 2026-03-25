@@ -37,6 +37,7 @@ caption: Development
 maxdepth: 2
 hidden:
 ---
+contributing
 API <click_extra>
 tests
 genindex

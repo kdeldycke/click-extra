@@ -12,6 +12,44 @@ So you can install the latest stable release with your favorite package manager 
 $ pip install click-extra
 ```
 
+## Installation methods
+
+`````{tab-set}
+
+````{tab-item} uv
+Easiest way is to [install `uv`](https://docs.astral.sh/uv/getting-started/installation/), then add `click-extra` to your project:
+
+```{code-block} shell-session
+$ uv add click-extra
+```
+
+Or to install the demo CLI system-wide with [`uv tool`](https://docs.astral.sh/uv/guides/tools/#installing-tools):
+
+```{code-block} shell-session
+$ uv tool install click-extra
+```
+````
+
+````{tab-item} pipx
+[`pipx`](https://pipx.pypa.io/stable/installation/) is a great way to install the demo CLI globally:
+
+```{code-block} shell-session
+$ pipx install click-extra
+```
+````
+
+````{tab-item} pip
+You can install the latest stable release and its dependencies with a simple `pip` call:
+
+```{code-block} shell-session
+$ python -m pip install click-extra
+```
+
+If you have difficulties to use `pip`, see
+[`pip`'s own installation instructions](https://pip.pypa.io/en/stable/installation/).
+````
+`````
+
 ## Demo CLI
 
 You can try Click Extra right now in your terminal, without installing any dependency or virtual env [thanks to `uvx`](https://docs.astral.sh/uv/guides/tools/):
