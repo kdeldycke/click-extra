@@ -127,68 +127,69 @@ This is a graph of the default, main dependencies of the Python package:
 
 ## Extra dependencies
 
-For additional features, you may need to install extra dependencies.
+By default, Click Extra supports TOML [configuration files](config.md#toml) and all standard [table formats](table.md#table-formats). Optional extras unlock additional features:
 
-### Data formats
+``````{list-table}
+:header-rows: 1
+:widths: 10 40 50
 
-These extras add support for additional [configuration file formats](config.md#formats) and [table output formats](table.md#table-formats):
+* - Extra
+  - Install command
+  - Unlocks
+* - `hjson`
+  - ```{code-block} shell-session
+    $ pip install click-extra[hjson]
+    ```
+  - - [HJSON](config.md#hjson) config files: `--config app.hjson`
+    - [`hjson` table format](table.md#table-formats): `--table-format hjson`
+* - `json5`
+  - ```{code-block} shell-session
+    $ pip install click-extra[json5]
+    ```
+  - - [JSON5](config.md#json5) config files: `--config app.json5`
+* - `jsonc`
+  - ```{code-block} shell-session
+    $ pip install click-extra[jsonc]
+    ```
+  - - [JSONC](config.md#jsonc) config files: `--config app.jsonc`
+* - `toml`
+  - ```{code-block} shell-session
+    $ pip install click-extra[toml]
+    ```
+  - - [`toml` table format](table.md#table-formats): `--table-format toml`
+* - `xml`
+  - ```{code-block} shell-session
+    $ pip install click-extra[xml]
+    ```
+  - - [XML](config.md#xml) config files: `--config app.xml`
+    - [`xml` table format](table.md#table-formats): `--table-format xml`
+* - `yaml`
+  - ```{code-block} shell-session
+    $ pip install click-extra[yaml]
+    ```
+  - - [YAML](config.md#yaml) config files: `--config app.yaml`
+    - [`yaml` table format](table.md#table-formats): `--table-format yaml`
+* - `pygments`
+  - ```{code-block} shell-session
+    $ pip install click-extra[pygments]
+    ```
+  - - [ANSI-capable formatter, filter and lexers](pygments.md) for Pygments
+* - `sphinx`
+  - ```{code-block} shell-session
+    $ pip install click-extra[sphinx]
+    ```
+  - - [`click:source` and `click:run` directives](sphinx.md) for live CLI documentation
+* - `pytest`
+  - ```{code-block} shell-session
+    $ pip install click-extra[pytest]
+    ```
+  - - [Fixtures and utilities](pytest.md) for testing Click CLIs
+``````
 
-- [HJSON](config.md#hjson) configuration files and [`hjson` table format](table.md#table-formats):
-
-  ```{code-block} shell-session
-  $ pip install click-extra[hjson]
-  ```
-
-- [JSON5](config.md#json5) configuration files:
-
-  ```{code-block} shell-session
-  $ pip install click-extra[json5]
-  ```
-
-- [JSONC](config.md#jsonc) configuration files:
-
-  ```{code-block} shell-session
-  $ pip install click-extra[jsonc]
-  ```
-
-- [`toml` table format](table.md#table-formats) output (TOML [configuration files](config.md#toml) are supported by default):
-
-  ```{code-block} shell-session
-  $ pip install click-extra[toml]
-  ```
-
-- [XML](config.md#xml) configuration files and [`xml` table format](table.md#table-formats):
-
-  ```{code-block} shell-session
-  $ pip install click-extra[xml]
-  ```
-
-- [YAML](config.md#yaml) configuration files and [`yaml` table format](table.md#table-formats):
-
-  ```{code-block} shell-session
-  $ pip install click-extra[yaml]
-  ```
-
-### For Pygments
-
-Register new [ANSI-capable formatter, filter and lexers](pygments.md):
+````{tip}
+Install all extras at once with:
 
 ```{code-block} shell-session
-$ pip install click-extra[pygments]
+$ pip install click-extra[hjson,json5,jsonc,toml,xml,yaml,pygments,sphinx,pytest]
 ```
-
-### For Sphinx
-
-Register new [`click:source` and `click:run` directives](sphinx.md) for live CLI documentation:
-
-```{code-block} shell-session
-$ pip install click-extra[sphinx]
-```
-
-### For Pytest
-
-Activate new [fixtures and utilities](pytest.md) for testing Click CLIs:
-
-```{code-block} shell-session
-$ pip install click-extra[pytest]
-```
+````
