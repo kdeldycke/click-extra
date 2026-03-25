@@ -59,26 +59,32 @@ jobs:
 
       - name: Run stable CLI via uv tool
         run: |
-          uv tool install click-extra
+          uv --no-progress tool install click-extra
           click-extra       --version
           click-extra-demo  --version
-          uv tool uninstall click-extra
-
+          uv --no-progress tool uninstall click-extra
       - name: Run dev CLI via uv tool
         run: |
-          uv tool install git+https://github.com/kdeldycke/click-extra
+          uv --no-progress tool install git+https://github.com/kdeldycke/click-extra
           click-extra       --version
           click-extra-demo  --version
-          uv tool uninstall click-extra
+          uv --no-progress tool uninstall click-extra
 
       - name: Run CLI via pipx
         run: |
-          uv tool install pipx
+          uv --no-progress tool install pipx
           pipx run                                                      click-extra       --version
+          pipx run --spec click-extra                                   click-extra       --version
           pipx run --spec click-extra                                   click-extra-demo  --version
           pipx run --spec git+https://github.com/kdeldycke/click-extra  click-extra       --version
           pipx run --spec git+https://github.com/kdeldycke/click-extra  click-extra-demo  --version
-          uv tool uninstall pipx
+          uv --no-progress tool uninstall pipx
+
+      - name: Run CLI via pip
+        run: |
+          pip install click-extra
+          click-extra       --version
+          click-extra-demo  --version
 
       - name: Install project
         run: uv --no-progress sync --frozen --all-extras --group test
