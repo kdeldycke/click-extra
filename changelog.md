@@ -404,7 +404,7 @@
 > [!NOTE]
 > `4.13.2` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.13.2/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.13.2).
 
-- Re-release to fix Github publishing.
+- Re-release to fix GitHub publishing.
 - Reactivates some color tests on Windows.
 
 ## [`4.13.1` (2025-01-28)](https://github.com/kdeldycke/click-extra/compare/v4.13.0...v4.13.1)
@@ -412,7 +412,7 @@
 > [!NOTE]
 > `4.13.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.13.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.13.1).
 
-- Re-release to fix Github publishing.
+- Re-release to fix GitHub publishing.
 
 ## [`4.13.0` (2025-01-28)](https://github.com/kdeldycke/click-extra/compare/v4.12.0...v4.13.0)
 
@@ -1164,7 +1164,7 @@
 
 - Add new external workflow to modernize Python code.
 - Use external workflow suite to manage changelog and build & publish packages
-  on PyPi on release.
+  on PyPI on release.
 - Use external workflow to label sponsored issues and PRs.
 - Replace local workflow by external one to label issues and PRs.
 - Reuse externnal workflow to produce dependency graph.
