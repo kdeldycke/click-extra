@@ -460,6 +460,33 @@ In the example above, only `flag_a` will be loaded from configuration. `flag_b` 
 Like `excluded_params`, you need to provide the fully-qualified ID of the option. Run your CLI with the [`--show-params` option](#show-params-option) to discover parameter IDs.
 ```
 
+### Schema-only configuration
+
+When using `config_schema` for typed configuration access, your config keys typically don't correspond to CLI parameters — they're custom fields consumed via `get_tool_config()`. In that case, passing them through `merge_default_map` is unnecessary and can cause collisions if a config key happens to share a name with a subcommand.
+
+Set `included_params=()` (empty tuple) to disable `merge_default_map` entirely. All configuration access goes through the schema:
+
+```python
+from dataclasses import dataclass
+from click_extra import group, pass_context
+from click_extra.config import get_tool_config
+
+@dataclass
+class AppConfig:
+    setup_guide: bool = True
+    sync_interval: int = 60
+
+@group(config_schema=AppConfig, schema_strict=True, included_params=())
+@pass_context
+def my_app(ctx):
+    config = get_tool_config(ctx)
+    # config is always an AppConfig instance, never None
+```
+
+```{note}
+`included_params=()` is different from `included_params=None`. `None` means "not configured, use the default behavior" (which applies `excluded_params`). `()` means "the allowlist is explicitly empty — merge nothing into `default_map`."
+```
+
 ## Disabling autodiscovery
 
 By default, `@config_option` automatically searches for configuration files in the [default application folder](#default-folder). If you want to disable this autodiscovery and only load a configuration file when the user explicitly passes `--config <path>`, use the `NO_CONFIG` sentinel as the default:
