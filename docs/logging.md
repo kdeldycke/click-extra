@@ -585,6 +585,12 @@ result = invoke(shifted_cli, args=["--help"])
 assert "Increase the default ERROR verbosity" in result.stdout
 ```
 
+```{caution}
+You can attach several `@verbose_option` decorators to the same command, each targeting a different logger via `default_logger`. Individual options work in isolation, but combining them on the same invocation (e.g. `-d -H`) does not work as expected: an internal reconciliation mechanism shares a single verbosity level across all options, so the second option may be silently skipped if its target level is equal to or less verbose than the first's.
+
+Until this limitation is resolved, prefer a single `@verbosity_option` with a shared logger if you need to control multiple loggers from the CLI.
+```
+
 ### Get verbosity level
 
 You can get the name of the current verbosity level from the context or the logger itself:
