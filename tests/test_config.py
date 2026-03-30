@@ -3934,3 +3934,133 @@ def test_config_schema_strict_with_nested(invoke, create_config):
     assert "section_unknown" in str(result.exception)
 
 
+def test_pyproject_toml_cwd_discovery(invoke, tmp_path, monkeypatch):
+    """pyproject.toml in CWD is discovered automatically without --config."""
+    from dataclasses import dataclass
+
+    from click_extra.config import get_tool_config
+
+    @dataclass
+    class AppConfig:
+        extra_stuff: str = "default_value"
+
+    @group(config_schema=AppConfig)
+    @pass_context
+    def cwd_cli(ctx):
+        config = get_tool_config(ctx)
+        if config is not None:
+            echo(f"extra_stuff is {config.extra_stuff!r}")
+        else:
+            echo("config is None")
+
+    @cwd_cli.command()
+    def subcommand():
+        echo("ok")
+
+    # Write a pyproject.toml in the tmp directory.
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_text(
+        dedent("""\
+            [tool.cwd-cli]
+            extra-stuff = "from_cwd"
+            """),
+    )
+
+    # Run from that directory so CWD discovery finds it.
+    monkeypatch.chdir(tmp_path)
+
+    result = invoke(cwd_cli, "subcommand", color=False)
+    assert result.exit_code == 0
+    assert "extra_stuff is 'from_cwd'" in result.stdout
+
+
+def test_pyproject_toml_cwd_discovery_walks_up(invoke, tmp_path, monkeypatch):
+    """pyproject.toml discovery walks up from CWD to parent directories."""
+    from dataclasses import dataclass
+
+    from click_extra.config import get_tool_config
+
+    @dataclass
+    class AppConfig:
+        value: str = "default"
+
+    @group(config_schema=AppConfig)
+    @pass_context
+    def walk_cli(ctx):
+        config = get_tool_config(ctx)
+        if config is not None:
+            echo(f"value is {config.value!r}")
+        else:
+            echo("config is None")
+
+    @walk_cli.command()
+    def subcommand():
+        echo("ok")
+
+    # Write pyproject.toml in parent, run from a subdirectory.
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_text(
+        dedent("""\
+            [tool.walk-cli]
+            value = "from_parent"
+            """),
+    )
+    subdir = tmp_path / "src" / "pkg"
+    subdir.mkdir(parents=True)
+    monkeypatch.chdir(subdir)
+
+    result = invoke(walk_cli, "subcommand", color=False)
+    assert result.exit_code == 0
+    assert "value is 'from_parent'" in result.stdout
+
+
+def test_pyproject_toml_explicit_config_skips_cwd(invoke, create_config, tmp_path, monkeypatch):
+    """Explicit --config skips CWD pyproject.toml discovery."""
+    from dataclasses import dataclass
+
+    from click_extra.config import get_tool_config
+
+    @dataclass
+    class AppConfig:
+        value: str = "default"
+
+    @group(config_schema=AppConfig)
+    @pass_context
+    def explicit_cli(ctx):
+        config = get_tool_config(ctx)
+        if config is not None:
+            echo(f"value is {config.value!r}")
+        else:
+            echo("config is None")
+
+    @explicit_cli.command()
+    def subcommand():
+        echo("ok")
+
+    # CWD pyproject.toml with one value.
+    cwd_pyproject = tmp_path / "pyproject.toml"
+    cwd_pyproject.write_text(
+        dedent("""\
+            [tool.explicit-cli]
+            value = "from_cwd"
+            """),
+    )
+    monkeypatch.chdir(tmp_path)
+
+    # Explicit config with a different value.
+    conf_path = create_config(
+        "explicit.toml",
+        dedent("""\
+            [explicit-cli]
+            value = "from_explicit"
+            """),
+    )
+
+    result = invoke(
+        explicit_cli, "--config", str(conf_path), "subcommand", color=False,
+    )
+    assert result.exit_code == 0
+    # Explicit --config wins over CWD pyproject.toml.
+    assert "value is 'from_explicit'" in result.stdout
+
+

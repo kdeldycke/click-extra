@@ -1152,6 +1152,50 @@ class ConfigOption(ExtraOption, ParamStructure):
             logger.debug(f"{fmt} parsing successful, got {conf!r}.")
             yield conf
 
+    def _search_pyproject_cwd(
+        self,
+    ) -> tuple[Path, dict[str, Any]] | tuple[None, None]:
+        """Search for ``pyproject.toml`` from CWD upward to the VCS root.
+
+        Mimics the discovery behavior of uv, ruff, and mypy: start in the
+        current working directory and walk up until a ``pyproject.toml`` is
+        found or the VCS root (or filesystem root) is reached.
+
+        Only runs when ``ConfigFormat.PYPROJECT_TOML`` is in
+        ``file_format_patterns``.  Returns ``(path, parsed_tool_section)`` on
+        success, or ``(None, None)`` if no valid ``pyproject.toml`` was found.
+        """
+        logger = logging.getLogger("click_extra")
+        cwd = Path.cwd()
+        stop_at = self._resolve_stop_at(cwd)
+
+        for directory in (cwd, *cwd.parents):
+            if self._should_stop_walking(directory, stop_at):
+                logger.debug(
+                    f"pyproject.toml CWD search stopped at {directory}."
+                )
+                break
+
+            candidate = directory / "pyproject.toml"
+            if not candidate.is_file():
+                continue
+
+            logger.debug(f"Found {candidate}, parsing as pyproject.toml.")
+            try:
+                content = candidate.read_text(encoding="UTF-8")
+            except OSError as ex:
+                logger.debug(f"Cannot read {candidate}: {ex}")
+                continue
+
+            for conf in self.parse_conf(
+                content, formats=(ConfigFormat.PYPROJECT_TOML,)
+            ):
+                if conf:
+                    return candidate, conf
+            logger.debug(f"{candidate} parsed but empty [tool] section.")
+
+        return None, None
+
     def read_and_parse_conf(
         self,
         pattern: str,
@@ -1493,42 +1537,53 @@ class ConfigOption(ExtraOption, ParamStructure):
         else:
             logger.debug(message)
 
-        # Read configuration file.
+        # Search for pyproject.toml from CWD upward before the standard
+        # app-dir search.  This matches the discovery behavior of uv, ruff,
+        # and mypy.  Only runs on auto-discovery (not explicit --config).
         conf_path, user_conf = None, None
-        try:
-            conf_path, user_conf = self.read_and_parse_conf(path_pattern)
-        # Exit the CLI if no user-provided config file was found. Else, it means we
-        # were just trying to automaticcaly discover a config file with the default
-        # pattern, so we can just log it and continue.
-        except FileNotFoundError:
-            message = "No configuration file found."
-            if explicit_conf:
-                logger.critical(message)
-                ctx.exit(2)
-            else:
-                logger.debug(message)
+        if (
+            not explicit_conf
+            and ConfigFormat.PYPROJECT_TOML in self.file_format_patterns
+        ):
+            conf_path, user_conf = self._search_pyproject_cwd()
+            if conf_path is not None:
+                logger.debug(f"Using {conf_path} from CWD search.")
 
-        # Exit the CLI if a user-provided config file was found but could not be
-        # parsed. Else, it means we automaticcaly discovered a config file, but it
-        # couldn't be parsed, so we can just log it and continue.
-        else:
-            if user_conf is None:
-                formats = list(map(str, self.file_format_patterns))
-                message = (
-                    f"Error parsing file as {', '.join(formats[:-1])} or {formats[-1]}."
-                )
+        # Fall back to the standard app-dir search if CWD search found nothing.
+        if user_conf is None:
+            try:
+                conf_path, user_conf = self.read_and_parse_conf(path_pattern)
+            # Exit the CLI if no user-provided config file was found. Else, it
+            # means we were just trying to automatically discover a config file
+            # with the default pattern, so we can just log it and continue.
+            except FileNotFoundError:
+                message = "No configuration file found."
                 if explicit_conf:
                     logger.critical(message)
                     ctx.exit(2)
                 else:
                     logger.debug(message)
             else:
-                logger.debug(f"Parsed user configuration: {user_conf}")
-                logger.debug(f"Initial defaults: {ctx.default_map}")
-                self.merge_default_map(ctx, user_conf)
-                logger.debug(f"New defaults: {ctx.default_map}")
-                # Build typed config object if a schema was provided.
-                self._apply_config_schema(ctx, user_conf)
+                if user_conf is None:
+                    formats = list(map(str, self.file_format_patterns))
+                    message = (
+                        f"Error parsing file as "
+                        f"{', '.join(formats[:-1])} or {formats[-1]}."
+                    )
+                    if explicit_conf:
+                        logger.critical(message)
+                        ctx.exit(2)
+                    else:
+                        logger.debug(message)
+
+        # Apply the loaded configuration (from CWD or app-dir search).
+        if user_conf is not None:
+            logger.debug(f"Parsed user configuration: {user_conf}")
+            logger.debug(f"Initial defaults: {ctx.default_map}")
+            self.merge_default_map(ctx, user_conf)
+            logger.debug(f"New defaults: {ctx.default_map}")
+            # Build typed config object if a schema was provided.
+            self._apply_config_schema(ctx, user_conf)
 
         # Expose the resolved config file path and its full parsed content via
         # ctx.meta, so downstream CLI code can inspect what was loaded and from where.

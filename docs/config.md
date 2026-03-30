@@ -763,6 +763,12 @@ The `PYPROJECT_TOML` format reads `[tool.<cli-name>]` sections from a `pyproject
 
 `PYPROJECT_TOML` is included in the default format patterns, so it is automatically discovered alongside other formats. The `[tool]` wrapper is automatically unwrapped: `merge_default_map` sees `{"cli": {"int_param": 3}}` — exactly the [same structure as a regular TOML config file](#toml).
 
+#### CWD-first discovery
+
+When auto-discovering configuration (no explicit `--config` flag), Click Extra searches for `pyproject.toml` starting from the current working directory and walking up to the VCS root *before* checking the standard app config directory. This matches the discovery behavior of uv, ruff, and mypy, so users get the configuration they expect without passing `--config` explicitly.
+
+The CWD search only applies to `pyproject.toml` — other config formats (TOML, YAML, JSON, etc.) are still discovered from the app config directory. If a `pyproject.toml` is found via CWD search, the app-dir search is skipped entirely. If `--config` is passed explicitly, CWD search is bypassed.
+
 Given a `pyproject.toml` in the search path:
 
 ```{code-block} toml
