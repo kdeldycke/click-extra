@@ -4,7 +4,7 @@
 [![Packaging status](https://repology.org/badge/vertical-allrepos/python%3Aclick-extra.svg)](https://repology.org/project/python%3Aclick-extra/versions)
 ```
 
-Click Extra is [distributed on PyPi](https://pypi.org/project/click-extra/).
+Click Extra is [distributed on PyPI](https://pypi.org/project/click-extra/).
 
 So you can install the latest stable release with your favorite package manager [like `pip`](https://pip.pypa.io):
 
