@@ -92,6 +92,38 @@ assert result.stdout == "It works!\n"
 assert "We're printing stuff." in result.stderr
 ```
 
+The `-v`/`--verbose` option can also be used as a standalone option:
+
+```{click:source}
+import logging
+import click
+import click_extra
+
+@click.command
+@click_extra.verbose_option
+def verbose_command():
+    click.echo("It works!")
+    logging.info("We're printing stuff.")
+```
+
+```{click:run}
+result = invoke(verbose_command, args=["--help"])
+assert "-v, --verbose" in result.stdout
+assert "--verbosity" not in result.stdout
+```
+
+```{click:run}
+result = invoke(verbose_command)
+assert result.stdout == "It works!\n"
+assert not result.stderr
+```
+
+```{click:run}
+result = invoke(verbose_command, args=["-v"])
+assert result.stdout == "It works!\n"
+assert "We're printing stuff." in result.stderr
+```
+
 ### Default logger
 
 The `--verbosity` option is by default attached to the [global `root` logger](https://github.com/python/cpython/blob/3.14/Lib/logging/__init__.py#L1997).
