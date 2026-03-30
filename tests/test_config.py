@@ -3472,7 +3472,7 @@ def test_config_schema_callable(invoke, create_config):
 
 
 def test_config_schema_no_config_file(invoke):
-    """When no config file is found, tool_config is not set."""
+    """When no config file is found, schema defaults are used."""
     from dataclasses import dataclass
 
     from click_extra.config import get_tool_config
@@ -3485,7 +3485,7 @@ def test_config_schema_no_config_file(invoke):
     @pass_context
     def no_file_cli(ctx):
         config = get_tool_config(ctx)
-        echo(f"config is {config!r}")
+        echo(f"value is {config.value!r}")
 
     @no_file_cli.command()
     def subcommand():
@@ -3493,7 +3493,7 @@ def test_config_schema_no_config_file(invoke):
 
     result = invoke(no_file_cli, "subcommand", color=False)
     assert result.exit_code == 0
-    assert "config is None" in result.stdout
+    assert "value is 'default'" in result.stdout
 
 
 def test_config_schema_dataclass_defaults(invoke, create_config):

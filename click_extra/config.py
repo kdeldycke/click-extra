@@ -1582,8 +1582,13 @@ class ConfigOption(ExtraOption, ParamStructure):
             logger.debug(f"Initial defaults: {ctx.default_map}")
             self.merge_default_map(ctx, user_conf)
             logger.debug(f"New defaults: {ctx.default_map}")
-            # Build typed config object if a schema was provided.
             self._apply_config_schema(ctx, user_conf)
+
+        # When a schema is configured but no config file was found, still
+        # produce the default instance so get_tool_config() never returns None.
+        elif self._config_schema_callable is not None:
+            logger.debug("No config file found; instantiating schema defaults.")
+            self._apply_config_schema(ctx, {})
 
         # Expose the resolved config file path and its full parsed content via
         # ctx.meta, so downstream CLI code can inspect what was loaded and from where.

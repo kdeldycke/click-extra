@@ -1396,7 +1396,7 @@ config = get_tool_config()
 config = ctx.find_root().meta.get("click_extra.tool_config")
 ```
 
-If no configuration file was found or no `config_schema` was set, `get_tool_config()` returns `None`.
+If no `config_schema` was set, `get_tool_config()` returns `None`. When a `config_schema` is configured but no configuration file is found, the schema is instantiated with its defaults so `get_tool_config()` always returns a usable object.
 
 ### Format-agnostic
 
