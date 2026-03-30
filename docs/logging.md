@@ -540,6 +540,50 @@ assert dedent("""\
     """
 ) in result.output
 ```
+### Verbose base level
+
+When both `--verbosity` and `-v`/`--verbose` are present on the same command, `-v` increments from the default level of `--verbosity`. If you change that default, the base level of `-v` shifts accordingly:
+
+```{click:source}
+import logging
+import click
+from click_extra import LogLevel, verbose_option, verbosity_option
+
+@click.command
+@verbosity_option(default=LogLevel.ERROR)
+@verbose_option
+def shifted_cli():
+    logging.critical("critical message")
+    logging.error("error message")
+    logging.warning("warning message")
+    logging.info("info message")
+```
+
+Without `-v`, only `CRITICAL` and `ERROR` messages are shown:
+
+```{click:run}
+result = invoke(shifted_cli)
+assert "critical message" in result.output
+assert "error message" in result.output
+assert "warning message" not in result.output
+```
+
+With `-v`, the level increases by one step from `ERROR` to `WARNING`:
+
+```{click:run}
+result = invoke(shifted_cli, args=["-v"])
+assert "critical message" in result.output
+assert "error message" in result.output
+assert "warning message" in result.output
+assert "info message" not in result.output
+```
+
+The help message reflects the custom base level:
+
+```{click:run}
+result = invoke(shifted_cli, args=["--help"])
+assert "Increase the default ERROR verbosity" in result.stdout
+```
 
 ### Get verbosity level
 
