@@ -3727,3 +3727,210 @@ def test_get_tool_config_defaults_to_current_context(invoke, create_config):
     result = invoke(auto_ctx_cli, "--config", str(conf_path), "subcommand", color=False)
     assert result.exit_code == 0
     assert "value is 'auto'" in result.stdout
+
+
+def test_flatten_config_keys():
+    from click_extra.config import flatten_config_keys
+
+    # Empty dict.
+    assert flatten_config_keys({}) == {}
+
+    # Flat dict is unchanged.
+    assert flatten_config_keys({"a": 1, "b": 2}) == {"a": 1, "b": 2}
+
+    # One level of nesting.
+    assert flatten_config_keys({"sub": {"key": "val"}}) == {"sub_key": "val"}
+
+    # Multiple keys in a nested dict.
+    assert flatten_config_keys({"dep": {"output": "x", "all": True}}) == {
+        "dep_output": "x",
+        "dep_all": True,
+    }
+
+    # Mixed flat and nested.
+    assert flatten_config_keys({"top": 1, "sub": {"inner": 2}}) == {
+        "top": 1,
+        "sub_inner": 2,
+    }
+
+    # Deeply nested.
+    assert flatten_config_keys({"a": {"b": {"c": 3}}}) == {"a_b_c": 3}
+
+    # Custom separator.
+    assert flatten_config_keys({"a": {"b": 1}}, sep=".") == {"a.b": 1}
+
+
+def test_flatten_config_keys_with_normalize():
+    """flatten + normalize maps nested kebab-case config to flat snake_case fields."""
+    from click_extra.config import flatten_config_keys, normalize_config_keys
+
+    raw = {
+        "dependency-graph": {"all-groups": True, "output": "deps.mmd"},
+        "pypi-package-history": ["old-name"],
+    }
+    result = flatten_config_keys(normalize_config_keys(raw))
+    assert result == {
+        "dependency_graph_all_groups": True,
+        "dependency_graph_output": "deps.mmd",
+        "pypi_package_history": ["old-name"],
+    }
+
+
+def test_config_schema_nested_toml(invoke, create_config):
+    """Nested TOML sub-tables map to flat dataclass fields via flattening."""
+    from dataclasses import dataclass, field
+
+    from click_extra.config import get_tool_config
+
+    @dataclass
+    class AppConfig:
+        dependency_graph_output: str = "default.mmd"
+        dependency_graph_all_groups: bool = True
+        gitignore_sync: bool = True
+        top_level_list: list[str] = field(default_factory=list)
+
+    @group(config_schema=AppConfig)
+    @pass_context
+    def nested_cli(ctx):
+        config = get_tool_config(ctx)
+        echo(f"output     is {config.dependency_graph_output!r}")
+        echo(f"all_groups is {config.dependency_graph_all_groups!r}")
+        echo(f"git_sync   is {config.gitignore_sync!r}")
+        echo(f"top_list   is {config.top_level_list!r}")
+
+    @nested_cli.command()
+    def subcommand():
+        echo("ok")
+
+    conf_path = create_config(
+        "nested.toml",
+        dedent("""\
+            [nested-cli]
+            top-level-list = ["x", "y"]
+
+            [nested-cli.dependency-graph]
+            output = "custom.mmd"
+            all-groups = false
+
+            [nested-cli.gitignore]
+            sync = false
+            """),
+    )
+
+    result = invoke(nested_cli, "--config", str(conf_path), "subcommand", color=False)
+    assert result.exit_code == 0
+    assert "output     is 'custom.mmd'" in result.stdout
+    assert "all_groups is False" in result.stdout
+    assert "git_sync   is False" in result.stdout
+    assert "top_list   is ['x', 'y']" in result.stdout
+
+
+def test_config_schema_strict_rejects_unknown(invoke, create_config):
+    """schema_strict=True raises ValueError on unrecognized config keys."""
+    from dataclasses import dataclass
+
+    from click_extra.config import get_tool_config
+
+    @dataclass
+    class AppConfig:
+        known_field: str = "default"
+
+    @group(config_schema=AppConfig, schema_strict=True)
+    @pass_context
+    def strict_cli(ctx):
+        config = get_tool_config(ctx)
+        echo(f"known_field is {config.known_field!r}")
+
+    @strict_cli.command()
+    def subcommand():
+        echo("ok")
+
+    conf_path = create_config(
+        "strict.toml",
+        dedent("""\
+            [strict-cli]
+            known-field = "ok"
+            typo-field = "oops"
+            """),
+    )
+
+    result = invoke(strict_cli, "--config", str(conf_path), "subcommand", color=False)
+    assert result.exit_code != 0
+    assert result.exception
+    assert type(result.exception) is ValueError
+    assert "typo_field" in str(result.exception)
+
+
+def test_config_schema_strict_passes_when_valid(invoke, create_config):
+    """schema_strict=True does not raise when all config keys are known."""
+    from dataclasses import dataclass
+
+    from click_extra.config import get_tool_config
+
+    @dataclass
+    class AppConfig:
+        known_field: str = "default"
+
+    @group(config_schema=AppConfig, schema_strict=True)
+    @pass_context
+    def strict_ok_cli(ctx):
+        config = get_tool_config(ctx)
+        echo(f"known_field is {config.known_field!r}")
+
+    @strict_ok_cli.command()
+    def subcommand():
+        echo("ok")
+
+    conf_path = create_config(
+        "strict_ok.toml",
+        dedent("""\
+            [strict-ok-cli]
+            known-field = "good"
+            """),
+    )
+
+    result = invoke(
+        strict_ok_cli, "--config", str(conf_path), "subcommand", color=False,
+    )
+    assert result.exit_code == 0
+    assert "known_field is 'good'" in result.stdout
+
+
+def test_config_schema_strict_with_nested(invoke, create_config):
+    """schema_strict=True validates flattened keys from nested sub-tables."""
+    from dataclasses import dataclass
+
+    from click_extra.config import get_tool_config
+
+    @dataclass
+    class AppConfig:
+        section_known: str = "default"
+
+    @group(config_schema=AppConfig, schema_strict=True)
+    @pass_context
+    def strict_nested_cli(ctx):
+        config = get_tool_config(ctx)
+        echo(f"section_known is {config.section_known!r}")
+
+    @strict_nested_cli.command()
+    def subcommand():
+        echo("ok")
+
+    conf_path = create_config(
+        "strict_nested.toml",
+        dedent("""\
+            [strict-nested-cli.section]
+            known = "found"
+            unknown = "oops"
+            """),
+    )
+
+    result = invoke(
+        strict_nested_cli, "--config", str(conf_path), "subcommand", color=False,
+    )
+    assert result.exit_code != 0
+    assert result.exception
+    assert type(result.exception) is ValueError
+    assert "section_unknown" in str(result.exception)
+
+

@@ -399,6 +399,37 @@ def normalize_config_keys(conf: dict[str, Any]) -> dict[str, Any]:
     return normalized
 
 
+def flatten_config_keys(
+    conf: dict[str, Any],
+    sep: str = "_",
+) -> dict[str, Any]:
+    """Flatten nested dicts into a single level by joining keys with a separator.
+
+    Useful for mapping nested configuration structures (e.g. TOML sub-tables) to
+    flat Python dataclass fields.  After normalization with
+    `normalize_config_keys`, the flattened keys match dataclass field names
+    directly::
+
+        >>> from click_extra.config import flatten_config_keys, normalize_config_keys
+        >>> raw = {"dependency-graph": {"all-groups": True, "output": "deps.mmd"}}
+        >>> flatten_config_keys(normalize_config_keys(raw))
+        {'dependency_graph_all_groups': True, 'dependency_graph_output': 'deps.mmd'}
+
+    :param conf: Nested dictionary to flatten.
+    :param sep: Separator used to join parent and child keys.  Defaults to
+        ``"_"`` which produces valid Python identifiers when combined with
+        `normalize_config_keys`.
+    """
+    items: dict[str, Any] = {}
+    for key, value in conf.items():
+        if isinstance(value, dict):
+            for sub_key, sub_value in flatten_config_keys(value, sep).items():
+                items[f"{key}{sep}{sub_key}"] = sub_value
+        else:
+            items[key] = value
+    return items
+
+
 def get_tool_config(ctx: click.Context | None = None) -> Any:
     """Retrieve the typed tool configuration from the context.
 
@@ -475,6 +506,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         included_params: Iterable[str] | None = None,
         strict: bool = False,
         config_schema: type | Callable[[dict[str, Any]], Any] | None = None,
+        schema_strict: bool = False,
         fallback_sections: Sequence[str] = (),
         **kwargs,
     ) -> None:
@@ -645,20 +677,40 @@ class ConfigOption(ExtraOption, ParamStructure):
         """Optional schema for structured access to configuration values.
 
         When set, the app's configuration section is extracted from the parsed
-        config file, normalized (hyphens replaced with underscores), and passed
-        to this callable to produce a typed configuration object.
+        config file, normalized (hyphens replaced with underscores), flattened
+        (nested dicts joined with ``_``), and passed to this callable to produce
+        a typed configuration object.
 
         Supports:
 
-        - **Dataclass types** — detected via ``__dataclass_fields__`` and
-          instantiated with normalized keys filtered to known fields.
-        - **Any callable** ``dict → T`` — called directly with the normalized
+        - **Dataclass types** — detected via ``__dataclass_fields__``.  Keys
+          are normalized, nested dicts are flattened, and the result is filtered
+          to known fields before instantiation.  This allows nested config
+          sections (e.g. ``[tool.myapp.sub-section]``) to map directly to flat
+          dataclass fields (e.g. ``sub_section_key``).
+        - **Any callable** ``dict → T`` — called directly with the raw
           dict.  Works with Pydantic's ``Model.model_validate``, attrs, or
-          custom factory functions.
+          custom factory functions.  The caller is responsible for key
+          normalization and flattening.
 
         The resulting object is stored in
         ``ctx.meta["click_extra.tool_config"]`` and can be retrieved via
         `get_tool_config`.
+        """
+
+        self.schema_strict = schema_strict
+        """Strictness for schema validation (separate from ``strict``).
+
+        - If ``True``, raise ``ValueError`` when the config section contains keys
+          that do not match any dataclass field (after normalization and
+          flattening).  Only applies when ``config_schema`` is a dataclass.
+        - If ``False``, silently ignore unrecognized keys.
+
+        .. note::
+            This is distinct from ``strict``, which controls whether
+            ``merge_default_map`` rejects config keys not matching CLI
+            parameters.  ``schema_strict`` validates against dataclass fields
+            instead.
         """
 
         self.fallback_sections: Sequence[str] = tuple(fallback_sections)
@@ -670,7 +722,10 @@ class ConfigOption(ExtraOption, ParamStructure):
         Works with all configuration formats.
         """
 
-        self._config_schema_callable = self._make_schema_callable(config_schema)
+        self._config_schema_callable = self._make_schema_callable(
+            config_schema,
+            strict=schema_strict,
+        )
 
         kwargs.setdefault("callback", self.load_conf)
 
@@ -1242,15 +1297,22 @@ class ConfigOption(ExtraOption, ParamStructure):
     @staticmethod
     def _make_schema_callable(
         schema: type | Callable[[dict[str, Any]], Any] | None,
+        *,
+        strict: bool = False,
     ) -> Callable[[dict[str, Any]], Any] | None:
         """Wrap a schema type into a callable that accepts a raw config dict.
 
         - **Dataclass types** (detected via ``__dataclass_fields__``) are
-          auto-wrapped: keys are normalized (hyphens → underscores) and filtered
-          to known fields before instantiation.
+          auto-wrapped: keys are normalized (hyphens → underscores), nested
+          dicts are flattened, and the result is filtered to known fields
+          before instantiation.
         - **Any other callable** is returned as-is.  The caller is responsible
           for key normalization if needed.
         - ``None`` returns ``None``.
+
+        :param strict: If ``True``, raise ``ValueError`` when the config
+            contains keys that do not match any dataclass field (after
+            normalization and flattening).
         """
         if schema is None:
             return None
@@ -1260,8 +1322,18 @@ class ConfigOption(ExtraOption, ParamStructure):
 
             def _from_dataclass(raw: dict[str, Any]) -> Any:
                 normalized = normalize_config_keys(raw)
+                flattened = flatten_config_keys(normalized)
                 known = {f.name for f in dc_fields(schema)}  # type: ignore[arg-type]
-                return schema(**{k: v for k, v in normalized.items() if k in known})  # type: ignore[call-arg]
+                if strict:
+                    unknown = sorted(set(flattened) - known)
+                    if unknown:
+                        msg = (
+                            f"Unknown configuration option(s): "
+                            f"{', '.join(unknown)}. "
+                            f"Valid options: {', '.join(sorted(known))}"
+                        )
+                        raise ValueError(msg)
+                return schema(**{k: v for k, v in flattened.items() if k in known})  # type: ignore[call-arg]
 
             return _from_dataclass
 

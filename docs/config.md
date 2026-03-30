@@ -1293,7 +1293,7 @@ The `config_schema` parameter solves this by extracting the app's configuration 
 
 ### Dataclass schema
 
-The most common pattern is a Python dataclass. Click Extra auto-detects dataclass types, normalizes hyphenated keys to underscores, and filters to known fields:
+The most common pattern is a Python dataclass. Click Extra auto-detects dataclass types, normalizes hyphenated keys to underscores, flattens nested sections, and filters to known fields:
 
 ```{click:source}
 from dataclasses import dataclass, field
@@ -1432,6 +1432,57 @@ normalized = normalize_config_keys(raw)
 ```
 
 For dataclass schemas, this normalization is applied automatically. For callable schemas, call `normalize_config_keys` explicitly if needed.
+
+### Nested configuration sections
+
+TOML and YAML configurations often group related settings under sub-tables (e.g. `[tool.myapp.dependency-graph]`). When using a dataclass schema, Click Extra automatically flattens these nested sections by joining parent and child keys with `_`, so they map directly to flat dataclass fields:
+
+```python
+from click_extra.config import flatten_config_keys, normalize_config_keys
+
+raw = {"dependency-graph": {"all-groups": True, "output": "deps.mmd"}}
+flatten_config_keys(normalize_config_keys(raw))
+# {"dependency_graph_all_groups": True, "dependency_graph_output": "deps.mmd"}
+```
+
+This means a dataclass with flat fields like `dependency_graph_output` and `dependency_graph_all_groups` can be populated from nested TOML:
+
+```{code-block} toml
+:caption: Nested sub-tables map to flat dataclass fields.
+[my-app.dependency-graph]
+output = "deps.mmd"
+all-groups = false
+```
+
+The full pipeline applied to dataclass schemas is: normalize keys (hyphens to underscores), flatten nested dicts (joining with `_`), then match against dataclass field names. Top-level keys and nested sub-table keys can be mixed freely.
+
+For callable schemas, use `flatten_config_keys` and `normalize_config_keys` explicitly if you need the same behavior.
+
+### Schema validation
+
+By default, configuration keys that don't match any dataclass field are silently ignored. The `schema_strict` parameter changes this to raise a `ValueError`, catching typos and stale configuration entries:
+
+```python
+@group(config_schema=AppConfig, schema_strict=True)
+def my_app():
+    ...
+```
+
+Or directly on the config option:
+
+```python
+@config_option(config_schema=AppConfig, schema_strict=True)
+```
+
+When `schema_strict=True`, the error message lists both the unrecognized keys and all valid options:
+
+```text
+ValueError: Unknown configuration option(s): typo_field. Valid options: known_field, output_format
+```
+
+```{note}
+`schema_strict` is separate from the existing `strict` parameter. `strict` controls whether `merge_default_map` rejects config keys that don't match CLI parameters. `schema_strict` validates against dataclass fields instead. The two can be used independently.
+```
 
 ## Fallback sections
 
