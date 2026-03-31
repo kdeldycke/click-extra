@@ -235,15 +235,26 @@ jobs:
         # to an architecture-qualified specifier forces uv (and uvx) to use native ARM64 Python for all steps.
         if: runner.os == 'Windows' && runner.arch == 'ARM64'
         shell: bash
-        run: echo "UV_PYTHON=cpython-${{ matrix.python-version }}-aarch64" >> "$GITHUB_ENV"
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+        run: echo "UV_PYTHON=cpython-${PYTHON_VERSION}-aarch64" >> "$GITHUB_ENV"
       - name: Install Python ${{ matrix.python-version }}
         # If UV cannot find the requested Python version, it exits with code 2, which let the job pass unnoticed on
         # Windows. So we force the shell to bash, even on Windows, and "set -e" to ensure any error in the install
         # process is caught and fails the job. It works because Windows runners too Git Bash available).
         shell: bash
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
         run: |
           set -e
-          uv --no-progress venv --python "${UV_PYTHON:-${{ matrix.python-version }}}"
+          uv --no-progress venv --python "${UV_PYTHON:-${PYTHON_VERSION}}"
+      - name: Force UTF-8 encoding on Windows
+        # Workaround for https://github.com/pallets/click/issues/2121: Windows GitHub Actions runners
+        # redirect command output to files, which sets the encoding to the system default (cp1252).
+        # Python CLI frameworks like Click then raise UnicodeEncodeError on non-ASCII output.
+        if: runner.os == 'Windows'
+        shell: bash
+        run: echo "PYTHONIOENCODING=utf8" >> "$GITHUB_ENV"
       - name: Install project
         # Install all extras, so we can check any incompatibility.
         run: >
@@ -258,6 +269,7 @@ jobs:
           uv run python -m click_extra  --version
 
       - name: Unittests
+        # Produce XML artifacts for Codecov integration (coverage + test analytics).
         run: >
           uv --no-progress run --frozen
           ${{ matrix.click-version != 'released'
@@ -266,10 +278,18 @@ jobs:
           && format('--with "git+https://github.com/janluke/cloup.git@{0}"', matrix.cloup-version) || ''}}
           --
           pytest -m "not once"
+          --cov-report=xml
+          --junitxml=junit.xml
+          --override-ini=junit_family=legacy
 
       - name: Upload coverage to Codecov
-        # Skip on prepare-release PRs: Codecov cannot create commits on protected branches.
-        if: github.head_ref != 'prepare-release'
+        # Skip on prepare-release PRs (Codecov cannot create commits on protected
+        # branches), sync-repomatic PRs (data-only changes with no coverable
+        # lines), and fork PRs (secrets are not available).
+        if: >
+          github.head_ref != 'prepare-release'
+          && github.head_ref != 'sync-repomatic'
+          && env.CODECOV_TOKEN != ''
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         shell: bash
@@ -281,7 +301,10 @@ jobs:
           --report-type coverage
           --token "${CODECOV_TOKEN}"
       - name: Upload test results to Codecov
-        if: github.head_ref != 'prepare-release'
+        if: >
+          github.head_ref != 'prepare-release'
+          && github.head_ref != 'sync-repomatic'
+          && env.CODECOV_TOKEN != ''
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         shell: bash
