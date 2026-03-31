@@ -29,6 +29,11 @@ from gettext import gettext as _
 from importlib import metadata
 from pathlib import Path
 
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib  # type: ignore[import-not-found]
+
 import click
 from boltons.ecoutils import get_profile
 from boltons.formatutils import BaseFormatField, tokenize_format_str
@@ -44,6 +49,198 @@ if TYPE_CHECKING:
     from typing import Any
 
     from cloup.styling import IStyle
+
+
+def _find_dunder_str(source: str, name: str) -> ast.Constant | None:
+    """Find a top-level dunder string constant in parsed source.
+
+    Locates the first top-level ``name = "..."`` assignment and returns
+    the :class:`ast.Constant` node for the string value. Returns
+    ``None`` if no matching assignment is found.
+    """
+    tree = ast.parse(source)
+    for node in ast.iter_child_nodes(tree):
+        if (
+            isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and node.targets[0].id == name
+            and isinstance(node.value, ast.Constant)
+            and isinstance(node.value.value, str)
+        ):
+            return node.value
+    return None
+
+
+def _rewrite_str_literal(
+    file_path: Path,
+    source: str,
+    node: ast.Constant,
+    new_value: str,
+) -> None:
+    """Replace a string literal's content in a source file.
+
+    Uses the AST node's line/column positions to swap the text between
+    the opening and closing quotes, preserving quoting style and all
+    surrounding content.
+    """
+    col_offset = node.col_offset
+    end_lineno = node.end_lineno
+    col_end = node.end_col_offset
+    assert col_offset is not None
+    assert end_lineno is not None and col_end is not None
+    lines = source.splitlines(keepends=True)
+    line = lines[end_lineno - 1]
+    # Replace everything between the opening and closing quotes.
+    new_line = line[: col_offset + 1] + new_value + line[col_end - 1 :]
+    lines[end_lineno - 1] = new_line
+    file_path.write_text("".join(lines), encoding="utf-8")
+
+
+def prebake_version(
+    file_path: Path,
+    local_version: str,
+) -> str | None:
+    """Pre-bake a ``__version__`` string with a `PEP 440 local version
+    identifier
+    <https://peps.python.org/pep-0440/#local-version-identifiers>`_.
+
+    Reads *file_path*, finds the ``__version__`` assignment via
+    :mod:`ast`, and — if the version contains ``.dev`` and does not
+    already contain ``+`` — appends ``+<local_version>``.
+
+    This is the compile-time complement to the runtime
+    :attr:`ExtraVersionOption.version` property: Nuitka/PyInstaller
+    binaries cannot run ``git`` at runtime, so the hash must be baked
+    into ``__version__`` in the source file **before** compilation.
+
+    Returns the new version string on success, or ``None`` if no change
+    was made (release version, already pre-baked, or no ``__version__``
+    found).
+    """
+    source = file_path.read_text(encoding="utf-8")
+    node = _find_dunder_str(source, "__version__")
+    if node is None:
+        logging.warning("No __version__ found in %s", file_path)
+        return None
+
+    version = node.value
+
+    if ".dev" not in version:
+        logging.info(
+            "Release version %r in %s — skipping.",
+            version,
+            file_path,
+        )
+        return None
+
+    if "+" in version:
+        logging.info(
+            "Version %r in %s already has a local identifier — skipping.",
+            version,
+            file_path,
+        )
+        return None
+
+    new_version = f"{version}+{local_version}"
+    _rewrite_str_literal(file_path, source, node, new_version)
+
+    logging.info(
+        "Pre-baked %s: %r → %r",
+        file_path,
+        version,
+        new_version,
+    )
+    return new_version
+
+
+def prebake_dunder(
+    file_path: Path,
+    name: str,
+    value: str,
+) -> str | None:
+    """Replace an empty dunder variable's value in a Python source file.
+
+    Reads *file_path*, finds a top-level ``name = ""`` assignment via
+    :mod:`ast`, and — if the current value is an empty string — replaces
+    it with *value*.
+
+    This is the generic counterpart to :func:`prebake_version`: where
+    ``prebake_version`` appends a PEP 440 local identifier to
+    ``__version__``, this function does a full replacement of any dunder
+    variable that starts empty. Typical use case: injecting a release
+    commit SHA into ``__git_tag_sha__ = ""`` at build time.
+
+    Returns the new value on success, or ``None`` if no change was made
+    (variable not found, or already has a non-empty value).
+    """
+    source = file_path.read_text(encoding="utf-8")
+    node = _find_dunder_str(source, name)
+    if node is None:
+        logging.warning("No %s found in %s", name, file_path)
+        return None
+
+    current = node.value
+
+    if current:
+        logging.info(
+            "%s in %s already has value %r — skipping.",
+            name,
+            file_path,
+            current,
+        )
+        return None
+
+    _rewrite_str_literal(file_path, source, node, value)
+
+    logging.info(
+        "Pre-baked %s in %s: %r → %r",
+        name,
+        file_path,
+        current,
+        value,
+    )
+    return value
+
+
+def discover_package_init_files() -> list[Path]:
+    """Discover ``__init__.py`` files from ``[project.scripts]``.
+
+    Reads the ``pyproject.toml`` in the current working directory,
+    extracts ``[project.scripts]`` entry points, and returns the
+    unique ``__init__.py`` paths for each top-level package.
+
+    Only returns paths that exist on disk. Returns an empty list if
+    ``pyproject.toml`` is missing or has no ``[project.scripts]``.
+    """
+    pyproject_path = Path("pyproject.toml")
+    if not pyproject_path.exists():
+        logging.warning("No pyproject.toml found in current directory.")
+        return []
+
+    data = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
+    scripts = data.get("project", {}).get("scripts", {})
+    if not scripts:
+        logging.warning(
+            "No [project.scripts] entries found in pyproject.toml."
+        )
+        return []
+
+    seen: set[Path] = set()
+    paths: list[Path] = []
+    for script in scripts.values():
+        # "repomatic.__main__:main" → "repomatic".
+        module_id = script.split(":")[0]
+        package_dir = module_id.split(".")[0]
+        init_path = Path(package_dir) / "__init__.py"
+        if init_path in seen:
+            continue
+        seen.add(init_path)
+        if init_path.exists():
+            paths.append(init_path)
+        else:
+            logging.warning("Package init not found: %s", init_path)
+    return paths
 
 
 class ExtraVersionOption(ExtraOption):
@@ -83,6 +280,8 @@ class ExtraVersionOption(ExtraOption):
         "git_long_hash",
         "git_short_hash",
         "git_date",
+        "git_tag",
+        "git_tag_sha",
         "prog_name",
         "env_info",
     )
@@ -106,6 +305,8 @@ class ExtraVersionOption(ExtraOption):
         git_long_hash: str | None = None,
         git_short_hash: str | None = None,
         git_date: str | None = None,
+        git_tag: str | None = None,
+        git_tag_sha: str | None = None,
         prog_name: str | None = None,
         env_info: dict[str, str] | None = None,
         # Field style overrides.
@@ -123,6 +324,8 @@ class ExtraVersionOption(ExtraOption):
         git_long_hash_style: IStyle | None = Style(fg="yellow"),
         git_short_hash_style: IStyle | None = Style(fg="yellow"),
         git_date_style: IStyle | None = Style(fg="bright_black"),
+        git_tag_style: IStyle | None = Style(fg="cyan"),
+        git_tag_sha_style: IStyle | None = Style(fg="yellow"),
         prog_name_style: IStyle | None = default_theme.invoked_command,
         env_info_style: IStyle | None = Style(fg="bright_black"),
         is_flag=True,
@@ -150,6 +353,8 @@ class ExtraVersionOption(ExtraOption):
         :param git_long_hash: forces the value of ``{git_long_hash}``.
         :param git_short_hash: forces the value of ``{git_short_hash}``.
         :param git_date: forces the value of ``{git_date}``.
+        :param git_tag: forces the value of ``{git_tag}``.
+        :param git_tag_sha: forces the value of ``{git_tag_sha}``.
         :param prog_name: forces the value of ``{prog_name}``.
         :param env_info: forces the value of ``{env_info}``.
 
@@ -168,6 +373,8 @@ class ExtraVersionOption(ExtraOption):
         :param git_long_hash_style: style of ``{git_long_hash}``.
         :param git_short_hash_style: style of ``{git_short_hash}``.
         :param git_date_style: style of ``{git_date}``.
+        :param git_tag_style: style of ``{git_tag}``.
+        :param git_tag_sha_style: style of ``{git_tag_sha}``.
         :param prog_name_style: style of ``{prog_name}``.
         :param env_info_style: style of ``{env_info}``.
         """
@@ -482,90 +689,6 @@ class ExtraVersionOption(ExtraOption):
                 return f"{ver}+{git_hash}"
         return ver or None
 
-    @staticmethod
-    def prebake_version(
-        file_path: Path,
-        local_version: str,
-    ) -> str | None:
-        """Pre-bake a ``__version__`` string with a `PEP 440 local version
-        identifier
-        <https://peps.python.org/pep-0440/#local-version-identifiers>`_.
-
-        Reads *file_path*, finds the ``__version__`` assignment via
-        :mod:`ast`, and — if the version contains ``.dev`` and does not
-        already contain ``+`` — appends ``+<local_version>``.
-
-        This is the compile-time complement to the runtime ``version``
-        property: Nuitka/PyInstaller binaries cannot run ``git`` at runtime,
-        so the hash must be baked into ``__version__`` in the source file
-        **before** compilation.
-
-        Returns the new version string on success, or ``None`` if no change
-        was made (release version, already pre-baked, or no ``__version__``
-        found).
-        """
-        source = file_path.read_text(encoding="utf-8")
-
-        tree = ast.parse(source, filename=str(file_path))
-        for node in ast.iter_child_nodes(tree):
-            # Look for top-level: __version__ = "<value>".
-            if not (
-                isinstance(node, ast.Assign)
-                and len(node.targets) == 1
-                and isinstance(node.targets[0], ast.Name)
-                and node.targets[0].id == "__version__"
-                and isinstance(node.value, ast.Constant)
-                and isinstance(node.value.value, str)
-            ):
-                continue
-
-            version = node.value.value
-
-            if ".dev" not in version:
-                logging.info(
-                    "Release version %r in %s — skipping.",
-                    version,
-                    file_path,
-                )
-                return None
-
-            if "+" in version:
-                logging.info(
-                    "Version %r in %s already has a local identifier — skipping.",
-                    version,
-                    file_path,
-                )
-                return None
-
-            new_version = f"{version}+{local_version}"
-
-            # Replace only the string literal in-place using AST
-            # positions, preserving surrounding content and quoting.
-            end_lineno = node.value.end_lineno
-            col_end = node.value.end_col_offset
-            assert end_lineno is not None and col_end is not None
-            lines = source.splitlines(keepends=True)
-            line = lines[end_lineno - 1]
-            # The closing quote character.
-            quote = line[col_end - 1]
-            # Insert the local version just before the closing quote.
-            new_line = (
-                line[: col_end - 1] + "+" + local_version + quote + line[col_end:]
-            )
-            lines[end_lineno - 1] = new_line
-            file_path.write_text("".join(lines), encoding="utf-8")
-
-            logging.info(
-                "Pre-baked %s: %r → %r",
-                file_path,
-                version,
-                new_version,
-            )
-            return new_version
-
-        logging.warning("No __version__ found in %s", file_path)
-        return None
-
     @cached_property
     def git_repo_path(self) -> Path | None:
         """Find the Git repository root directory."""
@@ -605,27 +728,46 @@ class ExtraVersionOption(ExtraOption):
         ):
             return None
 
+    def _get_prebaked(self, field_id: str) -> str | None:
+        """Check the CLI module for a pre-baked ``__<field_id>__`` dunder.
+
+        Returns the dunder's value if it is a non-empty string, otherwise
+        ``None``.
+        """
+        dunder_name = f"__{field_id}__"
+        value = getattr(self.module, dunder_name, None)
+        if value and isinstance(value, str):
+            return value
+        return None
+
     @cached_property
     def git_branch(self) -> str | None:
         """Returns the current Git branch name.
 
-        Uses ``git rev-parse --abbrev-ref HEAD`` CLI.
+        Checks for a pre-baked ``__git_branch__`` dunder first, then
+        falls back to ``git rev-parse --abbrev-ref HEAD``.
         """
-        return self._run_git_command("rev-parse", "--abbrev-ref", "HEAD")
+        return self._get_prebaked("git_branch") or self._run_git_command(
+            "rev-parse", "--abbrev-ref", "HEAD"
+        )
 
     @cached_property
     def git_long_hash(self) -> str | None:
         """Returns the full Git commit hash.
 
-        Uses ``git rev-parse HEAD`` CLI.
+        Checks for a pre-baked ``__git_long_hash__`` dunder first, then
+        falls back to ``git rev-parse HEAD``.
         """
-        return self._run_git_command("rev-parse", "HEAD")
+        return self._get_prebaked("git_long_hash") or self._run_git_command(
+            "rev-parse", "HEAD"
+        )
 
     @cached_property
     def git_short_hash(self) -> str | None:
         """Returns the short Git commit hash.
 
-        Uses ``git rev-parse --short HEAD`` CLI.
+        Checks for a pre-baked ``__git_short_hash__`` dunder first, then
+        falls back to ``git rev-parse --short HEAD``.
 
         .. hint::
             The short hash is usually the first 7 characters of the full hash, but this
@@ -635,15 +777,49 @@ class ExtraVersionOption(ExtraOption):
             a `minimum of 4 characters
             <https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreabbrev>`_.
         """
-        return self._run_git_command("rev-parse", "--short", "HEAD")
+        return self._get_prebaked("git_short_hash") or self._run_git_command(
+            "rev-parse", "--short", "HEAD"
+        )
 
     @cached_property
     def git_date(self) -> str | None:
         """Returns the commit date in ISO format: ``YYYY-MM-DD HH:MM:SS +ZZZZ``.
 
-        Uses ``git show -s --format=%ci HEAD`` CLI.
+        Checks for a pre-baked ``__git_date__`` dunder first, then
+        falls back to ``git show -s --format=%ci HEAD``.
         """
-        return self._run_git_command("show", "-s", "--format=%ci", "HEAD")
+        return self._get_prebaked("git_date") or self._run_git_command(
+            "show", "-s", "--format=%ci", "HEAD"
+        )
+
+    @cached_property
+    def git_tag(self) -> str | None:
+        """Returns the Git tag pointing at HEAD, if any.
+
+        Checks for a pre-baked ``__git_tag__`` dunder first, then
+        falls back to ``git describe --tags --exact-match HEAD``.
+
+        Returns ``None`` if HEAD is not at a tagged commit.
+        """
+        return self._get_prebaked("git_tag") or self._run_git_command(
+            "describe", "--tags", "--exact-match", "HEAD"
+        )
+
+    @cached_property
+    def git_tag_sha(self) -> str | None:
+        """Returns the commit SHA that the current tag points at.
+
+        Checks for a pre-baked ``__git_tag_sha__`` dunder first, then
+        falls back to ``git rev-list -1`` on the tag returned by
+        :attr:`git_tag`. Returns ``None`` if HEAD is not at a tag.
+        """
+        prebaked = self._get_prebaked("git_tag_sha")
+        if prebaked:
+            return prebaked
+        tag = self.git_tag
+        if tag:
+            return self._run_git_command("rev-list", "-1", tag)
+        return None
 
     @cached_property
     def prog_name(self) -> str | None:

@@ -287,7 +287,7 @@ assert result.output == "\x1b[97mprebaked-cli\x1b[0m, version \x1b[32m1.2.3.dev0
 ```
 
 ```{hint}
-Click Extra ships {meth}`ExtraVersionOption.prebake_version() <click_extra.version.ExtraVersionOption.prebake_version>`, a utility to automate this injection. It parses a Python source file with {mod}`ast`, locates the `__version__` assignment, and appends a `+<local_version>` suffix in place. Call it in your build step before Nuitka/PyInstaller compilation.
+Click Extra ships {func}`prebake_version() <click_extra.version.prebake_version>`, a utility to automate this injection. It parses a Python source file with {mod}`ast`, locates the `__version__` assignment, and appends a `+<local_version>` suffix in place. Call it in your build step before Nuitka/PyInstaller compilation.
 ```
 
 ### Version lifecycle

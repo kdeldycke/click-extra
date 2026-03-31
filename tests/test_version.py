@@ -46,6 +46,11 @@ from click_extra import (
     version_option,
 )
 from click_extra.commands import default_extra_params
+from click_extra.version import (
+    discover_package_init_files,
+    prebake_dunder,
+    prebake_version,
+)
 from click_extra.pytest import (
     command_decorators,
     default_debug_colored_log_end,
@@ -235,6 +240,8 @@ def test_context_meta(invoke, cmd_decorator, assert_output_regex):
             r"git_long_hash = [a-f0-9]{40}\n"
             r"git_short_hash = [a-f0-9]{4,40}\n"
             r"git_date = \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4}\n"
+            r"git_tag = \S+\n"
+            r"git_tag_sha = None\n"
             r"prog_name = version-metadata\n"
             r"env_info = {'.+'}\n"
         ),
@@ -528,7 +535,7 @@ def init_file(tmp_path):
 def test_prebake_dev_version(init_file):
     """A ``.dev`` version gets ``+hash`` appended in the file."""
     p = init_file('__version__ = "1.0.0.dev0"\n')
-    result = ExtraVersionOption.prebake_version(p, local_version="abc1234")
+    result = prebake_version(p, local_version="abc1234")
     assert result == "1.0.0.dev0+abc1234"
     assert '__version__ = "1.0.0.dev0+abc1234"' in p.read_text()
 
@@ -536,7 +543,7 @@ def test_prebake_dev_version(init_file):
 def test_prebake_single_quotes(init_file):
     """Single-quoted ``__version__`` is also handled."""
     p = init_file("__version__ = '2.0.0.dev5'\n")
-    result = ExtraVersionOption.prebake_version(p, local_version="f00baa")
+    result = prebake_version(p, local_version="f00baa")
     assert result == "2.0.0.dev5+f00baa"
     assert "__version__ = '2.0.0.dev5+f00baa'" in p.read_text()
 
@@ -544,7 +551,7 @@ def test_prebake_single_quotes(init_file):
 def test_prebake_already_baked_skipped(init_file):
     """A version with existing ``+`` is left untouched."""
     p = init_file('__version__ = "1.0.0.dev0+existing"\n')
-    result = ExtraVersionOption.prebake_version(p, local_version="abc1234")
+    result = prebake_version(p, local_version="abc1234")
     assert result is None
     assert '__version__ = "1.0.0.dev0+existing"' in p.read_text()
 
@@ -552,7 +559,7 @@ def test_prebake_already_baked_skipped(init_file):
 def test_prebake_release_skipped(init_file):
     """A release version (no ``.dev``) is not modified."""
     p = init_file('__version__ = "3.2.1"\n')
-    result = ExtraVersionOption.prebake_version(p, local_version="abc1234")
+    result = prebake_version(p, local_version="abc1234")
     assert result is None
     assert '__version__ = "3.2.1"' in p.read_text()
 
@@ -560,7 +567,7 @@ def test_prebake_release_skipped(init_file):
 def test_prebake_no_version_in_file(init_file):
     """A file without ``__version__`` returns ``None``."""
     p = init_file('"""Just a docstring."""\n')
-    result = ExtraVersionOption.prebake_version(p, local_version="abc1234")
+    result = prebake_version(p, local_version="abc1234")
     assert result is None
 
 
@@ -568,15 +575,15 @@ def test_prebake_missing_local_version_raises(init_file):
     """Calling without ``local_version`` raises ``TypeError``."""
     p = init_file('__version__ = "1.0.0.dev0"\n')
     with pytest.raises(TypeError):
-        ExtraVersionOption.prebake_version(p)
+        prebake_version(p)
 
 
 def test_prebake_idempotent(init_file):
     """Running prebake twice does not double-suffix."""
     p = init_file('__version__ = "1.0.0.dev0"\n')
-    first = ExtraVersionOption.prebake_version(p, local_version="abc1234")
+    first = prebake_version(p, local_version="abc1234")
     assert first == "1.0.0.dev0+abc1234"
-    second = ExtraVersionOption.prebake_version(p, local_version="def5678")
+    second = prebake_version(p, local_version="def5678")
     assert second is None
     assert '__version__ = "1.0.0.dev0+abc1234"' in p.read_text()
 
@@ -593,11 +600,214 @@ def test_prebake_preserves_surrounding_content(init_file):
         "API_URL = 'https://example.com'\n"
     )
     p = init_file(content)
-    ExtraVersionOption.prebake_version(p, local_version="cafe123")
+    prebake_version(p, local_version="cafe123")
     result = p.read_text()
     assert '__version__ = "4.0.0.dev0+cafe123"' in result
     assert "from __future__ import annotations" in result
     assert "API_URL = 'https://example.com'" in result
+
+
+# --- prebake_dunder tests ---
+
+
+def test_prebake_dunder_empty_replaced(init_file):
+    """An empty dunder variable gets replaced."""
+    p = init_file('__git_tag_sha__ = ""\n')
+    result = prebake_dunder(p, "__git_tag_sha__", "abc123def456")
+    assert result == "abc123def456"
+    assert '__git_tag_sha__ = "abc123def456"' in p.read_text()
+
+
+def test_prebake_dunder_single_quotes(init_file):
+    """Single-quoted empty dunder is also handled."""
+    p = init_file("__git_tag_sha__ = ''\n")
+    result = prebake_dunder(p, "__git_tag_sha__", "f00baa")
+    assert result == "f00baa"
+    assert "__git_tag_sha__ = 'f00baa'" in p.read_text()
+
+
+def test_prebake_dunder_nonempty_skipped(init_file):
+    """A dunder with an existing non-empty value is left untouched."""
+    p = init_file('__git_tag_sha__ = "already_set"\n')
+    result = prebake_dunder(p, "__git_tag_sha__", "new_value")
+    assert result is None
+    assert '__git_tag_sha__ = "already_set"' in p.read_text()
+
+
+def test_prebake_dunder_not_found(init_file):
+    """A file without the target dunder returns ``None``."""
+    p = init_file('__version__ = "1.0.0"\n')
+    result = prebake_dunder(p, "__git_tag_sha__", "abc123")
+    assert result is None
+
+
+def test_prebake_dunder_idempotent(init_file):
+    """Running prebake_dunder twice does not overwrite."""
+    p = init_file('__git_tag_sha__ = ""\n')
+    first = prebake_dunder(p, "__git_tag_sha__", "abc123")
+    assert first == "abc123"
+    second = prebake_dunder(p, "__git_tag_sha__", "def456")
+    assert second is None
+    assert '__git_tag_sha__ = "abc123"' in p.read_text()
+
+
+def test_prebake_dunder_preserves_surrounding_content(init_file):
+    """Content around the target dunder is not disturbed."""
+    content = (
+        '"""My package."""\n'
+        "\n"
+        "from __future__ import annotations\n"
+        "\n"
+        '__version__ = "4.0.0.dev0"\n'
+        '__git_tag_sha__ = ""\n'
+        "\n"
+        "API_URL = 'https://example.com'\n"
+    )
+    p = init_file(content)
+    prebake_dunder(p, "__git_tag_sha__", "cafe123")
+    result = p.read_text()
+    assert '__git_tag_sha__ = "cafe123"' in result
+    assert '__version__ = "4.0.0.dev0"' in result
+    assert "from __future__ import annotations" in result
+    assert "API_URL = 'https://example.com'" in result
+
+
+def test_prebake_dunder_full_sha(init_file):
+    """A full 40-character SHA is handled correctly."""
+    sha = "072c7bbbcdd607011c6ca4fb9d5098532aee2dea"
+    p = init_file('__git_tag_sha__ = ""\n')
+    result = prebake_dunder(p, "__git_tag_sha__", sha)
+    assert result == sha
+    assert f'__git_tag_sha__ = "{sha}"' in p.read_text()
+
+
+# --- discover_package_init_files tests ---
+
+
+def test_discover_finds_init(tmp_path, monkeypatch):
+    """Discovers ``__init__.py`` from ``[project.scripts]``."""
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "pyproject.toml").write_text(
+        '[project.scripts]\nmycli = "mypkg.__main__:main"\n',
+        encoding="utf-8",
+    )
+    pkg = tmp_path / "mypkg"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text('__version__ = "1.0"\n', encoding="utf-8")
+
+    paths = discover_package_init_files()
+    assert len(paths) == 1
+    assert paths[0].name == "__init__.py"
+
+
+def test_discover_no_pyproject(tmp_path, monkeypatch):
+    """Returns empty list when ``pyproject.toml`` is missing."""
+    monkeypatch.chdir(tmp_path)
+    assert discover_package_init_files() == []
+
+
+def test_discover_no_scripts(tmp_path, monkeypatch):
+    """Returns empty list when ``[project.scripts]`` is absent."""
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "pyproject.toml").write_text(
+        "[project]\nname = 'test'\n",
+        encoding="utf-8",
+    )
+    assert discover_package_init_files() == []
+
+
+def test_discover_deduplicates(tmp_path, monkeypatch):
+    """Multiple scripts from the same package yield one path."""
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "pyproject.toml").write_text(
+        "[project.scripts]\n"
+        'cli1 = "mypkg.cli:main"\n'
+        'cli2 = "mypkg.alt:run"\n',
+        encoding="utf-8",
+    )
+    pkg = tmp_path / "mypkg"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text('__version__ = "1.0"\n', encoding="utf-8")
+
+    paths = discover_package_init_files()
+    assert len(paths) == 1
+
+
+# --- prebaked git field resolution tests ---
+
+
+def test_prebaked_git_branch():
+    """A pre-baked ``__git_branch__`` dunder is used over subprocess."""
+    import types
+
+    mod = types.ModuleType("fake_cli")
+    mod.__git_branch__ = "release/1.0"
+    mod.__file__ = "/fake/path.py"
+    mod.__package__ = "fake_cli"
+
+    opt = ExtraVersionOption()
+    # Bypass cli_frame by setting module directly.
+    opt.__dict__["module"] = mod
+    assert opt.git_branch == "release/1.0"
+
+
+def test_prebaked_git_long_hash():
+    """A pre-baked ``__git_long_hash__`` dunder is used over subprocess."""
+    import types
+
+    mod = types.ModuleType("fake_cli")
+    mod.__git_long_hash__ = "abc123def456" * 3
+    mod.__file__ = "/fake/path.py"
+    mod.__package__ = "fake_cli"
+
+    opt = ExtraVersionOption()
+    opt.__dict__["module"] = mod
+    assert opt.git_long_hash == "abc123def456" * 3
+
+
+def test_prebaked_git_tag_sha():
+    """A pre-baked ``__git_tag_sha__`` dunder is resolved."""
+    import types
+
+    sha = "072c7bbbcdd607011c6ca4fb9d5098532aee2dea"
+    mod = types.ModuleType("fake_cli")
+    mod.__git_tag_sha__ = sha
+    mod.__file__ = "/fake/path.py"
+    mod.__package__ = "fake_cli"
+
+    opt = ExtraVersionOption()
+    opt.__dict__["module"] = mod
+    assert opt.git_tag_sha == sha
+
+
+def test_prebaked_empty_dunder_ignored():
+    """An empty dunder is not treated as a pre-baked value."""
+    import types
+
+    mod = types.ModuleType("fake_cli")
+    mod.__git_branch__ = ""
+    mod.__file__ = "/fake/path.py"
+    mod.__package__ = "fake_cli"
+
+    opt = ExtraVersionOption()
+    opt.__dict__["module"] = mod
+    # Empty string should be ignored; falls back to git subprocess.
+    # Since there's no git repo, result is None.
+    assert opt.git_branch is None
+
+
+def test_prebaked_non_string_ignored():
+    """A non-string dunder is not treated as a pre-baked value."""
+    import types
+
+    mod = types.ModuleType("fake_cli")
+    mod.__git_branch__ = 42
+    mod.__file__ = "/fake/path.py"
+    mod.__package__ = "fake_cli"
+
+    opt = ExtraVersionOption()
+    opt.__dict__["module"] = mod
+    assert opt.git_branch is None
 
 
 def __test_inplace_context():

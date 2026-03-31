@@ -11,6 +11,10 @@
 - Auto-discover `pyproject.toml` from the current working directory upward to the VCS root before falling back to the app config directory. Matches the discovery behavior of uv, ruff, and mypy. Only active during auto-discovery (not when `--config` is passed explicitly).
 - Instantiate `config_schema` defaults when no config file is found, so `get_tool_config()` never returns `None` when a schema is configured.
 - Forward `included_params` from `ExtraCommand`/`ExtraGroup` to `ConfigOption`. Allows `@group(included_params=())` to disable `merge_default_map` when config keys are schema-only and would collide with subcommand names.
+- Move `prebake_version()`, `prebake_dunder()`, and `discover_package_init_files()` from `ExtraVersionOption` static methods to module-level functions in `click_extra.version`. Import them directly: `from click_extra.version import prebake_version`.
+- Add `git_tag` template field. Resolved from a `__git_tag__` dunder or `git describe --tags --exact-match HEAD` at runtime. Returns the tag name if HEAD is at a tagged commit.
+- Add `git_tag_sha` template field. Resolved from a `__git_tag_sha__` dunder on the CLI module, with a `git` subprocess fallback. Replaces the old `__tag_sha__` convention.
+- Git template fields (`git_branch`, `git_long_hash`, `git_short_hash`, `git_date`) now check for pre-baked `__<field>__` dunders on the CLI module before falling back to subprocess calls. Enables compiled binaries (Nuitka/PyInstaller) to embed git metadata at build time.
 
 ## [`7.8.0` (2026-03-09)](https://github.com/kdeldycke/click-extra/compare/v7.7.0...v7.8.0)
 
