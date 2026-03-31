@@ -177,6 +177,7 @@ def prebake_version(
         return None
 
     version = node.value
+    assert isinstance(version, str)
 
     if ".dev" not in version:
         logging.info(
@@ -776,7 +777,7 @@ class ExtraVersionOption(ExtraOption):
         dunder_name = f"__{field_id}__"
         value = getattr(self.module, dunder_name, None)
         if value and isinstance(value, str):
-            return value
+            return value  # type: ignore[no-any-return]
         return None
 
     @cached_property

@@ -1375,8 +1375,9 @@ class ConfigOption(ExtraOption, ParamStructure):
                             f"Valid options: {', '.join(sorted(known))}"
                         )
                         raise ValueError(msg)
-                # type: ignore[call-arg]
-                return schema(**{k: v for k, v in flattened.items() if k in known})
+                return schema(  # type: ignore[call-arg]
+                    **{k: v for k, v in flattened.items() if k in known}
+                )
 
             return _from_dataclass
 
