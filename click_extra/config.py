@@ -1540,7 +1540,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         # Search for pyproject.toml from CWD upward before the standard
         # app-dir search.  This matches the discovery behavior of uv, ruff,
         # and mypy.  Only runs on auto-discovery (not explicit --config).
-        conf_path, user_conf = None, None
+        conf_path: Path | URL | None = None
+        user_conf = None
         if (
             not explicit_conf
             and ConfigFormat.PYPROJECT_TOML in self.file_format_patterns

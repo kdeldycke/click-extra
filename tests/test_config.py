@@ -27,7 +27,7 @@ import click
 import pytest
 from boltons.iterutils import flatten, unique
 from boltons.pathutils import shrinkuser
-from extra_platforms import (  # type: ignore[attr-defined]
+from extra_platforms import (
     is_macos,
     is_unix_not_macos,
     is_windows,
