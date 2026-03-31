@@ -68,7 +68,7 @@ Each piece of knowledge has one canonical home, chosen by audience. Other locati
 | Bug reporters         | `.github/ISSUE_TEMPLATE/` | Reproduction steps, version commands.                      |
 | Contributors / Claude | `claude.md`               | Conventions, policies, non-obvious rules.                  |
 
-**YAML → Python distillation:** When workflow YAML files contain lengthy "why" explanations, migrate the rationale to Python module, class, or constant docstrings (using reST admonitions like `.. note::` and `.. warning::`). Trim the YAML comment to a one-line "what" plus a pointer: `# See click_extra/module.py for rationale.`
+**YAML → Python distillation:** When workflow YAML files contain lengthy "why" explanations, migrate the rationale to Python module, class, or constant docstrings (using reST admonitions like `.. note::` and `.. warning::`). Trim the YAML comment to a one-line "what" plus a pointer to the relevant module.
 
 ### Documenting code decisions
 
@@ -242,7 +242,7 @@ The version string is always bare (e.g., `1.2.3`). The `v` prefix is a **tag nam
 
 ### `__init__.py` files
 
-Keep `__init__.py` files minimal. They are easy to overlook when scanning a codebase, so avoid placing logic, constants, or re-exports in them. Acceptable content: license headers, package docstrings, `from __future__ import annotations`, and `__version__` (standard Python convention for the root package). Anything else belongs in a named module.
+Keep `__init__.py` files minimal — avoid placing logic, constants, or business code in them. Acceptable content: license headers, package docstrings, `from __future__ import annotations`, `__version__`, and public API re-exports. The root `click_extra/__init__.py` is an intentional exception: it re-exports Click and Cloup symbols to serve as a drop-in replacement, which is the package's core design.
 
 ### Imports
 
@@ -305,7 +305,7 @@ When invoking `uv` and `uvx` commands in GitHub Actions workflows:
 - **Flag placement:** `uv --no-progress run --frozen -- command` (not `uv run --no-progress`).
 - **Exceptions:** Omit `--frozen` for `uvx` with pinned versions, `uv tool install`, CLI invocability tests, and local development examples.
 - **Prefer explicit flags over environment variables** (`UV_NO_PROGRESS`, `UV_FROZEN`). Flags are self-documenting, visible in logs, avoid conflicts (e.g., `UV_FROZEN` vs `--locked`), and align with the long-form option principle.
-- **Per-group `requires-python` in `[tool.uv]`:** Downstream repos whose docs or other dependency groups require newer Python features can restrict specific groups with `dependency-groups.docs = { requires-python = ">= 3.14" }`. This prevents uv from installing incompatible dependencies when running on older Python versions.
+- **Per-group `requires-python` in `[tool.uv]`:** When docs or other dependency groups require newer Python features, restrict specific groups with `dependency-groups.docs = { requires-python = ">= 3.14" }`. This prevents uv from installing incompatible dependencies when running on older Python versions.
 
 ## Testing guidelines
 
