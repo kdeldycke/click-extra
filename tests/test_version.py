@@ -46,16 +46,16 @@ from click_extra import (
     version_option,
 )
 from click_extra.commands import default_extra_params
-from click_extra.version import (
-    discover_package_init_files,
-    prebake_dunder,
-    prebake_version,
-)
 from click_extra.pytest import (
     command_decorators,
     default_debug_colored_log_end,
     default_debug_colored_logging,
     default_debug_colored_version_details,
+)
+from click_extra.version import (
+    discover_package_init_files,
+    prebake_dunder,
+    prebake_version,
 )
 
 from .conftest import skip_windows_colors
@@ -720,9 +720,7 @@ def test_discover_deduplicates(tmp_path, monkeypatch):
     """Multiple scripts from the same package yield one path."""
     monkeypatch.chdir(tmp_path)
     (tmp_path / "pyproject.toml").write_text(
-        "[project.scripts]\n"
-        'cli1 = "mypkg.cli:main"\n'
-        'cli2 = "mypkg.alt:run"\n',
+        '[project.scripts]\ncli1 = "mypkg.cli:main"\ncli2 = "mypkg.alt:run"\n',
         encoding="utf-8",
     )
     pkg = tmp_path / "mypkg"
