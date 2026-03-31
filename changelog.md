@@ -1,9 +1,6 @@
 # Changelog
 
-## [`7.9.0.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.8.0...main)
-
-> [!WARNING]
-> This version is **not released yet** and is under active development.
+## [`7.9.0` (2026-03-31)](https://github.com/kdeldycke/click-extra/compare/v7.8.0...v7.9.0)
 
 - Add `flatten_config_keys()` utility to flatten nested config dicts into a single level by joining keys with a separator.
 - Flatten nested config dicts before dataclass field matching in `config_schema`, so nested TOML sub-tables (e.g. `[tool.myapp.sub-section]`) map to flat dataclass fields (e.g. `sub_section_key`).
