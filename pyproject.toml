@@ -393,6 +393,28 @@ regex = true
 search = "date-released: \\d{{4}}-\\d{{2}}-\\d{{2}}"
 replace = "date-released: {utcnow:%Y-%m-%d}"
 
+# Pin image URLs from main to the release tag.
+[[tool.bumpversion.files]]
+filename = "./readme.md"
+search = "raw.githubusercontent.com/kdeldycke/click-extra/main/"
+replace = "raw.githubusercontent.com/kdeldycke/click-extra/v{new_version}/"
+
+[[tool.bumpversion.files]]
+filename = "./docs/tutorial.md"
+search = "raw.githubusercontent.com/kdeldycke/click-extra/main/"
+replace = "raw.githubusercontent.com/kdeldycke/click-extra/v{new_version}/"
+
+# Restore image URLs from the previous release tag back to main.
+[[tool.bumpversion.files]]
+filename = "./readme.md"
+search = "raw.githubusercontent.com/kdeldycke/click-extra/v{current_version}/"
+replace = "raw.githubusercontent.com/kdeldycke/click-extra/main/"
+
+[[tool.bumpversion.files]]
+filename = "./docs/tutorial.md"
+search = "raw.githubusercontent.com/kdeldycke/click-extra/v{current_version}/"
+replace = "raw.githubusercontent.com/kdeldycke/click-extra/main/"
+
 [tool.mypy]
 warn_unused_configs = true
 warn_redundant_casts = true

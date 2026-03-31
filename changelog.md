@@ -17,6 +17,7 @@
 - Git template fields (`git_branch`, `git_long_hash`, `git_short_hash`, `git_date`) now check for pre-baked `__<field>__` dunders on the CLI module before falling back to subprocess calls. Enables compiled binaries (Nuitka/PyInstaller) to embed git metadata at build time.
 - Add `click-extra prebake` CLI with three subcommands: `prebake all` bakes `__version__` and all git fields in one pass, `prebake version` injects Git hashes into `__version__`, and `prebake field` replaces any empty dunder variable. Field names auto-wrap with `__...__` (e.g. `git_tag_sha` becomes `__git_tag_sha__`). All subcommands auto-discover target files from `[project.scripts]`.
 - Add empty `__git_*__` dunder placeholders to `click_extra/__init__.py` for dogfooding the prebake system.
+- Pin image URLs in `readme.md` and `docs/tutorial.md` to the release tag at bump time, and restore them to `main` on the next dev bump.
 
 ## [`7.8.0` (2026-03-09)](https://github.com/kdeldycke/click-extra/compare/v7.7.0...v7.8.0)
 
