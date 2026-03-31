@@ -273,9 +273,7 @@ def discover_package_init_files() -> list[Path]:
     data = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
     scripts = data.get("project", {}).get("scripts", {})
     if not scripts:
-        logging.warning(
-            "No [project.scripts] entries found in pyproject.toml."
-        )
+        logging.warning("No [project.scripts] entries found in pyproject.toml.")
         return []
 
     seen: set[Path] = set()
