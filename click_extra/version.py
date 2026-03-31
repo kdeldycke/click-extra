@@ -65,6 +65,44 @@ if TYPE_CHECKING:
     from cloup.styling import IStyle
 
 
+GIT_FIELDS: dict[str, tuple[str, ...]] = {
+    "git_branch": ("rev-parse", "--abbrev-ref", "HEAD"),
+    "git_long_hash": ("rev-parse", "HEAD"),
+    "git_short_hash": ("rev-parse", "--short", "HEAD"),
+    "git_date": ("show", "-s", "--format=%ci", "HEAD"),
+    "git_tag": ("describe", "--tags", "--exact-match", "HEAD"),
+}
+"""Git fields that can be pre-baked, mapped to their ``git`` subcommand args.
+
+``git_tag_sha`` is excluded because its resolution depends on
+``git_tag`` (it runs ``git rev-list -1 <tag>``), so it cannot be
+expressed as a static argument tuple.
+"""
+
+
+def run_git(*args: str, cwd: Path | None = None) -> str | None:
+    """Run a ``git`` command and return its stripped output, or ``None``.
+
+    *cwd* defaults to the current working directory when not provided.
+    """
+    try:
+        result = subprocess.run(
+            ["git", *args],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=5,
+        )
+        return result.stdout.strip() or None
+    except (
+        subprocess.CalledProcessError,
+        FileNotFoundError,
+        subprocess.TimeoutExpired,
+    ):
+        return None
+
+
 def _find_dunder_str(source: str, name: str) -> ast.Constant | None:
     """Find a top-level dunder string constant in parsed source.
 
@@ -721,26 +759,10 @@ class ExtraVersionOption(ExtraOption):
         return None
 
     def _run_git_command(self, *args: str) -> str | None:
-        """Run a ``git`` command and return its output, or `None` if it fails."""
+        """Run a ``git`` command and return its output, or ``None``."""
         if not self.git_repo_path:
             return None
-
-        try:
-            result = subprocess.run(
-                ["git", *args],
-                cwd=self.git_repo_path,
-                capture_output=True,
-                text=True,
-                check=True,
-                timeout=5,
-            )
-            return result.stdout.strip() or None
-        except (
-            subprocess.CalledProcessError,
-            FileNotFoundError,
-            subprocess.TimeoutExpired,
-        ):
-            return None
+        return run_git(*args, cwd=self.git_repo_path)
 
     def _get_prebaked(self, field_id: str) -> str | None:
         """Check the CLI module for a pre-baked ``__<field_id>__`` dunder.
@@ -762,7 +784,7 @@ class ExtraVersionOption(ExtraOption):
         falls back to ``git rev-parse --abbrev-ref HEAD``.
         """
         return self._get_prebaked("git_branch") or self._run_git_command(
-            "rev-parse", "--abbrev-ref", "HEAD"
+            *GIT_FIELDS["git_branch"]
         )
 
     @cached_property
@@ -773,7 +795,7 @@ class ExtraVersionOption(ExtraOption):
         falls back to ``git rev-parse HEAD``.
         """
         return self._get_prebaked("git_long_hash") or self._run_git_command(
-            "rev-parse", "HEAD"
+            *GIT_FIELDS["git_long_hash"]
         )
 
     @cached_property
@@ -792,7 +814,7 @@ class ExtraVersionOption(ExtraOption):
             <https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreabbrev>`_.
         """
         return self._get_prebaked("git_short_hash") or self._run_git_command(
-            "rev-parse", "--short", "HEAD"
+            *GIT_FIELDS["git_short_hash"]
         )
 
     @cached_property
@@ -803,7 +825,7 @@ class ExtraVersionOption(ExtraOption):
         falls back to ``git show -s --format=%ci HEAD``.
         """
         return self._get_prebaked("git_date") or self._run_git_command(
-            "show", "-s", "--format=%ci", "HEAD"
+            *GIT_FIELDS["git_date"]
         )
 
     @cached_property
@@ -816,7 +838,7 @@ class ExtraVersionOption(ExtraOption):
         Returns ``None`` if HEAD is not at a tagged commit.
         """
         return self._get_prebaked("git_tag") or self._run_git_command(
-            "describe", "--tags", "--exact-match", "HEAD"
+            *GIT_FIELDS["git_tag"]
         )
 
     @cached_property

@@ -346,6 +346,25 @@ prebake_dunder(Path("mypackage/__init__.py"), "__git_short_hash__", "abc1234")
 
 {func}`discover_package_init_files() <click_extra.version.discover_package_init_files>` can auto-discover `__init__.py` paths from `[project.scripts]` in `pyproject.toml`, so you don't need to hardcode paths in your build scripts.
 
+### CLI usage
+
+The `click-extra prebake` command exposes these utilities from the command line, without writing Python:
+
+```{code-block} shell-session
+$ # Bake __version__ and all git fields in one pass
+$ click-extra prebake all
+
+$ # Only inject Git hash into __version__
+$ click-extra prebake version
+$ click-extra prebake version --hash abc1234
+
+$ # Set a specific field (double underscores added automatically)
+$ click-extra prebake field git_tag_sha abc123def456...
+$ click-extra prebake field git_branch main --module mypackage/__init__.py
+```
+
+All subcommands auto-discover target files from `[project.scripts]` in `pyproject.toml`. Use `--module` to target a specific file instead.
+
 ## Colors
 
 Each variable listed in the section above can be rendered in its own style. They all have dedicated parameters you can pass to the `version_option` decorator:
