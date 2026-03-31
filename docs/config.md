@@ -471,10 +471,12 @@ from dataclasses import dataclass
 from click_extra import group, pass_context
 from click_extra.config import get_tool_config
 
+
 @dataclass
 class AppConfig:
     setup_guide: bool = True
     sync_interval: int = 60
+
 
 @group(config_schema=AppConfig, schema_strict=True, included_params=())
 @pass_context
@@ -1497,8 +1499,7 @@ By default, configuration keys that don't match any dataclass field are silently
 
 ```python
 @group(config_schema=AppConfig, schema_strict=True)
-def my_app():
-    ...
+def my_app(): ...
 ```
 
 Or directly on the config option:

@@ -1171,9 +1171,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         for directory in (cwd, *cwd.parents):
             if self._should_stop_walking(directory, stop_at):
-                logger.debug(
-                    f"pyproject.toml CWD search stopped at {directory}."
-                )
+                logger.debug(f"pyproject.toml CWD search stopped at {directory}.")
                 break
 
             candidate = directory / "pyproject.toml"
@@ -1377,7 +1375,8 @@ class ConfigOption(ExtraOption, ParamStructure):
                             f"Valid options: {', '.join(sorted(known))}"
                         )
                         raise ValueError(msg)
-                return schema(**{k: v for k, v in flattened.items() if k in known})  # type: ignore[call-arg]
+                # type: ignore[call-arg]
+                return schema(**{k: v for k, v in flattened.items() if k in known})
 
             return _from_dataclass
 

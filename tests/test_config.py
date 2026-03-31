@@ -3890,7 +3890,11 @@ def test_config_schema_strict_passes_when_valid(invoke, create_config):
     )
 
     result = invoke(
-        strict_ok_cli, "--config", str(conf_path), "subcommand", color=False,
+        strict_ok_cli,
+        "--config",
+        str(conf_path),
+        "subcommand",
+        color=False,
     )
     assert result.exit_code == 0
     assert "known_field is 'good'" in result.stdout
@@ -3926,7 +3930,11 @@ def test_config_schema_strict_with_nested(invoke, create_config):
     )
 
     result = invoke(
-        strict_nested_cli, "--config", str(conf_path), "subcommand", color=False,
+        strict_nested_cli,
+        "--config",
+        str(conf_path),
+        "subcommand",
+        color=False,
     )
     assert result.exit_code != 0
     assert result.exception
@@ -4014,7 +4022,9 @@ def test_pyproject_toml_cwd_discovery_walks_up(invoke, tmp_path, monkeypatch):
     assert "value is 'from_parent'" in result.stdout
 
 
-def test_pyproject_toml_explicit_config_skips_cwd(invoke, create_config, tmp_path, monkeypatch):
+def test_pyproject_toml_explicit_config_skips_cwd(
+    invoke, create_config, tmp_path, monkeypatch
+):
     """Explicit --config skips CWD pyproject.toml discovery."""
     from dataclasses import dataclass
 
@@ -4057,10 +4067,12 @@ def test_pyproject_toml_explicit_config_skips_cwd(invoke, create_config, tmp_pat
     )
 
     result = invoke(
-        explicit_cli, "--config", str(conf_path), "subcommand", color=False,
+        explicit_cli,
+        "--config",
+        str(conf_path),
+        "subcommand",
+        color=False,
     )
     assert result.exit_code == 0
     # Explicit --config wins over CWD pyproject.toml.
     assert "value is 'from_explicit'" in result.stdout
-
-
