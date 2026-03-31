@@ -13,7 +13,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Gather CLI metadata and print them."""
+"""Gather CLI metadata and print them.
+
+Pre-baking is inspired by `shadow-rs
+<https://github.com/baoyachi/shadow-rs>`_, which injects build-time
+constants (``BRANCH``, ``SHORT_COMMIT``, ``COMMIT_HASH``,
+``COMMIT_DATE``, ``TAG``, ...) into Rust binaries at compile time.
+
+.. todo::
+    shadow-rs also provides constants not yet covered here:
+    ``BUILD_TIME``, ``BUILD_TIME_2822``, ``BUILD_TIME_3339``,
+    ``BUILD_OS``, ``BUILD_TARGET``, ``BUILD_TARGET_ARCH``. Some overlap
+    with data already in ``{env_info}`` (Python version, OS,
+    architecture). Others like ``BUILD_TIME`` could be added as new
+    template fields.
+"""
 
 from __future__ import annotations
 

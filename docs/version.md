@@ -77,11 +77,15 @@ You can customize the message template with the following variables:
 | [`{git_long_hash}`](#click_extra.version.ExtraVersionOption.git_long_hash)     | The full Git commit hash of the current `HEAD`, or `None` if not in a Git repository or Git is not available.                                                                           |
 | [`{git_short_hash}`](#click_extra.version.ExtraVersionOption.git_short_hash)   | The short Git commit hash of the current `HEAD`, or `None` if not in a Git repository or Git is not available.                                                                          |
 | [`{git_date}`](#click_extra.version.ExtraVersionOption.git_date)               | The commit date of the current `HEAD` in ISO format (`YYYY-MM-DD HH:MM:SS +ZZZZ`), or `None` if not in a Git repository or Git is not available.                                       |
+| [`{git_tag}`](#click_extra.version.ExtraVersionOption.git_tag)                 | The Git tag pointing at `HEAD`, or `None` if `HEAD` is not at a tagged commit.                                                                                                         |
+| [`{git_tag_sha}`](#click_extra.version.ExtraVersionOption.git_tag_sha)         | The full commit SHA that the current tag points at, or `None` if `HEAD` is not at a tagged commit.                                                                                     |
 | [`{prog_name}`](#click_extra.version.ExtraVersionOption.prog_name)             | The display name of the program. Defaults to Click's `info_name`, but can be [overridden via `prog_name` on the command decorator](commands.md#program-name).                          |
 | [`{env_info}`](#click_extra.version.ExtraVersionOption.env_info)               | The [environment information](https://boltons.readthedocs.io/en/latest/ecoutils.html#boltons.ecoutils.get_profile) in JSON.                                                            |
 
 ```{note}
-The ``git_*`` variables are evaluated at runtime by calling ``git``. They return ``None`` in environments where Git is not available (e.g., standalone Nuitka binaries, Docker containers without Git). This is distinct from ``{version}``, which can be [pre-baked at build time](#pre-baked-versions) to include the commit hash.
+The ``git_*`` variables are evaluated at runtime by calling ``git``. They return ``None`` in environments where Git is not available (e.g., standalone Nuitka binaries, Docker containers without Git).
+
+All ``git_*`` fields can be [pre-baked at build time](#pre-baking-git-metadata) by defining ``__<field>__`` dunder variables in the CLI module. Pre-baked values take priority over subprocess calls.
 ```
 
 ```{hint}
@@ -303,6 +307,45 @@ The version resolution adapts to the runtime environment:
 
 For Nuitka binaries, the recommended workflow is to inject the commit hash into `__version__` **before** compilation. [Repomatic](https://github.com/kdeldycke/repomatic) automates this via its `prebake-version` command.
 
+### Pre-baking git metadata
+
+All `git_*` template fields support pre-baking. If the CLI module defines a `__<field>__` dunder variable with a non-empty string value, that value is used instead of calling `git` at runtime. This is the recommended approach for compiled binaries (Nuitka, PyInstaller) where `git` is unavailable.
+
+The supported dunders are:
+
+| Dunder variable | Template field | Subprocess fallback |
+|---|---|---|
+| `__git_branch__` | `{git_branch}` | `git rev-parse --abbrev-ref HEAD` |
+| `__git_long_hash__` | `{git_long_hash}` | `git rev-parse HEAD` |
+| `__git_short_hash__` | `{git_short_hash}` | `git rev-parse --short HEAD` |
+| `__git_date__` | `{git_date}` | `git show -s --format=%ci HEAD` |
+| `__git_tag__` | `{git_tag}` | `git describe --tags --exact-match HEAD` |
+| `__git_tag_sha__` | `{git_tag_sha}` | `git rev-list -1 <tag>` (if `{git_tag}` resolves) |
+
+To pre-bake a value, declare the dunder with an empty string placeholder in your `__init__.py`:
+
+```{code-block} python
+:caption: `mypackage/__init__.py`
+
+__version__ = "1.0.0.dev0"
+__git_branch__ = ""
+__git_short_hash__ = ""
+```
+
+Then inject values at build time using {func}`prebake_dunder() <click_extra.version.prebake_dunder>`:
+
+```{code-block} python
+from pathlib import Path
+from click_extra.version import prebake_dunder
+
+prebake_dunder(Path("mypackage/__init__.py"), "__git_branch__", "main")
+prebake_dunder(Path("mypackage/__init__.py"), "__git_short_hash__", "abc1234")
+```
+
+{func}`prebake_dunder() <click_extra.version.prebake_dunder>` only replaces empty strings, so running it twice is safe (idempotent). It preserves the quoting style and surrounding file content.
+
+{func}`discover_package_init_files() <click_extra.version.discover_package_init_files>` can auto-discover `__init__.py` paths from `[project.scripts]` in `pyproject.toml`, so you don't need to hardcode paths in your build scripts.
+
 ## Colors
 
 Each variable listed in the section above can be rendered in its own style. They all have dedicated parameters you can pass to the `version_option` decorator:
@@ -323,6 +366,8 @@ Each variable listed in the section above can be rendered in its own style. They
 | `git_long_hash_style`     | Style for `{git_long_hash}` variable.    | `Style(fg="yellow")` |
 | `git_short_hash_style`    | Style for `{git_short_hash}` variable.   | `Style(fg="yellow")` |
 | `git_date_style`          | Style for `{git_date}` variable.         | `Style(fg="bright_black")` |
+| `git_tag_style`           | Style for `{git_tag}` variable.          | `Style(fg="cyan")` |
+| `git_tag_sha_style`       | Style for `{git_tag_sha}` variable.      | `Style(fg="yellow")` |
 | `prog_name_style`         | Style for `{prog_name}` variable.        | `default_theme.invoked_command` |
 | `env_info_style`          | Style for `{env_info}` variable.         | `Style(fg="bright_black")` |
 
