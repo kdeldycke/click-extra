@@ -1,5 +1,10 @@
 # Changelog
 
+## [`7.9.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.9.0...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`7.9.0` (2026-03-31)](https://github.com/kdeldycke/click-extra/compare/v7.8.0...v7.9.0)
 
 - Add `flatten_config_keys()` utility to flatten nested config dicts into a single level by joining keys with a separator.
