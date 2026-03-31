@@ -217,6 +217,11 @@ def prebake_dunder(
     :mod:`ast`, and — if the current value is an empty string — replaces
     it with *value*.
 
+    Placeholders must use empty strings (``__field__ = ""``, not
+    ``None``). The AST matcher only recognizes string literals, and
+    the empty string serves as a falsy sentinel that stays
+    type-consistent with baked values (always ``str``).
+
     This is the generic counterpart to :func:`prebake_version`: where
     ``prebake_version`` appends a PEP 440 local identifier to
     ``__version__``, this function does a full replacement of any dunder

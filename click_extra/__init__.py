@@ -246,6 +246,12 @@ __all__ = [
 
 
 __version__ = "7.9.0.dev0"
+__git_branch__ = ""
+__git_date__ = ""
+__git_long_hash__ = ""
+__git_short_hash__ = ""
+__git_tag__ = ""
+__git_tag_sha__ = ""
 
 
 def __getattr__(name: str) -> object:
