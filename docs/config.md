@@ -1493,6 +1493,117 @@ The full pipeline applied to dataclass schemas is: normalize keys (hyphens to un
 
 For callable schemas, use `flatten_config_keys` and `normalize_config_keys` explicitly if you need the same behavior.
 
+### Type-aware flattening
+
+By default, `flatten_config_keys` recurses into every nested dict. This breaks fields typed as `dict[str, X]` where the dict keys are data rather than config structure (e.g. GitHub Actions matrix axis names like `os` or `python-version`).
+
+When using a dataclass schema, Click Extra inspects field type hints and automatically stops flattening at `dict`-typed field boundaries. The dict value is assigned whole to the matching field:
+
+```python
+from dataclasses import dataclass, field
+
+@dataclass
+class AppConfig:
+    simple_value: str = ""
+    opaque_map: dict[str, list[str]] = field(default_factory=dict)
+```
+
+```{code-block} toml
+:caption: Dict-typed fields are kept intact, not flattened.
+[my-app]
+simple-value = "hello"
+
+[my-app.opaque-map]
+python-version = ["3.12", "3.13"]
+os = ["ubuntu", "macos"]
+```
+
+Here `opaque_map` receives `{"python_version": ["3.12", "3.13"], "os": ["ubuntu", "macos"]}` as a single dict, rather than being split into `opaque_map_python_version` and `opaque_map_os`.
+
+Both `normalize_config_keys` and `flatten_config_keys` accept an `opaque_keys` parameter for manual control:
+
+```python
+from click_extra.config import flatten_config_keys
+
+conf = {"matrix": {"replace": {"os": {"old": "new"}}, "count": 3}}
+flatten_config_keys(conf, opaque_keys=frozenset({"matrix_replace"}))
+# {"matrix_replace": {"os": {"old": "new"}}, "matrix_count": 3}
+```
+
+### Field metadata
+
+Dataclass fields can carry metadata to control how their values are extracted from the raw config:
+
+- **`click_extra.config_path`**: A dotted TOML path (e.g. `"test-matrix.replace"`). The value is extracted directly from the raw config before normalization and flattening, bypassing the standard pipeline.
+
+- **`click_extra.normalize_keys`**: Set to `False` to skip key normalization on the extracted value. Useful when the value contains keys that are external identifiers (e.g. GitHub Actions axis names like `python-version`) that must not be converted to `python_version`.
+
+```python
+from dataclasses import dataclass, field
+
+@dataclass
+class AppConfig:
+    special: dict[str, str] = field(
+        default_factory=dict,
+        metadata={
+            "click_extra.config_path": "deep.section",
+            "click_extra.normalize_keys": False,
+        },
+    )
+```
+
+```{code-block} toml
+:caption: Keys in the extracted section are preserved as-is.
+[my-app.deep.section]
+kebab-key = "preserved"
+```
+
+With `normalize_keys=False`, `special` receives `{"kebab-key": "preserved"}` instead of `{"kebab_key": "preserved"}`.
+
+### Nested dataclass schemas
+
+Fields whose type is another dataclass are recursively instantiated with the same normalize/flatten/opaque logic. This allows complex config sections to be modeled as typed sub-schemas:
+
+```python
+from dataclasses import dataclass, field
+
+@dataclass
+class MatrixConfig:
+    exclude: list[dict[str, str]] = field(default_factory=list)
+    replace: dict[str, dict[str, str]] = field(default_factory=dict)
+    variations: dict[str, list[str]] = field(default_factory=dict)
+
+@dataclass
+class AppConfig:
+    name: str = ""
+    matrix: MatrixConfig = field(
+        default_factory=MatrixConfig,
+        metadata={
+            "click_extra.config_path": "test-matrix",
+            "click_extra.normalize_keys": False,
+        },
+    )
+```
+
+```{code-block} toml
+:caption: Nested dataclass with opaque sub-fields.
+[my-app]
+name = "my-project"
+
+[my-app.test-matrix]
+exclude = [{os = "windows-11-arm"}]
+
+[my-app.test-matrix.replace]
+os = {"ubuntu-slim" = "ubuntu-24.04"}
+
+[my-app.test-matrix.variations]
+python-version = ["3.14"]
+```
+
+The `matrix` field receives a `MatrixConfig` instance. Because `normalize_keys=False`, axis names like `python-version` and runner identifiers like `ubuntu-slim` are preserved verbatim in the `replace` and `variations` dicts.
+
+Nested dataclass fields without `config_path` metadata are matched by their normalized field name in the flattened config, just like scalar fields. The nesting is detected from the type hint and the sub-dict is recursively processed.
+
 ### Schema validation
 
 By default, configuration keys that don't match any dataclass field are silently ignored. The `schema_strict` parameter changes this to raise a `ValueError`, catching typos and stale configuration entries:

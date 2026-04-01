@@ -6,6 +6,9 @@
 > This version is **not released yet** and is under active development.
 
 - Fix argument names (e.g. `keys`) being collected as option keywords, which caused partial highlighting of hyphenated options like `--list-keys`.
+- Add type-aware flattening to `flatten_config_keys()` and `normalize_config_keys()`. Both accept an `opaque_keys` parameter: a `frozenset` of fully-qualified key names where recursion stops, preserving dict values whose keys are data (e.g. GitHub Actions matrix axis names) rather than config structure.
+- Add field metadata support for dataclass schemas. Fields may carry `click_extra.config_path` (a dotted TOML path for explicit extraction) and `click_extra.normalize_keys` (set to `False` to skip key normalization on the extracted value).
+- Add nested dataclass support to `config_schema`. Fields whose type is another dataclass are recursively instantiated with the same normalize/flatten/opaque logic. Combined with `config_path` and `normalize_keys` metadata, this allows opaque sub-sections (e.g. GitHub Actions matrix config) to be modeled as typed nested dataclasses.
 
 ## [`7.9.0` (2026-03-31)](https://github.com/kdeldycke/click-extra/compare/v7.8.0...v7.9.0)
 

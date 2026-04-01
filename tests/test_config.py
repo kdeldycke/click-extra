@@ -4076,3 +4076,337 @@ def test_pyproject_toml_explicit_config_skips_cwd(
     assert result.exit_code == 0
     # Explicit --config wins over CWD pyproject.toml.
     assert "value is 'from_explicit'" in result.stdout
+
+
+def test_flatten_config_keys_opaque():
+    """opaque_keys stops flattening at matching key boundaries."""
+    from click_extra.config import flatten_config_keys
+
+    conf = {
+        "test_matrix": {
+            "exclude": [{"os": "windows"}],
+            "replace": {"os": {"old": "new"}, "python-ver": {"3.12": "3.13"}},
+        },
+        "other": {"nested": "val"},
+    }
+
+    # Without opaque_keys: everything flattened recursively.
+    flat = flatten_config_keys(conf)
+    assert "test_matrix_replace_os_old" in flat
+    assert "test_matrix_replace_python-ver_3.12" in flat
+
+    # With opaque_keys: replace kept intact.
+    flat = flatten_config_keys(
+        conf,
+        opaque_keys=frozenset({"test_matrix_replace"}),
+    )
+    assert flat["test_matrix_replace"] == {
+        "os": {"old": "new"},
+        "python-ver": {"3.12": "3.13"},
+    }
+    # Non-opaque siblings still flattened.
+    assert flat["test_matrix_exclude"] == [{"os": "windows"}]
+    assert flat["other_nested"] == "val"
+
+
+def test_flatten_config_keys_opaque_nested():
+    """opaque_keys works at deeper nesting levels."""
+    from click_extra.config import flatten_config_keys
+
+    conf = {"a": {"b": {"c": 1, "d": 2}, "e": 3}}
+
+    flat = flatten_config_keys(conf, opaque_keys=frozenset({"a_b"}))
+    assert flat == {"a_b": {"c": 1, "d": 2}, "a_e": 3}
+
+
+def test_schema_type_aware_flattening(invoke, create_config):
+    """dict-typed dataclass fields stop flattening automatically."""
+    from dataclasses import dataclass, field
+
+    from click_extra.config import get_tool_config
+
+    @dataclass
+    class AppConfig:
+        simple_value: str = ""
+        opaque_map: dict[str, list[str]] = field(default_factory=dict)
+
+    @group(config_schema=AppConfig)
+    @pass_context
+    def type_aware_cli(ctx):
+        config = get_tool_config(ctx)
+        echo(f"simple is {config.simple_value!r}")
+        echo(f"opaque is {config.opaque_map!r}")
+
+    @type_aware_cli.command()
+    def subcommand():
+        echo("ok")
+
+    conf_path = create_config(
+        "type_aware.toml",
+        dedent("""\
+            [type-aware-cli]
+            simple-value = "hello"
+
+            [type-aware-cli.opaque-map]
+            python-version = ["3.12", "3.13"]
+            os = ["ubuntu", "macos"]
+            """),
+    )
+
+    result = invoke(
+        type_aware_cli, "--config", str(conf_path), "subcommand", color=False,
+    )
+    assert result.exit_code == 0
+    assert "simple is 'hello'" in result.stdout
+    # Dict keys preserved as-is (not flattened into opaque_map_python_version).
+    assert "python-version" in result.stdout
+    assert "os" in result.stdout
+
+
+def test_schema_field_metadata_config_path(invoke, create_config):
+    """click_extra.config_path extracts a value at a dotted TOML path."""
+    from dataclasses import dataclass, field
+
+    from click_extra.config import get_tool_config
+
+    @dataclass
+    class AppConfig:
+        normal: str = ""
+        special: dict[str, str] = field(
+            default_factory=dict,
+            metadata={
+                "click_extra.config_path": "deep.section",
+                "click_extra.normalize_keys": False,
+            },
+        )
+
+    @group(config_schema=AppConfig)
+    @pass_context
+    def meta_cli(ctx):
+        config = get_tool_config(ctx)
+        echo(f"normal is {config.normal!r}")
+        echo(f"special is {config.special!r}")
+
+    @meta_cli.command()
+    def subcommand():
+        echo("ok")
+
+    conf_path = create_config(
+        "meta.toml",
+        dedent("""\
+            [meta-cli]
+            normal = "top"
+
+            [meta-cli.deep.section]
+            kebab-key = "preserved"
+            another = "value"
+            """),
+    )
+
+    result = invoke(
+        meta_cli, "--config", str(conf_path), "subcommand", color=False,
+    )
+    assert result.exit_code == 0
+    assert "normal is 'top'" in result.stdout
+    # normalize_keys=False: kebab-key stays as-is.
+    assert "kebab-key" in result.stdout
+    assert "preserved" in result.stdout
+
+
+def test_schema_field_metadata_normalize_keys_true(invoke, create_config):
+    """click_extra.normalize_keys defaults to True: keys are normalized."""
+    from dataclasses import dataclass, field
+
+    from click_extra.config import get_tool_config
+
+    @dataclass
+    class AppConfig:
+        extracted: dict[str, str] = field(
+            default_factory=dict,
+            metadata={"click_extra.config_path": "my-section"},
+        )
+
+    @group(config_schema=AppConfig)
+    @pass_context
+    def norm_cli(ctx):
+        config = get_tool_config(ctx)
+        echo(f"extracted is {config.extracted!r}")
+
+    @norm_cli.command()
+    def subcommand():
+        echo("ok")
+
+    conf_path = create_config(
+        "norm.toml",
+        dedent("""\
+            [norm-cli.my-section]
+            kebab-key = "val"
+            """),
+    )
+
+    result = invoke(
+        norm_cli, "--config", str(conf_path), "subcommand", color=False,
+    )
+    assert result.exit_code == 0
+    # Default normalize_keys=True: kebab-key becomes kebab_key.
+    assert "kebab_key" in result.stdout
+
+
+def test_schema_nested_dataclass(invoke, create_config):
+    """Nested dataclass fields are recursively instantiated."""
+    from dataclasses import dataclass, field
+
+    from click_extra.config import get_tool_config
+
+    @dataclass
+    class SubConfig:
+        enabled: bool = False
+        items: list[str] = field(default_factory=list)
+
+    @dataclass
+    class AppConfig:
+        name: str = ""
+        sub: SubConfig = field(default_factory=SubConfig)
+
+    @group(config_schema=AppConfig)
+    @pass_context
+    def nested_dc_cli(ctx):
+        config = get_tool_config(ctx)
+        echo(f"name is {config.name!r}")
+        echo(f"sub type is {type(config.sub).__name__}")
+        echo(f"sub.enabled is {config.sub.enabled!r}")
+        echo(f"sub.items is {config.sub.items!r}")
+
+    @nested_dc_cli.command()
+    def subcommand():
+        echo("ok")
+
+    conf_path = create_config(
+        "nested_dc.toml",
+        dedent("""\
+            [nested-dc-cli]
+            name = "hello"
+
+            [nested-dc-cli.sub]
+            enabled = true
+            items = ["a", "b"]
+            """),
+    )
+
+    result = invoke(
+        nested_dc_cli, "--config", str(conf_path), "subcommand", color=False,
+    )
+    assert result.exit_code == 0
+    assert "name is 'hello'" in result.stdout
+    assert "sub type is SubConfig" in result.stdout
+    assert "sub.enabled is True" in result.stdout
+    assert "sub.items is ['a', 'b']" in result.stdout
+
+
+def test_schema_nested_dataclass_with_opaque_fields(invoke, create_config):
+    """Nested dataclass with dict-typed fields preserves opaque keys."""
+    from dataclasses import dataclass, field
+
+    from click_extra.config import get_tool_config
+
+    @dataclass
+    class MatrixConfig:
+        exclude: list[dict[str, str]] = field(default_factory=list)
+        replace: dict[str, dict[str, str]] = field(default_factory=dict)
+        variations: dict[str, list[str]] = field(default_factory=dict)
+
+    @dataclass
+    class AppConfig:
+        matrix: MatrixConfig = field(
+            default_factory=MatrixConfig,
+            metadata={
+                "click_extra.config_path": "test-matrix",
+                "click_extra.normalize_keys": False,
+            },
+        )
+
+    @group(config_schema=AppConfig)
+    @pass_context
+    def matrix_cli(ctx):
+        config = get_tool_config(ctx)
+        echo(f"exclude is {config.matrix.exclude!r}")
+        echo(f"replace is {config.matrix.replace!r}")
+        echo(f"variations is {config.matrix.variations!r}")
+
+    @matrix_cli.command()
+    def subcommand():
+        echo("ok")
+
+    conf_path = create_config(
+        "matrix.toml",
+        dedent("""\
+            [matrix-cli.test-matrix]
+            exclude = [{os = "windows-11-arm"}]
+
+            [matrix-cli.test-matrix.replace]
+            os = {"ubuntu-slim" = "ubuntu-24.04"}
+
+            [matrix-cli.test-matrix.variations]
+            python-version = ["3.14"]
+            os = ["custom-runner"]
+            """),
+    )
+
+    result = invoke(
+        matrix_cli, "--config", str(conf_path), "subcommand", color=False,
+    )
+    assert result.exit_code == 0
+    # Exclude list preserved with original keys.
+    assert "windows-11-arm" in result.stdout
+    # Replace dict keys not normalized (os stays, ubuntu-slim stays).
+    assert "ubuntu-slim" in result.stdout
+    assert "ubuntu-24.04" in result.stdout
+    # Variations keys not normalized (python-version stays as-is).
+    assert "python-version" in result.stdout
+    assert "custom-runner" in result.stdout
+
+
+def test_schema_nested_dataclass_defaults(invoke, create_config):
+    """Nested dataclass uses defaults when config section is absent."""
+    from dataclasses import dataclass, field
+
+    from click_extra.config import get_tool_config
+
+    @dataclass
+    class SubConfig:
+        enabled: bool = True
+        count: int = 42
+
+    @dataclass
+    class AppConfig:
+        name: str = "default_name"
+        sub: SubConfig = field(default_factory=SubConfig)
+
+    @group(config_schema=AppConfig)
+    @pass_context
+    def default_dc_cli(ctx):
+        config = get_tool_config(ctx)
+        echo(f"name is {config.name!r}")
+        echo(f"sub.enabled is {config.sub.enabled!r}")
+        echo(f"sub.count is {config.sub.count!r}")
+
+    @default_dc_cli.command()
+    def subcommand():
+        echo("ok")
+
+    conf_path = create_config(
+        "default_dc.toml",
+        dedent("""\
+            [default-dc-cli]
+            name = "custom"
+            """),
+    )
+
+    result = invoke(
+        default_dc_cli, "--config", str(conf_path), "subcommand", color=False,
+    )
+    assert result.exit_code == 0
+    assert "name is 'custom'" in result.stdout
+    # Sub-config uses defaults since [default-dc-cli.sub] is absent.
+    assert "sub.enabled is True" in result.stdout
+    assert "sub.count is 42" in result.stdout
