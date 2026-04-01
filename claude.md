@@ -152,12 +152,16 @@ assert result.output == "Hello, World!\n"
 
 # Partial match with dedent for multiline.
 from textwrap import dedent
-assert result.stdout.startswith(dedent("""\
+
+assert result.stdout.startswith(
+    dedent("""\
     Usage: hello [OPTIONS]
-    """))
+    """)
+)
 
 # Regex for variable content (timestamps, versions, etc.).
 import re
+
 assert re.fullmatch(
     r"Execution time: [0-9.]+ seconds\.\n",
     result.stdout,
