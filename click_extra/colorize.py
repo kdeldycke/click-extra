@@ -652,8 +652,9 @@ class HelpExtraFormatter(cloup.HelpFormatter):
         """Style a trailing ``[env var: ...; default: ...; ...]`` block.
 
         Parses the bracket content by splitting on ``;`` separators and
-        matching each field by its label prefix. This replaces the former
-        monolithic regex with named groups and style aliases.
+        matching each field by its label prefix. Applied post-wrapping because
+        Click's text wrapper splits lines after ``get_help_record()`` returns,
+        which would break pre-styled ANSI codes.
         """
         prefix = match.group(1)
         content = match.group(2)
@@ -747,9 +748,10 @@ class HelpExtraFormatter(cloup.HelpFormatter):
                 flags=re.VERBOSE,
             )
 
-        # Highlight trailing square brackets: [env var: ...; default: ...; ...].
-        # Uses a simple outer regex to capture the bracket block, then parses
-        # each field by its label inside _style_bracket_fields().
+        # Style trailing bracket fields [env var: ...; default: ...; ...].
+        # This must happen post-wrapping because Click's text wrapper splits
+        # lines after get_help_record() returns, which would break pre-styled
+        # ANSI codes.
         help_text = re.sub(
             r"(  )"  # 2 spaces (column or description spacing).
             r"\["  # Opening bracket.

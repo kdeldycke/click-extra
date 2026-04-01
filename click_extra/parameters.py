@@ -169,9 +169,13 @@ class ExtraOption(Option):
     Does nothing in particular for now but provides a way to identify Click Extra's own
     options with certainty.
 
-    .. hint::
-        Could contains in the future Option-specific code that would be prime candidate
-        for upstream contribution to Click.
+    .. note::
+        Bracket fields (envvar, default, range, required) cannot be pre-styled in
+        ``get_help_record()`` because Click's text wrapper splits lines *after* the
+        record is returned, which would break ANSI codes that span wrapped boundaries.
+        Styling is instead applied post-wrapping in
+        ``HelpExtraFormatter._style_bracket_fields()``, which uses the structured data
+        from ``Option.get_help_extra()`` to identify each field by its label.
     """
 
 
