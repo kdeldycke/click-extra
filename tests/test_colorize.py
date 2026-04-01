@@ -600,21 +600,29 @@ def test_option_does_not_match_inside_longer_option_in_text():
     assert theme.option("--table") + "-format" not in help_text
 
 
-def test_parent_group_name_highlighted_in_subcommand_help():
-    """Parent group names must be highlighted in subcommand help text.
+def test_parent_keywords_highlighted_in_subcommand_help():
+    """Parent group names, options, and choices must be highlighted in
+    subcommand help text.
 
-    When a subcommand's docstring references the parent CLI (e.g.
-    ``myapp --table-format github sub``), both ``myapp`` and ``sub`` should be
-    highlighted independently, not only when they appear as the contiguous
-    command path ``myapp sub``.
+    When a subcommand's docstring references the parent CLI and its options
+    (e.g. ``myapp --table-format github sub``), the parent group name, its
+    options, and their choices should all be highlighted.
     """
     from click_extra.commands import ExtraGroup
 
-    grp = ExtraGroup("myapp")
+    grp = ExtraGroup(
+        "myapp",
+        params=[
+            ExtraOption(
+                ["--table-format"],
+                type=click.Choice(["github", "json", "csv"]),
+            ),
+        ],
+    )
 
     sub = ExtraCommand(
         "sub",
-        help="Example: myapp --verbose sub",
+        help="Example: myapp --table-format github sub",
     )
     grp.add_command(sub)
 
@@ -623,9 +631,14 @@ def test_parent_group_name_highlighted_in_subcommand_help():
     ctx = ExtraContext(sub, parent=parent_ctx, info_name="sub")
     help_text = sub.get_help(ctx)
 
-    # "myapp" appears before "--verbose", not adjacent to "sub", yet it must
-    # still be highlighted as an invoked command.
+    # Parent group name is highlighted independently.
     assert " " + theme.invoked_command("myapp") + " " in help_text
+
+    # Parent option is highlighted in the subcommand's docstring.
+    assert " " + theme.option("--table-format") + " " in help_text
+
+    # Parent choice value is highlighted.
+    assert theme.choice("github") + " " in help_text
 
 
 def test_keyword_collection(invoke, assert_output_regex):

@@ -408,6 +408,24 @@ class ExtraHelpColorsMixin:  # (Command)??
                 if default_string:
                     defaults.add(default_string)
 
+        # Collect option names and choices from parent groups. Subcommand
+        # docstrings often reference parent options in usage examples (e.g.
+        # "myapp --table-format github sub"). Only options and choices are
+        # collected: metavars and defaults from parents are too generic (TEXT,
+        # FILE) and would over-highlight.
+        parent_ctx = ctx.parent
+        while parent_ctx:
+            for param in parent_ctx.command.get_params(parent_ctx):
+                if isinstance(param, click.Option) and not param.hidden:
+                    options.update(param.opts)
+                    options.update(param.secondary_opts)
+                    if isinstance(param.type, click.Choice):
+                        choices.update(
+                            i.name if isinstance(i, Enum) else str(i)
+                            for i in param.type.choices
+                        )
+            parent_ctx = parent_ctx.parent
+
         # Split between shorts and long options
         for option_name in options:
             # Short options are no longer than 2 characters like "-D", "/d", "/?",
