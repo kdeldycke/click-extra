@@ -540,6 +540,7 @@ assert dedent("""\
     """
 ) in result.output
 ```
+
 ### Verbose base level
 
 When both `--verbosity` and `-v`/`--verbose` are present on the same command, `-v` increments from the default level of `--verbosity`. If you change that default, the base level of `-v` shifts accordingly:

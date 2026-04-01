@@ -13,6 +13,7 @@ At the module level, `click_extra` imports all elements from `click.*`, then all
 Which means all elements not redefined by Click Extra fallback to Cloup. And if Cloup itself does not redefine them, they fallback to Click.
 
 For example:
+
 - `click_extra.echo` is a direct alias to `click.echo` because neither Click Extra or Cloup re-implements an `echo` helper.
 - [`@cloup.option_group` is a specific feature of Cloup](https://cloup.readthedocs.io/en/stable/pages/option-groups.html) that is only implemented by it. It is not modified by Click Extra, and Click does not implement it. Still, `@click_extra.option_group` is a direct alias to Cloup's one.
 - `@click_extra.timer` is a new decorator only implemented by Click Extra. So it is not a proxy of anything.
@@ -20,51 +21,51 @@ For example:
 
 Here is some of the main decorators of Click Extra and how they wraps and extends Cloup and Click ones:
 
-| Decorators from `click_extra`              | Wrapped decorator        | Base class                           |
-| :--------------------------------- | :----------------------- | :----------------------------------- |
-| `@command`             | `@cloup.command`         | `click_extra.ExtraCommand`           |
-| `@group`               | `@cloup.group`           | `click_extra.ExtraGroup`             |
-| `@lazy_group`          | `@click_extra.group`     | `click_extra.LazyGroup`              |
-| `@option`              | `@cloup.option`          | `click_extra.Option`                 |
-| `@argument`            | `@cloup.argument`        | `click_extra.Argument`               |
-| `@version_option`      | `@click_extra.option`    | `click_extra.ExtraVersionOption`     |
-| `@color_option`        | `@click_extra.option`    | `click_extra.ColorOption`            |
-| `@config_option`       | `@click_extra.option`    | `click_extra.ConfigOption`           |
-| `@no_config_option`    | `@click_extra.option`    | `click_extra.NoConfigOption`         |
-| `@show_params_option`  | `@click_extra.option`    | `click_extra.ShowParamsOption`       |
-| `@table_format_option` | `@click_extra.option`    | `click_extra.TableFormatOption`      |
-| `@telemetry_option`    | `@click_extra.option`    | `click_extra.TelemetryOption`        |
-| `@timer_option`        | `@click_extra.option`    | `click_extra.TimerOption`            |
-| `@verbose_option`      | `@click_extra.option`    | `click_extra.VerboseOption`          |
-| `@verbosity_option`    | `@click_extra.option`    | `click_extra.VerbosityOption`        |
-| `@option_group`        | `@cloup.option_group`    | `cloup.OptionGroup`                  |
-| `@pass_context`        | `@click.pass_context`    | -                               |
-| `@help_option`         | `@click.help_option`     | -                               |
-| …                                  | …                        | …                                    |
+| Decorators from `click_extra` | Wrapped decorator     | Base class                       |
+| :---------------------------- | :-------------------- | :------------------------------- |
+| `@command`                    | `@cloup.command`      | `click_extra.ExtraCommand`       |
+| `@group`                      | `@cloup.group`        | `click_extra.ExtraGroup`         |
+| `@lazy_group`                 | `@click_extra.group`  | `click_extra.LazyGroup`          |
+| `@option`                     | `@cloup.option`       | `click_extra.Option`             |
+| `@argument`                   | `@cloup.argument`     | `click_extra.Argument`           |
+| `@version_option`             | `@click_extra.option` | `click_extra.ExtraVersionOption` |
+| `@color_option`               | `@click_extra.option` | `click_extra.ColorOption`        |
+| `@config_option`              | `@click_extra.option` | `click_extra.ConfigOption`       |
+| `@no_config_option`           | `@click_extra.option` | `click_extra.NoConfigOption`     |
+| `@show_params_option`         | `@click_extra.option` | `click_extra.ShowParamsOption`   |
+| `@table_format_option`        | `@click_extra.option` | `click_extra.TableFormatOption`  |
+| `@telemetry_option`           | `@click_extra.option` | `click_extra.TelemetryOption`    |
+| `@timer_option`               | `@click_extra.option` | `click_extra.TimerOption`        |
+| `@verbose_option`             | `@click_extra.option` | `click_extra.VerboseOption`      |
+| `@verbosity_option`           | `@click_extra.option` | `click_extra.VerbosityOption`    |
+| `@option_group`               | `@cloup.option_group` | `cloup.OptionGroup`              |
+| `@pass_context`               | `@click.pass_context` | -                                |
+| `@help_option`                | `@click.help_option`  | -                                |
+| …                             | …                     | …                                |
 
 Same for the main classes and functions, where some are re-implemented by Click Extra, and others are direct aliases to Cloup or Click ones:
 
-| Classes from `click_extra`                | Alias to                        | Parent class                 |
-| :------------------------------- | :------------------------------ | :--------------------------- |
-| `ExtraCommand`       | -                     | `cloup.Command`              |
-| `ExtraGroup`         | -                        | `cloup.Group`                |
-| `LazyGroup`         | -                        | `click_extra.ExtraGroup`                |
-| `Option`             | -                        | `cloup.Option`               |
-| `Argument`           | -                        | `cloup.Argument`             |
-| `ExtraContext`       | -                        | `cloup.Context`              |
-| `HelpFormatter`      | `cloup.HelpFormatter`           |                              |
-| `HelpExtraFormatter` | -                        | `cloup.HelpFormatter`        |
-| `HelpTheme`          | `cloup.HelpThene`               |                              |
-| `HelpExtraTheme`     | -                        | `cloup.HelpThene`            |
-| `ExtraCliRunner`     | -                        | `click.testing.CliRunner`    |
-| `ExtraVersionOption` | -                        |                              |
-| `Style`              | `cloup.Style`                   |                              |
-| `echo`               | `click.echo`                    |                              |
-| `ParameterSource`    | `click.core.ParameterSource`    |                              |
-| `UNSET`              | `click._utils.UNSET`            |                              |
-| `Choice`             | `click.Choice`                  |                              |
-| `EnumChoice`         | -                        | `click.Choice`               |
-| …                                | …                               | …                            |
+| Classes from `click_extra` | Alias to                     | Parent class              |
+| :------------------------- | :--------------------------- | :------------------------ |
+| `ExtraCommand`             | -                            | `cloup.Command`           |
+| `ExtraGroup`               | -                            | `cloup.Group`             |
+| `LazyGroup`                | -                            | `click_extra.ExtraGroup`  |
+| `Option`                   | -                            | `cloup.Option`            |
+| `Argument`                 | -                            | `cloup.Argument`          |
+| `ExtraContext`             | -                            | `cloup.Context`           |
+| `HelpFormatter`            | `cloup.HelpFormatter`        |                           |
+| `HelpExtraFormatter`       | -                            | `cloup.HelpFormatter`     |
+| `HelpTheme`                | `cloup.HelpThene`            |                           |
+| `HelpExtraTheme`           | -                            | `cloup.HelpThene`         |
+| `ExtraCliRunner`           | -                            | `click.testing.CliRunner` |
+| `ExtraVersionOption`       | -                            |                           |
+| `Style`                    | `cloup.Style`                |                           |
+| `echo`                     | `click.echo`                 |                           |
+| `ParameterSource`          | `click.core.ParameterSource` |                           |
+| `UNSET`                    | `click._utils.UNSET`         |                           |
+| `Choice`                   | `click.Choice`               |                           |
+| `EnumChoice`               | -                            | `click.Choice`            |
+| …                          | …                            | …                         |
 
 ```{hint}
 You can inspect the implementation details in:

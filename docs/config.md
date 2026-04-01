@@ -394,11 +394,11 @@ $ echo $?
 
 The exit codes are:
 
-| Exit code | Meaning |
-| :-------- | :------ |
-| `0` | Configuration file is valid |
-| `1` | Validation error (unrecognized keys) |
-| `2` | File not found or cannot be parsed |
+| Exit code | Meaning                              |
+| :-------- | :----------------------------------- |
+| `0`       | Configuration file is valid          |
+| `1`       | Validation error (unrecognized keys) |
+| `2`       | File not found or cannot be parsed   |
 
 ```{note}
 `--validate-config` always validates in [strict mode](#strictness), regardless of the `strict` setting on `@config_option`. It requires a sibling `@config_option` decorator to be present on the same command.
@@ -641,17 +641,17 @@ Backing up /tmp
 
 Several dialects are supported:
 
-| Format | Extensions | Description | Enabled by default |
-| :----- | :--------- | :---------- | :----------------- |
-| [`TOML`](#toml) | `*.toml` | - | ✅ |
-| [`YAML`](#yaml) | `*.yaml`, `*.yml` | - | ❌ |
-| [`JSON`](#json) | `*.json` | - | ✅ |
-| [`JSON5`](#json5) | `*.json5` | A [superset of JSON made for configuration file](https://json5.org) | ❌ |
-| [`JSONC`](#jsonc) | `*.jsonc` | Like JSON, but with comments and trailing commas | ❌ |
-| [`HJSON`](#hjson) | `*.hjson` | Another flavor of a [user-friendly JSON](https://hjson.github.io) | ❌ |
-| [`INI`](#ini) | `*.ini` | With extended interpolation, multi-level sections and non-native types (`list`, `set`, …) | ✅ |
-| [`XML`](#xml) | `*.xml` | - | ❌ |
-| [`PYPROJECT_TOML`](#pyproject-toml) | `pyproject.toml` | Reads `[tool.*]` sections from `pyproject.toml` | ✅ |
+| Format                              | Extensions        | Description                                                                               | Enabled by default |
+| :---------------------------------- | :---------------- | :---------------------------------------------------------------------------------------- | :----------------- |
+| [`TOML`](#toml)                     | `*.toml`          | -                                                                                         | ✅                 |
+| [`YAML`](#yaml)                     | `*.yaml`, `*.yml` | -                                                                                         | ❌                 |
+| [`JSON`](#json)                     | `*.json`          | -                                                                                         | ✅                 |
+| [`JSON5`](#json5)                   | `*.json5`         | A [superset of JSON made for configuration file](https://json5.org)                       | ❌                 |
+| [`JSONC`](#jsonc)                   | `*.jsonc`         | Like JSON, but with comments and trailing commas                                          | ❌                 |
+| [`HJSON`](#hjson)                   | `*.hjson`         | Another flavor of a [user-friendly JSON](https://hjson.github.io)                         | ❌                 |
+| [`INI`](#ini)                       | `*.ini`           | With extended interpolation, multi-level sections and non-native types (`list`, `set`, …) | ✅                 |
+| [`XML`](#xml)                       | `*.xml`           | -                                                                                         | ❌                 |
+| [`PYPROJECT_TOML`](#pyproject-toml) | `pyproject.toml`  | Reads `[tool.*]` sections from `pyproject.toml`                                           | ✅                 |
 
 Formats depending on third-party packages are not enabled by default. You need to [install Click Extra with the corresponding extra dependency group](install.md#configuration-file-formats) to enable them.
 
@@ -833,11 +833,11 @@ When both a dedicated configuration file (e.g., `my-cli.toml`) and a `pyproject.
 
 This is the de facto standard across the ecosystem. Every major tool that supports both a dedicated config file and `pyproject.toml` follows the same strict precedence — dedicated file wins, `pyproject.toml` is ignored entirely:
 
-| Tool | Precedence rule |
-| :--- | :-------------- |
-| [ruff](https://docs.astral.sh/ruff/configuration/#config-file-discovery) | `.ruff.toml` > `ruff.toml` > `pyproject.toml` |
-| [uv](https://docs.astral.sh/uv/concepts/configuration-files/#configuration-files) | `uv.toml` > `pyproject.toml` |
-| [typos](https://github.com/crate-ci/typos/blob/master/docs/reference.md#sources) | `typos.toml` / `_typos.toml` / `.typos.toml` > `Cargo.toml` > `pyproject.toml` |
+| Tool                                                                              | Precedence rule                                                                |
+| :-------------------------------------------------------------------------------- | :----------------------------------------------------------------------------- |
+| [ruff](https://docs.astral.sh/ruff/configuration/#config-file-discovery)          | `.ruff.toml` > `ruff.toml` > `pyproject.toml`                                  |
+| [uv](https://docs.astral.sh/uv/concepts/configuration-files/#configuration-files) | `uv.toml` > `pyproject.toml`                                                   |
+| [typos](https://github.com/crate-ci/typos/blob/master/docs/reference.md#sources)  | `typos.toml` / `_typos.toml` / `.typos.toml` > `Cargo.toml` > `pyproject.toml` |
 
 The rationale:
 
@@ -874,6 +874,7 @@ Other tools are following suit:
 The configuration file is searched with a wildcard-based glob pattern.
 
 There is multiple stages to locate and parse the configuration file:
+
 1. Locate all files matching the search pattern
 2. Match each file against the supported formats, in order, until one is successfully parsed
 3. Use the first successfully parsed file as the configuration source
@@ -980,15 +981,15 @@ Patterns provided to `@config_option`'s `default` argument:
   - Windows is insensitive to case,
   - Unix and macOS are case-sensitive.
 - Are setup with the following default flags:
-  | Flag | Description |
-  | :--- | :---------- |
-  | [`GLOBSTAR`](https://facelessuser.github.io/wcmatch/glob/#globstar) | Recursive directory search via `**` glob notation. |
-  | [`FOLLOW`](https://facelessuser.github.io/wcmatch/glob/#follow) | Traverse symlink directories. |
-  | [`DOTGLOB`](https://facelessuser.github.io/wcmatch/glob/#dotglob) | Include file or directory starting with a literal dot (`.`). |
-  | [`BRACE`](https://facelessuser.github.io/wcmatch/glob/#brace) | Expand `{pat1,pat2,...}` brace expressions into multiple patterns. |
-  | [`SPLIT`](https://facelessuser.github.io/wcmatch/glob/#split) | Allow multiple patterns separated by `\|`. |
-  | [`GLOBTILDE`](https://facelessuser.github.io/wcmatch/glob/#globtilde) | Allow user's home path `~` to be expanded. |
-  | [`NODIR`](https://facelessuser.github.io/wcmatch/glob/#nodir) | Restricts results to files. |
+  | Flag                                                                  | Description                                                        |
+  | :-------------------------------------------------------------------- | :----------------------------------------------------------------- |
+  | [`GLOBSTAR`](https://facelessuser.github.io/wcmatch/glob/#globstar)   | Recursive directory search via `**` glob notation.                 |
+  | [`FOLLOW`](https://facelessuser.github.io/wcmatch/glob/#follow)       | Traverse symlink directories.                                      |
+  | [`DOTGLOB`](https://facelessuser.github.io/wcmatch/glob/#dotglob)     | Include file or directory starting with a literal dot (`.`).       |
+  | [`BRACE`](https://facelessuser.github.io/wcmatch/glob/#brace)         | Expand `{pat1,pat2,...}` brace expressions into multiple patterns. |
+  | [`SPLIT`](https://facelessuser.github.io/wcmatch/glob/#split)         | Allow multiple patterns separated by `\|`.                         |
+  | [`GLOBTILDE`](https://facelessuser.github.io/wcmatch/glob/#globtilde) | Allow user's home path `~` to be expanded.                         |
+  | [`NODIR`](https://facelessuser.github.io/wcmatch/glob/#nodir)         | Restricts results to files.                                        |
 
 ```{important}
 The `BRACE` flag is always forced, so that multi-format default patterns using `{pat1,pat2,...}` syntax expand correctly. The `NODIR` flag is always forced, to optimize the search for files only.
@@ -1164,10 +1165,10 @@ The `file_pattern_flags` argument controls the matching behavior of file pattern
 
 These flags are defined in [`wcmatch.fnmatch`](https://facelessuser.github.io/wcmatch/fnmatch/#flags) and default to:
 
-| Flag | Description |
-| :--- | :---------- |
+| Flag                                                               | Description                                        |
+| :----------------------------------------------------------------- | :------------------------------------------------- |
 | [`NEGATE`](https://facelessuser.github.io/wcmatch/fnmatch/#negate) | Adds support of `!` negation to define exclusions. |
-| [`SPLIT`](https://facelessuser.github.io/wcmatch/fnmatch/#split) | Allow multiple patterns separated by `|`. |
+| [`SPLIT`](https://facelessuser.github.io/wcmatch/fnmatch/#split)   | Allow multiple patterns separated by \`            |
 
 ```{important}
 The `SPLIT` flag is always forced, as our multi-pattern design relies on it.
@@ -1502,6 +1503,7 @@ When using a dataclass schema, Click Extra inspects field type hints and automat
 ```python
 from dataclasses import dataclass, field
 
+
 @dataclass
 class AppConfig:
     simple_value: str = ""
@@ -1541,6 +1543,7 @@ Dataclass fields can carry metadata to control how their values are extracted fr
 ```python
 from dataclasses import dataclass, field
 
+
 @dataclass
 class AppConfig:
     special: dict[str, str] = field(
@@ -1567,11 +1570,13 @@ Fields whose type is another dataclass are recursively instantiated with the sam
 ```python
 from dataclasses import dataclass, field
 
+
 @dataclass
 class MatrixConfig:
     exclude: list[dict[str, str]] = field(default_factory=list)
     replace: dict[str, dict[str, str]] = field(default_factory=dict)
     variations: dict[str, list[str]] = field(default_factory=dict)
+
 
 @dataclass
 class AppConfig:

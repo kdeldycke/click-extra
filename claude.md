@@ -60,13 +60,13 @@ When making changes:
 
 Each piece of knowledge has one canonical home, chosen by audience. Other locations get a brief pointer ("See `module.py` for rationale.").
 
-| Audience              | Home                      | Content                                                    |
-| :-------------------- | :------------------------ | :--------------------------------------------------------- |
-| End users             | `docs/`                   | Installation, configuration, usage, API reference.         |
-| Developers            | Python docstrings         | Design decisions, trade-offs, "why" explanations.          |
-| Workflow maintainers  | YAML comments             | Brief "what" + pointer to Python code for "why."           |
-| Bug reporters         | `.github/ISSUE_TEMPLATE/` | Reproduction steps, version commands.                      |
-| Contributors / Claude | `claude.md`               | Conventions, policies, non-obvious rules.                  |
+| Audience              | Home                      | Content                                            |
+| :-------------------- | :------------------------ | :------------------------------------------------- |
+| End users             | `docs/`                   | Installation, configuration, usage, API reference. |
+| Developers            | Python docstrings         | Design decisions, trade-offs, "why" explanations.  |
+| Workflow maintainers  | YAML comments             | Brief "what" + pointer to Python code for "why."   |
+| Bug reporters         | `.github/ISSUE_TEMPLATE/` | Reproduction steps, version commands.              |
+| Contributors / Claude | `claude.md`               | Conventions, policies, non-obvious rules.          |
 
 **YAML → Python distillation:** When workflow YAML files contain lengthy "why" explanations, migrate the rationale to Python module, class, or constant docstrings (using reST admonitions like `.. note::` and `.. warning::`). Trim the YAML comment to a one-line "what" plus a pointer to the relevant module.
 
@@ -82,8 +82,8 @@ When writing or updating Sphinx documentation in `docs/*.md`, **always prefer li
 
 Use the two MyST directives provided by `click_extra.sphinx`:
 
-- `` ```{click:source} `` — defines and displays a Click CLI's source code (syntax-highlighted as Python).
-- `` ```{click:run} `` — invokes the CLI and renders the output as a terminal session. Code inside is executed at `sphinx-build` time.
+- ```` ```{click:source} ```` — defines and displays a Click CLI's source code (syntax-highlighted as Python).
+- ```` ```{click:run} ```` — invokes the CLI and renders the output as a terminal session. Code inside is executed at `sphinx-build` time.
 
 ### Basic pattern
 
@@ -130,6 +130,7 @@ assert result.exit_code == 0
 Every `click:run` block **must** include assertions to verify the CLI output and exit code. This turns documentation into tests — if the CLI behavior changes, the Sphinx build fails, catching regressions early.
 
 The `invoke()` function returns a result object with:
+
 - `result.exit_code` — process exit status
 - `result.stdout` — standard output
 - `result.stderr` — standard error
@@ -152,12 +153,16 @@ assert result.output == "Hello, World!\n"
 
 # Partial match with dedent for multiline.
 from textwrap import dedent
-assert result.stdout.startswith(dedent("""\
+
+assert result.stdout.startswith(
+    dedent("""\
     Usage: hello [OPTIONS]
-    """))
+    """)
+)
 
 # Regex for variable content (timestamps, versions, etc.).
 import re
+
 assert re.fullmatch(
     r"Execution time: [0-9.]+ seconds\.\n",
     result.stdout,
@@ -175,7 +180,7 @@ assert result.output == "Hello, \x1b[31mWorld\x1b[0m!\n"
 
 ### Do not use static code blocks for CLI output
 
-Never paste CLI output into a plain `` ```shell-session `` or `` ```text `` block. Always use `click:run` so the output is generated live and validated. This guarantees documentation stays in sync with the code.
+Never paste CLI output into a plain ```` ```shell-session ```` or ```` ```text ```` block. Always use `click:run` so the output is generated live and validated. This guarantees documentation stays in sync with the code.
 
 ## File naming conventions
 

@@ -129,10 +129,9 @@ This is a graph of the default, main dependencies of the Python package:
 
 By default, Click Extra supports TOML [configuration files](config.md#toml) and all standard [table formats](table.md#table-formats). Optional extras unlock additional features:
 
-``````{list-table}
+````{list-table}
 :header-rows: 1
 :widths: 10 40 50
-
 * - Extra
   - Install command
   - Unlocks
@@ -184,7 +183,7 @@ By default, Click Extra supports TOML [configuration files](config.md#toml) and 
     $ pip install click-extra[pytest]
     ```
   - - [Fixtures and utilities](pytest.md) for testing Click CLIs
-``````
+````
 
 ````{tip}
 Install all extras at once with:
