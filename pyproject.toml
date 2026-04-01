@@ -237,7 +237,7 @@ dependency-groups.docs = { requires-python = ">= 3.14" }
 # (sync-uv-lock) reverts uv.lock when the only diff is timestamp noise.
 exclude-newer = "1 week"
 # Exclude tabulate from the cooldown period.
-exclude-newer-package = { "tabulate" = "0 day" }
+exclude-newer-package = {  "tabulate" = "0 day", "pygments" = "0 day", "requests" = "0 day" }
 # Package is at root level, not in "./src/".
 build-backend.module-root = ""
 
