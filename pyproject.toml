@@ -445,4 +445,5 @@ exclude = [
 [tool.repomatic]
 dependency-graph.all-extras = true
 dependency-graph.all-groups = false
+include = [ "skills" ]
 exclude = [ "workflows/debug.yaml" ]

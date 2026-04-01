@@ -31,6 +31,7 @@ For each project, collect (using parallel agents where possible):
 #### `docs/conf.py`
 
 Read the full file. Compare every setting, import, and extension list across projects. Look for:
+
 - Extensions or settings present in some projects but missing from others.
 - Deprecated or renamed settings. Check the Sphinx and extension changelogs to identify settings that have been renamed, replaced, or are now the default in the installed version and can be removed.
 - Stale import patterns (e.g., `tomli` fallback when the minimum Python already ships `tomllib`).
@@ -59,6 +60,7 @@ Compare `docs/_static/`, `docs/assets/`, `.rst` API doc files, and any `docs_upd
 ### Compare and report
 
 Present findings as tables organized by category. For each discrepancy, indicate:
+
 - **Direction**: borrow from sibling, or push to sibling
 - **Severity**: bug fix (stale dep, missing dep), alignment (consistency), or enhancement (new feature)
 - **Affected projects**: which repos need the change
@@ -74,6 +76,7 @@ Use this format for each category:
 ```
 
 Group by:
+
 1. Bug fixes (stale deps, missing declared deps, broken links)
 2. Structural alignment (toctree, page naming, conf.py settings)
 3. Content improvements (install.md sections, extra-deps tables, badges)

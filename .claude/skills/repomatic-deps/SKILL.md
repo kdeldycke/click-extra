@@ -90,10 +90,10 @@ These conventions are derived from the `pyproject.toml` files across all `kdeldy
 
 #### Development dependencies (`[dependency-groups]`)
 
-6. **Prefer `[dependency-groups]`** (uv standard) over `[project.optional-dependencies]` for test, typing, and docs groups.
-7. **`>=` is preferred for dev deps too**, but `~=` is acceptable when stricter pinning reduces CI randomness. If a package also appears in runtime deps, the dev entry must use the same specifier style. The relaxation is about specifier *style* (`~=` allowed), not about floor *accuracy* — dev dep floors still need to be grounded in actual API or compatibility requirements, not adoption timestamps.
-8. **Standard group names:** `test`, `typing`, `docs` (lowercase, alphabetical).
-9. **Type stubs** go in the `typing` group with stub-specific versions: `"types-boltons>=25.0.0.20250822"`.
+06. **Prefer `[dependency-groups]`** (uv standard) over `[project.optional-dependencies]` for test, typing, and docs groups.
+07. **`>=` is preferred for dev deps too**, but `~=` is acceptable when stricter pinning reduces CI randomness. If a package also appears in runtime deps, the dev entry must use the same specifier style. The relaxation is about specifier *style* (`~=` allowed), not about floor *accuracy* — dev dep floors still need to be grounded in actual API or compatibility requirements, not adoption timestamps.
+08. **Standard group names:** `test`, `typing`, `docs` (lowercase, alphabetical).
+09. **Type stubs** go in the `typing` group with stub-specific versions: `"types-boltons>=25.0.0.20250822"`.
 10. **Alphabetical order** within each group.
 
 #### General rules
@@ -106,20 +106,20 @@ These conventions are derived from the `pyproject.toml` files across all `kdeldy
 
 Read the full `pyproject.toml`. For each dependency entry, check:
 
-| Check | What to flag |
-|---|---|
-| Specifier style | `~=`, `==`, or upper bounds on runtime deps |
-| Missing comment | No comment above the entry explaining the version floor |
-| Weak comment | Comment cites Python version support instead of a concrete code dependency. Flag unless it documents a `requires-python` alignment or a Python version drop |
-| Stale comment | Comment references a reason that no longer applies (e.g., the cited method was replaced, or the Python version was dropped from the support matrix) |
-| Inflated floor | Floor higher than the oldest version providing the APIs actually used (see [floor verification](#floor-verification) below) |
+| Check                     | What to flag                                                                                                                                                    |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Specifier style           | `~=`, `==`, or upper bounds on runtime deps                                                                                                                     |
+| Missing comment           | No comment above the entry explaining the version floor                                                                                                         |
+| Weak comment              | Comment cites Python version support instead of a concrete code dependency. Flag unless it documents a `requires-python` alignment or a Python version drop     |
+| Stale comment             | Comment references a reason that no longer applies (e.g., the cited method was replaced, or the Python version was dropped from the support matrix)             |
+| Inflated floor            | Floor higher than the oldest version providing the APIs actually used (see [floor verification](#floor-verification) below)                                     |
 | Marker/rationale mismatch | Floor rationale contradicts the conditional marker (e.g., "Python 3.14 wheels" on a dep gated by `python_version<'3.11'` — that dep is never installed on 3.14) |
-| Ordering | Dependencies not in alphabetical order |
-| Group placement | Type stubs outside `typing` group, test deps outside `test` group |
-| Section style | `[project.optional-dependencies]` used where `[dependency-groups]` would be appropriate |
-| Bare dependency | No version specifier at all (e.g., `"requests"`) |
-| Conditional markers | Missing Python version marker for backport packages |
-| Stale cooldown exceptions | `exclude-newer-package` entries in `[tool.uv]` for packages that no longer need them (see below) |
+| Ordering                  | Dependencies not in alphabetical order                                                                                                                          |
+| Group placement           | Type stubs outside `typing` group, test deps outside `test` group                                                                                               |
+| Section style             | `[project.optional-dependencies]` used where `[dependency-groups]` would be appropriate                                                                         |
+| Bare dependency           | No version specifier at all (e.g., `"requests"`)                                                                                                                |
+| Conditional markers       | Missing Python version marker for backport packages                                                                                                             |
+| Stale cooldown exceptions | `exclude-newer-package` entries in `[tool.uv]` for packages that no longer need them (see below)                                                                |
 
 ### Floor verification
 
@@ -133,7 +133,7 @@ Comments and changelogs can lie; the codebase is the source of truth. For each d
 #### Special cases
 
 - **Backport packages** (e.g., `backports-strenum`, `tomli`, `exceptiongroup`) exist solely to provide a stdlib class to older Python versions. Their entire API is the backported class itself, available in all versions. The floor is typically `>=1` (or the first release) unless a specific bug fix is needed for the Python versions where the dep is actually installed.
-- **Conditional deps with stale bug-fix floors.** A dep gated by `python_version<'3.11'` that has a floor set for a bug affecting Python <3.8.6 — if the project's `requires-python` is `>=3.10`, that bug is irrelevant and the floor can be lowered.
+- **Conditional deps with stale bug-fix floors.** A dep gated by `python_version<'3.11'` that has a floor set for a bug affecting Python \<3.8.6 — if the project's `requires-python` is `>=3.10`, that bug is irrelevant and the floor can be lowered.
 - **pytest plugins** with no special API beyond auto-registration (e.g., `pytest-randomly`, `pytest-github-actions-annotate-failures`) have low effective floors — their basic functionality has been stable across major versions. Set the floor at the major version introducing the current plugin interface, not at the latest release.
 
 #### Red flag patterns in comments
