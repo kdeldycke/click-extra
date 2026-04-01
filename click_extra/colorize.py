@@ -393,11 +393,12 @@ class ExtraHelpColorsMixin:  # (Command)??
             # metavar (with delimiters like brackets and pipes). All other
             # types fall back to a plain uppercased name (e.g. TEXT, INTEGER).
             if isinstance(param.type, click.Choice):
-                # Click's Choice type use the enum member names, not their values:
-                # https://github.com/pallets/click/issues/2911#issuecomment-2891534372
+                # Use normalize_choice() to get the exact strings that appear
+                # in the metavar. This handles Enum member names, case-folding
+                # from case_sensitive=False, and EnumChoice's ChoiceSource.
                 choices.update(
-                    i.name if isinstance(i, Enum) else str(i)
-                    for i in param.type.choices
+                    param.type.normalize_choice(c, ctx)
+                    for c in param.type.choices
                 )
             elif isinstance(param.type, click.DateTime):
                 # Highlight each datetime format string as a choice.
@@ -435,8 +436,8 @@ class ExtraHelpColorsMixin:  # (Command)??
                     options.update(param.secondary_opts)
                     if isinstance(param.type, click.Choice):
                         choices.update(
-                            i.name if isinstance(i, Enum) else str(i)
-                            for i in param.type.choices
+                            param.type.normalize_choice(c, parent_ctx)
+                            for c in param.type.choices
                         )
             parent_ctx = parent_ctx.parent
 
