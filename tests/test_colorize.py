@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 import os
 import re
-from enum import Enum, auto
+from enum import Enum, IntEnum, auto
 from textwrap import dedent
 
 import click
@@ -52,6 +52,7 @@ from click_extra import (
     verbosity_option,
 )
 from click_extra.colorize import color_envvars, default_theme as theme, highlight
+from click_extra.types import ChoiceSource, EnumChoice
 from click_extra.pytest import (
     command_decorators,
     default_debug_colored_log_end,
@@ -108,6 +109,16 @@ class HashType(Enum):
     MD5 = auto()
     SHA1 = auto()
     BCRYPT = auto()
+
+
+class Priority(Enum):
+    LOW = "low-priority"
+    HIGH = "high-priority"
+
+
+class Port(IntEnum):
+    HTTP = 80
+    HTTPS = 443
 
 
 @pytest.mark.parametrize(
@@ -435,7 +446,7 @@ class HashType(Enum):
             ),
         ),
         (
-            # Enum choices.
+            # Enum choices (auto values): names are displayed and highlighted.
             ExtraOption(
                 ["--hash-type"],
                 type=click.Choice(HashType),
@@ -459,6 +470,69 @@ class HashType(Enum):
                 + " (not SHA128 or SHA1024) and "
                 + theme.choice("BCRYPT")
                 + ".",
+            ),
+        ),
+        (
+            # Enum with string values: Click displays member names, not values.
+            ExtraOption(
+                ["--priority"],
+                type=click.Choice(Priority),
+                help="Set priority to LOW or HIGH.",
+            ),
+            (
+                "["
+                + theme.choice("LOW")
+                + "|"
+                + theme.choice("HIGH")
+                + "]",
+                " Set priority to "
+                + theme.choice("LOW")
+                + " or "
+                + theme.choice("HIGH")
+                + ".",
+            ),
+        ),
+        (
+            # IntEnum: Click displays member names, not integer values.
+            ExtraOption(
+                ["--port"],
+                type=click.Choice(Port),
+            ),
+            (
+                "["
+                + theme.choice("HTTP")
+                + "|"
+                + theme.choice("HTTPS")
+                + "]",
+            ),
+        ),
+        (
+            # EnumChoice with NAME source: case-folded names are displayed and
+            # highlighted (case_sensitive defaults to False in EnumChoice).
+            ExtraOption(
+                ["--priority"],
+                type=EnumChoice(Priority, choice_source=ChoiceSource.NAME),
+            ),
+            (
+                "["
+                + theme.choice("low")
+                + "|"
+                + theme.choice("high")
+                + "]",
+            ),
+        ),
+        (
+            # EnumChoice with VALUE source: values are displayed and highlighted.
+            ExtraOption(
+                ["--priority"],
+                type=EnumChoice(Priority, choice_source=ChoiceSource.VALUE),
+            ),
+            (
+                "["
+                + theme.choice("low-priority")
+                + "|"
+                + theme.choice("high-priority")
+                + "]",
             ),
         ),
         (
