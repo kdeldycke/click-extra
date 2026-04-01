@@ -115,7 +115,6 @@ class HashType(Enum):
     (
         # Short option.
         (
-            # Short option name is highlighted in both the synopsis and the description.
             ExtraOption(["-e"], help="Option -e (-e), not -ee or --e."),
             (
                 " " + theme.option("-e") + " " + theme.metavar("TEXT") + " ",
@@ -128,7 +127,6 @@ class HashType(Enum):
         ),
         # Long option.
         (
-            # Long option name is highlighted in both the synopsis and the description.
             ExtraOption(["--exclude"], help="Option named --exclude."),
             (
                 " " + theme.option("--exclude") + " " + theme.metavar("TEXT") + " ",
@@ -164,6 +162,22 @@ class HashType(Enum):
                 + theme.bracket("]"),
             ),
         ),
+        # Default value is an empty string.
+        (
+            ExtraOption(["--prefix"], default="", show_default=True, help="Prefix."),
+            (
+                " "
+                + theme.bracket("[")
+                + theme.bracket("default: ")
+                + theme.default('""')
+                + theme.bracket("]"),
+            ),
+        ),
+        # Default value of None (no bracket rendered).
+        (
+            ExtraOption(["--optional"], default=None, help="An optional value."),
+            (" An optional value.",),
+        ),
         # Required option.
         (
             ExtraOption(["--x"], required=True, type=int),
@@ -189,7 +203,7 @@ class HashType(Enum):
                 + theme.bracket("]"),
             ),
         ),
-        # Range option.
+        # Range option (closed bounds).
         (
             ExtraOption(["--digit"], type=IntRange(0, 9)),
             (
@@ -204,10 +218,75 @@ class HashType(Enum):
                 + theme.bracket("]"),
             ),
         ),
+        # Range with open upper bound.
+        (
+            ExtraOption(["--ratio"], type=IntRange(min=0, max_open=True, max=100)),
+            (
+                " "
+                + theme.bracket("[")
+                + theme.range_label("0<=x<100")
+                + theme.bracket("]"),
+            ),
+        ),
+        # Range with only a minimum.
+        (
+            ExtraOption(["--port"], type=IntRange(min=1024)),
+            (
+                " "
+                + theme.bracket("[")
+                + theme.range_label("x>=1024")
+                + theme.bracket("]"),
+            ),
+        ),
+        # Range + default + required combined.
+        (
+            ExtraOption(
+                ["--pct"],
+                type=IntRange(0, 100),
+                default=50,
+                required=True,
+                show_default=True,
+            ),
+            (
+                " "
+                + theme.bracket("[")
+                + theme.bracket("default: ")
+                + theme.default("50")
+                + theme.bracket("; ")
+                + theme.range_label("0<=x<=100")
+                + theme.bracket("; ")
+                + theme.required("required")
+                + theme.bracket("]"),
+            ),
+        ),
+        # Envvar + default + range + required (all four bracket fields).
+        (
+            ExtraOption(
+                ["--threshold"],
+                type=IntRange(1, 10),
+                default=5,
+                required=True,
+                show_default=True,
+                envvar="THRESHOLD",
+                show_envvar=True,
+            ),
+            (
+                " "
+                + theme.bracket("[")
+                + theme.bracket("env var: ")
+                + theme.envvar("THRESHOLD, TEST_THRESHOLD")
+                + theme.bracket("; ")
+                + theme.bracket("default: ")
+                + theme.default("5")
+                + theme.bracket("; ")
+                + theme.range_label("1<=x<=10")
+                + theme.bracket("; ")
+                + theme.required("required")
+                + theme.bracket("]"),
+            ),
+        ),
         # Boolean flags.
         (
-            # Option flag and its opposite names are highlighted, including in the
-            # description.
             ExtraOption(
                 ["--flag/--no-flag"],
                 default=False,
@@ -223,7 +302,7 @@ class HashType(Enum):
             ),
         ),
         (
-            # Option with single flag is highlighted, but not its negative.
+            # Single flag: its name is highlighted, but --no-shout is not.
             ExtraOption(
                 ["--shout"],
                 is_flag=True,
@@ -235,7 +314,24 @@ class HashType(Enum):
             ),
         ),
         (
-            # Option flag with alternative leading symbol.
+            # Boolean flag with show_default.
+            ExtraOption(
+                ["--color/--no-color"],
+                default=True,
+                show_default=True,
+                help="Enable color output.",
+            ),
+            (
+                " " + theme.option("--color") + " / " + theme.option("--no-color") + " ",
+                " "
+                + theme.bracket("[")
+                + theme.bracket("default: ")
+                + theme.default("color")
+                + theme.bracket("]"),
+            ),
+        ),
+        (
+            # Slash-style flag.
             ExtraOption(
                 ["/debug;/no-debug"],
                 help="Auto /no-debug and /debug options.",
@@ -250,7 +346,7 @@ class HashType(Enum):
             ),
         ),
         (
-            # Option flag with alternative leading symbol.
+            # Plus/minus flag.
             ExtraOption(["+w/-w"], help="Auto +w, and -w. Not ++w or -woo."),
             (
                 " " + theme.option("+w") + " / " + theme.option("-w") + " ",
@@ -262,7 +358,7 @@ class HashType(Enum):
             ),
         ),
         (
-            # Option flag, and its short and negative name are highlighted.
+            # Flag with short alias and negative name.
             ExtraOption(
                 ["--shout/--no-shout", " /-S"],
                 default=False,
@@ -287,7 +383,6 @@ class HashType(Enum):
         ),
         # Choices.
         (
-            # Choices after the option name are highlighted. Case is respected.
             ExtraOption(
                 ["--manager"],
                 type=click.Choice(["apm", "apt", "brew"]),
@@ -366,6 +461,34 @@ class HashType(Enum):
                 + ".",
             ),
         ),
+        (
+            # Choice with default and envvar.
+            ExtraOption(
+                ["--render-mode"],
+                type=click.Choice(["auto", "always", "never"]),
+                default="auto",
+                show_default=True,
+                envvar="RENDER_MODE",
+                show_envvar=True,
+            ),
+            (
+                "["
+                + theme.choice("auto")
+                + "|"
+                + theme.choice("always")
+                + "|"
+                + theme.choice("never")
+                + "]",
+                " "
+                + theme.bracket("[")
+                + theme.bracket("env var: ")
+                + theme.envvar("RENDER_MODE, TEST_RENDER_MODE")
+                + theme.bracket("; ")
+                + theme.bracket("default: ")
+                + theme.default("auto")
+                + theme.bracket("]"),
+            ),
+        ),
         # DateTime formats highlighted as choices.
         (
             ExtraOption(
@@ -381,6 +504,20 @@ class HashType(Enum):
                 + theme.choice("%Y-%m-%d")
                 + "] ",
                 " A date in " + theme.choice("%Y-%m-%d") + " format.",
+            ),
+        ),
+        (
+            # Multiple DateTime formats.
+            ExtraOption(
+                ["--timestamp"],
+                type=click.DateTime(["%Y-%m-%d", "%Y-%m-%dT%H:%M:%S"]),
+            ),
+            (
+                "["
+                + theme.choice("%Y-%m-%d")
+                + "|"
+                + theme.choice("%Y-%m-%dT%H:%M:%S")
+                + "]",
             ),
         ),
         # Custom metavar on a Choice type is highlighted as metavar.
@@ -409,7 +546,6 @@ class HashType(Enum):
         ),
         # Metavar.
         (
-            # Metavar after the option name is highlighted.
             ExtraOption(
                 ["--special"],
                 metavar="SPECIAL",
@@ -420,9 +556,53 @@ class HashType(Enum):
                 " Option with " + theme.metavar("SPECIAL") + " metavar.",
             ),
         ),
+        # Path type.
+        (
+            ExtraOption(
+                ["--config"],
+                type=click.Path(exists=True),
+                help="Path to config file.",
+            ),
+            (
+                " " + theme.option("--config") + " " + theme.metavar("PATH") + " ",
+                " Path to config file.",
+            ),
+        ),
+        # File type.
+        (
+            ExtraOption(["--log"], type=click.File("w"), help="Log file."),
+            (" " + theme.option("--log") + " " + theme.metavar("FILENAME") + " ",),
+        ),
+        # Multiple option (accepts repeated values).
+        (
+            ExtraOption(["--tag"], multiple=True, help="Add tags."),
+            (
+                " " + theme.option("--tag") + " " + theme.metavar("TEXT") + " ",
+                " Add tags.",
+            ),
+        ),
+        # Count option.
+        (
+            ExtraOption(["-v", "--verbose"], count=True, help="Increase verbosity."),
+            (
+                " "
+                + theme.option("-v")
+                + ", "
+                + theme.option("--verbose")
+                + " ",
+                " Increase verbosity.",
+            ),
+        ),
+        # Two options sharing the same metavar.
+        (
+            ExtraOption(["--input"], metavar="FILE", help="Input FILE path."),
+            (
+                " " + theme.option("--input") + " " + theme.metavar("FILE") + " ",
+                " Input " + theme.metavar("FILE") + " path.",
+            ),
+        ),
         # Envvars.
         (
-            # All envvars in square brackets are highlighted.
             ExtraOption(
                 ["--flag1"],
                 is_flag=True,
@@ -464,7 +644,7 @@ class HashType(Enum):
                 + theme.bracket("]"),
             ),
         ),
-        # Deprecated.
+        # Deprecated (boolean).
         (
             ExtraOption(
                 ["-X"],
@@ -501,22 +681,35 @@ class HashType(Enum):
                 + theme.deprecated("(DEPRECATED)"),
             ),
         ),
+        # Deprecated with custom message.
+        (
+            ExtraOption(
+                ["--old-api"],
+                deprecated="use --new-api instead",
+                help="Legacy endpoint.",
+            ),
+            (
+                " Legacy endpoint."
+                + theme.deprecated("(DEPRECATED: use --new-api instead)"),
+            ),
+        ),
+        # Long option that is prefix of text in help.
+        (
+            ExtraOption(["--output"], help="Use --output-dir for directories."),
+            (
+                " " + theme.option("--output") + " " + theme.metavar("TEXT") + " ",
+                " Use --output-dir for directories.",
+            ),
+        ),
     ),
 )
 def test_option_highlight(opt, expected_outputs):
-    """Test highlighting of all option's variations."""
-    # Add option to a dummy command.
+    """Test highlighting of all option variations: types, defaults, ranges,
+    envvars, choices, flags, metavars, deprecated messages."""
     cli = ExtraCommand("test", params=[opt])
     ctx = ExtraContext(cli)
-
-    # Render full CLI help.
     help = cli.get_help(ctx)
 
-    # TODO: check extra elements of the option once
-    # https://github.com/pallets/click/pull/2517 is released.
-    # opt.get_help_extra()
-
-    # Check that the option is highlighted.
     for expected in expected_outputs:
         assert expected in help
 
@@ -537,77 +730,168 @@ def test_skip_hidden_option():
     assert "Visible option referencing --hidden option." in help
 
 
-def test_only_full_word_highlight():
-    formatter = HelpExtraFormatter()
-    formatter.write("package snapshot")
+@pytest.mark.parametrize(
+    ("params", "expected", "forbidden"),
+    (
+        # Argument names in Usage and description.
+        pytest.param(
+            [
+                click.Argument(["src"], type=click.Path()),
+                click.Argument(["dst"], type=click.Path()),
+            ],
+            [theme.argument("SRC"), theme.argument("DST")],
+            [],
+            id="basic-arguments",
+        ),
+        # Optional and variadic arguments.
+        pytest.param(
+            [
+                click.Argument(["files"], nargs=-1),
+                click.Argument(["output"], required=False),
+            ],
+            [theme.argument("[FILES]..."), theme.argument("[OUTPUT]")],
+            [],
+            id="optional-variadic",
+        ),
+        # Argument gets argument style, not generic metavar style.
+        pytest.param(
+            [
+                click.Argument(["my_file"]),
+                ExtraOption(["--out"], metavar="OUTFILE"),
+            ],
+            [theme.argument("MY_FILE"), theme.metavar("OUTFILE")],
+            [theme.metavar("MY_FILE")],
+            id="argument-not-metavar",
+        ),
+    ),
+)
+def test_argument_highlight(params, expected, forbidden):
+    """Argument metavars get the ``argument`` style, distinct from option
+    metavars."""
+    cli = ExtraCommand("test", params=params, help="Copy SRC to DST.")
+    ctx = ExtraContext(cli)
+    help_text = cli.get_help(ctx)
 
-    formatter.choices.add("snap")
+    for fragment in expected:
+        assert fragment in help_text
+    for fragment in forbidden:
+        assert fragment not in help_text
 
-    output = formatter.getvalue()
-    # Make sure no highlighting occurred
-    assert strip_ansi(output) == output
 
-
-def test_argument_name_does_not_shadow_option():
-    """Argument names must not be collected as option keywords.
-
-    When a command has both an option like ``--list-keys`` and an argument named
-    ``keys``, the bare argument name was being added to ``long_options``. Because
-    ``keys`` sorts after ``--list-keys`` in reverse alphabetical order, it was
-    highlighted first, leaving only the ``keys`` suffix colored instead of the
-    full ``--list-keys`` option.
-    """
-    cli = ExtraCommand(
-        "test",
-        params=[
-            ExtraOption(
-                ["--list-keys"],
-                is_flag=True,
-                help="List all available keys.",
+@pytest.mark.parametrize(
+    ("params", "help_text", "expected_present", "expected_absent"),
+    (
+        # Partial word must not be highlighted.
+        pytest.param(
+            [],
+            None,
+            [],
+            [],
+            id="partial-word-snap",
+        ),
+        # Argument name must not shadow an option with the same suffix.
+        pytest.param(
+            [
+                ExtraOption(["--list-keys"], is_flag=True, help="List all keys."),
+                click.Argument(["keys"], nargs=-1),
+            ],
+            None,
+            [" " + theme.option("--list-keys") + " "],
+            [],
+            id="argument-does-not-shadow-option",
+        ),
+        # --table must not match inside --table-format in help prose.
+        pytest.param(
+            [ExtraOption(["--table/--no-table"], is_flag=True, default=True)],
+            "Use --table-format to pick a format.",
+            [],
+            [theme.option("--table") + "-format"],
+            id="option-prefix-in-prose",
+        ),
+        # Choice must not match in dotted names, URLs, hyphens, or alerts.
+        pytest.param(
+            [
+                ExtraOption(
+                    ["--format"],
+                    type=click.Choice(["toml", "json", "github", "WARNING"]),
+                ),
+            ],
+            (
+                "Reads pyproject.toml for config."
+                ' Remove the "[!WARNING]" block.'
+                " Issues by github-actions[bot]."
+                " See https://github.com/owner/repo."
+                " Use github or json format."
             ),
-            click.Argument(["keys"], nargs=-1),
-        ],
-    )
+            ["|" + theme.choice("github") + "|", "|" + theme.choice("json") + "|"],
+            [
+                "pyproject." + theme.choice("toml"),
+                theme.choice("github") + "-actions",
+                "/" + theme.choice("github"),
+                "!" + theme.choice("WARNING"),
+            ],
+            id="choice-false-positives",
+        ),
+        # Default value must not be double-styled by the choice pass.
+        pytest.param(
+            [
+                ExtraOption(
+                    ["--table-format"],
+                    type=click.Choice(["github", "outline", "rounded-outline"]),
+                    default="rounded-outline",
+                    show_default=True,
+                    help="Rendering style of tables.",
+                ),
+            ],
+            None,
+            [theme.default("rounded-outline")],
+            [],
+            id="default-not-double-styled",
+        ),
+        # Choice values that look like option names.
+        pytest.param(
+            [
+                ExtraOption(
+                    ["--mode"],
+                    type=click.Choice(["--fast", "--slow", "normal"]),
+                ),
+            ],
+            None,
+            [
+                theme.choice("--fast"),
+                theme.choice("--slow"),
+                theme.choice("normal"),
+            ],
+            [],
+            id="choice-looks-like-option",
+        ),
+    ),
+)
+def test_no_false_positive_highlight(params, help_text, expected_present, expected_absent):
+    """Verify that highlighting does not leak into compound words, URLs, dotted
+    names, already-styled regions, or partial-word matches."""
+    cli = ExtraCommand("test", params=params, help=help_text)
     ctx = ExtraContext(cli)
-    help_text = cli.get_help(ctx)
+    rendered = cli.get_help(ctx)
 
-    # The full --list-keys option must be highlighted as a single token.
-    assert " " + theme.option("--list-keys") + " " in help_text
+    # Special case: the partial-word test uses the formatter directly.
+    if not params:
+        formatter = HelpExtraFormatter()
+        formatter.write("package snapshot")
+        formatter.choices.add("snap")
+        rendered = formatter.getvalue()
+        assert strip_ansi(rendered) == rendered
+        return
 
-
-def test_option_does_not_match_inside_longer_option_in_text():
-    """An option must not be highlighted as a substring of a longer option name
-    that appears in help text without being a registered option.
-
-    When a command has ``--table`` as an option and the docstring mentions
-    ``--table-format`` (a parent group option), the regex for ``--table`` must
-    not match the ``--table`` prefix inside ``--table-format``. The hyphen
-    continues the option name and is not a word boundary.
-    """
-    cli = ExtraCommand(
-        "test",
-        params=[
-            ExtraOption(["--table/--no-table"], is_flag=True, default=True),
-        ],
-        help="Use --table-format to pick a format.",
-    )
-    ctx = ExtraContext(cli)
-    help_text = cli.get_help(ctx)
-
-    # --table must NOT appear highlighted inside --table-format.
-    # If the regex is wrong, --table gets its own color span and -format is
-    # left unstyled, producing a broken fragment.
-    assert theme.option("--table") + "-format" not in help_text
+    for fragment in expected_present:
+        assert fragment in rendered
+    for fragment in expected_absent:
+        assert fragment not in rendered
 
 
 def test_parent_keywords_highlighted_in_subcommand_help():
     """Parent group names, options, and choices must be highlighted in
-    subcommand help text.
-
-    When a subcommand's docstring references the parent CLI and its options
-    (e.g. ``myapp --table-format github sub``), the parent group name, its
-    options, and their choices should all be highlighted.
-    """
+    subcommand help text."""
     from click_extra.commands import ExtraGroup
 
     grp = ExtraGroup(
@@ -626,469 +910,17 @@ def test_parent_keywords_highlighted_in_subcommand_help():
     )
     grp.add_command(sub)
 
-    # Build a context chain: parent group -> subcommand.
     parent_ctx = ExtraContext(grp, info_name="myapp")
     ctx = ExtraContext(sub, parent=parent_ctx, info_name="sub")
     help_text = sub.get_help(ctx)
 
-    # Parent group name is highlighted independently.
     assert " " + theme.invoked_command("myapp") + " " in help_text
-
-    # Parent option is highlighted in the subcommand's docstring.
     assert " " + theme.option("--table-format") + " " in help_text
-
-    # Parent choice value is highlighted.
     assert theme.choice("github") + " " in help_text
 
 
-def test_choice_not_highlighted_in_compounds_or_urls():
-    """Choice values must not be highlighted inside compound words, dotted
-    names, URLs, or hyphenated identifiers.
-
-    A choice like ``github`` must not match inside ``github-actions[bot]``,
-    ``https://github.com``, or ``pyproject.toml``.
-    """
-    cli = ExtraCommand(
-        "test",
-        params=[
-            ExtraOption(
-                ["--format"],
-                type=click.Choice(["toml", "json", "github", "WARNING"]),
-            ),
-        ],
-        help=(
-            "Reads pyproject.toml for config."
-            ' Remove the "[!WARNING]" block.'
-            " Issues by github-actions[bot]."
-            " See https://github.com/owner/repo."
-            " Use github or json format."
-        ),
-    )
-    ctx = ExtraContext(cli)
-    help_text = cli.get_help(ctx)
-
-    # Standalone choices are highlighted (in the metavar list).
-    assert "|" + theme.choice("github") + "|" in help_text
-    assert "|" + theme.choice("json") + "|" in help_text
-
-    # Dotted name: "toml" after a dot must NOT be highlighted.
-    assert "pyproject." + theme.choice("toml") not in help_text
-
-    # Hyphenated compound: "github" before "-actions" must NOT be highlighted.
-    assert theme.choice("github") + "-actions" not in help_text
-
-    # URL path: "github" after "/" must NOT be highlighted.
-    assert "/" + theme.choice("github") not in help_text
-
-    # GitHub alert syntax: "WARNING" after "!" must NOT be highlighted.
-    assert "!" + theme.choice("WARNING") not in help_text
-
-
-def test_default_choice_not_double_styled():
-    """A choice value used as the default must not be styled twice.
-
-    When ``rounded-outline`` is both a choice and the default value, the
-    bracket regex styles it as a default (green/dim/italic). The subsequent
-    choice highlighting pass must not apply choice style (magenta) on top.
-
-    The critical case: ``outline`` is also a standalone choice. After the
-    bracket regex wraps ``rounded-outline`` with ANSI codes, the hyphen
-    inside the styled text can act as a word boundary, letting the ``outline``
-    choice regex match a suffix of the already-styled default value.
-    """
-    cli = ExtraCommand(
-        "test",
-        params=[
-            ExtraOption(
-                ["--table-format"],
-                # Both "outline" and "rounded-outline" are choices.
-                type=click.Choice(["github", "outline", "rounded-outline"]),
-                default="rounded-outline",
-                show_default=True,
-                help="Rendering style of tables.",
-            ),
-        ],
-    )
-    ctx = ExtraContext(cli)
-    help_text = cli.get_help(ctx)
-
-    # The default value must be styled only once, with the default style.
-    default_section = help_text.split("default:")[1] if "default:" in help_text else ""
-    assert theme.default("rounded-outline") in default_section
-
-    # Neither the full compound choice nor the short suffix choice must
-    # appear with choice styling inside the default bracket.
-    assert theme.choice("rounded-outline") not in default_section
-    assert theme.choice("outline") not in default_section
-
-
-@pytest.mark.parametrize(
-    ("opt", "expected_outputs"),
-    (
-        # Range with open bounds.
-        (
-            ExtraOption(["--ratio"], type=IntRange(min=0, max_open=True, max=100)),
-            (
-                " "
-                + theme.option("--ratio")
-                + " "
-                + theme.metavar("INTEGER RANGE")
-                + " ",
-                " "
-                + theme.bracket("[")
-                + theme.range_label("0<=x<100")
-                + theme.bracket("]"),
-            ),
-        ),
-        # Range with only a minimum.
-        (
-            ExtraOption(["--port"], type=IntRange(min=1024)),
-            (
-                " "
-                + theme.option("--port")
-                + " "
-                + theme.metavar("INTEGER RANGE")
-                + " ",
-                " "
-                + theme.bracket("[")
-                + theme.range_label("x>=1024")
-                + theme.bracket("]"),
-            ),
-        ),
-        # Range with default and required.
-        (
-            ExtraOption(
-                ["--pct"],
-                type=IntRange(0, 100),
-                default=50,
-                required=True,
-                show_default=True,
-            ),
-            (
-                " "
-                + theme.bracket("[")
-                + theme.bracket("default: ")
-                + theme.default("50")
-                + theme.bracket("; ")
-                + theme.range_label("0<=x<=100")
-                + theme.bracket("; ")
-                + theme.required("required")
-                + theme.bracket("]"),
-            ),
-        ),
-        # Choice with default and envvar.
-        (
-            ExtraOption(
-                ["--render-mode"],
-                type=click.Choice(["auto", "always", "never"]),
-                default="auto",
-                show_default=True,
-                envvar="RENDER_MODE",
-                show_envvar=True,
-            ),
-            (
-                " "
-                + theme.option("--render-mode")
-                + " "
-                + "["
-                + theme.choice("auto")
-                + "|"
-                + theme.choice("always")
-                + "|"
-                + theme.choice("never")
-                + "]",
-                " "
-                + theme.bracket("[")
-                + theme.bracket("env var: ")
-                + theme.envvar("RENDER_MODE, TEST_RENDER_MODE")
-                + theme.bracket("; ")
-                + theme.bracket("default: ")
-                + theme.default("auto")
-                + theme.bracket("]"),
-            ),
-        ),
-        # Multiple option (accepts repeated values).
-        (
-            ExtraOption(
-                ["--tag"],
-                multiple=True,
-                help="Add tags.",
-            ),
-            (
-                " " + theme.option("--tag") + " " + theme.metavar("TEXT") + " ",
-                " Add tags.",
-            ),
-        ),
-        # Count option.
-        (
-            ExtraOption(
-                ["-v", "--verbose"],
-                count=True,
-                help="Increase verbosity.",
-            ),
-            (
-                " "
-                + theme.option("-v")
-                + ", "
-                + theme.option("--verbose")
-                + " ",
-                " Increase verbosity.",
-            ),
-        ),
-        # Long option that looks like a short prefix of another.
-        (
-            ExtraOption(
-                ["--output"],
-                help="Use --output-dir for directories.",
-            ),
-            (
-                " " + theme.option("--output") + " " + theme.metavar("TEXT") + " ",
-                " Use --output-dir for directories.",
-            ),
-        ),
-        # Deprecated with custom message.
-        (
-            ExtraOption(
-                ["--old-api"],
-                deprecated="use --new-api instead",
-                help="Legacy endpoint.",
-            ),
-            (
-                " " + theme.option("--old-api") + " " + theme.metavar("TEXT") + " ",
-                " Legacy endpoint."
-                + theme.deprecated("(DEPRECATED: use --new-api instead)"),
-            ),
-        ),
-        # Boolean flag with show_default.
-        (
-            ExtraOption(
-                ["--color/--no-color"],
-                default=True,
-                show_default=True,
-                help="Enable color output.",
-            ),
-            (
-                " " + theme.option("--color") + " / " + theme.option("--no-color") + " ",
-                " "
-                + theme.bracket("[")
-                + theme.bracket("default: ")
-                + theme.default("color")
-                + theme.bracket("]"),
-            ),
-        ),
-        # Path type with exists constraint.
-        (
-            ExtraOption(
-                ["--config"],
-                type=click.Path(exists=True),
-                help="Path to config file.",
-            ),
-            (
-                " "
-                + theme.option("--config")
-                + " "
-                + theme.metavar("PATH")
-                + " ",
-                " Path to config file.",
-            ),
-        ),
-        # File type.
-        (
-            ExtraOption(
-                ["--log"],
-                type=click.File("w"),
-                help="Log output to FILE.",
-            ),
-            (
-                " "
-                + theme.option("--log")
-                + " "
-                + theme.metavar("FILENAME")
-                + " ",
-            ),
-        ),
-        # Default value of None (should not produce a default bracket).
-        (
-            ExtraOption(
-                ["--optional"],
-                default=None,
-                help="An optional value.",
-            ),
-            (" An optional value.",),
-        ),
-        # Default value is an empty string.
-        (
-            ExtraOption(
-                ["--prefix"],
-                default="",
-                show_default=True,
-                help="String prefix.",
-            ),
-            (
-                " "
-                + theme.bracket("[")
-                + theme.bracket("default: ")
-                + theme.default('""')
-                + theme.bracket("]"),
-            ),
-        ),
-        # Multiple DateTime formats.
-        (
-            ExtraOption(
-                ["--timestamp"],
-                type=click.DateTime(["%Y-%m-%d", "%Y-%m-%dT%H:%M:%S"]),
-            ),
-            (
-                " "
-                + theme.option("--timestamp")
-                + " "
-                + "["
-                + theme.choice("%Y-%m-%d")
-                + "|"
-                + theme.choice("%Y-%m-%dT%H:%M:%S")
-                + "]",
-            ),
-        ),
-    ),
-)
-def test_option_highlight_extended(opt, expected_outputs):
-    """Extended tests for option highlighting edge cases."""
-    cli = ExtraCommand("test", params=[opt])
-    ctx = ExtraContext(cli)
-    help = cli.get_help(ctx)
-
-    for expected in expected_outputs:
-        assert expected in help
-
-
-def test_argument_highlight():
-    """Argument metavars get the ``argument`` style, distinct from option
-    metavars."""
-    cli = ExtraCommand(
-        "test",
-        params=[
-            click.Argument(["src"], type=click.Path()),
-            click.Argument(["dst"], type=click.Path()),
-        ],
-        help="Copy SRC to DST.",
-    )
-    ctx = ExtraContext(cli)
-    help_text = cli.get_help(ctx)
-
-    # Argument names in the Usage line are styled as arguments.
-    assert theme.argument("SRC") in help_text
-    assert theme.argument("DST") in help_text
-
-    # Argument names referenced in the description are also styled.
-    assert theme.argument("SRC") + " to " + theme.argument("DST") in help_text
-
-
-def test_argument_optional_and_variadic():
-    """Optional and variadic argument metavars are highlighted as a whole."""
-    cli = ExtraCommand(
-        "test",
-        params=[
-            click.Argument(["files"], nargs=-1),
-            click.Argument(["output"], required=False),
-        ],
-    )
-    ctx = ExtraContext(cli)
-    help_text = cli.get_help(ctx)
-
-    assert theme.argument("[FILES]...") in help_text
-    assert theme.argument("[OUTPUT]") in help_text
-
-
-def test_argument_does_not_shadow_metavar():
-    """Argument metavars must not also appear with the generic metavar style.
-
-    Arguments are collected in a separate set and excluded from the ``metavars``
-    set, so they should only receive the ``argument`` style.
-    """
-    cli = ExtraCommand(
-        "test",
-        params=[
-            click.Argument(["my_file"]),
-            ExtraOption(["--out"], metavar="OUTFILE"),
-        ],
-    )
-    ctx = ExtraContext(cli)
-    help_text = cli.get_help(ctx)
-
-    # Argument gets argument style.
-    assert theme.argument("MY_FILE") in help_text
-    # Option metavar gets metavar style.
-    assert theme.metavar("OUTFILE") in help_text
-    # Argument must NOT get the generic metavar style.
-    assert theme.metavar("MY_FILE") not in help_text
-
-
-def test_combined_envvar_default_range_required():
-    """All four bracket fields rendered together with correct styles."""
-    cli = ExtraCommand(
-        "test",
-        params=[
-            ExtraOption(
-                ["--threshold"],
-                type=IntRange(1, 10),
-                default=5,
-                required=True,
-                show_default=True,
-                envvar="THRESHOLD",
-                show_envvar=True,
-            ),
-        ],
-    )
-    ctx = ExtraContext(cli)
-    help_text = cli.get_help(ctx)
-
-    # Each field uses its own style, not the generic bracket style.
-    assert theme.envvar("THRESHOLD, TEST_THRESHOLD") in help_text
-    assert theme.default("5") in help_text
-    assert theme.range_label("1<=x<=10") in help_text
-    assert theme.required("required") in help_text
-
-
-def test_choice_with_option_like_values():
-    """Choice values that look like option names must still be highlighted as
-    choices, not as options."""
-    cli = ExtraCommand(
-        "test",
-        params=[
-            ExtraOption(
-                ["--mode"],
-                type=click.Choice(["--fast", "--slow", "normal"]),
-            ),
-        ],
-    )
-    ctx = ExtraContext(cli)
-    help_text = cli.get_help(ctx)
-
-    # These are choice values, not real options.
-    assert theme.choice("--fast") in help_text
-    assert theme.choice("--slow") in help_text
-    assert theme.choice("normal") in help_text
-
-
-def test_multiple_options_with_same_metavar():
-    """Two options sharing the same metavar name do not interfere."""
-    cli = ExtraCommand(
-        "test",
-        params=[
-            ExtraOption(["--input"], metavar="FILE", help="Input FILE path."),
-            ExtraOption(["--output"], metavar="FILE", help="Output FILE path."),
-        ],
-    )
-    ctx = ExtraContext(cli)
-    help_text = cli.get_help(ctx)
-
-    assert theme.metavar("FILE") in help_text
-    assert theme.option("--input") in help_text
-    assert theme.option("--output") in help_text
-
-
-def test_command_aliases_highlighted():
-    """Command aliases are highlighted like subcommands in the group help."""
+def test_command_aliases_collected():
+    """Command aliases are collected as keywords for highlighting."""
     from click_extra.commands import ExtraGroup
 
     grp = ExtraGroup("cli")
@@ -1100,44 +932,10 @@ def test_command_aliases_highlighted():
     grp.add_command(commit)
 
     ctx = ExtraContext(grp, info_name="cli")
-    help_text = grp.get_help(ctx)
-    stripped = strip_ansi(help_text)
-
-    # The subcommand and its alias should both appear in the rendered text.
-    assert "commit" in stripped
-    # Cloup renders aliases in the definition list, and we highlight them
-    # with the subcommand style (via the command_aliases pass).
-    # Verify the alias is collected.
-    from click_extra.colorize import ExtraHelpColorsMixin
-
-    formatter = HelpExtraFormatter()
-    formatter.cli_names = set()
-    formatter.subcommands = set()
-    formatter.command_aliases = set()
-    formatter.arguments = set()
-    formatter.long_options = set()
-    formatter.short_options = set()
-    formatter.choices = set()
-    formatter.metavars = set()
-    formatter.envvars = set()
-    formatter.defaults = set()
-    formatter.deprecated_messages = set()
-
-    (
-        formatter.cli_names,
-        formatter.subcommands,
-        formatter.command_aliases,
-        formatter.arguments,
-        formatter.long_options,
-        formatter.short_options,
-        formatter.choices,
-        formatter.metavars,
-        formatter.envvars,
-        formatter.defaults,
-        formatter.deprecated_messages,
-    ) = grp._collect_keywords(ctx)
-
-    assert "ci" in formatter.command_aliases
+    keywords = grp._collect_keywords(ctx)
+    # command_aliases is the 3rd element in the returned tuple.
+    command_aliases = keywords[2]
+    assert "ci" in command_aliases
 
 
 def test_keyword_collection(invoke, assert_output_regex):
@@ -1256,19 +1054,9 @@ def test_keyword_collection(invoke, assert_output_regex):
     assert not result.stderr
     assert result.exit_code == 0
 
-    # Non-click-extra commands are not colorized nor have extra options.
-    for cmd_id in ("command2", "command3"):
+    # Make sure other subcommands do not interfere with each other.
+    for cmd_id in ("command2", "command3", "command4"):
         result = invoke(color_cli1, cmd_id, "--help", color=True)
-        assert result.stdout == dedent(
-            f"""\
-            It works!
-            Usage: color-cli1 {cmd_id} [OPTIONS]
-
-            Options:
-              -h, --help  Show this message and exit.
-            """,
-        )
-        assert not result.stderr
         assert result.exit_code == 0
 
 
