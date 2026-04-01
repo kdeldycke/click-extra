@@ -548,6 +548,33 @@ def test_only_full_word_highlight():
     assert strip_ansi(output) == output
 
 
+def test_argument_name_does_not_shadow_option():
+    """Argument names must not be collected as option keywords.
+
+    When a command has both an option like ``--list-keys`` and an argument named
+    ``keys``, the bare argument name was being added to ``long_options``. Because
+    ``keys`` sorts after ``--list-keys`` in reverse alphabetical order, it was
+    highlighted first, leaving only the ``keys`` suffix colored instead of the
+    full ``--list-keys`` option.
+    """
+    cli = ExtraCommand(
+        "test",
+        params=[
+            ExtraOption(
+                ["--list-keys"],
+                is_flag=True,
+                help="List all available keys.",
+            ),
+            click.Argument(["keys"], nargs=-1),
+        ],
+    )
+    ctx = ExtraContext(cli)
+    help_text = cli.get_help(ctx)
+
+    # The full --list-keys option must be highlighted as a single token.
+    assert " " + theme.option("--list-keys") + " " in help_text
+
+
 def test_keyword_collection(invoke, assert_output_regex):
     # Create a dummy Click CLI.
     @group

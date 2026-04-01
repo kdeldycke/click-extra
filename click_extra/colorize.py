@@ -361,8 +361,13 @@ class ExtraHelpColorsMixin:  # (Command)??
             if isinstance(param, click.Option) and param.hidden:
                 continue
 
-            options.update(param.opts)
-            options.update(param.secondary_opts)
+            # Only collect option names from actual Option parameters, not from
+            # Arguments. An Argument's opts contains the bare parameter name
+            # (e.g. "keys") which would pollute the option keywords and interfere
+            # with highlighting of real options like "--list-keys".
+            if isinstance(param, click.Option):
+                options.update(param.opts)
+                options.update(param.secondary_opts)
 
             # Only Choice and DateTime types produce their own structured
             # metavar (with delimiters like brackets and pipes). All other
