@@ -667,6 +667,38 @@ def test_choice_not_highlighted_after_dot():
     assert "pyproject." + theme.choice("toml") not in help_text
 
 
+def test_default_choice_not_double_styled():
+    """A choice value used as the default must not be styled twice.
+
+    When ``rounded-outline`` is both a choice and the default value, the
+    bracket regex styles it as a default (green/dim/italic). The subsequent
+    choice highlighting pass must not apply choice style (magenta) on top.
+    """
+    cli = ExtraCommand(
+        "test",
+        params=[
+            ExtraOption(
+                ["--table-format"],
+                type=click.Choice(["github", "rounded-outline", "json"]),
+                default="rounded-outline",
+                show_default=True,
+                help="Rendering style of tables.",
+            ),
+        ],
+    )
+    ctx = ExtraContext(cli)
+    help_text = cli.get_help(ctx)
+
+    # The default value must be styled only once, with the default style.
+    expected_default = theme.default("rounded-outline")
+    assert expected_default in help_text
+
+    # The choice style must NOT wrap the already-styled default value.
+    assert theme.choice("rounded-outline") not in (
+        help_text.split("default:")[1] if "default:" in help_text else ""
+    )
+
+
 def test_keyword_collection(invoke, assert_output_regex):
     # Create a dummy Click CLI.
     @group

@@ -796,11 +796,17 @@ class HelpExtraFormatter(cloup.HelpFormatter):
             if keywords:
                 # Transform keywords into regex patterns.
                 patterns = (
-                    # Use negative lookbehind / lookahead to ensure the keyword
-                    # is not part of a larger word or a dotted name (e.g.
-                    # "toml" must not match inside "pyproject.toml").
+                    # Negative lookbehind rejects matches that are:
+                    # - part of a larger word (\w),
+                    # - a dotted name like "pyproject.toml" (\.),
+                    # - already inside an ANSI escape sequence (\x1b).
+                    #   ANSI SGR codes end in "m" which \w already catches,
+                    #   but \x1b makes the intent explicit and guards against
+                    #   non-SGR sequences.
                     re.compile(
-                        rf"(?<![\w\.]){_escape_for_help_screen(keyword)}(?!\w)"
+                        rf"(?<![\w\.\x1b])"
+                        rf"{_escape_for_help_screen(keyword)}"
+                        rf"(?!\w)"
                     )
                     for keyword in sorted(keywords, reverse=True)
                 )
