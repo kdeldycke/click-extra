@@ -9,13 +9,13 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-03-25T11:26:59.188866943Z"
+exclude-newer = "2026-03-25T12:45:43.279257093Z"
 exclude-newer-span = "P1W"
 
 [options.exclude-newer-package]
-tabulate = { timestamp = "2026-04-01T11:26:59.188873666Z", span = "PT0S" }
-pygments = { timestamp = "2026-04-01T11:26:59.188879657Z", span = "PT0S" }
-requests = { timestamp = "2026-04-01T11:26:59.188880108Z", span = "PT0S" }
+tabulate = { timestamp = "2026-04-01T12:45:43.279263956Z", span = "PT0S" }
+pygments = { timestamp = "2026-04-01T12:45:43.279269527Z", span = "PT0S" }
+requests = { timestamp = "2026-04-01T12:45:43.279269957Z", span = "PT0S" }
 
 [[package]]
 name = "accessible-pygments"
@@ -547,7 +547,7 @@ name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/79/66800aadf48771f6b62f7eb014e352e5d06856655206165d775e675a02c9/exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219", size = 30371, upload-time = "2025-11-21T23:01:54.787Z" }
 wheels = [
@@ -1141,14 +1141,14 @@ wheels = [
 
 [[package]]
 name = "sphinx-autodoc-typehints"
-version = "3.9.10"
+version = "3.9.11"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "sphinx", version = "9.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ef/0e/90117564e667c197a428a08721210aa73df5afb1531aeba671791934c2bd/sphinx_autodoc_typehints-3.9.10.tar.gz", hash = "sha256:99088cd00ca5904225e340a14bb312163a2fe5bc5786a5c2162f99637ed0a878", size = 69848, upload-time = "2026-03-23T22:51:44.402Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/12/e9/d29ae58dd12971d2cbb872884676a70d1a5e4719b4d82e197264cdf0431a/sphinx_autodoc_typehints-3.9.11.tar.gz", hash = "sha256:28516c916b41fa83271ee2ab9191b73807e4113d3bfb94222ac87d8d9795b6e7", size = 70261, upload-time = "2026-03-24T16:57:28.462Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3b/48/17ace9f4264998b054901da570e48baa58745ddd8e66befa7f568d2dd75c/sphinx_autodoc_typehints-3.9.10-py3-none-any.whl", hash = "sha256:296c3288bfc05e6c7bcc14b124392bdfa9565d253b415dc5df784935ab3aad40", size = 36997, upload-time = "2026-03-23T22:51:43.305Z" },
+    { url = "https://files.pythonhosted.org/packages/dd/e3/ff212b51c16717681792eaf18691e6b5affbbb3d4290147c457fa9127372/sphinx_autodoc_typehints-3.9.11-py3-none-any.whl", hash = "sha256:b5cbc7a56a9338021ab7a4e6aa132aa7829fa2f8b64eca927faab64cd3971b80", size = 37279, upload-time = "2026-03-24T16:57:27.147Z" },
 ]
 
 [[package]]
