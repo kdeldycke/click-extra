@@ -31,7 +31,7 @@ $ uv tool install click-extra
 ````
 
 ````{tab-item} pipx
-[`pipx`](https://pipx.pypa.io/stable/installation/) is a great way to install the demo CLI globally:
+[`pipx`](https://pipx.pypa.io/stable/how-to/install-pipx/) is a great way to install the demo CLI globally:
 
 ```{code-block} shell-session
 $ pipx install click-extra
