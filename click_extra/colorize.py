@@ -796,16 +796,19 @@ class HelpExtraFormatter(cloup.HelpFormatter):
             if keywords:
                 # Transform keywords into regex patterns.
                 patterns = (
-                    # Negative lookbehind rejects matches that are:
-                    # - part of a larger word (\w),
-                    # - a dotted name like "pyproject.toml" (\.),
-                    # - a suffix of a hyphenated compound like "outline"
-                    #   inside "rounded-outline" (\-),
-                    # - already inside an ANSI escape sequence (\x1b).
+                    # Negative lookbehind rejects matches preceded by:
+                    # - a word character (\w),
+                    # - a dot: "pyproject.toml" (\.),
+                    # - a hyphen: "rounded-outline" (\-),
+                    # - a slash: "https://github.com" (\/),
+                    # - an ANSI escape: already-styled text (\x1b).
+                    # Negative lookahead rejects matches followed by:
+                    # - a word character (\w),
+                    # - a hyphen: "github-actions" (\-).
                     re.compile(
-                        rf"(?<![\w\.\x1b\-])"
+                        rf"(?<![\w\.\x1b\-/])"
                         rf"{_escape_for_help_screen(keyword)}"
-                        rf"(?!\w)"
+                        rf"(?![\w\-])"
                     )
                     for keyword in sorted(keywords, reverse=True)
                 )

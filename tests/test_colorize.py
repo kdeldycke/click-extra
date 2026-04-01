@@ -641,30 +641,43 @@ def test_parent_keywords_highlighted_in_subcommand_help():
     assert theme.choice("github") + " " in help_text
 
 
-def test_choice_not_highlighted_after_dot():
-    """Choice values must not be highlighted when preceded by a dot.
+def test_choice_not_highlighted_in_compounds_or_urls():
+    """Choice values must not be highlighted inside compound words, dotted
+    names, URLs, or hyphenated identifiers.
 
-    A choice like ``toml`` must not match inside ``pyproject.toml`` where the
-    dot makes it a file extension, not a standalone keyword.
+    A choice like ``github`` must not match inside ``github-actions[bot]``,
+    ``https://github.com``, or ``pyproject.toml``.
     """
     cli = ExtraCommand(
         "test",
         params=[
             ExtraOption(
                 ["--format"],
-                type=click.Choice(["toml", "json"]),
+                type=click.Choice(["toml", "json", "github"]),
             ),
         ],
-        help="Reads pyproject.toml and outputs toml or json.",
+        help=(
+            "Reads pyproject.toml for config."
+            " Issues by github-actions[bot]."
+            " See https://github.com/owner/repo."
+            " Use github or json format."
+        ),
     )
     ctx = ExtraContext(cli)
     help_text = cli.get_help(ctx)
 
-    # Standalone "toml" is highlighted as a choice.
-    assert " " + theme.choice("toml") + " " in help_text
+    # Standalone choices are highlighted.
+    assert " " + theme.choice("github") + " " in help_text
+    assert " " + theme.choice("json") + " " in help_text
 
-    # "toml" after a dot (file extension) must NOT be highlighted.
+    # Dotted name: "toml" after a dot must NOT be highlighted.
     assert "pyproject." + theme.choice("toml") not in help_text
+
+    # Hyphenated compound: "github" before "-actions" must NOT be highlighted.
+    assert theme.choice("github") + "-actions" not in help_text
+
+    # URL path: "github" after "/" must NOT be highlighted.
+    assert "/" + theme.choice("github") not in help_text
 
 
 def test_default_choice_not_double_styled():
