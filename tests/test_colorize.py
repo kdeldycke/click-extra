@@ -673,13 +673,19 @@ def test_default_choice_not_double_styled():
     When ``rounded-outline`` is both a choice and the default value, the
     bracket regex styles it as a default (green/dim/italic). The subsequent
     choice highlighting pass must not apply choice style (magenta) on top.
+
+    The critical case: ``outline`` is also a standalone choice. After the
+    bracket regex wraps ``rounded-outline`` with ANSI codes, the hyphen
+    inside the styled text can act as a word boundary, letting the ``outline``
+    choice regex match a suffix of the already-styled default value.
     """
     cli = ExtraCommand(
         "test",
         params=[
             ExtraOption(
                 ["--table-format"],
-                type=click.Choice(["github", "rounded-outline", "json"]),
+                # Both "outline" and "rounded-outline" are choices.
+                type=click.Choice(["github", "outline", "rounded-outline"]),
                 default="rounded-outline",
                 show_default=True,
                 help="Rendering style of tables.",
@@ -690,13 +696,13 @@ def test_default_choice_not_double_styled():
     help_text = cli.get_help(ctx)
 
     # The default value must be styled only once, with the default style.
-    expected_default = theme.default("rounded-outline")
-    assert expected_default in help_text
+    default_section = help_text.split("default:")[1] if "default:" in help_text else ""
+    assert theme.default("rounded-outline") in default_section
 
-    # The choice style must NOT wrap the already-styled default value.
-    assert theme.choice("rounded-outline") not in (
-        help_text.split("default:")[1] if "default:" in help_text else ""
-    )
+    # Neither the full compound choice nor the short suffix choice must
+    # appear with choice styling inside the default bracket.
+    assert theme.choice("rounded-outline") not in default_section
+    assert theme.choice("outline") not in default_section
 
 
 def test_keyword_collection(invoke, assert_output_regex):

@@ -799,12 +799,11 @@ class HelpExtraFormatter(cloup.HelpFormatter):
                     # Negative lookbehind rejects matches that are:
                     # - part of a larger word (\w),
                     # - a dotted name like "pyproject.toml" (\.),
+                    # - a suffix of a hyphenated compound like "outline"
+                    #   inside "rounded-outline" (\-),
                     # - already inside an ANSI escape sequence (\x1b).
-                    #   ANSI SGR codes end in "m" which \w already catches,
-                    #   but \x1b makes the intent explicit and guards against
-                    #   non-SGR sequences.
                     re.compile(
-                        rf"(?<![\w\.\x1b])"
+                        rf"(?<![\w\.\x1b\-])"
                         rf"{_escape_for_help_screen(keyword)}"
                         rf"(?!\w)"
                     )
