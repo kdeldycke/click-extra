@@ -653,11 +653,12 @@ def test_choice_not_highlighted_in_compounds_or_urls():
         params=[
             ExtraOption(
                 ["--format"],
-                type=click.Choice(["toml", "json", "github"]),
+                type=click.Choice(["toml", "json", "github", "WARNING"]),
             ),
         ],
         help=(
             "Reads pyproject.toml for config."
+            ' Remove the "[!WARNING]" block.'
             " Issues by github-actions[bot]."
             " See https://github.com/owner/repo."
             " Use github or json format."
@@ -666,9 +667,9 @@ def test_choice_not_highlighted_in_compounds_or_urls():
     ctx = ExtraContext(cli)
     help_text = cli.get_help(ctx)
 
-    # Standalone choices are highlighted.
-    assert " " + theme.choice("github") + " " in help_text
-    assert " " + theme.choice("json") + " " in help_text
+    # Standalone choices are highlighted (in the metavar list).
+    assert "|" + theme.choice("github") + "|" in help_text
+    assert "|" + theme.choice("json") + "|" in help_text
 
     # Dotted name: "toml" after a dot must NOT be highlighted.
     assert "pyproject." + theme.choice("toml") not in help_text
@@ -678,6 +679,9 @@ def test_choice_not_highlighted_in_compounds_or_urls():
 
     # URL path: "github" after "/" must NOT be highlighted.
     assert "/" + theme.choice("github") not in help_text
+
+    # GitHub alert syntax: "WARNING" after "!" must NOT be highlighted.
+    assert "!" + theme.choice("WARNING") not in help_text
 
 
 def test_default_choice_not_double_styled():

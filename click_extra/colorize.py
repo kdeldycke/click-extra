@@ -801,12 +801,13 @@ class HelpExtraFormatter(cloup.HelpFormatter):
                     # - a dot: "pyproject.toml" (\.),
                     # - a hyphen: "rounded-outline" (\-),
                     # - a slash: "https://github.com" (\/),
+                    # - an exclamation mark: "[!WARNING]" (!),
                     # - an ANSI escape: already-styled text (\x1b).
                     # Negative lookahead rejects matches followed by:
                     # - a word character (\w),
                     # - a hyphen: "github-actions" (\-).
                     re.compile(
-                        rf"(?<![\w\.\x1b\-/])"
+                        rf"(?<![\w\.\x1b\-/!])"
                         rf"{_escape_for_help_screen(keyword)}"
                         rf"(?![\w\-])"
                     )
