@@ -12,6 +12,9 @@
 
 ## [`7.9.0` (2026-03-31)](https://github.com/kdeldycke/click-extra/compare/v7.8.0...v7.9.0)
 
+> [!NOTE]
+> `7.9.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.9.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.9.0).
+
 - Add `flatten_config_keys()` utility to flatten nested config dicts into a single level by joining keys with a separator.
 - Flatten nested config dicts before dataclass field matching in `config_schema`, so nested TOML sub-tables (e.g. `[tool.myapp.sub-section]`) map to flat dataclass fields (e.g. `sub_section_key`).
 - Add `schema_strict` parameter to `ConfigOption` and `ExtraCommand`/`ExtraGroup`: when `True`, unknown config keys raise `ValueError` during dataclass schema validation instead of being silently dropped.
