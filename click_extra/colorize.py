@@ -410,9 +410,7 @@ class ExtraHelpColorsMixin:  # (Command)??
 
         # Collect option names and choices from parent groups. Subcommand
         # docstrings often reference parent options in usage examples (e.g.
-        # "myapp --table-format github sub"). Only options and choices are
-        # collected: metavars and defaults from parents are too generic (TEXT,
-        # FILE) and would over-highlight.
+        # "myapp --table-format github sub").
         parent_ctx = ctx.parent
         while parent_ctx:
             for param in parent_ctx.command.get_params(parent_ctx):
@@ -798,10 +796,12 @@ class HelpExtraFormatter(cloup.HelpFormatter):
             if keywords:
                 # Transform keywords into regex patterns.
                 patterns = (
-                    # Use negative lookbehind / lookahead (?<!\w) / (?!\w)) to ensure
-                    # the keyword is not part of a larger word.
-                    # i.e. "FOO" matches "FOO" but not "FOOBAR" or "AFOO".
-                    re.compile(rf"(?<!\w){_escape_for_help_screen(keyword)}(?!\w)")
+                    # Use negative lookbehind / lookahead to ensure the keyword
+                    # is not part of a larger word or a dotted name (e.g.
+                    # "toml" must not match inside "pyproject.toml").
+                    re.compile(
+                        rf"(?<![\w\.]){_escape_for_help_screen(keyword)}(?!\w)"
+                    )
                     for keyword in sorted(keywords, reverse=True)
                 )
                 help_text = highlight(

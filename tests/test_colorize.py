@@ -641,6 +641,32 @@ def test_parent_keywords_highlighted_in_subcommand_help():
     assert theme.choice("github") + " " in help_text
 
 
+def test_choice_not_highlighted_after_dot():
+    """Choice values must not be highlighted when preceded by a dot.
+
+    A choice like ``toml`` must not match inside ``pyproject.toml`` where the
+    dot makes it a file extension, not a standalone keyword.
+    """
+    cli = ExtraCommand(
+        "test",
+        params=[
+            ExtraOption(
+                ["--format"],
+                type=click.Choice(["toml", "json"]),
+            ),
+        ],
+        help="Reads pyproject.toml and outputs toml or json.",
+    )
+    ctx = ExtraContext(cli)
+    help_text = cli.get_help(ctx)
+
+    # Standalone "toml" is highlighted as a choice.
+    assert " " + theme.choice("toml") + " " in help_text
+
+    # "toml" after a dot (file extension) must NOT be highlighted.
+    assert "pyproject." + theme.choice("toml") not in help_text
+
+
 def test_keyword_collection(invoke, assert_output_regex):
     # Create a dummy Click CLI.
     @group
