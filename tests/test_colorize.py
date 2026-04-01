@@ -171,7 +171,7 @@ class HashType(Enum):
                 " " + theme.option("--x") + " " + theme.metavar("INTEGER") + " ",
                 " "
                 + theme.bracket("[")
-                + theme.bracket("required")
+                + theme.required("required")
                 + theme.bracket("]"),
             ),
         ),
@@ -185,7 +185,7 @@ class HashType(Enum):
                 + theme.bracket("default: ")
                 + theme.default("1")
                 + theme.bracket("; ")
-                + theme.bracket("required")
+                + theme.required("required")
                 + theme.bracket("]"),
             ),
         ),
@@ -200,7 +200,7 @@ class HashType(Enum):
                 + " ",
                 " "
                 + theme.bracket("[")
-                + theme.bracket("0<=x<=9")
+                + theme.range_label("0<=x<=9")
                 + theme.bracket("]"),
             ),
         ),

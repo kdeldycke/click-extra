@@ -63,6 +63,9 @@ class HelpExtraTheme(cloup.HelpTheme):
     bracket: IStyle = identity
     envvar: IStyle = identity
     default: IStyle = identity
+    range_label: IStyle = identity
+    required: IStyle = identity
+    argument: IStyle = identity
     deprecated: IStyle = identity
     search: IStyle = identity
     success: IStyle = identity
@@ -136,6 +139,9 @@ class HelpExtraTheme(cloup.HelpTheme):
             bracket=Style(dim=True),
             envvar=Style(fg=Color.yellow, dim=True),
             default=Style(fg=Color.green, dim=True, italic=True),
+            range_label=Style(fg=Color.cyan, dim=True),
+            required=Style(fg=Color.red, dim=True),
+            argument=Style(fg=Color.cyan),
             deprecated=Style(fg=Color.bright_yellow, bold=True),
             search=Style(fg=Color.green, bold=True),
             success=Style(fg=Color.green),
@@ -311,6 +317,7 @@ class ExtraHelpColorsMixin:  # (Command)??
         set[str],
         set[str],
         set[str],
+        set[str],
     ]:
         """Parse click context to collect option names, choices and metavar keywords.
 
@@ -321,6 +328,7 @@ class ExtraHelpColorsMixin:  # (Command)??
         subcommands: set[click.Command] = set()
         subcommand_ids: set[str] = set()
         command_aliases: set[str] = set()
+        arguments: set[str] = set()
         options: set[str] = set()
         long_options: set[str] = set()
         short_options: set[str] = set()
@@ -375,6 +383,11 @@ class ExtraHelpColorsMixin:  # (Command)??
             if isinstance(param, click.Option):
                 options.update(param.opts)
                 options.update(param.secondary_opts)
+            elif isinstance(param, click.Argument):
+                # Collect argument metavars (e.g. "MY_ARG") as a distinct
+                # category from option metavars. The uppercased name is used
+                # in the Usage line and the positional arguments section.
+                arguments.add(param.make_metavar(ctx=ctx))
 
             # Only Choice and DateTime types produce their own structured
             # metavar (with delimiters like brackets and pipes). All other
@@ -389,12 +402,15 @@ class ExtraHelpColorsMixin:  # (Command)??
             elif isinstance(param.type, click.DateTime):
                 # Highlight each datetime format string as a choice.
                 choices.update(param.type.formats)
-            else:
+            elif not isinstance(param, click.Argument):
+                # Argument metavars are collected separately in the
+                # ``arguments`` set with their own style.
                 metavars.add(param.make_metavar(ctx=ctx))
 
             # A user-provided metavar (e.g. ``metavar="LEVEL"``) is always
             # a plain token worth highlighting, even for Choice/DateTime.
-            if param.metavar:
+            # For arguments, this is already covered by the arguments set.
+            if param.metavar and not isinstance(param, click.Argument):
                 metavars.add(param.metavar)
 
             if param.envvar:
@@ -459,6 +475,7 @@ class ExtraHelpColorsMixin:  # (Command)??
             cli_names,
             subcommand_ids,
             command_aliases,
+            arguments,
             long_options,
             short_options,
             choices,
@@ -479,6 +496,7 @@ class ExtraHelpColorsMixin:  # (Command)??
             formatter.cli_names,
             formatter.subcommands,
             formatter.command_aliases,
+            formatter.arguments,
             formatter.long_options,
             formatter.short_options,
             formatter.choices,
@@ -534,6 +552,7 @@ class HelpExtraFormatter(cloup.HelpFormatter):
     cli_names: set[str] = set()  # noqa: RUF012
     subcommands: set[str] = set()  # noqa: RUF012
     command_aliases: set[str] = set()  # noqa: RUF012
+    arguments: set[str] = set()  # noqa: RUF012
     long_options: set[str] = set()  # noqa: RUF012
     short_options: set[str] = set()  # noqa: RUF012
     choices: set[str] = set()  # noqa: RUF012
@@ -554,9 +573,9 @@ class HelpExtraFormatter(cloup.HelpFormatter):
         "label_sep_1": "bracket",
         "default_label": "bracket",
         "label_sep_2": "bracket",
-        "range": "bracket",
+        "range": "range_label",
         "label_sep_3": "bracket",
-        "required_label": "bracket",
+        "required_label": "required",
         "bracket_2": "bracket",
         # Long and short options are options.
         "long_option": "option",
@@ -666,6 +685,19 @@ class HelpExtraFormatter(cloup.HelpFormatter):
                 (\ \ )                        # 2 spaces (i.e. section indentation).
                 (?P<subcommand>{re.escape(subcommand)})
                 (\s)                          # Any blank char.
+                """,
+                self.colorize,
+                help_text,
+                flags=re.VERBOSE,
+            )
+
+        # Highlight command aliases with the same pattern as subcommands.
+        for alias in self.command_aliases:
+            help_text = re.sub(
+                rf"""
+                (\ \ )                                # 2 spaces (section indentation).
+                (?P<subcommand>{re.escape(alias)})
+                (\s)                                  # Any blank char.
                 """,
                 self.colorize,
                 help_text,
@@ -788,8 +820,12 @@ class HelpExtraFormatter(cloup.HelpFormatter):
         # Highlight other keywords, which are expected to be separated by any
         # character but word characters.
         for keywords, style_func in (
-            # Choices are already featured in metavars, so we process them first to
-            # avoid double-highlighting.
+            # Arguments before metavars: argument names like MY_ARG are a
+            # subset of metavars, so highlighting them first with a distinct
+            # style takes priority.
+            (self.arguments, self.theme.argument),
+            # Choices are already featured in metavars, so we process them
+            # before metavars to avoid double-highlighting.
             (self.choices, self.theme.choice),
             (self.metavars, self.theme.metavar),
         ):
