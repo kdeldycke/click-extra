@@ -3,7 +3,5 @@
 ## `claude.md` file
 
 ```{include} ../claude.md
----
-start-line: 2
----
+:start-line: 2
 ```
