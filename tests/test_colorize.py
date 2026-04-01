@@ -722,6 +722,424 @@ def test_default_choice_not_double_styled():
     assert theme.choice("outline") not in default_section
 
 
+@pytest.mark.parametrize(
+    ("opt", "expected_outputs"),
+    (
+        # Range with open bounds.
+        (
+            ExtraOption(["--ratio"], type=IntRange(min=0, max_open=True, max=100)),
+            (
+                " "
+                + theme.option("--ratio")
+                + " "
+                + theme.metavar("INTEGER RANGE")
+                + " ",
+                " "
+                + theme.bracket("[")
+                + theme.range_label("0<=x<100")
+                + theme.bracket("]"),
+            ),
+        ),
+        # Range with only a minimum.
+        (
+            ExtraOption(["--port"], type=IntRange(min=1024)),
+            (
+                " "
+                + theme.option("--port")
+                + " "
+                + theme.metavar("INTEGER RANGE")
+                + " ",
+                " "
+                + theme.bracket("[")
+                + theme.range_label("x>=1024")
+                + theme.bracket("]"),
+            ),
+        ),
+        # Range with default and required.
+        (
+            ExtraOption(
+                ["--pct"],
+                type=IntRange(0, 100),
+                default=50,
+                required=True,
+                show_default=True,
+            ),
+            (
+                " "
+                + theme.bracket("[")
+                + theme.bracket("default: ")
+                + theme.default("50")
+                + theme.bracket("; ")
+                + theme.range_label("0<=x<=100")
+                + theme.bracket("; ")
+                + theme.required("required")
+                + theme.bracket("]"),
+            ),
+        ),
+        # Choice with default and envvar.
+        (
+            ExtraOption(
+                ["--render-mode"],
+                type=click.Choice(["auto", "always", "never"]),
+                default="auto",
+                show_default=True,
+                envvar="RENDER_MODE",
+                show_envvar=True,
+            ),
+            (
+                " "
+                + theme.option("--render-mode")
+                + " "
+                + "["
+                + theme.choice("auto")
+                + "|"
+                + theme.choice("always")
+                + "|"
+                + theme.choice("never")
+                + "]",
+                " "
+                + theme.bracket("[")
+                + theme.bracket("env var: ")
+                + theme.envvar("RENDER_MODE, TEST_RENDER_MODE")
+                + theme.bracket("; ")
+                + theme.bracket("default: ")
+                + theme.default("auto")
+                + theme.bracket("]"),
+            ),
+        ),
+        # Multiple option (accepts repeated values).
+        (
+            ExtraOption(
+                ["--tag"],
+                multiple=True,
+                help="Add tags.",
+            ),
+            (
+                " " + theme.option("--tag") + " " + theme.metavar("TEXT") + " ",
+                " Add tags.",
+            ),
+        ),
+        # Count option.
+        (
+            ExtraOption(
+                ["-v", "--verbose"],
+                count=True,
+                help="Increase verbosity.",
+            ),
+            (
+                " "
+                + theme.option("-v")
+                + ", "
+                + theme.option("--verbose")
+                + " ",
+                " Increase verbosity.",
+            ),
+        ),
+        # Long option that looks like a short prefix of another.
+        (
+            ExtraOption(
+                ["--output"],
+                help="Use --output-dir for directories.",
+            ),
+            (
+                " " + theme.option("--output") + " " + theme.metavar("TEXT") + " ",
+                " Use --output-dir for directories.",
+            ),
+        ),
+        # Deprecated with custom message.
+        (
+            ExtraOption(
+                ["--old-api"],
+                deprecated="use --new-api instead",
+                help="Legacy endpoint.",
+            ),
+            (
+                " " + theme.option("--old-api") + " " + theme.metavar("TEXT") + " ",
+                " Legacy endpoint."
+                + theme.deprecated("(DEPRECATED: use --new-api instead)"),
+            ),
+        ),
+        # Boolean flag with show_default.
+        (
+            ExtraOption(
+                ["--color/--no-color"],
+                default=True,
+                show_default=True,
+                help="Enable color output.",
+            ),
+            (
+                " " + theme.option("--color") + " / " + theme.option("--no-color") + " ",
+                " "
+                + theme.bracket("[")
+                + theme.bracket("default: ")
+                + theme.default("color")
+                + theme.bracket("]"),
+            ),
+        ),
+        # Path type with exists constraint.
+        (
+            ExtraOption(
+                ["--config"],
+                type=click.Path(exists=True),
+                help="Path to config file.",
+            ),
+            (
+                " "
+                + theme.option("--config")
+                + " "
+                + theme.metavar("PATH")
+                + " ",
+                " Path to config file.",
+            ),
+        ),
+        # File type.
+        (
+            ExtraOption(
+                ["--log"],
+                type=click.File("w"),
+                help="Log output to FILE.",
+            ),
+            (
+                " "
+                + theme.option("--log")
+                + " "
+                + theme.metavar("FILENAME")
+                + " ",
+            ),
+        ),
+        # Default value of None (should not produce a default bracket).
+        (
+            ExtraOption(
+                ["--optional"],
+                default=None,
+                help="An optional value.",
+            ),
+            (" An optional value.",),
+        ),
+        # Default value is an empty string.
+        (
+            ExtraOption(
+                ["--prefix"],
+                default="",
+                show_default=True,
+                help="String prefix.",
+            ),
+            (
+                " "
+                + theme.bracket("[")
+                + theme.bracket("default: ")
+                + theme.default('""')
+                + theme.bracket("]"),
+            ),
+        ),
+        # Multiple DateTime formats.
+        (
+            ExtraOption(
+                ["--timestamp"],
+                type=click.DateTime(["%Y-%m-%d", "%Y-%m-%dT%H:%M:%S"]),
+            ),
+            (
+                " "
+                + theme.option("--timestamp")
+                + " "
+                + "["
+                + theme.choice("%Y-%m-%d")
+                + "|"
+                + theme.choice("%Y-%m-%dT%H:%M:%S")
+                + "]",
+            ),
+        ),
+    ),
+)
+def test_option_highlight_extended(opt, expected_outputs):
+    """Extended tests for option highlighting edge cases."""
+    cli = ExtraCommand("test", params=[opt])
+    ctx = ExtraContext(cli)
+    help = cli.get_help(ctx)
+
+    for expected in expected_outputs:
+        assert expected in help
+
+
+def test_argument_highlight():
+    """Argument metavars get the ``argument`` style, distinct from option
+    metavars."""
+    cli = ExtraCommand(
+        "test",
+        params=[
+            click.Argument(["src"], type=click.Path()),
+            click.Argument(["dst"], type=click.Path()),
+        ],
+        help="Copy SRC to DST.",
+    )
+    ctx = ExtraContext(cli)
+    help_text = cli.get_help(ctx)
+
+    # Argument names in the Usage line are styled as arguments.
+    assert theme.argument("SRC") in help_text
+    assert theme.argument("DST") in help_text
+
+    # Argument names referenced in the description are also styled.
+    assert theme.argument("SRC") + " to " + theme.argument("DST") in help_text
+
+
+def test_argument_optional_and_variadic():
+    """Optional and variadic argument metavars are highlighted as a whole."""
+    cli = ExtraCommand(
+        "test",
+        params=[
+            click.Argument(["files"], nargs=-1),
+            click.Argument(["output"], required=False),
+        ],
+    )
+    ctx = ExtraContext(cli)
+    help_text = cli.get_help(ctx)
+
+    assert theme.argument("[FILES]...") in help_text
+    assert theme.argument("[OUTPUT]") in help_text
+
+
+def test_argument_does_not_shadow_metavar():
+    """Argument metavars must not also appear with the generic metavar style.
+
+    Arguments are collected in a separate set and excluded from the ``metavars``
+    set, so they should only receive the ``argument`` style.
+    """
+    cli = ExtraCommand(
+        "test",
+        params=[
+            click.Argument(["my_file"]),
+            ExtraOption(["--out"], metavar="OUTFILE"),
+        ],
+    )
+    ctx = ExtraContext(cli)
+    help_text = cli.get_help(ctx)
+
+    # Argument gets argument style.
+    assert theme.argument("MY_FILE") in help_text
+    # Option metavar gets metavar style.
+    assert theme.metavar("OUTFILE") in help_text
+    # Argument must NOT get the generic metavar style.
+    assert theme.metavar("MY_FILE") not in help_text
+
+
+def test_combined_envvar_default_range_required():
+    """All four bracket fields rendered together with correct styles."""
+    cli = ExtraCommand(
+        "test",
+        params=[
+            ExtraOption(
+                ["--threshold"],
+                type=IntRange(1, 10),
+                default=5,
+                required=True,
+                show_default=True,
+                envvar="THRESHOLD",
+                show_envvar=True,
+            ),
+        ],
+    )
+    ctx = ExtraContext(cli)
+    help_text = cli.get_help(ctx)
+
+    # Each field uses its own style, not the generic bracket style.
+    assert theme.envvar("THRESHOLD, TEST_THRESHOLD") in help_text
+    assert theme.default("5") in help_text
+    assert theme.range_label("1<=x<=10") in help_text
+    assert theme.required("required") in help_text
+
+
+def test_choice_with_option_like_values():
+    """Choice values that look like option names must still be highlighted as
+    choices, not as options."""
+    cli = ExtraCommand(
+        "test",
+        params=[
+            ExtraOption(
+                ["--mode"],
+                type=click.Choice(["--fast", "--slow", "normal"]),
+            ),
+        ],
+    )
+    ctx = ExtraContext(cli)
+    help_text = cli.get_help(ctx)
+
+    # These are choice values, not real options.
+    assert theme.choice("--fast") in help_text
+    assert theme.choice("--slow") in help_text
+    assert theme.choice("normal") in help_text
+
+
+def test_multiple_options_with_same_metavar():
+    """Two options sharing the same metavar name do not interfere."""
+    cli = ExtraCommand(
+        "test",
+        params=[
+            ExtraOption(["--input"], metavar="FILE", help="Input FILE path."),
+            ExtraOption(["--output"], metavar="FILE", help="Output FILE path."),
+        ],
+    )
+    ctx = ExtraContext(cli)
+    help_text = cli.get_help(ctx)
+
+    assert theme.metavar("FILE") in help_text
+    assert theme.option("--input") in help_text
+    assert theme.option("--output") in help_text
+
+
+def test_command_aliases_highlighted():
+    """Command aliases are highlighted like subcommands in the group help."""
+    from click_extra.commands import ExtraGroup
+
+    grp = ExtraGroup("cli")
+
+    @command(params=None, aliases=["ci"])
+    def commit():
+        """Record changes."""
+
+    grp.add_command(commit)
+
+    ctx = ExtraContext(grp, info_name="cli")
+    help_text = grp.get_help(ctx)
+    stripped = strip_ansi(help_text)
+
+    # The subcommand and its alias should both appear in the rendered text.
+    assert "commit" in stripped
+    # Cloup renders aliases in the definition list, and we highlight them
+    # with the subcommand style (via the command_aliases pass).
+    # Verify the alias is collected.
+    from click_extra.colorize import ExtraHelpColorsMixin
+
+    formatter = HelpExtraFormatter()
+    formatter.cli_names = set()
+    formatter.subcommands = set()
+    formatter.command_aliases = set()
+    formatter.arguments = set()
+    formatter.long_options = set()
+    formatter.short_options = set()
+    formatter.choices = set()
+    formatter.metavars = set()
+    formatter.envvars = set()
+    formatter.defaults = set()
+    formatter.deprecated_messages = set()
+
+    (
+        formatter.cli_names,
+        formatter.subcommands,
+        formatter.command_aliases,
+        formatter.arguments,
+        formatter.long_options,
+        formatter.short_options,
+        formatter.choices,
+        formatter.metavars,
+        formatter.envvars,
+        formatter.defaults,
+        formatter.deprecated_messages,
+    ) = grp._collect_keywords(ctx)
+
+    assert "ci" in formatter.command_aliases
+
+
 def test_keyword_collection(invoke, assert_output_regex):
     # Create a dummy Click CLI.
     @group
