@@ -567,16 +567,6 @@ class HelpExtraFormatter(cloup.HelpFormatter):
     # inspect them and get some performances improvements.
 
     style_aliases: ClassVar[dict[str, str]] = {
-        # Layout elements of the square brackets trailing each option.
-        "bracket_1": "bracket",
-        "envvar_label": "bracket",
-        "label_sep_1": "bracket",
-        "default_label": "bracket",
-        "label_sep_2": "bracket",
-        "range": "range_label",
-        "label_sep_3": "bracket",
-        "required_label": "required",
-        "bracket_2": "bracket",
         # Long and short options are options.
         "long_option": "option",
         "short_option": "option",
@@ -650,6 +640,59 @@ class HelpExtraFormatter(cloup.HelpFormatter):
 
         return txt
 
+    #: Matches range expressions like ``0<=x<=9``, ``x>=1024``, ``0<=x<100``.
+    _range_re = re.compile(
+        r"(?:\S+(?:<|<=))?"  # Optional lower bound + operator.
+        r"x"  # The variable.
+        r"(?:<|<=|>|>=)"  # Any comparison operator.
+        r"\S+"  # Upper (or lower) bound value.
+    )
+
+    def _style_bracket_fields(self, match: re.Match) -> str:
+        """Style a trailing ``[env var: ...; default: ...; ...]`` block.
+
+        Parses the bracket content by splitting on ``;`` separators and
+        matching each field by its label prefix. This replaces the former
+        monolithic regex with named groups and style aliases.
+        """
+        prefix = match.group(1)
+        content = match.group(2)
+
+        # Split on semicolons, keeping the separators.
+        parts = re.split(r"(;\s+)", content)
+
+        styled = []
+        for part in parts:
+            # Separator between fields.
+            if re.fullmatch(r";\s+", part):
+                styled.append(self.theme.bracket(part))
+            # Environment variable field.
+            elif m := re.match(r"(env\s+var:\s+)(.*)", part, re.DOTALL):
+                styled.append(
+                    self.theme.bracket(m.group(1)) + self.theme.envvar(m.group(2))
+                )
+            # Default value field.
+            elif m := re.match(r"(default:\s+)(.*)", part, re.DOTALL):
+                styled.append(
+                    self.theme.bracket(m.group(1)) + self.theme.default(m.group(2))
+                )
+            # Required label.
+            elif part == "required":
+                styled.append(self.theme.required(part))
+            # Range expression.
+            elif self._range_re.fullmatch(part):
+                styled.append(self.theme.range_label(part))
+            # Fallback: style as generic bracket content.
+            else:
+                styled.append(self.theme.bracket(part))
+
+        return (
+            prefix
+            + self.theme.bracket("[")
+            + "".join(styled)
+            + self.theme.bracket("]")
+        )
+
     def highlight_extra_keywords(self, help_text: str) -> str:
         """Highlight extra keywords in help screens based on the theme.
 
@@ -704,66 +747,21 @@ class HelpExtraFormatter(cloup.HelpFormatter):
                 flags=re.VERBOSE,
             )
 
-        # Highlight environment variables and defaults in trailing square brackets.
+        # Highlight trailing square brackets: [env var: ...; default: ...; ...].
+        # Uses a simple outer regex to capture the bracket block, then parses
+        # each field by its label inside _style_bracket_fields().
         help_text = re.sub(
-            r"""
-            (\ \ )                  # 2 spaces (column spacing or description spacing).
-            (?P<bracket_1>\[)       # Square brackets opening.
-
-            (?:                     # Non-capturing group.
-                (?P<envvar_label>
-                    env\s+var:      # Starting content within the brackets.
-                    \s+             # Any number of blank chars.
-                )
-                (?P<envvar>.+?)     # Greedy-matching of any string and line returns.
-            )?                      # The envvar group is optional.
-
-            (?P<label_sep_1>
-                ;                   # Separator between labels.
-                \s+                 # Any number of blank chars.
-            )?
-
-            (?:                     # Non-capturing group.
-                (?P<default_label>
-                    default:        # Starting content within the brackets.
-                    \s+             # Any number of blank chars.
-                )
-                (?P<default>.+?)    # Greedy-matching of any string and line returns.
-            )?                      # The default group is optional.
-
-            (?P<label_sep_2>
-                ;                   # Separator between labels.
-                \s+                 # Any number of blank chars.
-            )?
-
-            (?:                     # Non-capturing group.
-                (?P<range>
-                    (?:
-                        \S+
-                        (?:<|<=)    # Lower bound operators.
-                    )?              # Operator preceding x is optional.
-                    x
-                    (?:<|<=|>|>=)  # Any range operator.
-                    \S+
-                )
-            )?                      # The range group is optional.
-
-            (?P<label_sep_3>
-                ;                   # Separator between labels.
-                \s+                 # Any number of blank chars.
-            )?
-
-            (?:                     # Non-capturing group.
-                (?P<required_label>
-                    required        # Required label.
-                )
-            )?                      # The required group is optional.
-
-            (?P<bracket_2>\])       # Square brackets closing.
-            """,
-            self.colorize,
+            r"(  )"  # 2 spaces (column or description spacing).
+            r"\["  # Opening bracket.
+            r"("  # Capture the bracket content.
+            r"(?:env\s+var:|default:|required"  # Must contain a recognized label
+            r"|(?:\S+(?:<|<=))?x(?:<|<=|>|>=)\S+)"  # or a range expression.
+            r"[^\]]*"  # Followed by any non-] characters.
+            r")"
+            r"\]",  # Closing bracket.
+            self._style_bracket_fields,
             help_text,
-            flags=re.VERBOSE | re.DOTALL,
+            flags=re.DOTALL,
         )
 
         # Highlight CLI names and commands.
