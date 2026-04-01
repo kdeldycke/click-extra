@@ -330,8 +330,15 @@ class ExtraHelpColorsMixin:  # (Command)??
         defaults: set[str] = set()
         deprecated_messages: set[str] = set()
 
-        # Includes CLI base name and its commands.
+        # Includes the full command path and each ancestor name, so that
+        # individual components are highlighted even when interleaved with
+        # options (e.g. "repomatic --table-format github sync-uv-lock").
         cli_names.add(ctx.command_path)
+        ancestor = ctx
+        while ancestor:
+            if ancestor.info_name:
+                cli_names.add(ancestor.info_name)
+            ancestor = ancestor.parent
         command = ctx.command
 
         # Will fetch command's metavar (i.e. the "[OPTIONS]" after the CLI name in
