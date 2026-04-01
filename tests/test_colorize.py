@@ -575,6 +575,31 @@ def test_argument_name_does_not_shadow_option():
     assert " " + theme.option("--list-keys") + " " in help_text
 
 
+def test_option_does_not_match_inside_longer_option_in_text():
+    """An option must not be highlighted as a substring of a longer option name
+    that appears in help text without being a registered option.
+
+    When a command has ``--table`` as an option and the docstring mentions
+    ``--table-format`` (a parent group option), the regex for ``--table`` must
+    not match the ``--table`` prefix inside ``--table-format``. The hyphen
+    continues the option name and is not a word boundary.
+    """
+    cli = ExtraCommand(
+        "test",
+        params=[
+            ExtraOption(["--table/--no-table"], is_flag=True, default=True),
+        ],
+        help="Use --table-format to pick a format.",
+    )
+    ctx = ExtraContext(cli)
+    help_text = cli.get_help(ctx)
+
+    # --table must NOT appear highlighted inside --table-format.
+    # If the regex is wrong, --table gets its own color span and -format is
+    # left unstyled, producing a broken fragment.
+    assert theme.option("--table") + "-format" not in help_text
+
+
 def test_keyword_collection(invoke, assert_output_regex):
     # Create a dummy Click CLI.
     @group

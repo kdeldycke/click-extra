@@ -752,7 +752,10 @@ class HelpExtraFormatter(cloup.HelpFormatter):
                         [^\w{re.escape(keyword[0])}]
                     )
                     (?P<{style_group_id}>{_escape_for_help_screen(keyword)})
-                    (\W)
+                    # Trailing boundary: any non-word character except hyphen. A
+                    # hyphen continues the option name (e.g. --table vs
+                    # --table-format) so it must not be treated as a boundary.
+                    ([^\w\-])
                     """,
                     self.colorize,
                     help_text,
