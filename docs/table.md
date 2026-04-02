@@ -153,9 +153,16 @@ By default, markup formats strip ANSI color codes from the output, to avoid inje
 If you want to keep them, force the `--color` option when invoking the command.
 ```
 
-```{todo}
-Explain extra parameters supported by `print_table()` for each category of formats.
+````{tip}
+Use the built-in `click-extra render-matrix` command to verify how ANSI codes are handled by each format:
+
+```shell-session
+$ uvx click-extra --table-format github render-matrix --matrix=styles
+$ uvx click-extra --table-format json render-matrix --matrix=colors
 ```
+
+Plain-text formats preserve ANSI styling. Markup formats strip it unless `--color` is passed explicitly.
+````
 
 ```{click:run}
 :emphasize-lines: 1

@@ -51,9 +51,9 @@ from click_extra import HelpExtraTheme, group
 
 safe_theme = HelpExtraTheme.dark().with_(cross_ref_highlight=False)
 
+
 @group(context_settings={"formatter_settings": {"theme": safe_theme}})
-def cli():
-    ...
+def cli(): ...
 ```
 
 With `cross_ref_highlight=False`, only structural elements are styled: bracket fields (`[default: ...]`, `[env var: ...]`, ranges, `[required]`), deprecated messages, and subcommand names in definition lists. Option names, choices, arguments, metavars, and CLI names in descriptions and docstrings are left unstyled.
@@ -110,16 +110,61 @@ Without a table imposing a maximal width, the help screens from Click Extra will
 This is just a matter of preference, as nothing prevents you to use both `rich-click` and Click Extra in the same project, and get the best from both.
 ```
 
-## `color_option`
+## `--color`/`--no-color` flag
 
-```{todo}
-Write examples and tutorial.
+Click Extra adds a `--color`/`--no-color` flag (aliased as `--ansi`/`--no-ansi`) that controls whether ANSI codes are emitted. It is eager, so it takes effect before other eager options like `--version`.
+
+The option respects the [`NO_COLOR`](https://no-color.org), `CLICOLOR`, and `CLICOLOR_FORCE` environment variables. When any of these signals "no color", the environment takes precedence over the default value (but an explicit `--color` or `--no-color` on the command line always wins).
+
+All Click Extra commands and groups include this option by default. Use `color_option` as a standalone decorator when building CLIs with plain `click.command`:
+
+```{click:source}
+import click
+from click_extra import echo, color_option
+
+@click.command
+@color_option
+def greet():
+    """Say hello with optional color."""
+    ctx = click.get_current_context()
+    if ctx.color:
+        echo("\x1b[32mHello in green!\x1b[0m")
+    else:
+        echo("Hello without color.")
 ```
 
-## `help_option`
+```{click:run}
+result = invoke(greet, args=["--color"])
+assert result.exit_code == 0
+assert "\x1b[32mHello in green!\x1b[0m" in result.output
+```
 
-```{todo}
-Write examples and tutorial.
+```{click:run}
+result = invoke(greet, args=["--no-color"])
+assert result.exit_code == 0
+assert "Hello without color." in result.output
+```
+
+## `--help`, `-h` aliases
+
+Click Extra defaults `help_option_names` to `("--help", "-h")`, adding the short `-h` alias that Click does not provide out of the box. This applies to all commands and groups created with Click Extra decorators:
+
+```{click:source}
+from click_extra import command, echo
+
+@command
+def hello():
+    """Greet the user."""
+    echo("Hello!")
+```
+
+```{click:run}
+from boltons.strutils import strip_ansi
+result = invoke(hello, args=["-h"])
+assert result.exit_code == 0
+plain = strip_ansi(result.output)
+assert "Greet the user." in plain
+assert "-h, --help" in plain
 ```
 
 ## Colors and styles
