@@ -263,8 +263,7 @@ default_options_uncolored_help = (
     r"                          \[default: color\]\n"
     r"  --config CONFIG_PATH    Location of the configuration file. Supports local\n"
     r"                          path with glob patterns or remote URL.  \[default:\n"
-    r"                          .+\n"
-    r"                          .+\n"
+    r"(?:                          .+\n)*"
     r"                          .+\]\n"
     r"  --no-config             Ignore all configuration files and only use command\n"
     r"                          line parameters and environment variables.\n"
@@ -290,13 +289,10 @@ default_options_colored_help = (
     r"                          Strip out all colors and all ANSI codes from output.\n"
     r"                          \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mcolor\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
     r"  \x1b\[36m--config\x1b\[0m \x1b\[36m\x1b\[2mCONFIG_PATH\x1b\[0m    Location of the configuration file. Supports local\n"
-    # XXX We cannot do better than .+ for the default path because it is OS-specific,
-    # and we cannot hard-code the whole glob pattern because the line wrapping would be
-    # different on different terminals. Each continuation line is matched individually
-    # because regex_fullmatch_line_by_line splits by newline.
+    # The default path is OS-specific and wraps across a variable number of lines
+    # depending on the platform path length. Use (?:...)* for intermediate lines.
     r"                          path with glob patterns or remote URL.  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault:\n"
-    r"                          .+\n"
-    r"                          .+\n"
+    r"(?:                          .+\n)*"
     r"                          .+\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
     r"  \x1b\[36m--no-config\x1b\[0m             Ignore all configuration files and only use command\n"
     r"                          line parameters and environment variables.\n"
