@@ -9,13 +9,13 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-03-25T12:45:43.279257093Z"
+exclude-newer = "2026-03-26T10:53:03.742117288Z"
 exclude-newer-span = "P1W"
 
 [options.exclude-newer-package]
-tabulate = { timestamp = "2026-04-01T12:45:43.279263956Z", span = "PT0S" }
-pygments = { timestamp = "2026-04-01T12:45:43.279269527Z", span = "PT0S" }
-requests = { timestamp = "2026-04-01T12:45:43.279269957Z", span = "PT0S" }
+tabulate = { timestamp = "2026-04-02T10:53:03.742124642Z", span = "PT0S" }
+pygments = { timestamp = "2026-04-02T10:53:03.742130934Z", span = "PT0S" }
+requests = { timestamp = "2026-04-02T10:53:03.742131384Z", span = "PT0S" }
 
 [[package]]
 name = "accessible-pygments"
@@ -215,7 +215,7 @@ wheels = [
 
 [[package]]
 name = "click-extra"
-version = "7.10.0.dev0"
+version = "7.10.1.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "boltons" },
@@ -547,7 +547,7 @@ name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/79/66800aadf48771f6b62f7eb014e352e5d06856655206165d775e675a02c9/exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219", size = 30371, upload-time = "2025-11-21T23:01:54.787Z" }
 wheels = [

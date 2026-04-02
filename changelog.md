@@ -1,5 +1,10 @@
 # Changelog
 
+## [`7.10.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.10.0...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`7.10.0` (2026-04-02)](https://github.com/kdeldycke/click-extra/compare/v7.9.0...v7.10.0)
 
 - Highlight parent group names in subcommand help text, so ancestor command names are colored even when interleaved with options.
