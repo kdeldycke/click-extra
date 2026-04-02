@@ -1888,13 +1888,17 @@ class ValidateConfigOption(ExtraOption):
 
     def __init__(
         self,
-        param_decls=None,
-        type=ClickPath(exists=True, dir_okay=False, resolve_path=True),
-        is_eager=True,
-        expose_value=False,
-        help=_("Validate the configuration file and exit."),
-        **kwargs,
-    ):
+        param_decls: Sequence[str] | None = None,
+        type: click.ParamType | Any = ClickPath(  # type: ignore[misc]
+            exists=True,
+            dir_okay=False,
+            resolve_path=True,
+        ),
+        is_eager: bool = True,
+        expose_value: bool = False,
+        help: str = _("Validate the configuration file and exit."),
+        **kwargs: Any,
+    ) -> None:
         if not param_decls:
             param_decls = ("--validate-config",)
 
@@ -1909,20 +1913,26 @@ class ValidateConfigOption(ExtraOption):
             **kwargs,
         )
 
-    def validate_config(self, ctx, param, value):
+    def validate_config(
+        self,
+        ctx: click.Context,
+        param: click.Parameter,
+        value: str | None,
+    ) -> None:
         """Load, parse, and validate the configuration file, then exit."""
         if not value:
             return
 
-        info_msg = partial(echo, err=True)
+        info_msg: Callable[..., None] = partial(echo, err=True)  # type: ignore[misc]
 
         # Find the sibling ConfigOption to reuse its parsing machinery.
-        config_option = search_params(ctx.command.params, ConfigOption)
-        if config_option is None:
+        result = search_params(ctx.command.params, ConfigOption)
+        if not isinstance(result, ConfigOption):
             raise RuntimeError(
                 f"{'/'.join(param.opts)} {self.__class__.__name__} must be "
                 f"used alongside {ConfigOption.__name__}."
             )
+        config_option = result
 
         # Read and parse the config file.
         try:
