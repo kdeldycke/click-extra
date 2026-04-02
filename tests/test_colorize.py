@@ -272,6 +272,8 @@ class Port(IntEnum):
         ),
         # Envvar + default + range + required (all four bracket fields).
         (
+            # All four bracket fields combined. Checked individually because
+            # Click's text wrapper may break the line inside the bracket.
             ExtraOption(
                 ["--threshold"],
                 type=IntRange(1, 10),
@@ -282,18 +284,11 @@ class Port(IntEnum):
                 show_envvar=True,
             ),
             (
-                " "
-                + theme.bracket("[")
-                + theme.bracket("env var: ")
-                + theme.envvar("THRESHOLD, TEST_THRESHOLD")
-                + theme.bracket("; ")
-                + theme.bracket("default: ")
-                + theme.default("5")
-                + theme.bracket("; ")
-                + theme.range_label("1<=x<=10")
-                + theme.bracket("; ")
-                + theme.required("required")
-                + theme.bracket("]"),
+                theme.bracket("env var: ")
+                + theme.envvar("THRESHOLD, TEST_THRESHOLD"),
+                theme.bracket("default: ") + theme.default("5"),
+                theme.range_label("1<=x<=10"),
+                theme.required("required") + theme.bracket("]"),
             ),
         ),
         # Boolean flags.

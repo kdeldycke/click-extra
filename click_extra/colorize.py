@@ -341,7 +341,8 @@ class ExtraHelpColorsMixin:  # (Command)??
         # Includes the full command path and each ancestor name, so that
         # individual components are highlighted even when interleaved with
         # options (e.g. "repomatic --table-format github sync-uv-lock").
-        cli_names.add(ctx.command_path)
+        if ctx.command_path:
+            cli_names.add(ctx.command_path)
         ancestor = ctx
         while ancestor:
             if ancestor.info_name:
@@ -567,79 +568,6 @@ class HelpExtraFormatter(cloup.HelpFormatter):
     # TODO: add collection of regexps as pre-compiled constants, so we can
     # inspect them and get some performances improvements.
 
-    style_aliases: ClassVar[dict[str, str]] = {
-        # Long and short options are options.
-        "long_option": "option",
-        "short_option": "option",
-    }
-    """Map regex's group IDs to styles.
-
-    Most of the time, the style name is the same as the group ID. But some regular
-    expression implementations requires us to work around group IDs limitations, like
-    ``bracket_1`` and ``bracket_2``. In which case we use this mapping to apply back
-    the canonical style to that regex-specific group ID.
-    """
-
-    @cache  # noqa: B019
-    def get_style_id(self, group_id: str) -> str:
-        """Get the style ID to apply to a group.
-
-        Return the style which has the same ID as the group, unless it is defined in
-        the ``style_aliases`` mapping above.
-        """
-        return self.style_aliases.get(group_id, group_id)
-
-    @cache  # noqa: B019
-    def colorize_group(self, str_to_style: str, group_id: str) -> str:
-        """Colorize a string according to the style of the group ID."""
-        style = getattr(self.theme, self.get_style_id(group_id))
-        return style(str_to_style)  # type: ignore[no-any-return]
-
-    def colorize(self, match: re.Match) -> str:
-        """Colorize all groups with IDs in the provided matching result.
-
-        All groups without IDs are left as-is.
-
-        All groups are processed in the order they appear in the ``match`` object.
-        Then all groups are concatenated to form the final string that is returned.
-
-        .. caution::
-            Implementation is a bit funky here because there is no way to iterate over
-            both unnamed and named groups, in the order they appear in the regex, while
-            keeping track of the group ID.
-
-            So we have to iterate over the list of matching strings and pick up the
-            corresponding group ID along the way, from the ``match.groupdict()``
-            dictionary. This also means we assume that the ``match.groupdict()`` is
-            returning an ordered dictionary. Which is supposed to be true as of Python
-            3.7.
-        """
-        # Get a snapshot of all named groups.
-        named_matches = list(match.groupdict().items())
-
-        txt = ""
-        # Iterate over all groups, named or not.
-        for group_string in match.groups():
-            # Is the next available named group is matching current group string?
-            if named_matches and group_string == named_matches[0][1]:
-                # We just found a named group. Consume it from the list of named groups
-                # to prevent it from being processed twice.
-                group_id, group_string = named_matches.pop(0)
-                if group_string is not None:
-                    # Colorize the group with a style matching its ID.
-                    txt += self.colorize_group(group_string, group_id)
-            else:
-                # No named group matching this string. Leave it as-is.
-                txt += group_string
-
-        # Double-check we processed all named groups.
-        if len(named_matches) != 0:
-            raise ValueError(
-                "The matching result contains named groups that were not processed. "
-                "There is an edge-case in the design of regular expressions."
-            )
-
-        return txt
 
     #: Matches range expressions like ``0<=x<=9``, ``x>=1024``, ``0<=x<100``.
     _range_re = re.compile(
@@ -698,55 +626,32 @@ class HelpExtraFormatter(cloup.HelpFormatter):
     def highlight_extra_keywords(self, help_text: str) -> str:
         """Highlight extra keywords in help screens based on the theme.
 
-        It is based on regular expressions. While this is not a bullet-proof method, it
-        is good enough. After all, help screens are not consumed by machine but are
-        designed for humans.
-
-        .. danger::
-            All the regular expressions below are designed to match its original string
-            into a sequence of contiguous groups.
-
-            This means each part of the matching result must be encapsulated in a group.
-            And subgroups are not allowed (unless their are explicitly set as
-            non-matching with ``(?:...)`` prefix).
-
-            Groups with a name must have a corresponding style.
+        Uses the ``highlight()`` function for all keyword categories. Each
+        category is processed as a batch of regex patterns with a single styling
+        function, which handles overlapping matches and prevents double-styling.
         """
         # Highlight deprecated messages.
-        for deprecated_string in self.deprecated_messages:
-            help_text = re.sub(
-                rf"""
-                (?P<deprecated>{_escape_for_help_screen(deprecated_string)})  # Message
-                """,
-                self.colorize,
+        if self.deprecated_messages:
+            help_text = highlight(
                 help_text,
-                flags=re.VERBOSE,
+                (
+                    re.compile(_escape_for_help_screen(msg))
+                    for msg in self.deprecated_messages
+                ),
+                self.theme.deprecated,
             )
 
-        # Highlight subcommands.
-        for subcommand in self.subcommands:
-            help_text = re.sub(
-                rf"""
-                (\ \ )                        # 2 spaces (i.e. section indentation).
-                (?P<subcommand>{re.escape(subcommand)})
-                (\s)                          # Any blank char.
-                """,
-                self.colorize,
+        # Highlight subcommands and their aliases. Both share the subcommand
+        # style and require 2-space indentation as a leading boundary.
+        all_subcommands = self.subcommands | self.command_aliases
+        if all_subcommands:
+            help_text = highlight(
                 help_text,
-                flags=re.VERBOSE,
-            )
-
-        # Highlight command aliases with the same pattern as subcommands.
-        for alias in self.command_aliases:
-            help_text = re.sub(
-                rf"""
-                (\ \ )                                # 2 spaces (section indentation).
-                (?P<subcommand>{re.escape(alias)})
-                (\s)                                  # Any blank char.
-                """,
-                self.colorize,
-                help_text,
-                flags=re.VERBOSE,
+                (
+                    re.compile(rf"(?<=  ){re.escape(name)}(?=\s)")
+                    for name in sorted(all_subcommands, key=len, reverse=True)
+                ),
+                self.theme.subcommand,
             )
 
         # Style trailing bracket fields [env var: ...; default: ...; ...].
@@ -768,55 +673,35 @@ class HelpExtraFormatter(cloup.HelpFormatter):
         )
 
         # Highlight CLI names and commands.
-        for cli_name in self.cli_names:
-            help_text = re.sub(
-                rf"""
-                (\s)                                        # Any blank char.
-                (?P<invoked_command>{re.escape(cli_name)})  # The CLI name.
-                (\s)                                        # Any blank char.
-                """,
-                self.colorize,
+        if self.cli_names:
+            help_text = highlight(
                 help_text,
-                flags=re.VERBOSE,
+                (
+                    re.compile(rf"(?<=\s){re.escape(name)}(?=\s)")
+                    for name in sorted(self.cli_names, key=len, reverse=True)
+                ),
+                self.theme.invoked_command,
             )
 
-        # Highlight sections.
-        # XXX Duplicates Cloup's job, with the only subtlety of not highlighting the
-        # trailing semicolon.
-        #
-        # help_text = re.sub(
-        #     r"""
-        #     ^                       # Beginning of a line preceded by a newline.
-        #     (?P<heading>\S[\S+ ]+)  # The section title.
-        #     (:)                     # A semicolon.
-        #     """,
-        #     self.colorize,
-        #     help_text,
-        #     flags=re.VERBOSE | re.MULTILINE,
-        # )
-
-        # Highlight long options first, then short options.
-        for option_keywords, style_group_id in (
-            (sorted(self.long_options, reverse=True), "long_option"),
-            (sorted(self.short_options), "short_option"),
-        ):
-            for keyword in option_keywords:
-                help_text = re.sub(
-                    rf"""
-                    (
-                        # Not a: word character, or a repeated option's leading symbol.
-                        [^\w{re.escape(keyword[0])}]
+        # Highlight options (long and short combined). Per-keyword lookbehind
+        # excludes the option's own leading symbol to prevent matching repeated
+        # prefixes (e.g. "---debug" should not match "--debug").
+        all_options = sorted(
+            self.long_options | self.short_options, key=len, reverse=True
+        )
+        if all_options:
+            help_text = highlight(
+                help_text,
+                (
+                    re.compile(
+                        rf"(?<=[^\w{re.escape(kw[0])}])"
+                        rf"{_escape_for_help_screen(kw)}"
+                        rf"(?=[^\w\-])"
                     )
-                    (?P<{style_group_id}>{_escape_for_help_screen(keyword)})
-                    # Trailing boundary: any non-word character except hyphen. A
-                    # hyphen continues the option name (e.g. --table vs
-                    # --table-format) so it must not be treated as a boundary.
-                    ([^\w\-])
-                    """,
-                    self.colorize,
-                    help_text,
-                    flags=re.VERBOSE,
-                )
+                    for kw in all_options
+                ),
+                self.theme.option,
+            )
 
         # Highlight other keywords, which are expected to be separated by any
         # character but word characters.
