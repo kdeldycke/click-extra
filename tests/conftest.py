@@ -24,17 +24,33 @@ from inspect import cleandoc
 from pathlib import Path
 from textwrap import indent
 
+import os
+
 import pytest
 from extra_platforms.pytest import skip_windows
 from sphinx.application import Sphinx
 from sphinx.util.docutils import docutils_namespace
 
+from click_extra.colorize import color_envvars
 from click_extra.pytest import (  # noqa: F401
     assert_output_regex,
     create_config,
     extra_runner,
     invoke,
 )
+
+@pytest.fixture(autouse=True)
+def _isolate_color_envvars():
+    """Remove color-affecting environment variables so tests are deterministic.
+
+    Variables like ``NO_COLOR`` and ``LLM`` are commonly set by shells, editors,
+    and AI tooling. Their presence overrides ``ColorOption``'s default, making
+    color-dependent tests fail in developer environments.
+    """
+    saved = {var: os.environ.pop(var) for var in color_envvars if var in os.environ}
+    yield
+    os.environ.update(saved)
+
 
 skip_windows_colors = skip_windows(reason="Click overstrip colors on Windows")
 """Skips color tests on Windows as ``click.testing.invoke`` overzealously strips colors.

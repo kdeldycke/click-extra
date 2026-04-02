@@ -262,12 +262,10 @@ default_options_uncolored_help = (
     r"                          Strip out all colors and all ANSI codes from output.\n"
     r"                          \[default: color\]\n"
     r"  --config CONFIG_PATH    Location of the configuration file. Supports local\n"
-    r"                          path with glob patterns or remote URL.  \[default:( \S+)?\n"
-    # XXX We cannot do better than \S+ for the default path because it is OS-specific,
-    # and we cannot hard-code the whole glob pattern because the line wrapping would be
-    # different on different terminals.
-    r"(                          .+\n)*"
-    r"                          .*\]\n"
+    r"                          path with glob patterns or remote URL.  \[default:\n"
+    r"                          .+\n"
+    r"                          .+\n"
+    r"                          .+\]\n"
     r"  --no-config             Ignore all configuration files and only use command\n"
     r"                          line parameters and environment variables.\n"
     r"  --validate-config FILE  Validate the configuration file and exit.\n"
