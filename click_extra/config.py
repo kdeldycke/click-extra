@@ -50,12 +50,14 @@ import logging
 import os
 import sys
 from collections import ChainMap
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from configparser import ConfigParser, ExtendedInterpolation
+from dataclasses import MISSING, fields as dc_fields, is_dataclass
 from enum import Enum
 from functools import cached_property, partial
 from gettext import gettext as _
 from pathlib import Path, PurePosixPath
+from typing import get_origin, get_type_hints
 
 import requests
 from boltons.iterutils import flatten, unique
@@ -304,20 +306,14 @@ def _check_type_conflict(
             return
         existing = node[part]
         is_last = i == len(parts) - 1
-        if is_last:
+        conflict = (
             # Leaf: flag when one side is a dict and the other is not.
-            if isinstance(existing, dict) != isinstance(new_value, dict):
-                msg = (
-                    f"Configuration key {label!r} conflicts with "
-                    f"{'.'.join(parts[: i + 1])!r}: "
-                    f"mixing scalar and nested values."
-                )
-                if strict:
-                    raise ValueError(msg)
-                logger.warning(f"{msg} Last value wins.")
-            return
-        # Intermediate segment: the new value expects a dict here.
-        if not isinstance(existing, dict):
+            is_last and isinstance(existing, dict) != isinstance(new_value, dict)
+        ) or (
+            # Intermediate segment: the new value expects a dict here.
+            not is_last and not isinstance(existing, dict)
+        )
+        if conflict:
             msg = (
                 f"Configuration key {label!r} conflicts with "
                 f"{'.'.join(parts[: i + 1])!r}: "
@@ -326,6 +322,8 @@ def _check_type_conflict(
             if strict:
                 raise ValueError(msg)
             logger.warning(f"{msg} Last value wins.")
+            return
+        if is_last:
             return
         node = existing
 
@@ -485,16 +483,12 @@ def _safe_get_type_hints(cls: type) -> dict[str, Any]:
     field(default_factory=SubConfig)`` to be resolved even when
     ``SubConfig`` is not in the module's global scope.
     """
-    from typing import get_type_hints
-
     try:
         return get_type_hints(cls)
     except (NameError, AttributeError, TypeError, RecursionError):
         pass
 
     # Fallback: build localns from default_factory class references.
-    from dataclasses import MISSING, fields as dc_fields
-
     localns: dict[str, Any] = {}
     try:
         for f in dc_fields(cls):
@@ -521,16 +515,8 @@ def _is_mapping_type(hint: object) -> bool:
     """Check if a resolved type hint is a ``dict`` or ``Mapping``."""
     if hint is None:
         return False
-    from collections.abc import Mapping
-    from typing import get_origin
-
     origin = get_origin(hint)
     return origin is dict or origin is Mapping
-
-
-def _is_dataclass_type(hint: object) -> bool:
-    """Check if a resolved type hint is a dataclass."""
-    return hint is not None and hasattr(hint, "__dataclass_fields__")
 
 
 def _extract_dotted(conf: dict[str, Any], path: str) -> tuple[Any, bool]:
@@ -563,6 +549,160 @@ def _remove_dotted(conf: dict[str, Any], path: str) -> dict[str, Any]:
     if not sub:
         return {k: v for k, v in conf.items() if k != top}
     return {**conf, top: sub}
+
+
+def _apply_nested_schema(
+    hint: type | None,
+    value: dict[str, Any],
+    strict: bool,
+    do_normalize: bool = True,
+) -> Any:
+    """Recursively apply a schema callable to a dict value if the hint is a dataclass.
+
+    Falls back to ``normalize_config_keys`` when the hint is not a dataclass
+    but normalization is requested.  Returns ``value`` unchanged otherwise.
+    """
+    if is_dataclass(hint):
+        sub = _make_schema_callable(hint, strict=strict, normalize=do_normalize)
+        return sub(value) if sub else value
+    if do_normalize:
+        return normalize_config_keys(value)
+    return value
+
+
+def _from_dataclass(
+    schema: type,
+    raw: dict[str, Any],
+    *,
+    strict: bool = False,
+    normalize: bool = True,
+) -> Any:
+    """Build a dataclass instance from a raw configuration dict.
+
+    Handles explicit ``config_path`` metadata, type-aware normalization and
+    flattening, nested dataclass recursion, and strict validation.  Called by
+    ``_make_schema_callable`` for dataclass schemas.
+    """
+    all_fields = dc_fields(schema)
+    known = {f.name for f in all_fields}
+    hints = _safe_get_type_hints(schema)
+
+    # --- Phase 1: extract fields with explicit config_path. ---
+    result: dict[str, Any] = {}
+    remaining = dict(raw)
+
+    for f in all_fields:
+        path = f.metadata.get("click_extra.config_path")
+        if path is None:
+            continue
+        do_normalize = f.metadata.get("click_extra.normalize_keys", True)
+        value, found = _extract_dotted(remaining, path)
+        if not found:
+            continue
+        remaining = _remove_dotted(remaining, path)
+
+        hint = hints.get(f.name)
+        if isinstance(value, dict):
+            value = _apply_nested_schema(hint, value, strict, do_normalize)
+        result[f.name] = value
+
+    # --- Phase 2: type-aware normalize + flatten. ---
+    # Detect opaque fields: dict-typed or nested-dataclass-typed.
+    opaque = frozenset(
+        f.name
+        for f in all_fields
+        if f.name not in result
+        and (_is_mapping_type(hints.get(f.name)) or is_dataclass(hints.get(f.name)))
+    )
+
+    normalized = (
+        normalize_config_keys(remaining, opaque_keys=opaque)
+        if normalize
+        else remaining
+    )
+    flattened = flatten_config_keys(normalized, opaque_keys=opaque)
+
+    # --- Phase 3: recursively process nested dataclasses. ---
+    for f in all_fields:
+        if f.name in result:
+            continue
+        hint = hints.get(f.name)
+        if (
+            is_dataclass(hint)
+            and f.name in flattened
+            and isinstance(flattened[f.name], dict)
+        ):
+            sub = _make_schema_callable(hint, strict=strict)
+            flattened[f.name] = sub(flattened[f.name]) if sub else flattened[f.name]
+
+    # --- Phase 4: merge and validate. ---
+    for k, v in flattened.items():
+        if k in known and k not in result:
+            result[k] = v
+
+    if strict:
+        all_keys = set(result) | set(flattened)
+        unknown = sorted(all_keys - known)
+        if unknown:
+            msg = (
+                f"Unknown configuration option(s): "
+                f"{', '.join(unknown)}. "
+                f"Valid options: {', '.join(sorted(known))}"
+            )
+            raise ValueError(msg)
+
+    return schema(**{k: v for k, v in result.items() if k in known})
+
+
+def _make_schema_callable(
+    schema: type | Callable[[dict[str, Any]], Any] | None,
+    *,
+    strict: bool = False,
+    normalize: bool = True,
+) -> Callable[[dict[str, Any]], Any] | None:
+    """Wrap a schema type into a callable that accepts a raw config dict.
+
+    - **Dataclass types** (detected via ``dataclasses.is_dataclass``) are
+      auto-wrapped: keys are normalized (hyphens to underscores), nested
+      dicts are flattened, and the result is filtered to known fields
+      before instantiation.  Three schema-aware features refine this
+      process:
+
+      1. **Type-aware flattening.**  Fields typed as ``dict[str, X]``
+         are treated as opaque: ``flatten_config_keys`` stops at their
+         boundary so the dict value is kept intact.
+
+      2. **Field metadata.**  Dataclass fields may carry
+         ``click_extra.config_path`` (a dotted TOML path like
+         ``"test-matrix.replace"``) and ``click_extra.normalize_keys``
+         (``False`` to skip key normalization on the extracted value).
+         Fields with an explicit path are extracted from the raw config
+         before normalization and flattening.
+
+      3. **Nested dataclass support.**  Fields whose resolved type is
+         itself a dataclass are recursively processed with the same
+         logic.
+
+    - **Any other callable** is returned as-is.  The caller is responsible
+      for key normalization if needed.
+    - ``None`` returns ``None``.
+
+    :param strict: If ``True``, raise ``ValueError`` when the config
+        contains keys that do not match any dataclass field (after
+        normalization and flattening).
+    :param normalize: If ``False``, skip ``normalize_config_keys`` on
+        the remaining config dict.  Used internally when recursing into
+        nested dataclasses whose parent opted out of normalization via
+        ``click_extra.normalize_keys = False``.
+    """
+    if schema is None:
+        return None
+    if is_dataclass(schema):
+        return partial(
+            _from_dataclass, schema, strict=strict, normalize=normalize,
+        )
+    # Already a callable (Pydantic .model_validate, custom function, etc.).
+    return schema
 
 
 class Sentinel(Enum):
@@ -843,7 +983,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         Works with all configuration formats.
         """
 
-        self._config_schema_callable = self._make_schema_callable(
+        self._config_schema_callable = _make_schema_callable(
             config_schema,
             strict=schema_strict,
         )
@@ -1456,151 +1596,6 @@ class ConfigOption(ExtraOption, ParamStructure):
             )
 
         return conf
-
-    @staticmethod
-    def _make_schema_callable(
-        schema: type | Callable[[dict[str, Any]], Any] | None,
-        *,
-        strict: bool = False,
-        normalize: bool = True,
-    ) -> Callable[[dict[str, Any]], Any] | None:
-        """Wrap a schema type into a callable that accepts a raw config dict.
-
-        - **Dataclass types** (detected via ``__dataclass_fields__``) are
-          auto-wrapped: keys are normalized (hyphens → underscores), nested
-          dicts are flattened, and the result is filtered to known fields
-          before instantiation.  Three schema-aware features refine this
-          process:
-
-          1. **Type-aware flattening.**  Fields typed as ``dict[str, X]``
-             are treated as opaque: ``flatten_config_keys`` stops at their
-             boundary so the dict value is kept intact.
-
-          2. **Field metadata.**  Dataclass fields may carry
-             ``click_extra.config_path`` (a dotted TOML path like
-             ``"test-matrix.replace"``) and ``click_extra.normalize_keys``
-             (``False`` to skip key normalization on the extracted value).
-             Fields with an explicit path are extracted from the raw config
-             before normalization and flattening.
-
-          3. **Nested dataclass support.**  Fields whose resolved type is
-             itself a dataclass are recursively processed with the same
-             logic.
-
-        - **Any other callable** is returned as-is.  The caller is responsible
-          for key normalization if needed.
-        - ``None`` returns ``None``.
-
-        :param strict: If ``True``, raise ``ValueError`` when the config
-            contains keys that do not match any dataclass field (after
-            normalization and flattening).
-        :param normalize: If ``False``, skip ``normalize_config_keys`` on
-            the remaining config dict.  Used internally when recursing into
-            nested dataclasses whose parent opted out of normalization via
-            ``click_extra.normalize_keys = False``.
-        """
-        if schema is None:
-            return None
-
-        if hasattr(schema, "__dataclass_fields__"):
-            from dataclasses import fields as dc_fields
-
-            def _from_dataclass(raw: dict[str, Any]) -> Any:
-                all_fields = dc_fields(schema)  # type: ignore[arg-type]
-                known = {f.name for f in all_fields}
-                hints = _safe_get_type_hints(schema)  # type: ignore[arg-type]
-
-                # --- Phase 1: extract fields with explicit config_path. ---
-                result: dict[str, Any] = {}
-                remaining = dict(raw)
-
-                for f in all_fields:
-                    path = f.metadata.get("click_extra.config_path")
-                    if path is None:
-                        continue
-                    do_normalize = f.metadata.get(
-                        "click_extra.normalize_keys", True,
-                    )
-                    value, found = _extract_dotted(remaining, path)
-                    if not found:
-                        continue
-                    remaining = _remove_dotted(remaining, path)
-
-                    hint = hints.get(f.name)
-                    if isinstance(value, dict) and _is_dataclass_type(hint):
-                        # Nested dataclass: recurse.
-                        sub = ConfigOption._make_schema_callable(
-                            hint,
-                            strict=strict,
-                            normalize=do_normalize,
-                        )
-                        value = sub(value) if sub else value
-                    elif isinstance(value, dict) and do_normalize:
-                        value = normalize_config_keys(value)
-                    result[f.name] = value
-
-                # --- Phase 2: type-aware normalize + flatten. ---
-                # Detect opaque fields: dict-typed or nested-dataclass-typed.
-                opaque = frozenset(
-                    f.name
-                    for f in all_fields
-                    if f.name not in result
-                    and (
-                        _is_mapping_type(hints.get(f.name))
-                        or _is_dataclass_type(hints.get(f.name))
-                    )
-                )
-
-                normalized = (
-                    normalize_config_keys(remaining, opaque_keys=opaque)
-                    if normalize
-                    else remaining
-                )
-                flattened = flatten_config_keys(
-                    normalized, opaque_keys=opaque,
-                )
-
-                # --- Phase 3: recursively process nested dataclasses. ---
-                for f in all_fields:
-                    if f.name in result:
-                        continue
-                    hint = hints.get(f.name)
-                    if (
-                        _is_dataclass_type(hint)
-                        and f.name in flattened
-                        and isinstance(flattened[f.name], dict)
-                    ):
-                        sub = ConfigOption._make_schema_callable(
-                            hint, strict=strict,
-                        )
-                        flattened[f.name] = (
-                            sub(flattened[f.name]) if sub else flattened[f.name]
-                        )
-
-                # --- Phase 4: merge and validate. ---
-                for k, v in flattened.items():
-                    if k in known and k not in result:
-                        result[k] = v
-
-                if strict:
-                    all_keys = set(result) | set(flattened)
-                    unknown = sorted(all_keys - known)
-                    if unknown:
-                        msg = (
-                            f"Unknown configuration option(s): "
-                            f"{', '.join(unknown)}. "
-                            f"Valid options: {', '.join(sorted(known))}"
-                        )
-                        raise ValueError(msg)
-
-                return schema(  # type: ignore[call-arg]
-                    **{k: v for k, v in result.items() if k in known}
-                )
-
-            return _from_dataclass
-
-        # Already a callable (Pydantic .model_validate, custom function, etc.).
-        return schema
 
     def _resolve_app_section(
         self,

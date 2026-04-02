@@ -35,6 +35,7 @@ from .config import (
     ConfigOption,
     NoConfigOption,
     ValidateConfigOption,
+    _make_schema_callable,
 )
 from .envvar import clean_envvar_id, param_envvar_ids
 from .logging import VerboseOption, VerbosityOption
@@ -346,7 +347,7 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
                         param.schema_strict = schema_strict
                     if config_schema is not None:
                         param.config_schema = config_schema
-                        param._config_schema_callable = param._make_schema_callable(
+                        param._config_schema_callable = _make_schema_callable(
                             config_schema,
                             strict=param.schema_strict,
                         )
