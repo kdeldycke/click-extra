@@ -264,7 +264,7 @@ default_options_uncolored_help = (
     r"  --config CONFIG_PATH    Location of the configuration file. Supports local\n"
     r"                          path with glob patterns or remote URL.  \[default:.*\n"
     r"(?:                          .+\n)*"
-    r"                          .+\]\n"
+    r"                          .*\]\n"
     r"  --no-config             Ignore all configuration files and only use command\n"
     r"                          line parameters and environment variables.\n"
     r"  --validate-config FILE  Validate the configuration file and exit.\n"
@@ -294,7 +294,7 @@ default_options_colored_help = (
     # .* after default: handles both. Intermediate lines use (?:...)* for variable count.
     r"                          path with glob patterns or remote URL.  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault:.*\n"
     r"(?:                          .+\n)*"
-    r"                          .+\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
+    r"                          .*\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
     r"  \x1b\[36m--no-config\x1b\[0m             Ignore all configuration files and only use command\n"
     r"                          line parameters and environment variables.\n"
     r"  \x1b\[36m--validate-config\x1b\[0m \x1b\[36m\x1b\[2mFILE\x1b\[0m  Validate the configuration file and exit.\n"
