@@ -7,6 +7,7 @@
 
 - Highlight parent group names in subcommand help text, so ancestor command names are colored even when interleaved with options.
 - Add `range_label`, `required`, and `argument` theme slots to `HelpExtraTheme`. Argument metavars are now styled separately from option metavars.
+- Add `cross_ref_highlight` flag to `HelpExtraTheme`. Set to `False` to disable free-text highlighting of options, choices, arguments, metavars, and CLI names in descriptions and docstrings. Structural elements (bracket fields, deprecated messages, subcommand lists) are always styled.
 - Add type-aware flattening, field metadata, and nested dataclass support to `config_schema`. `flatten_config_keys()` and `normalize_config_keys()` accept an `opaque_keys` parameter to preserve data-keyed dicts. Fields support `click_extra.config_path` and `click_extra.normalize_keys` metadata. Nested dataclass fields are recursively instantiated with the same normalize/flatten/opaque logic.
 - Fix help text highlighting of hyphenated option names (e.g. `--table-format` split at the first hyphen), argument names (e.g. `keys`) colliding with option keywords, and substring matches in compound keywords (e.g. `outline` inside `rounded-outline`).
 - Fix enum coloring: use `normalize_choice()` to produce the exact strings shown in the metavar instead of raw enum member names.

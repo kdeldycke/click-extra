@@ -799,6 +799,43 @@ def test_skip_hidden_option():
     assert "Visible option referencing --hidden option." in help
 
 
+def test_cross_ref_highlight_disabled():
+    """When ``cross_ref_highlight`` is ``False``, only structural elements are
+    styled (bracket fields, deprecated messages, subcommands). Options, choices,
+    metavars, arguments, and CLI names in free-form text are left plain."""
+    no_xref_theme = HelpExtraTheme.dark().with_(cross_ref_highlight=False)
+
+    cli = ExtraCommand(
+        "test",
+        params=[
+            ExtraOption(
+                ["--output"],
+                default="out.csv",
+                show_default=True,
+                help="Write to --output path.",
+            ),
+            ExtraOption(
+                ["--format"],
+                type=click.Choice(["json", "csv"]),
+                help="Output format.",
+            ),
+        ],
+    )
+    ctx = ExtraContext(cli, formatter_settings={"theme": no_xref_theme})
+    help_text = cli.get_help(ctx)
+
+    # Bracket fields ARE still styled (structural).
+    assert theme.bracket("[") in help_text
+    assert theme.default("out.csv") in help_text
+
+    # Options, choices and metavars in free text are NOT styled.
+    assert theme.option("--output") not in help_text
+    assert theme.option("--format") not in help_text
+    assert theme.choice("json") not in help_text
+    assert theme.choice("csv") not in help_text
+    assert theme.metavar("TEXT") not in help_text
+
+
 @pytest.mark.parametrize(
     ("params", "expected", "forbidden"),
     (

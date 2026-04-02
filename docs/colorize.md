@@ -42,6 +42,22 @@ assert result.output.count("\x1b[36m--output\x1b[0m") >= 3
 
 The same applies to choices (highlighted in the metavar list and in any description that references them), arguments, and subcommand names.
 
+### Disabling cross-reference highlighting
+
+If the free-text matching produces false positives (option names or choices that coincide with common words), disable it via the theme:
+
+```python
+from click_extra import HelpExtraTheme, group
+
+safe_theme = HelpExtraTheme.dark().with_(cross_ref_highlight=False)
+
+@group(context_settings={"formatter_settings": {"theme": safe_theme}})
+def cli():
+    ...
+```
+
+With `cross_ref_highlight=False`, only structural elements are styled: bracket fields (`[default: ...]`, `[env var: ...]`, ranges, `[required]`), deprecated messages, and subcommand names in definition lists. Option names, choices, arguments, metavars, and CLI names in descriptions and docstrings are left unstyled.
+
 ## Bracket fields
 
 Trailing metadata brackets (`[default: ...]`, `[env var: ...]`, `[required]`, and range expressions) each get their own style. All four fields can appear together:

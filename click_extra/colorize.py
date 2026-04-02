@@ -71,6 +71,15 @@ class HelpExtraTheme(cloup.HelpTheme):
     success: IStyle = identity
     """Click Extra new coloring properties."""
 
+    cross_ref_highlight: bool = True
+    """Highlight options, choices, arguments, metavars and CLI names in
+    free-form text (descriptions, docstrings).
+
+    When ``False``, only structural elements are styled: bracket fields
+    (``[default: ...]``, ``[env var: ...]``, ranges, ``[required]``),
+    deprecated messages, and subcommand names in definition lists.
+    """
+
     subheading: IStyle = identity
     """Non-canonical Click Extra properties.
 
@@ -671,6 +680,13 @@ class HelpExtraFormatter(cloup.HelpFormatter):
             help_text,
             flags=re.DOTALL,
         )
+
+        # The remaining passes search free-form text (descriptions, docstrings)
+        # for option names, choices, arguments, metavars and CLI names. This
+        # cross-reference highlighting can be disabled via the theme to avoid
+        # over-interpretation in help text that references external identifiers.
+        if not self.theme.cross_ref_highlight:
+            return help_text
 
         # Highlight CLI names and commands.
         if self.cli_names:
