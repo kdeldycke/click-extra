@@ -173,7 +173,7 @@ The `click-extra render-matrix` command renders a matrix of all colors and style
 
 ```{click:run}
 from click_extra.cli import render_matrix
-result = invoke(render_matrix, args=["--matrix=colors"])
+result = invoke(render_matrix, args=["--matrix=colors"], prog_name="click-extra render-matrix")
 assert result.exit_code == 0
 assert "\x1b[95mbright_magenta\x1b[0m" in result.stdout
 assert "\x1b[95m\x1b[101mbright_magenta\x1b[0m" in result.stdout
@@ -181,7 +181,7 @@ assert "\x1b[95m\x1b[101mbright_magenta\x1b[0m" in result.stdout
 
 ```{click:run}
 from click_extra.cli import render_matrix
-result = invoke(render_matrix, args=["--matrix=styles"])
+result = invoke(render_matrix, args=["--matrix=styles"], prog_name="click-extra render-matrix")
 assert result.exit_code == 0
 assert "\x1b[97mbright_white\x1b[0m" in result.stdout
 assert "\x1b[97m\x1b[1mbright_white\x1b[0m" in result.stdout
