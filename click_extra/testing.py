@@ -372,7 +372,18 @@ def regex_fullmatch_line_by_line(regex: re.Pattern | str, content: str) -> None:
         regex_line = regex_lines[i]
         content_line = content_lines[i]
 
-        if re.fullmatch(regex_line, content_line):
+        try:
+            matched = re.fullmatch(regex_line, content_line)
+        except re.error:
+            # Multi-line groups like (?:...\n)* get broken when the regex is
+            # split on \n for line-by-line comparison. Fall back to reporting
+            # the overall content so the mismatch is diagnosable.
+            msg = (
+                f"Full regex does not match output.\n"
+                f"Content:\n{content}"
+            )
+            raise AssertionError(msg) from None
+        if matched:
             logging.debug(
                 f"Line #{i + 1} match.\n"
                 f"Regex : {regex_line!r}\n"
