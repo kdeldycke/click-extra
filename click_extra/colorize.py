@@ -343,7 +343,7 @@ class ExtraHelpColorsMixin:  # (Command)??
         # options (e.g. "repomatic --table-format github sync-uv-lock").
         if ctx.command_path:
             cli_names.add(ctx.command_path)
-        ancestor = ctx
+        ancestor: click.Context | None = ctx
         while ancestor:
             if ancestor.info_name:
                 cli_names.add(ancestor.info_name)
@@ -616,7 +616,7 @@ class HelpExtraFormatter(cloup.HelpFormatter):
             else:
                 styled.append(self.theme.bracket(part))
 
-        return (
+        return (  # type: ignore[no-any-return]
             prefix
             + self.theme.bracket("[")
             + "".join(styled)

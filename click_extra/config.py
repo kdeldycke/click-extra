@@ -498,7 +498,7 @@ def _safe_get_type_hints(cls: type) -> dict[str, Any]:
 
     localns: dict[str, Any] = {}
     try:
-        for f in dc_fields(cls):  # type: ignore[arg-type]
+        for f in dc_fields(cls):
             factory = f.default_factory
             if factory is not MISSING and isinstance(factory, type):
                 localns[factory.__name__] = factory
