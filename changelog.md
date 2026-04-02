@@ -5,10 +5,11 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
-- Fix argument names (e.g. `keys`) being collected as option keywords, which caused partial highlighting of hyphenated options like `--list-keys`.
-- Add type-aware flattening to `flatten_config_keys()` and `normalize_config_keys()`. Both accept an `opaque_keys` parameter: a `frozenset` of fully-qualified key names where recursion stops, preserving dict values whose keys are data (e.g. GitHub Actions matrix axis names) rather than config structure.
-- Add field metadata support for dataclass schemas. Fields may carry `click_extra.config_path` (a dotted TOML path for explicit extraction) and `click_extra.normalize_keys` (set to `False` to skip key normalization on the extracted value).
-- Add nested dataclass support to `config_schema`. Fields whose type is another dataclass are recursively instantiated with the same normalize/flatten/opaque logic. Combined with `config_path` and `normalize_keys` metadata, this allows opaque sub-sections (e.g. GitHub Actions matrix config) to be modeled as typed nested dataclasses.
+- Highlight parent group names in subcommand help text, so ancestor command names are colored even when interleaved with options.
+- Add `range_label`, `required`, and `argument` theme slots to `HelpExtraTheme`. Argument metavars are now styled separately from option metavars.
+- Add type-aware flattening, field metadata, and nested dataclass support to `config_schema`. `flatten_config_keys()` and `normalize_config_keys()` accept an `opaque_keys` parameter to preserve data-keyed dicts. Fields support `click_extra.config_path` and `click_extra.normalize_keys` metadata. Nested dataclass fields are recursively instantiated with the same normalize/flatten/opaque logic.
+- Fix help text highlighting of hyphenated option names (e.g. `--table-format` split at the first hyphen), argument names (e.g. `keys`) colliding with option keywords, and substring matches in compound keywords (e.g. `outline` inside `rounded-outline`).
+- Fix enum coloring: use `normalize_choice()` to produce the exact strings shown in the metavar instead of raw enum member names.
 
 ## [`7.9.0` (2026-03-31)](https://github.com/kdeldycke/click-extra/compare/v7.8.0...v7.9.0)
 
