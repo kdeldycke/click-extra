@@ -215,7 +215,7 @@ def test_custom_message_style(invoke, cmd_decorator):
 @pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
 def test_context_meta(invoke, cmd_decorator, assert_output_regex):
     @cmd_decorator
-    @version_option
+    @version_option  # type: ignore[arg-type]
     @pass_context
     def version_metadata(ctx):
         for field in ExtraVersionOption.template_fields:
@@ -292,7 +292,7 @@ def test_module_version_parent_package_fallback(monkeypatch):
 
     # Create a fake parent package with __version__.
     fake_parent = types.ModuleType("myapp")
-    fake_parent.__version__ = "1.2.3"
+    fake_parent.__version__ = "1.2.3"  # type: ignore[attr-defined]
     fake_parent.__package__ = "myapp"
 
     # Create a fake __main__ submodule without __version__.
@@ -575,7 +575,7 @@ def test_prebake_missing_local_version_raises(init_file):
     """Calling without ``local_version`` raises ``TypeError``."""
     p = init_file('__version__ = "1.0.0.dev0"\n')
     with pytest.raises(TypeError):
-        prebake_version(p)
+        prebake_version(p)  # type: ignore[call-arg]
 
 
 def test_prebake_idempotent(init_file):
@@ -739,7 +739,7 @@ def test_prebaked_git_branch():
     import types
 
     mod = types.ModuleType("fake_cli")
-    mod.__git_branch__ = "release/1.0"
+    mod.__git_branch__ = "release/1.0"  # type: ignore[attr-defined]
     mod.__file__ = "/fake/path.py"
     mod.__package__ = "fake_cli"
 
@@ -754,7 +754,7 @@ def test_prebaked_git_long_hash():
     import types
 
     mod = types.ModuleType("fake_cli")
-    mod.__git_long_hash__ = "abc123def456" * 3
+    mod.__git_long_hash__ = "abc123def456" * 3  # type: ignore[attr-defined]
     mod.__file__ = "/fake/path.py"
     mod.__package__ = "fake_cli"
 
@@ -769,7 +769,7 @@ def test_prebaked_git_tag_sha():
 
     sha = "072c7bbbcdd607011c6ca4fb9d5098532aee2dea"
     mod = types.ModuleType("fake_cli")
-    mod.__git_tag_sha__ = sha
+    mod.__git_tag_sha__ = sha  # type: ignore[attr-defined]
     mod.__file__ = "/fake/path.py"
     mod.__package__ = "fake_cli"
 
@@ -783,7 +783,7 @@ def test_prebaked_empty_dunder_ignored():
     import types
 
     mod = types.ModuleType("fake_cli")
-    mod.__git_branch__ = ""
+    mod.__git_branch__ = ""  # type: ignore[attr-defined]
     mod.__file__ = "/fake/path.py"
     mod.__package__ = "fake_cli"
 
@@ -799,7 +799,7 @@ def test_prebaked_non_string_ignored():
     import types
 
     mod = types.ModuleType("fake_cli")
-    mod.__git_branch__ = 42
+    mod.__git_branch__ = 42  # type: ignore[attr-defined]
     mod.__file__ = "/fake/path.py"
     mod.__package__ = "fake_cli"
 
@@ -810,7 +810,7 @@ def test_prebaked_non_string_ignored():
 
 def __test_inplace_context():
     @click.command
-    @version_option
+    @version_option  # type: ignore[arg-type]
     def cli():
         pass
 

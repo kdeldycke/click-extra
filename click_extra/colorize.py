@@ -22,8 +22,7 @@ import os
 import re
 from configparser import RawConfigParser
 from dataclasses import dataclass, field
-from enum import Enum
-from functools import cache, lru_cache
+from functools import lru_cache
 from gettext import gettext as _
 from itertools import chain
 
@@ -526,7 +525,7 @@ class HelpExtraFormatter(cloup.HelpFormatter):
         kwargs["theme"] = theme
         super().__init__(*args, **kwargs)
 
-    keywords: HelpKeywords = HelpKeywords()  # noqa: RUF012
+    keywords: HelpKeywords = HelpKeywords()
 
 
     #: Matches range expressions like ``0<=x<=9``, ``x>=1024``, ``0<=x<100``.

@@ -489,12 +489,11 @@ def _safe_get_type_hints(cls: type) -> dict[str, Any]:
 
     try:
         return get_type_hints(cls)
-    except Exception:
+    except (NameError, AttributeError, TypeError, RecursionError):
         pass
 
     # Fallback: build localns from default_factory class references.
-    from dataclasses import MISSING
-    from dataclasses import fields as dc_fields
+    from dataclasses import MISSING, fields as dc_fields
 
     localns: dict[str, Any] = {}
     try:
@@ -502,7 +501,7 @@ def _safe_get_type_hints(cls: type) -> dict[str, Any]:
             factory = f.default_factory
             if factory is not MISSING and isinstance(factory, type):
                 localns[factory.__name__] = factory
-    except Exception:
+    except (TypeError, AttributeError):
         pass
 
     if localns:
@@ -512,7 +511,7 @@ def _safe_get_type_hints(cls: type) -> dict[str, Any]:
             return get_type_hints(
                 cls, globalns=globalns, localns=localns,
             )
-        except Exception:
+        except (NameError, AttributeError, TypeError, RecursionError):
             pass
 
     return {}
@@ -1724,11 +1723,11 @@ class ConfigOption(ExtraOption, ParamStructure):
             logger.debug(f"{NO_CONFIG} received.")
             # TODO: simplify to ``source < ParameterSource.DEFAULT_MAP`` once
             # https://github.com/pallets/click/pull/3248 is merged.
-            explicit = ctx.get_parameter_source(self.name) in (  # type: ignore[arg-type]
+            explicit = ctx.get_parameter_source(self.name) in (
                 ParameterSource.COMMANDLINE,
                 ParameterSource.ENVIRONMENT,
                 ParameterSource.PROMPT,
-            )  # type: ignore[operator]
+            )
             if explicit:
                 info_msg("Skip configuration file loading altogether.")
             else:
@@ -1737,11 +1736,11 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         # TODO: simplify to ``source < ParameterSource.DEFAULT_MAP`` once
         # https://github.com/pallets/click/pull/3248 is merged.
-        explicit_conf = ctx.get_parameter_source(self.name) in (  # type: ignore[arg-type]
+        explicit_conf = ctx.get_parameter_source(self.name) in (
             ParameterSource.COMMANDLINE,
             ParameterSource.ENVIRONMENT,
             ParameterSource.PROMPT,
-        )  # type: ignore[operator]
+        )
 
         # Print configuration location to the user if it was explicitly set.
         # Normalize to string to both allow parsing as a glob pattern or URL.
@@ -1889,7 +1888,7 @@ class ValidateConfigOption(ExtraOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        type: click.ParamType | Any = ClickPath(  # type: ignore[misc]
+        type: click.ParamType | Any = ClickPath(
             exists=True,
             dir_okay=False,
             resolve_path=True,
@@ -1923,12 +1922,12 @@ class ValidateConfigOption(ExtraOption):
         if not value:
             return
 
-        info_msg: Callable[..., None] = partial(echo, err=True)  # type: ignore[misc]
+        info_msg: Callable[..., None] = partial(echo, err=True)
 
         # Find the sibling ConfigOption to reuse its parsing machinery.
         result = search_params(ctx.command.params, ConfigOption)
         if not isinstance(result, ConfigOption):
-            raise RuntimeError(
+            raise TypeError(
                 f"{'/'.join(param.opts)} {self.__class__.__name__} must be "
                 f"used alongside {ConfigOption.__name__}."
             )
@@ -1940,7 +1939,6 @@ class ValidateConfigOption(ExtraOption):
         except FileNotFoundError:
             info_msg(f"Configuration file not found: {value}")
             ctx.exit(2)
-            return
 
         if user_conf is None:
             formats = list(map(str, config_option.file_format_patterns))
@@ -1948,7 +1946,6 @@ class ValidateConfigOption(ExtraOption):
                 f"Error parsing {value} as {', '.join(formats[:-1])} or {formats[-1]}."
             )
             ctx.exit(2)
-            return
 
         # Validate in strict mode — _recursive_update raises ValueError
         # on unrecognized keys.
@@ -1961,7 +1958,6 @@ class ValidateConfigOption(ExtraOption):
         except ValueError as exc:
             info_msg(f"Configuration validation error: {exc}")
             ctx.exit(1)
-            return
 
         info_msg(f"Configuration file {value} is valid.")
         ctx.exit(0)

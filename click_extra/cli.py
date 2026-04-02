@@ -21,7 +21,17 @@ from pathlib import Path
 
 import click
 
-from . import Choice, ClickException, Color, argument, echo, group, option, pass_context, style
+from . import (
+    Choice,
+    ClickException,
+    Color,
+    argument,
+    echo,
+    group,
+    option,
+    pass_context,
+    style,
+)
 from .table import print_table
 from .version import (
     GIT_FIELDS,
@@ -81,7 +91,7 @@ _ALL_STYLES = (
 )
 """ANSI text style names supported by ``click.style()``."""
 
-_ALL_COLORS = sorted(Color._dict.values())
+_ALL_COLORS = sorted(Color._dict.values())  # type: ignore[attr-defined]
 """All color names from ``click_extra.Color``."""
 
 
@@ -127,7 +137,7 @@ def render_matrix(ctx: click.Context, matrix: str) -> None:
     ancestor = ctx
     while ancestor:
         if hasattr(ancestor, "print_table"):
-            print_func = ancestor.print_table
+            print_func = ancestor.print_table  # type: ignore[assignment]
             break
         ancestor = ancestor.parent
     print_func(table, headers=headers)

@@ -17,14 +17,13 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import Generator, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from inspect import cleandoc
 from pathlib import Path
 from textwrap import indent
-
-import os
 
 import pytest
 from extra_platforms.pytest import skip_windows
@@ -38,6 +37,7 @@ from click_extra.pytest import (  # noqa: F401
     extra_runner,
     invoke,
 )
+
 
 @pytest.fixture(autouse=True)
 def _isolate_color_envvars():

@@ -39,7 +39,7 @@ def test_table_formats_definition():
     """Check all table formats are accounted for and properly named."""
     # Formats from tabulate.
     tabulate_formats = [
-        (f.upper(), f.replace("_", "-")) for f in tabulate._table_formats
+        (f.upper(), f.replace("_", "-")) for f in tabulate._table_formats  # type: ignore[attr-defined]
     ]
 
     # Formats derived from CSV dialects.

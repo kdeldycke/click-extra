@@ -208,7 +208,7 @@ def envvars_test_cases():
     broken_value_map = {k: False for k in working_value_map}
 
     for (cmd_decorator, decorator_name), envvar_cases in matrix.items():
-        for case_name, envvar_names in envvar_cases.items():
+        for case_name, envvar_names in envvar_cases.items():  # type: ignore[attr-defined]
             value_map = (
                 working_value_map if case_name == "working_envvar" else broken_value_map
             )
@@ -242,7 +242,7 @@ def test_auto_envvar_parsing(invoke, cmd_decorator, envvars, expected_flag):
     def my_cli(flag):
         echo(f"Flag value: {flag}")
 
-    registered_envvars = ["Magic", "sUper"]
+    registered_envvars: list[str] | tuple[str, ...] = ["Magic", "sUper"]
     # Specific behavior of @click_extra.command that is not present in vanilla Click.
     if cmd_decorator == command:
         # @command forces registration of auto-generated envvar.
@@ -269,6 +269,7 @@ def test_env_copy():
     assert no_env is None
 
     extended_env = env_copy({envvar: "yo"})
+    assert extended_env is not None
     assert envvar in extended_env
     assert extended_env[envvar] == "yo"
     assert envvar not in os.environ

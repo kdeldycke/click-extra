@@ -100,7 +100,7 @@ def all_command_cli():
     def click_subcommand():
         echo("Run click subcommand...")
 
-    command_cli1.section(
+    command_cli1.section(  # type: ignore[attr-defined]
         "Subcommand group",
         click_extra_subcommand,
         cloup_subcommand,
@@ -847,7 +847,7 @@ def test_decorator_overrides():
 def test_decorator_cls_parameter(klass, should_raise):
     """Decorators accept custom cls parameters."""
 
-    class Custom(klass):
+    class Custom(klass):  # type: ignore[valid-type, misc]
         pass
 
     context = pytest.raises(TypeError) if should_raise else nullcontext()

@@ -40,7 +40,7 @@ class TimerOption(ExtraOption):
 
     def print_timer(self) -> None:
         """Compute and print elapsed execution time."""
-        echo(  # type: ignore[misc]
+        echo(
             f"Execution time: {perf_counter() - self.start_time:0.3f} seconds."
         )
 

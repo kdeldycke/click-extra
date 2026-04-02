@@ -150,6 +150,7 @@ def test_params_auto_types(invoke, option_decorator):
     assert result.exit_code == 0
 
     show_param_option = search_params(params_introspection.params, ShowParamsOption)
+    assert isinstance(show_param_option, ShowParamsOption)
     assert show_param_option.params_template == {
         "params-introspection": {
             "flag1": None,
@@ -187,7 +188,7 @@ def test_params_auto_types(invoke, option_decorator):
 
 def assert_table_content(
     output: str,
-    expected_table: Sequence[Sequence[str]],
+    expected_table: Sequence[Sequence],
     table_format: TableFormat | None = None,
 ) -> None:
     """Helper to assert the content of a rendered table in the output."""
@@ -227,7 +228,7 @@ def test_standalone_show_params_option(
 
     result = invoke(show_params, "--show-params")
 
-    expected_table = [
+    expected_table: list[list] = [
         (
             "show-params.help",
             "--help",
@@ -303,7 +304,7 @@ def test_integrated_show_params_option(invoke, create_config):
     ]
     result = invoke(show_params_cli, *raw_args, color=False)
 
-    expected_table = [
+    expected_table: list[list] = [
         (
             "show-params-cli.color",
             "--color, --ansi / --no-color, --no-ansi",
@@ -613,8 +614,8 @@ def test_recurse_subcommands(invoke):
 
     result = invoke(show_params_cli_main, "--show-params", color=False)
 
-    expected_table = [
-        (
+    expected_table: list[list] = [
+        [
             "show-params-cli-main.help",
             "-h, --help",
             "click.core.Option",
@@ -627,8 +628,8 @@ def test_recurse_subcommands(invoke):
             False,
             False,
             "DEFAULT",
-        ),
-        (
+        ],
+        [
             "show-params-cli-main.show_params",
             "--show-params",
             "click_extra.parameters.ShowParamsOption",
@@ -641,8 +642,8 @@ def test_recurse_subcommands(invoke):
             False,
             True,
             "COMMANDLINE",
-        ),
-        (
+        ],
+        [
             "show-params-cli-main.show-params-sub.help",
             "-h, --help",
             "click.core.Option",
@@ -655,8 +656,8 @@ def test_recurse_subcommands(invoke):
             False,
             False,
             "DEFAULT",
-        ),
-        (
+        ],
+        [
             "show-params-cli-main.show-params-sub.show-params-sub-sub.help",
             "-h, --help",
             "click.core.Option",
@@ -669,8 +670,8 @@ def test_recurse_subcommands(invoke):
             False,
             False,
             "DEFAULT",
-        ),
-        (
+        ],
+        [
             "show-params-cli-main.show-params-sub.show-params-sub-sub.int_param",
             "--int-param INTEGER",
             "click_extra.parameters.Option",
@@ -683,7 +684,7 @@ def test_recurse_subcommands(invoke):
             10,
             10,
             "DEFAULT",
-        ),
+        ],
     ]
 
     assert_table_content(result.stdout, expected_table)
@@ -767,7 +768,7 @@ def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
     def show_params():
         echo("It works!")
 
-    expected_table = [
+    expected_table: list[list] = [
         [
             "show-params.help",
             "--help",
@@ -906,7 +907,7 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
     def show_params():
         echo("It works!")
 
-    expected_table = [
+    expected_table: list[list] = [
         [
             "show-params.color",
             "--color, --ansi / --no-color, --no-ansi",

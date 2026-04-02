@@ -1215,6 +1215,7 @@ def test_default_pattern_roaming_force_posix(
     # Create a context and call default_pattern directly.
     with click.Context(test_cli, info_name="test-cli"):
         config_opt = search_params(test_cli.params, ConfigOption)
+        assert isinstance(config_opt, ConfigOption)
 
         fp = config_opt.file_pattern
         suffix = f"{{{fp}}}" if "," in fp else fp
@@ -1238,6 +1239,7 @@ def test_default_pattern_xdg_config_home(force_posix, tmp_path, monkeypatch):
 
     with click.Context(test_cli, info_name="test-cli"):
         config_opt = search_params(test_cli.params, ConfigOption)
+        assert isinstance(config_opt, ConfigOption)
         pattern = config_opt.default_pattern()
 
         if force_posix:
@@ -1325,6 +1327,7 @@ def test_parent_patterns(
 
     with click.Context(test_cli, info_name="test-cli"):
         config_opt = search_params(test_cli.params, ConfigOption)
+        assert isinstance(config_opt, ConfigOption)
         patterns = list(config_opt.parent_patterns(input_path))
 
     expected = expected_start(tmp_path)
@@ -1420,6 +1423,7 @@ def test_parent_patterns_with_magic_pattern(
 
     with click.Context(test_cli, info_name="test-cli"):
         config_opt = search_params(test_cli.params, ConfigOption)
+        assert isinstance(config_opt, ConfigOption)
         patterns = list(config_opt.parent_patterns(pattern))
 
     assert patterns == expected
@@ -1437,6 +1441,7 @@ def test_parent_patterns_magic_no_search(tmp_path):
 
     with click.Context(test_cli, info_name="test-cli"):
         config_opt = search_params(test_cli.params, ConfigOption)
+        assert isinstance(config_opt, ConfigOption)
         patterns = list(config_opt.parent_patterns(pattern))
 
     assert patterns == [(str(tmp_path / "a"), "*.toml|*.yaml")]
@@ -1464,6 +1469,7 @@ def test_parent_patterns_relative_path(tmp_path):
 
         with click.Context(test_cli, info_name="test-cli"):
             config_opt = search_params(test_cli.params, ConfigOption)
+            assert isinstance(config_opt, ConfigOption)
 
             patterns = list(config_opt.parent_patterns(relative_path))
 
@@ -1494,6 +1500,7 @@ def test_parent_patterns_stop_at_path(tmp_path):
 
     with click.Context(test_cli, info_name="test-cli"):
         config_opt = search_params(test_cli.params, ConfigOption)
+        assert isinstance(config_opt, ConfigOption)
         patterns = list(config_opt.parent_patterns(str(config_file)))
 
     # First yield should be (parent_of_file, filename).
@@ -1533,6 +1540,7 @@ def test_parent_patterns_stop_at_vcs(tmp_path, has_vcs, expected_bounded):
 
     with click.Context(test_cli, info_name="test-cli"):
         config_opt = search_params(test_cli.params, ConfigOption)
+        assert isinstance(config_opt, ConfigOption)
         patterns = list(config_opt.parent_patterns(pattern))
 
     assert patterns[0] == (str(deep_path), "*.toml")
@@ -1570,6 +1578,7 @@ def test_parent_patterns_inaccessible_directory(tmp_path):
 
     with click.Context(test_cli, info_name="test-cli"):
         config_opt = search_params(test_cli.params, ConfigOption)
+        assert isinstance(config_opt, ConfigOption)
         with patch("click_extra.config.os.access", side_effect=fake_access):
             patterns = list(config_opt.parent_patterns(str(config_file)))
 
@@ -2127,7 +2136,7 @@ def test_validate_config_requires_config_option(invoke, tmp_path):
     result = invoke(missing_config, "--validate-config", str(dummy))
 
     assert result.exception
-    assert type(result.exception) is RuntimeError
+    assert type(result.exception) is TypeError
     assert "ValidateConfigOption must be used alongside ConfigOption" in str(
         result.exception
     )
