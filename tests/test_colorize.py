@@ -984,7 +984,7 @@ def test_no_false_positive_highlight(params, help_text, expected_present, expect
     if not params:
         formatter = HelpExtraFormatter()
         formatter.write("package snapshot")
-        formatter.choices.add("snap")
+        formatter.keywords.choices.add("snap")
         rendered = formatter.getvalue()
         assert strip_ansi(rendered) == rendered
         return
@@ -1038,10 +1038,8 @@ def test_command_aliases_collected():
     grp.add_command(commit)
 
     ctx = ExtraContext(grp, info_name="cli")
-    keywords = grp._collect_keywords(ctx)
-    # command_aliases is the 3rd element in the returned tuple.
-    command_aliases = keywords[2]
-    assert "ci" in command_aliases
+    kw = grp._collect_keywords(ctx)
+    assert "ci" in kw.command_aliases
 
 
 def test_keyword_collection(invoke, assert_output_regex):
