@@ -124,65 +124,20 @@ Write examples and tutorial.
 
 ## Colors and styles
 
-Here is a little CLI to demonstrate the rendering of colors and styles, based on [`cloup.styling.Style`](https://cloup.readthedocs.io/en/stable/autoapi/cloup/styling/index.html#cloup.styling.Style):
-
-```{click:source}
-from click import command
-from click_extra import Color, style, Choice, option, print_table
-
-all_styles = [
-    "bold",
-    "dim",
-    "underline",
-    "overline",
-    "italic",
-    "blink",
-    "reverse",
-    "strikethrough",
-]
-
-all_colors = sorted(Color._dict.values())
-
-@command
-@option("--matrix", type=Choice(["colors", "styles"]))
-def render_matrix(matrix):
-    table = []
-
-    if matrix == "colors":
-        table_headers = ["Foreground ↴ \\ Background →"] + all_colors
-        for fg_color in all_colors:
-            line = [
-                style(fg_color, fg=fg_color)
-            ]
-            for bg_color in all_colors:
-                line.append(
-                    style(fg_color, fg=fg_color, bg=bg_color)
-                )
-            table.append(line)
-
-    elif matrix == "styles":
-        table_headers = ["Color ↴ \\ Style →"] + all_styles
-        for color_name in all_colors:
-            line = [
-                style(color_name, fg=color_name)
-            ]
-            for prop in all_styles:
-                line.append(
-                    style(color_name, fg=color_name, **{prop: True})
-                )
-            table.append(line)
-
-    print_table(table, headers=table_headers)
-```
+The `click-extra render-matrix` command renders a matrix of all colors and styles, useful for testing terminal capabilities. Based on [`cloup.styling.Style`](https://cloup.readthedocs.io/en/stable/autoapi/cloup/styling/index.html#cloup.styling.Style):
 
 ```{click:run}
-result = invoke(render_matrix, ["--matrix=colors"])
+from click_extra.cli import render_matrix
+result = invoke(render_matrix, args=["--matrix=colors"])
+assert result.exit_code == 0
 assert "\x1b[95mbright_magenta\x1b[0m" in result.stdout
 assert "\x1b[95m\x1b[101mbright_magenta\x1b[0m" in result.stdout
 ```
 
 ```{click:run}
-result = invoke(render_matrix, ["--matrix=styles"])
+from click_extra.cli import render_matrix
+result = invoke(render_matrix, args=["--matrix=styles"])
+assert result.exit_code == 0
 assert "\x1b[97mbright_white\x1b[0m" in result.stdout
 assert "\x1b[97m\x1b[1mbright_white\x1b[0m" in result.stdout
 assert "\x1b[97m\x1b[2mbright_white\x1b[0m" in result.stdout
@@ -190,13 +145,13 @@ assert "\x1b[97m\x1b[4mbright_white\x1b[0m" in result.stdout
 ```
 
 ```{caution}
-The current rendering of colors and styles in this HTML documentation is not complete, and does not reflect the real output in a terminal.
+The rendering of colors and styles in this HTML documentation is not complete, and does not reflect the real output in a terminal.
 
-That is because [`pygments-ansi-color`](https://github.com/chriskuehl/pygments-ansi-color), the component we rely on to render ANSI code in Sphinx via Pygments, [only supports a subset of the ANSI codes](https://github.com/chriskuehl/pygments-ansi-color/issues/31) we use.
+[`pygments-ansi-color`](https://github.com/chriskuehl/pygments-ansi-color), the component we rely on to render ANSI code in Sphinx via Pygments, [only supports a subset of the ANSI codes](https://github.com/chriskuehl/pygments-ansi-color/issues/31) we use.
 ```
 
 ```{tip}
-The code above is presented as a CLI, so you can copy and run it yourself in your environment, and see the output in your terminal. That way you can evaluate the real effect of these styles and colors for your end users.
+Run `uvx click-extra render-matrix --matrix=colors` or `uvx click-extra render-matrix --matrix=styles` in your terminal to see the real rendering with your color scheme.
 ```
 
 ## `click_extra.colorize` API

@@ -19,7 +19,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from . import ClickException, argument, echo, group, option
+import click
+
+from . import Choice, ClickException, Color, argument, echo, group, option, pass_context, style
+from .table import print_table
 from .version import (
     GIT_FIELDS,
     _find_dunder_str,
@@ -64,6 +67,70 @@ _module_option = option(
 @group(name="click-extra", version_fields={"prog_name": "Click Extra"})
 def demo():
     """Click Extra CLI."""
+
+
+_ALL_STYLES = (
+    "bold",
+    "dim",
+    "underline",
+    "overline",
+    "italic",
+    "blink",
+    "reverse",
+    "strikethrough",
+)
+"""ANSI text style names supported by ``click.style()``."""
+
+_ALL_COLORS = sorted(Color._dict.values())
+"""All color names from ``click_extra.Color``."""
+
+
+@demo.command(name="render-matrix")
+@option(
+    "--matrix",
+    type=Choice(["colors", "styles"]),
+    required=True,
+    help="Which matrix to render.",
+)
+@pass_context
+def render_matrix(ctx: click.Context, matrix: str) -> None:
+    """Render a color or style matrix for terminal capability testing.
+
+    The ``colors`` matrix shows every foreground color against every
+    background color. The ``styles`` matrix shows every color with each
+    text style (bold, dim, italic, etc.).
+
+    Respects the global ``--table-format`` option.
+    """
+    table: list[list[str]] = []
+
+    if matrix == "colors":
+        headers = ["Foreground \u21b4 \\ Background \u2192"] + _ALL_COLORS
+        for fg in _ALL_COLORS:
+            row = [style(fg, fg=fg)]
+            for bg in _ALL_COLORS:
+                row.append(style(fg, fg=fg, bg=bg))
+            table.append(row)
+
+    elif matrix == "styles":
+        headers = ["Color \u21b4 \\ Style \u2192"] + list(_ALL_STYLES)
+        for color_name in _ALL_COLORS:
+            row = [style(color_name, fg=color_name)]
+            for prop in _ALL_STYLES:
+                row.append(style(color_name, fg=color_name, **{prop: True}))
+            table.append(row)
+
+    # Walk up the context chain to find ctx.print_table (set by
+    # --table-format on the parent group). Fall back to the bare
+    # print_table for standalone invocation (e.g. in docs).
+    print_func = print_table
+    ancestor = ctx
+    while ancestor:
+        if hasattr(ancestor, "print_table"):
+            print_func = ancestor.print_table
+            break
+        ancestor = ancestor.parent
+    print_func(table, headers=headers)
 
 
 @demo.group()
