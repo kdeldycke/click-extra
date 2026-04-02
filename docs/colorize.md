@@ -51,9 +51,9 @@ from click_extra import HelpExtraTheme, group
 
 safe_theme = HelpExtraTheme.dark().with_(cross_ref_highlight=False)
 
+
 @group(context_settings={"formatter_settings": {"theme": safe_theme}})
-def cli():
-    ...
+def cli(): ...
 ```
 
 With `cross_ref_highlight=False`, only structural elements are styled: bracket fields (`[default: ...]`, `[env var: ...]`, ranges, `[required]`), deprecated messages, and subcommand names in definition lists. Option names, choices, arguments, metavars, and CLI names in descriptions and docstrings are left unstyled.
