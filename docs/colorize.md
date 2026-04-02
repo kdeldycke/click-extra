@@ -1,33 +1,79 @@
 # {octicon}`paintbrush` Colored help
 
-Extend
-[Cloup's own help formatter and theme](https://cloup.readthedocs.io/en/stable/pages/formatting.html#help-formatting-and-themes)
-to add colorization of:
+Click Extra extends [Cloup's help formatter and theme](https://cloup.readthedocs.io/en/stable/pages/formatting.html#help-formatting-and-themes) to automatically colorize every element of the help screen: options, choices, metavars, arguments, CLI and subcommand names, aliases, environment variables, defaults, ranges, and required labels.
 
-- Options
+## Cross-reference highlighting
 
-- Choices
+Option names are highlighted wherever they appear in the help screen, not only in the synopsis column. If an option name shows up in another option's description or in the command's docstring, it gets the same styling. This turns plain-text references into visual links, making it easier to scan for related options.
 
-- Metavars
+```{click:source}
+from click_extra import Choice, command, option, echo
 
-- Cli name
+@command
+@option("--format", type=Choice(["json", "csv"]), help="Output format.")
+@option("--output", help="Write to file instead of stdout.")
+@option(
+    "--dry-run",
+    is_flag=True,
+    help="Preview what would be written to --output without --format validation.",
+)
+def export(format, output, dry_run):
+    """Export data.
 
-- Subcommands
+    Combine --format and --output to write directly to a file.
+    Use --dry-run to preview without side effects.
+    """
+    echo("Exporting...")
+```
 
-- Command aliases
+```{click:run}
+result = invoke(export, args=["--help"])
+assert result.exit_code == 0
+# --format, --output and --dry-run are highlighted in the synopsis column.
+assert "\x1b[36m--format\x1b[0m" in result.output
+assert "\x1b[36m--output\x1b[0m" in result.output
+assert "\x1b[36m--dry-run\x1b[0m" in result.output
+# They are ALSO highlighted when referenced in other options' help text
+# and in the command docstring. Each occurrence of "--output" and "--format"
+# in the rendered help carries the option style (cyan).
+assert result.output.count("\x1b[36m--format\x1b[0m") >= 3
+assert result.output.count("\x1b[36m--output\x1b[0m") >= 3
+```
 
-- Long and short options
+The same applies to choices (highlighted in the metavar list and in any description that references them), arguments, and subcommand names.
 
-- Choices
+## Bracket fields
 
-- Metavars
+Trailing metadata brackets (`[default: ...]`, `[env var: ...]`, `[required]`, and range expressions) each get their own style. All four fields can appear together:
 
-- Environment variables
+```{click:source}
+from click_extra import command, option, IntRange
 
-- Defaults
+@command
+@option(
+    "--threshold",
+    type=IntRange(1, 100),
+    default=50,
+    required=True,
+    show_default=True,
+    envvar="THRESHOLD",
+    show_envvar=True,
+    help="Sensitivity level.",
+)
+def analyze(threshold):
+    """Run analysis."""
+```
 
-```{todo}
-Write examples and tutorial.
+```{click:run}
+result = invoke(analyze, args=["--help"])
+assert result.exit_code == 0
+# Each bracket field uses a distinct style.
+# Default value (green, dim, italic):
+assert "\x1b[32m\x1b[2m\x1b[3m50\x1b[0m" in result.output
+# Range (cyan, dim):
+assert "\x1b[36m\x1b[2m" in result.output
+# Required (red, dim):
+assert "\x1b[31m\x1b[2mrequired\x1b[0m" in result.output
 ```
 
 ```{note}

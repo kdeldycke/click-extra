@@ -60,7 +60,7 @@ To undestrand how we ended up with the result above, [go read the tutorial](http
 - Normalization and discoverability of environment variables
 - [`--show-params` option](https://kdeldycke.github.io/click-extra/parameters.html#show-params-option) to debug parameters defaults, values, environment variables and provenance
 - [Click parameters introspection](https://kdeldycke.github.io/click-extra/parameters.html#introspecting-parameters)
-- [Colorization of help screens](https://kdeldycke.github.io/click-extra/colorize.html) at the semantic-level of options, parameters, subheadings, choices, metavars and defaults
+- [Colorization of help screens](https://kdeldycke.github.io/click-extra/colorize.html): options, choices, metavars, arguments, defaults, ranges, required labels, environment variables, subcommands and aliases all get distinct styles. Option names referenced in descriptions and docstrings are highlighted automatically.
 - Global `show_envvar` option to display all environment variables in help screens
 - `-h`/`--help` option names (see [rant on other inconsistencies](https://blog.craftyguy.net/cmdline-help/))
 - `--color`/`--no-color` option flag
