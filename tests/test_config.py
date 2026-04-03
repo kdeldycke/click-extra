@@ -4163,7 +4163,11 @@ def test_schema_type_aware_flattening(invoke, create_config):
     )
 
     result = invoke(
-        type_aware_cli, "--config", str(conf_path), "subcommand", color=False,
+        type_aware_cli,
+        "--config",
+        str(conf_path),
+        "subcommand",
+        color=False,
     )
     assert result.exit_code == 0
     assert "simple is 'hello'" in result.stdout
@@ -4213,7 +4217,11 @@ def test_schema_field_metadata_config_path(invoke, create_config):
     )
 
     result = invoke(
-        meta_cli, "--config", str(conf_path), "subcommand", color=False,
+        meta_cli,
+        "--config",
+        str(conf_path),
+        "subcommand",
+        color=False,
     )
     assert result.exit_code == 0
     assert "normal is 'top'" in result.stdout
@@ -4254,7 +4262,11 @@ def test_schema_field_metadata_normalize_keys_true(invoke, create_config):
     )
 
     result = invoke(
-        norm_cli, "--config", str(conf_path), "subcommand", color=False,
+        norm_cli,
+        "--config",
+        str(conf_path),
+        "subcommand",
+        color=False,
     )
     assert result.exit_code == 0
     # Default normalize_keys=True: kebab-key becomes kebab_key.
@@ -4303,7 +4315,11 @@ def test_schema_nested_dataclass(invoke, create_config):
     )
 
     result = invoke(
-        nested_dc_cli, "--config", str(conf_path), "subcommand", color=False,
+        nested_dc_cli,
+        "--config",
+        str(conf_path),
+        "subcommand",
+        color=False,
     )
     assert result.exit_code == 0
     assert "name is 'hello'" in result.stdout
@@ -4362,7 +4378,11 @@ def test_schema_nested_dataclass_with_opaque_fields(invoke, create_config):
     )
 
     result = invoke(
-        matrix_cli, "--config", str(conf_path), "subcommand", color=False,
+        matrix_cli,
+        "--config",
+        str(conf_path),
+        "subcommand",
+        color=False,
     )
     assert result.exit_code == 0
     # Exclude list preserved with original keys.
@@ -4412,7 +4432,11 @@ def test_schema_nested_dataclass_defaults(invoke, create_config):
     )
 
     result = invoke(
-        default_dc_cli, "--config", str(conf_path), "subcommand", color=False,
+        default_dc_cli,
+        "--config",
+        str(conf_path),
+        "subcommand",
+        color=False,
     )
     assert result.exit_code == 0
     assert "name is 'custom'" in result.stdout

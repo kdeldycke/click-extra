@@ -284,8 +284,7 @@ class Port(IntEnum):
                 show_envvar=True,
             ),
             (
-                theme.bracket("env var: ")
-                + theme.envvar("THRESHOLD, TEST_THRESHOLD"),
+                theme.bracket("env var: ") + theme.envvar("THRESHOLD, TEST_THRESHOLD"),
                 theme.bracket("default: ") + theme.default("5"),
                 theme.range_label("1<=x<=10"),
                 theme.required("required") + theme.bracket("]"),
@@ -328,7 +327,11 @@ class Port(IntEnum):
                 help="Enable color output.",
             ),
             (
-                " " + theme.option("--color") + " / " + theme.option("--no-color") + " ",
+                " "
+                + theme.option("--color")
+                + " / "
+                + theme.option("--no-color")
+                + " ",
                 " "
                 + theme.bracket("[")
                 + theme.bracket("default: ")
@@ -475,11 +478,7 @@ class Port(IntEnum):
                 help="Set priority to LOW or HIGH.",
             ),
             (
-                "["
-                + theme.choice("LOW")
-                + "|"
-                + theme.choice("HIGH")
-                + "]",
+                "[" + theme.choice("LOW") + "|" + theme.choice("HIGH") + "]",
                 " Set priority to "
                 + theme.choice("LOW")
                 + " or "
@@ -493,13 +492,7 @@ class Port(IntEnum):
                 ["--port"],
                 type=click.Choice(Port),
             ),
-            (
-                "["
-                + theme.choice("HTTP")
-                + "|"
-                + theme.choice("HTTPS")
-                + "]",
-            ),
+            ("[" + theme.choice("HTTP") + "|" + theme.choice("HTTPS") + "]",),
         ),
         (
             # EnumChoice with NAME source: case-folded names are displayed and
@@ -508,13 +501,7 @@ class Port(IntEnum):
                 ["--priority"],
                 type=EnumChoice(Priority, choice_source=ChoiceSource.NAME),
             ),
-            (
-                "["
-                + theme.choice("low")
-                + "|"
-                + theme.choice("high")
-                + "]",
-            ),
+            ("[" + theme.choice("low") + "|" + theme.choice("high") + "]",),
         ),
         (
             # EnumChoice with VALUE source: values are displayed and highlighted.
@@ -654,11 +641,7 @@ class Port(IntEnum):
         (
             ExtraOption(["-v", "--verbose"], count=True, help="Increase verbosity."),
             (
-                " "
-                + theme.option("-v")
-                + ", "
-                + theme.option("--verbose")
-                + " ",
+                " " + theme.option("-v") + ", " + theme.option("--verbose") + " ",
                 " Increase verbosity.",
             ),
         ),
@@ -973,7 +956,9 @@ def test_argument_highlight(params, expected, forbidden):
         ),
     ),
 )
-def test_no_false_positive_highlight(params, help_text, expected_present, expected_absent):
+def test_no_false_positive_highlight(
+    params, help_text, expected_present, expected_absent
+):
     """Verify that highlighting does not leak into compound words, URLs, dotted
     names, already-styled regions, or partial-word matches."""
     cli = ExtraCommand("test", params=params, help=help_text)
@@ -1083,7 +1068,8 @@ def test_keyword_collection(invoke, assert_output_regex):
         echo("Run click-extra command #4...")
 
     color_cli1.section("Subcommand group 1", command1, command2)  # type: ignore[attr-defined]
-    color_cli1.section("Extra commands", command3, command4)  # type: ignore[attr-defined]
+    # type: ignore[attr-defined]
+    color_cli1.section("Extra commands", command3, command4)
 
     help_screen = (
         r"\x1b\[94m\x1b\[1m\x1b\[4mUsage:\x1b\[0m \x1b\[97mcolor-cli1\x1b\[0m \x1b\[36m\x1b\[2m\[OPTIONS\]\x1b\[0m \x1b\[36m\x1b\[2mCOMMAND \[ARGS\]\.\.\.\x1b\[0m\n"
