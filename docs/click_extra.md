@@ -1,146 +1,163 @@
-click\_extra package
-====================
+# click\_extra package
 
+```{eval-rst}
 .. automodule:: click_extra
    :members:
    :show-inheritance:
    :undoc-members:
+```
 
-Subpackages
------------
+## Subpackages
 
+```{eval-rst}
 .. toctree::
    :maxdepth: 4
 
    click_extra.sphinx
+```
 
-Submodules
-----------
+## Submodules
 
-click\_extra.cli module
------------------------
+## click\_extra.cli module
 
+```{eval-rst}
 .. automodule:: click_extra.cli
    :members:
    :show-inheritance:
    :undoc-members:
+```
 
-click\_extra.colorize module
-----------------------------
+## click\_extra.colorize module
 
+```{eval-rst}
 .. automodule:: click_extra.colorize
    :members:
    :show-inheritance:
    :undoc-members:
+```
 
-click\_extra.commands module
-----------------------------
+## click\_extra.commands module
 
+```{eval-rst}
 .. automodule:: click_extra.commands
    :members:
    :show-inheritance:
    :undoc-members:
+```
 
-click\_extra.config module
---------------------------
+## click\_extra.config module
 
+```{eval-rst}
 .. automodule:: click_extra.config
    :members:
    :show-inheritance:
    :undoc-members:
+```
 
-click\_extra.decorators module
-------------------------------
+## click\_extra.decorators module
 
+```{eval-rst}
 .. automodule:: click_extra.decorators
    :members:
    :show-inheritance:
    :undoc-members:
+```
 
-click\_extra.envvar module
---------------------------
+## click\_extra.envvar module
 
+```{eval-rst}
 .. automodule:: click_extra.envvar
    :members:
    :show-inheritance:
    :undoc-members:
+```
 
-click\_extra.logging module
----------------------------
+## click\_extra.logging module
 
+```{eval-rst}
 .. automodule:: click_extra.logging
    :members:
    :show-inheritance:
    :undoc-members:
+```
 
-click\_extra.parameters module
-------------------------------
+## click\_extra.parameters module
 
+```{eval-rst}
 .. automodule:: click_extra.parameters
    :members:
    :show-inheritance:
    :undoc-members:
+```
 
-click\_extra.pygments module
-----------------------------
+## click\_extra.pygments module
 
+```{eval-rst}
 .. automodule:: click_extra.pygments
    :members:
    :show-inheritance:
    :undoc-members:
+```
 
-click\_extra.pytest module
---------------------------
+## click\_extra.pytest module
 
+```{eval-rst}
 .. automodule:: click_extra.pytest
    :members:
    :show-inheritance:
    :undoc-members:
+```
 
-click\_extra.table module
--------------------------
+## click\_extra.table module
 
+```{eval-rst}
 .. automodule:: click_extra.table
    :members:
    :show-inheritance:
    :undoc-members:
+```
 
-click\_extra.telemetry module
------------------------------
+## click\_extra.telemetry module
 
+```{eval-rst}
 .. automodule:: click_extra.telemetry
    :members:
    :show-inheritance:
    :undoc-members:
+```
 
-click\_extra.testing module
----------------------------
+## click\_extra.testing module
 
+```{eval-rst}
 .. automodule:: click_extra.testing
    :members:
    :show-inheritance:
    :undoc-members:
+```
 
-click\_extra.timer module
--------------------------
+## click\_extra.timer module
 
+```{eval-rst}
 .. automodule:: click_extra.timer
    :members:
    :show-inheritance:
    :undoc-members:
+```
 
-click\_extra.types module
--------------------------
+## click\_extra.types module
 
+```{eval-rst}
 .. automodule:: click_extra.types
    :members:
    :show-inheritance:
    :undoc-members:
+```
 
-click\_extra.version module
----------------------------
+## click\_extra.version module
 
+```{eval-rst}
 .. automodule:: click_extra.version
    :members:
    :show-inheritance:
    :undoc-members:
+```
