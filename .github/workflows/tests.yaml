@@ -185,7 +185,11 @@ jobs:
           if [[ "${CLOUP_VERSION}" != "released" ]]; then
             with_args+=(--with "git+https://github.com/janluke/cloup.git@${CLOUP_VERSION}")
           fi
-          uv --no-progress run --frozen "${with_args[@]}" -- pytest -m "not once" --cov-report=xml --junitxml=junit.xml --override-ini=junit_family=legacy
+          uv --no-progress run --frozen "${with_args[@]}" -- \
+            pytest -m "not once" \
+            --cov-report=xml \
+            --junitxml=junit.xml \
+            --override-ini=junit_family=legacy
 
       - name: Upload coverage to Codecov
         # Skip on prepare-release PRs (Codecov cannot create commits on protected
