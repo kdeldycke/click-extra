@@ -208,7 +208,8 @@ def envvars_test_cases():
     broken_value_map = {k: False for k in working_value_map}
 
     for (cmd_decorator, decorator_name), envvar_cases in matrix.items():
-        for case_name, envvar_names in envvar_cases.items():  # type: ignore[attr-defined]
+        # type: ignore[attr-defined]
+        for case_name, envvar_names in envvar_cases.items():
             value_map = (
                 working_value_map if case_name == "working_envvar" else broken_value_map
             )

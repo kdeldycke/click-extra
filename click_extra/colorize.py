@@ -447,8 +447,7 @@ class ExtraHelpColorsMixin:  # (Command)??
                 # Use normalize_choice() to get the exact strings shown in the
                 # metavar. Handles Enum names, case-folding, EnumChoice source.
                 kw.choices.update(
-                    param.type.normalize_choice(c, ctx)
-                    for c in param.type.choices
+                    param.type.normalize_choice(c, ctx) for c in param.type.choices
                 )
             elif isinstance(param.type, click.DateTime):
                 # Highlight each datetime format string as a choice.
@@ -527,11 +526,8 @@ class HelpExtraFormatter(cloup.HelpFormatter):
 
     keywords: HelpKeywords = HelpKeywords()
 
-
     #: Matches range expressions like ``0<=x<=9``, ``x>=1024``, ``0<=x<100``.
-    _range_re: ClassVar[re.Pattern] = re.compile(
-        r"(?:\S+(?:<|<=))?x(?:<|<=|>|>=)\S+"
-    )
+    _range_re: ClassVar[re.Pattern] = re.compile(r"(?:\S+(?:<|<=))?x(?:<|<=|>|>=)\S+")
     _bracket_re: ClassVar[re.Pattern] = re.compile(
         r"(  )"  # 2 spaces (column or description spacing).
         r"\["  # Opening bracket.
@@ -587,10 +583,7 @@ class HelpExtraFormatter(cloup.HelpFormatter):
                 styled.append(self.theme.bracket(part))
 
         return (  # type: ignore[no-any-return]
-            prefix
-            + self.theme.bracket("[")
-            + "".join(styled)
-            + self.theme.bracket("]")
+            prefix + self.theme.bracket("[") + "".join(styled) + self.theme.bracket("]")
         )
 
     def highlight_extra_keywords(self, help_text: str) -> str:
@@ -653,9 +646,7 @@ class HelpExtraFormatter(cloup.HelpFormatter):
         # Highlight options (long and short combined). Per-keyword lookbehind
         # excludes the option's own leading symbol to prevent matching repeated
         # prefixes (e.g. "---debug" should not match "--debug").
-        all_options = sorted(
-            kw.long_options | kw.short_options, key=len, reverse=True
-        )
+        all_options = sorted(kw.long_options | kw.short_options, key=len, reverse=True)
         if all_options:
             help_text = highlight(
                 help_text,
@@ -760,9 +751,7 @@ def highlight(
             regex = pattern
         # Treat as literal string and escape for regex.
         elif isinstance(pattern, str):
-            regex = re.compile(
-                re.escape(pattern), re.IGNORECASE if ignore_case else 0
-            )
+            regex = re.compile(re.escape(pattern), re.IGNORECASE if ignore_case else 0)
         else:
             raise TypeError(f"Unsupported pattern type: {pattern!r}")
 

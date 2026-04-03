@@ -118,8 +118,7 @@ def render_matrix(ctx: click.Context, matrix: str) -> None:
         headers = ["Foreground \u21b4 \\ Background \u2192"] + _ALL_COLORS
         for fg in _ALL_COLORS:
             row = [style(fg, fg=fg)]
-            for bg in _ALL_COLORS:
-                row.append(style(fg, fg=fg, bg=bg))
+            row.extend(style(fg, fg=fg, bg=bg) for bg in _ALL_COLORS)
             table.append(row)
 
     elif matrix == "styles":
