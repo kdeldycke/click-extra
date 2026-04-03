@@ -9,12 +9,12 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-03-27T10:32:37.385883799Z"
+exclude-newer = "2026-03-27T11:56:46.153915Z"
 exclude-newer-span = "P1W"
 
 [options.exclude-newer-package]
-pygments = { timestamp = "2026-04-03T10:32:37.385890952Z", span = "PT0S" }
-requests = { timestamp = "2026-04-03T10:32:37.385899117Z", span = "PT0S" }
+pygments = { timestamp = "2026-04-03T11:56:46.153923Z", span = "PT0S" }
+requests = { timestamp = "2026-04-03T11:56:46.153935Z", span = "PT0S" }
 
 [[package]]
 name = "accessible-pygments"
@@ -305,10 +305,10 @@ typing = [
 
 [package.metadata]
 requires-dist = [
-    { name = "boltons", specifier = ">=25" },
+    { name = "boltons", specifier = ">=20" },
     { name = "click", specifier = ">=8.3.1" },
     { name = "cloup", specifier = ">=3.0.7" },
-    { name = "deepmerge", specifier = ">=2" },
+    { name = "deepmerge", specifier = ">=1.0.1" },
     { name = "docutils", marker = "extra == 'sphinx'", specifier = ">=0.20" },
     { name = "extra-platforms", specifier = ">=8" },
     { name = "hjson", marker = "extra == 'hjson'", specifier = ">=3.1" },
@@ -320,22 +320,22 @@ requires-dist = [
     { name = "pygments-ansi-color", marker = "extra == 'sphinx'", specifier = ">=0.3" },
     { name = "pytest", marker = "extra == 'pytest'", specifier = ">=9" },
     { name = "pyyaml", marker = "extra == 'yaml'", specifier = ">=6.0.3" },
-    { name = "requests", specifier = ">=2.32.5" },
+    { name = "requests", specifier = ">=2.32.4" },
     { name = "sphinx", marker = "extra == 'sphinx'", specifier = ">=8" },
     { name = "tabulate", extras = ["widechars"], specifier = ">=0.10" },
-    { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2.3" },
+    { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2" },
     { name = "tomlkit", marker = "extra == 'toml'", specifier = ">=0.13" },
     { name = "wcmatch", specifier = ">=10" },
     { name = "xmltodict", marker = "extra == 'xml'", specifier = ">=1" },
 ]
-provides-extras = ["yaml", "json5", "jsonc", "hjson", "toml", "xml", "pygments", "sphinx", "pytest"]
+provides-extras = ["hjson", "json5", "jsonc", "pygments", "pytest", "sphinx", "toml", "xml", "yaml"]
 
 [package.metadata.requires-dev]
 docs = [
     { name = "furo", marker = "python_full_version >= '3.14'", specifier = ">=2025.9.25" },
     { name = "myst-parser", marker = "python_full_version >= '3.14'", specifier = ">=4" },
     { name = "pygments-ansi-color", marker = "python_full_version >= '3.14'", specifier = ">=0.3" },
-    { name = "sphinx", marker = "python_full_version >= '3.14'" },
+    { name = "sphinx", marker = "python_full_version >= '3.14'", specifier = ">=8" },
     { name = "sphinx-autodoc-typehints", marker = "python_full_version >= '3.14'", specifier = ">=2.4" },
     { name = "sphinx-copybutton", marker = "python_full_version >= '3.14'", specifier = ">=0.5.2" },
     { name = "sphinx-design", marker = "python_full_version >= '3.14'", specifier = ">=0.6" },
@@ -348,13 +348,13 @@ test = [
     { name = "coverage", extras = ["toml"], specifier = ">=7.12" },
     { name = "extra-platforms", extras = ["pytest"], specifier = ">=5" },
     { name = "myst-parser", specifier = ">=4" },
-    { name = "pytest" },
+    { name = "pytest", specifier = ">=9" },
     { name = "pytest-cov", specifier = ">=7" },
     { name = "pytest-github-actions-annotate-failures", specifier = ">=0.3" },
     { name = "pytest-httpserver", specifier = ">=1.1" },
     { name = "pytest-randomly", specifier = ">=4.0.1" },
-    { name = "sphinx" },
-    { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2.3" },
+    { name = "sphinx", specifier = ">=8" },
+    { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2" },
 ]
 typing = [
     { name = "types-boltons", specifier = ">=25.0.0.20250919" },

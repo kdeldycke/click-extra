@@ -83,24 +83,24 @@ classifiers = [
 # - aligns minimal Python requirements to ours,
 # - adds new explicit support Python version.
 dependencies = [
-  # boltons 25.0.0 is the first version to support Python 3.13.
+  # boltons 20.0.0 added shrinkuser(); our config.py uses it for path display.
   # XXX boltons.ecoutils breaks PDB interactive sessions in pytest. Investigation of the root cause is being
   # discussed upstream at: https://github.com/mahmoud/boltons/issues/334
-  "boltons>=25",
+  "boltons>=20",
   # Click 8.3.1 fix an issue with parameters sharing same name.
   "click>=8.3.1",
   # Cloup 3.0.7 fix issues with metavars: https://github.com/kdeldycke/click-extra/pull/1281
   "cloup>=3.0.7",
-  # deepmerge 2.0 is the first version used in Click Extra.
-  "deepmerge>=2",
-  # We depends on some internals changed in extra-platforms 8.0.0.
+  # always_merger (recursive dict merge) available since deepmerge 1.0.1.
+  "deepmerge>=1.0.1",
+  # _recursive_update and _remove_blanks moved to extra_platforms._utils in 8.0.0.
   "extra-platforms>=8",
-  # requests 2.32.5 adds support for Python 3.14.
-  "requests>=2.32.5",
+  # requests 2.32.4 fixes CVE-2024-47081 (netrc credential leak on redirects).
+  "requests>=2.32.4",
   # tabulate 0.10 adds the `colon_grid` format.
   "tabulate[widechars]>=0.10",
-  # tomllib is not part of the standard library before Python 3.11. Version 2.3.0 is the first to support Python 3.14.
-  "tomli>=2.3; python_version<'3.11'",
+  # tomli 2.0 aligned API with stdlib tomllib; only installed on Python 3.10.
+  "tomli>=2; python_version<'3.11'",
   # wcmatch 10.0 fix some inconsistencies in globbing and symlinks.
   "wcmatch>=10",
 ]
@@ -132,35 +132,27 @@ pytest11.click-extra = "click_extra.pytest"
 "pygments.lexers".ansi-tcsh-session = "click_extra.pygments:AnsiTcshSessionLexer"
 
 [project.optional-dependencies]
-yaml = [
-  # PyYAML 6.0.3 is the first version to support Python 3.14.
-  "pyyaml>=6.0.3",
+hjson = [
+  # hjson.loads() and hjson.dumps() for Hjson config parsing and table rendering.
+  "hjson>=3.1",
 ]
 json5 = [
-  # json5 0.12.1 is the first version we used in Click Extra.
+  # json5.loads() for JSON5 config parsing.
   "json5>=0.12.1",
 ]
 jsonc = [
-  # json-with-comments 1.2.10 is the first version we used in Click Extra.
+  # jsonc.loads() for JSONC config parsing.
   "json-with-comments>=1.2.10",
-]
-hjson = [
-  # hjson 3.1.0 is the first version we used in Click Extra.
-  "hjson>=3.1",
-]
-toml = [
-  # tomlkit 0.13.0 is the first version to support Python 3.13.
-  "tomlkit>=0.13",
-]
-xml = [
-  # xmltodict 1.0.0 is just the first major release.
-  "xmltodict>=1",
 ]
 pygments = [
   # Pygments 2.14.0 is the first version with lexers.algebra.GAPConsoleLexer that is referenced in our code.
   "pygments>=2.14",
   # pygments-ansi-color 0.3.0 is the first version to set the default theme of ANSI colors.
   "pygments-ansi-color>=0.3",
+]
+pytest = [
+  # pytest 9.0.0 is the first supporting native TOML configuration files.
+  "pytest>=9",
 ]
 sphinx = [
   # docutils 0.20 is the minimal version for Sphinx 8.0.0.
@@ -169,12 +161,21 @@ sphinx = [
   "pygments>=2.14",
   # pygments-ansi-color 0.3.0 is the first version to set the default theme of ANSI colors.
   "pygments-ansi-color>=0.3",
-  # Sphinx  8.0.0 is the first version to drop Python 3.9, like us.
+  # Sphinx 8.0.0 is the first version to drop Python 3.9, like us.
   "sphinx>=8",
 ]
-pytest = [
-  # pytest 9.0.0 is the first supporting native TOML configuration files.
-  "pytest>=9",
+toml = [
+  # tomlkit.document(), tomlkit.dumps() for TOML config and table rendering.
+  "tomlkit>=0.13",
+]
+xml = [
+  # xmltodict.unparse() for XML table rendering; first major release.
+  "xmltodict>=1",
+]
+yaml = [
+  # PyYAML < 6.0.2 uses Cython extensions that fail to compile on Python 3.14,
+  # and old releases lack requires-python metadata to prevent selection on 3.14.
+  "pyyaml>=6.0.3",
 ]
 
 [project.scripts]
@@ -193,30 +194,47 @@ click-extra-demo = "click_extra.__main__:main"
 test = [
   # backports.strenum 1.3.0 is required to support enum.StrEnum in Python 3.10.
   "backports-strenum>=1.3; python_version<'3.11'",
+  # coverage 7.11+ requires Python >= 3.10, matching our requires-python.
   "coverage[toml]>=7.12",
-  # extra-platforms 5.0.0 is the first version to re-introduce support for Python 3.10.
+  # extra-platforms 5.0.0 re-introduced Python 3.10 support after dropping it in 4.x.
   "extra-platforms[pytest]>=5",
+  # myst-parser 4.0 added colon_fence extension for GitHub-style alert syntax.
   "myst-parser>=4",
-  "pytest",
+  # pytest 9.0.0 is the first supporting native TOML configuration files.
+  "pytest>=9",
+  # pytest-cov 7.0 updated the plugin interface for coverage reporting.
   "pytest-cov>=7",
+  # pytest-github-actions-annotate-failures 0.3 stabilized the auto-registration interface.
   "pytest-github-actions-annotate-failures>=0.3",
+  # pytest-httpserver 1.1 added ordered request handlers used in config URL tests.
   "pytest-httpserver>=1.1",
+  # pytest-randomly 4.0.1 stabilized seed management for reproducible test ordering.
   "pytest-randomly>=4.0.1",
-  "sphinx",
-  "tomli>=2.3; python_version<'3.11'",
+  # Sphinx 8.0.0 is the first version to drop Python 3.9, like us.
+  "sphinx>=8",
+  # tomli 2.0 aligned API with stdlib tomllib; only installed on Python 3.10.
+  "tomli>=2; python_version<'3.11'",
 ]
 docs = [
+  # furo 2024.8.6+ supports Sphinx 8; pinned to recent CalVer release.
   "furo>=2025.9.25",
+  # myst-parser 4.0 added colon_fence extension for GitHub-style alert syntax.
   "myst-parser>=4",
   # pygments-ansi-color is required by docs/docs_update.py to generate the lexer table.
   "pygments-ansi-color>=0.3",
-  "sphinx",
+  # Sphinx 8.0.0 is the first version to drop Python 3.9, like us.
+  "sphinx>=8",
   # sphinx-autodoc-typehints 2.4.0 is the first version that is aligned to our Python >= 3.10 requirement.
   "sphinx-autodoc-typehints>=2.4",
+  # sphinx-copybutton 0.5.2 stabilized the copy button behavior for code blocks.
   "sphinx-copybutton>=0.5.2",
+  # sphinx-design 0.6 introduced the current directive syntax for cards, grids, and tabs.
   "sphinx-design>=0.6",
+  # sphinx-issues 5.0 added support for GitHub issue linking in Sphinx 7+.
   "sphinx-issues>=5",
+  # sphinxcontrib-mermaid 1.2.3 fixed mermaid_d3_zoom configuration support.
   "sphinxcontrib-mermaid>=1.2.3",
+  # sphinxext-opengraph 0.13 stabilized OpenGraph metadata generation for Sphinx 8+.
   "sphinxext-opengraph>=0.13",
 ]
 typing = [
@@ -236,7 +254,7 @@ dependency-groups.docs = { requires-python = ">= 3.14" }
 # Relative dates are fine here because the Renovate lock-maintenance job
 # (sync-uv-lock) reverts uv.lock when the only diff is timestamp noise.
 exclude-newer = "1 week"
-# Exclude tabulate from the cooldown period.
+# pygments and requests bypass cooldown to pick up security fixes immediately.
 exclude-newer-package = { "pygments" = "0 day", "requests" = "0 day" }
 # Package is at root level, not in "./src/".
 build-backend.module-root = ""
