@@ -173,17 +173,19 @@ jobs:
 
       - name: Unittests
         # Produce XML artifacts for Codecov integration (coverage + test analytics).
-        run: >
-          uv --no-progress run --frozen
-          ${{ matrix.click-version != 'released'
-          && format('--with "git+https://github.com/pallets/click.git@{0}"', matrix.click-version) || '' }}
-          ${{ matrix.cloup-version != 'released'
-          && format('--with "git+https://github.com/janluke/cloup.git@{0}"', matrix.cloup-version) || ''}}
-          --
-          pytest -m "not once"
-          --cov-report=xml
-          --junitxml=junit.xml
-          --override-ini=junit_family=legacy
+        env:
+          CLICK_VERSION: ${{ matrix.click-version }}
+          CLOUP_VERSION: ${{ matrix.cloup-version }}
+        shell: bash
+        run: |
+          with_args=()
+          if [[ "${CLICK_VERSION}" != "released" ]]; then
+            with_args+=(--with "git+https://github.com/pallets/click.git@${CLICK_VERSION}")
+          fi
+          if [[ "${CLOUP_VERSION}" != "released" ]]; then
+            with_args+=(--with "git+https://github.com/janluke/cloup.git@${CLOUP_VERSION}")
+          fi
+          uv --no-progress run --frozen "${with_args[@]}" -- pytest -m "not once" --cov-report=xml --junitxml=junit.xml --override-ini=junit_family=legacy
 
       - name: Upload coverage to Codecov
         # Skip on prepare-release PRs (Codecov cannot create commits on protected

@@ -634,7 +634,7 @@ def _from_dataclass(
             and f.name in flattened
             and isinstance(flattened[f.name], dict)
         ):
-            sub = _make_schema_callable(hint, strict=strict)
+            sub = _make_schema_callable(hint, strict=strict)  # type: ignore[arg-type]
             flattened[f.name] = sub(flattened[f.name]) if sub else flattened[f.name]
 
     # --- Phase 4: merge and validate. ---
@@ -1719,11 +1719,14 @@ class ConfigOption(ExtraOption, ParamStructure):
         # loaded yet. So we use echo() to print messages to stderr instead.
         info_msg = partial(echo, err=True)
 
+        assert self.name is not None  # Always set for Option subclasses.
+
         if path_pattern is NO_CONFIG:
             logger.debug(f"{NO_CONFIG} received.")
             # TODO: simplify to ``source < ParameterSource.DEFAULT_MAP`` once
             # https://github.com/pallets/click/pull/3248 is merged.
-            explicit = ctx.get_parameter_source(self.name) in (
+            source = ctx.get_parameter_source(self.name)
+            explicit = source is not None and source in (
                 ParameterSource.COMMANDLINE,
                 ParameterSource.ENVIRONMENT,
                 ParameterSource.PROMPT,
@@ -1736,7 +1739,8 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         # TODO: simplify to ``source < ParameterSource.DEFAULT_MAP`` once
         # https://github.com/pallets/click/pull/3248 is merged.
-        explicit_conf = ctx.get_parameter_source(self.name) in (
+        conf_source = ctx.get_parameter_source(self.name)
+        explicit_conf = conf_source is not None and conf_source in (
             ParameterSource.COMMANDLINE,
             ParameterSource.ENVIRONMENT,
             ParameterSource.PROMPT,

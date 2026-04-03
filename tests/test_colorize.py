@@ -90,17 +90,17 @@ def test_extra_theme():
 
     # Check that we can't set a non-existing attribute.
     with pytest.raises(TypeError):
-        theme.with_(random_arg=Style())  # type: ignore[call-arg]
+        theme.with_(random_arg=Style())  # type: ignore[arg-type]
 
     # Create a new theme with a different color.
     assert theme.choice != Style(fg=Color.magenta)
-    new_theme = theme.with_(choice=Style(fg=Color.magenta))  # type: ignore[call-arg]
+    new_theme = theme.with_(choice=Style(fg=Color.magenta))  # type: ignore[arg-type]
     assert new_theme != theme
     assert new_theme is not theme
     assert new_theme.choice == Style(fg=Color.magenta)
 
     # Derives a second theme from the first one.
-    second_theme = new_theme.with_(choice=Style(fg=Color.magenta))  # type: ignore[call-arg]
+    second_theme = new_theme.with_(choice=Style(fg=Color.magenta))  # type: ignore[arg-type]
     assert second_theme == new_theme
     assert second_theme is new_theme
 
@@ -786,7 +786,7 @@ def test_cross_ref_highlight_disabled():
     """When ``cross_ref_highlight`` is ``False``, only structural elements are
     styled (bracket fields, deprecated messages, subcommands). Options, choices,
     metavars, arguments, and CLI names in free-form text are left plain."""
-    no_xref_theme = HelpExtraTheme.dark().with_(cross_ref_highlight=False)  # type: ignore[call-arg]
+    no_xref_theme = HelpExtraTheme.dark().with_(cross_ref_highlight=False)  # type: ignore[arg-type]
 
     cli = ExtraCommand(
         "test",
@@ -1068,8 +1068,7 @@ def test_keyword_collection(invoke, assert_output_regex):
         echo("Run click-extra command #4...")
 
     color_cli1.section("Subcommand group 1", command1, command2)  # type: ignore[attr-defined]
-    # type: ignore[attr-defined]
-    color_cli1.section("Extra commands", command3, command4)
+    color_cli1.section("Extra commands", command3, command4)  # type: ignore[attr-defined]
 
     help_screen = (
         r"\x1b\[94m\x1b\[1m\x1b\[4mUsage:\x1b\[0m \x1b\[97mcolor-cli1\x1b\[0m \x1b\[36m\x1b\[2m\[OPTIONS\]\x1b\[0m \x1b\[36m\x1b\[2mCOMMAND \[ARGS\]\.\.\.\x1b\[0m\n"

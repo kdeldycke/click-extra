@@ -228,7 +228,7 @@ def test_standalone_show_params_option(
 
     result = invoke(show_params, "--show-params")
 
-    expected_table: list[list] = [
+    expected_table: list = [
         (
             "show-params.help",
             "--help",
@@ -304,7 +304,7 @@ def test_integrated_show_params_option(invoke, create_config):
     ]
     result = invoke(show_params_cli, *raw_args, color=False)
 
-    expected_table: list[list] = [
+    expected_table: list = [
         (
             "show-params-cli.color",
             "--color, --ansi / --no-color, --no-ansi",

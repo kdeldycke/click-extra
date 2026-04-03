@@ -1337,9 +1337,14 @@ def test_parent_patterns(
     assert all(isinstance(p, tuple) and len(p) == 2 for p in patterns)
 
     if search_parents:
-        assert all(Path(root_dir).is_absolute() for root_dir, _ in patterns)
+        assert all(
+            root_dir is not None and Path(root_dir).is_absolute()
+            for root_dir, _ in patterns
+        )
         root_path = Path("/") if not is_windows() else Path(tmp_path.drive + "\\")
-        assert Path(patterns[-1][0]) == root_path
+        last_root = patterns[-1][0]
+        assert last_root is not None
+        assert Path(last_root) == root_path
 
 
 @pytest.mark.parametrize(
@@ -1474,10 +1479,14 @@ def test_parent_patterns_relative_path(tmp_path):
             patterns = list(config_opt.parent_patterns(relative_path))
 
             # All root_dirs should be absolute
-            assert all(Path(root_dir).is_absolute() for root_dir, _ in patterns)
+            assert all(
+                root_dir is not None and Path(root_dir).is_absolute()
+                for root_dir, _ in patterns
+            )
 
             # First pattern should resolve to the config file's parent
             root_dir, file_pattern = patterns[0]
+            assert root_dir is not None
             assert Path(root_dir) == config_file.parent
             assert file_pattern == config_file.name
     finally:
@@ -1505,10 +1514,12 @@ def test_parent_patterns_stop_at_path(tmp_path):
 
     # First yield should be (parent_of_file, filename).
     root_dir, file_pattern = patterns[0]
+    assert root_dir is not None
     assert Path(root_dir) == config_file.parent
     assert file_pattern == config_file.name
     # Every root_dir should be inside or equal to the boundary.
     for root_dir, _ in patterns:
+        assert root_dir is not None
         assert Path(root_dir).is_relative_to(boundary), (
             f"{root_dir} is outside boundary {boundary}"
         )
@@ -1547,12 +1558,15 @@ def test_parent_patterns_stop_at_vcs(tmp_path, has_vcs, expected_bounded):
 
     if expected_bounded:
         for root_dir, _ in patterns:
+            assert root_dir is not None
             assert Path(root_dir).is_relative_to(vcs_root), (
                 f"{root_dir} is outside VCS root {vcs_root}"
             )
     else:
         root_path = Path("/") if not is_windows() else Path(tmp_path.drive + "\\")
-        assert Path(patterns[-1][0]) == root_path
+        last_root = patterns[-1][0]
+        assert last_root is not None
+        assert Path(last_root) == root_path
 
 
 def test_parent_patterns_inaccessible_directory(tmp_path):
@@ -1584,10 +1598,12 @@ def test_parent_patterns_inaccessible_directory(tmp_path):
 
     # First yield: (parent_of_file, filename).
     root_dir, file_pattern = patterns[0]
+    assert root_dir is not None
     assert Path(root_dir) == config_file.parent
     assert file_pattern == config_file.name
     # Should stop before tmp_path/a (inaccessible).
     for root_dir, _ in patterns:
+        assert root_dir is not None
         assert Path(root_dir) != tmp_path / "a"
         assert Path(root_dir) != tmp_path
 
