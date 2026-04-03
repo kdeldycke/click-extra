@@ -9,12 +9,12 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-03-27T11:56:46.153915Z"
+exclude-newer = "2026-03-27T12:08:22.573456Z"
 exclude-newer-span = "P1W"
 
 [options.exclude-newer-package]
-pygments = { timestamp = "2026-04-03T11:56:46.153923Z", span = "PT0S" }
-requests = { timestamp = "2026-04-03T11:56:46.153935Z", span = "PT0S" }
+pygments = { timestamp = "2026-04-03T12:08:22.57346Z", span = "PT0S" }
+requests = { timestamp = "2026-04-03T12:08:22.573465Z", span = "PT0S" }
 
 [[package]]
 name = "accessible-pygments"
@@ -333,7 +333,7 @@ provides-extras = ["hjson", "json5", "jsonc", "pygments", "pytest", "sphinx", "t
 [package.metadata.requires-dev]
 docs = [
     { name = "furo", marker = "python_full_version >= '3.14'", specifier = ">=2025.9.25" },
-    { name = "myst-parser", marker = "python_full_version >= '3.14'", specifier = ">=4" },
+    { name = "myst-parser", marker = "python_full_version >= '3.14'", specifier = ">=5" },
     { name = "pygments-ansi-color", marker = "python_full_version >= '3.14'", specifier = ">=0.3" },
     { name = "sphinx", marker = "python_full_version >= '3.14'", specifier = ">=8" },
     { name = "sphinx-autodoc-typehints", marker = "python_full_version >= '3.14'", specifier = ">=2.4" },

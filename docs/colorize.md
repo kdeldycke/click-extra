@@ -201,14 +201,12 @@ Run `uvx click-extra render-matrix --matrix=colors` or `uvx click-extra render-m
 
 ## `click_extra.colorize` API
 
-```{eval-rst}
-.. autoclasstree:: click_extra.colorize
-   :strict:
+```{autoclasstree} click_extra.colorize
+:strict:
 ```
 
-```{eval-rst}
-.. automodule:: click_extra.colorize
-   :members:
-   :undoc-members:
-   :show-inheritance:
+```{automodule} click_extra.colorize
+:members:
+:undoc-members:
+:show-inheritance:
 ```

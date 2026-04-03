@@ -613,14 +613,12 @@ Other internal methods to build-up and render the version string are [available 
 
 ## `click_extra.version` API
 
-```{eval-rst}
-.. autoclasstree:: click_extra.version
-   :strict:
+```{autoclasstree} click_extra.version
+:strict:
 ```
 
-```{eval-rst}
-.. automodule:: click_extra.version
-   :members:
-   :undoc-members:
-   :show-inheritance:
+```{automodule} click_extra.version
+:members:
+:undoc-members:
+:show-inheritance:
 ```

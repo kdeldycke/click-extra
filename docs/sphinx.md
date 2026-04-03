@@ -978,14 +978,12 @@ NameError: name 'yo_cli' is not defined
 
 ## `click_extra.sphinx` API
 
-```{eval-rst}
-.. autoclasstree:: click_extra.sphinx
-   :strict:
+```{autoclasstree} click_extra.sphinx
+:strict:
 ```
 
-```{eval-rst}
-.. automodule:: click_extra.sphinx
-   :members:
-   :undoc-members:
-   :show-inheritance:
+```{automodule} click_extra.sphinx
+:members:
+:undoc-members:
+:show-inheritance:
 ```

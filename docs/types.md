@@ -537,14 +537,12 @@ assert result.output == (
 
 ## `click_extra.types` API
 
-```{eval-rst}
-.. autoclasstree:: click_extra.types
-   :strict:
+```{autoclasstree} click_extra.types
+:strict:
 ```
 
-```{eval-rst}
-.. automodule:: click_extra.types
-   :members:
-   :undoc-members:
-   :show-inheritance:
+```{automodule} click_extra.types
+:members:
+:undoc-members:
+:show-inheritance:
 ```

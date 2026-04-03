@@ -18,7 +18,6 @@ author = ", ".join(author["name"] for author in toml_config["project"]["authors"
 
 # Title-case each word of the project ID.
 project = " ".join(word.title() for word in project_id.split("-"))
-htmlhelp_basename = project_id
 
 # Addons.
 extensions = [
@@ -43,21 +42,19 @@ extensions = [
 myst_enable_extensions = [
     "attrs_block",
     "attrs_inline",
+    "colon_fence",
     "deflist",
+    "fieldlist",
     "replacements",
     "smartquotes",
     "strikethrough",
     "tasklist",
-    # XXX Only enabled so we can support GitHub admonitions.
-    "colon_fence",
 ]
 # XXX Allow ```mermaid``` directive to be used without curly braces (```{mermaid}```), see:
 # https://github.com/mgaitan/sphinxcontrib-mermaid/issues/99#issuecomment-2339587001
 myst_fence_as_directive = ["mermaid"]
 
 mermaid_d3_zoom = True
-
-master_doc = "index"
 
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
@@ -131,7 +128,6 @@ linkcheck_ignore = [
 # Footer content.
 html_last_updated_fmt = "%Y-%m-%d"
 copyright = f"{author} and contributors"
-html_show_copyright = True
 html_show_sphinx = False
 
 html_static_path = ["_static"]

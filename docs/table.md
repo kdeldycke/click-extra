@@ -438,14 +438,12 @@ assert "Table format: fancy-outline" in result.stdout
 
 ## `click_extra.table` API
 
-```{eval-rst}
-.. autoclasstree:: click_extra.table
-   :strict:
+```{autoclasstree} click_extra.table
+:strict:
 ```
 
-```{eval-rst}
-.. automodule:: click_extra.table
-   :members:
-   :undoc-members:
-   :show-inheritance:
+```{automodule} click_extra.table
+:members:
+:undoc-members:
+:show-inheritance:
 ```

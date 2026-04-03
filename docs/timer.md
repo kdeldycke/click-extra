@@ -67,14 +67,12 @@ assert re.fullmatch(
 
 ## `click_extra.timer` API
 
-```{eval-rst}
-.. autoclasstree:: click_extra.timer
-   :strict:
+```{autoclasstree} click_extra.timer
+:strict:
 ```
 
-```{eval-rst}
-.. automodule:: click_extra.timer
-   :members:
-   :undoc-members:
-   :show-inheritance:
+```{automodule} click_extra.timer
+:members:
+:undoc-members:
+:show-inheritance:
 ```

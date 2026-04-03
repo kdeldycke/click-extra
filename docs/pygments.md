@@ -374,15 +374,13 @@ Licensed under the BSD license, see LICENSE for details.
 
 ## `click_extra.pygments` API
 
-```{eval-rst}
-.. autoclasstree:: click_extra.pygments
-   :strict:
+```{autoclasstree} click_extra.pygments
+:strict:
 ```
 
-```{eval-rst}
-.. automodule:: click_extra.pygments
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :exclude-members: color_tokens
+```{automodule} click_extra.pygments
+:members:
+:undoc-members:
+:show-inheritance:
+:exclude-members: color_tokens
 ```

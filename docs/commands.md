@@ -597,14 +597,12 @@ There is a miriad of possibilities. If you have some other examples in the same 
 
 ## `click_extra.commands` API
 
-```{eval-rst}
-.. autoclasstree:: click_extra.commands
-   :strict:
+```{autoclasstree} click_extra.commands
+:strict:
 ```
 
-```{eval-rst}
-.. automodule:: click_extra.commands
-   :members:
-   :undoc-members:
-   :show-inheritance:
+```{automodule} click_extra.commands
+:members:
+:undoc-members:
+:show-inheritance:
 ```

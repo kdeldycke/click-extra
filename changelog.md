@@ -7,6 +7,7 @@
 
 - Replace hardcoded test matrix with `repomatic metadata`-managed matrix. OS, Python, and stability axes are now computed dynamically, with custom Click/Cloup version axes added via `[tool.repomatic.test-matrix]`. PRs get a reduced matrix to save CI minutes.
 - Drop Python `3.15t` (free-threaded) from the test matrix, aligning with repomatic `v6.10.0` defaults.
+- Replace `{eval-rst}`-wrapped `automodule` and `autoclasstree` directives with native MyST syntax in all docs.
 
 ## [`7.10.0` (2026-04-02)](https://github.com/kdeldycke/click-extra/compare/v7.9.0...v7.10.0)
 

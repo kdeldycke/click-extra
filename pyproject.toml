@@ -199,6 +199,7 @@ test = [
   # extra-platforms 5.0.0 re-introduced Python 3.10 support after dropping it in 4.x.
   "extra-platforms[pytest]>=5",
   # myst-parser 4.0 added colon_fence extension for GitHub-style alert syntax.
+  # Pinned to >=4 (not >=5) because myst-parser 5 requires Python 3.11+ and tests run on 3.10+.
   "myst-parser>=4",
   # pytest 9.0.0 is the first supporting native TOML configuration files.
   "pytest>=9",
@@ -218,8 +219,8 @@ test = [
 docs = [
   # furo 2024.8.6+ supports Sphinx 8; pinned to recent CalVer release.
   "furo>=2025.9.25",
-  # myst-parser 4.0 added colon_fence extension for GitHub-style alert syntax.
-  "myst-parser>=4",
+  # myst-parser 5.0 stabilized MyST extensions and improved Sphinx directive support.
+  "myst-parser>=5",
   # pygments-ansi-color is required by docs/docs_update.py to generate the lexer table.
   "pygments-ansi-color>=0.3",
   # Sphinx 8.0.0 is the first version to drop Python 3.9, like us.

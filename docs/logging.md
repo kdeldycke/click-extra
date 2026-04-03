@@ -630,14 +630,12 @@ Click Extra has its own logger, named `click_extra`, which is used to print debu
 
 ## `click_extra.logging` API
 
-```{eval-rst}
-.. autoclasstree:: click_extra.logging
-   :strict:
+```{autoclasstree} click_extra.logging
+:strict:
 ```
 
-```{eval-rst}
-.. automodule:: click_extra.logging
-   :members:
-   :undoc-members:
-   :show-inheritance:
+```{automodule} click_extra.logging
+:members:
+:undoc-members:
+:show-inheritance:
 ```
