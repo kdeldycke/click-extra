@@ -1,6 +1,7 @@
 ---
 name: repomatic-sync
 description: Run workflow sync locally to preview or apply upstream changes before CI does.
+model: haiku
 disable-model-invocation: true
 allowed-tools: Bash, Read, Grep, Glob
 argument-hint: '[args]'

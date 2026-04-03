@@ -1,6 +1,7 @@
 ---
 name: repomatic-changelog
 description: Draft, validate, consolidate, and fix changelog entries.
+model: sonnet
 disable-model-invocation: true
 allowed-tools: Bash, Read, Grep, Glob, Edit, Write
 argument-hint: '[add|check|fix|consolidate [VERSION]]'
@@ -27,7 +28,8 @@ The `lint.yaml` workflow runs `lint-changelog` in CI. The `check` and `fix` subc
 
 ### Argument handling
 
-- `add` (default when `$ARGUMENTS` is empty): Review recent git commits and draft changelog entries. Place entries under the current unreleased section. Describe **what** changed, not **why**. Keep entries concise and actionable.
+- (default when `$ARGUMENTS` is empty): Run `add` then `consolidate` on the unreleased section, sequentially.
+- `add`: Review recent git commits and draft changelog entries. Place entries under the current unreleased section. Describe **what** changed, not **why**. Keep entries concise and actionable.
 - `check`: Run `<cmd> lint-changelog` and report results. Explain each issue found.
 - `fix`: Run `<cmd> lint-changelog --fix` and show what was changed.
 - `consolidate [VERSION]`: Consolidate redundant entries in a changelog section. This is analytical work with no CLI equivalent — read the entries, compare against `git log` for the relevant range, and rewrite. See § Consolidation rules below. If `VERSION` is omitted, target the unreleased section. If `VERSION` is given (e.g., `consolidate 6.8.0`), target that released section instead — locate it in `changelog.md` by matching the heading, and use the git range between its tag and the previous tag (e.g., `v6.7.0..v6.8.0`).

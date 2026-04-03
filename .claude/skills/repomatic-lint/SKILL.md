@@ -1,6 +1,7 @@
 ---
 name: repomatic-lint
 description: Lint workflows and repository metadata, then explain issues and suggest fixes.
+model: sonnet
 disable-model-invocation: true
 allowed-tools: Bash, Read, Grep, Glob
 argument-hint: '[workflows|repo|all]'

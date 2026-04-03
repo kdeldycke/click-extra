@@ -1,6 +1,7 @@
 ---
 name: repomatic-release
 description: Pre-checks, release preparation, and post-release steps.
+model: opus
 disable-model-invocation: true
 allowed-tools: Bash, Read, Grep, Glob
 argument-hint: '[check|prep|post-release]'
