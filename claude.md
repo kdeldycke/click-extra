@@ -47,7 +47,7 @@ $ uv run -- click-extra --help
 - **Structural inventories** — project trees, module tables, workflow lists. Claude can discover these via `Glob`/`Read`.
 - **Code examples that duplicate source files** — YAML snippets copied from workflows, Python patterns visible in every module. Reference the source file instead.
 - **General programming knowledge** — standard Python idioms, well-known library usage, tool descriptions derivable from imports.
-- **Implementation details readable from code** — only the *rationale* for non-obvious choices belongs here.
+- **Implementation details readable from code** — what a function does, what a workflow's concurrency block looks like. Only the *rationale* for non-obvious choices belongs here.
 
 ### Changelog and documentation updates
 
@@ -240,10 +240,11 @@ The version string is always bare (e.g., `1.2.3`). The `v` prefix is a **tag nam
 
 - All comments in Python files must end with a period.
 - Docstrings use reStructuredText format (vanilla style, not Google/NumPy).
-- Documentation in `docs/` uses MyST markdown format. Fallback to reStructuredText if necessary.
-- Keep lines within 88 characters in Python files, including docstrings and comments. Markdown files have no line-length limit — do not hard-wrap prose in markdown. Each sentence or logical clause should flow as a single long line; let the renderer handle wrapping.
+- Documentation in `./docs/` uses MyST markdown format where possible. Fallback to reStructuredText if necessary.
+- Keep lines within 88 characters in Python files, including docstrings and comments (ruff default). Markdown files have no line-length limit — do not hard-wrap prose in markdown. Each sentence or logical clause should flow as a single long line; let the renderer handle wrapping.
 - Titles in markdown use sentence case.
 - **Dataclass field docs:** In dataclasses, document fields with attribute docstrings (a string literal immediately after the field declaration), not `:param:` entries in the class docstring. Attribute docstrings are co-located with the field they describe, recognized by Sphinx, and stay in sync when fields are added or reordered. The class docstring should contain only a summary of the class purpose.
+- **CLI help text:** Click command docstrings serve double duty (Sphinx docs and terminal help). Click renders them as plain text, so avoid reST markup in the prose sections that appear in `--help` output. Use plain text for command names, option names, file paths, and tool names. reST markup (double backticks, `:param:`, admonitions) belongs in non-CLI docstrings only.
 
 ### `__init__.py` files
 
@@ -253,7 +254,7 @@ Keep `__init__.py` files minimal — avoid placing logic, constants, or business
 
 - Import from the root package (`from click_extra import ...`) when possible.
 - Place imports at the top of the file, unless avoiding circular imports. **Never use local imports inside functions** — move them to the module level. Local imports hide dependencies, bypass ruff's import sorting, and make it harder to see what a module depends on.
-- **Version-dependent imports** (e.g., `tomllib` fallback for Python 3.10) should be placed **after all normal imports** but **before the `TYPE_CHECKING` block**.
+- **Version-dependent imports** (e.g., `tomllib` fallback for Python 3.10) should be placed **after all normal imports** but **before the `TYPE_CHECKING` block**. This allows ruff to freely sort and organize the normal imports above without interference.
 
 ### `TYPE_CHECKING` block
 
@@ -267,31 +268,11 @@ Use modern equivalents from `collections.abc` and built-in types instead of `typ
 
 ### Minimal inline type annotations
 
-Omit type annotations on local variables, loop variables, and assignments when mypy can infer the type from the right-hand side. Add an explicit annotation only when mypy cannot infer the correct type and reports an error.
-
-```python
-# Preferred: mypy infers the type.
-root_dir = None
-name = "default"
-items = []
-
-# Avoid: redundant annotation that mypy already knows.
-root_dir: Path | None = None
-name: str = "default"
-items: list[str] = []
-```
-
-**When to annotate:** Add an explicit annotation only when mypy cannot infer the correct type and reports an error — e.g., empty collections that need a specific element type (`items: list[Package] = []`), `None` initializations where the intended type isn't obvious from later usage, or narrowing a union that mypy doesn't resolve on its own.
-
-**Function signatures are unaffected.** Always annotate function parameters and return types — those are part of the public API and cannot be inferred.
+Omit type annotations on local variables, loop variables, and assignments when mypy can infer the type from the right-hand side. Add an explicit annotation only when mypy reports an error — e.g., empty collections needing a specific element type (`items: list[Package] = []`), `None` initializations where the intended type is ambiguous, or narrowing a union mypy cannot resolve. Function signatures are unaffected — always annotate parameters and return types.
 
 ### Python 3.10 compatibility
 
-This project supports Python 3.10+. Be aware of syntax features that are **not** available in Python 3.10:
-
-- **Multi-line f-string expressions (Python 3.12+):** You cannot break an f-string after the `{` character and continue the expression on the next line. Split into concatenated strings instead.
-- **Exception groups and `except*` (Python 3.11+).**
-- **`Self` type hint (Python 3.11+):** Use `from typing_extensions import Self` instead.
+This project supports Python 3.10+. Unavailable syntax: multi-line f-string expressions (3.12+; split into concatenated strings instead), exception groups / `except*` (3.11+), `Self` type hint (3.11+; use `from typing_extensions import Self`).
 
 ### Command-line options
 
@@ -299,14 +280,14 @@ Always prefer long-form options over short-form for readability when invoking co
 
 ### YAML workflows
 
-For single-line commands that fit on one line, use plain inline `run:` without any block scalar indicator. When a command is too long for a single line, use the folded block scalar (`>`) to split it across multiple lines — `>` folds newlines into spaces, producing a single command without needing backslash escapes. Use literal block scalar (`|`) only when the command requires preserved newlines (e.g., multi-statement scripts, heredocs).
+For single-line commands, use plain inline `run:`. For multi-line, use the folded block scalar (`>`) which joins lines with spaces — no backslash continuations needed. Use literal block scalar (`|`) only when preserved newlines are required (multi-statement scripts, heredocs).
 
 ### uv flags in CI workflows
 
 When invoking `uv` and `uvx` commands in GitHub Actions workflows:
 
-- **`--no-progress`** on all CI commands (uv-level flag, placed before the subcommand).
-- **`--frozen`** on `uv run` commands (run-level flag, placed after `run`).
+- **`--no-progress`** on all CI commands (uv-level flag, placed before the subcommand). Progress bars render poorly in CI logs.
+- **`--frozen`** on `uv run` commands (run-level flag, placed after `run`). Lockfile should be immutable in CI.
 - **Flag placement:** `uv --no-progress run --frozen -- command` (not `uv run --no-progress`).
 - **Exceptions:** Omit `--frozen` for `uvx` with pinned versions, `uv tool install`, CLI invocability tests, and local development examples.
 - **Prefer explicit flags over environment variables** (`UV_NO_PROGRESS`, `UV_FROZEN`). Flags are self-documenting, visible in logs, avoid conflicts (e.g., `UV_FROZEN` vs `--locked`), and align with the long-form option principle.
@@ -314,13 +295,13 @@ When invoking `uv` and `uvx` commands in GitHub Actions workflows:
 
 ## Testing guidelines
 
-- Use `@pytest.mark.parametrize` when testing the same logic for multiple inputs. Prefer parametrize over copy-pasted test functions.
+- Use `@pytest.mark.parametrize` when testing the same logic for multiple inputs. Prefer parametrize over copy-pasted test functions that differ only in their data — it deduplicates test logic, improves readability, and makes it trivial to add new cases.
 - Keep test logic simple with straightforward asserts.
 - Tests should be sorted logically and alphabetically where applicable.
 - Test coverage is tracked with `pytest-cov` and reported to Codecov.
 - Do not use classes for grouping tests. Write test functions as top-level module functions. Only use test classes when they provide shared fixtures, setup/teardown methods, or class-level state.
-- **`@pytest.mark.once` for run-once tests.** Tag tests that only need to run once — not across the full CI matrix. Typical candidates: CLI entry point invocability, plugin registration, package metadata checks. The main test matrix filters them out with `pytest -m "not once"`, while a dedicated `once-tests` job runs them on a single runner. This avoids wasting CI minutes on redundant cross-platform runs.
-- **CI-only pytest flags belong in workflow steps, not `[tool.pytest].addopts`.** Flags like `--cov-report=xml`, `--junitxml=junit.xml`, and `--override-ini=junit_family=legacy` produce artifacts only needed in CI. Placing them in `addopts` pollutes local test runs with `junit.xml` files and XML coverage reports. Keep `addopts` for flags that apply everywhere (`--cov`, `--cov-report=term`, `--durations`). Pass CI-specific flags in the workflow `run:` step.
+- **`@pytest.mark.once` for run-once tests.** Define a custom `once` marker (in `[tool.pytest].markers`) to tag tests that only need to run once — not across the full CI matrix. Typical candidates: CLI entry point invocability, plugin registration, package metadata checks. The main test matrix filters them out with `pytest -m "not once"`, while a dedicated `once-tests` job runs them on a single runner. This avoids wasting CI minutes on redundant cross-platform runs.
+- **CI-only pytest flags belong in workflow steps, not `[tool.pytest].addopts`.** Flags like `--cov-report=xml`, `--junitxml=junit.xml`, and `--override-ini=junit_family=legacy` produce artifacts only needed in CI. Placing them in `addopts` pollutes local test runs with `junit.xml` files and XML coverage reports. Keep `addopts` for flags that apply everywhere (`--cov`, `--cov-report=term`, `--durations`, `--numprocesses`). Pass CI-specific flags in the workflow `run:` step.
 - **Coverage configuration belongs in `[tool.coverage]`.** Use the `[tool.coverage]` section in `pyproject.toml` for `run.branch`, `run.source`, and `report.precision` instead of `--cov=<source>`, `--cov-branch`, and `--cov-precision` flags in `addopts`. This keeps coverage configuration canonical and `addopts` clean. The pytest `addopts` should only contain `--cov` (to activate the plugin) and `--cov-report=term` (for local feedback).
 
 ## Design principles
@@ -340,9 +321,13 @@ Linting and formatting are automated via GitHub workflows. Developers don't need
 Keep definitions sorted for readability and to minimize merge conflicts:
 
 - **Workflow jobs**: Ordered by execution dependency (upstream jobs first), then alphabetically within the same dependency level.
-- **Python module-level constants**: Alphabetically, unless there is a logical grouping or dependency order. Hard-coded domain constants should be placed at the top of the file, immediately after imports.
+- **Python module-level constants and variables**: Alphabetically, unless there is a logical grouping or dependency order. Hard-coded domain constants should be placed at the top of the file, immediately after imports. These constants encode domain assertions and business rules — surfacing them early gives readers an immediate sense of the assumptions the module operates under.
 - **YAML configuration keys**: Alphabetically within each mapping level.
 - **Documentation lists and tables**: Alphabetically, unless a logical order (e.g., chronological in changelog) takes precedence.
+
+### Named constants
+
+Do not inline named constants during refactors. If a constant has a name and a docstring, it exists for readability and grep-ability — preserve both. When moving code between modules, carry the constant with it rather than replacing it with a literal.
 
 ## Agent conventions
 
@@ -353,7 +338,7 @@ Keep definitions sorted for readability and to minimize merge conflicts:
 ### Common maintenance pitfalls
 
 - **Documentation drift** is the most frequent issue. CLI output, version references, and workflow job descriptions in docs go stale after every release or refactor. Always verify docs against actual output after changes.
-- **CI debugging starts from the URL.** When a workflow fails, fetch the run logs first (`gh run view --log-failed`). Do not guess at the cause.
+- **CI debugging starts from the URL.** When a workflow fails, fetch the run logs first (`gh run view --log-failed`). Do not guess at the cause. When the user points to a specific failure, diagnose that exact error — do not wander into adjacent or speculative issues.
 - **Type-checking divergence.** Code that passes `mypy` locally may fail in CI where `--python-version 3.10` is used. Always consider the minimum supported Python version.
 - **Simplify before adding.** When asked to improve something, first ask whether existing code or tools already cover the case. Remove dead code and unused abstractions before introducing new ones.
 
@@ -365,4 +350,4 @@ Keep definitions sorted for readability and to minimize merge conflicts:
 
 ### Skills
 
-Skills in `.claude/skills/` are user-invocable only and follow agent conventions: lean definitions, no duplication with `CLAUDE.md`, reference sections instead of restating rules. They are synced from upstream via `uvx -- repomatic sync-skills`.
+Skills in `.claude/skills/` are user-invocable only (`disable-model-invocation: true`) and follow agent conventions: lean definitions, no duplication with `CLAUDE.md`, reference sections instead of restating rules. They are synced from upstream via `uvx -- repomatic sync-skills`.
