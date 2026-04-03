@@ -7,6 +7,9 @@
 
 ## [`7.10.0` (2026-04-02)](https://github.com/kdeldycke/click-extra/compare/v7.9.0...v7.10.0)
 
+> [!NOTE]
+> `7.10.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.10.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.10.0).
+
 - Highlight parent group names in subcommand help text, so ancestor command names are colored even when interleaved with options.
 - Add `range_label`, `required`, and `argument` theme slots to `HelpExtraTheme`. Argument metavars are now styled separately from option metavars.
 - Add `cross_ref_highlight` flag to `HelpExtraTheme`. Set to `False` to disable free-text highlighting of options, choices, arguments, metavars, and CLI names in descriptions and docstrings. Structural elements (bracket fields, deprecated messages, subcommand lists) are always styled.
