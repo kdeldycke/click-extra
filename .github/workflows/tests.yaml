@@ -32,6 +32,21 @@ concurrency:
 
 jobs:
 
+  metadata:
+    name: 🧬 Project metadata
+    runs-on: ubuntu-slim
+    outputs:
+      metadata: ${{ steps.metadata.outputs.metadata }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+      - name: Run repomatic metadata
+        id: metadata
+        run: >
+          uvx --no-progress -- repomatic metadata
+          --format github-json --output "$GITHUB_OUTPUT"
+          test_matrix test_matrix_pr
+
   once-tests:
     name: 🔂 Once tests
     runs-on: ubuntu-slim
@@ -94,128 +109,16 @@ jobs:
         run: uv --no-progress run --frozen -- pytest -m once
 
   tests:
+    needs:
+      - metadata
     strategy:
-      # We delegate the failure decision to each job, by the way of the "continue-on-error" flag.
       fail-fast: false
-      matrix:
-        # Available OS: https://github.com/actions/runner-images#available-images
-        # Only targets 2 variants per platforms to keep the matrix small.
-        os:
-          - ubuntu-24.04-arm # arm64
-          - ubuntu-slim      # x86
-          - macos-26         # arm64
-          - macos-15-intel   # x86
-          - windows-11-arm   # arm64
-          - windows-2025     # x86
-        python-version:
-          - "3.10"
-          # Ignore intermediate versions to reduce CI load.
-          # - "3.11"
-          # - "3.12"
-          # - "3.13"
-          - "3.14"
-          - "3.14t"
-          - "3.15"
-          - "3.15t"
-        click-version:
-          - released
-          - stable
-          - main
-        cloup-version:
-          - released
-          - master
-        # Removes from the matrix some combinations for development versions of Click and Cloup. This reduce the size
-        # of the matrix for tests on non-released versions. While keeping the full exhaustive tests on the released
-        # versions of Click and Cloup.
-        # XXX Ideally, the exclude section below could be reduced to:
-        #   exclude:
-        #     - click-version: stable
-        #       os:
-        #         - ubuntu-slim
-        #         - macos-15-intel
-        #         - windows-2025
-        #       python-version:
-        #         - "3.10"
-        #         - "3.11"
-        #         - "3.12"
-        #         - "3.13"
-        #         - "3.15"
-        #         - "3.15t"
-        #     - click-version: main
-        #       os:
-        #         - ubuntu-slim
-        #         - macos-15-intel
-        #         - windows-2025
-        #       python-version:
-        #         - "3.10"
-        #         - "3.11"
-        #         - "3.12"
-        #         - "3.13"
-        #         - "3.15"
-        #         - "3.15t"
-        #     - cloup-version: master
-        #       os:
-        #         - ubuntu-slim
-        #         - macos-15-intel
-        #         - windows-2025
-        #       python-version:
-        #         - "3.10"
-        #         - "3.11"
-        #         - "3.12"
-        #         - "3.13"
-        #         - "3.15"
-        #         - "3.15t"
-        exclude:
-          # Python 3.10 has no native ARM64 Windows build.
-          - os: windows-11-arm
-            python-version: "3.10"
-          # Only targets the latest OS for each platform.
-          - os: ubuntu-slim
-            click-version: stable
-          - os: ubuntu-slim
-            click-version: main
-          - os: ubuntu-slim
-            cloup-version: master
-          - os: macos-15-intel
-            click-version: stable
-          - os: macos-15-intel
-            click-version: main
-          - os: macos-15-intel
-            cloup-version: master
-          - os: windows-2025
-            click-version: stable
-          - os: windows-2025
-            click-version: main
-          - os: windows-2025
-            cloup-version: master
-          # Exclude old Python version. Only test on latest stable release.
-          - python-version: "3.10"
-            click-version: stable
-          - python-version: "3.10"
-            click-version: main
-          - python-version: "3.10"
-            cloup-version: master
-          # Exclude Python's dev version.
-          - python-version: "3.15"
-            click-version: stable
-          - python-version: "3.15"
-            click-version: main
-          - python-version: "3.15"
-            cloup-version: master
-          - python-version: "3.15t"
-            click-version: stable
-          - python-version: "3.15t"
-            click-version: main
-          - python-version: "3.15t"
-            cloup-version: master
-        include:
-          # Default all jobs as stable, unless marked otherwise below.
-          - state: stable
-          # XXX Python 3.15 is still in development.
-          - state: unstable
-            python-version: "3.15"
-          - state: unstable
-            python-version: "3.15t"
+      # Matrix is pre-computed by repomatic metadata. PRs get a reduced matrix
+      # (fewer OS variants and Python versions) to save CI minutes.
+      matrix: >-
+        ${{ github.event_name != 'pull_request'
+        && fromJSON(needs.metadata.outputs.metadata).test_matrix
+        || fromJSON(needs.metadata.outputs.metadata).test_matrix_pr }}
     name: |
       ${{ matrix.state == 'stable' && '✅' || '⁉️' }}
       ${{ matrix.os }} /

@@ -446,5 +446,33 @@ exclude = [
 [tool.repomatic]
 dependency-graph.all-extras = true
 dependency-graph.all-groups = false
-include = [ "skills" ]
 exclude = [ "workflows/debug.yaml" ]
+include = [ "skills" ]
+
+[tool.repomatic.test-matrix]
+# Custom axes for upstream dependency testing (full matrix only).
+variations.click-version = [ "released", "stable", "main" ]
+variations.cloup-version = [ "released", "master" ]
+# Set defaults for PR matrix (which has no custom axes).
+include = [
+  { "click-version" = "released" },
+  { "cloup-version" = "released" },
+]
+# Only test non-released Click/Cloup on ARM64 runners with latest stable Python.
+exclude = [
+  { "os" = "ubuntu-slim", "click-version" = "stable" },
+  { "os" = "ubuntu-slim", "click-version" = "main" },
+  { "os" = "ubuntu-slim", "cloup-version" = "master" },
+  { "os" = "macos-15-intel", "click-version" = "stable" },
+  { "os" = "macos-15-intel", "click-version" = "main" },
+  { "os" = "macos-15-intel", "cloup-version" = "master" },
+  { "os" = "windows-2025", "click-version" = "stable" },
+  { "os" = "windows-2025", "click-version" = "main" },
+  { "os" = "windows-2025", "cloup-version" = "master" },
+  { "python-version" = "3.10", "click-version" = "stable" },
+  { "python-version" = "3.10", "click-version" = "main" },
+  { "python-version" = "3.10", "cloup-version" = "master" },
+  { "python-version" = "3.15", "click-version" = "stable" },
+  { "python-version" = "3.15", "click-version" = "main" },
+  { "python-version" = "3.15", "cloup-version" = "master" },
+]
