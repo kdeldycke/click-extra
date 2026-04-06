@@ -451,8 +451,6 @@ overrides = [
 
 [tool.lychee]
 # https://lychee.cli.rs/configuration/
-# Upstream pyproject.toml support tracked at:
-# https://github.com/lycheeverse/lychee/issues/1930
 exclude = [
   # GitHub issue comment fragments are dynamically loaded and can't be verified.
   "^https://github.com/.+/issues/[0-9]+#issuecomment-.*$",
