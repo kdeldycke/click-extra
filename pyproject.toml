@@ -256,7 +256,7 @@ dependency-groups.docs = { requires-python = ">= 3.14" }
 # (sync-uv-lock) reverts uv.lock when the only diff is timestamp noise.
 exclude-newer = "1 week"
 # pygments and requests bypass cooldown to pick up security fixes immediately.
-exclude-newer-package = { "pygments" = "0 day", "requests" = "0 day" }
+exclude-newer-package = { "requests" = "0 day" }
 # Package is at root level, not in "./src/".
 build-backend.module-root = ""
 
