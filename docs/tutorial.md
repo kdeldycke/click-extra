@@ -8,6 +8,39 @@ Into this:
 
 ![click-extra CLI help screen](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/click-extra-screen.png)
 
+## From script to CLI in 30 seconds
+
+You have a Python function that works. You need other people to run it. Wrap it with `@command` and `@option`:
+
+```{click:source}
+from click_extra import command, echo, option
+
+
+@command
+@option("--target", required=True, help="Host to check.")
+@option("--port", default=8080, help="Port number.")
+@option("--timeout", default=5, help="Timeout in seconds.")
+def probe(target, port, timeout):
+    """Probe a network endpoint."""
+    echo(f"Probing {target}:{port} (timeout={timeout}s)")
+```
+
+That single `@command` decorator adds colored help, `--verbose`, `--config`, `--version`, `--time`, and more:
+
+```{click:run}
+result = invoke(probe, args=["--help"])
+assert result.exit_code == 0
+assert "--target" in result.output
+assert "--verbosity" in result.output
+assert "--config" in result.output
+assert "--version" in result.output
+assert "--time" in result.output
+```
+
+No framework boilerplate. No plugin assembly. Your function is the CLI.
+
+If you need a self-contained single-file script you can distribute without a Python project, see the [standalone script](#standalone-script) section below.
+
 ## All bells and whistles
 
 The [canonical `click` example](https://github.com/pallets/click?tab=readme-ov-file#a-simple-example) is implemented that way:

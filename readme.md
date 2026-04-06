@@ -20,6 +20,16 @@ Click Extra is a **ready-to-use wrapper around Click** to make your CLI look goo
 
 It also comes with [workarounds and patches](https://kdeldycke.github.io/click-extra/issues.html) that have not reached upstream yet (or are unlikely to).
 
+## Who is this for?
+
+Anyone building a CLI who doesn't have time to assemble the pieces from scratch:
+
+- You use Click and want professional defaults without the boilerplate.
+- You're a security researcher turning a proof-of-concept into a presentable tool to hand off, demo, or attach to an advisory.
+- You're a DevOps engineer or sysadmin whose one-off script grew into a team tool and needs `--help`, `--verbose`, `--config`, and colored output.
+
+Click Extra's defaults-first design means one decorator gets you there. See the [30-second quick start](https://kdeldycke.github.io/click-extra/tutorial.html#from-script-to-cli-in-30-seconds).
+
 ## Demo
 
 You can try Click Extra right now in your terminal, without installing any dependency or virtual env [thanks to `uvx`](https://docs.astral.sh/uv/guides/tools/):
