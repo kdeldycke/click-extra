@@ -219,7 +219,7 @@ fancy_outline_table = """\
 
 github_table = """\
 | Day    | Temperature |
-|:-------|:------------|
+| :----- | :---------- |
 | 1      | 42.9        |
 | 2      |             |
 | Friday | Hot 🥵      |
@@ -429,7 +429,7 @@ outline_table = """\
 
 pipe_table = """\
 | Day    | Temperature |
-|:-------|:------------|
+| :----- | :---------- |
 | 1      | 42.9        |
 | 2      |             |
 | Friday | Hot 🥵      |

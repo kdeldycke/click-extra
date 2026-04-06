@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 from enum import Enum
 from functools import partial
 from gettext import gettext as _
@@ -444,6 +445,49 @@ def _render_vertical(
     return "\n".join(table_lines)
 
 
+_GFM_SEPARATOR_RE = re.compile(r"^\|[-: |]+\|$")
+"""Matches a GFM table separator row (e.g. ``|:---|:---|``)."""
+
+
+def _pad_gfm_separator(text: str) -> str:
+    """Add space padding to GFM table separator rows.
+
+    Tabulate's ``pipe`` format fills padding positions with dashes in separator
+    rows (``|:---|``), while mdformat normalizes them to spaces (``| :-- |``).
+    This post-processing step matches mdformat's canonical form, preventing an
+    infinite formatting cycle between table-generating and markdown-formatting
+    tools.
+
+    .. note::
+        Proposed upstream at https://github.com/astanin/python-tabulate/pull/426
+        If merged, this workaround can be removed.
+    """
+    lines = []
+    for line in text.split("\n"):
+        if not _GFM_SEPARATOR_RE.fullmatch(line):
+            lines.append(line)
+            continue
+        parts = line.split("|")
+        new_parts = [parts[0]]
+        for cell in parts[1:-1]:
+            stripped = cell.strip()
+            if not stripped or "-" not in stripped or not all(c in "-:" for c in stripped):
+                new_parts.append(cell)
+                continue
+            # Already padded.
+            if cell.startswith(" ") and cell.endswith(" "):
+                new_parts.append(cell)
+                continue
+            left = ":" if stripped.startswith(":") else ""
+            right = ":" if stripped.endswith(":") else ""
+            dash_count = stripped.count("-")
+            new_dashes = max(dash_count - 2, 1)
+            new_parts.append(f" {left}{'-' * new_dashes}{right} ")
+        new_parts.append(parts[-1])
+        lines.append("|".join(new_parts))
+    return "\n".join(lines)
+
+
 def _render_tabulate(
     table_data: Sequence[Sequence[str | None]],
     headers: Sequence[str | None] | None = None,
@@ -465,7 +509,12 @@ def _render_tabulate(
         "tablefmt": table_format.value.replace("-", "_"),
     }
     defaults.update(kwargs)
-    return tabulate.tabulate(table_data, headers, **defaults)  # type: ignore[arg-type]
+    result = tabulate.tabulate(table_data, headers, **defaults)  # type: ignore[arg-type]
+    # Normalize separator rows for GFM-compatible formats so that mdformat
+    # treats the output as already canonical and does not re-pad it.
+    if table_format in (TableFormat.GITHUB, TableFormat.PIPE):
+        result = _pad_gfm_separator(result)
+    return result
 
 
 def _select_table_funcs(
