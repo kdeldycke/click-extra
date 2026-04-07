@@ -2,11 +2,11 @@
 
 This tutorial details how we transformed the [canonical `click` example](https://github.com/pallets/click?tab=readme-ov-file#a-simple-example):
 
-![click CLI help screen](https://raw.githubusercontent.com/kdeldycke/click-extra/v7.10.1/docs/assets/click-help-screen.png)
+![click CLI help screen](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/click-help-screen.png)
 
 Into this:
 
-![click-extra CLI help screen](https://raw.githubusercontent.com/kdeldycke/click-extra/v7.10.1/docs/assets/click-extra-screen.png)
+![click-extra CLI help screen](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/click-extra-screen.png)
 
 ## From script to CLI in 30 seconds
 

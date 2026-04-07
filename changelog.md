@@ -1,5 +1,10 @@
 # Changelog
 
+## [`7.10.2.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.10.1...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`7.10.1` (2026-04-07)](https://github.com/kdeldycke/click-extra/compare/v7.10.0...v7.10.1)
 
 - Fix `pipe` and `github` table formats to produce mdformat-compatible separator rows, preventing a formatting cycle between tabulate and mdformat.
