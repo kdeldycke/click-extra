@@ -1,9 +1,6 @@
 # Changelog
 
-## [`7.10.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.10.0...main)
-
-> [!WARNING]
-> This version is **not released yet** and is under active development.
+## [`7.10.1` (2026-04-07)](https://github.com/kdeldycke/click-extra/compare/v7.10.0...v7.10.1)
 
 - Fix `pipe` and `github` table formats to produce mdformat-compatible separator rows, preventing a formatting cycle between tabulate and mdformat.
 - Replace hardcoded test matrix with `repomatic metadata`-managed matrix; OS, Python, and stability axes are now computed dynamically, with custom Click/Cloup version axes via `[tool.repomatic.test-matrix]`. PRs get a reduced matrix to save CI minutes. Drops Python `3.15t` (free-threaded), aligning with repomatic `v6.10.0` defaults.
