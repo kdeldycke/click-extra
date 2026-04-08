@@ -7,6 +7,9 @@
 
 ## [`7.10.1` (2026-04-07)](https://github.com/kdeldycke/click-extra/compare/v7.10.0...v7.10.1)
 
+> [!NOTE]
+> `7.10.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.10.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.10.1).
+
 - Fix `pipe` and `github` table formats to produce mdformat-compatible separator rows, preventing a formatting cycle between tabulate and mdformat.
 - Replace hardcoded test matrix with `repomatic metadata`-managed matrix; OS, Python, and stability axes are now computed dynamically, with custom Click/Cloup version axes via `[tool.repomatic.test-matrix]`. PRs get a reduced matrix to save CI minutes. Drops Python `3.15t` (free-threaded), aligning with repomatic `v6.10.0` defaults.
 - Replace `{eval-rst}`-wrapped `automodule` and `autoclasstree` directives with native MyST syntax in all docs.
