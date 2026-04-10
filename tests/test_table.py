@@ -48,6 +48,11 @@ from click_extra.table import (
     render_table,
     serialize_data,
 )
+from click_extra.table import (
+    SortByOption,
+    _column_sort_key,
+    print_sorted_table,
+)
 
 
 @pytest.mark.once
@@ -944,24 +949,200 @@ def test_missing_dependency_clean_error(monkeypatch, func, args, kwargs, match):
         func(*args, **kwargs)
 
 
-def test_render_table_sort_key():
-    data = [["banana", "3"], ["apple", "1"], ["cherry", "2"]]
+@pytest.mark.parametrize(
+    ("data", "headers", "sort_key", "expected_fruits"),
+    (
+        pytest.param(
+            [["banana", "3"], ["apple", "1"], ["cherry", "2"]],
+            ["Fruit", "Count"],
+            lambda row: row[0],
+            ["apple", "banana", "cherry"],
+            id="with-sort-key",
+        ),
+        pytest.param(
+            [["banana"], ["apple"]],
+            ["Fruit"],
+            None,
+            ["banana", "apple"],
+            id="preserves-original-order",
+        ),
+    ),
+)
+def test_render_table_sort(data, headers, sort_key, expected_fruits):
     result = render_table(
         data,
-        headers=["Fruit", "Count"],
+        headers=headers,
         table_format=TableFormat.JSON,
-        sort_key=lambda row: row[0],
+        sort_key=sort_key,
     )
     parsed = json.loads(result)
+    assert [r["Fruit"] for r in parsed] == expected_fruits
+
+
+@pytest.mark.parametrize(
+    ("headers", "data", "expected"),
+    (
+        pytest.param(
+            ["Name", "Name"],
+            [["Alice", "Bob"]],
+            [{"Name": "Bob"}],
+            id="duplicate-header-names-last-wins",
+        ),
+        pytest.param(
+            ["", "Value"],
+            [["key", "val"]],
+            [{"": "key", "Value": "val"}],
+            id="empty-header-name",
+        ),
+        pytest.param(
+            ["\x1b[31mRed\x1b[0m", "Plain"],
+            [["\x1b[32mgreen\x1b[0m", "text"]],
+            [{"\x1b[31mRed\x1b[0m": "\x1b[32mgreen\x1b[0m", "Plain": "text"}],
+            id="ansi-in-headers-and-cells",
+        ),
+        pytest.param(
+            ["🎯 Target", "📊 Score"],
+            [["alpha", "100"]],
+            [{"🎯 Target": "alpha", "📊 Score": "100"}],
+            id="emoji-in-headers",
+        ),
+    ),
+)
+def test_render_table_header_edge_cases(headers, data, expected):
+    """Edge cases for header handling in structured format rendering."""
+    result = render_table(data, headers=headers, table_format=TableFormat.JSON)
+    assert json.loads(result) == expected
+
+
+@pytest.mark.parametrize(
+    ("header_defs", "rows", "sort_column", "cell_key", "expected_first_col"),
+    (
+        pytest.param(
+            [("Name", "name"), ("Age", "age"), ("City", None)],
+            [["Bob", "30", "NYC"], ["Alice", "25", "LA"], ["Charlie", "25", "SF"]],
+            "age",
+            None,
+            ["Alice", "Charlie", "Bob"],
+            id="primary-sort",
+        ),
+        pytest.param(
+            [("Name", "name"), ("Age", "age")],
+            [["Bob", "25"], ["Alice", "30"]],
+            None,
+            None,
+            ["Alice", "Bob"],
+            id="default-order",
+        ),
+        pytest.param(
+            [("Name", "name"), ("Count", "count")],
+            [["a", "10"], ["b", "2"], ["c", "1"]],
+            "count",
+            lambda v: (0, int(v)) if v and v.isdigit() else (1, v or ""),
+            ["c", "b", "a"],
+            id="custom-cell-key",
+        ),
+        pytest.param(
+            [("First", "name"), ("Last", "name")],
+            [["Bob", "Smith"], ["Alice", "Jones"]],
+            "name",
+            None,
+            ["Alice", "Bob"],
+            id="duplicate-keys-last-index-wins",
+        ),
+        pytest.param(
+            [("Name", ""), ("Age", "age")],
+            [["Bob", "25"], ["Alice", "30"]],
+            "",
+            None,
+            ["Alice", "Bob"],
+            id="empty-key-falls-back-to-default",
+        ),
+        pytest.param(
+            [("Name", "name")],
+            [["\x1b[31mBob\x1b[0m"], ["\x1b[32mAlice\x1b[0m"]],
+            "name",
+            None,
+            ["\x1b[32mAlice\x1b[0m", "\x1b[31mBob\x1b[0m"],
+            id="ansi-stripped-for-sort",
+        ),
+        pytest.param(
+            [("Fruit", "fruit")],
+            [["🍒 cherry"], ["🍌 banana"], ["🍎 apple"]],
+            "fruit",
+            None,
+            ["🍌 banana", "🍎 apple", "🍒 cherry"],
+            id="emoji-in-cells",
+        ),
+    ),
+)
+def test_column_sort_key(header_defs, rows, sort_column, cell_key, expected_first_col):
+    key = _column_sort_key(header_defs, sort_column, cell_key)
+    result = sorted(rows, key=key)
+    assert [r[0] for r in result] == expected_first_col
+
+
+def test_print_sorted_table_empty_rows(capsys):
+    """Empty table produces no output."""
+    print_sorted_table(
+        header_defs=[("Name", "name")],
+        table_data=[],
+        sort_column="name",
+        table_format=TableFormat.PLAIN,
+    )
+    assert capsys.readouterr().out == ""
+
+
+@pytest.mark.parametrize(
+    ("header_defs", "expected_choices", "expected_default"),
+    (
+        pytest.param(
+            (("Name", "name"), ("Age", "age"), ("Notes", None)),
+            ["name", "age"],
+            "name",
+            id="none-key-excluded",
+        ),
+        pytest.param(
+            (("ID", "id"), ("Label", "label")),
+            ["id", "label"],
+            "id",
+            id="first-sortable-as-default",
+        ),
+        pytest.param(
+            (("First", "name"), ("Last", "name"), ("Age", "age")),
+            ["name", "name", "age"],
+            "name",
+            id="duplicate-keys",
+        ),
+        pytest.param(
+            (("Notes", ""), ("Name", "name")),
+            ["name"],
+            "name",
+            id="empty-key-excluded",
+        ),
+    ),
+)
+def test_sort_by_option_choices_and_default(
+    header_defs, expected_choices, expected_default
+):
+    """SortByOption choices and default are derived from column definitions."""
+    opt = SortByOption(*header_defs)
+    assert list(opt.type.choices) == expected_choices
+    assert opt.default == expected_default
+
+
+def test_sort_by_option_wires_context(invoke):
+    """SortByOption replaces ctx.print_table with the sorted variant."""
+    sort_opt = SortByOption(("Fruit", "fruit"), ("Count", "count"))
+
+    @command(params=[sort_opt])
+    @table_format_option
+    @pass_context
+    def cli(ctx):
+        header_defs = (("Fruit", "fruit"), ("Count", "count"))
+        data = [["banana", "3"], ["apple", "1"], ["cherry", "2"]]
+        ctx.print_table(header_defs, data)
+
+    result = invoke(cli, "--table-format", "json", "--sort-by", "fruit", color=False)
+    assert result.exit_code == 0
+    parsed = json.loads(result.stdout)
     assert [r["Fruit"] for r in parsed] == ["apple", "banana", "cherry"]
-
-
-def test_render_table_no_sort_by_default():
-    data = [["banana"], ["apple"]]
-    result = render_table(
-        data,
-        headers=["Fruit"],
-        table_format=TableFormat.JSON,
-    )
-    parsed = json.loads(result)
-    assert [r["Fruit"] for r in parsed] == ["banana", "apple"]

@@ -93,9 +93,11 @@ from .parameters import (
     search_params,
 )
 from .table import (
+    SortByOption,
     TableFormat,
     TableFormatOption,
     print_data,
+    print_sorted_table,
     print_table,
     render_table,
     serialize_data,

@@ -436,6 +436,124 @@ result = invoke(vanilla_command, args=["--table-format", "fancy-outline"])
 assert "Table format: fancy-outline" in result.stdout
 ```
 
+### Data serialization
+
+`print_data()` and `serialize_data()` handle arbitrary data structures (nested dicts, lists, scalars), unlike `print_table()` which expects tabular rows and headers. They support the structured serialization formats: JSON, HJSON, YAML, TOML, and XML.
+
+```{click:source}
+from click_extra import command, pass_context, table_format_option
+from click_extra.table import print_data
+
+@command
+@table_format_option
+@pass_context
+def data_command(ctx):
+    """Serialize nested data."""
+    data = {
+        "city": "Paris",
+        "population": 2161000,
+        "landmarks": ["Eiffel Tower", "Louvre", "Notre-Dame"],
+    }
+    table_format = ctx.meta["click_extra.table_format"]
+    print_data(data, table_format)
+```
+
+```{click:run}
+result = invoke(data_command, args=["--table-format", "json"])
+assert result.exit_code == 0
+assert '"city": "Paris"' in result.stdout
+```
+
+```{click:run}
+result = invoke(data_command, args=["--table-format", "yaml"])
+assert result.exit_code == 0
+assert "city: Paris" in result.stdout
+```
+
+`serialize_data()` returns the serialized string instead of printing it:
+
+```{click:run}
+from click_extra.table import serialize_data, TableFormat
+
+output = serialize_data({"city": "Paris", "population": 2161000}, TableFormat.JSON)
+assert '"city": "Paris"' in output
+print(output, end="")
+```
+
+### Sorted tables
+
+`SortByOption` adds a `--sort-by` CLI option whose choices are derived from column definitions. Column definitions are `(label, column_id)` tuples. Columns with `column_id=None` are displayed but not offered as sort choices.
+
+When active, `SortByOption` replaces `ctx.print_table` with a sorted variant, so the command body doesn't need any sorting logic.
+
+```{click:source}
+from click_extra import command, pass_context, table_format_option
+from click_extra.table import SortByOption
+
+sort_opt = SortByOption(
+    ("Fruit", "fruit"),
+    ("Count", "count"),
+    ("Notes", None),
+)
+
+@command(params=[sort_opt])
+@table_format_option
+@pass_context
+def inventory(ctx):
+    """Sortable fruit inventory."""
+    header_defs = (("Fruit", "fruit"), ("Count", "count"), ("Notes", None))
+    data = [
+        ["Cherry", "50", "seasonal"],
+        ["Apple", "120", ""],
+        ["Banana", "80", "organic"],
+    ]
+    ctx.print_table(header_defs, data)
+```
+
+```{click:run}
+result = invoke(inventory, args=["--help"])
+assert "--sort-by" in result.stdout
+assert "fruit" in result.stdout
+assert result.exit_code == 0
+```
+
+```{click:run}
+result = invoke(inventory, args=["--table-format", "rounded-outline", "--sort-by", "fruit"])
+assert result.exit_code == 0
+assert result.stdout.index("Apple") < result.stdout.index("Banana")
+```
+
+```{click:run}
+result = invoke(inventory, args=["--table-format", "rounded-outline", "--sort-by", "count"])
+assert result.exit_code == 0
+assert result.stdout.index("Apple") < result.stdout.index("Cherry")
+```
+
+For programmatic use without a CLI option, `render_table()` accepts a `sort_key` callable:
+
+```{click:source}
+from click_extra import command, echo
+from click_extra.table import render_table, TableFormat
+
+@command
+def sorted_demo():
+    """Render a table sorted alphabetically."""
+    data = [["Cherry", "50"], ["Apple", "120"], ["Banana", "80"]]
+    output = render_table(
+        data,
+        headers=["Fruit", "Count"],
+        table_format=TableFormat.ROUNDED_OUTLINE,
+        sort_key=lambda row: row[0],
+    )
+    echo(output)
+```
+
+```{click:run}
+result = invoke(sorted_demo)
+assert result.exit_code == 0
+assert result.stdout.index("Apple") < result.stdout.index("Cherry")
+```
+
 ## `click_extra.table` API
 
 ```{autoclasstree} click_extra.table
