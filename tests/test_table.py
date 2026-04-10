@@ -17,21 +17,37 @@
 from __future__ import annotations
 
 import csv
+import json
+from pathlib import PurePosixPath
 
+import hjson
 import pytest
 import tabulate
+import tomlkit
+import xmltodict
+import yaml
 from boltons.strutils import strip_ansi
 from extra_platforms import is_windows
 
 from click_extra import (
     Color,
+    command,
     echo,
     pass_context,
     style,
     table_format_option,
 )
 from click_extra.pytest import command_decorators
-from click_extra.table import SERIALIZATION_FORMATS, TableFormat
+from click_extra.table import (
+    SERIALIZATION_FORMATS,
+    TableFormat,
+    _apply_default,
+    _strip_none,
+    print_data,
+    print_table,
+    render_table,
+    serialize_data,
+)
 
 
 @pytest.mark.once
@@ -716,7 +732,6 @@ def test_all_table_rendering(
 )
 def test_markup_strips_ansi_by_default(invoke, format_id):
     """Markup formats strip ANSI codes when ``--color`` is not forced."""
-    from click_extra import command
 
     @command
     @table_format_option
@@ -742,7 +757,6 @@ def test_markup_strips_ansi_by_default(invoke, format_id):
 )
 def test_markup_preserves_ansi_with_color_flag(invoke, format_id):
     """``--color`` overrides ANSI stripping for markup formats."""
-    from click_extra import command
 
     @command
     @table_format_option
@@ -754,3 +768,200 @@ def test_markup_preserves_ansi_with_color_flag(invoke, format_id):
     result = invoke(table_cli, "--color", "--table-format", format_id, color=True)
     assert result.exit_code == 0
     assert result.stdout != strip_ansi(result.stdout)
+
+
+@pytest.mark.parametrize(
+    ("table_format", "data"),
+    (
+        pytest.param(TableFormat.JSON, {"a": {"b": [1, 2, 3]}}, id="json"),
+        pytest.param(TableFormat.JSON5, {"key": "value"}, id="json5"),
+        pytest.param(TableFormat.JSONC, [1, 2, 3], id="jsonc"),
+    ),
+)
+def test_serialize_json_compatible(table_format, data):
+    result = serialize_data(data, table_format)
+    assert json.loads(result) == data
+
+
+@pytest.mark.parametrize(
+    ("table_format", "data", "loader"),
+    (
+        pytest.param(
+            TableFormat.HJSON,
+            {"name": "test", "count": 42},
+            hjson.loads,
+            id="hjson",
+        ),
+        pytest.param(
+            TableFormat.TOML,
+            {"section": {"key": "value"}},
+            tomlkit.loads,
+            id="toml",
+        ),
+        pytest.param(
+            TableFormat.YAML,
+            {"managers": {"brew": {"version": "4.0"}}},
+            yaml.safe_load,
+            id="yaml",
+        ),
+    ),
+)
+def test_serialize_roundtrip(table_format, data, loader):
+    result = serialize_data(data, table_format)
+    assert loader(result) == data
+
+
+def test_serialize_toml_list_wrapping():
+    """Top-level lists are wrapped under a ``record`` key for TOML."""
+    data = [{"id": "a"}, {"id": "b"}]
+    result = serialize_data(data, TableFormat.TOML)
+    parsed = tomlkit.loads(result)
+    assert parsed == {"record": data}
+
+
+@pytest.mark.parametrize(
+    "table_format",
+    (
+        pytest.param(TableFormat.TOML, id="toml"),
+        pytest.param(TableFormat.XML, id="xml"),
+    ),
+)
+def test_serialize_strips_none(table_format):
+    """TOML and XML have no null type. ``None`` values are omitted."""
+    data = {"present": "yes", "absent": None}
+    result = serialize_data(data, table_format)
+    assert "absent" not in result
+
+
+def test_serialize_xml():
+    data = {"item": {"name": "test"}}
+    result = serialize_data(data, TableFormat.XML)
+    parsed = xmltodict.parse(f"<root>{result}</root>")
+    assert parsed["root"]["records"]["item"]["name"] == "test"
+
+
+def test_serialize_xml_list_wrapping():
+    """Top-level lists are wrapped under a ``record`` key for XML."""
+    data = [{"id": "a"}, {"id": "b"}]
+    result = serialize_data(data, TableFormat.XML)
+    parsed = xmltodict.parse(f"<root>{result}</root>")
+    records = parsed["root"]["records"]["record"]
+    assert len(records) == 2
+    assert records[0]["id"] == "a"
+
+
+def test_serialize_xml_custom_root_element():
+    data = {"key": "value"}
+    result = serialize_data(data, TableFormat.XML, root_element="mpm")
+    assert "<mpm>" in result
+
+
+def test_serialize_default_callback():
+    """Custom types are converted via the ``default`` callback."""
+    data = {"path": PurePosixPath("/usr/bin"), "name": "test"}
+    result = serialize_data(
+        data,
+        TableFormat.JSON,
+        default=lambda obj: str(obj) if isinstance(obj, PurePosixPath) else obj,
+    )
+    parsed = json.loads(result)
+    assert parsed == {"path": "/usr/bin", "name": "test"}
+
+
+def test_serialize_unsupported_format_raises():
+    with pytest.raises(ValueError, match="Unsupported"):
+        serialize_data({"a": 1}, TableFormat.PLAIN)
+
+
+@pytest.mark.parametrize(
+    ("data", "expected"),
+    (
+        pytest.param({"a": 1, "b": None}, {"a": 1}, id="flat-dict"),
+        pytest.param(
+            {"a": {"b": None, "c": 2}, "d": [{"e": None, "f": 3}]},
+            {"a": {"c": 2}, "d": [{"f": 3}]},
+            id="nested",
+        ),
+        pytest.param("hello", "hello", id="passthrough-string"),
+        pytest.param(42, 42, id="passthrough-int"),
+    ),
+)
+def test_strip_none(data, expected):
+    assert _strip_none(data) == expected
+
+
+def test_apply_default_native_types_unchanged():
+    data = {"s": "a", "i": 1, "f": 1.5, "b": True, "n": None}
+    assert _apply_default(data, lambda x: x) == data
+
+
+@pytest.mark.parametrize(
+    ("data", "expected"),
+    (
+        pytest.param({"p": PurePosixPath("/tmp")}, {"p": "/tmp"}, id="dict"),
+        pytest.param(
+            [PurePosixPath("/a"), [PurePosixPath("/b")]],
+            ["/a", ["/b"]],
+            id="nested-lists",
+        ),
+    ),
+)
+def test_apply_default_custom_type_converted(data, expected):
+    result = _apply_default(data, lambda obj: str(obj))
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    ("func", "args", "kwargs", "match"),
+    (
+        pytest.param(
+            print_data,
+            ({"a": 1}, TableFormat.YAML),
+            {},
+            "pip install click-extra",
+            id="print-data-default-package",
+        ),
+        pytest.param(
+            print_data,
+            ({"a": 1}, TableFormat.YAML),
+            {"package": "my-project"},
+            "pip install my-project",
+            id="print-data-custom-package",
+        ),
+        pytest.param(
+            print_table,
+            ([["a"]], ["col"], TableFormat.YAML),
+            {},
+            "pip install click-extra",
+            id="print-table",
+        ),
+    ),
+)
+def test_missing_dependency_clean_error(monkeypatch, func, args, kwargs, match):
+    """Missing optional dependency produces a clean error, no traceback."""
+    monkeypatch.setitem(__import__("sys").modules, "yaml", None)
+    with pytest.raises(SystemExit, match=match):
+        func(*args, **kwargs)
+
+
+def test_render_table_sort_key():
+    data = [["banana", "3"], ["apple", "1"], ["cherry", "2"]]
+    result = render_table(
+        data,
+        headers=["Fruit", "Count"],
+        table_format=TableFormat.JSON,
+        sort_key=lambda row: row[0],
+    )
+    parsed = json.loads(result)
+    assert [r["Fruit"] for r in parsed] == ["apple", "banana", "cherry"]
+
+
+def test_render_table_no_sort_by_default():
+    data = [["banana"], ["apple"]]
+    result = render_table(
+        data,
+        headers=["Fruit"],
+        table_format=TableFormat.JSON,
+    )
+    parsed = json.loads(result)
+    assert [r["Fruit"] for r in parsed] == ["banana", "apple"]

@@ -95,8 +95,10 @@ from .parameters import (
 from .table import (
     TableFormat,
     TableFormatOption,
+    print_data,
     print_table,
     render_table,
+    serialize_data,
 )
 from .telemetry import TelemetryOption
 from .testing import ExtraCliRunner

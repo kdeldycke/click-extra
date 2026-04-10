@@ -35,7 +35,8 @@ from .parameters import ExtraOption
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
+    from collections.abc import Callable, Iterable, Sequence
+    from typing import Any
 
 
 tabulate.MIN_PADDING = 0
@@ -283,14 +284,7 @@ def _render_yaml(
 
     Requires the ``pyyaml`` package (installable via the ``[yaml]`` extra).
     """
-    try:
-        import yaml
-    except ImportError as exc:
-        msg = (
-            "PyYAML is required for YAML table output."
-            " Install it with: pip install click-extra[yaml]"
-        )
-        raise ImportError(msg) from exc
+    import yaml
 
     data = _rows_as_dicts(table_data, headers)
     defaults: dict = {"allow_unicode": True, "default_flow_style": False}
@@ -308,14 +302,7 @@ def _render_toml(
     ``None`` values are omitted (TOML has no null type). Requires the ``tomlkit``
     package (installable via the ``[toml]`` extra).
     """
-    try:
-        import tomlkit
-    except ImportError as exc:
-        msg = (
-            "tomlkit is required for TOML table output."
-            " Install it with: pip install click-extra[toml]"
-        )
-        raise ImportError(msg) from exc
+    import tomlkit
 
     aot = tomlkit.aot()
     for row in table_data:
@@ -344,14 +331,7 @@ def _render_hjson(
 
     Requires the ``hjson`` package (installable via the ``[hjson]`` extra).
     """
-    try:
-        import hjson
-    except ImportError as exc:
-        msg = (
-            "hjson is required for HJSON table output."
-            " Install it with: pip install click-extra[hjson]"
-        )
-        raise ImportError(msg) from exc
+    import hjson
 
     data = _rows_as_dicts(table_data, headers)
     defaults: dict = {"ensure_ascii": False}
@@ -369,14 +349,7 @@ def _render_xml(
     ``None`` values are omitted. Requires the ``xmltodict`` package (installable
     via the ``[xml]`` extra).
     """
-    try:
-        import xmltodict
-    except ImportError as exc:
-        msg = (
-            "xmltodict is required for XML table output."
-            " Install it with: pip install click-extra[xml]"
-        )
-        raise ImportError(msg) from exc
+    import xmltodict
 
     def _xml_safe_name(name: str) -> str:
         """Replace characters invalid in XML element names."""
@@ -564,9 +537,16 @@ def render_table(
     table_data: Sequence[Sequence[str | None]],
     headers: Sequence[str | None] | None = None,
     table_format: TableFormat | None = None,
+    sort_key: Callable[[Sequence[str | None]], Any] | None = None,
     **kwargs,
 ) -> str:
-    """Render a table and return it as a string."""
+    """Render a table and return it as a string.
+
+    :param sort_key: Optional callable passed to :py:func:`sorted` as the ``key``
+        argument. When provided, rows are sorted before rendering.
+    """
+    if sort_key is not None:
+        table_data = sorted(table_data, key=sort_key)
     render_func, _ = _select_table_funcs(table_format)
     return render_func(table_data, headers, **kwargs)
 
@@ -591,13 +571,19 @@ def print_table(
     table_data: Sequence[Sequence[str | None]],
     headers: Sequence[str | None] | None = None,
     table_format: TableFormat | None = None,
+    sort_key: Callable[[Sequence[str | None]], Any] | None = None,
     **kwargs,
 ) -> None:
     """Render a table and print it to the console.
 
     For markup formats, ANSI color codes are stripped from cell values before
     rendering unless ``--color`` is explicitly set.
+
+    :param sort_key: Optional callable passed to :py:func:`sorted` as the ``key``
+        argument. When provided, rows are sorted before rendering.
     """
+    if sort_key is not None:
+        table_data = sorted(table_data, key=sort_key)
     # Strip ANSI codes from cell data before rendering for markup formats.
     # Pre-render stripping is necessary because some renderers (JSON, YAML) escape
     # raw ESC bytes, making post-render strip_ansi() ineffective.
@@ -616,7 +602,160 @@ def print_table(
             table_data, headers = _strip_ansi_cells(table_data, headers)
 
     render_func, print_func = _select_table_funcs(table_format)
-    print_func(render_func(table_data, headers, **kwargs))
+    try:
+        print_func(render_func(table_data, headers, **kwargs))
+    except ImportError:
+        raise SystemExit(
+            f"Error: {_missing_extra_message(table_format)}"
+        ) from None
+
+
+def _missing_extra_message(
+    table_format: TableFormat,
+    package: str = "click-extra",
+) -> str:
+    """Build a user-friendly error message for a missing optional dependency."""
+    extra = table_format.value
+    return (
+        f"{extra} output requires an optional dependency."
+        f" Install it with: pip install {package}[{extra}]"
+    )
+
+
+def _strip_none(data: Any) -> Any:
+    """Recursively drop ``None`` values from dicts.
+
+    Needed for formats without a null type (TOML, XML).
+    """
+    if isinstance(data, dict):
+        return {k: _strip_none(v) for k, v in data.items() if v is not None}
+    if isinstance(data, (list, tuple)):
+        return [_strip_none(v) for v in data]
+    return data
+
+
+def serialize_data(
+    data: Any,
+    table_format: TableFormat,
+    *,
+    default: Callable | None = None,
+    root_element: str = XML_ROOT_KEY,
+    **kwargs,
+) -> str:
+    """Serialize arbitrary Python data to a structured format.
+
+    Unlike :py:func:`render_table` which expects tabular rows and headers, this
+    function accepts any JSON-compatible data structure (dicts, lists, nested
+    combinations) and serializes it to the requested format.
+
+    Only formats in :py:data:`SERIALIZATION_FORMATS` are supported.
+
+    :param data: Arbitrary data to serialize (dicts, lists, scalars).
+    :param table_format: Target serialization format.
+    :param default: Fallback serializer for types not natively supported (same
+        semantics as :py:func:`json.dumps`'s ``default`` parameter). Applied
+        recursively before serialization.
+    :param root_element: Root element name for XML output.
+    :param kwargs: Extra keyword arguments forwarded to the underlying serializer
+        (e.g. ``sort_keys``, ``indent`` for JSON).
+    :raises ValueError: If the format is not a serialization format.
+    """
+    if table_format not in SERIALIZATION_FORMATS:
+        msg = f"Unsupported serialization format: {table_format}"
+        raise ValueError(msg)
+
+    clean = _apply_default(data, default) if default else data
+
+    match table_format:
+        case TableFormat.JSON | TableFormat.JSON5 | TableFormat.JSONC:
+            return json.dumps(clean, **{"ensure_ascii": False, "indent": 2, **kwargs}) + "\n"
+
+        case TableFormat.HJSON:
+            import hjson
+
+            return str(hjson.dumps(clean, **{"ensure_ascii": False, **kwargs})) + "\n"
+
+        case TableFormat.TOML:
+            import tomlkit
+
+            stripped = _strip_none_and_wrap(clean)
+            doc = tomlkit.document()
+            for k, v in stripped.items():
+                doc.add(k, v)
+            return tomlkit.dumps(doc)
+
+        case TableFormat.YAML:
+            import yaml
+
+            return str(yaml.dump(
+                clean,
+                **{"allow_unicode": True, "default_flow_style": False, **kwargs},
+            ))
+
+        case TableFormat.XML:
+            import xmltodict
+
+            stripped = _strip_none_and_wrap(clean)
+            result: str = xmltodict.unparse(
+                {root_element: stripped},
+                **{"pretty": True, "encoding": "unicode", "full_document": False, **kwargs},
+            )
+            return result + "\n"
+
+        case _:
+            msg = f"Unhandled serialization format: {table_format}"
+            raise NotImplementedError(msg)
+
+
+def _apply_default(data: Any, default: Callable) -> Any:
+    """Recursively apply a ``default`` callback to non-native types.
+
+    Walks dicts, lists, and tuples. For any other type, calls ``default(obj)``
+    which should return a JSON-serializable value or raise :py:class:`TypeError`.
+    """
+    if isinstance(data, dict):
+        return {k: _apply_default(v, default) for k, v in data.items()}
+    if isinstance(data, (list, tuple)):
+        return [_apply_default(v, default) for v in data]
+    if isinstance(data, (str, int, float, bool)) or data is None:
+        return data
+    return default(data)
+
+
+def print_data(
+    data: Any,
+    table_format: TableFormat,
+    *,
+    default: Callable | None = None,
+    root_element: str = XML_ROOT_KEY,
+    package: str = "click-extra",
+    **kwargs,
+) -> None:
+    """Serialize arbitrary Python data and print it to the console.
+
+    Wraps :py:func:`serialize_data` with user-friendly error handling for missing
+    optional dependencies.
+
+    :param data: Arbitrary data to serialize.
+    :param table_format: Target serialization format.
+    :param default: Fallback serializer for custom types.
+    :param root_element: Root element name for XML output.
+    :param package: Package name for install instructions in error messages.
+    :param kwargs: Extra keyword arguments forwarded to the underlying serializer.
+    """
+    try:
+        output = serialize_data(
+            data,
+            table_format,
+            default=default,
+            root_element=root_element,
+            **kwargs,
+        )
+    except ImportError:
+        raise SystemExit(
+            f"Error: {_missing_extra_message(table_format, package)}"
+        ) from None
+    echo(output, color=False)
 
 
 class TableFormatOption(ExtraOption):

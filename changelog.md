@@ -5,6 +5,10 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Add `serialize_data()` and `print_data()` functions for serializing arbitrary nested Python data (not just tabular rows) to JSON, HJSON, TOML, YAML, and XML. Complements the existing `render_table()`/`print_table()` pair.
+- Add `sort_key` parameter to `render_table()` and `print_table()` for pre-render row sorting.
+- Catch `ImportError` from missing optional dependencies in `print_table()` and `print_data()`, producing a clean one-line error instead of a traceback. The `print_data()` `package` parameter lets downstream projects customize install instructions.
+
 ## [`7.10.1` (2026-04-07)](https://github.com/kdeldycke/click-extra/compare/v7.10.0...v7.10.1)
 
 - Fix `pipe` and `github` table formats to produce mdformat-compatible separator rows, preventing a formatting cycle between tabulate and mdformat.
