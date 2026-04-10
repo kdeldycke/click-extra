@@ -634,6 +634,18 @@ def _strip_none(data: Any) -> Any:
     return data
 
 
+def _strip_none_and_wrap(data: Any) -> dict:
+    """Strip ``None`` values and wrap bare lists under the ``record`` key.
+
+    Shared preprocessing for TOML and XML, which have no null type and require a
+    top-level mapping.
+    """
+    stripped = _strip_none(data)
+    if isinstance(stripped, list):
+        return {RECORD_KEY: stripped}
+    return stripped
+
+
 def serialize_data(
     data: Any,
     table_format: TableFormat,
@@ -652,9 +664,9 @@ def serialize_data(
 
     :param data: Arbitrary data to serialize (dicts, lists, scalars).
     :param table_format: Target serialization format.
-    :param default: Fallback serializer for types not natively supported (same
-        semantics as :py:func:`json.dumps`'s ``default`` parameter). Applied
-        recursively before serialization.
+    :param default: Fallback serializer for types not natively supported. Defaults
+        to :py:func:`str`, so :py:class:`~pathlib.Path` and similar types are
+        stringified automatically. Set to a custom callable for different behavior.
     :param root_element: Root element name for XML output.
     :param kwargs: Extra keyword arguments forwarded to the underlying serializer
         (e.g. ``sort_keys``, ``indent`` for JSON).
@@ -664,7 +676,7 @@ def serialize_data(
         msg = f"Unsupported serialization format: {table_format}"
         raise ValueError(msg)
 
-    clean = _apply_default(data, default) if default else data
+    clean = _apply_default(data, default if default is not None else str)
 
     match table_format:
         case TableFormat.JSON | TableFormat.JSON5 | TableFormat.JSONC:
@@ -738,7 +750,7 @@ def print_data(
 
     :param data: Arbitrary data to serialize.
     :param table_format: Target serialization format.
-    :param default: Fallback serializer for custom types.
+    :param default: Fallback serializer for custom types. Defaults to :py:func:`str`.
     :param root_element: Root element name for XML output.
     :param package: Package name for install instructions in error messages.
     :param kwargs: Extra keyword arguments forwarded to the underlying serializer.
