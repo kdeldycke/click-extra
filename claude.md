@@ -182,6 +182,10 @@ assert result.output == "Hello, \x1b[31mWorld\x1b[0m!\n"
 
 Never paste CLI output into a plain ```` ```shell-session ```` or ```` ```text ```` block. Always use `click:run` so the output is generated live and validated. This guarantees documentation stays in sync with the code.
 
+### Example data
+
+Example data everywhere (documentation, docstrings, comments, workflows, `click:source`/`click:run` blocks, test fixtures) must be domain-neutral: cities, weather, fruits, animals, recipes, or similar real-world subjects. Do not reference click-extra itself, software engineering concepts, package metadata, or any project-internal details. The reader should understand the example without knowing what click-extra is.
+
 ## File naming conventions
 
 ### Extensions: prefer long form
