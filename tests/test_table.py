@@ -1015,12 +1015,12 @@ def test_render_table_header_edge_cases(headers, data, expected):
 
 
 @pytest.mark.parametrize(
-    ("header_defs", "rows", "sort_column", "cell_key", "expected_first_col"),
+    ("header_defs", "rows", "sort_columns", "cell_key", "expected_first_col"),
     (
         pytest.param(
             [("Name", "name"), ("Age", "age"), ("City", None)],
             [["Bob", "30", "NYC"], ["Alice", "25", "LA"], ["Charlie", "25", "SF"]],
-            "age",
+            ("age",),
             None,
             ["Alice", "Charlie", "Bob"],
             id="primary-sort",
@@ -1036,7 +1036,7 @@ def test_render_table_header_edge_cases(headers, data, expected):
         pytest.param(
             [("Name", "name"), ("Count", "count")],
             [["a", "10"], ["b", "2"], ["c", "1"]],
-            "count",
+            ("count",),
             lambda v: (0, int(v)) if v and v.isdigit() else (1, v or ""),
             ["c", "b", "a"],
             id="custom-cell-key",
@@ -1044,7 +1044,7 @@ def test_render_table_header_edge_cases(headers, data, expected):
         pytest.param(
             [("First", "name"), ("Last", "name")],
             [["Bob", "Smith"], ["Alice", "Jones"]],
-            "name",
+            ("name",),
             None,
             ["Alice", "Bob"],
             id="duplicate-keys-last-index-wins",
@@ -1052,7 +1052,7 @@ def test_render_table_header_edge_cases(headers, data, expected):
         pytest.param(
             [("Name", ""), ("Age", "age")],
             [["Bob", "25"], ["Alice", "30"]],
-            "",
+            ("",),
             None,
             ["Alice", "Bob"],
             id="empty-key-falls-back-to-default",
@@ -1060,7 +1060,7 @@ def test_render_table_header_edge_cases(headers, data, expected):
         pytest.param(
             [("Name", "name")],
             [["\x1b[31mBob\x1b[0m"], ["\x1b[32mAlice\x1b[0m"]],
-            "name",
+            ("name",),
             None,
             ["\x1b[32mAlice\x1b[0m", "\x1b[31mBob\x1b[0m"],
             id="ansi-stripped-for-sort",
@@ -1068,15 +1068,27 @@ def test_render_table_header_edge_cases(headers, data, expected):
         pytest.param(
             [("Fruit", "fruit")],
             [["🍒 cherry"], ["🍌 banana"], ["🍎 apple"]],
-            "fruit",
+            ("fruit",),
             None,
             ["🍌 banana", "🍎 apple", "🍒 cherry"],
             id="emoji-in-cells",
         ),
+        pytest.param(
+            [("City", "city"), ("Name", "name"), ("Age", "age")],
+            [
+                ["NYC", "Alice", "30"],
+                ["LA", "Bob", "25"],
+                ["SF", "Alice", "25"],
+            ],
+            ("name", "age"),
+            None,
+            ["SF", "NYC", "LA"],
+            id="multi-column-priority",
+        ),
     ),
 )
-def test_column_sort_key(header_defs, rows, sort_column, cell_key, expected_first_col):
-    key = _column_sort_key(header_defs, sort_column, cell_key)
+def test_column_sort_key(header_defs, rows, sort_columns, cell_key, expected_first_col):
+    key = _column_sort_key(header_defs, sort_columns, cell_key)
     result = sorted(rows, key=key)
     assert [r[0] for r in result] == expected_first_col
 
@@ -1086,7 +1098,7 @@ def test_print_sorted_table_empty_rows(capsys):
     print_sorted_table(
         header_defs=[("Name", "name")],
         table_data=[],
-        sort_column="name",
+        sort_columns=("name",),
         table_format=TableFormat.PLAIN,
     )
     assert capsys.readouterr().out == ""
@@ -1098,25 +1110,25 @@ def test_print_sorted_table_empty_rows(capsys):
         pytest.param(
             (("Name", "name"), ("Age", "age"), ("Notes", None)),
             ["name", "age"],
-            "name",
+            ("name",),
             id="none-key-excluded",
         ),
         pytest.param(
             (("ID", "id"), ("Label", "label")),
             ["id", "label"],
-            "id",
+            ("id",),
             id="first-sortable-as-default",
         ),
         pytest.param(
             (("First", "name"), ("Last", "name"), ("Age", "age")),
             ["name", "name", "age"],
-            "name",
+            ("name",),
             id="duplicate-keys",
         ),
         pytest.param(
             (("Notes", ""), ("Name", "name")),
             ["name"],
-            "name",
+            ("name",),
             id="empty-key-excluded",
         ),
     ),
@@ -1146,3 +1158,32 @@ def test_sort_by_option_wires_context(invoke):
     assert result.exit_code == 0
     parsed = json.loads(result.stdout)
     assert [r["Fruit"] for r in parsed] == ["apple", "banana", "cherry"]
+
+
+def test_sort_by_option_multi_column(invoke):
+    """Multiple --sort-by options define sort priority."""
+    sort_opt = SortByOption(
+        ("City", "city"), ("Name", "name"), ("Age", "age"),
+    )
+
+    @command(params=[sort_opt])
+    @table_format_option
+    @pass_context
+    def cli(ctx):
+        header_defs = (("City", "city"), ("Name", "name"), ("Age", "age"))
+        data = [
+            ["NYC", "Alice", "30"],
+            ["LA", "Bob", "25"],
+            ["SF", "Alice", "25"],
+        ]
+        ctx.print_table(header_defs, data)
+
+    result = invoke(
+        cli,
+        "--table-format", "json",
+        "--sort-by", "name", "--sort-by", "age",
+        color=False,
+    )
+    assert result.exit_code == 0
+    parsed = json.loads(result.stdout)
+    assert [r["City"] for r in parsed] == ["SF", "NYC", "LA"]

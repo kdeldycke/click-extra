@@ -836,15 +836,15 @@ class TableFormatOption(ExtraOption):
 
 def _column_sort_key(
     header_defs: Sequence[tuple[str, str | None]],
-    sort_column: str | None,
+    sort_columns: Sequence[str] | None = None,
     cell_key: Callable[[str | None], Any] | None = None,
 ) -> Callable[[Sequence[str | None]], tuple]:
     """Build a multi-column sort key from header definitions.
 
-    The primary sort column is moved to the front; remaining columns provide
-    tie-breaking in their natural (header) order. Each cell is passed through
-    ``cell_key`` before comparison. Defaults to ANSI-stripped, case-folded string
-    comparison.
+    Specified sort columns are moved to the front of the comparison order;
+    remaining columns provide tie-breaking in their natural (header) order.
+    Each cell is passed through ``cell_key`` before comparison. Defaults to
+    ANSI-stripped, case-folded string comparison.
     """
     if cell_key is None:
 
@@ -854,14 +854,17 @@ def _column_sort_key(
     column_count = len(header_defs)
     sort_order = list(range(column_count))
 
-    if sort_column:
+    if sort_columns:
         col_index = {
             col_id: i for i, (_, col_id) in enumerate(header_defs) if col_id
         }
-        if sort_column in col_index:
-            idx = col_index[sort_column]
-            sort_order.remove(idx)
-            sort_order.insert(0, idx)
+        # Move specified columns to the front in reverse order so the first
+        # specified column ends up at position 0.
+        for sort_col in reversed(sort_columns):
+            if sort_col in col_index:
+                idx = col_index[sort_col]
+                sort_order.remove(idx)
+                sort_order.insert(0, idx)
 
     def key_func(row: Sequence[str | None]) -> tuple:
         return tuple(cell_key(row[i]) for i in sort_order)
@@ -872,7 +875,7 @@ def _column_sort_key(
 def print_sorted_table(
     header_defs: Sequence[tuple[str, str | None]],
     table_data: Sequence[Sequence[str | None]],
-    sort_column: str | None = None,
+    sort_columns: Sequence[str] | None = None,
     table_format: TableFormat | None = None,
     *,
     cell_key: Callable[[str | None], Any] | None = None,
@@ -886,7 +889,8 @@ def print_sorted_table(
 
     :param header_defs: Column definitions as ``(label, column_id)`` pairs.
     :param table_data: Rows of cell values.
-    :param sort_column: Column ID to sort by. Falls back to natural header order.
+    :param sort_columns: Column IDs to sort by, in priority order. Falls back to
+        natural header order.
     :param table_format: Rendering format.
     :param cell_key: Per-cell comparison key. Defaults to ANSI-stripped, case-folded
         string comparison.
@@ -897,7 +901,7 @@ def print_sorted_table(
     headers = tuple(
         style(label, bold=True) for label, _ in header_defs
     )
-    sort_key = _column_sort_key(header_defs, sort_column, cell_key)
+    sort_key = _column_sort_key(header_defs, sort_columns, cell_key)
     print_table(
         table_data=table_data,
         headers=headers,
@@ -910,9 +914,10 @@ def print_sorted_table(
 class SortByOption(ExtraOption):
     """A ``--sort-by`` option whose choices are derived from column definitions.
 
-    Stores the selected column ID in ``ctx.meta["click_extra.sort_by"]`` and replaces
+    Stores the selected column IDs in ``ctx.meta["click_extra.sort_by"]`` and replaces
     ``ctx.print_table`` with :py:func:`print_sorted_table` so that table output is
-    automatically sorted.
+    automatically sorted. The option accepts ``multiple=True``, so users can repeat
+    ``--sort-by`` to define a multi-column sort priority.
 
     .. code-block:: python
 
@@ -933,10 +938,10 @@ class SortByOption(ExtraOption):
         self,
         *header_defs: tuple[str, str | None],
         param_decls: Sequence[str] | None = None,
-        default: str | None = None,
+        default: str | Sequence[str] | None = None,
         expose_value: bool = False,
         cell_key: Callable[[str | None], Any] | None = None,
-        help: str = _("Sort table by this column."),
+        help: str = _("Sort table by this column. Repeat to set priority."),
         **kwargs,
     ) -> None:
         if not param_decls:
@@ -946,14 +951,21 @@ class SortByOption(ExtraOption):
         self.cell_key = cell_key
         sortable_ids = [col_id for _, col_id in header_defs if col_id]
 
+        # Normalize default to a tuple for multiple mode.
+        if not default:
+            default = (sortable_ids[0],) if sortable_ids else ()
+        elif isinstance(default, str):
+            default = (default,)
+
         kwargs.setdefault("callback", self.init_sort)
 
         super().__init__(
             param_decls=param_decls,
             type=click.Choice(sortable_ids, case_sensitive=False),
-            default=default or (sortable_ids[0] if sortable_ids else None),
+            default=default,
             expose_value=expose_value,
             help=help,
+            multiple=True,
             **kwargs,
         )
 
@@ -961,15 +973,15 @@ class SortByOption(ExtraOption):
         self,
         ctx: click.Context,
         param: click.Parameter,
-        sort_column: str | None,
+        sort_columns: tuple[str, ...],
     ) -> None:
-        """Store sort column and override ``ctx.print_table`` with sorted variant."""
-        ctx.meta["click_extra.sort_by"] = sort_column
+        """Store sort columns and override ``ctx.print_table`` with sorted variant."""
+        ctx.meta["click_extra.sort_by"] = sort_columns
 
         table_format = ctx.meta.get("click_extra.table_format")
         ctx.print_table = partial(  # type: ignore[attr-defined]
             print_sorted_table,
             table_format=table_format,
-            sort_column=sort_column,
+            sort_columns=sort_columns,
             cell_key=self.cell_key,
         )

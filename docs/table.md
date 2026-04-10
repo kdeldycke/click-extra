@@ -484,6 +484,8 @@ print(output, end="")
 
 `SortByOption` adds a `--sort-by` CLI option whose choices are derived from column definitions. Column definitions are `(label, column_id)` tuples. Columns with `column_id=None` are displayed but not offered as sort choices.
 
+The option can be repeated to define a multi-column sort priority: `--sort-by name --sort-by age` sorts by name first, then breaks ties by age.
+
 When active, `SortByOption` replaces `ctx.print_table` with a sorted variant, so the command body doesn't need any sorting logic.
 
 ```{click:source}
@@ -525,6 +527,14 @@ assert result.stdout.index("Apple") < result.stdout.index("Banana")
 
 ```{click:run}
 result = invoke(inventory, args=["--table-format", "rounded-outline", "--sort-by", "count"])
+assert result.exit_code == 0
+assert result.stdout.index("Apple") < result.stdout.index("Cherry")
+```
+
+Repeating `--sort-by` sets multi-column priority. Here, rows are sorted by count first, then ties broken by fruit name:
+
+```{click:run}
+result = invoke(inventory, args=["--table-format", "rounded-outline", "--sort-by", "count", "--sort-by", "fruit"])
 assert result.exit_code == 0
 assert result.stdout.index("Apple") < result.stdout.index("Cherry")
 ```
