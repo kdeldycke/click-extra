@@ -420,7 +420,7 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
         return super().invoke(ctx)
 
 
-class HelpCommand(click.Command):
+class HelpCommand(ExtraHelpColorsMixin, click.Command):
     """Synthetic subcommand that displays help for the parent group or a subcommand.
 
     Auto-injected into every ``ExtraGroup``. Supports nested resolution:
@@ -428,9 +428,12 @@ class HelpCommand(click.Command):
     ``subgroup``.
 
     Inherits from ``click.Command`` (not ``ExtraCommand``) so it carries none of
-    the extra options (``--config``, ``--version``, etc.).  The target command's
-    own help-rendering pipeline handles colorization.
+    the extra options (``--config``, ``--version``, etc.).  ``ExtraHelpColorsMixin``
+    is mixed in so the command's own ``--help`` screen is colorized.
+    ``ExtraContext`` is used so colors are preserved even when piped.
     """
+
+    context_class: type[cloup.Context] = ExtraContext
 
     def invoke(self, ctx: click.Context) -> None:
         """Resolve the command path and display its help."""
