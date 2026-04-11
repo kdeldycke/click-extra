@@ -745,6 +745,25 @@ class Port(IntEnum):
                 + theme.deprecated("(DEPRECATED: use --new-api instead)"),
             ),
         ),
+        # Manually-added deprecated marker in help text (mixed case).
+        (
+            ExtraOption(
+                ["--legacy"],
+                help="Old behaviour. (Deprecated)",
+            ),
+            (" Old behaviour. " + theme.deprecated("(Deprecated)"),),
+        ),
+        # Manually-added deprecated marker with reason in help text (lowercase).
+        (
+            ExtraOption(
+                ["--compat"],
+                help="Kept for compatibility. (deprecated: will be removed in v9)",
+            ),
+            (
+                " Kept for compatibility. "
+                + theme.deprecated("(deprecated: will be removed in v9)"),
+            ),
+        ),
         # Long option that is prefix of text in help.
         (
             ExtraOption(["--output"], help="Use --output-dir for directories."),

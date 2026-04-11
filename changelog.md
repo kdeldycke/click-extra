@@ -11,6 +11,7 @@
 - Add `print_sorted_table()` and `SortByOption` for column-based table sorting. `SortByOption` generates a `--sort-by` CLI option from column definitions and auto-wires `ctx.print_table` to the sorted variant.
 - Add auto-injected `help` subcommand to `ExtraGroup`. `mycli help` shows group help, `mycli help subcommand` shows that subcommand's help (with nested group resolution). `mycli help --search term` searches all subcommands for matching options or descriptions. Disable with `help_command=False`.
 - Relax `ParamStructure._recurse_cmd` to skip subcommands whose name collides with a top-level parameter (e.g. the `help` subcommand vs Click's `--help` option) instead of raising.
+- Switch deprecated-message highlighting from pre-collected keyword sets to a case-insensitive regex. Manually-added markers like `(Deprecated)` or `(deprecated: reason)` in help strings are now styled alongside Click-native `(DEPRECATED)` markers.
 
 ## [`7.10.1` (2026-04-07)](https://github.com/kdeldycke/click-extra/compare/v7.10.0...v7.10.1)
 

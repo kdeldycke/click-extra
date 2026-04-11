@@ -24,8 +24,6 @@ from configparser import RawConfigParser
 from dataclasses import dataclass, field
 from functools import lru_cache
 from gettext import gettext as _
-from itertools import chain
-
 import click
 import cloup
 from cloup._util import identity
@@ -319,7 +317,6 @@ class HelpKeywords:
     metavars: set[str] = field(default_factory=set)
     envvars: set[str] = field(default_factory=set)
     defaults: set[str] = field(default_factory=set)
-    deprecated_messages: set[str] = field(default_factory=set)
 
 
 class ExtraHelpColorsMixin:  # (Command)??
@@ -401,17 +398,6 @@ class ExtraHelpColorsMixin:  # (Command)??
                 kw.short_options.add(name)
             else:
                 kw.long_options.add(name)
-
-        # Collect deprecated messages from subcommands and parameters,
-        # matching the format Click generates internally.
-        for obj in chain(subcommand_objs, command.get_params(ctx)):
-            deprecated = getattr(obj, "deprecated", None)
-            if deprecated:
-                kw.deprecated_messages.add(
-                    f"(DEPRECATED: {deprecated})"
-                    if isinstance(deprecated, str)
-                    else "(DEPRECATED)"
-                )
 
         return kw
 
@@ -543,6 +529,14 @@ class HelpExtraFormatter(cloup.HelpFormatter):
     _envvar_re: ClassVar[re.Pattern] = re.compile(r"(env\s+var:\s+)(.*)", re.DOTALL)
     _default_re: ClassVar[re.Pattern] = re.compile(r"(default:\s+)(.*)", re.DOTALL)
 
+    #: Matches ``(Deprecated)``, ``(DEPRECATED)``, ``(DEPRECATED: reason)``,
+    #: etc., regardless of casing. Catches both Click-native deprecated markers
+    #: and manually-added ones in help strings.
+    _deprecated_re: ClassVar[re.Pattern] = re.compile(
+        r"\(deprecated(?::\s[^)]+)?\)",
+        re.IGNORECASE,
+    )
+
     def _style_bracket_fields(self, match: re.Match) -> str:
         """Style a trailing ``[env var: ...; default: ...; ...]`` block.
 
@@ -595,16 +589,10 @@ class HelpExtraFormatter(cloup.HelpFormatter):
         """
         kw = self.keywords
 
-        # Highlight deprecated messages.
-        if kw.deprecated_messages:
-            help_text = highlight(
-                help_text,
-                (
-                    re.compile(_escape_for_help_screen(msg))
-                    for msg in kw.deprecated_messages
-                ),
-                self.theme.deprecated,
-            )
+        # Highlight deprecated messages. Uses a case-insensitive regex to catch
+        # both Click-native "(DEPRECATED)" markers and manually-added variants
+        # like "(Deprecated)" in help strings.
+        help_text = highlight(help_text, [self._deprecated_re], self.theme.deprecated)
 
         # Highlight subcommands and their aliases. Both share the subcommand
         # style and require 2-space indentation as a leading boundary.
