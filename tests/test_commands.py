@@ -31,6 +31,7 @@ import pytest
 import click_extra
 from click_extra import (
     ExtraVersionOption,
+    HelpCommand,
     LazyGroup,
     command,
     echo,
@@ -123,6 +124,7 @@ help_screen = (
     r"\n"
     r"Other commands:\n"
     r"  default-subcommand\n"
+    r"  help +Show help for a command\.\n"
 )
 
 
@@ -462,6 +464,7 @@ def test_option_group_integration(invoke, assert_output_regex):
             r"\n"
             r"Commands:\n"
             r"  default\n"
+            r"  help +Show help for a command\.\n"
         ),
     )
     assert "It works!" not in result.stdout
@@ -714,6 +717,7 @@ def test_lazy_group(invoke, tmp_path, lazy_cmd_decorator, lazy_group_decorator):
           bar_cmd  bar command for lazy example.
           foo_cmd
           fur_cmd
+          help     Show help for a command.
         """
     )
 
@@ -854,3 +858,191 @@ def test_decorator_cls_parameter(klass, should_raise):
 
     with context:
         command(cls=Custom)
+
+
+class TestHelpSubcommand:
+    """Tests for the auto-injected ``help`` subcommand."""
+
+    def test_help_shows_group_help(self, invoke):
+        """``mycli help`` produces the same output as ``mycli --help``."""
+
+        @group
+        def cli():
+            """My CLI."""
+
+        @cli.command()
+        @option("--name", help="Who to greet.")
+        def greet(name):
+            """Greet someone."""
+
+        result_help = invoke(cli, "help", color=False)
+        result_flag = invoke(cli, "--help", color=False)
+
+        assert result_help.exit_code == 0
+        assert result_flag.exit_code == 0
+        assert result_help.stdout == result_flag.stdout
+
+    def test_help_shows_subcommand_help(self, invoke):
+        """``mycli help greet`` matches ``mycli greet --help``."""
+
+        @group
+        def cli():
+            pass
+
+        @cli.command()
+        @option("--name", help="Who to greet.")
+        def greet(name):
+            """Greet someone."""
+
+        result_help = invoke(cli, "help", "greet", color=False)
+        result_flag = invoke(cli, "greet", "--help", color=False)
+
+        assert result_help.exit_code == 0
+        assert result_flag.exit_code == 0
+        assert result_help.stdout == result_flag.stdout
+
+    def test_help_nested_group(self, invoke):
+        """``mycli help sub leaf`` resolves through nested groups."""
+
+        @group
+        def cli():
+            pass
+
+        @cli.group()
+        def sub():
+            """A sub-group."""
+
+        @sub.command()
+        @option("--count", type=int, help="Number of items.")
+        def leaf(count):
+            """A leaf command."""
+
+        result = invoke(cli, "help", "sub", "leaf", color=False)
+        assert result.exit_code == 0
+        assert "A leaf command." in result.stdout
+        assert "--count" in result.stdout
+
+    def test_help_nonexistent_subcommand(self, invoke):
+        """``mycli help nosuch`` reports an error."""
+
+        @group
+        def cli():
+            pass
+
+        result = invoke(cli, "help", "nosuch", color=False)
+        assert result.exit_code == 2
+        assert "No such command" in result.output
+
+    def test_help_subcommand_of_non_group(self, invoke):
+        """``mycli help leaf deeper`` errors when leaf is not a group."""
+
+        @group
+        def cli():
+            pass
+
+        @cli.command()
+        def leaf():
+            pass
+
+        result = invoke(cli, "help", "leaf", "deeper", color=False)
+        assert result.exit_code == 2
+        assert "has no subcommands" in result.output
+
+    def test_help_disabled(self, invoke):
+        """``help_command=False`` suppresses auto-injection."""
+
+        @group(help_command=False)
+        def cli():
+            pass
+
+        @cli.command()
+        def sub():
+            pass
+
+        assert "help" not in cli.commands
+        result = invoke(cli, "help", color=False)
+        assert result.exit_code == 2
+
+    def test_help_user_override(self, invoke):
+        """User-defined ``help`` subcommand replaces the auto-injected one."""
+
+        @group
+        def cli():
+            pass
+
+        @cli.command(name="help")
+        def custom_help():
+            """Custom help."""
+            echo("Custom help output")
+
+        assert not isinstance(cli.commands["help"], HelpCommand)
+        result = invoke(cli, "help", color=False)
+        assert "Custom help output" in result.stdout
+
+    def test_help_appears_in_listing(self, invoke):
+        """The ``help`` subcommand is visible in the group's command list."""
+
+        @group
+        def cli():
+            pass
+
+        @cli.command()
+        def greet():
+            pass
+
+        result = invoke(cli, "--help", color=False)
+        assert "help" in result.stdout
+        assert "Show help for a command." in result.stdout
+
+    def test_help_search(self, invoke):
+        """``mycli help --search term`` finds matching subcommands."""
+
+        @group
+        def cli():
+            pass
+
+        @cli.command()
+        @option("--output", help="Output file path.")
+        def export(output):
+            """Export data to a file."""
+
+        @cli.command()
+        @option("--format")
+        def render(format):
+            """Render the visualization."""
+
+        result = invoke(cli, "help", "--search", "file", color=False)
+        assert result.exit_code == 0
+        assert "export" in result.stdout
+        assert "render" not in result.stdout
+
+    def test_help_search_no_match(self, invoke):
+        """``mycli help --search term`` with no matches."""
+
+        @group
+        def cli():
+            pass
+
+        @cli.command()
+        def sub():
+            pass
+
+        result = invoke(cli, "help", "--search", "zzzzz", color=False)
+        assert result.exit_code == 0
+        assert "No commands matching" in result.stdout
+
+    def test_help_in_all_command_cli(self, invoke, all_command_cli):
+        """The help subcommand works on the fixture CLI."""
+        result = invoke(all_command_cli, "help", color=False)
+        assert result.exit_code == 0
+        assert "command-cli1" in result.stdout
+
+    def test_help_for_subcommand_in_all_command_cli(
+        self, invoke, all_command_cli
+    ):
+        """``help default-subcommand`` works on the fixture CLI."""
+        result = invoke(
+            all_command_cli, "help", "default-subcommand", color=False
+        )
+        assert result.exit_code == 0
+        assert "default-subcommand" in result.stdout

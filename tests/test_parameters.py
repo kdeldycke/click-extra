@@ -693,10 +693,8 @@ def test_recurse_subcommands(invoke):
 
 
 def test_subcommand_conflicts_with_parent_param(invoke):
-    """A subcommand whose name matches its direct parent's param is a real conflict.
-
-    In a config file, the key would be ambiguous: is it the param value or the
-    subcommand section?
+    """A subcommand whose name matches its direct parent's param is skipped in the
+    parameter tree (the config key would be ambiguous), but does not crash the CLI.
 
     .. code-block:: toml
 
@@ -721,8 +719,12 @@ def test_subcommand_conflicts_with_parent_param(invoke):
         """Subcommand named 'foo', same as alpha's --foo param."""
 
     result = invoke(root, "--show-params", color=False)
-    assert result.exit_code == 1
-    assert "alpha.foo subcommand conflicts with" in str(result.exception)
+    # The CLI succeeds; the conflicting subcommand is excluded from the tree.
+    assert result.exit_code == 0
+    # The --foo option of alpha IS in the tree.
+    assert "root.alpha.foo" in result.stdout
+    # The foo subcommand's own --help param is NOT in the tree.
+    assert "root.alpha.foo.help" not in result.stdout
 
 
 def test_nested_subcommand_no_false_conflict_with_root_param(invoke):

@@ -298,6 +298,76 @@ assert "Acme CLI" in result.output
 assert "42.0" in result.output
 ```
 
+## `help` subcommand
+
+Every `ExtraGroup` automatically includes a `help` subcommand. It is the standard way to get help in most major CLIs (git, docker, cargo, npm, kubectl, gh).
+
+`mycli help` shows the group's own help, and `mycli help <subcommand>` shows a specific subcommand's help:
+
+```{click:source}
+from click_extra import echo, group, option
+
+@group
+def restaurant():
+    """Restaurant management CLI."""
+
+@restaurant.command()
+@option("--city", help="City to search in.")
+def find(city):
+    """Find nearby restaurants."""
+    echo(f"Searching in {city}...")
+
+@restaurant.command()
+@option("--stars", type=int, help="Minimum star rating.")
+def rate(stars):
+    """Rate a restaurant."""
+    echo(f"Minimum stars: {stars}")
+```
+
+```{click:run}
+result = invoke(restaurant, args=["help"])
+assert result.exit_code == 0
+assert "find" in result.stdout
+assert "rate" in result.stdout
+```
+
+```{click:run}
+result = invoke(restaurant, args=["help", "find"])
+assert result.exit_code == 0
+assert "--city" in result.stdout
+```
+
+The `help` subcommand also supports nested groups. If `mycli` has a subgroup `admin` with a command `reset`, then `mycli help admin reset` shows the help for `reset`.
+
+### Searching help
+
+The `--search` option searches all subcommands for matching options or descriptions:
+
+```{click:run}
+result = invoke(restaurant, args=["help", "--search", "star"])
+assert result.exit_code == 0
+assert "rate" in result.stdout
+```
+
+### Disabling the help subcommand
+
+Pass `help_command=False` to suppress the auto-injected `help` subcommand:
+
+```{click:source}
+from click_extra import group
+
+@group(help_command=False)
+def bare_cli():
+    """A CLI without the help subcommand."""
+```
+
+```{click:run}
+result = invoke(bare_cli, args=["help"])
+assert result.exit_code == 2
+```
+
+If you register your own `help` subcommand, it replaces the auto-injected one.
+
 ## Lazily loading subcommands
 
 Click Extra provides a `LazyGroup` class and `@lazy_group` decorator to create command groups that only load their subcommands when they are invoked.

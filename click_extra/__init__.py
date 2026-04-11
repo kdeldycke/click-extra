@@ -41,6 +41,7 @@ from .commands import (
     ExtraCommand,
     ExtraContext,
     ExtraGroup,
+    HelpCommand,
     LazyGroup,
 )
 from .config import (
@@ -149,6 +150,7 @@ __all__ = [
     "FileError",
     "FloatRange",
     "Group",
+    "HelpCommand",
     "HelpExtraFormatter",
     "HelpExtraTheme",
     "HelpFormatter",

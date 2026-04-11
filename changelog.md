@@ -9,6 +9,8 @@
 - Add `sort_key` parameter to `render_table()` and `print_table()` for pre-render row sorting.
 - Catch `ImportError` from missing optional dependencies in `print_table()` and `print_data()`, producing a clean one-line error instead of a traceback. The `print_data()` `package` parameter lets downstream projects customize install instructions.
 - Add `print_sorted_table()` and `SortByOption` for column-based table sorting. `SortByOption` generates a `--sort-by` CLI option from column definitions and auto-wires `ctx.print_table` to the sorted variant.
+- Add auto-injected `help` subcommand to `ExtraGroup`. `mycli help` shows group help, `mycli help subcommand` shows that subcommand's help (with nested group resolution). `mycli help --search term` searches all subcommands for matching options or descriptions. Disable with `help_command=False`.
+- Relax `ParamStructure._recurse_cmd` to skip subcommands whose name collides with a top-level parameter (e.g. the `help` subcommand vs Click's `--help` option) instead of raising.
 
 ## [`7.10.1` (2026-04-07)](https://github.com/kdeldycke/click-extra/compare/v7.10.0...v7.10.1)
 

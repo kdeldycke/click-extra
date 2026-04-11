@@ -420,6 +420,150 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
         return super().invoke(ctx)
 
 
+class HelpCommand(click.Command):
+    """Synthetic subcommand that displays help for the parent group or a subcommand.
+
+    Auto-injected into every ``ExtraGroup``. Supports nested resolution:
+    ``mycli help subgroup subcmd`` shows the help for ``subcmd`` within
+    ``subgroup``.
+
+    Inherits from ``click.Command`` (not ``ExtraCommand``) so it carries none of
+    the extra options (``--config``, ``--version``, etc.).  The target command's
+    own help-rendering pipeline handles colorization.
+    """
+
+    def invoke(self, ctx: click.Context) -> None:
+        """Resolve the command path and display its help."""
+        command_path: tuple[str, ...] = ctx.params["command_path"]
+        search_term: str | None = ctx.params.get("search")
+
+        parent_ctx = ctx.parent
+        assert parent_ctx is not None
+        group = parent_ctx.command
+        assert isinstance(group, click.Group)
+
+        if search_term:
+            self._search(parent_ctx, group, search_term)
+            ctx.exit()
+            return
+
+        # No command path: show the group's own help.
+        if not command_path:
+            click.echo(group.get_help(parent_ctx), color=parent_ctx.color)
+            ctx.exit()
+            return
+
+        # Walk the command path to find the target.
+        target_cmd: click.BaseCommand = group
+        target_ctx = parent_ctx
+        for name in command_path:
+            if not isinstance(target_cmd, click.Group):
+                raise click.UsageError(
+                    f"Command {target_cmd.name!r} has no subcommands.",
+                    ctx=parent_ctx,
+                )
+            resolved = target_cmd.get_command(target_ctx, name)
+            if resolved is None:
+                raise click.UsageError(
+                    f"No such command {name!r}.",
+                    ctx=parent_ctx,
+                )
+            target_ctx = click.Context(
+                resolved,
+                parent=target_ctx,
+                info_name=name,
+            )
+            target_cmd = resolved
+
+        click.echo(target_cmd.get_help(target_ctx), color=parent_ctx.color)
+        ctx.exit()
+
+    def _search(
+        self,
+        group_ctx: click.Context,
+        group: click.Group,
+        term: str,
+    ) -> None:
+        """Search all subcommands for options or descriptions matching *term*."""
+        from .colorize import default_theme, highlight
+
+        term_lower = term.lower()
+        results: list[tuple[str, str]] = []
+
+        self._search_group(group_ctx, group, term_lower, "", results)
+
+        if not results:
+            click.echo(f"No commands matching {term!r}.")
+            return
+
+        styling_func = default_theme.search
+        for cmd_path, line in results:
+            styled_line = highlight(line, [term], styling_func, ignore_case=True)
+            click.echo(f"  {cmd_path}: {styled_line}", color=group_ctx.color)
+
+    def _search_group(
+        self,
+        group_ctx: click.Context,
+        group: click.Group,
+        term_lower: str,
+        prefix: str,
+        results: list[tuple[str, str]],
+    ) -> None:
+        """Recursively search a group's subcommands."""
+        for sub_name in group.list_commands(group_ctx):
+            if sub_name == "help":
+                continue
+            sub_cmd = group.get_command(group_ctx, sub_name)
+            if sub_cmd is None:
+                continue
+
+            cmd_path = f"{prefix}{sub_name}" if prefix else sub_name
+            sub_ctx = click.Context(
+                sub_cmd,
+                parent=group_ctx,
+                info_name=sub_name,
+            )
+
+            # Check command docstring.
+            if sub_cmd.help and term_lower in sub_cmd.help.lower():
+                results.append((cmd_path, sub_cmd.help))
+
+            # Check each parameter.
+            for param in sub_cmd.get_params(sub_ctx):
+                opts_str = " / ".join(getattr(param, "opts", []))
+                help_str = getattr(param, "help", None) or ""
+                combined = f"{opts_str}  {help_str}".strip()
+                if term_lower in combined.lower():
+                    results.append((cmd_path, combined))
+
+            # Recurse into nested groups.
+            if isinstance(sub_cmd, click.Group):
+                self._search_group(
+                    sub_ctx,
+                    sub_cmd,
+                    term_lower,
+                    f"{cmd_path} ",
+                    results,
+                )
+
+
+def _make_help_command() -> HelpCommand:
+    """Create the synthetic ``help`` subcommand for an ``ExtraGroup``."""
+    return HelpCommand(
+        name="help",
+        help="Show help for a command.",
+        params=[
+            click.Argument(["command_path"], nargs=-1, required=False),
+            click.Option(
+                ["--search"],
+                default=None,
+                help="Search all subcommands for matching options or descriptions.",
+            ),
+        ],
+        context_settings={"auto_envvar_prefix": None},
+    )
+
+
 class ExtraGroup(ExtraCommand, cloup.Group):  # type: ignore[misc]
     """Like ``cloup.Group``, with sane defaults and extra help screen colorization."""
 
@@ -437,6 +581,47 @@ class ExtraGroup(ExtraCommand, cloup.Group):  # type: ignore[misc]
 
     See: https://click.palletsprojects.com/en/stable/api/#click.Group.group_class
     """
+
+    def __init__(
+        self,
+        *args: Any,
+        help_command: bool = True,
+        **kwargs: Any,
+    ) -> None:
+        """Like ``ExtraCommand.__init__``, but auto-injects a ``help`` subcommand.
+
+        :param help_command: when ``True`` (the default), a ``help`` subcommand is
+            automatically registered.  Set to ``False`` to suppress it, or register
+            your own ``help`` subcommand to override it.
+        """
+        super().__init__(*args, **kwargs)
+        if help_command and "help" not in self.commands:
+            self.add_command(_make_help_command())
+
+    def add_command(
+        self,
+        cmd: click.Command,
+        name: str | None = None,
+        **kwargs: Any,
+    ) -> None:
+        """Like ``cloup.Group.add_command``, but replaces an auto-injected
+        ``HelpCommand`` when the user registers their own ``help`` subcommand.
+        """
+        cmd_name = name or cmd.name
+        if cmd_name and cmd_name in self.commands:
+            existing = self.commands[cmd_name]
+            if isinstance(existing, HelpCommand) and not isinstance(cmd, HelpCommand):
+                # Remove the auto-injected help from its Cloup section so the
+                # user's command can take its place without a duplicate error.
+                for section in self._user_sections:
+                    if cmd_name in section.commands:
+                        del section.commands[cmd_name]
+                        break
+                else:
+                    if cmd_name in self._default_section.commands:
+                        del self._default_section.commands[cmd_name]
+                del self.commands[cmd_name]
+        super().add_command(cmd, name, **kwargs)
 
     def invoke(self, ctx: click.Context) -> Any:
         """Inject ``_default_subcommands`` and ``_prepend_subcommands`` from config.

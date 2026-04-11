@@ -281,10 +281,14 @@ class ParamStructure:
 
             for subcmd_id, subcmd in cmd.commands.items():
                 if subcmd_id in top_level_params:
-                    raise ValueError(
-                        f"{cmd.name}{self.SEP}{subcmd_id} subcommand conflicts with "
-                        f"{top_level_params} top-level parameters"
+                    # Subcommand name shadows a top-level parameter (e.g. the
+                    # auto-injected ``help`` subcommand vs Click's ``--help``
+                    # option).  Skip it: the config tree cannot represent both.
+                    logging.getLogger("click_extra").debug(
+                        f"{cmd.name}{self.SEP}{subcmd_id} subcommand shadows a "
+                        f"top-level parameter; excluded from parameter tree."
                     )
+                    continue
 
                 _top_level_params = set()
 
