@@ -36,6 +36,7 @@ from .colorize import (
     ColorOption,
     HelpExtraFormatter,
     HelpExtraTheme,
+    HelpKeywords,
 )
 from .commands import (
     ExtraCommand,
@@ -154,6 +155,7 @@ __all__ = [
     "HelpExtraFormatter",
     "HelpExtraTheme",
     "HelpFormatter",
+    "HelpKeywords",
     "HelpSection",
     "HelpTheme",
     "IntRange",

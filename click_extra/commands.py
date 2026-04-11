@@ -28,7 +28,7 @@ import logging
 import click
 import cloup
 
-from .colorize import ColorOption, ExtraHelpColorsMixin, HelpExtraFormatter
+from .colorize import ColorOption, ExtraHelpColorsMixin, HelpExtraFormatter, HelpKeywords
 from .config import (
     DEFAULT_SUBCOMMANDS_KEY,
     PREPEND_SUBCOMMANDS_KEY,
@@ -177,6 +177,8 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
         included_params: Sequence[str] | None = None,
         extra_option_at_end: bool = True,
         populate_auto_envvars: bool = True,
+        extra_keywords: HelpKeywords | None = None,
+        excluded_keywords: HelpKeywords | None = None,
         **kwargs: Any,
     ) -> None:
         """List of extra parameters:
@@ -188,6 +190,12 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
             ``version``, ``git_branch``).  Lets you customize ``--version``
             output from the command decorator without replacing the default
             ``params`` list.
+        :param extra_keywords: a ``HelpKeywords`` instance whose entries are
+            merged into the auto-collected keyword set. Use this to inject
+            additional strings for help screen highlighting.
+        :param excluded_keywords: a ``HelpKeywords`` instance whose entries are
+            removed from the auto-collected keyword set. Use this to suppress
+            highlighting of specific strings.
         :param extra_option_at_end: `reorders all parameters attached to the command
             <https://kdeldycke.github.io/click-extra/commands.html#option-order>`_, by
             moving all instances of ``ExtraOption`` at the end of the parameter list.
@@ -278,6 +286,12 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
             )
         """
         super().__init__(*args, **kwargs)
+
+        # Forward keyword overrides to the ExtraHelpColorsMixin attributes.
+        if extra_keywords is not None:
+            self.extra_keywords = extra_keywords
+        if excluded_keywords is not None:
+            self.excluded_keywords = excluded_keywords
 
         # List of additional global settings for options.
         extra_option_settings = [

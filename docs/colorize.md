@@ -58,6 +58,74 @@ def cli(): ...
 
 With `cross_ref_highlight=False`, only structural elements are styled: bracket fields (`[default: ...]`, `[env var: ...]`, ranges, `[required]`), deprecated messages, and subcommand names in definition lists. Option names, choices, arguments, metavars, and CLI names in descriptions and docstrings are left unstyled.
 
+### Custom keyword injection
+
+Use `extra_keywords` to inject additional strings for highlighting. Strings are grouped by category in a `HelpKeywords` dataclass, so each gets the appropriate style:
+
+```{click:source}
+from click_extra import HelpKeywords, command, echo, option
+
+@command(
+    extra_keywords=HelpKeywords(long_options={"--profile"}),
+)
+@option("--output", help="Write to file. See --profile for timing.")
+def build(output):
+    """Build the project."""
+    echo("Building...")
+```
+
+```{click:run}
+result = invoke(build, args=["--help"])
+assert result.exit_code == 0
+# --profile is not a real parameter, but it is highlighted as an option
+# because it was injected via extra_keywords.
+assert "\x1b[36m--profile\x1b[0m" in result.output
+```
+
+### Suppressing keyword highlighting
+
+The mirror of `extra_keywords`: use `excluded_keywords` to prevent specific strings from being highlighted, even when they are auto-collected from the Click context:
+
+```{click:source}
+from click_extra import Choice, HelpKeywords, command, echo, option
+
+@command(
+    excluded_keywords=HelpKeywords(choices={"text"}),
+)
+@option("--format", type=Choice(["json", "text"]), help="Use json or text.")
+def export(format):
+    """Export data."""
+    echo("Exporting...")
+```
+
+```{click:run}
+from boltons.strutils import strip_ansi
+result = invoke(export, args=["--help"])
+assert result.exit_code == 0
+# "json" is still highlighted as a choice.
+assert "\x1b[35mjson\x1b[0m" in result.output
+# "text" is NOT highlighted in the description, even though it is a valid
+# choice, because it was excluded.
+lines = result.output.splitlines()
+desc_line = [ln for ln in lines if "Use json or text" in strip_ansi(ln)][0]
+assert "\x1b[35mtext\x1b[0m" not in desc_line
+```
+
+Both `extra_keywords` and `excluded_keywords` accept a `HelpKeywords` instance. The available category fields are: `cli_names`, `subcommands`, `command_aliases`, `arguments`, `long_options`, `short_options`, `choices`, `metavars`, `envvars`, and `defaults`.
+
+For advanced customization, override `collect_keywords()` on your command class. Call `super()` and mutate the returned `HelpKeywords` to add or remove entries:
+
+```python
+from click_extra import ExtraCommand, HelpKeywords
+
+class MyCommand(ExtraCommand):
+    def collect_keywords(self, ctx):
+        kw = super().collect_keywords(ctx)
+        kw.choices.discard("internal")
+        kw.long_options.add("--undocumented-flag")
+        return kw
+```
+
 ## Bracket fields
 
 Trailing metadata brackets (`[default: ...]`, `[env var: ...]`, `[required]`, and range expressions) each get their own style. All four fields can appear together:

@@ -21,7 +21,7 @@ import dataclasses
 import os
 import re
 from configparser import RawConfigParser
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from functools import lru_cache
 from gettext import gettext as _
 import click
@@ -318,6 +318,23 @@ class HelpKeywords:
     envvars: set[str] = field(default_factory=set)
     defaults: set[str] = field(default_factory=set)
 
+    def merge(self, other: HelpKeywords) -> None:
+        """Merge another ``HelpKeywords`` into this one.
+
+        Each set field is updated with the corresponding set from ``other``.
+        """
+        for f in fields(self):
+            getattr(self, f.name).update(getattr(other, f.name))
+
+    def subtract(self, other: HelpKeywords) -> None:
+        """Remove keywords found in ``other`` from this instance.
+
+        Each set field is difference-updated with the corresponding set from
+        ``other``. Mirror of :meth:`merge`.
+        """
+        for f in fields(self):
+            getattr(self, f.name).difference_update(getattr(other, f.name))
+
 
 class ExtraHelpColorsMixin:  # (Command)??
     """Adds extra-keywords highlighting to Click commands.
@@ -327,11 +344,22 @@ class ExtraHelpColorsMixin:  # (Command)??
     implemented at this stage so we have access to the global context.
     """
 
-    def _collect_keywords(self, ctx: click.Context) -> HelpKeywords:
+    #: Extra keywords to merge into the auto-collected set. Consumers can set
+    #: this attribute on a command instance to inject additional keywords for
+    #: help screen highlighting (e.g. placeholder option names like
+    #: ``--<manager-id>`` that appear in prose but are not real parameters).
+    extra_keywords: HelpKeywords | None = None
+
+    #: Keywords to remove from the auto-collected set. Mirror of
+    #: :attr:`extra_keywords`: any string listed here will not be highlighted
+    #: even if it was collected from the Click context.
+    excluded_keywords: HelpKeywords | None = None
+
+    def collect_keywords(self, ctx: click.Context) -> HelpKeywords:
         """Parse click context to collect option names, choices and metavar keywords.
 
-        This is Click Extra-specific and is not part of the upstream ``click.Command``
-        API.
+        Override this method to customize keyword collection. Call ``super()`` and
+        mutate the returned ``HelpKeywords`` to extend the default set.
         """
         kw = HelpKeywords()
         subcommand_objs: set[click.Command] = set()
@@ -399,6 +427,14 @@ class ExtraHelpColorsMixin:  # (Command)??
             else:
                 kw.long_options.add(name)
 
+        # Merge consumer-provided extra keywords.
+        if self.extra_keywords is not None:
+            kw.merge(self.extra_keywords)
+
+        # Remove consumer-excluded keywords.
+        if self.excluded_keywords is not None:
+            kw.subtract(self.excluded_keywords)
+
         return kw
 
     @staticmethod
@@ -465,7 +501,7 @@ class ExtraHelpColorsMixin:  # (Command)??
 
     def format_help(self, ctx: click.Context, formatter: HelpExtraFormatter) -> None:
         """Feed our custom formatter instance with the keywords to highlight."""
-        formatter.keywords = self._collect_keywords(ctx)
+        formatter.keywords = self.collect_keywords(ctx)
         super().format_help(ctx, formatter)  # type: ignore[misc]
 
 

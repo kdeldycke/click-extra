@@ -1042,8 +1042,124 @@ def test_command_aliases_collected():
     grp.add_command(commit)
 
     ctx = ExtraContext(grp, info_name="cli")
-    kw = grp._collect_keywords(ctx)
+    kw = grp.collect_keywords(ctx)
     assert "ci" in kw.command_aliases
+
+
+def test_help_keywords_merge():
+    """HelpKeywords.merge() unions every field."""
+    from click_extra.colorize import HelpKeywords
+
+    base = HelpKeywords(long_options={"--alpha"}, choices={"json"})
+    other = HelpKeywords(long_options={"--beta"}, choices={"csv", "json"})
+    base.merge(other)
+    assert base.long_options == {"--alpha", "--beta"}
+    assert base.choices == {"json", "csv"}
+
+
+def test_help_keywords_subtract():
+    """HelpKeywords.subtract() removes matching entries per field."""
+    from click_extra.colorize import HelpKeywords
+
+    base = HelpKeywords(
+        long_options={"--alpha", "--beta", "--gamma"},
+        choices={"json", "csv"},
+    )
+    removals = HelpKeywords(long_options={"--beta"}, choices={"csv"})
+    base.subtract(removals)
+    assert base.long_options == {"--alpha", "--gamma"}
+    assert base.choices == {"json"}
+
+
+def test_extra_keywords_merged():
+    """extra_keywords injects additional strings into the collected set."""
+    from click_extra.colorize import HelpKeywords
+    from click_extra.commands import ExtraGroup
+
+    grp = ExtraGroup(
+        "cli",
+        extra_keywords=HelpKeywords(long_options={"--phantom"}),
+    )
+    ctx = ExtraContext(grp, info_name="cli")
+    kw = grp.collect_keywords(ctx)
+    assert "--phantom" in kw.long_options
+
+
+def test_excluded_keywords_removed():
+    """excluded_keywords suppresses highlighting of specific strings."""
+    from click_extra.colorize import HelpKeywords
+
+    cmd = ExtraCommand(
+        "exporter",
+        params=[
+            ExtraOption(
+                ["--format"],
+                type=click.Choice(["json", "csv"]),
+                help="Output format.",
+            ),
+        ],
+        excluded_keywords=HelpKeywords(choices={"json"}),
+    )
+
+    ctx = ExtraContext(cmd, info_name="exporter")
+    kw = cmd.collect_keywords(ctx)
+    # "json" was collected from the Choice but then excluded.
+    assert "json" not in kw.choices
+    # "csv" is unaffected.
+    assert "csv" in kw.choices
+
+
+def test_excluded_keywords_via_constructor():
+    """excluded_keywords can be passed through the ExtraCommand constructor."""
+    from click_extra.colorize import HelpKeywords
+
+    cmd = ExtraCommand(
+        "demo",
+        params=[
+            ExtraOption(["--output"], help="Write to file."),
+        ],
+        excluded_keywords=HelpKeywords(long_options={"--output"}),
+    )
+    ctx = ExtraContext(cmd, info_name="demo")
+    kw = cmd.collect_keywords(ctx)
+    assert "--output" not in kw.long_options
+
+
+def test_excluded_keywords_suppresses_highlighting():
+    """Excluded keywords do not appear styled in the rendered help text."""
+    from boltons.strutils import strip_ansi
+    from click_extra.colorize import HelpKeywords
+
+    cmd = ExtraCommand(
+        "tool",
+        help="Export data.",
+        params=[
+            ExtraOption(
+                ["--format"],
+                type=click.Choice(["json", "csv"]),
+                help="Use json or csv.",
+            ),
+        ],
+        excluded_keywords=HelpKeywords(choices={"json"}),
+    )
+
+    ctx = ExtraContext(cmd, info_name="tool")
+    help_text = cmd.get_help(ctx)
+
+    # "csv" is highlighted (magenta).
+    assert theme.choice("csv") in help_text
+    # "json" appears unstyled in the description.
+    plain = strip_ansi(help_text)
+    assert "json" in plain
+    # "json" should NOT carry the choice style in the description line.
+    # It will still appear styled inside the metavar bracket (structural),
+    # but the free-text occurrence must be plain.
+    description_lines = [
+        ln for ln in help_text.splitlines() if "Use json or csv" in strip_ansi(ln)
+    ]
+    assert description_lines
+    # In the description line, "json" must not be wrapped in choice styling.
+    assert theme.choice("json") not in description_lines[0]
 
 
 def test_keyword_collection(invoke, assert_output_regex):
