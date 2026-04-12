@@ -838,6 +838,43 @@ def test_cross_ref_highlight_disabled():
     assert theme.metavar("TEXT") not in help_text
 
 
+def test_choice_does_not_override_default_style():
+    """Choice cross-ref highlighting must not restyle text inside bracket fields.
+
+    When a default value contains a substring that matches a choice keyword
+    (e.g. ``outline`` from ``rounded-outline``), the choice style must not
+    override the default value style. Regression test for the case where
+    line-wrapping splits a hyphenated default so the second word starts a new
+    line and passes the lookbehind.
+    """
+    cli = ExtraCommand(
+        "test",
+        params=[
+            ExtraOption(
+                ["--style"],
+                type=click.Choice(["plain", "outline", "grid"]),
+                default="rounded-outline",
+                show_default=True,
+                # Long help text to push the bracket field to wrap.
+                help="Pick a rendering style for the table output format.",
+            ),
+        ],
+    )
+    # Narrow width to force the bracket field default value to wrap so
+    # "outline" starts a new indented line after "rounded-".
+    ctx = ExtraContext(cli, formatter_settings={"width": 45})
+    help_text = cli.get_help(ctx)
+
+    # The default value must be fully styled as a default, even when
+    # it wraps and a choice keyword (outline) starts on a new line.
+    # Extract the bracket field region to inspect it in isolation
+    # (the choice list above correctly uses choice styling).
+    bracket_start = help_text.find(theme.bracket("default: "))
+    assert bracket_start != -1, "bracket field not found"
+    bracket_region = help_text[bracket_start:]
+    assert theme.choice("outline") not in bracket_region
+
+
 @pytest.mark.parametrize(
     ("params", "expected", "forbidden"),
     (

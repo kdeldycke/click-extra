@@ -647,81 +647,99 @@ class HelpExtraFormatter(cloup.HelpFormatter):
         # This must happen post-wrapping because Click's text wrapper splits
         # lines after get_help_record() returns, which would break pre-styled
         # ANSI codes.
-        help_text = self._bracket_re.sub(self._style_bracket_fields, help_text)
+        #
+        # To prevent cross-reference highlighting from restyling keywords that
+        # appear inside bracket field content (e.g. a choice value like
+        # "outline" within a default value "rounded-outline"), we replace each
+        # styled bracket field with a null-byte placeholder, run all cross-ref
+        # passes on the placeholder text, then restore the styled fields.
+        bracket_placeholders: dict[str, str] = {}
+
+        def _bracket_to_placeholder(match: re.Match) -> str:
+            styled = self._style_bracket_fields(match)
+            key = f"\x00B{len(bracket_placeholders)}\x00"
+            bracket_placeholders[key] = styled
+            return key
+
+        help_text = self._bracket_re.sub(_bracket_to_placeholder, help_text)
 
         # The remaining passes search free-form text (descriptions, docstrings)
-        # for option names, choices, arguments, metavars and CLI names. This
-        # cross-reference highlighting can be disabled via the theme to avoid
+        # for option names, choices, arguments, metavars and CLI names.
+        # Cross-reference highlighting can be disabled via the theme to avoid
         # over-interpretation in help text that references external identifiers.
-        if not self.theme.cross_ref_highlight:
-            return help_text
-
-        # Highlight CLI names and commands.
-        if kw.cli_names:
-            help_text = highlight(
-                help_text,
-                (
-                    re.compile(rf"(?<=\s){re.escape(name)}(?=\s)")
-                    for name in sorted(kw.cli_names, key=len, reverse=True)
-                ),
-                self.theme.invoked_command,
-            )
-
-        # Highlight options (long and short combined). Per-keyword lookbehind
-        # excludes the option's own leading symbol to prevent matching repeated
-        # prefixes (e.g. "---debug" should not match "--debug").
-        all_options = sorted(kw.long_options | kw.short_options, key=len, reverse=True)
-        if all_options:
-            help_text = highlight(
-                help_text,
-                (
-                    re.compile(
-                        rf"(?<=[^\w{re.escape(kw[0])}])"
-                        rf"{_escape_for_help_screen(kw)}"
-                        rf"(?=[^\w\-])"
-                    )
-                    for kw in all_options
-                ),
-                self.theme.option,
-            )
-
-        # Highlight other keywords, which are expected to be separated by any
-        # character but word characters.
-        for keywords, style_func in (
-            # Arguments before metavars: argument names like MY_ARG are a
-            # subset of metavars, so highlighting them first with a distinct
-            # style takes priority.
-            (kw.arguments, self.theme.argument),
-            # Choices are already featured in metavars, so we process them
-            # before metavars to avoid double-highlighting.
-            (kw.choices, self.theme.choice),
-            (kw.metavars, self.theme.metavar),
-        ):
-            if keywords:
-                # Transform keywords into regex patterns.
-                patterns = (
-                    # Negative lookbehind rejects matches preceded by:
-                    # - a word character (\w),
-                    # - a dot: "pyproject.toml" (\.),
-                    # - a hyphen: "rounded-outline" (\-),
-                    # - a slash: "https://github.com" (\/),
-                    # - an exclamation mark: "[!WARNING]" (!),
-                    # - an ANSI escape: already-styled text (\x1b).
-                    # Negative lookahead rejects matches followed by:
-                    # - a word character (\w),
-                    # - a hyphen: "github-actions" (\-).
-                    re.compile(
-                        rf"(?<![\w\.\x1b\-/!])"
-                        rf"{_escape_for_help_screen(keyword)}"
-                        rf"(?![\w\-])"
-                    )
-                    for keyword in sorted(keywords, reverse=True)
-                )
+        if self.theme.cross_ref_highlight:
+            # Highlight CLI names and commands.
+            if kw.cli_names:
                 help_text = highlight(
-                    content=help_text,
-                    patterns=patterns,
-                    styling_func=style_func,
+                    help_text,
+                    (
+                        re.compile(rf"(?<=\s){re.escape(name)}(?=\s)")
+                        for name in sorted(kw.cli_names, key=len, reverse=True)
+                    ),
+                    self.theme.invoked_command,
                 )
+
+            # Highlight options (long and short combined). Per-keyword lookbehind
+            # excludes the option's own leading symbol to prevent matching repeated
+            # prefixes (e.g. "---debug" should not match "--debug").
+            all_options = sorted(
+                kw.long_options | kw.short_options, key=len, reverse=True
+            )
+            if all_options:
+                help_text = highlight(
+                    help_text,
+                    (
+                        re.compile(
+                            rf"(?<=[^\w{re.escape(kw[0])}])"
+                            rf"{_escape_for_help_screen(kw)}"
+                            rf"(?=[^\w\-])"
+                        )
+                        for kw in all_options
+                    ),
+                    self.theme.option,
+                )
+
+            # Highlight other keywords, which are expected to be separated by
+            # any character but word characters.
+            for keywords, style_func in (
+                # Arguments before metavars: argument names like MY_ARG are a
+                # subset of metavars, so highlighting them first with a distinct
+                # style takes priority.
+                (kw.arguments, self.theme.argument),
+                # Choices are already featured in metavars, so we process them
+                # before metavars to avoid double-highlighting.
+                (kw.choices, self.theme.choice),
+                (kw.metavars, self.theme.metavar),
+            ):
+                if keywords:
+                    # Transform keywords into regex patterns.
+                    patterns = (
+                        # Negative lookbehind rejects matches preceded by:
+                        # - a word character (\w),
+                        # - a dot: "pyproject.toml" (\.),
+                        # - a hyphen: "rounded-outline" (\-),
+                        # - a slash: "https://github.com" (\/),
+                        # - an exclamation mark: "[!WARNING]" (!),
+                        # - an ANSI escape: already-styled text (\x1b).
+                        # Negative lookahead rejects matches followed by:
+                        # - a word character (\w),
+                        # - a hyphen: "github-actions" (\-).
+                        re.compile(
+                            rf"(?<![\w\.\x1b\-/!])"
+                            rf"{_escape_for_help_screen(keyword)}"
+                            rf"(?![\w\-])"
+                        )
+                        for keyword in sorted(keywords, reverse=True)
+                    )
+                    help_text = highlight(
+                        content=help_text,
+                        patterns=patterns,
+                        styling_func=style_func,
+                    )
+
+        # Restore styled bracket fields.
+        for key, styled in bracket_placeholders.items():
+            help_text = help_text.replace(key, styled)
 
         return help_text
 
