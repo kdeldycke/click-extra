@@ -175,7 +175,7 @@ This is by design: decorators are cumulative, to allow you to add your own optio
 
 But notice the `UserWarning` log messages: `The parameter --version is used more than once. Remove its duplicate as parameters should be unique.`. As it is not a good practice to have duplicate options and you must avoid it. There's also a non-zero chance for this situation to result in complete failure in a future Click release.
 
-Finally, if the second `--version` option is placed right before the `--help` option, it is because [Click is adding its own generated `--help` option at the end of the list](https://kdeldycke.github.io/click-extra/commands.html#click_extra.commands.default_extra_params).
+Finally, if the second `--version` option is placed right before the `--help` option, it is because Click is adding its own generated `--help` option at the end of the {py:func}`~click_extra.commands.default_extra_params` list.
 ````
 
 ### Option order
@@ -184,7 +184,7 @@ Notice how the options above are ordered in the help message.
 
 The default behavior of `@command` is to order options in the way they are provided to the `params=` argument of the decorator. Then adds to that list the additional option decorators positioned after the `@command` decorator.
 
-After that, there is a final [sorting step applied to options](https://kdeldycke.github.io/click-extra/commands.html#click_extra.commands.ExtraCommand). This is done by the `extra_option_at_end` option, which is `True` by default.
+After that, there is a final sorting step applied by {py:class}`~click_extra.commands.ExtraCommand`. This is done by the `extra_option_at_end` option, which is `True` by default.
 
 ### Option's defaults
 

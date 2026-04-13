@@ -122,6 +122,7 @@ linkcheck_anchors_ignore = [
 
 linkcheck_ignore = [
     # These sites return 403 to bots but are valid.
+    r"https://docutils\.sourceforge\.io",
     r"https://guix\.gnu\.org",
 ]
 

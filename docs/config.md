@@ -837,7 +837,7 @@ This is the de facto standard across the ecosystem. Every major tool that suppor
 | :-------------------------------------------------------------------------------- | :----------------------------------------------------------------------------- |
 | [ruff](https://docs.astral.sh/ruff/configuration/#config-file-discovery)          | `.ruff.toml` > `ruff.toml` > `pyproject.toml`                                  |
 | [uv](https://docs.astral.sh/uv/concepts/configuration-files/#configuration-files) | `uv.toml` > `pyproject.toml`                                                   |
-| [typos](https://github.com/crate-ci/typos/blob/master/docs/reference.md#sources)  | `typos.toml` / `_typos.toml` / `.typos.toml` > `Cargo.toml` > `pyproject.toml` |
+| [typos](https://github.com/crate-ci/typos/blob/master/docs/reference.md)  | `typos.toml` / `_typos.toml` / `.typos.toml` > `Cargo.toml` > `pyproject.toml` |
 
 The rationale:
 
@@ -848,7 +848,7 @@ The rationale:
 ```{seealso}
 Other non-Python tools that support `[tool.*]` in `pyproject.toml`:
 [basedpyright](https://docs.basedpyright.com/latest/configuration/config-files/),
-[lychee](https://lychee.cli.rs/configuration/),
+[lychee](https://lychee.cli.rs/guides/config/),
 [maturin](https://www.maturin.rs/config),
 [pixi](https://pixi.prefix.dev/latest/python/pyproject_toml/),
 [Pyrefly](https://pyrefly.org/en/docs/configuration/),
