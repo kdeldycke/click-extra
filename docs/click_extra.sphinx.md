@@ -8,7 +8,7 @@
 
 ## Submodules
 
-## click\_extra.sphinx.alerts module
+## click_extra.sphinx.alerts module
 
 ```{automodule} click_extra.sphinx.alerts
 :members:
@@ -16,7 +16,7 @@
 :undoc-members:
 ```
 
-## click\_extra.sphinx.click module
+## click_extra.sphinx.click module
 
 ```{automodule} click_extra.sphinx.click
 :members:

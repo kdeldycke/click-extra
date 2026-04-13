@@ -16,7 +16,7 @@
 :undoc-members:
 ```
 
-## tests.test\_colorize module
+## tests.test_colorize module
 
 ```{automodule} tests.test_colorize
 :members:
@@ -24,7 +24,7 @@
 :undoc-members:
 ```
 
-## tests.test\_commands module
+## tests.test_commands module
 
 ```{automodule} tests.test_commands
 :members:
@@ -32,7 +32,7 @@
 :undoc-members:
 ```
 
-## tests.test\_config module
+## tests.test_config module
 
 ```{automodule} tests.test_config
 :members:
@@ -40,7 +40,7 @@
 :undoc-members:
 ```
 
-## tests.test\_envvar module
+## tests.test_envvar module
 
 ```{automodule} tests.test_envvar
 :members:
@@ -48,7 +48,7 @@
 :undoc-members:
 ```
 
-## tests.test\_logging module
+## tests.test_logging module
 
 ```{automodule} tests.test_logging
 :members:
@@ -56,7 +56,7 @@
 :undoc-members:
 ```
 
-## tests.test\_parameters module
+## tests.test_parameters module
 
 ```{automodule} tests.test_parameters
 :members:
@@ -64,7 +64,7 @@
 :undoc-members:
 ```
 
-## tests.test\_pygments module
+## tests.test_pygments module
 
 ```{automodule} tests.test_pygments
 :members:
@@ -72,7 +72,7 @@
 :undoc-members:
 ```
 
-## tests.test\_pytest module
+## tests.test_pytest module
 
 ```{automodule} tests.test_pytest
 :members:
@@ -80,7 +80,7 @@
 :undoc-members:
 ```
 
-## tests.test\_sphinx module
+## tests.test_sphinx module
 
 ```{automodule} tests.test_sphinx
 :members:
@@ -88,7 +88,7 @@
 :undoc-members:
 ```
 
-## tests.test\_sphinx\_alerts module
+## tests.test_sphinx_alerts module
 
 ```{automodule} tests.test_sphinx_alerts
 :members:
@@ -96,7 +96,7 @@
 :undoc-members:
 ```
 
-## tests.test\_sphinx\_click module
+## tests.test_sphinx_click module
 
 ```{automodule} tests.test_sphinx_click
 :members:
@@ -104,7 +104,7 @@
 :undoc-members:
 ```
 
-## tests.test\_table module
+## tests.test_table module
 
 ```{automodule} tests.test_table
 :members:
@@ -112,7 +112,7 @@
 :undoc-members:
 ```
 
-## tests.test\_telemetry module
+## tests.test_telemetry module
 
 ```{automodule} tests.test_telemetry
 :members:
@@ -120,7 +120,7 @@
 :undoc-members:
 ```
 
-## tests.test\_testing module
+## tests.test_testing module
 
 ```{automodule} tests.test_testing
 :members:
@@ -128,7 +128,7 @@
 :undoc-members:
 ```
 
-## tests.test\_timer module
+## tests.test_timer module
 
 ```{automodule} tests.test_timer
 :members:
@@ -136,7 +136,7 @@
 :undoc-members:
 ```
 
-## tests.test\_types module
+## tests.test_types module
 
 ```{automodule} tests.test_types
 :members:
@@ -144,7 +144,7 @@
 :undoc-members:
 ```
 
-## tests.test\_version module
+## tests.test_version module
 
 ```{automodule} tests.test_version
 :members:

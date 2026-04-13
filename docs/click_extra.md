@@ -10,13 +10,12 @@
 
 ```{toctree}
 :maxdepth: 4
-
 click_extra.sphinx
 ```
 
 ## Submodules
 
-## click\_extra.cli module
+## click_extra.cli module
 
 ```{automodule} click_extra.cli
 :members:
@@ -24,7 +23,7 @@ click_extra.sphinx
 :undoc-members:
 ```
 
-## click\_extra.colorize module
+## click_extra.colorize module
 
 ```{automodule} click_extra.colorize
 :members:
@@ -32,7 +31,7 @@ click_extra.sphinx
 :undoc-members:
 ```
 
-## click\_extra.commands module
+## click_extra.commands module
 
 ```{automodule} click_extra.commands
 :members:
@@ -40,7 +39,7 @@ click_extra.sphinx
 :undoc-members:
 ```
 
-## click\_extra.config module
+## click_extra.config module
 
 ```{automodule} click_extra.config
 :members:
@@ -48,7 +47,7 @@ click_extra.sphinx
 :undoc-members:
 ```
 
-## click\_extra.decorators module
+## click_extra.decorators module
 
 ```{automodule} click_extra.decorators
 :members:
@@ -56,7 +55,7 @@ click_extra.sphinx
 :undoc-members:
 ```
 
-## click\_extra.envvar module
+## click_extra.envvar module
 
 ```{automodule} click_extra.envvar
 :members:
@@ -64,7 +63,7 @@ click_extra.sphinx
 :undoc-members:
 ```
 
-## click\_extra.logging module
+## click_extra.logging module
 
 ```{automodule} click_extra.logging
 :members:
@@ -72,7 +71,7 @@ click_extra.sphinx
 :undoc-members:
 ```
 
-## click\_extra.parameters module
+## click_extra.parameters module
 
 ```{automodule} click_extra.parameters
 :members:
@@ -80,7 +79,7 @@ click_extra.sphinx
 :undoc-members:
 ```
 
-## click\_extra.pygments module
+## click_extra.pygments module
 
 ```{automodule} click_extra.pygments
 :members:
@@ -88,7 +87,7 @@ click_extra.sphinx
 :undoc-members:
 ```
 
-## click\_extra.pytest module
+## click_extra.pytest module
 
 ```{automodule} click_extra.pytest
 :members:
@@ -96,7 +95,7 @@ click_extra.sphinx
 :undoc-members:
 ```
 
-## click\_extra.table module
+## click_extra.table module
 
 ```{automodule} click_extra.table
 :members:
@@ -104,7 +103,7 @@ click_extra.sphinx
 :undoc-members:
 ```
 
-## click\_extra.telemetry module
+## click_extra.telemetry module
 
 ```{automodule} click_extra.telemetry
 :members:
@@ -112,7 +111,7 @@ click_extra.sphinx
 :undoc-members:
 ```
 
-## click\_extra.testing module
+## click_extra.testing module
 
 ```{automodule} click_extra.testing
 :members:
@@ -120,7 +119,7 @@ click_extra.sphinx
 :undoc-members:
 ```
 
-## click\_extra.timer module
+## click_extra.timer module
 
 ```{automodule} click_extra.timer
 :members:
@@ -128,7 +127,7 @@ click_extra.sphinx
 :undoc-members:
 ```
 
-## click\_extra.types module
+## click_extra.types module
 
 ```{automodule} click_extra.types
 :members:
@@ -136,7 +135,7 @@ click_extra.sphinx
 :undoc-members:
 ```
 
-## click\_extra.version module
+## click_extra.version module
 
 ```{automodule} click_extra.version
 :members:

@@ -146,6 +146,7 @@ For advanced customization, override `collect_keywords()` on your command class.
 ```python
 from click_extra import ExtraCommand, HelpKeywords
 
+
 class MyCommand(ExtraCommand):
     def collect_keywords(self, ctx):
         kw = super().collect_keywords(ctx)
