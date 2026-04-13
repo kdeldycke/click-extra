@@ -1,9 +1,6 @@
 # Changelog
 
-## [`7.11.0.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.10.1...main)
-
-> [!WARNING]
-> This version is **not released yet** and is under active development.
+## [`7.11.0` (2026-04-13)](https://github.com/kdeldycke/click-extra/compare/v7.10.1...v7.11.0)
 
 - Add `serialize_data()` and `print_data()` functions for serializing arbitrary nested Python data (not just tabular rows) to JSON, HJSON, TOML, YAML, and XML. Complements the existing `render_table()`/`print_table()` pair.
 - Add `sort_key` parameter to `render_table()` and `print_table()` for pre-render row sorting.
