@@ -878,6 +878,142 @@ def test_choice_does_not_override_default_style():
 @pytest.mark.parametrize(
     ("params", "expected", "forbidden"),
     (
+        # Case-sensitive choices are already in their final form.
+        # Original and normalized are identical, so nothing changes.
+        # "json" in the second option's help text is highlighted as a choice.
+        pytest.param(
+            [
+                ExtraOption(
+                    ["--fmt"],
+                    type=click.Choice(["json", "xml", "csv"]),
+                    help="Output format.",
+                ),
+                ExtraOption(
+                    ["--path"],
+                    help="Write json output here.",
+                ),
+            ],
+            [theme.choice("json")],
+            [],
+            id="case-sensitive-unchanged",
+        ),
+        # Case-insensitive uppercase choices must not match lowercase prose.
+        # The --verbosity pattern: choices are CRITICAL, ERROR, etc.
+        # with a custom metavar. The help text of other options may contain
+        # the word "error" in normal English, which must not be highlighted.
+        pytest.param(
+            [
+                ExtraOption(
+                    ["--verbosity"],
+                    metavar="LEVEL",
+                    type=click.Choice(
+                        ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"],
+                        case_sensitive=False,
+                    ),
+                    help="Either CRITICAL, ERROR, WARNING, INFO, DEBUG.",
+                ),
+                ExtraOption(
+                    ["--stop-on-error/--continue-on-error"],
+                    help="Stop on error or continue.",
+                ),
+            ],
+            [theme.choice("ERROR")],
+            [theme.choice("error")],
+            id="case-insensitive-no-false-positive",
+        ),
+        # Case-insensitive choices without a custom metavar use normalized forms.
+        # Click renders the metavar in lowercase (e.g. [critical|error]).
+        # Normalized forms are collected so the metavar values are highlighted.
+        # This means false positives in prose are possible for these choices.
+        pytest.param(
+            [
+                ExtraOption(
+                    ["--level"],
+                    type=click.Choice(
+                        ["CRITICAL", "ERROR", "INFO"],
+                        case_sensitive=False,
+                    ),
+                    help="Set level.",
+                ),
+            ],
+            [theme.choice("error")],
+            [theme.choice("ERROR")],
+            id="case-insensitive-no-custom-metavar",
+        ),
+        # Mixed-case string choices with custom metavar preserve exact casing.
+        # "Mild" is collected as-is, not lowercased to "mild".
+        pytest.param(
+            [
+                ExtraOption(
+                    ["--heat"],
+                    metavar="HEAT",
+                    type=click.Choice(
+                        ["Mild", "Medium", "Hot"],
+                        case_sensitive=False,
+                    ),
+                    help="Spice level: Mild, Medium, or Hot.",
+                ),
+                ExtraOption(
+                    ["--mild-sauce"],
+                    is_flag=True,
+                    help="Use a mild sauce.",
+                ),
+            ],
+            [theme.choice("Mild")],
+            [theme.choice("mild")],
+            id="mixed-case-custom-metavar",
+        ),
+        # EnumChoice with custom metavar collects original-case enum names
+        # via the ``c.name`` branch rather than ``normalize_choice()``.
+        pytest.param(
+            [
+                ExtraOption(
+                    ["--priority"],
+                    metavar="PRIO",
+                    type=EnumChoice(Priority, choice_source=ChoiceSource.NAME),
+                    help="Set to LOW or HIGH.",
+                ),
+                ExtraOption(
+                    ["--on-low"],
+                    help="Action when priority is low.",
+                ),
+            ],
+            [theme.choice("LOW")],
+            [theme.choice("low")],
+            id="enum-custom-metavar-original-case",
+        ),
+        # EnumChoice without custom metavar collects normalized (lowercased)
+        # names. Contrasts with the custom-metavar case above.
+        pytest.param(
+            [
+                ExtraOption(
+                    ["--priority"],
+                    type=EnumChoice(Priority, choice_source=ChoiceSource.NAME),
+                    help="Set priority.",
+                ),
+            ],
+            [theme.choice("low")],
+            [theme.choice("LOW")],
+            id="enum-no-custom-metavar-normalized",
+        ),
+    ),
+)
+def test_choice_collection_case(params, expected, forbidden):
+    """Choice keywords must use the original-case strings from the type definition,
+    not the normalized (lowercased) forms produced by ``normalize_choice()``."""
+    cli = ExtraCommand("test", params=params)
+    ctx = ExtraContext(cli)
+    help_text = cli.get_help(ctx)
+
+    for fragment in expected:
+        assert fragment in help_text
+    for fragment in forbidden:
+        assert fragment not in help_text
+
+
+@pytest.mark.parametrize(
+    ("params", "expected", "forbidden"),
+    (
         # Argument names in Usage and description.
         pytest.param(
             [
@@ -1064,6 +1200,46 @@ def test_parent_keywords_highlighted_in_subcommand_help():
     assert " " + theme.invoked_command("myapp") + " " in help_text
     assert " " + theme.option("--table-format") + " " in help_text
     assert theme.choice("github") + " " in help_text
+
+
+def test_parent_choice_case_with_custom_metavar():
+    """Parent choices with custom metavar must use original-case strings in
+    subcommand help, not normalized (lowercased) forms."""
+    from click_extra.commands import ExtraGroup
+
+    grp = ExtraGroup(
+        "myapp",
+        params=[
+            ExtraOption(
+                ["--verbosity"],
+                metavar="LEVEL",
+                type=click.Choice(
+                    ["CRITICAL", "ERROR", "WARNING"],
+                    case_sensitive=False,
+                ),
+                help="Set verbosity.",
+            ),
+        ],
+    )
+
+    sub = ExtraCommand(
+        "sub",
+        params=[
+            ExtraOption(
+                ["--stop-on-error/--continue-on-error"],
+                help="Stop on error or continue.",
+            ),
+        ],
+    )
+    grp.add_command(sub)
+
+    parent_ctx = ExtraContext(grp, info_name="myapp")
+    ctx = ExtraContext(sub, parent=parent_ctx, info_name="sub")
+    help_text = sub.get_help(ctx)
+
+    # Uppercase "ERROR" from the parent's choices must not produce a
+    # lowercase "error" highlight in the subcommand's prose.
+    assert theme.choice("error") not in help_text
 
 
 def test_command_aliases_collected():

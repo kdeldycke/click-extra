@@ -22,6 +22,7 @@ import os
 import re
 from configparser import RawConfigParser
 from dataclasses import dataclass, field, fields
+from enum import Enum
 from functools import lru_cache
 from gettext import gettext as _
 import click
@@ -410,10 +411,7 @@ class ExtraHelpColorsMixin:  # (Command)??
                     options.update(param.opts)
                     options.update(param.secondary_opts)
                     if isinstance(param.type, click.Choice):
-                        kw.choices.update(
-                            param.type.normalize_choice(c, parent_ctx)
-                            for c in param.type.choices
-                        )
+                        self._collect_choice_keywords(param, parent_ctx, kw)
             parent_ctx = parent_ctx.parent
 
         # Split options into short and long by length heuristic. Short options
@@ -436,6 +434,36 @@ class ExtraHelpColorsMixin:  # (Command)??
             kw.subtract(self.excluded_keywords)
 
         return kw
+
+    @staticmethod
+    def _collect_choice_keywords(
+        param: click.Parameter,
+        ctx: click.Context,
+        kw: HelpKeywords,
+    ) -> None:
+        """Collect choice keywords from a ``click.Choice`` parameter.
+
+        When a custom metavar (e.g. ``LEVEL``) replaces the standard
+        ``[choice1|choice2]`` rendering, original-case choice strings are
+        collected to match developer-written prose (e.g. "Either CRITICAL,
+        ERROR, ...") without producing false-positive highlights for common
+        English words like "error" and "info".
+        """
+        if isinstance(param, click.Option) and param.metavar:
+            # Custom metavar hides the normalized choice list. Collect
+            # original-case values. This is the first step of Click's own
+            # ``normalize_choice()`` before case folding is applied.
+            kw.choices.update(
+                c.name if isinstance(c, Enum) else str(c)
+                for c in param.type.choices
+            )
+        else:
+            # Standard metavar: collect the normalized forms that
+            # match what Click renders in ``[choice1|choice2]``.
+            kw.choices.update(
+                param.type.normalize_choice(c, ctx)
+                for c in param.type.choices
+            )
 
     @staticmethod
     def _collect_params(
@@ -466,11 +494,7 @@ class ExtraHelpColorsMixin:  # (Command)??
             # metavar (with delimiters like brackets and pipes). All other
             # types fall back to a plain uppercased name (e.g. TEXT, INTEGER).
             if isinstance(param.type, click.Choice):
-                # Use normalize_choice() to get the exact strings shown in the
-                # metavar. Handles Enum names, case-folding, EnumChoice source.
-                kw.choices.update(
-                    param.type.normalize_choice(c, ctx) for c in param.type.choices
-                )
+                ExtraHelpColorsMixin._collect_choice_keywords(param, ctx, kw)
             elif isinstance(param.type, click.DateTime):
                 # Highlight each datetime format string as a choice.
                 kw.choices.update(param.type.formats)

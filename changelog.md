@@ -15,6 +15,7 @@
 - Add `extra_keywords` and `excluded_keywords` parameters to `ExtraCommand` and `ExtraGroup`. `extra_keywords` injects additional strings for highlighting; `excluded_keywords` suppresses highlighting of specific strings. Both accept a `HelpKeywords` instance.
 - Switch deprecated-message highlighting from pre-collected keyword sets to a case-insensitive regex. Manually-added markers like `(Deprecated)` or `(deprecated: reason)` in help strings are now styled alongside Click-native `(DEPRECATED)` markers.
 - Fix choice cross-reference highlighting bleeding into bracket fields. When a default value contained a choice keyword (e.g. `outline` in `rounded-outline`), the choice style would override the default value style. Bracket fields are now placeholder-protected before cross-reference passes run.
+- Fix parent-context choice collection always normalizing (lowercasing) case-insensitive choices, ignoring custom metavars. Parent choices with a custom metavar now preserve original case, matching the behavior already applied to the current command's parameters.
 
 ## [`7.10.1` (2026-04-07)](https://github.com/kdeldycke/click-extra/compare/v7.10.0...v7.10.1)
 
