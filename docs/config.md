@@ -837,7 +837,7 @@ This is the de facto standard across the ecosystem. Every major tool that suppor
 | :-------------------------------------------------------------------------------- | :----------------------------------------------------------------------------- |
 | [ruff](https://docs.astral.sh/ruff/configuration/#config-file-discovery)          | `.ruff.toml` > `ruff.toml` > `pyproject.toml`                                  |
 | [uv](https://docs.astral.sh/uv/concepts/configuration-files/#configuration-files) | `uv.toml` > `pyproject.toml`                                                   |
-| [typos](https://github.com/crate-ci/typos/blob/master/docs/reference.md)  | `typos.toml` / `_typos.toml` / `.typos.toml` > `Cargo.toml` > `pyproject.toml` |
+| [typos](https://github.com/crate-ci/typos/blob/master/docs/reference.md)          | `typos.toml` / `_typos.toml` / `.typos.toml` > `Cargo.toml` > `pyproject.toml` |
 
 The rationale:
 
