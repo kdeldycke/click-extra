@@ -114,6 +114,31 @@ assert "or text." in strip_ansi(result.output)
 
 Excluded keywords are only suppressed in free-text descriptions and docstrings. They remain styled inside their own choice metavar, which is a structural element (like bracket fields).
 
+Exclusions propagate from parent groups to subcommands. If a group excludes a choice, that exclusion applies to all nested subcommand help screens too. Parent and child exclusions are merged, so you can exclude additional keywords at any level:
+
+```{click:source}
+from click_extra import Choice, HelpKeywords, echo, group, option
+
+@group(excluded_keywords=HelpKeywords(choices={"version"}))
+@option("--sort-by", type=Choice(["name", "version"]))
+def cli(sort_by):
+    """Sort items."""
+
+@cli.command()
+def show():
+    """Show the version of each item."""
+    echo("Showing...")
+```
+
+```{click:run}
+result = invoke(cli, args=["show", "--help"])
+assert result.exit_code == 0
+# "version" is a parent choice but excluded: not styled in the description.
+assert "\x1b[35mversion\x1b[0m" not in result.output
+from boltons.strutils import strip_ansi
+assert "version" in strip_ansi(result.output)
+```
+
 Both `extra_keywords` and `excluded_keywords` accept a `HelpKeywords` instance. The available category fields are: `cli_names`, `subcommands`, `command_aliases`, `arguments`, `long_options`, `short_options`, `choices`, `choice_metavars`, `metavars`, `envvars`, and `defaults`. The `choice_metavars` field is auto-populated from `click.Choice` parameters and rarely needs manual specification.
 
 For advanced customization, override `collect_keywords()` on your command class. Call `super()` and mutate the returned `HelpKeywords` to add or remove entries:

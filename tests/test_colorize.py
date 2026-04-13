@@ -51,7 +51,13 @@ from click_extra import (
     style,
     verbosity_option,
 )
-from click_extra.colorize import color_envvars, default_theme as theme, highlight
+from click.testing import CliRunner
+from click_extra.colorize import (
+    HelpKeywords,
+    color_envvars,
+    default_theme as theme,
+    highlight,
+)
 from click_extra.pytest import (
     command_decorators,
     default_debug_colored_log_end,
@@ -1399,8 +1405,6 @@ def test_alias_substring_not_highlighted(invoke):
 )
 def test_help_keywords_merge(base_kwargs, other_kwargs, checks):
     """HelpKeywords.merge() unions every field."""
-    from click_extra.colorize import HelpKeywords
-
     base = HelpKeywords(**base_kwargs)
     other = HelpKeywords(**other_kwargs)
     base.merge(other)
@@ -1442,8 +1446,6 @@ def test_help_keywords_merge(base_kwargs, other_kwargs, checks):
 )
 def test_help_keywords_subtract(base_kwargs, removals_kwargs, checks):
     """HelpKeywords.subtract() removes matching entries per field."""
-    from click_extra.colorize import HelpKeywords
-
     base = HelpKeywords(**base_kwargs)
     removals = HelpKeywords(**removals_kwargs)
     base.subtract(removals)
@@ -1453,7 +1455,6 @@ def test_help_keywords_subtract(base_kwargs, removals_kwargs, checks):
 
 def test_extra_keywords_merged():
     """extra_keywords injects additional strings into the collected set."""
-    from click_extra.colorize import HelpKeywords
     from click_extra.commands import ExtraGroup
 
     grp = ExtraGroup(
@@ -1472,8 +1473,6 @@ def test_excluded_keywords_preserved_in_collection():
     metavars can be styled with the full choices set before the excluded
     choices are removed for cross-ref passes.
     """
-    from click_extra.colorize import HelpKeywords
-
     cmd = ExtraCommand(
         "exporter",
         params=[
@@ -1495,8 +1494,6 @@ def test_excluded_keywords_preserved_in_collection():
 
 def test_excluded_keywords_via_constructor():
     """excluded_keywords can be passed through the ExtraCommand constructor."""
-    from click_extra.colorize import HelpKeywords
-
     cmd = ExtraCommand(
         "demo",
         params=[
@@ -1511,9 +1508,6 @@ def test_excluded_keywords_via_constructor():
 
 def test_excluded_keywords_suppresses_highlighting():
     """Excluded keywords do not appear styled in the rendered help text."""
-    from boltons.strutils import strip_ansi
-    from click_extra.colorize import HelpKeywords
-
     cmd = ExtraCommand(
         "tool",
         help="Export data.",
@@ -1607,8 +1601,6 @@ def test_multiple_choice_options_metavar_styled():
 def test_excluded_multiple_choices_styled_in_metavar_only():
     """Multiple excluded choices appear styled in their own metavar but not in
     free-text descriptions."""
-    from click_extra.colorize import HelpKeywords
-
     cmd = ExtraCommand(
         "tool",
         params=[
@@ -1634,6 +1626,134 @@ def test_excluded_multiple_choices_styled_in_metavar_only():
     assert "Use " + theme.choice("json") not in help_text
     assert theme.choice("xml") + " format" not in help_text
     assert "Use json" in plain
+
+
+@pytest.mark.parametrize(
+    ("parent_excluded", "child_excluded", "word", "expect_styled"),
+    (
+        pytest.param(
+            HelpKeywords(choices={"version"}),
+            None,
+            "version",
+            False,
+            id="parent-propagates",
+        ),
+        pytest.param(
+            None,
+            None,
+            "version",
+            True,
+            id="no-exclusions",
+        ),
+        pytest.param(
+            HelpKeywords(choices={"name"}),
+            HelpKeywords(choices={"version"}),
+            "version",
+            False,
+            id="child-excludes",
+        ),
+        pytest.param(
+            HelpKeywords(choices={"version"}),
+            HelpKeywords(choices={"name"}),
+            "name",
+            False,
+            id="parent-and-child-merged",
+        ),
+        pytest.param(
+            HelpKeywords(choices={"name", "version"}),
+            None,
+            "name",
+            False,
+            id="multiple-parent-exclusions",
+        ),
+    ),
+)
+def test_excluded_keywords_inheritance(
+    parent_excluded, child_excluded, word, expect_styled
+):
+    """excluded_keywords propagate from parent groups to subcommands.
+
+    Parent choices are collected for subcommand help screens (cross-ref
+    highlighting). The parent's excluded_keywords must follow, otherwise
+    excluded choices bleed into subcommand descriptions.
+    """
+
+    @group(excluded_keywords=parent_excluded)
+    @option("--sort-by", type=click.Choice(["name", "version"]))
+    def cli(sort_by):
+        pass
+
+    @cli.command(excluded_keywords=child_excluded)
+    def sub():
+        """Show the version and name of the tool."""
+
+    result = CliRunner().invoke(cli, ["--color", "sub", "--help"])
+    styled_word = theme.choice(word)
+    if expect_styled:
+        assert styled_word in result.output
+    else:
+        assert word in strip_ansi(result.output)
+        assert styled_word not in result.output
+
+
+def test_excluded_keywords_grandparent_propagation():
+    """excluded_keywords propagate through multiple nesting levels."""
+
+    @group(excluded_keywords=HelpKeywords(choices={"version"}))
+    @option("--sort-by", type=click.Choice(["name", "version"]))
+    def root(sort_by):
+        pass
+
+    @root.group()
+    def mid():
+        pass
+
+    @mid.command()
+    def leaf():
+        """Show the version of the tool."""
+
+    result = CliRunner().invoke(root, ["--color", "mid", "leaf", "--help"])
+    assert "version" in strip_ansi(result.output)
+    assert theme.choice("version") not in result.output
+
+
+def test_excluded_keywords_plain_click_group_parent():
+    """A plain click.Group parent without excluded_keywords does not crash."""
+
+    @click.group()
+    def plain_grp():
+        pass
+
+    @plain_grp.command(cls=ExtraCommand)
+    @option("--mode", type=click.Choice(["fast", "slow"]))
+    def child(mode):
+        """Run in fast or slow mode."""
+
+    result = CliRunner().invoke(plain_grp, ["child", "--help"])
+    assert result.exit_code == 0
+    assert "fast" in strip_ansi(result.output)
+
+
+def test_excluded_keywords_not_mutated():
+    """Calling format_help must not mutate the command's excluded_keywords."""
+    original = HelpKeywords(choices={"json"})
+    parent_kw = HelpKeywords(choices={"csv"})
+
+    @group(excluded_keywords=parent_kw)
+    @option("--format", type=click.Choice(["json", "csv"]))
+    def cli(format):
+        pass
+
+    @cli.command(excluded_keywords=original)
+    def sub():
+        """Export as json or csv."""
+
+    # Invoke to trigger format_help.
+    CliRunner().invoke(cli, ["--color", "sub", "--help"])
+
+    # Original excluded_keywords must be unchanged (no "csv" merged in).
+    assert original.choices == {"json"}
+    assert parent_kw.choices == {"csv"}
 
 
 def test_keyword_collection(invoke, assert_output_regex):

@@ -530,10 +530,29 @@ class ExtraHelpColorsMixin:  # (Command)??
         ctx.formatter_class = HelpExtraFormatter
         return super().get_help(ctx)  # type: ignore[no-any-return,misc]
 
+    @staticmethod
+    def _collect_excluded_keywords(ctx: click.Context) -> HelpKeywords | None:
+        """Merge ``excluded_keywords`` from the current command and all ancestors.
+
+        Mirrors the parent-context traversal that collects parent choices in
+        :meth:`collect_keywords`. Returns a fresh :class:`HelpKeywords` so that
+        no command's original ``excluded_keywords`` is mutated.
+        """
+        excluded: HelpKeywords | None = None
+        cmd_ctx: click.Context | None = ctx
+        while cmd_ctx:
+            cmd_excluded = getattr(cmd_ctx.command, "excluded_keywords", None)
+            if cmd_excluded is not None:
+                if excluded is None:
+                    excluded = HelpKeywords()
+                excluded.merge(cmd_excluded)
+            cmd_ctx = cmd_ctx.parent
+        return excluded
+
     def format_help(self, ctx: click.Context, formatter: HelpExtraFormatter) -> None:
         """Feed our custom formatter instance with the keywords to highlight."""
         formatter.keywords = self.collect_keywords(ctx)
-        formatter.excluded_keywords = self.excluded_keywords
+        formatter.excluded_keywords = self._collect_excluded_keywords(ctx)
         super().format_help(ctx, formatter)  # type: ignore[misc]
 
 
