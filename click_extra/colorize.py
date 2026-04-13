@@ -693,15 +693,27 @@ class HelpExtraFormatter(cloup.HelpFormatter):
         # like "(Deprecated)" in help strings.
         help_text = highlight(help_text, [self._deprecated_re], self.theme.deprecated)
 
-        # Highlight subcommands and their aliases. Both share the subcommand
-        # style and require 2-space indentation as a leading boundary.
-        all_subcommands = kw.subcommands | kw.command_aliases
-        if all_subcommands:
+        # Highlight subcommand names. Requires 2-space indentation as a
+        # leading boundary.
+        if kw.subcommands:
             help_text = highlight(
                 help_text,
                 (
                     re.compile(rf"(?<=  ){re.escape(name)}(?=\s)")
-                    for name in sorted(all_subcommands, key=len, reverse=True)
+                    for name in sorted(kw.subcommands, key=len, reverse=True)
+                ),
+                self.theme.subcommand,
+            )
+
+        # Highlight command aliases inside parenthetical groups like
+        # "(lock, freeze, snapshot)". Aliases are preceded by "(" or ", "
+        # and followed by "," or ")".
+        if kw.command_aliases:
+            help_text = highlight(
+                help_text,
+                (
+                    re.compile(rf"(?<=[(, ]){re.escape(name)}(?=[,)])")
+                    for name in sorted(kw.command_aliases, key=len, reverse=True)
                 ),
                 self.theme.subcommand,
             )

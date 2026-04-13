@@ -1261,6 +1261,113 @@ def test_command_aliases_collected():
     assert "ci" in kw.command_aliases
 
 
+def test_command_aliases_highlighted(invoke):
+    """Aliases inside parenthetical groups are highlighted with the subcommand
+    style."""
+
+    @group
+    def cli():
+        pass
+
+    @command(params=None, aliases=["save", "freeze"])
+    def backup():
+        """Save data to a file."""
+
+    @command(params=None, aliases=["load"])
+    def restore():
+        """Load data from a file."""
+
+    cli.add_command(backup)
+    cli.add_command(restore)
+
+    result = invoke(cli, "--help", color=True)
+    help_text = result.output
+
+    # Subcommand names are highlighted.
+    assert "  " + theme.subcommand("backup") + " " in help_text
+    assert "  " + theme.subcommand("restore") + " " in help_text
+
+    # Aliases inside parentheses are highlighted.
+    assert theme.subcommand("save") + "," in help_text
+    assert theme.subcommand("freeze") + ")" in help_text
+    assert theme.subcommand("load") + ")" in help_text
+
+
+def test_single_alias_highlighted(invoke):
+    """A command with exactly one alias still gets highlighted."""
+
+    @group
+    def cli():
+        pass
+
+    @command(params=None, aliases=["ls"])
+    def show():
+        """Display items."""
+
+    cli.add_command(show)
+
+    result = invoke(cli, "--help", color=True)
+    help_text = result.output
+
+    assert "  " + theme.subcommand("show") + " " in help_text
+    assert "(" + theme.subcommand("ls") + ")" in help_text
+
+
+def test_alias_no_false_positive_in_description(invoke):
+    """An alias name appearing in a description must not be highlighted when it
+    does not sit inside alias parentheses."""
+
+    @group
+    def cli():
+        pass
+
+    @command(params=None, aliases=["cp"])
+    def copy():
+        """Use cp to duplicate files."""
+
+    cli.add_command(copy)
+
+    result = invoke(cli, "--help", color=True)
+    help_text = result.output
+
+    # The alias in parentheses is highlighted.
+    assert "(" + theme.subcommand("cp") + ")" in help_text
+
+    # The "cp" inside the description is NOT highlighted because it is not
+    # preceded by "(", ",", or " " followed by ")"/",".
+    for line in help_text.splitlines():
+        stripped = strip_ansi(line)
+        if "Use cp to duplicate" in stripped:
+            # "cp" in the description should not be wrapped in ANSI codes.
+            assert "Use cp to" in line
+            break
+    else:
+        raise AssertionError("Description line not found.")
+
+
+def test_alias_substring_not_highlighted(invoke):
+    """An alias that is a substring of the subcommand name must not cause
+    double-highlighting or partial matches."""
+
+    @group
+    def cli():
+        pass
+
+    @command(params=None, aliases=["back"])
+    def backup():
+        """Save data."""
+
+    cli.add_command(backup)
+
+    result = invoke(cli, "--help", color=True)
+    help_text = result.output
+
+    # The full subcommand name is highlighted.
+    assert "  " + theme.subcommand("backup") + " " in help_text
+    # The alias inside parentheses is highlighted.
+    assert "(" + theme.subcommand("back") + ")" in help_text
+
+
 @pytest.mark.parametrize(
     ("base_kwargs", "other_kwargs", "checks"),
     (
