@@ -451,6 +451,7 @@ class ExtraHelpColorsMixin:  # (Command)??
         ERROR, ...") without producing false-positive highlights for common
         English words like "error" and "info".
         """
+        assert isinstance(param.type, click.Choice)
         if isinstance(param, click.Option) and param.metavar:
             # Custom metavar hides the normalized choice list. Collect
             # original-case values. This is the first step of Click's own
@@ -763,7 +764,7 @@ class HelpExtraFormatter(cloup.HelpFormatter):
                 continue
             pattern = re.compile(_escape_for_help_screen(metavar_str))
             help_text = pattern.sub(
-                lambda m, s=styled: self._add_placeholder(s, bracket_placeholders),
+                lambda m, s=styled: self._add_placeholder(s, bracket_placeholders),  # type: ignore[misc]
                 help_text,
             )
 

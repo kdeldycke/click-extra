@@ -186,7 +186,7 @@ class AnsiHtmlFormatter(ExtendedColorHtmlFormatterMixin, HtmlFormatter):
     """
 
     name = "ANSI HTML"
-    aliases: ClassVar[list[str]] = ["ansi-html"]  # type: ignore[misc]
+    aliases: ClassVar[list[str]] = ["ansi-html"]
 
     def __init__(self, **kwargs) -> None:
         """Intercept the ``style`` argument to augment it with ANSI colors support.

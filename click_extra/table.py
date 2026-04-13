@@ -609,6 +609,7 @@ def print_table(
     try:
         print_func(render_func(table_data, headers, **kwargs))
     except ImportError:
+        assert table_format is not None
         raise SystemExit(f"Error: {_missing_extra_message(table_format)}") from None
 
 
@@ -645,6 +646,7 @@ def _strip_none_and_wrap(data: Any) -> dict:
     stripped = _strip_none(data)
     if isinstance(stripped, list):
         return {RECORD_KEY: stripped}
+    assert isinstance(stripped, dict)
     return stripped
 
 

@@ -439,7 +439,7 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
         return super().invoke(ctx)
 
 
-class HelpCommand(ExtraHelpColorsMixin, click.Command):
+class HelpCommand(ExtraHelpColorsMixin, click.Command):  # type: ignore[misc]
     """Synthetic subcommand that displays help for the parent group or a subcommand.
 
     Auto-injected into every ``ExtraGroup``. Supports nested resolution:
@@ -467,16 +467,14 @@ class HelpCommand(ExtraHelpColorsMixin, click.Command):
         if search_term:
             self._search(parent_ctx, group, search_term)
             ctx.exit()
-            return
 
         # No command path: show the group's own help.
         if not command_path:
             click.echo(group.get_help(parent_ctx), color=parent_ctx.color)
             ctx.exit()
-            return
 
         # Walk the command path to find the target.
-        target_cmd: click.BaseCommand = group
+        target_cmd: click.Command = group
         target_ctx = parent_ctx
         for name in command_path:
             if not isinstance(target_cmd, click.Group):
@@ -620,7 +618,7 @@ class ExtraGroup(ExtraCommand, cloup.Group):  # type: ignore[misc]
         if help_command and "help" not in self.commands:
             self.add_command(_make_help_command())
 
-    def add_command(
+    def add_command(  # type: ignore[override]
         self,
         cmd: click.Command,
         name: str | None = None,

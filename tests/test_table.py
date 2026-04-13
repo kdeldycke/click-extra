@@ -1136,7 +1136,7 @@ def test_sort_by_option_choices_and_default(
 ):
     """SortByOption choices and default are derived from column definitions."""
     opt = SortByOption(*header_defs)
-    assert list(opt.type.choices) == expected_choices
+    assert list(opt.type.choices) == expected_choices  # type: ignore[attr-defined]
     assert opt.default == expected_default
 
 

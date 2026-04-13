@@ -35,7 +35,7 @@ for orig_lexer, ansi_lexer in sorted(
             f"[`{orig_lexer.__qualname__}`](https://pygments.org/docs/lexers/#"
             f"{orig_lexer.__module__}.{orig_lexer.__qualname__})",
             f"{', '.join(f'`{a}`' for a in sorted(orig_lexer.aliases))}",
-            f"{', '.join(f'`{a}`' for a in sorted(ansi_lexer.aliases))}",
+            f"{', '.join(f'`{a}`' for a in sorted(ansi_lexer.aliases))}",  # type: ignore[attr-defined]
         ],
     )
 new_table = render_table(
