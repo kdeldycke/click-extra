@@ -407,7 +407,6 @@ regex = true
 search = "date-released: \\d{{4}}-\\d{{2}}-\\d{{2}}"
 replace = "date-released: {utcnow:%Y-%m-%d}"
 
-# Pin image URLs from main to the release tag.
 [[tool.bumpversion.files]]
 filename = "./readme.md"
 ignore_missing_version = true
