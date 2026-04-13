@@ -1790,8 +1790,12 @@ def test_keyword_collection(invoke, assert_output_regex):
     def command4():
         echo("Run click-extra command #4...")
 
-    color_cli1.section("Subcommand group 1", command1, command2)  # type: ignore[attr-defined]
-    color_cli1.section("Extra commands", command3, command4)  # type: ignore[attr-defined]
+    color_cli1.section(  # type: ignore[attr-defined]
+        "Subcommand group 1", command1, command2,
+    )
+    color_cli1.section(  # type: ignore[attr-defined]
+        "Extra commands", command3, command4,
+    )
 
     help_screen = (
         r"\x1b\[94m\x1b\[1m\x1b\[4mUsage:\x1b\[0m \x1b\[97mcolor-cli1\x1b\[0m \x1b\[36m\x1b\[2m\[OPTIONS\]\x1b\[0m \x1b\[36m\x1b\[2mCOMMAND \[ARGS\]\.\.\.\x1b\[0m\n"
