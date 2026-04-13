@@ -24,6 +24,7 @@ sphinx
 testing
 pytest
 telemetry
+benchmark
 ```
 
 % XXX Furo doesn't support icons in toctree entries natively.

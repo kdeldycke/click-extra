@@ -328,6 +328,7 @@ Keep definitions sorted for readability and to minimize merge conflicts:
 - **Python module-level constants and variables**: Alphabetically, unless there is a logical grouping or dependency order. Hard-coded domain constants should be placed at the top of the file, immediately after imports. These constants encode domain assertions and business rules — surfacing them early gives readers an immediate sense of the assumptions the module operates under.
 - **YAML configuration keys**: Alphabetically within each mapping level.
 - **Documentation lists and tables**: Alphabetically, unless a logical order (e.g., chronological in changelog) takes precedence.
+- **Benchmark and comparison tables**: click-extra first, Click second, Cloup third, then remaining frameworks sorted by popularity (GitHub stars).
 
 ### Named constants
 
