@@ -14,6 +14,7 @@
 - Expose `HelpKeywords` dataclass and `collect_keywords()` as public API for extending help screen highlighting. `collect_keywords()` (renamed from the private `_collect_keywords()`) can be overridden to customize keyword collection.
 - Add `extra_keywords` and `excluded_keywords` parameters to `ExtraCommand` and `ExtraGroup`. `extra_keywords` injects additional strings for highlighting; `excluded_keywords` suppresses highlighting of specific strings. Both accept a `HelpKeywords` instance.
 - Switch deprecated-message highlighting from pre-collected keyword sets to a case-insensitive regex. Manually-added markers like `(Deprecated)` or `(deprecated: reason)` in help strings are now styled alongside Click-native `(DEPRECATED)` markers.
+- Style individual choices inside their own metavar (`[json|csv|xml]`) as structural elements. Excluded choices and `cross_ref_highlight=False` only suppress free-text highlighting; the metavar itself is always styled.
 - Fix choice cross-reference highlighting bleeding into bracket fields. When a default value contained a choice keyword (e.g. `outline` in `rounded-outline`), the choice style would override the default value style. Bracket fields are now placeholder-protected before cross-reference passes run.
 - Fix parent-context choice collection always normalizing (lowercasing) case-insensitive choices, ignoring custom metavars. Parent choices with a custom metavar now preserve original case, matching the behavior already applied to the current command's parameters.
 

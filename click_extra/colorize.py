@@ -315,6 +315,7 @@ class HelpKeywords:
     long_options: set[str] = field(default_factory=set)
     short_options: set[str] = field(default_factory=set)
     choices: set[str] = field(default_factory=set)
+    choice_metavars: set[str] = field(default_factory=set)
     metavars: set[str] = field(default_factory=set)
     envvars: set[str] = field(default_factory=set)
     defaults: set[str] = field(default_factory=set)
@@ -429,9 +430,9 @@ class ExtraHelpColorsMixin:  # (Command)??
         if self.extra_keywords is not None:
             kw.merge(self.extra_keywords)
 
-        # Remove consumer-excluded keywords.
-        if self.excluded_keywords is not None:
-            kw.subtract(self.excluded_keywords)
+        # Note: excluded_keywords is NOT applied here. It is applied later
+        # in highlight_extra_keywords(), after choice metavars have been
+        # placeholdered, so that exclusions only affect cross-ref passes.
 
         return kw
 
@@ -464,6 +465,12 @@ class ExtraHelpColorsMixin:  # (Command)??
                 param.type.normalize_choice(c, ctx)
                 for c in param.type.choices
             )
+            # Also collect the rendered metavar string (e.g.
+            # ``[json|xml|csv]``) so it can be styled and placeholdered
+            # before cross-ref highlighting. This protects choices that
+            # appear in ``excluded_keywords`` from losing their
+            # highlight inside their own metavar.
+            kw.choice_metavars.add(param.make_metavar(ctx=ctx))
 
     @staticmethod
     def _collect_params(
@@ -526,6 +533,7 @@ class ExtraHelpColorsMixin:  # (Command)??
     def format_help(self, ctx: click.Context, formatter: HelpExtraFormatter) -> None:
         """Feed our custom formatter instance with the keywords to highlight."""
         formatter.keywords = self.collect_keywords(ctx)
+        formatter.excluded_keywords = self.excluded_keywords
         super().format_help(ctx, formatter)  # type: ignore[misc]
 
 
@@ -571,6 +579,7 @@ class HelpExtraFormatter(cloup.HelpFormatter):
         super().__init__(*args, **kwargs)
 
     keywords: HelpKeywords = HelpKeywords()
+    excluded_keywords: HelpKeywords | None = None
 
     #: Matches range expressions like ``0<=x<=9``, ``x>=1024``, ``0<=x<100``.
     _range_re: ClassVar[re.Pattern] = re.compile(r"(?:\S+(?:<|<=))?x(?:<|<=|>|>=)\S+")
@@ -640,6 +649,36 @@ class HelpExtraFormatter(cloup.HelpFormatter):
             prefix + self.theme.bracket("[") + "".join(styled) + self.theme.bracket("]")
         )
 
+    def _style_choice_metavar(
+        self, metavar: str, choices: set[str]
+    ) -> str | None:
+        """Style individual choices inside a choice metavar string.
+
+        Takes a rendered metavar like ``[json|xml|csv]`` and returns a styled
+        version where each known choice is wrapped with ``theme.choice``.
+        Returns ``None`` if ``metavar`` does not look like a choice list.
+        """
+        # Strip the surrounding brackets.
+        if not (metavar.startswith("[") and metavar.endswith("]")):
+            return None
+        inner = metavar[1:-1]
+        parts = inner.split("|")
+        styled_parts = [
+            self.theme.choice(part) if part in choices else part for part in parts
+        ]
+        return "[" + "|".join(styled_parts) + "]"
+
+    @staticmethod
+    def _add_placeholder(styled: str, store: dict[str, str]) -> str:
+        """Register a styled fragment as a null-byte placeholder.
+
+        Returns the placeholder key. Used to protect already-styled regions
+        from subsequent regex passes.
+        """
+        key = f"\x00B{len(store)}\x00"
+        store[key] = styled
+        return key
+
     def highlight_extra_keywords(self, help_text: str) -> str:
         """Highlight extra keywords in help screens based on the theme.
 
@@ -680,12 +719,32 @@ class HelpExtraFormatter(cloup.HelpFormatter):
         bracket_placeholders: dict[str, str] = {}
 
         def _bracket_to_placeholder(match: re.Match) -> str:
-            styled = self._style_bracket_fields(match)
-            key = f"\x00B{len(bracket_placeholders)}\x00"
-            bracket_placeholders[key] = styled
-            return key
+            return self._add_placeholder(
+                self._style_bracket_fields(match), bracket_placeholders
+            )
 
         help_text = self._bracket_re.sub(_bracket_to_placeholder, help_text)
+
+        # Style and placeholder choice metavars (e.g. ``[json|xml|csv]``)
+        # before applying excluded_keywords and running cross-ref passes.
+        # This ensures that choices excluded from cross-ref highlighting
+        # (like "version") are still highlighted inside their own metavar.
+        for metavar_str in kw.choice_metavars:
+            styled = self._style_choice_metavar(metavar_str, kw.choices)
+            if styled is None:
+                continue
+            pattern = re.compile(_escape_for_help_screen(metavar_str))
+            help_text = pattern.sub(
+                lambda m, s=styled: self._add_placeholder(
+                    s, bracket_placeholders
+                ),
+                help_text,
+            )
+
+        # Apply excluded_keywords after metavar placeholdering so that
+        # exclusions only affect the cross-ref passes below.
+        if self.excluded_keywords is not None:
+            kw.subtract(self.excluded_keywords)
 
         # The remaining passes search free-form text (descriptions, docstrings)
         # for option names, choices, arguments, metavars and CLI names.

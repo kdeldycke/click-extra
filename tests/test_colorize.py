@@ -803,8 +803,9 @@ def test_skip_hidden_option():
 
 def test_cross_ref_highlight_disabled():
     """When ``cross_ref_highlight`` is ``False``, only structural elements are
-    styled (bracket fields, deprecated messages, subcommands). Options, choices,
-    metavars, arguments, and CLI names in free-form text are left plain."""
+    styled (bracket fields, deprecated messages, subcommands, choice metavars).
+    Options, choices in free-form text, metavars, arguments, and CLI names are
+    left plain."""
     no_xref_theme = HelpExtraTheme.dark().with_(cross_ref_highlight=False)  # type: ignore[arg-type]
 
     cli = ExtraCommand(
@@ -830,11 +831,12 @@ def test_cross_ref_highlight_disabled():
     assert theme.bracket("[") in help_text
     assert theme.default("out.csv") in help_text
 
-    # Options, choices and metavars in free text are NOT styled.
+    # Choice metavars ARE styled (structural, like bracket fields).
+    assert "[" + theme.choice("json") + "|" + theme.choice("csv") + "]" in help_text
+
+    # Options and metavars in free text are NOT styled.
     assert theme.option("--output") not in help_text
     assert theme.option("--format") not in help_text
-    assert theme.choice("json") not in help_text
-    assert theme.choice("csv") not in help_text
     assert theme.metavar("TEXT") not in help_text
 
 
@@ -1259,29 +1261,87 @@ def test_command_aliases_collected():
     assert "ci" in kw.command_aliases
 
 
-def test_help_keywords_merge():
+@pytest.mark.parametrize(
+    ("base_kwargs", "other_kwargs", "checks"),
+    (
+        pytest.param(
+            {"long_options": {"--alpha"}, "choices": {"json"}},
+            {"long_options": {"--beta"}, "choices": {"csv", "json"}},
+            {"long_options": {"--alpha", "--beta"}, "choices": {"json", "csv"}},
+            id="union",
+        ),
+        pytest.param(
+            {},
+            {"choices": {"json"}, "long_options": {"--beta"}},
+            {"choices": {"json"}, "long_options": {"--beta"}},
+            id="empty-base",
+        ),
+        pytest.param(
+            {"choices": {"json"}},
+            {},
+            {"choices": {"json"}, "long_options": set()},
+            id="empty-other",
+        ),
+        pytest.param(
+            {"choice_metavars": {"[a|b]"}},
+            {"choice_metavars": {"[c|d]"}},
+            {"choice_metavars": {"[a|b]", "[c|d]"}},
+            id="choice-metavars",
+        ),
+    ),
+)
+def test_help_keywords_merge(base_kwargs, other_kwargs, checks):
     """HelpKeywords.merge() unions every field."""
     from click_extra.colorize import HelpKeywords
 
-    base = HelpKeywords(long_options={"--alpha"}, choices={"json"})
-    other = HelpKeywords(long_options={"--beta"}, choices={"csv", "json"})
+    base = HelpKeywords(**base_kwargs)
+    other = HelpKeywords(**other_kwargs)
     base.merge(other)
-    assert base.long_options == {"--alpha", "--beta"}
-    assert base.choices == {"json", "csv"}
+    for field_name, expected in checks.items():
+        assert getattr(base, field_name) == expected
 
 
-def test_help_keywords_subtract():
+@pytest.mark.parametrize(
+    ("base_kwargs", "removals_kwargs", "checks"),
+    (
+        pytest.param(
+            {
+                "long_options": {"--alpha", "--beta", "--gamma"},
+                "choices": {"json", "csv"},
+            },
+            {"long_options": {"--beta"}, "choices": {"csv"}},
+            {"long_options": {"--alpha", "--gamma"}, "choices": {"json"}},
+            id="basic",
+        ),
+        pytest.param(
+            {"choices": {"json"}},
+            {"choices": {"xml"}},
+            {"choices": {"json"}},
+            id="non-existent-item",
+        ),
+        pytest.param(
+            {},
+            {"long_options": {"--beta"}},
+            {"long_options": set()},
+            id="empty-base",
+        ),
+        pytest.param(
+            {"choice_metavars": {"[a|b]", "[c|d]"}},
+            {"choice_metavars": {"[a|b]"}},
+            {"choice_metavars": {"[c|d]"}},
+            id="choice-metavars",
+        ),
+    ),
+)
+def test_help_keywords_subtract(base_kwargs, removals_kwargs, checks):
     """HelpKeywords.subtract() removes matching entries per field."""
     from click_extra.colorize import HelpKeywords
 
-    base = HelpKeywords(
-        long_options={"--alpha", "--beta", "--gamma"},
-        choices={"json", "csv"},
-    )
-    removals = HelpKeywords(long_options={"--beta"}, choices={"csv"})
+    base = HelpKeywords(**base_kwargs)
+    removals = HelpKeywords(**removals_kwargs)
     base.subtract(removals)
-    assert base.long_options == {"--alpha", "--gamma"}
-    assert base.choices == {"json"}
+    for field_name, expected in checks.items():
+        assert getattr(base, field_name) == expected
 
 
 def test_extra_keywords_merged():
@@ -1298,8 +1358,13 @@ def test_extra_keywords_merged():
     assert "--phantom" in kw.long_options
 
 
-def test_excluded_keywords_removed():
-    """excluded_keywords suppresses highlighting of specific strings."""
+def test_excluded_keywords_preserved_in_collection():
+    """excluded_keywords does not remove from collect_keywords().
+
+    Exclusion is deferred to highlight_extra_keywords() so that choice
+    metavars can be styled with the full choices set before the excluded
+    choices are removed for cross-ref passes.
+    """
     from click_extra.colorize import HelpKeywords
 
     cmd = ExtraCommand(
@@ -1316,9 +1381,8 @@ def test_excluded_keywords_removed():
 
     ctx = ExtraContext(cmd, info_name="exporter")
     kw = cmd.collect_keywords(ctx)
-    # "json" was collected from the Choice but then excluded.
-    assert "json" not in kw.choices
-    # "csv" is unaffected.
+    # "json" is still in the collected keywords (exclusion is deferred).
+    assert "json" in kw.choices
     assert "csv" in kw.choices
 
 
@@ -1333,9 +1397,9 @@ def test_excluded_keywords_via_constructor():
         ],
         excluded_keywords=HelpKeywords(long_options={"--output"}),
     )
-    ctx = ExtraContext(cmd, info_name="demo")
-    kw = cmd.collect_keywords(ctx)
-    assert "--output" not in kw.long_options
+    # The attribute is set on the command.
+    assert cmd.excluded_keywords is not None
+    assert "--output" in cmd.excluded_keywords.long_options
 
 
 def test_excluded_keywords_suppresses_highlighting():
@@ -1361,18 +1425,108 @@ def test_excluded_keywords_suppresses_highlighting():
 
     # "csv" is highlighted (magenta).
     assert theme.choice("csv") in help_text
-    # "json" appears unstyled in the description.
+    # "json" appears unstyled in the description prose.
     plain = strip_ansi(help_text)
     assert "json" in plain
-    # "json" should NOT carry the choice style in the description line.
-    # It will still appear styled inside the metavar bracket (structural),
-    # but the free-text occurrence must be plain.
-    description_lines = [
-        ln for ln in help_text.splitlines() if "Use json or csv" in strip_ansi(ln)
-    ]
-    assert description_lines
-    # In the description line, "json" must not be wrapped in choice styling.
-    assert theme.choice("json") not in description_lines[0]
+    # "json" IS styled in its own metavar (structural).
+    assert "[" + theme.choice("json") + "|" in help_text
+    # "json" is NOT styled in the description text ("Use json or csv.").
+    assert "Use " + theme.choice("json") not in help_text
+    assert "Use json" in plain
+
+
+@pytest.mark.parametrize(
+    ("metavar", "choices", "expected"),
+    (
+        pytest.param("TEXT", {"json"}, None, id="plain-metavar"),
+        pytest.param("json", {"json"}, None, id="no-brackets"),
+        pytest.param(
+            "[json]",
+            {"json"},
+            "[" + theme.choice("json") + "]",
+            id="single-choice",
+        ),
+        pytest.param(
+            "[json|unknown]",
+            {"json"},
+            "[" + theme.choice("json") + "|unknown]",
+            id="partial-match",
+        ),
+        pytest.param(
+            "[json|csv|xml]",
+            {"json", "csv", "xml"},
+            (
+                "["
+                + theme.choice("json")
+                + "|"
+                + theme.choice("csv")
+                + "|"
+                + theme.choice("xml")
+                + "]"
+            ),
+            id="all-match",
+        ),
+        pytest.param("[a|b]", set(), "[a|b]", id="empty-choices"),
+    ),
+)
+def test_style_choice_metavar(metavar, choices, expected):
+    """_style_choice_metavar styles known choices inside bracket-delimited
+    metavar strings and returns None for non-bracket strings."""
+    fmt = HelpExtraFormatter()
+    assert fmt._style_choice_metavar(metavar, choices) == expected
+
+
+def test_multiple_choice_options_metavar_styled():
+    """Each choice option gets its metavar individually styled."""
+    cmd = ExtraCommand(
+        "tool",
+        params=[
+            ExtraOption(["--format"], type=click.Choice(["json", "csv"])),
+            ExtraOption(["--shade"], type=click.Choice(["red", "blue"])),
+        ],
+    )
+    ctx = ExtraContext(cmd)
+    help_text = cmd.get_help(ctx)
+    assert (
+        "[" + theme.choice("json") + "|" + theme.choice("csv") + "]"
+        in help_text
+    )
+    assert (
+        "[" + theme.choice("red") + "|" + theme.choice("blue") + "]"
+        in help_text
+    )
+
+
+def test_excluded_multiple_choices_styled_in_metavar_only():
+    """Multiple excluded choices appear styled in their own metavar but not in
+    free-text descriptions."""
+    from click_extra.colorize import HelpKeywords
+
+    cmd = ExtraCommand(
+        "tool",
+        params=[
+            ExtraOption(
+                ["--format"],
+                type=click.Choice(["json", "csv", "xml"]),
+                help="Use json, csv, or xml format.",
+            ),
+        ],
+        excluded_keywords=HelpKeywords(choices={"json", "xml"}),
+    )
+    ctx = ExtraContext(cmd, info_name="tool")
+    help_text = cmd.get_help(ctx)
+    plain = strip_ansi(help_text)
+
+    # All choices are styled in the metavar (structural).
+    assert "[" + theme.choice("json") + "|" in help_text
+    assert "|" + theme.choice("xml") + "]" in help_text
+    assert "|" + theme.choice("csv") + "|" in help_text
+    # csv is not excluded: styled in prose too.
+    assert theme.choice("csv") in help_text
+    # json and xml are excluded: not styled in prose.
+    assert "Use " + theme.choice("json") not in help_text
+    assert theme.choice("xml") + " format" not in help_text
+    assert "Use json" in plain
 
 
 def test_keyword_collection(invoke, assert_output_regex):
