@@ -465,18 +465,16 @@ dependency-graph.all-extras = true
 dependency-graph.all-groups = false
 exclude = [ "workflows/debug.yaml" ]
 include = [ "skills" ]
-
-[tool.repomatic.test-matrix]
 # Custom axes for upstream dependency testing (full matrix only).
-variations.click-version = [ "released", "stable", "main" ]
-variations.cloup-version = [ "released", "master" ]
+test-matrix.variations.click-version = [ "released", "stable", "main" ]
+test-matrix.variations.cloup-version = [ "released", "master" ]
 # Set defaults for PR matrix (which has no custom axes).
-include = [
+test-matrix.include = [
   { "click-version" = "released" },
   { "cloup-version" = "released" },
 ]
 # Only test non-released Click/Cloup on ARM64 runners with latest stable Python.
-exclude = [
+test-matrix.exclude = [
   { "os" = "ubuntu-slim", "click-version" = "stable" },
   { "os" = "ubuntu-slim", "click-version" = "main" },
   { "os" = "ubuntu-slim", "cloup-version" = "master" },
