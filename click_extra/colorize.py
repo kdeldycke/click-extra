@@ -25,6 +25,7 @@ from dataclasses import dataclass, field, fields
 from enum import Enum
 from functools import lru_cache
 from gettext import gettext as _
+
 import click
 import cloup
 from cloup._util import identity
@@ -455,15 +456,13 @@ class ExtraHelpColorsMixin:  # (Command)??
             # original-case values. This is the first step of Click's own
             # ``normalize_choice()`` before case folding is applied.
             kw.choices.update(
-                c.name if isinstance(c, Enum) else str(c)
-                for c in param.type.choices
+                c.name if isinstance(c, Enum) else str(c) for c in param.type.choices
             )
         else:
             # Standard metavar: collect the normalized forms that
             # match what Click renders in ``[choice1|choice2]``.
             kw.choices.update(
-                param.type.normalize_choice(c, ctx)
-                for c in param.type.choices
+                param.type.normalize_choice(c, ctx) for c in param.type.choices
             )
             # Also collect the rendered metavar string (e.g.
             # ``[json|xml|csv]``) so it can be styled and placeholdered
@@ -668,9 +667,7 @@ class HelpExtraFormatter(cloup.HelpFormatter):
             prefix + self.theme.bracket("[") + "".join(styled) + self.theme.bracket("]")
         )
 
-    def _style_choice_metavar(
-        self, metavar: str, choices: set[str]
-    ) -> str | None:
+    def _style_choice_metavar(self, metavar: str, choices: set[str]) -> str | None:
         """Style individual choices inside a choice metavar string.
 
         Takes a rendered metavar like ``[json|xml|csv]`` and returns a styled
@@ -766,9 +763,7 @@ class HelpExtraFormatter(cloup.HelpFormatter):
                 continue
             pattern = re.compile(_escape_for_help_screen(metavar_str))
             help_text = pattern.sub(
-                lambda m, s=styled: self._add_placeholder(
-                    s, bracket_placeholders
-                ),
+                lambda m, s=styled: self._add_placeholder(s, bracket_placeholders),
                 help_text,
             )
 

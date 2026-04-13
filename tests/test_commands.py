@@ -1037,12 +1037,8 @@ class TestHelpSubcommand:
         assert result.exit_code == 0
         assert "command-cli1" in result.stdout
 
-    def test_help_for_subcommand_in_all_command_cli(
-        self, invoke, all_command_cli
-    ):
+    def test_help_for_subcommand_in_all_command_cli(self, invoke, all_command_cli):
         """``help default-subcommand`` works on the fixture CLI."""
-        result = invoke(
-            all_command_cli, "help", "default-subcommand", color=False
-        )
+        result = invoke(all_command_cli, "help", "default-subcommand", color=False)
         assert result.exit_code == 0
         assert "default-subcommand" in result.stdout

@@ -28,7 +28,12 @@ import logging
 import click
 import cloup
 
-from .colorize import ColorOption, ExtraHelpColorsMixin, HelpExtraFormatter, HelpKeywords
+from .colorize import (
+    ColorOption,
+    ExtraHelpColorsMixin,
+    HelpExtraFormatter,
+    HelpKeywords,
+)
 from .config import (
     DEFAULT_SUBCOMMANDS_KEY,
     PREPEND_SUBCOMMANDS_KEY,
