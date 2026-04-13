@@ -40,18 +40,16 @@ from click_extra import (
 from click_extra.pytest import command_decorators
 from click_extra.table import (
     SERIALIZATION_FORMATS,
+    SortByOption,
     TableFormat,
     _apply_default,
+    _column_sort_key,
     _strip_none,
     print_data,
+    print_sorted_table,
     print_table,
     render_table,
     serialize_data,
-)
-from click_extra.table import (
-    SortByOption,
-    _column_sort_key,
-    print_sorted_table,
 )
 
 
@@ -1163,7 +1161,9 @@ def test_sort_by_option_wires_context(invoke):
 def test_sort_by_option_multi_column(invoke):
     """Multiple --sort-by options define sort priority."""
     sort_opt = SortByOption(
-        ("City", "city"), ("Name", "name"), ("Age", "age"),
+        ("City", "city"),
+        ("Name", "name"),
+        ("Age", "age"),
     )
 
     @command(params=[sort_opt])
@@ -1180,8 +1180,12 @@ def test_sort_by_option_multi_column(invoke):
 
     result = invoke(
         cli,
-        "--table-format", "json",
-        "--sort-by", "name", "--sort-by", "age",
+        "--table-format",
+        "json",
+        "--sort-by",
+        "name",
+        "--sort-by",
+        "age",
         color=False,
     )
     assert result.exit_code == 0

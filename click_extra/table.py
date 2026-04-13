@@ -35,7 +35,7 @@ from .parameters import ExtraOption
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Sequence
+    from collections.abc import Callable, Sequence
     from typing import Any
 
 
@@ -444,7 +444,11 @@ def _pad_gfm_separator(text: str) -> str:
         new_parts = [parts[0]]
         for cell in parts[1:-1]:
             stripped = cell.strip()
-            if not stripped or "-" not in stripped or not all(c in "-:" for c in stripped):
+            if (
+                not stripped
+                or "-" not in stripped
+                or not all(c in "-:" for c in stripped)
+            ):
                 new_parts.append(cell)
                 continue
             # Already padded.
@@ -605,9 +609,7 @@ def print_table(
     try:
         print_func(render_func(table_data, headers, **kwargs))
     except ImportError:
-        raise SystemExit(
-            f"Error: {_missing_extra_message(table_format)}"
-        ) from None
+        raise SystemExit(f"Error: {_missing_extra_message(table_format)}") from None
 
 
 def _missing_extra_message(
@@ -680,7 +682,10 @@ def serialize_data(
 
     match table_format:
         case TableFormat.JSON | TableFormat.JSON5 | TableFormat.JSONC:
-            return json.dumps(clean, **{"ensure_ascii": False, "indent": 2, **kwargs}) + "\n"
+            return (
+                json.dumps(clean, **{"ensure_ascii": False, "indent": 2, **kwargs})
+                + "\n"
+            )
 
         case TableFormat.HJSON:
             import hjson
@@ -699,10 +704,12 @@ def serialize_data(
         case TableFormat.YAML:
             import yaml
 
-            return str(yaml.dump(
-                clean,
-                **{"allow_unicode": True, "default_flow_style": False, **kwargs},
-            ))
+            return str(
+                yaml.dump(
+                    clean,
+                    **{"allow_unicode": True, "default_flow_style": False, **kwargs},
+                )
+            )
 
         case TableFormat.XML:
             import xmltodict
@@ -710,7 +717,12 @@ def serialize_data(
             stripped = _strip_none_and_wrap(clean)
             result: str = xmltodict.unparse(
                 {root_element: stripped},
-                **{"pretty": True, "encoding": "unicode", "full_document": False, **kwargs},
+                **{
+                    "pretty": True,
+                    "encoding": "unicode",
+                    "full_document": False,
+                    **kwargs,
+                },
             )
             return result + "\n"
 
@@ -855,9 +867,7 @@ def _column_sort_key(
     sort_order = list(range(column_count))
 
     if sort_columns:
-        col_index = {
-            col_id: i for i, (_, col_id) in enumerate(header_defs) if col_id
-        }
+        col_index = {col_id: i for i, (_, col_id) in enumerate(header_defs) if col_id}
         # Move specified columns to the front in reverse order so the first
         # specified column ends up at position 0.
         for sort_col in reversed(sort_columns):
@@ -898,9 +908,7 @@ def print_sorted_table(
     if not table_data:
         return
 
-    headers = tuple(
-        style(label, bold=True) for label, _ in header_defs
-    )
+    headers = tuple(style(label, bold=True) for label, _ in header_defs)
     sort_key = _column_sort_key(header_defs, sort_columns, cell_key)
     print_table(
         table_data=table_data,
