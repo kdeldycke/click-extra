@@ -63,6 +63,46 @@ Features unique to click-extra or significantly stronger than all competitors:
 - **Parameter introspection**: `--show-params` exposes every parameter's value, source, default, and environment variable. No other framework offers this.
 - **Version with git metadata**: template variables for branch, hash, date, tag, with pre-baking for compiled binaries (Nuitka, PyInstaller).
 
+## Gaps and opportunities
+
+### Man page generation
+
+cobra and bpaf generate man pages from the CLI definition. Click's maintainers closed the topic in 2018 ([pallets/click#434](https://github.com/pallets/click/issues/434)), deferring to external tools. The third-party [click-man](https://github.com/click-contrib/click-man) package generates man pages from Click commands and is usable with click-extra today, though it has limitations: the last published release is `0.4.2` from 2021, it does not handle Click's `\b` formatting markers ([click-contrib/click-man#9](https://github.com/click-contrib/click-man/issues/9)), breaks on Python 3.13 ([click-contrib/click-man#72](https://github.com/click-contrib/click-man/issues/72)), and cannot discover dynamic subcommands ([click-contrib/click-man#14](https://github.com/click-contrib/click-man/issues/14), [click-contrib/click-man#56](https://github.com/click-contrib/click-man/issues/56)). It also does not leverage click-extra's richer metadata (option groups, config file paths, env vars, version templates).
+
+Upstream, Click is redesigning its help output machinery ([pallets/click#3089](https://github.com/pallets/click/issues/3089), [pallets/click#561](https://github.com/pallets/click/issues/561) with 14 thumbs-up) with a pluggable formatter system. This could eventually provide a cleaner data source for man page generation.
+
+### Persistent / inherited flags
+
+cobra's persistent flags propagate from a parent command to all subcommands automatically. Click's maintainers have consistently stated that options belong to the command they modify, and positional dependence (`cli --opt subcmd` vs `cli subcmd --opt`) is intentional ([pallets/click#66](https://github.com/pallets/click/issues/66), [pallets/click#1034](https://github.com/pallets/click/issues/1034)). The official workaround is custom decorators that apply the same options to multiple commands.
+
+This is one of Click's most requested features. The highest-demand closed issues all center on the same family of problems: parent group options are invisible to subcommands ([pallets/click#108](https://github.com/pallets/click/issues/108), 9 thumbs-up), required group options block `--help` on child commands ([pallets/click#814](https://github.com/pallets/click/issues/814), 14 thumbs-up; [pallets/click#295](https://github.com/pallets/click/issues/295), 15 thumbs-up), and group options are lost in `CommandCollection` ([pallets/click#347](https://github.com/pallets/click/issues/347), 13 thumbs-up).
+
+The ongoing parser rewrite ([pallets/click#2205](https://github.com/pallets/click/issues/2205)) and related PR for dynamic context parameters ([pallets/click#2784](https://github.com/pallets/click/pull/2784)) could eventually unblock this upstream, but both have been in progress since 2022 with no merge date in sight. click-extra could add a `@persistent_option` decorator (or a `persistent=True` kwarg on `@option`) that registers the option on the group and injects it into all subcommands at decoration time. The config file support already handles cross-command defaults; persistent flags would complete the story for the CLI layer.
+
+### Enhanced shell completion
+
+Click's built-in completion covers command and option names but has several known gaps. clap, cobra, bpaf, Cyclopts, and Typer all provide richer completion out of the box. The upstream issues below represent the main areas where click-extra could close the gap:
+
+**Context-dependent completions** ([pallets/click#2303](https://github.com/pallets/click/issues/2303), [pallets/click#2184](https://github.com/pallets/click/issues/2184), [pallets/click#928](https://github.com/pallets/click/issues/928)): the `Context` object during shell completion is missing already-parsed parameter values, so completions cannot depend on previous arguments (like completing tags based on a previously typed project name). This is the highest-demand open completion issue (14+ thumbs-up). click-extra could override the completion resolution to populate `ctx.params` properly.
+
+**Broken `--option=value` completion** ([pallets/click#2847](https://github.com/pallets/click/issues/2847)): completing `--option=val<TAB>` is broken in both bash and zsh. The `=` separator parsing in `_resolve_context` needs fixing.
+
+**Default callbacks evaluated during completion** ([pallets/click#2614](https://github.com/pallets/click/issues/2614)): since Click 8.0, default value callbacks run during tab-completion even when `resilient_parsing` should suppress them. Makes completion slow for apps with expensive defaults.
+
+**Fish multiline help** ([pallets/click#3043](https://github.com/pallets/click/issues/3043)): help text containing newlines breaks fish completion. An open PR ([pallets/click#3126](https://github.com/pallets/click/pull/3126)) has had no review in 6 months.
+
+**Enum Choice mismatch** ([pallets/click#3015](https://github.com/pallets/click/issues/3015)): `click.Choice(MyEnum)` completes `MyEnum.foo` instead of `foo` because completion skips the normalization the `Choice` type applies at parse time.
+
+**Additional shells rejected upstream** ([pallets/click#2888](https://github.com/pallets/click/issues/2888), [pallets/click#3188](https://github.com/pallets/click/issues/3188), [pallets/click#2672](https://github.com/pallets/click/issues/2672)): Click explicitly rejected adding nushell, Carapace, and PowerShell completion to core. click-extra could provide `NushellComplete` and `PowerShellComplete` classes, and generate Carapace YAML from its parameter introspection.
+
+**Multi-shell auto-install**: Typer's `--install-completion` detects the current shell and installs the completion script automatically. click-extra could bundle a similar `@completion_option`.
+
+### Flag grouping with mutual exclusion
+
+clap has `ArgGroup` with `conflicts_with` and `requires` relationships. Click has no built-in support for mutual exclusion, and the maintainers have repeatedly declined to add it ([pallets/click#257](https://github.com/pallets/click/issues/257), 9 thumbs-up, 37 comments; [pallets/click#2252](https://github.com/pallets/click/issues/2252); [pallets/click#2342](https://github.com/pallets/click/issues/2342)). The official answer since 2022 is to use Cloup or click-option-group. Option group help formatting ([pallets/click#373](https://github.com/pallets/click/issues/373), 28 comments) also remains unresolved upstream.
+
+Cloup (wrapped by click-extra) fills this gap with option groups and constraints (`mutually_exclusive`, `require_all`, `require_one`, `If`/`accept_none`), but the constraint syntax is verbose compared to clap's declarative `conflicts_with = "other_flag"`. Cyclopts offers a similar validator-based grouping system. A convenience layer on top of Cloup's constraints (like `@mutually_exclusive("--json", "--table", "--csv")` as a one-liner) would lower the barrier.
+
 ## Activity
 
 | Metrics                      | `click-extra`                                                                                                                            | `Click`[^1]                                                                                                                    | `Cloup`[^2]                                                                                                                    | `cobra`[^3]                                                                                                                  | `Fire`[^4]                                                                                                                        | `Typer`[^5]                                                                                                                  | `clap`[^6]                                                                                                                   | `Cement`[^7]                                                                                                                       | `Cyclopts`[^8]                                                                                                                       | `Tyro`[^9]                                                                                                                    | `rich-click`[^10]                                                                                                                  | `bpaf`[^11]                                                                                                                  |
