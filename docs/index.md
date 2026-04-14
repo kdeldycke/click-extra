@@ -13,6 +13,7 @@ tutorial
 commands
 config
 colorize
+jobs
 logging
 table
 version

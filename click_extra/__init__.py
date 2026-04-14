@@ -65,6 +65,7 @@ from .decorators import (  # type: ignore[no-redef]
     config_option,
     group,
     help_option,
+    jobs_option,
     lazy_group,
     no_config_option,
     option,
@@ -94,6 +95,7 @@ from .parameters import (
     ShowParamsOption,
     search_params,
 )
+from .jobs import DEFAULT_JOBS, CPU_COUNT, JobsOption
 from .table import (
     SortByOption,
     TableFormat,
@@ -126,6 +128,7 @@ __all__ = [
     "BadArgumentUsage",
     "BadOptionUsage",
     "BadParameter",
+    "CPU_COUNT",
     "Choice",
     "ChoiceSource",
     "ClickException",
@@ -137,6 +140,7 @@ __all__ = [
     "ConfigOption",
     "ConstraintMixin",
     "Context",
+    "DEFAULT_JOBS",
     "DateTime",
     "EnumChoice",
     "ExtraCliRunner",
@@ -159,6 +163,7 @@ __all__ = [
     "HelpSection",
     "HelpTheme",
     "IntRange",
+    "JobsOption",
     "LazyGroup",
     "LogLevel",
     "MissingParameter",
@@ -213,6 +218,7 @@ __all__ = [
     "getchar",
     "group",
     "help_option",
+    "jobs_option",
     "launch",
     "lazy_group",
     "make_pass_decorator",

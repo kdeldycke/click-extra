@@ -31,6 +31,7 @@ from .commands import (
     default_extra_params,
 )
 from .config import ConfigOption, NoConfigOption, ValidateConfigOption
+from .jobs import JobsOption
 from .logging import VerboseOption, VerbosityOption
 from .parameters import Argument, Option, ShowParamsOption
 from .table import TableFormatOption
@@ -145,6 +146,7 @@ lazy_group = decorator_factory(dec=group, cls=LazyGroup)
 # Introduce new parameter decorators specific to Click Extra.
 color_option = decorator_factory(dec=option, cls=ColorOption)
 config_option = decorator_factory(dec=option, cls=ConfigOption)
+jobs_option = decorator_factory(dec=option, cls=JobsOption)
 no_config_option = decorator_factory(dec=option, cls=NoConfigOption)
 validate_config_option = decorator_factory(dec=option, cls=ValidateConfigOption)
 show_params_option = decorator_factory(dec=option, cls=ShowParamsOption)
