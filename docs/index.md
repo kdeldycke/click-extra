@@ -40,7 +40,7 @@ tests
 genindex
 modindex
 changelog
-issues
+upstream
 todolist
 code-of-conduct
 license
