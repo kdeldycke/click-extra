@@ -1791,10 +1791,14 @@ def test_keyword_collection(invoke, assert_output_regex):
         echo("Run click-extra command #4...")
 
     color_cli1.section(  # type: ignore[attr-defined]
-        "Subcommand group 1", command1, command2,
+        "Subcommand group 1",
+        command1,
+        command2,
     )
     color_cli1.section(  # type: ignore[attr-defined]
-        "Extra commands", command3, command4,
+        "Extra commands",
+        command3,
+        command4,
     )
 
     help_screen = (
