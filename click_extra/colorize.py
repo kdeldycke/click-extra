@@ -68,8 +68,9 @@ def _nearest_256(r: int, g: int, b: int) -> int:
     """
     # Color cube (indices 16-231).
     ci = [
-        min(  # type: ignore[misc]
-            range(6), key=lambda i, v=v: abs(v - _CUBE_VALUES[i])
+        min(
+            range(6),
+            key=lambda i, v=v: abs(v - _CUBE_VALUES[i]),  # type: ignore[misc]
         )
         for v in (r, g, b)
     ]

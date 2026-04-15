@@ -609,7 +609,7 @@ class AnsiHtmlFormatter(HtmlFormatter):
             )
             lines.append(f"{prefix(cls)} {{ {declaration} }}")
         lines.append("@keyframes ansi-blink { 50% { opacity: 0 } }")
-        return lines  # type: ignore[no-any-return]
+        return lines
 
     def _get_css_classes(self, ttype: _TokenType) -> str:
         """Decompose compound ``Token.Ansi.*`` tokens into individual CSS classes.
