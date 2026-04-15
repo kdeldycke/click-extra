@@ -13,7 +13,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Helpers and utilities to allow Pygments to parse and render ANSI codes."""
+"""Helpers and utilities to allow Pygments to parse and render ANSI codes.
+
+Add use cases from: https://nbsphinx.readthedocs.io/en/latest/code-cells.html#ANSI-Colors
+"""
 
 from __future__ import annotations
 
@@ -87,7 +90,7 @@ class AnsiFilter(Filter):
         )
 
     def filter(
-        self, lexer: Lexer, stream: Iterable[tuple[_TokenType, str]]
+        self, lexer: Lexer | None, stream: Iterable[tuple[_TokenType, str]]
     ) -> Iterator[tuple[_TokenType, str]]:
         """Transform each token of ``token_type`` type into a stream of ANSI tokens."""
         for ttype, value in stream:
