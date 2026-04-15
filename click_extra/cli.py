@@ -25,6 +25,7 @@ from . import (
     Choice,
     ClickException,
     Color,
+    __version__,
     argument,
     echo,
     group,

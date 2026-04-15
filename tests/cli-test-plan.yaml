@@ -1,6 +1,6 @@
 # This test plan checks some high-level behavior of the click-extra CLI.
 #
-# The prog_name shown in version output is "Click Extra demo" (set via version_fields
+# The prog_name shown in version output is "Click Extra" (set via version_fields
 # in cli.py). The usage line shows "click-extra" (set via name= in the @group decorator).
 # The version regex allows stable (1.2.3), dev (1.2.3.dev0), and prebaked
 # (1.2.3.dev0+abc1234) versions.
@@ -9,8 +9,8 @@
 # Check the CLI reports its version on stdout.
 - cli_parameters: --version
   exit_code: 0
-  stdout_contains: "Click Extra demo\x1b[0m, version \x1b[32m"
-  stdout_regex_fullmatch: "\x1b\\[97mClick Extra demo\x1b\\[0m, version \
+  stdout_contains: "Click Extra\x1b[0m, version \x1b[32m"
+  stdout_regex_fullmatch: "\x1b\\[97mClick Extra\x1b\\[0m, version \
     \x1b\\[32m[0-9]+\\.[0-9]+\\.[0-9]+(\\.[a-z]+[0-9]+\
     (\\+[0-9a-f]+)?)?\x1b\\[0m\n"
 
