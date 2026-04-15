@@ -314,7 +314,7 @@ We can check how the `ansi-color` lexer transforms a raw string into ANSI tokens
 ((Token.Ansi.Magenta, '║'), (Token.Text, ''), (Token.Ansi.Cyan, '▌'), (Token.Text, ''), (Token.Ansi.Red, '█'), (Token.Text, ''), (Token.Ansi.Green, '║'), (Token.Text, ''), (Token.Ansi.Yellow, ' '), (Token.Text, ''), (Token.Ansi.Blue, 'A'), (Token.Text, ''), (Token.Ansi.Magenta, 'N'), (Token.Text, ''), (Token.Ansi.Cyan, 'S'), (Token.Text, ''), (Token.Ansi.Red, 'I'), (Token.Text, ''), (Token.Ansi.Green, ' '), (Token.Text, ''), (Token.Ansi.Yellow, 'A'), (Token.Text, ''), (Token.Ansi.Blue, 'r'), (Token.Text, ''), (Token.Ansi.Magenta, 't'), (Token.Text, ''), (Token.Ansi.Cyan, ' '), (Token.Text, ''), (Token.Ansi.Red, '▌'), (Token.Text, ''), (Token.Ansi.Green, '│'), (Token.Text, ''), (Token.Ansi.Yellow, '║'), (Token.Text, ''), (Token.Ansi.Blue, '▌'), (Token.Text, '\n'))
 ```
 
-See how the raw string is split into Pygments tokens, including the ``Token.Ansi`` tokens. These tokens are then ready to be rendered by [our own `ansi-html` formatter](#ansi-html-formatter).
+See how the raw string is split into Pygments tokens, including the `Token.Ansi` tokens. These tokens are then ready to be rendered by [our own `ansi-html` formatter](#ansi-html-formatter).
 
 ## `pygmentize` command line
 
