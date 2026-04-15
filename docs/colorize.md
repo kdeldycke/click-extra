@@ -278,6 +278,24 @@ from click_extra.cli import demo
 ```{click:run}
 result = invoke(demo, args=["render-matrix", "styles"])
 assert result.exit_code == 0
+
+# Each style header renders with its own SGR attribute.
+assert "\x1b[1mbold\x1b[0m" in result.output
+assert "\x1b[2mdim\x1b[0m" in result.output
+assert "\x1b[4munderline\x1b[0m" in result.output
+assert "\x1b[53moverline\x1b[0m" in result.output
+assert "\x1b[3mitalic\x1b[0m" in result.output
+assert "\x1b[5mblink\x1b[0m" in result.output
+assert "\x1b[7mreverse\x1b[0m" in result.output
+assert "\x1b[9mstrikethrough\x1b[0m" in result.output
+
+# Cells combine foreground color with style attribute.
+# Bold red.
+assert "\x1b[31m\x1b[1mred\x1b[0m" in result.output
+# Italic bright_blue.
+assert "\x1b[94m\x1b[3mbright_blue\x1b[0m" in result.output
+# Strikethrough green.
+assert "\x1b[32m\x1b[9mgreen\x1b[0m" in result.output
 ```
 
 ### Color matrix
@@ -285,6 +303,16 @@ assert result.exit_code == 0
 ```{click:run}
 result = invoke(demo, args=["render-matrix", "colors"])
 assert result.exit_code == 0
+
+# Each background header renders with its own background color.
+assert "\x1b[41mred\x1b[0m" in result.output
+assert "\x1b[44mblue\x1b[0m" in result.output
+
+# Cells combine foreground and background.
+# Red text on blue background.
+assert "\x1b[31m\x1b[44mred\x1b[0m" in result.output
+# Bright green text on yellow background.
+assert "\x1b[92m\x1b[43mbright_green\x1b[0m" in result.output
 ```
 
 ### 256-color indexed palette
@@ -292,6 +320,17 @@ assert result.exit_code == 0
 ```{click:run}
 result = invoke(demo, args=["render-matrix", "palette"])
 assert result.exit_code == 0
+
+# System colors (indices 0-15).
+assert "\x1b[38;5;0;48;5;0m" in result.output
+assert "\x1b[38;5;15;48;5;15m" in result.output
+
+# Color cube entry.
+assert "\x1b[38;5;196;48;5;196m" in result.output
+
+# Grayscale ramp.
+assert "\x1b[38;5;232;48;5;232m" in result.output
+assert "\x1b[38;5;255;48;5;255m" in result.output
 ```
 
 ### 8-color foreground/background combinations
@@ -299,6 +338,15 @@ assert result.exit_code == 0
 ```{click:run}
 result = invoke(demo, args=["render-matrix", "8color"])
 assert result.exit_code == 0
+
+# Plain foreground (no background).
+assert "\x1b[31m gYw \x1b[m" in result.output
+
+# Bold foreground.
+assert "\x1b[1;31m gYw \x1b[m" in result.output
+
+# Foreground + background combination.
+assert "\x1b[31;42m gYw \x1b[m" in result.output
 ```
 
 ### 24-bit RGB vs. 256-color quantization
@@ -306,6 +354,18 @@ assert result.exit_code == 0
 ```{click:run}
 result = invoke(demo, args=["render-matrix", "gradient"])
 assert result.exit_code == 0
+
+# 24-bit row uses SGR 38;2;r;g;b.
+assert "\x1b[38;2;" in result.output
+
+# 8-bit row uses SGR 38;5;n.
+assert "\x1b[38;5;" in result.output
+
+# All four gradients are present.
+assert "Rainbow:" in result.output
+assert "Grayscale:" in result.output
+assert "Red:" in result.output
+assert "Cyan:" in result.output
 ```
 
 ```{caution}

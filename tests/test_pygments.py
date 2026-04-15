@@ -823,18 +823,50 @@ def test_ansi_styles_has_256_palette():
         assert getattr(Ansi, f"BGC{i}") in _ANSI_STYLES
 
 
-def test_ansi_styles_has_text_attributes():
-    """Style dict contains entries for all text attribute tokens."""
+def test_ansi_styles_excludes_all_attributes():
+    """All text attribute tokens are absent from the style dict.
+
+    Furo's dark-mode CSS generator adds ``color: #D0D0D0`` to every token in the style
+    dict. For attribute tokens, this overrides actual foreground colors on compound
+    tokens when the attribute rule appears later in the CSS cascade. All attribute
+    styling is handled by ``EXTRA_ANSI_CSS`` / ``custom.css`` instead.
+    """
     for attr in (
         "Bold", "Faint", "Italic", "Underline", "Blink",
         "Reverse", "Strikethrough", "Overline",
     ):
-        assert getattr(Ansi, attr) in _ANSI_STYLES
+        assert getattr(Ansi, attr) not in _ANSI_STYLES
 
 
 def test_ansi_styles_count():
-    """Style dict has the expected number of entries: 8 attrs + 32 named + 512 indexed."""
-    assert len(_ANSI_STYLES) == 8 + 32 + 512
+    """Style dict has only color entries: 32 named + 512 indexed."""
+    assert len(_ANSI_STYLES) == 32 + 512
+
+
+def test_formatter_no_color_on_attribute_css():
+    """CSS rules for attribute-only tokens must not set a color property.
+
+    When an attribute token (like -Ansi-Strikethrough) has a ``color`` property in its
+    CSS rule, it can override the foreground color of a sibling color token (like
+    -Ansi-Red) if the attribute rule appears later in the CSS cascade. This regression
+    test catches the issue that Furo's dark-mode generator exposed.
+    """
+    formatter = AnsiHtmlFormatter()
+    css = formatter.get_style_defs(".highlight")
+    for attr in ("Faint", "Blink", "Reverse", "Strikethrough", "Overline"):
+        # Find the CSS rule for this attribute.
+        cls = f"-Ansi-{attr}"
+        for line in css.split("\n"):
+            if cls in line and "{" in line:
+                # The rule should not contain a bare "color:" property.
+                # (It may contain "background-color:" which is fine.)
+                rule_body = line.split("{")[1].split("}")[0]
+                declarations = [d.strip() for d in rule_body.split(";") if d.strip()]
+                for decl in declarations:
+                    prop = decl.split(":")[0].strip()
+                    assert prop != "color", (
+                        f"CSS for {cls} must not set 'color' (found: {decl!r})"
+                    )
 
 
 # --- Palette data ---

@@ -240,15 +240,13 @@ def _build_ansi_styles() -> dict[_TokenType, str]:
     """
     styles: dict[_TokenType, str] = {}
 
-    # SGR text attributes.
-    styles[Ansi.Bold] = "bold"
-    styles[Ansi.Faint] = ""
-    styles[Ansi.Italic] = "italic"
-    styles[Ansi.Underline] = "underline"
-    styles[Ansi.Blink] = ""
-    styles[Ansi.Reverse] = ""
-    styles[Ansi.Strikethrough] = ""
-    styles[Ansi.Overline] = ""
+    # All SGR text attributes are intentionally absent from this style dict.
+    # Furo's dark-mode CSS generator adds a `color: #D0D0D0` fallback to every token
+    # in the style dict. For attribute tokens (like Underline or Strikethrough), this
+    # fallback overrides actual foreground colors on compound tokens when the attribute
+    # rule appears later in the CSS cascade than the color rule.
+    # Attribute styling is handled separately: by EXTRA_ANSI_CSS for standalone
+    # pygmentize, and by docs/_static/custom.css for Sphinx/Furo.
 
     # Named colors (16 foreground + 16 background).
     for name, hex_value in _NAMED_COLORS.items():
@@ -604,17 +602,23 @@ for _original_lexer in collect_session_lexers():
 
 
 EXTRA_ANSI_CSS: dict[str, str] = {
+    "Bold": "font-weight: bold",
     "Faint": "opacity: 0.5",
+    "Italic": "font-style: italic",
+    "Underline": "text-decoration: underline",
     "Blink": "animation: ansi-blink 1s step-end infinite",
     "Reverse": "filter: invert(1)",
     "Strikethrough": "text-decoration: line-through",
     "Overline": "text-decoration: overline",
 }
-"""SGR attributes that Pygments' style system cannot express.
+"""All SGR text attribute CSS declarations.
 
-Maps ``Token.Ansi`` component names to CSS declarations. Used by
-``AnsiHtmlFormatter.get_style_defs`` for standalone rendering and by the Sphinx
-extension to inject a dedicated stylesheet.
+Maps ``Token.Ansi`` component names to CSS declarations. These are kept out of the
+Pygments style dict (``_ANSI_STYLES``) to prevent Furo's dark-mode CSS generator from
+injecting ``color: #D0D0D0`` fallbacks that conflict with foreground color tokens.
+
+Used by ``AnsiHtmlFormatter.get_style_defs`` for standalone rendering and by
+``docs/_static/custom.css`` for Sphinx/Furo.
 """
 
 

@@ -74,12 +74,18 @@
   content: none;
 }
 
-/* ANSI SGR text attributes that Pygments' style system cannot express.
- * Pygments handles bold, italic, and underline natively. These rules cover
- * faint, blink, reverse, strikethrough, and overline. Generated from
- * click_extra.pygments.EXTRA_ANSI_CSS.
+/* ANSI SGR text attributes. All attributes are handled here instead of via
+ * Pygments' style dict, because Furo's dark-mode CSS generator injects a
+ * `color: #D0D0D0` fallback for every token in the style dict. That fallback
+ * overrides actual foreground colors on compound tokens when the attribute
+ * rule appears later in the CSS cascade. Keeping attributes out of the style
+ * dict and styling them here avoids the conflict entirely.
+ * Source of truth: click_extra.pygments.EXTRA_ANSI_CSS.
  */
+.highlight .-Ansi-Bold { font-weight: bold }
 .highlight .-Ansi-Faint { opacity: 0.5 }
+.highlight .-Ansi-Italic { font-style: italic }
+.highlight .-Ansi-Underline { text-decoration: underline }
 .highlight .-Ansi-Blink { animation: ansi-blink 1s step-end infinite }
 .highlight .-Ansi-Reverse { filter: invert(1) }
 .highlight .-Ansi-Strikethrough { text-decoration: line-through }
