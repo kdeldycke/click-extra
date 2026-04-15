@@ -461,8 +461,7 @@ exclude = [
 [tool.repomatic]
 dependency-graph.all-extras = true
 dependency-graph.all-groups = false
-exclude = [ "workflows/debug.yaml" ]
-include = [ "skills" ]
+exclude = [ "skills", "workflows/debug.yaml" ]
 # Custom axes for upstream dependency testing (full matrix only).
 test-matrix.variations.click-version = [ "released", "stable", "main" ]
 test-matrix.variations.cloup-version = [ "released", "master" ]
