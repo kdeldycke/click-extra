@@ -530,7 +530,7 @@ for _original_lexer in collect_session_lexers():
     _new_name = f"Ansi{_original_lexer.__name__}"
     _new_lexer = _AnsiSessionMeta(_new_name, (_AnsiFilterMixin, _original_lexer), {})
     locals()[_new_name] = _new_lexer
-    LEXER_MAP[_original_lexer] = _new_lexer
+    LEXER_MAP[_original_lexer] = _new_lexer  # type: ignore[assignment]
 
 
 # --- Formatter ---
@@ -604,10 +604,12 @@ class AnsiHtmlFormatter(HtmlFormatter):
         lines = super().get_token_style_defs(arg)
         prefix = self.get_css_prefix(arg)
         for attr, declaration in EXTRA_ANSI_CSS.items():
-            cls = self._get_css_class(getattr(Ansi, attr))
+            cls = self._get_css_class(  # type: ignore[attr-defined]
+                getattr(Ansi, attr),
+            )
             lines.append(f"{prefix(cls)} {{ {declaration} }}")
         lines.append("@keyframes ansi-blink { 50% { opacity: 0 } }")
-        return lines
+        return lines  # type: ignore[no-any-return]
 
     def _get_css_classes(self, ttype: _TokenType) -> str:
         """Decompose compound ``Token.Ansi.*`` tokens into individual CSS classes.
@@ -623,10 +625,13 @@ class AnsiHtmlFormatter(HtmlFormatter):
         cached = self._ansi_css_cache.get(ttype)
         if cached is not None:
             return cached
-        classes: str = super()._get_css_classes(ttype)
+        classes: str = super()._get_css_classes(ttype)  # type: ignore[misc]
         if ttype[0] == "Ansi":
             classes += " " + " ".join(
-                self._get_css_class(getattr(Ansi, part)) for part in ttype[1:]
+                self._get_css_class(  # type: ignore[attr-defined]
+                    getattr(Ansi, part),
+                )
+                for part in ttype[1:]
             )
         self._ansi_css_cache[ttype] = classes
         return classes

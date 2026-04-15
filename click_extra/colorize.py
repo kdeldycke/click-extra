@@ -67,7 +67,12 @@ def _nearest_256(r: int, g: int, b: int) -> int:
         of full-color to 8-bit quantization.
     """
     # Color cube (indices 16-231).
-    ci = [min(range(6), key=lambda i, v=v: abs(v - _CUBE_VALUES[i])) for v in (r, g, b)]
+    ci = [
+        min(  # type: ignore[misc]
+            range(6), key=lambda i, v=v: abs(v - _CUBE_VALUES[i])
+        )
+        for v in (r, g, b)
+    ]
     cube_idx = 16 + 36 * ci[0] + 6 * ci[1] + ci[2]
     cube_dist = sum((v - _CUBE_VALUES[i]) ** 2 for v, i in zip((r, g, b), ci))
 
