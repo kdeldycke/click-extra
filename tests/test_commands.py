@@ -147,9 +147,9 @@ def test_unknown_option(invoke, all_command_cli):
         ),
         pytest.param(
             {"--debug/-d": True},
-            ["--debgu"],
+            ["--debug"],
             2,
-            "No such option: --debgu",
+            "No such option: --debug",
             id="long_option_typo_suggest",
         ),
         pytest.param(
