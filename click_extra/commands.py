@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import importlib
 import logging
+from difflib import get_close_matches
 
 import click
 import cloup
@@ -52,7 +53,7 @@ from .version import ExtraVersionOption
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
-    from typing import Any
+    from typing import Any, NoReturn
 
 
 class ExtraContext(cloup.Context):
@@ -432,11 +433,95 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
         extra.update({"meta": {"click_extra.raw_args": args.copy()}})
         return super().make_context(info_name, args, parent, **extra)
 
+    def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
+        """Like parent's ``parse_args`` but with better error messages for
+        single-dash multi-character tokens.
+        """
+        original_args = args.copy()
+        try:
+            return super().parse_args(ctx, args)
+        except click.NoSuchOption as exc:
+            _enhance_short_option_error(exc, original_args, ctx)
+
     def invoke(self, ctx: click.Context) -> Any:
         """Main execution of the command, just after the context has been instantiated
         in ``main()``.
         """
         return super().invoke(ctx)
+
+
+def _enhance_short_option_error(
+    exc: click.NoSuchOption,
+    original_args: list[str],
+    ctx: click.Context,
+) -> NoReturn:
+    """Re-raise *exc* with the full token and close-match suggestions when
+    appropriate, or re-raise it unchanged.
+
+    Click's parser treats ``-dbgwrong`` as stacked short flags ``-d -b -g -w
+    -r -o -n -g``, then reports "No such option: -d" on the first unregistered
+    character.  That is technically correct (short-option combining is POSIX
+    behaviour) but confusing when the user meant it as a single option name.
+
+    This function detects that situation by checking whether the failed character
+    is the *first* character of a multi-char single-dash token from the original
+    argument list.  If so, it collects every registered option name and uses
+    ``difflib.get_close_matches`` to suggest alternatives, then raises a new
+    ``NoSuchOption`` with the full token.
+
+    When the failed character is *not* the leading character (the user was
+    genuinely combining short flags and one of them doesn't exist), the original
+    exception is re-raised as-is: Click's per-character diagnostic is already
+    the right message.
+
+    .. seealso::
+        - Upstream issue: https://github.com/pallets/click/issues/2779
+        - ``_match_short_opt`` in Click's ``parser.py`` raises ``NoSuchOption``
+          with only the single failed character.
+        - ``_match_long_opt`` already provides ``get_close_matches`` suggestions,
+          but its exception is discarded when ``_process_opts`` falls through to
+          the short-option path.
+        - Upstream docs PR: https://github.com/pallets/click/pull/3179
+        - Rejected upstream code PRs (all tried to patch ``parser.py`` instead of
+          adding the requested docs):
+          https://github.com/pallets/click/pull/3207 ,
+          https://github.com/pallets/click/pull/3236 ,
+          https://github.com/pallets/click/pull/3339
+    """
+    option_name = exc.option_name
+
+    # Only enhance single-char short-option errors (like "-d").
+    # Long-option errors ("--foo") already carry the full name and suggestions
+    # from Click's _match_long_opt.
+    if not (len(option_name) == 2 and option_name[0] == "-" and option_name[1] != "-"):
+        raise exc
+
+    failed_char = option_name[1]
+
+    # Find the original multi-char token whose *first* character (after the
+    # dash) is the one that failed.  That means the whole token was never
+    # partially consumed as stacked short flags: it was one thing the user
+    # typed, and Click split it character-by-character without matching
+    # anything.
+    original_token = None
+    for arg in original_args:
+        if len(arg) > 2 and arg[0] == "-" and arg[1] != "-" and arg[1] == failed_char:
+            original_token = arg
+            break
+
+    if original_token is None:
+        raise exc
+
+    # Collect every registered option name for close-match suggestions.
+    all_option_names: list[str] = []
+    for param in ctx.command.params:
+        if isinstance(param, click.Option):
+            all_option_names.extend(param.opts)
+            all_option_names.extend(param.secondary_opts)
+
+    possibilities = get_close_matches(original_token, all_option_names)
+
+    raise click.NoSuchOption(original_token, possibilities=possibilities, ctx=ctx)
 
 
 class HelpCommand(ExtraHelpColorsMixin, click.Command):  # type: ignore[misc]

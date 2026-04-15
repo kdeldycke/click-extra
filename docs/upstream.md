@@ -159,6 +159,10 @@ click-extra's logging module replaces the unmaintained `click-log` package:
 - [`click-log#29` - Log level is leaking between invocations: hack to force-reset it](https://github.com/click-contrib/click-log/issues/29)
 - [`click-log#30` - Add a `no-color` option, method or parameter to disable coloring globally](https://github.com/click-contrib/click-log/issues/30)
 
+### Option parsing
+
+- [`click#2779` - Wrong error message when wrong multicharacter short option is passed](https://github.com/pallets/click/issues/2779)
+
 ### Normalized arguments
 
 - [`click#1279` - Provide access to a normalized list of args that will result in the same params](https://github.com/pallets/click/issues/1279)

@@ -135,6 +135,83 @@ def test_unknown_option(invoke, all_command_cli):
     assert result.exit_code == 2
 
 
+@pytest.mark.parametrize(
+    ("cli_options", "args", "exit_code", "expected_fragment"),
+    [
+        pytest.param(
+            {"--alpha/-a": True},
+            ["-dbgwrong"],
+            2,
+            "No such option: -dbgwrong",
+            id="full_token_no_match",
+        ),
+        pytest.param(
+            {"--debug/-d": True},
+            ["--debgu"],
+            2,
+            "No such option: --debgu",
+            id="long_option_typo_suggest",
+        ),
+        pytest.param(
+            {"-a": True, "-b": True, "-c": True},
+            ["-abc"],
+            0,
+            "a=True b=True c=True",
+            id="combining_still_works",
+        ),
+        pytest.param(
+            {"-a": True, "-b": True},
+            ["-abZ"],
+            2,
+            "No such option: -Z",
+            id="combining_error_on_later_char",
+        ),
+    ],
+)
+def test_short_option_error_enhancement(
+    invoke,
+    cli_options,
+    args,
+    exit_code,
+    expected_fragment,
+):
+    """``ExtraCommand.parse_args`` improves error messages for single-dash
+    multi-character tokens whose first character is not a registered short
+    option.  Vanilla Click would split ``-dbgwrong`` character by character and
+    report "No such option: -d"; we re-raise with the full token and close-match
+    suggestions instead.
+
+    The enhancement must not interfere with valid ``-abc``-style combining or
+    with the per-character diagnostic when a *later* character is unknown.
+
+    Upstream context: https://github.com/pallets/click/issues/2779
+    """
+    # Build a minimal CLI from the option spec.
+    params = []
+    param_names = []
+    for spec, is_flag in cli_options.items():
+        opts = spec.split("/")
+        # Derive the Python parameter name from the longest option.
+        name = max(opts, key=len).lstrip("-").replace("-", "_")
+        param_names.append(name)
+        params.append(click_extra.option(*opts, is_flag=is_flag))
+
+    def callback(**kwargs):
+        parts = " ".join(f"{k}={v}" for k, v in kwargs.items())
+        click_extra.echo(parts)
+
+    # Apply option decorators, then the command decorator.
+    decorated = callback
+    for param in reversed(params):
+        decorated = param(decorated)
+    cli = click_extra.command()(decorated)
+
+    result = invoke(cli, *args)
+    assert result.exit_code == exit_code
+    output = result.output if exit_code == 0 else result.stderr
+    assert expected_fragment in output
+
+
 def test_unknown_command(invoke, all_command_cli):
     result = invoke(all_command_cli, "blah")
     assert not result.stdout
