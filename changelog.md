@@ -7,10 +7,10 @@
 
 - Add `JobsOption` and `jobs_option` decorator for controlling parallel execution. Defaults to available CPUs minus one. Warns when the requested count is clamped or exceeds available cores.
 - Improve error messages for single-dash multi-character tokens. When Click splits `-dbgwrong` character by character and reports "No such option: -d", `ExtraCommand` now catches that and re-raises with the full token and close-match suggestions.
-- Replace `pygments-ansi-color` dependency with inline ANSI SGR parser. Adds support for italic (SGR 3), underline (SGR 4), reverse video (SGR 7), strikethrough (SGR 9), and 24-bit RGB colors (quantized to the 256-color palette). The token namespace changes from `Token.Color.*`/`Token.C.*` to a unified `Token.Ansi.*`, and CSS classes change accordingly (from `.-Color-*`/`.-C-*` to `.-Ansi-*`).
+- Replace `pygments-ansi-color` dependency with inline ANSI SGR parser. Adds support for italic (SGR 3), underline (SGR 4), reverse video (SGR 7), strikethrough (SGR 9), and 24-bit RGB colors (quantized to the 256-color palette). The token namespace changes from `Token.Color.*`/`Token.C.*` to a unified `Token.Ansi.*`, and CSS classes change accordingly (from `.-Color-*`/`.-C-*` to `.-Ansi-*`). Fixes bold, italic, underline, and other text attributes not rendering in Sphinx/Furo: Furo's dark-mode CSS generator injected `color: #D0D0D0` fallbacks for every Pygments style dict entry, overriding foreground color rules on compound tokens. All SGR attribute CSS is now injected separately via `EXTRA_ANSI_CSS`.
 - Rename `lexer_map` to `LEXER_MAP`.
-- Change `render-matrix --matrix=<choice>` option to a positional argument: `render-matrix <choice>`.
-- Add `palette`, `8color`, and `gradient` choices to `render-matrix`. `palette` shows a compact 256-color indexed swatch. `8color` shows all standard foreground/background combinations. `gradient` renders 24-bit RGB gradients alongside their 256-color quantized equivalents to visualize the palette resolution limits.
+- Change `render-matrix --matrix=<choice>` option to a positional argument: `render-matrix <choice>`. Add `palette`, `8color`, and `gradient` choices. `palette` shows a compact 256-color indexed swatch. `8color` shows all standard foreground/background combinations. `gradient` renders 24-bit RGB gradients alongside their 256-color quantized equivalents to visualize the palette resolution limits.
+- Fix `render-matrix colors` background color column headers: the color swatches were styled as foreground instead of background colors.
 
 ## [`7.11.0` (2026-04-13)](https://github.com/kdeldycke/click-extra/compare/v7.10.1...v7.11.0)
 
