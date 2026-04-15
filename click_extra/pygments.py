@@ -127,7 +127,7 @@ _PALETTE_256.update({
 })
 # Grayscale ramp (indices 232-255).
 _PALETTE_256.update({
-    232 + i: "#{0:02x}{0:02x}{0:02x}".format(10 * i + 8) for i in range(24)
+    232 + i: f"#{10 * i + 8:02x}{10 * i + 8:02x}{10 * i + 8:02x}" for i in range(24)
 })
 
 
@@ -591,9 +591,7 @@ LEXER_MAP: dict[type[Lexer], type[Lexer]] = {}
 # Auto-generate the ANSI variant of all session lexers.
 for _original_lexer in collect_session_lexers():
     _new_name = f"Ansi{_original_lexer.__name__}"
-    _new_lexer = _AnsiSessionMeta(
-        _new_name, (_AnsiFilterMixin, _original_lexer), {}
-    )
+    _new_lexer = _AnsiSessionMeta(_new_name, (_AnsiFilterMixin, _original_lexer), {})
     locals()[_new_name] = _new_lexer
     LEXER_MAP[_original_lexer] = _new_lexer
 

@@ -38,16 +38,16 @@ from pygments.token import Text, Token
 from click_extra import pygments as extra_pygments
 from click_extra.colorize import _nearest_256
 from click_extra.pygments import (
-    LEXER_MAP,
-    AnsiColorLexer,
-    AnsiFilter,
-    AnsiHtmlFormatter,
-    DEFAULT_TOKEN_TYPE,
     _ANSI_STYLES,
     _NAMED_COLORS,
     _PALETTE_256,
-    _token_from_state,
+    DEFAULT_TOKEN_TYPE,
+    LEXER_MAP,
     Ansi,
+    AnsiColorLexer,
+    AnsiFilter,
+    AnsiHtmlFormatter,
+    _token_from_state,
     collect_session_lexers,
 )
 
@@ -832,8 +832,14 @@ def test_ansi_styles_excludes_all_attributes():
     styling is handled by ``EXTRA_ANSI_CSS`` / ``custom.css`` instead.
     """
     for attr in (
-        "Bold", "Faint", "Italic", "Underline", "Blink",
-        "Reverse", "Strikethrough", "Overline",
+        "Bold",
+        "Faint",
+        "Italic",
+        "Underline",
+        "Blink",
+        "Reverse",
+        "Strikethrough",
+        "Overline",
     ):
         assert getattr(Ansi, attr) not in _ANSI_STYLES
 
