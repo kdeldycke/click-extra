@@ -266,32 +266,54 @@ assert "-h, --help" in plain
 
 ## Colors and styles
 
-The `click-extra render-matrix` command renders a matrix of all colors and styles, useful for testing terminal capabilities. Based on [`cloup.styling.Style`](https://cloup.readthedocs.io/en/stable/autoapi/cloup/styling/index.html#cloup.styling.Style):
+The `click-extra render-matrix` command renders matrices of all colors, styles, and palettes, useful for testing terminal capabilities. Based on [`cloup.styling.Style`](https://cloup.readthedocs.io/en/stable/autoapi/cloup/styling/index.html#cloup.styling.Style):
 
-```{click:run}
-from click_extra.cli import render_matrix
-result = invoke(render_matrix, args=["colors"], prog_name="click-extra render-matrix")
-assert result.exit_code == 0
-assert "\x1b[95mbright_magenta\x1b[0m" in result.stdout
-assert "\x1b[95m\x1b[101mbright_magenta\x1b[0m" in result.stdout
+### Style matrix
+
+```{click:source}
+:hide-source:
+from click_extra.cli import demo
 ```
 
 ```{click:run}
-from click_extra.cli import render_matrix
-result = invoke(render_matrix, args=["styles"], prog_name="click-extra render-matrix")
+result = invoke(demo, args=["render-matrix", "styles"])
 assert result.exit_code == 0
-assert "\x1b[97mbright_white\x1b[0m" in result.stdout
-assert "\x1b[97m\x1b[1mbright_white\x1b[0m" in result.stdout
-assert "\x1b[97m\x1b[2mbright_white\x1b[0m" in result.stdout
-assert "\x1b[97m\x1b[4mbright_white\x1b[0m" in result.stdout
+```
+
+### Color matrix
+
+```{click:run}
+result = invoke(demo, args=["render-matrix", "colors"])
+assert result.exit_code == 0
+```
+
+### 256-color indexed palette
+
+```{click:run}
+result = invoke(demo, args=["render-matrix", "palette"])
+assert result.exit_code == 0
+```
+
+### 8-color foreground/background combinations
+
+```{click:run}
+result = invoke(demo, args=["render-matrix", "8color"])
+assert result.exit_code == 0
+```
+
+### 24-bit RGB vs. 256-color quantization
+
+```{click:run}
+result = invoke(demo, args=["render-matrix", "gradient"])
+assert result.exit_code == 0
 ```
 
 ```{caution}
-The rendering of colors and styles in this HTML documentation is not complete, and does not reflect the real output in a terminal. Some SGR attributes (like reverse video) have no direct CSS equivalent and are not rendered.
+The rendering of colors and styles in this HTML documentation is not complete, and does not reflect the real output in a terminal. Some SGR attributes (like reverse video) have no direct CSS equivalent and are not rendered. Some terminal emulators also lack support for overline (SGR 53), blink (SGR 5), and strikethrough (SGR 9).
 ```
 
 ```{tip}
-Run `uvx click-extra render-matrix colors` or `uvx click-extra render-matrix styles` in your terminal to see the real rendering with your color scheme.
+Run `uvx click-extra render-matrix styles` in your terminal to see the real rendering with your color scheme.
 ```
 
 ## `click_extra.colorize` API

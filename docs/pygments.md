@@ -358,9 +358,7 @@ $ cat cowsay.html
 
 ## ANSI rendering demo
 
-Click Extra's `render-matrix` CLI subcommand exercises ANSI capabilities directly. The output below is rendered live at documentation build time.
-
-### 256-color indexed palette
+A quick proof that the Pygments ANSI pipeline renders 256-color output correctly in Sphinx:
 
 ```{click:source}
 :hide-source:
@@ -372,30 +370,8 @@ result = invoke(demo, args=["render-matrix", "palette"])
 assert result.exit_code == 0
 ```
 
-### 8-color foreground/background combinations
-
-```{click:run}
-result = invoke(demo, args=["render-matrix", "8color"])
-assert result.exit_code == 0
-```
-
-### 24-bit RGB vs. 256-color quantization
-
-```{click:run}
-result = invoke(demo, args=["render-matrix", "gradient"])
-assert result.exit_code == 0
-```
-
-### SGR text attributes and colors
-
-```{click:run}
-result = invoke(demo, args=["render-matrix", "styles"])
-assert result.exit_code == 0
-```
-
-```{click:run}
-result = invoke(demo, args=["render-matrix", "colors"])
-assert result.exit_code == 0
+```{seealso}
+The full set of color and style rendering demos is in [Colors and styles](colorize.md#colors-and-styles).
 ```
 
 ## `click_extra.pygments` API
