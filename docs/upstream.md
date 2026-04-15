@@ -173,6 +173,11 @@ click-extra provides ANSI-capable session lexers and Sphinx integration for rend
 
 - [`pygments#1148` - Can't format console/shell-session output that includes ANSI colors](https://github.com/pygments/pygments/issues/1148)
 - [`pygments#477` - Support ANSI (ECMA-48) color-coded text input](https://github.com/pygments/pygments/issues/477)
+- [`pygments-ansi-color#31` - Support ANSI styles](https://github.com/chriskuehl/pygments-ansi-color/issues/31)
+- [`pygments-ansi-color#32` - Set default style](https://github.com/chriskuehl/pygments-ansi-color/pull/32) (merged)
+- [`pygments-ansi-color#33` - `AnsiHtmlFormatter` and ANSI-aware shell-like lexers](https://github.com/chriskuehl/pygments-ansi-color/issues/33)
+- [`pygments-ansi-color#34` - Add color swatches](https://github.com/chriskuehl/pygments-ansi-color/pull/34) (closed)
+- [`pygments-ansi-color#35` - Add `AnsiHtmlFormatter`](https://github.com/chriskuehl/pygments-ansi-color/pull/35) (open, unmaintained upstream)
 - [`nbsphinx#852` - Sphinx & Pygments integration for ANSI rendering](https://github.com/spatialaudio/nbsphinx/issues/852)
 - [`kitty#5482` - ANSI shell sessions in Sphinx documentation](https://github.com/kovidgoyal/kitty/discussions/5482)
 - [`sphinx-contrib/ansi#9` - ANSI Codes in output](https://github.com/sphinx-contrib/ansi/issues/9)
