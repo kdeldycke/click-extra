@@ -182,6 +182,10 @@ def test_filter_entry_points():
 @pytest.mark.once
 def test_lexer_entry_points():
     entry_points = {}
+
+    # The standalone AnsiColorLexer has its own entry point.
+    entry_points["ansi-color"] = "click_extra.pygments:AnsiColorLexer"
+
     for lexer in collect_session_lexers():
         # Check an ANSI lexer variant is available for import from Click Extra.
         ansi_lexer_id = f"Ansi{lexer.__name__}"

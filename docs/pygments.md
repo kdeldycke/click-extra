@@ -53,7 +53,7 @@ The new `ansi-html` formatter interpret ANSI Pygments tokens and renders them in
 ````{warning}
 This `ansi-html` formatter is designed to only work with the `ansi-color` lexer. These two components are the only one capable of producing ANSI tokens (`ansi-color`) and rendering them in HTML (`ansi-html`).
 
-[`ansi-color` is implement by `pygments_ansi_color.AnsiColorLexer`](https://github.com/chriskuehl/pygments-ansi-color/blob/2ef0410763eff53f0af736c2f08ebd16fa4abb83/pygments_ansi_color/__init__.py#L203) on which Click Extra depends. So after Click Extra installation, `ansi-color` will be available to Pygments:
+After Click Extra installation, `ansi-color` will be available to Pygments:
 
 ```{code-block} ansi-pycon
 >>> from pygments.lexers import get_lexer_by_name
@@ -110,17 +110,17 @@ The code above prints the following HTML:
 <div class="highlight">
  <pre>
       <span></span>
-      <span class="-Color -Color-C154 -C-C154"> __</span>
-      <span class="-Color -Color-C148 -C-C148">_</span>
-      <span class="-Color -Color-C184 -C-C184">___________</span>
-      <span class="-Color -Color-C178 -C-C178">_</span>
-      <span class="-Color -Color-C214 -C-C214">_________</span>
-      <span class="-Color -Color-C208 -C-C208">________ </span>
-      <span class="-Color -Color-C148 -C-C148">/</span>
-      <span class="-Color -Color-C184 -C-C184"> Reality is</span>
-      <span class="-Color -Color-C178 -C-C178"> </span>
-      <span class="-Color -Color-C214 -C-C214">for people</span>
-      <span class="-Color -Color-C208 -C-C208"> who lack</span>
+      <span class="-Ansi-C154 -Ansi -Ansi-C154"> __</span>
+      <span class="-Ansi-C148 -Ansi -Ansi-C148">_</span>
+      <span class="-Ansi-C184 -Ansi -Ansi-C184">___________</span>
+      <span class="-Ansi-C178 -Ansi -Ansi-C178">_</span>
+      <span class="-Ansi-C214 -Ansi -Ansi-C214">_________</span>
+      <span class="-Ansi-C208 -Ansi -Ansi-C208">________ </span>
+      <span class="-Ansi-C148 -Ansi -Ansi-C148">/</span>
+      <span class="-Ansi-C184 -Ansi -Ansi-C184"> Reality is</span>
+      <span class="-Ansi-C178 -Ansi -Ansi-C178"> </span>
+      <span class="-Ansi-C214 -Ansi -Ansi-C214">for people</span>
+      <span class="-Ansi-C208 -Ansi -Ansi-C208"> who lack</span>
       …
    </pre>
 </div>
@@ -156,51 +156,31 @@ pre {
 }
 
 /* Comment */
-.highlight .err {
-    border: 1px solid #FF0000
-}
-
-/* Error */
-.highlight .o {
-    color: #666666
-}
-
-/* Operator */
-.highlight .-C-BGBlack {
+.highlight .-Ansi-BGBlack {
     background-color: #000000
 }
 
-/* C.BGBlack */
-.highlight .-C-BGBlue {
+/* Ansi.BGBlack */
+.highlight .-Ansi-BGBlue {
     background-color: #3465a4
 }
 
-/* C.BGBlue */
-.highlight .-C-BGBrightBlack {
-    background-color: #676767
-}
-
-/* C.BGBrightBlack */
-.highlight .-C-BGBrightBlue {
-    background-color: #6871ff
-}
-
-/* C.BGBrightBlue */
-.highlight .-C-BGC0 {
+/* Ansi.BGBlue */
+.highlight .-Ansi-BGC0 {
     background-color: #000000
 }
 
-/* C.BGC0 */
-.highlight .-C-BGC100 {
-    background-color: #878700
+/* Ansi.BGC0 */
+.highlight .-Ansi-Red {
+    color: #ef2929
 }
 
-/* C.BGC100 */
-.highlight .-C-BGC101 {
-    background-color: #87875f
+/* Ansi.Red */
+.highlight .-Ansi-Bold {
+    font-weight: bold
 }
 
-/* C.BGC101 */
+/* Ansi.Bold */
 /* … */
 ```
 
@@ -292,17 +272,17 @@ All these new lexers [can be used in Sphinx](https://kdeldycke.github.io/click-e
 
 ### Lexer design
 
-We can check how `pygments_ansi_color`'s `ansi-color` lexer transforms a raw string into ANSI tokens:
+We can check how the `ansi-color` lexer transforms a raw string into ANSI tokens:
 
 ```{code-block} ansi-pycon
 >>> from pygments.lexers import get_lexer_by_name
 >>> ansi_lexer = get_lexer_by_name("ansi-color")
 >>> tokens = ansi_lexer.get_tokens(art)
 >>> tuple(tokens)
-((Token.Color.Magenta, '║'), (Token.Text, ''), (Token.Color.Cyan, '▌'), (Token.Text, ''), (Token.Color.Red, '█'), (Token.Text, ''), (Token.Color.Green, '║'), (Token.Text, ''), (Token.Color.Yellow, ' '), (Token.Text, ''), (Token.Color.Blue, 'A'), (Token.Text, ''), (Token.Color.Magenta, 'N'), (Token.Text, ''), (Token.Color.Cyan, 'S'), (Token.Text, ''), (Token.Color.Red, 'I'), (Token.Text, ''), (Token.Color.Green, ' '), (Token.Text, ''), (Token.Color.Yellow, 'A'), (Token.Text, ''), (Token.Color.Blue, 'r'), (Token.Text, ''), (Token.Color.Magenta, 't'), (Token.Text, ''), (Token.Color.Cyan, ' '), (Token.Text, ''), (Token.Color.Red, '▌'), (Token.Text, ''), (Token.Color.Green, '│'), (Token.Text, ''), (Token.Color.Yellow, '║'), (Token.Text, ''), (Token.Color.Blue, '▌'), (Token.Text, '\n'))
+((Token.Ansi.Magenta, '║'), (Token.Text, ''), (Token.Ansi.Cyan, '▌'), (Token.Text, ''), (Token.Ansi.Red, '█'), (Token.Text, ''), (Token.Ansi.Green, '║'), (Token.Text, ''), (Token.Ansi.Yellow, ' '), (Token.Text, ''), (Token.Ansi.Blue, 'A'), (Token.Text, ''), (Token.Ansi.Magenta, 'N'), (Token.Text, ''), (Token.Ansi.Cyan, 'S'), (Token.Text, ''), (Token.Ansi.Red, 'I'), (Token.Text, ''), (Token.Ansi.Green, ' '), (Token.Text, ''), (Token.Ansi.Yellow, 'A'), (Token.Text, ''), (Token.Ansi.Blue, 'r'), (Token.Text, ''), (Token.Ansi.Magenta, 't'), (Token.Text, ''), (Token.Ansi.Cyan, ' '), (Token.Text, ''), (Token.Ansi.Red, '▌'), (Token.Text, ''), (Token.Ansi.Green, '│'), (Token.Text, ''), (Token.Ansi.Yellow, '║'), (Token.Text, ''), (Token.Ansi.Blue, '▌'), (Token.Text, '\n'))
 ```
 
-See how the raw string is split into Pygments tokens, including the new `Token.Color` tokens. These tokens are then ready to be rendered by [our own `ansi-html` formatter](#ansi-html-formatter).
+See how the raw string is split into Pygments tokens, including the ``Token.Ansi`` tokens. These tokens are then ready to be rendered by [our own `ansi-html` formatter](#ansi-html-formatter).
 
 ## `pygmentize` command line
 
@@ -318,53 +298,25 @@ $ cat cowsay.html
 ```{code-block} html
 :caption: `cowsay.html` file generated by `pygmentize` CLI
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<!--
-generated by Pygments <https://pygments.org/>
-Copyright 2006-2023 by the Pygments team.
-Licensed under the BSD license, see LICENSE for details.
--->
 <html>
  <head>
-  <title>
-  </title>
-  <meta content="text/html; charset=utf-8" http-equiv="content-type"/>
   <style type="text/css">
-   /*
-         generated by Pygments <https://pygments.org/>
-         Copyright 2006-2023 by the Pygments team.
-         Licensed under the BSD license, see LICENSE for details.
-         */
          pre { line-height: 125%; }
          body { background: #f8f8f8; }
-         body .c { color: #3D7B7B; font-style: italic } /* Comment */
-         body .err { border: 1px solid #FF0000 } /* Error */
-         body .o { color: #666666 } /* Operator */
-         body .-Color-BGBlack { background-color: #000000 } /* Color.BGBlack */
-         body .-Color-BGBlue { background-color: #3465a4 } /* Color.BGBlue */
-         body .-Color-BGBrightBlack { background-color: #676767 } /* Color.BGBrightBlack */
-         body .-Color-BGBrightBlue { background-color: #6871ff } /* Color.BGBrightBlue */
-         body .-Color-BGCyan { background-color: #34e2e2 } /* Color.BGCyan */
-         body .-Color-BGGreen { background-color: #8ae234 } /* Color.BGGreen */
+         body .-Ansi-BGBlack { background-color: #000000 } /* Ansi.BGBlack */
+         body .-Ansi-BGBlue { background-color: #3465a4 } /* Ansi.BGBlue */
+         body .-Ansi-Red { color: #ef2929 } /* Ansi.Red */
+         body .-Ansi-Bold { font-weight: bold } /* Ansi.Bold */
          /* … */
   </style>
  </head>
  <body>
-  <h2>
-  </h2>
   <div class="highlight">
    <pre>
             <span></span>
-            <span class="-Color -Color-C154"> __</span>
-            <span class="-Color -Color-C148">_</span>
-            <span class="-Color -Color-C184">___________</span>
-            <span class="-Color -Color-C178">_</span>
-            <span class="-Color -Color-C214">_________</span>
-            <span class="-Color -Color-C208">________ </span>
-            <span class="-Color -Color-C148">/</span>
-            <span class="-Color -Color-C184"> Reality is</span>
-            <span class="-Color -Color-C178"> </span>
-            <span class="-Color -Color-C214">for people</span>
-            <span class="-Color -Color-C208"> who lack</span>
+            <span class="-Ansi-C154 -Ansi -Ansi-C154"> __</span>
+            <span class="-Ansi-C148 -Ansi -Ansi-C148">_</span>
+            <span class="-Ansi-C184 -Ansi -Ansi-C184">___________</span>
             …
          </pre>
   </div>
@@ -382,5 +334,4 @@ Licensed under the BSD license, see LICENSE for details.
 :members:
 :undoc-members:
 :show-inheritance:
-:exclude-members: color_tokens
 ```

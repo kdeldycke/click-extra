@@ -7,6 +7,8 @@
 
 - Add `JobsOption` and `jobs_option` decorator for controlling parallel execution. Defaults to available CPUs minus one. Warns when the requested count is clamped or exceeds available cores.
 - Improve error messages for single-dash multi-character tokens. When Click splits `-dbgwrong` character by character and reports "No such option: -d", `ExtraCommand` now catches that and re-raises with the full token and close-match suggestions.
+- Replace `pygments-ansi-color` dependency with inline ANSI SGR parser. Adds support for italic (SGR 3), underline (SGR 4), reverse video (SGR 7), strikethrough (SGR 9), and 24-bit RGB colors (quantized to the 256-color palette). The token namespace changes from `Token.Color.*`/`Token.C.*` to a unified `Token.Ansi.*`, and CSS classes change accordingly (from `.-Color-*`/`.-C-*` to `.-Ansi-*`).
+- Rename `lexer_map` to `LEXER_MAP`.
 
 ## [`7.11.0` (2026-04-13)](https://github.com/kdeldycke/click-extra/compare/v7.10.1...v7.11.0)
 

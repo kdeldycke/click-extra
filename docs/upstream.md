@@ -169,7 +169,7 @@ click-extra's logging module replaces the unmaintained `click-log` package:
 
 ### ANSI rendering in documentation
 
-click-extra provides `AnsiSessionLexer` and Sphinx integration for rendering ANSI-colored CLI output in documentation:
+click-extra provides ANSI-capable session lexers and Sphinx integration for rendering ANSI-colored CLI output in documentation:
 
 - [`pygments#1148` - Can't format console/shell-session output that includes ANSI colors](https://github.com/pygments/pygments/issues/1148)
 - [`pygments#477` - Support ANSI (ECMA-48) color-coded text input](https://github.com/pygments/pygments/issues/477)

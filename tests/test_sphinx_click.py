@@ -331,10 +331,10 @@ MIXED_OUTPUT_TEST_CASE = DirectiveTestCase(
     # Should show mixed stdout/stderr output with colors.
     html_matches=HTML["shell_session"]
     + '<span class="gp">$ </span>mixed-output\n'
-    + 'This goes to <span class=" -Color -Color-Blue -C-Blue">stdout</span>\n'
-    + 'This is an <span class=" -Color -Color-Red -C-Red">error</span>\n'
-    + 'Direct <span class=" -Color -Color-Blue -C-Blue">stdout</span> print\n'
-    + 'Direct <span class=" -Color -Color-Red -C-Red">stderr</span> print\n'
+    + 'This goes to <span class=" -Ansi -Ansi-Blue -Ansi-Blue">stdout</span>\n'
+    + 'This is an <span class=" -Ansi -Ansi-Red -Ansi-Red">error</span>\n'
+    + 'Direct <span class=" -Ansi -Ansi-Blue -Ansi-Blue">stdout</span> print\n'
+    + 'Direct <span class=" -Ansi -Ansi-Red -Ansi-Red">stderr</span> print\n'
     + "</pre></div>",
 )
 

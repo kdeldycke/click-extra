@@ -287,9 +287,7 @@ assert "\x1b[97m\x1b[4mbright_white\x1b[0m" in result.stdout
 ```
 
 ```{caution}
-The rendering of colors and styles in this HTML documentation is not complete, and does not reflect the real output in a terminal.
-
-[`pygments-ansi-color`](https://github.com/chriskuehl/pygments-ansi-color), the component we rely on to render ANSI code in Sphinx via Pygments, [only supports a subset of the ANSI codes](https://github.com/chriskuehl/pygments-ansi-color/issues/31) we use.
+The rendering of colors and styles in this HTML documentation is not complete, and does not reflect the real output in a terminal. Some SGR attributes (like reverse video) have no direct CSS equivalent and are not rendered.
 ```
 
 ```{tip}

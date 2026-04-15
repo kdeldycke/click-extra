@@ -20,7 +20,7 @@ Auto-detected and executed by the upstream ``docs.yaml`` reusable workflow.
 
 from pathlib import Path
 
-from click_extra.pygments import lexer_map
+from click_extra.pygments import LEXER_MAP
 from click_extra.table import TableFormat, render_table
 
 project_root = Path(__file__).parent.parent
@@ -28,7 +28,7 @@ project_root = Path(__file__).parent.parent
 # Generate the Markdown table mapping Pygments lexers to their ANSI variants.
 table = []
 for orig_lexer, ansi_lexer in sorted(
-    lexer_map.items(), key=lambda i: i[0].__qualname__
+    LEXER_MAP.items(), key=lambda i: i[0].__qualname__
 ):
     table.append(
         [

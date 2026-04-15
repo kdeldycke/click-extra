@@ -113,6 +113,7 @@ pytest11.click-extra = "click_extra.pytest"
 # Source: https://pygments.org/docs/plugins/#defining-plugins-through-entrypoints
 "pygments.filters".ansi-filter = "click_extra.pygments:AnsiFilter"
 "pygments.formatters".ansi-html-formatter = "click_extra.pygments:AnsiHtmlFormatter"
+"pygments.lexers".ansi-color = "click_extra.pygments:AnsiColorLexer"
 "pygments.lexers".ansi-bash-session = "click_extra.pygments:AnsiBashSessionLexer"
 "pygments.lexers".ansi-dylan-console = "click_extra.pygments:AnsiDylanConsoleLexer"
 "pygments.lexers".ansi-elixir-console = "click_extra.pygments:AnsiElixirConsoleLexer"
@@ -147,8 +148,6 @@ jsonc = [
 pygments = [
   # Pygments 2.14.0 is the first version with lexers.algebra.GAPConsoleLexer that is referenced in our code.
   "pygments>=2.14",
-  # pygments-ansi-color 0.3.0 is the first version to set the default theme of ANSI colors.
-  "pygments-ansi-color>=0.3",
 ]
 pytest = [
   # pytest 9.0.0 is the first supporting native TOML configuration files.
@@ -159,8 +158,6 @@ sphinx = [
   "docutils>=0.20",
   # Pygments 2.14.0 is the first version with lexers.algebra.GAPConsoleLexer that is referenced in our code.
   "pygments>=2.14",
-  # pygments-ansi-color 0.3.0 is the first version to set the default theme of ANSI colors.
-  "pygments-ansi-color>=0.3",
   # Sphinx 8.0.0 is the first version to drop Python 3.9, like us.
   "sphinx>=8",
 ]
@@ -221,8 +218,6 @@ docs = [
   "furo>=2025.9.25",
   # myst-parser 5.0 stabilized MyST extensions and improved Sphinx directive support.
   "myst-parser>=5",
-  # pygments-ansi-color is required by docs/docs_update.py to generate the lexer table.
-  "pygments-ansi-color>=0.3",
   # Sphinx 8.0.0 is the first version to drop Python 3.9, like us.
   "sphinx>=8",
   # sphinx-autodoc-typehints 2.4.0 is the first version that is aligned to our Python >= 3.10 requirement.
