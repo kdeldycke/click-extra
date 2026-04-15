@@ -270,7 +270,7 @@ The `click-extra render-matrix` command renders a matrix of all colors and style
 
 ```{click:run}
 from click_extra.cli import render_matrix
-result = invoke(render_matrix, args=["--matrix=colors"], prog_name="click-extra render-matrix")
+result = invoke(render_matrix, args=["colors"], prog_name="click-extra render-matrix")
 assert result.exit_code == 0
 assert "\x1b[95mbright_magenta\x1b[0m" in result.stdout
 assert "\x1b[95m\x1b[101mbright_magenta\x1b[0m" in result.stdout
@@ -278,7 +278,7 @@ assert "\x1b[95m\x1b[101mbright_magenta\x1b[0m" in result.stdout
 
 ```{click:run}
 from click_extra.cli import render_matrix
-result = invoke(render_matrix, args=["--matrix=styles"], prog_name="click-extra render-matrix")
+result = invoke(render_matrix, args=["styles"], prog_name="click-extra render-matrix")
 assert result.exit_code == 0
 assert "\x1b[97mbright_white\x1b[0m" in result.stdout
 assert "\x1b[97m\x1b[1mbright_white\x1b[0m" in result.stdout
@@ -291,7 +291,7 @@ The rendering of colors and styles in this HTML documentation is not complete, a
 ```
 
 ```{tip}
-Run `uvx click-extra render-matrix --matrix=colors` or `uvx click-extra render-matrix --matrix=styles` in your terminal to see the real rendering with your color scheme.
+Run `uvx click-extra render-matrix colors` or `uvx click-extra render-matrix styles` in your terminal to see the real rendering with your color scheme.
 ```
 
 ## `click_extra.colorize` API

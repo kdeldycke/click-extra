@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import colorsys
 from pathlib import Path
 
 import click
@@ -33,6 +34,7 @@ from . import (
     pass_context,
     style,
 )
+from .colorize import _nearest_256
 from .table import print_table
 from .version import (
     GIT_FIELDS,
@@ -96,23 +98,145 @@ _ALL_COLORS = sorted(Color._dict.values())  # type: ignore[attr-defined]
 """All color names from ``click_extra.Color``."""
 
 
+def _render_palette() -> str:
+    """Render a compact 256-color palette swatch.
+
+    Each color is shown as a pair of cells (normal + bold) with foreground and background
+    set to the same index, producing a solid color block. Layout: 16 system colors on the
+    first row, then the 6x6x6 color cube in 6 rows of 36, then the 24-step grayscale
+    ramp.
+    """
+    swatch = "\x1b[38;5;{0};48;5;{0}m\u2588\x1b[1m\u2588\x1b[m"
+    lines: list[str] = []
+
+    # Header.
+    lines.append("  + " + "".join(f"{i:2}" for i in range(36)))
+
+    # System colors (indices 0-15).
+    lines.append("  0 " + "".join(swatch.format(i) for i in range(16)))
+
+    # 6x6x6 color cube (indices 16-231).
+    for row in range(6):
+        start = row * 36 + 16
+        cells = "".join(swatch.format(start + j) for j in range(36))
+        lines.append(f"{start:3} {cells}")
+
+    # Grayscale ramp (indices 232-255).
+    lines.append("232 " + "".join(swatch.format(i) for i in range(232, 256)))
+
+    return "\n".join(lines)
+
+
+def _render_8color_table() -> str:
+    """Render a compact 8-color foreground/background combination table.
+
+    Shows all 8 standard foreground colors (normal and bold) against all 8 standard
+    background colors. Each cell displays a sample string styled with the fg/bg
+    combination.
+    """
+    sample = " gYw "
+    reset = "\x1b[m"
+    lines: list[str] = []
+
+    # Header row: background color codes.
+    lines.append(
+        " " * 6
+        + " " * len(sample)
+        + "".join(f"{bg:^{len(sample)}}" for bg in range(40, 48))
+    )
+
+    for fg in range(30, 38):
+        for is_bold in (False, True):
+            fg_code = f"{'1;' if is_bold else ''}{fg}"
+            # First cell: sample with foreground only (default background).
+            label = f" {fg_code:>4} "
+            first = f"\x1b[{fg_code}m{sample}{reset}"
+            # Remaining cells: sample with foreground + each background.
+            cells = "".join(
+                f"\x1b[{fg_code};{bg}m{sample}{reset}" for bg in range(40, 48)
+            )
+            lines.append(f"{label}{first}{cells}")
+
+    return "\n".join(lines)
+
+
+def _render_gradient() -> str:
+    """Render 24-bit RGB gradients alongside their 256-color quantized equivalents.
+
+    Each gradient is shown in two rows: the top row uses 24-bit ``SGR 38;2;r;g;b``
+    escape codes, the bottom row uses the quantized ``SGR 38;5;n`` index from
+    ``_nearest_256``. Visible stepping in the quantized row reveals the palette
+    resolution limits.
+    """
+    width = 72
+    block = "\u2588"
+    reset = "\x1b[m"
+    lines: list[str] = []
+
+    def row_pair(label: str, rgb_func):
+        """Generate a 24-bit row and its quantized counterpart."""
+        row_24 = ""
+        row_8 = ""
+        for i in range(width):
+            r, g, b = rgb_func(i / (width - 1))
+            ri, gi, bi = int(r * 255), int(g * 255), int(b * 255)
+            row_24 += f"\x1b[38;2;{ri};{gi};{bi}m{block}{reset}"
+            idx = _nearest_256(ri, gi, bi)
+            row_8 += f"\x1b[38;5;{idx}m{block}{reset}"
+        lines.append(f"{label}")
+        lines.append(f"  24-bit {row_24}")
+        lines.append(f"   8-bit {row_8}")
+
+    # Rainbow: sweep hue at full saturation and value.
+    row_pair("Rainbow:", lambda t: colorsys.hsv_to_rgb(t, 1.0, 1.0))
+
+    lines.append("")
+
+    # Grayscale: black to white.
+    row_pair("Grayscale:", lambda t: (t, t, t))
+
+    lines.append("")
+
+    # Red channel ramp.
+    row_pair("Red:", lambda t: (t, 0.0, 0.0))
+
+    lines.append("")
+
+    # Cyan (green + blue) ramp: stresses the color cube boundary.
+    row_pair("Cyan:", lambda t: (0.0, t, t))
+
+    return "\n".join(lines)
+
+
+_MATRIX_CHOICES = ("colors", "styles", "palette", "8color", "gradient")
+"""Valid choices for the ``render-matrix`` argument."""
+
+
 @demo.command(name="render-matrix")
-@option(
-    "--matrix",
-    type=Choice(["colors", "styles"]),
-    required=True,
-    help="Which matrix to render.",
-)
+@argument("matrix", type=Choice(_MATRIX_CHOICES))
 @pass_context
 def render_matrix(ctx: click.Context, matrix: str) -> None:
     """Render a color or style matrix for terminal capability testing.
 
-    The ``colors`` matrix shows every foreground color against every
-    background color. The ``styles`` matrix shows every color with each
-    text style (bold, dim, italic, etc.).
+    MATRIX is one of: colors, styles, palette, 8color, gradient.
 
-    Respects the global ``--table-format`` option.
+    colors: every foreground color against every background color.
+    styles: every color with each text style (bold, dim, italic, etc.).
+    palette: compact 256-color indexed swatch.
+    8color: all standard foreground/background combinations.
+    gradient: 24-bit RGB gradients vs. their 256-color quantized equivalents.
     """
+    # Compact renderings that bypass the table formatter.
+    if matrix == "palette":
+        echo(_render_palette())
+        return
+    if matrix == "8color":
+        echo(_render_8color_table())
+        return
+    if matrix == "gradient":
+        echo(_render_gradient())
+        return
+
     table: list[list[str]] = []
 
     if matrix == "colors":

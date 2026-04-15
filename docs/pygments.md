@@ -324,6 +324,50 @@ $ cat cowsay.html
 </html>
 ```
 
+## ANSI rendering demo
+
+Click Extra's `render-matrix` CLI subcommand exercises ANSI capabilities directly. The output below is rendered live at documentation build time.
+
+### 256-color indexed palette
+
+```{click:source}
+:hide-source:
+from click_extra.cli import demo
+```
+
+```{click:run}
+result = invoke(demo, args=["render-matrix", "palette"])
+assert result.exit_code == 0
+```
+
+### 8-color foreground/background combinations
+
+```{click:run}
+result = invoke(demo, args=["render-matrix", "8color"])
+assert result.exit_code == 0
+```
+
+### 24-bit RGB vs. 256-color quantization
+
+```{click:run}
+result = invoke(demo, args=["render-matrix", "gradient"])
+assert result.exit_code == 0
+```
+
+### SGR text attributes
+
+```{click:source}
+from click_extra import echo, style
+
+attrs = ["bold", "dim", "italic", "underline", "reverse", "strikethrough"]
+for attr in attrs:
+    echo(style(f"  {attr:15}", **{attr: True}) + " the quick brown fox")
+```
+
+```{click:run}
+invoke(attrs_demo)
+```
+
 ## `click_extra.pygments` API
 
 ```{autoclasstree} click_extra.pygments

@@ -13,7 +13,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Helpers and utilities to apply ANSI coloring to terminal content."""
+"""Helpers and utilities to apply ANSI coloring to terminal content.
+
+.. note::
+    ``_nearest_256`` (24-bit RGB to 256-color quantization) lives here rather than in
+    ``pygments.py`` because both ``cli.py`` and ``pygments.py`` need it, and
+    ``pygments.py`` is gated behind the optional ``pygments`` extra. Placing it in
+    ``colorize.py`` (which has no optional dependencies) keeps the function available
+    to the CLI regardless of whether Pygments is installed.
+"""
 
 from __future__ import annotations
 
@@ -40,6 +48,37 @@ if TYPE_CHECKING:
     from typing import ClassVar
 
     from cloup.styling import IStyle
+
+
+_CUBE_VALUES = (0, 95, 135, 175, 215, 255)
+"""6-level RGB channel values for the 6x6x6 color cube (indices 16-231)."""
+
+
+def _nearest_256(r: int, g: int, b: int) -> int:
+    """Map a 24-bit RGB triplet to the nearest index in the 256-color palette.
+
+    Compares the Euclidean distance in RGB space against both the 6x6x6 color cube
+    (indices 16-231) and the grayscale ramp (indices 232-255), returning whichever is
+    closer.
+
+    .. seealso::
+        `Previous implementation
+        <https://github.com/kdeldycke/dotfiles/blob/64d29369/starship-ansi-colors.py>`_
+        of full-color to 8-bit quantization.
+    """
+    # Color cube (indices 16-231).
+    ci = [min(range(6), key=lambda i, v=v: abs(v - _CUBE_VALUES[i])) for v in (r, g, b)]
+    cube_idx = 16 + 36 * ci[0] + 6 * ci[1] + ci[2]
+    cube_dist = sum((v - _CUBE_VALUES[i]) ** 2 for v, i in zip((r, g, b), ci))
+
+    # Grayscale ramp (indices 232-255).
+    gray = round((r + g + b) / 3)
+    gi = min(range(24), key=lambda i: abs(gray - (10 * i + 8)))
+    gray_idx = 232 + gi
+    gray_val = 10 * gi + 8
+    gray_dist = sum((v - gray_val) ** 2 for v in (r, g, b))
+
+    return gray_idx if gray_dist < cube_dist else cube_idx
 
 
 @dataclass(frozen=True)

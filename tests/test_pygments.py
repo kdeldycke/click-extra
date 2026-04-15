@@ -36,6 +36,7 @@ from pygments.lexers import find_lexer_class_by_name, get_lexer_by_name
 from pygments.token import Text, Token
 
 from click_extra import pygments as extra_pygments
+from click_extra.colorize import _nearest_256
 from click_extra.pygments import (
     LEXER_MAP,
     AnsiColorLexer,
@@ -45,7 +46,6 @@ from click_extra.pygments import (
     _ANSI_STYLES,
     _NAMED_COLORS,
     _PALETTE_256,
-    _nearest_256,
     _token_from_state,
     Ansi,
     collect_session_lexers,
