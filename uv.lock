@@ -9,11 +9,8 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-04-08T11:46:58.593113Z"
+exclude-newer = "2026-04-08T12:08:57.899272787Z"
 exclude-newer-span = "P1W"
-
-[options.exclude-newer-package]
-pytest = { timestamp = "2026-04-15T11:46:58.593125Z", span = "PT0S" }
 
 [[package]]
 name = "accessible-pygments"
