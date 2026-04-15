@@ -1,5 +1,10 @@
 # Changelog
 
+## [`7.12.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.12.0...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`7.12.0` (2026-04-15)](https://github.com/kdeldycke/click-extra/compare/v7.11.0...v7.12.0)
 
 - Add `JobsOption` and `jobs_option` decorator for controlling parallel execution. Defaults to available CPUs minus one. Warns when the requested count is clamped or exceeds available cores.
