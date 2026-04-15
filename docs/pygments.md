@@ -192,9 +192,37 @@ That's why we also maintain a collection of [ANSI-capable lexers for numerous la
 
 ## ANSI filter
 
-```{todo}
-Write example and tutorial.
+The `AnsiFilter` is a Pygments filter that intercepts tokens of a specific type (by default `Generic.Output`) and re-lexes their content through `AnsiColorLexer`. This is the glue that makes the [ANSI language lexers](#ansi-language-lexers) work: a session lexer like `BashSessionLexer` splits input into prompts (`Generic.Prompt`) and output (`Generic.Output`), then the `AnsiFilter` transforms the output tokens into colored `Token.Ansi.*` tokens.
+
+Here is a step-by-step example showing how the filter transforms a token stream:
+
+```{click:source}
+from pygments.token import Generic, Token
+
+from click_extra.pygments import AnsiFilter
+
+filt = AnsiFilter()
+
+# Simulate what a session lexer produces: a prompt token and an output token
+# containing ANSI escape codes.
+stream = [
+    (Generic.Prompt, "$ "),
+    (Generic.Output, "\x1b[1;31mError:\x1b[0m file not found\n"),
+]
+
+result = list(filt.filter(None, stream))
+for token_type, value in result:
+    print(f"  {token_type!s:30} {value!r}")
 ```
+
+```{click:run}
+result = invoke(filter_demo)
+assert result.exit_code == 0
+assert "Token.Ansi.Bold.Red" in result.stdout
+assert "Generic.Prompt" in result.stdout
+```
+
+The prompt token passes through unchanged, while the output token is split into styled ANSI tokens. The `AnsiHtmlFormatter` then renders these tokens with the appropriate CSS classes.
 
 ## ANSI language lexers
 
