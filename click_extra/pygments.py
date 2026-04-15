@@ -289,6 +289,7 @@ class AnsiColorLexer(Lexer):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+        self._cached_token: _TokenType = Text
         self._reset_state()
 
     def _reset_state(self) -> None:
@@ -296,6 +297,7 @@ class AnsiColorLexer(Lexer):
         self._attrs = dict.fromkeys(_SGR_ATTR_ON.values(), False)
         self.fg_color: str | None = None
         self.bg_color: str | None = None
+        self._token_dirty = True
 
     @property
     def _current_token(self) -> _TokenType:
@@ -304,18 +306,26 @@ class AnsiColorLexer(Lexer):
         Each active attribute and color becomes a component of the token path. For
         example, bold red text on a green background produces
         ``Token.Ansi.Bold.Red.BGGreen``.
+
+        Uses a dirty flag to avoid recomputation when the state hasn't changed since the
+        last access (common with stripped non-SGR escapes between text fragments).
         """
+        if not self._token_dirty:
+            return self._cached_token
         components = [name for name, active in self._attrs.items() if active]
         if self.fg_color:
             components.append(self.fg_color)
         if self.bg_color:
             components.append("BG" + self.bg_color)
         if not components:
-            return Text
-        token = Ansi
-        for c in components:
-            token = getattr(token, c)
-        return token
+            self._cached_token = Text
+        else:
+            token = Ansi
+            for c in components:
+                token = getattr(token, c)
+            self._cached_token = token
+        self._token_dirty = False
+        return self._cached_token
 
     def _process_sgr(self, params: str) -> None:
         """Update SGR state from a semicolon-separated parameter string.
@@ -331,6 +341,7 @@ class AnsiColorLexer(Lexer):
         except ValueError:
             return
 
+        self._token_dirty = True
         while values:
             code = values.pop(0)
 
@@ -576,6 +587,7 @@ class AnsiHtmlFormatter(HtmlFormatter):
         kwargs["style"] = ansi_style
 
         super().__init__(**kwargs)
+        self._ansi_css_cache: dict[_TokenType, str] = {}
 
     def get_token_style_defs(self, arg=None):
         """Extend Pygments' token CSS with rules for SGR attributes it cannot express.
@@ -604,10 +616,17 @@ class AnsiHtmlFormatter(HtmlFormatter):
         single concatenated class (``-Ansi-Bold-Red``). This override adds individual
         component classes (``-Ansi-Bold``, ``-Ansi-Red``) so that each maps to its own
         CSS rule from the style dict.
+
+        Results are cached per token type since the same compound tokens recur frequently
+        in typical terminal output.
         """
+        cached = self._ansi_css_cache.get(ttype)
+        if cached is not None:
+            return cached
         classes: str = super()._get_css_classes(ttype)
         if ttype[0] == "Ansi":
             classes += " " + " ".join(
                 self._get_css_class(getattr(Ansi, part)) for part in ttype[1:]
             )
+        self._ansi_css_cache[ttype] = classes
         return classes
