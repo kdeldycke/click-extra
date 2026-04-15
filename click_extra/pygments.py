@@ -465,10 +465,17 @@ class AnsiFilter(Filter):
         """Initialize an ``AnsiColorLexer`` and configure the ``token_type`` to be
         colorized.
 
-        .. todo::
-
-            Allow multiple ``token_type`` to be configured for colorization (if
-            traditions are changed on Pygments' side).
+        .. note::
+            Only one ``token_type`` is supported. All Pygments session lexers
+            (``ShellSessionBaseLexer`` and the manually-maintained list in
+            ``collect_session_lexers``) emit terminal output exclusively as
+            ``Generic.Output``. No upstream issue or PR proposes splitting output into
+            additional token types (like ``Generic.Error`` for stderr). If that changes,
+            this filter would need to accept a set of token types instead of a single
+            one. See `pygments#1148
+            <https://github.com/pygments/pygments/issues/1148>`_ and `pygments#2499
+            <https://github.com/pygments/pygments/issues/2499>`_ for the closest
+            related discussions.
         """
         super().__init__(**options)
         self.ansi_lexer = AnsiColorLexer()
