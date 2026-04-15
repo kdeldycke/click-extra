@@ -386,24 +386,15 @@ result = invoke(demo, args=["render-matrix", "gradient"])
 assert result.exit_code == 0
 ```
 
-### SGR text attributes
+### SGR text attributes and colors
 
-```{click:source}
-from click_extra import command, echo, style
-
-@command
-def attrs_demo():
-    """Render each SGR text attribute."""
-    attrs = [
-        "bold", "dim", "italic", "underline",
-        "overline", "blink", "reverse", "strikethrough",
-    ]
-    for attr in attrs:
-        echo(style(f"  {attr:15}", **{attr: True}) + " the quick brown fox")
+```{click:run}
+result = invoke(demo, args=["render-matrix", "styles"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
-result = invoke(attrs_demo)
+result = invoke(demo, args=["render-matrix", "colors"])
 assert result.exit_code == 0
 ```
 

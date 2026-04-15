@@ -240,14 +240,16 @@ def render_matrix(ctx: click.Context, matrix: str) -> None:
     table: list[list[str]] = []
 
     if matrix == "colors":
-        headers = ["Foreground \u21b4 \\ Background \u2192"] + _ALL_COLORS
+        styled_headers = [style(c, fg=c) for c in _ALL_COLORS]
+        headers = ["Foreground \u21b4 \\ Background \u2192"] + styled_headers
         for fg in _ALL_COLORS:
             row = [style(fg, fg=fg)]
             row.extend(style(fg, fg=fg, bg=bg) for bg in _ALL_COLORS)
             table.append(row)
 
     elif matrix == "styles":
-        headers = ["Color \u21b4 \\ Style \u2192"] + list(_ALL_STYLES)
+        styled_headers = [style(s, **{s: True}) for s in _ALL_STYLES]
+        headers = ["Color \u21b4 \\ Style \u2192"] + styled_headers
         for color_name in _ALL_COLORS:
             row = [style(color_name, fg=color_name)]
             for prop in _ALL_STYLES:
