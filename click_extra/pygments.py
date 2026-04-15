@@ -151,25 +151,42 @@ _SGR_FG_COLORS: dict[int, str] = {
 }
 """SGR foreground color codes (30-37, 90-97) to named color strings."""
 
-_SGR_BG_COLORS: dict[int, str] = {
-    40: "Black",
-    41: "Red",
-    42: "Green",
-    43: "Yellow",
-    44: "Blue",
-    45: "Magenta",
-    46: "Cyan",
-    47: "White",
-    100: "BrightBlack",
-    101: "BrightRed",
-    102: "BrightGreen",
-    103: "BrightYellow",
-    104: "BrightBlue",
-    105: "BrightMagenta",
-    106: "BrightCyan",
-    107: "BrightWhite",
+_SGR_BG_COLORS: dict[int, str] = {code + 10: name for code, name in _SGR_FG_COLORS.items()}
+"""SGR background color codes (40-47, 100-107) to named color strings.
+
+Derived from ``_SGR_FG_COLORS`` by offsetting each code by +10.
+"""
+
+_SGR_ATTR_ON: dict[int, str] = {
+    1: "Bold",
+    2: "Faint",
+    3: "Italic",
+    4: "Underline",
+    5: "Blink",
+    7: "Reverse",
+    9: "Strikethrough",
+    53: "Overline",
 }
-"""SGR background color codes (40-47, 100-107) to named color strings."""
+"""SGR codes that activate text attributes, mapped to ``Token.Ansi`` component names.
+
+This mapping is the single source of truth for supported text attributes. The attribute
+names appear in ``EXTRA_ANSI_CSS``, the Pygments token hierarchy, and CSS class names.
+"""
+
+_SGR_ATTR_OFF: dict[int, tuple[str, ...]] = {
+    22: ("Bold", "Faint"),
+    23: ("Italic",),
+    24: ("Underline",),
+    25: ("Blink",),
+    27: ("Reverse",),
+    29: ("Strikethrough",),
+    55: ("Overline",),
+}
+"""SGR codes that deactivate text attributes.
+
+Each code maps to one or more attribute names to reset. SGR 22 (normal intensity) resets
+both bold and faint simultaneously.
+"""
 
 
 # --- Token construction ---
@@ -181,52 +198,6 @@ Compound tokens from the lexer (like ``Token.Ansi.Bold.Red``) and individual sty
 components (like ``Token.Ansi.Red``) share this single namespace. The formatter
 decomposes compound tokens into individual CSS classes at render time.
 """
-
-
-def _token_from_state(
-    bold: bool,
-    faint: bool,
-    italic: bool,
-    underline: bool,
-    blink: bool,
-    reverse: bool,
-    strikethrough: bool,
-    overline: bool,
-    fg_color: str | None,
-    bg_color: str | None,
-) -> _TokenType:
-    """Construct a compound ``Token.Ansi.*`` token from the current SGR state.
-
-    Each active attribute and color becomes a component of the token path. For example,
-    bold red text on a green background produces ``Token.Ansi.Bold.Red.BGGreen``.
-    """
-    components: list[str] = []
-    if bold:
-        components.append("Bold")
-    if faint:
-        components.append("Faint")
-    if italic:
-        components.append("Italic")
-    if underline:
-        components.append("Underline")
-    if blink:
-        components.append("Blink")
-    if reverse:
-        components.append("Reverse")
-    if strikethrough:
-        components.append("Strikethrough")
-    if overline:
-        components.append("Overline")
-    if fg_color:
-        components.append(fg_color)
-    if bg_color:
-        components.append("BG" + bg_color)
-    if not components:
-        return Text
-    token = Ansi
-    for c in components:
-        token = getattr(token, c)
-    return token
 
 
 # --- Style generation ---
@@ -245,8 +216,8 @@ def _build_ansi_styles() -> dict[_TokenType, str]:
     # in the style dict. For attribute tokens (like Underline or Strikethrough), this
     # fallback overrides actual foreground colors on compound tokens when the attribute
     # rule appears later in the CSS cascade than the color rule.
-    # Attribute styling is handled separately: by EXTRA_ANSI_CSS for standalone
-    # pygmentize, and by docs/_static/custom.css for Sphinx/Furo.
+    # Attribute styling is handled separately by EXTRA_ANSI_CSS, injected via
+    # AnsiHtmlFormatter.get_token_style_defs.
 
     # Named colors (16 foreground + 16 background).
     for name, hex_value in _NAMED_COLORS.items():
@@ -322,32 +293,29 @@ class AnsiColorLexer(Lexer):
 
     def _reset_state(self) -> None:
         """Reset all SGR state to defaults."""
-        self.bold = False
-        self.faint = False
-        self.italic = False
-        self.underline = False
-        self.blink = False
-        self.reverse = False
-        self.strikethrough = False
-        self.overline = False
+        self._attrs = dict.fromkeys(_SGR_ATTR_ON.values(), False)
         self.fg_color: str | None = None
         self.bg_color: str | None = None
 
     @property
     def _current_token(self) -> _TokenType:
-        """Return the compound token for the current SGR state."""
-        return _token_from_state(
-            self.bold,
-            self.faint,
-            self.italic,
-            self.underline,
-            self.blink,
-            self.reverse,
-            self.strikethrough,
-            self.overline,
-            self.fg_color,
-            self.bg_color,
-        )
+        """Return the compound token for the current SGR state.
+
+        Each active attribute and color becomes a component of the token path. For
+        example, bold red text on a green background produces
+        ``Token.Ansi.Bold.Red.BGGreen``.
+        """
+        components = [name for name, active in self._attrs.items() if active]
+        if self.fg_color:
+            components.append(self.fg_color)
+        if self.bg_color:
+            components.append("BG" + self.bg_color)
+        if not components:
+            return Text
+        token = Ansi
+        for c in components:
+            token = getattr(token, c)
+        return token
 
     def _process_sgr(self, params: str) -> None:
         """Update SGR state from a semicolon-separated parameter string.
@@ -370,54 +338,12 @@ class AnsiColorLexer(Lexer):
             if code == 0:
                 self._reset_state()
 
-            # SGR 1: bold (increased intensity).
-            elif code == 1:
-                self.bold = True
-            # SGR 2: faint (decreased intensity).
-            elif code == 2:
-                self.faint = True
-            # SGR 3: italic.
-            elif code == 3:
-                self.italic = True
-            # SGR 4: underline.
-            elif code == 4:
-                self.underline = True
-            # SGR 5: blink.
-            elif code == 5:
-                self.blink = True
-            # SGR 7: reverse video.
-            elif code == 7:
-                self.reverse = True
-            # SGR 9: strikethrough (crossed-out).
-            elif code == 9:
-                self.strikethrough = True
-
-            # SGR 22: normal intensity (resets both bold and faint).
-            elif code == 22:
-                self.bold = False
-                self.faint = False
-            # SGR 23: not italic.
-            elif code == 23:
-                self.italic = False
-            # SGR 24: not underlined.
-            elif code == 24:
-                self.underline = False
-            # SGR 25: not blinking.
-            elif code == 25:
-                self.blink = False
-            # SGR 27: not reversed.
-            elif code == 27:
-                self.reverse = False
-            # SGR 29: not crossed-out.
-            elif code == 29:
-                self.strikethrough = False
-
-            # SGR 53: overline.
-            elif code == 53:
-                self.overline = True
-            # SGR 55: not overlined.
-            elif code == 55:
-                self.overline = False
+            # Text attributes: set (SGR 1-9, 53) or reset (SGR 22-29, 55).
+            elif code in _SGR_ATTR_ON:
+                self._attrs[_SGR_ATTR_ON[code]] = True
+            elif code in _SGR_ATTR_OFF:
+                for attr in _SGR_ATTR_OFF[code]:
+                    self._attrs[attr] = False
 
             # SGR 39: default foreground color.
             elif code == 39:
@@ -615,8 +541,8 @@ Maps ``Token.Ansi`` component names to CSS declarations. These are kept out of t
 Pygments style dict (``_ANSI_STYLES``) to prevent Furo's dark-mode CSS generator from
 injecting ``color: #D0D0D0`` fallbacks that conflict with foreground color tokens.
 
-Used by ``AnsiHtmlFormatter.get_style_defs`` for standalone rendering and by
-``docs/_static/custom.css`` for Sphinx/Furo.
+Used by ``AnsiHtmlFormatter.get_token_style_defs`` to inject CSS rules that both
+standalone ``pygmentize`` and Furo's dark-mode CSS generator pick up.
 """
 
 
@@ -651,22 +577,25 @@ class AnsiHtmlFormatter(HtmlFormatter):
 
         super().__init__(**kwargs)
 
-    def get_style_defs(self, arg: str = "") -> str:
-        """Extend Pygments' CSS with rules for SGR attributes it cannot express.
+    def get_token_style_defs(self, arg=None):
+        """Extend Pygments' token CSS with rules for SGR attributes it cannot express.
 
         Pygments' style strings support ``bold``, ``italic``, and ``underline``, but
         have no keywords for faint, blink, reverse, strikethrough, or overline. This
         override appends dedicated CSS rules from ``EXTRA_ANSI_CSS`` after the standard
-        Pygments CSS output.
+        Pygments token CSS output.
+
+        Overriding ``get_token_style_defs`` (rather than ``get_style_defs``) ensures
+        that Furo's dark-mode CSS generator, which calls this method directly, also
+        picks up the extra rules.
         """
-        css = super().get_style_defs(arg)
-        prefix = arg or ".highlight"
-        extra_lines = []
+        lines = super().get_token_style_defs(arg)
+        prefix = self.get_css_prefix(arg)
         for attr, declaration in EXTRA_ANSI_CSS.items():
             cls = self._get_css_class(getattr(Ansi, attr))
-            extra_lines.append(f"{prefix} .{cls} {{ {declaration} }}")
-        extra_lines.append("@keyframes ansi-blink { 50% { opacity: 0 } }")
-        return css + "\n" + "\n".join(extra_lines)
+            lines.append(f"{prefix(cls)} {{ {declaration} }}")
+        lines.append("@keyframes ansi-blink { 50% { opacity: 0 } }")
+        return lines
 
     def _get_css_classes(self, ttype: _TokenType) -> str:
         """Decompose compound ``Token.Ansi.*`` tokens into individual CSS classes.

@@ -41,13 +41,14 @@ from click_extra.pygments import (
     _ANSI_STYLES,
     _NAMED_COLORS,
     _PALETTE_256,
+    _SGR_ATTR_ON,
     DEFAULT_TOKEN_TYPE,
+    EXTRA_ANSI_CSS,
     LEXER_MAP,
     Ansi,
     AnsiColorLexer,
     AnsiFilter,
     AnsiHtmlFormatter,
-    _token_from_state,
     collect_session_lexers,
 )
 
@@ -561,46 +562,12 @@ def test_nearest_256_quantization(r, g, b, expected):
     assert _nearest_256(r, g, b) == expected
 
 
-# --- _token_from_state ---
+# --- SGR mapping consistency ---
 
 
-def test_token_from_state_empty():
-    """No active attributes returns plain Text token."""
-    assert (
-        _token_from_state(
-            False, False, False, False, False, False, False, False, None, None
-        )
-        is Text
-    )
-
-
-def test_token_from_state_single_color():
-    """A single foreground color produces a one-component token."""
-    assert (
-        _token_from_state(
-            False, False, False, False, False, False, False, False, "Red", None
-        )
-        is Ansi.Red
-    )
-
-
-def test_token_from_state_compound():
-    """Multiple attributes produce a compound token with deterministic ordering."""
-    result = _token_from_state(
-        True, False, True, False, False, False, False, False, "Blue", "Green"
-    )
-    assert result is Ansi.Bold.Italic.Blue.BGGreen
-
-
-def test_token_from_state_all_attributes():
-    """All eight attributes plus both colors produce the full compound token."""
-    result = _token_from_state(
-        True, True, True, True, True, True, True, True, "Cyan", "Magenta"
-    )
-    assert (
-        result
-        is Ansi.Bold.Faint.Italic.Underline.Blink.Reverse.Strikethrough.Overline.Cyan.BGMagenta
-    )
+def test_extra_css_matches_sgr_attributes():
+    """EXTRA_ANSI_CSS keys match the attribute names in _SGR_ATTR_ON."""
+    assert set(EXTRA_ANSI_CSS.keys()) == set(_SGR_ATTR_ON.values())
 
 
 # --- Escape sequence stripping ---
@@ -831,16 +798,7 @@ def test_ansi_styles_excludes_all_attributes():
     tokens when the attribute rule appears later in the CSS cascade. All attribute
     styling is handled by ``EXTRA_ANSI_CSS`` / ``custom.css`` instead.
     """
-    for attr in (
-        "Bold",
-        "Faint",
-        "Italic",
-        "Underline",
-        "Blink",
-        "Reverse",
-        "Strikethrough",
-        "Overline",
-    ):
+    for attr in _SGR_ATTR_ON.values():
         assert getattr(Ansi, attr) not in _ANSI_STYLES
 
 

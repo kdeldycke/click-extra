@@ -74,20 +74,9 @@
   content: none;
 }
 
-/* ANSI SGR text attributes. All attributes are handled here instead of via
- * Pygments' style dict, because Furo's dark-mode CSS generator injects a
- * `color: #D0D0D0` fallback for every token in the style dict. That fallback
- * overrides actual foreground colors on compound tokens when the attribute
- * rule appears later in the CSS cascade. Keeping attributes out of the style
- * dict and styling them here avoids the conflict entirely.
- * Source of truth: click_extra.pygments.EXTRA_ANSI_CSS.
+/* ANSI SGR text attributes are generated at build time by
+ * AnsiHtmlFormatter.get_token_style_defs() from EXTRA_ANSI_CSS.
+ * They are kept out of the Pygments style dict to prevent Furo's dark-mode
+ * CSS generator from injecting `color: #D0D0D0` fallbacks that conflict with
+ * foreground color tokens.
  */
-.highlight .-Ansi-Bold { font-weight: bold }
-.highlight .-Ansi-Faint { opacity: 0.5 }
-.highlight .-Ansi-Italic { font-style: italic }
-.highlight .-Ansi-Underline { text-decoration: underline }
-.highlight .-Ansi-Blink { animation: ansi-blink 1s step-end infinite }
-.highlight .-Ansi-Reverse { filter: invert(1) }
-.highlight .-Ansi-Strikethrough { text-decoration: line-through }
-.highlight .-Ansi-Overline { text-decoration: overline }
-@keyframes ansi-blink { 50% { opacity: 0 } }
