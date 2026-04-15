@@ -10,6 +10,9 @@
 
 ## [`7.11.0` (2026-04-13)](https://github.com/kdeldycke/click-extra/compare/v7.10.1...v7.11.0)
 
+> [!NOTE]
+> `7.11.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.11.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.11.0).
+
 - Add `serialize_data()` and `print_data()` functions for serializing arbitrary nested Python data (not just tabular rows) to JSON, HJSON, TOML, YAML, and XML. Complements the existing `render_table()`/`print_table()` pair.
 - Add `sort_key` parameter to `render_table()` and `print_table()` for pre-render row sorting.
 - Catch `ImportError` from missing optional dependencies in `print_table()` and `print_data()`, producing a clean one-line error instead of a traceback. The `print_data()` `package` parameter lets downstream projects customize install instructions.
