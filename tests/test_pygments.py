@@ -377,8 +377,10 @@ def test_sgr_bg_bright(code, color):
         (2, "Faint"),
         (3, "Italic"),
         (4, "Underline"),
+        (5, "Blink"),
         (7, "Reverse"),
         (9, "Strikethrough"),
+        (53, "Overline"),
     ],
 )
 def test_sgr_text_attribute(code, attr):
@@ -397,8 +399,10 @@ def test_sgr_text_attribute(code, attr):
         (2, 22, "Faint"),
         (3, 23, "Italic"),
         (4, 24, "Underline"),
+        (5, 25, "Blink"),
         (7, 27, "Reverse"),
         (9, 29, "Strikethrough"),
+        (53, 55, "Overline"),
     ],
 )
 def test_sgr_attribute_reset(set_code, reset_code, attr):
@@ -465,8 +469,8 @@ def test_sgr39_keeps_other_attributes():
         pytest.param("1;31", Ansi.Bold.Red, id="bold-red"),
         pytest.param("1;4;34", Ansi.Bold.Underline.Blue, id="bold-underline-blue"),
         pytest.param(
-            "1;3;4;7;9;31;42",
-            Ansi.Bold.Italic.Underline.Reverse.Strikethrough.Red.BGGreen,
+            "1;3;4;5;7;9;53;31;42",
+            Ansi.Bold.Italic.Underline.Blink.Reverse.Strikethrough.Overline.Red.BGGreen,
             id="all-attributes",
         ),
         pytest.param("2;33", Ansi.Faint.Yellow, id="faint-yellow"),
@@ -562,28 +566,40 @@ def test_nearest_256_quantization(r, g, b, expected):
 
 def test_token_from_state_empty():
     """No active attributes returns plain Text token."""
-    assert _token_from_state(False, False, False, False, False, False, None, None) is Text
+    assert (
+        _token_from_state(
+            False, False, False, False, False, False, False, False, None, None
+        )
+        is Text
+    )
 
 
 def test_token_from_state_single_color():
     """A single foreground color produces a one-component token."""
-    assert _token_from_state(
-        False, False, False, False, False, False, "Red", None
-    ) is Ansi.Red
+    assert (
+        _token_from_state(
+            False, False, False, False, False, False, False, False, "Red", None
+        )
+        is Ansi.Red
+    )
 
 
 def test_token_from_state_compound():
     """Multiple attributes produce a compound token with deterministic ordering."""
-    result = _token_from_state(True, False, True, False, False, False, "Blue", "Green")
+    result = _token_from_state(
+        True, False, True, False, False, False, False, False, "Blue", "Green"
+    )
     assert result is Ansi.Bold.Italic.Blue.BGGreen
 
 
 def test_token_from_state_all_attributes():
-    """All six attributes plus both colors produce the full compound token."""
-    result = _token_from_state(True, True, True, True, True, True, "Cyan", "Magenta")
+    """All eight attributes plus both colors produce the full compound token."""
+    result = _token_from_state(
+        True, True, True, True, True, True, True, True, "Cyan", "Magenta"
+    )
     assert (
         result
-        is Ansi.Bold.Faint.Italic.Underline.Reverse.Strikethrough.Cyan.BGMagenta
+        is Ansi.Bold.Faint.Italic.Underline.Blink.Reverse.Strikethrough.Overline.Cyan.BGMagenta
     )
 
 
@@ -692,17 +708,20 @@ def test_sgr_double_semicolons():
 
 def test_sgr_unknown_codes_ignored():
     """Unknown SGR codes are silently ignored; known codes still apply."""
-    # SGR 5 (blink) is not handled. SGR 31 is red.
-    tokens = lex("\x1b[5;31mtext\x1b[0m")
+    # SGR 6 (rapid blink) is not handled. SGR 31 is red.
+    tokens = lex("\x1b[6;31mtext\x1b[0m")
     assert tokens[0] == (Ansi.Red, "text")
 
 
 def test_256color_truncated_params():
-    """Truncated 256-color sequence (missing color index) is ignored."""
-    # 38;5 without the color index. The 38 triggers extended color handling but
-    # there are too few remaining values, so it falls through.
+    """Truncated 256-color sequence (missing color index) leaves leftover codes.
+
+    ``38;5``: code 38 triggers extended color handling but needs at least 2 more
+    values (mode + index). Only 1 remains (5), so 38 skips. Then 5 is processed
+    as SGR 5 (blink).
+    """
     tokens = lex("\x1b[38;5mtext\x1b[0m")
-    assert tokens[0] == (Text, "text")
+    assert tokens[0] == (Ansi.Blink, "text")
 
 
 def test_256color_out_of_range():
@@ -806,13 +825,16 @@ def test_ansi_styles_has_256_palette():
 
 def test_ansi_styles_has_text_attributes():
     """Style dict contains entries for all text attribute tokens."""
-    for attr in ("Bold", "Faint", "Italic", "Underline", "Reverse", "Strikethrough"):
+    for attr in (
+        "Bold", "Faint", "Italic", "Underline", "Blink",
+        "Reverse", "Strikethrough", "Overline",
+    ):
         assert getattr(Ansi, attr) in _ANSI_STYLES
 
 
 def test_ansi_styles_count():
-    """Style dict has the expected number of entries: 6 attrs + 32 named + 512 indexed."""
-    assert len(_ANSI_STYLES) == 6 + 32 + 512
+    """Style dict has the expected number of entries: 8 attrs + 32 named + 512 indexed."""
+    assert len(_ANSI_STYLES) == 8 + 32 + 512
 
 
 # --- Palette data ---

@@ -73,3 +73,15 @@
 .sidebar-tree a.reference.external[href="https://github.com/sponsors/kdeldycke"]::after {
   content: none;
 }
+
+/* ANSI SGR text attributes that Pygments' style system cannot express.
+ * Pygments handles bold, italic, and underline natively. These rules cover
+ * faint, blink, reverse, strikethrough, and overline. Generated from
+ * click_extra.pygments.EXTRA_ANSI_CSS.
+ */
+.highlight .-Ansi-Faint { opacity: 0.5 }
+.highlight .-Ansi-Blink { animation: ansi-blink 1s step-end infinite }
+.highlight .-Ansi-Reverse { filter: invert(1) }
+.highlight .-Ansi-Strikethrough { text-decoration: line-through }
+.highlight .-Ansi-Overline { text-decoration: overline }
+@keyframes ansi-blink { 50% { opacity: 0 } }

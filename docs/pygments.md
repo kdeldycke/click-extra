@@ -197,22 +197,26 @@ The `AnsiFilter` is a Pygments filter that intercepts tokens of a specific type 
 Here is a step-by-step example showing how the filter transforms a token stream:
 
 ```{click:source}
-from pygments.token import Generic, Token
+from pygments.token import Generic
 
+from click_extra import command, echo
 from click_extra.pygments import AnsiFilter
 
-filt = AnsiFilter()
+@command
+def filter_demo():
+    """Show how AnsiFilter transforms a token stream."""
+    filt = AnsiFilter()
 
-# Simulate what a session lexer produces: a prompt token and an output token
-# containing ANSI escape codes.
-stream = [
-    (Generic.Prompt, "$ "),
-    (Generic.Output, "\x1b[1;31mError:\x1b[0m file not found\n"),
-]
+    # Simulate what a session lexer produces: a prompt token and an output
+    # token containing ANSI escape codes.
+    stream = [
+        (Generic.Prompt, "$ "),
+        (Generic.Output, "\x1b[1;31mError:\x1b[0m file not found\n"),
+    ]
 
-result = list(filt.filter(None, stream))
-for token_type, value in result:
-    print(f"  {token_type!s:30} {value!r}")
+    result = list(filt.filter(None, stream))
+    for token_type, value in result:
+        echo(f"  {token_type!s:30} {value!r}")
 ```
 
 ```{click:run}
@@ -385,15 +389,22 @@ assert result.exit_code == 0
 ### SGR text attributes
 
 ```{click:source}
-from click_extra import echo, style
+from click_extra import command, echo, style
 
-attrs = ["bold", "dim", "italic", "underline", "reverse", "strikethrough"]
-for attr in attrs:
-    echo(style(f"  {attr:15}", **{attr: True}) + " the quick brown fox")
+@command
+def attrs_demo():
+    """Render each SGR text attribute."""
+    attrs = [
+        "bold", "dim", "italic", "underline",
+        "overline", "blink", "reverse", "strikethrough",
+    ]
+    for attr in attrs:
+        echo(style(f"  {attr:15}", **{attr: True}) + " the quick brown fox")
 ```
 
 ```{click:run}
-invoke(attrs_demo)
+result = invoke(attrs_demo)
+assert result.exit_code == 0
 ```
 
 ## `click_extra.pygments` API

@@ -19,7 +19,8 @@ Parses ANSI SGR escape sequences (ECMA-48 / ISO 6429) from terminal output and r
 them as colored HTML with CSS classes. Supports the standard 8/16 named colors, the
 256-color indexed palette, and 24-bit RGB.
 
-SGR text attributes: bold, faint, italic, underline, reverse video, and strikethrough.
+SGR text attributes: bold, faint, italic, underline, blink, reverse video, strikethrough,
+and overline.
 
 .. warning::
     24-bit RGB colors (``SGR 38;2;r;g;b`` and ``48;2;r;g;b``) are quantized to the
@@ -187,8 +188,10 @@ def _token_from_state(
     faint: bool,
     italic: bool,
     underline: bool,
+    blink: bool,
     reverse: bool,
     strikethrough: bool,
+    overline: bool,
     fg_color: str | None,
     bg_color: str | None,
 ) -> _TokenType:
@@ -206,10 +209,14 @@ def _token_from_state(
         components.append("Italic")
     if underline:
         components.append("Underline")
+    if blink:
+        components.append("Blink")
     if reverse:
         components.append("Reverse")
     if strikethrough:
         components.append("Strikethrough")
+    if overline:
+        components.append("Overline")
     if fg_color:
         components.append(fg_color)
     if bg_color:
@@ -238,8 +245,10 @@ def _build_ansi_styles() -> dict[_TokenType, str]:
     styles[Ansi.Faint] = ""
     styles[Ansi.Italic] = "italic"
     styles[Ansi.Underline] = "underline"
+    styles[Ansi.Blink] = ""
     styles[Ansi.Reverse] = ""
     styles[Ansi.Strikethrough] = ""
+    styles[Ansi.Overline] = ""
 
     # Named colors (16 foreground + 16 background).
     for name, hex_value in _NAMED_COLORS.items():
@@ -299,8 +308,8 @@ class AnsiColorLexer(Lexer):
 
     Supported SGR codes:
 
-    - Text attributes: bold (1), faint (2), italic (3), underline (4), reverse video (7),
-      strikethrough (9), and their resets (22-29).
+    - Text attributes: bold (1), faint (2), italic (3), underline (4), blink (5),
+      reverse video (7), strikethrough (9), overline (53), and their resets.
     - Named colors: standard (30-37, 40-47) and bright (90-97, 100-107).
     - 256-color indexed palette (38;5;n, 48;5;n).
     - 24-bit RGB (38;2;r;g;b, 48;2;r;g;b), quantized to the nearest 256-color entry.
@@ -319,8 +328,10 @@ class AnsiColorLexer(Lexer):
         self.faint = False
         self.italic = False
         self.underline = False
+        self.blink = False
         self.reverse = False
         self.strikethrough = False
+        self.overline = False
         self.fg_color: str | None = None
         self.bg_color: str | None = None
 
@@ -332,8 +343,10 @@ class AnsiColorLexer(Lexer):
             self.faint,
             self.italic,
             self.underline,
+            self.blink,
             self.reverse,
             self.strikethrough,
+            self.overline,
             self.fg_color,
             self.bg_color,
         )
@@ -371,6 +384,9 @@ class AnsiColorLexer(Lexer):
             # SGR 4: underline.
             elif code == 4:
                 self.underline = True
+            # SGR 5: blink.
+            elif code == 5:
+                self.blink = True
             # SGR 7: reverse video.
             elif code == 7:
                 self.reverse = True
@@ -388,12 +404,22 @@ class AnsiColorLexer(Lexer):
             # SGR 24: not underlined.
             elif code == 24:
                 self.underline = False
+            # SGR 25: not blinking.
+            elif code == 25:
+                self.blink = False
             # SGR 27: not reversed.
             elif code == 27:
                 self.reverse = False
             # SGR 29: not crossed-out.
             elif code == 29:
                 self.strikethrough = False
+
+            # SGR 53: overline.
+            elif code == 53:
+                self.overline = True
+            # SGR 55: not overlined.
+            elif code == 55:
+                self.overline = False
 
             # SGR 39: default foreground color.
             elif code == 39:
@@ -577,6 +603,21 @@ for _original_lexer in collect_session_lexers():
 # --- Formatter ---
 
 
+EXTRA_ANSI_CSS: dict[str, str] = {
+    "Faint": "opacity: 0.5",
+    "Blink": "animation: ansi-blink 1s step-end infinite",
+    "Reverse": "filter: invert(1)",
+    "Strikethrough": "text-decoration: line-through",
+    "Overline": "text-decoration: overline",
+}
+"""SGR attributes that Pygments' style system cannot express.
+
+Maps ``Token.Ansi`` component names to CSS declarations. Used by
+``AnsiHtmlFormatter.get_style_defs`` for standalone rendering and by the Sphinx
+extension to inject a dedicated stylesheet.
+"""
+
+
 class AnsiHtmlFormatter(HtmlFormatter):
     """HTML formatter with ANSI color support.
 
@@ -607,6 +648,23 @@ class AnsiHtmlFormatter(HtmlFormatter):
         kwargs["style"] = ansi_style
 
         super().__init__(**kwargs)
+
+    def get_style_defs(self, arg: str = "") -> str:
+        """Extend Pygments' CSS with rules for SGR attributes it cannot express.
+
+        Pygments' style strings support ``bold``, ``italic``, and ``underline``, but
+        have no keywords for faint, blink, reverse, strikethrough, or overline. This
+        override appends dedicated CSS rules from ``EXTRA_ANSI_CSS`` after the standard
+        Pygments CSS output.
+        """
+        css = super().get_style_defs(arg)
+        prefix = arg or ".highlight"
+        extra_lines = []
+        for attr, declaration in EXTRA_ANSI_CSS.items():
+            cls = self._get_css_class(getattr(Ansi, attr))
+            extra_lines.append(f"{prefix} .{cls} {{ {declaration} }}")
+        extra_lines.append("@keyframes ansi-blink { 50% { opacity: 0 } }")
+        return css + "\n" + "\n".join(extra_lines)
 
     def _get_css_classes(self, ttype: _TokenType) -> str:
         """Decompose compound ``Token.Ansi.*`` tokens into individual CSS classes.
