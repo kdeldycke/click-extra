@@ -378,12 +378,12 @@ Run `uvx click-extra render-matrix styles` in your terminal to see the real rend
 
 ## `click_extra.colorize` API
 
-```{autoclasstree} click_extra.colorize
-:strict:
-```
+````{eval-rst}
+.. autoclasstree:: click_extra.colorize
+   :strict:
 
-```{automodule} click_extra.colorize
-:members:
-:undoc-members:
-:show-inheritance:
-```
+.. automodule:: click_extra.colorize
+   :members:
+   :undoc-members:
+   :show-inheritance:
+````

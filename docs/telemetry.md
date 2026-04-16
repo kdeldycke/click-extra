@@ -6,12 +6,12 @@ It does nothing else.
 
 ## `click_extra.telemetry` API
 
-```{autoclasstree} click_extra.telemetry
-:strict:
-```
+````{eval-rst}
+.. autoclasstree:: click_extra.telemetry
+   :strict:
 
-```{automodule} click_extra.telemetry
-:members:
-:undoc-members:
-:show-inheritance:
-```
+.. automodule:: click_extra.telemetry
+   :members:
+   :undoc-members:
+   :show-inheritance:
+````

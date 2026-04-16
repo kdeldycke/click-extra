@@ -566,12 +566,12 @@ assert result.stdout.index("Apple") < result.stdout.index("Cherry")
 
 ## `click_extra.table` API
 
-```{autoclasstree} click_extra.table
-:strict:
-```
+````{eval-rst}
+.. autoclasstree:: click_extra.table
+   :strict:
 
-```{automodule} click_extra.table
-:members:
-:undoc-members:
-:show-inheritance:
-```
+.. automodule:: click_extra.table
+   :members:
+   :undoc-members:
+   :show-inheritance:
+````

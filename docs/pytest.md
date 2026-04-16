@@ -22,12 +22,12 @@ Write example and tutorial.
 
 ## `click_extra.pytest` API
 
-```{autoclasstree} click_extra.pytest
-:strict:
-```
+````{eval-rst}
+.. autoclasstree:: click_extra.pytest
+   :strict:
 
-```{automodule} click_extra.pytest
-:members:
-:undoc-members:
-:show-inheritance:
-```
+.. automodule:: click_extra.pytest
+   :members:
+   :undoc-members:
+   :show-inheritance:
+````

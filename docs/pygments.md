@@ -376,12 +376,12 @@ The full set of color and style rendering demos is in [Colors and styles](colori
 
 ## `click_extra.pygments` API
 
-```{autoclasstree} click_extra.pygments
-:strict:
-```
+````{eval-rst}
+.. autoclasstree:: click_extra.pygments
+   :strict:
 
-```{automodule} click_extra.pygments
-:members:
-:undoc-members:
-:show-inheritance:
-```
+.. automodule:: click_extra.pygments
+   :members:
+   :undoc-members:
+   :show-inheritance:
+````

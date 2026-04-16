@@ -1689,12 +1689,12 @@ This works identically across all configuration formats (TOML, YAML, JSON, INI, 
 
 ## `click_extra.config` API
 
-```{autoclasstree} click_extra.config
-:strict:
-```
+````{eval-rst}
+.. autoclasstree:: click_extra.config
+   :strict:
 
-```{automodule} click_extra.config
-:members:
-:undoc-members:
-:show-inheritance:
-```
+.. automodule:: click_extra.config
+   :members:
+   :undoc-members:
+   :show-inheritance:
+````
