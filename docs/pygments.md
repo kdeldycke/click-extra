@@ -299,7 +299,7 @@ That's why you need Click Extra's lexers. If we switch to the new `ansi-pycon` l
 ```
 
 ```{seealso}
-All these new lexers [can be used in Sphinx](https://kdeldycke.github.io/click-extra/sphinx.html#ansi-shell-sessions) out of the box, with [a bit of configuration](https://kdeldycke.github.io/click-extra/sphinx.html#setup).
+All these new lexers can be used in [Sphinx](sphinx.md#ansi-shell-sessions) and [MkDocs](mkdocs.md) out of the box.
 ```
 
 ### Lexer design

@@ -22,6 +22,7 @@ parameters
 types
 pygments
 sphinx
+mkdocs
 testing
 pytest
 telemetry
