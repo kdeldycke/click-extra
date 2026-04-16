@@ -1,82 +1,34 @@
-# {octicon}`file-code` MkDocs
+# {octicon}`book` MkDocs
 
-[MkDocs](https://www.mkdocs.org) can render ANSI-colored terminal output using Click Extra's [Pygments lexers](pygments.md). Without proper setup, raw escape codes show up as garbage text: `[1mbump-my-version[0m [[1;36mOPTIONS[0m]` instead of colored output.
+[MkDocs](https://www.mkdocs.org) can render ANSI-colored terminal output using Click Extra's [Pygments lexers](pygments.md). Without this, raw escape codes show up as garbage text in documentation.
 
 ````{important}
-For these helpers to work, you need to install `click_extra`'s additional dependencies from the `pygments` extra group:
+For these helpers to work, you need to install `click_extra`'s additional dependencies from the `mkdocs` extra group:
 
 ```{code-block} shell-session
-$ pip install click-extra[pygments]
+$ pip install click-extra[mkdocs]
 ```
 ````
 
 ## Setup
 
-Your `mkdocs.yml` should use [pymdownx.highlight](https://facelessuser.github.io/pymdown-extensions/extensions/highlight/) and [pymdownx.superfences](https://facelessuser.github.io/pymdown-extensions/extensions/superfences/) for fenced code block support:
+Once [Click Extra is installed](install.md), enable the plugin in your `mkdocs.yml`:
 
 ```{code-block} yaml
 :caption: `mkdocs.yml`
+:emphasize-lines: 6-7
 markdown_extensions:
   - pymdownx.highlight:
       use_pygments: true
   - pymdownx.superfences
+
+plugins:
+  - click-extra
 ```
 
-## ANSI CSS
+The plugin patches [pymdownx.highlight](https://facelessuser.github.io/pymdown-extensions/extensions/highlight/)'s formatter classes to use `AnsiHtmlFormatter`, the same way the [Sphinx integration](sphinx.md#setup) patches `PygmentsBridge`. This gives every code block full ANSI color rendering: compound tokens like `Token.Ansi.Bold.Cyan` are decomposed into individual CSS classes, and the stylesheet includes rules for the 256-color indexed palette and all SGR text attributes.
 
-MkDocs themes ship Pygments CSS for standard tokens but know nothing about `Token.Ansi.*`. Run this script to generate a stylesheet covering the 16 named colors, their background variants, and all text attributes (bold, italic, underline, strikethrough, etc.):
-
-```{code-block} python
-:caption: `generate_ansi_css.py`
-"""Generate CSS for ANSI-colored code blocks in MkDocs."""
-
-from pathlib import Path
-
-from click_extra.pygments import EXTRA_ANSI_CSS, _NAMED_COLORS
-
-lines = []
-
-# Text attributes (bold, italic, underline, etc.).
-for attr, declaration in EXTRA_ANSI_CSS.items():
-    lines.append(
-        f'.highlight [class*="-Ansi"][class*="-{attr}"] {{ {declaration} }}'
-    )
-
-# Named foreground and background colors (standard + bright).
-for name, hex_value in _NAMED_COLORS.items():
-    lines.append(
-        f'.highlight [class*="-Ansi"][class*="-{name}"]'
-        f" {{ color: {hex_value} }}"
-    )
-    lines.append(
-        f'.highlight [class*="-Ansi"][class*="-BG{name}"]'
-        f" {{ background-color: {hex_value} }}"
-    )
-
-# Blink animation keyframes.
-lines.append("@keyframes ansi-blink { 50% { opacity: 0 } }")
-
-Path("docs/css/ansi-colors.css").write_text("\n".join(lines) + "\n")
-```
-
-### Why attribute selectors
-
-Pygments' standard `HtmlFormatter` (used by pymdownx.highlight) renders compound tokens like `Token.Ansi.Bold.Cyan` as a single concatenated CSS class: `-Ansi-Bold-Cyan`. A class selector for `-Ansi-Cyan` won't match that. But the attribute selector `[class*="-Cyan"]` matches because `-Cyan` appears as a substring of `-Ansi-Bold-Cyan`, so both the bold and cyan rules apply from their individual selectors.
-
-The `[class*="-Ansi"]` guard scopes every rule to ANSI tokens, preventing collisions with other Pygments classes.
-
-### Include the CSS
-
-Reference the generated file in `mkdocs.yml`:
-
-```{code-block} yaml
-:caption: `mkdocs.yml`
-:emphasize-lines: 2
-extra_css:
-  - css/ansi-colors.css
-```
-
-## Usage
+## ANSI shell sessions
 
 Use Click Extra's `ansi-` prefixed lexers as the language identifier in fenced code blocks. The lexer names map directly to Pygments IDs registered via [entry points](pygments.md#integration), so MkDocs picks them up automatically.
 
@@ -106,17 +58,11 @@ For Python console sessions:
 
 See the [full list of available ANSI lexer variants](pygments.md#lexer-variants).
 
-## Limitations
+## `click_extra.mkdocs` API
 
-The CSS attribute selector approach covers the 16 standard named colors, their bright and background variants, and all text attributes, in any combination. This handles the vast majority of CLI output.
-
-The [256-color indexed palette](pygments.md#ansi-html-formatter) is not covered because numeric suffixes create prefix collisions (`C1` matching `C10`, `C100`, etc.). If your CLI uses 256-color or 24-bit RGB codes, generate the full palette CSS with:
-
-```{code-block} python
-from pygments.formatters import get_formatter_by_name
-
-formatter = get_formatter_by_name("ansi-html")
-print(formatter.get_style_defs(".highlight"))
-```
-
-This produces individual class selectors (`.highlight .-Ansi-C42 { ... }`) for all 512 palette entries. These work for simple (single-color) tokens but not for compound tokens like bold + 256-color.
+````{eval-rst}
+.. automodule:: click_extra.mkdocs
+   :members:
+   :undoc-members:
+   :show-inheritance:
+````

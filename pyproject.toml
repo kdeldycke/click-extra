@@ -131,6 +131,8 @@ pytest11.click-extra = "click_extra.pytest"
 "pygments.lexers".ansi-ruby-console = "click_extra.pygments:AnsiRubyConsoleLexer"
 "pygments.lexers".ansi-sqlite-console = "click_extra.pygments:AnsiSqliteConsoleLexer"
 "pygments.lexers".ansi-tcsh-session = "click_extra.pygments:AnsiTcshSessionLexer"
+# MkDocs plugin for ANSI color rendering in code blocks.
+"mkdocs.plugins".click-extra = "click_extra.mkdocs:AnsiColorPlugin"
 
 [project.optional-dependencies]
 hjson = [
@@ -144,6 +146,14 @@ json5 = [
 jsonc = [
   # jsonc.loads() for JSONC config parsing.
   "json-with-comments>=1.2.10",
+]
+mkdocs = [
+  # MkDocs 1.4.0 is the first version with the on_startup plugin event.
+  "mkdocs>=1.4",
+  # Pygments 2.14.0 is the first version with lexers.algebra.GAPConsoleLexer that is referenced in our code.
+  "pygments>=2.14",
+  # pymdown-extensions 10.0 is the first version with stable highlight extension API.
+  "pymdown-extensions>=10",
 ]
 pygments = [
   # Pygments 2.14.0 is the first version with lexers.algebra.GAPConsoleLexer that is referenced in our code.
@@ -208,6 +218,10 @@ test = [
   "pytest-httpserver>=1.1",
   # pytest-randomly 4.0.1 stabilized seed management for reproducible test ordering.
   "pytest-randomly>=4.0.1",
+  # MkDocs 1.4.0 is the first version with the on_startup plugin event.
+  "mkdocs>=1.4",
+  # pymdown-extensions 10.0 is the first version with stable highlight extension API.
+  "pymdown-extensions>=10",
   # Sphinx 8.0.0 is the first version to drop Python 3.9, like us.
   "sphinx>=8",
   # tomli 2.0 aligned API with stdlib tomllib; only installed on Python 3.10.

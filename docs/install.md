@@ -168,6 +168,11 @@ By default, Click Extra supports TOML [configuration files](config.md#toml) and 
     ```
   - - [YAML](config.md#yaml) config files: `--config app.yaml`
     - [`yaml` table format](table.md#table-formats): `--table-format yaml`
+* - `mkdocs`
+  - ```{code-block} shell-session
+    $ pip install click-extra[mkdocs]
+    ```
+  - - [ANSI color rendering](mkdocs.md) in MkDocs code blocks
 * - `pygments`
   - ```{code-block} shell-session
     $ pip install click-extra[pygments]
@@ -189,6 +194,6 @@ By default, Click Extra supports TOML [configuration files](config.md#toml) and 
 Install all extras at once with:
 
 ```{code-block} shell-session
-$ pip install click-extra[hjson,json5,jsonc,toml,xml,yaml,pygments,sphinx,pytest]
+$ pip install click-extra[hjson,json5,jsonc,mkdocs,toml,xml,yaml,pygments,sphinx,pytest]
 ```
 ````
