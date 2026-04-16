@@ -566,7 +566,7 @@ assert result.stdout.index("Apple") < result.stdout.index("Cherry")
 
 ## `click_extra.table` API
 
-````{eval-rst}
+```{eval-rst}
 .. autoclasstree:: click_extra.table
    :strict:
 
@@ -574,4 +574,4 @@ assert result.stdout.index("Apple") < result.stdout.index("Cherry")
    :members:
    :undoc-members:
    :show-inheritance:
-````
+```

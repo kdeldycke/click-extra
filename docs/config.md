@@ -1699,7 +1699,7 @@ This works identically across all configuration formats (TOML, YAML, JSON, INI, 
 
 ## `click_extra.config` API
 
-````{eval-rst}
+```{eval-rst}
 .. autoclasstree:: click_extra.config
    :strict:
 
@@ -1707,4 +1707,4 @@ This works identically across all configuration formats (TOML, YAML, JSON, INI, 
    :members:
    :undoc-members:
    :show-inheritance:
-````
+```

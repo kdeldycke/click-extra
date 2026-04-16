@@ -537,7 +537,7 @@ assert result.output == (
 
 ## `click_extra.types` API
 
-````{eval-rst}
+```{eval-rst}
 .. autoclasstree:: click_extra.types
    :strict:
 
@@ -545,4 +545,4 @@ assert result.output == (
    :members:
    :undoc-members:
    :show-inheritance:
-````
+```
