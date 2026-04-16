@@ -641,16 +641,16 @@ Backing up /tmp
 
 Several dialects are supported:
 
-| Format                              | Extensions        | Description                                                                               | Enabled by default |
-| :---------------------------------- | :---------------- | :---------------------------------------------------------------------------------------- | :----------------- |
-| [`TOML`](#toml)                     | `*.toml`          | -                                                                                         | ✅                 |
-| [`YAML`](#yaml)                     | `*.yaml`, `*.yml` | -                                                                                         | ❌                 |
-| [`JSON`](#json)                     | `*.json`          | -                                                                                         | ✅                 |
-| [`JSON5`](#json5)                   | `*.json5`         | A [superset of JSON made for configuration file](https://json5.org)                       | ❌                 |
-| [`JSONC`](#jsonc)                   | `*.jsonc`         | Like JSON, but with comments and trailing commas                                          | ❌                 |
-| [`HJSON`](#hjson)                   | `*.hjson`         | Another flavor of a [user-friendly JSON](https://hjson.github.io)                         | ❌                 |
-| [`INI`](#ini)                       | `*.ini`           | With extended interpolation, multi-level sections and non-native types (`list`, `set`, …) | ✅                 |
-| [`XML`](#xml)                       | `*.xml`           | -                                                                                         | ❌                 |
+| Format                                 | Extensions        | Description                                                                               | Enabled by default |
+| :------------------------------------- | :---------------- | :---------------------------------------------------------------------------------------- | :----------------- |
+| [`TOML`](#toml)                        | `*.toml`          | -                                                                                         | ✅                 |
+| [`YAML`](#yaml)                        | `*.yaml`, `*.yml` | -                                                                                         | ❌                 |
+| [`JSON`](#json)                        | `*.json`          | -                                                                                         | ✅                 |
+| [`JSON5`](#json5)                      | `*.json5`         | A [superset of JSON made for configuration file](https://json5.org)                       | ❌                 |
+| [`JSONC`](#jsonc)                      | `*.jsonc`         | Like JSON, but with comments and trailing commas                                          | ❌                 |
+| [`HJSON`](#hjson)                      | `*.hjson`         | Another flavor of a [user-friendly JSON](https://hjson.github.io)                         | ❌                 |
+| [`INI`](#ini)                          | `*.ini`           | With extended interpolation, multi-level sections and non-native types (`list`, `set`, …) | ✅                 |
+| [`XML`](#xml)                          | `*.xml`           | -                                                                                         | ❌                 |
 | {ref}`PYPROJECT_TOML <pyproject-toml>` | `pyproject.toml`  | Reads `[tool.*]` sections from `pyproject.toml`                                           | ✅                 |
 
 Formats depending on third-party packages are not enabled by default. You need to [install Click Extra with the corresponding extra dependency group](install.md#configuration-file-formats) to enable them.
@@ -783,6 +783,7 @@ Write example.
 ```
 
 (pyproject-toml)=
+
 ### `pyproject.toml`
 
 The `PYPROJECT_TOML` format reads `[tool.<cli-name>]` sections from a `pyproject.toml` file, following [PEP 518](https://peps.python.org/pep-0518/). This is useful for any CLI tool that wants to store its configuration alongside project metadata — not just Python projects. Tools like [ruff](https://docs.astral.sh/ruff/configuration/#configuring-ruff) and [typos](https://github.com/crate-ci/typos/blob/master/docs/reference.md), which are not Python projects, all use this convention, to play nice with other communities and increase adoption.

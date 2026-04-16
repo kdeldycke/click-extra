@@ -208,6 +208,7 @@ This is just a matter of preference, as nothing prevents you to use both `rich-c
 ```
 
 (color-option)=
+
 ## `--color`/`--no-color` flag
 
 Click Extra adds a `--color`/`--no-color` flag (aliased as `--ansi`/`--no-ansi`) that controls whether ANSI codes are emitted. It is eager, so it takes effect before other eager options like `--version`.
