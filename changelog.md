@@ -8,7 +8,10 @@
 - Add MkDocs plugin for ANSI color rendering in code blocks. Install with `pip install click-extra[mkdocs]`, then add `click-extra` to your `mkdocs.yml` plugins list. Patches `pymdownx.highlight` formatters to use `AnsiHtmlFormatter`.
 - Fix API reference sections rendering as raw RST markup instead of formatted documentation. Wrap all `automodule` and `autoclasstree` directives in `eval-rst` blocks to force RST parsing, working around MyST-Parser's `MockState.nested_parse()` treating autodoc output as Markdown.
 
-## [`7.12.0` (2026-04-15)](https://github.com/kdeldycke/click-extra/compare/v7.11.0...v7.12.0)
+## [`7.12.0` (2026-04-16)](https://github.com/kdeldycke/click-extra/compare/v7.11.0...v7.12.0)
+
+> [!NOTE]
+> `7.12.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.12.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.12.0).
 
 - Add `JobsOption` and `jobs_option` decorator for controlling parallel execution. Defaults to available CPUs minus one. Warns when the requested count is clamped or exceeds available cores.
 - Improve error messages for single-dash multi-character tokens. When Click splits `-dbgwrong` character by character and reports "No such option: -d", `ExtraCommand` now catches that and re-raises with the full token and close-match suggestions.
