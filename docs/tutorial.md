@@ -217,19 +217,19 @@ Notice in the example above how the `@command()` decorator from Cloup is used wi
 
 Click Extra provides these additional, pre-configured options decorators you can use standalone. Some of them are included by default in the {py:func}`@extra_command and @extra_group <click_extra.commands.default_extra_params>` decorators (see the last column):
 
-| Decorator                                                             | Specification                             | Default |
-| --------------------------------------------------------------------- | ----------------------------------------- | ------- |
-| [`@timer_option`](timer.md)                                           | `--time / --no-time`                      | ✅      |
-| {ref}`@color_option <color-option>`                                   | `--color, --ansi / --no-color, --no-ansi` | ✅      |
-| [`@config_option`](config.md#standalone-option)                       | `--config CONFIG_PATH`                    | ✅      |
-| [`@no_config_option`](config.md#)                                     | `--no-config`                             | ✅      |
-| {ref}`@show_params_option <show-params-option>`                       | `--show-params`                           | ✅      |
-| [`@table_format_option`](table.md)                                    | `--table-format FORMAT`                   | ✅      |
-| [`@verbosity_option`](logging.md#colored-verbosity)                   | `--verbosity LEVEL`                       | ✅      |
-| {py:class}`@verbose_option <click_extra.logging.VerboseOption>`       | `-v, --verbose`                           | ✅      |
-| [`@version_option`](version.md)                                       | `--version`                               | ✅      |
-| {py:class}`@help_option <click_extra.colorize.HelpExtraFormatter>`    | `-h, --help`                              | ✅      |
-| {py:mod}`@telemetry_option <click_extra.telemetry>`                   | `--telemetry / --no-telemetry`            | ❌      |
+| Decorator                                                          | Specification                             | Default |
+| ------------------------------------------------------------------ | ----------------------------------------- | ------- |
+| [`@timer_option`](timer.md)                                        | `--time / --no-time`                      | ✅      |
+| {ref}`@color_option <color-option>`                                | `--color, --ansi / --no-color, --no-ansi` | ✅      |
+| [`@config_option`](config.md#standalone-option)                    | `--config CONFIG_PATH`                    | ✅      |
+| [`@no_config_option`](config.md#)                                  | `--no-config`                             | ✅      |
+| {ref}`@show_params_option <show-params-option>`                    | `--show-params`                           | ✅      |
+| [`@table_format_option`](table.md)                                 | `--table-format FORMAT`                   | ✅      |
+| [`@verbosity_option`](logging.md#colored-verbosity)                | `--verbosity LEVEL`                       | ✅      |
+| {py:class}`@verbose_option <click_extra.logging.VerboseOption>`    | `-v, --verbose`                           | ✅      |
+| [`@version_option`](version.md)                                    | `--version`                               | ✅      |
+| {py:class}`@help_option <click_extra.colorize.HelpExtraFormatter>` | `-h, --help`                              | ✅      |
+| {py:mod}`@telemetry_option <click_extra.telemetry>`                | `--telemetry / --no-telemetry`            | ❌      |
 
 ```{note}
 Because single-letter options are a scarce resource, Click Extra does not impose them on you. All the options above are specified with their long names only. You can always customize them to add a short name if you wish.

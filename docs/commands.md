@@ -243,6 +243,7 @@ The advantage of the `context_settings` method we demonstrated above, is that it
 ```
 
 (program-name)=
+
 ### Version fields
 
 Click's `@version_option(prog_name=...)` lets you customize the name displayed by `--version`. But with Click Extra's default options, the `ExtraVersionOption` is created for you — so there's no decorator call to pass `prog_name` to.
