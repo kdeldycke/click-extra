@@ -649,9 +649,8 @@ class ExtraVersionOption(ExtraOption):
         # the user's module, producing false-positive lookups. ``__main__``
         # modules are always entry points (never CliRunner artifacts), so
         # they are exempt from the exclusion.
-        is_main_entry = (
-            self.module_name == "__main__"
-            or self.module_name.endswith(".__main__")
+        is_main_entry = self.module_name == "__main__" or self.module_name.endswith(
+            ".__main__"
         )
         if (
             version is None
