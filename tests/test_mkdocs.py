@@ -84,7 +84,7 @@ def test_on_config_patches_formatters():
     assert not issubclass(pymdownx.highlight.InlineHtmlFormatter, AnsiHtmlFormatter)
 
     plugin = AnsiColorPlugin()
-    plugin.on_config({})
+    plugin.on_config({})  # type: ignore[arg-type]
 
     assert issubclass(pymdownx.highlight.BlockHtmlFormatter, AnsiHtmlFormatter)
     assert issubclass(pymdownx.highlight.InlineHtmlFormatter, AnsiHtmlFormatter)
@@ -96,11 +96,11 @@ def test_on_config_idempotent():
     import pymdownx.highlight
 
     plugin = AnsiColorPlugin()
-    plugin.on_config({})
+    plugin.on_config({})  # type: ignore[arg-type]
     block_cls = pymdownx.highlight.BlockHtmlFormatter
     inline_cls = pymdownx.highlight.InlineHtmlFormatter
 
-    plugin.on_config({})
+    plugin.on_config({})  # type: ignore[arg-type]
     assert pymdownx.highlight.BlockHtmlFormatter is block_cls
     assert pymdownx.highlight.InlineHtmlFormatter is inline_cls
 
@@ -114,7 +114,7 @@ def test_patched_formatter_preserves_pymdownx_mro():
     orig_inline = pymdownx.highlight.InlineHtmlFormatter
 
     plugin = AnsiColorPlugin()
-    plugin.on_config({})
+    plugin.on_config({})  # type: ignore[arg-type]
 
     assert issubclass(pymdownx.highlight.BlockHtmlFormatter, orig_block)
     assert issubclass(pymdownx.highlight.InlineHtmlFormatter, orig_inline)
@@ -129,7 +129,7 @@ def test_patched_formatter_renders_ansi():
     import pymdownx.highlight
 
     plugin = AnsiColorPlugin()
-    plugin.on_config({})
+    plugin.on_config({})  # type: ignore[arg-type]
 
     formatter = pymdownx.highlight.BlockHtmlFormatter(style="default")
     # AnsiHtmlFormatter augments the style with ANSI token definitions.
@@ -200,9 +200,9 @@ def test_on_config_patches_mkdocs_click():
     assert not getattr(_docs, "_click_extra_patched", False)
 
     plugin = AnsiColorPlugin()
-    plugin.on_config({})
+    plugin.on_config({})  # type: ignore[arg-type]
 
-    assert _docs._click_extra_patched is True
+    assert _docs._click_extra_patched is True  # type: ignore[attr-defined]
     ctx = click.Context(_hello_cmd, info_name="hello")
     lines = list(_docs._make_usage(ctx))
     assert ANSI_OUTPUT_FENCE in lines
