@@ -414,28 +414,33 @@ regex = true
 search = "date-released: \\d{{4}}-\\d{{2}}-\\d{{2}}"
 replace = "date-released: {utcnow:%Y-%m-%d}"
 
+# Pin image URLs to the release tag (only during release: dev0 → release).
 [[tool.bumpversion.files]]
 filename = "./readme.md"
 ignore_missing_version = true
+include_bumps = ["dev"]
 search = "raw.githubusercontent.com/kdeldycke/click-extra/main/"
 replace = "raw.githubusercontent.com/kdeldycke/click-extra/v{new_version}/"
 
 [[tool.bumpversion.files]]
 filename = "./docs/tutorial.md"
 ignore_missing_version = true
+include_bumps = ["dev"]
 search = "raw.githubusercontent.com/kdeldycke/click-extra/main/"
 replace = "raw.githubusercontent.com/kdeldycke/click-extra/v{new_version}/"
 
-# Restore image URLs from the previous release tag back to main.
+# Restore image URLs from the release tag back to main (only during next dev cycle).
 [[tool.bumpversion.files]]
 filename = "./readme.md"
 ignore_missing_version = true
+exclude_bumps = ["dev"]
 search = "raw.githubusercontent.com/kdeldycke/click-extra/v{current_version}/"
 replace = "raw.githubusercontent.com/kdeldycke/click-extra/main/"
 
 [[tool.bumpversion.files]]
 filename = "./docs/tutorial.md"
 ignore_missing_version = true
+exclude_bumps = ["dev"]
 search = "raw.githubusercontent.com/kdeldycke/click-extra/v{current_version}/"
 replace = "raw.githubusercontent.com/kdeldycke/click-extra/main/"
 
