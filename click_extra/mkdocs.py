@@ -82,16 +82,16 @@ def _patch_mkdocs_click() -> None:
     orig_plain = _docs._make_plain_options
 
     @wraps(orig_usage)
-    def _ansi_usage(*args, **kwargs):  # type: ignore[no-untyped-def]
+    def _ansi_usage(*args, **kwargs):
         return _ansi_lines(orig_usage(*args, **kwargs))
 
     @wraps(orig_plain)
-    def _ansi_plain_options(*args, **kwargs):  # type: ignore[no-untyped-def]
+    def _ansi_plain_options(*args, **kwargs):
         return _ansi_lines(orig_plain(*args, **kwargs))
 
     _docs._make_usage = _ansi_usage
     _docs._make_plain_options = _ansi_plain_options
-    _docs._click_extra_patched = True
+    _docs._click_extra_patched = True  # type: ignore[attr-defined]
 
 
 class AnsiColorPlugin(BasePlugin):

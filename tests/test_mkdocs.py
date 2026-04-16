@@ -53,7 +53,7 @@ def _clean_mkdocs_click():
     yield
     _docs._make_usage = orig_usage
     _docs._make_plain_options = orig_plain
-    _docs._click_extra_patched = orig_patched
+    _docs._click_extra_patched = orig_patched  # type: ignore[attr-defined]
 
 
 @pytest.mark.once
