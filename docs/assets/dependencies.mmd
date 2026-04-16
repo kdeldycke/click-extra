@@ -36,7 +36,6 @@ flowchart LR
 
     subgraph ext_pygments [--extra pygments]
         pygments{{"`pygments >=2.14`"}}
-        pygments_ansi_color{{"`pygments-ansi-color >=0.3`"}}
     end
 
     subgraph ext_pytest [--extra pytest]
@@ -87,10 +86,10 @@ flowchart LR
     click_extra ==>|" >=20 "| boltons
     click_extra ==>|" >=1.0.1 "| deepmerge
     sphinx ==> requests
-    sphinx ==> pygments
     sphinx --> colorama
     sphinx --> jinja2
     sphinx --> packaging
+    sphinx ==> pygments
     sphinx ==> tomli
     sphinx --> alabaster
     sphinx --> babel
@@ -104,10 +103,10 @@ flowchart LR
     sphinx --> sphinxcontrib_jsmath
     sphinx --> sphinxcontrib_qthelp
     sphinx --> sphinxcontrib_serializinghtml
-    pytest ==> pygments
     pytest --> colorama
     pytest --> exceptiongroup
     pytest --> packaging
+    pytest ==> pygments
     pytest ==> tomli
     pytest --> iniconfig
     pytest --> pluggy
@@ -121,7 +120,6 @@ flowchart LR
     exceptiongroup --> typing_extensions
     jinja2 --> markupsafe
     extra_platforms ==> pytest
-    pygments_ansi_color ==> pygments
     tabulate --> wcwidth
     wcmatch --> bracex
     click_extra -.-> ext_hjson
@@ -159,7 +157,6 @@ flowchart LR
     click packaging "https://pypi.org/project/packaging/" _blank
     click pluggy "https://pypi.org/project/pluggy/" _blank
     click pygments "https://pypi.org/project/pygments/" _blank
-    click pygments_ansi_color "https://pypi.org/project/pygments-ansi-color/" _blank
     click pytest "https://pypi.org/project/pytest/" _blank
     click pyyaml "https://pypi.org/project/pyyaml/" _blank
     click requests "https://pypi.org/project/requests/" _blank
@@ -192,7 +189,6 @@ flowchart LR
     style json_with_comments stroke-width:3px
     style json5 stroke-width:3px
     style pygments stroke-width:3px
-    style pygments_ansi_color stroke-width:3px
     style pytest stroke-width:3px
     style pyyaml stroke-width:3px
     style requests stroke-width:3px
