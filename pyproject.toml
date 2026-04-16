@@ -448,7 +448,7 @@ warn_return_any = true
 warn_unreachable = true
 pretty = true
 overrides = [
-  { ignore_missing_imports = true, module = [ "hjson", "jsonc" ] },
+  { ignore_missing_imports = true, module = [ "hjson", "jsonc", "pymdownx", "pymdownx.*" ] },
   # Sphinx uses Python 3.12+ type statement syntax (PEP 695), which causes
   # mypy to fail with syntax errors when checking against older Python versions.
   # XXX This is a temporary workaround until we drop support for Python 3.10 and 3.11 for Click Extra.
