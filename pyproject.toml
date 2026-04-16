@@ -205,9 +205,13 @@ test = [
   "coverage[toml]>=7.12",
   # extra-platforms 5.0.0 re-introduced Python 3.10 support after dropping it in 4.x.
   "extra-platforms[pytest]>=5",
+  # MkDocs 1.4.0 is the first version with the on_startup plugin event.
+  "mkdocs>=1.4",
   # myst-parser 4.0 added colon_fence extension for GitHub-style alert syntax.
   # Pinned to >=4 (not >=5) because myst-parser 5 requires Python 3.11+ and tests run on 3.10+.
   "myst-parser>=4",
+  # pymdown-extensions 10.0 is the first version with stable highlight extension API.
+  "pymdown-extensions>=10",
   # pytest 9.0.0 is the first supporting native TOML configuration files.
   "pytest>=9",
   # pytest-cov 7.0 updated the plugin interface for coverage reporting.
@@ -218,10 +222,6 @@ test = [
   "pytest-httpserver>=1.1",
   # pytest-randomly 4.0.1 stabilized seed management for reproducible test ordering.
   "pytest-randomly>=4.0.1",
-  # MkDocs 1.4.0 is the first version with the on_startup plugin event.
-  "mkdocs>=1.4",
-  # pymdown-extensions 10.0 is the first version with stable highlight extension API.
-  "pymdown-extensions>=10",
   # Sphinx 8.0.0 is the first version to drop Python 3.9, like us.
   "sphinx>=8",
   # tomli 2.0 aligned API with stdlib tomllib; only installed on Python 3.10.
