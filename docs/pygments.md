@@ -356,6 +356,15 @@ $ cat cowsay.html
 </html>
 ```
 
+## OSC 8 hyperlinks
+
+Terminal hyperlinks ([OSC 8](https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda)) in CLI output are rendered as clickable HTML `<a>` tags.
+Tools like [Rich](https://rich.readthedocs.io/) and modern CLI frameworks emit these sequences to make URLs clickable in terminals that support them.
+
+The `AnsiColorLexer` parses the OSC 8 escape sequences and the `AnsiHtmlFormatter` converts them into proper HTML links, preserving any ANSI color styling on the link text.
+Only URLs with safe schemes (`http`, `https`, `mailto`, `ftp`, `ftps`) are rendered as links.
+All other OSC sequences (like window title changes) are silently stripped.
+
 ## ANSI rendering demo
 
 A quick proof that the Pygments ANSI pipeline renders 256-color output correctly in Sphinx:

@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Pygments lexers, filters, and formatters for ANSI Select Graphic Rendition codes.
+"""Pygments lexers, filters, and formatters for ANSI escape sequences.
 
 Parses ANSI SGR escape sequences (ECMA-48 / ISO 6429) from terminal output and renders
 them as colored HTML with CSS classes. Supports the standard 8/16 named colors, the
@@ -21,6 +21,9 @@ them as colored HTML with CSS classes. Supports the standard 8/16 named colors, 
 
 SGR text attributes: bold, faint, italic, underline, blink, reverse video, strikethrough,
 and overline.
+
+OSC 8 hyperlinks are rendered as HTML ``<a>`` tags. Other OSC sequences are silently
+stripped.
 
 .. warning::
     24-bit RGB colors (``SGR 38;2;r;g;b`` and ``48;2;r;g;b``) are quantized to the
@@ -34,6 +37,7 @@ from __future__ import annotations
 
 import itertools
 import re
+from io import StringIO
 
 try:
     import pygments  # noqa: F401
@@ -201,6 +205,29 @@ components (like ``Token.Ansi.Red``) share this single namespace. The formatter
 decomposes compound tokens into individual CSS classes at render time.
 """
 
+_AnsiLinkStart = Token.AnsiLinkStart
+"""Structural token emitted at the start of an OSC 8 hyperlink.
+
+The token value carries the raw URL. ``AnsiHtmlFormatter`` converts these into HTML
+``<a>`` tags.
+"""
+
+_AnsiLinkEnd = Token.AnsiLinkEnd
+"""Structural token emitted at the end of an OSC 8 hyperlink."""
+
+_SAFE_URL_SCHEMES = frozenset(("ftp", "ftps", "http", "https", "mailto"))
+"""Allowed URL schemes for OSC 8 hyperlinks.
+
+Only URLs with one of these schemes are emitted as link tokens. All other URLs are
+silently stripped to prevent ``javascript:`` and other injection vectors.
+"""
+
+
+def _has_safe_scheme(url: str) -> bool:
+    """Return ``True`` if ``url`` starts with a scheme in ``_SAFE_URL_SCHEMES``."""
+    colon = url.find(":")
+    return colon > 0 and url[:colon].lower() in _SAFE_URL_SCHEMES
+
 
 # --- Style generation ---
 
@@ -254,6 +281,8 @@ and terminal session lexers.
 _ANSI_ESCAPE_RE = re.compile(
     r"\x1b\[(?P<sgr_params>[0-9;]*)m"
     r"|\x1b\[[^a-zA-Z]*[a-zA-Z]"
+    r"|\x1b\]8;[^;]*;(?P<osc8_uri>[^\x07\x1b]*)(?:\x07|\x1b\\)"
+    r"|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)"
     r"|\x1b[()][A-B012]"
     r"|\x1b.?"
     r"|(?P<text>[^\x1b]+)",
@@ -264,18 +293,21 @@ Alternatives in priority order:
 
 1. CSI SGR sequence (``ESC [`` + params + ``m``): captured for SGR processing.
 2. Other CSI sequences (``ESC [`` + params + final byte): consumed and stripped.
-3. VT100 charset selection (``ESC (`` or ``ESC )`` + designator): consumed and stripped.
-4. Any other escape sequence: consumed and stripped.
-5. Plain text: captured and emitted with the current styling token.
+3. OSC 8 hyperlink (``ESC ] 8 ; params ; URI ST``): URI captured for link rendering.
+4. Other OSC sequences (``ESC ]`` + payload + ``BEL`` or ``ST``): consumed and stripped.
+5. VT100 charset selection (``ESC (`` or ``ESC )`` + designator): consumed and stripped.
+6. Any other escape sequence: consumed and stripped.
+7. Plain text: captured and emitted with the current styling token.
 """
 
 
 class AnsiColorLexer(Lexer):
-    """Lexer for text containing ANSI SGR escape sequences.
+    """Lexer for text containing ANSI escape sequences.
 
     Parses Select Graphic Rendition (SGR) codes and emits compound ``Token.Ansi.*``
-    tokens representing the active styling state. Non-SGR escape sequences are silently
-    stripped.
+    tokens representing the active styling state. OSC 8 hyperlinks emit
+    ``Token.AnsiLinkStart`` / ``Token.AnsiLinkEnd`` structural tokens. All other escape
+    sequences are silently stripped.
 
     Supported SGR codes:
 
@@ -284,6 +316,11 @@ class AnsiColorLexer(Lexer):
     - Named colors: standard (30-37, 40-47) and bright (90-97, 100-107).
     - 256-color indexed palette (38;5;n, 48;5;n).
     - 24-bit RGB (38;2;r;g;b, 48;2;r;g;b), quantized to the nearest 256-color entry.
+
+    Supported OSC sequences:
+
+    - OSC 8 hyperlinks: rendered as ``<a>`` tags by ``AnsiHtmlFormatter``. Only URLs with
+      safe schemes (http, https, mailto, ftp, ftps) are emitted; others are stripped.
     """
 
     name = "ANSI Color"
@@ -295,11 +332,12 @@ class AnsiColorLexer(Lexer):
         self._reset_state()
 
     def _reset_state(self) -> None:
-        """Reset all SGR state to defaults."""
+        """Reset all SGR and link state to defaults."""
         self._attrs = dict.fromkeys(_SGR_ATTR_ON.values(), False)
         self.fg_color: str | None = None
         self.bg_color: str | None = None
         self._token_dirty = True
+        self._link_active = False
 
     @property
     def _current_token(self) -> _TokenType:
@@ -403,18 +441,37 @@ class AnsiColorLexer(Lexer):
     ) -> Iterator[tuple[int, _TokenType, str]]:
         """Parse ANSI escape sequences from ``text`` and yield styled tokens.
 
-        Only SGR sequences (CSI + ``m``) update the styling state. All other escape
-        sequences are consumed and stripped from the output.
+        SGR sequences update the styling state. OSC 8 hyperlinks emit structural
+        ``Token.AnsiLinkStart`` / ``Token.AnsiLinkEnd`` tokens. All other escape
+        sequences are consumed and stripped.
         """
         self._reset_state()
         for match in _ANSI_ESCAPE_RE.finditer(text):
             sgr_params = match.group("sgr_params")
+            osc8_uri = match.group("osc8_uri")
             plain = match.group("text")
 
             if sgr_params is not None:
                 self._process_sgr(sgr_params)
+            elif osc8_uri is not None:
+                pos = match.start()
+                if osc8_uri:
+                    # OSC 8 open: validate scheme and emit link start.
+                    if _has_safe_scheme(osc8_uri):
+                        if self._link_active:
+                            yield pos, _AnsiLinkEnd, ""
+                        yield pos, _AnsiLinkStart, osc8_uri
+                        self._link_active = True
+                elif self._link_active:
+                    # OSC 8 close: emit link end.
+                    yield pos, _AnsiLinkEnd, ""
+                    self._link_active = False
             elif plain is not None:
                 yield match.start(), self._current_token, plain
+        # Close any unclosed link at end of input.
+        if self._link_active:
+            yield len(text), _AnsiLinkEnd, ""
+            self._link_active = False
 
 
 # --- Filter ---
@@ -558,13 +615,30 @@ Used by ``AnsiHtmlFormatter.get_token_style_defs`` to inject CSS rules that both
 standalone ``pygmentize`` and Furo's dark-mode CSS generator pick up.
 """
 
+_LINK_OPEN = "\ue000"
+"""Private Use Area marker injected before the hyperlink URL."""
+
+_LINK_SEP = "\ue001"
+"""Private Use Area marker injected after the hyperlink URL."""
+
+_LINK_CLOSE = "\ue002"
+"""Private Use Area marker injected at the end of a hyperlink."""
+
+_LINK_MARKER_RE = re.compile(f"{_LINK_OPEN}([^{_LINK_SEP}]*){_LINK_SEP}")
+"""Regex matching link-open markers in post-processed HTML.
+
+Captures the HTML-escaped URL between ``_LINK_OPEN`` and ``_LINK_SEP`` for replacement
+with an ``<a href="...">`` tag.
+"""
+
 
 class AnsiHtmlFormatter(HtmlFormatter):
-    """HTML formatter with ANSI color support.
+    """HTML formatter with ANSI color and hyperlink support.
 
     Extends Pygments' ``HtmlFormatter`` to handle compound ``Token.Ansi.*`` tokens by
-    decomposing them into individual CSS classes, and augments the base style with ANSI
-    color definitions for the 256-color indexed palette.
+    decomposing them into individual CSS classes, augments the base style with ANSI color
+    definitions for the 256-color indexed palette, and renders OSC 8 hyperlinks as HTML
+    ``<a>`` tags.
     """
 
     name = "ANSI HTML"
@@ -591,6 +665,38 @@ class AnsiHtmlFormatter(HtmlFormatter):
         super().__init__(**kwargs)
         self._ansi_css_cache: dict[_TokenType, str] = {}
 
+    def format_unencoded(self, tokensource, outfile) -> None:
+        """Render tokens to HTML, converting OSC 8 link tokens to ``<a>`` tags.
+
+        Replaces ``Token.AnsiLinkStart`` / ``Token.AnsiLinkEnd`` with Unicode Private
+        Use Area markers, delegates to Pygments' HTML rendering, then post-processes
+        the output to swap markers for ``<a>`` / ``</a>`` tags.
+        """
+        buffer = StringIO()
+        super().format_unencoded(self._inject_link_markers(tokensource), buffer)
+        html = buffer.getvalue()
+        html = _LINK_MARKER_RE.sub(lambda m: f'<a href="{m.group(1)}">', html)
+        html = html.replace(_LINK_CLOSE, "</a>")
+        outfile.write(html)
+
+    @staticmethod
+    def _inject_link_markers(
+        tokensource: Iterable[tuple[_TokenType, str]],
+    ) -> Iterator[tuple[_TokenType, str]]:
+        """Replace link tokens with PUA-marked text for post-processing.
+
+        ``Token.AnsiLinkStart`` becomes the URL wrapped in ``_LINK_OPEN`` /
+        ``_LINK_SEP``. ``Token.AnsiLinkEnd`` becomes ``_LINK_CLOSE``. All other tokens
+        pass through unchanged.
+        """
+        for ttype, value in tokensource:
+            if ttype is _AnsiLinkStart:
+                yield ttype, f"{_LINK_OPEN}{value}{_LINK_SEP}"
+            elif ttype is _AnsiLinkEnd:
+                yield ttype, _LINK_CLOSE
+            else:
+                yield ttype, value
+
     def get_token_style_defs(self, arg=None):
         """Extend Pygments' token CSS with rules for SGR attributes it cannot express.
 
@@ -611,6 +717,9 @@ class AnsiHtmlFormatter(HtmlFormatter):
             )
             lines.append(f"{prefix(cls)} {{ {declaration} }}")
         lines.append("@keyframes ansi-blink { 50% { opacity: 0 } }")
+        # OSC 8 hyperlink styling: inherit text color from ANSI tokens.
+        container = f".{self.cssclass} " if self.cssclass else ""
+        lines.append(f"{container}a {{ color: inherit; text-decoration: underline }}")
         return lines
 
     def _get_css_classes(self, ttype: _TokenType) -> str:

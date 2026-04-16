@@ -39,6 +39,8 @@ from click_extra import pygments as extra_pygments
 from click_extra.colorize import _nearest_256
 from click_extra.pygments import (
     _ANSI_STYLES,
+    _AnsiLinkEnd,
+    _AnsiLinkStart,
     _NAMED_COLORS,
     _PALETTE_256,
     _SGR_ATTR_ON,
@@ -607,12 +609,138 @@ def test_bare_escape_at_end():
 
 
 def test_osc_sequence_stripped():
-    """OSC sequences (ESC ]) are partially consumed; trailing content is plain text."""
-    # ESC ] 0 ; title BEL — OSC set window title. The regex consumes ESC ],
-    # then the rest is plain text.
+    """Non-hyperlink OSC sequences are fully consumed and stripped."""
+    # ESC ] 0 ; title BEL — OSC set window title.
     tokens = lex("\x1b]0;title\x07visible")
-    text = "".join(v for _, v in tokens)
-    assert "visible" in text
+    assert tokens == [(Text, "visible\n")]
+
+
+def test_osc_st_terminated_stripped():
+    """OSC sequences terminated by ST (ESC \\) are fully stripped."""
+    tokens = lex("\x1b]0;title\x1b\\visible")
+    assert tokens == [(Text, "visible\n")]
+
+
+# --- OSC 8 hyperlinks ---
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        pytest.param(
+            "\x1b]8;;https://example.com\x07click\x1b]8;;\x07",
+            [
+                (_AnsiLinkStart, "https://example.com"),
+                (Text, "click"),
+                (_AnsiLinkEnd, ""),
+                (Text, "\n"),
+            ],
+            id="bel-terminated",
+        ),
+        pytest.param(
+            "\x1b]8;;https://example.com\x1b\\click\x1b]8;;\x1b\\",
+            [
+                (_AnsiLinkStart, "https://example.com"),
+                (Text, "click"),
+                (_AnsiLinkEnd, ""),
+                (Text, "\n"),
+            ],
+            id="st-terminated",
+        ),
+        pytest.param(
+            "\x1b]8;id=abc;https://example.com\x07click\x1b]8;;\x07",
+            [
+                (_AnsiLinkStart, "https://example.com"),
+                (Text, "click"),
+                (_AnsiLinkEnd, ""),
+                (Text, "\n"),
+            ],
+            id="with-params",
+        ),
+        pytest.param(
+            "\x1b]8;;mailto:user@example.com\x07email\x1b]8;;\x07",
+            [
+                (_AnsiLinkStart, "mailto:user@example.com"),
+                (Text, "email"),
+                (_AnsiLinkEnd, ""),
+                (Text, "\n"),
+            ],
+            id="mailto-scheme",
+        ),
+        pytest.param(
+            "\x1b]8;;ftp://files.example.com/data\x07files\x1b]8;;\x07",
+            [
+                (_AnsiLinkStart, "ftp://files.example.com/data"),
+                (Text, "files"),
+                (_AnsiLinkEnd, ""),
+                (Text, "\n"),
+            ],
+            id="ftp-scheme",
+        ),
+    ],
+)
+def test_osc8_hyperlink(text, expected):
+    """OSC 8 hyperlinks emit link start/end tokens around the visible text."""
+    assert lex(text) == expected
+
+
+def test_osc8_with_sgr():
+    """OSC 8 hyperlink combined with SGR color preserves both."""
+    tokens = lex(
+        "\x1b[31m\x1b]8;;https://example.com\x07red link\x1b]8;;\x07\x1b[0m"
+    )
+    assert tokens[0] == (_AnsiLinkStart, "https://example.com")
+    assert tokens[1] == (Ansi.Red, "red link")
+    assert tokens[2] == (_AnsiLinkEnd, "")
+
+
+@pytest.mark.parametrize(
+    ("url",),
+    [
+        ("javascript:alert(1)",),
+        ("data:text/html,<h1>hi</h1>",),
+        ("file:///etc/passwd",),
+        ("relative/path",),
+    ],
+)
+def test_osc8_unsafe_scheme_stripped(url):
+    """OSC 8 with unsafe or missing URL scheme is stripped silently."""
+    tokens = lex(f"\x1b]8;;{url}\x07click\x1b]8;;\x07")
+    # No link tokens emitted, just the visible text.
+    assert all(t is Text for t, _ in tokens)
+    assert "".join(v for _, v in tokens) == "click\n"
+
+
+def test_osc8_implicit_close():
+    """A new OSC 8 link implicitly closes the previous one."""
+    tokens = lex(
+        "\x1b]8;;https://a.com\x07first"
+        "\x1b]8;;https://b.com\x07second"
+        "\x1b]8;;\x07"
+    )
+    assert tokens == [
+        (_AnsiLinkStart, "https://a.com"),
+        (Text, "first"),
+        (_AnsiLinkEnd, ""),
+        (_AnsiLinkStart, "https://b.com"),
+        (Text, "second"),
+        (_AnsiLinkEnd, ""),
+        (Text, "\n"),
+    ]
+
+
+def test_osc8_unclosed():
+    """An unclosed OSC 8 link is automatically closed at end of input."""
+    tokens = lex("\x1b]8;;https://example.com\x07click")
+    assert tokens[0] == (_AnsiLinkStart, "https://example.com")
+    assert tokens[1] == (Text, "click\n")
+    assert tokens[-1] == (_AnsiLinkEnd, "")
+
+
+def test_osc8_close_without_open():
+    """An OSC 8 close without a preceding open is silently ignored."""
+    tokens = lex("\x1b]8;;\x07visible")
+    assert tokens == [(Text, "visible\n")]
 
 
 # --- State persistence across multiple sequences ---
@@ -911,6 +1039,54 @@ def test_formatter_style_defs_contain_ansi_colors():
     assert "-Ansi-Red" in css
     assert "-Ansi-Bold" in css
     assert "-Ansi-C154" in css
+
+
+# --- AnsiHtmlFormatter hyperlink rendering ---
+
+
+def test_formatter_osc8_hyperlink():
+    """OSC 8 hyperlink is rendered as an HTML <a> tag."""
+    formatter = AnsiHtmlFormatter(nowrap=True)
+    text = "\x1b]8;;https://example.com\x07click here\x1b]8;;\x07"
+    result = highlight(text, AnsiColorLexer(), formatter)
+    assert '<a href="https://example.com">' in result
+    assert "click here" in result
+    assert "</a>" in result
+
+
+def test_formatter_osc8_with_color():
+    """OSC 8 hyperlink combined with SGR color renders both link and color."""
+    formatter = AnsiHtmlFormatter(nowrap=True)
+    text = "\x1b[31m\x1b]8;;https://example.com\x07red link\x1b]8;;\x07\x1b[0m"
+    result = highlight(text, AnsiColorLexer(), formatter)
+    assert '<a href="https://example.com">' in result
+    assert "-Ansi-Red" in result
+    assert "</a>" in result
+
+
+def test_formatter_osc8_url_escaping():
+    """URLs with special HTML characters are properly escaped in href."""
+    formatter = AnsiHtmlFormatter(nowrap=True)
+    text = "\x1b]8;;https://example.com/p?a=1&b=2\x07link\x1b]8;;\x07"
+    result = highlight(text, AnsiColorLexer(), formatter)
+    assert 'href="https://example.com/p?a=1&amp;b=2"' in result
+
+
+def test_formatter_css_contains_link_rules():
+    """get_style_defs() includes CSS for hyperlink styling."""
+    formatter = AnsiHtmlFormatter()
+    css = formatter.get_style_defs(".highlight")
+    assert "color: inherit" in css
+    assert "text-decoration: underline" in css
+
+
+def test_formatter_osc8_unsafe_scheme_no_link():
+    """Unsafe URL schemes produce no <a> tag in formatted output."""
+    formatter = AnsiHtmlFormatter(nowrap=True)
+    text = "\x1b]8;;javascript:alert(1)\x07click\x1b]8;;\x07"
+    result = highlight(text, AnsiColorLexer(), formatter)
+    assert "<a " not in result
+    assert "click" in result
 
 
 # --- Real-world ANSI patterns ---

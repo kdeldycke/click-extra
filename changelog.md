@@ -8,6 +8,7 @@
 - Add MkDocs plugin for ANSI color rendering in code blocks. Install with `pip install click-extra[mkdocs]`, then add `click-extra` to your `mkdocs.yml` plugins list. Patches `pymdownx.highlight` formatters to use `AnsiHtmlFormatter`.
 - Automatically patch `mkdocs-click` code blocks to use the `ansi-output` lexer when the `click-extra` MkDocs plugin is enabled. CLI help text with ANSI escape codes now renders with colors instead of garbled `[1m`/`[0m` sequences.
 - Fix API reference sections rendering as raw RST markup instead of formatted documentation. Wrap all `automodule` and `autoclasstree` directives in `eval-rst` blocks to force RST parsing, working around MyST-Parser's `MockState.nested_parse()` treating autodoc output as Markdown.
+- Add OSC 8 hyperlink support to `AnsiColorLexer` and `AnsiHtmlFormatter`. Terminal hyperlinks in CLI output are rendered as clickable HTML `<a>` tags in Sphinx documentation. Other OSC sequences are now fully stripped instead of leaking their payload as visible text.
 
 ## [`7.12.0` (2026-04-16)](https://github.com/kdeldycke/click-extra/compare/v7.11.0...v7.12.0)
 
