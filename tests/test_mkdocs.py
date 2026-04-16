@@ -61,9 +61,7 @@ def test_on_config_patches_formatters():
 
     # Before patching: standard HtmlFormatter subclasses.
     assert not issubclass(pymdownx.highlight.BlockHtmlFormatter, AnsiHtmlFormatter)
-    assert not issubclass(
-        pymdownx.highlight.InlineHtmlFormatter, AnsiHtmlFormatter
-    )
+    assert not issubclass(pymdownx.highlight.InlineHtmlFormatter, AnsiHtmlFormatter)
 
     plugin = AnsiColorPlugin()
     plugin.on_config({})

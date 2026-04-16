@@ -57,17 +57,13 @@ class AnsiColorPlugin(BasePlugin):
 
     def on_config(self, config: MkDocsConfig) -> MkDocsConfig:
         """Patch pymdownx.highlight formatters before page processing begins."""
-        if not issubclass(
-            pymdownx.highlight.BlockHtmlFormatter, AnsiHtmlFormatter
-        ):
+        if not issubclass(pymdownx.highlight.BlockHtmlFormatter, AnsiHtmlFormatter):
             pymdownx.highlight.BlockHtmlFormatter = type(
                 "AnsiBlockHtmlFormatter",
                 (AnsiHtmlFormatter, pymdownx.highlight.BlockHtmlFormatter),
                 {},
             )
-        if not issubclass(
-            pymdownx.highlight.InlineHtmlFormatter, AnsiHtmlFormatter
-        ):
+        if not issubclass(pymdownx.highlight.InlineHtmlFormatter, AnsiHtmlFormatter):
             pymdownx.highlight.InlineHtmlFormatter = type(
                 "AnsiInlineHtmlFormatter",
                 (AnsiHtmlFormatter, pymdownx.highlight.InlineHtmlFormatter),
