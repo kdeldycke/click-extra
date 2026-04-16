@@ -125,8 +125,6 @@ This is a graph of the default, main dependencies of the Python package:
 :align: center
 ```
 
-(configuration-file-formats)=
-
 ## Extra dependencies
 
 By default, Click Extra supports TOML [configuration files](config.md#toml) and all standard [table formats](table.md#table-formats). Optional extras unlock additional features:

@@ -840,7 +840,7 @@ Which renders as:
 
 ## ANSI shell sessions
 
-Sphinx extensions from Click Extra automaticcaly integrates the {ref}`new ANSI-capable lexers for Pygments <lexers>`.
+Sphinx extensions from Click Extra automaticcaly integrates the [new ANSI-capable lexers for Pygments](pygments.md#ansi-language-lexers).
 
 This allows you to render colored shell sessions in code blocks by referring to the `ansi-` prefixed lexers:
 

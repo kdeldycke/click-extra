@@ -220,10 +220,10 @@ Click Extra provides these additional, pre-configured options decorators you can
 | Decorator                                                          | Specification                             | Default |
 | ------------------------------------------------------------------ | ----------------------------------------- | ------- |
 | [`@timer_option`](timer.md)                                        | `--time / --no-time`                      | ✅      |
-| {ref}`@color_option <color-option>`                                | `--color, --ansi / --no-color, --no-ansi` | ✅      |
+| [`@color_option`](colorize.md#color-no-color-flag)                 | `--color, --ansi / --no-color, --no-ansi` | ✅      |
 | [`@config_option`](config.md#standalone-option)                    | `--config CONFIG_PATH`                    | ✅      |
 | [`@no_config_option`](config.md#)                                  | `--no-config`                             | ✅      |
-| {ref}`@show_params_option <show-params-option>`                    | `--show-params`                           | ✅      |
+| [`@show_params_option`](parameters.md#show-params-option)          | `--show-params`                           | ✅      |
 | [`@table_format_option`](table.md)                                 | `--table-format FORMAT`                   | ✅      |
 | [`@verbosity_option`](logging.md#colored-verbosity)                | `--verbosity LEVEL`                       | ✅      |
 | {py:class}`@verbose_option <click_extra.logging.VerboseOption>`    | `-v, --verbose`                           | ✅      |

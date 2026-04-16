@@ -79,7 +79,7 @@ You can customize the message template with the following variables:
 | {py:attr}`{git_date} <click_extra.version.ExtraVersionOption.git_date>`               | The commit date of the current `HEAD` in ISO format (`YYYY-MM-DD HH:MM:SS +ZZZZ`), or `None` if not in a Git repository or Git is not available.                                       |
 | {py:attr}`{git_tag} <click_extra.version.ExtraVersionOption.git_tag>`                 | The Git tag pointing at `HEAD`, or `None` if `HEAD` is not at a tagged commit.                                                                                                         |
 | {py:attr}`{git_tag_sha} <click_extra.version.ExtraVersionOption.git_tag_sha>`         | The full commit SHA that the current tag points at, or `None` if `HEAD` is not at a tagged commit.                                                                                     |
-| {py:attr}`{prog_name} <click_extra.version.ExtraVersionOption.prog_name>`             | The display name of the program. Defaults to Click's `info_name`, but can be {ref}`overridden via prog_name on the command decorator <program-name>`.                                  |
+| {py:attr}`{prog_name} <click_extra.version.ExtraVersionOption.prog_name>`             | The display name of the program. Defaults to Click's `info_name`, but can be [overridden via `prog_name` on the command decorator](commands.md#version-fields).                                  |
 | {py:attr}`{env_info} <click_extra.version.ExtraVersionOption.env_info>`               | The [environment information](https://boltons.readthedocs.io/en/latest/ecoutils.html#boltons.ecoutils.get_profile) in JSON.                                                            |
 
 ```{note}
@@ -609,9 +609,7 @@ assert re.fullmatch((
 
 That way you can collect the rendered `version_string`, as if it was printed to the terminal by a call to `--version`, and use it in your own way.
 
-Other internal methods to build-up and render the version string are {ref}`available in the API below <click-extra-version-api>`.
-
-(click-extra-version-api)=
+Other internal methods to build-up and render the version string are [available in the API below](#click-extra-version-api).
 
 ## `click_extra.version` API
 

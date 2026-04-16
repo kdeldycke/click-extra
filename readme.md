@@ -52,8 +52,6 @@ Into this:
 
 To undestrand how we ended up with the result above, [go read the tutorial](https://kdeldycke.github.io/click-extra/tutorial.html).
 
-(features)=
-
 ## Features
 
 - [Configuration file](https://kdeldycke.github.io/click-extra/config.html) loader for:

@@ -651,9 +651,9 @@ Several dialects are supported:
 | [`HJSON`](#hjson)                      | `*.hjson`         | Another flavor of a [user-friendly JSON](https://hjson.github.io)                         | ❌                 |
 | [`INI`](#ini)                          | `*.ini`           | With extended interpolation, multi-level sections and non-native types (`list`, `set`, …) | ✅                 |
 | [`XML`](#xml)                          | `*.xml`           | -                                                                                         | ❌                 |
-| {ref}`PYPROJECT_TOML <pyproject-toml>` | `pyproject.toml`  | Reads `[tool.*]` sections from `pyproject.toml`                                           | ✅                 |
+| [`PYPROJECT_TOML`](#pyproject-toml) | `pyproject.toml`  | Reads `[tool.*]` sections from `pyproject.toml`                                           | ✅                 |
 
-Formats depending on third-party packages are not enabled by default. You need to [install Click Extra with the corresponding extra dependency group](install.md#configuration-file-formats) to enable them.
+Formats depending on third-party packages are not enabled by default. You need to [install Click Extra with the corresponding extra dependency group](install.md#extra-dependencies) to enable them.
 
 ### TOML
 
@@ -662,7 +662,7 @@ See the [example in the top of this page](#standalone-option).
 ### YAML
 
 ```{important}
-YAML support requires additional packages. You need to [install `click-extra[yaml]`](install.md#configuration-file-formats) extra dependency group to enable it.
+YAML support requires additional packages. You need to [install `click-extra[yaml]`](install.md#extra-dependencies) extra dependency group to enable it.
 ```
 
 The example above, given for a TOML configuration file, is working as-is with YAML.
@@ -737,7 +737,7 @@ int_parameter is 65
 ### JSON5
 
 ```{important}
-JSON5 support requires additional packages. You need to [install `click-extra[json5]`](install.md#configuration-file-formats) extra dependency group to enable it.
+JSON5 support requires additional packages. You need to [install `click-extra[json5]`](install.md#extra-dependencies) extra dependency group to enable it.
 ```
 
 ```{todo}
@@ -747,7 +747,7 @@ Write example.
 ### JSONC
 
 ```{important}
-JSONC support requires additional packages. You need to [install `click-extra[jsonc]`](install.md#configuration-file-formats) extra dependency group to enable it.
+JSONC support requires additional packages. You need to [install `click-extra[jsonc]`](install.md#extra-dependencies) extra dependency group to enable it.
 ```
 
 ```{todo}
@@ -757,7 +757,7 @@ Write example.
 ### HJSON
 
 ```{important}
-HJSON support requires additional packages. You need to [install `click-extra[hjson]`](install.md#configuration-file-formats) extra dependency group to enable it.
+HJSON support requires additional packages. You need to [install `click-extra[hjson]`](install.md#extra-dependencies) extra dependency group to enable it.
 ```
 
 ```{todo}
@@ -775,14 +775,12 @@ Write example.
 ### XML
 
 ```{important}
-XML support requires additional packages. You need to [install `click-extra[xml]`](install.md#configuration-file-formats) extra dependency group to enable it.
+XML support requires additional packages. You need to [install `click-extra[xml]`](install.md#extra-dependencies) extra dependency group to enable it.
 ```
 
 ```{todo}
 Write example.
 ```
-
-(pyproject-toml)=
 
 ### `pyproject.toml`
 
@@ -1033,7 +1031,7 @@ This is the same pinciple as [file pattern flags](#file-pattern-flags).
 
 ### Multi-format matching
 
-The default behavior consist in searching for all files matching the default `{*.toml,*.json,*.ini}` pattern. Or more, depending on the [extra dependencies](install.md#configuration-file-formats) installed with Click Extra.
+The default behavior consist in searching for all files matching the default `{*.toml,*.json,*.ini}` pattern. Or more, depending on the [extra dependencies](install.md#extra-dependencies) installed with Click Extra.
 
 As soon as files are located, they are matched against each supported format, in order, until one is successfully parsed.
 

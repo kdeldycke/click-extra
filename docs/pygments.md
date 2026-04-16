@@ -228,8 +228,6 @@ assert "Generic.Prompt" in result.stdout
 
 The prompt token passes through unchanged, while the output token is split into styled ANSI tokens. The `AnsiHtmlFormatter` then renders these tokens with the appropriate CSS classes.
 
-(lexers)=
-
 ## ANSI language lexers
 
 Some [languages supported by Pygments](https://pygments.org/languages/) are command lines or code, mixed with {py:data}`generic output <click_extra.pygments.DEFAULT_TOKEN_TYPE>`.
