@@ -17,10 +17,16 @@
 
 from __future__ import annotations
 
+import click
 import pytest
 from pygments.formatters.html import HtmlFormatter
 
-from click_extra.mkdocs import AnsiColorPlugin
+from click_extra.mkdocs import (
+    ANSI_OUTPUT_FENCE,
+    TEXT_FENCE,
+    AnsiColorPlugin,
+    _patch_mkdocs_click,
+)
 from click_extra.pygments import AnsiHtmlFormatter
 
 
@@ -34,6 +40,20 @@ def _clean_pymdownx():
     yield
     pymdownx.highlight.BlockHtmlFormatter = orig_block
     pymdownx.highlight.InlineHtmlFormatter = orig_inline
+
+
+@pytest.fixture()
+def _clean_mkdocs_click():
+    """Save and restore mkdocs-click functions around each test."""
+    import mkdocs_click._docs as _docs
+
+    orig_usage = _docs._make_usage
+    orig_plain = _docs._make_plain_options
+    orig_patched = getattr(_docs, "_click_extra_patched", False)
+    yield
+    _docs._make_usage = orig_usage
+    _docs._make_plain_options = orig_plain
+    _docs._click_extra_patched = orig_patched
 
 
 @pytest.mark.once
@@ -54,7 +74,7 @@ def test_mkdocs_entry_point():
     assert ep == {"click-extra": "click_extra.mkdocs:AnsiColorPlugin"}
 
 
-@pytest.mark.usefixtures("_clean_pymdownx")
+@pytest.mark.usefixtures("_clean_pymdownx", "_clean_mkdocs_click")
 def test_on_config_patches_formatters():
     """After ``on_config``, both formatter classes inherit from ``AnsiHtmlFormatter``."""
     import pymdownx.highlight
@@ -70,7 +90,7 @@ def test_on_config_patches_formatters():
     assert issubclass(pymdownx.highlight.InlineHtmlFormatter, AnsiHtmlFormatter)
 
 
-@pytest.mark.usefixtures("_clean_pymdownx")
+@pytest.mark.usefixtures("_clean_pymdownx", "_clean_mkdocs_click")
 def test_on_config_idempotent():
     """Calling ``on_config`` twice does not create a new class each time."""
     import pymdownx.highlight
@@ -85,7 +105,7 @@ def test_on_config_idempotent():
     assert pymdownx.highlight.InlineHtmlFormatter is inline_cls
 
 
-@pytest.mark.usefixtures("_clean_pymdownx")
+@pytest.mark.usefixtures("_clean_pymdownx", "_clean_mkdocs_click")
 def test_patched_formatter_preserves_pymdownx_mro():
     """The patched formatters still inherit from the original pymdownx classes."""
     import pymdownx.highlight
@@ -103,7 +123,7 @@ def test_patched_formatter_preserves_pymdownx_mro():
     assert issubclass(pymdownx.highlight.InlineHtmlFormatter, HtmlFormatter)
 
 
-@pytest.mark.usefixtures("_clean_pymdownx")
+@pytest.mark.usefixtures("_clean_pymdownx", "_clean_mkdocs_click")
 def test_patched_formatter_renders_ansi():
     """The patched block formatter decomposes compound ANSI tokens into CSS classes."""
     import pymdownx.highlight
@@ -116,3 +136,73 @@ def test_patched_formatter_renders_ansi():
     style_defs = formatter.get_style_defs(".highlight")
     assert ".-Ansi-Red" in style_defs
     assert ".-Ansi-Bold" in style_defs
+
+
+@click.command()
+@click.option("--name", help="The person to greet.")
+def _hello_cmd(name):
+    """Greet someone."""
+
+
+@pytest.mark.usefixtures("_clean_mkdocs_click")
+def test_patch_mkdocs_click_usage():
+    """After patching, ``_make_usage`` yields ``ansi-output`` fences."""
+    import mkdocs_click._docs as _docs
+
+    ctx = click.Context(_hello_cmd, info_name="hello")
+    lines_before = list(_docs._make_usage(ctx))
+    assert TEXT_FENCE in lines_before
+    assert ANSI_OUTPUT_FENCE not in lines_before
+
+    _patch_mkdocs_click()
+
+    lines_after = list(_docs._make_usage(ctx))
+    assert ANSI_OUTPUT_FENCE in lines_after
+    assert TEXT_FENCE not in lines_after
+
+
+@pytest.mark.usefixtures("_clean_mkdocs_click")
+def test_patch_mkdocs_click_plain_options():
+    """After patching, ``_make_plain_options`` yields ``ansi-output`` fences."""
+    import mkdocs_click._docs as _docs
+
+    ctx = click.Context(_hello_cmd, info_name="hello")
+    lines_before = list(_docs._make_plain_options(ctx))
+    assert TEXT_FENCE in lines_before
+    assert ANSI_OUTPUT_FENCE not in lines_before
+
+    _patch_mkdocs_click()
+
+    lines_after = list(_docs._make_plain_options(ctx))
+    assert ANSI_OUTPUT_FENCE in lines_after
+    assert TEXT_FENCE not in lines_after
+
+
+@pytest.mark.usefixtures("_clean_mkdocs_click")
+def test_patch_mkdocs_click_idempotent():
+    """Calling ``_patch_mkdocs_click`` twice does not double-wrap."""
+    import mkdocs_click._docs as _docs
+
+    _patch_mkdocs_click()
+    usage_fn = _docs._make_usage
+    plain_fn = _docs._make_plain_options
+
+    _patch_mkdocs_click()
+    assert _docs._make_usage is usage_fn
+    assert _docs._make_plain_options is plain_fn
+
+
+@pytest.mark.usefixtures("_clean_pymdownx", "_clean_mkdocs_click")
+def test_on_config_patches_mkdocs_click():
+    """``on_config`` patches mkdocs-click alongside pymdownx.highlight."""
+    import mkdocs_click._docs as _docs
+
+    assert not getattr(_docs, "_click_extra_patched", False)
+
+    plugin = AnsiColorPlugin()
+    plugin.on_config({})
+
+    assert _docs._click_extra_patched is True
+    ctx = click.Context(_hello_cmd, info_name="hello")
+    lines = list(_docs._make_usage(ctx))
+    assert ANSI_OUTPUT_FENCE in lines

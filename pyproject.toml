@@ -207,6 +207,8 @@ test = [
   "extra-platforms[pytest]>=5",
   # MkDocs 1.4.0 is the first version with the on_startup plugin event.
   "mkdocs>=1.4",
+  # mkdocs-click 0.8.0 stabilized the _make_usage/_make_plain_options API.
+  "mkdocs-click>=0.8",
   # myst-parser 4.0 added colon_fence extension for GitHub-style alert syntax.
   # Pinned to >=4 (not >=5) because myst-parser 5 requires Python 3.11+ and tests run on 3.10+.
   "myst-parser>=4",

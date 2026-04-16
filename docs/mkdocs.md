@@ -58,6 +58,16 @@ For Python console sessions:
 
 See the [full list of available ANSI lexer variants](pygments.md#lexer-variants).
 
+## `mkdocs-click` integration
+
+[`mkdocs-click`](https://pypi.org/project/mkdocs-click/) auto-generates CLI reference pages from Click command objects. If your CLI emits ANSI-styled help text (through [Rich](https://rich.readthedocs.io), Click Extra, or custom `HelpFormatter` subclasses), `mkdocs-click` captures the escape codes verbatim and injects them into the page. Without an ANSI-aware formatter, those codes render as garbled text:
+
+```text
+[1mbump-my-version[0m [[1;36mOPTIONS[0m] [1;36mCOMMAND[0m [[1;36mARGS[0m]...
+```
+
+When the `click-extra` plugin is enabled (as shown in [Setup](#setup)) and `mkdocs-click` is installed, the plugin automatically patches `mkdocs-click`'s code-block generators to use the `ansi-output` lexer instead of plain `text`. No extra configuration is needed: the usage and options blocks will render with proper ANSI colors.
+
 ## `click_extra.mkdocs` API
 
 ```{eval-rst}
