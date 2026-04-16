@@ -263,7 +263,7 @@ __all__ = [
 """
 
 
-__version__ = "7.13.0.dev0"
+__version__ = "7.13.0"
 __git_branch__ = ""
 __git_date__ = ""
 __git_long_hash__ = ""
