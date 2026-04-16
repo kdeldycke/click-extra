@@ -376,7 +376,7 @@ The full set of color and style rendering demos is in [Colors and styles](colori
 
 ## `click_extra.pygments` API
 
-````{eval-rst}
+```{eval-rst}
 .. autoclasstree:: click_extra.pygments
    :strict:
 
@@ -384,4 +384,4 @@ The full set of color and style rendering demos is in [Colors and styles](colori
    :members:
    :undoc-members:
    :show-inheritance:
-````
+```

@@ -60,9 +60,9 @@ See the [full list of available ANSI lexer variants](pygments.md#lexer-variants)
 
 ## `click_extra.mkdocs` API
 
-````{eval-rst}
+```{eval-rst}
 .. automodule:: click_extra.mkdocs
    :members:
    :undoc-members:
    :show-inheritance:
-````
+```

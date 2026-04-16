@@ -138,7 +138,7 @@ Write example and tutorial.
 
 ## `click_extra.parameters` API
 
-````{eval-rst}
+```{eval-rst}
 .. autoclasstree:: click_extra.parameters
    :strict:
 
@@ -146,4 +146,4 @@ Write example and tutorial.
    :members:
    :undoc-members:
    :show-inheritance:
-````
+```

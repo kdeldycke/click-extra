@@ -22,7 +22,7 @@ Write example and tutorial.
 
 ## `click_extra.pytest` API
 
-````{eval-rst}
+```{eval-rst}
 .. autoclasstree:: click_extra.pytest
    :strict:
 
@@ -30,4 +30,4 @@ Write example and tutorial.
    :members:
    :undoc-members:
    :show-inheritance:
-````
+```

@@ -37,7 +37,7 @@ When the requested value is below 1, it is clamped to 1 and a warning is logged.
 
 ## `click_extra.jobs` API
 
-````{eval-rst}
+```{eval-rst}
 .. autoclasstree:: click_extra.jobs
    :strict:
 
@@ -45,4 +45,4 @@ When the requested value is below 1, it is clamped to 1 and a warning is logged.
    :members:
    :undoc-members:
    :show-inheritance:
-````
+```

@@ -6,7 +6,7 @@ It does nothing else.
 
 ## `click_extra.telemetry` API
 
-````{eval-rst}
+```{eval-rst}
 .. autoclasstree:: click_extra.telemetry
    :strict:
 
@@ -14,4 +14,4 @@ It does nothing else.
    :members:
    :undoc-members:
    :show-inheritance:
-````
+```
