@@ -1,5 +1,10 @@
 # Changelog
 
+## [`7.13.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.13.0...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`7.13.0` (2026-04-16)](https://github.com/kdeldycke/click-extra/compare/v7.12.0...v7.13.0)
 
 - Add MkDocs plugin for ANSI color rendering in code blocks. Install with `pip install click-extra[mkdocs]`, then add `click-extra` to your `mkdocs.yml` plugins list. Patches `pymdownx.highlight` formatters to use `AnsiHtmlFormatter`.
