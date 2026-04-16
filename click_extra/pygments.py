@@ -151,7 +151,9 @@ _SGR_FG_COLORS: dict[int, str] = {
 }
 """SGR foreground color codes (30-37, 90-97) to named color strings."""
 
-_SGR_BG_COLORS: dict[int, str] = {code + 10: name for code, name in _SGR_FG_COLORS.items()}
+_SGR_BG_COLORS: dict[int, str] = {
+    code + 10: name for code, name in _SGR_FG_COLORS.items()
+}
 """SGR background color codes (40-47, 100-107) to named color strings.
 
 Derived from ``_SGR_FG_COLORS`` by offsetting each code by +10.
@@ -627,11 +629,14 @@ class AnsiHtmlFormatter(HtmlFormatter):
             return cached
         classes: str = super()._get_css_classes(ttype)  # type: ignore[misc]
         if ttype[0] == "Ansi":
-            classes += " " + " ".join(
-                self._get_css_class(  # type: ignore[attr-defined]
-                    getattr(Ansi, part),
+            classes += (
+                " "
+                + " ".join(
+                    self._get_css_class(  # type: ignore[attr-defined]
+                        getattr(Ansi, part),
+                    )
+                    for part in ttype[1:]
                 )
-                for part in ttype[1:]
             )
         self._ansi_css_cache[ttype] = classes
         return classes
