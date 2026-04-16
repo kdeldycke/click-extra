@@ -45,7 +45,7 @@ def _clean_pymdownx():
 @pytest.fixture()
 def _clean_mkdocs_click():
     """Save and restore mkdocs-click functions around each test."""
-    import mkdocs_click._docs as _docs
+    from mkdocs_click import _docs
 
     orig_usage = _docs._make_usage
     orig_plain = _docs._make_plain_options
@@ -147,7 +147,7 @@ def _hello_cmd(name):
 @pytest.mark.usefixtures("_clean_mkdocs_click")
 def test_patch_mkdocs_click_usage():
     """After patching, ``_make_usage`` yields ``ansi-output`` fences."""
-    import mkdocs_click._docs as _docs
+    from mkdocs_click import _docs
 
     ctx = click.Context(_hello_cmd, info_name="hello")
     lines_before = list(_docs._make_usage(ctx))
@@ -164,7 +164,7 @@ def test_patch_mkdocs_click_usage():
 @pytest.mark.usefixtures("_clean_mkdocs_click")
 def test_patch_mkdocs_click_plain_options():
     """After patching, ``_make_plain_options`` yields ``ansi-output`` fences."""
-    import mkdocs_click._docs as _docs
+    from mkdocs_click import _docs
 
     ctx = click.Context(_hello_cmd, info_name="hello")
     lines_before = list(_docs._make_plain_options(ctx))
@@ -181,7 +181,7 @@ def test_patch_mkdocs_click_plain_options():
 @pytest.mark.usefixtures("_clean_mkdocs_click")
 def test_patch_mkdocs_click_idempotent():
     """Calling ``_patch_mkdocs_click`` twice does not double-wrap."""
-    import mkdocs_click._docs as _docs
+    from mkdocs_click import _docs
 
     _patch_mkdocs_click()
     usage_fn = _docs._make_usage
@@ -195,7 +195,7 @@ def test_patch_mkdocs_click_idempotent():
 @pytest.mark.usefixtures("_clean_pymdownx", "_clean_mkdocs_click")
 def test_on_config_patches_mkdocs_click():
     """``on_config`` patches mkdocs-click alongside pymdownx.highlight."""
-    import mkdocs_click._docs as _docs
+    from mkdocs_click import _docs
 
     assert not getattr(_docs, "_click_extra_patched", False)
 

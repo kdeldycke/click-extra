@@ -39,8 +39,6 @@ from click_extra import pygments as extra_pygments
 from click_extra.colorize import _nearest_256
 from click_extra.pygments import (
     _ANSI_STYLES,
-    _AnsiLinkEnd,
-    _AnsiLinkStart,
     _NAMED_COLORS,
     _PALETTE_256,
     _SGR_ATTR_ON,
@@ -51,6 +49,8 @@ from click_extra.pygments import (
     AnsiColorLexer,
     AnsiFilter,
     AnsiHtmlFormatter,
+    _AnsiLinkEnd,
+    _AnsiLinkStart,
     collect_session_lexers,
 )
 
@@ -686,9 +686,7 @@ def test_osc8_hyperlink(text, expected):
 
 def test_osc8_with_sgr():
     """OSC 8 hyperlink combined with SGR color preserves both."""
-    tokens = lex(
-        "\x1b[31m\x1b]8;;https://example.com\x07red link\x1b]8;;\x07\x1b[0m"
-    )
+    tokens = lex("\x1b[31m\x1b]8;;https://example.com\x07red link\x1b]8;;\x07\x1b[0m")
     assert tokens[0] == (_AnsiLinkStart, "https://example.com")
     assert tokens[1] == (Ansi.Red, "red link")
     assert tokens[2] == (_AnsiLinkEnd, "")
@@ -714,9 +712,7 @@ def test_osc8_unsafe_scheme_stripped(url):
 def test_osc8_implicit_close():
     """A new OSC 8 link implicitly closes the previous one."""
     tokens = lex(
-        "\x1b]8;;https://a.com\x07first"
-        "\x1b]8;;https://b.com\x07second"
-        "\x1b]8;;\x07"
+        "\x1b]8;;https://a.com\x07first\x1b]8;;https://b.com\x07second\x1b]8;;\x07"
     )
     assert tokens == [
         (_AnsiLinkStart, "https://a.com"),
