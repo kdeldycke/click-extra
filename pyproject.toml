@@ -470,6 +470,10 @@ exclude = [
   "^https://github.com/.+/releases/.+/download/.*$",
   # Allow redirects of generic DOI URLs to their specific Zenodo release page.
   "^https://doi.org/.+/zenodo.*$",
+  # star-history uses client-side hash routing; fragments are not real HTML anchors.
+  "^https://star-history.com/#.*$",
+  # crates.io blocks automated link checkers.
+  "^https://crates.io/crates/.*$",
 ]
 
 [tool.repomatic]

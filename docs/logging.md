@@ -274,7 +274,7 @@ To prevent this behavior, you can associate the `--verbosity` option with your o
 
 The preferred way to customize log messages is to create your own logger and attach it to the `--verbosity` option.
 
-This can be done with [`new_extra_logger`](#click_extra.logging.new_extra_logger). Here is how we can for example change the format of the log messages:
+This can be done with {py:func}`~click_extra.logging.new_extra_logger`. Here is how we can for example change the format of the log messages:
 
 ```{click:source}
 :emphasize-lines: 5-8, 11, 18
@@ -379,7 +379,7 @@ assert dedent("""\
 ````{important}
 By design, [new loggers are always created as sub-loggers](https://github.com/python/cpython/blob/3.14/Doc/library/logging.rst?plain=1#L112-L113) of `root`. And as such, their messages are propagated back to it.
 
-But [new_extra_logger](#click_extra.logging.new_extra_logger) always creates new loggers by setting their `propagate` attribute to `False`. This means that messages of new loggers won't be propagated to their parents.
+But {py:func}`~click_extra.logging.new_extra_logger` always creates new loggers by setting their `propagate` attribute to `False`. This means that messages of new loggers won't be propagated to their parents.
 
 This is the reason why, in the example above, the `root` and `app_logger` loggers are independent.
 

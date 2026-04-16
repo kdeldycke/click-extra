@@ -18,7 +18,7 @@ It should be easy to write a good CLI in Python. [Click](https://click.palletspr
 
 Click Extra is a **ready-to-use wrapper around Click** to make your CLI look good and behave well. It is a drop-in replacement with good defaults that saves lots of boilerplate code and frustration by making all parts working together.
 
-It also comes with [workarounds and patches](https://kdeldycke.github.io/click-extra/issues.html) that have not reached upstream yet (or are unlikely to).
+It also comes with [workarounds and patches](https://kdeldycke.github.io/click-extra/upstream.html) that have not reached upstream yet (or are unlikely to).
 
 ## Who is this for?
 
@@ -52,6 +52,7 @@ Into this:
 
 To undestrand how we ended up with the result above, [go read the tutorial](https://kdeldycke.github.io/click-extra/tutorial.html).
 
+(features)=
 ## Features
 
 - [Configuration file](https://kdeldycke.github.io/click-extra/config.html) loader for:
@@ -88,7 +89,7 @@ To undestrand how we ended up with the result above, [go read the tutorial](http
 - Render [GitHub alerts](https://kdeldycke.github.io/click-extra/sphinx.html#github-alerts) into MyST admonitions
 - [ANSI-capable Pygments lexers](https://kdeldycke.github.io/click-extra/pygments.html#ansi-language-lexers) for shell session and console output
 - [MkDocs plugin](https://kdeldycke.github.io/click-extra/mkdocs.html) for ANSI color rendering in code blocks
-- [Fixes 50+ bugs](https://kdeldycke.github.io/click-extra/issues.html) from other Click-related projects
+- [Fixes 50+ bugs](https://kdeldycke.github.io/click-extra/upstream.html) from other Click-related projects
 - Rely on [Cloup](https://github.com/janluke/cloup) to add:
   - option groups
   - constraints

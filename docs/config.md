@@ -406,9 +406,9 @@ The exit codes are:
 
 ## Excluding parameters
 
-The [`excluded_params`](#click_extra.config.ConfigOption.excluded_params) argument allows you to block some of your CLI options to be loaded from configuration. By setting this argument, you will prevent your CLI users to set these parameters in their configuration file.
+The {py:attr}`excluded_params <click_extra.config.ConfigOption.excluded_params>` argument allows you to block some of your CLI options to be loaded from configuration. By setting this argument, you will prevent your CLI users to set these parameters in their configuration file.
 
-It [defaults to the value of `DEFAULT_EXCLUDED_PARAMS`](#click_extra.config.DEFAULT_EXCLUDED_PARAMS).
+It defaults to the value of {py:data}`~click_extra.config.DEFAULT_EXCLUDED_PARAMS`.
 
 You can set your own list of option to ignore with the `excluded_params` argument:
 
@@ -433,7 +433,7 @@ If you have difficulties identifying your options and their IDs, run your CLI wi
 
 ## Including parameters
 
-The [`included_params`](#click_extra.config.ConfigOption.included_params) argument is the inverse of `excluded_params`: only the listed parameters will be loaded from the configuration file. All other parameters found in the configuration will be ignored.
+The {py:attr}`included_params <click_extra.config.ConfigOption.included_params>` argument is the inverse of `excluded_params`: only the listed parameters will be loaded from the configuration file. All other parameters found in the configuration will be ignored.
 
 ```{code-block} python
 :emphasize-lines: 6,8
@@ -651,7 +651,7 @@ Several dialects are supported:
 | [`HJSON`](#hjson)                   | `*.hjson`         | Another flavor of a [user-friendly JSON](https://hjson.github.io)                         | ❌                 |
 | [`INI`](#ini)                       | `*.ini`           | With extended interpolation, multi-level sections and non-native types (`list`, `set`, …) | ✅                 |
 | [`XML`](#xml)                       | `*.xml`           | -                                                                                         | ❌                 |
-| [`PYPROJECT_TOML`](#pyproject-toml) | `pyproject.toml`  | Reads `[tool.*]` sections from `pyproject.toml`                                           | ✅                 |
+| {ref}`PYPROJECT_TOML <pyproject-toml>` | `pyproject.toml`  | Reads `[tool.*]` sections from `pyproject.toml`                                           | ✅                 |
 
 Formats depending on third-party packages are not enabled by default. You need to [install Click Extra with the corresponding extra dependency group](install.md#configuration-file-formats) to enable them.
 
@@ -782,6 +782,7 @@ XML support requires additional packages. You need to [install `click-extra[xml]
 Write example.
 ```
 
+(pyproject-toml)=
 ### `pyproject.toml`
 
 The `PYPROJECT_TOML` format reads `[tool.<cli-name>]` sections from a `pyproject.toml` file, following [PEP 518](https://peps.python.org/pep-0518/). This is useful for any CLI tool that wants to store its configuration alongside project metadata — not just Python projects. Tools like [ruff](https://docs.astral.sh/ruff/configuration/#configuring-ruff) and [typos](https://github.com/crate-ci/typos/blob/master/docs/reference.md), which are not Python projects, all use this convention, to play nice with other communities and increase adoption.
@@ -864,7 +865,7 @@ Other non-Python tools that support `[tool.*]` in `pyproject.toml`:
 [uv](https://docs.astral.sh/uv/concepts/configuration-files/),
 and [Zuban](https://docs.zubanls.com/en/latest/usage.html).
 
-Click Extra's own `[tool.*]` bridge in [repomatic's tool runner](https://kdeldycke.github.io/repomatic/tool-runner.html#level-2-toolx-in-pyprojecttoml) translates `[tool.yamllint]`, `[tool.actionlint]`, `[tool.biome]`, and others into native config files at invocation time, giving tools that lack native `pyproject.toml` support the same single-file experience.
+Click Extra's own `[tool.*]` bridge in [repomatic's tool runner](https://kdeldycke.github.io/repomatic/tool-runner.html#level-2-tool-x-in-pyproject-toml) translates `[tool.yamllint]`, `[tool.actionlint]`, `[tool.biome]`, and others into native config files at invocation time, giving tools that lack native `pyproject.toml` support the same single-file experience.
 
 Other tools are following suit:
 [actionlint#623](https://github.com/rhysd/actionlint/issues/623),
@@ -1001,7 +1002,7 @@ Patterns provided to `@config_option`'s `default` argument:
 The `BRACE` flag is always forced, so that multi-format default patterns using `{pat1,pat2,...}` syntax expand correctly. The `NODIR` flag is always forced, to optimize the search for files only.
 ```
 
-The flags above can be changed via the [`search_pattern_flags` argument of the decorator](config.md#click_extra.config.ConfigOption). So to make the matching case-insensitive, add the `IGNORECASE` flag:
+The flags above can be changed via the {py:class}`search_pattern_flags argument of the decorator <click_extra.config.ConfigOption>`. So to make the matching case-insensitive, add the `IGNORECASE` flag:
 
 ```{code-block} python
 :emphasize-lines: 8,9,14

@@ -46,7 +46,7 @@ In most cases, you do not need to force it, as the version will be automatically
 
 ## Variables
 
-The message template is a [format string](https://docs.python.org/3/library/string.html#format-string-syntax), which [defaults to](#click_extra.version.ExtraVersionOption.message):
+The message template is a [format string](https://docs.python.org/3/library/string.html#format-string-syntax), which {py:attr}`defaults to <click_extra.version.ExtraVersionOption.message>`:
 
 ```{code-block} python
 f"{prog_name}, version {version}"
@@ -64,23 +64,23 @@ You can customize the message template with the following variables:
 
 | Variable                                                                       | Description                                                                                                                                                                            |
 | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`{module}`](#click_extra.version.ExtraVersionOption.module)                   | The [module object](https://docs.python.org/3/glossary.html#term-module) in which the command is implemented.                                                                          |
-| [`{module_name}`](#click_extra.version.ExtraVersionOption.module_name)         | The [`__name__` of the module](https://docs.python.org/3/reference/datamodel.html#module.__name__) in which the command is implemented.                                                |
-| [`{module_file}`](#click_extra.version.ExtraVersionOption.module_file)         | The [full path of the file](https://docs.python.org/3/reference/datamodel.html#module.__file__) in which the command is implemented.                                                   |
-| [`{module_version}`](#click_extra.version.ExtraVersionOption.module_version)   | The string found in the local `__version__` variable of the module.                                                                                                                    |
-| [`{package_name}`](#click_extra.version.ExtraVersionOption.package_name)       | The [name of the package](https://docs.python.org/3/reference/datamodel.html#module.__package__) in which the CLI is distributed.                                                      |
-| [`{package_version}`](#click_extra.version.ExtraVersionOption.package_version) | The [version from the package metadata](https://docs.python.org/3/library/importlib.metadata.html?highlight=metadata%20version#distribution-versions) in which the CLI is distributed. |
-| [`{exec_name}`](#click_extra.version.ExtraVersionOption.exec_name)             | User-friendly name of the executed CLI. Returns `{module_name}`, `{package_name}` or script's filename, in this order.                                                                 |
-| [`{version}`](#click_extra.version.ExtraVersionOption.version)                 | Version of the CLI. Returns `{module_version}`, `{package_version}` or `None`, in this order. For [`.dev` versions](#development-versions), automatically appends the Git commit hash. |
-| [`{git_repo_path}`](#click_extra.version.ExtraVersionOption.git_repo_path)     | The full path to the Git repository root directory, or `None` if not in a Git repository.                                                                                              |
-| [`{git_branch}`](#click_extra.version.ExtraVersionOption.git_branch)           | The current Git branch name, or `None` if not in a Git repository or Git is not available.                                                                                             |
-| [`{git_long_hash}`](#click_extra.version.ExtraVersionOption.git_long_hash)     | The full Git commit hash of the current `HEAD`, or `None` if not in a Git repository or Git is not available.                                                                          |
-| [`{git_short_hash}`](#click_extra.version.ExtraVersionOption.git_short_hash)   | The short Git commit hash of the current `HEAD`, or `None` if not in a Git repository or Git is not available.                                                                         |
-| [`{git_date}`](#click_extra.version.ExtraVersionOption.git_date)               | The commit date of the current `HEAD` in ISO format (`YYYY-MM-DD HH:MM:SS +ZZZZ`), or `None` if not in a Git repository or Git is not available.                                       |
-| [`{git_tag}`](#click_extra.version.ExtraVersionOption.git_tag)                 | The Git tag pointing at `HEAD`, or `None` if `HEAD` is not at a tagged commit.                                                                                                         |
-| [`{git_tag_sha}`](#click_extra.version.ExtraVersionOption.git_tag_sha)         | The full commit SHA that the current tag points at, or `None` if `HEAD` is not at a tagged commit.                                                                                     |
-| [`{prog_name}`](#click_extra.version.ExtraVersionOption.prog_name)             | The display name of the program. Defaults to Click's `info_name`, but can be [overridden via `prog_name` on the command decorator](commands.md#program-name).                          |
-| [`{env_info}`](#click_extra.version.ExtraVersionOption.env_info)               | The [environment information](https://boltons.readthedocs.io/en/latest/ecoutils.html#boltons.ecoutils.get_profile) in JSON.                                                            |
+| {py:attr}`{module} <click_extra.version.ExtraVersionOption.module>`             | The [module object](https://docs.python.org/3/glossary.html#term-module) in which the command is implemented.                                                                          |
+| {py:attr}`{module_name} <click_extra.version.ExtraVersionOption.module_name>`   | The [`__name__` of the module](https://docs.python.org/3/reference/datamodel.html#module.__name__) in which the command is implemented.                                                |
+| {py:attr}`{module_file} <click_extra.version.ExtraVersionOption.module_file>`   | The [full path of the file](https://docs.python.org/3/reference/datamodel.html#module.__file__) in which the command is implemented.                                                   |
+| {py:attr}`{module_version} <click_extra.version.ExtraVersionOption.module_version>` | The string found in the local `__version__` variable of the module.                                                                                                                    |
+| {py:attr}`{package_name} <click_extra.version.ExtraVersionOption.package_name>` | The [name of the package](https://docs.python.org/3/reference/datamodel.html#module.__package__) in which the CLI is distributed.                                                      |
+| {py:attr}`{package_version} <click_extra.version.ExtraVersionOption.package_version>` | The [version from the package metadata](https://docs.python.org/3/library/importlib.metadata.html?highlight=metadata%20version#distribution-versions) in which the CLI is distributed. |
+| {py:attr}`{exec_name} <click_extra.version.ExtraVersionOption.exec_name>`       | User-friendly name of the executed CLI. Returns `{module_name}`, `{package_name}` or script's filename, in this order.                                                                 |
+| {py:attr}`{version} <click_extra.version.ExtraVersionOption.version>`           | Version of the CLI. Returns `{module_version}`, `{package_version}` or `None`, in this order. For [`.dev` versions](#development-versions), automatically appends the Git commit hash. |
+| {py:attr}`{git_repo_path} <click_extra.version.ExtraVersionOption.git_repo_path>` | The full path to the Git repository root directory, or `None` if not in a Git repository.                                                                                              |
+| {py:attr}`{git_branch} <click_extra.version.ExtraVersionOption.git_branch>`     | The current Git branch name, or `None` if not in a Git repository or Git is not available.                                                                                             |
+| {py:attr}`{git_long_hash} <click_extra.version.ExtraVersionOption.git_long_hash>` | The full Git commit hash of the current `HEAD`, or `None` if not in a Git repository or Git is not available.                                                                          |
+| {py:attr}`{git_short_hash} <click_extra.version.ExtraVersionOption.git_short_hash>` | The short Git commit hash of the current `HEAD`, or `None` if not in a Git repository or Git is not available.                                                                         |
+| {py:attr}`{git_date} <click_extra.version.ExtraVersionOption.git_date>`         | The commit date of the current `HEAD` in ISO format (`YYYY-MM-DD HH:MM:SS +ZZZZ`), or `None` if not in a Git repository or Git is not available.                                       |
+| {py:attr}`{git_tag} <click_extra.version.ExtraVersionOption.git_tag>`           | The Git tag pointing at `HEAD`, or `None` if `HEAD` is not at a tagged commit.                                                                                                         |
+| {py:attr}`{git_tag_sha} <click_extra.version.ExtraVersionOption.git_tag_sha>`   | The full commit SHA that the current tag points at, or `None` if `HEAD` is not at a tagged commit.                                                                                     |
+| {py:attr}`{prog_name} <click_extra.version.ExtraVersionOption.prog_name>`       | The display name of the program. Defaults to Click's `info_name`, but can be {ref}`overridden via prog_name on the command decorator <program-name>`.                          |
+| {py:attr}`{env_info} <click_extra.version.ExtraVersionOption.env_info>`         | The [environment information](https://boltons.readthedocs.io/en/latest/ecoutils.html#boltons.ecoutils.get_profile) in JSON.                                                            |
 
 ```{note}
 The ``git_*`` variables are evaluated at runtime by calling ``git``. They return ``None`` in environments where Git is not available (e.g., standalone Nuitka binaries, Docker containers without Git).
@@ -609,8 +609,9 @@ assert re.fullmatch((
 
 That way you can collect the rendered `version_string`, as if it was printed to the terminal by a call to `--version`, and use it in your own way.
 
-Other internal methods to build-up and render the version string are [available in the API below](#click-extra-version-api).
+Other internal methods to build-up and render the version string are {ref}`available in the API below <click-extra-version-api>`.
 
+(click-extra-version-api)=
 ## `click_extra.version` API
 
 ```{eval-rst}
