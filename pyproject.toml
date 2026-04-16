@@ -418,14 +418,14 @@ replace = "date-released: {utcnow:%Y-%m-%d}"
 [[tool.bumpversion.files]]
 filename = "./readme.md"
 ignore_missing_version = true
-include_bumps = ["dev"]
+include_bumps = [ "dev" ]
 search = "raw.githubusercontent.com/kdeldycke/click-extra/main/"
 replace = "raw.githubusercontent.com/kdeldycke/click-extra/v{new_version}/"
 
 [[tool.bumpversion.files]]
 filename = "./docs/tutorial.md"
 ignore_missing_version = true
-include_bumps = ["dev"]
+include_bumps = [ "dev" ]
 search = "raw.githubusercontent.com/kdeldycke/click-extra/main/"
 replace = "raw.githubusercontent.com/kdeldycke/click-extra/v{new_version}/"
 
@@ -433,14 +433,14 @@ replace = "raw.githubusercontent.com/kdeldycke/click-extra/v{new_version}/"
 [[tool.bumpversion.files]]
 filename = "./readme.md"
 ignore_missing_version = true
-exclude_bumps = ["dev"]
+exclude_bumps = [ "dev" ]
 search = "raw.githubusercontent.com/kdeldycke/click-extra/v{current_version}/"
 replace = "raw.githubusercontent.com/kdeldycke/click-extra/main/"
 
 [[tool.bumpversion.files]]
 filename = "./docs/tutorial.md"
 ignore_missing_version = true
-exclude_bumps = ["dev"]
+exclude_bumps = [ "dev" ]
 search = "raw.githubusercontent.com/kdeldycke/click-extra/v{current_version}/"
 replace = "raw.githubusercontent.com/kdeldycke/click-extra/main/"
 
