@@ -792,6 +792,10 @@ The `PYPROJECT_TOML` format reads `[tool.<cli-name>]` sections from a `pyproject
 
 `PYPROJECT_TOML` is included in the default format patterns, so it is automatically discovered alongside other formats. The `[tool]` wrapper is automatically unwrapped: `merge_default_map` sees `{"cli": {"int_param": 3}}` — exactly the [same structure as a regular TOML config file](#toml).
 
+```{seealso}
+For a production example of a CLI built on Click Extra's `pyproject.toml` configuration with a [typed dataclass schema](#typed-configuration-schema), nested sub-tables, and 48 config options, see [repomatic's configuration reference](https://kdeldycke.github.io/repomatic/configuration.html). Repomatic also uses Click Extra's config system to [bridge `[tool.X]` sections](https://kdeldycke.github.io/repomatic/tool-runner.html#config-resolution) for third-party tools that don't read `pyproject.toml` natively.
+```
+
 #### CWD-first discovery
 
 When auto-discovering configuration (no explicit `--config` flag), Click Extra searches for `pyproject.toml` starting from the current working directory and walking up to the VCS root *before* checking the standard app config directory. This matches the discovery behavior of uv, ruff, and mypy, so users get the configuration they expect without passing `--config` explicitly.
@@ -859,6 +863,8 @@ Other non-Python tools that support `[tool.*]` in `pyproject.toml`:
 [typos](https://github.com/crate-ci/typos/blob/master/docs/reference.md),
 [uv](https://docs.astral.sh/uv/concepts/configuration-files/),
 and [Zuban](https://docs.zubanls.com/en/latest/usage.html).
+
+Click Extra's own `[tool.*]` bridge in [repomatic's tool runner](https://kdeldycke.github.io/repomatic/tool-runner.html#level-2-toolx-in-pyprojecttoml) translates `[tool.yamllint]`, `[tool.actionlint]`, `[tool.biome]`, and others into native config files at invocation time, giving tools that lack native `pyproject.toml` support the same single-file experience.
 
 Other tools are following suit:
 [actionlint#623](https://github.com/rhysd/actionlint/issues/623),
@@ -1326,6 +1332,10 @@ Glob patterns are also not supported for URLs. Unless you want to let your users
 By default, `ConfigOption` only feeds configuration values that match CLI options into the context's `default_map`. Any other keys in the configuration file are silently ignored. This works well when the configuration file mirrors the CLI structure, but some applications need access to *additional* configuration that doesn't correspond to any CLI option.
 
 The `config_schema` parameter solves this by extracting the app's configuration section, normalizing its keys, and producing a typed object available to all commands via `ctx.meta["click_extra.tool_config"]`.
+
+```{tip}
+[repomatic](https://kdeldycke.github.io/repomatic/) is a production CLI that uses all of the features below: a [48-field Config dataclass](https://kdeldycke.github.io/repomatic/configuration.html) with nested sub-dataclasses, opaque dict fields for GitHub Actions matrices, `config_path` metadata for kebab-case TOML keys, and `schema_strict=True` to catch typos. It can serve as a reference for building complex typed configuration.
+```
 
 ### Dataclass schema
 
