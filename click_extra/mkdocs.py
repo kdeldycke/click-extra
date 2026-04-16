@@ -71,7 +71,7 @@ def _patch_mkdocs_click() -> None:
     is idempotent: calling it twice has no additional effect.
     """
     try:
-        import mkdocs_click._docs as _docs
+        from mkdocs_click import _docs
     except ImportError:
         return
 
