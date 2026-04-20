@@ -84,8 +84,6 @@ classifiers = [
 # - adds new explicit support Python version.
 dependencies = [
   # boltons 20.0.0 added shrinkuser(); our config.py uses it for path display.
-  # XXX boltons.ecoutils breaks PDB interactive sessions in pytest. Investigation of the root cause is being
-  # discussed upstream at: https://github.com/mahmoud/boltons/issues/334
   "boltons>=20",
   # Click 8.3.1 fix an issue with parameters sharing same name.
   "click>=8.3.1",
