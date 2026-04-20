@@ -9,6 +9,9 @@
 
 ## [`7.13.0` (2026-04-16)](https://github.com/kdeldycke/click-extra/compare/v7.12.0...v7.13.0)
 
+> [!NOTE]
+> `7.13.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.13.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.13.0).
+
 - Add MkDocs plugin for ANSI color rendering in code blocks. Install with `pip install click-extra[mkdocs]`, then add `click-extra` to your `mkdocs.yml` plugins list. Patches `pymdownx.highlight` formatters to use `AnsiHtmlFormatter`.
 - Automatically patch `mkdocs-click` code blocks to use the `ansi-output` lexer when the `click-extra` MkDocs plugin is enabled. CLI help text with ANSI escape codes now renders with colors instead of garbled `[1m`/`[0m` sequences.
 - Fix API reference sections rendering as raw RST markup instead of formatted documentation. Wrap all `automodule` and `autoclasstree` directives in `eval-rst` blocks to force RST parsing, working around MyST-Parser's `MockState.nested_parse()` treating autodoc output as Markdown.
