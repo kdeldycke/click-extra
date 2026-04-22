@@ -44,6 +44,28 @@ GREET_SCRIPT = (
     'if __name__ == "__main__":\n'
     '    hello()\n'
 )
+"""Plain ``@click.command()`` script: patched via decorator defaults."""
+
+CUSTOM_CLS_SCRIPT = (
+    'import click\n'
+    '\n'
+    'class RecipeGroup(click.Group):\n'
+    '    """Custom group like Flask\'s FlaskGroup."""\n'
+    '\n'
+    '@click.command(cls=RecipeGroup)\n'
+    'def kitchen():\n'
+    '    """Manage recipes and ingredients."""\n'
+    '\n'
+    '@kitchen.command()\n'
+    '@click.option("--servings", default=4, help="Number of servings.")\n'
+    'def bake(servings):\n'
+    '    """Bake a cake."""\n'
+    '    click.echo(f"Baking for {servings}")\n'
+    '\n'
+    'if __name__ == "__main__":\n'
+    '    kitchen()\n'
+)
+"""Script with explicit ``cls=RecipeGroup``: patched via method patching."""
 
 
 @pytest.fixture(autouse=True)
@@ -64,6 +86,14 @@ def greet_script(tmp_path):
     """A minimal Click CLI script for wrapping tests."""
     script = tmp_path / "greet.py"
     script.write_text(GREET_SCRIPT)
+    return str(script)
+
+
+@pytest.fixture
+def custom_cls_script(tmp_path):
+    """A Click CLI with explicit ``cls=CustomGroup`` (like Flask's FlaskGroup)."""
+    script = tmp_path / "kitchen.py"
+    script.write_text(CUSTOM_CLS_SCRIPT)
     return str(script)
 
 
@@ -149,13 +179,40 @@ def test_run_no_args_shows_help(runner):
     assert "Apply Click Extra help colorization" in result.output
 
 
-def test_run_colorizes_target(runner, greet_script):
-    """A plain Click CLI wrapped by the run subcommand gets colorized help."""
+def test_run_colorizes_default_cls(runner, greet_script):
+    """Plain ``@click.command()`` gets colorized via decorator patching."""
     result = runner.invoke(run, [greet_script, "--help"], color=True)
     assert result.exit_code == 0
     assert "Greet someone." in result.output
-    # ANSI escape codes should be present.
     assert "\x1b[" in result.output
+
+
+def test_run_colorizes_custom_cls(runner, custom_cls_script):
+    """Explicit ``cls=RecipeGroup`` gets colorized via method patching."""
+    result = runner.invoke(run, [custom_cls_script, "--help"], color=True)
+    assert result.exit_code == 0
+    assert "Manage recipes and ingredients." in result.output
+    assert "\x1b[" in result.output
+
+
+def test_run_colorizes_custom_cls_subcommand(runner, custom_cls_script):
+    """Subcommands of a custom group are also colorized."""
+    result = runner.invoke(
+        run, [custom_cls_script, "bake", "--help"], color=True,
+    )
+    assert result.exit_code == 0
+    assert "Bake a cake." in result.output
+    assert "\x1b[" in result.output
+
+
+def test_run_highlights_keywords_with_custom_cls(runner, custom_cls_script):
+    """Options and subcommands are highlighted, not just headings."""
+    result = runner.invoke(run, [custom_cls_script, "--help"], color=True)
+    assert result.exit_code == 0
+    # Option names must be individually styled, not just the heading.
+    assert "\x1b[36m--help\x1b[0m" in result.output
+    # Subcommand names must be highlighted.
+    assert "\x1b[36mbake\x1b[0m" in result.output
 
 
 def test_run_no_color(runner, greet_script):

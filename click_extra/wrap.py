@@ -34,13 +34,15 @@ import cloup
 from click.utils import make_str
 
 from . import colorize
-from .colorize import ExtraHelpColorsMixin, HelpExtraTheme
+from .colorize import ExtraHelpColorsMixin, HelpExtraFormatter, HelpExtraTheme
 from .commands import ExtraContext, ExtraGroup
 
 
 # Save pristine references before any patching occurs.
 _original_click_command = click.decorators.command
 _original_click_group = click.decorators.group
+_original_get_help = click.Command.get_help
+_original_format_help = click.Command.format_help
 
 
 class _PatchedCommand(ExtraHelpColorsMixin, click.Command):  # type: ignore[misc]
@@ -178,13 +180,63 @@ def patch_click(
     click.decorators.command = _patched_command_func  # type: ignore[assignment]
     click.decorators.group = _patched_group_func  # type: ignore[assignment]
 
+    # Patch Command methods to colorize ALL commands, including those with
+    # explicit ``cls=`` (like Flask's ``FlaskGroup``). Commands that already
+    # have ``ExtraHelpColorsMixin`` skip this path to avoid double-processing.
+    color_flag = color
+
+    def _patched_get_help(self, ctx):
+        if not isinstance(self, ExtraHelpColorsMixin):
+            ctx.formatter_class = HelpExtraFormatter
+            if not ctx.parent and ctx.color is None:
+                ctx.color = color_flag
+        return _original_get_help(self, ctx)
+
+    # Mixin attributes and static methods that collect_keywords() accesses
+    # via self but are absent on vanilla click.Command instances.
+    _mixin_attrs: dict[str, object] = {
+        "extra_keywords": None,
+        "excluded_keywords": None,
+        "_collect_params": ExtraHelpColorsMixin._collect_params,
+        "_collect_choice_keywords": (
+            ExtraHelpColorsMixin._collect_choice_keywords
+        ),
+    }
+
+    def _patched_format_help(self, ctx, formatter):
+        if (
+            isinstance(formatter, HelpExtraFormatter)
+            and not isinstance(self, ExtraHelpColorsMixin)
+        ):
+            # Temporarily graft mixin attributes onto the command so
+            # collect_keywords() can run on vanilla commands.
+            originals = {}
+            for attr, default in _mixin_attrs.items():
+                if not hasattr(self, attr):
+                    originals[attr] = None
+                    setattr(self, attr, default)
+            try:
+                formatter.keywords = (
+                    ExtraHelpColorsMixin.collect_keywords(self, ctx)
+                )
+                formatter.excluded_keywords = (
+                    ExtraHelpColorsMixin._collect_excluded_keywords(ctx)
+                )
+            finally:
+                for attr in originals:
+                    delattr(self, attr)
+        _original_format_help(self, ctx, formatter)
+
+    click.Command.get_help = _patched_get_help  # type: ignore[assignment]
+    click.Command.format_help = _patched_format_help  # type: ignore[assignment]
+
     # Override the default theme if requested.
     if theme is not None:
         colorize.default_theme = theme
 
 
 def unpatch_click() -> None:
-    """Restore Click's original decorator functions.
+    """Restore Click's original decorator functions and methods.
 
     Reverses the changes made by :func:`patch_click`. Useful in tests to
     avoid leaking global state between test cases.
@@ -193,6 +245,8 @@ def unpatch_click() -> None:
     click.group = _original_click_group  # type: ignore[assignment]
     click.decorators.command = _original_click_command
     click.decorators.group = _original_click_group
+    click.Command.get_help = _original_get_help  # type: ignore[assignment]
+    click.Command.format_help = _original_format_help  # type: ignore[assignment]
 
     # Reset context classes to defaults.
     _PatchedCommand.context_class = ExtraContext
