@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import importlib
 import importlib.util
+import logging
 import runpy
 import sys
 from importlib import metadata
@@ -37,6 +38,7 @@ from . import colorize
 from .colorize import ExtraHelpColorsMixin, HelpExtraFormatter, HelpExtraTheme
 from .commands import ExtraContext, ExtraGroup
 
+logger = logging.getLogger("click_extra")
 
 # Save pristine references before any patching occurs.
 _original_click_command = click.decorators.command
@@ -179,6 +181,7 @@ def patch_click(
     click.group = _patched_group_func  # type: ignore[assignment]
     click.decorators.command = _patched_command_func  # type: ignore[assignment]
     click.decorators.group = _patched_group_func  # type: ignore[assignment]
+    logger.debug("Patched click.command and click.group decorators.")
 
     # Patch Command methods to colorize ALL commands, including those with
     # explicit ``cls=`` (like Flask's ``FlaskGroup``). Commands that already
@@ -208,6 +211,11 @@ def patch_click(
             isinstance(formatter, HelpExtraFormatter)
             and not isinstance(self, ExtraHelpColorsMixin)
         ):
+            logger.debug(
+                "Collecting keywords for %s (%s).",
+                type(self).__name__,
+                self.name,
+            )
             # Temporarily graft mixin attributes onto the command so
             # collect_keywords() can run on vanilla commands.
             originals = {}
@@ -229,10 +237,17 @@ def patch_click(
 
     click.Command.get_help = _patched_get_help  # type: ignore[assignment]
     click.Command.format_help = _patched_format_help  # type: ignore[assignment]
+    logger.debug("Patched click.Command.get_help and format_help methods.")
 
     # Override the default theme if requested.
     if theme is not None:
         colorize.default_theme = theme
+
+    logger.info(
+        "Click patched: color=%s, theme=%s.",
+        color,
+        type(theme).__name__ if theme is not None else "default",
+    )
 
 
 def unpatch_click() -> None:
@@ -270,19 +285,34 @@ def resolve_target(script: str) -> tuple[str, str]:
         empty when the target should be invoked as a module or script file.
     :raises click.ClickException: If the script cannot be resolved.
     """
+    logger.debug("Resolving target %r.", script)
+
     # 1. Console scripts entry points.
     for ep in metadata.entry_points().select(group="console_scripts"):
         if ep.name == script:
             module_path, _, function_name = ep.value.partition(":")
+            logger.info(
+                "Resolved %r as console_scripts entry point: %s:%s.",
+                script,
+                module_path,
+                function_name,
+            )
             return module_path, function_name
 
     # 2. Explicit module:function notation.
     if ":" in script:
         module_path, function_name = script.rsplit(":", 1)
+        logger.info(
+            "Resolved %r as module:function: %s:%s.",
+            script,
+            module_path,
+            function_name,
+        )
         return module_path, function_name
 
     # 3. .py file path.
     if script.endswith(".py") and Path(script).is_file():
+        logger.info("Resolved %r as .py file.", script)
         return script, ""
 
     # 4. Bare module name. Check existence without importing so the module
@@ -293,6 +323,7 @@ def resolve_target(script: str) -> tuple[str, str]:
         spec = None
 
     if spec is not None:
+        logger.info("Resolved %r as Python module.", script)
         return script, ""
 
     msg = (
@@ -318,17 +349,27 @@ def invoke_target(
     :param function_name: Function to call, or empty for module execution.
     :param args: Arguments to pass to the target CLI.
     """
+    logger.info(
+        "Invoking target: script=%r, module=%r, function=%r, args=%r.",
+        script,
+        module_path,
+        function_name,
+        args,
+    )
     original_argv = sys.argv
     try:
         sys.argv = [script, *args]
 
         if function_name:
+            logger.debug("Importing %s and calling %s().", module_path, function_name)
             mod = importlib.import_module(module_path)
             func = getattr(mod, function_name)
             func()
         elif module_path.endswith(".py"):
+            logger.debug("Running %s as script.", module_path)
             runpy.run_path(module_path, run_name="__main__")
         else:
+            logger.debug("Running %s as module.", module_path)
             runpy.run_module(module_path, run_name="__main__")
     finally:
         sys.argv = original_argv
