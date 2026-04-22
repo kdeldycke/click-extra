@@ -58,41 +58,51 @@ jobs:
 
       - name: Run stable CLI
         run: |
-          uvx                                     click-extra       --version
-          uv run  --with click-extra  --          click-extra       --version
-          uv run  --with click-extra  -m          click_extra       --version
-          uv run  --with click-extra  python -m   click_extra       --version
+          uvx                                   click-extra --version
+          uv run  --with click-extra  --        click-extra --version
+          uv run  --with click-extra  -m        click_extra --version
+          uv run  --with click-extra  python -m click_extra --version
 
       - name: Run dev CLI
         run: |
-          uvx     --from git+https://github.com/kdeldycke/click-extra   --          click-extra       --version
-          uv run  --with git+https://github.com/kdeldycke/click-extra   --          click-extra       --version
-          uv run  --with git+https://github.com/kdeldycke/click-extra   -m          click_extra       --version
-          uv run  --with git+https://github.com/kdeldycke/click-extra   python -m   click_extra       --version
+          uvx     --from git+https://github.com/kdeldycke/click-extra --        click-extra --version
+          uv run  --with git+https://github.com/kdeldycke/click-extra --        click-extra --version
+          uv run  --with git+https://github.com/kdeldycke/click-extra -m        click_extra --version
+          uv run  --with git+https://github.com/kdeldycke/click-extra python -m click_extra --version
 
       - name: Run stable CLI via uv tool
         run: |
           uv --no-progress tool install click-extra
-          click-extra       --version
+          click-extra --version
           uv --no-progress tool uninstall click-extra
       - name: Run dev CLI via uv tool
         run: |
           uv --no-progress tool install git+https://github.com/kdeldycke/click-extra
-          click-extra       --version
+          click-extra --version
           uv --no-progress tool uninstall click-extra
 
       - name: Run CLI via pipx
         run: |
           uv --no-progress tool install pipx
-          pipx run                                                      click-extra       --version
-          pipx run --spec click-extra                                   click-extra       --version
-          pipx run --spec git+https://github.com/kdeldycke/click-extra  click-extra       --version
+          pipx run                                                      click-extra --version
+          pipx run --spec click-extra                                   click-extra --version
+          pipx run --spec git+https://github.com/kdeldycke/click-extra  click-extra --version
           uv --no-progress tool uninstall pipx
 
       - name: Run CLI via pip
         run: |
           pip install click-extra
-          click-extra       --version
+          click-extra --version
+
+      - name: Test wrapper on Click CLIs
+        run: |
+          pip install click-extra flask quart
+          click-extra             run   flask --help
+          click-extra             wrap  flask --help
+          click-extra --no-color  run   flask --help
+          click-extra                   flask --help
+          click-extra             run   quart --help
+          click-extra                   quart --help
 
       - name: Install project
         run: uv --no-progress sync --frozen --all-extras --group test
@@ -160,6 +170,8 @@ jobs:
           uv run -- click-extra         --version
           uv run        -m click_extra  --version
           uv run python -m click_extra  --version
+          uv run --with flask --with quart -- click-extra run flask --help
+          uv run --with flask --with quart -- click-extra run quart --help
 
       - name: Unittests
         # Produce XML artifacts for Codecov integration (coverage + test analytics).
