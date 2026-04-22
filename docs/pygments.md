@@ -375,7 +375,7 @@ from click_extra.cli import demo
 ```
 
 ```{click:run}
-result = invoke(demo, args=["render-matrix", "palette"])
+result = invoke(demo, args=["palette"])
 assert result.exit_code == 0
 ```
 

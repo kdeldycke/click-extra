@@ -154,11 +154,11 @@ If you want to keep them, force the `--color` option when invoking the command.
 ```
 
 ````{tip}
-Use the built-in `click-extra render-matrix` command to verify how ANSI codes are handled by each format:
+Use the built-in demo subcommands to verify how ANSI codes are handled by each format:
 
 ```shell-session
-$ uvx click-extra --table-format github render-matrix styles
-$ uvx click-extra --table-format json render-matrix colors
+$ uvx click-extra --table-format github styles
+$ uvx click-extra --table-format json colors
 ```
 
 Plain-text formats preserve ANSI styling. Markup formats strip it unless `--color` is passed explicitly.
