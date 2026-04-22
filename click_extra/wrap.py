@@ -143,11 +143,7 @@ def patch_click(
         _PatchedCommand.context_class = ExtraContext
         _PatchedGroup.context_class = ExtraContext
 
-    def _patched_command_func(
-        name: str | None = None,
-        cls: type | None = None,
-        **attrs,
-    ):
+    def _patched_command_func(name=None, cls=None, **attrs):
         """Wrapper around ``click.command`` defaulting cls to _PatchedCommand."""
         # Handle bare @click.command usage (no parentheses): the decorated
         # function is passed as the first positional argument.
@@ -160,11 +156,7 @@ def patch_click(
             cls = _PatchedCommand
         return _original_click_command(name=name, cls=cls, **attrs)
 
-    def _patched_group_func(
-        name: str | None = None,
-        cls: type | None = None,
-        **attrs,
-    ):
+    def _patched_group_func(name=None, cls=None, **attrs):
         """Wrapper around ``click.group`` defaulting cls to _PatchedGroup."""
         if callable(name):
             func = name
@@ -188,7 +180,7 @@ def patch_click(
     # have ``ExtraHelpColorsMixin`` skip this path to avoid double-processing.
     color_flag = color
 
-    def _patched_get_help(self, ctx):
+    def _patched_get_help(self, ctx):  # type: ignore[override]
         if not isinstance(self, ExtraHelpColorsMixin):
             ctx.formatter_class = HelpExtraFormatter
             if not ctx.parent and ctx.color is None:
@@ -235,8 +227,8 @@ def patch_click(
                     delattr(self, attr)
         _original_format_help(self, ctx, formatter)
 
-    click.Command.get_help = _patched_get_help  # type: ignore[assignment]
-    click.Command.format_help = _patched_format_help  # type: ignore[assignment]
+    click.Command.get_help = _patched_get_help  # type: ignore[method-assign]
+    click.Command.format_help = _patched_format_help  # type: ignore[method-assign]
     logger.debug("Patched click.Command.get_help and format_help methods.")
 
     # Override the default theme if requested.
@@ -260,8 +252,8 @@ def unpatch_click() -> None:
     click.group = _original_click_group  # type: ignore[assignment]
     click.decorators.command = _original_click_command
     click.decorators.group = _original_click_group
-    click.Command.get_help = _original_get_help  # type: ignore[assignment]
-    click.Command.format_help = _original_format_help  # type: ignore[assignment]
+    click.Command.get_help = _original_get_help  # type: ignore[method-assign]
+    click.Command.format_help = _original_format_help  # type: ignore[method-assign]
 
     # Reset context classes to defaults.
     _PatchedCommand.context_class = ExtraContext
@@ -433,5 +425,5 @@ def run(
     # Color setting is inherited from the parent group's context, where
     # ColorOption already processed --color/--no-color flags and environment
     # variables (NO_COLOR, CLICOLOR, etc.).
-    patch_click(theme=help_theme, color=ctx.color)
+    patch_click(theme=help_theme, color=ctx.color or False)
     invoke_target(script, module_path, function_name, args)

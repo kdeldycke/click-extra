@@ -245,6 +245,24 @@ def test_group_defaults_to_run(runner, greet_script):
     assert "Greet someone." in result.output
 
 
+@pytest.mark.parametrize(
+    "group_opts",
+    [
+        ["--time"],
+        ["--verbosity", "DEBUG"],
+        ["--no-color"],
+        ["--color"],
+    ],
+)
+def test_group_options_work_with_run(runner, greet_script, group_opts):
+    """Default ExtraGroup options are accepted alongside the run subcommand."""
+    result = runner.invoke(
+        demo, [*group_opts, "run", greet_script, "--help"],
+    )
+    assert result.exit_code == 0
+    assert "Greet someone." in result.output
+
+
 def test_group_known_subcommands_still_work(runner):
     """Explicit subcommands like gradient are not affected."""
     result = runner.invoke(demo, ["gradient", "--help"])
