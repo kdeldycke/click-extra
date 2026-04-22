@@ -325,19 +325,23 @@ class _RunCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
     context_class: type[click.Context] = ExtraContext
 
 
-def _config_args_for_target(ctx: click.Context) -> tuple[str, ...]:
-    """Extract config keys not consumed by ``run`` and convert to CLI args.
+def _config_args_for_target(
+    ctx: click.Context,
+    script: str,
+) -> tuple[str, ...]:
+    """Read the ``[run.<script>]`` config section and convert to CLI args.
 
-    Reads the full config from ``ctx.meta["click_extra.conf_full"]`` (stored
-    by :class:`~click_extra.config.ConfigOption`), extracts the ``run``
-    section, and converts keys that don't match ``run``'s own parameters
-    into ``--key value`` CLI arguments for the wrapped target.
+    Looks for a config section named after the target script under ``run``.
+    For example, ``click-extra run flask`` reads ``[tool.click-extra.run.flask]``
+    in ``pyproject.toml``. All keys in that section are converted to CLI
+    arguments and prepended to the target's invocation.
 
-    This lets users set defaults for the wrapped CLI in ``pyproject.toml``:
+    Invalid options are naturally caught by the target CLI itself, producing
+    standard Click error messages like "No such option: --foo".
 
     .. code-block:: toml
 
-        [tool.click-extra.run]
+        [tool.click-extra.run.flask]
         app = "myapp:create_app"
         debug = true
     """
@@ -347,19 +351,16 @@ def _config_args_for_target(ctx: click.Context) -> tuple[str, ...]:
     if not full_conf:
         return ()
 
-    # Extract the [click-extra.run] section from the raw config.
+    # Extract the [click-extra.run.<script>] section from the raw config.
     app_name = root_ctx.command.name or ""
-    run_section = full_conf.get(app_name, {}).get("run", {})
-    if not run_section or not isinstance(run_section, dict):
+    target_section = (
+        full_conf.get(app_name, {}).get("run", {}).get(script, {})
+    )
+    if not target_section or not isinstance(target_section, dict):
         return ()
 
-    # Known parameter names for the run subcommand.
-    known_params = {p.name for p in ctx.command.params if p.name}
-
     extra: list[str] = []
-    for key, value in run_section.items():
-        if key in known_params:
-            continue
+    for key, value in target_section.items():
         # Convert underscores to dashes for CLI option names.
         opt_name = f"--{key.replace('_', '-')}"
         if isinstance(value, bool):
@@ -417,9 +418,9 @@ def run(
     script = script_and_args[0]
     args = script_and_args[1:]
 
-    # Extract extra config keys from the [run] section that don't match
-    # run's own parameters, and prepend them as CLI arguments for the target.
-    config_args = _config_args_for_target(ctx)
+    # Extract config from the [run.<script>] section and prepend as CLI
+    # arguments for the target.
+    config_args = _config_args_for_target(ctx, script)
     if config_args:
         logger.info("Config args for target CLI: %s.", config_args)
         args = (*config_args, *args)

@@ -81,24 +81,37 @@ debug: Set <Logger click_extra (DEBUG)> to DEBUG.
 
 ### Defaults for the wrapped CLI
 
-Extra keys in the `[tool.click-extra.run]` section that don't match `run`'s own parameters are forwarded as CLI arguments to the wrapped target. This lets you set persistent defaults for any Click CLI:
+The `[tool.click-extra.run.<script>]` section sets persistent defaults for a specific target CLI. All keys are converted to CLI arguments and prepended to the target's invocation:
 
 ```toml
-[tool.click-extra.run]
-theme = "light"
+[tool.click-extra.run.flask]
 app = "myapp:create_app"
 debug = true
 ```
 
-`theme` is consumed by `run` itself. `app` and `debug` are converted to `--app myapp:create_app --debug` and prepended to the target's arguments. Explicit CLI arguments always override config values:
-
 ```shell-session
 $ click-extra flask routes
 # Equivalent to: flask --app myapp:create_app --debug routes
+```
 
+The section name must match the script name you pass on the command line. Multiple targets can each have their own section:
+
+```toml
+[tool.click-extra.run.flask]
+app = "myapp:create_app"
+
+[tool.click-extra.run.quart]
+app = "otherapp:create_app"
+```
+
+Explicit CLI arguments always override config values:
+
+```shell-session
 $ click-extra flask --app otherapp routes
 # CLI --app wins over config
 ```
+
+Invalid option names are caught by the target CLI itself with standard Click error messages, so typos are surfaced immediately.
 
 ## Script resolution
 

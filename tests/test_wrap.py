@@ -314,11 +314,13 @@ def test_config_run_theme(runner, greet_script, create_config):
     assert "Greet someone." in result.output
 
 
-def test_config_passthrough_string(runner, greet_script, create_config):
-    """A string value in ``[tool.click-extra.run]`` is forwarded as --key val."""
+def test_config_target_section(runner, greet_script, create_config):
+    """``[tool.click-extra.run.<script>]`` forwards defaults to the target."""
+    # The script name in the config must match the script argument.
+    # For .py files the full path is the key, so use a quoted TOML key.
     conf = create_config(
         "pyproject.toml",
-        '[tool.click-extra.run]\nname = "Alice"\n',
+        f'[tool.click-extra.run."{greet_script}"]\nname = "Alice"\n',
     )
     result = runner.invoke(
         demo,
@@ -328,11 +330,11 @@ def test_config_passthrough_string(runner, greet_script, create_config):
     assert "Hello, Alice" in result.output
 
 
-def test_config_passthrough_cli_overrides(runner, greet_script, create_config):
-    """Explicit CLI args override config passthrough values."""
+def test_config_target_cli_overrides(runner, greet_script, create_config):
+    """Explicit CLI args override config target defaults."""
     conf = create_config(
         "pyproject.toml",
-        '[tool.click-extra.run]\nname = "Alice"\n',
+        f'[tool.click-extra.run."{greet_script}"]\nname = "Alice"\n',
     )
     result = runner.invoke(
         demo,
@@ -341,3 +343,20 @@ def test_config_passthrough_cli_overrides(runner, greet_script, create_config):
     assert result.exit_code == 0
     # CLI --name Bob should win over config name = "Alice".
     assert "Hello, Bob" in result.output
+
+
+def test_config_target_wrong_section_ignored(
+    runner, greet_script, create_config,
+):
+    """Config for a different script name has no effect."""
+    conf = create_config(
+        "pyproject.toml",
+        '[tool.click-extra.run.other-cli]\nname = "Alice"\n',
+    )
+    result = runner.invoke(
+        demo,
+        ["--config", str(conf), "run", greet_script],
+    )
+    assert result.exit_code == 0
+    # Default name "World" since the section doesn't match.
+    assert "Hello, World" in result.output
