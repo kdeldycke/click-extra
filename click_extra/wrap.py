@@ -364,10 +364,12 @@ def _config_args_for_target(
         # Convert underscores to dashes for CLI option names.
         opt_name = f"--{key.replace('_', '-')}"
         if isinstance(value, bool):
+            # Only pass the flag when true. A false boolean means "don't
+            # pass the flag," which is the default for Click flags. Sending
+            # --no-<name> would fail on plain is_flag=True options that
+            # don't define a --flag/--no-flag pair.
             if value:
                 extra.append(opt_name)
-            else:
-                extra.append(f"--no-{key.replace('_', '-')}")
         elif isinstance(value, list):
             for item in value:
                 extra.append(opt_name)

@@ -25,6 +25,7 @@ from click_extra.colorize import ExtraHelpColorsMixin
 from click_extra.commands import ColorizedCommand, ColorizedGroup, ExtraContext
 from click_extra.testing import ExtraCliRunner
 from click_extra.wrap import (
+    _config_args_for_target,
     resolve_target,
     run,
     unpatch_click,
@@ -65,6 +66,25 @@ CUSTOM_CLS_SCRIPT = (
 )
 """Script with explicit ``cls=RecipeGroup``: patched via method patching."""
 
+MULTI_OPTION_SCRIPT = (
+    'import click\n'
+    '\n'
+    '@click.command()\n'
+    '@click.option("--city", default="Paris", help="City name.")\n'
+    '@click.option("--unit", default="celsius", help="Temperature unit.")\n'
+    '@click.option("--verbose", is_flag=True, help="Show details.")\n'
+    'def weather(city, unit, verbose):\n'
+    '    """Check the weather."""\n'
+    '    msg = f"{city}: 22 {unit}"\n'
+    '    if verbose:\n'
+    '        msg += " (detailed)"\n'
+    '    click.echo(msg)\n'
+    '\n'
+    'if __name__ == "__main__":\n'
+    '    weather()\n'
+)
+"""Script with multiple options for config passthrough tests."""
+
 
 @pytest.fixture(autouse=True)
 def _restore_click():
@@ -93,6 +113,27 @@ def custom_cls_script(tmp_path):
     script = tmp_path / "kitchen.py"
     script.write_text(CUSTOM_CLS_SCRIPT)
     return str(script)
+
+
+@pytest.fixture
+def weather_script(tmp_path):
+    """A Click CLI with multiple options for config tests."""
+    script = tmp_path / "weather.py"
+    script.write_text(MULTI_OPTION_SCRIPT)
+    return str(script)
+
+
+@pytest.fixture
+def create_config(tmp_path):
+    """Produce a temporary configuration file."""
+
+    def _create_config(filename, content):
+        config_path = tmp_path / filename
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        config_path.write_text(content, encoding="utf-8")
+        return config_path
+
+    return _create_config
 
 
 # -- Patched classes -----------------------------------------------------------
@@ -140,6 +181,7 @@ def test_patched_command_no_extra_params():
     [
         ("click-extra", "click_extra.__main__", "main"),
         ("json:tool", "json", "tool"),
+        ("os.path:join", "os.path", "join"),
         ("json", "json", ""),
     ],
 )
@@ -157,74 +199,88 @@ def test_resolve_py_file(tmp_path):
     assert function_name == ""
 
 
-def test_resolve_not_found():
+def test_resolve_py_file_missing(tmp_path):
+    """A .py path that doesn't exist falls through to module resolution."""
     with pytest.raises(click.ClickException, match="Cannot resolve"):
-        resolve_target("nonexistent_package_xyz_12345")
+        resolve_target(str(tmp_path / "nonexistent.py"))
+
+
+@pytest.mark.parametrize(
+    "script",
+    [
+        "nonexistent_package_xyz_12345",
+        "no-such-entry-point-xyz",
+        "",
+    ],
+)
+def test_resolve_not_found(script):
+    if not script:
+        # Empty string: find_spec raises ValueError.
+        with pytest.raises((click.ClickException, ValueError)):
+            resolve_target(script)
+    else:
+        with pytest.raises(click.ClickException, match="Cannot resolve"):
+            resolve_target(script)
 
 
 # -- run subcommand ------------------------------------------------------------
 
 
-def test_run_help(runner):
-    result = runner.invoke(run, ["--help"])
+@pytest.mark.parametrize(
+    "args, expected",
+    [
+        (["--help"], "Apply Click Extra help colorization"),
+        ([], "Apply Click Extra help colorization"),
+    ],
+)
+def test_run_self(runner, args, expected):
+    result = runner.invoke(run, args)
     assert result.exit_code == 0
-    assert "Apply Click Extra help colorization" in result.output
+    assert expected in result.output
 
 
-def test_run_no_args_shows_help(runner):
-    result = runner.invoke(run, [])
+@pytest.mark.parametrize(
+    "script_fixture, target_args, expected_text",
+    [
+        ("greet_script", ["--help"], "Greet someone."),
+        ("greet_script", ["--name", "Alice"], "Hello, Alice"),
+        ("custom_cls_script", ["--help"], "Manage recipes and ingredients."),
+        ("custom_cls_script", ["bake", "--help"], "Bake a cake."),
+        ("custom_cls_script", ["bake", "--servings", "8"], "Baking for 8"),
+    ],
+)
+def test_run_invokes_target(
+    runner, script_fixture, target_args, expected_text, request,
+):
+    """The run subcommand forwards arguments to the target CLI."""
+    script = request.getfixturevalue(script_fixture)
+    result = runner.invoke(run, [script, *target_args])
     assert result.exit_code == 0
-    assert "Apply Click Extra help colorization" in result.output
+    assert expected_text in result.output
 
 
-def test_run_colorizes_default_cls(runner, greet_script):
-    """Plain ``@click.command()`` gets colorized via decorator patching."""
-    result = runner.invoke(run, [greet_script, "--help"], color=True)
+@pytest.mark.parametrize(
+    "script_fixture, target_args",
+    [
+        ("greet_script", ["--help"]),
+        ("custom_cls_script", ["--help"]),
+        ("custom_cls_script", ["bake", "--help"]),
+    ],
+)
+def test_run_colorizes(runner, script_fixture, target_args, request):
+    """Help output contains ANSI escape codes."""
+    script = request.getfixturevalue(script_fixture)
+    result = runner.invoke(run, [script, *target_args], color=True)
     assert result.exit_code == 0
-    assert "Greet someone." in result.output
-    assert "\x1b[" in result.output
-
-
-def test_run_colorizes_custom_cls(runner, custom_cls_script):
-    """Explicit ``cls=RecipeGroup`` gets colorized via method patching."""
-    result = runner.invoke(run, [custom_cls_script, "--help"], color=True)
-    assert result.exit_code == 0
-    assert "Manage recipes and ingredients." in result.output
-    assert "\x1b[" in result.output
-
-
-def test_run_colorizes_custom_cls_subcommand(runner, custom_cls_script):
-    """Subcommands of a custom group are also colorized."""
-    result = runner.invoke(
-        run, [custom_cls_script, "bake", "--help"], color=True,
-    )
-    assert result.exit_code == 0
-    assert "Bake a cake." in result.output
     assert "\x1b[" in result.output
 
 
 def test_run_highlights_keywords_with_custom_cls(runner, custom_cls_script):
-    """Options and subcommands are highlighted, not just headings."""
+    """Options and subcommands are individually styled, not just headings."""
     result = runner.invoke(run, [custom_cls_script, "--help"], color=True)
     assert result.exit_code == 0
-    # Option names must be individually styled, not just the heading.
     assert "\x1b[36m--help\x1b[0m" in result.output
-    # Subcommand names must be highlighted.
     assert "\x1b[36mbake\x1b[0m" in result.output
-
-
-def test_run_no_color(runner, greet_script):
-    """Parent --no-color propagates through ctx.color to disable ANSI."""
-    result = runner.invoke(run, ["--theme", "dark", greet_script, "--help"])
-    assert result.exit_code == 0
-    assert "Greet someone." in result.output
-
-
-def test_run_passes_args_through(runner, greet_script):
-    """Arguments after the script name are forwarded to the target CLI."""
-    result = runner.invoke(run, [greet_script, "--name", "Alice"])
-    assert result.exit_code == 0
-    assert "Hello, Alice" in result.output
 
 
 def test_run_unresolvable_target(runner):
@@ -236,11 +292,40 @@ def test_run_unresolvable_target(runner):
 # -- WrapperGroup default-to-run -----------------------------------------------
 
 
-def test_group_defaults_to_run(runner, greet_script):
-    """Unknown subcommand names fall through to the run subcommand."""
-    result = runner.invoke(demo, [greet_script, "--help"], color=True)
+@pytest.mark.parametrize(
+    "args, expected",
+    [
+        # Unknown name falls through to run.
+        pytest.param(
+            ["--help"],
+            "Greet someone.",
+            id="implicit-run",
+        ),
+        # Explicit run subcommand.
+        pytest.param(
+            ["run", "--help"],
+            "Greet someone.",
+            id="explicit-run",
+        ),
+        # wrap alias.
+        pytest.param(
+            ["wrap", "--help"],
+            "Greet someone.",
+            id="wrap-alias",
+        ),
+    ],
+)
+def test_group_dispatches_to_run(runner, greet_script, args, expected):
+    """All invocation forms reach the target CLI."""
+    full_args = [args[0]]
+    if args[0] in ("run", "wrap"):
+        full_args.append(greet_script)
+        full_args.extend(args[1:])
+    else:
+        full_args = [greet_script, *args]
+    result = runner.invoke(demo, full_args, color=True)
     assert result.exit_code == 0
-    assert "Greet someone." in result.output
+    assert expected in result.output
 
 
 @pytest.mark.parametrize(
@@ -261,27 +346,17 @@ def test_group_options_work_with_run(runner, greet_script, group_opts):
     assert "Greet someone." in result.output
 
 
-def test_group_known_subcommands_still_work(runner):
-    """Explicit subcommands like gradient are not affected."""
-    result = runner.invoke(demo, ["gradient", "--help"])
+@pytest.mark.parametrize(
+    "subcommand",
+    ["gradient", "palette", "8color", "colors", "styles"],
+)
+def test_group_known_subcommands_not_wrapped(runner, subcommand):
+    """Known demo subcommands are dispatched directly, not to run."""
+    result = runner.invoke(demo, [subcommand, "--help"])
     assert result.exit_code == 0
-    assert "Render 24-bit RGB gradients" in result.output
 
 
 # -- Config integration --------------------------------------------------------
-
-
-@pytest.fixture
-def create_config(tmp_path):
-    """Produce a temporary configuration file."""
-
-    def _create_config(filename, content):
-        config_path = tmp_path / filename
-        config_path.parent.mkdir(parents=True, exist_ok=True)
-        config_path.write_text(content, encoding="utf-8")
-        return config_path
-
-    return _create_config
 
 
 def test_config_verbosity(runner, greet_script, create_config):
@@ -314,20 +389,63 @@ def test_config_run_theme(runner, greet_script, create_config):
     assert "Greet someone." in result.output
 
 
-def test_config_target_section(runner, greet_script, create_config):
-    """``[tool.click-extra.run.<script>]`` forwards defaults to the target."""
-    # The script name in the config must match the script argument.
-    # For .py files the full path is the key, so use a quoted TOML key.
+# -- Config passthrough to target ----------------------------------------------
+
+
+def test_config_target_string(runner, greet_script, create_config):
+    """A string config value is forwarded as ``--key value``."""
     conf = create_config(
         "pyproject.toml",
         f'[tool.click-extra.run."{greet_script}"]\nname = "Alice"\n',
     )
     result = runner.invoke(
-        demo,
-        ["--config", str(conf), "run", greet_script],
+        demo, ["--config", str(conf), "run", greet_script],
     )
     assert result.exit_code == 0
     assert "Hello, Alice" in result.output
+
+
+def test_config_target_bool_true(runner, weather_script, create_config):
+    """A ``true`` config value is forwarded as ``--flag``."""
+    conf = create_config(
+        "pyproject.toml",
+        f'[tool.click-extra.run."{weather_script}"]\nverbose = true\n',
+    )
+    result = runner.invoke(
+        demo, ["--config", str(conf), "run", weather_script],
+    )
+    assert result.exit_code == 0
+    assert "(detailed)" in result.output
+
+
+def test_config_target_bool_false_is_noop(runner, weather_script, create_config):
+    """A ``false`` config value is skipped: the flag is simply not passed."""
+    conf = create_config(
+        "pyproject.toml",
+        f'[tool.click-extra.run."{weather_script}"]\nverbose = false\n',
+    )
+    result = runner.invoke(
+        demo, ["--config", str(conf), "run", weather_script],
+    )
+    assert result.exit_code == 0
+    # verbose defaults to false anyway, so output has no "(detailed)".
+    assert "(detailed)" not in result.output
+
+
+def test_config_target_multiple_keys(runner, weather_script, create_config):
+    """Multiple config keys are all forwarded."""
+    conf = create_config(
+        "pyproject.toml",
+        f'[tool.click-extra.run."{weather_script}"]\n'
+        f'city = "Tokyo"\n'
+        f'unit = "fahrenheit"\n',
+    )
+    result = runner.invoke(
+        demo, ["--config", str(conf), "run", weather_script],
+    )
+    assert result.exit_code == 0
+    assert "Tokyo" in result.output
+    assert "fahrenheit" in result.output
 
 
 def test_config_target_cli_overrides(runner, greet_script, create_config):
@@ -341,7 +459,6 @@ def test_config_target_cli_overrides(runner, greet_script, create_config):
         ["--config", str(conf), "run", greet_script, "--name", "Bob"],
     )
     assert result.exit_code == 0
-    # CLI --name Bob should win over config name = "Alice".
     assert "Hello, Bob" in result.output
 
 
@@ -354,9 +471,93 @@ def test_config_target_wrong_section_ignored(
         '[tool.click-extra.run.other-cli]\nname = "Alice"\n',
     )
     result = runner.invoke(
-        demo,
-        ["--config", str(conf), "run", greet_script],
+        demo, ["--config", str(conf), "run", greet_script],
     )
     assert result.exit_code == 0
-    # Default name "World" since the section doesn't match.
     assert "Hello, World" in result.output
+
+
+def test_config_target_empty_section(runner, greet_script, create_config):
+    """An empty target section produces no extra args."""
+    conf = create_config(
+        "pyproject.toml",
+        f'[tool.click-extra.run."{greet_script}"]\n',
+    )
+    result = runner.invoke(
+        demo, ["--config", str(conf), "run", greet_script],
+    )
+    assert result.exit_code == 0
+    assert "Hello, World" in result.output
+
+
+def test_config_target_no_config(runner, greet_script):
+    """No config file at all: target runs with its own defaults."""
+    result = runner.invoke(
+        demo, ["--no-config", "run", greet_script],
+    )
+    assert result.exit_code == 0
+    assert "Hello, World" in result.output
+
+
+def test_config_target_invalid_option(runner, greet_script, create_config):
+    """An invalid config key is caught by the target CLI."""
+    conf = create_config(
+        "pyproject.toml",
+        f'[tool.click-extra.run."{greet_script}"]\n'
+        f'nonexistent_option = "bad"\n',
+    )
+    result = runner.invoke(
+        demo, ["--config", str(conf), "run", greet_script],
+    )
+    assert result.exit_code != 0
+    assert "No such option" in result.output
+
+
+
+
+# -- _config_args_for_target unit tests ----------------------------------------
+
+
+def _make_run_ctx(full_conf):
+    """Create a minimal context chain for _config_args_for_target."""
+    group_ctx = click.Context(demo, info_name="click-extra")
+    group_ctx.meta["click_extra.conf_full"] = full_conf
+    return click.Context(run, info_name="run", parent=group_ctx)
+
+
+@pytest.mark.parametrize(
+    "section, script, expected",
+    [
+        # String value.
+        ({"name": "Alice"}, "greet", ("--name", "Alice")),
+        # Boolean true.
+        ({"verbose": True}, "greet", ("--verbose",)),
+        # Boolean false: skipped (don't pass the flag).
+        ({"verbose": False}, "greet", ()),
+        # Integer value.
+        ({"count": 3}, "greet", ("--count", "3")),
+        # List value.
+        ({"tag": ["a", "b"]}, "greet", ("--tag", "a", "--tag", "b")),
+        # Underscore to dash.
+        ({"dry_run": True}, "greet", ("--dry-run",)),
+        # Empty section.
+        ({}, "greet", ()),
+        # Wrong script name.
+        ({"name": "Alice"}, "other", ()),
+    ],
+)
+def test_config_args_for_target(section, script, expected):
+    ctx = _make_run_ctx({"click-extra": {"run": {"greet": section}}})
+    assert _config_args_for_target(ctx, script) == expected
+
+
+def test_config_args_no_config():
+    """No config loaded: returns empty tuple."""
+    ctx = _make_run_ctx({})
+    assert _config_args_for_target(ctx, "greet") == ()
+
+
+def test_config_args_no_run_section():
+    """Config exists but has no run section."""
+    ctx = _make_run_ctx({"click-extra": {"verbosity": "DEBUG"}})
+    assert _config_args_for_target(ctx, "greet") == ()
