@@ -5,6 +5,7 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Add CLI wrapper: `click-extra [OPTIONS] SCRIPT [ARGS]...` applies help colorization to any installed Click CLI without modifying its source. Supports `--color`/`--no-color` and `--theme` options. Resolves targets via console_scripts entry points, `module:function` notation, `.py` file paths, or bare module names. The `click-extra` entry point is now the wrapper; the previous demo utilities move to `click-extra-demo`.
 - Bump Click requirement to `8.3.3`. Simplify `ParameterSource` comparisons in `ConfigOption` using the new `IntEnum` ordering.
 
 ## [`7.13.0` (2026-04-16)](https://github.com/kdeldycke/click-extra/compare/v7.12.0...v7.13.0)

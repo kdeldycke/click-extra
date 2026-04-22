@@ -23,17 +23,25 @@
 from __future__ import annotations
 
 from click_extra.cli import demo
+from click_extra.wrap import wrapper
 
 
 def main():
-    """Indirection required to reconcile all invocation methods:
+    """Entry point for the ``click-extra`` wrapper CLI.
+
+    Indirection required to reconcile all invocation methods:
 
     - ``python -m click_extra``
-    - entry point scripts: ``click-extra``, ``click-extra-demo``
+    - entry point script: ``click-extra``
     - Nuitka: ``python -m nuitka (...) click_extra/__main__.py``
 
     See `poetry#5981 <https://github.com/python-poetry/poetry/issues/5981>`_.
     """
+    wrapper()
+
+
+def main_demo():
+    """Entry point for the ``click-extra-demo`` developer utilities."""
     demo()
 
 
