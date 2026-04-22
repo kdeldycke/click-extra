@@ -36,7 +36,7 @@ from click.utils import make_str
 
 from . import colorize
 from .colorize import ExtraHelpColorsMixin, HelpExtraFormatter, HelpExtraTheme
-from .commands import ExtraContext, ExtraGroup
+from .commands import ColorizedCommand, ColorizedGroup, ExtraContext, ExtraGroup
 
 logger = logging.getLogger("click_extra")
 
@@ -45,25 +45,6 @@ _original_click_command = click.decorators.command
 _original_click_group = click.decorators.group
 _original_get_help = click.Command.get_help
 _original_format_help = click.Command.format_help
-
-
-class _PatchedCommand(ExtraHelpColorsMixin, click.Command):  # type: ignore[misc]
-    """Click Command with help colorization but no extra params.
-
-    Follows the same pattern as :class:`~click_extra.commands.HelpCommand`:
-    mixes in :class:`~click_extra.colorize.ExtraHelpColorsMixin` for keyword
-    highlighting and uses :class:`~click_extra.commands.ExtraContext` for the
-    colorized formatter, without inheriting from ``ExtraCommand`` (which would
-    inject ``default_extra_params``).
-    """
-
-    context_class: type[click.Context] = ExtraContext
-
-
-class _PatchedGroup(ExtraHelpColorsMixin, click.Group):  # type: ignore[misc]
-    """Click Group with help colorization but no extra params."""
-
-    context_class: type[click.Context] = ExtraContext
 
 
 class WrapperGroup(ExtraGroup):
@@ -79,31 +60,17 @@ class WrapperGroup(ExtraGroup):
         args: list[str],
     ) -> tuple[str | None, click.Command | None, list[str]]:
         cmd_name = make_str(args[0])
-        # Check both direct names and Cloup aliases.
-        cmd = self.resolve_command_name(ctx, cmd_name)
-        if cmd is not None:
-            return cmd_name, cmd, args[1:]
+        # Cloup's resolve_command_name handles both direct names and aliases.
+        resolved = super().resolve_command_name(ctx, cmd_name)
+        if resolved is not None:
+            cmd = self.get_command(ctx, resolved)
+            if cmd is not None:
+                return cmd_name, cmd, args[1:]
         # Unknown name: delegate the entire arg list to ``run``.
         run_cmd = self.get_command(ctx, "run")
         if run_cmd is not None:
             return "run", run_cmd, args
         return super().resolve_command(ctx, args)
-
-    def resolve_command_name(
-        self,
-        ctx: click.Context,
-        cmd_name: str,
-    ) -> click.Command | None:
-        """Resolve a command name, checking aliases too."""
-        cmd = self.get_command(ctx, cmd_name)
-        if cmd is not None:
-            return cmd
-        # Check if it's an alias of any registered command.
-        for name in self.list_commands(ctx):
-            subcmd = self.get_command(ctx, name)
-            if subcmd and cmd_name in getattr(subcmd, "aliases", ()):
-                return subcmd
-        return None
 
 
 def patch_click(
@@ -137,34 +104,34 @@ def patch_click(
                 if not self.parent:
                     self.color = False
 
-        _PatchedCommand.context_class = _NoColorContext
-        _PatchedGroup.context_class = _NoColorContext
+        ColorizedCommand.context_class = _NoColorContext
+        ColorizedGroup.context_class = _NoColorContext
     else:
-        _PatchedCommand.context_class = ExtraContext
-        _PatchedGroup.context_class = ExtraContext
+        ColorizedCommand.context_class = ExtraContext
+        ColorizedGroup.context_class = ExtraContext
 
     def _patched_command_func(name=None, cls=None, **attrs):
-        """Wrapper around ``click.command`` defaulting cls to _PatchedCommand."""
+        """Wrapper around ``click.command`` defaulting cls to ColorizedCommand."""
         # Handle bare @click.command usage (no parentheses): the decorated
         # function is passed as the first positional argument.
         if callable(name):
             func = name
             if cls is None:
-                cls = _PatchedCommand
+                cls = ColorizedCommand
             return _original_click_command(cls=cls, **attrs)(func)
         if cls is None:
-            cls = _PatchedCommand
+            cls = ColorizedCommand
         return _original_click_command(name=name, cls=cls, **attrs)
 
     def _patched_group_func(name=None, cls=None, **attrs):
-        """Wrapper around ``click.group`` defaulting cls to _PatchedGroup."""
+        """Wrapper around ``click.group`` defaulting cls to ColorizedGroup."""
         if callable(name):
             func = name
             if cls is None:
-                cls = _PatchedGroup
+                cls = ColorizedGroup
             return _original_click_group(cls=cls, **attrs)(func)
         if cls is None:
-            cls = _PatchedGroup
+            cls = ColorizedGroup
         return _original_click_group(name=name, cls=cls, **attrs)
 
     # Replace decorator functions in both namespaces so both ``click.command``
@@ -180,23 +147,12 @@ def patch_click(
     # have ``ExtraHelpColorsMixin`` skip this path to avoid double-processing.
     color_flag = color
 
-    def _patched_get_help(self, ctx):  # type: ignore[override]
+    def _patched_get_help(self, ctx):
         if not isinstance(self, ExtraHelpColorsMixin):
             ctx.formatter_class = HelpExtraFormatter
             if not ctx.parent and ctx.color is None:
                 ctx.color = color_flag
         return _original_get_help(self, ctx)
-
-    # Mixin attributes and static methods that collect_keywords() accesses
-    # via self but are absent on vanilla click.Command instances.
-    _mixin_attrs: dict[str, object] = {
-        "extra_keywords": None,
-        "excluded_keywords": None,
-        "_collect_params": ExtraHelpColorsMixin._collect_params,
-        "_collect_choice_keywords": (
-            ExtraHelpColorsMixin._collect_choice_keywords
-        ),
-    }
 
     def _patched_format_help(self, ctx, formatter):
         if (
@@ -208,23 +164,14 @@ def patch_click(
                 type(self).__name__,
                 self.name,
             )
-            # Temporarily graft mixin attributes onto the command so
-            # collect_keywords() can run on vanilla commands.
-            originals = {}
-            for attr, default in _mixin_attrs.items():
-                if not hasattr(self, attr):
-                    originals[attr] = None
-                    setattr(self, attr, default)
-            try:
-                formatter.keywords = (
-                    ExtraHelpColorsMixin.collect_keywords(self, ctx)
-                )
-                formatter.excluded_keywords = (
-                    ExtraHelpColorsMixin._collect_excluded_keywords(ctx)
-                )
-            finally:
-                for attr in originals:
-                    delattr(self, attr)
+            # collect_keywords() now works on any command: static methods are
+            # class-qualified and extra_keywords uses getattr with defaults.
+            formatter.keywords = (
+                ExtraHelpColorsMixin.collect_keywords(self, ctx)
+            )
+            formatter.excluded_keywords = (
+                ExtraHelpColorsMixin._collect_excluded_keywords(ctx)
+            )
         _original_format_help(self, ctx, formatter)
 
     click.Command.get_help = _patched_get_help  # type: ignore[method-assign]
@@ -256,8 +203,8 @@ def unpatch_click() -> None:
     click.Command.format_help = _original_format_help  # type: ignore[method-assign]
 
     # Reset context classes to defaults.
-    _PatchedCommand.context_class = ExtraContext
-    _PatchedGroup.context_class = ExtraContext
+    ColorizedCommand.context_class = ExtraContext
+    ColorizedGroup.context_class = ExtraContext
 
     # Restore the default theme.
     colorize.default_theme = HelpExtraTheme.dark()
@@ -371,8 +318,8 @@ class _RunCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
     """Cloup Command for the ``run`` subcommand.
 
     Uses Cloup (not vanilla Click) to support aliases. Like
-    ``_PatchedCommand``, mixes in ``ExtraHelpColorsMixin`` for colorized help
-    without ``default_extra_params``.
+    :class:`~click_extra.commands.ColorizedCommand` but based on
+    ``cloup.Command``.
     """
 
     context_class: type[click.Context] = ExtraContext

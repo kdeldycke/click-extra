@@ -446,7 +446,12 @@ class ExtraHelpColorsMixin:  # (Command)??
         # command parameters. User-defined help options (e.g. -h, --help) are
         # seeded into the options set.
         options: set[str] = set(ctx.help_option_names)
-        self._collect_params(command.get_params(ctx), ctx, kw, options)
+        # Static methods are qualified with the class name (not ``self``) so
+        # ``collect_keywords`` can be called on commands that don't inherit the
+        # mixin (used by ``wrap.patch_click`` for third-party CLIs).
+        ExtraHelpColorsMixin._collect_params(
+            command.get_params(ctx), ctx, kw, options,
+        )
 
         # Collect option names and choices from parent groups. Subcommand
         # docstrings often reference parent options in usage examples (e.g.
@@ -458,7 +463,9 @@ class ExtraHelpColorsMixin:  # (Command)??
                     options.update(param.opts)
                     options.update(param.secondary_opts)
                     if isinstance(param.type, click.Choice):
-                        self._collect_choice_keywords(param, parent_ctx, kw)
+                        ExtraHelpColorsMixin._collect_choice_keywords(
+                            param, parent_ctx, kw,
+                        )
             parent_ctx = parent_ctx.parent
 
         # Split options into short and long by length heuristic. Short options
@@ -472,9 +479,11 @@ class ExtraHelpColorsMixin:  # (Command)??
             else:
                 kw.long_options.add(name)
 
-        # Merge consumer-provided extra keywords.
-        if self.extra_keywords is not None:
-            kw.merge(self.extra_keywords)
+        # Merge consumer-provided extra keywords. Uses ``getattr`` so the
+        # method works on commands that don't inherit the mixin.
+        extra_kw = getattr(self, "extra_keywords", None)
+        if extra_kw is not None:
+            kw.merge(extra_kw)
 
         # Note: excluded_keywords is NOT applied here. It is applied later
         # in highlight_extra_keywords(), after choice metavars have been

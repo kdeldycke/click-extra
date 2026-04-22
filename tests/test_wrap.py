@@ -22,11 +22,9 @@ import pytest
 
 from click_extra.cli import demo
 from click_extra.colorize import ExtraHelpColorsMixin
-from click_extra.commands import ExtraContext
+from click_extra.commands import ColorizedCommand, ColorizedGroup, ExtraContext
 from click_extra.testing import ExtraCliRunner
 from click_extra.wrap import (
-    _PatchedCommand,
-    _PatchedGroup,
     resolve_target,
     run,
     unpatch_click,
@@ -103,27 +101,27 @@ def custom_cls_script(tmp_path):
 @pytest.mark.parametrize(
     "cls, base",
     [
-        (_PatchedCommand, click.Command),
-        (_PatchedGroup, click.Group),
+        (ColorizedCommand, click.Command),
+        (ColorizedGroup, click.Group),
     ],
 )
 def test_patched_class_inherits_click(cls, base):
     assert issubclass(cls, base)
 
 
-@pytest.mark.parametrize("cls", [_PatchedCommand, _PatchedGroup])
+@pytest.mark.parametrize("cls", [ColorizedCommand, ColorizedGroup])
 def test_patched_class_has_mixin(cls):
     assert issubclass(cls, ExtraHelpColorsMixin)
 
 
-@pytest.mark.parametrize("cls", [_PatchedCommand, _PatchedGroup])
+@pytest.mark.parametrize("cls", [ColorizedCommand, ColorizedGroup])
 def test_patched_class_context(cls):
     assert cls.context_class is ExtraContext
 
 
 def test_patched_command_no_extra_params():
     """Patched commands carry no default_extra_params."""
-    cmd = _PatchedCommand(name="test", callback=lambda: None)
+    cmd = ColorizedCommand(name="test", callback=lambda: None)
     option_names = {
         opt
         for p in cmd.params

@@ -524,20 +524,37 @@ def _enhance_short_option_error(
     raise click.NoSuchOption(original_token, possibilities=possibilities, ctx=ctx)
 
 
-class HelpCommand(ExtraHelpColorsMixin, click.Command):  # type: ignore[misc]
+class ColorizedCommand(ExtraHelpColorsMixin, click.Command):  # type: ignore[misc]
+    """Click Command with help colorization but no extra params.
+
+    Mixes in :class:`~click_extra.colorize.ExtraHelpColorsMixin` for keyword
+    highlighting and uses :class:`ExtraContext` for the colorized formatter,
+    without inheriting from ``ExtraCommand`` (which would inject
+    ``default_extra_params``).
+
+    Use this as a base for lightweight subcommands (like ``help``) or for
+    monkey-patching third-party CLIs (via :func:`~click_extra.wrap.patch_click`).
+    """
+
+    context_class: type[cloup.Context] = ExtraContext
+
+
+class ColorizedGroup(ExtraHelpColorsMixin, click.Group):  # type: ignore[misc]
+    """Click Group with help colorization but no extra params.
+
+    Same as :class:`ColorizedCommand` but for groups.
+    """
+
+    context_class: type[cloup.Context] = ExtraContext
+
+
+class HelpCommand(ColorizedCommand):
     """Synthetic subcommand that displays help for the parent group or a subcommand.
 
     Auto-injected into every ``ExtraGroup``. Supports nested resolution:
     ``mycli help subgroup subcmd`` shows the help for ``subcmd`` within
     ``subgroup``.
-
-    Inherits from ``click.Command`` (not ``ExtraCommand``) so it carries none of
-    the extra options (``--config``, ``--version``, etc.).  ``ExtraHelpColorsMixin``
-    is mixed in so the command's own ``--help`` screen is colorized.
-    ``ExtraContext`` is used so colors are preserved even when piped.
     """
-
-    context_class: type[cloup.Context] = ExtraContext
 
     def invoke(self, ctx: click.Context) -> None:
         """Resolve the command path and display its help."""
