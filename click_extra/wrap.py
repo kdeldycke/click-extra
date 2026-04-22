@@ -325,6 +325,59 @@ class _RunCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
     context_class: type[click.Context] = ExtraContext
 
 
+def _config_args_for_target(ctx: click.Context) -> tuple[str, ...]:
+    """Extract config keys not consumed by ``run`` and convert to CLI args.
+
+    Reads the full config from ``ctx.meta["click_extra.conf_full"]`` (stored
+    by :class:`~click_extra.config.ConfigOption`), extracts the ``run``
+    section, and converts keys that don't match ``run``'s own parameters
+    into ``--key value`` CLI arguments for the wrapped target.
+
+    This lets users set defaults for the wrapped CLI in ``pyproject.toml``:
+
+    .. code-block:: toml
+
+        [tool.click-extra.run]
+        app = "myapp:create_app"
+        debug = true
+    """
+    # Walk up to the root context to find the full config.
+    root_ctx = ctx.find_root()
+    full_conf = root_ctx.meta.get("click_extra.conf_full")
+    if not full_conf:
+        return ()
+
+    # Extract the [click-extra.run] section from the raw config.
+    app_name = root_ctx.command.name or ""
+    run_section = full_conf.get(app_name, {}).get("run", {})
+    if not run_section or not isinstance(run_section, dict):
+        return ()
+
+    # Known parameter names for the run subcommand.
+    known_params = {p.name for p in ctx.command.params if p.name}
+
+    extra: list[str] = []
+    for key, value in run_section.items():
+        if key in known_params:
+            continue
+        # Convert underscores to dashes for CLI option names.
+        opt_name = f"--{key.replace('_', '-')}"
+        if isinstance(value, bool):
+            if value:
+                extra.append(opt_name)
+            else:
+                extra.append(f"--no-{key.replace('_', '-')}")
+        elif isinstance(value, list):
+            for item in value:
+                extra.append(opt_name)
+                extra.append(str(item))
+        else:
+            extra.append(opt_name)
+            extra.append(str(value))
+
+    return tuple(extra)
+
+
 @click.command(
     name="run",
     aliases=["wrap"],
@@ -363,6 +416,13 @@ def run(
 
     script = script_and_args[0]
     args = script_and_args[1:]
+
+    # Extract extra config keys from the [run] section that don't match
+    # run's own parameters, and prepend them as CLI arguments for the target.
+    config_args = _config_args_for_target(ctx)
+    if config_args:
+        logger.info("Config args for target CLI: %s.", config_args)
+        args = (*config_args, *args)
 
     module_path, function_name = resolve_target(script)
 

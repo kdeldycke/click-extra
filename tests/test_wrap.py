@@ -312,3 +312,32 @@ def test_config_run_theme(runner, greet_script, create_config):
     )
     assert result.exit_code == 0
     assert "Greet someone." in result.output
+
+
+def test_config_passthrough_string(runner, greet_script, create_config):
+    """A string value in ``[tool.click-extra.run]`` is forwarded as --key val."""
+    conf = create_config(
+        "pyproject.toml",
+        '[tool.click-extra.run]\nname = "Alice"\n',
+    )
+    result = runner.invoke(
+        demo,
+        ["--config", str(conf), "run", greet_script],
+    )
+    assert result.exit_code == 0
+    assert "Hello, Alice" in result.output
+
+
+def test_config_passthrough_cli_overrides(runner, greet_script, create_config):
+    """Explicit CLI args override config passthrough values."""
+    conf = create_config(
+        "pyproject.toml",
+        '[tool.click-extra.run]\nname = "Alice"\n',
+    )
+    result = runner.invoke(
+        demo,
+        ["--config", str(conf), "run", greet_script, "--name", "Bob"],
+    )
+    assert result.exit_code == 0
+    # CLI --name Bob should win over config name = "Alice".
+    assert "Hello, Bob" in result.output

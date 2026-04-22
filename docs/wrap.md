@@ -66,7 +66,7 @@ $ click-extra run --theme light flask --help
 
 ## Configuration
 
-Click Extra's [configuration file](config.md) support works alongside the wrapper. Group-level options like `verbosity` and `table-format` can be set in `pyproject.toml`:
+Click Extra's [configuration file](config.md) support works alongside the wrapper. Group-level options like `verbosity` can be set in `pyproject.toml`:
 
 ```toml
 [tool.click-extra]
@@ -79,15 +79,25 @@ debug: Set <Logger click_extra (DEBUG)> to DEBUG.
 ...
 ```
 
-The `[tool.click-extra.run]` section configures the `run` subcommand itself:
+### Defaults for the wrapped CLI
+
+Extra keys in the `[tool.click-extra.run]` section that don't match `run`'s own parameters are forwarded as CLI arguments to the wrapped target. This lets you set persistent defaults for any Click CLI:
 
 ```toml
 [tool.click-extra.run]
 theme = "light"
+app = "myapp:create_app"
+debug = true
 ```
 
-```{note}
-The configuration applies to click-extra's own options (color, verbosity, theme, etc.), not to the wrapped CLI's options. To set defaults for the wrapped CLI, pass its options on the command line.
+`theme` is consumed by `run` itself. `app` and `debug` are converted to `--app myapp:create_app --debug` and prepended to the target's arguments. Explicit CLI arguments always override config values:
+
+```shell-session
+$ click-extra flask routes
+# Equivalent to: flask --app myapp:create_app --debug routes
+
+$ click-extra flask --app otherapp routes
+# CLI --app wins over config
 ```
 
 ## Script resolution

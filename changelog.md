@@ -5,7 +5,7 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
-- Add `run` subcommand: `click-extra run SCRIPT [ARGS]...` applies help colorization to any installed Click CLI without modifying its source. Supports `--theme` option. Resolves targets via console_scripts entry points, `module:function` notation, `.py` file paths, or bare module names. Unknown subcommand names automatically fall through to `run`, so `click-extra flask --help` works without typing `run` explicitly.
+- Add `run` subcommand: `click-extra run SCRIPT [ARGS]...` applies help colorization to any installed Click CLI without modifying its source. Supports `--theme` option. Resolves targets via console_scripts entry points, `module:function` notation, `.py` file paths, or bare module names. Unknown subcommand names automatically fall through to `run`, so `click-extra flask --help` works without typing `run` explicitly. Extra keys in the `[tool.click-extra.run]` config section are forwarded as CLI arguments to the wrapped target, allowing persistent defaults for any Click CLI.
 - Replace `render-matrix` subcommand with individual `colors`, `styles`, `palette`, `8color`, and `gradient` subcommands, grouped under a "Demo" section.
 - Remove `click-extra-demo` entry point. All functionality is accessible via `click-extra` subcommands.
 - Bump Click requirement to `8.3.3`. Simplify `ParameterSource` comparisons in `ConfigOption` using the new `IntEnum` ordering.
