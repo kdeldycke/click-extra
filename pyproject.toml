@@ -185,7 +185,7 @@ yaml = [
 
 [project.scripts]
 click-extra = "click_extra.__main__:main"
-click-extra-demo = "click_extra.__main__:main_demo"
+click-extra-demo = "click_extra.__main__:main"
 
 [project.urls]
 "Homepage" = "https://github.com/kdeldycke/click-extra"

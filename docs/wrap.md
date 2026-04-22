@@ -1,19 +1,25 @@
 # {octicon}`terminal` CLI wrapper
 
-Click Extra ships a `click-extra` command that applies its help colorization to any installed Click CLI, without modifying the target's source code. This is useful for previewing how a third-party CLI would look with Click Extra's keyword highlighting and themed styling.
+Click Extra's `run` subcommand applies its help colorization to any installed Click CLI, without modifying the target's source code. This is useful for previewing how a third-party CLI would look with Click Extra's keyword highlighting and themed styling.
 
 ## Usage
 
+The `run` subcommand is the default when no known subcommand is given, so both forms work:
+
+```shell-session
+$ click-extra run flask --help
+$ click-extra flask --help
+```
+
 ```{click:source}
 :hide-source:
-from click_extra.wrap import wrapper
+from click_extra.wrap import run
 ```
 
 ```{click:run}
-result = invoke(wrapper, args=["--help"])
+result = invoke(run, args=["--help"])
 assert result.exit_code == 0
 assert "Apply Click Extra help colorization" in result.stdout
-assert "--color" in result.stdout
 assert "--theme" in result.stdout
 ```
 
@@ -36,11 +42,18 @@ $ click-extra --no-color -- flask --help
 
 ## Options
 
-`--color` / `--no-color` (`--ansi` / `--no-ansi`)
-: Enable or disable ANSI colors in the wrapped CLI output.
+The group-level `--color` / `--no-color` (`--ansi` / `--no-ansi`) flag controls whether ANSI codes are emitted. It also respects environment variables like `NO_COLOR`, `CLICOLOR`, and `FORCE_COLOR`:
 
-`--theme` `dark` | `light`
-: Color theme preset for help screen styling.
+```shell-session
+$ click-extra --no-color flask --help
+$ NO_COLOR=1 click-extra flask --help
+```
+
+The `--theme` option on `run` selects a color preset:
+
+```shell-session
+$ click-extra run --theme light flask --help
+```
 
 ## Script resolution
 

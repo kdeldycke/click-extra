@@ -34,6 +34,7 @@ from . import (
     style,
 )
 from .colorize import _nearest_256
+from .wrap import WrapperGroup, run as run_cmd
 from .table import print_table
 from .version import (
     GIT_FIELDS,
@@ -76,9 +77,16 @@ _module_option = option(
 )
 
 
-@group(name="click-extra", version_fields={"prog_name": "Click Extra"})
+@group(
+    name="click-extra",
+    cls=WrapperGroup,
+    version_fields={"prog_name": "Click Extra"},
+)
 def demo():
     """Click Extra CLI."""
+
+
+demo.add_command(run_cmd)
 
 
 _ALL_STYLES = (

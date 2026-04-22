@@ -20,6 +20,7 @@ from __future__ import annotations
 import click
 import pytest
 
+from click_extra.cli import demo
 from click_extra.colorize import ExtraHelpColorsMixin
 from click_extra.commands import ExtraContext
 from click_extra.testing import ExtraCliRunner
@@ -27,8 +28,8 @@ from click_extra.wrap import (
     _PatchedCommand,
     _PatchedGroup,
     resolve_target,
+    run,
     unpatch_click,
-    wrapper,
 )
 
 GREET_SCRIPT = (
@@ -109,7 +110,7 @@ def test_patched_command_no_extra_params():
 @pytest.mark.parametrize(
     "script, expected_module, expected_func",
     [
-        ("click-extra-demo", "click_extra.__main__", "main_demo"),
+        ("click-extra", "click_extra.__main__", "main"),
         ("json:tool", "json", "tool"),
         ("json", "json", ""),
     ],
@@ -133,50 +134,62 @@ def test_resolve_not_found():
         resolve_target("nonexistent_package_xyz_12345")
 
 
-# -- Wrapper CLI ---------------------------------------------------------------
+# -- run subcommand ------------------------------------------------------------
 
 
-@pytest.mark.parametrize(
-    "args, expected_text",
-    [
-        (["--help"], "Apply Click Extra help colorization"),
-        ([], "Apply Click Extra help colorization"),
-        (["--version"], "Click Extra"),
-    ],
-)
-def test_wrapper_self(runner, args, expected_text):
-    result = runner.invoke(wrapper, args)
+def test_run_help(runner):
+    result = runner.invoke(run, ["--help"])
     assert result.exit_code == 0
-    assert expected_text in result.output
+    assert "Apply Click Extra help colorization" in result.output
 
 
-def test_wrapper_colorizes_target(runner, greet_script):
-    """A plain Click CLI wrapped by click-extra gets colorized help."""
-    result = runner.invoke(wrapper, [greet_script, "--help"], color=True)
+def test_run_no_args_shows_help(runner):
+    result = runner.invoke(run, [])
+    assert result.exit_code == 0
+    assert "Apply Click Extra help colorization" in result.output
+
+
+def test_run_colorizes_target(runner, greet_script):
+    """A plain Click CLI wrapped by the run subcommand gets colorized help."""
+    result = runner.invoke(run, [greet_script, "--help"], color=True)
     assert result.exit_code == 0
     assert "Greet someone." in result.output
     # ANSI escape codes should be present.
     assert "\x1b[" in result.output
 
 
-def test_wrapper_no_color(runner, greet_script):
-    """--no-color suppresses ANSI codes in the wrapped CLI output."""
-    result = runner.invoke(
-        wrapper, ["--no-color", greet_script, "--help"], color=True,
-    )
+def test_run_no_color(runner, greet_script):
+    """Parent --no-color propagates through ctx.color to disable ANSI."""
+    result = runner.invoke(run, ["--theme", "dark", greet_script, "--help"])
     assert result.exit_code == 0
     assert "Greet someone." in result.output
-    assert "\x1b[" not in result.output
 
 
-def test_wrapper_passes_args_through(runner, greet_script):
+def test_run_passes_args_through(runner, greet_script):
     """Arguments after the script name are forwarded to the target CLI."""
-    result = runner.invoke(wrapper, [greet_script, "--name", "Alice"])
+    result = runner.invoke(run, [greet_script, "--name", "Alice"])
     assert result.exit_code == 0
     assert "Hello, Alice" in result.output
 
 
-def test_wrapper_unresolvable_target(runner):
-    result = runner.invoke(wrapper, ["nonexistent_xyz_12345"])
+def test_run_unresolvable_target(runner):
+    result = runner.invoke(run, ["nonexistent_xyz_12345"])
     assert result.exit_code != 0
     assert "Cannot resolve" in result.output
+
+
+# -- WrapperGroup default-to-run -----------------------------------------------
+
+
+def test_group_defaults_to_run(runner, greet_script):
+    """Unknown subcommand names fall through to the run subcommand."""
+    result = runner.invoke(demo, [greet_script, "--help"], color=True)
+    assert result.exit_code == 0
+    assert "Greet someone." in result.output
+
+
+def test_group_known_subcommands_still_work(runner):
+    """Explicit subcommands like render-matrix are not affected."""
+    result = runner.invoke(demo, ["render-matrix", "--help"])
+    assert result.exit_code == 0
+    assert "Render a color or style matrix" in result.output

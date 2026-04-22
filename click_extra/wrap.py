@@ -15,9 +15,9 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Wrap any Click CLI with Click Extra's help colorization.
 
-Monkey-patches Click's core classes before importing the target module so
-``@click.command()`` and ``@click.group()`` decorators produce colorized
-variants with keyword highlighting and themed styling.
+Monkey-patches Click's decorator functions before importing the target module
+so ``@click.command()`` and ``@click.group()`` produce colorized variants with
+keyword highlighting and themed styling.
 """
 
 from __future__ import annotations
@@ -30,10 +30,11 @@ from importlib import metadata
 from pathlib import Path
 
 import click
+from click.utils import make_str
 
 from . import colorize
-from .colorize import ColorOption, ExtraHelpColorsMixin, HelpExtraTheme
-from .commands import ExtraContext
+from .colorize import ExtraHelpColorsMixin, HelpExtraTheme
+from .commands import ExtraContext, ExtraGroup
 
 
 # Save pristine references before any patching occurs.
@@ -58,6 +59,30 @@ class _PatchedGroup(ExtraHelpColorsMixin, click.Group):  # type: ignore[misc]
     """Click Group with help colorization but no extra params."""
 
     context_class: type[click.Context] = ExtraContext
+
+
+class WrapperGroup(ExtraGroup):
+    """ExtraGroup that falls back to the ``run`` subcommand for unknown names.
+
+    Known subcommands (``help``, ``prebake``, ``render-matrix``) are dispatched
+    normally. Anything else is treated as a target script and forwarded to
+    ``run``.
+    """
+
+    def resolve_command(
+        self,
+        ctx: click.Context,
+        args: list[str],
+    ) -> tuple[str | None, click.Command | None, list[str]]:
+        cmd_name = make_str(args[0])
+        cmd = self.get_command(ctx, cmd_name)
+        if cmd is not None:
+            return cmd_name, cmd, args[1:]
+        # Unknown name: delegate the entire arg list to ``run``.
+        run_cmd = self.get_command(ctx, "run")
+        if run_cmd is not None:
+            return "run", run_cmd, args
+        return super().resolve_command(ctx, args)
 
 
 def patch_click(
@@ -239,9 +264,8 @@ def invoke_target(
 
 
 @click.command(
-    name="click-extra",
+    name="run",
     cls=_PatchedCommand,
-    params=[ColorOption()],
     context_settings={"allow_interspersed_args": False},
 )
 @click.argument(
@@ -256,12 +280,8 @@ def invoke_target(
     default="dark",
     help="Color theme preset.",
 )
-@click.version_option(
-    package_name="click-extra",
-    prog_name="Click Extra",
-)
 @click.pass_context
-def wrapper(
+def run(
     ctx: click.Context,
     script_and_args: tuple[str, ...],
     theme: str,
@@ -286,7 +306,8 @@ def wrapper(
     help_theme = (
         HelpExtraTheme.light() if theme == "light" else HelpExtraTheme.dark()
     )
-    # ColorOption's callback already set ctx.color from --color/--no-color
-    # flags and environment variables (NO_COLOR, CLICOLOR, etc.).
+    # Color setting is inherited from the parent group's context, where
+    # ColorOption already processed --color/--no-color flags and environment
+    # variables (NO_COLOR, CLICOLOR, etc.).
     patch_click(theme=help_theme, color=ctx.color)
     invoke_target(script, module_path, function_name, args)
