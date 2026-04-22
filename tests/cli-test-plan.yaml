@@ -1,22 +1,53 @@
-# This test plan checks some high-level behavior of the click-extra CLI.
+# This test plan checks some high-level behavior of the click-extra CLIs.
 #
-# The prog_name shown in version output is "Click Extra" (set via version_fields
-# in cli.py). The usage line shows "click-extra" (set via name= in the @group decorator).
-# The version regex allows stable (1.2.3), dev (1.2.3.dev0), and prebaked
+# click-extra is the wrapper CLI that applies help colorization to any Click CLI.
+# click-extra-demo is the developer utility CLI with render-matrix and prebake.
+#
+# Version regex allows stable (1.2.3), dev (1.2.3.dev0), and prebaked
 # (1.2.3.dev0+abc1234) versions.
 
 
-# Check the CLI reports its version on stdout.
-- cli_parameters: --version
+# -- click-extra wrapper CLI ---------------------------------------------------
+
+
+# Check the wrapper CLI reports its version on stdout.
+- cli: click-extra
+  cli_parameters: --version
   exit_code: 0
-  stdout_contains: "Click Extra\x1b[0m, version \x1b[32m"
-  stdout_regex_fullmatch: "\x1b\\[97mClick Extra\x1b\\[0m, version \
-    \x1b\\[32m[0-9]+\\.[0-9]+\\.[0-9]+(\\.[a-z]+[0-9]+\
-    (\\+[0-9a-f]+)?)?\x1b\\[0m\n"
+  stdout_contains: "Click Extra"
+  stdout_regex_fullmatch: "Click Extra, version \
+    [0-9]+\\.[0-9]+\\.[0-9]+(\\.[a-z]+[0-9]+\
+    (\\+[0-9a-f]+)?)?\n"
+
+
+# Test wrapper help output.
+- cli: click-extra
+  cli_parameters:
+    - --help
+  exit_code: 0
+  strip_ansi: true
+  stdout_contains:
+    - "Usage: click-extra [OPTIONS] SCRIPT [ARGS]..."
+    - "Apply Click Extra help colorization to any Click CLI."
+    - "--color"
+    - "--theme"
+    - "Show the version and exit."
+    - "Show this message and exit."
+
+
+# -- click-extra-demo developer CLI --------------------------------------------
+
+
+# Check the demo CLI reports its version on stdout.
+- cli: click-extra-demo
+  cli_parameters: --version
+  exit_code: 0
+  stdout_contains: "Click Extra"
 
 
 # Test combination of version and verbosity.
-- cli_parameters:
+- cli: click-extra-demo
+  cli_parameters:
     - --verbosity
     - DEBUG
     - --version
@@ -26,10 +57,11 @@
     - "Set <RootLogger root (DEBUG)> to DEBUG."
 
 
-# Test help output. Use platform-independent assertions: only check parts of the
-# help text that are the same across all OSes (the config default path varies,
-# and column alignment depends on terminal width).
-- cli_parameters:
+# Test demo help output. Use platform-independent assertions: only check parts
+# of the help text that are the same across all OSes (the config default path
+# varies, and column alignment depends on terminal width).
+- cli: click-extra-demo
+  cli_parameters:
     - --help
   exit_code: 0
   strip_ansi: true
