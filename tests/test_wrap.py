@@ -266,3 +266,49 @@ def test_group_known_subcommands_still_work(runner):
     result = runner.invoke(demo, ["gradient", "--help"])
     assert result.exit_code == 0
     assert "Render 24-bit RGB gradients" in result.output
+
+
+# -- Config integration --------------------------------------------------------
+
+
+@pytest.fixture
+def create_config(tmp_path):
+    """Produce a temporary configuration file."""
+
+    def _create_config(filename, content):
+        config_path = tmp_path / filename
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        config_path.write_text(content, encoding="utf-8")
+        return config_path
+
+    return _create_config
+
+
+def test_config_verbosity(runner, greet_script, create_config):
+    """``verbosity = "DEBUG"`` in pyproject.toml activates debug logging."""
+    conf = create_config(
+        "pyproject.toml",
+        '[tool.click-extra]\nverbosity = "DEBUG"\n',
+    )
+    result = runner.invoke(
+        demo,
+        ["--config", str(conf), "run", greet_script, "--help"],
+    )
+    assert result.exit_code == 0
+    assert "Greet someone." in result.output
+    assert "DEBUG" in (result.output + (result.stderr or ""))
+
+
+def test_config_run_theme(runner, greet_script, create_config):
+    """A ``[tool.click-extra.run]`` section sets the run subcommand theme."""
+    conf = create_config(
+        "pyproject.toml",
+        '[tool.click-extra.run]\ntheme = "light"\n',
+    )
+    result = runner.invoke(
+        demo,
+        ["--config", str(conf), "run", greet_script, "--help"],
+        color=True,
+    )
+    assert result.exit_code == 0
+    assert "Greet someone." in result.output

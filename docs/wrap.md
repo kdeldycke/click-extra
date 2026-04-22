@@ -40,9 +40,18 @@ A `--` separator is optional but supported:
 $ click-extra --no-color -- flask --help
 ```
 
-## Options
+## Execution timing
 
-The group-level `--color` / `--no-color` (`--ansi` / `--no-ansi`) flag controls whether ANSI codes are emitted. It also respects environment variables like `NO_COLOR`, `CLICOLOR`, and `FORCE_COLOR`:
+The group-level `--time` flag measures the total execution time of the wrapped CLI, including import and patching overhead:
+
+```shell-session
+$ click-extra --time flask routes
+Execution time: 0.342 seconds.
+```
+
+## Color control
+
+`--color` / `--no-color` (`--ansi` / `--no-ansi`) controls whether ANSI codes are emitted. The flag also respects environment variables like `NO_COLOR`, `CLICOLOR`, and `FORCE_COLOR`:
 
 ```shell-session
 $ click-extra --no-color flask --help
@@ -53,6 +62,32 @@ The `--theme` option on `run` selects a color preset:
 
 ```shell-session
 $ click-extra run --theme light flask --help
+```
+
+## Configuration
+
+Click Extra's [configuration file](config.md) support works alongside the wrapper. Group-level options like `verbosity` and `table-format` can be set in `pyproject.toml`:
+
+```toml
+[tool.click-extra]
+verbosity = "DEBUG"
+```
+
+```shell-session
+$ click-extra flask --help
+debug: Set <Logger click_extra (DEBUG)> to DEBUG.
+...
+```
+
+The `[tool.click-extra.run]` section configures the `run` subcommand itself:
+
+```toml
+[tool.click-extra.run]
+theme = "light"
+```
+
+```{note}
+The configuration applies to click-extra's own options (color, verbosity, theme, etc.), not to the wrapped CLI's options. To set defaults for the wrapped CLI, pass its options on the command line.
 ```
 
 ## Script resolution
