@@ -1723,27 +1723,17 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         if path_pattern is NO_CONFIG:
             logger.debug(f"{NO_CONFIG} received.")
-            # TODO: simplify to ``source < ParameterSource.DEFAULT_MAP`` once
-            # https://github.com/pallets/click/pull/3248 is merged.
             source = ctx.get_parameter_source(self.name)
-            explicit = source is not None and source in (
-                ParameterSource.COMMANDLINE,
-                ParameterSource.ENVIRONMENT,
-                ParameterSource.PROMPT,
-            )
+            explicit = source is not None and source < ParameterSource.DEFAULT_MAP
             if explicit:
                 info_msg("Skip configuration file loading altogether.")
             else:
                 logger.debug("Configuration file autodiscovery disabled by default.")
             return
 
-        # TODO: simplify to ``source < ParameterSource.DEFAULT_MAP`` once
-        # https://github.com/pallets/click/pull/3248 is merged.
         conf_source = ctx.get_parameter_source(self.name)
-        explicit_conf = conf_source is not None and conf_source in (
-            ParameterSource.COMMANDLINE,
-            ParameterSource.ENVIRONMENT,
-            ParameterSource.PROMPT,
+        explicit_conf = (
+            conf_source is not None and conf_source < ParameterSource.DEFAULT_MAP
         )
 
         # Print configuration location to the user if it was explicitly set.

@@ -85,8 +85,8 @@ classifiers = [
 dependencies = [
   # boltons 20.0.0 added shrinkuser(); our config.py uses it for path display.
   "boltons>=20",
-  # Click 8.3.1 fix an issue with parameters sharing same name.
-  "click>=8.3.1",
+  # Click 8.3.3 makes ParameterSource an IntEnum with ordered members.
+  "click>=8.3.3",
   # Cloup 3.0.7 fix issues with metavars: https://github.com/kdeldycke/click-extra/pull/1281
   "cloup>=3.0.7",
   # always_merger (recursive dict merge) available since deepmerge 1.0.1.
@@ -264,6 +264,7 @@ dependency-groups.docs = { requires-python = ">= 3.14" }
 # Relative dates are fine here because the Renovate lock-maintenance job
 # (sync-uv-lock) reverts uv.lock when the only diff is timestamp noise.
 exclude-newer = "1 week"
+exclude-newer-package.click = false
 # Package is at root level, not in "./src/".
 build-backend.module-root = ""
 

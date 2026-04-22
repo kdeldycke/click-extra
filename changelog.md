@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Bump Click requirement to `8.3.3`. Simplify `ParameterSource` comparisons in `ConfigOption` using the new `IntEnum` ordering.
+
 ## [`7.13.0` (2026-04-16)](https://github.com/kdeldycke/click-extra/compare/v7.12.0...v7.13.0)
 
 - Add MkDocs plugin for ANSI color rendering in code blocks. Install with `pip install click-extra[mkdocs]`, then add `click-extra` to your `mkdocs.yml` plugins list. Patches `pymdownx.highlight` formatters to use `AnsiHtmlFormatter`.
