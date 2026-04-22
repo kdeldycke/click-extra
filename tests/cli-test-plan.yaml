@@ -6,6 +6,9 @@
 # (1.2.3.dev0+abc1234) versions.
 
 
+# -- Group-level ---------------------------------------------------------------
+
+
 # Check the CLI reports its version on stdout.
 - cli_parameters: --version
   exit_code: 0
@@ -26,9 +29,7 @@
     - "Set <RootLogger root (DEBUG)> to DEBUG."
 
 
-# Test help output. Use platform-independent assertions: only check parts of the
-# help text that are the same across all OSes (the config default path varies,
-# and column alignment depends on terminal width).
+# Test help output. Check that all subcommands and sections are listed.
 - cli_parameters:
     - --help
   exit_code: 0
@@ -37,10 +38,33 @@
     - "Usage: click-extra [OPTIONS] COMMAND [ARGS]..."
     - "Show the version and exit."
     - "Show this message and exit."
+    - "Demo:"
+    - "8color"
+    - "colors"
+    - "gradient"
+    - "palette"
+    - "styles"
+    - "help"
+    - "prebake"
     - "run"
 
 
-# Test the run subcommand help.
+# -- help subcommand ----------------------------------------------------------
+
+
+- cli_parameters:
+    - help
+    - --help
+  exit_code: 0
+  strip_ansi: true
+  stdout_contains:
+    - "Usage: click-extra help"
+    - "Show help for a command."
+
+
+# -- run subcommand -----------------------------------------------------------
+
+
 - cli_parameters:
     - run
     - --help
@@ -50,3 +74,94 @@
     - "Usage: click-extra run [OPTIONS] SCRIPT [ARGS]..."
     - "Apply Click Extra help colorization to any Click CLI."
     - "--theme"
+
+
+# -- prebake subcommand -------------------------------------------------------
+
+
+- cli_parameters:
+    - prebake
+    - --help
+  exit_code: 0
+  strip_ansi: true
+  stdout_contains:
+    - "Usage: click-extra prebake"
+    - "Pre-bake build-time metadata"
+
+
+- cli_parameters:
+    - prebake
+    - version
+    - --help
+  exit_code: 0
+  strip_ansi: true
+  stdout_contains:
+    - "Inject Git commit hash"
+
+
+- cli_parameters:
+    - prebake
+    - field
+    - --help
+  exit_code: 0
+  strip_ansi: true
+  stdout_contains:
+    - "Replace an empty dunder variable"
+
+
+- cli_parameters:
+    - prebake
+    - all
+    - --help
+  exit_code: 0
+  strip_ansi: true
+  stdout_contains:
+    - "Pre-bake __version__ and all git fields"
+
+
+# -- demo subcommands ---------------------------------------------------------
+
+
+- cli_parameters:
+    - colors
+    - --help
+  exit_code: 0
+  strip_ansi: true
+  stdout_contains:
+    - "Render every foreground color against every background color."
+
+
+- cli_parameters:
+    - styles
+    - --help
+  exit_code: 0
+  strip_ansi: true
+  stdout_contains:
+    - "Render every color with each text style"
+
+
+- cli_parameters:
+    - palette
+    - --help
+  exit_code: 0
+  strip_ansi: true
+  stdout_contains:
+    - "Render a compact 256-color indexed swatch."
+
+
+- cli_parameters:
+    - 8color
+    - --help
+  exit_code: 0
+  strip_ansi: true
+  stdout_contains:
+    - "Render all standard 8-color"
+
+
+- cli_parameters:
+    - gradient
+    - --help
+  exit_code: 0
+  strip_ansi: true
+  stdout_contains:
+    - "Render 24-bit RGB gradients"

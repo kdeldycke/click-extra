@@ -189,7 +189,7 @@ def test_group_defaults_to_run(runner, greet_script):
 
 
 def test_group_known_subcommands_still_work(runner):
-    """Explicit subcommands like render-matrix are not affected."""
-    result = runner.invoke(demo, ["render-matrix", "--help"])
+    """Explicit subcommands like gradient are not affected."""
+    result = runner.invoke(demo, ["gradient", "--help"])
     assert result.exit_code == 0
-    assert "Render a color or style matrix" in result.output
+    assert "Render 24-bit RGB gradients" in result.output

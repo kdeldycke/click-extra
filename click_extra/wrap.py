@@ -30,6 +30,7 @@ from importlib import metadata
 from pathlib import Path
 
 import click
+import cloup
 from click.utils import make_str
 
 from . import colorize
@@ -64,9 +65,8 @@ class _PatchedGroup(ExtraHelpColorsMixin, click.Group):  # type: ignore[misc]
 class WrapperGroup(ExtraGroup):
     """ExtraGroup that falls back to the ``run`` subcommand for unknown names.
 
-    Known subcommands (``help``, ``prebake``, ``render-matrix``) are dispatched
-    normally. Anything else is treated as a target script and forwarded to
-    ``run``.
+    Known subcommands and their aliases are dispatched normally. Anything
+    else is treated as a target script and forwarded to ``run``.
     """
 
     def resolve_command(
@@ -75,7 +75,8 @@ class WrapperGroup(ExtraGroup):
         args: list[str],
     ) -> tuple[str | None, click.Command | None, list[str]]:
         cmd_name = make_str(args[0])
-        cmd = self.get_command(ctx, cmd_name)
+        # Check both direct names and Cloup aliases.
+        cmd = self.resolve_command_name(ctx, cmd_name)
         if cmd is not None:
             return cmd_name, cmd, args[1:]
         # Unknown name: delegate the entire arg list to ``run``.
@@ -83,6 +84,22 @@ class WrapperGroup(ExtraGroup):
         if run_cmd is not None:
             return "run", run_cmd, args
         return super().resolve_command(ctx, args)
+
+    def resolve_command_name(
+        self,
+        ctx: click.Context,
+        cmd_name: str,
+    ) -> click.Command | None:
+        """Resolve a command name, checking aliases too."""
+        cmd = self.get_command(ctx, cmd_name)
+        if cmd is not None:
+            return cmd
+        # Check if it's an alias of any registered command.
+        for name in self.list_commands(ctx):
+            subcmd = self.get_command(ctx, name)
+            if subcmd and cmd_name in getattr(subcmd, "aliases", ()):
+                return subcmd
+        return None
 
 
 def patch_click(
@@ -263,9 +280,21 @@ def invoke_target(
         sys.argv = original_argv
 
 
+class _RunCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
+    """Cloup Command for the ``run`` subcommand.
+
+    Uses Cloup (not vanilla Click) to support aliases. Like
+    ``_PatchedCommand``, mixes in ``ExtraHelpColorsMixin`` for colorized help
+    without ``default_extra_params``.
+    """
+
+    context_class: type[click.Context] = ExtraContext
+
+
 @click.command(
     name="run",
-    cls=_PatchedCommand,
+    aliases=["wrap"],
+    cls=_RunCommand,
     context_settings={"allow_interspersed_args": False},
 )
 @click.argument(

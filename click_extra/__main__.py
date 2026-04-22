@@ -29,7 +29,7 @@ def main():
     """Indirection required to reconcile all invocation methods:
 
     - ``python -m click_extra``
-    - entry point scripts: ``click-extra``, ``click-extra-demo``
+    - entry point script: ``click-extra``
     - Nuitka: ``python -m nuitka (...) click_extra/__main__.py``
 
     See `poetry#5981 <https://github.com/python-poetry/poetry/issues/5981>`_.

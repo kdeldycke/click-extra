@@ -21,6 +21,7 @@ import colorsys
 from pathlib import Path
 
 import click
+import cloup
 
 from . import (
     Choice,
@@ -34,7 +35,6 @@ from . import (
     style,
 )
 from .colorize import _nearest_256
-from .wrap import WrapperGroup, run as run_cmd
 from .table import print_table
 from .version import (
     GIT_FIELDS,
@@ -44,6 +44,7 @@ from .version import (
     prebake_version,
     run_git,
 )
+from .wrap import WrapperGroup, run as run_cmd
 
 
 def _resolve_paths(module: Path | None) -> list[Path]:
@@ -75,6 +76,13 @@ _module_option = option(
     help="Path to __init__.py to modify. "
     "Auto-discovered from [project.scripts] if not provided.",
 )
+
+
+_demo_section = cloup.Section(
+    "Demo",
+    is_sorted=True,
+)
+"""Section grouping terminal capability demo subcommands."""
 
 
 @group(
@@ -215,65 +223,65 @@ def _render_gradient() -> str:
     return "\n".join(lines)
 
 
-_MATRIX_CHOICES = ("colors", "styles", "palette", "8color", "gradient")
-"""Valid choices for the ``render-matrix`` argument."""
+def _find_print_table(ctx: click.Context):
+    """Walk up the context chain to find the table printer.
 
-
-@demo.command(name="render-matrix")
-@argument("matrix", type=Choice(_MATRIX_CHOICES))
-@pass_context
-def render_matrix(ctx: click.Context, matrix: str) -> None:
-    """Render a color or style matrix for terminal capability testing.
-
-    MATRIX is one of: colors, styles, palette, 8color, gradient.
-
-    colors: every foreground color against every background color.
-    styles: every color with each text style (bold, dim, italic, etc.).
-    palette: compact 256-color indexed swatch.
-    8color: all standard foreground/background combinations.
-    gradient: 24-bit RGB gradients vs. their 256-color quantized equivalents.
+    Falls back to the bare ``print_table`` for standalone invocation (like in
+    docs).
     """
-    # Compact renderings that bypass the table formatter.
-    if matrix == "palette":
-        echo(_render_palette())
-        return
-    if matrix == "8color":
-        echo(_render_8color_table())
-        return
-    if matrix == "gradient":
-        echo(_render_gradient())
-        return
-
-    table: list[list[str]] = []
-
-    if matrix == "colors":
-        styled_headers = [style(c, bg=c) for c in _ALL_COLORS]
-        headers = ["Foreground \u21b4 \\ Background \u2192"] + styled_headers
-        for fg in _ALL_COLORS:
-            row = [style(fg, fg=fg)]
-            row.extend(style(fg, fg=fg, bg=bg) for bg in _ALL_COLORS)
-            table.append(row)
-
-    elif matrix == "styles":
-        styled_headers = [style(s, **{s: True}) for s in _ALL_STYLES]
-        headers = ["Color \u21b4 \\ Style \u2192"] + styled_headers
-        for color_name in _ALL_COLORS:
-            row = [style(color_name, fg=color_name)]
-            for prop in _ALL_STYLES:
-                row.append(style(color_name, fg=color_name, **{prop: True}))
-            table.append(row)
-
-    # Walk up the context chain to find ctx.print_table (set by
-    # --table-format on the parent group). Fall back to the bare
-    # print_table for standalone invocation (e.g. in docs).
-    print_func = print_table
     ancestor: click.Context | None = ctx
     while ancestor:
         if hasattr(ancestor, "print_table"):
-            print_func = ancestor.print_table
-            break
+            return ancestor.print_table
         ancestor = ancestor.parent
-    print_func(table, headers=headers)
+    return print_table
+
+
+@demo.command(name="colors", section=_demo_section)
+@pass_context
+def demo_colors(ctx: click.Context) -> None:
+    """Render every foreground color against every background color."""
+    styled_headers = [style(c, bg=c) for c in _ALL_COLORS]
+    headers = ["Foreground \u21b4 \\ Background \u2192"] + styled_headers
+    table: list[list[str]] = []
+    for fg in _ALL_COLORS:
+        row = [style(fg, fg=fg)]
+        row.extend(style(fg, fg=fg, bg=bg) for bg in _ALL_COLORS)
+        table.append(row)
+    _find_print_table(ctx)(table, headers=headers)
+
+
+@demo.command(name="styles", section=_demo_section)
+@pass_context
+def demo_styles(ctx: click.Context) -> None:
+    """Render every color with each text style (bold, dim, italic, etc.)."""
+    styled_headers = [style(s, **{s: True}) for s in _ALL_STYLES]
+    headers = ["Color \u21b4 \\ Style \u2192"] + styled_headers
+    table: list[list[str]] = []
+    for color_name in _ALL_COLORS:
+        row = [style(color_name, fg=color_name)]
+        for prop in _ALL_STYLES:
+            row.append(style(color_name, fg=color_name, **{prop: True}))
+        table.append(row)
+    _find_print_table(ctx)(table, headers=headers)
+
+
+@demo.command(name="palette", section=_demo_section)
+def demo_palette() -> None:
+    """Render a compact 256-color indexed swatch."""
+    echo(_render_palette())
+
+
+@demo.command(name="8color", section=_demo_section)
+def demo_8color() -> None:
+    """Render all standard 8-color foreground/background combinations."""
+    echo(_render_8color_table())
+
+
+@demo.command(name="gradient", section=_demo_section)
+def demo_gradient() -> None:
+    """Render 24-bit RGB gradients vs. their 256-color quantized equivalents."""
+    echo(_render_gradient())
 
 
 @demo.group()
