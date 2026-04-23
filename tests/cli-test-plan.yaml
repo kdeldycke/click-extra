@@ -116,7 +116,7 @@
   exit_code: 0
   strip_ansi: true
   stdout_contains:
-    - "Pre-bake __version__ and all git fields"
+    - "Pre-bake ``__version__`` and all git fields"
 
 
 # -- demo subcommands ---------------------------------------------------------
