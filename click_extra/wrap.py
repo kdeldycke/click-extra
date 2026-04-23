@@ -136,10 +136,10 @@ def patch_click(
 
     # Replace decorator functions in both namespaces so both ``click.command``
     # and ``from click.decorators import command`` resolve to the wrappers.
-    click.command = _patched_command_func  # type: ignore[assignment]
-    click.group = _patched_group_func  # type: ignore[assignment]
-    click.decorators.command = _patched_command_func  # type: ignore[assignment]
-    click.decorators.group = _patched_group_func  # type: ignore[assignment]
+    click.command = _patched_command_func
+    click.group = _patched_group_func
+    click.decorators.command = _patched_command_func
+    click.decorators.group = _patched_group_func
     logger.debug("Patched click.command and click.group decorators.")
 
     # Patch Command methods to colorize ALL commands, including those with
@@ -174,8 +174,8 @@ def patch_click(
             )
         _original_format_help(self, ctx, formatter)
 
-    click.Command.get_help = _patched_get_help  # type: ignore[method-assign]
-    click.Command.format_help = _patched_format_help  # type: ignore[method-assign]
+    click.Command.get_help = _patched_get_help
+    click.Command.format_help = _patched_format_help
     logger.debug("Patched click.Command.get_help and format_help methods.")
 
     # Override the default theme if requested.
@@ -195,13 +195,12 @@ def unpatch_click() -> None:
     Reverses the changes made by :func:`patch_click`. Useful in tests to
     avoid leaking global state between test cases.
     """
-    click.command = _original_click_command  # type: ignore[assignment]
-    click.group = _original_click_group  # type: ignore[assignment]
+    click.command = _original_click_command
+    click.group = _original_click_group
     click.decorators.command = _original_click_command
     click.decorators.group = _original_click_group
-    click.Command.get_help = _original_get_help  # type: ignore[method-assign]
-    click.Command.format_help = _original_format_help  # type: ignore[method-assign]
-
+    click.Command.get_help = _original_get_help
+    click.Command.format_help = _original_format_help
     # Reset context classes to defaults.
     ColorizedCommand.context_class = ExtraContext
     ColorizedGroup.context_class = ExtraContext
@@ -322,7 +321,7 @@ class _RunCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
     ``cloup.Command``.
     """
 
-    context_class: type[click.Context] = ExtraContext
+    context_class: type[cloup.Context] = ExtraContext
 
 
 def _config_args_for_target(
