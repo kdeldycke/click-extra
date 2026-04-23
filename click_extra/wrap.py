@@ -155,9 +155,8 @@ def patch_click(
         return _original_get_help(self, ctx)
 
     def _patched_format_help(self, ctx, formatter):
-        if (
-            isinstance(formatter, HelpExtraFormatter)
-            and not isinstance(self, ExtraHelpColorsMixin)
+        if isinstance(formatter, HelpExtraFormatter) and not isinstance(
+            self, ExtraHelpColorsMixin
         ):
             logger.debug(
                 "Collecting keywords for %s (%s).",
@@ -166,9 +165,7 @@ def patch_click(
             )
             # collect_keywords() now works on any command: static methods are
             # class-qualified and extra_keywords uses getattr with defaults.
-            formatter.keywords = (
-                ExtraHelpColorsMixin.collect_keywords(self, ctx)
-            )
+            formatter.keywords = ExtraHelpColorsMixin.collect_keywords(self, ctx)
             formatter.excluded_keywords = (
                 ExtraHelpColorsMixin._collect_excluded_keywords(ctx)
             )
@@ -352,9 +349,7 @@ def _config_args_for_target(
 
     # Extract the [click-extra.run.<script>] section from the raw config.
     app_name = root_ctx.command.name or ""
-    target_section = (
-        full_conf.get(app_name, {}).get("run", {}).get(script, {})
-    )
+    target_section = full_conf.get(app_name, {}).get("run", {}).get(script, {})
     if not target_section or not isinstance(target_section, dict):
         return ()
 
@@ -428,9 +423,7 @@ def run(
 
     module_path, function_name = resolve_target(script)
 
-    help_theme = (
-        HelpExtraTheme.light() if theme == "light" else HelpExtraTheme.dark()
-    )
+    help_theme = HelpExtraTheme.light() if theme == "light" else HelpExtraTheme.dark()
     # Color setting is inherited from the parent group's context, where
     # ColorOption already processed --color/--no-color flags and environment
     # variables (NO_COLOR, CLICOLOR, etc.).

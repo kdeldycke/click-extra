@@ -24,7 +24,6 @@ import click
 import cloup
 
 from . import (
-    Choice,
     ClickException,
     Color,
     argument,
@@ -260,8 +259,9 @@ def demo_styles(ctx: click.Context) -> None:
     table: list[list[str]] = []
     for color_name in _ALL_COLORS:
         row = [style(color_name, fg=color_name)]
-        for prop in _ALL_STYLES:
-            row.append(style(color_name, fg=color_name, **{prop: True}))
+        row.extend(
+            style(color_name, fg=color_name, **{prop: True}) for prop in _ALL_STYLES
+        )
         table.append(row)
     _find_print_table(ctx)(table, headers=headers)
 
