@@ -450,7 +450,10 @@ class ExtraHelpColorsMixin:  # (Command)??
         # ``collect_keywords`` can be called on commands that don't inherit the
         # mixin (used by ``wrap.patch_click`` for third-party CLIs).
         ExtraHelpColorsMixin._collect_params(
-            command.get_params(ctx), ctx, kw, options,
+            command.get_params(ctx),
+            ctx,
+            kw,
+            options,
         )
 
         # Collect option names and choices from parent groups. Subcommand
@@ -464,7 +467,9 @@ class ExtraHelpColorsMixin:  # (Command)??
                     options.update(param.secondary_opts)
                     if isinstance(param.type, click.Choice):
                         ExtraHelpColorsMixin._collect_choice_keywords(
-                            param, parent_ctx, kw,
+                            param,
+                            parent_ctx,
+                            kw,
                         )
             parent_ctx = parent_ctx.parent
 

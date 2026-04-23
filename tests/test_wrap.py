@@ -32,56 +32,56 @@ from click_extra.wrap import (
 )
 
 GREET_SCRIPT = (
-    'import click\n'
-    '\n'
-    '@click.command()\n'
+    "import click\n"
+    "\n"
+    "@click.command()\n"
     '@click.option("--name", default="World", help="Name to greet.")\n'
-    'def hello(name):\n'
+    "def hello(name):\n"
     '    """Greet someone."""\n'
     '    click.echo(f"Hello, {name}")\n'
-    '\n'
+    "\n"
     'if __name__ == "__main__":\n'
-    '    hello()\n'
+    "    hello()\n"
 )
 """Plain ``@click.command()`` script: patched via decorator defaults."""
 
 CUSTOM_CLS_SCRIPT = (
-    'import click\n'
-    '\n'
-    'class RecipeGroup(click.Group):\n'
+    "import click\n"
+    "\n"
+    "class RecipeGroup(click.Group):\n"
     '    """Custom group like Flask\'s FlaskGroup."""\n'
-    '\n'
-    '@click.command(cls=RecipeGroup)\n'
-    'def kitchen():\n'
+    "\n"
+    "@click.command(cls=RecipeGroup)\n"
+    "def kitchen():\n"
     '    """Manage recipes and ingredients."""\n'
-    '\n'
-    '@kitchen.command()\n'
+    "\n"
+    "@kitchen.command()\n"
     '@click.option("--servings", default=4, help="Number of servings.")\n'
-    'def bake(servings):\n'
+    "def bake(servings):\n"
     '    """Bake a cake."""\n'
     '    click.echo(f"Baking for {servings}")\n'
-    '\n'
+    "\n"
     'if __name__ == "__main__":\n'
-    '    kitchen()\n'
+    "    kitchen()\n"
 )
 """Script with explicit ``cls=RecipeGroup``: patched via method patching."""
 
 MULTI_OPTION_SCRIPT = (
-    'import click\n'
-    '\n'
-    '@click.command()\n'
+    "import click\n"
+    "\n"
+    "@click.command()\n"
     '@click.option("--city", default="Paris", help="City name.")\n'
     '@click.option("--unit", default="celsius", help="Temperature unit.")\n'
     '@click.option("--verbose", is_flag=True, help="Show details.")\n'
-    'def weather(city, unit, verbose):\n'
+    "def weather(city, unit, verbose):\n"
     '    """Check the weather."""\n'
     '    msg = f"{city}: 22 {unit}"\n'
-    '    if verbose:\n'
+    "    if verbose:\n"
     '        msg += " (detailed)"\n'
-    '    click.echo(msg)\n'
-    '\n'
+    "    click.echo(msg)\n"
+    "\n"
     'if __name__ == "__main__":\n'
-    '    weather()\n'
+    "    weather()\n"
 )
 """Script with multiple options for config passthrough tests."""
 
@@ -164,10 +164,7 @@ def test_patched_command_no_extra_params():
     """Patched commands carry no default_extra_params."""
     cmd = ColorizedCommand(name="test", callback=lambda: None)
     option_names = {
-        opt
-        for p in cmd.params
-        if isinstance(p, click.Option)
-        for opt in p.opts
+        opt for p in cmd.params if isinstance(p, click.Option) for opt in p.opts
     }
     for forbidden in ("--config", "--verbose", "--verbosity", "--timer"):
         assert forbidden not in option_names
@@ -250,7 +247,11 @@ def test_run_self(runner, args, expected):
     ],
 )
 def test_run_invokes_target(
-    runner, script_fixture, target_args, expected_text, request,
+    runner,
+    script_fixture,
+    target_args,
+    expected_text,
+    request,
 ):
     """The run subcommand forwards arguments to the target CLI."""
     script = request.getfixturevalue(script_fixture)
@@ -340,7 +341,8 @@ def test_group_dispatches_to_run(runner, greet_script, args, expected):
 def test_group_options_work_with_run(runner, greet_script, group_opts):
     """Default ExtraGroup options are accepted alongside the run subcommand."""
     result = runner.invoke(
-        demo, [*group_opts, "run", greet_script, "--help"],
+        demo,
+        [*group_opts, "run", greet_script, "--help"],
     )
     assert result.exit_code == 0
     assert "Greet someone." in result.output
@@ -399,7 +401,8 @@ def test_config_target_string(runner, greet_script, create_config):
         f'[tool.click-extra.run."{greet_script}"]\nname = "Alice"\n',
     )
     result = runner.invoke(
-        demo, ["--config", str(conf), "run", greet_script],
+        demo,
+        ["--config", str(conf), "run", greet_script],
     )
     assert result.exit_code == 0
     assert "Hello, Alice" in result.output
@@ -412,7 +415,8 @@ def test_config_target_bool_true(runner, weather_script, create_config):
         f'[tool.click-extra.run."{weather_script}"]\nverbose = true\n',
     )
     result = runner.invoke(
-        demo, ["--config", str(conf), "run", weather_script],
+        demo,
+        ["--config", str(conf), "run", weather_script],
     )
     assert result.exit_code == 0
     assert "(detailed)" in result.output
@@ -425,7 +429,8 @@ def test_config_target_bool_false_is_noop(runner, weather_script, create_config)
         f'[tool.click-extra.run."{weather_script}"]\nverbose = false\n',
     )
     result = runner.invoke(
-        demo, ["--config", str(conf), "run", weather_script],
+        demo,
+        ["--config", str(conf), "run", weather_script],
     )
     assert result.exit_code == 0
     # verbose defaults to false anyway, so output has no "(detailed)".
@@ -441,7 +446,8 @@ def test_config_target_multiple_keys(runner, weather_script, create_config):
         f'unit = "fahrenheit"\n',
     )
     result = runner.invoke(
-        demo, ["--config", str(conf), "run", weather_script],
+        demo,
+        ["--config", str(conf), "run", weather_script],
     )
     assert result.exit_code == 0
     assert "Tokyo" in result.output
@@ -463,7 +469,9 @@ def test_config_target_cli_overrides(runner, greet_script, create_config):
 
 
 def test_config_target_wrong_section_ignored(
-    runner, greet_script, create_config,
+    runner,
+    greet_script,
+    create_config,
 ):
     """Config for a different script name has no effect."""
     conf = create_config(
@@ -471,7 +479,8 @@ def test_config_target_wrong_section_ignored(
         '[tool.click-extra.run.other-cli]\nname = "Alice"\n',
     )
     result = runner.invoke(
-        demo, ["--config", str(conf), "run", greet_script],
+        demo,
+        ["--config", str(conf), "run", greet_script],
     )
     assert result.exit_code == 0
     assert "Hello, World" in result.output
@@ -484,7 +493,8 @@ def test_config_target_empty_section(runner, greet_script, create_config):
         f'[tool.click-extra.run."{greet_script}"]\n',
     )
     result = runner.invoke(
-        demo, ["--config", str(conf), "run", greet_script],
+        demo,
+        ["--config", str(conf), "run", greet_script],
     )
     assert result.exit_code == 0
     assert "Hello, World" in result.output
@@ -493,7 +503,8 @@ def test_config_target_empty_section(runner, greet_script, create_config):
 def test_config_target_no_config(runner, greet_script):
     """No config file at all: target runs with its own defaults."""
     result = runner.invoke(
-        demo, ["--no-config", "run", greet_script],
+        demo,
+        ["--no-config", "run", greet_script],
     )
     assert result.exit_code == 0
     assert "Hello, World" in result.output
@@ -503,16 +514,14 @@ def test_config_target_invalid_option(runner, greet_script, create_config):
     """An invalid config key is caught by the target CLI."""
     conf = create_config(
         "pyproject.toml",
-        f'[tool.click-extra.run."{greet_script}"]\n'
-        f'nonexistent_option = "bad"\n',
+        f'[tool.click-extra.run."{greet_script}"]\nnonexistent_option = "bad"\n',
     )
     result = runner.invoke(
-        demo, ["--config", str(conf), "run", greet_script],
+        demo,
+        ["--config", str(conf), "run", greet_script],
     )
     assert result.exit_code != 0
     assert "No such option" in result.output
-
-
 
 
 # -- _config_args_for_target unit tests ----------------------------------------
