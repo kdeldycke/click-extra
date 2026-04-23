@@ -35,7 +35,6 @@ from .envvar import param_envvar_ids
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator, Sequence
-    from contextlib import AbstractContextManager
     from typing import Any, ClassVar
 
 
@@ -352,10 +351,14 @@ class ParamStructure:
     This mapping can be seen as a reverse of the ``click.types.convert_type()`` method.
     """
 
+    @staticmethod
     def get_param_type(
-        self, param: click.Parameter
+        param: click.Parameter,
     ) -> type[str | int | float | bool | list]:
         """Get the Python type of a Click parameter.
+
+        Returns ``str`` for unrecognised custom types, since command-line
+        parameters are strings by default.
 
         See the list of
         `custom types provided by Click <https://click.palletsprojects.com/en/stable/api/#types>`_.
@@ -367,32 +370,19 @@ class ParamStructure:
             return bool
 
         # Try to directly map the Click type to a Python type.
-        py_type = self.TYPE_MAP.get(param.type.__class__)
+        py_type = ParamStructure.TYPE_MAP.get(param.type.__class__)
         if py_type is not None:
             return py_type
 
         # Try to indirectly map the type by looking at inheritance.
-        for click_type, py_type in self.TYPE_MAP.items():
-            matching = set()
+        for click_type, py_type in ParamStructure.TYPE_MAP.items():
             if isinstance(param.type, click_type):
-                matching.add(py_type)
-            if matching:
-                if len(matching) > 1:
-                    raise ValueError(
-                        f"Multiple Python types found for {param.type!r} parameter: "
-                        f"{matching}"
-                    )
-                return matching.pop()
+                return py_type
 
-        # Custom parameters are expected to convert from strings, as that's the default
-        # type of command lines.
+        # Custom parameters are expected to convert from strings, as that's
+        # the default type of command lines.
         # See: https://click.palletsprojects.com/en/stable/api/#click.ParamType
-        if isinstance(param.type, ParamType):
-            return str
-
-        raise ValueError(
-            f"Can't guess the appropriate Python type of {param!r} parameter."
-        )
+        return str
 
     def build_param_trees(self) -> None:
         """Build the parameters tree structure and cache it.
@@ -448,6 +438,30 @@ class ParamStructure:
         """
         self.build_param_trees()
         return self.params_objects
+
+
+def get_param_spec(param: click.Parameter, ctx: click.Context) -> str | None:
+    """Extract the option-spec string (like ``-v, --verbose``) from a parameter.
+
+    Temporarily unhides hidden options so their help record can be produced.
+
+    .. note::
+        The ``hidden`` property is only supported by ``Option``, not ``Argument``.
+
+    .. todo::
+        Submit a PR to Click to separate production of param spec and help
+        record. That way we can always produce the param spec even if the
+        parameter is hidden.
+        See: https://github.com/kdeldycke/click-extra/issues/689
+    """
+    if not hasattr(param, "hidden"):
+        return None
+    hidden_bypass = nullcontext()
+    if param.hidden:
+        hidden_bypass = patch.object(param, "hidden", False)
+    with hidden_bypass:
+        help_record = param.get_help_record(ctx)
+        return help_record[0] if help_record else None
 
 
 class ShowParamsOption(ExtraOption, ParamStructure):
@@ -604,31 +618,19 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             # Multiple parameters can share the same path, if for instance they are
             # sharing the same variable name.
             for instance in instances:
-                python_type = self.get_param_type(instance)
+                python_type = ParamStructure.get_param_type(instance)
                 assert instance.name == tree_keys[-1]
 
                 param_value, source = get_param_value(instance)
                 param_class = instance.__class__
-
-                # Collect param's spec.
-                param_spec = None
-                # Hidden property is only supported by Option, not Argument.
-                # TODO: Allow arguments to produce their spec.
-                if hasattr(instance, "hidden"):
-                    # No-op context manager without any effects.
-                    hidden_param_bypass: AbstractContextManager = nullcontext()
-                    # If the parameter is hidden, we need to temporarily disable this flag
-                    # to let Click produce a help record.
-                    # See: https://github.com/kdeldycke/click-extra/issues/689
-                    # TODO: Submit a PR to Click to separate production of param spec and
-                    # help record. That way we can always produce the param spec even if
-                    # the parameter is hidden.
-                    if instance.hidden:
-                        hidden_param_bypass = patch.object(instance, "hidden", False)
-                    with hidden_param_bypass:
-                        help_record = instance.get_help_record(ctx)
-                        if help_record:
-                            param_spec = help_record[0]
+                param_spec = get_param_spec(instance, ctx)
+                class_str = (
+                    f"{param_class.__module__}.{param_class.__qualname__}"
+                )
+                type_str = (
+                    f"{instance.type.__module__}"
+                    f".{instance.type.__class__.__name__}"
+                )
 
                 # Check if the parameter is allowed in the configuration file.
                 # Access params_objects first to ensure included_params has been
@@ -653,9 +655,8 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                     line: tuple[Any, ...] = (
                         path,
                         param_spec,
-                        f"{param_class.__module__}.{param_class.__qualname__}",
-                        f"{instance.type.__module__}"
-                        f".{instance.type.__class__.__name__}",
+                        class_str,
+                        type_str,
                         python_type.__name__,
                         getattr(instance, "hidden", None),
                         instance.expose_value,
@@ -675,9 +676,8 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                     line = (
                         default_theme.invoked_command(path),
                         param_spec,
-                        f"{param_class.__module__}.{param_class.__qualname__}",
-                        f"{instance.type.__module__}"
-                        f".{instance.type.__class__.__name__}",
+                        class_str,
+                        type_str,
                         python_type.__name__,
                         hidden,
                         OK if instance.expose_value is True else KO,

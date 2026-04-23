@@ -171,8 +171,8 @@ def patch_click(
             )
         _original_format_help(self, ctx, formatter)
 
-    click.Command.get_help = _patched_get_help
-    click.Command.format_help = _patched_format_help
+    click.Command.get_help = _patched_get_help  # type: ignore[method-assign]
+    click.Command.format_help = _patched_format_help  # type: ignore[method-assign]
     logger.debug("Patched click.Command.get_help and format_help methods.")
 
     # Override the default theme if requested.
@@ -196,8 +196,8 @@ def unpatch_click() -> None:
     click.group = _original_click_group
     click.decorators.command = _original_click_command
     click.decorators.group = _original_click_group
-    click.Command.get_help = _original_get_help
-    click.Command.format_help = _original_format_help
+    click.Command.get_help = _original_get_help  # type: ignore[method-assign]
+    click.Command.format_help = _original_format_help  # type: ignore[method-assign]
     # Reset context classes to defaults.
     ColorizedCommand.context_class = ExtraContext
     ColorizedGroup.context_class = ExtraContext

@@ -94,6 +94,7 @@ from .parameters import (
     Option,
     ParamStructure,
     ShowParamsOption,
+    get_param_spec,
     search_params,
 )
 from .table import (
@@ -213,6 +214,7 @@ __all__ = [
     "get_app_dir",
     "get_binary_stream",
     "get_current_context",
+    "get_param_spec",
     "get_text_stream",
     "get_tool_config",
     "getchar",

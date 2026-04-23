@@ -139,3 +139,46 @@ The wrapper monkey-patches Click at two levels before importing the target modul
 2. **Method patching**: `click.Command.get_help` and `click.Command.format_help` are patched to inject the colorized formatter and keyword collection on all commands, including those with custom classes (like Flask's `FlaskGroup`).
 
 CLIs already built with Click Extra or Cloup are unaffected by the patching (they already have their own help formatting) but still run correctly through the wrapper.
+
+## Introspecting external CLIs
+
+The `show-params` subcommand lets you inspect the parameters of any Click CLI without running it:
+
+```shell-session
+$ click-extra show-params flask
+$ click-extra show-params --table-format vertical flask run
+$ click-extra show-params --table-format json flask
+```
+
+It displays a table with each parameter's ID, spec, class, type, hidden status, environment variables, and default value. All `--table-format` renderings are supported.
+
+### Subcommand drilling
+
+Extra arguments after `SCRIPT` navigate into nested command groups:
+
+```shell-session
+$ click-extra show-params flask run
+$ click-extra show-params flask routes
+```
+
+### Target resolution
+
+Target resolution follows the same order as `run`: console_scripts entry points, `module:function` notation, `.py` file paths, and Python module names.
+
+When the resolved entry point is a wrapper function (not a Click command), the module is scanned for Click command instances. If a single command group is found, it is used automatically. If multiple candidates exist, the error message lists them so you can use explicit `module:name` notation:
+
+```shell-session
+$ click-extra show-params flask.cli:cli
+```
+
+### `click_extra.wrap` API
+
+```{eval-rst}
+.. autoclasstree:: click_extra.wrap
+   :strict:
+
+.. automodule:: click_extra.wrap
+   :members:
+   :undoc-members:
+   :show-inheritance:
+```

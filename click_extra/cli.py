@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import colorsys
+import importlib
 from pathlib import Path
 
 import click
@@ -26,6 +27,8 @@ import cloup
 from . import (
     ClickException,
     Color,
+    EnumChoice,
+    Style,
     argument,
     echo,
     group,
@@ -33,8 +36,10 @@ from . import (
     pass_context,
     style,
 )
-from .colorize import _nearest_256
-from .table import print_table
+from .colorize import KO, OK, _nearest_256, default_theme
+from .envvar import param_envvar_ids
+from .parameters import ParamStructure, get_param_spec
+from .table import DEFAULT_FORMAT, SERIALIZATION_FORMATS, TableFormat, print_table
 from .version import (
     GIT_FIELDS,
     _find_dunder_str,
@@ -43,7 +48,7 @@ from .version import (
     prebake_version,
     run_git,
 )
-from .wrap import WrapperGroup, run as run_cmd
+from .wrap import WrapperGroup, resolve_target, run as run_cmd
 
 
 def _resolve_paths(module: Path | None) -> list[Path]:
@@ -94,6 +99,199 @@ def demo():
 
 
 demo.add_command(run_cmd)
+
+
+_INTROSPECT_HEADERS = (
+    "ID",
+    "Spec.",
+    "Class",
+    "Param type",
+    "Python type",
+    "Hidden",
+    "Env. vars.",
+    "Default",
+)
+"""Table headers for foreign CLI parameter introspection."""
+
+
+def _walk_cmd_params(cmd, ctx, parent_keys=()):
+    """Walk parameters of a Click command tree.
+
+    Yields ``(path_tuple, param, owning_ctx)`` for every parameter found on
+    *cmd* and its subcommands.
+    """
+    for p in cmd.get_params(ctx):
+        if p.name is not None:
+            yield (*parent_keys, p.name), p, ctx
+
+    if isinstance(cmd, click.MultiCommand):
+        for subcmd_name in sorted(cmd.list_commands(ctx)):
+            subcmd = cmd.get_command(ctx, subcmd_name)
+            if subcmd is None:
+                continue
+            subcmd_ctx = click.Context(subcmd, parent=ctx, info_name=subcmd_name)
+            yield from _walk_cmd_params(
+                subcmd, subcmd_ctx, (*parent_keys, subcmd_name)
+            )
+
+
+@demo.command(
+    name="show-params",
+    context_settings={"allow_interspersed_args": False},
+)
+@click.argument(
+    "script_and_args",
+    nargs=-1,
+    type=click.UNPROCESSED,
+    metavar="SCRIPT [SUBCOMMAND]...",
+)
+@click.option(
+    "--table-format",
+    "table_format",
+    type=EnumChoice(TableFormat),
+    default=DEFAULT_FORMAT,
+    help="Rendering style of tables.",
+)
+@click.pass_context
+def show_params_cmd(
+    ctx: click.Context,
+    script_and_args: tuple[str, ...],
+    table_format: TableFormat,
+) -> None:
+    """Show parameters of an external Click CLI.
+
+    Resolves SCRIPT as a console_scripts entry point, module:function
+    notation, .py file path, or Python module name. Loads the Click
+    command and prints its parameter table.
+
+    Extra arguments after SCRIPT navigate into nested command groups.
+    """
+    if not script_and_args:
+        echo(ctx.get_help(), color=ctx.color)
+        ctx.exit(0)
+
+    script = script_and_args[0]
+    subcommands = script_and_args[1:]
+
+    module_path, function_name = resolve_target(script)
+    mod = importlib.import_module(module_path)
+    cli_obj = getattr(mod, function_name) if function_name else None
+
+    if not isinstance(cli_obj, click.Command):
+        # The entry point might be a wrapper function. Scan the module
+        # for Click command instances, preferring groups.
+        groups = {}
+        commands = {}
+        for attr_name in dir(mod):
+            obj = getattr(mod, attr_name, None)
+            if isinstance(obj, click.MultiCommand):
+                groups[attr_name] = obj
+            elif isinstance(obj, click.Command):
+                commands[attr_name] = obj
+
+        if len(groups) == 1:
+            cli_obj = next(iter(groups.values()))
+        elif groups:
+            names = ", ".join(sorted(groups))
+            raise ClickException(
+                f"Multiple command groups in {module_path}: {names}. "
+                f"Specify the correct one with module:name notation."
+            )
+        elif len(commands) == 1:
+            cli_obj = next(iter(commands.values()))
+        elif commands:
+            names = ", ".join(sorted(commands))
+            raise ClickException(
+                f"Multiple commands in {module_path}: {names}. "
+                f"Specify the correct one with module:name notation."
+            )
+        else:
+            raise ClickException(
+                f"No Click commands found in {module_path}."
+            )
+
+    # Navigate to subcommand if specified.
+    cmd = cli_obj
+    cmd_ctx = click.Context(cmd, info_name=cmd.name or script)
+    for sub in subcommands:
+        if not isinstance(cmd, click.MultiCommand):
+            raise ClickException(
+                f"{cmd.name!r} is not a group; cannot navigate to {sub!r}."
+            )
+        child = cmd.get_command(cmd_ctx, sub)
+        if child is None:
+            raise ClickException(f"No subcommand {sub!r} in {cmd.name!r}.")
+        cmd_ctx = click.Context(child, parent=cmd_ctx, info_name=sub)
+        cmd = child
+
+    # Build parameter path prefix.
+    prefix = (cmd.name or script,)
+    sep = "."
+    is_structured = table_format in SERIALIZATION_FORMATS
+
+    table: list[tuple] = []
+    for keys, param, param_ctx in _walk_cmd_params(cmd, cmd_ctx, prefix):
+        path = sep.join(keys)
+        param_spec = get_param_spec(param, param_ctx)
+        param_class = param.__class__
+        class_str = f"{param_class.__module__}.{param_class.__qualname__}"
+        type_str = (
+            f"{param.type.__module__}.{param.type.__class__.__name__}"
+        )
+        python_type = ParamStructure.get_param_type(param).__name__
+
+        if is_structured:
+            default_val = param.get_default(param_ctx)
+            if not isinstance(
+                default_val, (str, int, float, bool, list, type(None))
+            ):
+                default_val = repr(default_val)
+            line: tuple = (
+                path,
+                param_spec,
+                class_str,
+                type_str,
+                python_type,
+                getattr(param, "hidden", None),
+                list(param_envvar_ids(param, param_ctx)),
+                default_val,
+            )
+        else:
+            hidden = None
+            if hasattr(param, "hidden"):
+                hidden = OK if param.hidden else KO
+            line = (
+                default_theme.invoked_command(path),
+                param_spec,
+                class_str,
+                type_str,
+                python_type,
+                hidden,
+                ", ".join(
+                    map(default_theme.envvar, param_envvar_ids(param, param_ctx))
+                ),
+                default_theme.default(repr(param.get_default(param_ctx))),
+            )
+        table.append(line)
+
+    def sort_key(row):
+        """Sort by depth first, then path."""
+        row_path = row[0]
+        parts = row_path.split(sep)
+        return len(parts), row_path
+
+    header_labels: tuple
+    if is_structured:
+        header_labels = _INTROSPECT_HEADERS
+    else:
+        header_style = Style(bold=True)
+        header_labels = tuple(map(header_style, _INTROSPECT_HEADERS))
+
+    print_table(
+        sorted(table, key=sort_key),
+        headers=header_labels,
+        table_format=table_format,
+    )
 
 
 _ALL_STYLES = (

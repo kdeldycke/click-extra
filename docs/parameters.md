@@ -130,6 +130,15 @@ Loaded, default values:    {'dummy_flag': True, 'my_list': ['pip', 'npm', 'gem']
 Values passed to function: {'dummy_flag': True, 'my_list': ('pip', 'npm', 'gem')}
 ```
 
+## Introspecting external CLIs
+
+The `--show-params` option works on your own Click Extra CLIs. To inspect a third-party CLI that doesn't use Click Extra, use the [`show-params` subcommand](wrap.md#introspecting-external-clis):
+
+```shell-session
+$ click-extra show-params flask
+$ click-extra show-params --table-format vertical -- flask run
+```
+
 ## Parameter structure
 
 ```{todo}
