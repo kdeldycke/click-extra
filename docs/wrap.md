@@ -120,7 +120,7 @@ The `SCRIPT` argument is resolved in this order:
 1. **Console scripts entry point**: any package installed with `pip install` or `uv add` that registers a `console_scripts` entry point. This covers most CLI tools.
 2. **`module:function` notation**: explicit import path like `my_app.cli:main`.
 3. **`.py` file path**: a local Python script.
-4. **Python module name**: a bare module or package name invokable via `python -m`.
+4. **Python module name**: a bare module or package name invocable via `python -m`.
 
 ## Ephemeral wrapping with `uvx`
 
