@@ -1,5 +1,10 @@
 # Changelog
 
+## [`7.14.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.14.0...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`7.14.0` (2026-04-24)](https://github.com/kdeldycke/click-extra/compare/v7.13.0...v7.14.0)
 
 - Add `wrap` subcommand: `click-extra wrap SCRIPT [ARGS]...` applies help colorization to any installed Click CLI without modifying its source. Supports `--theme` option and `[tool.click-extra.wrap.<script>]` config sections for persistent CLI defaults. Resolves SCRIPT via console_scripts entry points, `module:function` notation, `.py` file paths, or bare module names. Unknown subcommand names fall through to `wrap` automatically, so `click-extra flask --help` works without typing `wrap`. `run` is kept as an alias.
