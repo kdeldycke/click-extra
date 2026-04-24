@@ -464,6 +464,61 @@ def get_param_spec(param: click.Parameter, ctx: click.Context) -> str | None:
         return help_record[0] if help_record else None
 
 
+def format_param_row(
+    param: click.Parameter,
+    ctx: click.Context,
+    path: str,
+    is_structured: bool,
+) -> tuple:
+    """Format the common parameter table cells.
+
+    Returns a tuple of 8 cells in column order: ID, Spec., Class, Param type,
+    Python type, Hidden, Env. vars., Default.
+
+    For structured formats (JSON, YAML, etc.), cells are native Python values.
+    For visual formats, cells are themed strings matching help-screen styling.
+    """
+    param_spec = get_param_spec(param, ctx)
+    param_class = param.__class__
+    class_str = f"{param_class.__module__}.{param_class.__qualname__}"
+    type_str = f"{param.type.__module__}.{param.type.__class__.__name__}"
+    python_type_name = ParamStructure.get_param_type(param).__name__
+
+    if is_structured:
+        default_val = param.get_default(ctx)
+        if not isinstance(
+            default_val, (str, int, float, bool, list, type(None))
+        ):
+            default_val = repr(default_val)
+        return (
+            path,
+            param_spec,
+            class_str,
+            type_str,
+            python_type_name,
+            getattr(param, "hidden", None),
+            list(param_envvar_ids(param, ctx)),
+            default_val,
+        )
+
+    # Lazy import to avoid circular dependency with colorize.
+    from .colorize import KO, OK, default_theme
+
+    hidden = None
+    if hasattr(param, "hidden"):
+        hidden = OK if param.hidden is True else KO
+    return (
+        default_theme.invoked_command(path),
+        default_theme.option(param_spec) if param_spec else param_spec,
+        class_str,
+        type_str,
+        default_theme.metavar(python_type_name),
+        hidden,
+        ", ".join(map(default_theme.envvar, param_envvar_ids(param, ctx))),
+        default_theme.default(repr(param.get_default(ctx))),
+    )
+
+
 class ShowParamsOption(ExtraOption, ParamStructure):
     """A pre-configured option adding a ``--show-params`` option.
 
@@ -618,19 +673,9 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             # Multiple parameters can share the same path, if for instance they are
             # sharing the same variable name.
             for instance in instances:
-                python_type = ParamStructure.get_param_type(instance)
                 assert instance.name == tree_keys[-1]
 
                 param_value, source = get_param_value(instance)
-                param_class = instance.__class__
-                param_spec = get_param_spec(instance, ctx)
-                class_str = (
-                    f"{param_class.__module__}.{param_class.__qualname__}"
-                )
-                type_str = (
-                    f"{instance.type.__module__}"
-                    f".{instance.type.__class__.__name__}"
-                )
 
                 # Check if the parameter is allowed in the configuration file.
                 # Access params_objects first to ensure included_params has been
@@ -640,55 +685,31 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                     config_option.params_template  # noqa: B018
                     allowed_in_conf_bool = path not in config_option.excluded_params
 
+                # Common 8 cells: ID .. Hidden ([:6]) and Env. vars. .. Default ([6:]).
+                common = format_param_row(instance, ctx, path, is_structured)
+
                 if is_structured:
-                    # Emit native types for serialization formats.
-                    # Sanitize values that aren't natively serializable.
-                    default_val = instance.get_default(ctx)
-                    if not isinstance(
-                        default_val, (str, int, float, bool, list, type(None))
-                    ):
-                        default_val = repr(default_val)
                     if not isinstance(
                         param_value, (str, int, float, bool, list, type(None))
                     ):
                         param_value = repr(param_value)
                     line: tuple[Any, ...] = (
-                        path,
-                        param_spec,
-                        class_str,
-                        type_str,
-                        python_type.__name__,
-                        getattr(instance, "hidden", None),
+                        *common[:6],
                         instance.expose_value,
                         allowed_in_conf_bool,
-                        list(param_envvar_ids(instance, ctx)),
-                        default_val,
+                        *common[6:],
                         param_value,
                         source.name if source else None,
                     )
                 else:
-                    hidden = None
-                    if hasattr(instance, "hidden"):
-                        hidden = OK if instance.hidden is True else KO
                     allowed_in_conf = None
                     if allowed_in_conf_bool is not None:
                         allowed_in_conf = OK if allowed_in_conf_bool else KO
                     line = (
-                        default_theme.invoked_command(path),
-                        param_spec,
-                        class_str,
-                        type_str,
-                        python_type.__name__,
-                        hidden,
+                        *common[:6],
                         OK if instance.expose_value is True else KO,
                         allowed_in_conf,
-                        ", ".join(
-                            map(
-                                default_theme.envvar,
-                                param_envvar_ids(instance, ctx),
-                            )
-                        ),
-                        default_theme.default(repr(instance.get_default(ctx))),
+                        *common[6:],
                         repr(param_value),
                         source.name if source else None,
                     )

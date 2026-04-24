@@ -36,9 +36,8 @@ from . import (
     pass_context,
     style,
 )
-from .colorize import KO, OK, _nearest_256, default_theme
-from .envvar import param_envvar_ids
-from .parameters import ParamStructure, get_param_spec
+from .colorize import _nearest_256
+from .parameters import format_param_row
 from .table import DEFAULT_FORMAT, SERIALIZATION_FORMATS, TableFormat, print_table
 from .version import (
     GIT_FIELDS,
@@ -232,47 +231,7 @@ def show_params_cmd(
     table: list[tuple] = []
     for keys, param, param_ctx in _walk_cmd_params(cmd, cmd_ctx, prefix):
         path = sep.join(keys)
-        param_spec = get_param_spec(param, param_ctx)
-        param_class = param.__class__
-        class_str = f"{param_class.__module__}.{param_class.__qualname__}"
-        type_str = (
-            f"{param.type.__module__}.{param.type.__class__.__name__}"
-        )
-        python_type = ParamStructure.get_param_type(param).__name__
-
-        if is_structured:
-            default_val = param.get_default(param_ctx)
-            if not isinstance(
-                default_val, (str, int, float, bool, list, type(None))
-            ):
-                default_val = repr(default_val)
-            line: tuple = (
-                path,
-                param_spec,
-                class_str,
-                type_str,
-                python_type,
-                getattr(param, "hidden", None),
-                list(param_envvar_ids(param, param_ctx)),
-                default_val,
-            )
-        else:
-            hidden = None
-            if hasattr(param, "hidden"):
-                hidden = OK if param.hidden else KO
-            line = (
-                default_theme.invoked_command(path),
-                param_spec,
-                class_str,
-                type_str,
-                python_type,
-                hidden,
-                ", ".join(
-                    map(default_theme.envvar, param_envvar_ids(param, param_ctx))
-                ),
-                default_theme.default(repr(param.get_default(param_ctx))),
-            )
-        table.append(line)
+        table.append(format_param_row(param, param_ctx, path, is_structured))
 
     def sort_key(row):
         """Sort by depth first, then path."""

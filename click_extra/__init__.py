@@ -94,6 +94,7 @@ from .parameters import (
     Option,
     ParamStructure,
     ShowParamsOption,
+    format_param_row,
     get_param_spec,
     search_params,
 )
@@ -211,6 +212,7 @@ __all__ = [
     "file_path",
     "flatten_config_keys",
     "format_filename",
+    "format_param_row",
     "get_app_dir",
     "get_binary_stream",
     "get_current_context",
