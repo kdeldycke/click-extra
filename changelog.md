@@ -9,6 +9,7 @@
 - Add `show-params` subcommand: `click-extra show-params SCRIPT [SUBCOMMAND]...` introspects an external Click CLI's parameters and displays them as a table. Supports all `--table-format` renderings (vertical, JSON, YAML, CSV, etc.). Drills into nested subcommands. When the entry point is a wrapper function, auto-discovers the Click command in the module.
 - Replace `render-matrix` subcommand with individual `colors`, `styles`, `palette`, `8color`, and `gradient` subcommands, grouped under a "Demo" section.
 - Remove `click-extra-demo` entry point. All functionality is accessible via `click-extra` subcommands.
+- Move Sphinx tests into their own `tests/sphinx/` subdirectory. Downstream packagers can skip them with `--ignore=tests/sphinx` without pulling in Sphinx dependencies.
 - Bump Click requirement to `8.3.3`. Simplify `ParameterSource` comparisons in `ConfigOption` using the new `IntEnum` ordering.
 
 ## [`7.13.0` (2026-04-16)](https://github.com/kdeldycke/click-extra/compare/v7.12.0...v7.13.0)
