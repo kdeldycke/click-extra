@@ -96,14 +96,16 @@ jobs:
 
       - name: Install project
         run: uv --no-progress sync --frozen --all-extras --group test
+
       - name: Test wrapper on Click CLIs
         run: |
-          uv --no-progress run --frozen --with flask --with quart -- click-extra             run   flask --help
-          uv --no-progress run --frozen --with flask --with quart -- click-extra             wrap  flask --help
-          uv --no-progress run --frozen --with flask --with quart -- click-extra --no-color  run   flask --help
-          uv --no-progress run --frozen --with flask --with quart -- click-extra                   flask --help
-          uv --no-progress run --frozen --with flask --with quart -- click-extra             run   quart --help
-          uv --no-progress run --frozen --with flask --with quart -- click-extra                   quart --help
+          uv --no-progress run --frozen --with flask -- click-extra             wrap  flask --help
+          uv --no-progress run --frozen --with flask -- click-extra --no-color  wrap  flask --help
+          uv --no-progress run --frozen --with flask -- click-extra             run   flask --help
+          uv --no-progress run --frozen --with flask -- click-extra                   flask --help
+          uv --no-progress run --frozen --with quart -- click-extra             wrap  quart --help
+          uv --no-progress run --frozen --with quart -- click-extra                   quart --help
+
       - name: Run once-only tests
         run: uv --no-progress run --frozen -- pytest -m once
 
