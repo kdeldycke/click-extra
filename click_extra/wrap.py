@@ -356,7 +356,12 @@ def _config_args_for_target(
 
     # Extract the [click-extra.wrap.<script>] section from the raw config.
     app_name = root_ctx.command.name or ""
-    target_section = full_conf.get(app_name, {}).get("wrap", {}).get(script, {})
+    # Normalize path separators to forward slashes so Windows absolute paths
+    # like "C:\...\script.py" match TOML keys written as "C:/.../script.py".
+    # TOML basic strings interpret backslashes as escape sequences, so users
+    # must use forward slashes in their pyproject.toml keys.
+    normalized_script = script.replace("\\", "/")
+    target_section = full_conf.get(app_name, {}).get("wrap", {}).get(normalized_script, {})
     if not target_section or not isinstance(target_section, dict):
         return ()
 

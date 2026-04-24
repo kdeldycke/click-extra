@@ -17,6 +17,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import click
 import pytest
 
@@ -398,7 +400,7 @@ def test_config_target_string(runner, greet_script, create_config):
     """A string config value is forwarded as ``--key value``."""
     conf = create_config(
         "pyproject.toml",
-        f'[tool.click-extra.wrap."{greet_script}"]\nname = "Alice"\n',
+        f'[tool.click-extra.wrap."{Path(greet_script).as_posix()}"]\nname = "Alice"\n',
     )
     result = runner.invoke(
         demo,
@@ -412,7 +414,7 @@ def test_config_target_bool_true(runner, weather_script, create_config):
     """A ``true`` config value is forwarded as ``--flag``."""
     conf = create_config(
         "pyproject.toml",
-        f'[tool.click-extra.wrap."{weather_script}"]\nverbose = true\n',
+        f'[tool.click-extra.wrap."{Path(weather_script).as_posix()}"]\nverbose = true\n',
     )
     result = runner.invoke(
         demo,
@@ -426,7 +428,7 @@ def test_config_target_bool_false_is_noop(runner, weather_script, create_config)
     """A ``false`` config value is skipped: the flag is simply not passed."""
     conf = create_config(
         "pyproject.toml",
-        f'[tool.click-extra.wrap."{weather_script}"]\nverbose = false\n',
+        f'[tool.click-extra.wrap."{Path(weather_script).as_posix()}"]\nverbose = false\n',
     )
     result = runner.invoke(
         demo,
@@ -441,7 +443,7 @@ def test_config_target_multiple_keys(runner, weather_script, create_config):
     """Multiple config keys are all forwarded."""
     conf = create_config(
         "pyproject.toml",
-        f'[tool.click-extra.wrap."{weather_script}"]\n'
+        f'[tool.click-extra.wrap."{Path(weather_script).as_posix()}"]\n'
         f'city = "Tokyo"\n'
         f'unit = "fahrenheit"\n',
     )
@@ -458,7 +460,7 @@ def test_config_target_cli_overrides(runner, greet_script, create_config):
     """Explicit CLI args override config target defaults."""
     conf = create_config(
         "pyproject.toml",
-        f'[tool.click-extra.wrap."{greet_script}"]\nname = "Alice"\n',
+        f'[tool.click-extra.wrap."{Path(greet_script).as_posix()}"]\nname = "Alice"\n',
     )
     result = runner.invoke(
         demo,
@@ -490,7 +492,7 @@ def test_config_target_empty_section(runner, greet_script, create_config):
     """An empty target section produces no extra args."""
     conf = create_config(
         "pyproject.toml",
-        f'[tool.click-extra.wrap."{greet_script}"]\n',
+        f'[tool.click-extra.wrap."{Path(greet_script).as_posix()}"]\n',
     )
     result = runner.invoke(
         demo,
@@ -514,7 +516,7 @@ def test_config_target_invalid_option(runner, greet_script, create_config):
     """An invalid config key is caught by the target CLI."""
     conf = create_config(
         "pyproject.toml",
-        f'[tool.click-extra.wrap."{greet_script}"]\nnonexistent_option = "bad"\n',
+        f'[tool.click-extra.wrap."{Path(greet_script).as_posix()}"]\nnonexistent_option = "bad"\n',
     )
     result = runner.invoke(
         demo,
