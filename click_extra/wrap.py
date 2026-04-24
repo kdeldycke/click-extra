@@ -361,7 +361,9 @@ def _config_args_for_target(
     # TOML basic strings interpret backslashes as escape sequences, so users
     # must use forward slashes in their pyproject.toml keys.
     normalized_script = script.replace("\\", "/")
-    target_section = full_conf.get(app_name, {}).get("wrap", {}).get(normalized_script, {})
+    target_section = (
+        full_conf.get(app_name, {}).get("wrap", {}).get(normalized_script, {})
+    )
     if not target_section or not isinstance(target_section, dict):
         return ()
 

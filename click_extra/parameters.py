@@ -456,7 +456,7 @@ def get_param_spec(param: click.Parameter, ctx: click.Context) -> str | None:
     """
     if not hasattr(param, "hidden"):
         return None
-    with (patch.object(param, "hidden", False) if param.hidden else nullcontext()):
+    with patch.object(param, "hidden", False) if param.hidden else nullcontext():
         help_record = param.get_help_record(ctx)
         return help_record[0] if help_record else None
 
@@ -483,9 +483,7 @@ def format_param_row(
 
     if is_structured:
         default_val = param.get_default(ctx)
-        if not isinstance(
-            default_val, (str, int, float, bool, list, type(None))
-        ):
+        if not isinstance(default_val, (str, int, float, bool, list, type(None))):
             default_val = repr(default_val)
         return (
             path,
