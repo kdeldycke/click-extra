@@ -129,9 +129,7 @@ def _walk_cmd_params(cmd, ctx, parent_keys=()):
             if subcmd is None:
                 continue
             subcmd_ctx = click.Context(subcmd, parent=ctx, info_name=subcmd_name)
-            yield from _walk_cmd_params(
-                subcmd, subcmd_ctx, (*parent_keys, subcmd_name)
-            )
+            yield from _walk_cmd_params(subcmd, subcmd_ctx, (*parent_keys, subcmd_name))
 
 
 @demo.command(
@@ -205,9 +203,7 @@ def show_params_cmd(
                 f"Specify the correct one with module:name notation."
             )
         else:
-            raise ClickException(
-                f"No Click commands found in {module_path}."
-            )
+            raise ClickException(f"No Click commands found in {module_path}.")
 
     # Navigate to subcommand if specified.
     assert isinstance(cli_obj, click.Command)
