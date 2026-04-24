@@ -23,6 +23,14 @@ assert "Apply Click Extra help colorization" in result.stdout
 assert "--theme" in result.stdout
 ```
 
+````{tip}
+`wrap` is an alias for `run`, so you can also use:
+
+```shell-session
+$ click-extra wrap flask --help
+```
+````
+
 ## Wrapping a Click CLI
 
 Pass the target CLI name (or path) as the first argument. Everything after it is forwarded to the target:
@@ -34,11 +42,13 @@ $ click-extra ./my_script.py --help
 $ click-extra my_package.cli:main --help
 ```
 
-A `--` separator is optional but supported:
+````{tip}
+An optional `--` separator is available which you can use for visually separating Click Extra from the target CLI:
 
 ```shell-session
 $ click-extra --no-color -- flask --help
 ```
+````
 
 ## Execution timing
 
@@ -127,8 +137,8 @@ The `SCRIPT` argument is resolved in this order:
 The wrapper is particularly useful with [`uvx`](https://docs.astral.sh/uv/reference/cli/#uvx) for one-shot colorization of any Click CLI without permanently installing Click Extra:
 
 ```shell-session
-$ uvx click-extra flask --help
-$ uvx click-extra black --help
+$ uvx click-extra -- flask --help
+$ uvx click-extra -- black --help
 ```
 
 ## How it works
@@ -142,23 +152,46 @@ CLIs already built with Click Extra or Cloup are unaffected by the patching (the
 
 ## Introspecting external CLIs
 
-The `show-params` subcommand lets you inspect the parameters of any Click CLI without running it:
+The `show-params` subcommand inspects the parameters of any Click CLI without running it. It displays a table with each parameter's ID, spec, class, type, hidden status, environment variables, and default value.
 
-```shell-session
-$ click-extra show-params flask
-$ click-extra show-params --table-format vertical flask run
-$ click-extra show-params --table-format json flask
+```{click:source}
+:hide-source:
+from click_extra.cli import show_params_cmd
 ```
 
-It displays a table with each parameter's ID, spec, class, type, hidden status, environment variables, and default value. All `--table-format` renderings are supported.
+```{click:run}
+result = invoke(show_params_cmd, prog_name="click-extra show-params", args=["--help"])
+assert result.exit_code == 0
+assert "Show parameters of an external Click CLI" in result.stdout
+assert "--table-format" in result.stdout
+```
+
+Here is an example introspecting Flask's `run` subcommand with the vertical table format:
+
+```{click:run}
+result = invoke(show_params_cmd, prog_name="click-extra show-params", args=["--table-format", "vertical", "flask", "run"])
+assert result.exit_code == 0
+assert "run.host" in result.output
+assert "run.port" in result.output
+assert "-p, --port INTEGER" in result.output
+```
+
+All `--table-format` renderings are supported. JSON output is useful for programmatic consumption:
+
+```{click:run}
+result = invoke(show_params_cmd, prog_name="click-extra show-params", args=["--table-format", "json", "flask", "run"])
+assert result.exit_code == 0
+assert '"run.port"' in result.output
+assert '"Default": 5000' in result.output
+```
 
 ### Subcommand drilling
 
 Extra arguments after `SCRIPT` navigate into nested command groups:
 
 ```shell-session
-$ click-extra show-params flask run
-$ click-extra show-params flask routes
+$ click-extra show-params -- flask run
+$ click-extra show-params -- flask routes
 ```
 
 ### Target resolution
@@ -168,7 +201,7 @@ Target resolution follows the same order as `run`: console_scripts entry points,
 When the resolved entry point is a wrapper function (not a Click command), the module is scanned for Click command instances. If a single command group is found, it is used automatically. If multiple candidates exist, the error message lists them so you can use explicit `module:name` notation:
 
 ```shell-session
-$ click-extra show-params flask.cli:cli
+$ click-extra show-params -- flask.cli:cli
 ```
 
 ### `click_extra.wrap` API

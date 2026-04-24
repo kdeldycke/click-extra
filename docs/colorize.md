@@ -276,7 +276,7 @@ from click_extra.cli import demo
 ```
 
 ```{click:run}
-result = invoke(demo, args=["styles"])
+result = invoke(demo, args=["--color", "styles"])
 assert result.exit_code == 0
 
 # Each style header renders with its own SGR attribute.
@@ -301,7 +301,7 @@ assert "\x1b[32m\x1b[9mgreen\x1b[0m" in result.output
 ### Color matrix
 
 ```{click:run}
-result = invoke(demo, args=["colors"])
+result = invoke(demo, args=["--color", "colors"])
 assert result.exit_code == 0
 
 # Each background header renders with its own background color.
@@ -318,7 +318,7 @@ assert "\x1b[92m\x1b[43mbright_green\x1b[0m" in result.output
 ### 256-color indexed palette
 
 ```{click:run}
-result = invoke(demo, args=["palette"])
+result = invoke(demo, args=["--color", "palette"])
 assert result.exit_code == 0
 
 # System colors (indices 0-15).
@@ -336,7 +336,7 @@ assert "\x1b[38;5;255;48;5;255m" in result.output
 ### 8-color foreground/background combinations
 
 ```{click:run}
-result = invoke(demo, args=["8color"])
+result = invoke(demo, args=["--color", "8color"])
 assert result.exit_code == 0
 
 # Plain foreground (no background).
@@ -352,7 +352,7 @@ assert "\x1b[31;42m gYw \x1b[m" in result.output
 ### 24-bit RGB vs. 256-color quantization
 
 ```{click:run}
-result = invoke(demo, args=["gradient"])
+result = invoke(demo, args=["--color", "gradient"])
 assert result.exit_code == 0
 
 # 24-bit row uses SGR 38;2;r;g;b.

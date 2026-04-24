@@ -9,7 +9,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-04-16T11:43:54.787021064Z"
+exclude-newer = "2026-04-16T16:12:55.002698Z"
 exclude-newer-span = "P1W"
 
 [options.exclude-newer-package]
@@ -65,6 +65,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c3/b0/1c6a16426d389813b48d95e26898aff79abbde42ad353958ad95cc8c9b21/beautifulsoup4-4.14.3.tar.gz", hash = "sha256:6292b1c5186d356bba669ef9f7f051757099565ad9ada5dd630bd9de5fa7fb86", size = 627737, upload-time = "2025-11-30T15:08:26.084Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1a/39/47f9197bdd44df24d67ac8893641e16f386c984a0619ef2ee4c51fbbc019/beautifulsoup4-4.14.3-py3-none-any.whl", hash = "sha256:0918bfe44902e6ad8d57732ba310582e98da931428d231a5ecb9e7c703a735bb", size = 107721, upload-time = "2025-11-30T15:08:24.087Z" },
+]
+
+[[package]]
+name = "blinker"
+version = "1.9.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/21/28/9b3f50ce0e048515135495f198351908d99540d69bfdc8c1d15b73dc55ce/blinker-1.9.0.tar.gz", hash = "sha256:b4ce2265a7abece45e7cc896e98dbebe6cead56bcf805a3d23136d145f5445bf", size = 22460, upload-time = "2024-11-08T17:25:47.436Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/10/cb/f2ad4230dc2eb1a74edf38f1a38b9b52277f75bef262d8908e60d957e13c/blinker-1.9.0-py3-none-any.whl", hash = "sha256:ba0efaa9080b619ff2f3459d1d500c57bddea4a6b424b60a91141db6fd2f08bc", size = 8458, upload-time = "2024-11-08T17:25:46.184Z" },
 ]
 
 [[package]]
@@ -268,8 +277,16 @@ yaml = [
 
 [package.dev-dependencies]
 docs = [
+    { name = "flask", marker = "python_full_version >= '3.14'" },
     { name = "furo", marker = "python_full_version >= '3.14'" },
+    { name = "hjson", marker = "python_full_version >= '3.14'" },
+    { name = "json-with-comments", marker = "python_full_version >= '3.14'" },
+    { name = "json5", marker = "python_full_version >= '3.14'" },
+    { name = "mkdocs", marker = "python_full_version >= '3.14'" },
     { name = "myst-parser", version = "5.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
+    { name = "pygments", marker = "python_full_version >= '3.14'" },
+    { name = "pymdown-extensions", marker = "python_full_version >= '3.14'" },
+    { name = "pytest", marker = "python_full_version >= '3.14'" },
     { name = "sphinx", version = "9.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
     { name = "sphinx-autodoc-typehints", marker = "python_full_version >= '3.14'" },
     { name = "sphinx-copybutton", marker = "python_full_version >= '3.14'" },
@@ -277,6 +294,7 @@ docs = [
     { name = "sphinx-issues", marker = "python_full_version >= '3.14'" },
     { name = "sphinxcontrib-mermaid", marker = "python_full_version >= '3.14'" },
     { name = "sphinxext-opengraph", marker = "python_full_version >= '3.14'" },
+    { name = "xmltodict", marker = "python_full_version >= '3.14'" },
 ]
 test = [
     { name = "backports-strenum", marker = "python_full_version < '3.11'" },
@@ -337,8 +355,16 @@ provides-extras = ["hjson", "json5", "jsonc", "mkdocs", "pygments", "pytest", "s
 
 [package.metadata.requires-dev]
 docs = [
+    { name = "flask", marker = "python_full_version >= '3.14'", specifier = ">=3" },
     { name = "furo", marker = "python_full_version >= '3.14'", specifier = ">=2025.9.25" },
+    { name = "hjson", marker = "python_full_version >= '3.14'", specifier = ">=3.1" },
+    { name = "json-with-comments", marker = "python_full_version >= '3.14'", specifier = ">=1.2.10" },
+    { name = "json5", marker = "python_full_version >= '3.14'", specifier = ">=0.12.1" },
+    { name = "mkdocs", marker = "python_full_version >= '3.14'", specifier = ">=1.4" },
     { name = "myst-parser", marker = "python_full_version >= '3.14'", specifier = ">=5" },
+    { name = "pygments", marker = "python_full_version >= '3.14'", specifier = ">=2.14" },
+    { name = "pymdown-extensions", marker = "python_full_version >= '3.14'", specifier = ">=10" },
+    { name = "pytest", marker = "python_full_version >= '3.14'", specifier = ">=8" },
     { name = "sphinx", marker = "python_full_version >= '3.14'", specifier = ">=8" },
     { name = "sphinx-autodoc-typehints", marker = "python_full_version >= '3.14'", specifier = ">=2.4" },
     { name = "sphinx-copybutton", marker = "python_full_version >= '3.14'", specifier = ">=0.5.2" },
@@ -346,6 +372,7 @@ docs = [
     { name = "sphinx-issues", marker = "python_full_version >= '3.14'", specifier = ">=5" },
     { name = "sphinxcontrib-mermaid", marker = "python_full_version >= '3.14'", specifier = ">=1.2.3" },
     { name = "sphinxext-opengraph", marker = "python_full_version >= '3.14'", specifier = ">=0.13" },
+    { name = "xmltodict", marker = "python_full_version >= '3.14'", specifier = ">=1" },
 ]
 test = [
     { name = "backports-strenum", marker = "python_full_version < '3.11'", specifier = ">=1.3" },
@@ -575,6 +602,23 @@ pytest = [
 ]
 
 [[package]]
+name = "flask"
+version = "3.1.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "blinker", marker = "python_full_version >= '3.14'" },
+    { name = "click", marker = "python_full_version >= '3.14'" },
+    { name = "itsdangerous", marker = "python_full_version >= '3.14'" },
+    { name = "jinja2", marker = "python_full_version >= '3.14'" },
+    { name = "markupsafe", marker = "python_full_version >= '3.14'" },
+    { name = "werkzeug", marker = "python_full_version >= '3.14'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/26/00/35d85dcce6c57fdc871f3867d465d780f302a175ea360f62533f12b27e2b/flask-3.1.3.tar.gz", hash = "sha256:0ef0e52b8a9cd932855379197dd8f94047b359ca0a78695144304cb45f87c9eb", size = 759004, upload-time = "2026-02-19T05:00:57.678Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7f/9c/34f6962f9b9e9c71f6e5ed806e0d0ff03c9d1b0b2340088a0cf4bce09b18/flask-3.1.3-py3-none-any.whl", hash = "sha256:f4bcbefc124291925f1a26446da31a5178f9483862233b23c0c96a20701f670c", size = 103424, upload-time = "2026-02-19T05:00:56.027Z" },
+]
+
+[[package]]
 name = "furo"
 version = "2025.12.19"
 source = { registry = "https://pypi.org/simple" }
@@ -636,6 +680,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/72/34/14ca021ce8e5dfedc35312d08ba8bf51fdd999c576889fc2c24cb97f4f10/iniconfig-2.3.0.tar.gz", hash = "sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730", size = 20503, upload-time = "2025-10-18T21:55:43.219Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cb/b1/3846dd7f199d53cb17f49cba7e651e9ce294d8497c8c150530ed11865bb8/iniconfig-2.3.0-py3-none-any.whl", hash = "sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12", size = 7484, upload-time = "2025-10-18T21:55:41.639Z" },
+]
+
+[[package]]
+name = "itsdangerous"
+version = "2.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/9c/cb/8ac0172223afbccb63986cc25049b154ecfb5e85932587206f42317be31d/itsdangerous-2.2.0.tar.gz", hash = "sha256:e0050c0b7da1eea53ffaf149c0cfbb5c6e2e2b69c4bef22c81fa6eb73e5f6173", size = 54410, upload-time = "2024-04-16T21:28:15.614Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/04/96/92447566d16df59b2a776c0fb82dbc4d9e07cd95062562af01e408583fc4/itsdangerous-2.2.0-py3-none-any.whl", hash = "sha256:c6242fc49e35958c8b15141343aa660db5fc54d4f13a1db01a3f5891b98700ef", size = 16234, upload-time = "2024-04-16T21:28:14.499Z" },
 ]
 
 [[package]]

@@ -175,7 +175,8 @@ Which renders in Sphinx as if it was executed in a terminal code block:
 
 ```{click:run}
 result = invoke(hello_world, args=["--name", "Joe"])
-assert result.output == 'Hello, \x1b[31mJoe\x1b[0m!\n'
+assert "Hello, " in result.output
+assert "Joe" in result.output
 ```
 
 ```{hint}

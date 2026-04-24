@@ -227,10 +227,25 @@ test = [
   "tomli>=2; python_version<'3.11'",
 ]
 docs = [
+  # Flask is used as a real-world example in docs {click:run} blocks.
+  "flask>=3",
   # furo 2024.8.6+ supports Sphinx 8; pinned to recent CalVer release.
   "furo>=2025.9.25",
+  # All optional config format dependencies are needed for {click:run} blocks in config.md.
+  "hjson>=3.1",
+  "json-with-comments>=1.2.10",
+  "json5>=0.12.1",
+  # MkDocs is needed for automodule/autoclasstree of click_extra.mkdocs.
+  "mkdocs>=1.4",
   # myst-parser 5.0 stabilized MyST extensions and improved Sphinx directive support.
   "myst-parser>=5",
+  # Pygments is needed for automodule/autoclasstree of click_extra.pygments.
+  "pygments>=2.14",
+  # pymdown-extensions is needed by the mkdocs plugin module.
+  "pymdown-extensions>=10",
+  # pytest is needed for automodule/autoclasstree of click_extra.pytest.
+  "pytest>=8",
+  "xmltodict>=1",
   # Sphinx 8.0.0 is the first version to drop Python 3.9, like us.
   "sphinx>=8",
   # sphinx-autodoc-typehints 2.4.0 is the first version that is aligned to our Python >= 3.10 requirement.
