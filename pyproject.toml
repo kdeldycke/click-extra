@@ -245,7 +245,6 @@ docs = [
   "pymdown-extensions>=10",
   # pytest is needed for automodule/autoclasstree of click_extra.pytest.
   "pytest>=8",
-  "xmltodict>=1",
   # Sphinx 8.0.0 is the first version to drop Python 3.9, like us.
   "sphinx>=8",
   # sphinx-autodoc-typehints 2.4.0 is the first version that is aligned to our Python >= 3.10 requirement.
@@ -260,6 +259,7 @@ docs = [
   "sphinxcontrib-mermaid>=1.2.3",
   # sphinxext-opengraph 0.13 stabilized OpenGraph metadata generation for Sphinx 8+.
   "sphinxext-opengraph>=0.13",
+  "xmltodict>=1",
 ]
 typing = [
   "types-boltons>=25.0.0.20250919",
