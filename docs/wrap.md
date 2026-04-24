@@ -1,33 +1,33 @@
 # {octicon}`terminal` CLI wrapper
 
-Click Extra's `run` subcommand applies its help colorization to any installed Click CLI, without modifying the target's source code. This is useful for previewing how a third-party CLI would look with Click Extra's keyword highlighting and themed styling.
+Click Extra's `wrap` subcommand applies its help colorization to any installed Click CLI, without modifying the target's source code. This is useful for previewing how a third-party CLI would look with Click Extra's keyword highlighting and themed styling.
 
 ## Usage
 
-The `run` subcommand is the default when no known subcommand is given, so both forms work:
+The `wrap` subcommand is the default when no known subcommand is given, so both forms work:
 
 ```shell-session
-$ click-extra run flask --help
+$ click-extra wrap flask --help
 $ click-extra flask --help
 ```
 
 ```{click:source}
 :hide-source:
-from click_extra.wrap import run
+from click_extra.wrap import wrap
 ```
 
 ```{click:run}
-result = invoke(run, args=["--help"])
+result = invoke(wrap, args=["--help"])
 assert result.exit_code == 0
 assert "Apply Click Extra help colorization" in result.stdout
 assert "--theme" in result.stdout
 ```
 
 ````{tip}
-`wrap` is an alias for `run`, so you can also use:
+`run` is an alias for `wrap`, so you can also use:
 
 ```shell-session
-$ click-extra wrap flask --help
+$ click-extra run flask --help
 ```
 ````
 
@@ -68,10 +68,10 @@ $ click-extra --no-color flask --help
 $ NO_COLOR=1 click-extra flask --help
 ```
 
-The `--theme` option on `run` selects a color preset:
+The `--theme` option on `wrap` selects a color preset:
 
 ```shell-session
-$ click-extra run --theme light flask --help
+$ click-extra wrap --theme light flask --help
 ```
 
 ## Configuration
@@ -91,10 +91,10 @@ debug: Set <Logger click_extra (DEBUG)> to DEBUG.
 
 ### Defaults for the wrapped CLI
 
-The `[tool.click-extra.run.<script>]` section sets persistent defaults for a specific target CLI. All keys are converted to CLI arguments and prepended to the target's invocation:
+The `[tool.click-extra.wrap.<script>]` section sets persistent defaults for a specific target CLI. All keys are converted to CLI arguments and prepended to the target's invocation:
 
 ```toml
-[tool.click-extra.run.flask]
+[tool.click-extra.wrap.flask]
 app = "myapp:create_app"
 debug = true
 ```
@@ -107,10 +107,10 @@ $ click-extra flask routes
 The section name must match the script name you pass on the command line. Multiple targets can each have their own section:
 
 ```toml
-[tool.click-extra.run.flask]
+[tool.click-extra.wrap.flask]
 app = "myapp:create_app"
 
-[tool.click-extra.run.quart]
+[tool.click-extra.wrap.quart]
 app = "otherapp:create_app"
 ```
 
@@ -196,7 +196,7 @@ $ click-extra show-params -- flask routes
 
 ### Target resolution
 
-Target resolution follows the same order as `run`: console_scripts entry points, `module:function` notation, `.py` file paths, and Python module names.
+Target resolution follows the same order as `wrap`: console_scripts entry points, `module:function` notation, `.py` file paths, and Python module names.
 
 When the resolved entry point is a wrapper function (not a Click command), the module is scanned for Click command instances. If a single command group is found, it is used automatically. If multiple candidates exist, the error message lists them so you can use explicit `module:name` notation:
 

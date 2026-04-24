@@ -48,10 +48,10 @@ _original_format_help = click.Command.format_help
 
 
 class WrapperGroup(ExtraGroup):
-    """ExtraGroup that falls back to the ``run`` subcommand for unknown names.
+    """ExtraGroup that falls back to the ``wrap`` subcommand for unknown names.
 
     Known subcommands and their aliases are dispatched normally. Anything
-    else is treated as a target script and forwarded to ``run``.
+    else is treated as a target script and forwarded to ``wrap``.
     """
 
     def resolve_command(
@@ -66,10 +66,10 @@ class WrapperGroup(ExtraGroup):
             cmd = self.get_command(ctx, resolved)
             if cmd is not None:
                 return cmd_name, cmd, args[1:]
-        # Unknown name: delegate the entire arg list to ``run``.
-        run_cmd = self.get_command(ctx, "run")
-        if run_cmd is not None:
-            return "run", run_cmd, args
+        # Unknown name: delegate the entire arg list to ``wrap``.
+        wrap_cmd = self.get_command(ctx, "wrap")
+        if wrap_cmd is not None:
+            return "wrap", wrap_cmd, args
         return super().resolve_command(ctx, args)
 
 
@@ -310,8 +310,8 @@ def invoke_target(
         sys.argv = original_argv
 
 
-class _RunCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
-    """Cloup Command for the ``run`` subcommand.
+class _WrapCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
+    """Cloup Command for the ``wrap`` subcommand.
 
     Uses Cloup (not vanilla Click) to support aliases. Like
     :class:`~click_extra.commands.ColorizedCommand` but based on
@@ -325,10 +325,10 @@ def _config_args_for_target(
     ctx: click.Context,
     script: str,
 ) -> tuple[str, ...]:
-    """Read the ``[run.<script>]`` config section and convert to CLI args.
+    """Read the ``[wrap.<script>]`` config section and convert to CLI args.
 
-    Looks for a config section named after the target script under ``run``.
-    For example, ``click-extra run flask`` reads ``[tool.click-extra.run.flask]``
+    Looks for a config section named after the target script under ``wrap``.
+    For example, ``click-extra wrap flask`` reads ``[tool.click-extra.wrap.flask]``
     in ``pyproject.toml``. All keys in that section are converted to CLI
     arguments and prepended to the target's invocation.
 
@@ -337,7 +337,7 @@ def _config_args_for_target(
 
     .. code-block:: toml
 
-        [tool.click-extra.run.flask]
+        [tool.click-extra.wrap.flask]
         app = "myapp:create_app"
         debug = true
     """
@@ -347,9 +347,9 @@ def _config_args_for_target(
     if not full_conf:
         return ()
 
-    # Extract the [click-extra.run.<script>] section from the raw config.
+    # Extract the [click-extra.wrap.<script>] section from the raw config.
     app_name = root_ctx.command.name or ""
-    target_section = full_conf.get(app_name, {}).get("run", {}).get(script, {})
+    target_section = full_conf.get(app_name, {}).get("wrap", {}).get(script, {})
     if not target_section or not isinstance(target_section, dict):
         return ()
 
@@ -376,9 +376,9 @@ def _config_args_for_target(
 
 
 @click.command(
-    name="run",
-    aliases=["wrap"],
-    cls=_RunCommand,
+    name="wrap",
+    aliases=["run"],
+    cls=_WrapCommand,
     context_settings={"allow_interspersed_args": False},
 )
 @click.argument(
@@ -394,7 +394,7 @@ def _config_args_for_target(
     help="Color theme preset.",
 )
 @click.pass_context
-def run(
+def wrap(
     ctx: click.Context,
     script_and_args: tuple[str, ...],
     theme: str,
@@ -414,7 +414,7 @@ def run(
     script = script_and_args[0]
     args = script_and_args[1:]
 
-    # Extract config from the [run.<script>] section and prepend as CLI
+    # Extract config from the [wrap.<script>] section and prepend as CLI
     # arguments for the target.
     config_args = _config_args_for_target(ctx, script)
     if config_args:

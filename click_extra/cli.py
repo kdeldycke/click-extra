@@ -47,7 +47,7 @@ from .version import (
     prebake_version,
     run_git,
 )
-from .wrap import WrapperGroup, resolve_target, run as run_cmd
+from .wrap import WrapperGroup, resolve_target, wrap as wrap_cmd
 
 
 def _resolve_paths(module: Path | None) -> list[Path]:
@@ -97,7 +97,7 @@ def demo():
     """Click Extra CLI."""
 
 
-demo.add_command(run_cmd)
+demo.add_command(wrap_cmd)
 
 
 _INTROSPECT_HEADERS = (
