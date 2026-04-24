@@ -123,7 +123,7 @@ def _walk_cmd_params(cmd, ctx, parent_keys=()):
         if p.name is not None:
             yield (*parent_keys, p.name), p, ctx
 
-    if isinstance(cmd, click.MultiCommand):
+    if isinstance(cmd, click.Group):
         for subcmd_name in sorted(cmd.list_commands(ctx)):
             subcmd = cmd.get_command(ctx, subcmd_name)
             if subcmd is None:
@@ -183,7 +183,7 @@ def show_params_cmd(
         commands = {}
         for attr_name in dir(mod):
             obj = getattr(mod, attr_name, None)
-            if isinstance(obj, click.MultiCommand):
+            if isinstance(obj, click.Group):
                 groups[attr_name] = obj
             elif isinstance(obj, click.Command):
                 commands[attr_name] = obj
@@ -210,10 +210,11 @@ def show_params_cmd(
             )
 
     # Navigate to subcommand if specified.
-    cmd = cli_obj
+    assert isinstance(cli_obj, click.Command)
+    cmd: click.Command = cli_obj
     cmd_ctx = click.Context(cmd, info_name=cmd.name or script)
     for sub in subcommands:
-        if not isinstance(cmd, click.MultiCommand):
+        if not isinstance(cmd, click.Group):
             raise ClickException(
                 f"{cmd.name!r} is not a group; cannot navigate to {sub!r}."
             )

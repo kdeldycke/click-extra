@@ -234,21 +234,28 @@ def resolve_target(script: str) -> tuple[str, str]:
             )
             return module_path, function_name
 
-    # 2. Explicit module:function notation.
-    if ":" in script:
-        module_path, function_name = script.rsplit(":", 1)
-        logger.info(
-            "Resolved %r as module:function: %s:%s.",
-            script,
-            module_path,
-            function_name,
-        )
-        return module_path, function_name
-
-    # 3. .py file path.
-    if script.endswith(".py") and Path(script).is_file():
-        logger.info("Resolved %r as .py file.", script)
-        return script, ""
+    # 2. .py file path. Checked before the module:function heuristic so that
+    # Windows absolute paths (e.g. ``C:\...\foo.py``) are not mistaken for
+    # ``module:function`` notation — the drive-letter colon would otherwise
+    # split the path at the wrong position.
+    if script.endswith(".py"):
+        if Path(script).is_file():
+            logger.info("Resolved %r as .py file.", script)
+            return script, ""
+        # .py path that does not exist: fall through to bare module lookup.
+        # Skip the module:function check below — a .py name is never valid
+        # module:function notation.
+    else:
+        # 3. Explicit module:function notation.
+        if ":" in script:
+            module_path, function_name = script.rsplit(":", 1)
+            logger.info(
+                "Resolved %r as module:function: %s:%s.",
+                script,
+                module_path,
+                function_name,
+            )
+            return module_path, function_name
 
     # 4. Bare module name. Check existence without importing so the module
     # is not loaded before patch_click() runs.

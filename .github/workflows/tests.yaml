@@ -94,18 +94,16 @@ jobs:
           pip install click-extra
           click-extra --version
 
-      - name: Test wrapper on Click CLIs
-        run: |
-          pip install click-extra flask quart
-          click-extra             run   flask --help
-          click-extra             wrap  flask --help
-          click-extra --no-color  run   flask --help
-          click-extra                   flask --help
-          click-extra             run   quart --help
-          click-extra                   quart --help
-
       - name: Install project
         run: uv --no-progress sync --frozen --all-extras --group test
+      - name: Test wrapper on Click CLIs
+        run: |
+          uv --no-progress run --frozen --with flask --with quart -- click-extra             run   flask --help
+          uv --no-progress run --frozen --with flask --with quart -- click-extra             wrap  flask --help
+          uv --no-progress run --frozen --with flask --with quart -- click-extra --no-color  run   flask --help
+          uv --no-progress run --frozen --with flask --with quart -- click-extra                   flask --help
+          uv --no-progress run --frozen --with flask --with quart -- click-extra             run   quart --help
+          uv --no-progress run --frozen --with flask --with quart -- click-extra                   quart --help
       - name: Run once-only tests
         run: uv --no-progress run --frozen -- pytest -m once
 
