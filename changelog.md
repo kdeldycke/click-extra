@@ -5,11 +5,13 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
-- Add `wrap` subcommand: `click-extra wrap SCRIPT [ARGS]...` applies help colorization to any installed Click CLI without modifying its source. Supports `--theme` option. Resolves targets via console_scripts entry points, `module:function` notation, `.py` file paths, or bare module names. Unknown subcommand names automatically fall through to `wrap`, so `click-extra flask --help` works without typing `wrap` explicitly. Extra keys in the `[tool.click-extra.wrap]` config section are forwarded as CLI arguments to the wrapped target, allowing persistent defaults for any Click CLI. `run` is kept as an alias.
-- Add `show-params` subcommand: `click-extra show-params SCRIPT [SUBCOMMAND]...` introspects an external Click CLI's parameters and displays them as a table. Supports all `--table-format` renderings (vertical, JSON, YAML, CSV, etc.). Drills into nested subcommands. When the entry point is a wrapper function, auto-discovers the Click command in the module.
-- Replace `render-matrix` subcommand with individual `colors`, `styles`, `palette`, `8color`, and `gradient` subcommands, grouped under a "Demo" section.
-- Remove `click-extra-demo` entry point. All functionality is accessible via `click-extra` subcommands.
-- Move Sphinx tests into their own `tests/sphinx/` subdirectory. Downstream packagers can skip them with `--ignore=tests/sphinx` without pulling in Sphinx dependencies.
+- Add `wrap` subcommand: `click-extra wrap SCRIPT [ARGS]...` applies help colorization to any installed Click CLI without modifying its source. Supports `--theme` option and `[tool.click-extra.wrap.<script>]` config sections for persistent CLI defaults. Resolves SCRIPT via console_scripts entry points, `module:function` notation, `.py` file paths, or bare module names. Unknown subcommand names fall through to `wrap` automatically, so `click-extra flask --help` works without typing `wrap`. `run` is kept as an alias.
+- Add `show-params` subcommand: `click-extra show-params SCRIPT [SUBCOMMAND]...` introspects any external Click CLI's parameters and displays them as a table. Supports all `--table-format` renderings. Drills into nested subcommands. Auto-discovers the Click command when the entry point is a wrapper function.
+- Style `Spec.` column with `option` theme (cyan) and `Python type` with `metavar` theme (cyan dim) in both `--show-params` and `show-params`, matching help-screen conventions.
+- Add `get_param_spec()` and `format_param_row()` as public API in `click_extra.parameters`. `get_param_spec()` extracts option-spec strings and handles hidden-param unhiding. `format_param_row()` is the shared cell renderer for both `--show-params` and `show-params` tables.
+- Make `ParamStructure.get_param_type()` a `@staticmethod`. Returns `str` for unrecognised custom types instead of raising `ValueError`.
+- Replace `render-matrix` subcommand with individual `colors`, `styles`, `palette`, `8color`, and `gradient` subcommands grouped under a "Demo" section. Remove the `click-extra-demo` entry point.
+- Move Sphinx tests into `tests/sphinx/`. Downstream packagers can skip them with `--ignore=tests/sphinx` without pulling in Sphinx dependencies.
 - Bump Click requirement to `8.3.3`. Simplify `ParameterSource` comparisons in `ConfigOption` using the new `IntEnum` ordering.
 
 ## [`7.13.0` (2026-04-16)](https://github.com/kdeldycke/click-extra/compare/v7.12.0...v7.13.0)
