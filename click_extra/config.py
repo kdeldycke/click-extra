@@ -1728,7 +1728,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         explicit_sources = {
             ParameterSource.COMMANDLINE,
             ParameterSource.ENVIRONMENT,
-            ParameterSource.DEFAULT,
+            ParameterSource.PROMPT,
         }
 
         if path_pattern is NO_CONFIG:
