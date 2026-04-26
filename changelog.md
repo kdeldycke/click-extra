@@ -1,5 +1,10 @@
 # Changelog
 
+## [`7.14.2.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.14.1...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`7.14.1` (2026-04-26)](https://github.com/kdeldycke/click-extra/compare/v7.14.0...v7.14.1)
 
 - Relax Click requirement back to `8.1`. Replace `ParameterSource` ordered comparisons in `ConfigOption` with explicit set membership so the code works on both the regular `Enum` (Click `8.1`/`8.2`) and the `IntEnum` (Click `8.3`+).
