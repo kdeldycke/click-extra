@@ -1721,10 +1721,20 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         assert self.name is not None  # Always set for Option subclasses.
 
+        # Set membership instead of ordered comparison: ParameterSource is a
+        # plain Enum in Click < 8.3 and an IntEnum in Click >= 8.3. Listing the
+        # members keeps the same semantics on both versions and avoids forcing
+        # downstream packagers to bump Click globally.
+        explicit_sources = {
+            ParameterSource.COMMANDLINE,
+            ParameterSource.ENVIRONMENT,
+            ParameterSource.DEFAULT,
+        }
+
         if path_pattern is NO_CONFIG:
             logger.debug(f"{NO_CONFIG} received.")
             source = ctx.get_parameter_source(self.name)
-            explicit = source is not None and source < ParameterSource.DEFAULT_MAP
+            explicit = source is not None and source in explicit_sources
             if explicit:
                 info_msg("Skip configuration file loading altogether.")
             else:
@@ -1732,9 +1742,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             return
 
         conf_source = ctx.get_parameter_source(self.name)
-        explicit_conf = (
-            conf_source is not None and conf_source < ParameterSource.DEFAULT_MAP
-        )
+        explicit_conf = conf_source is not None and conf_source in explicit_sources
 
         # Print configuration location to the user if it was explicitly set.
         # Normalize to string to both allow parsing as a glob pattern or URL.

@@ -70,6 +70,11 @@ tabulate._table_formats.update(  # type: ignore[attr-defined]
 _fmts = tabulate._table_formats  # type: ignore[attr-defined]
 _fmts["github"] = _fmts["pipe"]
 
+# Backport ``colon_grid`` for tabulate < 0.10 by aliasing it to ``grid``. Lets
+# downstream distributions ship click-extra without bumping tabulate globally.
+if "colon_grid" not in _fmts:
+    _fmts["colon_grid"] = _fmts["grid"]
+
 
 class TableFormat(Enum):
     """Enumeration of supported table formats.

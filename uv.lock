@@ -9,7 +9,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-04-17T13:17:09.540665889Z"
+exclude-newer = "2026-04-19T16:50:32.375652Z"
 exclude-newer-span = "P1W"
 
 [options.exclude-newer-package]
@@ -328,7 +328,7 @@ typing = [
 [package.metadata]
 requires-dist = [
     { name = "boltons", specifier = ">=20" },
-    { name = "click", specifier = ">=8.3.3" },
+    { name = "click", specifier = ">=8.1" },
     { name = "cloup", specifier = ">=3.0.7" },
     { name = "deepmerge", specifier = ">=1.0.1" },
     { name = "docutils", marker = "extra == 'sphinx'", specifier = ">=0.20" },
@@ -345,7 +345,7 @@ requires-dist = [
     { name = "pyyaml", marker = "extra == 'yaml'", specifier = ">=6.0.3" },
     { name = "requests", specifier = ">=2.32.4" },
     { name = "sphinx", marker = "extra == 'sphinx'", specifier = ">=8" },
-    { name = "tabulate", extras = ["widechars"], specifier = ">=0.10" },
+    { name = "tabulate", extras = ["widechars"], specifier = ">=0.9" },
     { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2" },
     { name = "tomlkit", marker = "extra == 'toml'", specifier = ">=0.13" },
     { name = "wcmatch", specifier = ">=10" },
