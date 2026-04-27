@@ -1,9 +1,6 @@
 # Changelog
 
-## [`7.14.2.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.14.1...main)
-
-> [!WARNING]
-> This version is **not released yet** and is under active development.
+## [`7.14.2` (2026-04-27)](https://github.com/kdeldycke/click-extra/compare/v7.14.1...v7.14.2)
 
 - Tighten Click floor from `8.1` to `8.3.1`. The relaxation in `7.14.1` went further than needed; `8.3.1` is the minimum that ships the parameter-name fix we depend on.
 
