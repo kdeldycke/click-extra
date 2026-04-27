@@ -1721,10 +1721,9 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         assert self.name is not None  # Always set for Option subclasses.
 
-        # Set membership instead of ordered comparison: ParameterSource is a
-        # plain Enum in Click < 8.3 and an IntEnum in Click >= 8.3. Listing the
-        # members keeps the same semantics on both versions and avoids forcing
-        # downstream packagers to bump Click globally.
+        # Listed explicitly: the ParameterSource IntEnum ordering does not
+        # cleanly split explicit from non-explicit sources, since DEFAULT and
+        # DEFAULT_MAP fall between the user-set members.
         explicit_sources = {
             ParameterSource.COMMANDLINE,
             ParameterSource.ENVIRONMENT,

@@ -85,9 +85,8 @@ classifiers = [
 dependencies = [
   # boltons 20.0.0 added shrinkuser(); our config.py uses it for path display.
   "boltons>=20",
-  # Click 8.1.0 introduced ctx.get_parameter_source(); the IntEnum semantics
-  # added in 8.3 are emulated with explicit membership checks in config.py.
-  "click>=8.1",
+  # Click 8.3.1 fix an issue with parameters sharing same name.
+  "click>=8.3.1",
   # Cloup 3.0.7 fix issues with metavars: https://github.com/kdeldycke/click-extra/pull/1281
   "cloup>=3.0.7",
   # always_merger (recursive dict merge) available since deepmerge 1.0.1.
