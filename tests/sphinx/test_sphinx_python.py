@@ -222,9 +222,7 @@ def test_exec_directives_disabled_by_default(tmp_path):
     """)
     html = app.build_document(content)
     assert html is not None
-    assert sentinel not in html, (
-        "directive executed despite the opt-in gate being off"
-    )
+    assert sentinel not in html, "directive executed despite the opt-in gate being off"
 
 
 def test_exec_directives_enabled_with_opt_in(tmp_path):
