@@ -6,6 +6,7 @@
 > This version is **not released yet** and is under active development.
 
 - Tighten Click floor from `8.1` to `8.3.1`. The relaxation in `7.14.1` went further than needed; `8.3.1` is the minimum that ships the parameter-name fix we depend on.
+- Add `python:source`, `python:run`, `python:render`, `python:render-myst`, and `python:render-rst` Sphinx directives under a new `python` domain in `click_extra.sphinx`. They mirror `click:source` / `click:run` for arbitrary Python (no Click CLI required): `python:source` runs silently and shows source, `python:run` captures `stdout` and renders it in a code block (default lexer `text`, override via `:language:`), and the `render` family parses the captured `stdout` as live document content — generated tables, headings, admonitions, and cross-references become first-class document nodes rather than a code block. `python:render` uses the host file's parser; `python:render-myst` forces MyST parsing (so a `.rst` host can embed MyST-generated content); `python:render-rst` forces reST parsing (so a `.md` host can embed reST-generated content). The Python and Click runners hold independent per-document namespaces. The render family replaces the `docs_update.py` regenerator + marker-region pattern many downstream projects use; the same logic now lives inline in the doc page and runs at build time, so the rendered HTML is always current.
 
 ## [`7.14.1` (2026-04-26)](https://github.com/kdeldycke/click-extra/compare/v7.14.0...v7.14.1)
 

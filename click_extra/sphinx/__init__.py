@@ -35,6 +35,7 @@ from .. import __version__
 from ..pygments import AnsiHtmlFormatter
 from .alerts import convert_github_alerts
 from .click import ClickDomain, cleanup_runner
+from .python import PythonDomain, cleanup_python_runner
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -45,7 +46,13 @@ if TYPE_CHECKING:
 def setup(app: Sphinx) -> ExtensionMetadata:
     """Register extensions to Sphinx.
 
-    - New directives, augmented with ANSI coloring.
+    - ``click:source`` / ``click:run`` directives, augmented with ANSI coloring.
+    - ``python:source`` / ``python:run`` / ``python:render`` /
+      ``python:render-myst`` / ``python:render-rst`` directives that execute
+      arbitrary Python code at build time. The ``render`` family parses the
+      captured output as live document content (host parser, forced MyST, or
+      forced reST respectively), replacing the regenerator-script +
+      marker-region pattern for auto-generated docs.
     - Support for GitHub alerts syntax in *included* and regular *source* files.
 
     .. caution::
@@ -59,6 +66,11 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     # Register click:source and click:run directives.
     app.add_domain(ClickDomain)
     app.connect("doctree-read", cleanup_runner)
+
+    # Register the python:* directive family (source, run, render,
+    # render-myst, render-rst).
+    app.add_domain(PythonDomain)
+    app.connect("doctree-read", cleanup_python_runner)
 
     # Register GitHub alerts converter.
     app.connect("source-read", convert_github_alerts)

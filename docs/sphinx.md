@@ -981,6 +981,106 @@ NameError: name 'yo_cli' is not defined
 ```
 ````
 
+## `python:` directives
+
+Click Extra also adds five general-purpose Python execution directives, registered under a separate `python` domain (distinct from Sphinx's built-in `py` domain for documenting API objects):
+
+- `python:source` to define and show a Python source block, executed silently. Use it to teach readers what a snippet looks like and to seed imports/variables for follow-up blocks.
+- `python:run` to execute a Python block and render its captured `stdout` in a code block. Output language defaults to `text`; override with `:language:` for structured output (`json`, `html`, `yaml`, etc.).
+- `python:render` to execute a Python block and parse its captured `stdout` as **live document content** using the host file's parser. Generated tables, headings, admonitions, and cross-references become first-class document nodes — not a code block.
+- `python:render-myst` to execute a Python block and parse its captured `stdout` as MyST, regardless of host. Lets a `.rst` document embed MyST-generated content.
+- `python:render-rst` to execute a Python block and parse its captured `stdout` as reST, regardless of host. Lets a `.md` document embed reST-generated content.
+
+These complement the Click directives: `click:run` is for showing simulated CLI sessions; `python:run` is for showing arbitrary Python output; the `python:render*` family is for **inline content generation**, replacing the regenerator-script + marker-region pattern many projects use to keep auto-tables in sync.
+
+### Pick the right `render`
+
+| Directive            | Parser used for captured stdout                | When to use                                    |
+| -------------------- | ---------------------------------------------- | ---------------------------------------------- |
+| `python:render`      | Whatever parser owns the host source file      | Generated markup matches the host file format. |
+| `python:render-myst` | MyST, regardless of host                       | Embed MyST-generated content in a `.rst` host. |
+| `python:render-rst`  | reST, regardless of host                       | Embed reST-generated content in a `.md` host.  |
+
+`python:render` reuses the host state machine, so cross-references and Sphinx-aware roles resolve naturally. The forced-parser variants (`render-myst`, `render-rst`) parse into a fresh sub-document and graft the resulting nodes back into the page.
+
+### `python:render` — docs as code
+
+```{tip}
+The strongest use case is replacing a `docs/docs_update.py` script that walks an in-process registry, renders Markdown, and rewrites a region of a `.md` file between `<!-- start -->` / `<!-- end -->` markers. With `python:render`, the same code lives inline in the page itself and runs at build time. The rendered HTML is always current because the source-of-truth registry is queried on every build.
+```
+
+Render the live list of Python's built-in modules as a Markdown table, executed by Sphinx at build time:
+
+``````{tab-set}
+`````{tab-item} MyST Markdown
+:sync: myst
+````{code-block} markdown
+```{python:render}
+import sys
+print("| Module | Type |")
+print("|--------|------|")
+for name in sorted(sys.builtin_module_names)[:5]:
+    print(f"| `{name}` | built-in |")
+```
+````
+`````
+
+`````{tab-item} reStructuredText
+:sync: rst
+```{code-block} rst
+.. python:render::
+
+    import sys
+    print("| Module | Type |")
+    print("|--------|------|")
+    for name in sorted(sys.builtin_module_names)[:5]:
+        print(f"| `{name}` | built-in |")
+```
+`````
+``````
+
+Renders as a real HTML `<table>` (output truncated to 5 entries):
+
+```{python:render}
+import sys
+print("| Module | Type |")
+print("|--------|------|")
+for name in sorted(sys.builtin_module_names)[:5]:
+    print(f"| `{name}` | built-in |")
+```
+
+### Cross-format rendering
+
+`python:render-myst` and `python:render-rst` let a host file embed content authored in the other markup. This page is MyST, but the following block prints reST and parses it as such:
+
+```{python:render-rst}
+print(".. note::")
+print()
+print("   A persimmon must be very ripe to eat raw.")
+```
+
+In an rST host, `python:render-myst` provides the symmetric path: print MyST and have it parsed as MyST regardless of the surrounding `.rst` file.
+
+### Namespace persistence
+
+Like `click:source` / `click:run`, the Python runner holds a per-document namespace, so consecutive blocks share imports and variables:
+
+```{python:source}
+from textwrap import dedent
+
+GREETING = "hello, sphinx"
+```
+
+```{python:run}
+print(dedent(GREETING).upper())
+```
+
+The `python:source` block ran silently to seed `dedent` and `GREETING`; the subsequent `python:run` referenced both.
+
+### Shared options
+
+`python:run` and the `python:render*` directives accept the same option spec as `click:run` (`:show-source:`, `:hide-source:`, `:show-results:`, `:hide-results:`, `:linenos:`, `:emphasize-lines:`, `:language:`). The defaults match: results shown, source hidden — so an inline `import` line in a `python:run` block runs silently and stays out of the rendered output.
+
 ## `click_extra.sphinx` API
 
 ```{eval-rst}
