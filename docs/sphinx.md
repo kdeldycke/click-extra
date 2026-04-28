@@ -637,7 +637,7 @@ Click Extra also adds five general-purpose Python execution directives, register
 These complement the Click directives: `click:run` is for showing simulated CLI sessions; `python:run` is for showing arbitrary Python output; the `python:render*` family is for **inline content generation**, replacing the regenerator-script + marker-region pattern many projects use to keep auto-tables in sync.
 
 ```{hint}
-This very page eats its own dog food: the [ANSI lexer table in `pygments.md`](pygments.md#lexer-variants) is rendered live at build time by an inline [`python:render`](#python-directives) block that imports `LEXER_MAP` and prints a Markdown table. Read the source at [`docs/pygments.md`](https://github.com/kdeldycke/click-extra/blob/main/docs/pygments.md) for a real-world example of replacing a regenerator script with a one-block inline build-time computation.
+This project eats its own dog food: the [ANSI lexer table in `pygments.md`](pygments.md#lexer-variants) is rendered live at build time by an inline [`python:render`](#python-directives) block that imports `LEXER_MAP` and prints a Markdown table. Read [the exact source lines on GitHub](https://github.com/kdeldycke/click-extra/blob/0cac18fdaa8770ac03a33a8e8969c2556fde674e/docs/pygments.md?plain=1#L243-L264) for a real-world example of replacing a regenerator script with a one-block inline build-time computation.
 ```
 
 ### Pick the right `render`
