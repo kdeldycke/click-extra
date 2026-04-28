@@ -45,20 +45,15 @@ from docutils import nodes
 from docutils.parsers.rst import Parser as RstParser
 from docutils.statemachine import StringList
 from docutils.utils import new_document
-from sphinx.domains import Domain
 
+from ._base import StatelessDomain, compile_directive, make_cleanup
 from .click import ClickDirective
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from typing import ClassVar
 
-    from docutils.nodes import Element
     from docutils.parsers import Parser
-    from sphinx.addnodes import pending_xref
-    from sphinx.application import Sphinx
-    from sphinx.builders import Builder
-    from sphinx.environment import BuildEnvironment
 
 
 class PythonRunner:
@@ -80,10 +75,7 @@ class PythonRunner:
         for its side effects (typically to seed imports for a follow-up
         ``python:run`` block).
         """
-        source_code = "\n".join(directive.content)
-        location = directive.get_location()
-        code = compile(source_code, location, "exec")
-        exec(code, self.namespace)  # noqa: S102
+        exec(compile_directive(directive), self.namespace)  # noqa: S102
 
     def run_python(self, directive: ClickDirective) -> list[str]:
         """Execute the directive's content and capture ``stdout``.
@@ -92,12 +84,9 @@ class PythonRunner:
         a code-block render (``python:run``) or a live nested-parse pass
         (the ``python:render`` directives).
         """
-        source_code = "\n".join(directive.content)
-        location = directive.get_location()
-        code = compile(source_code, location, "exec")
         buffer = io.StringIO()
         with contextlib.redirect_stdout(buffer):
-            exec(code, self.namespace)  # noqa: S102
+            exec(compile_directive(directive), self.namespace)  # noqa: S102
         return buffer.getvalue().splitlines()
 
 
@@ -105,18 +94,12 @@ class PythonDirective(ClickDirective):
     """Base class for ``python:*`` directives.
 
     Reuses :class:`ClickDirective`'s option spec and rendering scaffolding
-    but binds to a separate :class:`PythonRunner` so the Click and Python
-    namespaces don't collide within the same document.
+    but rebinds the per-document runner so the Click and Python namespaces
+    don't collide within the same document.
     """
 
-    @property
-    def runner(self) -> PythonRunner:  # type: ignore[override]
-        """Get or create the document-scoped :class:`PythonRunner`."""
-        runner = getattr(self.state.document, "python_runner", None)
-        if runner is None:
-            runner = PythonRunner()
-            self.state.document.python_runner = runner  # type: ignore[attr-defined]
-        return runner
+    runner_attr = "python_runner"
+    runner_factory = PythonRunner
 
 
 class PythonSourceDirective(PythonDirective):
@@ -308,7 +291,7 @@ class PythonRenderRstDirective(PythonRenderBaseDirective):
     forced_parser = RstParser
 
 
-class PythonDomain(Domain):
+class PythonDomain(StatelessDomain):
     """Sphinx domain registering the ``python:*`` directives.
 
     Provides:
@@ -336,40 +319,6 @@ class PythonDomain(Domain):
         "render-rst": PythonRenderRstDirective,
     }
 
-    def merge_domaindata(self, docnames: list[str], otherdata: dict) -> None:
-        """Merge domain data from parallel processes.
 
-        .. caution::
-            Stateless and safe to run in parallel. Sphinx requires this
-            method on any domain declaring ``parallel_read_safe = True``,
-            even as a no-op.
-        """
-
-    def resolve_any_xref(
-        self,
-        env: BuildEnvironment,
-        fromdocname: str,
-        builder: Builder,
-        target: str,
-        node: pending_xref,
-        contnode: Element,
-    ) -> list[tuple[str, nodes.reference]]:
-        """Stub for the ``any`` cross-reference role.
-
-        This domain provides no roles or objects, so cross-resolution
-        always returns an empty list. Defined to prevent MyST-Parser from
-        raising a warning about an unimplemented method.
-        """
-        return []
-
-
-def cleanup_python_runner(app: Sphinx, doctree: nodes.document) -> None:
-    """Drop the per-document :class:`PythonRunner` once the doctree is read.
-
-    Mirrors :func:`click_extra.sphinx.click.cleanup_runner` for the Python
-    runner attribute. Without this, the runner namespace would survive
-    across documents and leak imports between them.
-    """
-    runner = getattr(doctree, "python_runner", None)
-    if runner is not None:
-        delattr(doctree, "python_runner")
+cleanup_python_runner = make_cleanup("python_runner")
+"""Drop the :class:`PythonRunner` from the doctree once the document is read."""

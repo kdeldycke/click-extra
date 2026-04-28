@@ -47,19 +47,15 @@ from docutils import nodes
 from docutils.statemachine import StringList
 from sphinx.directives import SphinxDirective, directives
 from sphinx.directives.code import CodeBlock
-from sphinx.domains import Domain
 from sphinx.util import logging
+
+from ._base import StatelessDomain, compile_directive, make_cleanup
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from typing import ClassVar
 
-    from docutils.nodes import Element
-    from sphinx.addnodes import pending_xref
-    from sphinx.application import Sphinx
-    from sphinx.builders import Builder
-    from sphinx.environment import BuildEnvironment
     from sphinx.util.typing import OptionSpec
 
 
@@ -205,14 +201,8 @@ class ClickRunner(CliRunner):
 
     def execute_source(self, directive: SphinxDirective) -> None:
         """Execute the given code, adding it to the runner's namespace."""
-        # Use directive.content instead of directive.block_text as the latter
-        # include the directive text itself in rST.
-        source_code = "\n".join(directive.content)
-        # Get the user-friendly location string as provided by Sphinx.
-        location = directive.get_location()
-
+        code = compile_directive(directive)
         with patch_subprocess():
-            code = compile(source_code, location, "exec")
             exec(code, self.namespace)  # noqa: S102
 
     def run_cli(self, directive: SphinxDirective) -> list[str]:
@@ -280,7 +270,7 @@ class ClickRunner(CliRunner):
                     f"Line: {python_line}"
                 )
 
-        code = compile(source_code, location, "exec")
+        code = compile_directive(directive)
         exec(code, self.namespace, local_vars)  # noqa: S102
         return buffer
 
@@ -325,17 +315,31 @@ class ClickDirective(SphinxDirective):
     runner_method: str
     """The name of the method to call on the :class:`ClickRunner` instance."""
 
-    @property
-    def runner(self) -> ClickRunner:
-        """Get or create the :class:`ClickRunner` instance associated with
-        a document.
+    runner_attr: ClassVar[str] = "click_runner"
+    """Name of the attribute holding the runner on the doctree.
 
-        Creates one runner per document.
+    Subclasses (like :class:`~click_extra.sphinx.python.PythonDirective`)
+    override this so the Click and Python runners don't collide on the same
+    document.
+    """
+
+    runner_factory: ClassVar[type] = None  # type: ignore[assignment]
+    """Class to instantiate for the per-document runner.
+
+    Defaults to :class:`ClickRunner` in :class:`ClickDirective` (set after the
+    class definition to break the forward reference).
+    """
+
+    @property
+    def runner(self):
+        """Get or create the per-document runner.
+
+        Creates one runner per document, keyed by :attr:`runner_attr`.
         """
-        runner = getattr(self.state.document, "click_runner", None)
+        runner = getattr(self.state.document, self.runner_attr, None)
         if runner is None:
-            runner = ClickRunner()
-            self.state.document.click_runner = runner
+            runner = self.runner_factory()
+            setattr(self.state.document, self.runner_attr, runner)
         return runner
 
     @cached_property
@@ -512,7 +516,10 @@ class DeprecatedExampleDirective(SourceDirective):
         return super().run()
 
 
-class ClickDomain(Domain):
+ClickDirective.runner_factory = ClickRunner
+
+
+class ClickDomain(StatelessDomain):
     """Setup new directives under the same ``click`` namespace:
 
     - ``click:source`` which renders a Click CLI source code
@@ -528,39 +535,6 @@ class ClickDomain(Domain):
         "run": RunDirective,
     }
 
-    def merge_domaindata(self, docnames: list[str], otherdata: dict) -> None:
-        """Merge domain data from parallel processes.
 
-        .. caution::
-            This domain is stateless and safe to run in parallel. However, Sphinx
-            requires this method to be defined for any domain that declares
-            ``parallel_read_safe = True``, even as a no-op.
-        """
-
-    def resolve_any_xref(
-        self,
-        env: BuildEnvironment,
-        fromdocname: str,
-        builder: Builder,
-        target: str,
-        node: pending_xref,
-        contnode: Element,
-    ) -> list[tuple[str, nodes.reference]]:
-        """Resolve cross-references from ``any`` role.
-
-        This domain only provides directives and has no roles or objects, so
-        there is nothing to resolve. Returns an empty list to prevent
-        MyST-Parser from raising a warning about an unimplemented method.
-
-        .. seealso:: https://github.com/kdeldycke/click-extra/issues/1502
-        """
-        return []
-
-
-def cleanup_runner(app: Sphinx, doctree: nodes.document) -> None:
-    """Close and remove the :class:`ClickRunner` instance once the
-    document has been read.
-    """
-    runner = getattr(doctree, "click_runner", None)
-    if runner is not None:
-        delattr(doctree, "click_runner")
+cleanup_runner = make_cleanup("click_runner")
+"""Drop the :class:`ClickRunner` from the doctree once the document is read."""
