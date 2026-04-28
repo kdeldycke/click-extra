@@ -38,9 +38,10 @@ extensions = [
     "sphinxcontrib.mermaid",
 ]
 
-# Opt into the python:* directive family. These execute arbitrary Python
-# at build time; see docs/sphinx.md for the security trust boundary.
-click_extra_enable_python_directives = True
+# Opt into the click:* and python:* directive families. Both execute
+# arbitrary Python at build time; see docs/sphinx.md for the security
+# trust boundary.
+click_extra_enable_exec_directives = True
 
 # https://myst-parser.readthedocs.io/en/latest/syntax/optional.html
 myst_enable_extensions = [

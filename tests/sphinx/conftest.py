@@ -59,14 +59,15 @@ class SphinxAppWrapper:
         format_type: FormatType,
         tmp_path,
         return_srcdir: bool = False,
-        enable_python_directives: bool = False,
+        enable_exec_directives: bool = True,
     ) -> Generator[SphinxAppWrapper | tuple[SphinxAppWrapper, Path], None, None]:
         """Factory method to create a SphinxAppWrapper with given format.
 
-        ``enable_python_directives`` opts the test app into the
-        ``python:*`` directive family. The default is off, matching the
-        production default — tests that exercise those directives must set
-        the flag explicitly.
+        ``enable_exec_directives`` opts the test app into the ``click:*``
+        and ``python:*`` directive families. Defaults to ``True`` for
+        every fixture-built app because the test suite primarily exercises
+        those directives. Tests that verify the off-by-default production
+        gate flip the flag back to ``False`` explicitly.
         """
         srcdir = tmp_path / "source"
         outdir = tmp_path / "build"
@@ -81,8 +82,8 @@ class SphinxAppWrapper:
             "master_doc": "index",
             "extensions": ["click_extra.sphinx"],
         }
-        if enable_python_directives:
-            conf["click_extra_enable_python_directives"] = True
+        if enable_exec_directives:
+            conf["click_extra_enable_exec_directives"] = True
         if format_type == FormatType.MYST:
             conf["extensions"].append("myst_parser")  # type: ignore[attr-defined]
             conf["myst_enable_extensions"] = ["colon_fence"]
@@ -182,25 +183,22 @@ def sphinx_app(request, tmp_path):
 def sphinx_app_rst(tmp_path):
     """Create a Sphinx application for testing RST format only.
 
-    The ``python:*`` directive family is enabled so tests can exercise it.
-    Tests that explicitly verify the opt-in gate construct their own app
-    via :meth:`SphinxAppWrapper.create` with the flag flipped.
+    The ``click:*`` and ``python:*`` directive families are enabled so
+    tests can exercise them. Tests that explicitly verify the off-by-
+    default opt-in gate construct their own app via
+    :meth:`SphinxAppWrapper.create` with ``enable_exec_directives=False``.
     """
-    yield from SphinxAppWrapper.create(
-        FormatType.RST, tmp_path, enable_python_directives=True
-    )
+    yield from SphinxAppWrapper.create(FormatType.RST, tmp_path)
 
 
 @pytest.fixture
 def sphinx_app_myst(tmp_path):
     """Create a Sphinx application for testing MyST format only.
 
-    The ``python:*`` directive family is enabled — see
-    :func:`sphinx_app_rst` for the rationale.
+    The ``click:*`` and ``python:*`` directive families are enabled —
+    see :func:`sphinx_app_rst` for the rationale.
     """
-    yield from SphinxAppWrapper.create(
-        FormatType.MYST, tmp_path, enable_python_directives=True
-    )
+    yield from SphinxAppWrapper.create(FormatType.MYST, tmp_path)
 
 
 @pytest.fixture

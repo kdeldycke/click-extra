@@ -185,13 +185,13 @@ def test_python_render_rst_in_rst_host_still_works(sphinx_app_rst):
     assert "<strong>Bold cucumber.</strong>" in html
 
 
-def test_python_directives_disabled_by_default(tmp_path):
-    """Without the opt-in flag, ``python:*`` directives are not registered.
+def test_exec_directives_disabled_by_default(tmp_path):
+    """Without the opt-in flag, ``click:*`` and ``python:*`` are not registered.
 
-    The Sphinx build still succeeds but the directive body is never
-    executed. This is the desired security default: a project that adds
-    ``click_extra.sphinx`` to its extensions list does not silently gain
-    build-time arbitrary Python execution.
+    The Sphinx build still succeeds but neither family's directive body is
+    ever executed. This is the desired security default: a project that
+    adds ``click_extra.sphinx`` to its extensions list does not silently
+    gain build-time arbitrary Python execution.
 
     The exact rendering of an unrecognized directive is parser-dependent
     (MyST silently swallows it; reST emits a system message), so the
@@ -199,7 +199,7 @@ def test_python_directives_disabled_by_default(tmp_path):
     body's ``print`` output never reaches the rendered HTML.
     """
     factory = SphinxAppWrapper.create(
-        FormatType.MYST, tmp_path, enable_python_directives=False
+        FormatType.MYST, tmp_path, enable_exec_directives=False
     )
     app = next(factory)
     sentinel = "EXEC-MUST-NOT-HAPPEN-9c1f8"
@@ -207,18 +207,30 @@ def test_python_directives_disabled_by_default(tmp_path):
         ```{{python:run}}
         print("{sentinel}")
         ```
+
+        ```{{click:source}}
+        from click import command, echo
+
+        @command
+        def boom():
+            echo("{sentinel}-click")
+        ```
+
+        ```{{click:run}}
+        invoke(boom)
+        ```
     """)
     html = app.build_document(content)
     assert html is not None
     assert sentinel not in html, (
-        "python:run executed despite the opt-in gate being off"
+        "directive executed despite the opt-in gate being off"
     )
 
 
-def test_python_directives_enabled_with_opt_in(tmp_path):
-    """Setting ``click_extra_enable_python_directives = True`` activates them."""
+def test_exec_directives_enabled_with_opt_in(tmp_path):
+    """Setting ``click_extra_enable_exec_directives = True`` activates them."""
     factory = SphinxAppWrapper.create(
-        FormatType.MYST, tmp_path, enable_python_directives=True
+        FormatType.MYST, tmp_path, enable_exec_directives=True
     )
     app = next(factory)
     content = dedent("""

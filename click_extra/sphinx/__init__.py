@@ -48,44 +48,50 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-PYTHON_DIRECTIVES_OPT_IN = "click_extra_enable_python_directives"
-"""Name of the ``conf.py`` config flag that gates the ``python:*`` directives.
+EXEC_DIRECTIVES_OPT_IN = "click_extra_enable_exec_directives"
+"""Name of the ``conf.py`` config flag that gates every code-execution directive.
 
-Default is ``False``: a project that adds ``click_extra.sphinx`` to its
-``extensions`` list does *not* automatically gain access to arbitrary Python
-build-time execution. The maintainer must opt in explicitly.
-
-See :func:`_register_python_directives` for the rationale.
+Default is ``False``. A project that adds ``click_extra.sphinx`` to its
+``extensions`` list gets the ANSI Pygments formatter and the GitHub-alerts
+converter unconditionally, but does *not* gain access to either the
+``click:*`` or the ``python:*`` directive families until the maintainer
+opts in explicitly. Both families ``exec`` user-supplied Python at build
+time with full Sphinx-process privileges; gating them behind a single
+explicit flag keeps a transitive import or a doc-only pull request from
+silently expanding the build's attack surface.
 """
 
 
-def _register_python_directives(app: Sphinx, config: Config) -> None:
-    """Register the ``python:*`` directives if the project has opted in.
+def _register_exec_directives(app: Sphinx, config: Config) -> None:
+    """Register the ``click:*`` and ``python:*`` directives if opted in.
 
-    Connected to the ``config-inited`` event so the user's ``conf.py`` value
-    has been merged before this runs. Without the opt-in, the
-    :class:`~click_extra.sphinx.python.PythonDomain` is never registered:
-    referencing ``python:run`` / ``python:render*`` in a document raises an
-    "Unknown directive type" warning, exactly as if the extension were not
-    installed.
+    Connected to the ``config-inited`` event so the user's ``conf.py``
+    value is merged before this runs. Without the opt-in, neither
+    :class:`~click_extra.sphinx.click.ClickDomain` nor
+    :class:`~click_extra.sphinx.python.PythonDomain` is registered:
+    referencing any of their directives in a document raises an
+    "Unknown directive type" warning, exactly as if the extension were
+    not installed.
 
     .. danger::
-        These directives execute arbitrary Python at build time with the
-        full privileges of the Sphinx process: filesystem, network,
-        environment variables, secrets. Auto-enabling them on every project
-        that imports ``click_extra.sphinx`` (transitively or otherwise)
-        would silently expand the attack surface of every consumer.
-        See ``docs/sphinx.md`` for the full trust boundary.
+        Both directive families execute arbitrary Python at build time
+        with the full privileges of the Sphinx process: filesystem,
+        network, environment variables, secrets. Auto-enabling them on
+        every project that imports ``click_extra.sphinx`` (transitively
+        or otherwise) would silently expand the attack surface of every
+        consumer. See ``docs/sphinx.md`` for the full trust boundary.
     """
-    if not getattr(config, PYTHON_DIRECTIVES_OPT_IN, False):
+    if not getattr(config, EXEC_DIRECTIVES_OPT_IN, False):
         logger.info(
-            "click_extra.sphinx: python:* directives are disabled. "
-            "Set %s = True in conf.py to enable build-time Python "
-            "execution. See docs/sphinx.md for security implications.",
-            PYTHON_DIRECTIVES_OPT_IN,
+            "click_extra.sphinx: click:* and python:* directives are "
+            "disabled. Set %s = True in conf.py to enable build-time "
+            "code execution. See docs/sphinx.md for security implications.",
+            EXEC_DIRECTIVES_OPT_IN,
         )
         return
 
+    app.add_domain(ClickDomain)
+    app.connect("doctree-read", cleanup_runner)
     app.add_domain(PythonDomain)
     app.connect("doctree-read", cleanup_python_runner)
 
@@ -93,38 +99,43 @@ def _register_python_directives(app: Sphinx, config: Config) -> None:
 def setup(app: Sphinx) -> ExtensionMetadata:
     """Register extensions to Sphinx.
 
-    - ``click:source`` / ``click:run`` directives, augmented with ANSI coloring.
-      These run user-controlled Python (the directive body) at build time and
-      are enabled unconditionally because documenting Click CLIs is the core
-      feature this package provides.
-    - ``python:source`` / ``python:run`` / ``python:render`` /
-      ``python:render-myst`` / ``python:render-rst`` directives that execute
-      arbitrary Python code at build time. The ``render`` family parses the
-      captured output as live document content (host parser, forced MyST, or
-      forced reST respectively), replacing the regenerator-script +
-      marker-region pattern for auto-generated docs. **Disabled by default.**
-      Set ``click_extra_enable_python_directives = True`` in ``conf.py`` to
-      register them.
-    - Support for GitHub alerts syntax in *included* and regular *source* files.
+    Always-on features (no execution surface):
+
+    - The ANSI-capable HTML formatter for Pygments (replaces
+      ``sphinx.highlighting.PygmentsBridge`` with one that renders ANSI
+      colors in code blocks).
+    - GitHub-flavored alert syntax (``> [!NOTE]``, etc.) in *included*
+      and regular *source* files, converted to MyST/reST admonitions.
+
+    Opt-in features (gated behind ``click_extra_enable_exec_directives``):
+
+    - ``click:source`` / ``click:run`` to define and execute Click CLIs
+      at build time.
+    - ``python:source`` / ``python:run`` to execute arbitrary Python at
+      build time and render its source or captured ``stdout``.
+    - ``python:render`` / ``python:render-myst`` / ``python:render-rst``
+      to execute arbitrary Python and parse the captured ``stdout`` as
+      live document content.
+
+    All directives in the opt-in group execute user-supplied Python with
+    the same privileges as the Sphinx process. They are therefore
+    disabled by default. Set ``click_extra_enable_exec_directives = True``
+    in ``conf.py`` to register them.
 
     .. caution::
         This function forces the Sphinx app to use
-        ``sphinx.highlighting.PygmentsBridge`` instead of the default HTML formatter to
-        add support for ANSI colors in code blocks.
+        ``sphinx.highlighting.PygmentsBridge`` instead of the default
+        HTML formatter to add support for ANSI colors in code blocks.
     """
     # Set Sphinx's default HTML formatter to an ANSI capable one.
     PygmentsBridge.html_formatter = AnsiHtmlFormatter
 
-    # Register click:source and click:run directives.
-    app.add_domain(ClickDomain)
-    app.connect("doctree-read", cleanup_runner)
-
-    # Declare the opt-in flag for the python:* directive family. The
-    # `config-inited` callback below registers the domain only if the
-    # project's conf.py opts in. Default is `False`: build-time arbitrary
-    # Python execution is off unless explicitly turned on.
-    app.add_config_value(PYTHON_DIRECTIVES_OPT_IN, False, "env", types=[bool])
-    app.connect("config-inited", _register_python_directives)
+    # Declare the single opt-in flag covering both directive families.
+    # The `config-inited` callback below registers the domains only if
+    # the project's conf.py opts in. Default is `False`: build-time
+    # arbitrary Python execution is off unless explicitly turned on.
+    app.add_config_value(EXEC_DIRECTIVES_OPT_IN, False, "env", types=[bool])
+    app.connect("config-inited", _register_exec_directives)
 
     # Register GitHub alerts converter.
     app.connect("source-read", convert_github_alerts)

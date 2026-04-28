@@ -52,11 +52,12 @@ def compile_directive(directive: SphinxDirective) -> CodeType:
         as the Sphinx process: filesystem, network, environment variables,
         and any secrets the build environment holds. There is no sandbox.
 
-        Only build documentation from trusted source. The
-        :class:`~click_extra.sphinx.python.PythonDomain` is gated behind the
-        ``click_extra_enable_python_directives`` opt-in for exactly this
-        reason. See ``docs/sphinx.md`` under the ``python:`` directives
-        section for the full trust boundary.
+        Only build documentation from trusted source. Both the
+        :class:`~click_extra.sphinx.click.ClickDomain` and the
+        :class:`~click_extra.sphinx.python.PythonDomain` are gated behind
+        the ``click_extra_enable_exec_directives`` opt-in for exactly this
+        reason. See ``docs/sphinx.md`` under the Setup section for the
+        full trust boundary.
     """
     # Use directive.content instead of directive.block_text as the latter
     # includes the directive text itself in rST.
