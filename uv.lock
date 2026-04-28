@@ -9,7 +9,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-04-19T16:52:09.725697203Z"
+exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
 exclude-newer-span = "P1W"
 
 [options.exclude-newer-package]
@@ -222,7 +222,7 @@ wheels = [
 
 [[package]]
 name = "click-extra"
-version = "7.14.2.dev0"
+version = "8.0.0.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "boltons" },
@@ -328,7 +328,7 @@ typing = [
 [package.metadata]
 requires-dist = [
     { name = "boltons", specifier = ">=20" },
-    { name = "click", specifier = ">=8.1" },
+    { name = "click", specifier = ">=8.3.1" },
     { name = "cloup", specifier = ">=3.0.7" },
     { name = "deepmerge", specifier = ">=1.0.1" },
     { name = "docutils", marker = "extra == 'sphinx'", specifier = ">=0.20" },
