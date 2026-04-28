@@ -26,6 +26,8 @@ from __future__ import annotations
 
 from textwrap import dedent
 
+from .conftest import FormatType, SphinxAppWrapper
+
 
 def test_python_run_renders_stdout(sphinx_app_myst):
     """``python:run`` captures ``print`` output and renders it in a code block."""
@@ -181,6 +183,52 @@ def test_python_render_rst_in_rst_host_still_works(sphinx_app_rst):
     html = sphinx_app_rst.build_document(content)
     assert html is not None
     assert "<strong>Bold cucumber.</strong>" in html
+
+
+def test_python_directives_disabled_by_default(tmp_path):
+    """Without the opt-in flag, ``python:*`` directives are not registered.
+
+    The Sphinx build still succeeds but the directive body is never
+    executed. This is the desired security default: a project that adds
+    ``click_extra.sphinx`` to its extensions list does not silently gain
+    build-time arbitrary Python execution.
+
+    The exact rendering of an unrecognized directive is parser-dependent
+    (MyST silently swallows it; reST emits a system message), so the
+    assertion focuses on the security-relevant invariant: the directive
+    body's ``print`` output never reaches the rendered HTML.
+    """
+    factory = SphinxAppWrapper.create(
+        FormatType.MYST, tmp_path, enable_python_directives=False
+    )
+    app = next(factory)
+    sentinel = "EXEC-MUST-NOT-HAPPEN-9c1f8"
+    content = dedent(f"""
+        ```{{python:run}}
+        print("{sentinel}")
+        ```
+    """)
+    html = app.build_document(content)
+    assert html is not None
+    assert sentinel not in html, (
+        "python:run executed despite the opt-in gate being off"
+    )
+
+
+def test_python_directives_enabled_with_opt_in(tmp_path):
+    """Setting ``click_extra_enable_python_directives = True`` activates them."""
+    factory = SphinxAppWrapper.create(
+        FormatType.MYST, tmp_path, enable_python_directives=True
+    )
+    app = next(factory)
+    content = dedent("""
+        ```{python:run}
+        print("Opt-in works.")
+        ```
+    """)
+    html = app.build_document(content)
+    assert html is not None
+    assert "Opt-in works." in html
 
 
 def test_python_runner_isolated_from_click_runner(sphinx_app_myst):

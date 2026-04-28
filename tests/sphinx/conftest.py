@@ -55,9 +55,19 @@ class SphinxAppWrapper:
 
     @classmethod
     def create(
-        cls, format_type: FormatType, tmp_path, return_srcdir: bool = False
+        cls,
+        format_type: FormatType,
+        tmp_path,
+        return_srcdir: bool = False,
+        enable_python_directives: bool = False,
     ) -> Generator[SphinxAppWrapper | tuple[SphinxAppWrapper, Path], None, None]:
-        """Factory method to create a SphinxAppWrapper with given format."""
+        """Factory method to create a SphinxAppWrapper with given format.
+
+        ``enable_python_directives`` opts the test app into the
+        ``python:*`` directive family. The default is off, matching the
+        production default — tests that exercise those directives must set
+        the flag explicitly.
+        """
         srcdir = tmp_path / "source"
         outdir = tmp_path / "build"
         doctreedir = outdir / ".doctrees"
@@ -71,6 +81,8 @@ class SphinxAppWrapper:
             "master_doc": "index",
             "extensions": ["click_extra.sphinx"],
         }
+        if enable_python_directives:
+            conf["click_extra_enable_python_directives"] = True
         if format_type == FormatType.MYST:
             conf["extensions"].append("myst_parser")  # type: ignore[attr-defined]
             conf["myst_enable_extensions"] = ["colon_fence"]
@@ -168,14 +180,27 @@ def sphinx_app(request, tmp_path):
 
 @pytest.fixture
 def sphinx_app_rst(tmp_path):
-    """Create a Sphinx application for testing RST format only."""
-    yield from SphinxAppWrapper.create(FormatType.RST, tmp_path)
+    """Create a Sphinx application for testing RST format only.
+
+    The ``python:*`` directive family is enabled so tests can exercise it.
+    Tests that explicitly verify the opt-in gate construct their own app
+    via :meth:`SphinxAppWrapper.create` with the flag flipped.
+    """
+    yield from SphinxAppWrapper.create(
+        FormatType.RST, tmp_path, enable_python_directives=True
+    )
 
 
 @pytest.fixture
 def sphinx_app_myst(tmp_path):
-    """Create a Sphinx application for testing MyST format only."""
-    yield from SphinxAppWrapper.create(FormatType.MYST, tmp_path)
+    """Create a Sphinx application for testing MyST format only.
+
+    The ``python:*`` directive family is enabled — see
+    :func:`sphinx_app_rst` for the rationale.
+    """
+    yield from SphinxAppWrapper.create(
+        FormatType.MYST, tmp_path, enable_python_directives=True
+    )
 
 
 @pytest.fixture

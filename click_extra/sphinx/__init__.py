@@ -30,6 +30,7 @@ except ImportError:
     )
 
 from sphinx.highlighting import PygmentsBridge
+from sphinx.util import logging
 
 from .. import __version__
 from ..pygments import AnsiHtmlFormatter
@@ -40,19 +41,70 @@ from .python import PythonDomain, cleanup_python_runner
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from sphinx.application import Sphinx
+    from sphinx.config import Config
     from sphinx.util.typing import ExtensionMetadata
+
+
+logger = logging.getLogger(__name__)
+
+
+PYTHON_DIRECTIVES_OPT_IN = "click_extra_enable_python_directives"
+"""Name of the ``conf.py`` config flag that gates the ``python:*`` directives.
+
+Default is ``False``: a project that adds ``click_extra.sphinx`` to its
+``extensions`` list does *not* automatically gain access to arbitrary Python
+build-time execution. The maintainer must opt in explicitly.
+
+See :func:`_register_python_directives` for the rationale.
+"""
+
+
+def _register_python_directives(app: Sphinx, config: Config) -> None:
+    """Register the ``python:*`` directives if the project has opted in.
+
+    Connected to the ``config-inited`` event so the user's ``conf.py`` value
+    has been merged before this runs. Without the opt-in, the
+    :class:`~click_extra.sphinx.python.PythonDomain` is never registered:
+    referencing ``python:run`` / ``python:render*`` in a document raises an
+    "Unknown directive type" warning, exactly as if the extension were not
+    installed.
+
+    .. danger::
+        These directives execute arbitrary Python at build time with the
+        full privileges of the Sphinx process: filesystem, network,
+        environment variables, secrets. Auto-enabling them on every project
+        that imports ``click_extra.sphinx`` (transitively or otherwise)
+        would silently expand the attack surface of every consumer.
+        See ``docs/sphinx.md`` for the full trust boundary.
+    """
+    if not getattr(config, PYTHON_DIRECTIVES_OPT_IN, False):
+        logger.info(
+            "click_extra.sphinx: python:* directives are disabled. "
+            "Set %s = True in conf.py to enable build-time Python "
+            "execution. See docs/sphinx.md for security implications.",
+            PYTHON_DIRECTIVES_OPT_IN,
+        )
+        return
+
+    app.add_domain(PythonDomain)
+    app.connect("doctree-read", cleanup_python_runner)
 
 
 def setup(app: Sphinx) -> ExtensionMetadata:
     """Register extensions to Sphinx.
 
     - ``click:source`` / ``click:run`` directives, augmented with ANSI coloring.
+      These run user-controlled Python (the directive body) at build time and
+      are enabled unconditionally because documenting Click CLIs is the core
+      feature this package provides.
     - ``python:source`` / ``python:run`` / ``python:render`` /
       ``python:render-myst`` / ``python:render-rst`` directives that execute
       arbitrary Python code at build time. The ``render`` family parses the
       captured output as live document content (host parser, forced MyST, or
       forced reST respectively), replacing the regenerator-script +
-      marker-region pattern for auto-generated docs.
+      marker-region pattern for auto-generated docs. **Disabled by default.**
+      Set ``click_extra_enable_python_directives = True`` in ``conf.py`` to
+      register them.
     - Support for GitHub alerts syntax in *included* and regular *source* files.
 
     .. caution::
@@ -67,10 +119,12 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     app.add_domain(ClickDomain)
     app.connect("doctree-read", cleanup_runner)
 
-    # Register the python:* directive family (source, run, render,
-    # render-myst, render-rst).
-    app.add_domain(PythonDomain)
-    app.connect("doctree-read", cleanup_python_runner)
+    # Declare the opt-in flag for the python:* directive family. The
+    # `config-inited` callback below registers the domain only if the
+    # project's conf.py opts in. Default is `False`: build-time arbitrary
+    # Python execution is off unless explicitly turned on.
+    app.add_config_value(PYTHON_DIRECTIVES_OPT_IN, False, "env", types=[bool])
+    app.connect("config-inited", _register_python_directives)
 
     # Register GitHub alerts converter.
     app.connect("source-read", convert_github_alerts)

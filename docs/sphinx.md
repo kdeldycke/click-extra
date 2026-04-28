@@ -993,6 +993,30 @@ Click Extra also adds five general-purpose Python execution directives, register
 
 These complement the Click directives: `click:run` is for showing simulated CLI sessions; `python:run` is for showing arbitrary Python output; the `python:render*` family is for **inline content generation**, replacing the regenerator-script + marker-region pattern many projects use to keep auto-tables in sync.
 
+```{danger}
+**Build-time code execution.** Every `python:*` directive (and every `click:*` directive that wraps an `invoke()` call) runs its body with the same privileges as the Sphinx process: full filesystem access, full network access, and full access to the build environment's secrets (`GITHUB_TOKEN`, `READTHEDOCS_TOKEN`, etc.). The runner namespace is unrestricted — there is no sandbox.
+
+This is intentional: build-time execution is the whole point of the directive family. But it means the same trust boundary I'd apply to a `Makefile` or `conftest.py` applies here:
+
+- Only run `sphinx-build` against source I trust.
+- Do not auto-build documentation from unverified pull requests in CI without an isolated, secret-free environment.
+- Treat any `print` call inside `python:render*` whose output incorporates untrusted data as a content-injection sink. reST in particular allows `.. raw:: html` and `.. include:: /path/to/file`, both of which can read local files or inject HTML into the rendered page.
+
+The risk profile is identical to other build-time-execution extensions like `jupyter-sphinx`, `myst-nb`, and `sphinx-exec-code`.
+```
+
+```{important}
+**Opt-in required.** The `python:*` directive family is **disabled by default**. A project that adds `click_extra.sphinx` to its `extensions` list gets the `click:*` directives, ANSI rendering, and GitHub-alerts conversion automatically — but it does *not* get arbitrary Python build-time execution unless the maintainer explicitly turns it on. Add this to `conf.py`:
+
+```python
+click_extra_enable_python_directives = True
+```
+
+Without it, `python:source`, `python:run`, `python:render`, `python:render-myst`, and `python:render-rst` are not registered with Sphinx. Documents that reference them get an "Unknown directive" warning and the directive body is never executed. This way a transitive import of `click_extra.sphinx`, or a maintainer who installs the extension purely for ANSI-aware code blocks, cannot be tricked into running attacker-supplied Python by a doc-only pull request.
+
+The `click:*` directives stay enabled by default because documenting Click CLIs is what `click-extra` exists for: their existence is the contract of the extension, and disabling them would break every existing user. They run user-controlled Python too, so the trust boundary above still applies.
+```
+
 ### Pick the right `render`
 
 | Directive            | Parser used for captured stdout                | When to use                                    |

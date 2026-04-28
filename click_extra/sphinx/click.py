@@ -94,6 +94,18 @@ def patch_subprocess():
 
     ``subprocess.call`` output is redirected to ``click.echo`` so it
     shows up in the example output.
+
+    .. caution::
+        The replacement is installed on the ``subprocess`` module itself
+        (not thread-local), so for the duration of the ``with`` block any
+        other code in the same process that calls ``subprocess.call`` sees
+        the patched version. With ``parallel_read_safe = True`` declared
+        on :class:`ClickDomain`, a parallel reader running concurrently
+        on a different document gets the patched ``subprocess.call`` too.
+        The redirection is benign (output goes to ``click.echo``) but the
+        race is real, and the parallel-safe claim is weaker than it
+        looks for documents that themselves shell out via
+        ``subprocess.call``.
     """
     old_call = subprocess.call
 
