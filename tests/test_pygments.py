@@ -254,13 +254,6 @@ def test_registered_lexers():
             get_lexer_by_name(alias)
 
 
-@pytest.mark.once
-def test_ansi_lexers_doc():
-    doc_content = PROJECT_ROOT.joinpath("docs/pygments.md").read_text(encoding="utf-8")
-    for lexer in collect_session_lexers():
-        assert lexer.__name__ in doc_content
-
-
 # --- Plain text (no escapes) ---
 
 
