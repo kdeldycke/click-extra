@@ -28,6 +28,12 @@ import xmltodict
 import yaml
 from boltons.strutils import strip_ansi
 from extra_platforms import is_windows
+from tabulate import _table_formats
+
+# tabulate 0.10 introduced the ``colon_grid`` format and changed the asciidoc
+# cell-alignment marker from ``8<`` to ``<8``. Older releases (still shipped
+# by some distributions) need a different fixture.
+TABULATE_HAS_COLON_GRID = "colon_grid" in _table_formats
 
 from click_extra import (
     Color,
@@ -148,7 +154,7 @@ Friday Hot 🥵
 """
 
 asciidoc_table = (
-    '[cols="<8,<13",options="header"]\n'
+    f'[cols="{"<8,<13" if TABULATE_HAS_COLON_GRID else "8<,13<"}",options="header"]\n'
     "|====\n"
     "| Day    | Temperature \n"
     "| 1      | 42.9        \n"
@@ -694,13 +700,25 @@ def test_all_table_formats_have_test_rendering():
     assert set(TableFormat) == set(expected_renderings.keys())
 
 
+def _table_format_marks(format_name):
+    """Skip ``colon_grid`` when tabulate <0.10 aliases it to ``grid``."""
+    if format_name is TableFormat.COLON_GRID and not TABULATE_HAS_COLON_GRID:
+        return (
+            pytest.mark.skip(reason="colon_grid is aliased to grid on tabulate <0.10"),
+        )
+    return ()
+
+
 @pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
 @pytest.mark.parametrize(
     "option_decorator", (table_format_option, table_format_option())
 )
 @pytest.mark.parametrize(
     ("format_name", "expected"),
-    (pytest.param(k, v, id=str(k)) for k, v in expected_renderings.items()),
+    (
+        pytest.param(k, v, id=str(k), marks=_table_format_marks(k))
+        for k, v in expected_renderings.items()
+    ),
 )
 def test_all_table_rendering(
     invoke, cmd_decorator, option_decorator, format_name, expected

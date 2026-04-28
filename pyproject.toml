@@ -362,12 +362,11 @@ default.extend-ignore-identifiers-re = [
 [tool.pytest]
 # https://docs.pytest.org/en/latest/customize.html#pyproject-toml
 markers = [
+  "network: Tests that require network access (excluded with -m 'not network').",
   "once: Tests that only need to run once, not across the full CI matrix.",
 ]
 addopts = [
   "--durations=10",
-  "--cov",
-  "--cov-report=term",
 ]
 # Make sure tests that are expected to fail do not resurect and start working all of a sudden.
 xfail_strict = true

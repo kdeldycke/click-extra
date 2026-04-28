@@ -389,6 +389,10 @@ def test_enum_string_choices(
         ),
     ),
 )
+@pytest.mark.skipif(
+    sys.version_info < (3, 12),
+    reason="Enum._add_alias_ and _add_value_alias_ are Python 3.12+ only.",
+)
 def test_enum_choice_show_aliases(
     enum_definition: type[Enum],
     choice_source: ChoiceSource,

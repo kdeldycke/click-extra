@@ -68,7 +68,7 @@ def test_mkdocs_entry_point():
 
     from pathlib import Path
 
-    toml_path = Path(__file__).parent.parent / "pyproject.toml"
+    toml_path = Path(__file__).parent.parent.parent / "pyproject.toml"
     config = tomllib.loads(toml_path.read_text(encoding="utf-8"))
     ep = config["project"]["entry-points"]["mkdocs.plugins"]
     assert ep == {"click-extra": "click_extra.mkdocs:AnsiColorPlugin"}

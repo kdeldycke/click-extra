@@ -100,6 +100,7 @@ def check_entry_points(entry_points: dict[str, str], *section_path: str) -> None
 # --- Entry point and registration tests ---
 
 
+@pytest.mark.network
 @pytest.mark.once
 def test_ansi_lexers_candidates(tmp_path):
     """Look into Pygments test suite to find all ANSI lexers candidates.

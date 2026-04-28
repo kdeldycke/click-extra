@@ -107,7 +107,11 @@ jobs:
           uv --no-progress run --frozen --with quart -- click-extra                   quart --help
 
       - name: Run once-only tests
-        run: uv --no-progress run --frozen -- pytest -m once
+        run: >
+          uv --no-progress run --frozen --
+          pytest -m once
+          --cov
+          --cov-report=term
 
   tests:
     needs:
@@ -189,6 +193,8 @@ jobs:
           fi
           uv --no-progress run --frozen "${with_args[@]}" -- \
             pytest -m "not once" \
+            --cov \
+            --cov-report=term \
             --cov-report=xml \
             --junitxml=junit.xml \
             --override-ini=junit_family=legacy
