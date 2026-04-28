@@ -17,6 +17,9 @@
 
 ## [`7.14.1` (2026-04-26)](https://github.com/kdeldycke/click-extra/compare/v7.14.0...v7.14.1)
 
+> [!NOTE]
+> `7.14.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.14.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.14.1).
+
 - Relax Click requirement back to `8.1`. Replace `ParameterSource` ordered comparisons in `ConfigOption` with explicit set membership so the code works on both the regular `Enum` (Click `8.1`/`8.2`) and the `IntEnum` (Click `8.3`+).
 - Relax tabulate requirement back to `0.9`. Backport the `colon_grid` format by aliasing it to `grid` at module load when tabulate `< 0.10` is installed.
 
