@@ -134,7 +134,7 @@ The `SCRIPT` argument is resolved in this order:
 
 ## Ephemeral wrapping with `uvx`
 
-The wrapper is particularly useful with [`uvx`](https://docs.astral.sh/uv/reference/cli/#uvx) for one-shot colorization of any Click CLI without permanently installing Click Extra:
+The wrapper is particularly useful with [`uvx`](https://docs.astral.sh/uv/guides/tools/#running-tools) for one-shot colorization of any Click CLI without permanently installing Click Extra:
 
 ```shell-session
 $ uvx click-extra -- flask --help

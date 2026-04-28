@@ -207,6 +207,8 @@ Without a table imposing a maximal width, the help screens from Click Extra will
 This is just a matter of preference, as nothing prevents you to use both `rich-click` and Click Extra in the same project, and get the best from both.
 ```
 
+<a name="color-no-color-flag"></a>
+
 ## `--color`/`--no-color` flag
 
 Click Extra adds a `--color`/`--no-color` flag (aliased as `--ansi`/`--no-ansi`) that controls whether ANSI codes are emitted. It is eager, so it takes effect before other eager options like `--version`.

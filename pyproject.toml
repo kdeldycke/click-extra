@@ -479,6 +479,8 @@ overrides = [
 exclude = [
   # GitHub issue comment fragments are dynamically loaded and can't be verified.
   "^https://github.com/.+/issues/[0-9]+#issuecomment-.*$",
+  # GitHub blob line-number fragments (#L123) are rendered client-side.
+  "^https://github.com/.+/blob/.+#L[0-9]+",
   # Release binary download URLs redirect to the GitHub CDN (objects.githubusercontent.com).
   "^https://github.com/.+/releases/.+/download/.*$",
   # Allow redirects of generic DOI URLs to their specific Zenodo release page.

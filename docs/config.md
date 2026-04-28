@@ -782,6 +782,8 @@ XML support requires additional packages. You need to [install `click-extra[xml]
 Write example.
 ```
 
+<a name="pyproject-toml"></a>
+
 ### `pyproject.toml`
 
 The `PYPROJECT_TOML` format reads `[tool.<cli-name>]` sections from a `pyproject.toml` file, following [PEP 518](https://peps.python.org/pep-0518/). This is useful for any CLI tool that wants to store its configuration alongside project metadata — not just Python projects. Tools like [ruff](https://docs.astral.sh/ruff/configuration/#configuring-ruff) and [typos](https://github.com/crate-ci/typos/blob/master/docs/reference.md), which are not Python projects, all use this convention, to play nice with other communities and increase adoption.

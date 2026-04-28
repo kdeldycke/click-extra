@@ -130,6 +130,12 @@ linkcheck_ignore = [
     # These sites return 403 to bots but are valid.
     r"https://docutils\.sourceforge\.io",
     r"https://guix\.gnu\.org",
+    # crates.io blocks automated link checkers.
+    r"https://crates\.io/crates/.*",
+    # star-history uses client-side hash routing; fragments are not real HTML anchors.
+    r"https://star-history\.com/#.*",
+    # Telemetry opt-out endpoint is slow and times out from CI.
+    r"https://telemetry\.timseverien\.com/.*",
 ]
 
 # Footer content.

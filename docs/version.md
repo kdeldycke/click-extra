@@ -611,6 +611,8 @@ That way you can collect the rendered `version_string`, as if it was printed to 
 
 Other internal methods to build-up and render the version string are [available in the API below](#click-extra-version-api).
 
+<a name="click-extra-version-api"></a>
+
 ## `click_extra.version` API
 
 ```{eval-rst}
