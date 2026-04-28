@@ -594,6 +594,140 @@ In fact, if you look at Sphinx logs, you will see that a warning has been raised
 Alternatively, you can force syntax highlight with the `:language:` option, which takes precedence over the default language of the directive.
 ```
 
+## `python:` directives
+
+Click Extra also adds five general-purpose Python execution directives, registered under a separate `python` domain (distinct from Sphinx's built-in `py` domain for documenting API objects):
+
+- `python:source` to define and show a Python source block, executed silently. Use it to teach readers what a snippet looks like and to seed imports/variables for follow-up blocks.
+- `python:run` to execute a Python block and render its captured `stdout` in a code block. Output language defaults to `text`; override with `:language:` for structured output (`json`, `html`, `yaml`, etc.).
+- `python:render` to execute a Python block and parse its captured `stdout` as **live document content** using the host file's parser. Generated tables, headings, admonitions, and cross-references become first-class document nodes — not a code block.
+- `python:render-myst` to execute a Python block and parse its captured `stdout` as MyST, regardless of host. Lets a `.rst` document embed MyST-generated content.
+- `python:render-rst` to execute a Python block and parse its captured `stdout` as reST, regardless of host. Lets a `.md` document embed reST-generated content.
+
+These complement the Click directives: `click:run` is for showing simulated CLI sessions; `python:run` is for showing arbitrary Python output; the `python:render*` family is for **inline content generation**, replacing the regenerator-script + marker-region pattern many projects use to keep auto-tables in sync.
+
+```{danger}
+**Build-time code execution.** Every `python:*` directive (and every `click:*` directive that wraps an `invoke()` call) runs its body with the same privileges as the Sphinx process: full filesystem access, full network access, and full access to the build environment's secrets (`GITHUB_TOKEN`, `READTHEDOCS_TOKEN`, etc.). The runner namespace is unrestricted — there is no sandbox.
+
+This is intentional: build-time execution is the whole point of the directive family. But it means the same trust boundary I'd apply to a `Makefile` or `conftest.py` applies here:
+
+- Only run `sphinx-build` against source I trust.
+- Do not auto-build documentation from unverified pull requests in CI without an isolated, secret-free environment.
+- Treat any `print` call inside `python:render*` whose output incorporates untrusted data as a content-injection sink. reST in particular allows `.. raw:: html` and `.. include:: /path/to/file`, both of which can read local files or inject HTML into the rendered page.
+
+The risk profile is identical to other build-time-execution extensions like `jupyter-sphinx`, `myst-nb`, and `sphinx-exec-code`.
+```
+
+```{important}
+**Opt-in required.** The `python:*` directive family is **disabled by default**. A project that adds `click_extra.sphinx` to its `extensions` list gets the `click:*` directives, ANSI rendering, and GitHub-alerts conversion automatically — but it does *not* get arbitrary Python build-time execution unless the maintainer explicitly turns it on. Add this to `conf.py`:
+
+```python
+click_extra_enable_python_directives = True
+```
+
+Without it, `python:source`, `python:run`, `python:render`, `python:render-myst`, and `python:render-rst` are not registered with Sphinx. Documents that reference them get an "Unknown directive" warning and the directive body is never executed. This way a transitive import of `click_extra.sphinx`, or a maintainer who installs the extension purely for ANSI-aware code blocks, cannot be tricked into running attacker-supplied Python by a doc-only pull request.
+
+The `click:*` directives stay enabled by default because documenting Click CLIs is what `click-extra` exists for: their existence is the contract of the extension, and disabling them would break every existing user. They run user-controlled Python too, so the trust boundary above still applies.
+```
+
+### Pick the right `render`
+
+| Directive            | Parser used for captured stdout                | When to use                                    |
+| -------------------- | ---------------------------------------------- | ---------------------------------------------- |
+| `python:render`      | Whatever parser owns the host source file      | Generated markup matches the host file format. |
+| `python:render-myst` | MyST, regardless of host                       | Embed MyST-generated content in a `.rst` host. |
+| `python:render-rst`  | reST, regardless of host                       | Embed reST-generated content in a `.md` host.  |
+
+`python:render` reuses the host state machine, so cross-references and Sphinx-aware roles resolve naturally. The forced-parser variants (`render-myst`, `render-rst`) parse into a fresh sub-document and graft the resulting nodes back into the page.
+
+### `python:render` — docs as code
+
+```{tip}
+The strongest use case is replacing a `docs/docs_update.py` script that walks an in-process registry, renders Markdown, and rewrites a region of a `.md` file between `<!-- start -->` / `<!-- end -->` markers. With `python:render`, the same code lives inline in the page itself and runs at build time. The rendered HTML is always current because the source-of-truth registry is queried on every build.
+```
+
+Render the live list of Python's built-in modules as a Markdown table, executed by Sphinx at build time:
+
+``````{tab-set}
+`````{tab-item} MyST Markdown
+:sync: myst
+````{code-block} markdown
+```{python:render}
+import sys
+print("| Module | Type |")
+print("|--------|------|")
+for name in sorted(sys.builtin_module_names)[:5]:
+    print(f"| `{name}` | built-in |")
+```
+````
+`````
+
+`````{tab-item} reStructuredText
+:sync: rst
+```{code-block} rst
+.. python:render::
+
+    import sys
+    print("| Module | Type |")
+    print("|--------|------|")
+    for name in sorted(sys.builtin_module_names)[:5]:
+        print(f"| `{name}` | built-in |")
+```
+`````
+``````
+
+Renders as a real HTML `<table>` (output truncated to 5 entries):
+
+```{python:render}
+import sys
+
+print("| Module | Type |")
+print("|--------|------|")
+for name in sorted(sys.builtin_module_names)[:5]:
+    print(f"| `{name}` | built-in |")
+```
+
+### Cross-format rendering
+
+`python:render-myst` and `python:render-rst` let a host file embed content authored in the other markup. This page is MyST, but the following block prints reST and parses it as such:
+
+```{python:render-rst}
+print(".. note::")
+print()
+print("   A persimmon must be very ripe to eat raw.")
+```
+
+In an rST host, `python:render-myst` provides the symmetric path: print MyST and have it parsed as MyST regardless of the surrounding `.rst` file.
+
+### Namespace persistence
+
+Like `click:source` / `click:run`, the Python runner holds a per-document namespace, so consecutive blocks share imports and variables:
+
+```{python:source}
+from textwrap import dedent
+
+GREETING = "hello, sphinx"
+```
+
+```{python:run}
+print(dedent(GREETING).upper())
+```
+
+The `python:source` block ran silently to seed `dedent` and `GREETING`; the subsequent `python:run` referenced both.
+
+### Shared options
+
+`python:run` and the `python:render*` directives accept the same option spec as `click:run` (`:show-source:`, `:hide-source:`, `:show-results:`, `:hide-results:`, `:linenos:`, `:emphasize-lines:`, `:language:`). The defaults match: results shown, source hidden — so an inline `import` line in a `python:run` block runs silently and stays out of the rendered output.
+
+```{seealso}
+Some related projects for build-time Python execution:
+
+- [`sphinx-exec-code`](https://sphinx-exec-code.readthedocs.io/): single `exec_code` directive; supports external `:filename:` and inline `#hide:` / `#skip:` markers; fresh interpreter per block.
+- [`jupyter-sphinx`](https://jupyter-sphinx.readthedocs.io/): runs Python in a real Jupyter kernel; rich outputs (matplotlib, widgets).
+- [`MyST-NB`](https://myst-nb.readthedocs.io/): executes `.ipynb` and code-cell `.md`; `glue` / `eval` roles inject computed values into prose.
+- [`sphinx-jinja`](https://github.com/tardyp/sphinx-jinja): Jinja2 templates with Python context, output parsed as reST/MyST. Closest analogue for the docs-as-code pattern without `exec`.
+```
+
 ## GitHub alerts
 
 Click Extra's Sphinx extension automatically converts [GitHub-flavored Markdown alerts](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts) into [MyST admonitions](https://myst-parser.readthedocs.io/en/latest/syntax/admonitions.html).
@@ -980,130 +1114,6 @@ If not, you are likely to encounter execution tracebacks such as:
 NameError: name 'yo_cli' is not defined
 ```
 ````
-
-## `python:` directives
-
-Click Extra also adds five general-purpose Python execution directives, registered under a separate `python` domain (distinct from Sphinx's built-in `py` domain for documenting API objects):
-
-- `python:source` to define and show a Python source block, executed silently. Use it to teach readers what a snippet looks like and to seed imports/variables for follow-up blocks.
-- `python:run` to execute a Python block and render its captured `stdout` in a code block. Output language defaults to `text`; override with `:language:` for structured output (`json`, `html`, `yaml`, etc.).
-- `python:render` to execute a Python block and parse its captured `stdout` as **live document content** using the host file's parser. Generated tables, headings, admonitions, and cross-references become first-class document nodes — not a code block.
-- `python:render-myst` to execute a Python block and parse its captured `stdout` as MyST, regardless of host. Lets a `.rst` document embed MyST-generated content.
-- `python:render-rst` to execute a Python block and parse its captured `stdout` as reST, regardless of host. Lets a `.md` document embed reST-generated content.
-
-These complement the Click directives: `click:run` is for showing simulated CLI sessions; `python:run` is for showing arbitrary Python output; the `python:render*` family is for **inline content generation**, replacing the regenerator-script + marker-region pattern many projects use to keep auto-tables in sync.
-
-```{danger}
-**Build-time code execution.** Every `python:*` directive (and every `click:*` directive that wraps an `invoke()` call) runs its body with the same privileges as the Sphinx process: full filesystem access, full network access, and full access to the build environment's secrets (`GITHUB_TOKEN`, `READTHEDOCS_TOKEN`, etc.). The runner namespace is unrestricted — there is no sandbox.
-
-This is intentional: build-time execution is the whole point of the directive family. But it means the same trust boundary I'd apply to a `Makefile` or `conftest.py` applies here:
-
-- Only run `sphinx-build` against source I trust.
-- Do not auto-build documentation from unverified pull requests in CI without an isolated, secret-free environment.
-- Treat any `print` call inside `python:render*` whose output incorporates untrusted data as a content-injection sink. reST in particular allows `.. raw:: html` and `.. include:: /path/to/file`, both of which can read local files or inject HTML into the rendered page.
-
-The risk profile is identical to other build-time-execution extensions like `jupyter-sphinx`, `myst-nb`, and `sphinx-exec-code`.
-```
-
-```{important}
-**Opt-in required.** The `python:*` directive family is **disabled by default**. A project that adds `click_extra.sphinx` to its `extensions` list gets the `click:*` directives, ANSI rendering, and GitHub-alerts conversion automatically — but it does *not* get arbitrary Python build-time execution unless the maintainer explicitly turns it on. Add this to `conf.py`:
-
-```python
-click_extra_enable_python_directives = True
-```
-
-Without it, `python:source`, `python:run`, `python:render`, `python:render-myst`, and `python:render-rst` are not registered with Sphinx. Documents that reference them get an "Unknown directive" warning and the directive body is never executed. This way a transitive import of `click_extra.sphinx`, or a maintainer who installs the extension purely for ANSI-aware code blocks, cannot be tricked into running attacker-supplied Python by a doc-only pull request.
-
-The `click:*` directives stay enabled by default because documenting Click CLIs is what `click-extra` exists for: their existence is the contract of the extension, and disabling them would break every existing user. They run user-controlled Python too, so the trust boundary above still applies.
-```
-
-### Pick the right `render`
-
-| Directive            | Parser used for captured stdout                | When to use                                    |
-| -------------------- | ---------------------------------------------- | ---------------------------------------------- |
-| `python:render`      | Whatever parser owns the host source file      | Generated markup matches the host file format. |
-| `python:render-myst` | MyST, regardless of host                       | Embed MyST-generated content in a `.rst` host. |
-| `python:render-rst`  | reST, regardless of host                       | Embed reST-generated content in a `.md` host.  |
-
-`python:render` reuses the host state machine, so cross-references and Sphinx-aware roles resolve naturally. The forced-parser variants (`render-myst`, `render-rst`) parse into a fresh sub-document and graft the resulting nodes back into the page.
-
-### `python:render` — docs as code
-
-```{tip}
-The strongest use case is replacing a `docs/docs_update.py` script that walks an in-process registry, renders Markdown, and rewrites a region of a `.md` file between `<!-- start -->` / `<!-- end -->` markers. With `python:render`, the same code lives inline in the page itself and runs at build time. The rendered HTML is always current because the source-of-truth registry is queried on every build.
-```
-
-Render the live list of Python's built-in modules as a Markdown table, executed by Sphinx at build time:
-
-``````{tab-set}
-`````{tab-item} MyST Markdown
-:sync: myst
-````{code-block} markdown
-```{python:render}
-import sys
-print("| Module | Type |")
-print("|--------|------|")
-for name in sorted(sys.builtin_module_names)[:5]:
-    print(f"| `{name}` | built-in |")
-```
-````
-`````
-
-`````{tab-item} reStructuredText
-:sync: rst
-```{code-block} rst
-.. python:render::
-
-    import sys
-    print("| Module | Type |")
-    print("|--------|------|")
-    for name in sorted(sys.builtin_module_names)[:5]:
-        print(f"| `{name}` | built-in |")
-```
-`````
-``````
-
-Renders as a real HTML `<table>` (output truncated to 5 entries):
-
-```{python:render}
-import sys
-print("| Module | Type |")
-print("|--------|------|")
-for name in sorted(sys.builtin_module_names)[:5]:
-    print(f"| `{name}` | built-in |")
-```
-
-### Cross-format rendering
-
-`python:render-myst` and `python:render-rst` let a host file embed content authored in the other markup. This page is MyST, but the following block prints reST and parses it as such:
-
-```{python:render-rst}
-print(".. note::")
-print()
-print("   A persimmon must be very ripe to eat raw.")
-```
-
-In an rST host, `python:render-myst` provides the symmetric path: print MyST and have it parsed as MyST regardless of the surrounding `.rst` file.
-
-### Namespace persistence
-
-Like `click:source` / `click:run`, the Python runner holds a per-document namespace, so consecutive blocks share imports and variables:
-
-```{python:source}
-from textwrap import dedent
-
-GREETING = "hello, sphinx"
-```
-
-```{python:run}
-print(dedent(GREETING).upper())
-```
-
-The `python:source` block ran silently to seed `dedent` and `GREETING`; the subsequent `python:run` referenced both.
-
-### Shared options
-
-`python:run` and the `python:render*` directives accept the same option spec as `click:run` (`:show-source:`, `:hide-source:`, `:show-results:`, `:hide-results:`, `:linenos:`, `:emphasize-lines:`, `:language:`). The defaults match: results shown, source hidden — so an inline `import` line in a `python:run` block runs silently and stays out of the rendered output.
 
 ## `click_extra.sphinx` API
 
