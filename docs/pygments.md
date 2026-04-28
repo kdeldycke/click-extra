@@ -255,12 +255,14 @@ for orig_lexer, ansi_lexer in sorted(
         ", ".join(f"`{a}`" for a in sorted(ansi_lexer.aliases)),
     ])
 
-print(render_table(
-    rows,
-    table_format=TableFormat.GITHUB,
-    headers=["Original Lexer", "Original IDs", "ANSI variants"],
-    colalign=["left", "left", "left"],
-))
+print(
+    render_table(
+        rows,
+        table_format=TableFormat.GITHUB,
+        headers=["Original Lexer", "Original IDs", "ANSI variants"],
+        colalign=["left", "left", "left"],
+    )
+)
 ```
 
 ### Lexers usage
