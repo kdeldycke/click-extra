@@ -83,7 +83,7 @@ class SphinxAppWrapper:
             "extensions": ["click_extra.sphinx"],
         }
         if enable_exec_directives:
-            conf["click_extra_enable_exec_directives"] = True
+            conf["click_extra_enable_exec_directives"] = True  # type: ignore[assignment]
         if format_type == FormatType.MYST:
             conf["extensions"].append("myst_parser")  # type: ignore[attr-defined]
             conf["myst_enable_extensions"] = ["colon_fence"]

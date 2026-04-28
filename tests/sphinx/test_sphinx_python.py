@@ -202,6 +202,7 @@ def test_exec_directives_disabled_by_default(tmp_path):
         FormatType.MYST, tmp_path, enable_exec_directives=False
     )
     app = next(factory)
+    assert isinstance(app, SphinxAppWrapper)
     sentinel = "EXEC-MUST-NOT-HAPPEN-9c1f8"
     content = dedent(f"""
         ```{{python:run}}
@@ -233,6 +234,7 @@ def test_exec_directives_enabled_with_opt_in(tmp_path):
         FormatType.MYST, tmp_path, enable_exec_directives=True
     )
     app = next(factory)
+    assert isinstance(app, SphinxAppWrapper)
     content = dedent("""
         ```{python:run}
         print("Opt-in works.")

@@ -53,6 +53,7 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     from typing import ClassVar
 
+    from docutils.frontend import Values
     from docutils.parsers import Parser
 
 
@@ -161,7 +162,7 @@ class PythonRunDirective(PythonDirective):
 def _parse_with(
     parser: Parser,
     text: str,
-    settings: object,
+    settings: Values | None,
     parent: nodes.Element,
     source_path: str,
 ) -> None:

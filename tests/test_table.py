@@ -28,12 +28,12 @@ import xmltodict
 import yaml
 from boltons.strutils import strip_ansi
 from extra_platforms import is_windows
-from tabulate import _table_formats
+from tabulate import tabulate_formats
 
 # tabulate 0.10 introduced the ``colon_grid`` format and changed the asciidoc
 # cell-alignment marker from ``8<`` to ``<8``. Older releases (still shipped
 # by some distributions) need a different fixture.
-TABULATE_HAS_COLON_GRID = "colon_grid" in _table_formats
+TABULATE_HAS_COLON_GRID = "colon_grid" in tabulate_formats
 
 from click_extra import (
     Color,
