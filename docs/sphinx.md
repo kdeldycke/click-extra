@@ -34,7 +34,7 @@ I recommend using one of these themes, which works well with Click Extra:
 Using MkDocs instead of Sphinx? See the [MkDocs integration](mkdocs.md).
 ```
 
-## `click:` directives
+## `click:*` directives
 
 Click Extra adds two new directives:
 
@@ -594,7 +594,7 @@ In fact, if you look at Sphinx logs, you will see that a warning has been raised
 Alternatively, you can force syntax highlight with the `:language:` option, which takes precedence over the default language of the directive.
 ```
 
-## `python:` directives
+## `python:*` directives
 
 Click Extra also adds five general-purpose Python execution directives, registered under a separate `python` domain (distinct from Sphinx's built-in `py` domain for documenting API objects):
 
