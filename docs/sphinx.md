@@ -626,13 +626,13 @@ Alternatively, you can force syntax highlight with the `:language:` option, whic
 
 Click Extra also adds five general-purpose Python execution directives, registered under a separate `python` domain (distinct from Sphinx's built-in `py` domain for documenting API objects):
 
-| Directive            | Purpose                                                                                                                                                                  |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `python:source`      | Define and show a Python source block, executed silently. Use it to teach readers what a snippet looks like and to seed imports/variables for follow-up blocks.          |
-| `python:run`         | Execute a Python block and render its captured `stdout` in a code block. Output language defaults to `text`; override with `:language:` for structured output (`json`, `html`, `yaml`, etc.). |
+| Directive            | Purpose                                                                                                                                                                                                                               |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `python:source`      | Define and show a Python source block, executed silently. Use it to teach readers what a snippet looks like and to seed imports/variables for follow-up blocks.                                                                       |
+| `python:run`         | Execute a Python block and render its captured `stdout` in a code block. Output language defaults to `text`; override with `:language:` for structured output (`json`, `html`, `yaml`, etc.).                                         |
 | `python:render`      | Execute a Python block and parse its captured `stdout` as **live document content** using the host file's parser. Generated tables, headings, admonitions, and cross-references become first-class document nodes — not a code block. |
-| `python:render-myst` | Execute a Python block and parse its captured `stdout` as MyST, regardless of host. Lets a `.rst` document embed MyST-generated content.                                  |
-| `python:render-rst`  | Execute a Python block and parse its captured `stdout` as reST, regardless of host. Lets a `.md` document embed reST-generated content.                                   |
+| `python:render-myst` | Execute a Python block and parse its captured `stdout` as MyST, regardless of host. Lets a `.rst` document embed MyST-generated content.                                                                                              |
+| `python:render-rst`  | Execute a Python block and parse its captured `stdout` as reST, regardless of host. Lets a `.md` document embed reST-generated content.                                                                                               |
 
 These complement the Click directives: `click:run` is for showing simulated CLI sessions; `python:run` is for showing arbitrary Python output; the `python:render*` family is for **inline content generation**, replacing the regenerator-script + marker-region pattern many projects use to keep auto-tables in sync.
 
@@ -642,11 +642,11 @@ This project eats its own dog food: the [ANSI lexer table in `pygments.md`](pygm
 
 ### Pick the right `render`
 
-| Directive            | Parser used for captured stdout                | When to use                                    |
-| -------------------- | ---------------------------------------------- | ---------------------------------------------- |
-| `python:render`      | Whatever parser owns the host source file      | Generated markup matches the host file format. |
-| `python:render-myst` | MyST, regardless of host                       | Embed MyST-generated content in a `.rst` host. |
-| `python:render-rst`  | reST, regardless of host                       | Embed reST-generated content in a `.md` host.  |
+| Directive            | Parser used for captured stdout           | When to use                                    |
+| -------------------- | ----------------------------------------- | ---------------------------------------------- |
+| `python:render`      | Whatever parser owns the host source file | Generated markup matches the host file format. |
+| `python:render-myst` | MyST, regardless of host                  | Embed MyST-generated content in a `.rst` host. |
+| `python:render-rst`  | reST, regardless of host                  | Embed reST-generated content in a `.md` host.  |
 
 `python:render` reuses the host state machine, so cross-references and Sphinx-aware roles resolve naturally. The forced-parser variants (`render-myst`, `render-rst`) parse into a fresh sub-document and graft the resulting nodes back into the page.
 
