@@ -537,6 +537,142 @@ def test_24bit_rgb_bg(r, g, b, expected_idx):
     assert tokens[0] == (getattr(Ansi, f"BGC{expected_idx}"), "text")
 
 
+# --- 24-bit true-color mode ---
+
+
+def lex_truecolor(text: str) -> list[tuple]:
+    """Shorthand: lex ``text`` with true-color enabled."""
+    return list(AnsiColorLexer(true_color=True).get_tokens(text))
+
+
+@pytest.mark.parametrize(
+    ("r", "g", "b", "expected_hex"),
+    [
+        pytest.param(255, 0, 0, "ff0000", id="pure-red"),
+        pytest.param(0, 255, 0, "00ff00", id="pure-green"),
+        pytest.param(255, 165, 0, "ffa500", id="orange"),
+        pytest.param(1, 2, 3, "010203", id="low-channels-zero-padded"),
+    ],
+)
+def test_truecolor_fg_preserves_hex(r, g, b, expected_hex):
+    """With ``true_color=True``, SGR 38;2;r;g;b emits ``Token.Ansi.FG_{hex}``."""
+    tokens = lex_truecolor(f"\x1b[38;2;{r};{g};{b}mtext\x1b[0m")
+    assert tokens[0] == (getattr(Ansi, f"FG_{expected_hex}"), "text")
+
+
+@pytest.mark.parametrize(
+    ("r", "g", "b", "expected_hex"),
+    [
+        pytest.param(255, 0, 0, "ff0000", id="pure-red-bg"),
+        pytest.param(128, 128, 128, "808080", id="gray-bg"),
+    ],
+)
+def test_truecolor_bg_preserves_hex(r, g, b, expected_hex):
+    """With ``true_color=True``, SGR 48;2;r;g;b emits ``Token.Ansi.BG_{hex}``."""
+    tokens = lex_truecolor(f"\x1b[48;2;{r};{g};{b}mtext\x1b[0m")
+    assert tokens[0] == (getattr(Ansi, f"BG_{expected_hex}"), "text")
+
+
+def test_truecolor_combined_fg_and_bg():
+    """Foreground and background 24-bit RGB combine into a single compound token."""
+    tokens = lex_truecolor(
+        "\x1b[38;2;255;165;0;48;2;0;68;136mtext\x1b[0m",
+    )
+    assert tokens[0] == (Ansi.FG_ffa500.BG_004488, "text")
+
+
+def test_truecolor_with_attribute():
+    """Bold + 24-bit RGB combines into a single compound token."""
+    tokens = lex_truecolor("\x1b[1;38;2;255;128;0mbold-orange\x1b[0m")
+    assert tokens[0] == (Ansi.Bold.FG_ff8000, "bold-orange")
+
+
+def test_truecolor_default_disabled():
+    """Default ``AnsiColorLexer()`` quantizes RGB to 256-color palette."""
+    # 255,165,0 quantizes to C214 (orange in the 6x6x6 cube).
+    tokens = lex("\x1b[38;2;255;165;0mtext\x1b[0m")
+    assert tokens[0] == (Ansi.C214, "text")
+
+
+def test_truecolor_invalid_range_ignored():
+    """Out-of-range RGB values are skipped in true-color mode too."""
+    tokens = lex_truecolor("\x1b[38;2;300;0;0mtext\x1b[0m")
+    assert tokens[0] == (Text, "text")
+
+
+def test_truecolor_truncated_params_ignored():
+    """Truncated RGB params are skipped in true-color mode too."""
+    tokens = lex_truecolor("\x1b[38;2;255;128mtext\x1b[0m")
+    assert tokens[0] == (Text, "text")
+
+
+def test_truecolor_filter_forwards_flag():
+    """``AnsiFilter(true_color=True)`` forwards the flag to its inner lexer."""
+    filt = AnsiFilter(true_color=True)
+    stream = [(DEFAULT_TOKEN_TYPE, "\x1b[38;2;255;165;0morange\x1b[0m")]
+    result = list(filt.filter(None, stream))
+    assert any(t == Ansi.FG_ffa500 for t, _ in result)
+
+
+def test_truecolor_session_lexer_forwards_flag():
+    """Lexer kwarg ``true_color=True`` flows through ``_AnsiFilterMixin``."""
+    lexer = get_lexer_by_name("ansi-shell-session", true_color=True)
+    text = "$ echo hi\n\x1b[38;2;0;128;255mhi\x1b[0m\n"
+    found_truecolor = False
+    for ttype, _ in lexer.get_tokens(text):
+        if len(ttype) > 1 and ttype[0] == "Ansi" and ttype[-1] == "FG_0080ff":
+            found_truecolor = True
+            break
+    assert found_truecolor
+
+
+def test_formatter_renders_truecolor_inline_style():
+    """``AnsiHtmlFormatter`` emits inline style for ``FG_/BG_`` tokens."""
+    formatter = AnsiHtmlFormatter(nowrap=True)
+    text = "\x1b[38;2;255;165;0morange\x1b[0m"
+    result = highlight(text, AnsiColorLexer(true_color=True), formatter)
+    assert 'style="color: #ffa500"' in result
+    assert "orange" in result
+    # No CSS class should be emitted for the RGB component.
+    assert "FG_ffa500" not in result
+
+
+def test_formatter_renders_truecolor_background():
+    """Background 24-bit RGB renders as ``background-color`` inline style."""
+    formatter = AnsiHtmlFormatter(nowrap=True)
+    text = "\x1b[48;2;0;68;136mblue-bg\x1b[0m"
+    result = highlight(text, AnsiColorLexer(true_color=True), formatter)
+    assert 'style="background-color: #004488"' in result
+
+
+def test_formatter_truecolor_combined_with_class_styling():
+    """Bold + RGB renders both a CSS class for Bold and an inline style for the color."""
+    formatter = AnsiHtmlFormatter(nowrap=True)
+    text = "\x1b[1;38;2;255;128;0mbold-orange\x1b[0m"
+    result = highlight(text, AnsiColorLexer(true_color=True), formatter)
+    assert "-Ansi-Bold" in result
+    assert 'style="color: #ff8000"' in result
+
+
+def test_formatter_truecolor_fg_and_bg_nested_spans():
+    """Both fg and bg RGB on the same token produce two nested inline-style spans."""
+    formatter = AnsiHtmlFormatter(nowrap=True)
+    text = "\x1b[38;2;255;0;0;48;2;0;0;255mfg-bg\x1b[0m"
+    result = highlight(text, AnsiColorLexer(true_color=True), formatter)
+    assert 'style="color: #ff0000"' in result
+    assert 'style="background-color: #0000ff"' in result
+
+
+def test_formatter_default_path_unchanged_by_rgb_injector():
+    """When the lexer quantizes (default), no inline styles are emitted."""
+    formatter = AnsiHtmlFormatter(nowrap=True)
+    text = "\x1b[38;2;255;165;0morange\x1b[0m"
+    result = highlight(text, AnsiColorLexer(), formatter)
+    # 255,165,0 quantizes to C214.
+    assert "-Ansi-C214" in result
+    assert "style=" not in result
+
+
 # --- _nearest_256 quantization ---
 
 

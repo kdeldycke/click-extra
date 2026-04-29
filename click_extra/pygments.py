@@ -25,12 +25,15 @@ and overline.
 OSC 8 hyperlinks are rendered as HTML ``<a>`` tags. Other OSC sequences are silently
 stripped.
 
-.. warning::
+.. note::
     24-bit RGB colors (``SGR 38;2;r;g;b`` and ``48;2;r;g;b``) are quantized to the
-    nearest entry in the 256-color indexed palette. This is a deliberate trade-off:
-    true RGB rendering would require per-color inline styles, breaking the CSS-class
-    architecture that Pygments and Sphinx rely on. The quantization produces a close
-    visual approximation for most colors.
+    nearest entry in the 256-color indexed palette by default. Pass ``true_color=True``
+    to ``AnsiColorLexer``, ``AnsiFilter``, or any session lexer (via
+    ``get_lexer_by_name(..., true_color=True)``) to opt into 24-bit rendering.
+    ``AnsiHtmlFormatter`` then emits inline ``style="color: #rrggbb"`` /
+    ``style="background-color: #rrggbb"`` spans for those tokens, since CSS classes
+    cannot enumerate 16.7M colors. Other token components (bold, named colors, palette
+    indices) keep their CSS-class rendering.
 """
 
 from __future__ import annotations
@@ -327,6 +330,17 @@ class AnsiColorLexer(Lexer):
     aliases = ("ansi-color", "ansi", "ansi-terminal")
 
     def __init__(self, *args, **kwargs) -> None:
+        """Initialize the lexer.
+
+        :param true_color: When ``False`` (default), 24-bit RGB sequences are quantized
+            to the nearest entry in the 256-color palette and emitted as ``Token.Ansi.C{n}``
+            / ``Token.Ansi.BGC{n}`` tokens, which map to CSS classes via the style dict.
+            When ``True``, 24-bit RGB sequences are preserved as ``Token.Ansi.FG_{rrggbb}``
+            / ``Token.Ansi.BG_{rrggbb}`` tokens. ``AnsiHtmlFormatter`` renders these as
+            inline ``style="color: #rrggbb"`` / ``style="background-color: #rrggbb"``
+            attributes since CSS classes cannot enumerate 16.7M colors.
+        """
+        self.true_color = bool(kwargs.pop("true_color", False))
         super().__init__(*args, **kwargs)
         self._cached_token: _TokenType = Text
         self._reset_state()
@@ -356,7 +370,13 @@ class AnsiColorLexer(Lexer):
         if self.fg_color:
             components.append(self.fg_color)
         if self.bg_color:
-            components.append("BG" + self.bg_color)
+            # ``BG_rrggbb`` true-color values are already prefixed; named and
+            # palette-indexed values use the conventional ``BG`` prefix.
+            components.append(
+                self.bg_color
+                if self.bg_color.startswith("BG_")
+                else "BG" + self.bg_color
+            )
         if not components:
             self._cached_token = Text
         else:
@@ -425,16 +445,24 @@ class AnsiColorLexer(Lexer):
                             self.bg_color = f"C{color_idx}"
                 elif mode == 2:
                     # 24-bit RGB: 38;2;r;g;b or 48;2;r;g;b.
-                    # Quantized to the nearest 256-color entry.
+                    # Quantized to the nearest 256-color entry by default; preserved
+                    # as FG_/BG_ hex token components when ``true_color`` is enabled.
                     if len(values) < 3:
                         continue
                     r, g, b = values.pop(0), values.pop(0), values.pop(0)
                     if all(0 <= v <= 255 for v in (r, g, b)):
-                        nearest = _nearest_256(r, g, b)
-                        if code == 38:
-                            self.fg_color = f"C{nearest}"
+                        if self.true_color:
+                            hex_value = f"{r:02x}{g:02x}{b:02x}"
+                            if code == 38:
+                                self.fg_color = f"FG_{hex_value}"
+                            else:
+                                self.bg_color = f"BG_{hex_value}"
                         else:
-                            self.bg_color = f"C{nearest}"
+                            nearest = _nearest_256(r, g, b)
+                            if code == 38:
+                                self.fg_color = f"C{nearest}"
+                            else:
+                                self.bg_color = f"C{nearest}"
 
     def get_tokens_unprocessed(
         self, text: str
@@ -485,6 +513,11 @@ class AnsiFilter(Filter):
         """Initialize an ``AnsiColorLexer`` and configure the ``token_type`` to be
         colorized.
 
+        :param true_color: Forwarded to the inner ``AnsiColorLexer`` to control whether
+            24-bit RGB sequences are quantized to the 256-color palette (default) or
+            preserved as ``FG_/BG_`` hex tokens for inline-style rendering. See
+            :class:`AnsiColorLexer` for details.
+
         .. note::
             Only one ``token_type`` is supported. All Pygments session lexers
             (``ShellSessionBaseLexer`` and the manually-maintained list in
@@ -497,8 +530,9 @@ class AnsiFilter(Filter):
             <https://github.com/pygments/pygments/issues/2499>`_ for the closest
             related discussions.
         """
+        true_color = bool(options.pop("true_color", False))
         super().__init__(**options)
-        self.ansi_lexer = AnsiColorLexer()
+        self.ansi_lexer = AnsiColorLexer(true_color=true_color)
         self.token_type = string_to_tokentype(
             options.get("token_type", DEFAULT_TOKEN_TYPE),
         )
@@ -541,10 +575,14 @@ class _AnsiFilterMixin(Lexer):
         Each output line ends up encapsulated into a ``Generic.Output`` token. The
         ``TokenMergeFilter`` consolidates contiguous output lines into a single token,
         then ``AnsiFilter`` transforms the merged output into ANSI-styled tokens.
+
+        :param true_color: Forwarded to ``AnsiFilter`` to enable 24-bit RGB rendering
+            via inline styles instead of the default 256-color quantization.
         """
+        true_color = bool(kwargs.pop("true_color", False))
         super().__init__(*args, **kwargs)
         self.filters.append(TokenMergeFilter())
-        self.filters.append(AnsiFilter())
+        self.filters.append(AnsiFilter(true_color=true_color))
 
 
 def collect_session_lexers() -> Iterator[type[Lexer]]:
@@ -631,6 +669,27 @@ Captures the HTML-escaped URL between ``_LINK_OPEN`` and ``_LINK_SEP`` for repla
 with an ``<a href="...">`` tag.
 """
 
+_RGB_FG_OPEN = "\ue010"
+"""Private Use Area marker injected before a 24-bit foreground hex value."""
+
+_RGB_BG_OPEN = "\ue011"
+"""Private Use Area marker injected before a 24-bit background hex value."""
+
+_RGB_SEP = "\ue012"
+"""Private Use Area marker separating the hex value from the styled text."""
+
+_RGB_CLOSE = "\ue013"
+"""Private Use Area marker closing a 24-bit color span."""
+
+_RGB_MARKER_RE = re.compile(
+    f"(?P<kind>[{_RGB_FG_OPEN}{_RGB_BG_OPEN}])(?P<hex>[0-9a-f]{{6}}){_RGB_SEP}"
+)
+"""Regex matching 24-bit color open markers in post-processed HTML.
+
+Captures the marker kind (foreground or background) and the 6-character hex value for
+replacement with a ``<span style="...">`` tag.
+"""
+
 
 class AnsiHtmlFormatter(HtmlFormatter):
     """HTML formatter with ANSI color and hyperlink support.
@@ -666,18 +725,89 @@ class AnsiHtmlFormatter(HtmlFormatter):
         self._ansi_css_cache: dict[_TokenType, str] = {}
 
     def format_unencoded(self, tokensource, outfile) -> None:
-        """Render tokens to HTML, converting OSC 8 link tokens to ``<a>`` tags.
+        """Render tokens to HTML, converting OSC 8 link and 24-bit RGB markers to tags.
 
         Replaces ``Token.AnsiLinkStart`` / ``Token.AnsiLinkEnd`` with Unicode Private
-        Use Area markers, delegates to Pygments' HTML rendering, then post-processes
-        the output to swap markers for ``<a>`` / ``</a>`` tags.
+        Use Area markers, strips ``FG_/BG_`` 24-bit RGB components from compound tokens
+        and replaces them with PUA markers carrying the hex value, delegates to Pygments'
+        HTML rendering, then post-processes the output to swap markers for ``<a>`` and
+        inline-styled ``<span>`` tags.
         """
         buffer = StringIO()
-        super().format_unencoded(self._inject_link_markers(tokensource), buffer)
+        super().format_unencoded(
+            self._inject_link_markers(self._inject_rgb_markers(tokensource)),
+            buffer,
+        )
         html = buffer.getvalue()
         html = _LINK_MARKER_RE.sub(lambda m: f'<a href="{m.group(1)}">', html)
         html = html.replace(_LINK_CLOSE, "</a>")
+        html = _RGB_MARKER_RE.sub(self._rgb_marker_to_span, html)
+        html = html.replace(_RGB_CLOSE, "</span>")
         outfile.write(html)
+
+    @staticmethod
+    def _rgb_marker_to_span(match: re.Match) -> str:
+        """Replace a 24-bit RGB open marker with a ``<span>`` tag carrying inline style.
+
+        ``_RGB_FG_OPEN`` produces a ``color`` declaration; ``_RGB_BG_OPEN`` produces a
+        ``background-color`` declaration.
+        """
+        prop = "color" if match.group("kind") == _RGB_FG_OPEN else "background-color"
+        return f'<span style="{prop}: #{match.group("hex")}">'
+
+    @staticmethod
+    def _inject_rgb_markers(
+        tokensource: Iterable[tuple[_TokenType, str]],
+    ) -> Iterator[tuple[_TokenType, str]]:
+        """Strip ``FG_/BG_`` components from Ansi tokens and wrap text in PUA markers.
+
+        24-bit RGB colors cannot be expressed as a finite set of CSS classes, so they
+        bypass the style dict entirely. The hex value travels with the text via PUA
+        markers and gets converted to inline ``style="..."`` attributes during HTML
+        post-processing. Non-RGB token components (Bold, named colors, palette indices)
+        survive on the rebuilt token and continue to render through the standard CSS
+        class mechanism.
+        """
+        for ttype, value in tokensource:
+            # Only Ansi compound tokens may carry FG_/BG_ components.
+            if len(ttype) <= 1 or ttype[0] != "Ansi":
+                yield ttype, value
+                continue
+
+            fg_hex: str | None = None
+            bg_hex: str | None = None
+            kept: list[str] = []
+            for component in ttype[1:]:
+                if component.startswith("FG_") and len(component) == 9:
+                    fg_hex = component[3:]
+                elif component.startswith("BG_") and len(component) == 9:
+                    bg_hex = component[3:]
+                else:
+                    kept.append(component)
+
+            if fg_hex is None and bg_hex is None:
+                yield ttype, value
+                continue
+
+            # Rebuild the token without the RGB components. An empty result collapses
+            # to ``Text`` so Pygments emits no surrounding span: the inline-style span
+            # produced by the marker post-processing is the only wrapper needed.
+            new_ttype: _TokenType = Text
+            if kept:
+                new_ttype = Ansi
+                for component in kept:
+                    new_ttype = getattr(new_ttype, component)
+
+            prefix = ""
+            suffix = ""
+            if fg_hex is not None:
+                prefix += f"{_RGB_FG_OPEN}{fg_hex}{_RGB_SEP}"
+                suffix = _RGB_CLOSE + suffix
+            if bg_hex is not None:
+                prefix += f"{_RGB_BG_OPEN}{bg_hex}{_RGB_SEP}"
+                suffix = _RGB_CLOSE + suffix
+
+            yield new_ttype, prefix + value + suffix
 
     @staticmethod
     def _inject_link_markers(

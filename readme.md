@@ -88,7 +88,7 @@ To undestrand how we ended up with the result above, [go read the tutorial](http
 - [`click:source` and `click:run` Sphinx directives](https://kdeldycke.github.io/click-extra/sphinx.html) in MyST Markdown and reStructuredText to document CLI source code and their execution
 - [Inline testing of CLI examples](https://kdeldycke.github.io/click-extra/sphinx.html#inline-tests) in documentation
 - Render [GitHub alerts](https://kdeldycke.github.io/click-extra/sphinx.html#github-alerts) into MyST admonitions
-- [ANSI-capable Pygments lexers](https://kdeldycke.github.io/click-extra/pygments.html#ansi-language-lexers) for shell session and console output
+- [ANSI-capable Pygments lexers](https://kdeldycke.github.io/click-extra/pygments.html#ansi-language-lexers) for shell session and console output, with [opt-in 24-bit true-color rendering](https://kdeldycke.github.io/click-extra/pygments.html#bit-true-color)
 - [MkDocs plugin](https://kdeldycke.github.io/click-extra/mkdocs.html) for ANSI color rendering in code blocks
 - [Fixes 50+ bugs](https://kdeldycke.github.io/click-extra/upstream.html) from other Click-related projects
 - Rely on [Cloup](https://github.com/janluke/cloup) to add:

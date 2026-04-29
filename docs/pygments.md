@@ -357,6 +357,57 @@ $ cat cowsay.html
 </html>
 ```
 
+## 24-bit true color
+
+The `ansi-color` lexer parses `SGR 38;2;r;g;b` and `48;2;r;g;b` (24-bit RGB) sequences. By default, it quantizes those values to the nearest entry in the 256-color palette so they ride the same CSS-class machinery as named and indexed colors.
+
+The default works for nearly all terminal output. Quantization to the 6×6×6 cube and 24-step grayscale ramp is visually close, the resulting CSS is small, and it stays compatible with Furo's dark-mode stylesheet swap. Smooth gradients (`lolcat`-style output, `bat` themes with custom palettes, terminal recordings of TUI applications) are where the approximation becomes noticeable.
+
+To preserve raw RGB values, opt into true-color mode by passing `true_color=True` to the lexer:
+
+```{click:source}
+from click_extra import command, echo
+from click_extra.pygments import AnsiColorLexer
+
+@command
+def truecolor_demo():
+    """Show how true-color mode preserves 24-bit RGB values."""
+    text = "\x1b[38;2;255;165;0morange\x1b[0m"
+
+    # Default: quantize to nearest 256-color palette entry.
+    quantized = list(AnsiColorLexer().get_tokens(text))
+    echo(f"quantized: {quantized}")
+
+    # Opt-in: preserve raw RGB hex.
+    truecolor = list(AnsiColorLexer(true_color=True).get_tokens(text))
+    echo(f"truecolor: {truecolor}")
+```
+
+```{click:run}
+result = invoke(truecolor_demo)
+assert result.exit_code == 0
+assert "Token.Ansi.C214" in result.stdout
+assert "Token.Ansi.FG_ffa500" in result.stdout
+```
+
+The flag also flows through `AnsiFilter` and the [ANSI language lexers](#ansi-language-lexers):
+
+```python
+from pygments.lexers import get_lexer_by_name
+
+lexer = get_lexer_by_name("ansi-shell-session", true_color=True)
+```
+
+When true-color tokens reach `AnsiHtmlFormatter`, they are rendered as inline `<span style="color: #rrggbb">` / `<span style="background-color: #rrggbb">` tags. Other token components on the same span (bold, italic, named colors, palette indices) keep their CSS-class rendering, so a bold-orange-on-blue span ends up as nested `<span class="-Ansi-Bold"><span style="color: #ffa500"><span style="background-color: #004488">…</span></span></span>`.
+
+```{warning}
+Inline styles bypass the Pygments stylesheet entirely. Furo's dark-mode CSS swap cannot recolor them, but this matches how the 256-color palette already works (its hex values are baked into the stylesheet at generation time). ANSI colors are absolute by design: a red `\e[31m` should look red regardless of theme.
+```
+
+```{seealso}
+Pygments has tracked 24-bit terminal rendering for years without a built-in HTML path: see [pygments/pygments#849](https://github.com/pygments/pygments/issues/849) (closed without a 24-bit formatter) and [pygments/pygments#1644](https://github.com/pygments/pygments/issues/1644) (subclassing the HTML formatter to add ANSI inline styles is fragile across releases). The `pygments-ansi-color` project hits the same architectural wall: see [chriskuehl/pygments-ansi-color#5](https://github.com/chriskuehl/pygments-ansi-color/issues/5) (256-color rendering breaks with `noclasses=True`, the inline-style mode), [chriskuehl/pygments-ansi-color#31](https://github.com/chriskuehl/pygments-ansi-color/issues/31), and [chriskuehl/pygments-ansi-color#33](https://github.com/chriskuehl/pygments-ansi-color/issues/33).
+```
+
 ## OSC 8 hyperlinks
 
 Terminal hyperlinks ([OSC 8](https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda)) in CLI output are rendered as clickable HTML `<a>` tags.
