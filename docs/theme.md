@@ -86,7 +86,7 @@ def cocktail():
     echo("Cheers!")
 ```
 
-After this runs, ``cocktail --theme neon`` becomes a valid invocation, and ``cocktail --help`` lists ``[dark|light|neon]`` as the choices.
+After this runs, `cocktail --theme neon` becomes a valid invocation, and `cocktail --help` lists `[dark|light|neon]` as the choices.
 
 The registry stores **factories**, not pre-built instances, so themes that depend on runtime state (terminal capabilities, environment variables, user settings) compute their styles lazily.
 
