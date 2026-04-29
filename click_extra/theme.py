@@ -169,10 +169,46 @@ class HelpExtraTheme(cloup.HelpTheme):
     def light() -> HelpExtraTheme:
         """A theme assuming a light terminal background color.
 
-        .. todo::
-            Tweak colors to make them more readable.
+        Mirrors :meth:`dark` but swaps the palette for one that stays legible on a white
+        background: bright variants (which most terminals render as washed-out tints) are
+        replaced by their standard counterparts, ``bright_white`` becomes ``black``, and
+        cyan accents become ``blue`` since cyan on white is hard to read.
         """
-        return HelpExtraTheme.dark()
+        return HelpExtraTheme(
+            invoked_command=Style(fg=Color.black, bold=True),
+            heading=Style(fg=Color.blue, bold=True, underline=True),
+            constraint=Style(fg=Color.magenta),
+            # Neutralize Cloup's col1, as it interferes with our finer option styling
+            # which takes care of separators.
+            col1=identity,
+            # Style aliases like options and subcommands.
+            alias=Style(fg=Color.blue),
+            # Style aliases punctuation like options, but dimmed.
+            alias_secondary=Style(fg=Color.blue, dim=True),
+            ### Log styles.
+            critical=Style(fg=Color.red, bold=True),
+            error=Style(fg=Color.red),
+            warning=Style(fg=Color.magenta),
+            info=identity,  # INFO level is the default, so no style applied.
+            debug=Style(fg=Color.blue, dim=True),
+            ### Click Extra styles.
+            option=Style(fg=Color.blue),
+            # Style subcommands like options and aliases.
+            subcommand=Style(fg=Color.blue),
+            choice=Style(fg=Color.magenta),
+            metavar=Style(fg=Color.blue, dim=True),
+            bracket=Style(dim=True),
+            envvar=Style(fg=Color.magenta, dim=True),
+            default=Style(fg=Color.green, dim=True, italic=True),
+            range_label=Style(fg=Color.blue, dim=True),
+            required=Style(fg=Color.red, dim=True),
+            argument=Style(fg=Color.blue),
+            deprecated=Style(fg=Color.red, bold=True),
+            search=Style(fg=Color.green, bold=True),
+            success=Style(fg=Color.green),
+            ### Non-canonical Click Extra styles.
+            subheading=Style(fg=Color.blue, dim=True),
+        )
 
 
 default_theme: HelpExtraTheme = HelpExtraTheme.dark()
