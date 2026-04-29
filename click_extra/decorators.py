@@ -23,7 +23,6 @@ import click
 import cloup
 
 from .colorize import ColorOption
-from .theme import ThemeOption
 from .commands import (
     DEFAULT_HELP_NAMES,
     ExtraCommand,
@@ -37,6 +36,7 @@ from .logging import VerboseOption, VerbosityOption
 from .parameters import Argument, Option, ShowParamsOption
 from .table import TableFormatOption
 from .telemetry import TelemetryOption
+from .theme import ThemeOption
 from .timer import TimerOption
 from .version import ExtraVersionOption
 

@@ -57,7 +57,6 @@ from click_extra.colorize import (
     color_envvars,
     highlight,
 )
-from click_extra.theme import default_theme as theme
 from click_extra.pytest import (
     command_decorators,
     default_debug_colored_log_end,
@@ -68,6 +67,7 @@ from click_extra.pytest import (
     default_debug_uncolored_logging,
     default_options_colored_help,
 )
+from click_extra.theme import default_theme as theme
 from click_extra.types import ChoiceSource, EnumChoice
 
 from .conftest import skip_windows_colors

@@ -38,8 +38,8 @@ import click
 from click.types import IntRange
 
 from . import EnumChoice
-from .theme import default_theme
 from .parameters import ExtraOption, search_params
+from .theme import default_theme
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:

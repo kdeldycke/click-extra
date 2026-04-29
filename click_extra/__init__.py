@@ -37,12 +37,6 @@ from .colorize import (
     HelpExtraFormatter,
     HelpKeywords,
 )
-from .theme import (
-    HelpExtraTheme,
-    ThemeOption,
-    register_theme,
-    theme_registry,
-)
 from .commands import (
     ExtraCommand,
     ExtraContext,
@@ -116,6 +110,12 @@ from .table import (
 )
 from .telemetry import TelemetryOption
 from .testing import ExtraCliRunner
+from .theme import (
+    HelpExtraTheme,
+    ThemeOption,
+    register_theme,
+    theme_registry,
+)
 from .timer import TimerOption
 from .version import ExtraVersionOption
 

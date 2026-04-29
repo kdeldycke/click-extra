@@ -36,8 +36,7 @@ from gettext import gettext as _
 import click
 import cloup
 
-from . import ParameterSource
-from . import theme as _theme
+from . import ParameterSource, theme as _theme
 from .parameters import ExtraOption
 from .theme import HelpExtraTheme
 
