@@ -16,7 +16,7 @@ def weather():
 ```
 
 ```{click:run}
-result = invoke(weather, args=["--help"])
+result = invoke(weather, args=["--theme", "dark", "--help"])
 assert result.exit_code == 0
 assert "--theme" in result.stdout
 ```
