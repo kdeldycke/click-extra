@@ -35,6 +35,7 @@ from .colorize import (
     HelpExtraFormatter,
     HelpKeywords,
 )
+from .theme import ThemeOption
 from .config import (
     DEFAULT_SUBCOMMANDS_KEY,
     PREPEND_SUBCOMMANDS_KEY,
@@ -117,6 +118,7 @@ def default_extra_params() -> list[click.Option]:
     #. ``--no-config``
     #. ``--validate-config CONFIG_PATH``
     #. ``--color``, ``--ansi`` / ``--no-color``, ``--no-ansi``
+    #. ``--theme``
     #. ``--show-params``
     #. ``--table-format FORMAT``
     #. ``--verbosity LEVEL``
@@ -153,6 +155,7 @@ def default_extra_params() -> list[click.Option]:
     return [
         TimerOption(),
         ColorOption(),
+        ThemeOption(),
         ConfigOption(),
         NoConfigOption(),
         ValidateConfigOption(),
@@ -607,7 +610,8 @@ class HelpCommand(ColorizedCommand):
         term: str,
     ) -> None:
         """Search all subcommands for options or descriptions matching *term*."""
-        from .colorize import default_theme, highlight
+        from .colorize import highlight
+        from .theme import default_theme
 
         term_lower = term.lower()
         results: list[tuple[str, str]] = []

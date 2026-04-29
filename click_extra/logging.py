@@ -38,7 +38,7 @@ import click
 from click.types import IntRange
 
 from . import EnumChoice
-from .colorize import default_theme
+from .theme import default_theme
 from .parameters import ExtraOption, search_params
 
 TYPE_CHECKING = False
@@ -140,7 +140,7 @@ class ExtraFormatter(Formatter):
         """Colorize the record's log level name before calling the standard
         formatter.
 
-        Colors are sourced from a :class:`click_extra.colorize.HelpExtraTheme`. Default
+        Colors are sourced from a :class:`click_extra.theme.HelpExtraTheme`. Default
         colors are configured on :const:`click_extra.colorize.default_theme`.
         """
         level = record.levelname.lower()

@@ -23,6 +23,7 @@ import click
 import cloup
 
 from .colorize import ColorOption
+from .theme import ThemeOption
 from .commands import (
     DEFAULT_HELP_NAMES,
     ExtraCommand,
@@ -152,6 +153,7 @@ validate_config_option = decorator_factory(dec=option, cls=ValidateConfigOption)
 show_params_option = decorator_factory(dec=option, cls=ShowParamsOption)
 table_format_option = decorator_factory(dec=option, cls=TableFormatOption)
 telemetry_option = decorator_factory(dec=option, cls=TelemetryOption)
+theme_option = decorator_factory(dec=option, cls=ThemeOption)
 timer_option = decorator_factory(dec=option, cls=TimerOption)
 verbose_option = decorator_factory(dec=option, cls=VerboseOption)
 verbosity_option = decorator_factory(dec=option, cls=VerbosityOption)

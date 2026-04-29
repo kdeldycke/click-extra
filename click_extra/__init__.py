@@ -35,8 +35,13 @@ if True:
 from .colorize import (
     ColorOption,
     HelpExtraFormatter,
-    HelpExtraTheme,
     HelpKeywords,
+)
+from .theme import (
+    HelpExtraTheme,
+    ThemeOption,
+    register_theme,
+    theme_registry,
 )
 from .commands import (
     ExtraCommand,
@@ -72,6 +77,7 @@ from .decorators import (  # type: ignore[no-redef]
     show_params_option,
     table_format_option,
     telemetry_option,
+    theme_option,
     timer_option,
     validate_config_option,
     verbose_option,
@@ -187,6 +193,7 @@ __all__ = [
     "TableFormat",
     "TableFormatOption",
     "TelemetryOption",
+    "ThemeOption",
     "TimerOption",
     "Tuple",
     "UsageError",
@@ -242,6 +249,7 @@ __all__ = [
     "print_table",
     "progressbar",
     "prompt",
+    "register_theme",
     "render_table",
     "search_params",
     "secho",
@@ -250,6 +258,8 @@ __all__ = [
     "style",
     "table_format_option",
     "telemetry_option",
+    "theme_option",
+    "theme_registry",
     "timer_option",
     "unstyle",
     "validate_config_option",

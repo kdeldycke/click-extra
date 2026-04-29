@@ -25,7 +25,6 @@
 
 from __future__ import annotations
 
-import dataclasses
 import os
 import re
 from configparser import RawConfigParser
@@ -36,18 +35,16 @@ from gettext import gettext as _
 
 import click
 import cloup
-from cloup._util import identity
-from cloup.styling import Color
 
-from . import ParameterSource, Style
+from . import ParameterSource
+from . import theme as _theme
 from .parameters import ExtraOption
+from .theme import HelpExtraTheme
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Sequence
+    from collections.abc import Iterable, Sequence
     from typing import ClassVar
-
-    from cloup.styling import IStyle
 
 
 _CUBE_VALUES = (0, 95, 135, 175, 215, 255)
@@ -86,141 +83,6 @@ def _nearest_256(r: int, g: int, b: int) -> int:
 
     return gray_idx if gray_dist < cube_dist else cube_idx
 
-
-@dataclass(frozen=True)
-class HelpExtraTheme(cloup.HelpTheme):
-    """Extends ``cloup.HelpTheme`` with ``logging.levels`` and extra properties."""
-
-    critical: IStyle = identity
-    error: IStyle = identity
-    warning: IStyle = identity
-    info: IStyle = identity
-    debug: IStyle = identity
-    """Log levels from Python's logging module."""
-
-    option: IStyle = identity
-    subcommand: IStyle = identity
-    choice: IStyle = identity
-    metavar: IStyle = identity
-    bracket: IStyle = identity
-    envvar: IStyle = identity
-    default: IStyle = identity
-    range_label: IStyle = identity
-    required: IStyle = identity
-    argument: IStyle = identity
-    deprecated: IStyle = identity
-    search: IStyle = identity
-    success: IStyle = identity
-    """Click Extra new coloring properties."""
-
-    cross_ref_highlight: bool = True
-    """Highlight options, choices, arguments, metavars and CLI names in
-    free-form text (descriptions, docstrings).
-
-    When ``False``, only structural elements are styled: bracket fields
-    (``[default: ...]``, ``[env var: ...]``, ranges, ``[required]``),
-    deprecated messages, and subcommand names in definition lists.
-    """
-
-    subheading: IStyle = identity
-    """Non-canonical Click Extra properties.
-
-    .. note::
-        Subheading is used for sub-sections, like `in the help of mail-deduplicate
-        <https://github.com/kdeldycke/mail-deduplicate/blob/0764287/mail_deduplicate/deduplicate.py#L445>`_.
-
-    .. todo::
-        Maybe this shouldn't be in Click Extra because it is a legacy inheritance from
-        one of my other project.
-    """
-
-    def with_(  # type: ignore[override]
-        self,
-        **kwargs: dict[str, IStyle | None],
-    ) -> HelpExtraTheme:
-        """Derives a new theme from the current one, with some styles overridden.
-
-        Returns the same instance if the provided styles are the same as the current.
-        """
-        # Check for unrecognized arguments.
-        unrecognized_args = set(kwargs).difference(self.__dataclass_fields__)
-        if unrecognized_args:
-            raise TypeError(
-                f"Got unexpected keyword argument(s): {', '.join(unrecognized_args)}"
-            )
-
-        # List of styles that are different from the base theme.
-        new_styles = {
-            field_id: new_style
-            for field_id, new_style in kwargs.items()
-            if new_style != getattr(self, field_id)
-        }
-        if new_styles:
-            return dataclasses.replace(self, **new_styles)  # type: ignore[arg-type]
-
-        # No new styles, return the same instance.
-        return self
-
-    @staticmethod
-    def dark() -> HelpExtraTheme:
-        """A theme assuming a dark terminal background color."""
-        return HelpExtraTheme(
-            invoked_command=Style(fg=Color.bright_white),
-            heading=Style(fg=Color.bright_blue, bold=True, underline=True),
-            constraint=Style(fg=Color.magenta),
-            # Neutralize Cloup's col1, as it interferes with our finer option styling
-            # which takes care of separators.
-            col1=identity,
-            # Style aliases like options and subcommands.
-            alias=Style(fg=Color.cyan),
-            # Style aliases punctuation like options, but dimmed.
-            alias_secondary=Style(fg=Color.cyan, dim=True),
-            ### Log styles.
-            critical=Style(fg=Color.red, bold=True),
-            error=Style(fg=Color.red),
-            warning=Style(fg=Color.yellow),
-            info=identity,  # INFO level is the default, so no style applied.
-            debug=Style(fg=Color.blue),
-            ### Click Extra styles.
-            option=Style(fg=Color.cyan),
-            # Style subcommands like options and aliases.
-            subcommand=Style(fg=Color.cyan),
-            choice=Style(fg=Color.magenta),
-            metavar=Style(fg=Color.cyan, dim=True),
-            bracket=Style(dim=True),
-            envvar=Style(fg=Color.yellow, dim=True),
-            default=Style(fg=Color.green, dim=True, italic=True),
-            range_label=Style(fg=Color.cyan, dim=True),
-            required=Style(fg=Color.red, dim=True),
-            argument=Style(fg=Color.cyan),
-            deprecated=Style(fg=Color.bright_yellow, bold=True),
-            search=Style(fg=Color.green, bold=True),
-            success=Style(fg=Color.green),
-            ### Non-canonical Click Extra styles.
-            subheading=Style(fg=Color.blue),
-        )
-
-    @staticmethod
-    def light() -> HelpExtraTheme:
-        """A theme assuming a light terminal background color.
-
-        .. todo::
-            Tweak colors to make them more readable.
-        """
-        return HelpExtraTheme.dark()
-
-
-default_theme: HelpExtraTheme = HelpExtraTheme.dark()
-"""Default color theme for Click Extra."""
-
-
-nocolor_theme: HelpExtraTheme = HelpExtraTheme()
-"""Color theme for Click Extra to force no colors."""
-
-
-OK = default_theme.success("✓")
-KO = default_theme.error("✘")
-"""Pre-rendered UI-elements."""
 
 color_envvars = {
     # Colors.
@@ -649,10 +511,14 @@ class HelpExtraFormatter(cloup.HelpFormatter):
         """Forces theme to our default.
 
         Also transform Cloup's standard ``HelpTheme`` to our own ``HelpExtraTheme``.
+
+        Reads :data:`click_extra.theme.default_theme` through the ``_theme`` module
+        reference so :class:`~click_extra.theme.ThemeOption` reassignments are
+        picked up at call time.
         """
-        theme = kwargs.get("theme", default_theme)
+        theme = kwargs.get("theme", _theme.default_theme)
         if not isinstance(theme, HelpExtraTheme):
-            theme = default_theme.with_(**theme._asdict())
+            theme = _theme.default_theme.with_(**theme._asdict())
         kwargs["theme"] = theme
         super().__init__(*args, **kwargs)
 

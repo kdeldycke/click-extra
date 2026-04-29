@@ -34,9 +34,10 @@ import click
 import cloup
 from click.utils import make_str
 
-from . import colorize
-from .colorize import ExtraHelpColorsMixin, HelpExtraFormatter, HelpExtraTheme
+from . import theme as _theme
+from .colorize import ExtraHelpColorsMixin, HelpExtraFormatter
 from .commands import ColorizedCommand, ColorizedGroup, ExtraContext, ExtraGroup
+from .theme import HelpExtraTheme
 
 logger = logging.getLogger("click_extra")
 
@@ -177,7 +178,7 @@ def patch_click(
 
     # Override the default theme if requested.
     if theme is not None:
-        colorize.default_theme = theme
+        _theme.default_theme = theme
 
     logger.info(
         "Click patched: color=%s, theme=%s.",
@@ -203,7 +204,7 @@ def unpatch_click() -> None:
     ColorizedGroup.context_class = ExtraContext
 
     # Restore the default theme.
-    colorize.default_theme = HelpExtraTheme.dark()
+    _theme.default_theme = HelpExtraTheme.dark()
 
 
 def resolve_target(script: str) -> tuple[str, str]:
@@ -323,6 +324,40 @@ class _WrapCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
     Uses Cloup (not vanilla Click) to support aliases. Like
     :class:`~click_extra.commands.ColorizedCommand` but based on
     ``cloup.Command``.
+
+    .. note::
+        This deliberately extends ``cloup.Command`` instead of
+        :class:`~click_extra.commands.ExtraCommand`, so it does **not** inherit
+        :func:`~click_extra.commands.default_extra_params`. The reasons:
+
+        1. **The parent group already exposes them.** The hosting
+           :class:`WrapperGroup` is an :class:`~click_extra.commands.ExtraGroup`,
+           so ``--time``, ``--config``, ``--no-config``, ``--validate-config``,
+           ``--color``, ``--theme``, ``--show-params``, ``--table-format``,
+           ``--verbosity``, ``--verbose``, ``--version`` and ``--help`` are
+           already attached at the ``click-extra`` group level. Duplicating
+           them on ``wrap`` would create two valid spellings
+           (``click-extra --color wrap …`` versus
+           ``click-extra wrap --color …``) for the same effect.
+
+        2. **Argument forwarding constraints.** ``wrap`` uses
+           ``allow_interspersed_args=False`` and forwards everything after
+           ``SCRIPT`` to the target CLI verbatim. Adding more options on
+           ``wrap`` widens the surface for accidental collisions with the
+           wrapped CLI's own options, and bloats ``wrap --help`` with flags
+           unrelated to wrapping.
+
+        3. **All defaults are semantically irrelevant here.**
+           ``--show-params``, ``--table-format``, ``--config``,
+           ``--verbosity`` and ``--theme`` all describe behavior of
+           click-extra itself (its own config file, its own logging, its own
+           parameter introspection, its own help-screen theme). Re-declaring
+           any of them on ``wrap`` would shadow the group versions but operate
+           on the same global state: pure redundancy.
+
+        ``wrap`` therefore declares no options of its own: the parent group
+        carries every relevant flag, and everything after ``SCRIPT`` is
+        forwarded verbatim to the target CLI.
     """
 
     context_class: type[cloup.Context] = ExtraContext
@@ -401,17 +436,10 @@ def _config_args_for_target(
     type=click.UNPROCESSED,
     metavar="SCRIPT [ARGS]...",
 )
-@click.option(
-    "--theme",
-    type=click.Choice(("dark", "light"), case_sensitive=False),
-    default="dark",
-    help="Color theme preset.",
-)
 @click.pass_context
 def wrap(
     ctx: click.Context,
     script_and_args: tuple[str, ...],
-    theme: str,
 ) -> None:
     """Apply Click Extra help colorization to any Click CLI.
 
@@ -437,9 +465,10 @@ def wrap(
 
     module_path, function_name = resolve_target(script)
 
-    help_theme = HelpExtraTheme.light() if theme == "light" else HelpExtraTheme.dark()
-    # Color setting is inherited from the parent group's context, where
-    # ColorOption already processed --color/--no-color flags and environment
-    # variables (NO_COLOR, CLICOLOR, etc.).
-    patch_click(theme=help_theme, color=ctx.color or False)
+    # Color and theme are inherited from the parent group's context: ColorOption
+    # has already processed --color/--no-color flags and environment variables
+    # (NO_COLOR, CLICOLOR, etc.), and ThemeOption has reassigned
+    # ``theme.default_theme`` to the user's pick. ``theme=None`` instructs
+    # ``patch_click`` to keep that current default.
+    patch_click(theme=None, color=ctx.color or False)
     invoke_target(script, module_path, function_name, args)

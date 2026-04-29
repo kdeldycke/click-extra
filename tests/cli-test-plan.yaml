@@ -38,6 +38,7 @@
     - "Usage: click-extra [OPTIONS] COMMAND [ARGS]..."
     - "Show the version and exit."
     - "Show this message and exit."
+    - "--theme"
     - "Demo:"
     - "8color"
     - "colors"
@@ -73,7 +74,6 @@
   stdout_contains:
     - "Usage: click-extra run [OPTIONS] SCRIPT [ARGS]..."
     - "Apply Click Extra help colorization to any Click CLI."
-    - "--theme"
 
 
 # -- prebake subcommand -------------------------------------------------------

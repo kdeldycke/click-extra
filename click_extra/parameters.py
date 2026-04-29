@@ -496,8 +496,8 @@ def format_param_row(
             default_val,
         )
 
-    # Lazy import to avoid circular dependency with colorize.
-    from .colorize import KO, OK, default_theme
+    # Lazy import to avoid circular dependency with theme.
+    from .theme import KO, OK, default_theme
 
     hidden = None
     if hasattr(param, "hidden"):
@@ -589,9 +589,9 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             a ``click_extra.raw_args`` metadata entry to the context.
         """
         # Imported here to avoid circular imports.
-        from .colorize import KO, OK
         from .config import ConfigOption
         from .table import SERIALIZATION_FORMATS, print_table
+        from .theme import KO, OK
 
         # Exit early if the callback was processed but the option wasn't set.
         if not value:

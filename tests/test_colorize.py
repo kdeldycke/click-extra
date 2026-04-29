@@ -55,9 +55,9 @@ from click_extra import (
 from click_extra.colorize import (
     HelpKeywords,
     color_envvars,
-    default_theme as theme,
     highlight,
 )
+from click_extra.theme import default_theme as theme
 from click_extra.pytest import (
     command_decorators,
     default_debug_colored_log_end,

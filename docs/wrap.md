@@ -20,7 +20,6 @@ from click_extra.wrap import wrap
 result = invoke(wrap, args=["--help"])
 assert result.exit_code == 0
 assert "Apply Click Extra help colorization" in result.stdout
-assert "--theme" in result.stdout
 ```
 
 ````{tip}
@@ -68,11 +67,13 @@ $ click-extra --no-color flask --help
 $ NO_COLOR=1 click-extra flask --help
 ```
 
-The `--theme` option on `wrap` selects a color preset:
+The group-level `--theme` option selects a color preset for help screens. The flag is part of click-extra's default options, so it works on every click-extra command:
 
 ```shell-session
-$ click-extra wrap --theme light flask --help
+$ click-extra --theme light flask --help
 ```
+
+Custom themes can be registered with `register_theme()` before the CLI is parsed; the new name then becomes a valid value for `--theme`.
 
 ## Configuration
 

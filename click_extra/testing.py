@@ -34,7 +34,7 @@ from boltons.tbutils import ExceptionInfo
 from extra_platforms import is_windows
 
 from . import Color, Style
-from .colorize import default_theme
+from .theme import default_theme
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:

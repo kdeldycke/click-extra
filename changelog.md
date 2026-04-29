@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Promote `--theme` from a `wrap`-only option to a generic `default_extra_params()` flag. Every click-extra command now accepts `--theme [dark|light]`. New `ThemeOption` class, `theme_option` decorator, and `theme_registry` / `register_theme()` helpers (now in a dedicated `click_extra.theme` module) let downstream consumers extend the choice list. The `wrap` subcommand drops its local `--theme` and reads the value from the parent group's context.
+- Move `HelpExtraTheme`, `default_theme`, `nocolor_theme`, `OK`, `KO`, `theme_registry`, `register_theme`, and `ThemeOption` out of `click_extra.colorize` into a new `click_extra.theme` module. Public re-exports from `click_extra` keep the canonical import path (`from click_extra import HelpExtraTheme`) working, but downstream code that imports directly from `click_extra.colorize` must update to `click_extra.theme`. Adds a corresponding `docs/theme.md` user guide.
 - Move `tests/test_mkdocs.py` into `tests/mkdocs/`. Downstream packagers can skip it with `--ignore=tests/mkdocs` without pulling in `mkdocs-click`.
 - Loosen `default_debug_*_version_details` regex helpers to also match `None` for `git_long_hash`, `git_short_hash`, and `git_date`. Lets debug-output tests pass when the source tree has no `.git` directory (Guix `git-fetch`, sdist installs).
 - Skip `test_enum_choice_show_aliases` on Python `<3.12`. The test exercises `Enum._add_alias_` and `Enum._add_value_alias_`, both 3.12+ only.

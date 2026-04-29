@@ -15,6 +15,7 @@ parameters
 types
 config
 colorize
+theme
 logging
 table
 version

@@ -378,11 +378,11 @@ def test_config_verbosity(runner, greet_script, create_config):
     assert "DEBUG" in (result.output + (result.stderr or ""))
 
 
-def test_config_wrap_theme(runner, greet_script, create_config):
-    """A ``[tool.click-extra.wrap]`` section sets the wrap subcommand theme."""
+def test_config_group_theme(runner, greet_script, create_config):
+    """A ``[tool.click-extra]`` ``theme`` key sets the help-screen theme."""
     conf = create_config(
         "pyproject.toml",
-        '[tool.click-extra.wrap]\ntheme = "light"\n',
+        '[tool.click-extra]\ntheme = "light"\n',
     )
     result = runner.invoke(
         demo,
