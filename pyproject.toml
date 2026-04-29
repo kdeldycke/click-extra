@@ -357,6 +357,12 @@ default.extend-ignore-identifiers-re = [
   # 5   │     certifi["certifi\n2025.11.12"]
   #     ╰╴    ━━━━━━━
   "certifi",
+  # error: `optoin` should be `option`
+  #     ╭▸ ./docs/theme.md:112:54
+  #     │
+  # 112 │ ...all keyword arguments match a known field, so typos like `optoin=...` raise immediately.
+  #     ╰╴                                                             ━━━━━━
+  "optoin",
 ]
 
 [tool.pytest]
