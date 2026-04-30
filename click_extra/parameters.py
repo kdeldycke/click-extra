@@ -497,20 +497,21 @@ def format_param_row(
         )
 
     # Lazy import to avoid circular dependency with theme.
-    from .theme import KO, OK, default_theme
+    from .theme import KO, OK, get_current_theme
 
+    active_theme = get_current_theme()
     hidden = None
     if hasattr(param, "hidden"):
         hidden = OK if param.hidden is True else KO
     return (
-        default_theme.invoked_command(path),
-        default_theme.option(param_spec) if param_spec else param_spec,
+        active_theme.invoked_command(path),
+        active_theme.option(param_spec) if param_spec else param_spec,
         class_str,
         type_str,
-        default_theme.metavar(python_type_name),
+        active_theme.metavar(python_type_name),
         hidden,
-        ", ".join(map(default_theme.envvar, param_envvar_ids(param, ctx))),
-        default_theme.default(repr(param.get_default(ctx))),
+        ", ".join(map(active_theme.envvar, param_envvar_ids(param, ctx))),
+        active_theme.default(repr(param.get_default(ctx))),
     )
 
 

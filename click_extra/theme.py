@@ -15,25 +15,25 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Help-screen color themes for Click Extra.
 
-Holds the :class:`HelpExtraTheme` dataclass, the global :data:`default_theme`
-and :data:`nocolor_theme` instances, the named-theme :data:`theme_registry`
-plus :func:`register_theme` helper, and the :class:`ThemeOption` that exposes
-``--theme`` on every Click Extra command.
+Holds the :class:`HelpExtraTheme` dataclass, the module-level
+:data:`default_theme` and :data:`nocolor_theme` instances, the named-theme
+:data:`theme_registry` plus :func:`register_theme` helper, and the
+:class:`ThemeOption` that exposes ``--theme`` on every Click Extra command.
 
 .. note::
-    :data:`default_theme` is mutated at runtime by :class:`ThemeOption` to
-    apply the user's pick. Modules that read the theme at format time should
-    either import the module (``from . import theme``) and reference
-    ``theme.default_theme`` for late binding, or accept that their local
-    ``from .theme import default_theme`` binding is frozen at import time.
-    :class:`~click_extra.colorize.HelpExtraFormatter` uses the late-binding
-    pattern.
+    The active theme for a CLI invocation is stored on the Click context's
+    ``meta`` dict under :data:`THEME_META_KEY` by :class:`ThemeOption`. Use
+    :func:`get_current_theme` to retrieve it: that helper consults the active
+    Click context first and falls back to :data:`default_theme` when no
+    context is in flight (e.g. at import time, in ``wrap`` patching, or in
+    bare REPL usage). Per-invocation context storage means concurrent
+    invocations of the same CLI in one process (Sphinx builds, test runners,
+    REPLs) do not leak ``--theme`` choices into each other.
 """
 
 from __future__ import annotations
 
 import dataclasses
-import sys
 from dataclasses import dataclass
 from gettext import gettext as _
 
@@ -212,15 +212,48 @@ class HelpExtraTheme(cloup.HelpTheme):
 
 
 default_theme: HelpExtraTheme = HelpExtraTheme.dark()
-"""Default color theme for Click Extra.
+"""Process-wide fallback theme.
 
-.. caution::
-    This module-level attribute is reassigned at CLI parse time by
-    :class:`ThemeOption` (and by :func:`click_extra.wrap.unpatch_click` in
-    tests). Consumers that need to track the current theme must reference
-    ``theme.default_theme`` via the module, not a local
-    ``from .theme import default_theme`` binding.
+Used by :func:`get_current_theme` when no Click context is active or when the
+active context has no theme set. :class:`ThemeOption` writes its picked theme
+to ``ctx.meta`` rather than reassigning this attribute, so per-invocation
+choices do not leak across CLI invocations sharing the same process.
+
+:func:`click_extra.wrap.patch_click` does reassign this attribute, by design:
+``patch_click`` is itself a process-wide monkey-patch, so a process-wide
+theme override matches its scope.
 """
+
+
+THEME_META_KEY = "click_extra.theme.active"
+"""Click context ``meta`` key that holds the per-invocation active theme.
+
+:class:`ThemeOption` writes the user's ``--theme`` pick under this key on the
+current :class:`click.Context`. Click's ``meta`` dict is shared across the
+parent/child context hierarchy, so subcommands inherit the parent group's
+theme without explicit propagation.
+"""
+
+
+def get_current_theme() -> HelpExtraTheme:
+    """Return the theme active for the current CLI invocation.
+
+    Resolution order:
+
+    1. The theme stored on the active Click context under
+       :data:`THEME_META_KEY` (set by :class:`ThemeOption` from ``--theme``).
+    2. The module-level :data:`default_theme` (the dark default, or whatever
+       :func:`click_extra.wrap.patch_click` set at process start).
+
+    Falling back through the active context (instead of reading a module
+    attribute) keeps ``--theme`` scoped to the invocation that received it,
+    so a second invocation in the same process starts from the default
+    again.
+    """
+    ctx = click.get_current_context(silent=True)
+    if ctx is not None and THEME_META_KEY in ctx.meta:
+        return ctx.meta[THEME_META_KEY]
+    return default_theme
 
 
 nocolor_theme: HelpExtraTheme = HelpExtraTheme()
@@ -265,8 +298,9 @@ class ThemeOption(ExtraOption):
     time. Register new themes with :func:`register_theme` *before* declaring your
     commands, otherwise they will not appear in the option's choices.
 
-    The selected theme replaces the module-level :data:`default_theme`, so all help
-    screens rendered after the option is processed pick up the new styling.
+    The selected theme is stored on the Click context under :data:`THEME_META_KEY`,
+    so it applies for the duration of the current invocation only and does not
+    leak into sibling invocations sharing the same process.
     """
 
     @staticmethod
@@ -275,12 +309,12 @@ class ThemeOption(ExtraOption):
         param: click.Parameter,
         value: str | None,
     ) -> None:
-        """Resolve the chosen theme name and override :data:`default_theme` globally.
+        """Resolve the chosen theme name and store it on the Click context.
 
-        Looks up *value* in :data:`theme_registry`, calls its factory, and reassigns
-        ``theme.default_theme`` so :class:`~click_extra.colorize.HelpExtraFormatter`
-        (which reads the module attribute lazily through a module reference) picks
-        up the change.
+        Looks up *value* in :data:`theme_registry`, calls its factory, and writes
+        the resulting :class:`HelpExtraTheme` under :data:`THEME_META_KEY` in
+        ``ctx.meta``. Click shares ``meta`` across the parent/child context
+        hierarchy, so subcommands inherit the parent group's pick automatically.
         """
         if value is None:
             return
@@ -293,12 +327,7 @@ class ThemeOption(ExtraOption):
                 ctx=ctx,
                 param=param,
             ) from exc
-        # Reassign the module attribute. Other modules that imported it via
-        # ``from .theme import default_theme`` keep their original binding,
-        # but :class:`~click_extra.colorize.HelpExtraFormatter` resolves the
-        # name at call time through ``theme.default_theme``, so help screens
-        # see the new theme.
-        sys.modules[__name__].default_theme = factory()
+        ctx.meta[THEME_META_KEY] = factory()
 
     def __init__(
         self,

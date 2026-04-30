@@ -34,7 +34,7 @@ from boltons.tbutils import ExceptionInfo
 from extra_platforms import is_windows
 
 from . import Color, Style
-from .theme import default_theme
+from .theme import get_current_theme
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -74,13 +74,14 @@ def format_cli_prompt(
     extra_env: TEnvVars | None = None,
 ) -> str:
     """Simulate the console prompt used to invoke the CLI."""
+    active_theme = get_current_theme()
     extra_env_string = ""
     if extra_env:
-        extra_env_string = default_theme.envvar(
+        extra_env_string = active_theme.envvar(
             "".join(f"{k}={v} " for k, v in extra_env.items()),
         )
 
-    cmd_str = default_theme.invoked_command(" ".join(cmd_args))
+    cmd_str = active_theme.invoked_command(" ".join(cmd_args))
 
     return PROMPT + extra_env_string + cmd_str
 

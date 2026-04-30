@@ -26,7 +26,7 @@ result = invoke(weather, args=["--theme", "light", "--help"])
 assert result.exit_code == 0
 ```
 
-The flag is eager, so it is processed before any other option and before help is rendered. Setting `--theme` mutates the module-level `click_extra.theme.default_theme` for the rest of the process: any help screen rendered afterward (including subcommand help) picks up the new colors.
+The flag is eager, so it is processed before any other option and before help is rendered. The picked theme is stored on the active Click context's `meta` dict under `click_extra.theme.THEME_META_KEY`, so it applies for the duration of the current invocation only: subcommands inherit it (Click shares `meta` across the parent/child hierarchy), but a sibling invocation of the same CLI in the same process starts from the default again.
 
 ## Configuration file
 
@@ -46,12 +46,14 @@ Now invocations of the `weather` CLI pick up the light theme without passing `--
 | `dark`  | Dark background              |
 | `light` | Light background             |
 
-Both themes are defined in `click_extra.theme.HelpExtraTheme.dark()` / `.light()`. The `light` factory is currently a placeholder that returns the same styles as `dark`: see the docstring for the open task.
+Both themes are defined in `click_extra.theme.HelpExtraTheme.dark()` / `.light()`. The `light` factory swaps the dark palette's bright variants and cyan accents for plain colors that stay legible on a white background.
 
 The two module-level instances live in `click_extra.theme`:
 
-- `default_theme`: the active theme. Reassigned at parse time by `ThemeOption`. Read it through the module reference (`from click_extra import theme; theme.default_theme`) when you need late binding.
+- `default_theme`: the process-wide fallback theme used when no Click context is active. `ThemeOption` does *not* reassign it: per-invocation choices live on `ctx.meta` instead. `click_extra.wrap.patch_click()` does reassign it to override the fallback for the entire patched session.
 - `nocolor_theme`: an all-`identity` theme used when ANSI rendering is suppressed.
+
+Use `click_extra.theme.get_current_theme()` to read the theme that applies to the current invocation: it consults the active Click context first and falls back to `default_theme`.
 
 ## Registering a custom theme
 

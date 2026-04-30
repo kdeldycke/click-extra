@@ -611,7 +611,7 @@ class HelpCommand(ColorizedCommand):
     ) -> None:
         """Search all subcommands for options or descriptions matching *term*."""
         from .colorize import highlight
-        from .theme import default_theme
+        from .theme import get_current_theme
 
         term_lower = term.lower()
         results: list[tuple[str, str]] = []
@@ -622,7 +622,7 @@ class HelpCommand(ColorizedCommand):
             click.echo(f"No commands matching {term!r}.")
             return
 
-        styling_func = default_theme.search
+        styling_func = get_current_theme().search
         for cmd_path, line in results:
             styled_line = highlight(line, [term], styling_func, ignore_case=True)
             click.echo(f"  {cmd_path}: {styled_line}", color=group_ctx.color)

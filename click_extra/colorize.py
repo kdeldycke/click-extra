@@ -507,17 +507,19 @@ class HelpExtraFormatter(cloup.HelpFormatter):
     theme: HelpExtraTheme
 
     def __init__(self, *args, **kwargs) -> None:
-        """Forces theme to our default.
+        """Forces theme to the active one for the current Click context.
 
         Also transform Cloup's standard ``HelpTheme`` to our own ``HelpExtraTheme``.
 
-        Reads :data:`click_extra.theme.default_theme` through the ``_theme`` module
-        reference so :class:`~click_extra.theme.ThemeOption` reassignments are
-        picked up at call time.
+        Resolves the active theme via :func:`click_extra.theme.get_current_theme`,
+        which reads the per-invocation pick from the Click context (set by
+        :class:`~click_extra.theme.ThemeOption`) and falls back to the module-level
+        default when no context is active.
         """
-        theme = kwargs.get("theme", _theme.default_theme)
+        active_theme = _theme.get_current_theme()
+        theme = kwargs.get("theme", active_theme)
         if not isinstance(theme, HelpExtraTheme):
-            theme = _theme.default_theme.with_(**theme._asdict())
+            theme = active_theme.with_(**theme._asdict())
         kwargs["theme"] = theme
         super().__init__(*args, **kwargs)
 
