@@ -28,24 +28,25 @@ assert "[INFO] all systems nominal." in result.stdout
 You may also reach the same entry through the literal string (`ctx.meta["click_extra.verbosity_level"]`): the constants only fix the spelling in one place and document who owns each entry.
 
 (available-keys)=
+
 ## Available keys
 
 The table below lists every entry Click Extra writes, the option that triggers it, and the value's shape. Entries marked *write-only* are not read back internally: they exist so your code can inspect what the user picked.
 
-| Constant                   | String key                       | Set by                                                     | Value                                                                  |
-| -------------------------- | -------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `context.RAW_ARGS`        | `click_extra.raw_args`           | `ExtraCommand.make_context` (always, on `@command` group)  | `list[str]` — pre-parsed `argv` slice fed to the current command       |
-| `context.CONF_SOURCE`     | `click_extra.conf_source`        | `ConfigOption.load_conf` (`@config_option`)                | `pathlib.Path \| URL \| None` — file the configuration was loaded from |
-| `context.CONF_FULL`       | `click_extra.conf_full`          | `ConfigOption.load_conf` (`@config_option`)                | `dict \| None` — full parsed configuration document                    |
-| `context.TOOL_CONFIG`     | `click_extra.tool_config`        | `ConfigOption._apply_config_schema` (with `config_schema`) | The deserialised app section (also reachable via `get_tool_config()`)  |
-| `context.VERBOSITY_LEVEL` | `click_extra.verbosity_level`    | `--verbosity` / `--verbose` callbacks (reconciled)         | `LogLevel` — the highest level any verbosity option picked             |
-| `context.VERBOSITY`       | `click_extra.verbosity`          | `--verbosity` callback                                     | `LogLevel` — raw value of `--verbosity LEVEL` *(write-only)*           |
-| `context.VERBOSE`         | `click_extra.verbose`            | `--verbose` / `-v` callback                                | `int` — repetition count *(write-only)*                                |
-| `context.START_TIME`      | `click_extra.start_time`         | `--time` callback (`@timer_option`)                        | `float` — `time.perf_counter()` snapshot                               |
-| `context.JOBS`            | `click_extra.jobs`               | `--jobs` callback (`@jobs_option`)                         | `int` — effective parallel job count (clamped to >= 1)                 |
-| `context.TABLE_FORMAT`    | `click_extra.table_format`       | `--table-format` callback (`@table_format_option`)         | `TableFormat`                                                          |
-| `context.SORT_BY`         | `click_extra.sort_by`            | `--sort-by` callback (`@sort_by_option`)                   | `tuple[str, ...]` — column IDs in priority order                       |
-| `context.THEME`           | `click_extra.theme.active`       | `--theme` callback (always present on `@command`)          | `HelpExtraTheme` — palette picked for this invocation                  |
+| Constant                  | String key                    | Set by                                                     | Value                                                                  |
+| ------------------------- | ----------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `context.RAW_ARGS`        | `click_extra.raw_args`        | `ExtraCommand.make_context` (always, on `@command` group)  | `list[str]` — pre-parsed `argv` slice fed to the current command       |
+| `context.CONF_SOURCE`     | `click_extra.conf_source`     | `ConfigOption.load_conf` (`@config_option`)                | `pathlib.Path \| URL \| None` — file the configuration was loaded from |
+| `context.CONF_FULL`       | `click_extra.conf_full`       | `ConfigOption.load_conf` (`@config_option`)                | `dict \| None` — full parsed configuration document                    |
+| `context.TOOL_CONFIG`     | `click_extra.tool_config`     | `ConfigOption._apply_config_schema` (with `config_schema`) | The deserialised app section (also reachable via `get_tool_config()`)  |
+| `context.VERBOSITY_LEVEL` | `click_extra.verbosity_level` | `--verbosity` / `--verbose` callbacks (reconciled)         | `LogLevel` — the highest level any verbosity option picked             |
+| `context.VERBOSITY`       | `click_extra.verbosity`       | `--verbosity` callback                                     | `LogLevel` — raw value of `--verbosity LEVEL` *(write-only)*           |
+| `context.VERBOSE`         | `click_extra.verbose`         | `--verbose` / `-v` callback                                | `int` — repetition count *(write-only)*                                |
+| `context.START_TIME`      | `click_extra.start_time`      | `--time` callback (`@timer_option`)                        | `float` — `time.perf_counter()` snapshot                               |
+| `context.JOBS`            | `click_extra.jobs`            | `--jobs` callback (`@jobs_option`)                         | `int` — effective parallel job count (clamped to >= 1)                 |
+| `context.TABLE_FORMAT`    | `click_extra.table_format`    | `--table-format` callback (`@table_format_option`)         | `TableFormat`                                                          |
+| `context.SORT_BY`         | `click_extra.sort_by`         | `--sort-by` callback (`@sort_by_option`)                   | `tuple[str, ...]` — column IDs in priority order                       |
+| `context.THEME`           | `click_extra.theme.active`    | `--theme` callback (always present on `@command`)          | `HelpExtraTheme` — palette picked for this invocation                  |
 
 ## Worked examples
 
