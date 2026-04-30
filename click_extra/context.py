@@ -97,6 +97,15 @@ class ExtraContext(cloup.Context):
             self._meta.update(meta)
 
 
+META_NAMESPACE: Final[str] = "click_extra."
+"""Prefix shared by every ``ctx.meta`` key Click Extra writes.
+
+Reserved for entries the framework owns. Downstream consumers picking their
+own ``ctx.meta`` keys are encouraged to use a different prefix to avoid
+colliding with current or future Click Extra entries.
+"""
+
+
 class _LazyMetaDict(dict):
     """Dict subclass that lazily resolves fields on first access.
 
@@ -113,7 +122,7 @@ class _LazyMetaDict(dict):
     ) -> None:
         super().__init__(base)
         self._source = source
-        self._lazy_keys = {f"click_extra.{f}": f for f in fields}
+        self._lazy_keys = {f"{META_NAMESPACE}{f}": f for f in fields}
 
     def _resolve(self, key: str) -> Any:
         """Resolve a lazy key, cache the result, and return it."""
