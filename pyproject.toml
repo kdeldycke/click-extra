@@ -279,7 +279,6 @@ dependency-groups.docs = { requires-python = ">= 3.14" }
 # Relative dates are fine here because the Renovate lock-maintenance job
 # (sync-uv-lock) reverts uv.lock when the only diff is timestamp noise.
 exclude-newer = "1 week"
-exclude-newer-package.click = false
 # Package is at root level, not in "./src/".
 build-backend.module-root = ""
 
