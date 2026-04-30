@@ -29,6 +29,7 @@ from enum import Enum
 from inspect import cleandoc
 from pathlib import Path
 from textwrap import indent
+from typing import Any
 
 import pytest
 from sphinx.application import Sphinx
@@ -78,14 +79,14 @@ class SphinxAppWrapper:
         outdir.mkdir()
 
         # Sphinx's configuration is Python code.
-        conf = {
+        conf: dict[str, Any] = {
             "master_doc": "index",
             "extensions": ["click_extra.sphinx"],
         }
         if enable_exec_directives:
-            conf["click_extra_enable_exec_directives"] = True  # type: ignore[assignment]
+            conf["click_extra_enable_exec_directives"] = True
         if format_type == FormatType.MYST:
-            conf["extensions"].append("myst_parser")  # type: ignore[attr-defined]
+            conf["extensions"].append("myst_parser")
             conf["myst_enable_extensions"] = ["colon_fence"]
 
         # Write the conf.py file.
