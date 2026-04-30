@@ -34,10 +34,11 @@ import click
 import cloup
 from click.utils import make_str
 
-from . import ctx_meta
+from . import context
 from . import theme as _theme
 from .colorize import ExtraHelpColorsMixin, HelpExtraFormatter
-from .commands import ColorizedCommand, ColorizedGroup, ExtraContext, ExtraGroup
+from .commands import ColorizedCommand, ColorizedGroup, ExtraGroup
+from .context import ExtraContext
 from .theme import HelpExtraTheme
 
 logger = logging.getLogger("click_extra")
@@ -386,7 +387,7 @@ def _config_args_for_target(
     """
     # Walk up to the root context to find the full config.
     root_ctx = ctx.find_root()
-    full_conf = root_ctx.meta.get(ctx_meta.CONF_FULL)
+    full_conf = root_ctx.meta.get(context.CONF_FULL)
     if not full_conf:
         return ()
 

@@ -32,7 +32,7 @@ from cloup import *  # type: ignore[no-redef, assignment]
 if True:
     from .types import ChoiceSource, EnumChoice
 
-from . import ctx_meta
+from . import context
 from .colorize import (
     ColorOption,
     HelpExtraFormatter,
@@ -40,11 +40,11 @@ from .colorize import (
 )
 from .commands import (
     ExtraCommand,
-    ExtraContext,
     ExtraGroup,
     HelpCommand,
     LazyGroup,
 )
+from .context import ExtraContext
 from .config import (
     DEFAULT_SUBCOMMANDS_KEY,
     NO_CONFIG,
@@ -212,7 +212,7 @@ __all__ = [
     "confirmation_option",
     "constrained_params",
     "constraint",
-    "ctx_meta",
+    "context",
     "dir_path",
     "echo",
     "echo_via_pager",

@@ -21,7 +21,7 @@ import logging
 import os
 from gettext import gettext as _
 
-from . import ctx_meta
+from . import context
 from .parameters import ExtraOption
 
 TYPE_CHECKING = False
@@ -49,12 +49,12 @@ class JobsOption(ExtraOption):
     Defaults to one fewer than the number of available CPU cores, leaving one
     core free for the main process and system tasks.
 
-    The resolved value is stored in ``ctx.meta[click_extra.ctx_meta.JOBS]``.
+    The resolved value is stored in ``ctx.meta[click_extra.context.JOBS]``.
 
     .. warning::
         This option is a placeholder for future parallel execution utilities.
         It does not drive any concurrency by itself: downstream code must read
-        ``ctx.meta[click_extra.ctx_meta.JOBS]`` and act on it.
+        ``ctx.meta[click_extra.context.JOBS]`` and act on it.
     """
 
     def validate_jobs(
@@ -84,7 +84,7 @@ class JobsOption(ExtraOption):
                 CPU_COUNT,
             )
 
-        ctx.meta[ctx_meta.JOBS] = effective
+        ctx.meta[context.JOBS] = effective
 
     def __init__(
         self,

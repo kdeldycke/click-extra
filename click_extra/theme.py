@@ -43,7 +43,7 @@ from cloup._util import identity
 from cloup.styling import Color
 
 from . import Style
-from . import ctx_meta
+from . import context
 from .parameters import ExtraOption
 
 TYPE_CHECKING = False
@@ -232,7 +232,7 @@ def get_current_theme() -> HelpExtraTheme:
     Resolution order:
 
     1. The theme stored on the active Click context under
-       :data:`click_extra.ctx_meta.THEME` (set by :class:`ThemeOption`
+       :data:`click_extra.context.THEME` (set by :class:`ThemeOption`
        from ``--theme``).
     2. The module-level :data:`default_theme` (the dark default, or whatever
        :func:`click_extra.wrap.patch_click` set at process start).
@@ -243,8 +243,8 @@ def get_current_theme() -> HelpExtraTheme:
     again.
     """
     ctx = click.get_current_context(silent=True)
-    if ctx is not None and ctx_meta.THEME in ctx.meta:
-        return ctx.meta[ctx_meta.THEME]
+    if ctx is not None and context.THEME in ctx.meta:
+        return ctx.meta[context.THEME]
     return default_theme
 
 
@@ -291,7 +291,7 @@ class ThemeOption(ExtraOption):
     commands, otherwise they will not appear in the option's choices.
 
     The selected theme is stored on the Click context under
-    :data:`click_extra.ctx_meta.THEME`, so it applies for the duration of the
+    :data:`click_extra.context.THEME`, so it applies for the duration of the
     current invocation only and does not leak into sibling invocations sharing
     the same process.
     """
@@ -306,7 +306,7 @@ class ThemeOption(ExtraOption):
 
         Looks up *value* in :data:`theme_registry`, calls its factory, and writes
         the resulting :class:`HelpExtraTheme` under
-        :data:`click_extra.ctx_meta.THEME` in ``ctx.meta``. Click shares
+        :data:`click_extra.context.THEME` in ``ctx.meta``. Click shares
         ``meta`` across the parent/child context hierarchy, so subcommands
         inherit the parent group's pick automatically.
         """
@@ -321,7 +321,7 @@ class ThemeOption(ExtraOption):
                 ctx=ctx,
                 param=param,
             ) from exc
-        ctx.meta[ctx_meta.THEME] = factory()
+        ctx.meta[context.THEME] = factory()
 
     def __init__(
         self,

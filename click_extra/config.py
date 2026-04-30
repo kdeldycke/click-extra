@@ -76,7 +76,7 @@ from . import (
     get_app_dir,
     get_current_context,
 )
-from . import ctx_meta
+from . import context
 from .parameters import ExtraOption, ParamStructure, search_params
 
 if sys.version_info >= (3, 11):
@@ -460,7 +460,7 @@ def flatten_config_keys(
 def get_tool_config(ctx: click.Context | None = None) -> Any:
     """Retrieve the typed tool configuration from the context.
 
-    Returns the object stored under :data:`click_extra.ctx_meta.TOOL_CONFIG`
+    Returns the object stored under :data:`click_extra.context.TOOL_CONFIG`
     by ``ConfigOption`` when a ``config_schema`` is set, or ``None`` if no
     schema was configured or no configuration was loaded.
 
@@ -468,7 +468,7 @@ def get_tool_config(ctx: click.Context | None = None) -> Any:
     """
     if ctx is None:
         ctx = get_current_context()
-    return ctx.find_root().meta.get(ctx_meta.TOOL_CONFIG)
+    return ctx.find_root().meta.get(context.TOOL_CONFIG)
 
 
 def _safe_get_type_hints(cls: type) -> dict[str, Any]:
@@ -961,7 +961,7 @@ class ConfigOption(ExtraOption, ParamStructure):
           normalization and flattening.
 
         The resulting object is stored in
-        ``ctx.meta[click_extra.ctx_meta.TOOL_CONFIG]`` and can be retrieved
+        ``ctx.meta[click_extra.context.TOOL_CONFIG]`` and can be retrieved
         via `get_tool_config`.
         """
 
@@ -1645,13 +1645,13 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         Extracts the app-specific section from the full parsed config, passes
         it through the schema callable, and stores the result in
-        ``ctx.meta[click_extra.ctx_meta.TOOL_CONFIG]``.
+        ``ctx.meta[click_extra.context.TOOL_CONFIG]``.
         """
         if self._config_schema_callable is None:
             return
         app_name = ctx.find_root().command.name or ctx.info_name or ""
         app_section = self._resolve_app_section(user_conf, app_name)
-        ctx.meta[ctx_meta.TOOL_CONFIG] = self._config_schema_callable(
+        ctx.meta[context.TOOL_CONFIG] = self._config_schema_callable(
             app_section,
         )
 
@@ -1702,8 +1702,8 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         ..hint::
             Once loading is complete, the resolved file path and its full parsed content
-            are stored in ``ctx.meta[click_extra.ctx_meta.CONF_SOURCE]`` and
-            ``ctx.meta[click_extra.ctx_meta.CONF_FULL]`` respectively. This is the
+            are stored in ``ctx.meta[click_extra.context.CONF_SOURCE]`` and
+            ``ctx.meta[click_extra.context.CONF_FULL]`` respectively. This is the
             recommended way to identify which configuration file was loaded.
 
             We intentionally do not
@@ -1815,8 +1815,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         # ctx.meta, so downstream CLI code can inspect what was loaded and from where.
         # See the load_conf docstring for why we use ctx.meta instead of a custom
         # ParameterSource enum member.
-        ctx.meta[ctx_meta.CONF_SOURCE] = conf_path
-        ctx.meta[ctx_meta.CONF_FULL] = user_conf
+        ctx.meta[context.CONF_SOURCE] = conf_path
+        ctx.meta[context.CONF_FULL] = user_conf
 
 
 class NoConfigOption(ExtraOption):

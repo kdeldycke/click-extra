@@ -53,7 +53,8 @@ from boltons.ecoutils import get_profile
 from boltons.formatutils import BaseFormatField, tokenize_format_str
 
 from . import Style, echo, get_current_context
-from .parameters import ExtraOption, _LazyMetaDict
+from .context import _LazyMetaDict
+from .parameters import ExtraOption
 from .theme import default_theme
 
 TYPE_CHECKING = False

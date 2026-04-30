@@ -21,7 +21,7 @@ from gettext import gettext as _
 from time import perf_counter
 
 from . import echo
-from . import ctx_meta
+from . import context
 from .parameters import ExtraOption
 
 TYPE_CHECKING = False
@@ -36,7 +36,7 @@ class TimerOption(ExtraOption):
     elapsed time at the end of CLI execution.
 
     The start time is made available in the context in
-    ``ctx.meta[click_extra.ctx_meta.START_TIME]``.
+    ``ctx.meta[click_extra.context.START_TIME]``.
     """
 
     def print_timer(self) -> None:
@@ -59,7 +59,7 @@ class TimerOption(ExtraOption):
 
         # Only capture the start time when the user requested timing.
         self.start_time = perf_counter()
-        ctx.meta[ctx_meta.START_TIME] = self.start_time
+        ctx.meta[context.START_TIME] = self.start_time
 
         # Register printing at the end of execution.
         ctx.call_on_close(self.print_timer)

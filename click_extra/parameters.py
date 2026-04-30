@@ -30,7 +30,7 @@ import cloup
 from deepmerge import always_merger
 
 from . import UNSET, EnumChoice, ParamType, Style, get_current_context
-from . import ctx_meta
+from . import context
 from .envvar import param_envvar_ids
 
 TYPE_CHECKING = False
@@ -120,47 +120,6 @@ class Option(_ParameterMixin, cloup.Option):
     Inherits first from ``_ParameterMixin`` to allow future overrides of Click's
     ``Parameter`` methods.
     """
-
-
-class _LazyMetaDict(dict):
-    """Dict subclass that lazily resolves fields on first access.
-
-    Installed as ``ctx._meta`` so that ``ctx.meta["click_extra.<field>"]``
-    transparently evaluates the corresponding ``@cached_property`` on the
-    source object only when the key is actually read.
-    """
-
-    def __init__(
-        self,
-        base: dict[str, Any],
-        source: object,
-        fields: tuple[str, ...],
-    ) -> None:
-        super().__init__(base)
-        self._source = source
-        self._lazy_keys = {f"click_extra.{f}": f for f in fields}
-
-    def _resolve(self, key: str) -> Any:
-        """Resolve a lazy key, cache the result, and return it."""
-        value = getattr(self._source, self._lazy_keys[key])
-        # Store as a regular entry so subsequent reads are plain dict lookups.
-        dict.__setitem__(self, key, value)
-        return value
-
-    def __getitem__(self, key: str) -> Any:
-        if key in self._lazy_keys and not dict.__contains__(self, key):
-            return self._resolve(key)
-        return super().__getitem__(key)
-
-    def __contains__(self, key: object) -> bool:
-        return key in self._lazy_keys or super().__contains__(key)
-
-    def get(self, key: str, default: Any = None) -> Any:
-        if key in self._lazy_keys:
-            if dict.__contains__(self, key):
-                return super().__getitem__(key)
-            return self._resolve(key)
-        return super().get(key, default)
 
 
 class ExtraOption(Option):
@@ -604,9 +563,9 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         get_param_value: Callable[[Any], Any]
         opts: dict = {}
 
-        if ctx_meta.RAW_ARGS in ctx.meta:
-            raw_args = ctx.meta.get(ctx_meta.RAW_ARGS, [])
-            logger.debug(f"{ctx_meta.RAW_ARGS}: {raw_args}")
+        if context.RAW_ARGS in ctx.meta:
+            raw_args = ctx.meta.get(context.RAW_ARGS, [])
+            logger.debug(f"{context.RAW_ARGS}: {raw_args}")
 
             # Mimics click.core.Command.parse_args() so we can produce the list of
             # parsed options values.
@@ -621,7 +580,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             get_param_value = methodcaller("consume_value", ctx, opts)
 
         else:
-            logger.debug(f"{ctx_meta.RAW_ARGS} not in {ctx.meta}")
+            logger.debug(f"{context.RAW_ARGS} not in {ctx.meta}")
             logger.warning(
                 f"Cannot extract parameters values: "
                 f"{ctx.command} does not inherits from ExtraCommand.",

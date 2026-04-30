@@ -38,7 +38,7 @@ import click
 from click.types import IntRange
 
 from . import EnumChoice
-from . import ctx_meta
+from . import context
 from .parameters import ExtraOption, search_params
 from .theme import get_current_theme
 
@@ -380,16 +380,16 @@ class ExtraVerbosity(ExtraOption):
         conflict, the highest versbosity level always takes precedence.
 
         The final reconciled level chosen for the logger will be saved in
-        ``ctx.meta[click_extra.ctx_meta.VERBOSITY_LEVEL]``. This context entry
+        ``ctx.meta[click_extra.context.VERBOSITY_LEVEL]``. This context entry
         served as a kind of global state shared by all verbosity-related options.
         """
         # Skip setting the level if another option has already sets it or is at an equal
         # or lower level.
-        current_level = ctx.meta.get(ctx_meta.VERBOSITY_LEVEL)
+        current_level = ctx.meta.get(context.VERBOSITY_LEVEL)
         if current_level and current_level <= level:
             return
 
-        ctx.meta[ctx_meta.VERBOSITY_LEVEL] = level
+        ctx.meta[context.VERBOSITY_LEVEL] = level
 
         for logger in self.all_loggers:
             logger.setLevel(level.value)
@@ -443,9 +443,9 @@ class VerbosityOption(ExtraVerbosity):
         self, ctx: click.Context, param: click.Parameter, value: LogLevel
     ) -> None:
         """The value passed to ``--verbosity`` will be saved in
-        ``ctx.meta[click_extra.ctx_meta.VERBOSITY]``.
+        ``ctx.meta[click_extra.context.VERBOSITY]``.
         """
-        ctx.meta[ctx_meta.VERBOSITY] = value
+        ctx.meta[context.VERBOSITY] = value
         super().set_level(ctx, param, value)
 
     def __init__(
@@ -531,9 +531,9 @@ class VerboseOption(ExtraVerbosity):
         """Translate the number of steps to the target log level.
 
         The value passed to ``--verbose``/``-v`` will be saved in
-        ``ctx.meta[click_extra.ctx_meta.VERBOSE]``.
+        ``ctx.meta[click_extra.context.VERBOSE]``.
         """
-        ctx.meta[ctx_meta.VERBOSE] = value
+        ctx.meta[context.VERBOSE] = value
 
         # No -v option has been called, skip meddling with log levels.
         if value == 0:

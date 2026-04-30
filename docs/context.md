@@ -6,16 +6,16 @@ If you are writing a `@command`- or `@group`-decorated function, you can read an
 
 ## Picking values up from your own callbacks
 
-Every key Click Extra owns lives under the `click_extra.` namespace and is exposed as a constant in the `click_extra.ctx_meta` module:
+Every key Click Extra owns lives under the `click_extra.` namespace and is exposed as a constant in the `click_extra.context` module:
 
 ```{click:source}
-from click_extra import command, ctx_meta, echo, pass_context
+from click_extra import command, context, echo, pass_context
 
 @command
 @pass_context
 def status(ctx):
     """Print a status line tagged with the current verbosity."""
-    level = ctx.meta[ctx_meta.VERBOSITY_LEVEL]
+    level = ctx.meta[context.VERBOSITY_LEVEL]
     echo(f"[{level}] all systems nominal.")
 ```
 
@@ -34,31 +34,31 @@ The table below lists every entry Click Extra writes, the option that triggers i
 
 | Constant                   | String key                       | Set by                                                     | Value                                                                  |
 | -------------------------- | -------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `ctx_meta.RAW_ARGS`        | `click_extra.raw_args`           | `ExtraCommand.make_context` (always, on `@command` group)  | `list[str]` — pre-parsed `argv` slice fed to the current command       |
-| `ctx_meta.CONF_SOURCE`     | `click_extra.conf_source`        | `ConfigOption.load_conf` (`@config_option`)                | `pathlib.Path \| URL \| None` — file the configuration was loaded from |
-| `ctx_meta.CONF_FULL`       | `click_extra.conf_full`          | `ConfigOption.load_conf` (`@config_option`)                | `dict \| None` — full parsed configuration document                    |
-| `ctx_meta.TOOL_CONFIG`     | `click_extra.tool_config`        | `ConfigOption._apply_config_schema` (with `config_schema`) | The deserialised app section (also reachable via `get_tool_config()`)  |
-| `ctx_meta.VERBOSITY_LEVEL` | `click_extra.verbosity_level`    | `--verbosity` / `--verbose` callbacks (reconciled)         | `LogLevel` — the highest level any verbosity option picked             |
-| `ctx_meta.VERBOSITY`       | `click_extra.verbosity`          | `--verbosity` callback                                     | `LogLevel` — raw value of `--verbosity LEVEL` *(write-only)*           |
-| `ctx_meta.VERBOSE`         | `click_extra.verbose`            | `--verbose` / `-v` callback                                | `int` — repetition count *(write-only)*                                |
-| `ctx_meta.START_TIME`      | `click_extra.start_time`         | `--time` callback (`@timer_option`)                        | `float` — `time.perf_counter()` snapshot                               |
-| `ctx_meta.JOBS`            | `click_extra.jobs`               | `--jobs` callback (`@jobs_option`)                         | `int` — effective parallel job count (clamped to >= 1)                 |
-| `ctx_meta.TABLE_FORMAT`    | `click_extra.table_format`       | `--table-format` callback (`@table_format_option`)         | `TableFormat`                                                          |
-| `ctx_meta.SORT_BY`         | `click_extra.sort_by`            | `--sort-by` callback (`@sort_by_option`)                   | `tuple[str, ...]` — column IDs in priority order                       |
-| `ctx_meta.THEME`           | `click_extra.theme.active`       | `--theme` callback (always present on `@command`)          | `HelpExtraTheme` — palette picked for this invocation                  |
+| `context.RAW_ARGS`        | `click_extra.raw_args`           | `ExtraCommand.make_context` (always, on `@command` group)  | `list[str]` — pre-parsed `argv` slice fed to the current command       |
+| `context.CONF_SOURCE`     | `click_extra.conf_source`        | `ConfigOption.load_conf` (`@config_option`)                | `pathlib.Path \| URL \| None` — file the configuration was loaded from |
+| `context.CONF_FULL`       | `click_extra.conf_full`          | `ConfigOption.load_conf` (`@config_option`)                | `dict \| None` — full parsed configuration document                    |
+| `context.TOOL_CONFIG`     | `click_extra.tool_config`        | `ConfigOption._apply_config_schema` (with `config_schema`) | The deserialised app section (also reachable via `get_tool_config()`)  |
+| `context.VERBOSITY_LEVEL` | `click_extra.verbosity_level`    | `--verbosity` / `--verbose` callbacks (reconciled)         | `LogLevel` — the highest level any verbosity option picked             |
+| `context.VERBOSITY`       | `click_extra.verbosity`          | `--verbosity` callback                                     | `LogLevel` — raw value of `--verbosity LEVEL` *(write-only)*           |
+| `context.VERBOSE`         | `click_extra.verbose`            | `--verbose` / `-v` callback                                | `int` — repetition count *(write-only)*                                |
+| `context.START_TIME`      | `click_extra.start_time`         | `--time` callback (`@timer_option`)                        | `float` — `time.perf_counter()` snapshot                               |
+| `context.JOBS`            | `click_extra.jobs`               | `--jobs` callback (`@jobs_option`)                         | `int` — effective parallel job count (clamped to >= 1)                 |
+| `context.TABLE_FORMAT`    | `click_extra.table_format`       | `--table-format` callback (`@table_format_option`)         | `TableFormat`                                                          |
+| `context.SORT_BY`         | `click_extra.sort_by`            | `--sort-by` callback (`@sort_by_option`)                   | `tuple[str, ...]` — column IDs in priority order                       |
+| `context.THEME`           | `click_extra.theme.active`       | `--theme` callback (always present on `@command`)          | `HelpExtraTheme` — palette picked for this invocation                  |
 
 ## Worked examples
 
 ### Switching behaviour on the active theme
 
 ```{click:source}
-from click_extra import command, ctx_meta, echo, pass_context
+from click_extra import command, context, echo, pass_context
 
 @command
 @pass_context
 def report(ctx):
     """Render a status line in the active theme's success colour."""
-    theme = ctx.meta[ctx_meta.THEME]
+    theme = ctx.meta[context.THEME]
     echo(theme.success("OK"))
 ```
 
@@ -73,14 +73,14 @@ assert "OK" in result.stdout
 `--jobs` is not part of the default options, so it has to be added explicitly via `@jobs_option`:
 
 ```{click:source}
-from click_extra import command, ctx_meta, echo, jobs_option, pass_context
+from click_extra import command, context, echo, jobs_option, pass_context
 
 @command
 @jobs_option
 @pass_context
 def crunch(ctx):
     """Demonstrate reading the resolved `--jobs` value."""
-    echo(f"Working with {ctx.meta[ctx_meta.JOBS]} workers.")
+    echo(f"Working with {ctx.meta[context.JOBS]} workers.")
 ```
 
 ```{click:run}
@@ -94,13 +94,13 @@ assert "Working with 4 workers." in result.stdout
 `--config` is part of the default options. The block below uses `--no-config` to skip discovery, then reads `CONF_SOURCE` to confirm no file was loaded:
 
 ```{click:source}
-from click_extra import command, ctx_meta, echo, pass_context
+from click_extra import command, context, echo, pass_context
 
 @command
 @pass_context
 def show_conf(ctx):
     """Print which configuration file (if any) was loaded."""
-    source = ctx.meta.get(ctx_meta.CONF_SOURCE)
+    source = ctx.meta.get(context.CONF_SOURCE)
     echo(f"config: {source or 'none'}")
 ```
 
@@ -118,10 +118,10 @@ Inside a `@command`-decorated function, you can either accept `ctx` via [`@pass_
 Outside an active CLI invocation (e.g. at import time, in unit tests that build options directly without invoking a CLI, or in a REPL) there is no context, and these keys are not available. Helpers that need to work in both modes should fall through to a sane default. The [theming layer](theme.md) does this with `get_current_theme()`, which returns the module-level `default_theme` when no context is in flight.
 ```
 
-## `click_extra.ctx_meta` API
+## `click_extra.context` API
 
 ```{eval-rst}
-.. automodule:: click_extra.ctx_meta
+.. automodule:: click_extra.context
    :members:
    :undoc-members:
 ```

@@ -13,7 +13,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Central registry of every ``ctx.meta`` key Click Extra writes or reads.
+"""Click context plumbing: the :class:`ExtraContext` subclass plus the central
+registry of every ``ctx.meta`` key Click Extra writes or reads.
 
 Click's :attr:`click.Context.meta` is a per-invocation dict that Click shares
 across the parent/child context hierarchy. Click Extra uses it to pass
@@ -30,13 +31,13 @@ and read the entries you need:
 
 .. code-block:: python
 
-    from click_extra import command, ctx_meta, echo, pass_context
+    from click_extra import command, context, echo, pass_context
 
     @command
     @pass_context
     def cli(ctx):
-        echo(f"Theme: {ctx.meta[ctx_meta.THEME]}")
-        echo(f"Jobs:  {ctx.meta[ctx_meta.JOBS]}")
+        echo(f"Theme: {ctx.meta[context.THEME]}")
+        echo(f"Jobs:  {ctx.meta[context.JOBS]}")
 
 Each constant below documents who writes the entry, when, and what shape the
 value takes. The raw string values are stable and downstream code may also
@@ -49,10 +50,92 @@ from __future__ import annotations
 from typing import Any
 
 import click
+import cloup
+
+from .colorize import HelpExtraFormatter
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from typing import Final
+
+
+class ExtraContext(cloup.Context):
+    """Like ``cloup._context.Context``, but with the ability to populate the context's
+    ``meta`` property at instantiation.
+
+    Also defaults ``color`` to ``True`` for root contexts (i.e. without a parent), so
+    help screens are always colorized — even when piped. Click's own default is ``None``
+    (auto-detect via TTY), which strips colors in non-interactive contexts.
+
+    Parent-to-child color inheritance is handled by Click itself at ``Context.__init__``
+    time, so no property override is needed.
+
+    .. todo::
+        Propose addition of ``meta`` keyword upstream to Click.
+    """
+
+    formatter_class = HelpExtraFormatter
+    """Use our own formatter to colorize the help screen."""
+
+    def __init__(self, *args, meta: dict[str, Any] | None = None, **kwargs) -> None:
+        """Like parent's context but with an extra ``meta`` keyword-argument.
+
+        Also force ``color`` default to ``True`` if not provided by user and this
+        context has no parent.
+        """
+        super().__init__(*args, **kwargs)
+
+        # Click defaults root ``ctx.color`` to ``None`` (auto-detect via TTY), which
+        # strips colors when piped. Override to ``True`` for parentless contexts so
+        # help screens are always colorized by default. The ``ColorOption`` callback
+        # will set the final value later, respecting ``--no-color`` and env vars.
+        if not self.parent and self.color is None:
+            self.color = True
+
+        # Update the context's meta property with the one provided by user.
+        if meta:
+            self._meta.update(meta)
+
+
+class _LazyMetaDict(dict):
+    """Dict subclass that lazily resolves fields on first access.
+
+    Installed as ``ctx._meta`` so that ``ctx.meta["click_extra.<field>"]``
+    transparently evaluates the corresponding ``@cached_property`` on the
+    source object only when the key is actually read.
+    """
+
+    def __init__(
+        self,
+        base: dict[str, Any],
+        source: object,
+        fields: tuple[str, ...],
+    ) -> None:
+        super().__init__(base)
+        self._source = source
+        self._lazy_keys = {f"click_extra.{f}": f for f in fields}
+
+    def _resolve(self, key: str) -> Any:
+        """Resolve a lazy key, cache the result, and return it."""
+        value = getattr(self._source, self._lazy_keys[key])
+        # Store as a regular entry so subsequent reads are plain dict lookups.
+        dict.__setitem__(self, key, value)
+        return value
+
+    def __getitem__(self, key: str) -> Any:
+        if key in self._lazy_keys and not dict.__contains__(self, key):
+            return self._resolve(key)
+        return super().__getitem__(key)
+
+    def __contains__(self, key: object) -> bool:
+        return key in self._lazy_keys or super().__contains__(key)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        if key in self._lazy_keys:
+            if dict.__contains__(self, key):
+                return super().__getitem__(key)
+            return self._resolve(key)
+        return super().get(key, default)
 
 
 # --- Argument capture ---------------------------------------------------------

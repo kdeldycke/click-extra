@@ -24,7 +24,8 @@ import pytest
 
 from click_extra.cli import demo
 from click_extra.colorize import ExtraHelpColorsMixin
-from click_extra.commands import ColorizedCommand, ColorizedGroup, ExtraContext
+from click_extra.commands import ColorizedCommand, ColorizedGroup
+from click_extra.context import ExtraContext
 from click_extra.testing import ExtraCliRunner
 from click_extra.wrap import (
     _config_args_for_target,

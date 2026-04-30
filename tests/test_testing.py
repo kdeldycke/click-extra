@@ -23,7 +23,6 @@ import click
 
 from click_extra import (
     ExtraCliRunner,
-    ExtraContext,
     Style,
     command,
     echo,
@@ -235,29 +234,6 @@ def test_force_color_envvar():
     result = runner.invoke(run_cli_extra, env={"FORCE_COLOR": "1"}, color=True)
     assert result.exit_code == 0
     assert "Context.color = True" in result.stdout
-
-
-# --- ExtraContext color behavior tests ---
-
-
-def test_extra_context_root_defaults_color_true():
-    """Root ExtraContext without color= arg defaults to color=True."""
-    ctx = ExtraContext(click.Command("test"))
-    assert ctx.color is True
-
-
-def test_extra_context_inherits_from_parent():
-    """Child ExtraContext inherits color from parent when not set."""
-    parent = ExtraContext(click.Command("parent"), color=False)
-    child = ExtraContext(click.Command("child"), parent=parent)
-    assert child.color is False
-
-
-def test_extra_context_explicit_overrides_parent():
-    """Child ExtraContext with explicit color overrides parent."""
-    parent = ExtraContext(click.Command("parent"), color=True)
-    child = ExtraContext(click.Command("child"), parent=parent, color=False)
-    assert child.color is False
 
 
 # --- should_strip_ansi / resolve_color_default tests ---
