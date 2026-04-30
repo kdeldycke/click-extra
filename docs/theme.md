@@ -26,7 +26,7 @@ result = invoke(weather, args=["--theme", "light", "--help"])
 assert result.exit_code == 0
 ```
 
-The flag is eager, so it is processed before any other option and before help is rendered. The picked theme is stored on the active Click context's `meta` dict under `click_extra.theme.THEME_META_KEY`, so it applies for the duration of the current invocation only: subcommands inherit it (Click shares `meta` across the parent/child hierarchy), but a sibling invocation of the same CLI in the same process starts from the default again.
+The flag is eager, so it is processed before any other option and before help is rendered. The picked theme is stored on the active Click context's `meta` dict under `click_extra.ctx_meta.THEME`, so it applies for the duration of the current invocation only: subcommands inherit it (Click shares `meta` across the parent/child hierarchy), but a sibling invocation of the same CLI in the same process starts from the default again. See the [available keys](context.md#available-keys) table for the full inventory you can read from your own callbacks.
 
 ## Configuration file
 

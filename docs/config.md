@@ -4,6 +4,10 @@ The structure of the configuration file is automatically [derived from the
 parameters](parameters.md#parameter-structure) of the CLI and their types. There is no need to manually produce a configuration
 data structure to mirror the CLI.
 
+```{tip}
+After loading, the resolved file path, the full parsed document, and (when a `config_schema` is set) the typed app section are exposed on `ctx.meta` as `CONF_SOURCE`, `CONF_FULL`, and `TOOL_CONFIG`. See the [available keys](context.md#available-keys) table to read them from your own callbacks.
+```
+
 ## Standalone option
 
 The `@config_option` decorator provided by Click Extra can be used as-is with vanilla Click:

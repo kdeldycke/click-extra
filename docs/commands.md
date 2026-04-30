@@ -79,6 +79,10 @@ You can inspect the implementation details in:
 
 The `@command` and `@group` decorators are pre-configured with a set of {py:func}`default options <click_extra.commands.default_extra_params>`.
 
+```{tip}
+Each default option publishes its resolved value on `ctx.meta` so you can pick it up from anywhere in your CLI. See the [available keys](context.md#available-keys) table for the full inventory and worked examples.
+```
+
 ### Remove default options
 
 You can remove all default options by resetting the `params` argument to `None`:

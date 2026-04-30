@@ -43,6 +43,7 @@ from cloup._util import identity
 from cloup.styling import Color
 
 from . import Style
+from . import ctx_meta
 from .parameters import ExtraOption
 
 TYPE_CHECKING = False
@@ -225,23 +226,14 @@ theme override matches its scope.
 """
 
 
-THEME_META_KEY = "click_extra.theme.active"
-"""Click context ``meta`` key that holds the per-invocation active theme.
-
-:class:`ThemeOption` writes the user's ``--theme`` pick under this key on the
-current :class:`click.Context`. Click's ``meta`` dict is shared across the
-parent/child context hierarchy, so subcommands inherit the parent group's
-theme without explicit propagation.
-"""
-
-
 def get_current_theme() -> HelpExtraTheme:
     """Return the theme active for the current CLI invocation.
 
     Resolution order:
 
     1. The theme stored on the active Click context under
-       :data:`THEME_META_KEY` (set by :class:`ThemeOption` from ``--theme``).
+       :data:`click_extra.ctx_meta.THEME` (set by :class:`ThemeOption`
+       from ``--theme``).
     2. The module-level :data:`default_theme` (the dark default, or whatever
        :func:`click_extra.wrap.patch_click` set at process start).
 
@@ -251,8 +243,8 @@ def get_current_theme() -> HelpExtraTheme:
     again.
     """
     ctx = click.get_current_context(silent=True)
-    if ctx is not None and THEME_META_KEY in ctx.meta:
-        return ctx.meta[THEME_META_KEY]
+    if ctx is not None and ctx_meta.THEME in ctx.meta:
+        return ctx.meta[ctx_meta.THEME]
     return default_theme
 
 
@@ -298,9 +290,10 @@ class ThemeOption(ExtraOption):
     time. Register new themes with :func:`register_theme` *before* declaring your
     commands, otherwise they will not appear in the option's choices.
 
-    The selected theme is stored on the Click context under :data:`THEME_META_KEY`,
-    so it applies for the duration of the current invocation only and does not
-    leak into sibling invocations sharing the same process.
+    The selected theme is stored on the Click context under
+    :data:`click_extra.ctx_meta.THEME`, so it applies for the duration of the
+    current invocation only and does not leak into sibling invocations sharing
+    the same process.
     """
 
     @staticmethod
@@ -312,9 +305,10 @@ class ThemeOption(ExtraOption):
         """Resolve the chosen theme name and store it on the Click context.
 
         Looks up *value* in :data:`theme_registry`, calls its factory, and writes
-        the resulting :class:`HelpExtraTheme` under :data:`THEME_META_KEY` in
-        ``ctx.meta``. Click shares ``meta`` across the parent/child context
-        hierarchy, so subcommands inherit the parent group's pick automatically.
+        the resulting :class:`HelpExtraTheme` under
+        :data:`click_extra.ctx_meta.THEME` in ``ctx.meta``. Click shares
+        ``meta`` across the parent/child context hierarchy, so subcommands
+        inherit the parent group's pick automatically.
         """
         if value is None:
             return
@@ -327,7 +321,7 @@ class ThemeOption(ExtraOption):
                 ctx=ctx,
                 param=param,
             ) from exc
-        ctx.meta[THEME_META_KEY] = factory()
+        ctx.meta[ctx_meta.THEME] = factory()
 
     def __init__(
         self,

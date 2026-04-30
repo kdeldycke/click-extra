@@ -12,6 +12,7 @@ install
 tutorial
 commands
 parameters
+context
 types
 config
 colorize

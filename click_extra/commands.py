@@ -29,6 +29,7 @@ from difflib import get_close_matches
 import click
 import cloup
 
+from . import ctx_meta
 from .colorize import (
     ColorOption,
     ExtraHelpColorsMixin,
@@ -424,7 +425,7 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
 
         The result are passed to our own ``ExtraContext`` constructor which is able to
         initialize the context's ``meta`` property under our own
-        ``click_extra.raw_args`` entry. This will be used in
+        :data:`click_extra.ctx_meta.RAW_ARGS` entry. This will be used in
         ``ShowParamsOption.print_params()`` to print the table of parameters fed to the
         CLI.
 
@@ -433,7 +434,7 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
             <https://github.com/pallets/click/issues/1279#issuecomment-1493348208>`_.
         """
         # ``args`` needs to be copied: its items are consumed by the parsing process.
-        extra.update({"meta": {"click_extra.raw_args": args.copy()}})
+        extra.update({"meta": {ctx_meta.RAW_ARGS: args.copy()}})
         return super().make_context(info_name, args, parent, **extra)
 
     def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
@@ -788,7 +789,7 @@ class ExtraGroup(ExtraCommand, cloup.Group):  # type: ignore[misc]
 
     def _get_default_subcommands(self, ctx: click.Context) -> list[str] | None:
         """Read and validate ``_default_subcommands`` from the loaded configuration."""
-        full_config = ctx.meta.get("click_extra.conf_full")
+        full_config = ctx.meta.get(ctx_meta.CONF_FULL)
         if not full_config:
             return None
 
@@ -858,7 +859,7 @@ class ExtraGroup(ExtraCommand, cloup.Group):  # type: ignore[misc]
 
     def _get_prepend_subcommands(self, ctx: click.Context) -> list[str] | None:
         """Read and validate ``_prepend_subcommands`` from the loaded configuration."""
-        full_config = ctx.meta.get("click_extra.conf_full")
+        full_config = ctx.meta.get(ctx_meta.CONF_FULL)
         if not full_config:
             return None
 
@@ -1034,7 +1035,7 @@ class LazyGroup(ExtraGroup):
         Click will then pass that dict as the ``default_map`` of the command's own
         context.
         """
-        full_config = ctx.meta.get("click_extra.conf_full")
+        full_config = ctx.meta.get(ctx_meta.CONF_FULL)
         if not full_config:
             return
 

@@ -30,6 +30,7 @@ import cloup
 from deepmerge import always_merger
 
 from . import UNSET, EnumChoice, ParamType, Style, get_current_context
+from . import ctx_meta
 from .envvar import param_envvar_ids
 
 TYPE_CHECKING = False
@@ -603,9 +604,9 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         get_param_value: Callable[[Any], Any]
         opts: dict = {}
 
-        if "click_extra.raw_args" in ctx.meta:
-            raw_args = ctx.meta.get("click_extra.raw_args", [])
-            logger.debug(f"click_extra.raw_args: {raw_args}")
+        if ctx_meta.RAW_ARGS in ctx.meta:
+            raw_args = ctx.meta.get(ctx_meta.RAW_ARGS, [])
+            logger.debug(f"{ctx_meta.RAW_ARGS}: {raw_args}")
 
             # Mimics click.core.Command.parse_args() so we can produce the list of
             # parsed options values.
@@ -620,7 +621,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             get_param_value = methodcaller("consume_value", ctx, opts)
 
         else:
-            logger.debug(f"click_extra.raw_args not in {ctx.meta}")
+            logger.debug(f"{ctx_meta.RAW_ARGS} not in {ctx.meta}")
             logger.warning(
                 f"Cannot extract parameters values: "
                 f"{ctx.command} does not inherits from ExtraCommand.",

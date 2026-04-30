@@ -2,6 +2,10 @@
 
 Click Extra provides a way to render tables in the terminal.
 
+```{tip}
+The selected `--table-format` value and the `--sort-by` priority list are published on `ctx.meta` as `TABLE_FORMAT` and `SORT_BY`. See the [available keys](context.md#available-keys) table to read them from your own callbacks.
+```
+
 Here how to use the standalone table rendering option decorator:
 
 ```{click:source}

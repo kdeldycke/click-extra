@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from click.testing import CliRunner
 
-from click_extra import command, echo, option
+from click_extra import ctx_meta, command, echo, option
 from click_extra import theme as _theme
 
 
@@ -59,3 +59,8 @@ def test_theme_default_unchanged_after_invocation():
     runner = CliRunner()
     runner.invoke(greet, ["--theme", "light", "--help"], color=True)
     assert _theme.default_theme is original
+
+
+def test_theme_meta_key_matches_registry():
+    """:func:`get_current_theme` reads from the same key :class:`ThemeOption` writes."""
+    assert ctx_meta.THEME == "click_extra.theme.active"

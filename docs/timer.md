@@ -4,6 +4,10 @@
 
 Click Extra can measure the execution time of a CLI via a dedicated `--time`/`--no-time` option.
 
+```{tip}
+When `--time` is enabled, the `time.perf_counter()` snapshot taken at startup is published on `ctx.meta` as `START_TIME`. See the [available keys](context.md#available-keys) table to read it from your own callbacks.
+```
+
 Here how to use the standalone decorator:
 
 ```{click:source}

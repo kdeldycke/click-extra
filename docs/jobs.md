@@ -2,7 +2,11 @@
 
 A pre-configured `--jobs` option to control parallel execution. Defaults to one fewer than available CPU cores, leaving one core free for the main process and system tasks.
 
-The resolved value is stored in `ctx.meta["click_extra.jobs"]` for downstream code to consume. The option itself does not drive any concurrency: it only captures the user's intent.
+The option itself does not drive any concurrency: it only captures the user's intent.
+
+```{tip}
+The resolved (clamped, validated) job count is published on `ctx.meta` as `JOBS` for downstream code to consume. See the [available keys](context.md#available-keys) table to read it from your own callbacks.
+```
 
 ## Usage
 

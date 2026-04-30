@@ -31,6 +31,7 @@ from boltons.strutils import strip_ansi
 from tabulate import DataRow, TableFormat as TabulateTableFormat
 
 from . import EnumChoice, echo, style
+from . import ctx_meta
 from .parameters import ExtraOption
 
 TYPE_CHECKING = False
@@ -794,8 +795,8 @@ class TableFormatOption(ExtraOption):
     the rendering style of a table.
 
     The selected table format ID is made available in the context in
-    ``ctx.meta["click_extra.table_format"]``, and two helper methods are added to
-    the context:
+    ``ctx.meta[click_extra.ctx_meta.TABLE_FORMAT]``, and two helper methods
+    are added to the context:
     - ``ctx.render_table(table_data, headers, **kwargs)``: renders and returns
       the table as a string,
     - ``ctx.print_table(table_data, headers, **kwargs)``: renders and prints
@@ -840,7 +841,7 @@ class TableFormatOption(ExtraOption):
         table_format: TableFormat | None,
     ) -> None:
         """Save in the context: ``table_format``, ``render_table`` & ``print_table``."""
-        ctx.meta["click_extra.table_format"] = table_format
+        ctx.meta[ctx_meta.TABLE_FORMAT] = table_format
 
         ctx.render_table = partial(  # type: ignore[attr-defined]
             render_table,
@@ -929,7 +930,7 @@ def print_sorted_table(
 class SortByOption(ExtraOption):
     """A ``--sort-by`` option whose choices are derived from column definitions.
 
-    Stores the selected column IDs in ``ctx.meta["click_extra.sort_by"]`` and replaces
+    Stores the selected column IDs in ``ctx.meta[click_extra.ctx_meta.SORT_BY]`` and replaces
     ``ctx.print_table`` with :py:func:`print_sorted_table` so that table output is
     automatically sorted. The option accepts ``multiple=True``, so users can repeat
     ``--sort-by`` to define a multi-column sort priority.
@@ -991,9 +992,9 @@ class SortByOption(ExtraOption):
         sort_columns: tuple[str, ...],
     ) -> None:
         """Store sort columns and override ``ctx.print_table`` with sorted variant."""
-        ctx.meta["click_extra.sort_by"] = sort_columns
+        ctx.meta[ctx_meta.SORT_BY] = sort_columns
 
-        table_format = ctx.meta.get("click_extra.table_format")
+        table_format = ctx.meta.get(ctx_meta.TABLE_FORMAT)
         ctx.print_table = partial(  # type: ignore[attr-defined]
             print_sorted_table,
             table_format=table_format,

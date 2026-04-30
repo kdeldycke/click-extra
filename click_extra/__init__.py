@@ -32,6 +32,7 @@ from cloup import *  # type: ignore[no-redef, assignment]
 if True:
     from .types import ChoiceSource, EnumChoice
 
+from . import ctx_meta
 from .colorize import (
     ColorOption,
     HelpExtraFormatter,
@@ -211,6 +212,7 @@ __all__ = [
     "confirmation_option",
     "constrained_params",
     "constraint",
+    "ctx_meta",
     "dir_path",
     "echo",
     "echo_via_pager",

@@ -6,6 +6,10 @@ The Python's standard library [`logging` module](https://docs.python.org/3/libra
 
 `--verbosity` is a pre-configured option which allow users of your CLI to set the log level of a [`logging.Logger` instance](https://docs.python.org/3/library/logging.html#logger-objects).
 
+```{tip}
+The reconciled log level chosen between `--verbosity` and `--verbose`/`-v` is published on `ctx.meta` as `VERBOSITY_LEVEL`, alongside the raw `VERBOSITY` and `VERBOSE` values from each option. See the [available keys](context.md#available-keys) table to read them from your own callbacks.
+```
+
 Default behavior is to:
 
 - print to `<stderr>`,

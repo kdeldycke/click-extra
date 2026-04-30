@@ -12,6 +12,10 @@ Click Extra provides a ready-to-use `--show-params` option, which is enabled by 
 
 It produces a comprehensive table of all the metadata about each of your CLI parameters, including: their normalized IDs, types, defaults and environment variables. And because it is dynamic, actual values and their sources are evaluated at runtime.
 
+```{tip}
+Every command built with `@command` or `@group` captures the pre-parsed `argv` slice on `ctx.meta` as `RAW_ARGS`, which `--show-params` itself relies on to re-parse the original arguments. See the [available keys](context.md#available-keys) table to read it from your own callbacks.
+```
+
 The default `@command` decorator come with the `--show-params` option, so you can call it right away:
 
 ```{click:source}
