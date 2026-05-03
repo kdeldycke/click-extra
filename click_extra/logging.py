@@ -37,8 +37,7 @@ from unittest.mock import patch
 import click
 from click.types import IntRange
 
-from . import EnumChoice
-from . import context
+from . import EnumChoice, context
 from .parameters import ExtraOption, search_params
 from .theme import get_current_theme
 

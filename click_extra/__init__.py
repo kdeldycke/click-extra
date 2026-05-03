@@ -44,7 +44,6 @@ from .commands import (
     HelpCommand,
     LazyGroup,
 )
-from .context import ExtraContext
 from .config import (
     DEFAULT_SUBCOMMANDS_KEY,
     NO_CONFIG,
@@ -58,6 +57,7 @@ from .config import (
     get_tool_config,
     normalize_config_keys,
 )
+from .context import ExtraContext
 from .decorators import (  # type: ignore[no-redef]
     argument,
     color_option,

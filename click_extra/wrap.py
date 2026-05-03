@@ -34,8 +34,7 @@ import click
 import cloup
 from click.utils import make_str
 
-from . import context
-from . import theme as _theme
+from . import context, theme as _theme
 from .colorize import ExtraHelpColorsMixin, HelpExtraFormatter
 from .commands import ColorizedCommand, ColorizedGroup, ExtraGroup
 from .context import ExtraContext

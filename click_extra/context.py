@@ -33,6 +33,7 @@ and read the entries you need:
 
     from click_extra import command, context, echo, pass_context
 
+
     @command
     @pass_context
     def cli(ctx):
@@ -272,7 +273,7 @@ def get(ctx: click.Context, key: str, default: Any = None) -> Any:
     return ctx.meta.get(key, default)
 
 
-def set(  # noqa: A001
+def set(
     ctx: click.Context,
     key: str,
     value: Any,
