@@ -72,11 +72,11 @@ from . import (
     UNPROCESSED,
     ParameterSource,
     Path as ClickPath,
+    context,
     echo,
     get_app_dir,
     get_current_context,
 )
-from . import context
 from .parameters import ExtraOption, ParamStructure, search_params
 
 if sys.version_info >= (3, 11):

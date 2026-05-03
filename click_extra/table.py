@@ -30,8 +30,7 @@ import tabulate
 from boltons.strutils import strip_ansi
 from tabulate import DataRow, TableFormat as TabulateTableFormat
 
-from . import EnumChoice, echo, style
-from . import context
+from . import EnumChoice, context, echo, style
 from .parameters import ExtraOption
 
 TYPE_CHECKING = False

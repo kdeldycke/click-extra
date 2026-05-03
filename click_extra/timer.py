@@ -20,8 +20,7 @@ from __future__ import annotations
 from gettext import gettext as _
 from time import perf_counter
 
-from . import echo
-from . import context
+from . import context, echo
 from .parameters import ExtraOption
 
 TYPE_CHECKING = False

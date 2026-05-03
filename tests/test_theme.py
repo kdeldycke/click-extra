@@ -18,8 +18,7 @@ from __future__ import annotations
 
 from click.testing import CliRunner
 
-from click_extra import command, context, echo, option
-from click_extra import theme as _theme
+from click_extra import command, context, echo, option, theme as _theme
 
 
 @command

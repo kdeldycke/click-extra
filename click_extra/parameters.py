@@ -29,8 +29,7 @@ import click
 import cloup
 from deepmerge import always_merger
 
-from . import UNSET, EnumChoice, ParamType, Style, get_current_context
-from . import context
+from . import UNSET, EnumChoice, ParamType, Style, context, get_current_context
 from .envvar import param_envvar_ids
 
 TYPE_CHECKING = False

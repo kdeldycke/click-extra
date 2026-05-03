@@ -33,10 +33,8 @@ from . import context
 from .colorize import (
     ColorOption,
     ExtraHelpColorsMixin,
-    HelpExtraFormatter,
     HelpKeywords,
 )
-from .context import ExtraContext
 from .config import (
     DEFAULT_SUBCOMMANDS_KEY,
     PREPEND_SUBCOMMANDS_KEY,
@@ -45,6 +43,7 @@ from .config import (
     ValidateConfigOption,
     _make_schema_callable,
 )
+from .context import ExtraContext
 from .envvar import clean_envvar_id, param_envvar_ids
 from .logging import VerboseOption, VerbosityOption
 from .parameters import ExtraOption, ShowParamsOption

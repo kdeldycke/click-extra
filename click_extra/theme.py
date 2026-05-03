@@ -43,8 +43,7 @@ import cloup
 from cloup._util import identity
 from cloup.styling import Color
 
-from . import Style
-from . import context
+from . import Style, context
 from .parameters import ExtraOption
 
 TYPE_CHECKING = False
