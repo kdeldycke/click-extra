@@ -1,5 +1,10 @@
 # Changelog
 
+## [`7.15.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.15.0...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`7.15.0` (2026-05-03)](https://github.com/kdeldycke/click-extra/compare/v7.14.1...v7.15.0)
 
 - Add opt-in 24-bit true-color rendering to the ANSI Pygments stack. Pass `true_color=True` to `AnsiColorLexer`, `AnsiFilter`, or any session lexer (like `get_lexer_by_name("ansi-shell-session", true_color=True)`) to preserve `SGR 38;2;r;g;b` and `48;2;r;g;b` sequences as `Token.Ansi.FG_{rrggbb}` / `Token.Ansi.BG_{rrggbb}` tokens instead of quantizing them to the 256-color palette. `AnsiHtmlFormatter` renders those tokens as inline `style="color: #rrggbb"` / `style="background-color: #rrggbb"` spans. The default behavior (256-color quantization) is unchanged.
