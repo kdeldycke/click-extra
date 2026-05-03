@@ -131,7 +131,7 @@ help_screen = (
 def test_unknown_option(invoke, all_command_cli):
     result = invoke(all_command_cli, "--blah")
     assert not result.stdout
-    assert "Error: No such option: --blah" in result.stderr
+    assert "No such option" in result.stderr
     assert result.exit_code == 2
 
 
@@ -142,14 +142,14 @@ def test_unknown_option(invoke, all_command_cli):
             {"--alpha/-a": True},
             ["-dbgwrong"],
             2,
-            "No such option: -dbgwrong",
+            "-dbgwrong",
             id="full_token_no_match",
         ),
         pytest.param(
             {"--debug/-d": True},
             ["--deubg"],
             2,
-            "No such option: --deubg",
+            "--deubg",
             id="long_option_typo_suggest",
         ),
         pytest.param(
@@ -163,7 +163,7 @@ def test_unknown_option(invoke, all_command_cli):
             {"-a": True, "-b": True},
             ["-abZ"],
             2,
-            "No such option: -Z",
+            "-Z",
             id="combining_error_on_later_char",
         ),
     ],

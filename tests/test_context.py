@@ -35,6 +35,10 @@ from click_extra import context
 from click_extra.colorize import HelpExtraFormatter
 from click_extra.context import META_NAMESPACE, ExtraContext, _LazyMetaDict
 
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from typing import Any
+
 
 # --- META key registry ------------------------------------------------------
 
@@ -182,7 +186,7 @@ def test_extra_context_color(
     if parent_color is not None:
         parent = ExtraContext(click.Command("parent"), color=parent_color)
 
-    kwargs: dict[str, object] = {}
+    kwargs: dict[str, Any] = {}
     if parent is not None:
         kwargs["parent"] = parent
     if child_color is not None:

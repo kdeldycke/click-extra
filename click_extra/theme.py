@@ -36,6 +36,7 @@ from __future__ import annotations
 import dataclasses
 from dataclasses import dataclass
 from gettext import gettext as _
+from typing import cast
 
 import click
 import cloup
@@ -244,7 +245,7 @@ def get_current_theme() -> HelpExtraTheme:
     """
     ctx = click.get_current_context(silent=True)
     if ctx is not None and context.THEME in ctx.meta:
-        return ctx.meta[context.THEME]
+        return cast("HelpExtraTheme", ctx.meta[context.THEME])
     return default_theme
 
 

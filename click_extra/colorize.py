@@ -42,7 +42,7 @@ from .theme import HelpExtraTheme
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Callable, Iterable, Sequence
     from typing import ClassVar
 
 
