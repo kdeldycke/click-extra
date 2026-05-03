@@ -1,9 +1,6 @@
 # Changelog
 
-## [`7.15.0.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.14.1...main)
-
-> [!WARNING]
-> This version is **not released yet** and is under active development.
+## [`7.15.0` (2026-05-03)](https://github.com/kdeldycke/click-extra/compare/v7.14.1...v7.15.0)
 
 - Add opt-in 24-bit true-color rendering to the ANSI Pygments stack. Pass `true_color=True` to `AnsiColorLexer`, `AnsiFilter`, or any session lexer (like `get_lexer_by_name("ansi-shell-session", true_color=True)`) to preserve `SGR 38;2;r;g;b` and `48;2;r;g;b` sequences as `Token.Ansi.FG_{rrggbb}` / `Token.Ansi.BG_{rrggbb}` tokens instead of quantizing them to the 256-color palette. `AnsiHtmlFormatter` renders those tokens as inline `style="color: #rrggbb"` / `style="background-color: #rrggbb"` spans. The default behavior (256-color quantization) is unchanged.
 - New `click_extra.theme` module centralizes all theme machinery: `HelpExtraTheme`, `default_theme`, `nocolor_theme`, `OK`, `KO`, `ThemeOption`, `theme_option` decorator, `theme_registry`, and `register_theme()`. Every click-extra command now accepts `--theme [dark|light]`; downstream consumers can extend the choice list via `register_theme()`. The active theme for a CLI run is stored in `ctx.meta[context.THEME]` by `ThemeOption` and retrieved via `get_current_theme()`, so back-to-back invocations in the same process (Sphinx builds, test runners, REPLs) no longer leak `--theme` choices into each other. The `wrap` subcommand reads the theme from the parent group's context rather than carrying its own `--theme`. Adds a corresponding `docs/theme.md` user guide. **Breaking:** downstream code importing theme symbols directly from `click_extra.colorize` must update to `click_extra.theme`; the canonical `from click_extra import HelpExtraTheme` path is unaffected.
