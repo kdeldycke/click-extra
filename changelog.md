@@ -1,5 +1,10 @@
 # Changelog
 
+## [`7.15.2.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.15.1...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`7.15.1` (2026-05-04)](https://github.com/kdeldycke/click-extra/compare/v7.15.0...v7.15.1)
 
 - Flip the `AnsiColorLexer.true_color` default to `True`. 24-bit RGB sequences (`SGR 38;2;r;g;b` and `48;2;r;g;b`) now render with their exact hex values via inline `style="color: #rrggbb"` spans by default — including in Sphinx, MkDocs, and `pygmentize` consumers, which can't pass kwargs to lexer constructors. The previous lossy 256-color quantization is still available as `AnsiColorLexer(true_color=False)`. **Behavior change for downstream HTML output:** documents that previously rendered 24-bit codes through `Ansi-C{n}` palette CSS classes now use inline RGB styles. Stylesheet contents are unchanged.
