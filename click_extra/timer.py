@@ -39,7 +39,14 @@ class TimerOption(ExtraOption):
     """
 
     def print_timer(self) -> None:
-        """Compute and print elapsed execution time."""
+        """Compute and print elapsed execution time.
+
+        Always prints, even when a sibling eager option (``--version``,
+        ``--show-params``, ``--show-config``…) short-circuited the command
+        body via ``ctx.exit()``. That makes ``--time`` a usable probe for
+        the cost of Click Extra's own machinery (option parsing, config
+        loading, eager callbacks), not just user command bodies.
+        """
         echo(f"Execution time: {perf_counter() - self.start_time:0.3f} seconds.")
 
     def register_timer_on_close(

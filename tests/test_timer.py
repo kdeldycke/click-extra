@@ -113,3 +113,22 @@ def test_standalone_timer_option(
     assert result.stdout == "It works!\n"
     assert not result.stderr
     assert result.exit_code == 0
+
+
+def test_time_with_short_circuit_sibling_still_prints(invoke):
+    """``--time --version`` still emits a duration.
+
+    ``--version`` is an eager option that calls ``ctx.exit()`` before the
+    user command body runs, but ``--time`` is intentionally measured even
+    on short-circuit paths so it can probe the cost of Click Extra's own
+    machinery (eager callbacks, config loading, option parsing).
+    """
+    from click_extra import command
+
+    @command
+    def short_circuit_cli():
+        echo("body ran")
+
+    result = invoke(short_circuit_cli, "--time", "--version")
+    assert re.search(r"Execution time: [0-9.]+ seconds\.", result.output)
+    assert result.exit_code == 0
