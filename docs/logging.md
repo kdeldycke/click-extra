@@ -4,24 +4,7 @@ The Python's standard library [`logging` module](https://docs.python.org/3/libra
 
 ## Colored verbosity
 
-`--verbosity` is a pre-configured option which allow users of your CLI to set the log level of a [`logging.Logger` instance](https://docs.python.org/3/library/logging.html#logger-objects).
-
-```{tip}
-The reconciled log level chosen between `--verbosity` and `--verbose`/`-v` is published on `ctx.meta` as `VERBOSITY_LEVEL`, alongside the raw `VERBOSITY` and `VERBOSE` values from each option. See the [available keys](context.md#available-keys) table to read them from your own callbacks.
-```
-
-Default behavior is to:
-
-- print to `<stderr>`,
-- send messages to the `root` logger,
-- show `WARNING`-level messages and above,
-- use `{`-style format strings,
-- render logs with the `{levelname}: {message}` format,
-- color the log's `{levelname}` variable.
-
-### Integrated option
-
-This option is part of `@command` and `@group` by default:
+`@command` and `@group` add a colored `--verbosity` option out of the box. Crank it to `DEBUG` and you see exactly which loggers were touched, at which level, when:
 
 ```{click:source}
 :emphasize-lines: 3
@@ -32,16 +15,6 @@ def my_cli():
     echo("It works!")
 ```
 
-See that `--verbosity` is featured in the help screen:
-
-```{click:run}
-:emphasize-lines: 20-21
-result = invoke(my_cli, args=["--help"])
-assert "--verbosity" in result.stdout, "missing --verbosity option"
-```
-
-This option can be invoked to display all the gory details of your CLI with the `DEBUG` level:
-
 ```{click:run}
 :emphasize-lines: 1
 result = invoke(my_cli, args=["--verbosity", "DEBUG"])
@@ -49,14 +22,29 @@ assert "Set <Logger click_extra (DEBUG)> to DEBUG." in result.stderr, "missing D
 assert "Set <RootLogger root (DEBUG)> to DEBUG." in result.stderr, "missing DEBUG message"
 ```
 
-```{hint}
-Notice how, in the output above, each logger's own level is printed as debug messages.
+Each logger's level prints as a debug message. They are set to `DEBUG` at the start of the command and reset back to their default `WARNING` at the end. The `--verbosity` flag also surfaces in `--help`:
 
-And how they're all first set to `DEBUG` at the beginning of the command, then reset back to their default `WARNING` at the end.
+```{click:run}
+:emphasize-lines: 20-21
+result = invoke(my_cli, args=["--help"])
+assert "--verbosity" in result.stdout, "missing --verbosity option"
+```
+
+Default behavior of the option:
+
+- print to `<stderr>`,
+- send messages to the `root` logger,
+- show `WARNING`-level messages and above,
+- use `{`-style format strings,
+- render logs with the `{levelname}: {message}` format,
+- color the log's `{levelname}` variable.
+
+```{tip}
+The reconciled log level chosen between `--verbosity` and `--verbose`/`-v` is published on `ctx.meta` as `VERBOSITY_LEVEL`, alongside the raw `VERBOSITY` and `VERBOSE` values from each option. See the [available keys](context.md#available-keys) table to read them from your own callbacks.
 ```
 
 ```{important}
-Besides `--verbosity`, there is another [`-v`/`--verbose` option](#click_extra.logging.VerboseOption). The later works relative to `--verbosity`, and can be used to increase the level in steps, simply by repeating it.
+Besides `--verbosity`, there is another [`-v`/`--verbose` option](#click_extra.logging.VerboseOption). The latter works relative to `--verbosity`, and can be used to increase the level in steps, simply by repeating it.
 
 In the rest of this documentation, we will mainly focus on the canonical `--verbosity` option to keep things simple (logging is already complicated enough...).
 ```

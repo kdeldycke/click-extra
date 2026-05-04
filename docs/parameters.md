@@ -8,15 +8,7 @@ The cornerstone of these tools is the magical `--show-params` option, which is a
 
 ## `--show-params` option
 
-Click Extra provides a ready-to-use `--show-params` option, which is enabled by default.
-
-It produces a comprehensive table of all the metadata about each of your CLI parameters, including: their normalized IDs, types, defaults and environment variables. And because it is dynamic, actual values and their sources are evaluated at runtime.
-
-```{tip}
-Every command built with `@command` or `@group` captures the pre-parsed `argv` slice on `ctx.meta` as `RAW_ARGS`, which `--show-params` itself relies on to re-parse the original arguments. See the [available keys](context.md#available-keys) table to read it from your own callbacks.
-```
-
-The default `@command` decorator come with the `--show-params` option, so you can call it right away:
+Click Extra adds a `--show-params` flag to every `@command` and `@group`. It dumps a colorized table of every parameter, its current value, where that value came from, the resolved environment variable, and the default:
 
 ```{click:source}
 :emphasize-lines: 3
@@ -37,7 +29,11 @@ assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM1\x1b[0m      │ \x1b[32m\x1b[2m\x1b[3m
 assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM2\x1b[0m      │ \x1b[32m\x1b[2m\x1b[3m555\x1b[0m " in result.stdout
 ```
 
-See in the rendered table above how `--int-param1` is set to `3`, because it was explicitly set on the command line. While `--int-param2` still gets its value from its `555` default.
+`--int-param1` shows `3` because it was passed on the command line. `--int-param2` falls back to its `555` default. The `--show-params` option produces this table dynamically: every value is re-evaluated at invocation time from the current `argv`, environment, and config files.
+
+```{tip}
+Every command built with `@command` or `@group` captures the pre-parsed `argv` slice on `ctx.meta` as `RAW_ARGS`, which `--show-params` itself relies on to re-parse the original arguments. See the [available keys](context.md#available-keys) table to read it from your own callbacks.
+```
 
 ```{hint}
 `--show-params` always displays all parameters, even those marked as not *allowed in conf*. In effect bypassing [its own `excluded_params` argument](#click_extra.parameters.ParamStructure.excluded_params). So you can still see the `--help`, `--version`, `-C`/`--config` and `--show-params` options in the table.

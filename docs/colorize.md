@@ -4,7 +4,7 @@ Click Extra extends [Cloup's help formatter and theme](https://cloup.readthedocs
 
 ## Cross-reference highlighting
 
-Option names are highlighted wherever they appear in the help screen, not only in the synopsis column. If an option name shows up in another option's description or in the command's docstring, it gets the same styling. This turns plain-text references into visual links, making it easier to scan for related options.
+Notice how `--format`, `--output`, and `--dry-run` light up not only in the synopsis column but also inside other options' descriptions and the command's docstring:
 
 ```{click:source}
 from click_extra import Choice, command, option, echo
@@ -40,7 +40,7 @@ assert result.output.count("\x1b[36m--format\x1b[0m") >= 3
 assert result.output.count("\x1b[36m--output\x1b[0m") >= 3
 ```
 
-The same applies to choices (highlighted in the metavar list and in any description that references them), arguments, and subcommand names.
+Every option name in the help screen carries the same style, regardless of where it appears: synopsis column, another option's description, the command's docstring. This turns plain-text references into visual links, making it easier to scan for related options. The same applies to choices (highlighted in the metavar list and anywhere the description mentions them), arguments, and subcommand names.
 
 ### Disabling cross-reference highlighting
 
