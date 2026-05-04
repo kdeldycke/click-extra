@@ -302,6 +302,7 @@ class ClickDirective(SphinxDirective):
         "hide-source": directives.flag,
         "show-results": directives.flag,
         "hide-results": directives.flag,
+        "emphasize-result-lines": CodeBlock.option_spec["emphasize-lines"],
         # TODO: Add a show-prompts and hide-prompts options?
     }
     """Options supported by this directive.
@@ -310,6 +311,10 @@ class ClickDirective(SphinxDirective):
     <https://github.com/sphinx-doc/sphinx/blob/cc7c6f4/sphinx/directives/code.py#L108-L117>`_
     as :class:`sphinx.directives.code.CodeBlock`, and some specific to Click
     directives.
+
+    The standard ``emphasize-lines`` option applies to the source block only. Use
+    ``emphasize-result-lines`` to highlight specific lines in the captured output
+    block, with the same syntax (e.g. ``:emphasize-result-lines: 1,3-5``).
     """
 
     default_language: str
@@ -368,11 +373,28 @@ class ClickDirective(SphinxDirective):
             return str(self.arguments[0])
         return self.default_language
 
-    @cached_property
-    def code_block_options(self) -> list[str]:
-        """Render the options supported by Sphinx' native `code-block` directive."""
+    def code_block_options(self, target: str = "source") -> list[str]:
+        """Render the options supported by Sphinx' native ``code-block`` directive.
+
+        ``target`` selects which block these options will be attached to:
+        ``"source"`` for the directive's input source code, ``"results"`` for the
+        captured output. ``emphasize-lines`` routes to the source block;
+        ``emphasize-result-lines`` is rewritten as ``emphasize-lines`` on the
+        results block, so authors can highlight different lines in each.
+        """
         options = []
         for option_id in CodeBlock.option_spec:
+            if option_id == "emphasize-lines":
+                if target == "source" and "emphasize-lines" in self.options:
+                    options.append(f":emphasize-lines: {self.options[option_id]}")
+                elif (
+                    target == "results"
+                    and "emphasize-result-lines" in self.options
+                ):
+                    options.append(
+                        f":emphasize-lines: {self.options['emphasize-result-lines']}"
+                    )
+                continue
             if option_id in self.options:
                 value = self.options[option_id]
                 line = f":{option_id}:"
@@ -416,8 +438,18 @@ class ClickDirective(SphinxDirective):
         """Check if the current directive is written with MyST syntax."""
         return bool(self.state.__module__.split(".", 1)[0] == "myst_parser")
 
-    def render_code_block(self, lines: Iterable[str], language: str) -> list[str]:
-        """Render the code block with the source code and results."""
+    def render_code_block(
+        self,
+        lines: Iterable[str],
+        language: str,
+        target: str = "source",
+    ) -> list[str]:
+        """Render the code block with the source code or results.
+
+        ``target`` is forwarded to :meth:`code_block_options` so the
+        ``emphasize-lines`` / ``emphasize-result-lines`` split routes the right
+        highlighting to each block.
+        """
         block: list[str] = []
         if not lines:
             return block
@@ -430,7 +462,7 @@ class ClickDirective(SphinxDirective):
         # Indent the line in rST code block.
         block.extend(
             line if self.is_myst_syntax else RST_INDENT + line
-            for line in self.code_block_options
+            for line in self.code_block_options(target)
         )
 
         # Both rST and MyST need a blank line before the body of the block else the
@@ -465,9 +497,9 @@ class ClickDirective(SphinxDirective):
             # Python code block.
             if self.runner_method == "run_cli":
                 language = SourceDirective.default_language
-            lines.extend(self.render_code_block(self.content, language))
+            lines.extend(self.render_code_block(self.content, language, "source"))
         if self.show_results:
-            lines.extend(self.render_code_block(results, self.language))
+            lines.extend(self.render_code_block(results, self.language, "results"))
 
         # Convert code block lines to a Docutils node tree.
         # The section element is the main unit of hierarchy for Docutils documents.

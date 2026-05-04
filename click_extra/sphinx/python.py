@@ -145,9 +145,9 @@ class PythonRunDirective(PythonDirective):
 
         lines: list[str] = []
         if self.show_source:
-            lines.extend(self.render_code_block(self.content, "python"))
+            lines.extend(self.render_code_block(self.content, "python", "source"))
         if self.show_results:
-            lines.extend(self.render_code_block(results, self.language))
+            lines.extend(self.render_code_block(results, self.language, "results"))
 
         section = nodes.section()
         source_file, _ = self.get_source_info()

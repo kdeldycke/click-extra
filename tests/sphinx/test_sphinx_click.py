@@ -137,6 +137,56 @@ LINENOS_START_TEST_CASE = DirectiveTestCase(
     ),
 )
 
+EMPHASIZE_LINES_TEST_CASE = DirectiveTestCase(
+    # Test that :emphasize-lines: applies to source only and
+    # :emphasize-result-lines: applies to results only, independently.
+    name="emphasize_lines_split",
+    source_block="""
+        from click import command, echo
+
+        @command
+        def two_liner():
+            echo("first line")
+            echo("second line")
+    """,
+    run_block="""
+        :show-source:
+        :emphasize-lines: 1
+        :emphasize-result-lines: 3
+
+        invoke(two_liner)
+    """,
+    html_matches=(
+        # Source code-block from click:source has no emphasis.
+        (
+            HTML["python_highlight"]
+            + HTML["import_click"]
+            + "\n"
+            + '<span class="nd">@command</span>\n'
+            + '<span class="k">def</span><span class="w"> </span><span class="nf">two_liner</span><span class="p">():</span>\n'
+            + '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;first line&quot;</span><span class="p">)</span>\n'
+            + '    <span class="n">echo</span><span class="p">(</span><span class="s2">&quot;second line&quot;</span><span class="p">)</span>\n'
+            + "</pre></div>\n"
+        ),
+        # Run directive's source block: line 1 (the only line) is highlighted.
+        (
+            HTML["python_highlight"]
+            + '<span class="hll"><span class="n">invoke</span><span class="p">(</span><span class="n">two_liner</span><span class="p">)</span>\n</span>'
+            + "</pre></div>\n"
+        ),
+        # Run directive's result block: line 3 ("second line") is highlighted,
+        # not the prompt or "first line".
+        (
+            HTML["shell_session"]
+            + '<span class="gp">$ </span>two-liner\n'
+            + "first line\n"
+            + '<span class="hll">second line\n</span>'
+            + "</pre></div>\n"
+        ),
+    ),
+)
+
+
 HIDE_SOURCE_TEST_CASE = DirectiveTestCase(
     # Test that :hide-source: hides source code in click:source directive.
     name="hide_source",
@@ -404,6 +454,7 @@ RST_WITHIN_MYST_EVAL_TEST_CASE = DirectiveTestCase(
     "test_case",
     [
         BASIC_DIRECTIVES_TEST_CASE,
+        EMPHASIZE_LINES_TEST_CASE,
         LINENOS_TEST_CASE,
         LINENOS_START_TEST_CASE,
         HIDE_SOURCE_TEST_CASE,
