@@ -655,7 +655,7 @@ Several dialects are supported:
 | [`HJSON`](#hjson)                   | `*.hjson`         | Another flavor of a [user-friendly JSON](https://hjson.github.io)                         | ❌                 |
 | [`INI`](#ini)                       | `*.ini`           | With extended interpolation, multi-level sections and non-native types (`list`, `set`, …) | ✅                 |
 | [`XML`](#xml)                       | `*.xml`           | -                                                                                         | ❌                 |
-| [`PYPROJECT_TOML`](#pyproject-toml) | `pyproject.toml`  | Reads `[tool.*]`{l=toml}{l=toml} sections from `pyproject.toml`                                   | ✅                 |
+| [`PYPROJECT_TOML`](#pyproject-toml) | `pyproject.toml`  | Reads `[tool.*]`{l=toml}{l=toml} sections from `pyproject.toml`                           | ✅                 |
 
 Formats depending on third-party packages are not enabled by default. You need to [install Click Extra with the corresponding extra dependency group](install.md#extra-dependencies) to enable them.
 

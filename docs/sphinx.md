@@ -730,20 +730,20 @@ The `python:source` block ran silently to seed `dedent` and `GREETING`; the subs
 
 `python:run` and the `python:render*` directives accept the same option spec as `click:run`. Defaults match: results shown, source hidden, so an inline `import` line in a `python:run` block runs silently and stays out of the rendered output.
 
-| Option                                                                | Effect                                                                            | Default          |
-| --------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ---------------- |
-| `:show-source:` / `:hide-source:`                                     | Render the directive's source block, or omit it.                                  | hidden           |
-| `:show-results:` / `:hide-results:`                                   | Render the captured output block, or omit it.                                     | shown            |
-| `:linenos:`                                                           | Display line numbers in both blocks.                                              | off              |
-| `:lineno-start:`                                                      | Starting line number when `:linenos:` is on. Applies to source.                   | 1                |
-| `:emphasize-lines:`                                                   | Highlight lines in the source block. Syntax: `1,3-5`.                             | none             |
-| `:emphasize-result-lines:`                                            | Highlight lines in the result block. Same syntax as `:emphasize-lines:`.          | none             |
-| `:language:`                                                          | Override the Pygments lexer used to render the result block.                      | `text`           |
-| `:caption:`                                                           | Set a caption on the rendered code block.                                         | none             |
-| `:name:`                                                              | Anchor name for cross-referencing.                                                | none             |
-| `:class:`                                                             | Extra CSS class on the rendered block.                                            | none             |
-| `:dedent:`                                                            | Strip N leading spaces from every line of the source.                             | 0                |
-| `:force:`                                                             | Suppress minor highlighting errors.                                               | off              |
+| Option                              | Effect                                                                   | Default |
+| ----------------------------------- | ------------------------------------------------------------------------ | ------- |
+| `:show-source:` / `:hide-source:`   | Render the directive's source block, or omit it.                         | hidden  |
+| `:show-results:` / `:hide-results:` | Render the captured output block, or omit it.                            | shown   |
+| `:linenos:`                         | Display line numbers in both blocks.                                     | off     |
+| `:lineno-start:`                    | Starting line number when `:linenos:` is on. Applies to source.          | 1       |
+| `:emphasize-lines:`                 | Highlight lines in the source block. Syntax: `1,3-5`.                    | none    |
+| `:emphasize-result-lines:`          | Highlight lines in the result block. Same syntax as `:emphasize-lines:`. | none    |
+| `:language:`                        | Override the Pygments lexer used to render the result block.             | `text`  |
+| `:caption:`                         | Set a caption on the rendered code block.                                | none    |
+| `:name:`                            | Anchor name for cross-referencing.                                       | none    |
+| `:class:`                           | Extra CSS class on the rendered block.                                   | none    |
+| `:dedent:`                          | Strip N leading spaces from every line of the source.                    | 0       |
+| `:force:`                           | Suppress minor highlighting errors.                                      | off     |
 
 ```{seealso}
 Some related projects for build-time Python execution:
