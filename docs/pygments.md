@@ -1,20 +1,29 @@
 # {octicon}`file-code` Pygments
 
-Click Extra plugs into Pygments to allow for the rendering of ANSI codes in various terminal output.
+This package ships a set of Pygments components that make terminal-style content first-class in any Pygments pipeline:
 
-````{important}
-For these helpers to work, you need to install ``click_extra``'s additional dependencies from the ``pygments`` extra group:
+- A lexer ([`ansi-color`](#ansi-html-formatter)) that parses raw ANSI/ECMA-48 escape sequences: text attributes (bold, faint, italic, underline, blink, reverse, strikethrough, overline), the standard 16 named colors, the [256-color indexed palette](#color-palette-swatch), [24-bit RGB](#bit-true-color), and [OSC 8 hyperlinks](#osc-8-hyperlinks).
+- An HTML formatter ([`ansi-html`](#ansi-html-formatter)) that renders those tokens as styled `<span>`{l=html} elements and OSC 8 hyperlinks as `<a>`{l=html} tags. Works in CSS-class mode or [`noclasses=True` inline-style mode](#inline-styles-self-contained-html).
+- [ANSI-aware variants](#ansi-language-lexers) of every shell-session and REPL lexer Pygments ships (`ansi-shell-session`, `ansi-pycon`, `ansi-rb`, …) so terminal output embedded in code blocks renders with its colors instead of as raw escape codes.
+- A filter ([`ansi-filter`](#ansi-filter)) that intercepts `Generic.Output` tokens from any session lexer and re-lexes them through `ansi-color`. This is the seam used by the ANSI session lexers, but you can also attach it to your own lexer.
+
+These are plain Pygments entry points: once [installed](#install), they are usable from [`pygmentize`](#pygmentize-command-line), `pygments.highlight()`, and any tool that consumes Pygments (Sphinx, MkDocs, Hexo, mdBook, Jekyll, GitHub-flavored Markdown renderers that use Pygments, …).
+
+## Install
+
+The Pygments components ship as an optional extra to keep the base install lean:
 
 ```{code-block} shell-session
 $ pip install click_extra[pygments]
 ```
-````
+
+You do not need to use Click, the Click Extra CLI, or the Sphinx/MkDocs integrations to use any of these components: the `pygments` extra pulls in only Pygments and its prerequisites. The package name (`click_extra`) is a historical artifact of where these components first lived; the Pygments components are stable, independent, and have no Click dependency at runtime.
 
 ## Integration
 
-As soon as [`click-extra` is installed](install.md), all its additional components are automaticcaly registered to Pygments.
+Installing the package automatically registers all components with Pygments through standard `pygments.lexers`, `pygments.filters`, and `pygments.formatters` entry points.
 
-Here is a quick way to check the new plugins are visible to Pygments' regular API:
+Quick check that the new plugins are visible to Pygments' regular API:
 
 - Formatter:
 
@@ -190,43 +199,71 @@ The `ansi-color` lexer/`ansi-html` formatter combo can only render pure ANSI con
 That's why we also maintain a collection of [ANSI-capable lexers for numerous languages](#ansi-language-lexers), as detailed below.
 ```
 
+### Inline styles (self-contained HTML)
+
+For HTML output that does not depend on an external stylesheet, pass `noclasses=True` to the formatter. Pygments then converts every token's CSS class into an inline `style="..."`{l=html} attribute:
+
+```{python:run}
+:show-source:
+:emphasize-lines: 7
+:emphasize-result-lines: 1
+:language: html
+from pygments import highlight
+from pygments.lexers import get_lexer_by_name
+from pygments.formatters import get_formatter_by_name
+
+
+lexer = get_lexer_by_name("ansi-color")
+formatter = get_formatter_by_name("ansi-html", noclasses=True)
+
+print(highlight("\x1b[1;31mError:\x1b[0m file not found\n", lexer, formatter))
+```
+
+This mode is the right pick when embedding output in emails, static reports, or any context where shipping a separate stylesheet is impractical. It pairs naturally with the [24-bit true-color mode](#bit-true-color), which is itself inline-style based.
+
 ## ANSI filter
 
 The `AnsiFilter` is a Pygments filter that intercepts tokens of a specific type (by default `Generic.Output`) and re-lexes their content through `AnsiColorLexer`. This is the glue that makes the [ANSI language lexers](#ansi-language-lexers) work: a session lexer like `BashSessionLexer` splits input into prompts (`Generic.Prompt`) and output (`Generic.Output`), then the `AnsiFilter` transforms the output tokens into colored `Token.Ansi.*` tokens.
 
-Here is a step-by-step example showing how the filter transforms a token stream:
+A short example showing how the filter transforms a token stream. The source highlight points to the `filter()` call; the result highlight points to the line where the styled `Token.Ansi.Bold.Red` token replaces the original `Generic.Output`:
 
-```{click:source}
+```{python:run}
+:show-source:
+:emphasize-lines: 12
+:emphasize-result-lines: 2
 from pygments.token import Generic
 
-from click_extra import command, echo
 from click_extra.pygments import AnsiFilter
 
-@command
-def filter_demo():
-    """Show how AnsiFilter transforms a token stream."""
-    filt = AnsiFilter()
 
-    # Simulate what a session lexer produces: a prompt token and an output
-    # token containing ANSI escape codes.
-    stream = [
-        (Generic.Prompt, "$ "),
-        (Generic.Output, "\x1b[1;31mError:\x1b[0m file not found\n"),
-    ]
+filt = AnsiFilter()
 
-    result = list(filt.filter(None, stream))
-    for token_type, value in result:
-        echo(f"  {token_type!s:30} {value!r}")
+# Simulate what a session lexer produces: a prompt token and an output
+# token containing ANSI escape codes.
+stream = [
+    (Generic.Prompt, "$ "),
+    (Generic.Output, "\x1b[1;31mError:\x1b[0m file not found\n"),
+]
+
+for token_type, value in filt.filter(None, stream):
+    print(f"  {token_type!s:30} {value!r}")
 ```
 
-```{click:run}
-result = invoke(filter_demo)
-assert result.exit_code == 0
-assert "Token.Ansi.Bold.Red" in result.stdout
-assert "Generic.Prompt" in result.stdout
+The prompt token passes through unchanged, the output token is split into styled `Token.Ansi.*` tokens, which `AnsiHtmlFormatter` then renders with CSS classes (or inline styles, see [below](#inline-styles-self-contained-html)).
+
+You can attach `AnsiFilter` to any custom lexer that emits `Generic.Output`:
+
+```{code-block} python
+:emphasize-lines: 6
+from pygments.lexers import get_lexer_by_name
+from click_extra.pygments import AnsiFilter
+
+
+lexer = get_lexer_by_name("docker")  # or any lexer of yours
+lexer.add_filter(AnsiFilter())
 ```
 
-The prompt token passes through unchanged, while the output token is split into styled ANSI tokens. The `AnsiHtmlFormatter` then renders these tokens with the appropriate CSS classes.
+Pass `token_type="Generic.Error"` (or any other token type) to redirect the filter at a different stream.
 
 ## ANSI language lexers
 
@@ -234,7 +271,7 @@ Some [languages supported by Pygments](https://pygments.org/languages/) are comm
 
 For example, the [`console` lexer can be used to highlight shell sessions](https://pygments.org/docs/terminal-sessions/). The general structure of the shell session will be highlighted by the `console` lexer, including the leading prompt. But the ANSI codes in the output will not be interpreted by `console` and will be rendered as plain text.
 
-To fix that, Click Extra implements ANSI-capable lexers. These can parse both the language syntax and the ANSI codes in the output. So you can use the `ansi-console` lexer instead of `console`, and this `ansi-`-prefixed variant will highlight shell sessions with ANSI codes.
+To fix that, this package implements ANSI-capable lexers. These can parse both the language syntax and the ANSI codes in the output. So you can use the `ansi-console` lexer instead of `console`, and this `ansi-`-prefixed variant will highlight shell sessions with ANSI codes.
 
 ### Lexer variants
 
@@ -300,7 +337,7 @@ That's why you need Click Extra's lexers. If we switch to the new `ansi-pycon` l
 ```
 
 ```{seealso}
-All these new lexers can be used in [Sphinx](sphinx.md#ansi-shell-sessions) and [MkDocs](mkdocs.md) out of the box.
+Because they are registered as standard Pygments entry points, these lexers also work out of the box with any tool that drives Pygments through `get_lexer_by_name()` — including [Sphinx](sphinx.md#ansi-shell-sessions), [MkDocs](mkdocs.md), Hexo, mdBook, Jekyll, and similar.
 ```
 
 ### Lexer design
@@ -359,46 +396,85 @@ $ cat cowsay.html
 
 ## 24-bit true color
 
-The `ansi-color` lexer parses `SGR 38;2;r;g;b` and `48;2;r;g;b` (24-bit RGB) sequences. By default, it quantizes those values to the nearest entry in the 256-color palette so they ride the same CSS-class machinery as named and indexed colors.
+The `ansi-color` lexer accepts `SGR 38;2;r;g;b` and `48;2;r;g;b` (24-bit RGB) sequences and can render them either quantized to the 256-color palette (default) or as raw RGB inline styles. The difference is most visible on a smooth gradient:
 
-The default works for nearly all terminal output. Quantization to the 6×6×6 cube and 24-step grayscale ramp is visually close, the resulting CSS is small, and it stays compatible with Furo's dark-mode stylesheet swap. Smooth gradients (`lolcat`-style output, `bat` themes with custom palettes, terminal recordings of TUI applications) are where the approximation becomes noticeable.
+````{python:render}
+import colorsys
 
-To preserve raw RGB values, opt into true-color mode by passing `true_color=True` to the lexer:
+from pygments import highlight
 
-```{click:source}
-from click_extra import command, echo
+from click_extra.pygments import AnsiColorLexer, AnsiHtmlFormatter
+
+steps = []
+for i in range(64):
+    r, g, b = (round(c * 255) for c in colorsys.hsv_to_rgb(i / 64, 1, 1))
+    steps.append(f"\x1b[38;2;{r};{g};{b}m█")
+gradient = "".join(steps) + "\x1b[0m"
+
+formatter = AnsiHtmlFormatter(nowrap=True)
+quantized = highlight(gradient, AnsiColorLexer(), formatter)
+truecolor = highlight(gradient, AnsiColorLexer(true_color=True), formatter)
+
+# Wrap each ``<pre>`` in ``<div class="highlight">`` so the Pygments stylesheet's
+# ``.highlight .-Ansi-*`` rules scope correctly to the quantized row. The true-color
+# row carries inline styles and renders identically with or without the wrapper.
+print("```{raw} html")
+print("<p><strong>Default (quantized to 256 colors):</strong></p>")
+print(
+    f'<div class="highlight"><pre style="font-size: 1.1em; line-height: 1">'
+    f"{quantized}</pre></div>"
+)
+print("<p><strong>Opt-in 24-bit true color:</strong></p>")
+print(
+    f'<div class="highlight"><pre style="font-size: 1.1em; line-height: 1">'
+    f"{truecolor}</pre></div>"
+)
+print("```")
+````
+
+The first row bands visibly where adjacent gradient steps collapse onto the same 256-color palette entry. The second row preserves all 64 distinct hex values.
+
+### When each mode fits
+
+The default (quantization) works for nearly all terminal output: the 6×6×6 cube and 24-step grayscale ramp are visually close, the resulting CSS is small, and it stays compatible with Furo's dark-mode stylesheet swap. Smooth gradients (`lolcat`-style output, `bat` themes with custom palettes, terminal recordings of TUI applications) are where the approximation becomes noticeable, and where the opt-in 24-bit mode pays off.
+
+### How to opt in
+
+Pass `true_color=True` to the lexer:
+
+```{python:run}
+:emphasize-lines: 10
+:emphasize-result-lines: 2
+:show-source:
 from click_extra.pygments import AnsiColorLexer
 
-@command
-def truecolor_demo():
-    """Show how true-color mode preserves 24-bit RGB values."""
-    text = "\x1b[38;2;255;165;0morange\x1b[0m"
 
-    # Default: quantize to nearest 256-color palette entry.
-    quantized = list(AnsiColorLexer().get_tokens(text))
-    echo(f"quantized: {quantized}")
+text = "\x1b[38;2;255;165;0morange\x1b[0m"
 
-    # Opt-in: preserve raw RGB hex.
-    truecolor = list(AnsiColorLexer(true_color=True).get_tokens(text))
-    echo(f"truecolor: {truecolor}")
-```
+# Default: quantize to nearest 256-color palette entry.
+quantized = list(AnsiColorLexer().get_tokens(text))
 
-```{click:run}
-result = invoke(truecolor_demo)
-assert result.exit_code == 0
-assert "Token.Ansi.C214" in result.stdout
-assert "Token.Ansi.FG_ffa500" in result.stdout
+# Opt-in: preserve raw RGB hex.
+truecolor = list(AnsiColorLexer(true_color=True).get_tokens(text))
+
+print(f"quantized: {quantized}")
+print(f"truecolor: {truecolor}")
 ```
 
 The flag also flows through `AnsiFilter` and the [ANSI language lexers](#ansi-language-lexers):
 
-```python
+```{code-block} python
+:emphasize-lines: 3
 from pygments.lexers import get_lexer_by_name
 
 lexer = get_lexer_by_name("ansi-shell-session", true_color=True)
 ```
 
-When true-color tokens reach `AnsiHtmlFormatter`, they are rendered as inline `<span style="color: #rrggbb">` / `<span style="background-color: #rrggbb">` tags. Other token components on the same span (bold, italic, named colors, palette indices) keep their CSS-class rendering, so a bold-orange-on-blue span ends up as nested `<span class="-Ansi-Bold"><span style="color: #ffa500"><span style="background-color: #004488">…</span></span></span>`.
+### How it renders
+
+When true-color tokens reach `AnsiHtmlFormatter`, they are rendered as inline `<span style="color: #rrggbb">`{l=html} / `<span style="background-color: #rrggbb">`{l=html} tags. Other token components on the same span (bold, italic, named colors, palette indices) keep their CSS-class rendering, so a bold-orange-on-blue span ends up as nested `<span class="-Ansi-Bold"><span style="color: #ffa500"><span style="background-color: #004488">…</span></span></span>`{l=html}.
+
+The CSS classes for the quantized rendering resolve through the Pygments stylesheet; the true-color spans carry their colors as inline `style="color: #rrggbb"`{l=html} attributes and render identically regardless of stylesheet.
 
 ```{warning}
 Inline styles bypass the Pygments stylesheet entirely. Furo's dark-mode CSS swap cannot recolor them, but this matches how the 256-color palette already works (its hex values are baked into the stylesheet at generation time). ANSI colors are absolute by design: a red `\e[31m` should look red regardless of theme.
@@ -417,9 +493,9 @@ The `AnsiColorLexer` parses the OSC 8 escape sequences and the `AnsiHtmlFormatte
 Only URLs with safe schemes (`http`, `https`, `mailto`, `ftp`, `ftps`) are rendered as links.
 All other OSC sequences (like window title changes) are silently stripped.
 
-## ANSI rendering demo
+## 256-color palette swatch
 
-A quick proof that the Pygments ANSI pipeline renders 256-color output correctly in Sphinx:
+A live proof that the full 256-color indexed palette renders correctly through the pipeline. Each cell sets foreground and background to the same index, producing a solid color block; the second column of each pair is bold.
 
 ```{click:source}
 :hide-source:
@@ -427,12 +503,20 @@ from click_extra.cli import demo
 ```
 
 ```{click:run}
-result = invoke(demo, args=["palette"])
+result = invoke(demo, args=["palette"], env={"FORCE_COLOR": "1"})
 assert result.exit_code == 0
+assert "\x1b[38;5;" in result.output
+```
+
+The same swatch can be reproduced from any Python script — the output above is captured from `click-extra palette`, but the underlying ANSI text is what `pygmentize -l ansi-color -f ansi-html` consumes:
+
+```{code-block} python
+swatch = "\x1b[38;5;{0};48;5;{0}m\u2588\x1b[1m\u2588\x1b[m"
+ansi_text = "".join(swatch.format(i) for i in range(256))
 ```
 
 ```{seealso}
-The full set of color and style rendering demos is in [Colors and styles](colorize.md#colors-and-styles).
+This package's own CLI ships several other demo subcommands (`colors`, `styles`, `8color`, `gradient`) under [Colors and styles](colorize.md#colors-and-styles): they are useful as ready-made ANSI fixtures even if you do not use the CLI itself.
 ```
 
 ## `click_extra.pygments` API
