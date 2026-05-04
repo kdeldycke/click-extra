@@ -85,6 +85,16 @@ This value is also used as the default level for :class:`VerbosityOption` .
 """
 
 
+_RESET_REGISTERED: str = f"{context.META_NAMESPACE}_verbosity_reset_registered"
+"""Internal sentinel marking that ``reset_loggers`` was queued on the context.
+
+Lives in ``ctx.meta`` so the verbosity inheritance chain
+(``ExtraVerbosity`` / ``VerbosityOption`` / ``VerboseOption``) registers the
+close callback at most once per invocation, even when both ``--verbosity``
+and ``-v`` are passed.
+"""
+
+
 class ExtraStreamHandler(StreamHandler):
     """A handler to output logs to the console.
 
@@ -399,7 +409,13 @@ class ExtraVerbosity(ExtraOption):
             logger.setLevel(level.value)
             getLogger("click_extra").debug(f"Set {logger} to {level}.")
 
-        ctx.call_on_close(self.reset_loggers)
+        # Register the close callback at most once per ctx. Both ``--verbosity``
+        # and ``-v`` flow through this method, so without a guard the same
+        # ``reset_loggers`` would be queued twice on Context._close_callbacks
+        # when both options are passed.
+        if not ctx.meta.get(_RESET_REGISTERED):
+            ctx.call_on_close(self.reset_loggers)
+            ctx.meta[_RESET_REGISTERED] = True
 
     def __init__(
         self,
