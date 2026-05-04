@@ -117,6 +117,44 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>>
 ```
 
+## Python compatibility
+
+The table below shows which Python versions each `click-extra` release range supports, derived from the `Programming Language :: Python :: 3.X` classifiers across all release tags. Releases prior to `4.9.0` did not declare explicit Python classifiers and are not represented.
+
+<!-- python-compat-start -->
+
+| `click-extra`       | Released   | `3.9` | `3.10` | `3.11` | `3.12` | `3.13` | `3.14` |
+| :------------------ | :--------- | :---: | :----: | :----: | :----: | :----: | :----: |
+| `6.2.x` → `7.x`     | 2025-11-04 |  ❌   |   ✅   |   ✅   |   ✅   |   ✅   |   ✅   |
+| `6.0.1` → `6.1.x`   | 2025-10-08 |  ❌   |   ❌   |   ✅   |   ✅   |   ✅   |   ✅   |
+| `5.x` → `6.0.0`     | 2025-05-13 |  ❌   |   ❌   |   ✅   |   ✅   |   ✅   |   ❌   |
+| `4.11.x` → `4.15.x` | 2024-10-08 |  ❌   |   ✅   |   ✅   |   ✅   |   ✅   |   ❌   |
+| `4.9.x` → `4.10.x`  | 2024-07-25 |  ✅   |   ✅   |   ✅   |   ✅   |   ❌   |   ❌   |
+
+<!-- python-compat-end -->
+
+## Click compatibility
+
+Click Extra wraps Click, so the two are tightly coupled and the matrix of supported Click versions matters as much as the Python one. The table below shows which Click versions each `click-extra` release range accepts at install time, derived from the `click` runtime dependency specifier in `pyproject.toml` across all release tags. The `8.1` and `8.2` columns are minor-grouped (✅ means at least one patch in that minor is accepted); the `8.3` columns are split per patch since `click-extra` releases pin distinct `8.3.x` floors that matter at install time.
+
+<!-- click-compat-start -->
+
+| `click-extra`       | Released   | Spec       | `8.1` | `8.2` | `8.3.0` | `8.3.1` | `8.3.3` |
+| :------------------ | :--------- | :--------- | :---: | :---: | :-----: | :-----: | :-----: |
+| `7.15.x`            | 2026-05-03 | `>=8.3.1`  |  ❌   |  ❌   |   ❌    |   ✅    |   ✅    |
+| `7.14.1`            | 2026-04-26 | `>=8.1`    |  ✅   |  ✅   |   ✅    |   ✅    |   ✅    |
+| `7.14.0`            | 2026-04-24 | `>=8.3.3`  |  ❌   |  ❌   |   ❌    |   ❌    |   ✅    |
+| `7.0.x` → `7.13.x`  | 2025-11-17 | `>=8.3.1`  |  ❌   |  ❌   |   ❌    |   ✅    |   ✅    |
+| `6.x`               | 2025-09-25 | `>=8.3.0`  |  ❌   |  ❌   |   ✅    |   ✅    |   ✅    |
+| `5.x`               | 2025-05-13 | `~=8.2.x`  |  ❌   |  ✅   |   ❌    |   ❌    |   ❌    |
+| `4.9.x` → `4.15.x`  | 2024-07-25 | `~=8.1.x`  |  ✅   |  ❌   |   ❌    |   ❌    |   ❌    |
+
+<!-- click-compat-end -->
+
+```{note}
+`7.14.1` is the only release with relaxed Click bounds (`>=8.1`): it temporarily widened compatibility to ease pinning across downstreams that hadn't yet bumped to Click `8.3`. `7.15.0` re-tightened the floor to `8.3.1` once Click `8.3` adoption stabilized. `7.14.0` is the strictest floor on record (`>=8.3.3`), pulled in to match a specific Click parameter-name fix; `7.14.1` immediately relaxed it.
+```
+
 ## Default dependencies
 
 This is a graph of the default, main dependencies of the Python package:
