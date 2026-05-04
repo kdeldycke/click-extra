@@ -384,14 +384,15 @@ def _config_args_for_target(
         app = "myapp:create_app"
         debug = true
     """
-    # Walk up to the root context to find the full config.
-    root_ctx = ctx.find_root()
-    full_conf = root_ctx.meta.get(context.CONF_FULL)
+    # ``ctx.meta`` is shared across the parent/child hierarchy, so reading
+    # from the local context is sufficient. The root command's name is still
+    # needed below to locate the right TOML section.
+    full_conf = context.get(ctx, context.CONF_FULL)
     if not full_conf:
         return ()
 
     # Extract the [click-extra.wrap.<script>] section from the raw config.
-    app_name = root_ctx.command.name or ""
+    app_name = ctx.find_root().command.name or ""
     # Normalize path separators to forward slashes so Windows absolute paths
     # like "C:\...\script.py" match TOML keys written as "C:/.../script.py".
     # TOML basic strings interpret backslashes as escape sequences, so users

@@ -840,7 +840,10 @@ class TableFormatOption(ExtraOption):
         table_format: TableFormat | None,
     ) -> None:
         """Save in the context: ``table_format``, ``render_table`` & ``print_table``."""
-        ctx.meta[context.TABLE_FORMAT] = table_format
+        if ctx.resilient_parsing:
+            return
+
+        context.set(ctx, context.TABLE_FORMAT, table_format)
 
         ctx.render_table = partial(  # type: ignore[attr-defined]
             render_table,
@@ -991,9 +994,12 @@ class SortByOption(ExtraOption):
         sort_columns: tuple[str, ...],
     ) -> None:
         """Store sort columns and override ``ctx.print_table`` with sorted variant."""
-        ctx.meta[context.SORT_BY] = sort_columns
+        if ctx.resilient_parsing:
+            return
 
-        table_format = ctx.meta.get(context.TABLE_FORMAT)
+        context.set(ctx, context.SORT_BY, sort_columns)
+
+        table_format = context.get(ctx, context.TABLE_FORMAT)
         ctx.print_table = partial(  # type: ignore[attr-defined]
             print_sorted_table,
             table_format=table_format,

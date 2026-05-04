@@ -53,12 +53,12 @@ class TimerOption(ExtraOption):
         Computes and print the execution time at the end of the CLI, if option has been
         activated.
         """
-        if not value:
+        if not value or ctx.resilient_parsing:
             return
 
         # Only capture the start time when the user requested timing.
         self.start_time = perf_counter()
-        ctx.meta[context.START_TIME] = self.start_time
+        context.set(ctx, context.START_TIME, self.start_time)
 
         # Register printing at the end of execution.
         ctx.call_on_close(self.print_timer)

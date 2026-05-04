@@ -382,13 +382,18 @@ class ExtraVerbosity(ExtraOption):
         ``ctx.meta[click_extra.context.VERBOSITY_LEVEL]``. This context entry
         served as a kind of global state shared by all verbosity-related options.
         """
+        # Skip logger reconfiguration during help rendering, shell completion,
+        # and any ``make_context(resilient_parsing=True)`` path.
+        if ctx.resilient_parsing:
+            return
+
         # Skip setting the level if another option has already sets it or is at an equal
         # or lower level.
-        current_level = ctx.meta.get(context.VERBOSITY_LEVEL)
+        current_level = context.get(ctx, context.VERBOSITY_LEVEL)
         if current_level and current_level <= level:
             return
 
-        ctx.meta[context.VERBOSITY_LEVEL] = level
+        context.set(ctx, context.VERBOSITY_LEVEL, level)
 
         for logger in self.all_loggers:
             logger.setLevel(level.value)
@@ -444,7 +449,7 @@ class VerbosityOption(ExtraVerbosity):
         """The value passed to ``--verbosity`` will be saved in
         ``ctx.meta[click_extra.context.VERBOSITY]``.
         """
-        ctx.meta[context.VERBOSITY] = value
+        context.set(ctx, context.VERBOSITY, value)
         super().set_level(ctx, param, value)
 
     def __init__(
@@ -532,7 +537,7 @@ class VerboseOption(ExtraVerbosity):
         The value passed to ``--verbose``/``-v`` will be saved in
         ``ctx.meta[click_extra.context.VERBOSE]``.
         """
-        ctx.meta[context.VERBOSE] = value
+        context.set(ctx, context.VERBOSE, value)
 
         # No -v option has been called, skip meddling with log levels.
         if value == 0:

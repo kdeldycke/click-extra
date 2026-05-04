@@ -468,7 +468,7 @@ def get_tool_config(ctx: click.Context | None = None) -> Any:
     """
     if ctx is None:
         ctx = get_current_context()
-    return ctx.find_root().meta.get(context.TOOL_CONFIG)
+    return context.get(ctx, context.TOOL_CONFIG)
 
 
 def _safe_get_type_hints(cls: type) -> dict[str, Any]:
@@ -1651,8 +1651,8 @@ class ConfigOption(ExtraOption, ParamStructure):
             return
         app_name = ctx.find_root().command.name or ctx.info_name or ""
         app_section = self._resolve_app_section(user_conf, app_name)
-        ctx.meta[context.TOOL_CONFIG] = self._config_schema_callable(
-            app_section,
+        context.set(
+            ctx, context.TOOL_CONFIG, self._config_schema_callable(app_section)
         )
 
     def merge_default_map(self, ctx: click.Context, user_conf: dict) -> None:
@@ -1712,6 +1712,11 @@ class ConfigOption(ExtraOption, ParamStructure):
             config values end up in ``default_map``, so Click already reports them as
             ``ParameterSource.DEFAULT_MAP``, which is accurate.
         """
+        # Skip file I/O and ctx.meta writes during help rendering, shell
+        # completion, and any ``make_context(resilient_parsing=True)`` path.
+        if ctx.resilient_parsing:
+            return
+
         logger = logging.getLogger("click_extra")
 
         # In this function we would like to inform the user of what we're doing.
@@ -1815,8 +1820,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         # ctx.meta, so downstream CLI code can inspect what was loaded and from where.
         # See the load_conf docstring for why we use ctx.meta instead of a custom
         # ParameterSource enum member.
-        ctx.meta[context.CONF_SOURCE] = conf_path
-        ctx.meta[context.CONF_FULL] = user_conf
+        context.set(ctx, context.CONF_SOURCE, conf_path)
+        context.set(ctx, context.CONF_FULL, user_conf)
 
 
 class NoConfigOption(ExtraOption):

@@ -68,6 +68,9 @@ class JobsOption(ExtraOption):
         Clamps values below 1 to 1 and warns when the requested count exceeds
         available CPU cores.
         """
+        if ctx.resilient_parsing:
+            return
+
         effective = value
 
         if value < 1:
@@ -84,7 +87,7 @@ class JobsOption(ExtraOption):
                 CPU_COUNT,
             )
 
-        ctx.meta[context.JOBS] = effective
+        context.set(ctx, context.JOBS, effective)
 
     def __init__(
         self,

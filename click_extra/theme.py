@@ -243,8 +243,10 @@ def get_current_theme() -> HelpExtraTheme:
     again.
     """
     ctx = click.get_current_context(silent=True)
-    if ctx is not None and context.THEME in ctx.meta:
-        return cast("HelpExtraTheme", ctx.meta[context.THEME])
+    if ctx is not None:
+        active = context.get(ctx, context.THEME)
+        if active is not None:
+            return cast("HelpExtraTheme", active)
     return default_theme
 
 
@@ -310,7 +312,7 @@ class ThemeOption(ExtraOption):
         ``meta`` across the parent/child context hierarchy, so subcommands
         inherit the parent group's pick automatically.
         """
-        if value is None:
+        if value is None or ctx.resilient_parsing:
             return
         try:
             factory = theme_registry[value]
@@ -321,7 +323,7 @@ class ThemeOption(ExtraOption):
                 ctx=ctx,
                 param=param,
             ) from exc
-        ctx.meta[context.THEME] = factory()
+        context.set(ctx, context.THEME, factory())
 
     def __init__(
         self,

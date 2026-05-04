@@ -751,7 +751,7 @@ class ExtraGroup(ExtraCommand, cloup.Group):  # type: ignore[misc]
 
     def _get_default_subcommands(self, ctx: click.Context) -> list[str] | None:
         """Read and validate ``_default_subcommands`` from the loaded configuration."""
-        full_config = ctx.meta.get(context.CONF_FULL)
+        full_config = context.get(ctx, context.CONF_FULL)
         if not full_config:
             return None
 
@@ -821,7 +821,7 @@ class ExtraGroup(ExtraCommand, cloup.Group):  # type: ignore[misc]
 
     def _get_prepend_subcommands(self, ctx: click.Context) -> list[str] | None:
         """Read and validate ``_prepend_subcommands`` from the loaded configuration."""
-        full_config = ctx.meta.get(context.CONF_FULL)
+        full_config = context.get(ctx, context.CONF_FULL)
         if not full_config:
             return None
 
@@ -997,7 +997,7 @@ class LazyGroup(ExtraGroup):
         Click will then pass that dict as the ``default_map`` of the command's own
         context.
         """
-        full_config = ctx.meta.get(context.CONF_FULL)
+        full_config = context.get(ctx, context.CONF_FULL)
         if not full_config:
             return
 

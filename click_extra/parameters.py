@@ -562,8 +562,8 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         get_param_value: Callable[[Any], Any]
         opts: dict = {}
 
-        if context.RAW_ARGS in ctx.meta:
-            raw_args = ctx.meta.get(context.RAW_ARGS, [])
+        raw_args = context.get(ctx, context.RAW_ARGS)
+        if raw_args is not None:
             logger.debug(f"{context.RAW_ARGS}: {raw_args}")
 
             # Mimics click.core.Command.parse_args() so we can produce the list of
@@ -598,7 +598,10 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         assert config_option is None or isinstance(config_option, ConfigOption)
 
         # Resolve the table format early so we know whether to emit typed values.
-        if not hasattr(ctx, "print_table"):
+        # ``init_formatter`` writes ``context.TABLE_FORMAT`` and binds
+        # ``ctx.print_table``: detect both via the registry rather than
+        # ``hasattr`` introspection on ad-hoc context attributes.
+        if context.get(ctx, context.TABLE_FORMAT) is None:
             from .table import TableFormatOption
 
             table_option = search_params(ctx.command.get_params(ctx), TableFormatOption)
@@ -613,10 +616,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 )
         print_func = getattr(ctx, "print_table", print_table)
 
-        # Check if the resolved format is a structured serialization format.
-        table_format = None
-        if hasattr(print_func, "keywords"):
-            table_format = print_func.keywords.get("table_format")
+        table_format = context.get(ctx, context.TABLE_FORMAT)
         is_structured = table_format in SERIALIZATION_FORMATS
 
         table: list[tuple[Any, ...]] = []
