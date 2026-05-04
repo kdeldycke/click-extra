@@ -75,6 +75,50 @@ def test_python_run_language_override(sphinx_app_myst):
     assert "&quot;sphinx&quot;" in html
 
 
+def test_python_run_emphasize_lines_split(sphinx_app_myst):
+    """``:emphasize-lines:`` highlights source only; ``:emphasize-result-lines:``
+    highlights result only — independently, on the same block."""
+    content = dedent("""
+        ```{python:run}
+        :show-source:
+        :emphasize-lines: 1
+        :emphasize-result-lines: 2
+        print("first line")
+        print("second line")
+        ```
+    """)
+    html = sphinx_app_myst.build_document(content)
+    assert html is not None
+    # Source block carries the source emphasis on line 1 (the `print("first line")`).
+    assert '<span class="hll"><span class="nb">print</span>' in html
+    # Result block carries the result emphasis on line 2 (the literal `second line`).
+    assert '<span class="hll">second line\n</span>' in html
+    # And the sibling lines are not highlighted.
+    assert (
+        '<span class="hll">first line\n</span>' not in html
+    ), "result emphasis must not bleed onto line 1 of the result block"
+
+
+def test_python_render_passes_block_level_html(sphinx_app_myst):
+    """``python:render`` passes block-level raw HTML through unchanged.
+
+    A naked ``print('<div>...</div>')`` should reach the rendered page without
+    any ``{raw} html`` wrapping. Locks down the natural-form pattern so a future
+    MyST upgrade or extension reordering can't silently regress it.
+    """
+    content = dedent("""
+        ```{python:render}
+        print('<div class="custom-marker">')
+        print('<span style="color: #ff8800">orange span</span>')
+        print('</div>')
+        ```
+    """)
+    html = sphinx_app_myst.build_document(content)
+    assert html is not None
+    assert '<div class="custom-marker">' in html
+    assert '<span style="color: #ff8800">orange span</span>' in html
+
+
 def test_python_render_host_myst_injects_table(sphinx_app_myst):
     """``python:render`` parses captured stdout with the host (MyST) parser."""
     content = dedent("""

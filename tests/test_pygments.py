@@ -684,6 +684,32 @@ def test_formatter_quantize_path_no_inline_styles():
     assert "style=" not in result
 
 
+def test_formatter_osc8_with_truecolor_coexist():
+    """OSC 8 hyperlink and 24-bit RGB tokens cooperate in the same span.
+
+    Both mechanisms inject Private Use Area markers into the token stream
+    (``_LINK_*`` for hyperlinks, ``_RGB_*`` for RGB colors) and rely on
+    independent post-processing passes in ``format_unencoded``. This test pins
+    the contract that both rewrites happen and don't interfere.
+    """
+    formatter = AnsiHtmlFormatter(nowrap=True)
+    text = (
+        "\x1b[38;2;255;165;0m"
+        "\x1b]8;;https://example.com\x07"
+        "orange link"
+        "\x1b]8;;\x07"
+        "\x1b[0m"
+    )
+    result = highlight(text, AnsiColorLexer(), formatter)
+    # OSC 8 → <a> tag.
+    assert '<a href="https://example.com">' in result
+    assert "</a>" in result
+    # 24-bit RGB → inline color style on the link text.
+    assert 'style="color: #ffa500"' in result
+    # Visible text survives both rewrites.
+    assert "orange link" in result
+
+
 # --- _nearest_256 quantization ---
 
 

@@ -337,7 +337,7 @@ $ cat cowsay.html
 
 The `ansi-color` lexer accepts `SGR 38;2;r;g;b` and `48;2;r;g;b` (24-bit RGB) sequences and renders them as raw RGB inline styles by default. Pass `true_color=False` to fall back to lossy quantization onto the 256-color palette. The difference is most visible on a smooth gradient:
 
-````{python:render}
+```{python:render}
 import colorsys
 
 from pygments import highlight
@@ -351,13 +351,12 @@ for i in range(64):
 gradient = "".join(steps) + "\x1b[0m"
 
 formatter = AnsiHtmlFormatter(nowrap=True)
-quantized = highlight(gradient, AnsiColorLexer(), formatter)
-truecolor = highlight(gradient, AnsiColorLexer(true_color=True), formatter)
+quantized = highlight(gradient, AnsiColorLexer(true_color=False), formatter)
+truecolor = highlight(gradient, AnsiColorLexer(), formatter)
 
 # Wrap each ``<pre>`` in ``<div class="highlight">`` so the Pygments stylesheet's
 # ``.highlight .-Ansi-*`` rules scope correctly to the quantized row. The true-color
 # row carries inline styles and renders identically with or without the wrapper.
-print("```{raw} html")
 print("<p><strong>Default (quantized to 256 colors):</strong></p>")
 print(
     f'<div class="highlight"><pre style="font-size: 1.1em; line-height: 1">'
@@ -368,8 +367,7 @@ print(
     f'<div class="highlight"><pre style="font-size: 1.1em; line-height: 1">'
     f"{truecolor}</pre></div>"
 )
-print("```")
-````
+```
 
 The first row bands visibly where adjacent gradient steps collapse onto the same 256-color palette entry. The second row preserves all 64 distinct hex values.
 
