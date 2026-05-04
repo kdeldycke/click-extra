@@ -26,14 +26,13 @@ OSC 8 hyperlinks are rendered as HTML ``<a>`` tags. Other OSC sequences are sile
 stripped.
 
 .. note::
-    24-bit RGB colors (``SGR 38;2;r;g;b`` and ``48;2;r;g;b``) are quantized to the
-    nearest entry in the 256-color indexed palette by default. Pass ``true_color=True``
-    to ``AnsiColorLexer``, ``AnsiFilter``, or any session lexer (via
-    ``get_lexer_by_name(..., true_color=True)``) to opt into 24-bit rendering.
-    ``AnsiHtmlFormatter`` then emits inline ``style="color: #rrggbb"`` /
-    ``style="background-color: #rrggbb"`` spans for those tokens, since CSS classes
-    cannot enumerate 16.7M colors. Other token components (bold, named colors, palette
-    indices) keep their CSS-class rendering.
+    24-bit RGB colors (``SGR 38;2;r;g;b`` and ``48;2;r;g;b``) are preserved by default
+    and rendered by ``AnsiHtmlFormatter`` as inline ``style="color: #rrggbb"`` /
+    ``style="background-color: #rrggbb"`` spans (CSS classes cannot enumerate 16.7M
+    colors). Other token components (bold, named colors, palette indices) keep their
+    CSS-class rendering. Pass ``true_color=False`` to ``AnsiColorLexer``, ``AnsiFilter``,
+    or any session lexer (via ``get_lexer_by_name(..., true_color=False)``) to opt into
+    quantization to the nearest entry in the 256-color palette instead.
 """
 
 from __future__ import annotations
@@ -332,15 +331,15 @@ class AnsiColorLexer(Lexer):
     def __init__(self, *args, **kwargs) -> None:
         """Initialize the lexer.
 
-        :param true_color: When ``False`` (default), 24-bit RGB sequences are quantized
-            to the nearest entry in the 256-color palette and emitted as ``Token.Ansi.C{n}``
-            / ``Token.Ansi.BGC{n}`` tokens, which map to CSS classes via the style dict.
-            When ``True``, 24-bit RGB sequences are preserved as ``Token.Ansi.FG_{rrggbb}``
-            / ``Token.Ansi.BG_{rrggbb}`` tokens. ``AnsiHtmlFormatter`` renders these as
-            inline ``style="color: #rrggbb"`` / ``style="background-color: #rrggbb"``
-            attributes since CSS classes cannot enumerate 16.7M colors.
+        :param true_color: Default ``True``. 24-bit RGB sequences are preserved as
+            ``Token.Ansi.FG_{rrggbb}`` / ``Token.Ansi.BG_{rrggbb}`` tokens, which
+            ``AnsiHtmlFormatter`` renders as inline ``style="color: #rrggbb"`` /
+            ``style="background-color: #rrggbb"`` attributes (CSS classes cannot
+            enumerate 16.7M colors). Pass ``False`` to quantize 24-bit RGB to the
+            nearest entry in the 256-color palette and emit ``Token.Ansi.C{n}`` /
+            ``Token.Ansi.BGC{n}`` tokens that map to CSS classes via the style dict.
         """
-        self.true_color = bool(kwargs.pop("true_color", False))
+        self.true_color = bool(kwargs.pop("true_color", True))
         super().__init__(*args, **kwargs)
         self._cached_token: _TokenType = Text
         self._reset_state()
@@ -514,8 +513,8 @@ class AnsiFilter(Filter):
         colorized.
 
         :param true_color: Forwarded to the inner ``AnsiColorLexer`` to control whether
-            24-bit RGB sequences are quantized to the 256-color palette (default) or
-            preserved as ``FG_/BG_`` hex tokens for inline-style rendering. See
+            24-bit RGB sequences are preserved as ``FG_/BG_`` hex tokens for inline-style
+            rendering (default ``True``) or quantized to the 256-color palette. See
             :class:`AnsiColorLexer` for details.
 
         .. note::
@@ -530,7 +529,7 @@ class AnsiFilter(Filter):
             <https://github.com/pygments/pygments/issues/2499>`_ for the closest
             related discussions.
         """
-        true_color = bool(options.pop("true_color", False))
+        true_color = bool(options.pop("true_color", True))
         super().__init__(**options)
         self.ansi_lexer = AnsiColorLexer(true_color=true_color)
         self.token_type = string_to_tokentype(
@@ -576,10 +575,10 @@ class _AnsiFilterMixin(Lexer):
         ``TokenMergeFilter`` consolidates contiguous output lines into a single token,
         then ``AnsiFilter`` transforms the merged output into ANSI-styled tokens.
 
-        :param true_color: Forwarded to ``AnsiFilter`` to enable 24-bit RGB rendering
-            via inline styles instead of the default 256-color quantization.
+        :param true_color: Forwarded to ``AnsiFilter``. Default ``True``: 24-bit RGB
+            renders via inline styles. Pass ``False`` to quantize to the 256-color palette.
         """
-        true_color = bool(kwargs.pop("true_color", False))
+        true_color = bool(kwargs.pop("true_color", True))
         super().__init__(*args, **kwargs)
         self.filters.append(TokenMergeFilter())
         self.filters.append(AnsiFilter(true_color=true_color))

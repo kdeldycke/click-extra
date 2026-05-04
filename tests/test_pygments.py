@@ -506,6 +506,11 @@ def test_256color_bg(index):
 # --- 24-bit RGB (SGR 38;2;r;g;b / 48;2;r;g;b) ---
 
 
+def lex_quantized(text: str) -> list[tuple]:
+    """Shorthand: lex ``text`` with explicit 256-color quantization opt-in."""
+    return list(AnsiColorLexer(true_color=False).get_tokens(text))
+
+
 @pytest.mark.parametrize(
     ("r", "g", "b", "expected_idx"),
     [
@@ -518,9 +523,9 @@ def test_256color_bg(index):
         pytest.param(255, 128, 0, 208, id="orange"),
     ],
 )
-def test_24bit_rgb_fg(r, g, b, expected_idx):
-    """SGR 38;2;r;g;b quantizes to nearest 256-color index."""
-    tokens = lex(f"\x1b[38;2;{r};{g};{b}mtext\x1b[0m")
+def test_24bit_rgb_fg_quantized(r, g, b, expected_idx):
+    """SGR 38;2;r;g;b quantizes to nearest 256-color index when true_color=False."""
+    tokens = lex_quantized(f"\x1b[38;2;{r};{g};{b}mtext\x1b[0m")
     assert tokens[0] == (getattr(Ansi, f"C{expected_idx}"), "text")
 
 
@@ -531,9 +536,9 @@ def test_24bit_rgb_fg(r, g, b, expected_idx):
         pytest.param(128, 128, 128, 244, id="gray-bg"),
     ],
 )
-def test_24bit_rgb_bg(r, g, b, expected_idx):
-    """SGR 48;2;r;g;b quantizes background to nearest 256-color index."""
-    tokens = lex(f"\x1b[48;2;{r};{g};{b}mtext\x1b[0m")
+def test_24bit_rgb_bg_quantized(r, g, b, expected_idx):
+    """SGR 48;2;r;g;b quantizes background to nearest 256-color index when true_color=False."""
+    tokens = lex_quantized(f"\x1b[48;2;{r};{g};{b}mtext\x1b[0m")
     assert tokens[0] == (getattr(Ansi, f"BGC{expected_idx}"), "text")
 
 
@@ -587,10 +592,16 @@ def test_truecolor_with_attribute():
     assert tokens[0] == (Ansi.Bold.FG_ff8000, "bold-orange")
 
 
-def test_truecolor_default_disabled():
-    """Default ``AnsiColorLexer()`` quantizes RGB to 256-color palette."""
-    # 255,165,0 quantizes to C214 (orange in the 6x6x6 cube).
+def test_truecolor_default_enabled():
+    """Default ``AnsiColorLexer()`` preserves 24-bit RGB as ``FG_{rrggbb}`` tokens."""
     tokens = lex("\x1b[38;2;255;165;0mtext\x1b[0m")
+    assert tokens[0] == (Ansi.FG_ffa500, "text")
+
+
+def test_truecolor_explicit_disable_quantizes():
+    """``AnsiColorLexer(true_color=False)`` quantizes RGB to the 256-color palette."""
+    # 255,165,0 quantizes to C214 (orange in the 6x6x6 cube).
+    tokens = lex_quantized("\x1b[38;2;255;165;0mtext\x1b[0m")
     assert tokens[0] == (Ansi.C214, "text")
 
 
@@ -663,11 +674,11 @@ def test_formatter_truecolor_fg_and_bg_nested_spans():
     assert 'style="background-color: #0000ff"' in result
 
 
-def test_formatter_default_path_unchanged_by_rgb_injector():
-    """When the lexer quantizes (default), no inline styles are emitted."""
+def test_formatter_quantize_path_no_inline_styles():
+    """When ``true_color=False`` is opted into, no inline styles are emitted."""
     formatter = AnsiHtmlFormatter(nowrap=True)
     text = "\x1b[38;2;255;165;0morange\x1b[0m"
-    result = highlight(text, AnsiColorLexer(), formatter)
+    result = highlight(text, AnsiColorLexer(true_color=False), formatter)
     # 255,165,0 quantizes to C214.
     assert "-Ansi-C214" in result
     assert "style=" not in result
@@ -1273,11 +1284,11 @@ def test_formatter_osc8_unsafe_scheme_no_link():
             id="lolcat-256color",
         ),
         pytest.param(
-            # 24-bit gradient: orange to red.
+            # 24-bit gradient: orange to red, preserved as FG_{rrggbb} tokens.
             "\x1b[38;2;255;165;0mO\x1b[38;2;255;69;0mR\x1b[0m",
             [
-                (Ansi.C214, "O"),
-                (Ansi.C202, "R"),
+                (Ansi.FG_ffa500, "O"),
+                (Ansi.FG_ff4500, "R"),
                 (Text, "\n"),
             ],
             id="truecolor-gradient",

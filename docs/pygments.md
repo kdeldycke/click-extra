@@ -396,7 +396,7 @@ $ cat cowsay.html
 
 ## 24-bit true color
 
-The `ansi-color` lexer accepts `SGR 38;2;r;g;b` and `48;2;r;g;b` (24-bit RGB) sequences and can render them either quantized to the 256-color palette (default) or as raw RGB inline styles. The difference is most visible on a smooth gradient:
+The `ansi-color` lexer accepts `SGR 38;2;r;g;b` and `48;2;r;g;b` (24-bit RGB) sequences and renders them as raw RGB inline styles by default. Pass `true_color=False` to fall back to lossy quantization onto the 256-color palette. The difference is most visible on a smooth gradient:
 
 ````{python:render}
 import colorsys
@@ -434,13 +434,20 @@ print("```")
 
 The first row bands visibly where adjacent gradient steps collapse onto the same 256-color palette entry. The second row preserves all 64 distinct hex values.
 
-### When each mode fits
+### How it renders
 
-The default (quantization) works for nearly all terminal output: the 6×6×6 cube and 24-step grayscale ramp are visually close, the resulting CSS is small, and it stays compatible with Furo's dark-mode stylesheet swap. Smooth gradients (`lolcat`-style output, `bat` themes with custom palettes, terminal recordings of TUI applications) are where the approximation becomes noticeable, and where the opt-in 24-bit mode pays off.
+True-color tokens reach `AnsiHtmlFormatter` as `Token.Ansi.FG_{rrggbb}` / `Token.Ansi.BG_{rrggbb}` and emit inline `<span style="color: #rrggbb">`{l=html} / `<span style="background-color: #rrggbb">`{l=html} tags. Other token components on the same span (bold, italic, named colors, palette indices) keep their CSS-class rendering, so a bold-orange-on-blue span ends up as nested `<span class="-Ansi-Bold"><span style="color: #ffa500"><span style="background-color: #004488">…</span></span></span>`{l=html}.
 
-### How to opt in
+The 16 named colors and 256-palette indices still resolve through the Pygments stylesheet; only the 24-bit codes carry their colors inline (CSS classes can't enumerate 16.7M colors).
 
-Pass `true_color=True` to the lexer:
+```python
+list(AnsiColorLexer().get_tokens("\x1b[38;2;255;165;0morange\x1b[0m"))
+# [(Token.Ansi.FG_ffa500, 'orange'), (Token.Text, '\n')]
+```
+
+### Falling back to 256-color quantization
+
+There are two cases where you might prefer the lossy quantization mode: a Furo dark-mode stylesheet that you want to recolor at theme-swap time (inline styles can't be overridden), or a downstream renderer that breaks on inline `style="…"` attributes. Pass `true_color=False` to opt out:
 
 ```{python:run}
 :emphasize-lines: 10
@@ -451,14 +458,14 @@ from click_extra.pygments import AnsiColorLexer
 
 text = "\x1b[38;2;255;165;0morange\x1b[0m"
 
-# Default: quantize to nearest 256-color palette entry.
-quantized = list(AnsiColorLexer().get_tokens(text))
+# Default: preserve raw RGB hex.
+truecolor = list(AnsiColorLexer().get_tokens(text))
 
-# Opt-in: preserve raw RGB hex.
-truecolor = list(AnsiColorLexer(true_color=True).get_tokens(text))
+# Opt-out: quantize to nearest 256-color palette entry.
+quantized = list(AnsiColorLexer(true_color=False).get_tokens(text))
 
-print(f"quantized: {quantized}")
 print(f"truecolor: {truecolor}")
+print(f"quantized: {quantized}")
 ```
 
 The flag also flows through `AnsiFilter` and the [ANSI language lexers](#ansi-language-lexers):
@@ -467,14 +474,8 @@ The flag also flows through `AnsiFilter` and the [ANSI language lexers](#ansi-la
 :emphasize-lines: 3
 from pygments.lexers import get_lexer_by_name
 
-lexer = get_lexer_by_name("ansi-shell-session", true_color=True)
+lexer = get_lexer_by_name("ansi-shell-session", true_color=False)
 ```
-
-### How it renders
-
-When true-color tokens reach `AnsiHtmlFormatter`, they are rendered as inline `<span style="color: #rrggbb">`{l=html} / `<span style="background-color: #rrggbb">`{l=html} tags. Other token components on the same span (bold, italic, named colors, palette indices) keep their CSS-class rendering, so a bold-orange-on-blue span ends up as nested `<span class="-Ansi-Bold"><span style="color: #ffa500"><span style="background-color: #004488">…</span></span></span>`{l=html}.
-
-The CSS classes for the quantized rendering resolve through the Pygments stylesheet; the true-color spans carry their colors as inline `style="color: #rrggbb"`{l=html} attributes and render identically regardless of stylesheet.
 
 ```{warning}
 Inline styles bypass the Pygments stylesheet entirely. Furo's dark-mode CSS swap cannot recolor them, but this matches how the 256-color palette already works (its hex values are baked into the stylesheet at generation time). ANSI colors are absolute by design: a red `\e[31m` should look red regardless of theme.

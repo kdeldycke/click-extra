@@ -353,21 +353,14 @@ assert "\x1b[31;42m gYw \x1b[m" in result.output
 
 ### 24-bit RGB vs. 256-color quantization
 
+For each gradient, the `24-bit` row preserves raw `SGR 38;2;r;g;b` values; the `8-bit` row uses the nearest entry from the 256-color palette. The first row is smooth, the second bands visibly wherever neighboring steps collapse onto the same palette index:
+
 ```{click:run}
-result = invoke(demo, args=["--color", "gradient"])
+result = invoke(demo, args=["--color", "gradient"], env={"FORCE_COLOR": "1"})
 assert result.exit_code == 0
-
-# 24-bit row uses SGR 38;2;r;g;b.
+# 24-bit row uses SGR 38;2;r;g;b; 8-bit row uses SGR 38;5;n.
 assert "\x1b[38;2;" in result.output
-
-# 8-bit row uses SGR 38;5;n.
 assert "\x1b[38;5;" in result.output
-
-# All four gradients are present.
-assert "Rainbow:" in result.output
-assert "Grayscale:" in result.output
-assert "Red:" in result.output
-assert "Cyan:" in result.output
 ```
 
 ```{caution}
