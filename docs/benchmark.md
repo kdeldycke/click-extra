@@ -16,7 +16,7 @@ Feature comparison between Click Extra and competing CLI frameworks across ecosy
 | Lazy subcommand loading      |       ✓       |             |             |     N/A     |            |             |    N/A     |              |       ✓        |            |                   |     N/A     |
 | Parameter introspection      |       ✓       |             |             |             |            |             |            |              |                |            |                   |             |
 
-click-extra reads TOML, YAML, JSON, INI, and XML config files, including `[tool.*]` sections from `pyproject.toml` and remote URLs. cobra achieves similar coverage through Viper (YAML, TOML, JSON, HCL, INI, env vars). Cyclopts supports TOML, YAML, JSON, and env vars. Cement uses INI by default with YAML and JSON via extensions. clap requires a companion crate for config file support.
+click-extra reads TOML, YAML, JSON, INI, and XML config files, including `[tool.*]`{l=toml} sections from `pyproject.toml` and remote URLs. cobra achieves similar coverage through Viper (YAML, TOML, JSON, HCL, INI, env vars). Cyclopts supports TOML, YAML, JSON, and env vars. Cement uses INI by default with YAML and JSON via extensions. clap requires a companion crate for config file support.
 
 ## End-user experience
 
@@ -57,7 +57,7 @@ Click (and click-extra, Cloup, rich-click, Typer) accepts global flags in both p
 
 Features unique to click-extra or significantly stronger than all competitors:
 
-- **Multi-format config with `pyproject.toml`**: no other framework reads `[tool.*]` from `pyproject.toml` natively. Cobra/Viper comes closest but targets Go projects.
+- **Multi-format config with `pyproject.toml`**: no other framework reads `[tool.*]`{l=toml} from `pyproject.toml` natively. Cobra/Viper comes closest but targets Go projects.
 - **Help colorization with theme system**: click-extra highlights options, choices, metavars, defaults, env vars, and subcommand names with configurable themes. Other frameworks offer basic ANSI colors but not semantic highlighting.
 - **Table and data serialization**: `print_table()` and `serialize_data()` with 20+ output formats. Cement offers table output but with fewer format options and no serialization pipeline.
 - **Parameter introspection**: `--show-params` exposes every parameter's value, source, default, and environment variable. No other framework offers this.

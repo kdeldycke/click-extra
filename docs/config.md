@@ -655,7 +655,7 @@ Several dialects are supported:
 | [`HJSON`](#hjson)                   | `*.hjson`         | Another flavor of a [user-friendly JSON](https://hjson.github.io)                         | ❌                 |
 | [`INI`](#ini)                       | `*.ini`           | With extended interpolation, multi-level sections and non-native types (`list`, `set`, …) | ✅                 |
 | [`XML`](#xml)                       | `*.xml`           | -                                                                                         | ❌                 |
-| [`PYPROJECT_TOML`](#pyproject-toml) | `pyproject.toml`  | Reads `[tool.*]` sections from `pyproject.toml`                                           | ✅                 |
+| [`PYPROJECT_TOML`](#pyproject-toml) | `pyproject.toml`  | Reads `[tool.*]`{l=toml}{l=toml} sections from `pyproject.toml`                                   | ✅                 |
 
 Formats depending on third-party packages are not enabled by default. You need to [install Click Extra with the corresponding extra dependency group](install.md#extra-dependencies) to enable them.
 
@@ -790,10 +790,10 @@ Write example.
 
 ### `pyproject.toml`
 
-The `PYPROJECT_TOML` format reads `[tool.<cli-name>]` sections from a `pyproject.toml` file, following [PEP 518](https://peps.python.org/pep-0518/). This is useful for any CLI tool that wants to store its configuration alongside project metadata — not just Python projects. Tools like [ruff](https://docs.astral.sh/ruff/configuration/#configuring-ruff) and [typos](https://github.com/crate-ci/typos/blob/master/docs/reference.md), which are not Python projects, all use this convention, to play nice with other communities and increase adoption.
+The `PYPROJECT_TOML` format reads `[tool.<cli-name>]`{l=toml} sections from a `pyproject.toml` file, following [PEP 518](https://peps.python.org/pep-0518/). This is useful for any CLI tool that wants to store its configuration alongside project metadata — not just Python projects. Tools like [ruff](https://docs.astral.sh/ruff/configuration/#configuring-ruff) and [typos](https://github.com/crate-ci/typos/blob/master/docs/reference.md), which are not Python projects, all use this convention, to play nice with other communities and increase adoption.
 
 ```{tip}
-`pyproject.toml` is becoming the standard place to centralize tool configuration for Python projects. Instead of scattering dedicated config files at the root of your repository (`ruff.toml`, `typos.toml`, `mypy.ini`, …), you can consolidate them all under `[tool.*]` sections in a single `pyproject.toml`. This keeps the repository root clean, makes it easy to review and coordinate tool configurations in one place, and reduces the number of files contributors need to discover.
+`pyproject.toml` is becoming the standard place to centralize tool configuration for Python projects. Instead of scattering dedicated config files at the root of your repository (`ruff.toml`, `typos.toml`, `mypy.ini`, …), you can consolidate them all under `[tool.*]`{l=toml} sections in a single `pyproject.toml`. This keeps the repository root clean, makes it easy to review and coordinate tool configurations in one place, and reduces the number of files contributors need to discover.
 ```
 
 `PYPROJECT_TOML` is included in the default format patterns, so it is automatically discovered alongside other formats. The `[tool]` wrapper is automatically unwrapped: `merge_default_map` sees `{"cli": {"int_param": 3}}` — exactly the [same structure as a regular TOML config file](#toml).
@@ -835,11 +835,11 @@ def cli(int_param):
     echo(f"int_parameter is {int_param!r}")
 ```
 
-Running `cli` from anywhere inside the project tree will find `pyproject.toml` at the repository root and apply `[tool.cli]` values. The walk [automatically stops at the VCS root](#walk-boundaries).
+Running `cli` from anywhere inside the project tree will find `pyproject.toml` at the repository root and apply `[tool.cli]`{l=toml} values. The walk [automatically stops at the VCS root](#walk-boundaries).
 
 #### Dedicated file wins, no merging
 
-When both a dedicated configuration file (e.g., `my-cli.toml`) and a `pyproject.toml` with a `[tool.my-cli]` section exist, Click Extra uses the **first parseable file** it finds and ignores all others. There is no merging across files.
+When both a dedicated configuration file (e.g., `my-cli.toml`) and a `pyproject.toml` with a `[tool.my-cli]`{l=toml} section exist, Click Extra uses the **first parseable file** it finds and ignores all others. There is no merging across files.
 
 This is the de facto standard across the ecosystem. Every major tool that supports both a dedicated config file and `pyproject.toml` follows the same strict precedence — dedicated file wins, `pyproject.toml` is ignored entirely:
 
@@ -852,11 +852,11 @@ This is the de facto standard across the ecosystem. Every major tool that suppor
 The rationale:
 
 - **No merging surprises.** Merging two config sources creates ambiguity: which key wins when both files define it? Are arrays concatenated or replaced? Every tool above chose "first match wins, full stop" to avoid this class of problems entirely.
-- **Explicit intent.** A dedicated file at the repository root, named after the tool, is the most visible and explicit signal. If someone creates one alongside a `[tool.*]` section, the dedicated file represents a deliberate override.
+- **Explicit intent.** A dedicated file at the repository root, named after the tool, is the most visible and explicit signal. If someone creates one alongside a `[tool.*]`{l=toml} section, the dedicated file represents a deliberate override.
 - **Clean migration path.** Users moving from a dedicated file to `pyproject.toml` simply delete the dedicated file. Users who need the dedicated file (e.g., sharing it across non-Python repos) keep it and `pyproject.toml` is silently ignored.
 
 ```{seealso}
-Other non-Python tools that support `[tool.*]` in `pyproject.toml`:
+Other non-Python tools that support `[tool.*]`{l=toml} in `pyproject.toml`:
 [basedpyright](https://docs.basedpyright.com/latest/configuration/config-files/),
 [lychee](https://lychee.cli.rs/guides/config/),
 [maturin](https://www.maturin.rs/config),
@@ -870,7 +870,7 @@ Other non-Python tools that support `[tool.*]` in `pyproject.toml`:
 [uv](https://docs.astral.sh/uv/concepts/configuration-files/),
 and [Zuban](https://docs.zubanls.com/en/latest/usage.html).
 
-Click Extra's own `[tool.*]` bridge in [repomatic's tool runner](https://kdeldycke.github.io/repomatic/tool-runner.html#level-2-tool-x-in-pyproject-toml) translates `[tool.yamllint]`, `[tool.actionlint]`, `[tool.biome]`, and others into native config files at invocation time, giving tools that lack native `pyproject.toml` support the same single-file experience.
+Click Extra's own `[tool.*]`{l=toml} bridge in [repomatic's tool runner](https://kdeldycke.github.io/repomatic/tool-runner.html#level-2-tool-x-in-pyproject-toml) translates `[tool.yamllint]`{l=toml}, `[tool.actionlint]`{l=toml}, `[tool.biome]`{l=toml}, and others into native config files at invocation time, giving tools that lack native `pyproject.toml` support the same single-file experience.
 
 Other tools are following suit:
 [actionlint#623](https://github.com/rhysd/actionlint/issues/623),
@@ -1487,7 +1487,7 @@ For dataclass schemas, this normalization is applied automatically. For callable
 
 ### Nested configuration sections
 
-TOML and YAML configurations often group related settings under sub-tables (e.g. `[tool.myapp.dependency-graph]`). When using a dataclass schema, Click Extra automatically flattens these nested sections by joining parent and child keys with `_`, so they map directly to flat dataclass fields:
+TOML and YAML configurations often group related settings under sub-tables (e.g. `[tool.myapp.dependency-graph]`{l=toml}). When using a dataclass schema, Click Extra automatically flattens these nested sections by joining parent and child keys with `_`, so they map directly to flat dataclass fields:
 
 ```python
 from click_extra.config import flatten_config_keys, normalize_config_keys

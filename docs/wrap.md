@@ -92,7 +92,7 @@ debug: Set <Logger click_extra (DEBUG)> to DEBUG.
 
 ### Defaults for the wrapped CLI
 
-The `[tool.click-extra.wrap.<script>]` section sets persistent defaults for a specific target CLI. All keys are converted to CLI arguments and prepended to the target's invocation:
+The `[tool.click-extra.wrap.<script>]`{l=toml} section sets persistent defaults for a specific target CLI. All keys are converted to CLI arguments and prepended to the target's invocation:
 
 ```toml
 [tool.click-extra.wrap.flask]
