@@ -89,12 +89,11 @@ $ cat ./cowsay.ans
 [38;5;214m [39m[38;5;208m [39m[38;5;208m [39m[38;5;208m [39m[38;5;208m [39m[38;5;208m [39m[38;5;208m [39m[38;5;208m [39m[38;5;208m [39m[38;5;208m [39m[38;5;208m [39m[38;5;209m [39m[38;5;203m [39m[38;5;203m [39m[38;5;203m [39m[38;5;203m [39m[38;5;203m|[39m[38;5;203m|[39m[38;5;203m [39m[38;5;203m [39m[38;5;203m [39m[38;5;203m [39m[38;5;203m [39m[38;5;198m|[39m[38;5;198m|[39m[38;5;198m[39m
 ```
 
-We can run our formatter on that file:
+We can run our formatter on that file. The demo below uses a 4-line lolcat-style input rather than the full cowsay output to keep the rendered HTML readable, but the same call works against the file:
 
-```{code-block} python
-:emphasize-lines: 10, 12
-from pathlib import Path
-
+```{python:run}
+:show-source:
+:language: html
 from pygments import highlight
 from pygments.lexers import get_lexer_by_name
 from pygments.formatters import get_formatter_by_name
@@ -102,10 +101,17 @@ from pygments.formatters import get_formatter_by_name
 lexer = get_lexer_by_name("ansi-color")
 formatter = get_formatter_by_name("ansi-html")
 
-ansi_content = Path("./cowsay.ans").read_text()
+ansi_content = (
+    "\x1b[38;5;154mh\x1b[38;5;184me\x1b[38;5;214ml\x1b[38;5;208ml"
+    "\x1b[38;5;203mo\x1b[0m, "
+    "\x1b[38;5;33mw\x1b[38;5;39mo\x1b[38;5;45mr\x1b[38;5;51ml\x1b[38;5;87md"
+    "\x1b[0m!\n"
+)
 
 print(highlight(ansi_content, lexer, formatter))
 ```
+
+For a real file, swap the inline string for `Path("./cowsay.ans").read_text()`.
 
 ```{hint}
 The `ansi-color` lexer parse raw ANSI codes and transform them into custom Pygments tokens, for the formatter to render.
@@ -113,84 +119,17 @@ The `ansi-color` lexer parse raw ANSI codes and transform them into custom Pygme
 [Pygments' `highlight()`](https://pygments.org/docs/api/#pygments.highlight) is the utility method tying the lexer and formatter together to generate the final output.
 ```
 
-The code above prints the following HTML:
+And here is how to obtain the corresponding CSS style. The full output is several hundred lines (one rule per Pygments token plus 16 named ANSI colors and 256 palette indices), so this demo prints just the first 30 lines:
 
-```{code-block} html
-<div class="highlight">
- <pre>
-      <span></span>
-      <span class="-Ansi-C154 -Ansi -Ansi-C154"> __</span>
-      <span class="-Ansi-C148 -Ansi -Ansi-C148">_</span>
-      <span class="-Ansi-C184 -Ansi -Ansi-C184">___________</span>
-      <span class="-Ansi-C178 -Ansi -Ansi-C178">_</span>
-      <span class="-Ansi-C214 -Ansi -Ansi-C214">_________</span>
-      <span class="-Ansi-C208 -Ansi -Ansi-C208">________ </span>
-      <span class="-Ansi-C148 -Ansi -Ansi-C148">/</span>
-      <span class="-Ansi-C184 -Ansi -Ansi-C184"> Reality is</span>
-      <span class="-Ansi-C178 -Ansi -Ansi-C178"> </span>
-      <span class="-Ansi-C214 -Ansi -Ansi-C214">for people</span>
-      <span class="-Ansi-C208 -Ansi -Ansi-C208"> who lack</span>
-      …
-   </pre>
-</div>
-```
-
-And here is how to obtain the corresponding CSS style:
-
-```{code-block} python
-:emphasize-lines: 5
+```{python:run}
+:show-source:
+:language: css
 from pygments.formatters import get_formatter_by_name
 
 formatter = get_formatter_by_name("ansi-html")
-
-print(formatter.get_style_defs(".highlight"))
-```
-
-```{code-block} css
-pre {
-    line-height: 125%;
-}
-
-.highlight .hll {
-    background-color: #ffffcc
-}
-
-.highlight {
-    background: #f8f8f8;
-}
-
-.highlight .c {
-    color: #3D7B7B;
-    font-style: italic
-}
-
-/* Comment */
-.highlight .-Ansi-BGBlack {
-    background-color: #000000
-}
-
-/* Ansi.BGBlack */
-.highlight .-Ansi-BGBlue {
-    background-color: #3465a4
-}
-
-/* Ansi.BGBlue */
-.highlight .-Ansi-BGC0 {
-    background-color: #000000
-}
-
-/* Ansi.BGC0 */
-.highlight .-Ansi-Red {
-    color: #ef2929
-}
-
-/* Ansi.Red */
-.highlight .-Ansi-Bold {
-    font-weight: bold
-}
-
-/* Ansi.Bold */
-/* … */
+defs = formatter.get_style_defs(".highlight")
+print("\n".join(defs.splitlines()[:30]))
+print("...")
 ```
 
 ```{caution}
@@ -440,9 +379,11 @@ True-color tokens reach `AnsiHtmlFormatter` as `Token.Ansi.FG_{rrggbb}` / `Token
 
 The 16 named colors and 256-palette indices still resolve through the Pygments stylesheet; only the 24-bit codes carry their colors inline (CSS classes can't enumerate 16.7M colors).
 
-```python
-list(AnsiColorLexer().get_tokens("\x1b[38;2;255;165;0morange\x1b[0m"))
-# [(Token.Ansi.FG_ffa500, 'orange'), (Token.Text, '\n')]
+```{python:run}
+:show-source:
+from click_extra.pygments import AnsiColorLexer
+
+print(list(AnsiColorLexer().get_tokens("\x1b[38;2;255;165;0morange\x1b[0m")))
 ```
 
 ### Falling back to 256-color quantization
