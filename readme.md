@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/kdeldycke/click-extra/">
-    <img src="https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/logo-banner.svg" alt="Click Extra">
+    <img src="https://raw.githubusercontent.com/kdeldycke/click-extra/v7.15.1/docs/assets/logo-banner.svg" alt="Click Extra">
   </a>
 </p>
 
@@ -44,11 +44,11 @@ This is a great way to play with Click Extra and check that it runs fine on your
 
 It transforms this vanilla `click` CLI:
 
-![click CLI help screen](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/click-help-screen.png)
+![click CLI help screen](https://raw.githubusercontent.com/kdeldycke/click-extra/v7.15.1/docs/assets/click-help-screen.png)
 
 Into this:
 
-![click-extra CLI help screen](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/click-extra-screen.png)
+![click-extra CLI help screen](https://raw.githubusercontent.com/kdeldycke/click-extra/v7.15.1/docs/assets/click-extra-screen.png)
 
 To undestrand how we ended up with the result above, [go read the tutorial](https://kdeldycke.github.io/click-extra/tutorial.html).
 
