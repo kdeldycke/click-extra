@@ -1651,9 +1651,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             return
         app_name = ctx.find_root().command.name or ctx.info_name or ""
         app_section = self._resolve_app_section(user_conf, app_name)
-        context.set(
-            ctx, context.TOOL_CONFIG, self._config_schema_callable(app_section)
-        )
+        context.set(ctx, context.TOOL_CONFIG, self._config_schema_callable(app_section))
 
     def merge_default_map(self, ctx: click.Context, user_conf: dict) -> None:
         """Save the user configuration into the context's ``default_map``.
