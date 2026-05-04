@@ -15,20 +15,28 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Help-screen color themes for Click Extra.
 
-Holds the :class:`HelpExtraTheme` dataclass, the module-level
-:data:`default_theme` and :data:`nocolor_theme` instances, the named-theme
-:data:`theme_registry` plus :func:`register_theme` helper, and the
-:class:`ThemeOption` that exposes ``--theme`` on every Click Extra command.
+Holds the :class:`HelpExtraTheme` dataclass (pure data, no factory methods),
+the module-level :data:`default_theme` and :data:`nocolor_theme` instances,
+the named-theme :data:`theme_registry` plus :func:`register_theme` helper,
+and the :class:`ThemeOption` that exposes ``--theme`` on every Click Extra
+command.
+
+The two built-in themes (``dark`` and ``light``) are declared as plain
+:class:`HelpExtraTheme` instances in :mod:`click_extra.themes` and seeded
+into :data:`theme_registry` at the end of this module's load. Adding a new
+built-in theme is a one-file change in :mod:`click_extra.themes` — no
+subclass, no factory method on :class:`HelpExtraTheme`.
 
 .. note::
     The active theme for a CLI invocation is stored on the Click context's
-    ``meta`` dict under :data:`THEME_META_KEY` by :class:`ThemeOption`. Use
-    :func:`get_current_theme` to retrieve it: that helper consults the active
-    Click context first and falls back to :data:`default_theme` when no
-    context is in flight (e.g. at import time, in ``wrap`` patching, or in
-    bare REPL usage). Per-invocation context storage means concurrent
-    invocations of the same CLI in one process (Sphinx builds, test runners,
-    REPLs) do not leak ``--theme`` choices into each other.
+    ``meta`` dict under :data:`click_extra.context.THEME` by
+    :class:`ThemeOption`. Use :func:`get_current_theme` to retrieve it: that
+    helper consults the active Click context first and falls back to
+    :data:`default_theme` when no context is in flight (e.g. at import time,
+    in ``wrap`` patching, or in bare REPL usage). Per-invocation context
+    storage means concurrent invocations of the same CLI in one process
+    (Sphinx builds, test runners, REPLs) do not leak ``--theme`` choices
+    into each other.
 """
 
 from __future__ import annotations
@@ -41,9 +49,8 @@ from typing import cast
 import click
 import cloup
 from cloup._util import identity
-from cloup.styling import Color
 
-from . import Style, context
+from . import context
 from .parameters import ExtraOption
 
 TYPE_CHECKING = False
@@ -127,92 +134,16 @@ class HelpExtraTheme(cloup.HelpTheme):
         # No new styles, return the same instance.
         return self
 
-    @staticmethod
-    def dark() -> HelpExtraTheme:
-        """A theme assuming a dark terminal background color."""
-        return HelpExtraTheme(
-            invoked_command=Style(fg=Color.bright_white),
-            heading=Style(fg=Color.bright_blue, bold=True, underline=True),
-            constraint=Style(fg=Color.magenta),
-            # Neutralize Cloup's col1, as it interferes with our finer option styling
-            # which takes care of separators.
-            col1=identity,
-            # Style aliases like options and subcommands.
-            alias=Style(fg=Color.cyan),
-            # Style aliases punctuation like options, but dimmed.
-            alias_secondary=Style(fg=Color.cyan, dim=True),
-            ### Log styles.
-            critical=Style(fg=Color.red, bold=True),
-            error=Style(fg=Color.red),
-            warning=Style(fg=Color.yellow),
-            info=identity,  # INFO level is the default, so no style applied.
-            debug=Style(fg=Color.blue),
-            ### Click Extra styles.
-            option=Style(fg=Color.cyan),
-            # Style subcommands like options and aliases.
-            subcommand=Style(fg=Color.cyan),
-            choice=Style(fg=Color.magenta),
-            metavar=Style(fg=Color.cyan, dim=True),
-            bracket=Style(dim=True),
-            envvar=Style(fg=Color.yellow, dim=True),
-            default=Style(fg=Color.green, dim=True, italic=True),
-            range_label=Style(fg=Color.cyan, dim=True),
-            required=Style(fg=Color.red, dim=True),
-            argument=Style(fg=Color.cyan),
-            deprecated=Style(fg=Color.bright_yellow, bold=True),
-            search=Style(fg=Color.green, bold=True),
-            success=Style(fg=Color.green),
-            ### Non-canonical Click Extra styles.
-            subheading=Style(fg=Color.blue),
-        )
 
-    @staticmethod
-    def light() -> HelpExtraTheme:
-        """A theme assuming a light terminal background color.
+nocolor_theme: HelpExtraTheme = HelpExtraTheme()
+"""Color theme for Click Extra to force no colors.
 
-        Mirrors :meth:`dark` but swaps the palette for one that stays legible on a white
-        background: bright variants (which most terminals render as washed-out tints) are
-        replaced by their standard counterparts, ``bright_white`` becomes ``black``, and
-        cyan accents become ``blue`` since cyan on white is hard to read.
-        """
-        return HelpExtraTheme(
-            invoked_command=Style(fg=Color.black, bold=True),
-            heading=Style(fg=Color.blue, bold=True, underline=True),
-            constraint=Style(fg=Color.magenta),
-            # Neutralize Cloup's col1, as it interferes with our finer option styling
-            # which takes care of separators.
-            col1=identity,
-            # Style aliases like options and subcommands.
-            alias=Style(fg=Color.blue),
-            # Style aliases punctuation like options, but dimmed.
-            alias_secondary=Style(fg=Color.blue, dim=True),
-            ### Log styles.
-            critical=Style(fg=Color.red, bold=True),
-            error=Style(fg=Color.red),
-            warning=Style(fg=Color.magenta),
-            info=identity,  # INFO level is the default, so no style applied.
-            debug=Style(fg=Color.blue, dim=True),
-            ### Click Extra styles.
-            option=Style(fg=Color.blue),
-            # Style subcommands like options and aliases.
-            subcommand=Style(fg=Color.blue),
-            choice=Style(fg=Color.magenta),
-            metavar=Style(fg=Color.blue, dim=True),
-            bracket=Style(dim=True),
-            envvar=Style(fg=Color.magenta, dim=True),
-            default=Style(fg=Color.green, dim=True, italic=True),
-            range_label=Style(fg=Color.blue, dim=True),
-            required=Style(fg=Color.red, dim=True),
-            argument=Style(fg=Color.blue),
-            deprecated=Style(fg=Color.red, bold=True),
-            search=Style(fg=Color.green, bold=True),
-            success=Style(fg=Color.green),
-            ### Non-canonical Click Extra styles.
-            subheading=Style(fg=Color.blue, dim=True),
-        )
+All style slots default to :func:`identity <cloup._util.identity>`, so styling
+calls return the raw text unchanged.
+"""
 
 
-default_theme: HelpExtraTheme = HelpExtraTheme.dark()
+default_theme: HelpExtraTheme = nocolor_theme
 """Process-wide fallback theme.
 
 Used by :func:`get_current_theme` when no Click context is active or when the
@@ -223,6 +154,10 @@ choices do not leak across CLI invocations sharing the same process.
 :func:`click_extra.wrap.patch_click` does reassign this attribute, by design:
 ``patch_click`` is itself a process-wide monkey-patch, so a process-wide
 theme override matches its scope.
+
+Initialized to :data:`nocolor_theme` here, then reassigned to the ``dark``
+built-in theme by the ``_seed_builtin_themes()`` call at the bottom of this
+module (deferred to avoid a circular import with :mod:`click_extra.themes`).
 """
 
 
@@ -250,38 +185,43 @@ def get_current_theme() -> HelpExtraTheme:
     return default_theme
 
 
-nocolor_theme: HelpExtraTheme = HelpExtraTheme()
-"""Color theme for Click Extra to force no colors."""
+theme_registry: dict[str, HelpExtraTheme | Callable[[], HelpExtraTheme]] = {}
+"""Registry of named themes used by :class:`ThemeOption`.
 
+Each entry maps a theme name to either a :class:`HelpExtraTheme` instance
+(the common case) or a zero-argument callable returning one (for themes
+whose styling depends on runtime state). :class:`ThemeOption.set_theme`
+resolves callables on lookup.
 
-theme_registry: dict[str, Callable[[], HelpExtraTheme]] = {
-    "dark": HelpExtraTheme.dark,
-    "light": HelpExtraTheme.light,
-}
-"""Registry of named theme factories used by :class:`ThemeOption`.
-
-Each entry maps a theme name to a zero-argument callable returning a
-:class:`HelpExtraTheme` instance. Factories (rather than pre-built instances)
-let consumers register themes that depend on runtime state.
-
-Use :func:`register_theme` to add custom themes before the CLI is invoked,
-since :class:`ThemeOption` builds its ``click.Choice`` from this registry at
-instantiation time.
+The two built-in themes are seeded here at module load time from
+:data:`click_extra.themes.BUILTIN_THEMES`. Use :func:`register_theme` to
+add your own *before* declaring your commands, since :class:`ThemeOption`
+builds its ``click.Choice`` from this registry at instantiation time.
 """
 
 
-def register_theme(name: str, factory: Callable[[], HelpExtraTheme]) -> None:
-    """Register a named theme factory in :data:`theme_registry`.
+def register_theme(
+    name: str,
+    theme: HelpExtraTheme | Callable[[], HelpExtraTheme],
+) -> None:
+    """Register a named theme in :data:`theme_registry`.
 
     :param name: Lowercase identifier used as the ``--theme`` choice value.
-    :param factory: Zero-argument callable returning a :class:`HelpExtraTheme`.
+    :param theme: A :class:`HelpExtraTheme` instance, or a zero-argument
+        callable returning one. Callables are resolved at ``--theme`` parse
+        time, which lets a theme depend on terminal capabilities or other
+        runtime state.
     """
-    theme_registry[name] = factory
+    theme_registry[name] = theme
 
 
-OK = default_theme.success("✓")
-KO = default_theme.error("✘")
-"""Pre-rendered UI-elements."""
+def _resolve_theme(
+    entry: HelpExtraTheme | Callable[[], HelpExtraTheme],
+) -> HelpExtraTheme:
+    """Return *entry* itself if it's already a theme, otherwise call it."""
+    if isinstance(entry, HelpExtraTheme):
+        return entry
+    return entry()
 
 
 class ThemeOption(ExtraOption):
@@ -315,7 +255,7 @@ class ThemeOption(ExtraOption):
         if value is None or ctx.resilient_parsing:
             return
         try:
-            factory = theme_registry[value]
+            entry = theme_registry[value]
         except KeyError as exc:
             choices = ", ".join(sorted(theme_registry))
             raise click.BadParameter(
@@ -323,7 +263,7 @@ class ThemeOption(ExtraOption):
                 ctx=ctx,
                 param=param,
             ) from exc
-        context.set(ctx, context.THEME, factory())
+        context.set(ctx, context.THEME, _resolve_theme(entry))
 
     def __init__(
         self,
@@ -348,3 +288,21 @@ class ThemeOption(ExtraOption):
             help=help,
             **kwargs,
         )
+
+
+# Late-bind the built-in themes. Imported at the bottom of the module to break
+# the circular dependency: ``themes.py`` needs ``HelpExtraTheme`` from this
+# module, while this module needs the populated registry to drive
+# ``ThemeOption``. The order is: define ``HelpExtraTheme``/registry first,
+# then load ``themes.py`` (which references ``HelpExtraTheme``), then seed the
+# registry and reassign ``default_theme`` so consumers reading it via
+# ``from .theme import default_theme`` capture the dark theme as expected.
+from .themes import BUILTIN_THEMES  # noqa: E402
+
+theme_registry.update(BUILTIN_THEMES)
+default_theme = BUILTIN_THEMES["dark"]
+
+
+OK = default_theme.success("✓")
+KO = default_theme.error("✘")
+"""Pre-rendered UI-elements."""

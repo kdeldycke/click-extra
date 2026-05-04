@@ -46,40 +46,60 @@ Now invocations of the `weather` CLI pick up the light theme without passing `--
 | `dark`  | Dark background              |
 | `light` | Light background             |
 
-Both themes are defined in `click_extra.theme.HelpExtraTheme.dark()` / `.light()`. The `light` factory swaps the dark palette's bright variants and cyan accents for plain colors that stay legible on a white background.
+Both themes live as plain `HelpExtraTheme` instances in `click_extra.themes`:
 
-The two module-level instances live in `click_extra.theme`:
+- `click_extra.themes.DARK`: tuned for dark backgrounds and used as the process-wide default.
+- `click_extra.themes.LIGHT`: swaps the dark palette's bright variants and cyan accents for plain colors that stay legible on a white background.
+- `click_extra.themes.BUILTIN_THEMES`: a `dict[str, HelpExtraTheme]` mapping the names above to their instance. Seeded into `theme_registry` at module load.
 
-- `default_theme`: the process-wide fallback theme used when no Click context is active. `ThemeOption` does *not* reassign it: per-invocation choices live on `ctx.meta` instead. `click_extra.wrap.patch_click()` does reassign it to override the fallback for the entire patched session.
+The two module-level instances exported by `click_extra.theme` are:
+
+- `default_theme`: the process-wide fallback. `ThemeOption` does *not* reassign it: per-invocation choices live on `ctx.meta` instead. `click_extra.wrap.patch_click()` does reassign it to override the fallback for the entire patched session.
 - `nocolor_theme`: an all-`identity` theme used when ANSI rendering is suppressed.
 
 Use `click_extra.theme.get_current_theme()` to read the theme that applies to the current invocation: it consults the active Click context first and falls back to `default_theme`.
 
+### Adding a new built-in theme
+
+A built-in theme is a single constant in `click_extra/themes.py`: declare a `HelpExtraTheme(...)` instance and add it to `BUILTIN_THEMES`. No subclass, no factory method on `HelpExtraTheme`.
+
+```python
+# click_extra/themes.py
+
+SOLARIZED = HelpExtraTheme(
+    invoked_command=Style(fg=Color.cyan),
+    heading=Style(fg=Color.yellow, bold=True, underline=True),
+    option=Style(fg=Color.cyan),
+    # ... fill in the rest of the slots
+)
+
+BUILTIN_THEMES = {
+    "dark": DARK,
+    "light": LIGHT,
+    "solarized": SOLARIZED,
+}
+```
+
 ## Registering a custom theme
 
-The list of valid `--theme` choices is pulled from `click_extra.theme.theme_registry` at option-instantiation time. To add your own theme, call `register_theme()` *before* declaring your commands:
+The list of valid `--theme` choices is pulled from `click_extra.theme.theme_registry` at option-instantiation time. To add your own theme from a downstream package, call `register_theme()` *before* declaring your commands. The simplest case is registering a static `HelpExtraTheme` instance:
 
 ```python
 from click_extra import (
-    HelpExtraTheme,
-    Style,
+    DARK,
     Color,
+    Style,
     command,
     echo,
     register_theme,
 )
 
-
-def neon():
-    """A high-contrast theme inspired by neon signage."""
-    return HelpExtraTheme.dark().with_(
-        heading=Style(fg=Color.bright_magenta, bold=True, underline=True),
-        option=Style(fg=Color.bright_cyan),
-        choice=Style(fg=Color.bright_yellow),
-    )
-
-
-register_theme("neon", neon)
+NEON = DARK.with_(
+    heading=Style(fg=Color.bright_magenta, bold=True, underline=True),
+    option=Style(fg=Color.bright_cyan),
+    choice=Style(fg=Color.bright_yellow),
+)
+register_theme("neon", NEON)
 
 
 @command
@@ -90,7 +110,15 @@ def cocktail():
 
 After this runs, `cocktail --theme neon` becomes a valid invocation, and `cocktail --help` lists `[dark|light|neon]` as the choices.
 
-The registry stores **factories**, not pre-built instances, so themes that depend on runtime state (terminal capabilities, environment variables, user settings) compute their styles lazily.
+For themes whose styling depends on runtime state (terminal capabilities, environment variables, user settings), `register_theme()` also accepts a zero-argument callable that returns a `HelpExtraTheme`. The callable is resolved when `--theme` is parsed, not at registration time:
+
+```python
+def detect_theme():
+    """Pick a palette based on terminal background detection."""
+    return DARK if terminal_is_dark() else LIGHT
+
+register_theme("auto", detect_theme)
+```
 
 ```{caution}
 `register_theme()` mutates a module-level dict. Call it once at import time, before your `@command` / `@group` decorators run. `ThemeOption` builds its `click.Choice` from `theme_registry` at instantiation, so themes registered after the option is constructed will not appear in the choices.
@@ -103,9 +131,9 @@ The registry stores **factories**, not pre-built instances, so themes that depen
 Use `with_()` to derive a new theme that only overrides a few styles:
 
 ```python
-from click_extra import HelpExtraTheme, Style, Color
+from click_extra import DARK, Style, Color
 
-minimal = HelpExtraTheme.dark().with_(
+minimal = DARK.with_(
     option=Style(fg=Color.white),
     choice=Style(fg=Color.white, dim=True),
 )
@@ -118,7 +146,7 @@ minimal = HelpExtraTheme.dark().with_(
 The `cross_ref_highlight` flag (default `True`) controls whether option names, choices, arguments, metavars, and CLI names are highlighted wherever they appear in free-form prose. Disable it for a calmer help screen:
 
 ```python
-calm = HelpExtraTheme.dark().with_(cross_ref_highlight=False)
+calm = DARK.with_(cross_ref_highlight=False)
 ```
 
 See [Cross-reference highlighting](colorize.md#cross-reference-highlighting) for the details on what stays styled when the flag is off.
@@ -143,4 +171,12 @@ The `--color` callback inspects the standard set of color environment variables 
    :members:
    :undoc-members:
    :show-inheritance:
+```
+
+## `click_extra.themes` API
+
+```{eval-rst}
+.. automodule:: click_extra.themes
+   :members:
+   :undoc-members:
 ```

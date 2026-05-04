@@ -39,6 +39,7 @@ from .colorize import ExtraHelpColorsMixin, HelpExtraFormatter
 from .commands import ColorizedCommand, ColorizedGroup, ExtraGroup
 from .context import ExtraContext
 from .theme import HelpExtraTheme
+from .themes import DARK
 
 logger = logging.getLogger("click_extra")
 
@@ -205,7 +206,7 @@ def unpatch_click() -> None:
     ColorizedGroup.context_class = ExtraContext
 
     # Restore the default theme.
-    _theme.default_theme = HelpExtraTheme.dark()
+    _theme.default_theme = DARK
 
 
 def resolve_target(script: str) -> tuple[str, str]:

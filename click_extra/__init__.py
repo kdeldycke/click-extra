@@ -117,16 +117,20 @@ from .theme import (
     register_theme,
     theme_registry,
 )
+from .themes import BUILTIN_THEMES, DARK, LIGHT
 from .timer import TimerOption
 from .version import ExtraVersionOption
 
 __all__ = [
     "BOOL",
+    "BUILTIN_THEMES",
     "CPU_COUNT",
+    "DARK",
     "DEFAULT_JOBS",
     "DEFAULT_SUBCOMMANDS_KEY",
     "FLOAT",
     "INT",
+    "LIGHT",
     "NO_CONFIG",
     "PREPEND_SUBCOMMANDS_KEY",
     "STRING",
