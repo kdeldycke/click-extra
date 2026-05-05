@@ -261,7 +261,8 @@ default_options_uncolored_help = (
     r"  --color, --ansi / --no-color, --no-ansi\n"
     r"                          Strip out all colors and all ANSI codes from output.\n"
     r"                          \[default: color\]\n"
-    r"  --theme \[dark\|light\]    Color theme used for help screens.  \[default: dark\]\n"
+    r"  --theme \[dark\|dracula\|light\|monokai\|nord\|solarized_dark\]\n"
+    r"                          Color theme used for help screens.  \[default: dark\]\n"
     r"  --config CONFIG_PATH    Location of the configuration file. Supports local\n"
     r"                          path with glob patterns or remote URL.  \[default:.*\n"
     r"(?:                          .+\n)*"
@@ -289,7 +290,8 @@ default_options_colored_help = (
     r"  \x1b\[36m--color\x1b\[0m, \x1b\[36m--ansi\x1b\[0m / \x1b\[36m--no-color\x1b\[0m, \x1b\[36m--no-ansi\x1b\[0m\n"
     r"                          Strip out all colors and all ANSI codes from output.\n"
     r"                          \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mcolor\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
-    r"  \x1b\[36m--theme\x1b\[0m \[\x1b\[35mdark\x1b\[0m\|\x1b\[35mlight\x1b\[0m\]    Color theme used for help screens\.  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mdark\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
+    r"  \x1b\[36m--theme\x1b\[0m \[\x1b\[35mdark\x1b\[0m\|\x1b\[35mdracula\x1b\[0m\|\x1b\[35mlight\x1b\[0m\|\x1b\[35mmonokai\x1b\[0m\|\x1b\[35mnord\x1b\[0m\|\x1b\[35msolarized_dark\x1b\[0m\]\n"
+    r"                          Color theme used for help screens\.  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mdark\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
     r"  \x1b\[36m--config\x1b\[0m \x1b\[36m\x1b\[2mCONFIG_PATH\x1b\[0m    Location of the configuration file. Supports local\n"
     # The default path is OS-specific: on short-path platforms (Linux) it may start on
     # the [default: line, on long-path platforms (macOS) it wraps to the next line. The

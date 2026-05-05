@@ -117,7 +117,15 @@ from .theme import (
     register_theme,
     theme_registry,
 )
-from .themes import BUILTIN_THEMES, DARK, LIGHT
+from .themes import (
+    BUILTIN_THEMES,
+    DARK,
+    DRACULA,
+    LIGHT,
+    MONOKAI,
+    NORD,
+    SOLARIZED_DARK,
+)
 from .timer import TimerOption
 from .version import ExtraVersionOption
 
@@ -128,11 +136,15 @@ __all__ = [
     "DARK",
     "DEFAULT_JOBS",
     "DEFAULT_SUBCOMMANDS_KEY",
+    "DRACULA",
     "FLOAT",
     "INT",
     "LIGHT",
+    "MONOKAI",
     "NO_CONFIG",
+    "NORD",
     "PREPEND_SUBCOMMANDS_KEY",
+    "SOLARIZED_DARK",
     "STRING",
     "UNPROCESSED",
     "UNSET",

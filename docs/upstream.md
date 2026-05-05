@@ -1,4 +1,4 @@
-# {octicon}`git-pull-request` Upstream
+# {octicon}`cross-reference` Upstream
 
 Click Extra was born as a collection of patches for unmaintained or slow-moving [`click-contrib` addons](https://github.com/click-contrib). Over time, many of these fixes were contributed back upstream, and the project grew into a significant contributor to the Click ecosystem.
 

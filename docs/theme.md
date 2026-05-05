@@ -1,4 +1,4 @@
-# {octicon}`paintbrush` Themes
+# {octicon}`sun` Themes
 
 Click Extra exposes a small theming system that controls every color used in help screens: options, choices, metavars, arguments, CLI names, defaults, environment variables, log levels, and more. Two themes ship by default (`dark` and `light`), and downstream projects can register their own.
 
@@ -16,14 +16,9 @@ def weather():
 ```
 
 ```{click:run}
-result = invoke(weather, args=["--theme", "dark", "--help"])
-assert result.exit_code == 0
-assert "--theme" in result.stdout
-```
-
-```{click:run}
 result = invoke(weather, args=["--theme", "light", "--help"])
 assert result.exit_code == 0
+assert "--theme" in result.stdout
 ```
 
 The flag is eager, so it is processed before any other option and before help is rendered. The picked theme is stored on the active Click context's `meta` dict under `click_extra.context.THEME`, so it applies for the duration of the current invocation only: subcommands inherit it (Click shares `meta` across the parent/child hierarchy), but a sibling invocation of the same CLI in the same process starts from the default again. See the [available keys](context.md#available-keys) table for the full inventory you can read from your own callbacks.
@@ -41,16 +36,69 @@ Now invocations of the `weather` CLI pick up the light theme without passing `--
 
 ## Built-in themes
 
-| Name    | Intended terminal background |
-| ------- | ---------------------------- |
-| `dark`  | Dark background              |
-| `light` | Light background             |
+| Name             | Color model           | Notes                                                                |
+| ---------------- | --------------------- | -------------------------------------------------------------------- |
+| `dark`           | 16 named ANSI colors  | Process-wide default. Follows the user's terminal palette.           |
+| `light`          | 16 named ANSI colors  | Tuned for white backgrounds: no bright variants, blue replaces cyan. |
+| `solarized_dark` | 24-bit RGB            | Solarized Dark by Ethan Schoonover.                                  |
+| `dracula`        | 24-bit RGB            | Dracula by Zeno Rocha.                                               |
+| `nord`           | 24-bit RGB            | Nord by Arctic Ice Studio.                                           |
+| `monokai`        | 24-bit RGB            | Monokai by Wimer Hazenberg.                                          |
 
-Both themes live as plain `HelpExtraTheme` instances in `click_extra.themes`:
+Click each tab below for a live render of the theme applied to the same `weather` CLI's `--help` output. Colors are produced at Sphinx build time, not screenshots.
 
-- `click_extra.themes.DARK`: tuned for dark backgrounds and used as the process-wide default.
-- `click_extra.themes.LIGHT`: swaps the dark palette's bright variants and cyan accents for plain colors that stay legible on a white background.
-- `click_extra.themes.BUILTIN_THEMES`: a `dict[str, HelpExtraTheme]` mapping the names above to their instance. Seeded into `theme_registry` at module load.
+``````{tab-set}
+
+`````{tab-item} dark
+```{click:run}
+result = invoke(weather, args=["--theme", "dark", "--help"])
+assert result.exit_code == 0
+```
+`````
+
+`````{tab-item} light
+```{click:run}
+result = invoke(weather, args=["--theme", "light", "--help"])
+assert result.exit_code == 0
+```
+`````
+
+`````{tab-item} solarized_dark
+```{click:run}
+result = invoke(weather, args=["--theme", "solarized_dark", "--help"])
+assert result.exit_code == 0
+```
+`````
+
+`````{tab-item} dracula
+```{click:run}
+result = invoke(weather, args=["--theme", "dracula", "--help"])
+assert result.exit_code == 0
+```
+`````
+
+`````{tab-item} nord
+```{click:run}
+result = invoke(weather, args=["--theme", "nord", "--help"])
+assert result.exit_code == 0
+```
+`````
+
+`````{tab-item} monokai
+```{click:run}
+result = invoke(weather, args=["--theme", "monokai", "--help"])
+assert result.exit_code == 0
+```
+`````
+
+``````
+
+Two flavors live in `click_extra.themes`:
+
+- **ANSI themes** (`DARK`, `LIGHT`) use the 16 named ANSI colors via `cloup.styling.Color`, so the rendered colors track whatever palette the user's terminal is configured with. Pick these when you want to blend in with the user's terminal theme.
+- **Branded themes** (`SOLARIZED_DARK`, `DRACULA`, `NORD`, `MONOKAI`) emit 24-bit RGB triplets from each theme's canonical palette. Pick these when the theme name implies specific colors (`solarized_dark` should look like Solarized, not "whatever the terminal calls cyan"). Terminals without 24-bit support fall back to the nearest 256-color cell automatically. Each theme's slot mapping is hand-curated: there's no automated translation from generic colour-scheme formats, because none of them expose the same semantic roles we care about (option, metavar, choice, deprecated, envvar, ...).
+
+`click_extra.themes.BUILTIN_THEMES` is a `dict[str, HelpExtraTheme]` mapping the names above to their instances; it's seeded into `theme_registry` at module load.
 
 The two module-level instances exported by `click_extra.theme` are:
 
@@ -63,20 +111,30 @@ Use `click_extra.theme.get_current_theme()` to read the theme that applies to th
 
 A built-in theme is a single constant in `click_extra/themes.py`: declare a `HelpExtraTheme(...)` instance and add it to `BUILTIN_THEMES`. No subclass, no factory method on `HelpExtraTheme`.
 
+The slot mapping is the work: generic colour-scheme catalogs (base16, pygments, iTerm palettes) don't expose the semantic roles Click Extra needs (option, metavar, choice, deprecated, envvar, ...), so each theme is hand-curated. Use the existing `SOLARIZED_DARK`, `DRACULA`, `NORD`, and `MONOKAI` blocks in `themes.py` as templates: declare the theme's palette as private `_constants`, then build the `HelpExtraTheme` slot by slot.
+
 ```python
 # click_extra/themes.py
 
-SOLARIZED = HelpExtraTheme(
-    invoked_command=Style(fg=Color.cyan),
-    heading=Style(fg=Color.yellow, bold=True, underline=True),
-    option=Style(fg=Color.cyan),
+# --- Zenburn by Jani Nurminen ----
+# Palette: https://kippura.org/zenburnpage/
+
+_zen_fg = (0xdc, 0xdc, 0xcc)
+_zen_comment = (0x7f, 0x9f, 0x7f)
+# ... declare the rest of the palette
+
+ZENBURN = HelpExtraTheme(
+    invoked_command=Style(fg=_zen_fg, bold=True),
+    heading=Style(fg=_zen_blue, bold=True, underline=True),
+    option=Style(fg=_zen_blue),
     # ... fill in the rest of the slots
 )
 
 BUILTIN_THEMES = {
     "dark": DARK,
     "light": LIGHT,
-    "solarized": SOLARIZED,
+    "zenburn": ZENBURN,
+    ...
 }
 ```
 
@@ -116,6 +174,7 @@ For themes whose styling depends on runtime state (terminal capabilities, enviro
 def detect_theme():
     """Pick a palette based on terminal background detection."""
     return DARK if terminal_is_dark() else LIGHT
+
 
 register_theme("auto", detect_theme)
 ```

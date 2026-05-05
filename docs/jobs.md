@@ -1,4 +1,4 @@
-# {octicon}`cpu` Jobs
+# {octicon}`duplicate` Jobs
 
 A pre-configured `--jobs` option to control parallel execution. Defaults to one fewer than available CPU cores, leaving one core free for the main process and system tasks.
 

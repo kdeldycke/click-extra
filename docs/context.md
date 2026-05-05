@@ -1,4 +1,4 @@
-# {octicon}`database` Context state
+# {octicon}`database` Context
 
 Click Extra's option callbacks publish their resolved values on [Click's `Context.meta` dict](https://click.palletsprojects.com/en/stable/api/#click.Context.meta). That dict is **shared across the parent/child context hierarchy** and lives for the duration of a single CLI invocation, so it doubles as a per-request shared bus between Click Extra's eager callbacks and your own command body.
 
