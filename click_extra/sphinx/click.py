@@ -387,10 +387,7 @@ class ClickDirective(SphinxDirective):
             if option_id == "emphasize-lines":
                 if target == "source" and "emphasize-lines" in self.options:
                     options.append(f":emphasize-lines: {self.options[option_id]}")
-                elif (
-                    target == "results"
-                    and "emphasize-result-lines" in self.options
-                ):
+                elif target == "results" and "emphasize-result-lines" in self.options:
                     options.append(
                         f":emphasize-lines: {self.options['emphasize-result-lines']}"
                     )
