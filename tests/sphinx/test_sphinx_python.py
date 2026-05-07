@@ -94,9 +94,9 @@ def test_python_run_emphasize_lines_split(sphinx_app_myst):
     # Result block carries the result emphasis on line 2 (the literal `second line`).
     assert '<span class="hll">second line\n</span>' in html
     # And the sibling lines are not highlighted.
-    assert (
-        '<span class="hll">first line\n</span>' not in html
-    ), "result emphasis must not bleed onto line 1 of the result block"
+    assert '<span class="hll">first line\n</span>' not in html, (
+        "result emphasis must not bleed onto line 1 of the result block"
+    )
 
 
 def test_python_render_passes_block_level_html(sphinx_app_myst):
