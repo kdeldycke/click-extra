@@ -369,26 +369,26 @@ All subcommands auto-discover target files from `[project.scripts]` in `pyprojec
 
 Each variable listed in the section above can be rendered in its own style. They all have dedicated parameters you can pass to the `version_option` decorator:
 
-| Parameter               | Description                             | Default Style                                |
-| ----------------------- | --------------------------------------- | -------------------------------------------- |
-| `message_style`         | Style of the whole message.             | `None`{l=python}                             |
-| `module_style`          | Style for `{module}` variable.          | `None`{l=python}                             |
-| `module_name_style`     | Style for `{module_name}` variable.     | `default_theme.invoked_command`{l=python}    |
-| `module_file_style`     | Style for `{module_file}` variable.     | `None`{l=python}                             |
-| `module_version_style`  | Style for `{module_version}` variable.  | `Style(fg="green")`{l=python}                |
-| `package_name_style`    | Style for `{package_name}` variable.    | `default_theme.invoked_command`{l=python}    |
-| `package_version_style` | Style for `{package_version}` variable. | `Style(fg="green")`{l=python}                |
-| `exec_name_style`       | Style for `{exec_name}` variable.       | `default_theme.invoked_command`{l=python}    |
-| `version_style`         | Style for `{version}` variable.         | `Style(fg="green")`{l=python}                |
-| `git_repo_path_style`   | Style for `{git_repo_path}` variable.   | `Style(fg="bright_black")`{l=python}         |
-| `git_branch_style`      | Style for `{git_branch}` variable.      | `Style(fg="cyan")`{l=python}                 |
-| `git_long_hash_style`   | Style for `{git_long_hash}` variable.   | `Style(fg="yellow")`{l=python}               |
-| `git_short_hash_style`  | Style for `{git_short_hash}` variable.  | `Style(fg="yellow")`{l=python}               |
-| `git_date_style`        | Style for `{git_date}` variable.        | `Style(fg="bright_black")`{l=python}         |
-| `git_tag_style`         | Style for `{git_tag}` variable.         | `Style(fg="cyan")`{l=python}                 |
-| `git_tag_sha_style`     | Style for `{git_tag_sha}` variable.     | `Style(fg="yellow")`{l=python}               |
-| `prog_name_style`       | Style for `{prog_name}` variable.       | `default_theme.invoked_command`{l=python}    |
-| `env_info_style`        | Style for `{env_info}` variable.        | `Style(fg="bright_black")`{l=python}         |
+| Parameter               | Description                             | Default Style                             |
+| ----------------------- | --------------------------------------- | ----------------------------------------- |
+| `message_style`         | Style of the whole message.             | `None`{l=python}                          |
+| `module_style`          | Style for `{module}` variable.          | `None`{l=python}                          |
+| `module_name_style`     | Style for `{module_name}` variable.     | `default_theme.invoked_command`{l=python} |
+| `module_file_style`     | Style for `{module_file}` variable.     | `None`{l=python}                          |
+| `module_version_style`  | Style for `{module_version}` variable.  | `Style(fg="green")`{l=python}             |
+| `package_name_style`    | Style for `{package_name}` variable.    | `default_theme.invoked_command`{l=python} |
+| `package_version_style` | Style for `{package_version}` variable. | `Style(fg="green")`{l=python}             |
+| `exec_name_style`       | Style for `{exec_name}` variable.       | `default_theme.invoked_command`{l=python} |
+| `version_style`         | Style for `{version}` variable.         | `Style(fg="green")`{l=python}             |
+| `git_repo_path_style`   | Style for `{git_repo_path}` variable.   | `Style(fg="bright_black")`{l=python}      |
+| `git_branch_style`      | Style for `{git_branch}` variable.      | `Style(fg="cyan")`{l=python}              |
+| `git_long_hash_style`   | Style for `{git_long_hash}` variable.   | `Style(fg="yellow")`{l=python}            |
+| `git_short_hash_style`  | Style for `{git_short_hash}` variable.  | `Style(fg="yellow")`{l=python}            |
+| `git_date_style`        | Style for `{git_date}` variable.        | `Style(fg="bright_black")`{l=python}      |
+| `git_tag_style`         | Style for `{git_tag}` variable.         | `Style(fg="cyan")`{l=python}              |
+| `git_tag_sha_style`     | Style for `{git_tag_sha}` variable.     | `Style(fg="yellow")`{l=python}            |
+| `prog_name_style`       | Style for `{prog_name}` variable.       | `default_theme.invoked_command`{l=python} |
+| `env_info_style`        | Style for `{env_info}` variable.        | `Style(fg="bright_black")`{l=python}      |
 
 Here is an example:
 
