@@ -15,9 +15,10 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Built-in :class:`~click_extra.theme.HelpExtraTheme` palettes.
 
-Each theme is a frozen :class:`~click_extra.theme.HelpExtraTheme` subclass that
-overrides the default field values with its own palette. The corresponding
-UPPER_CASE module-level constant is a cached singleton instance ready to use:
+Each theme is a frozen :class:`~click_extra.theme.HelpExtraTheme` subclass
+that overrides the default field values with its own palette. The
+corresponding UPPER_CASE module-level constant is a cached singleton
+instance ready to use:
 
 .. code-block:: python
 
@@ -29,55 +30,129 @@ UPPER_CASE module-level constant is a cached singleton instance ready to use:
     # Or instantiate the class for a fresh copy you can subclass / `.with_()`:
     my_theme = SolarizedDark().with_(option=Style(fg=Color.bright_cyan))
 
-Shipping two flavors:
-
-- **ANSI themes** (:class:`Dark`, :class:`Light`) use the 16 named ANSI colors
-  via :class:`Color <cloup.styling.Color>` enums, so the rendered colors
-  follow whatever palette the user's terminal is configured with. Best when
-  you want to blend in with the user's terminal theme.
-
-- **Branded themes** (:class:`Dracula`, :class:`Monokai`, :class:`Nord`,
-  :class:`SolarizedDark`) use 24-bit RGB triplets from each theme's
-  canonical palette, so the rendered colors match the published scheme
-  regardless of the user's terminal configuration. Each theme's colors are
-  mapped onto Click Extra's help-screen slots by hand: there's no automated
-  translation from generic colour-scheme formats (base16, pygments, ...)
-  because none of those formats expose the same semantic roles we care
-  about (option, metavar, choice, deprecated, envvar, ...).
+See the user-facing :doc:`theme guide </theme>` for how to choose between
+the built-in themes; this module's docstring focuses on extending the
+catalog.
 
 Adding a new theme is a one-file change here: subclass
-:class:`~click_extra.theme.HelpExtraTheme`, override the relevant field
-defaults, instantiate it as an UPPER_CASE constant, and add the constant to
-:data:`BUILTIN_THEMES`. The :mod:`click_extra.theme` module imports
-:data:`BUILTIN_THEMES` at the end of its own load to seed
-:data:`~click_extra.theme.theme_registry`.
+:class:`~click_extra.theme.HelpExtraTheme`, override the relevant slot
+defaults, instantiate it as an UPPER_CASE constant, decorate the subclass
+with ``@_with_palette_doc`` (so its autodoc page lists every styled slot
+of the palette), and add the constant to :data:`BUILTIN_THEMES`. The
+:mod:`click_extra.theme` module imports :data:`BUILTIN_THEMES` at the end
+of its own load to seed :data:`~click_extra.theme.theme_registry`.
 
 Third-party packages can grow the registry at runtime via
 :func:`click_extra.theme.register_theme`.
 
-Theme classes, palette constants, and singleton instances are kept in
-**alphabetical order** by their identifier. The ``test_themes_alphabetical``
-test in ``tests/test_themes.py`` enforces this so adding a new theme always
-slots in cleanly.
-
-The "Shared style constants" section below collects ANSI-named styles reused
-across :class:`Dark` and :class:`Light`. Branded themes declare their palette
-inline as private ``_`` constants so each theme reads top-to-bottom.
+Theme classes and singleton instances are kept in **alphabetical order**
+by their identifier. The checks in ``tests/test_themes.py`` enforce this
+so adding a new theme always slots in cleanly.
 """
 
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass
 
 from cloup._util import identity
 from cloup.styling import Color
 
 from . import Style
+from .styling import _color_to_css  # noqa: TID252  -- internal helper
 from .theme import HelpExtraTheme
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from cloup.styling import IStyle
+
+
+# Slots that are always ``identity`` across every built-in theme: nothing to
+# show in the per-class palette listing produced by ``_with_palette_doc``.
+_SKIP_SLOTS: frozenset[str] = frozenset({
+    "command_help",
+    "section_help",
+    "col1",
+    "col2",
+    "epilog",
+    "info",
+    "_style_kwargs",
+    "cross_ref_highlight",
+})
+
+
+_SWATCH_TEMPLATE = (
+    '<span style="display:inline-block;width:0.85em;height:0.85em;'
+    'background:{css};border:1px solid var(--color-foreground-muted,#888);'
+    'border-radius:2px;vertical-align:-0.15em;margin-right:0.35em"></span>'
+)
+
+
+def _palette_doc_html(cls: type) -> str:
+    """Build a ``<dl>`` HTML fragment listing every styled slot in *cls*'s palette."""
+    instance = cls()
+    rows: list[str] = []
+    for f in dataclasses.fields(instance):
+        if f.name in _SKIP_SLOTS:
+            continue
+        value = getattr(instance, f.name)
+        if value is identity:
+            continue
+        fg = getattr(value, "fg", None)
+        cell_parts: list[str] = []
+        if fg is not None:
+            css = _color_to_css(fg)
+            if isinstance(fg, tuple) and len(fg) == 3:
+                color_label = f"#{fg[0]:02x}{fg[1]:02x}{fg[2]:02x}"
+            else:
+                color_label = str(fg)
+            cell_parts.append(
+                _SWATCH_TEMPLATE.format(css=css)
+                + f"<code>{color_label}</code>"
+            )
+        attrs = [
+            attr
+            for attr in (
+                "bold", "dim", "italic", "underline", "overline",
+                "blink", "reverse", "strikethrough",
+            )
+            if getattr(value, attr, None)
+        ]
+        if attrs:
+            cell_parts.append(" ".join(f"<em>{a}</em>" for a in attrs))
+        rows.append(
+            f"<dt><code>{f.name}</code></dt>"
+            f"<dd>{' '.join(cell_parts) or '—'}</dd>"
+        )
+    return (
+        '<dl class="theme-palette" style="display:grid;'
+        "grid-template-columns:max-content 1fr;gap:0.2em 1em;"
+        'margin:0.5em 0">'
+        + "".join(rows)
+        + "</dl>"
+    )
+
+
+def _with_palette_doc(cls: type) -> type:
+    """Append the palette listing (one entry per styled slot) to *cls*'s docstring.
+
+    Applied as a class decorator after ``@dataclass(frozen=True)`` so the
+    instantiation in :func:`_palette_doc_html` sees the resolved field
+    defaults. The injected RST uses ``.. raw:: html`` because we want
+    actual color swatches in the rendered HTML; non-HTML builders fall
+    back to the original docstring without the palette listing.
+    """
+    palette_html = _palette_doc_html(cls)
+    cls.__doc__ = (
+        f"{cls.__doc__ or ''}\n"
+        f"\n"
+        f".. rubric:: Palette\n"
+        f"\n"
+        f".. raw:: html\n"
+        f"\n"
+        f"   {palette_html}\n"
+    )
+    return cls
 
 
 # --- Shared style constants (named by visual properties) ----------------------
@@ -123,6 +198,7 @@ BLUE_HEADING = Style(fg=Color.blue, bold=True, underline=True)
 # --- Dark by Click Extra ------------------------------------------------------
 
 
+@_with_palette_doc
 @dataclass(frozen=True)
 class Dark(HelpExtraTheme):
     """Theme tuned for terminals with a dark background.
@@ -165,6 +241,7 @@ class Dark(HelpExtraTheme):
 # Palette: https://draculatheme.com/contribute
 
 
+@_with_palette_doc
 @dataclass(frozen=True)
 class Dracula(HelpExtraTheme):
     """Dracula by Zeno Rocha.
@@ -204,6 +281,7 @@ class Dracula(HelpExtraTheme):
 # --- Light by Click Extra ----------------------------------------------------
 
 
+@_with_palette_doc
 @dataclass(frozen=True)
 class Light(HelpExtraTheme):
     """Theme tuned for terminals with a light/white background.
@@ -249,6 +327,7 @@ class Light(HelpExtraTheme):
 # Palette: https://monokai.pro/
 
 
+@_with_palette_doc
 @dataclass(frozen=True)
 class Monokai(HelpExtraTheme):
     """Monokai by Wimer Hazenberg.
@@ -289,6 +368,7 @@ class Monokai(HelpExtraTheme):
 # Palette: https://www.nordtheme.com/docs/colors-and-palettes
 
 
+@_with_palette_doc
 @dataclass(frozen=True)
 class Nord(HelpExtraTheme):
     """Nord by Arctic Ice Studio.
@@ -329,6 +409,7 @@ class Nord(HelpExtraTheme):
 # Palette: https://ethanschoonover.com/solarized/
 
 
+@_with_palette_doc
 @dataclass(frozen=True)
 class SolarizedDark(HelpExtraTheme):
     """Solarized Dark by Ethan Schoonover.
@@ -392,6 +473,7 @@ BUILTIN_THEMES: dict[str, HelpExtraTheme] = {
 
 Seeded into :data:`click_extra.theme.theme_registry` at module load time.
 Adding a new built-in theme is a one-file edit here: declare a
-:class:`HelpExtraTheme` subclass with the palette as field defaults,
-instantiate it as an UPPER_CASE constant, and add the constant to this dict.
+:class:`HelpExtraTheme` subclass with each slot's :class:`Style` as a
+field default, instantiate it as an UPPER_CASE constant, and add the
+constant to this dict.
 """

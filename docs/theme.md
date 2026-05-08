@@ -21,7 +21,7 @@ assert result.exit_code == 0
 assert "--theme" in result.stdout
 ```
 
-The flag is eager, so it is processed before any other option and before help is rendered. The picked theme is stored on the active Click context's `meta` dict under `click_extra.context.THEME`, so it applies for the duration of the current invocation only: subcommands inherit it (Click shares `meta` across the parent/child hierarchy), but a sibling invocation of the same CLI in the same process starts from the default again. See the [available keys](context.md#available-keys) table for the full inventory you can read from your own callbacks.
+The flag is eager, so it is processed before any other option and before help is rendered. The picked theme is stored on the active Click context's `meta` dict under `click_extra.context.THEME` and inherits down to subcommands, so a parent group's `--theme` applies to every child. See the [available keys](context.md#available-keys) table for the full inventory you can read from your own callbacks.
 
 ## Configuration file
 
@@ -36,14 +36,14 @@ Now invocations of the `weather` CLI pick up the light theme without passing `--
 
 ## Built-in themes
 
-| Name             | Color model           | Notes                                                                |
-| ---------------- | --------------------- | -------------------------------------------------------------------- |
-| `dark`           | 16 named ANSI colors  | Process-wide default. Follows the user's terminal palette.           |
-| `light`          | 16 named ANSI colors  | Tuned for white backgrounds: no bright variants, blue replaces cyan. |
-| `solarized_dark` | 24-bit RGB            | Solarized Dark by Ethan Schoonover.                                  |
-| `dracula`        | 24-bit RGB            | Dracula by Zeno Rocha.                                               |
-| `nord`           | 24-bit RGB            | Nord by Arctic Ice Studio.                                           |
-| `monokai`        | 24-bit RGB            | Monokai by Wimer Hazenberg.                                          |
+| Name                                                  | Color model          | Notes                                                                |
+| :---------------------------------------------------- | :------------------- | :------------------------------------------------------------------- |
+| [`dark`](#click_extra.themes.Dark)                    | 16 named ANSI colors | Process-wide default. Follows the user's terminal palette.           |
+| [`light`](#click_extra.themes.Light)                  | 16 named ANSI colors | Tuned for white backgrounds: no bright variants, blue replaces cyan. |
+| [`solarized_dark`](#click_extra.themes.SolarizedDark) | 24-bit RGB           | Solarized Dark by Ethan Schoonover.                                  |
+| [`dracula`](#click_extra.themes.Dracula)              | 24-bit RGB           | Dracula by Zeno Rocha.                                               |
+| [`nord`](#click_extra.themes.Nord)                    | 24-bit RGB           | Nord by Arctic Ice Studio.                                           |
+| [`monokai`](#click_extra.themes.Monokai)              | 24-bit RGB           | Monokai by Wimer Hazenberg.                                          |
 
 Click each tab below for a live render of the theme applied to the same `weather` CLI's `--help` output. Colors are produced at Sphinx build time, not screenshots.
 
@@ -99,6 +99,10 @@ Two flavors live in `click_extra.themes`:
 - **Branded themes** (`SOLARIZED_DARK`, `DRACULA`, `NORD`, `MONOKAI`) emit 24-bit RGB triplets from each theme's canonical palette. Pick these when the theme name implies specific colors (`solarized_dark` should look like Solarized, not "whatever the terminal calls cyan"). Terminals without 24-bit support fall back to the nearest 256-color cell automatically. Each theme's slot mapping is hand-curated: there's no automated translation from generic colour-scheme formats, because none of them expose the same semantic roles we care about (option, metavar, choice, deprecated, envvar, ...).
 
 `click_extra.themes.BUILTIN_THEMES` is a `dict[str, HelpExtraTheme]` mapping the names above to their instances; it's seeded into `theme_registry` at module load.
+
+Each theme class's autodoc entry below carries a "Slots" listing with a color swatch next to every styled slot, generated from the live class fields at module load. Click any name in the table above to jump to that theme's slot list.
+
+### Module exports
 
 The two module-level instances exported by `click_extra.theme` are:
 
