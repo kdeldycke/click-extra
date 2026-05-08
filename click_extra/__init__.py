@@ -32,6 +32,9 @@ from cloup import *  # type: ignore[no-redef, assignment]
 if True:
     from .types import ChoiceSource, EnumChoice
 
+# Override cloup.Style with our own version. The override must happen after
+# ``from cloup import *`` (which would otherwise re-shadow our subclass) and
+#  before any module that does ``from . import Style`` is loaded.
 from . import context
 from .colorize import (
     ColorOption,
@@ -99,6 +102,7 @@ from .parameters import (
     get_param_spec,
     search_params,
 )
+from .styling import Style  # type: ignore[no-redef]
 from .table import (
     SortByOption,
     TableFormat,
@@ -125,6 +129,12 @@ from .themes import (
     MONOKAI,
     NORD,
     SOLARIZED_DARK,
+    Dark,
+    Dracula,
+    Light,
+    Monokai,
+    Nord,
+    SolarizedDark,
 )
 from .timer import TimerOption
 from .version import ExtraVersionOption
@@ -141,8 +151,8 @@ __all__ = [
     "INT",
     "LIGHT",
     "MONOKAI",
-    "NO_CONFIG",
     "NORD",
+    "NO_CONFIG",
     "PREPEND_SUBCOMMANDS_KEY",
     "SOLARIZED_DARK",
     "STRING",
@@ -166,7 +176,9 @@ __all__ = [
     "ConfigOption",
     "ConstraintMixin",
     "Context",
+    "Dark",
     "DateTime",
+    "Dracula",
     "EnumChoice",
     "ExtraCliRunner",
     "ExtraCommand",
@@ -190,10 +202,13 @@ __all__ = [
     "IntRange",
     "JobsOption",
     "LazyGroup",
+    "Light",
     "LogLevel",
     "MissingParameter",
+    "Monokai",
     "NoConfigOption",
     "NoSuchOption",
+    "Nord",
     "Option",
     "OptionGroup",
     "OptionGroupMixin",
@@ -205,6 +220,7 @@ __all__ = [
     "Section",
     "SectionMixin",
     "ShowParamsOption",
+    "SolarizedDark",
     "SortByOption",
     "Style",
     "TableFormat",
