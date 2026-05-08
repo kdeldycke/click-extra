@@ -96,15 +96,16 @@ class HelpExtraTheme(cloup.HelpTheme):
     """
 
     subheading: IStyle = identity
-    """Non-canonical Click Extra properties.
+    """Style for sub-section headings inside log output or inline help.
 
-    .. note::
-        Subheading is used for sub-sections, like `in the help of mail-deduplicate
-        <https://github.com/kdeldycke/mail-deduplicate/blob/0764287/mail_deduplicate/deduplicate.py#L445>`_.
+    Distinct from :attr:`heading` (which styles the top-level help-screen
+    section titles): :attr:`subheading` is intended for downstream code that
+    wants a second styling level for its own narrative output.
 
-    .. todo::
-        Maybe this shouldn't be in Click Extra because it is a legacy inheritance from
-        one of my other project.
+    .. seealso::
+        Used by `mail-deduplicate
+        <https://github.com/kdeldycke/mail-deduplicate/blob/main/mail_deduplicate/deduplicate.py>`_
+        to style ``◼ N mails sharing hash …`` log lines.
     """
 
     def with_(  # type: ignore[override]
