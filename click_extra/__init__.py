@@ -34,7 +34,10 @@ if True:
 
 # Override cloup.Style with our own version. The override must happen after
 # ``from cloup import *`` (which would otherwise re-shadow our subclass) and
-#  before any module that does ``from . import Style`` is loaded.
+# before any module that does ``from . import Style`` is loaded (colorize,
+# theme, themes, parameters, version, testing all do).
+from .styling import Style  # type: ignore[no-redef]
+
 from . import context
 from .colorize import (
     ColorOption,
@@ -102,7 +105,6 @@ from .parameters import (
     get_param_spec,
     search_params,
 )
-from .styling import Style  # type: ignore[no-redef]
 from .table import (
     SortByOption,
     TableFormat,

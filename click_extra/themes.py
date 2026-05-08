@@ -164,16 +164,6 @@ class Dark(HelpExtraTheme):
 # --- Dracula by Zeno Rocha ---------------------------------------------------
 # Palette: https://draculatheme.com/contribute
 
-_drac_comment = (0x62, 0x72, 0xa4)
-_drac_cyan = (0x8b, 0xe9, 0xfd)
-_drac_fg = (0xf8, 0xf8, 0xf2)
-_drac_green = (0x50, 0xfa, 0x7b)
-_drac_orange = (0xff, 0xb8, 0x6c)
-_drac_pink = (0xff, 0x79, 0xc6)
-_drac_purple = (0xbd, 0x93, 0xf9)
-_drac_red = (0xff, 0x55, 0x55)
-_drac_yellow = (0xf1, 0xfa, 0x8c)
-
 
 @dataclass(frozen=True)
 class Dracula(HelpExtraTheme):
@@ -182,33 +172,33 @@ class Dracula(HelpExtraTheme):
     High-contrast dark theme with vivid neon accents.
     """
 
-    invoked_command: IStyle = Style(fg=_drac_fg, bold=True)
-    heading: IStyle = Style(fg=_drac_pink, bold=True, underline=True)
-    constraint: IStyle = Style(fg=_drac_pink)
+    invoked_command: IStyle = Style(fg="#f8f8f2", bold=True)
+    heading: IStyle = Style(fg="#ff79c6", bold=True, underline=True)
+    constraint: IStyle = Style(fg="#ff79c6")
     col1: IStyle = identity
-    alias: IStyle = Style(fg=_drac_cyan)
-    alias_secondary: IStyle = Style(fg=_drac_cyan, dim=True)
+    alias: IStyle = Style(fg="#8be9fd")
+    alias_secondary: IStyle = Style(fg="#8be9fd", dim=True)
     # Log levels.
-    critical: IStyle = Style(fg=_drac_red, bold=True)
-    error: IStyle = Style(fg=_drac_red)
-    warning: IStyle = Style(fg=_drac_orange)
+    critical: IStyle = Style(fg="#ff5555", bold=True)
+    error: IStyle = Style(fg="#ff5555")
+    warning: IStyle = Style(fg="#ffb86c")
     info: IStyle = identity
-    debug: IStyle = Style(fg=_drac_comment)
+    debug: IStyle = Style(fg="#6272a4")
     # Click Extra slots.
-    option: IStyle = Style(fg=_drac_purple)
-    subcommand: IStyle = Style(fg=_drac_purple)
-    choice: IStyle = Style(fg=_drac_pink)
-    metavar: IStyle = Style(fg=_drac_purple, dim=True)
-    bracket: IStyle = Style(fg=_drac_comment)
-    envvar: IStyle = Style(fg=_drac_orange, dim=True)
-    default: IStyle = Style(fg=_drac_green, dim=True, italic=True)
-    range_label: IStyle = Style(fg=_drac_purple, dim=True)
-    required: IStyle = Style(fg=_drac_red, dim=True)
-    argument: IStyle = Style(fg=_drac_purple)
-    deprecated: IStyle = Style(fg=_drac_orange, bold=True)
-    search: IStyle = Style(fg=_drac_yellow, bold=True)
-    success: IStyle = Style(fg=_drac_green)
-    subheading: IStyle = Style(fg=_drac_cyan)
+    option: IStyle = Style(fg="#bd93f9")
+    subcommand: IStyle = Style(fg="#bd93f9")
+    choice: IStyle = Style(fg="#ff79c6")
+    metavar: IStyle = Style(fg="#bd93f9", dim=True)
+    bracket: IStyle = Style(fg="#6272a4")
+    envvar: IStyle = Style(fg="#ffb86c", dim=True)
+    default: IStyle = Style(fg="#50fa7b", dim=True, italic=True)
+    range_label: IStyle = Style(fg="#bd93f9", dim=True)
+    required: IStyle = Style(fg="#ff5555", dim=True)
+    argument: IStyle = Style(fg="#bd93f9")
+    deprecated: IStyle = Style(fg="#ffb86c", bold=True)
+    search: IStyle = Style(fg="#f1fa8c", bold=True)
+    success: IStyle = Style(fg="#50fa7b")
+    subheading: IStyle = Style(fg="#8be9fd")
 
 
 # --- Light by Click Extra ----------------------------------------------------
@@ -258,15 +248,6 @@ class Light(HelpExtraTheme):
 # --- Monokai by Wimer Hazenberg ----------------------------------------------
 # Palette: https://monokai.pro/
 
-_mono_comment = (0x75, 0x71, 0x5e)
-_mono_cyan = (0x66, 0xd9, 0xef)
-_mono_fg = (0xf8, 0xf8, 0xf2)
-_mono_green = (0xa6, 0xe2, 0x2e)
-_mono_orange = (0xfd, 0x97, 0x1f)
-_mono_pink = (0xf9, 0x26, 0x72)
-_mono_purple = (0xae, 0x81, 0xff)
-_mono_yellow = (0xe6, 0xdb, 0x74)
-
 
 @dataclass(frozen=True)
 class Monokai(HelpExtraTheme):
@@ -275,49 +256,37 @@ class Monokai(HelpExtraTheme):
     Classic dark theme with high-saturation magenta and lime accents.
     """
 
-    invoked_command: IStyle = Style(fg=_mono_fg, bold=True)
-    heading: IStyle = Style(fg=_mono_green, bold=True, underline=True)
-    constraint: IStyle = Style(fg=_mono_purple)
+    invoked_command: IStyle = Style(fg="#f8f8f2", bold=True)
+    heading: IStyle = Style(fg="#a6e22e", bold=True, underline=True)
+    constraint: IStyle = Style(fg="#ae81ff")
     col1: IStyle = identity
-    alias: IStyle = Style(fg=_mono_green)
-    alias_secondary: IStyle = Style(fg=_mono_green, dim=True)
+    alias: IStyle = Style(fg="#a6e22e")
+    alias_secondary: IStyle = Style(fg="#a6e22e", dim=True)
     # Log levels.
-    critical: IStyle = Style(fg=_mono_pink, bold=True)
-    error: IStyle = Style(fg=_mono_pink)
-    warning: IStyle = Style(fg=_mono_orange)
+    critical: IStyle = Style(fg="#f92672", bold=True)
+    error: IStyle = Style(fg="#f92672")
+    warning: IStyle = Style(fg="#fd971f")
     info: IStyle = identity
-    debug: IStyle = Style(fg=_mono_comment)
+    debug: IStyle = Style(fg="#75715e")
     # Click Extra slots.
-    option: IStyle = Style(fg=_mono_cyan)
-    subcommand: IStyle = Style(fg=_mono_cyan)
-    choice: IStyle = Style(fg=_mono_purple)
-    metavar: IStyle = Style(fg=_mono_cyan, dim=True)
-    bracket: IStyle = Style(fg=_mono_comment)
-    envvar: IStyle = Style(fg=_mono_orange, dim=True)
-    default: IStyle = Style(fg=_mono_yellow, dim=True, italic=True)
-    range_label: IStyle = Style(fg=_mono_cyan, dim=True)
-    required: IStyle = Style(fg=_mono_pink, dim=True)
-    argument: IStyle = Style(fg=_mono_cyan)
-    deprecated: IStyle = Style(fg=_mono_orange, bold=True)
-    search: IStyle = Style(fg=_mono_yellow, bold=True)
-    success: IStyle = Style(fg=_mono_green)
-    subheading: IStyle = Style(fg=_mono_green)
+    option: IStyle = Style(fg="#66d9ef")
+    subcommand: IStyle = Style(fg="#66d9ef")
+    choice: IStyle = Style(fg="#ae81ff")
+    metavar: IStyle = Style(fg="#66d9ef", dim=True)
+    bracket: IStyle = Style(fg="#75715e")
+    envvar: IStyle = Style(fg="#fd971f", dim=True)
+    default: IStyle = Style(fg="#e6db74", dim=True, italic=True)
+    range_label: IStyle = Style(fg="#66d9ef", dim=True)
+    required: IStyle = Style(fg="#f92672", dim=True)
+    argument: IStyle = Style(fg="#66d9ef")
+    deprecated: IStyle = Style(fg="#fd971f", bold=True)
+    search: IStyle = Style(fg="#e6db74", bold=True)
+    success: IStyle = Style(fg="#a6e22e")
+    subheading: IStyle = Style(fg="#a6e22e")
 
 
 # --- Nord by Arctic Ice Studio -----------------------------------------------
 # Palette: https://www.nordtheme.com/docs/colors-and-palettes
-
-_nord_comment = (0x4c, 0x56, 0x6a)  # nord3: polar night
-_nord_fg = (0xec, 0xef, 0xf4)  # nord6: snow storm
-_nord_frost_blue = (0x81, 0xa1, 0xc1)  # nord9
-_nord_frost_blue_dark = (0x5e, 0x81, 0xac)  # nord10
-_nord_frost_blue_light = (0x88, 0xc0, 0xd0)  # nord8
-_nord_frost_cyan = (0x8f, 0xbc, 0xbb)  # nord7
-_nord_green = (0xa3, 0xbe, 0x8c)  # nord14
-_nord_orange = (0xd0, 0x87, 0x70)  # nord12
-_nord_purple = (0xb4, 0x8e, 0xad)  # nord15
-_nord_red = (0xbf, 0x61, 0x6a)  # nord11: aurora
-_nord_yellow = (0xeb, 0xcb, 0x8b)  # nord13
 
 
 @dataclass(frozen=True)
@@ -327,48 +296,37 @@ class Nord(HelpExtraTheme):
     Cool-toned dark theme built around frost-blue and aurora accents.
     """
 
-    invoked_command: IStyle = Style(fg=_nord_fg, bold=True)
-    heading: IStyle = Style(fg=_nord_frost_blue_dark, bold=True, underline=True)
-    constraint: IStyle = Style(fg=_nord_purple)
+    invoked_command: IStyle = Style(fg="#eceff4", bold=True)  # nord6: snow storm
+    heading: IStyle = Style(fg="#5e81ac", bold=True, underline=True)  # nord10
+    constraint: IStyle = Style(fg="#b48ead")  # nord15
     col1: IStyle = identity
-    alias: IStyle = Style(fg=_nord_frost_cyan)
-    alias_secondary: IStyle = Style(fg=_nord_frost_cyan, dim=True)
+    alias: IStyle = Style(fg="#8fbcbb")  # nord7
+    alias_secondary: IStyle = Style(fg="#8fbcbb", dim=True)
     # Log levels.
-    critical: IStyle = Style(fg=_nord_red, bold=True)
-    error: IStyle = Style(fg=_nord_red)
-    warning: IStyle = Style(fg=_nord_orange)
+    critical: IStyle = Style(fg="#bf616a", bold=True)  # nord11: aurora
+    error: IStyle = Style(fg="#bf616a")
+    warning: IStyle = Style(fg="#d08770")  # nord12
     info: IStyle = identity
-    debug: IStyle = Style(fg=_nord_comment)
+    debug: IStyle = Style(fg="#4c566a")  # nord3: polar night
     # Click Extra slots.
-    option: IStyle = Style(fg=_nord_frost_blue)
-    subcommand: IStyle = Style(fg=_nord_frost_blue)
-    choice: IStyle = Style(fg=_nord_purple)
-    metavar: IStyle = Style(fg=_nord_frost_blue, dim=True)
-    bracket: IStyle = Style(fg=_nord_comment)
-    envvar: IStyle = Style(fg=_nord_orange, dim=True)
-    default: IStyle = Style(fg=_nord_green, dim=True, italic=True)
-    range_label: IStyle = Style(fg=_nord_frost_blue, dim=True)
-    required: IStyle = Style(fg=_nord_red, dim=True)
-    argument: IStyle = Style(fg=_nord_frost_blue)
-    deprecated: IStyle = Style(fg=_nord_orange, bold=True)
-    search: IStyle = Style(fg=_nord_yellow, bold=True)
-    success: IStyle = Style(fg=_nord_green)
-    subheading: IStyle = Style(fg=_nord_frost_blue_light)
+    option: IStyle = Style(fg="#81a1c1")  # nord9
+    subcommand: IStyle = Style(fg="#81a1c1")
+    choice: IStyle = Style(fg="#b48ead")
+    metavar: IStyle = Style(fg="#81a1c1", dim=True)
+    bracket: IStyle = Style(fg="#4c566a")
+    envvar: IStyle = Style(fg="#d08770", dim=True)
+    default: IStyle = Style(fg="#a3be8c", dim=True, italic=True)  # nord14
+    range_label: IStyle = Style(fg="#81a1c1", dim=True)
+    required: IStyle = Style(fg="#bf616a", dim=True)
+    argument: IStyle = Style(fg="#81a1c1")
+    deprecated: IStyle = Style(fg="#d08770", bold=True)
+    search: IStyle = Style(fg="#ebcb8b", bold=True)  # nord13
+    success: IStyle = Style(fg="#a3be8c")
+    subheading: IStyle = Style(fg="#88c0d0")  # nord8
 
 
 # --- Solarized Dark by Ethan Schoonover --------------------------------------
 # Palette: https://ethanschoonover.com/solarized/
-
-_sol_blue = (0x26, 0x8b, 0xd2)
-_sol_comment = (0x58, 0x6e, 0x75)  # base01
-_sol_cyan = (0x2a, 0xa1, 0x98)
-_sol_emph = (0xee, 0xe8, 0xd5)  # base2: emphasized foreground
-_sol_green = (0x85, 0x99, 0x00)
-_sol_magenta = (0xd3, 0x36, 0x82)
-_sol_orange = (0xcb, 0x4b, 0x16)
-_sol_red = (0xdc, 0x32, 0x2f)
-_sol_violet = (0x6c, 0x71, 0xc4)
-_sol_yellow = (0xb5, 0x89, 0x00)
 
 
 @dataclass(frozen=True)
@@ -378,33 +336,33 @@ class SolarizedDark(HelpExtraTheme):
     Warm-toned dark theme with selective accent contrast.
     """
 
-    invoked_command: IStyle = Style(fg=_sol_emph, bold=True)
-    heading: IStyle = Style(fg=_sol_blue, bold=True, underline=True)
-    constraint: IStyle = Style(fg=_sol_violet)
+    invoked_command: IStyle = Style(fg="#eee8d5", bold=True)  # base2: emphasized
+    heading: IStyle = Style(fg="#268bd2", bold=True, underline=True)
+    constraint: IStyle = Style(fg="#6c71c4")
     col1: IStyle = identity
-    alias: IStyle = Style(fg=_sol_cyan)
-    alias_secondary: IStyle = Style(fg=_sol_cyan, dim=True)
+    alias: IStyle = Style(fg="#2aa198")
+    alias_secondary: IStyle = Style(fg="#2aa198", dim=True)
     # Log levels.
-    critical: IStyle = Style(fg=_sol_red, bold=True)
-    error: IStyle = Style(fg=_sol_red)
-    warning: IStyle = Style(fg=_sol_yellow)
+    critical: IStyle = Style(fg="#dc322f", bold=True)
+    error: IStyle = Style(fg="#dc322f")
+    warning: IStyle = Style(fg="#b58900")
     info: IStyle = identity
-    debug: IStyle = Style(fg=_sol_comment)
+    debug: IStyle = Style(fg="#586e75")  # base01
     # Click Extra slots.
-    option: IStyle = Style(fg=_sol_blue)
-    subcommand: IStyle = Style(fg=_sol_blue)
-    choice: IStyle = Style(fg=_sol_violet)
-    metavar: IStyle = Style(fg=_sol_blue, dim=True)
-    bracket: IStyle = Style(fg=_sol_comment)
-    envvar: IStyle = Style(fg=_sol_orange, dim=True)
-    default: IStyle = Style(fg=_sol_green, dim=True, italic=True)
-    range_label: IStyle = Style(fg=_sol_blue, dim=True)
-    required: IStyle = Style(fg=_sol_red, dim=True)
-    argument: IStyle = Style(fg=_sol_blue)
-    deprecated: IStyle = Style(fg=_sol_magenta, bold=True)
-    search: IStyle = Style(fg=_sol_yellow, bold=True)
-    success: IStyle = Style(fg=_sol_green)
-    subheading: IStyle = Style(fg=_sol_cyan)
+    option: IStyle = Style(fg="#268bd2")
+    subcommand: IStyle = Style(fg="#268bd2")
+    choice: IStyle = Style(fg="#6c71c4")
+    metavar: IStyle = Style(fg="#268bd2", dim=True)
+    bracket: IStyle = Style(fg="#586e75")
+    envvar: IStyle = Style(fg="#cb4b16", dim=True)
+    default: IStyle = Style(fg="#859900", dim=True, italic=True)
+    range_label: IStyle = Style(fg="#268bd2", dim=True)
+    required: IStyle = Style(fg="#dc322f", dim=True)
+    argument: IStyle = Style(fg="#268bd2")
+    deprecated: IStyle = Style(fg="#d33682", bold=True)
+    search: IStyle = Style(fg="#b58900", bold=True)
+    success: IStyle = Style(fg="#859900")
+    subheading: IStyle = Style(fg="#2aa198")
 
 
 # --- Cached singleton instances ---------------------------------------------
