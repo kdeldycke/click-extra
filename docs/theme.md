@@ -40,10 +40,10 @@ Now invocations of the `weather` CLI pick up the light theme without passing `--
 | :---------------------------------------------------- | :------------------- | :------------------------------------------------------------------- |
 | [`dark`](#click_extra.themes.Dark)                    | 16 named ANSI colors | Process-wide default. Follows the user's terminal palette.           |
 | [`light`](#click_extra.themes.Light)                  | 16 named ANSI colors | Tuned for white backgrounds: no bright variants, blue replaces cyan. |
-| [`solarized_dark`](#click_extra.themes.SolarizedDark) | 24-bit RGB           | Solarized Dark by Ethan Schoonover.                                  |
-| [`dracula`](#click_extra.themes.Dracula)              | 24-bit RGB           | Dracula by Zeno Rocha.                                               |
-| [`nord`](#click_extra.themes.Nord)                    | 24-bit RGB           | Nord by Arctic Ice Studio.                                           |
-| [`monokai`](#click_extra.themes.Monokai)              | 24-bit RGB           | Monokai by Wimer Hazenberg.                                          |
+| [`solarized_dark`](#click_extra.themes.SolarizedDark) | 24-bit RGB           | Warm-toned dark theme with selective accent contrast.                |
+| [`dracula`](#click_extra.themes.Dracula)              | 24-bit RGB           | High-contrast dark theme with vivid neon accents.                    |
+| [`nord`](#click_extra.themes.Nord)                    | 24-bit RGB           | Cool-toned dark theme built around frost-blue and aurora accents.    |
+| [`monokai`](#click_extra.themes.Monokai)              | 24-bit RGB           | Classic dark theme with high-saturation magenta and lime accents.    |
 
 Click each tab below for a live render of the theme applied to the same `weather` CLI's `--help` output. Colors are produced at Sphinx build time, not screenshots.
 
@@ -240,6 +240,21 @@ The `--color` callback inspects the standard set of color environment variables 
 
 ```{eval-rst}
 .. automodule:: click_extra.themes
-   :members:
-   :undoc-members:
+   :no-members:
+
+.. autoclass:: click_extra.themes.Dark
+   :no-members:
+.. autoclass:: click_extra.themes.Light
+   :no-members:
+.. autoclass:: click_extra.themes.SolarizedDark
+   :no-members:
+.. autoclass:: click_extra.themes.Dracula
+   :no-members:
+.. autoclass:: click_extra.themes.Nord
+   :no-members:
+.. autoclass:: click_extra.themes.Monokai
+   :no-members:
+
+.. autodata:: click_extra.themes.BUILTIN_THEMES
+   :no-value:
 ```

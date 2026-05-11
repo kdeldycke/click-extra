@@ -195,7 +195,7 @@ BLACK_BOLD = Style(fg=Color.black, bold=True)
 BLUE_HEADING = Style(fg=Color.blue, bold=True, underline=True)
 
 
-# --- Dark by Click Extra ------------------------------------------------------
+# --- Dark --------------------------------------------------------------------
 
 
 @_with_palette_doc
@@ -237,8 +237,7 @@ class Dark(HelpExtraTheme):
     subheading: IStyle = BLUE
 
 
-# --- Dracula by Zeno Rocha ---------------------------------------------------
-# Palette: https://draculatheme.com/contribute
+# --- Dracula -----------------------------------------------------------------
 
 
 @_with_palette_doc
@@ -247,6 +246,8 @@ class Dracula(HelpExtraTheme):
     """Dracula by Zeno Rocha.
 
     High-contrast dark theme with vivid neon accents.
+
+    Palette: https://draculatheme.com/contribute
     """
 
     invoked_command: IStyle = Style(fg="#f8f8f2", bold=True)
@@ -278,7 +279,7 @@ class Dracula(HelpExtraTheme):
     subheading: IStyle = Style(fg="#8be9fd")
 
 
-# --- Light by Click Extra ----------------------------------------------------
+# --- Light -------------------------------------------------------------------
 
 
 @_with_palette_doc
@@ -323,8 +324,7 @@ class Light(HelpExtraTheme):
     subheading: IStyle = BLUE_DIM
 
 
-# --- Monokai by Wimer Hazenberg ----------------------------------------------
-# Palette: https://monokai.pro/
+# --- Monokai -----------------------------------------------------------------
 
 
 @_with_palette_doc
@@ -333,6 +333,8 @@ class Monokai(HelpExtraTheme):
     """Monokai by Wimer Hazenberg.
 
     Classic dark theme with high-saturation magenta and lime accents.
+
+    Palette: https://monokai.pro/
     """
 
     invoked_command: IStyle = Style(fg="#f8f8f2", bold=True)
@@ -364,8 +366,7 @@ class Monokai(HelpExtraTheme):
     subheading: IStyle = Style(fg="#a6e22e")
 
 
-# --- Nord by Arctic Ice Studio -----------------------------------------------
-# Palette: https://www.nordtheme.com/docs/colors-and-palettes
+# --- Nord --------------------------------------------------------------------
 
 
 @_with_palette_doc
@@ -374,6 +375,8 @@ class Nord(HelpExtraTheme):
     """Nord by Arctic Ice Studio.
 
     Cool-toned dark theme built around frost-blue and aurora accents.
+
+    Palette: https://www.nordtheme.com/docs/colors-and-palettes
     """
 
     invoked_command: IStyle = Style(fg="#eceff4", bold=True)  # nord6: snow storm
@@ -405,8 +408,7 @@ class Nord(HelpExtraTheme):
     subheading: IStyle = Style(fg="#88c0d0")  # nord8
 
 
-# --- Solarized Dark by Ethan Schoonover --------------------------------------
-# Palette: https://ethanschoonover.com/solarized/
+# --- Solarized Dark ----------------------------------------------------------
 
 
 @_with_palette_doc
@@ -415,6 +417,8 @@ class SolarizedDark(HelpExtraTheme):
     """Solarized Dark by Ethan Schoonover.
 
     Warm-toned dark theme with selective accent contrast.
+
+    Palette: https://ethanschoonover.com/solarized/
     """
 
     invoked_command: IStyle = Style(fg="#eee8d5", bold=True)  # base2: emphasized

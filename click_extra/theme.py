@@ -62,29 +62,112 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class HelpExtraTheme(cloup.HelpTheme):
-    """Extends ``cloup.HelpTheme`` with ``logging.levels`` and extra properties."""
+    """Extends ``cloup.HelpTheme`` with slots for log levels and the
+    structural elements Click Extra highlights in help screens.
+
+    Each slot below documents *what* it colors. Themes (see
+    :mod:`click_extra.themes`) provide the visual styling by overriding
+    the relevant slot defaults.
+    """
+
+    # --- Log-level slots -----------------------------------------------------
+    # Applied by :class:`~click_extra.logging.ExtraFormatter` to ``levelname``
+    # before each record is emitted, so the visible level in the formatted
+    # message picks up the matching style.
 
     critical: IStyle = identity
+    """Style applied to the ``CRITICAL`` level name in log records."""
+
     error: IStyle = identity
+    """Style applied to the ``ERROR`` level name in log records."""
+
     warning: IStyle = identity
+    """Style applied to the ``WARNING`` level name in log records."""
+
     info: IStyle = identity
+    """Style applied to the ``INFO`` level name in log records.
+
+    Usually left at :func:`identity <cloup._util.identity>`: ``INFO`` is the
+    default verbosity and shouldn't stand out from regular output.
+    """
+
     debug: IStyle = identity
-    """Log levels from Python's logging module."""
+    """Style applied to the ``DEBUG`` level name in log records."""
+
+    # --- Help-screen structural slots ----------------------------------------
+    # Applied by :class:`~click_extra.colorize.HelpExtraFormatter` while
+    # rendering each command's help output. The post-wrap formatter pass
+    # walks the rendered help text and styles the matching tokens.
 
     option: IStyle = identity
+    """Style applied to option names (``--config``, ``-v``, ``--ansi/--no-ansi``)
+    wherever they appear: synopsis column, free-form descriptions, and
+    docstrings (when :attr:`cross_ref_highlight` is enabled).
+    """
+
     subcommand: IStyle = identity
+    """Style applied to subcommand names: in a group's command list and
+    wherever they are referenced in prose.
+    """
+
     choice: IStyle = identity
+    """Style applied to each individual value inside a :class:`click.Choice`
+    metavar (e.g. ``json``, ``csv``, ``xml`` within ``[json|csv|xml]``) and
+    to those values referenced in option descriptions.
+    """
+
     metavar: IStyle = identity
+    """Style applied to type metavars (``INTEGER``, ``TEXT``, ``PATH``,
+    ``FILE``, ...) that follow an option name in the synopsis column.
+    """
+
     bracket: IStyle = identity
+    """Style applied to the literal bracket characters and label prefixes of
+    trailing fields: ``[``, ``]``, ``default:``, ``env var:``, ``required``,
+    and the field separators between them.
+    """
+
     envvar: IStyle = identity
+    """Style applied to environment-variable values inside ``[env var: ...]``
+    bracket fields, and to envvar names mentioned in option descriptions.
+    """
+
     default: IStyle = identity
+    """Style applied to the default-value content inside ``[default: ...]``
+    bracket fields.
+    """
+
     range_label: IStyle = identity
+    """Style applied to range expressions (``0<=x<=9``, ``x>=1024``,
+    ``0<=x<100``) that appear inside bracket fields for ``IntRange`` and
+    ``FloatRange`` options.
+    """
+
     required: IStyle = identity
+    """Style applied to the ``required`` label inside bracket fields on
+    mandatory options.
+    """
+
     argument: IStyle = identity
+    """Style applied to argument metavars (positional parameter names like
+    ``MY_ARG``, ``SCRIPT``, ``[FILENAMES]...``) in the synopsis column and
+    when referenced in prose.
+    """
+
     deprecated: IStyle = identity
+    """Style applied to ``(DEPRECATED)`` / ``(Deprecated: reason)`` markers
+    appended to options and commands.
+    """
+
     search: IStyle = identity
+    """Style applied to substring matches in :command:`<cli> help --search`
+    output.
+    """
+
     success: IStyle = identity
-    """Click Extra new coloring properties."""
+    """Style applied to success glyphs in pre-rendered UI elements (the ``✓``
+    in :data:`OK`) and any text passed through this slot by downstream code.
+    """
 
     cross_ref_highlight: bool = True
     """Highlight options, choices, arguments, metavars and CLI names in
