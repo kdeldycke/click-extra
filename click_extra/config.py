@@ -1425,8 +1425,14 @@ class ConfigOption(ExtraOption, ParamStructure):
         """Search for ``pyproject.toml`` from CWD upward to the VCS root.
 
         Mimics the discovery behavior of uv, ruff, and mypy: start in the
-        current working directory and walk up until a ``pyproject.toml`` is
-        found or the VCS root (or filesystem root) is reached.
+        current working directory and walk up until a ``pyproject.toml``
+        containing a ``[tool.<cli_name>]`` section is found, or the VCS root
+        (or filesystem root) is reached.
+
+        A ``pyproject.toml`` without a ``[tool.<cli_name>]`` section is
+        skipped so unrelated project configs (e.g. a dotfiles repo's
+        ``[tool.ruff]``) do not shadow the user's app-dir config; the
+        caller falls back to the standard app-dir search instead.
 
         Only runs when ``ConfigFormat.PYPROJECT_TOML`` is in
         ``file_format_patterns``.  Returns ``(path, parsed_tool_section)`` on
@@ -1435,6 +1441,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         logger = logging.getLogger("click_extra")
         cwd = Path.cwd()
         stop_at = self._resolve_stop_at(cwd)
+
+        cli_name = get_current_context().find_root().info_name
 
         for directory in (cwd, *cwd.parents):
             if self._should_stop_walking(directory, stop_at):
@@ -1455,9 +1463,12 @@ class ConfigOption(ExtraOption, ParamStructure):
             for conf in self.parse_conf(
                 content, formats=(ConfigFormat.PYPROJECT_TOML,)
             ):
-                if conf:
+                if conf and cli_name in conf:
                     return candidate, conf
-            logger.debug(f"{candidate} parsed but empty [tool] section.")
+            logger.debug(
+                f"{candidate} has no [tool.{cli_name}] section; "
+                "falling back to app-dir search."
+            )
 
         return None, None
 

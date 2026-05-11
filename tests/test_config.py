@@ -4103,6 +4103,208 @@ def test_pyproject_toml_explicit_config_skips_cwd(
     assert "value is 'from_explicit'" in result.stdout
 
 
+def test_pyproject_toml_cwd_skips_unrelated_tool_section(
+    invoke, tmp_path, monkeypatch
+):
+    """A pyproject.toml without [tool.<cli_name>] is skipped.
+
+    Regression: a pyproject.toml carrying only unrelated [tool.X] sections
+    (like a dotfiles repo's [tool.ruff]) used to shadow the user's app-dir
+    config. It must now be ignored so the CLI falls back to its defaults
+    instead of inheriting an unrelated project's settings.
+    """
+    from dataclasses import dataclass
+
+    from click_extra.config import get_tool_config
+
+    @dataclass
+    class AppConfig:
+        fruit: str = "apple"
+
+    @group(config_schema=AppConfig)
+    @pass_context
+    def unrelated_cli(ctx):
+        config = get_tool_config(ctx)
+        echo(f"fruit is {config.fruit!r}")
+
+    @unrelated_cli.command()
+    def subcommand():
+        echo("ok")
+
+    # pyproject.toml with only an unrelated [tool.X] section.
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_text(
+        dedent("""\
+            [tool.ruff]
+            line-length = 100
+
+            [tool.unrelated]
+            fruit = "banana"
+            """),
+    )
+    monkeypatch.chdir(tmp_path)
+
+    result = invoke(unrelated_cli, "subcommand", color=False)
+    assert result.exit_code == 0
+    # The unrelated config must not leak into the CLI; defaults apply.
+    assert "fruit is 'apple'" in result.stdout
+
+
+def test_pyproject_toml_cwd_walks_past_unrelated_tool_section(
+    invoke, tmp_path, monkeypatch
+):
+    """CWD walk continues past a pyproject.toml lacking [tool.<cli_name>].
+
+    A nearer pyproject.toml that only carries unrelated [tool.X] sections
+    must not stop the upward walk: a parent pyproject.toml with a matching
+    [tool.<cli_name>] section should still be discovered.
+    """
+    from dataclasses import dataclass
+
+    from click_extra.config import get_tool_config
+
+    @dataclass
+    class AppConfig:
+        city: str = "default"
+
+    @group(config_schema=AppConfig)
+    @pass_context
+    def walk_past_cli(ctx):
+        config = get_tool_config(ctx)
+        echo(f"city is {config.city!r}")
+
+    @walk_past_cli.command()
+    def subcommand():
+        echo("ok")
+
+    # Parent pyproject.toml has the matching [tool.<cli_name>] section.
+    parent_pyproject = tmp_path / "pyproject.toml"
+    parent_pyproject.write_text(
+        dedent("""\
+            [tool.walk-past-cli]
+            city = "Paris"
+            """),
+    )
+
+    # Closer pyproject.toml only carries unrelated [tool.X] sections.
+    subdir = tmp_path / "nested" / "sub"
+    subdir.mkdir(parents=True)
+    nested_pyproject = subdir / "pyproject.toml"
+    nested_pyproject.write_text(
+        dedent("""\
+            [tool.ruff]
+            line-length = 100
+            """),
+    )
+    monkeypatch.chdir(subdir)
+
+    result = invoke(walk_past_cli, "subcommand", color=False)
+    assert result.exit_code == 0
+    assert "city is 'Paris'" in result.stdout
+
+
+def test_pyproject_toml_cwd_mixed_tool_sections(invoke, tmp_path, monkeypatch):
+    """[tool.<cli_name>] is picked from a pyproject.toml that also has others."""
+    from dataclasses import dataclass
+
+    from click_extra.config import get_tool_config
+
+    @dataclass
+    class AppConfig:
+        weather: str = "default"
+
+    @group(config_schema=AppConfig)
+    @pass_context
+    def mixed_cli(ctx):
+        config = get_tool_config(ctx)
+        echo(f"weather is {config.weather!r}")
+
+    @mixed_cli.command()
+    def subcommand():
+        echo("ok")
+
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_text(
+        dedent("""\
+            [tool.ruff]
+            line-length = 100
+
+            [tool.mixed-cli]
+            weather = "sunny"
+
+            [tool.unrelated]
+            ignored = true
+            """),
+    )
+    monkeypatch.chdir(tmp_path)
+
+    result = invoke(mixed_cli, "subcommand", color=False)
+    assert result.exit_code == 0
+    assert "weather is 'sunny'" in result.stdout
+
+
+def test_pyproject_toml_cwd_unrelated_does_not_shadow_app_dir(
+    invoke, tmp_path, monkeypatch
+):
+    """An unrelated pyproject.toml falls through to the app-dir config.
+
+    Directly exercises the documented intent of the fix: when CWD contains a
+    pyproject.toml whose only [tool.X] sections are unrelated to the CLI, the
+    walk must give up so the standard app-dir search can find the user's
+    actual config and apply it.
+    """
+    from dataclasses import dataclass
+
+    import click_extra.config as config_module
+    from click_extra.config import get_tool_config
+
+    @dataclass
+    class AppConfig:
+        animal: str = "default"
+
+    @group(config_schema=AppConfig)
+    @pass_context
+    def fallback_cli(ctx):
+        config = get_tool_config(ctx)
+        echo(f"animal is {config.animal!r}")
+
+    @fallback_cli.command()
+    def subcommand():
+        echo("ok")
+
+    # Redirect the app-dir lookup to a tmp location and seed it with a
+    # legitimate config for the CLI.
+    app_dir = tmp_path / "app-dir"
+    app_dir.mkdir()
+    monkeypatch.setattr(
+        config_module,
+        "get_app_dir",
+        lambda name, **kwargs: str(app_dir),
+    )
+    (app_dir / "config.toml").write_text(
+        dedent("""\
+            [fallback-cli]
+            animal = "otter"
+            """),
+    )
+
+    # CWD pyproject.toml carries an unrelated [tool.X] section only.
+    cwd_dir = tmp_path / "project"
+    cwd_dir.mkdir()
+    (cwd_dir / "pyproject.toml").write_text(
+        dedent("""\
+            [tool.ruff]
+            line-length = 100
+            """),
+    )
+    monkeypatch.chdir(cwd_dir)
+
+    result = invoke(fallback_cli, "subcommand", color=False)
+    assert result.exit_code == 0
+    # The app-dir config should win, not the unrelated pyproject.toml.
+    assert "animal is 'otter'" in result.stdout
+
+
 def test_flatten_config_keys_opaque():
     """opaque_keys stops flattening at matching key boundaries."""
     from click_extra.config import flatten_config_keys
