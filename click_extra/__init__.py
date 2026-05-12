@@ -17,6 +17,15 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+# Mypy override: ``from cloup import *`` below makes mypy think Style is cloup.Style.
+# Declaring the correct type here first, before the star import, causes mypy to treat
+# the later star import's Style as a no-redef (keeping click_extra.styling.Style as
+# the canonical type for consumers of this package).
+if TYPE_CHECKING:
+    from .styling import Style
+
 # Import all click's module-level content to allow for drop-in replacement.
 # XXX Star import is really badly supported by mypy for now and leads to lots of
 # "Module 'XXX' has no attribute 'YYY'". See: https://github.com/python/mypy/issues/4930
@@ -36,7 +45,10 @@ if True:
 # ``from cloup import *`` (which would otherwise re-shadow our subclass) and
 # before any module that does ``from . import Style`` is loaded (colorize,
 # theme, themes, parameters, version, testing all do).
-from .styling import Style  # type: ignore[no-redef]
+from . import styling as _styling_module
+
+Style = _styling_module.Style  # type: ignore[misc]
+del _styling_module
 
 from . import context
 from .colorize import (

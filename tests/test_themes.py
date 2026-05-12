@@ -108,9 +108,16 @@ def _theme_singleton_names(tree: ast.Module) -> list[str]:
     return names
 
 
+def _themes_source() -> str:
+    """Read the themes module source for AST inspection."""
+    path = inspect.getsourcefile(themes)
+    assert path is not None
+    return Path(path).read_text(encoding="utf-8")
+
+
 def test_theme_classes_alphabetical():
     """``HelpExtraTheme`` subclasses in ``themes.py`` are declared alphabetically."""
-    source = Path(inspect.getsourcefile(themes)).read_text(encoding="utf-8")
+    source = _themes_source()
     declared = _theme_subclass_names(ast.parse(source))
     assert declared == sorted(declared), (
         f"Theme classes in click_extra/themes.py must be declared alphabetically. "
@@ -120,7 +127,7 @@ def test_theme_classes_alphabetical():
 
 def test_theme_singletons_alphabetical():
     """UPPER_CASE theme singletons in ``themes.py`` are declared alphabetically."""
-    source = Path(inspect.getsourcefile(themes)).read_text(encoding="utf-8")
+    source = _themes_source()
     declared = _theme_singleton_names(ast.parse(source))
     assert declared == sorted(declared), (
         f"Theme singletons in click_extra/themes.py must be declared alphabetically. "
@@ -139,7 +146,7 @@ def test_builtin_themes_alphabetical():
 
 def test_singletons_match_builtin_themes():
     """Every UPPER_CASE singleton has a matching ``BUILTIN_THEMES`` entry, and vice versa."""
-    source = Path(inspect.getsourcefile(themes)).read_text(encoding="utf-8")
+    source = _themes_source()
     declared = set(_theme_singleton_names(ast.parse(source)))
     registered = {name.upper() for name in themes.BUILTIN_THEMES}
     assert declared == registered, (
@@ -151,7 +158,7 @@ def test_singletons_match_builtin_themes():
 
 def test_theme_classes_subclass_helpextratheme():
     """Every theme class declared in ``themes.py`` actually subclasses ``HelpExtraTheme``."""
-    source = Path(inspect.getsourcefile(themes)).read_text(encoding="utf-8")
+    source = _themes_source()
     for name in _theme_subclass_names(ast.parse(source)):
         cls = getattr(themes, name)
         assert isinstance(cls, type), f"{name} is not a class"

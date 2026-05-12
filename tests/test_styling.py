@@ -22,7 +22,6 @@ import pytest
 
 from click_extra import Style
 
-
 # --- 1. Hex string color shorthand ------------------------------------------
 
 
@@ -117,7 +116,7 @@ def test_cascade_keeps_subclass_identity():
 
 def test_cascade_with_non_style_raises():
     with pytest.raises(TypeError, match="not a Style"):
-        Style(fg="red").cascade("not a style")
+        Style(fg="red").cascade("not a style")  # type: ignore[arg-type]
 
 
 # --- 4. to_dict() / from_dict() ---------------------------------------------

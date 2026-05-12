@@ -132,7 +132,7 @@ def _resolve_rgb(color: object) -> tuple[int, int, int]:
     ``.name`` attribute.
     """
     if isinstance(color, tuple) and len(color) == 3:
-        return color  # type: ignore[return-value]
+        return color
     if isinstance(color, str):
         if color.startswith("#"):
             return _hex_to_rgb(color)
@@ -142,7 +142,7 @@ def _resolve_rgb(color: object) -> tuple[int, int, int]:
     if isinstance(color, int):
         return _palette_to_rgb(color)
     if hasattr(color, "name") and not isinstance(color, type):
-        return _resolve_rgb(color.name)  # type: ignore[union-attr]
+        return _resolve_rgb(color.name)
     raise ValueError(f"Cannot resolve color: {color!r}")
 
 
@@ -151,7 +151,7 @@ def _color_repr(value: object) -> str:
     if isinstance(value, tuple) and len(value) == 3:
         return f"#{value[0]:02x}{value[1]:02x}{value[2]:02x}"
     if hasattr(value, "name") and not isinstance(value, str):
-        return value.name  # type: ignore[no-any-return,union-attr]
+        return value.name  # type: ignore[no-any-return]
     return repr(value)
 
 
@@ -170,7 +170,7 @@ def _color_to_css(color: object) -> str:
         r, g, b = _palette_to_rgb(color)
         return f"#{r:02x}{g:02x}{b:02x}"
     if hasattr(color, "name") and not isinstance(color, type):
-        return _color_to_css(color.name)  # type: ignore[union-attr]
+        return _color_to_css(color.name)
     return str(color)
 
 
@@ -200,6 +200,12 @@ class Style(cloup.Style):
     ``with_()``) is otherwise identical to :class:`cloup.Style`.
     """
 
+    fg: str | tuple[int, int, int] | int | None = None  # type: ignore[assignment]
+    """Foreground color: named ANSI string, ``#rrggbb`` hex, RGB tuple, or palette index."""
+
+    bg: str | tuple[int, int, int] | int | None = None  # type: ignore[assignment]
+    """Background color: named ANSI string, ``#rrggbb`` hex, RGB tuple, or palette index."""
+
     def __post_init__(self) -> None:
         """Convert ``#rrggbb`` shorthand strings on ``fg``/``bg`` to RGB tuples.
 
@@ -220,9 +226,7 @@ class Style(cloup.Style):
             parts.append(f"fg={_color_repr(self.fg)}")
         if self.bg is not None:
             parts.append(f"bg={_color_repr(self.bg)}")
-        for attr in _BOOL_ATTRS:
-            if getattr(self, attr, None):
-                parts.append(attr)
+        parts.extend(attr for attr in _BOOL_ATTRS if getattr(self, attr, None))
         text_transform = getattr(self, "text_transform", None)
         if text_transform is not None:
             parts.append(f"text_transform={text_transform!r}")
@@ -286,13 +290,13 @@ class Style(cloup.Style):
     def __or__(self, other: object) -> Style:
         """``a | b`` merges two styles. ``b``'s set fields win on conflicts."""
         if not isinstance(other, cloup.Style):
-            return NotImplemented  # type: ignore[return-value]
+            return NotImplemented
         return self._merge(self, other)
 
     def __ror__(self, other: object) -> Style:
         """Reflected ``|``: ``other | self`` where ``self``'s fields win."""
         if not isinstance(other, cloup.Style):
-            return NotImplemented  # type: ignore[return-value]
+            return NotImplemented
         return self._merge(other, self)
 
     def cascade(self, base: cloup.Style) -> Style:

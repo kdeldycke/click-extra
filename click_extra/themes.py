@@ -59,7 +59,7 @@ from cloup._util import identity
 from cloup.styling import Color
 
 from . import Style
-from .styling import _color_to_css  # noqa: TID252  -- internal helper
+from .styling import _color_to_css
 from .theme import HelpExtraTheme
 
 TYPE_CHECKING = False

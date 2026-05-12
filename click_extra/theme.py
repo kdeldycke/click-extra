@@ -381,7 +381,7 @@ class ThemeOption(ExtraOption):
 # then load ``themes.py`` (which references ``HelpExtraTheme``), then seed the
 # registry and reassign ``default_theme`` so consumers reading it via
 # ``from .theme import default_theme`` capture the dark theme as expected.
-from .themes import BUILTIN_THEMES  # noqa: E402
+from .themes import BUILTIN_THEMES
 
 theme_registry.update(BUILTIN_THEMES)
 default_theme = BUILTIN_THEMES["dark"]

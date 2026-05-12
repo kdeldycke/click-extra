@@ -52,7 +52,7 @@ import sys
 from collections import ChainMap
 from collections.abc import Iterable, Mapping
 from configparser import ConfigParser, ExtendedInterpolation
-from dataclasses import MISSING, dataclass, field, fields as dc_fields, is_dataclass
+from dataclasses import MISSING, dataclass, fields as dc_fields, is_dataclass
 from enum import Enum
 from functools import cached_property, partial
 from gettext import gettext as _
@@ -605,7 +605,7 @@ def _is_mapping_type(hint: object) -> bool:
 
 
 def _collect_opaque_paths_from_schema(
-    schema: type | None,
+    schema: type | Callable[[dict[str, Any]], Any] | None,
     _prefix: str = "",
 ) -> frozenset[str]:
     """Collect dotted paths of *extension* fields from a dataclass schema.
@@ -648,7 +648,7 @@ def _collect_opaque_paths_from_schema(
         marked = bool(f.metadata.get(EXTENSION_METADATA_KEY, False))
         if marked or _is_mapping_type(hint):
             paths.add(full_path)
-        elif is_dataclass(hint):
+        elif is_dataclass(hint) and isinstance(hint, type):
             paths |= _collect_opaque_paths_from_schema(hint, _prefix=full_path)
     return frozenset(paths)
 
@@ -2304,8 +2304,7 @@ class ValidateConfigOption(ExtraOption):
                 errors.append(str(exc))
 
         # 3. App-registered validators against opaque sub-trees.
-        for verror in config_option._iter_validator_errors(ctx, user_conf):
-            errors.append(str(verror))
+        errors.extend(str(verror) for verror in config_option._iter_validator_errors(ctx, user_conf))
 
         if errors:
             for err in errors:

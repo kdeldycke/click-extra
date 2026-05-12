@@ -36,7 +36,7 @@ from gettext import gettext as _
 import click
 import click.formatting
 import cloup
-from click._compat import term_len  # type: ignore[attr-defined]
+from click._compat import term_len
 
 from . import ParameterSource, theme as _theme
 from .parameters import ExtraOption
