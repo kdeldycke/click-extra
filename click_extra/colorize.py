@@ -551,8 +551,11 @@ class HelpExtraFormatter(cloup.HelpFormatter):
         output stays syntactically valid.
 
         .. seealso::
-            Tracked upstream at
-            https://github.com/janluke/cloup/issues/<TBD>.
+            Upstream fix proposed at
+            https://github.com/pallets/click/pull/3420, which makes
+            :class:`click.formatting.TextWrapper` ANSI-aware by counting
+            visible width instead of raw bytes. Once that lands in a Click
+            release, this override can be removed.
         """
         if prefix is None:
             prefix = "Usage:"
