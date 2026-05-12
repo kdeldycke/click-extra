@@ -281,6 +281,7 @@ dependency-groups.docs = { requires-python = ">= 3.14" }
 exclude-newer = "1 week"
 # Package is at root level, not in "./src/".
 build-backend.module-root = ""
+exclude-newer-package = { urllib3 = "0 day" }
 
 [tool.ruff]
 preview = true
