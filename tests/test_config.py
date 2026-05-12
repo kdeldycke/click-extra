@@ -4661,3 +4661,394 @@ def test_schema_nested_dataclass_defaults(invoke, create_config):
     # Sub-config uses defaults since [default-dc-cli.sub] is absent.
     assert "sub.enabled is True" in result.stdout
     assert "sub.count is 42" in result.stdout
+
+
+# Opaque-aware strict check: schema-declared extension sub-trees pass through
+# both runtime strict mode and --validate-config without tripping unknown-key
+# detection.
+
+
+def test_strict_skips_opaque_dict_field(invoke, create_config):
+    """Strict mode does not reject keys inside a ``dict[str, X]`` schema field.
+
+    A field typed as ``dict[str, dict]`` is user-controlled: the keys are data,
+    not CLI flag names. Click-extra strips that sub-tree before running its
+    unknown-key check so app extensions don't trip strict mode.
+    """
+    from dataclasses import dataclass, field
+
+    @dataclass
+    class AppConfig:
+        extensions: dict[str, dict] = field(default_factory=dict)
+
+    @click.group
+    @option("--dummy-flag/--no-flag")
+    @config_option(config_schema=AppConfig, strict=True)
+    def opaque_cli(dummy_flag):
+        echo("ok")
+
+    @opaque_cli.command
+    def sub():
+        echo("sub")
+
+    conf_path = create_config(
+        "opaque_dict.toml",
+        dedent("""\
+            [opaque-cli]
+            dummy_flag = true
+
+            [opaque-cli.extensions.plugin-a]
+            anything = "goes"
+            and_so_does = ["this", "list"]
+            """),
+    )
+
+    result = invoke(opaque_cli, "--config", str(conf_path), "sub", color=False)
+    assert result.exit_code == 0
+
+
+def test_strict_skips_opaque_metadata_field(invoke, create_config):
+    """Strict mode also honors the ``EXTENSION_METADATA_KEY`` marker on a field
+    whose Python type is not a mapping."""
+    from dataclasses import dataclass, field
+
+    from click_extra import EXTENSION_METADATA_KEY
+
+    @dataclass
+    class AppConfig:
+        # Typed as a list but the metadata flag tells click-extra to treat the
+        # backing dict in the config file as opaque content.
+        plugins: list = field(
+            default_factory=list,
+            metadata={EXTENSION_METADATA_KEY: True},
+        )
+
+    @click.group
+    @option("--dummy-flag/--no-flag")
+    @config_option(config_schema=AppConfig, strict=True)
+    def metadata_opaque_cli(dummy_flag):
+        echo("ok")
+
+    @metadata_opaque_cli.command
+    def sub():
+        echo("sub")
+
+    conf_path = create_config(
+        "opaque_metadata.toml",
+        dedent("""\
+            [metadata-opaque-cli]
+            dummy_flag = true
+
+            [metadata-opaque-cli.plugins]
+            arbitrary = "content"
+            """),
+    )
+
+    result = invoke(
+        metadata_opaque_cli,
+        "--config",
+        str(conf_path),
+        "sub",
+        color=False,
+    )
+    assert result.exit_code == 0
+
+
+def test_validate_config_skips_opaque_field(invoke, create_config):
+    """--validate-config also skips opaque sub-trees, so a config that the
+    runtime accepts also passes validation."""
+    from dataclasses import dataclass, field
+
+    @dataclass
+    class AppConfig:
+        extensions: dict[str, dict] = field(default_factory=dict)
+
+    @click.group
+    @option("--dummy-flag/--no-flag")
+    @config_option(config_schema=AppConfig, strict=True)
+    @validate_config_option
+    def validate_opaque_cli(dummy_flag):
+        echo("ok")
+
+    @validate_opaque_cli.command
+    def sub():
+        echo("sub")
+
+    conf_path = create_config(
+        "validate_opaque.toml",
+        dedent("""\
+            [validate-opaque-cli]
+            dummy_flag = true
+
+            [validate-opaque-cli.extensions.plugin-a]
+            anything = "goes"
+            """),
+    )
+
+    result = invoke(
+        validate_opaque_cli,
+        "--validate-config",
+        str(conf_path),
+        color=False,
+    )
+    assert result.exit_code == 0
+    assert "is valid" in result.stderr
+
+
+# ConfigValidator: app-registered validators run against opaque sub-trees
+# during both --validate-config and normal --config loading.
+
+
+def test_config_validator_runs_and_fails_under_validate_config(
+    invoke, create_config
+):
+    """A registered ``ConfigValidator`` runs during ``--validate-config`` and
+    surfaces its ``ValidationError`` with a path rooted at the config file."""
+    from dataclasses import dataclass, field
+
+    from click_extra import ConfigValidator, ValidationError
+
+    @dataclass
+    class AppConfig:
+        managers: dict[str, dict] = field(default_factory=dict)
+
+    def validate_managers(section: dict) -> None:
+        for manager_id, fields in section.items():
+            for key in fields:
+                if key not in {"timeout", "search_path"}:
+                    raise ValidationError(
+                        f"{manager_id}.{key}",
+                        f"unknown field {key!r}",
+                        code="unknown_field",
+                    )
+
+    @click.group
+    @option("--dummy-flag/--no-flag")
+    @config_option(
+        config_schema=AppConfig,
+        strict=True,
+        config_validators=(
+            ConfigValidator(
+                extension_path="managers",
+                validator=validate_managers,
+                description="Validates [<app>.managers.<id>] sub-tables.",
+            ),
+        ),
+    )
+    @validate_config_option
+    def validator_cli(dummy_flag):
+        echo("ok")
+
+    @validator_cli.command
+    def sub():
+        echo("sub")
+
+    # Valid config first: validator passes.
+    valid_path = create_config(
+        "validator_valid.toml",
+        dedent("""\
+            [validator-cli]
+            dummy_flag = true
+
+            [validator-cli.managers.winget]
+            timeout = 30
+            """),
+    )
+    result = invoke(
+        validator_cli, "--validate-config", str(valid_path), color=False
+    )
+    assert result.exit_code == 0
+    assert "is valid" in result.stderr
+
+    # Invalid config: validator fails with rooted path.
+    invalid_path = create_config(
+        "validator_invalid.toml",
+        dedent("""\
+            [validator-cli]
+            dummy_flag = true
+
+            [validator-cli.managers.winget]
+            timeout = 30
+            badkey = "oops"
+            """),
+    )
+    result = invoke(
+        validator_cli, "--validate-config", str(invalid_path), color=False
+    )
+    assert result.exit_code == 1
+    assert "validator-cli.managers.winget.badkey: unknown field 'badkey'" in (
+        result.stderr
+    )
+
+
+def test_config_validator_runs_during_normal_load(invoke, create_config):
+    """A misconfigured opaque sub-tree fails fast during normal config loading,
+    not only under ``--validate-config``."""
+    from dataclasses import dataclass, field
+
+    from click_extra import ConfigValidator, ValidationError
+
+    @dataclass
+    class AppConfig:
+        managers: dict[str, dict] = field(default_factory=dict)
+
+    def reject_all(section: dict) -> None:
+        if section:
+            raise ValidationError("", "no entries allowed")
+
+    @click.group
+    @config_option(
+        config_schema=AppConfig,
+        config_validators=(
+            ConfigValidator(extension_path="managers", validator=reject_all),
+        ),
+    )
+    def runtime_cli():
+        echo("ok")
+
+    @runtime_cli.command
+    def sub():
+        echo("sub")
+
+    conf_path = create_config(
+        "runtime_invalid.toml",
+        dedent("""\
+            [runtime-cli.managers.x]
+            anything = 1
+            """),
+    )
+
+    result = invoke(runtime_cli, "--config", str(conf_path), "sub", color=False)
+    # The validator's failure produces a clean exit-1 with the rooted path in
+    # the critical-level log, rather than a raw ValidationError traceback.
+    assert result.exit_code == 1
+    assert "runtime-cli.managers: no entries allowed" in result.stderr
+
+
+def test_config_validator_extension_path_strips_strict_check(invoke, create_config):
+    """A ConfigValidator(extension_path=...) registration alone is enough to skip
+    strict-check on that path, even when the schema doesn't have the field."""
+    from click_extra import ConfigValidator
+
+    def noop_validator(section: dict) -> None:
+        pass
+
+    @click.group
+    @config_option(
+        strict=True,
+        config_validators=(
+            ConfigValidator(extension_path="extras", validator=noop_validator),
+        ),
+    )
+    def strip_only_cli():
+        echo("ok")
+
+    @strip_only_cli.command
+    def sub():
+        echo("sub")
+
+    conf_path = create_config(
+        "strip_only.toml",
+        dedent("""\
+            [strip-only-cli.extras.foo]
+            arbitrary = "data"
+            """),
+    )
+
+    result = invoke(strip_only_cli, "--config", str(conf_path), "sub", color=False)
+    assert result.exit_code == 0
+
+
+def test_config_validator_collects_all_errors(invoke, create_config):
+    """``--validate-config`` reports every detected error in one pass.
+
+    A config with both an unknown CLI flag key and a validator-flagged field
+    should surface both messages before the run exits non-zero, so the user
+    sees the full punch list.
+    """
+    from dataclasses import dataclass, field
+
+    from click_extra import ConfigValidator, ValidationError
+
+    @dataclass
+    class AppConfig:
+        managers: dict[str, dict] = field(default_factory=dict)
+
+    def reject_badkey(section: dict) -> None:
+        for manager_id, fields in section.items():
+            if "badkey" in fields:
+                raise ValidationError(
+                    manager_id, "badkey is not allowed", code="unknown_field"
+                )
+
+    @click.group
+    @option("--dummy-flag/--no-flag")
+    @config_option(
+        config_schema=AppConfig,
+        strict=True,
+        config_validators=(
+            ConfigValidator(extension_path="managers", validator=reject_badkey),
+        ),
+    )
+    @validate_config_option
+    def both_errors_cli(dummy_flag):
+        echo("ok")
+
+    @both_errors_cli.command
+    def sub():
+        echo("sub")
+
+    conf_path = create_config(
+        "both_errors.toml",
+        dedent("""\
+            [both-errors-cli]
+            dummy_flag = true
+            unknown_flag = true
+
+            [both-errors-cli.managers.x]
+            badkey = "oops"
+            """),
+    )
+
+    result = invoke(
+        both_errors_cli, "--validate-config", str(conf_path), color=False
+    )
+    assert result.exit_code == 1
+    # Both errors appear in the same run.
+    assert "unknown_flag" in result.stderr
+    assert "badkey is not allowed" in result.stderr
+
+
+def test_collect_opaque_paths_from_schema():
+    """Schema introspection picks up dict-typed fields, metadata-marked
+    fields, and nested-dataclass opaque fields with dotted prefixes."""
+    from dataclasses import dataclass, field
+
+    from click_extra import EXTENSION_METADATA_KEY
+    from click_extra.config import _collect_opaque_paths_from_schema
+
+    # Use ``dict`` (the builtin) instead of typing.Any inside ``dict[str, X]``
+    # so type-hint resolution doesn't depend on a module-level Any import.
+    @dataclass
+    class Nested:
+        extras: dict[str, dict] = field(default_factory=dict)
+        flat: int = 0
+
+    @dataclass
+    class AppConfig:
+        timeout: int = 0
+        managers: dict[str, dict] = field(default_factory=dict)
+        nested: Nested = field(default_factory=Nested)
+        marked: list = field(
+            default_factory=list,
+            metadata={EXTENSION_METADATA_KEY: True},
+        )
+
+    assert _collect_opaque_paths_from_schema(AppConfig) == frozenset({
+        "managers",
+        "nested.extras",
+        "marked",
+    })
+    # Empty result for non-dataclass schemas.
+    assert _collect_opaque_paths_from_schema(None) == frozenset()
+    assert _collect_opaque_paths_from_schema(int) == frozenset()

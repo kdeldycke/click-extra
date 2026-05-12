@@ -39,8 +39,10 @@ from .config import (
     DEFAULT_SUBCOMMANDS_KEY,
     PREPEND_SUBCOMMANDS_KEY,
     ConfigOption,
+    ConfigValidator,
     NoConfigOption,
     ValidateConfigOption,
+    _collect_opaque_paths_from_schema,
     _make_schema_callable,
 )
 from .context import ExtraContext
@@ -146,6 +148,7 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
         config_schema: type | Callable[[dict[str, Any]], Any] | None = None,
         schema_strict: bool = False,
         fallback_sections: Sequence[str] = (),
+        config_validators: Sequence[ConfigValidator] = (),
         included_params: Sequence[str] | None = None,
         extra_option_at_end: bool = True,
         populate_auto_envvars: bool = True,
@@ -323,6 +326,7 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
             config_schema is not None
             or schema_strict
             or fallback_sections
+            or config_validators
             or included_params is not None
         ):
             for param in self.params:
@@ -339,6 +343,19 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
                         )
                     if fallback_sections:
                         param.fallback_sections = tuple(fallback_sections)
+                    if config_validators:
+                        param.config_validators = tuple(config_validators)
+                    # Recompute the opaque-path union whenever the schema or
+                    # validators have been forwarded so the strict-check skip
+                    # set stays in sync with the new sources.
+                    if config_schema is not None or config_validators:
+                        schema_paths = _collect_opaque_paths_from_schema(
+                            param.config_schema,
+                        )
+                        validator_paths = frozenset(
+                            v.extension_path for v in param.config_validators
+                        )
+                        param._opaque_paths = schema_paths | validator_paths
 
         if populate_auto_envvars:
             for param in self.params:

@@ -322,6 +322,10 @@ ValueError: Parameter 'random_param' is not allowed in configuration file.
 If you want to check a configuration file for unrecognized keys without running the CLI, see the [`--validate-config` option](#validating-configuration-files) below.
 ```
 
+```{tip}
+Strict mode rejects every key it doesn't recognize as a CLI flag, which is the right default for most apps but breaks sub-tables whose keys are *data* rather than flag names (per-plugin overrides, matrix axes, user-defined IDs). The [Extending validation](#extending-validation) section covers how to declare such sub-trees as passthrough and route them to your own validator.
+```
+
 ## Validating configuration files
 
 The `@validate_config_option` decorator adds a `--validate-config CONFIG_PATH` option that checks whether a configuration file is well-formed and contains only recognized parameters, then exits. This is useful for CI pipelines, editor integrations, or simply verifying a configuration file before deploying it.
@@ -406,6 +410,168 @@ The exit codes are:
 
 ```{note}
 `--validate-config` always validates in [strict mode](#strictness), regardless of the `strict` setting on `@config_option`. It requires a sibling `@config_option` decorator to be present on the same command.
+```
+
+## Extending validation
+
+`--validate-config` and the runtime strict check both speak the language of CLI parameters: every recognized key must correspond to a flag on the command tree. That works for configurations that mirror the CLI one-to-one, but breaks the moment your app declares its own sub-tables whose keys are *data*, not flag names. The user-defined IDs under `[my-cli.managers.<id>]`, the matrix axes in `[my-cli.test-matrix.<axis>]`, the plugin names in `[my-cli.plugins.<plugin>]` — none of these are CLI options, so click-extra's strict mode rightfully refuses to accept them.
+
+Click-extra's answer is to declare such sub-tables as **extension points**. Each extension point names a dotted path in the app's configuration section and pairs with a {py:class}`~click_extra.config.ConfigValidator` that owns the validation logic for it. Click-extra's machinery treats the path as a passthrough: the strict check skips it, the dataclass schema doesn't descend into it, and the contents arrive at the app's validator verbatim. The result is one validation surface that covers both halves — click-extra checks the CLI-flag-bound keys, the app checks its own extension content, and `--validate-config` reports every failure with the same path-rooted error type.
+
+```{tip}
+Three terms describe the same mechanism from three angles, and you'll see all of them in this documentation and in the click-extra source:
+
+- **Extension** is what the *app* does — declare a sub-tree that lives outside click-extra's schema and validate it through your own logic. This is the public-facing name (`ConfigValidator`, `EXTENSION_METADATA_KEY`).
+- **Passthrough** is what *click-extra* does — let the extension sub-tree flow through the strict-check, normalize, and flatten stages without inspection. Use this term when describing how data moves through the pipeline.
+- **Opaque** is what the *pipeline* sees — a path it must not descend into. The internal helpers (`_collect_opaque_paths_from_schema`, the `opaque_keys` parameter on `normalize_config_keys`/`flatten_config_keys`, the `_opaque_paths` cache on `ConfigOption`) all use this term. Same set of paths, viewed from the inside.
+
+All three vocabularies refer to the same dotted-path set. *Extension* is what you write in your app code, *passthrough* is what you'd say to explain the behavior, *opaque* is what you'll search for when reading click-extra's source.
+```
+
+### Declaring an extension point
+
+The most ergonomic way is to add a `dict[str, X]`-typed field to your dataclass schema. Click-extra recognizes mapping-typed fields automatically and treats them as extension points without further annotation:
+
+```{code-block} python
+:emphasize-lines: 7
+from dataclasses import dataclass, field
+
+@dataclass
+class AppConfig:
+    """Schema for my-cli."""
+    verbose: bool = False
+    managers: dict[str, dict] = field(default_factory=dict)
+```
+
+The `managers` field is now an extension point at the dotted path `managers` (relative to the app's section). A configuration like:
+
+```{code-block} toml
+[my-cli]
+verbose = true
+
+[my-cli.managers.winget]
+search_path = ["C:\\Program Files\\WindowsApps"]
+
+[my-cli.managers.brew]
+timeout = 600
+```
+
+passes through both the CLI-flag strict check (which sees `verbose` and ignores everything under `managers`) and the schema's typed instantiation (which receives `managers` as a single dict, not flattened into `managers_winget_search_path` etc.).
+
+When the underlying Python type isn't a mapping — for example, a nested dataclass that still represents extension content — mark the field explicitly with {py:data}`~click_extra.config.EXTENSION_METADATA_KEY`:
+
+```{code-block} python
+:emphasize-lines: 1,7
+from click_extra import EXTENSION_METADATA_KEY
+
+@dataclass
+class AppConfig:
+    plugins: list = field(
+        default_factory=list,
+        metadata={EXTENSION_METADATA_KEY: True},
+    )
+```
+
+The metadata flag and the `dict[str, X]` type hint are interchangeable for declaring opacity. Use whichever matches your schema's natural shape.
+
+### Registering a validator
+
+A {py:class}`~click_extra.config.ConfigValidator` binds an `extension_path` to a callable that inspects the sub-tree and raises {py:class}`~click_extra.config.ValidationError` on failure. Pass a tuple of validators through the `config_validators=` kwarg on `@group` or `@config_option`:
+
+```{code-block} python
+:emphasize-lines: 14-19,29-34
+from dataclasses import dataclass, field
+
+from click_extra import (
+    ConfigValidator,
+    ValidationError,
+    config_option,
+    group,
+    option,
+)
+
+ALLOWED_KEYS = frozenset({"timeout", "search_path"})
+
+
+def validate_managers(section: dict) -> None:
+    """Lint the [my-cli.managers.<id>] sub-tree."""
+    for manager_id, fields in section.items():
+        for key in fields:
+            if key not in ALLOWED_KEYS:
+                raise ValidationError(
+                    f"{manager_id}.{key}",
+                    f"unknown field {key!r}",
+                    code="unknown_field",
+                )
+
+
+@dataclass
+class AppConfig:
+    managers: dict[str, dict] = field(default_factory=dict)
+
+
+@group(
+    config_schema=AppConfig,
+    config_validators=(
+        ConfigValidator(
+            extension_path="managers",
+            validator=validate_managers,
+            description="Validate per-manager override blocks.",
+        ),
+    ),
+)
+@option("--verbose/--quiet")
+def my_cli(verbose):
+    """An app that validates its own extension sub-tree."""
+```
+
+The validator receives the value at `app_section[extension_path]` — the contents of `[my-cli.managers]`, in this example — already extracted from the file. It's a pure function: no side effects, no `click.echo`, no `sys.exit`. Click-extra runs it both during `--validate-config` (where every error is collected and reported before exit) and during normal `--config` loading (where the first error fails the run with a clean exit code).
+
+`ValidationError` carries a dotted `path` and a `message`. Validators raise with paths relative to their extension sub-tree:
+
+```python
+raise ValidationError("winget.unknown_field", "unknown field 'unknown_field'")
+```
+
+Click-extra re-anchors the path against the configuration file root before surfacing the error, so the user sees `my-cli.managers.winget.unknown_field` regardless of where in the schema the validator lives.
+
+### Validator-only extension paths
+
+A `ConfigValidator` registration *also* declares the extension path: even without a corresponding dataclass field, the path is added to click-extra's opaque set and the strict check skips it. This lets you opt sub-trees out of strict mode without touching the schema:
+
+```{code-block} python
+:emphasize-lines: 4-7
+@group(
+    strict=True,
+    config_validators=(
+        ConfigValidator(
+            extension_path="plugins",
+            validator=accept_anything,
+        ),
+    ),
+)
+def my_cli(): ...
+```
+
+Now `[my-cli.plugins.*]` content passes through to `accept_anything`, even though `plugins` isn't a field on any schema. Useful for plugin systems where the set of sub-paths isn't known when the CLI is defined.
+
+### Error reporting
+
+`--validate-config` runs the full pipeline and collects every error before exiting:
+
+```{code-block} shell-session
+:emphasize-lines: 2-3
+$ my-cli --validate-config bad.toml
+Configuration validation error: Parameter 'unknown_flag' found in second dict but not in first.
+Configuration validation error: my-cli.managers.winget.bad_key: unknown field 'bad_key'
+$ echo $?
+1
+```
+
+Normal `--config` loading is fail-fast: the first `ValidationError` becomes a critical-level log message and the run exits 1, before any subcommand callback fires.
+
+```{note}
+The internal name for an extension path is `opaque_path`. You'll see it in click-extra's source under `_collect_opaque_paths_from_schema`, in the `opaque_keys` parameter of `normalize_config_keys` and `flatten_config_keys`, and in the cached `ConfigOption._opaque_paths` attribute. From the pipeline's point of view those paths are stop markers — places it must not descend into. From your app's point of view they're extension points. The vocabulary divergence is intentional: developers reading their own code see *extension* (intent); developers reading click-extra's source see *opaque* (implementation).
 ```
 
 ## Excluding parameters
@@ -1514,7 +1680,7 @@ For callable schemas, use `flatten_config_keys` and `normalize_config_keys` expl
 
 By default, `flatten_config_keys` recurses into every nested dict. This breaks fields typed as `dict[str, X]` where the dict keys are data rather than config structure (e.g. GitHub Actions matrix axis names like `os` or `python-version`).
 
-When using a dataclass schema, Click Extra inspects field type hints and automatically stops flattening at `dict`-typed field boundaries. The dict value is assigned whole to the matching field:
+When using a dataclass schema, Click Extra inspects field type hints and automatically stops flattening at `dict`-typed field boundaries — the same extension-point detection covered in [Extending validation](#extending-validation), seen from the flattening pipeline's side. The dict value is assigned whole to the matching field:
 
 ```python
 from dataclasses import dataclass, field
@@ -1523,7 +1689,7 @@ from dataclasses import dataclass, field
 @dataclass
 class AppConfig:
     simple_value: str = ""
-    opaque_map: dict[str, list[str]] = field(default_factory=dict)
+    matrix_axes: dict[str, list[str]] = field(default_factory=dict)
 ```
 
 ```{code-block} toml
@@ -1531,14 +1697,14 @@ class AppConfig:
 [my-app]
 simple-value = "hello"
 
-[my-app.opaque-map]
+[my-app.matrix-axes]
 python-version = ["3.12", "3.13"]
 os = ["ubuntu", "macos"]
 ```
 
-Here `opaque_map` receives `{"python_version": ["3.12", "3.13"], "os": ["ubuntu", "macos"]}` as a single dict, rather than being split into `opaque_map_python_version` and `opaque_map_os`.
+Here `matrix_axes` receives `{"python_version": ["3.12", "3.13"], "os": ["ubuntu", "macos"]}` as a single dict, rather than being split into `matrix_axes_python_version` and `matrix_axes_os`. The pipeline calls this passthrough behavior internally: each extension path is added to an *opaque keys* set that `normalize_config_keys` and `flatten_config_keys` consult before recursing.
 
-Both `normalize_config_keys` and `flatten_config_keys` accept an `opaque_keys` parameter for manual control:
+Both helpers accept an `opaque_keys` parameter for manual control, useful when working with raw config dicts outside the schema pipeline:
 
 ```python
 from click_extra.config import flatten_config_keys
@@ -1555,6 +1721,8 @@ Dataclass fields can carry metadata to control how their values are extracted fr
 - **`click_extra.config_path`**: A dotted TOML path (e.g. `"test-matrix.replace"`). The value is extracted directly from the raw config before normalization and flattening, bypassing the standard pipeline.
 
 - **`click_extra.normalize_keys`**: Set to `False` to skip key normalization on the extracted value. Useful when the value contains keys that are external identifiers (e.g. GitHub Actions axis names like `python-version`) that must not be converted to `python_version`.
+
+- **`click_extra.extension`** (alias: {py:data}`~click_extra.config.EXTENSION_METADATA_KEY`): Set to `True` to declare the field as an [extension point](#extending-validation). The sub-tree at that field becomes a passthrough — strict-check skips it, the flatten pipeline treats it as opaque, and a registered `ConfigValidator` (or your own code) takes over its validation. Equivalent to typing the field as `dict[str, X]`; use the metadata form when the field's runtime type isn't a mapping.
 
 ```python
 from dataclasses import dataclass, field
