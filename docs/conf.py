@@ -145,3 +145,18 @@ html_show_sphinx = False
 
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
+
+
+def setup(app):
+    """Sphinx extension entry point.
+
+    Registers the ``autodoc-process-docstring`` hook that injects a colored
+    example into every :class:`HelpExtraTheme` slot's autodoc block. The
+    example is computed live by replaying the templates in
+    ``_PALETTE_EXAMPLES`` through the active dark theme's slot styling, so
+    the rendered output cannot drift from the actual Theme code path —
+    tweak ``themes.toml`` and the next build picks up the new colors.
+    """
+    from click_extra.theme import inject_slot_example_docstring
+
+    app.connect("autodoc-process-docstring", inject_slot_example_docstring)

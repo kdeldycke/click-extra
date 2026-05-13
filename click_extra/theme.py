@@ -43,6 +43,8 @@ configuration: see :doc:`/theme` for the user guide.
 from __future__ import annotations
 
 import dataclasses
+import html
+import re
 import sys
 from dataclasses import dataclass
 from gettext import gettext as _
@@ -89,25 +91,19 @@ class HelpExtraTheme(cloup.HelpTheme):
     critical: IStyle = identity
     """Style applied to the ``CRITICAL`` level name in log records.
 
-    Example::
-
-        CRITICAL: Database connection lost.
+    Example: ``CRITICAL: Database connection lost.``
     """
 
     error: IStyle = identity
     """Style applied to the ``ERROR`` level name in log records.
 
-    Example::
-
-        ERROR: Configuration file not found.
+    Example: ``ERROR: Configuration file not found.``
     """
 
     warning: IStyle = identity
     """Style applied to the ``WARNING`` level name in log records.
 
-    Example::
-
-        WARNING: Requested 16 jobs exceeds available CPU cores (8).
+    Example: ``WARNING: Requested 16 jobs exceeds available CPU cores (8).``
     """
 
     info: IStyle = identity
@@ -115,18 +111,12 @@ class HelpExtraTheme(cloup.HelpTheme):
 
     Usually left at :func:`identity <cloup._util.identity>`: ``INFO`` is the
     default verbosity and shouldn't stand out from regular output.
-
-    Example::
-
-        INFO: Loaded 23 records.
     """
 
     debug: IStyle = identity
     """Style applied to the ``DEBUG`` level name in log records.
 
-    Example::
-
-        DEBUG: Resolved /etc/myapp/config.toml.
+    Example: ``DEBUG: Resolved /etc/myapp/config.toml.``
     """
 
     # --- Help-screen structural slots ----------------------------------------
@@ -138,133 +128,71 @@ class HelpExtraTheme(cloup.HelpTheme):
     """Style applied to option names (``--config``, ``-v``, ``--ansi/--no-ansi``)
     wherever they appear: synopsis column, free-form descriptions, and
     docstrings (when :attr:`cross_ref_highlight` is enabled).
-
-    Example::
-
-        --config CONFIG_PATH    Location of the configuration file.
-        -v, --verbose           Increase verbosity.
     """
 
     subcommand: IStyle = identity
     """Style applied to subcommand names: in a group's command list and
     wherever they are referenced in prose.
-
-    Example::
-
-        Commands:
-          backup        Snapshot the data store.
-          restore       Restore from a snapshot.
-          show (ls)     Show the current state.
     """
 
     choice: IStyle = identity
     """Style applied to each individual value inside a :class:`click.Choice`
-    metavar and to those values referenced in option descriptions.
-
-    Example::
-
-        --format [json|csv|xml]   Output format. Defaults to json.
+    metavar (e.g. ``json``, ``csv``, ``xml`` within ``[json|csv|xml]``) and
+    to those values referenced in option descriptions.
     """
 
     metavar: IStyle = identity
     """Style applied to type metavars (``INTEGER``, ``TEXT``, ``PATH``,
     ``FILE``, ...) that follow an option name in the synopsis column.
-
-    Example::
-
-        --output TEXT       Destination file.
-        --workers INTEGER   Worker count.
     """
 
     bracket: IStyle = identity
     """Style applied to the literal bracket characters and label prefixes of
     trailing fields: ``[``, ``]``, ``default:``, ``env var:``, ``required``,
     and the field separators between them.
-
-    Example::
-
-        --port INTEGER    [default: 8080; env var: PORT; required]
     """
 
     envvar: IStyle = identity
     """Style applied to environment-variable values inside ``[env var: ...]``
     bracket fields, and to envvar names mentioned in option descriptions.
-
-    Example::
-
-        --threshold INTEGER   Acceptable error rate.
-                              [env var: THRESHOLD, TEST_THRESHOLD]
     """
 
     default: IStyle = identity
     """Style applied to the default-value content inside ``[default: ...]``
     bracket fields.
-
-    Example::
-
-        --output FILENAME    Destination file.  [default: out.csv]
-        --retries INTEGER    Retry budget.  [default: 5]
     """
 
     range_label: IStyle = identity
     """Style applied to range expressions (``0<=x<=9``, ``x>=1024``,
     ``0<=x<100``) that appear inside bracket fields for ``IntRange`` and
     ``FloatRange`` options.
-
-    Example::
-
-        --level INTEGER RANGE    Verbosity level.  [0<=x<=9]
-        --port INTEGER RANGE     Bind port.        [x>=1024]
     """
 
     required: IStyle = identity
     """Style applied to the ``required`` label inside bracket fields on
     mandatory options.
-
-    Example::
-
-        --token TEXT    Authentication token.  [required]
     """
 
     argument: IStyle = identity
     """Style applied to argument metavars (positional parameter names like
     ``MY_ARG``, ``SCRIPT``, ``[FILENAMES]...``) in the synopsis column and
     when referenced in prose.
-
-    Example::
-
-        Usage: cp [OPTIONS] SRC DST
-        Usage: pack [OPTIONS] [FILES]... [OUTPUT]
     """
 
     deprecated: IStyle = identity
     """Style applied to ``(DEPRECATED)`` / ``(Deprecated: reason)`` markers
     appended to options and commands.
-
-    Example::
-
-        --old-api    Legacy endpoint. (DEPRECATED: use --new-api instead)
-        --legacy     Kept for compatibility. (deprecated: will be removed in v9)
     """
 
     search: IStyle = identity
     """Style applied to substring matches in :command:`<cli> help --search`
     output, so users can spot where their query matched.
-
-    Example: running ``my-cli help --search retry`` highlights every
-    occurrence of *retry* in the rendered help output, including
-    ``--retries``, ``RetryError``, and prose mentions of "retry budget".
     """
 
     success: IStyle = identity
     """Style applied to success glyphs in pre-rendered UI elements (the ``✓``
     in :data:`OK_GLYPH`) and any text passed through this slot by downstream
     code.
-
-    Example::
-
-        ✓ database migration completed
-        ✓ 1,245 records imported
     """
 
     cross_ref_highlight: bool = True
@@ -282,11 +210,6 @@ class HelpExtraTheme(cloup.HelpTheme):
     Distinct from :attr:`heading` (which styles the top-level help-screen
     section titles): :attr:`subheading` is intended for downstream code that
     wants a second styling level for its own narrative output.
-
-    Example::
-
-        ◼ 3 mails sharing hash a1b2c3d4
-        ◼ 7 mails sharing hash e5f6a7b8
 
     .. seealso::
         Used by `mail-deduplicate
@@ -597,6 +520,80 @@ _PALETTE_CLOUP_SLOTS: frozenset[str] = frozenset({
     "section_help", "col1", "col2", "alias", "alias_secondary", "epilog",
 })
 
+# Per-slot example templates. Substrings wrapped in ``«…»`` (U+00AB / U+00BB
+# guillemets, picked because they never appear in real CLI help output) are
+# styled by calling ``theme.<slot>(text)`` at render time, so the example
+# faithfully reflects whatever the active theme's slot produces. Each slot
+# that the built-in themes actually style has an entry; unstyled inherited
+# slots and the boolean ``cross_ref_highlight`` toggle are intentionally
+# left out and the renderer falls back to a plain "(no example available)"
+# placeholder for them.
+_PALETTE_EXAMPLES: dict[str, str] = {
+    # Log-level slots: rendered by ExtraFormatter on the levelname token.
+    "critical": "«CRITICAL»: Database connection lost.",
+    "error": "«ERROR»: Configuration file not found.",
+    "warning": "«WARNING»: Requested 16 jobs exceeds available CPU cores (8).",
+    "info": "INFO: Loaded 23 records.",
+    "debug": "«DEBUG»: Resolved /etc/myapp/config.toml.",
+    # Cloup-inherited help-screen slots: rendered by HelpExtraFormatter on
+    # the matching tokens of help-screen output.
+    "invoked_command": "Usage: «my-cli» [OPTIONS] COMMAND [ARGS]...",
+    "heading": "«Options:»",
+    "constraint": "(«mutually exclusive»)",
+    "alias": "  show, «ls»     Show the current state.",
+    "alias_secondary": "  show «(»ls«)»     Show the current state.",
+    # HelpExtraTheme-native help-screen slots.
+    "option": (
+        "«--config» CONFIG_PATH    Location of the configuration file.\n"
+        "«-v», «--verbose»           Increase verbosity."
+    ),
+    "subcommand": (
+        "Commands:\n"
+        "  «backup»        Snapshot the data store.\n"
+        "  «restore»       Restore from a snapshot."
+    ),
+    "choice": (
+        "--format [«json»|«csv»|«xml»]   Output format. Defaults to «json»."
+    ),
+    "metavar": (
+        "--output «TEXT»       Destination file.\n"
+        "--workers «INTEGER»   Worker count."
+    ),
+    "bracket": (
+        "--port INTEGER    «[»«default: »8080«; »«env var: »PORT«; »required«]»"
+    ),
+    "envvar": (
+        "--threshold INTEGER   Acceptable error rate.\n"
+        "                      [env var: «THRESHOLD, TEST_THRESHOLD»]"
+    ),
+    "default": (
+        "--output FILENAME    Destination file.  [default: «out.csv»]\n"
+        "--retries INTEGER    Retry budget.  [default: «5»]"
+    ),
+    "range_label": (
+        "--level INTEGER RANGE    Verbosity level.  [«0<=x<=9»]\n"
+        "--port INTEGER RANGE     Bind port.        [«x>=1024»]"
+    ),
+    "required": "--token TEXT    Authentication token.  [«required»]",
+    "argument": (
+        "Usage: cp [OPTIONS] «SRC» «DST»\n"
+        "Usage: pack [OPTIONS] «[FILES]...» «[OUTPUT]»"
+    ),
+    "deprecated": (
+        "--old-api    Legacy endpoint. «(DEPRECATED: use --new-api instead)»\n"
+        "--legacy     Kept for compatibility. «(deprecated: removed in v9)»"
+    ),
+    "search": "--«retry»-budget INTEGER    The «retry» budget.",
+    "success": "«✓» database migration completed\n«✓» 1,245 records imported",
+    "subheading": (
+        "«◼ 3 mails sharing hash a1b2c3d4»\n"
+        "«◼ 7 mails sharing hash e5f6a7b8»"
+    ),
+}
+
+# Matches a single ``«…»`` segment for the slot-example renderer.
+_PALETTE_EXAMPLE_RE: re.Pattern[str] = re.compile("«([^»]+)»")
+
 _PALETTE_CLOUP_URL = (
     "https://cloup.readthedocs.io/en/stable/autoapi/cloup/index.html"
 )
@@ -616,6 +613,121 @@ def _palette_slot_link(name: str) -> str:
     else:
         href = f"#click_extra.theme.HelpExtraTheme.{name}"
     return f'<a href="{href}"><code>{name}</code></a>'
+
+
+def _render_slot_ansi(theme: HelpExtraTheme, slot: str) -> str:
+    """Render a slot's example template with literal ANSI SGR escapes.
+
+    For each ``«…»`` segment, calls ``theme.<slot>(text)`` — the same code
+    path click-extra uses to style real help-screen output at runtime —
+    and splices the resulting escape-bearing string into the template.
+    Used by the Sphinx ``autodoc-process-docstring`` hook in
+    :func:`inject_slot_example_docstring` to inject a colored example into
+    each :class:`HelpExtraTheme` slot's autodoc block, mirroring the
+    HTML rendering :func:`_render_slot_example` produces for the
+    palette tables.
+
+    Returns an empty string when the slot has no template; callers treat
+    that as "skip" rather than emitting an empty code block.
+    """
+    template = _PALETTE_EXAMPLES.get(slot)
+    if template is None:
+        return ""
+    style = getattr(theme, slot)
+    return _PALETTE_EXAMPLE_RE.sub(
+        lambda m: style(m.group(1)) if callable(style) else m.group(1),
+        template,
+    )
+
+
+def inject_slot_example_docstring(
+    app: Any,
+    what: str,
+    name: str,
+    obj: Any,
+    options: Any,
+    lines: list[str],
+) -> None:
+    """Sphinx ``autodoc-process-docstring`` hook injecting per-slot colored examples.
+
+    For every :class:`HelpExtraTheme` slot that has an entry in
+    :data:`_PALETTE_EXAMPLES`, append an ``ansi-color`` code block to the
+    slot's autodoc lines. The example is rendered through
+    :func:`_render_slot_ansi`, which calls ``BUILTIN_THEMES["dark"].<slot>(text)``
+    to obtain the actual ANSI escapes click-extra would emit at runtime.
+
+    Wire this up from a Sphinx ``conf.py`` with:
+
+    .. code-block:: python
+
+        from click_extra.theme import inject_slot_example_docstring
+
+        def setup(app):
+            app.connect("autodoc-process-docstring", inject_slot_example_docstring)
+
+    The hook intentionally targets *only* ``click_extra.theme.HelpExtraTheme.<slot>``
+    names so it won't accidentally rewrite unrelated docstrings; downstream
+    projects can register the hook in their own ``conf.py`` if they
+    consume HelpExtraTheme docstrings.
+    """
+    prefix = "click_extra.theme.HelpExtraTheme."
+    if not name.startswith(prefix):
+        return
+    slot = name[len(prefix):]
+    rendered = _render_slot_ansi(BUILTIN_THEMES["dark"], slot)
+    if not rendered:
+        return
+    lines.append("")
+    lines.append("Rendered with the default ``dark`` theme:")
+    lines.append("")
+    lines.append(".. code-block:: ansi-color")
+    lines.append("")
+    for ansi_line in rendered.split("\n"):
+        lines.append(f"   {ansi_line}")
+
+
+def _render_slot_example(theme: HelpExtraTheme, slot: str) -> str:
+    """Render a slot's example template as inline-styled HTML.
+
+    Looks up the slot's template in :data:`_PALETTE_EXAMPLES`, then for
+    every ``«…»``-marked segment calls ``theme.<slot>(text)`` to obtain the
+    actual styling click-extra would apply at runtime. The styled bytes are
+    converted to an inline CSS ``<span>`` via :meth:`Style.to_css`, so the
+    rendered HTML faithfully reflects whatever the theme's slot produces —
+    including the dim/italic/bold attribute mix and the foreground color.
+
+    Returns an empty string when the slot has no example template (cloup
+    slots that built-ins leave at identity, the boolean toggle, …); the
+    palette renderer treats that as "no example row" rather than emitting
+    an empty cell.
+    """
+    template = _PALETTE_EXAMPLES.get(slot)
+    if template is None:
+        return ""
+    style = getattr(theme, slot)
+    css = style.to_css() if isinstance(style, Style) else ""
+    parts: list[str] = []
+    last = 0
+    for match in _PALETTE_EXAMPLE_RE.finditer(template):
+        # Plain text between the previous segment and this match.
+        parts.append(html.escape(template[last:match.start()]))
+        token = html.escape(match.group(1))
+        if css:
+            parts.append(f'<span style="{css}">{token}</span>')
+        else:
+            # Slot is identity (or a non-Style callable we can't introspect):
+            # emit the token plain, matching the runtime no-op behavior.
+            parts.append(token)
+        last = match.end()
+    parts.append(html.escape(template[last:]))
+    return (
+        '<pre class="slot-example" style="margin:0.3em 0 0;'
+        "padding:0.4em 0.6em;background:var(--color-code-background,#f5f5f5);"
+        "border-radius:4px;font-size:0.85em;line-height:1.4;"
+        'white-space:pre-wrap">'
+        + "".join(parts)
+        + "</pre>"
+    )
 
 
 def palette_html(theme: HelpExtraTheme) -> str:
@@ -669,9 +781,18 @@ def palette_html(theme: HelpExtraTheme) -> str:
         ]
         if attrs:
             cell_parts.append(" ".join(attrs))
+        # Tack the styled example onto the <dd> body when one exists.
+        # Each example is rendered by replaying ``theme.<slot>(text)`` on
+        # the marked segments of ``_PALETTE_EXAMPLES[slot]``, so the visual
+        # is computed from the same code path that styles real help-screen
+        # output at runtime — no hand-authored ANSI escapes anywhere.
+        example_html = _render_slot_example(theme, f.name)
+        body = " ".join(cell_parts) or "—"
+        if example_html:
+            body = body + example_html
         rows.append(
             f"<dt>{_palette_slot_link(f.name)}</dt>"
-            f"<dd>{' '.join(cell_parts) or '—'}</dd>"
+            f"<dd>{body}</dd>"
         )
     return (
         '<dl class="theme-palette" style="display:grid;'
