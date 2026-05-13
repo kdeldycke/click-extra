@@ -481,10 +481,20 @@ _PALETTE_SWATCH = (
     'border-radius:2px;vertical-align:-0.15em;margin-right:0.35em"></span>'
 )
 
-_PALETTE_STYLE_ATTRS: tuple[str, ...] = (
-    "bold", "dim", "italic", "underline", "overline",
-    "blink", "reverse", "strikethrough",
-)
+# Per-attribute inline CSS so each attribute's label visually demonstrates
+# itself in the rendered swatch row (``bold`` shown in bold, ``italic``
+# in italic, ``underline`` with an underline, …). Iteration order doubles
+# as the visual order of the attribute pills next to each slot.
+_PALETTE_ATTR_CSS: dict[str, str] = {
+    "bold": "font-weight: bold",
+    "dim": "opacity: 0.6",
+    "italic": "font-style: italic",
+    "underline": "text-decoration: underline",
+    "overline": "text-decoration: overline",
+    "blink": "text-decoration: blink",
+    "reverse": "filter: invert(1)",
+    "strikethrough": "text-decoration: line-through",
+}
 
 
 def palette_html(theme: HelpExtraTheme) -> str:
@@ -531,9 +541,13 @@ def palette_html(theme: HelpExtraTheme) -> str:
                 _PALETTE_SWATCH.format(css=css)
                 + f"<code>{color_label}</code>"
             )
-        attrs = [a for a in _PALETTE_STYLE_ATTRS if getattr(value, a, None)]
+        attrs = [
+            f'<span style="{css}">{name}</span>'
+            for name, css in _PALETTE_ATTR_CSS.items()
+            if getattr(value, name, None)
+        ]
         if attrs:
-            cell_parts.append(" ".join(f"<em>{a}</em>" for a in attrs))
+            cell_parts.append(" ".join(attrs))
         rows.append(
             f"<dt><code>{f.name}</code></dt>"
             f"<dd>{' '.join(cell_parts) or '—'}</dd>"
