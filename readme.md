@@ -54,49 +54,83 @@ To undestrand how we ended up with the result above, [go read the tutorial](http
 
 ## Features
 
-- [Configuration file](https://kdeldycke.github.io/click-extra/config.html) loader for:
+### Configuration
+
+- [Multi-format configuration file](https://kdeldycke.github.io/click-extra/config.html) loader for:
   - `TOML`
   - `YAML`
   - `JSON`, `JSON5`, `JSONC` and `HJSON`
   - `INI`, with extended interpolation, multi-level sections and non-native types (`list`, `set`, …)
   - `XML`
-- Automatic inference of the configuration file structure from your CLI's options
+- Automatic [`pyproject.toml` integration](https://kdeldycke.github.io/click-extra/config.html#dotted-keys): the CLI reads its `[tool.<cli>]` section from the user's project file, including a CWD-aware walk that skips unrelated `pyproject.toml` files
+- [Inference of the configuration file structure](https://kdeldycke.github.io/click-extra/config.html#standalone-option) from your CLI's options, with optional [dataclass schema typing](https://kdeldycke.github.io/click-extra/config.html#schema-only-configuration) so values arrive parsed and validated
 - Remote loading of [configuration from URLs](https://kdeldycke.github.io/click-extra/config.html#remote-url)
-- Optional [strict validation](https://kdeldycke.github.io/click-extra/config.html#strictness) of configuration
+- Optional [strict validation](https://kdeldycke.github.io/click-extra/config.html#strictness) of configuration with `--validate-config`
+- [Extension hook](https://kdeldycke.github.io/click-extra/config.html#extending-validation) (`ConfigValidator`) for user-defined sub-trees whose keys are *data* rather than CLI flags (per-plugin overrides, matrix axes, user-defined IDs), with rooted `ValidationError` reporting
 - Respect the [default application path](https://kdeldycke.github.io/click-extra/config.html#default-folder) on each platform (XDG spec. on Linux)
 - [Glob search patterns](https://kdeldycke.github.io/click-extra/config.html#search-pattern) for configuration files
 - A `--no-config` option to disable configuration file loading
 - Respect of `CLI` > `Configuration` > `Environment` > `Defaults` [precedence](https://kdeldycke.github.io/click-extra/config.html#precedence)
-- Normalization and discoverability of environment variables
-- [`--show-params` option](https://kdeldycke.github.io/click-extra/parameters.html#show-params-option) to debug parameters defaults, values, environment variables and provenance
-- [`show-params` subcommand](https://kdeldycke.github.io/click-extra/wrap.html#introspecting-external-clis) to introspect any external Click CLI's parameters
-- [Click parameters introspection](https://kdeldycke.github.io/click-extra/parameters.html#introspecting-parameters)
-- [CLI wrapper](https://kdeldycke.github.io/click-extra/wrap.html) to apply help colorization to any Click CLI without modifying its source
-- [Colorization of help screens](https://kdeldycke.github.io/click-extra/colorize.html): options, choices, metavars, arguments, defaults, ranges, required labels, environment variables, subcommands and aliases all get distinct styles. Option names referenced in descriptions and docstrings are highlighted automatically.
-- Global `show_envvar` option to display all environment variables in help screens
+
+### Help screens and theming
+
+- [Colorized help screens](https://kdeldycke.github.io/click-extra/colorize.html): options, choices, metavars, arguments, defaults, ranges, required labels, environment variables, subcommands and aliases all get distinct styles. Option names referenced in descriptions and docstrings are [highlighted automatically](https://kdeldycke.github.io/click-extra/colorize.html#cross-reference-highlighting)
+- [Theme system](https://kdeldycke.github.io/click-extra/theme.html) with six built-in palettes ([`dark`, `light`, `dracula`, `monokai`, `nord`, `solarized_dark`](https://kdeldycke.github.io/click-extra/theme.html#built-in-themes))
+- [User-defined themes and partial overrides loaded from the CLI's `--config` file](https://kdeldycke.github.io/click-extra/theme.html#themes-from-your-config-file) (`[tool.<cli>.themes.<name>]`), scoped per invocation so concurrent runs don't bleed into each other
+- [`--theme` flag](https://kdeldycke.github.io/click-extra/theme.html#the-theme-option) on every command, with case-insensitive validation against the live registry
 - `-h`/`--help` option names (see [rant on other inconsistencies](https://blog.craftyguy.net/cmdline-help/))
-- `--color`/`--no-color` option flag
+- Built-in [`help` subcommand](https://kdeldycke.github.io/click-extra/commands.html#help-subcommand) with a `--search` mode for groups
+
+### Standard options on every CLI
+
+- [Colored `--version`](https://kdeldycke.github.io/click-extra/version.html) with [template variables](https://kdeldycke.github.io/click-extra/version.html#variables) for git metadata (branch, hash, date, tag) and [pre-baking](https://kdeldycke.github.io/click-extra/version.html#pre-baking-git-metadata) for compiled binaries (Nuitka, PyInstaller)
+- [Colored `--verbosity` LEVEL and logs](https://kdeldycke.github.io/click-extra/logging.html), plus `-v`/`--verbose` repetition for incremental bumping
+- [`--show-params`](https://kdeldycke.github.io/click-extra/parameters.html#show-params-option) to debug parameter defaults, values, environment variables and provenance
+- [`--time`/`--no-time`](https://kdeldycke.github.io/click-extra/timer.html) to measure command execution duration
+- [`--table-format`](https://kdeldycke.github.io/click-extra/table.html#table-formats) to switch between 40+ table-rendering styles (uses [`print_table()`](https://kdeldycke.github.io/click-extra/table.html) and [`serialize_data()`](https://kdeldycke.github.io/click-extra/table.html#data-serialization))
+- [`--jobs`](https://kdeldycke.github.io/click-extra/jobs.html) for parallel-execution worker counts
 - `--telemetry`/`--no-telemetry` flag to opt-in/out of tracking code
-- Recognize traditional environment variable conventions:
-  - `NO_COLOR` from [`no-color.org`](https://no-color.org)
-  - `DO_NOT_TRACK` from [`consoledonottrack.com`](https://consoledonottrack.com)
-- Colored `--version` option
-- [Colored `--verbosity` option and logs](https://kdeldycke.github.io/click-extra/logging.html)
-- `--time`/`--no-time` flag to measure duration of command execution
+- `--color`/`--no-color` option flag, with recognition of `NO_COLOR` ([no-color.org](https://no-color.org)), `FORCE_COLOR`, `CLICOLOR`, and `LLM` environment variables
+- Recognition of `DO_NOT_TRACK` from [consoledonottrack.com](https://consoledonottrack.com) for telemetry
+- Global `show_envvar` option to display all environment variables in help screens
 - Global `show_choices` to activate selection of choices on user input prompts
+- Auto-generation and normalization of environment variables for all options
+
+### Types and parameters
+
+- [`EnumChoice`](https://kdeldycke.github.io/click-extra/types.html#enumchoice) — `click.Choice` subclass with proper `Enum` rendering, case-insensitive matching, alias support, and pluggable [choice sources](https://kdeldycke.github.io/click-extra/types.html#choice-source)
+- [Click parameter introspection](https://kdeldycke.github.io/click-extra/parameters.html#introspecting-parameters) and a [shared parameter structure](https://kdeldycke.github.io/click-extra/parameters.html#parameter-structure) used by both `--show-params` and the config loader
+
+### CLI wrapper
+
+- [CLI wrapper](https://kdeldycke.github.io/click-extra/wrap.html) (`click-extra wrap`) applies help colorization, themes, and config loading to any Click CLI without modifying its source code
+- [`show-params` subcommand](https://kdeldycke.github.io/click-extra/wrap.html#introspecting-external-clis) to introspect any external Click CLI's parameters
+- [User-defined themes via `--config`](https://kdeldycke.github.io/click-extra/wrap.html#custom-themes-via-config) work transparently through the wrapper, so users can theme third-party CLIs from their own `pyproject.toml`
+
+### Performance and structure
+
 - [Lazy-loading of subcommands](https://kdeldycke.github.io/click-extra/commands.html#lazily-loading-subcommands) from module paths to speed up CLI startup time
-- [`click:source` and `click:run` Sphinx directives](https://kdeldycke.github.io/click-extra/sphinx.html) in MyST Markdown and reStructuredText to document CLI source code and their execution
-- [Inline testing of CLI examples](https://kdeldycke.github.io/click-extra/sphinx.html#inline-tests) in documentation
-- Render [GitHub alerts](https://kdeldycke.github.io/click-extra/sphinx.html#github-alerts) into MyST admonitions
-- [ANSI-capable Pygments lexers](https://kdeldycke.github.io/click-extra/pygments.html#ansi-language-lexers) for shell session and console output, with [opt-in 24-bit true-color rendering](https://kdeldycke.github.io/click-extra/pygments.html#bit-true-color)
+- [Composition with third-party Click CLIs](https://kdeldycke.github.io/click-extra/commands.html#third-party-commands-composition) (`wrap_other_commands`)
+
+### Documentation tooling
+
+- [`click:source` and `click:run` Sphinx directives](https://kdeldycke.github.io/click-extra/sphinx.html#click-directives) in MyST Markdown and reStructuredText to document CLI source code and their execution
+- [`python:source`, `python:run`, `python:render`, `python:render-myst`, `python:render-rst`](https://kdeldycke.github.io/click-extra/sphinx.html#python-directives) — the same machinery for arbitrary Python, with a `render*` family that parses the captured output as live document content (replaces the `docs_update.py` + marker-region pattern)
+- [Inline testing of CLI examples](https://kdeldycke.github.io/click-extra/sphinx.html#inline-tests) in documentation: every `click:run` block runs at build time and assertions fail the build
+- Render [GitHub alerts](https://kdeldycke.github.io/click-extra/sphinx.html) into MyST admonitions in both Sphinx and MkDocs
+- [ANSI-capable Pygments lexers](https://kdeldycke.github.io/click-extra/pygments.html#ansi-language-lexers) for shell session and console output, with [24-bit true-color rendering](https://kdeldycke.github.io/click-extra/pygments.html#bit-true-color) on by default
+- [`AnsiHtmlFormatter`](https://kdeldycke.github.io/click-extra/pygments.html#ansi-html-formatter) for HTML output of ANSI-colored text
 - [MkDocs plugin](https://kdeldycke.github.io/click-extra/mkdocs.html) for ANSI color rendering in code blocks
-- [Fixes 50+ bugs](https://kdeldycke.github.io/click-extra/upstream.html) from other Click-related projects
-- Rely on [Cloup](https://github.com/janluke/cloup) to add:
-  - option groups
-  - constraints
-  - subcommands sections
-  - aliases
-  - command suggestion (`Did you mean <subcommand>?`)
+
+### Testing
+
+- [`ExtraCliRunner`](https://kdeldycke.github.io/click-extra/testing.html) — `click.testing.CliRunner` subclass that captures `stdout` and `stderr` separately and preserves ANSI codes for assertion against colored output
+- [pytest fixtures](https://kdeldycke.github.io/click-extra/pytest.html#fixtures) (`invoke`, `extra_runner`, `create_config`) and ready-made regex helpers (`default_options_uncolored_help`, `default_debug_*`) for click-extra-aware test suites
+
+### Upstream
+
+- [Fixes 100+ bugs and addresses missing features](https://kdeldycke.github.io/click-extra/upstream.html) across Click, Cloup, Pygments, tabulate, MyST-Parser, Furo, and unmaintained `click-contrib` packages
+- Drop-in replacement for [Click](https://click.palletsprojects.com) and [Cloup](https://github.com/janluke/cloup): every `from click_extra import …` and `@click_extra.command` works as a transparent superset. Cloup provides option groups, constraints, subcommand sections, aliases, and `Did you mean <subcommand>?` suggestions; click-extra adds everything above on top.
 
 ## Used in
 

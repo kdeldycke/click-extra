@@ -110,7 +110,7 @@ Issues that remain open or unfixed upstream. click-extra provides the solution.
 
 ### Color and terminal support
 
-click-extra implements `NO_COLOR`, `FORCE_COLOR`, and full help colorization with a theme system, addressing long-standing Click gaps:
+click-extra implements `NO_COLOR`, `FORCE_COLOR`, and full [help colorization](colorize.md) with a [theme system](theme.md), addressing long-standing Click gaps:
 
 - [`click#558` - Support `FORCE_COLOR` in `click.echo`](https://github.com/pallets/click/issues/558)
 - [`click#1090` - Color output from CI jobs](https://github.com/pallets/click/issues/1090)
@@ -122,9 +122,24 @@ click-extra implements `NO_COLOR`, `FORCE_COLOR`, and full help colorization wit
 - [`cloup#95` - Highlights options, choices and metavars](https://github.com/janluke/cloup/issues/95)
 - [`cloup#97` - Styling metavars, default values, env var, choices](https://github.com/janluke/cloup/issues/97)
 
+### Themes and palettes
+
+click-extra ships [six built-in palettes](theme.md#built-in-themes) (`dark`, `light`, `dracula`, `monokai`, `nord`, `solarized_dark`) and is the only Click-ecosystem library that lets end users [define new themes or override existing ones from the CLI's `--config` file](theme.md#themes-from-your-config-file) (`[tool.<cli>.themes.<name>]`). Click itself has no theme system — formatter-level customization is still WIP upstream — and the competing rich help layers expose themes through Python or environment variables, not the CLI's own configuration file:
+
+- [`click#561` - Add Custom Formatter System](https://github.com/pallets/click/issues/561) — open since 2016, the prerequisite for a Click-native theme API.
+- [`click#3097` - WIP: Help page customization low level api](https://github.com/pallets/click/pull/3097) — open PR exploring the formatter customization Click maintainers committed to in `#561`.
+- [`rich-click#219` - Colour themes (can be set by user)](https://github.com/ewels/rich-click/issues/219) — closed completed in August 2025; rich-click now ships themes settable via `RICH_CLICK_THEME` env var or Python config, but not via the wrapped CLI's own configuration file.
+- [`rich-click#311` - Using themes outside click](https://github.com/ewels/rich-click/issues/311) — open follow-up showing the demand for richer theme reuse.
+
+### Configuration validation
+
+click-extra's config pipeline exposes an [extension hook](config.md#extending-validation) (`ConfigValidator`) so apps can validate data-keyed sub-tables (`[tool.<cli>.managers.<id>]`, `[tool.<cli>.plugins]`, …) inside the same strict-check pipeline that polices CLI-flag-bound keys. `--validate-config` collects every error before exiting and surfaces all failures with the same rooted `ValidationError` shape.
+
+This is click-extra's own design rather than an answer to a documented upstream issue: Click maintainers have closed every config-file proposal as out of scope ([`#1753`](https://github.com/pallets/click/issues/1753), [`#386`](https://github.com/pallets/click/issues/386), [`#42`](https://github.com/pallets/click/issues/42), [`#971`](https://github.com/pallets/click/issues/971)) and deferred to external packages, so validation of those external config files lives wherever each package chose to put it. The closest related upstream gap is [`click_config_file#11`](https://github.com/phha/click_config_file/issues/11) (listed under [Configuration files](#configuration-files) above): "warn when providing unsupported options in the config file?" — open since 2018 in an unmaintained package.
+
 ### Configuration files
 
-click-extra's config module replaces the functionality of several unmaintained packages, with multi-format support (TOML, YAML, JSON, INI, XML), `pyproject.toml` integration, and a precedence chain:
+click-extra's [config module](config.md) replaces the functionality of several unmaintained packages, with [multi-format support](config.md) (TOML, YAML, JSON, INI, XML), `pyproject.toml` integration, and a [precedence chain](config.md#precedence):
 
 - [`configmanager#164` - Should be used?](https://github.com/jbasko/configmanager/issues/164)
 - [`configmanager#152` - XML format](https://github.com/jbasko/configmanager/issues/152)
@@ -139,7 +154,7 @@ click-extra's config module replaces the functionality of several unmaintained p
 
 ### Version option
 
-click-extra's `ExtraVersionOption` adds template variables for git metadata (branch, hash, date, tag), environment info, and Python/OS details:
+click-extra's [`ExtraVersionOption`](version.md) adds [template variables](version.md#variables) for git metadata (branch, hash, date, tag), [environment info](version.md#environment-information), and Python/OS details, with [pre-baking for compiled binaries](version.md#pre-baking-git-metadata):
 
 - [`click#2324` - Can't pass `click.version_option()` to `click.MultiCommand(params=)`](https://github.com/pallets/click/issues/2324)
 - [`click#2331` - `version_option` module name and package name are not equivalent](https://github.com/pallets/click/issues/2331)
@@ -147,14 +162,14 @@ click-extra's `ExtraVersionOption` adds template variables for git metadata (bra
 
 ### Environment variables
 
-click-extra auto-generates environment variables for all options and adds `show_envvar` as a global context setting:
+click-extra [auto-generates environment variables](commands.md) for all options and adds `show_envvar` as a global context setting:
 
 - [`click#2483` - Missing auto-generated environment variables in help screen & case-sensitivity](https://github.com/pallets/click/issues/2483)
 - [`click#2313` - Add `show_envvar` as global setting via `context_settings` (like `show_default`)](https://github.com/pallets/click/issues/2313)
 
 ### Logging
 
-click-extra's logging module replaces the unmaintained `click-log` package:
+click-extra's [logging module](logging.md) replaces the unmaintained `click-log` package:
 
 - [`click-log#29` - Log level is leaking between invocations: hack to force-reset it](https://github.com/click-contrib/click-log/issues/29)
 - [`click-log#30` - Add a `no-color` option, method or parameter to disable coloring globally](https://github.com/click-contrib/click-log/issues/30)
@@ -169,7 +184,7 @@ click-extra's logging module replaces the unmaintained `click-log` package:
 
 ### ANSI rendering in documentation
 
-click-extra provides ANSI-capable session lexers and Sphinx integration for rendering ANSI-colored CLI output in documentation:
+click-extra provides [ANSI-capable session lexers](pygments.md#ansi-language-lexers), an [HTML formatter](pygments.md#ansi-html-formatter), and [Sphinx integration](sphinx.md) for rendering ANSI-colored CLI output in documentation, with [24-bit true-color rendering](pygments.md#bit-true-color) enabled by default:
 
 - [`pygments#1148` - Can't format console/shell-session output that includes ANSI colors](https://github.com/pygments/pygments/issues/1148)
 - [`pygments#477` - Support ANSI (ECMA-48) color-coded text input](https://github.com/pygments/pygments/issues/477)
@@ -185,11 +200,23 @@ click-extra provides ANSI-capable session lexers and Sphinx integration for rend
 
 ### Sphinx `click:source` and `click:run` directives
 
-click-extra maintains and extends the `click:source`/`click:run` directives originally from `pallets-sphinx-themes`:
+click-extra maintains and extends the [`click:source`/`click:run` directives](sphinx.md#click-directives) originally from `pallets-sphinx-themes`:
 
 - [`pallets-sphinx-themes#61` - Move `.. click:example::` and `.. click:run::` implementation to `sphinx-click`](https://github.com/pallets/pallets-sphinx-themes/issues/61)
 - [`sphinx-click#110` - Supports `.. click:example::` and `.. click:run::` directives](https://github.com/click-contrib/sphinx-click/issues/110)
 - [`cloup#92` - Use sphinx directive to generate output of full examples in the docs](https://github.com/janluke/cloup/issues/92)
+
+### Sphinx `python:*` directives and live document rendering
+
+The [`python:source`, `python:run`, `python:render`, `python:render-myst`, and `python:render-rst` directives](sphinx.md#python-directives) extend the `click:*` family to arbitrary Python (no Click CLI required). The `render*` variants parse the captured `stdout` as live document content — generated tables, headings, admonitions, and cross-references become first-class document nodes rather than a code block. This replaces the `docs_update.py` regenerator + marker-region pattern that many downstream click-extra-consuming projects use (Meta Package Manager, Mail Deduplicate, …), so the rendered HTML is always current at build time without a separate generation step.
+
+The `click:*` half of this story remains stuck upstream: the directives still live in `pallets-sphinx-themes` despite open requests to move them where Click users actually look for them, and MyST integration is unfinished:
+
+- [`sphinx-click#158` - Move custom directives into Sphinx-click](https://github.com/click-contrib/sphinx-click/issues/158) — open, acknowledged by maintainers.
+- [`sphinx-click#127` - Support myst-parser](https://github.com/click-contrib/sphinx-click/issues/127) — open, click directives still RST-only upstream.
+- [`pallets-sphinx-themes#61`](https://github.com/pallets/pallets-sphinx-themes/issues/61) — open since 2022, also flagged in the [previous section](#sphinx-clicksource-and-clickrun-directives).
+
+The `python:*` half (rendering executed Python output as live document content) is click-extra's own design rather than an answer to a single upstream ticket.
 
 ## Declined by upstream
 
