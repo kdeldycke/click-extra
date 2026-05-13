@@ -289,6 +289,24 @@ class HelpExtraTheme(cloup.HelpTheme):
             )
         return cls(**kwargs)
 
+    def cascade(self, base: HelpExtraTheme) -> HelpExtraTheme:
+        """Layer this theme's set slots on top of *base*.
+
+        Mirrors :meth:`Style.cascade <click_extra.styling.Style.cascade>` at
+        the slot level: this theme's non-default slots win, *base* fills the
+        rest. Useful for layering a sparse override (typically parsed from a
+        config file's ``[tool.<cli>.themes.<name>]`` table) on top of a
+        full built-in palette.
+
+        :raises TypeError: when *base* is not a :class:`HelpExtraTheme`.
+        """
+        if not isinstance(base, HelpExtraTheme):
+            raise TypeError(
+                f"Cannot cascade onto {type(base).__name__}: not a HelpExtraTheme."
+            )
+        merged = {**base.to_dict(), **self.to_dict()}
+        return type(self).from_dict(merged)
+
 
 nocolor_theme: HelpExtraTheme = HelpExtraTheme()
 """Color theme for Click Extra to force no colors.
@@ -341,7 +359,7 @@ def get_current_theme() -> HelpExtraTheme:
 
 
 theme_registry: dict[str, HelpExtraTheme | Callable[[], HelpExtraTheme]] = {}
-"""Registry of named themes used by :class:`ThemeOption`.
+"""Process-wide registry of named themes used by :class:`ThemeOption`.
 
 Each entry maps a theme name to either a :class:`HelpExtraTheme` instance
 (the common case) or a zero-argument callable returning one (for themes
@@ -350,9 +368,21 @@ resolves callables on lookup.
 
 The built-in themes are seeded here at module load time from
 :data:`BUILTIN_THEMES` (loaded from ``click_extra/themes.toml``). Use
-:func:`register_theme` to add your own *before* declaring your commands,
-since :class:`ThemeOption` builds its ``click.Choice`` from this registry
-at instantiation time.
+:func:`register_theme` to add your own at import time, *or* declare them
+in your CLI's config file under ``[tool.<cli>.themes.<name>]`` — the
+latter goes through :class:`ConfigOption <click_extra.config.ConfigOption>`,
+lands on ``ctx.meta`` (see :data:`click_extra.context.THEME_OVERRIDES`),
+and never mutates this module-level dict, so per-invocation choices
+don't leak between sibling invocations sharing the same process.
+"""
+
+THEMES_CONFIG_KEY: str = "themes"
+"""Sub-key under ``[tool.<cli>]`` where user-defined themes live in config.
+
+Used by :class:`ConfigOption <click_extra.config.ConfigOption>` to find
+``[tool.<cli>.themes.<name>]`` tables, build them via
+:meth:`HelpExtraTheme.from_dict`, and stash the result on
+``ctx.meta[click_extra.context.THEME_OVERRIDES]``.
 """
 
 
@@ -360,7 +390,7 @@ def register_theme(
     name: str,
     theme: HelpExtraTheme | Callable[[], HelpExtraTheme],
 ) -> None:
-    """Register a named theme in :data:`theme_registry`.
+    """Register a named theme in the module-level :data:`theme_registry`.
 
     :param name: Lowercase identifier used as the ``--theme`` choice value.
     :param theme: A :class:`HelpExtraTheme` instance, or a zero-argument
@@ -380,18 +410,137 @@ def _resolve_theme(
     return entry()
 
 
+def get_theme_registry(
+    ctx: click.Context | None = None,
+) -> dict[str, HelpExtraTheme | Callable[[], HelpExtraTheme]]:
+    """Return the theme registry visible to *ctx*.
+
+    Merges the module-level :data:`theme_registry` with any per-invocation
+    overrides stored on ``ctx.meta`` under
+    :data:`click_extra.context.THEME_OVERRIDES`. Per-invocation entries win
+    on key collisions, which is what lets a config file's
+    ``[tool.<cli>.themes.dark]`` table override the built-in ``dark`` palette
+    for one invocation without touching the global registry.
+
+    When *ctx* is ``None`` or has no overrides, returns a copy of the
+    module-level registry.
+    """
+    merged: dict[str, HelpExtraTheme | Callable[[], HelpExtraTheme]] = dict(
+        theme_registry
+    )
+    if ctx is not None:
+        overrides = context.get(ctx, context.THEME_OVERRIDES)
+        if overrides:
+            merged.update(overrides)
+    return merged
+
+
+def themes_from_config(
+    table: dict[str, Any],
+) -> dict[str, HelpExtraTheme]:
+    """Build a ``{name: HelpExtraTheme}`` mapping from a ``[tool.<cli>.themes]`` sub-tree.
+
+    For each entry, build a :class:`HelpExtraTheme` via :meth:`from_dict`. If
+    *name* matches an existing key in :data:`theme_registry`, the new theme
+    is layered on top via :meth:`HelpExtraTheme.cascade` so partial overrides
+    (e.g. just one slot) inherit the rest from the built-in palette.
+    Stand-alone names produce theme instances with the unset slots left at
+    their defaults.
+    """
+    result: dict[str, HelpExtraTheme] = {}
+    for name, slots in table.items():
+        overlay = HelpExtraTheme.from_dict(slots)
+        if name in theme_registry:
+            result[name] = overlay.cascade(_resolve_theme(theme_registry[name]))
+        else:
+            result[name] = overlay
+    return result
+
+
+def validate_themes_config(themes_subtree: dict[str, Any]) -> None:
+    """Validate a ``[tool.<cli>.themes]`` sub-tree.
+
+    Registered as a built-in :class:`ConfigValidator <click_extra.config.ConfigValidator>`
+    by :class:`ConfigOption <click_extra.config.ConfigOption>` so malformed
+    theme tables surface as :class:`~click_extra.config.ValidationError` with
+    a rooted path (``my-cli.themes.<name>``) rather than a deep
+    :class:`TypeError` from :meth:`HelpExtraTheme.from_dict`.
+    """
+    # Lazy-imported to avoid a load-time cycle with config.py.
+    from .config import ValidationError
+
+    for name, slots in themes_subtree.items():
+        if not isinstance(slots, dict):
+            raise ValidationError(
+                path=name,
+                message=(
+                    f"theme definition must be a table, got "
+                    f"{type(slots).__name__}"
+                ),
+                code="invalid-theme-shape",
+            )
+        try:
+            HelpExtraTheme.from_dict(slots)
+        except TypeError as exc:
+            raise ValidationError(
+                path=name,
+                message=str(exc),
+                code="invalid-theme",
+            ) from exc
+
+
+class ThemeChoice(click.Choice):
+    """A :class:`click.Choice` whose ``choices`` track the live theme registry.
+
+    Where a vanilla ``click.Choice`` snapshots its choices at instantiation,
+    ``ThemeChoice.choices`` is a property that queries
+    :func:`get_theme_registry` at every lookup. That means themes registered
+    late — typically by :class:`ConfigOption <click_extra.config.ConfigOption>`
+    parsing ``[tool.<cli>.themes.<name>]`` tables before ``--theme`` is
+    processed — are valid choices and appear in the ``--help`` metavar.
+
+    Subclassing :class:`click.Choice` (rather than rolling a fresh
+    :class:`~click.ParamType`) keeps the per-choice token coloring that
+    :mod:`click_extra.colorize` applies to ``Choice`` metavars: each theme
+    name in the bracket-style metavar is styled with the active theme's
+    ``choice`` slot.
+    """
+
+    def __init__(self, case_sensitive: bool = False) -> None:
+        # ``click.Choice.__init__`` assigns ``self.choices``; pass an empty
+        # tuple so the assignment is harmless, then let the property below
+        # take over for every read.
+        super().__init__((), case_sensitive=case_sensitive)
+
+    @property
+    def choices(self) -> tuple[str, ...]:
+        try:
+            ctx = click.get_current_context(silent=True)
+        except RuntimeError:
+            ctx = None
+        return tuple(sorted(get_theme_registry(ctx)))
+
+    @choices.setter
+    def choices(self, _value: object) -> None:
+        # Swallow ``click.Choice.__init__``'s assignment; the property is the
+        # authoritative source.
+        return
+
+
 class ThemeOption(ExtraOption):
-    """A pre-configured option that adds a ``--theme`` flag to select the help-screen
-    color theme.
+    """A pre-configured option that adds ``--theme`` to select the help-screen palette.
 
-    The list of valid theme names is pulled from :data:`theme_registry` at instantiation
-    time. Register new themes with :func:`register_theme` *before* declaring your
-    commands, otherwise they will not appear in the option's choices.
+    Accepts any name registered in :data:`theme_registry` *or* in the
+    per-invocation overrides loaded by
+    :class:`ConfigOption <click_extra.config.ConfigOption>` from
+    ``[tool.<cli>.themes.<name>]``. Validation goes through
+    :class:`ThemeChoice`, which reads the live registry at parse time, so
+    config-defined themes appear as valid choices and in the ``--help``
+    metavar without any further wiring.
 
-    The selected theme is stored on the Click context under
-    :data:`click_extra.context.THEME`, so it applies for the duration of the
-    current invocation only and does not leak into sibling invocations sharing
-    the same process.
+    The resolved :class:`HelpExtraTheme` lands on the Click context under
+    :data:`click_extra.context.THEME` and applies for the duration of the
+    current invocation only.
     """
 
     @staticmethod
@@ -402,23 +551,12 @@ class ThemeOption(ExtraOption):
     ) -> None:
         """Resolve the chosen theme name and store it on the Click context.
 
-        Looks up *value* in :data:`theme_registry`, calls its factory, and writes
-        the resulting :class:`HelpExtraTheme` under
-        :data:`click_extra.context.THEME` in ``ctx.meta``. Click shares
-        ``meta`` across the parent/child context hierarchy, so subcommands
-        inherit the parent group's pick automatically.
+        :class:`ThemeChoice` has already validated *value* against the live
+        registry by the time this fires, so the lookup is unconditional.
         """
         if value is None or ctx.resilient_parsing:
             return
-        try:
-            entry = theme_registry[value]
-        except KeyError as exc:
-            choices = ", ".join(sorted(theme_registry))
-            raise click.BadParameter(
-                f"Unknown theme {value!r}. Available: {choices}.",
-                ctx=ctx,
-                param=param,
-            ) from exc
+        entry = get_theme_registry(ctx)[value]
         context.set(ctx, context.THEME, _resolve_theme(entry))
 
     def __init__(
@@ -437,7 +575,7 @@ class ThemeOption(ExtraOption):
 
         super().__init__(
             param_decls=param_decls,
-            type=click.Choice(sorted(theme_registry), case_sensitive=False),
+            type=ThemeChoice(),
             default=default,
             is_eager=is_eager,
             expose_value=expose_value,

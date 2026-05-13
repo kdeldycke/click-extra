@@ -119,11 +119,11 @@ def default_extra_params() -> list[click.Option]:
     """
     return [
         TimerOption(),
-        ColorOption(),
-        ThemeOption(),
         ConfigOption(),
         NoConfigOption(),
         ValidateConfigOption(),
+        ColorOption(),
+        ThemeOption(),
         ShowParamsOption(),
         TableFormatOption(),
         VerbosityOption(),

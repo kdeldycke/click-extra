@@ -354,6 +354,28 @@ class ConfigValidator:
     description: str = ""
 
 
+def _builtin_config_validators() -> tuple[ConfigValidator, ...]:
+    """Return the validators click-extra registers on every :class:`ConfigOption`.
+
+    Currently a single validator for ``[tool.<cli>.themes.<name>]`` tables.
+    Lazy-imports :mod:`click_extra.theme` to avoid a load-time cycle:
+    :mod:`click_extra.theme` is imported after :mod:`click_extra.config` from
+    the package ``__init__``.
+    """
+    from .theme import THEMES_CONFIG_KEY, validate_themes_config
+
+    return (
+        ConfigValidator(
+            extension_path=THEMES_CONFIG_KEY,
+            validator=validate_themes_config,
+            description=(
+                "Validate user-defined and override themes declared under "
+                "[tool.<cli>.themes.<name>]."
+            ),
+        ),
+    )
+
+
 def _strip_reserved_keys(conf: dict, keys: frozenset[str] | None = None) -> dict:
     """Recursively return a copy of *conf* with reserved keys removed at every level."""
     if keys is None:
@@ -1160,14 +1182,23 @@ class ConfigOption(ExtraOption, ParamStructure):
             strict=schema_strict,
         )
 
-        self.config_validators: tuple[ConfigValidator, ...] = tuple(config_validators)
-        """App-defined extension validators for sub-trees of the configuration file.
+        self.config_validators: tuple[ConfigValidator, ...] = (
+            _builtin_config_validators() + tuple(config_validators)
+        )
+        """Extension validators for sub-trees of the configuration file.
 
         Each :class:`ConfigValidator` targets a dotted ``extension_path`` relative
         to the app section. Validators run after click-extra's built-in
         CLI-parameter strict check (during ``--validate-config``) and after the
         schema callable produces the typed configuration object (during normal
         config loading).
+
+        The list is seeded with click-extra's built-in validators (currently the
+        one for ``[tool.<cli>.themes.<name>]`` tables, see
+        :func:`click_extra.theme.validate_themes_config`); user-supplied
+        validators are appended after them. App code that registers its own
+        validator on the same ``extension_path`` simply runs alongside the
+        built-in: both validators are called, both sets of errors surface.
         """
 
         # Pre-compute the unified opaque-path set: every dotted path that
@@ -1891,6 +1922,36 @@ class ConfigOption(ExtraOption, ParamStructure):
         app_section = self._resolve_app_section(user_conf, app_name)
         context.set(ctx, context.TOOL_CONFIG, self._config_schema_callable(app_section))
 
+    def _apply_theme_overrides(
+        self,
+        ctx: click.Context,
+        user_conf: dict[str, Any],
+    ) -> None:
+        """Build per-invocation theme overrides from the config and stash on ``ctx.meta``.
+
+        Reads the ``[tool.<cli>.themes.<name>]`` sub-tree, builds each entry into
+        a :class:`HelpExtraTheme <click_extra.theme.HelpExtraTheme>` (cascading
+        on top of an existing built-in theme when *name* matches one already in
+        :data:`~click_extra.theme.theme_registry`), and writes the result to
+        ``ctx.meta[click_extra.context.THEME_OVERRIDES]``. The module-level
+        registry is never mutated, so themes defined here apply to the current
+        invocation only.
+
+        Validation already happened via the built-in
+        :func:`~click_extra.theme.validate_themes_config` validator, so failures
+        below this point would be a click-extra bug rather than user error.
+        """
+        from .theme import THEMES_CONFIG_KEY, themes_from_config
+
+        app_name = self._app_section_name(ctx)
+        app_section = self._resolve_app_section(user_conf, app_name)
+        themes_subtree = app_section.get(THEMES_CONFIG_KEY)
+        if not isinstance(themes_subtree, dict) or not themes_subtree:
+            return
+        overrides = themes_from_config(themes_subtree)
+        if overrides:
+            context.set(ctx, context.THEME_OVERRIDES, overrides)
+
     def _iter_validator_errors(
         self,
         ctx: click.Context,
@@ -2117,6 +2178,10 @@ class ConfigOption(ExtraOption, ParamStructure):
                 # failure mode.
                 logger.critical(f"Configuration validation error: {exc}")
                 ctx.exit(1)
+            # Apply theme overrides after validators succeed so a malformed
+            # [tool.<cli>.themes.<name>] table reaches the user via
+            # ValidationError instead of a deep TypeError from from_dict.
+            self._apply_theme_overrides(ctx, user_conf)
 
         # When a schema is configured but no config file was found, still
         # produce the default instance so get_tool_config() never returns None.

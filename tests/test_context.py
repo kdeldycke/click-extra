@@ -55,6 +55,7 @@ KEY_CONSTANTS: tuple[tuple[str, str], ...] = (
     ("TABLE_FORMAT", "click_extra.table_format"),
     ("SORT_BY", "click_extra.sort_by"),
     ("THEME", "click_extra.theme.active"),
+    ("THEME_OVERRIDES", "click_extra.theme.overrides"),
 )
 """Pairs of ``(attribute name, raw string key)`` for every registered
 ``ctx.meta`` entry. Single source of truth used by every parametrized

@@ -199,7 +199,7 @@ calm = DARK.with_(cross_ref_highlight=False)
 
 See [Cross-reference highlighting](colorize.md#cross-reference-highlighting) for the details on what stays styled when the flag is off.
 
-### Loading a theme from configuration
+### Manual loading from a mapping
 
 `HelpExtraTheme.to_dict()` and `HelpExtraTheme.from_dict()` round-trip a theme through plain mappings, so a theme can live in a TOML, JSON, or YAML file alongside the rest of an application's configuration:
 
@@ -221,6 +221,113 @@ register_theme("my_theme", HelpExtraTheme.from_dict(raw["my_theme"]))
 ```
 
 `to_dict()` only emits slots that diverge from the default (`identity` / `None`), and `from_dict()` raises `TypeError` on unknown keys, so configuration typos surface at load time rather than silently producing a half-styled theme.
+
+For the much more common case where the theme should live in the same `--config` file the CLI already reads, see the [next section](#themes-from-your-config-file) — click-extra wires the loader for you.
+
+## Themes from your `--config` file
+
+`ConfigOption` recognizes a `themes` sub-table inside the app's section. Every `[<cli>.themes.<name>]` entry is parsed via `HelpExtraTheme.from_dict` and made available to `--theme` for the duration of the invocation, with two distinct behaviors depending on whether `<name>` matches a built-in:
+
+- **Override an existing palette.** Re-declare a built-in name (`dark`, `dracula`, `light`, …) and the slots you set are overlayed on top of the built-in palette via `HelpExtraTheme.cascade`. Unset slots inherit from the built-in, so a one-line override like `option = { fg = "bright_cyan" }` is enough.
+- **Define a new palette.** Use any other name and `--theme <name>` becomes a valid choice for that invocation. Unset slots default to *no styling* (`identity`), so you typically declare a slot for every category you care about.
+
+In both cases the theme registry mutation is **per-invocation**: it lives on `ctx.meta` under `click_extra.context.THEME_OVERRIDES` and never touches the module-level `theme_registry`. Sphinx builds, test runners, and any other host process running multiple CLI invocations back-to-back never leak themes between them.
+
+### Override an existing built-in
+
+```{click:source}
+from click_extra import command, echo
+
+@command
+def weather():
+    """Show the local weather forecast."""
+    echo("Sunny, 22°C.")
+```
+
+Drop the override under `[<cli>.themes.dark]` in your `weather.toml`:
+
+```toml
+[weather.themes.dark]
+option = { fg = "bright_cyan" }
+choice = { fg = "yellow", bold = true }
+```
+
+Then ask for `--help` with the override applied (the rest of the dark palette stays put):
+
+```{click:run}
+import tempfile, textwrap
+from pathlib import Path
+
+config = Path(tempfile.mkdtemp()) / "weather.toml"
+config.write_text(textwrap.dedent("""
+    [weather.themes.dark]
+    option = { fg = "bright_cyan" }
+    choice = { fg = "yellow", bold = true }
+"""))
+result = invoke(weather, args=["--config", str(config), "--help"])
+assert result.exit_code == 0
+assert "--theme" in result.stdout
+```
+
+### Define a brand-new theme
+
+```toml
+[weather.themes.midnight]
+option = { fg = "blue", bold = true }
+heading = { fg = "magenta" }
+choice = { fg = "yellow" }
+default = { fg = "green", italic = true }
+```
+
+The new name immediately shows up in `--help`'s `--theme` metavar and is selectable on the command line:
+
+```{click:run}
+import tempfile, textwrap
+from pathlib import Path
+
+config = Path(tempfile.mkdtemp()) / "weather.toml"
+config.write_text(textwrap.dedent("""
+    [weather]
+    theme = "midnight"
+
+    [weather.themes.midnight]
+    option = { fg = "blue", bold = true }
+    heading = { fg = "magenta" }
+    choice = { fg = "yellow" }
+    default = { fg = "green", italic = true }
+"""))
+result = invoke(weather, args=["--config", str(config), "--help"])
+assert result.exit_code == 0
+assert "midnight" in result.stdout
+```
+
+The same `[weather] theme = "midnight"` selector you'd use for a built-in works here: pre-pick the new theme as the default for invocations of this CLI.
+
+### Validation
+
+Malformed entries surface as `ValidationError` with a path rooted at the configuration file root, both during `--validate-config` and at normal load time:
+
+```toml
+[weather.themes.midnight]
+optoin = { fg = "blue" }   # typo
+```
+
+```{click:run}
+import tempfile, textwrap
+from pathlib import Path
+
+config = Path(tempfile.mkdtemp()) / "weather.toml"
+config.write_text(textwrap.dedent("""
+    [weather.themes.midnight]
+    optoin = { fg = "blue" }
+"""))
+result = invoke(weather, args=["--validate-config", str(config)])
+assert result.exit_code != 0
+assert "midnight" in result.stderr
+assert "optoin" in result.stderr
+```
+
+The built-in `ConfigValidator` for the `themes` sub-tree is auto-registered on every `ConfigOption`, so app authors don't have to opt in. Apps that ship their own `ConfigValidator` continue to work alongside it.
 
 ## Interaction with `--color` / `--no-color`
 

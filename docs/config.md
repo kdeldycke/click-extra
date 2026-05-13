@@ -574,6 +574,14 @@ Normal `--config` loading is fail-fast: the first `ValidationError` becomes a cr
 The internal name for an extension path is `opaque_path`. You'll see it in click-extra's source under `_collect_opaque_paths_from_schema`, in the `opaque_keys` parameter of `normalize_config_keys` and `flatten_config_keys`, and in the cached `ConfigOption._opaque_paths` attribute. From the pipeline's point of view those paths are stop markers — places it must not descend into. From your app's point of view they're extension points. The vocabulary divergence is intentional: developers reading their own code see *extension* (intent); developers reading click-extra's source see *opaque* (implementation).
 ```
 
+### Built-in extension points
+
+Click-extra auto-registers one extension point on every `ConfigOption`:
+
+- **`themes`** — `[<cli>.themes.<name>]` tables override existing palettes or define new ones. Validated by {py:func}`~click_extra.theme.validate_themes_config`; loaded into `ctx.meta` by {py:meth}`ConfigOption._apply_theme_overrides <click_extra.config.ConfigOption._apply_theme_overrides>`. See [Themes from your `--config` file](theme.md#themes-from-your-config-file) for the schema and behavior.
+
+App-supplied `ConfigValidator`s on the same `extension_path` run alongside the built-in: both validators are called, both sets of errors surface.
+
 ## Excluding parameters
 
 The {py:attr}`excluded_params <click_extra.config.ConfigOption.excluded_params>` argument allows you to block some of your CLI options to be loaded from configuration. By setting this argument, you will prevent your CLI users to set these parameters in their configuration file.

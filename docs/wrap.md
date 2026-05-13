@@ -73,7 +73,7 @@ The group-level `--theme` option selects a color preset for help screens. The fl
 $ click-extra --theme light flask --help
 ```
 
-Custom themes can be registered with `register_theme()` before the CLI is parsed; the new name then becomes a valid value for `--theme`.
+Custom themes can be registered with `register_theme()` before the CLI is parsed *or* declared inside the `--config` file (see [Custom themes via config](#custom-themes-via-config) below). Either way the new name becomes a valid value for `--theme` for the duration of the invocation.
 
 ## Configuration
 
@@ -123,6 +123,33 @@ $ click-extra flask --app otherapp routes
 ```
 
 Invalid option names are caught by the target CLI itself with standard Click error messages, so typos are surfaced immediately.
+
+### Custom themes via config
+
+The `--config` flag also accepts theme overrides and brand-new theme definitions. Drop a `[tool.click-extra.themes.<name>]` table into the same `pyproject.toml` and the new palette is loaded before `--theme` is validated, so it can be selected on the command line or pinned via `theme = "..."`:
+
+```toml
+[tool.click-extra]
+theme = "midnight"
+
+# Override one slot of the built-in `dark` theme:
+[tool.click-extra.themes.dark]
+option = { fg = "bright_cyan" }
+
+# Define a fresh palette named "midnight":
+[tool.click-extra.themes.midnight]
+option = { fg = "blue", bold = true }
+heading = { fg = "magenta" }
+choice = { fg = "yellow" }
+```
+
+```shell-session
+$ click-extra --help
+# --theme [dark|dracula|light|midnight|monokai|nord|solarized_dark]
+$ click-extra flask --help     # rendered with the "midnight" palette
+```
+
+Themes loaded this way live on `ctx.meta` for the current invocation only. The module-level `theme_registry` is never mutated, so back-to-back wraps in the same process don't cross-contaminate. See [Themes from your `--config` file](theme.md#themes-from-your-config-file) for the full schema and the validation behavior.
 
 ## Script resolution
 

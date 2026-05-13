@@ -163,6 +163,80 @@ def test_from_dict_rejects_unknown_keys():
         HelpExtraTheme.from_dict({"optoin": {"fg": "cyan"}})
 
 
+# --- Cascade ----------------------------------------------------------------
+
+
+def test_cascade_overrides_only_set_slots():
+    """``cascade`` keeps base's slots wherever the overlay leaves them at default."""
+    from click_extra.theme import DARK
+
+    overlay = HelpExtraTheme.from_dict({"option": {"fg": "magenta"}})
+    merged = overlay.cascade(DARK)
+
+    # Overlay slot wins.
+    assert merged.option.fg == "magenta"
+    # All other slots come from the base.
+    assert merged.heading == DARK.heading
+    assert merged.critical == DARK.critical
+    assert merged.deprecated == DARK.deprecated
+
+
+def test_cascade_returns_new_instance_when_overlay_changes_anything():
+    """Even a single-slot overlay produces a distinct theme instance."""
+    from click_extra.theme import DARK
+
+    overlay = HelpExtraTheme.from_dict({"option": {"fg": "magenta"}})
+    merged = overlay.cascade(DARK)
+
+    assert merged is not DARK
+    assert merged.option.fg != DARK.option.fg
+
+
+def test_cascade_round_trips_through_dict():
+    """``self.to_dict()`` wins over ``base.to_dict()`` slot-by-slot."""
+    from click_extra.theme import DARK, LIGHT
+
+    merged = LIGHT.cascade(DARK)
+    # Every slot LIGHT sets wins over DARK.
+    for slot, value in LIGHT.to_dict().items():
+        assert merged.to_dict()[slot] == value
+
+
+def test_cascade_rejects_non_theme_base():
+    """``cascade`` rejects anything that is not a :class:`HelpExtraTheme`."""
+    overlay = HelpExtraTheme()
+    with pytest.raises(TypeError, match="not a HelpExtraTheme"):
+        overlay.cascade(object())  # type: ignore[arg-type]
+
+
+# --- ThemeChoice ------------------------------------------------------------
+
+
+def test_themechoice_choices_track_global_registry():
+    """Outside any context, ``choices`` reflects the module-level registry."""
+    from click_extra.theme import ThemeChoice, theme_registry
+
+    tc = ThemeChoice()
+    assert set(tc.choices) == set(theme_registry)
+
+
+def test_themechoice_choices_pick_up_context_overrides():
+    """A theme stashed under ``THEME_OVERRIDES`` shows up in ``choices``."""
+    import click
+
+    from click_extra import context as cx
+    from click_extra.theme import DARK, ThemeChoice
+
+    @click.command
+    def noop() -> None:
+        pass
+
+    tc = ThemeChoice()
+    with click.Context(noop) as ctx:
+        cx.set(ctx, cx.THEME_OVERRIDES, {"midnight": DARK})
+        assert "midnight" in tc.choices
+
+
 # --- WCAG contrast quality gates --------------------------------------------
 
 
