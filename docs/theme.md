@@ -38,12 +38,12 @@ Now invocations of the `weather` CLI pick up the light theme without passing `--
 
 | Name                                                  | Color model          | Notes                                                                |
 | :---------------------------------------------------- | :------------------- | :------------------------------------------------------------------- |
-| [`dark`](#click_extra.themes.Dark)                    | 16 named ANSI colors | Process-wide default. Follows the user's terminal palette.           |
-| [`light`](#click_extra.themes.Light)                  | 16 named ANSI colors | Tuned for white backgrounds: no bright variants, blue replaces cyan. |
-| [`solarized_dark`](#click_extra.themes.SolarizedDark) | 24-bit RGB           | Warm-toned dark theme with selective accent contrast.                |
-| [`dracula`](#click_extra.themes.Dracula)              | 24-bit RGB           | High-contrast dark theme with vivid neon accents.                    |
-| [`nord`](#click_extra.themes.Nord)                    | 24-bit RGB           | Cool-toned dark theme built around frost-blue and aurora accents.    |
-| [`monokai`](#click_extra.themes.Monokai)              | 24-bit RGB           | Classic dark theme with high-saturation magenta and lime accents.    |
+| [`dark`](#click_extra.theme.DARK)                     | 16 named ANSI colors | Process-wide default. Follows the user's terminal palette.           |
+| [`light`](#click_extra.theme.LIGHT)                   | 16 named ANSI colors | Tuned for white backgrounds: no bright variants, blue replaces cyan. |
+| [`solarized_dark`](#click_extra.theme.SOLARIZED_DARK) | 24-bit RGB           | Warm-toned dark theme with selective accent contrast.                |
+| [`dracula`](#click_extra.theme.DRACULA)               | 24-bit RGB           | High-contrast dark theme with vivid neon accents.                    |
+| [`nord`](#click_extra.theme.NORD)                     | 24-bit RGB           | Cool-toned dark theme built around frost-blue and aurora accents.    |
+| [`monokai`](#click_extra.theme.MONOKAI)               | 24-bit RGB           | Classic dark theme with high-saturation magenta and lime accents.    |
 
 Click each tab below for a live render of the theme applied to the same `weather` CLI's `--help` output. Colors are produced at Sphinx build time, not screenshots.
 
@@ -93,14 +93,12 @@ assert result.exit_code == 0
 
 ``````
 
-Two flavors live in `click_extra.themes`:
+Two flavors ship in `click_extra/themes.toml`:
 
 - **ANSI themes** (`DARK`, `LIGHT`) use the 16 named ANSI colors via `cloup.styling.Color`, so the rendered colors track whatever palette the user's terminal is configured with. Pick these when you want to blend in with the user's terminal theme.
 - **Branded themes** (`SOLARIZED_DARK`, `DRACULA`, `NORD`, `MONOKAI`) emit 24-bit RGB triplets from each theme's canonical palette. Pick these when the theme name implies specific colors (`solarized_dark` should look like Solarized, not "whatever the terminal calls cyan"). Terminals without 24-bit support fall back to the nearest 256-color cell automatically. Each theme's slot mapping is hand-curated: there's no automated translation from generic colour-scheme formats, because none of them expose the same semantic roles we care about (option, metavar, choice, deprecated, envvar, ...).
 
-`click_extra.themes.BUILTIN_THEMES` is a `dict[str, HelpExtraTheme]` mapping the names above to their instances; it's seeded into `theme_registry` at module load.
-
-Each theme class's autodoc entry below carries a "Slots" listing with a color swatch next to every styled slot, generated from the live class fields at module load. Click any name in the table above to jump to that theme's slot list.
+`click_extra.theme.BUILTIN_THEMES` is a `dict[str, HelpExtraTheme]` mapping the names above to their instances; it is built by parsing `click_extra/themes.toml` at import time and is seeded into `theme_registry` immediately afterwards. Read the TOML file directly for the exact palette mapping, or call `theme.to_dict()` at runtime to get a TOML/JSON-friendly dict.
 
 ### Module exports
 
@@ -113,34 +111,21 @@ Use `click_extra.theme.get_current_theme()` to read the theme that applies to th
 
 ### Adding a new built-in theme
 
-A built-in theme is a single constant in `click_extra/themes.py`: declare a `HelpExtraTheme(...)` instance and add it to `BUILTIN_THEMES`. No subclass, no factory method on `HelpExtraTheme`.
+A built-in theme is a single TOML table in `click_extra/themes.toml`: declare a `[<name>]` table with one inline-table per styled slot. The file is parsed at import time via `HelpExtraTheme.from_dict`, so adding a theme requires no Python — only the data:
 
-The slot mapping is the work: generic colour-scheme catalogs (base16, pygments, iTerm palettes) don't expose the semantic roles Click Extra needs (option, metavar, choice, deprecated, envvar, ...), so each theme is hand-curated. Use the existing `SOLARIZED_DARK`, `DRACULA`, `NORD`, and `MONOKAI` blocks in `themes.py` as templates: declare the theme's palette as private `_constants`, then build the `HelpExtraTheme` slot by slot.
+```toml
+# click_extra/themes.toml
 
-```python
-# click_extra/themes.py
-
-# --- Zenburn by Jani Nurminen ----
+[zenburn]
+# Zenburn by Jani Nurminen.
 # Palette: https://kippura.org/zenburnpage/
-
-_zen_fg = (0xdc, 0xdc, 0xcc)
-_zen_comment = (0x7f, 0x9f, 0x7f)
-# ... declare the rest of the palette
-
-ZENBURN = HelpExtraTheme(
-    invoked_command=Style(fg=_zen_fg, bold=True),
-    heading=Style(fg=_zen_blue, bold=True, underline=True),
-    option=Style(fg=_zen_blue),
-    # ... fill in the rest of the slots
-)
-
-BUILTIN_THEMES = {
-    "dark": DARK,
-    "light": LIGHT,
-    "zenburn": ZENBURN,
-    ...
-}
+invoked_command = { fg = "#dcdccc", bold = true }
+heading = { fg = "#8cd0d3", bold = true, underline = true }
+option = { fg = "#8cd0d3" }
+# ... fill in the rest of the slots
 ```
+
+Tables are kept in alphabetical order; `tests/test_themes.py` enforces this. The slot mapping is the work: generic colour-scheme catalogs (base16, pygments, iTerm palettes) don't expose the semantic roles Click Extra needs (option, metavar, choice, deprecated, envvar, ...), so each theme is hand-curated. Use the existing `solarized_dark`, `dracula`, `nord`, and `monokai` tables as templates.
 
 ## Registering a custom theme
 
@@ -214,6 +199,29 @@ calm = DARK.with_(cross_ref_highlight=False)
 
 See [Cross-reference highlighting](colorize.md#cross-reference-highlighting) for the details on what stays styled when the flag is off.
 
+### Loading a theme from configuration
+
+`HelpExtraTheme.to_dict()` and `HelpExtraTheme.from_dict()` round-trip a theme through plain mappings, so a theme can live in a TOML, JSON, or YAML file alongside the rest of an application's configuration:
+
+```toml
+[my_theme]
+option = { fg = "cyan" }
+heading = { fg = "bright_blue", bold = true, underline = true }
+choice = { fg = "magenta" }
+```
+
+```python
+import tomllib
+from pathlib import Path
+
+from click_extra import HelpExtraTheme, register_theme
+
+raw = tomllib.loads(Path("config.toml").read_text())
+register_theme("my_theme", HelpExtraTheme.from_dict(raw["my_theme"]))
+```
+
+`to_dict()` only emits slots that diverge from the default (`identity` / `None`), and `from_dict()` raises `TypeError` on unknown keys, so configuration typos surface at load time rather than silently producing a half-styled theme.
+
 ## Interaction with `--color` / `--no-color`
 
 `--theme` controls *which* colors are used. `--color` / `--no-color` controls *whether* colors are emitted at all. The two are independent:
@@ -234,27 +242,4 @@ The `--color` callback inspects the standard set of color environment variables 
    :members:
    :undoc-members:
    :show-inheritance:
-```
-
-## `click_extra.themes` API
-
-```{eval-rst}
-.. automodule:: click_extra.themes
-   :no-members:
-
-.. autoclass:: click_extra.themes.Dark
-   :no-members:
-.. autoclass:: click_extra.themes.Light
-   :no-members:
-.. autoclass:: click_extra.themes.SolarizedDark
-   :no-members:
-.. autoclass:: click_extra.themes.Dracula
-   :no-members:
-.. autoclass:: click_extra.themes.Nord
-   :no-members:
-.. autoclass:: click_extra.themes.Monokai
-   :no-members:
-
-.. autodata:: click_extra.themes.BUILTIN_THEMES
-   :no-value:
 ```

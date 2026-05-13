@@ -38,8 +38,7 @@ from . import context, theme as _theme
 from .colorize import ExtraHelpColorsMixin, HelpExtraFormatter
 from .commands import ColorizedCommand, ColorizedGroup, ExtraGroup
 from .context import ExtraContext
-from .theme import HelpExtraTheme
-from .themes import DARK
+from .theme import DARK, HelpExtraTheme
 
 logger = logging.getLogger("click_extra")
 

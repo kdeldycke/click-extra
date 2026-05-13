@@ -21,11 +21,12 @@ the named-theme :data:`theme_registry` plus :func:`register_theme` helper,
 and the :class:`ThemeOption` that exposes ``--theme`` on every Click Extra
 command.
 
-The two built-in themes (``dark`` and ``light``) are declared as plain
-:class:`HelpExtraTheme` instances in :mod:`click_extra.themes` and seeded
-into :data:`theme_registry` at the end of this module's load. Adding a new
-built-in theme is a one-file change in :mod:`click_extra.themes` — no
-subclass, no factory method on :class:`HelpExtraTheme`.
+The built-in themes (``dark``, ``dracula``, ``light``, ``monokai``, ``nord``,
+``solarized_dark``) live in the package data file ``click_extra/themes.toml``
+and are loaded at module import time via :meth:`HelpExtraTheme.from_dict`.
+Adding a new built-in theme is a one-file edit in that TOML file — no Python
+needed. The same TOML schema is used for user-defined themes loaded from
+configuration: see :doc:`/theme` for the user guide.
 
 .. note::
     The active theme for a CLI invocation is stored on the Click context's
@@ -42,8 +43,10 @@ subclass, no factory method on :class:`HelpExtraTheme`.
 from __future__ import annotations
 
 import dataclasses
+import sys
 from dataclasses import dataclass
 from gettext import gettext as _
+from pathlib import Path
 from typing import cast
 
 import click
@@ -52,10 +55,17 @@ from cloup._util import identity
 
 from . import context
 from .parameters import ExtraOption
+from .styling import Style
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib  # type: ignore[import-not-found]
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
+    from typing import Any
 
     from cloup.styling import IStyle
 
@@ -65,9 +75,10 @@ class HelpExtraTheme(cloup.HelpTheme):
     """Extends ``cloup.HelpTheme`` with slots for log levels and the
     structural elements Click Extra highlights in help screens.
 
-    Each slot below documents *what* it colors. Themes (see
-    :mod:`click_extra.themes`) provide the visual styling by overriding
-    the relevant slot defaults.
+    Each slot below documents *what* it colors. The built-in themes shipped
+    in :data:`~click_extra.theme.BUILTIN_THEMES` provide the visual styling
+    by setting the relevant slots; user-defined themes can be authored as
+    plain mappings and loaded via :meth:`from_dict`.
     """
 
     # --- Log-level slots -----------------------------------------------------
@@ -218,6 +229,66 @@ class HelpExtraTheme(cloup.HelpTheme):
         # No new styles, return the same instance.
         return self
 
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize the theme to a plain dict suitable for TOML/JSON/YAML.
+
+        Each :class:`~click_extra.styling.Style` slot is emitted via
+        :meth:`Style.to_dict <click_extra.styling.Style.to_dict>`. Slots left
+        at their default (:func:`identity <cloup._util.identity>` or
+        ``None``) are omitted, so the output only carries what the theme
+        actually overrides. Pair with :meth:`from_dict` to round-trip.
+
+        :raises TypeError: when a slot holds an opaque ``IStyle`` callable
+            that is not a :class:`Style` (those cannot be serialized).
+        """
+        out: dict[str, Any] = {}
+        for f in dataclasses.fields(self):
+            value = getattr(self, f.name)
+            if value is identity or value is None:
+                continue
+            if f.name == "cross_ref_highlight":
+                # Only emit the bool when it differs from the field default.
+                if value != f.default:
+                    out[f.name] = value
+                continue
+            if isinstance(value, Style):
+                out[f.name] = value.to_dict()
+                continue
+            raise TypeError(
+                f"Cannot serialize {type(self).__name__}.{f.name}: "
+                f"{value!r} is not a Style instance."
+            )
+        return out
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> HelpExtraTheme:
+        """Build a theme from the plain dict produced by :meth:`to_dict`.
+
+        Each value is interpreted by field type: a mapping becomes a
+        :class:`~click_extra.styling.Style` via
+        :meth:`Style.from_dict <click_extra.styling.Style.from_dict>`, while
+        ``cross_ref_highlight`` is read as a plain ``bool``. Unknown keys
+        raise :class:`TypeError` so typos surface immediately.
+        """
+        unknown = set(data).difference(cls.__dataclass_fields__)
+        if unknown:
+            raise TypeError(
+                f"Unknown {cls.__name__} field(s): {', '.join(sorted(unknown))}"
+            )
+        kwargs: dict[str, Any] = {}
+        for name, raw in data.items():
+            if name == "cross_ref_highlight":
+                kwargs[name] = bool(raw)
+                continue
+            if isinstance(raw, dict):
+                kwargs[name] = Style.from_dict(raw)
+                continue
+            raise TypeError(
+                f"Cannot deserialize {cls.__name__}.{name}: "
+                f"{raw!r} is neither a mapping nor a recognized scalar."
+            )
+        return cls(**kwargs)
+
 
 nocolor_theme: HelpExtraTheme = HelpExtraTheme()
 """Color theme for Click Extra to force no colors.
@@ -239,9 +310,9 @@ choices do not leak across CLI invocations sharing the same process.
 ``patch_click`` is itself a process-wide monkey-patch, so a process-wide
 theme override matches its scope.
 
-Initialized to :data:`nocolor_theme` here, then reassigned to the ``dark``
-built-in theme by the ``_seed_builtin_themes()`` call at the bottom of this
-module (deferred to avoid a circular import with :mod:`click_extra.themes`).
+Initialized to :data:`nocolor_theme` here, then reassigned to :data:`DARK`
+at the bottom of this module once the built-in themes are loaded from
+``themes.toml``.
 """
 
 
@@ -277,10 +348,11 @@ Each entry maps a theme name to either a :class:`HelpExtraTheme` instance
 whose styling depends on runtime state). :class:`ThemeOption.set_theme`
 resolves callables on lookup.
 
-The two built-in themes are seeded here at module load time from
-:data:`click_extra.themes.BUILTIN_THEMES`. Use :func:`register_theme` to
-add your own *before* declaring your commands, since :class:`ThemeOption`
-builds its ``click.Choice`` from this registry at instantiation time.
+The built-in themes are seeded here at module load time from
+:data:`BUILTIN_THEMES` (loaded from ``click_extra/themes.toml``). Use
+:func:`register_theme` to add your own *before* declaring your commands,
+since :class:`ThemeOption` builds its ``click.Choice`` from this registry
+at instantiation time.
 """
 
 
@@ -374,17 +446,75 @@ class ThemeOption(ExtraOption):
         )
 
 
-# Late-bind the built-in themes. Imported at the bottom of the module to break
-# the circular dependency: ``themes.py`` needs ``HelpExtraTheme`` from this
-# module, while this module needs the populated registry to drive
-# ``ThemeOption``. The order is: define ``HelpExtraTheme``/registry first,
-# then load ``themes.py`` (which references ``HelpExtraTheme``), then seed the
-# registry and reassign ``default_theme`` so consumers reading it via
-# ``from .theme import default_theme`` capture the dark theme as expected.
-from .themes import BUILTIN_THEMES
+_BUILTIN_THEMES_TOML = Path(__file__).parent / "themes.toml"
+
+
+def _load_builtin_themes() -> dict[str, HelpExtraTheme]:
+    """Parse ``themes.toml`` into a ``{name: HelpExtraTheme}`` mapping.
+
+    Each top-level table maps to a :class:`HelpExtraTheme` via
+    :meth:`HelpExtraTheme.from_dict`. Failures surface immediately at import
+    time so a malformed shipped TOML cannot silently degrade ``--theme``.
+    """
+    raw = tomllib.loads(_BUILTIN_THEMES_TOML.read_text(encoding="utf-8"))
+    return {name: HelpExtraTheme.from_dict(data) for name, data in raw.items()}
+
+
+BUILTIN_THEMES: dict[str, HelpExtraTheme] = _load_builtin_themes()
+"""Mapping of built-in theme names to their :class:`HelpExtraTheme` instances.
+
+Loaded from the package data file ``click_extra/themes.toml`` at module
+import time and seeded into :data:`theme_registry`. Adding a new built-in
+theme is a one-file edit in that TOML file: declare a new ``[<name>]``
+table with one inline-table per styled slot.
+"""
+
+DARK: HelpExtraTheme = BUILTIN_THEMES["dark"]
+"""Theme tuned for terminals with a dark background.
+
+Used as the process-wide :data:`default_theme`.
+"""
+
+DRACULA: HelpExtraTheme = BUILTIN_THEMES["dracula"]
+"""Dracula by Zeno Rocha. High-contrast dark theme with vivid neon accents.
+
+Palette: https://draculatheme.com/contribute
+"""
+
+LIGHT: HelpExtraTheme = BUILTIN_THEMES["light"]
+"""Theme tuned for terminals with a light/white background.
+
+Mirrors :data:`DARK` but swaps the palette for one that stays legible on a
+white background: bright variants (which most terminals render as washed-out
+tints) are replaced by their standard counterparts, ``bright_white`` becomes
+``black``, and cyan accents become ``blue`` since cyan on white is hard to
+read.
+"""
+
+MONOKAI: HelpExtraTheme = BUILTIN_THEMES["monokai"]
+"""Monokai by Wimer Hazenberg. Classic dark theme with high-saturation
+magenta and lime accents.
+
+Palette: https://monokai.pro/
+"""
+
+NORD: HelpExtraTheme = BUILTIN_THEMES["nord"]
+"""Nord by Arctic Ice Studio. Cool-toned dark theme built around
+frost-blue and aurora accents.
+
+Palette: https://www.nordtheme.com/docs/colors-and-palettes
+"""
+
+SOLARIZED_DARK: HelpExtraTheme = BUILTIN_THEMES["solarized_dark"]
+"""Solarized Dark by Ethan Schoonover. Warm-toned dark theme with selective
+accent contrast.
+
+Palette: https://ethanschoonover.com/solarized/
+"""
+
 
 theme_registry.update(BUILTIN_THEMES)
-default_theme = BUILTIN_THEMES["dark"]
+default_theme = DARK
 
 
 OK = default_theme.success("✓")

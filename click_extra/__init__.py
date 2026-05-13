@@ -133,12 +133,6 @@ from .table import (
 from .telemetry import TelemetryOption
 from .testing import ExtraCliRunner
 from .theme import (
-    HelpExtraTheme,
-    ThemeOption,
-    register_theme,
-    theme_registry,
-)
-from .themes import (
     BUILTIN_THEMES,
     DARK,
     DRACULA,
@@ -146,12 +140,10 @@ from .themes import (
     MONOKAI,
     NORD,
     SOLARIZED_DARK,
-    Dark,
-    Dracula,
-    Light,
-    Monokai,
-    Nord,
-    SolarizedDark,
+    HelpExtraTheme,
+    ThemeOption,
+    register_theme,
+    theme_registry,
 )
 from .timer import TimerOption
 from .version import ExtraVersionOption
@@ -195,9 +187,7 @@ __all__ = [
     "ConfigValidator",
     "ConstraintMixin",
     "Context",
-    "Dark",
     "DateTime",
-    "Dracula",
     "EnumChoice",
     "ExtraCliRunner",
     "ExtraCommand",
@@ -221,13 +211,10 @@ __all__ = [
     "IntRange",
     "JobsOption",
     "LazyGroup",
-    "Light",
     "LogLevel",
     "MissingParameter",
-    "Monokai",
     "NoConfigOption",
     "NoSuchOption",
-    "Nord",
     "Option",
     "OptionGroup",
     "OptionGroupMixin",
@@ -239,7 +226,6 @@ __all__ = [
     "Section",
     "SectionMixin",
     "ShowParamsOption",
-    "SolarizedDark",
     "SortByOption",
     "Style",
     "TableFormat",

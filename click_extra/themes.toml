@@ -1,0 +1,180 @@
+# Built-in palettes for click_extra.theme.HelpExtraTheme.
+#
+# Each [<name>] table maps to a HelpExtraTheme via HelpExtraTheme.from_dict.
+# Slot values are inline tables matching Style.from_dict: { fg = "<color>",
+# bold = true, ... }. Omitted slots default to identity (no styling).
+#
+# Themes are kept in alphabetical order; tests/test_themes.py enforces this.
+
+
+[dark]
+# Theme tuned for terminals with a dark background. Used as the process-wide
+# click_extra.theme.default_theme.
+invoked_command = { fg = "bright_white" }
+heading = { fg = "bright_blue", bold = true, underline = true }
+constraint = { fg = "magenta" }
+alias = { fg = "cyan" }
+alias_secondary = { fg = "cyan", dim = true }
+critical = { fg = "red", bold = true }
+error = { fg = "red" }
+warning = { fg = "yellow" }
+debug = { fg = "blue" }
+option = { fg = "cyan" }
+subcommand = { fg = "cyan" }
+choice = { fg = "magenta" }
+metavar = { fg = "cyan", dim = true }
+bracket = { dim = true }
+envvar = { fg = "yellow", dim = true }
+default = { fg = "green", dim = true, italic = true }
+range_label = { fg = "cyan", dim = true }
+required = { fg = "red", dim = true }
+argument = { fg = "cyan" }
+deprecated = { fg = "bright_yellow", bold = true }
+search = { fg = "green", bold = true }
+success = { fg = "green" }
+subheading = { fg = "blue" }
+
+
+[dracula]
+# Dracula by Zeno Rocha. High-contrast dark theme with vivid neon accents.
+# Palette: https://draculatheme.com/contribute
+invoked_command = { fg = "#f8f8f2", bold = true }
+heading = { fg = "#ff79c6", bold = true, underline = true }
+constraint = { fg = "#ff79c6" }
+alias = { fg = "#8be9fd" }
+alias_secondary = { fg = "#8be9fd", dim = true }
+critical = { fg = "#ff5555", bold = true }
+error = { fg = "#ff5555" }
+warning = { fg = "#ffb86c" }
+debug = { fg = "#6272a4" }
+option = { fg = "#bd93f9" }
+subcommand = { fg = "#bd93f9" }
+choice = { fg = "#ff79c6" }
+metavar = { fg = "#bd93f9", dim = true }
+bracket = { fg = "#6272a4" }
+envvar = { fg = "#ffb86c", dim = true }
+default = { fg = "#50fa7b", dim = true, italic = true }
+range_label = { fg = "#bd93f9", dim = true }
+required = { fg = "#ff5555", dim = true }
+argument = { fg = "#bd93f9" }
+deprecated = { fg = "#ffb86c", bold = true }
+search = { fg = "#f1fa8c", bold = true }
+success = { fg = "#50fa7b" }
+subheading = { fg = "#8be9fd" }
+
+
+[light]
+# Theme tuned for terminals with a light/white background. Mirrors `dark`
+# but swaps the palette for one that stays legible on white: bright variants
+# (washed-out on most terminals) become standard counterparts, bright_white
+# becomes black, and cyan accents become blue (cyan on white is hard to read).
+invoked_command = { fg = "black", bold = true }
+heading = { fg = "blue", bold = true, underline = true }
+constraint = { fg = "magenta" }
+alias = { fg = "blue" }
+alias_secondary = { fg = "blue", dim = true }
+critical = { fg = "red", bold = true }
+error = { fg = "red" }
+warning = { fg = "magenta" }
+debug = { fg = "blue", dim = true }
+option = { fg = "blue" }
+subcommand = { fg = "blue" }
+choice = { fg = "magenta" }
+metavar = { fg = "blue", dim = true }
+bracket = { dim = true }
+envvar = { fg = "magenta", dim = true }
+default = { fg = "green", dim = true, italic = true }
+range_label = { fg = "blue", dim = true }
+required = { fg = "red", dim = true }
+argument = { fg = "blue" }
+deprecated = { fg = "red", bold = true }
+search = { fg = "green", bold = true }
+success = { fg = "green" }
+subheading = { fg = "blue", dim = true }
+
+
+[monokai]
+# Monokai by Wimer Hazenberg. Classic dark theme with high-saturation
+# magenta and lime accents.
+# Palette: https://monokai.pro/
+invoked_command = { fg = "#f8f8f2", bold = true }
+heading = { fg = "#a6e22e", bold = true, underline = true }
+constraint = { fg = "#ae81ff" }
+alias = { fg = "#a6e22e" }
+alias_secondary = { fg = "#a6e22e", dim = true }
+critical = { fg = "#f92672", bold = true }
+error = { fg = "#f92672" }
+warning = { fg = "#fd971f" }
+debug = { fg = "#75715e" }
+option = { fg = "#66d9ef" }
+subcommand = { fg = "#66d9ef" }
+choice = { fg = "#ae81ff" }
+metavar = { fg = "#66d9ef", dim = true }
+bracket = { fg = "#75715e" }
+envvar = { fg = "#fd971f", dim = true }
+default = { fg = "#e6db74", dim = true, italic = true }
+range_label = { fg = "#66d9ef", dim = true }
+required = { fg = "#f92672", dim = true }
+argument = { fg = "#66d9ef" }
+deprecated = { fg = "#fd971f", bold = true }
+search = { fg = "#e6db74", bold = true }
+success = { fg = "#a6e22e" }
+subheading = { fg = "#a6e22e" }
+
+
+[nord]
+# Nord by Arctic Ice Studio. Cool-toned dark theme built around frost-blue
+# and aurora accents.
+# Palette: https://www.nordtheme.com/docs/colors-and-palettes
+invoked_command = { fg = "#eceff4", bold = true }     # nord6: snow storm
+heading = { fg = "#5e81ac", bold = true, underline = true }  # nord10
+constraint = { fg = "#b48ead" }                        # nord15
+alias = { fg = "#8fbcbb" }                             # nord7
+alias_secondary = { fg = "#8fbcbb", dim = true }
+critical = { fg = "#bf616a", bold = true }             # nord11: aurora
+error = { fg = "#bf616a" }
+warning = { fg = "#d08770" }                           # nord12
+debug = { fg = "#4c566a" }                             # nord3: polar night
+option = { fg = "#81a1c1" }                            # nord9
+subcommand = { fg = "#81a1c1" }
+choice = { fg = "#b48ead" }
+metavar = { fg = "#81a1c1", dim = true }
+bracket = { fg = "#4c566a" }
+envvar = { fg = "#d08770", dim = true }
+default = { fg = "#a3be8c", dim = true, italic = true }  # nord14
+range_label = { fg = "#81a1c1", dim = true }
+required = { fg = "#bf616a", dim = true }
+argument = { fg = "#81a1c1" }
+deprecated = { fg = "#d08770", bold = true }
+search = { fg = "#ebcb8b", bold = true }               # nord13
+success = { fg = "#a3be8c" }
+subheading = { fg = "#88c0d0" }                        # nord8
+
+
+[solarized_dark]
+# Solarized Dark by Ethan Schoonover. Warm-toned dark theme with selective
+# accent contrast.
+# Palette: https://ethanschoonover.com/solarized/
+invoked_command = { fg = "#eee8d5", bold = true }      # base2: emphasized
+heading = { fg = "#268bd2", bold = true, underline = true }
+constraint = { fg = "#6c71c4" }
+alias = { fg = "#2aa198" }
+alias_secondary = { fg = "#2aa198", dim = true }
+critical = { fg = "#dc322f", bold = true }
+error = { fg = "#dc322f" }
+warning = { fg = "#b58900" }
+debug = { fg = "#586e75" }                             # base01
+option = { fg = "#268bd2" }
+subcommand = { fg = "#268bd2" }
+choice = { fg = "#6c71c4" }
+metavar = { fg = "#268bd2", dim = true }
+bracket = { fg = "#586e75" }
+envvar = { fg = "#cb4b16", dim = true }
+default = { fg = "#859900", dim = true, italic = true }
+range_label = { fg = "#268bd2", dim = true }
+required = { fg = "#dc322f", dim = true }
+argument = { fg = "#268bd2" }
+deprecated = { fg = "#d33682", bold = true }
+search = { fg = "#b58900", bold = true }
+success = { fg = "#859900" }
+subheading = { fg = "#2aa198" }

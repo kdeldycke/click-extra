@@ -13,20 +13,25 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Tests for built-in themes."""
+"""Tests for built-in themes loaded from ``click_extra/themes.toml``."""
 
 from __future__ import annotations
 
-import ast
 import dataclasses
-import inspect
+import re
+import sys
 from pathlib import Path
 
 import pytest
 from cloup._util import identity
 
-from click_extra import Style, themes
-from click_extra.theme import HelpExtraTheme
+from click_extra import Style
+from click_extra.theme import BUILTIN_THEMES, HelpExtraTheme
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib  # type: ignore[import-not-found]
 
 # Each theme's assumed background. Branded themes use the canonical hex
 # from each scheme's spec; ANSI themes assume the conventional terminal
@@ -56,13 +61,6 @@ _READABLE_SLOTS: tuple[str, ...] = (
     "option", "error", "warning", "success",
 )
 
-# Slots intentionally rendered as low-contrast/subdued (comment-style).
-# Excluded from the AA Large gate; only checked against the legibility floor.
-_SUBDUED_SLOTS: frozenset[str] = frozenset({
-    "debug", "bracket", "envvar", "range_label", "required",
-    "metavar", "alias_secondary", "default",
-})
-
 # Absolute legibility floor: anything below this is essentially invisible
 # against the assumed background. Catches palette tweaks that would render
 # a slot unusable, while still letting subdued slots stay subdued.
@@ -72,100 +70,97 @@ _LEGIBILITY_FLOOR: float = 1.5
 # https://www.w3.org/TR/WCAG22/#contrast-minimum
 _WCAG_AA_LARGE: float = 3.0
 
-
-def _theme_subclass_names(tree: ast.Module) -> list[str]:
-    """Extract names of top-level ``HelpExtraTheme`` subclass definitions."""
-    return [
-        node.name
-        for node in tree.body
-        if isinstance(node, ast.ClassDef)
-        and any(
-            isinstance(base, ast.Name) and base.id == "HelpExtraTheme"
-            for base in node.bases
-        )
-    ]
+_THEMES_TOML = Path(__file__).parent.parent / "click_extra" / "themes.toml"
 
 
-def _theme_singleton_names(tree: ast.Module) -> list[str]:
-    """Extract names of top-level UPPER_CASE assignments whose RHS is a theme call."""
-    theme_class_names = set(_theme_subclass_names(tree))
-    names: list[str] = []
-    for node in tree.body:
-        if not isinstance(node, ast.Assign):
-            continue
-        if len(node.targets) != 1 or not isinstance(node.targets[0], ast.Name):
-            continue
-        target = node.targets[0].id
-        if not target.isupper():
-            continue
-        # RHS must be a call to one of the theme classes (e.g. ``Dark()``).
-        if (
-            isinstance(node.value, ast.Call)
-            and isinstance(node.value.func, ast.Name)
-            and node.value.func.id in theme_class_names
-        ):
-            names.append(target)
-    return names
+def _toml_table_order() -> list[str]:
+    """Return the top-level table names in the order they appear in ``themes.toml``."""
+    text = _THEMES_TOML.read_text(encoding="utf-8")
+    return re.findall(r"^\[([A-Za-z_][\w]*)\]\s*$", text, flags=re.MULTILINE)
 
 
-def _themes_source() -> str:
-    """Read the themes module source for AST inspection."""
-    path = inspect.getsourcefile(themes)
-    assert path is not None
-    return Path(path).read_text(encoding="utf-8")
+def _parsed_themes_toml() -> dict[str, dict]:
+    """Load ``themes.toml`` raw (without going through ``HelpExtraTheme.from_dict``)."""
+    return tomllib.loads(_THEMES_TOML.read_text(encoding="utf-8"))
 
 
-def test_theme_classes_alphabetical():
-    """``HelpExtraTheme`` subclasses in ``themes.py`` are declared alphabetically."""
-    source = _themes_source()
-    declared = _theme_subclass_names(ast.parse(source))
+# --- Source-of-truth checks -------------------------------------------------
+
+
+def test_themes_toml_tables_alphabetical():
+    """Top-level tables in ``themes.toml`` are declared alphabetically."""
+    declared = _toml_table_order()
     assert declared == sorted(declared), (
-        f"Theme classes in click_extra/themes.py must be declared alphabetically. "
-        f"Got: {declared}\nExpected: {sorted(declared)}"
-    )
-
-
-def test_theme_singletons_alphabetical():
-    """UPPER_CASE theme singletons in ``themes.py`` are declared alphabetically."""
-    source = _themes_source()
-    declared = _theme_singleton_names(ast.parse(source))
-    assert declared == sorted(declared), (
-        f"Theme singletons in click_extra/themes.py must be declared alphabetically. "
+        f"Theme tables in click_extra/themes.toml must be alphabetical. "
         f"Got: {declared}\nExpected: {sorted(declared)}"
     )
 
 
 def test_builtin_themes_alphabetical():
-    """``BUILTIN_THEMES`` keys are kept alphabetical (matters for ``--theme`` choices)."""
-    keys = list(themes.BUILTIN_THEMES)
+    """``BUILTIN_THEMES`` keys are alphabetical (matters for ``--theme`` choices)."""
+    keys = list(BUILTIN_THEMES)
     assert keys == sorted(keys), (
         f"BUILTIN_THEMES keys must be alphabetical. "
         f"Got: {keys}\nExpected: {sorted(keys)}"
     )
 
 
-def test_singletons_match_builtin_themes():
-    """Every UPPER_CASE singleton has a matching ``BUILTIN_THEMES`` entry, and vice versa."""
-    source = _themes_source()
-    declared = set(_theme_singleton_names(ast.parse(source)))
-    registered = {name.upper() for name in themes.BUILTIN_THEMES}
-    assert declared == registered, (
-        f"Mismatch between theme singletons declared in themes.py and "
-        f"BUILTIN_THEMES entries.\nDeclared only: {declared - registered}\n"
-        f"Registered only: {registered - declared}"
+def test_builtin_themes_match_toml():
+    """Every TOML table maps to a ``BUILTIN_THEMES`` entry, and vice versa."""
+    parsed = _parsed_themes_toml()
+    assert set(parsed) == set(BUILTIN_THEMES), (
+        f"Mismatch between themes.toml tables and BUILTIN_THEMES.\n"
+        f"In TOML only: {set(parsed) - set(BUILTIN_THEMES)}\n"
+        f"In BUILTIN_THEMES only: {set(BUILTIN_THEMES) - set(parsed)}"
     )
 
 
-def test_theme_classes_subclass_helpextratheme():
-    """Every theme class declared in ``themes.py`` actually subclasses ``HelpExtraTheme``."""
-    source = _themes_source()
-    for name in _theme_subclass_names(ast.parse(source)):
-        cls = getattr(themes, name)
-        assert isinstance(cls, type), f"{name} is not a class"
-        assert issubclass(cls, HelpExtraTheme), (
-            f"{name} declares HelpExtraTheme as a base in source but does not "
-            f"actually subclass it at runtime."
+def test_builtin_themes_are_helpextratheme_instances():
+    """Every ``BUILTIN_THEMES`` entry is a :class:`HelpExtraTheme` instance."""
+    for name, theme in BUILTIN_THEMES.items():
+        assert isinstance(theme, HelpExtraTheme), (
+            f"BUILTIN_THEMES[{name!r}] is {type(theme).__name__}, "
+            f"expected HelpExtraTheme."
         )
+
+
+# --- Round-trip serialization -----------------------------------------------
+
+
+@pytest.mark.parametrize("theme_name", sorted(BUILTIN_THEMES))
+def test_theme_round_trips_through_dict(theme_name):
+    """``HelpExtraTheme.to_dict``/``from_dict`` round-trips every built-in theme."""
+    theme = BUILTIN_THEMES[theme_name]
+    rebuilt = HelpExtraTheme.from_dict(theme.to_dict())
+    assert rebuilt == theme
+
+
+@pytest.mark.parametrize("theme_name", sorted(BUILTIN_THEMES))
+def test_themes_toml_payload_matches_to_dict(theme_name):
+    """The TOML payload for each theme equals what ``to_dict`` would emit."""
+    parsed = _parsed_themes_toml()
+    assert parsed[theme_name] == BUILTIN_THEMES[theme_name].to_dict()
+
+
+def test_to_dict_omits_identity_slots():
+    """Slots left at the ``identity`` default do not appear in ``to_dict`` output."""
+    blank = HelpExtraTheme()
+    assert blank.to_dict() == {}
+
+
+def test_to_dict_emits_cross_ref_highlight_only_when_overridden():
+    """``cross_ref_highlight`` is emitted only when it differs from the default."""
+    default = HelpExtraTheme()
+    assert "cross_ref_highlight" not in default.to_dict()
+
+    flipped = HelpExtraTheme(cross_ref_highlight=False)
+    assert flipped.to_dict() == {"cross_ref_highlight": False}
+
+
+def test_from_dict_rejects_unknown_keys():
+    """Typos like ``optoin`` raise ``TypeError`` instead of being silently dropped."""
+    with pytest.raises(TypeError, match="optoin"):
+        HelpExtraTheme.from_dict({"optoin": {"fg": "cyan"}})
 
 
 # --- WCAG contrast quality gates --------------------------------------------
@@ -191,7 +186,7 @@ def test_branded_themes_meet_wcag_aa_large(theme_name, slot):
     less readable than what currently ships and warrants a deliberate
     palette tweak rather than a silent slip.
     """
-    theme = themes.BUILTIN_THEMES[theme_name]
+    theme = BUILTIN_THEMES[theme_name]
     fg_style = getattr(theme, slot)
     bg_style = Style(fg=_THEME_BACKGROUNDS[theme_name])
     ratio = fg_style.contrast_ratio(bg_style)
@@ -201,7 +196,7 @@ def test_branded_themes_meet_wcag_aa_large(theme_name, slot):
     )
 
 
-@pytest.mark.parametrize("theme_name", sorted(themes.BUILTIN_THEMES))
+@pytest.mark.parametrize("theme_name", sorted(BUILTIN_THEMES))
 def test_themes_meet_legibility_floor(theme_name):
     """Every styled slot in every theme stays above the legibility floor.
 
@@ -210,7 +205,7 @@ def test_themes_meet_legibility_floor(theme_name):
     invisible against the theme's assumed background. Catches accidental
     palette tweaks like setting an attribute to nearly the background color.
     """
-    theme = themes.BUILTIN_THEMES[theme_name]
+    theme = BUILTIN_THEMES[theme_name]
     bg_style = Style(fg=_THEME_BACKGROUNDS[theme_name])
     failures: list[str] = []
     for f in dataclasses.fields(theme):

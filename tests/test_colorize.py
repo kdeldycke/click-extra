@@ -812,7 +812,7 @@ def test_cross_ref_highlight_disabled():
     styled (bracket fields, deprecated messages, subcommands, choice metavars).
     Options, choices in free-form text, metavars, arguments, and CLI names are
     left plain."""
-    from click_extra.themes import DARK
+    from click_extra.theme import DARK
 
     no_xref_theme = DARK.with_(cross_ref_highlight=False)  # type: ignore[arg-type]
 
