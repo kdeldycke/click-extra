@@ -217,7 +217,7 @@ as :data:`VERBOSITY` for the ``-v`` family of flags.
 START_TIME: Final[str] = "click_extra.start_time"
 """``time.perf_counter()`` snapshot taken when ``--time`` is enabled.
 
-Written by :class:`click_extra.timer.TimerOption.register_timer_on_close`.
+Written by :class:`click_extra.timer.TimerOption.init_timer`.
 """
 
 
@@ -269,6 +269,18 @@ theme when *name* matches one already in :data:`~click_extra.theme.theme_registr
 Read by :func:`click_extra.theme.get_theme_registry` so ``--theme`` can pick
 the new themes without leaking them into sibling invocations sharing the
 same process.
+"""
+
+
+# --- Telemetry ----------------------------------------------------------------
+
+TELEMETRY: Final[str] = "click_extra.telemetry"
+"""``True`` if the user opted into telemetry, ``False`` otherwise.
+
+Written by :class:`click_extra.telemetry.TelemetryOption.set_telemetry` after
+reconciling ``--telemetry`` / ``--no-telemetry`` with the standard
+``DO_NOT_TRACK`` environment variable. Downstream code reads this to decide
+whether to emit usage data.
 """
 
 

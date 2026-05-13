@@ -116,7 +116,7 @@ assert "config: none" in result.stdout
 Inside a `@command`-decorated function, you can either accept `ctx` via [`@pass_context`](https://click.palletsprojects.com/en/stable/commands/#nested-handling-and-contexts) or call [`click.get_current_context()`](https://click.palletsprojects.com/en/stable/api/#click.get_current_context) from any helper that runs while the CLI is being invoked. Both give you the same context, and both expose the same `.meta` dict.
 
 ```{caution}
-Outside an active CLI invocation (e.g. at import time, in unit tests that build options directly without invoking a CLI, or in a REPL) there is no context, and these keys are not available. Helpers that need to work in both modes should fall through to a sane default. The [theming layer](theme.md) does this with `get_current_theme()`, which returns the module-level `default_theme` when no context is in flight.
+Outside an active CLI invocation (e.g. at import time, in unit tests that build options directly without invoking a CLI, or in a REPL) there is no context, and these keys are not available. Helpers that need to work in both modes should fall through to a sane default. The [theming layer](theme.md) does this with `get_current_theme()`, which falls back to `get_default_theme()` when no context is in flight.
 ```
 
 ## `click_extra.context` API

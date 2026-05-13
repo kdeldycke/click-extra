@@ -55,7 +55,13 @@ from boltons.formatutils import BaseFormatField, tokenize_format_str
 from . import Style, echo, get_current_context
 from .context import _LazyMetaDict
 from .parameters import ExtraOption
-from .theme import default_theme
+from .theme import BUILTIN_THEMES
+
+# Frozen reference to the default theme's invoked-command style. Used as the
+# default for several version-template fields below. Captured at module load
+# time on purpose: defaults bind once at function-definition time, so reading
+# through ``get_default_theme()`` here would hide later overrides anyway.
+_default_invoked_command = BUILTIN_THEMES["dark"].invoked_command
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -369,12 +375,12 @@ class ExtraVersionOption(ExtraOption):
         # Field style overrides.
         message_style: IStyle | None = None,
         module_style: IStyle | None = None,
-        module_name_style: IStyle | None = default_theme.invoked_command,
+        module_name_style: IStyle | None = _default_invoked_command,
         module_file_style: IStyle | None = None,
         module_version_style: IStyle | None = Style(fg="green"),
-        package_name_style: IStyle | None = default_theme.invoked_command,
+        package_name_style: IStyle | None = _default_invoked_command,
         package_version_style: IStyle | None = Style(fg="green"),
-        exec_name_style: IStyle | None = default_theme.invoked_command,
+        exec_name_style: IStyle | None = _default_invoked_command,
         version_style: IStyle | None = Style(fg="green"),
         git_repo_path_style: IStyle | None = Style(fg="bright_black"),
         git_branch_style: IStyle | None = Style(fg="cyan"),
@@ -383,7 +389,7 @@ class ExtraVersionOption(ExtraOption):
         git_date_style: IStyle | None = Style(fg="bright_black"),
         git_tag_style: IStyle | None = Style(fg="cyan"),
         git_tag_sha_style: IStyle | None = Style(fg="yellow"),
-        prog_name_style: IStyle | None = default_theme.invoked_command,
+        prog_name_style: IStyle | None = _default_invoked_command,
         env_info_style: IStyle | None = Style(fg="bright_black"),
         is_flag=True,
         expose_value=False,

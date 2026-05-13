@@ -168,37 +168,34 @@ def test_from_dict_rejects_unknown_keys():
 
 def test_cascade_overrides_only_set_slots():
     """``cascade`` keeps base's slots wherever the overlay leaves them at default."""
-    from click_extra.theme import DARK
-
+    dark = BUILTIN_THEMES["dark"]
     overlay = HelpExtraTheme.from_dict({"option": {"fg": "magenta"}})
-    merged = overlay.cascade(DARK)
+    merged = overlay.cascade(dark)
 
     # Overlay slot wins.
     assert merged.option.fg == "magenta"
     # All other slots come from the base.
-    assert merged.heading == DARK.heading
-    assert merged.critical == DARK.critical
-    assert merged.deprecated == DARK.deprecated
+    assert merged.heading == dark.heading
+    assert merged.critical == dark.critical
+    assert merged.deprecated == dark.deprecated
 
 
 def test_cascade_returns_new_instance_when_overlay_changes_anything():
     """Even a single-slot overlay produces a distinct theme instance."""
-    from click_extra.theme import DARK
-
+    dark = BUILTIN_THEMES["dark"]
     overlay = HelpExtraTheme.from_dict({"option": {"fg": "magenta"}})
-    merged = overlay.cascade(DARK)
+    merged = overlay.cascade(dark)
 
-    assert merged is not DARK
-    assert merged.option.fg != DARK.option.fg
+    assert merged is not dark
+    assert merged.option.fg != dark.option.fg
 
 
 def test_cascade_round_trips_through_dict():
     """``self.to_dict()`` wins over ``base.to_dict()`` slot-by-slot."""
-    from click_extra.theme import DARK, LIGHT
-
-    merged = LIGHT.cascade(DARK)
-    # Every slot LIGHT sets wins over DARK.
-    for slot, value in LIGHT.to_dict().items():
+    light = BUILTIN_THEMES["light"]
+    merged = light.cascade(BUILTIN_THEMES["dark"])
+    # Every slot light sets wins over dark.
+    for slot, value in light.to_dict().items():
         assert merged.to_dict()[slot] == value
 
 
@@ -225,7 +222,7 @@ def test_themechoice_choices_pick_up_context_overrides():
     import click
 
     from click_extra import context as cx
-    from click_extra.theme import DARK, ThemeChoice
+    from click_extra.theme import ThemeChoice
 
     @click.command
     def noop() -> None:
@@ -233,7 +230,7 @@ def test_themechoice_choices_pick_up_context_overrides():
 
     tc = ThemeChoice()
     with click.Context(noop) as ctx:
-        cx.set(ctx, cx.THEME_OVERRIDES, {"midnight": DARK})
+        cx.set(ctx, cx.THEME_OVERRIDES, {"midnight": BUILTIN_THEMES["dark"]})
         assert "midnight" in tc.choices
 
 

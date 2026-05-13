@@ -53,11 +53,11 @@ def test_theme_does_not_leak_across_invocations():
 
 
 def test_theme_default_unchanged_after_invocation():
-    """An invocation with ``--theme light`` must not mutate the module default."""
-    original = _theme.default_theme
+    """An invocation with ``--theme light`` must not mutate the process-wide default."""
+    original = _theme.get_default_theme()
     runner = CliRunner()
     runner.invoke(greet, ["--theme", "light", "--help"], color=True)
-    assert _theme.default_theme is original
+    assert _theme.get_default_theme() is original
 
 
 def test_theme_meta_key_matches_registry():

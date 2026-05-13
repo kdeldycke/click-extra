@@ -22,7 +22,7 @@ import click
 import cloup
 import pytest
 
-from click_extra import command, echo, pass_context, telemetry_option
+from click_extra import command, context, echo, pass_context, telemetry_option
 
 
 @pytest.mark.parametrize(
@@ -63,7 +63,7 @@ def test_standalone_telemetry_option(
     @pass_context
     def cli(ctx):
         echo("It works!")
-        echo(f"Telemetry value: {ctx.telemetry}")
+        echo(f"Telemetry value: {context.get(ctx, context.TELEMETRY)}")
 
     result = invoke(cli, "--help", color=False)
     assert telemetry_help in result.stdout
@@ -113,7 +113,7 @@ def test_multiple_envvars(invoke, cmd_decorator, telemetry_help):
     @pass_context
     def standalone_telemetry(ctx):
         echo("It works!")
-        echo(f"Telemetry value: {ctx.telemetry}")
+        echo(f"Telemetry value: {context.get(ctx, context.TELEMETRY)}")
 
     result = invoke(standalone_telemetry, "--help", color=False)
     assert telemetry_help in result.stdout

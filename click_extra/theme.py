@@ -16,10 +16,10 @@
 """Help-screen color themes for Click Extra.
 
 Holds the :class:`HelpExtraTheme` dataclass (pure data, no factory methods),
-the module-level :data:`default_theme` and :data:`nocolor_theme` instances,
-the named-theme :data:`theme_registry` plus :func:`register_theme` helper,
-and the :class:`ThemeOption` that exposes ``--theme`` on every Click Extra
-command.
+the :data:`nocolor_theme` constant, the process-wide fallback accessed via
+:func:`get_default_theme` / :func:`set_default_theme`, the named-theme
+:data:`theme_registry` plus :func:`register_theme` helper, and the
+:class:`ThemeOption` that exposes ``--theme`` on every Click Extra command.
 
 The built-in themes (``dark``, ``dracula``, ``light``, ``monokai``, ``nord``,
 ``solarized_dark``) live in the package data file ``click_extra/themes.toml``
@@ -33,11 +33,11 @@ configuration: see :doc:`/theme` for the user guide.
     ``meta`` dict under :data:`click_extra.context.THEME` by
     :class:`ThemeOption`. Use :func:`get_current_theme` to retrieve it: that
     helper consults the active Click context first and falls back to
-    :data:`default_theme` when no context is in flight (e.g. at import time,
-    in ``wrap`` patching, or in bare REPL usage). Per-invocation context
-    storage means concurrent invocations of the same CLI in one process
-    (Sphinx builds, test runners, REPLs) do not leak ``--theme`` choices
-    into each other.
+    :func:`get_default_theme` when no context is in flight (e.g. at import
+    time, in ``wrap`` patching, or in bare REPL usage). Per-invocation
+    context storage means concurrent invocations of the same CLI in one
+    process (Sphinx builds, test runners, REPLs) do not leak ``--theme``
+    choices into each other.
 """
 
 from __future__ import annotations
@@ -46,7 +46,7 @@ import dataclasses
 import sys
 from dataclasses import dataclass
 from gettext import gettext as _
-from pathlib import Path
+from importlib import resources
 from typing import cast
 
 import click
@@ -55,7 +55,7 @@ from cloup._util import identity
 
 from . import context
 from .parameters import ExtraOption
-from .styling import Style
+from .styling import Style, _color_to_css, dict_to_fields, fields_to_dict
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -64,7 +64,7 @@ else:
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
+    from collections.abc import Sequence
     from typing import Any
 
     from cloup.styling import IStyle
@@ -229,6 +229,43 @@ class HelpExtraTheme(cloup.HelpTheme):
         # No new styles, return the same instance.
         return self
 
+    @staticmethod
+    def _encode_slot(field: Any, value: Any) -> Any:
+        """Encode a slot value for :meth:`to_dict`.
+
+        :class:`~click_extra.styling.Style` instances become their
+        :meth:`Style.to_dict <click_extra.styling.Style.to_dict>` mapping;
+        ``cross_ref_highlight``'s ``bool`` passes through as-is. Anything
+        else (an opaque ``IStyle`` callable that isn't a :class:`Style`)
+        raises :class:`TypeError` since those cannot be serialized.
+        """
+        if isinstance(value, Style):
+            return value.to_dict()
+        if field.name == "cross_ref_highlight":
+            return value
+        raise TypeError(
+            f"Cannot serialize HelpExtraTheme.{field.name}: "
+            f"{value!r} is not a Style instance."
+        )
+
+    @staticmethod
+    def _decode_slot(field: Any, raw: Any) -> Any:
+        """Decode a slot value for :meth:`from_dict`.
+
+        Mappings become :class:`~click_extra.styling.Style` instances via
+        :meth:`Style.from_dict <click_extra.styling.Style.from_dict>`;
+        ``cross_ref_highlight`` is coerced to ``bool``; anything else
+        raises :class:`TypeError`.
+        """
+        if field.name == "cross_ref_highlight":
+            return bool(raw)
+        if isinstance(raw, dict):
+            return Style.from_dict(raw)
+        raise TypeError(
+            f"Cannot deserialize HelpExtraTheme.{field.name}: "
+            f"{raw!r} is neither a mapping nor a recognized scalar."
+        )
+
     def to_dict(self) -> dict[str, Any]:
         """Serialize the theme to a plain dict suitable for TOML/JSON/YAML.
 
@@ -241,24 +278,7 @@ class HelpExtraTheme(cloup.HelpTheme):
         :raises TypeError: when a slot holds an opaque ``IStyle`` callable
             that is not a :class:`Style` (those cannot be serialized).
         """
-        out: dict[str, Any] = {}
-        for f in dataclasses.fields(self):
-            value = getattr(self, f.name)
-            if value is identity or value is None:
-                continue
-            if f.name == "cross_ref_highlight":
-                # Only emit the bool when it differs from the field default.
-                if value != f.default:
-                    out[f.name] = value
-                continue
-            if isinstance(value, Style):
-                out[f.name] = value.to_dict()
-                continue
-            raise TypeError(
-                f"Cannot serialize {type(self).__name__}.{f.name}: "
-                f"{value!r} is not a Style instance."
-            )
-        return out
+        return fields_to_dict(self, encode=self._encode_slot)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> HelpExtraTheme:
@@ -270,24 +290,7 @@ class HelpExtraTheme(cloup.HelpTheme):
         ``cross_ref_highlight`` is read as a plain ``bool``. Unknown keys
         raise :class:`TypeError` so typos surface immediately.
         """
-        unknown = set(data).difference(cls.__dataclass_fields__)
-        if unknown:
-            raise TypeError(
-                f"Unknown {cls.__name__} field(s): {', '.join(sorted(unknown))}"
-            )
-        kwargs: dict[str, Any] = {}
-        for name, raw in data.items():
-            if name == "cross_ref_highlight":
-                kwargs[name] = bool(raw)
-                continue
-            if isinstance(raw, dict):
-                kwargs[name] = Style.from_dict(raw)
-                continue
-            raise TypeError(
-                f"Cannot deserialize {cls.__name__}.{name}: "
-                f"{raw!r} is neither a mapping nor a recognized scalar."
-            )
-        return cls(**kwargs)
+        return cls(**dict_to_fields(cls, data, decode=cls._decode_slot))
 
     def cascade(self, base: HelpExtraTheme) -> HelpExtraTheme:
         """Layer this theme's set slots on top of *base*.
@@ -316,22 +319,41 @@ calls return the raw text unchanged.
 """
 
 
-default_theme: HelpExtraTheme = nocolor_theme
-"""Process-wide fallback theme.
+_default_theme: HelpExtraTheme = nocolor_theme
+"""Process-wide fallback theme. See :func:`get_default_theme`.
 
-Used by :func:`get_current_theme` when no Click context is active or when the
-active context has no theme set. :class:`ThemeOption` writes its picked theme
-to ``ctx.meta`` rather than reassigning this attribute, so per-invocation
-choices do not leak across CLI invocations sharing the same process.
-
-:func:`click_extra.wrap.patch_click` does reassign this attribute, by design:
-``patch_click`` is itself a process-wide monkey-patch, so a process-wide
-theme override matches its scope.
-
-Initialized to :data:`nocolor_theme` here, then reassigned to :data:`DARK`
-at the bottom of this module once the built-in themes are loaded from
-``themes.toml``.
+Initialized to :data:`nocolor_theme` here, then reassigned to the ``dark``
+built-in theme at the bottom of this module once :file:`themes.toml` is loaded.
 """
+
+
+def get_default_theme() -> HelpExtraTheme:
+    """Return the process-wide fallback theme.
+
+    Read by :func:`get_current_theme` when no Click context is active or
+    when the active context has no theme set. The default is the built-in
+    ``dark`` palette; :func:`click_extra.wrap.patch_click` overrides it
+    via :func:`set_default_theme` for the duration of a patched session.
+
+    Resolved through a function rather than a module attribute so callers
+    always observe the current value: capturing ``default_theme`` as a
+    default function parameter (the previous pattern) would freeze whatever
+    was set at import time.
+    """
+    return _default_theme
+
+
+def set_default_theme(theme: HelpExtraTheme) -> None:
+    """Override the process-wide fallback theme.
+
+    :class:`ThemeOption` writes its picked theme to ``ctx.meta`` rather
+    than calling this helper, so per-invocation choices do not leak across
+    invocations sharing the same process. Use this only for genuinely
+    process-wide overrides — :func:`click_extra.wrap.patch_click` is the
+    canonical caller.
+    """
+    global _default_theme
+    _default_theme = theme
 
 
 def get_current_theme() -> HelpExtraTheme:
@@ -342,8 +364,9 @@ def get_current_theme() -> HelpExtraTheme:
     1. The theme stored on the active Click context under
        :data:`click_extra.context.THEME` (set by :class:`ThemeOption`
        from ``--theme``).
-    2. The module-level :data:`default_theme` (the dark default, or whatever
-       :func:`click_extra.wrap.patch_click` set at process start).
+    2. The process-wide fallback returned by :func:`get_default_theme`
+       (the dark default, or whatever :func:`click_extra.wrap.patch_click`
+       set at process start).
 
     Falling back through the active context (instead of reading a module
     attribute) keeps ``--theme`` scoped to the invocation that received it,
@@ -355,64 +378,37 @@ def get_current_theme() -> HelpExtraTheme:
         active = context.get(ctx, context.THEME)
         if active is not None:
             return cast("HelpExtraTheme", active)
-    return default_theme
+    return _default_theme
 
 
-theme_registry: dict[str, HelpExtraTheme | Callable[[], HelpExtraTheme]] = {}
+theme_registry: dict[str, HelpExtraTheme] = {}
 """Process-wide registry of named themes used by :class:`ThemeOption`.
 
-Each entry maps a theme name to either a :class:`HelpExtraTheme` instance
-(the common case) or a zero-argument callable returning one (for themes
-whose styling depends on runtime state). :class:`ThemeOption.set_theme`
-resolves callables on lookup.
+Each entry maps a theme name to its :class:`HelpExtraTheme` instance.
+Built-in themes are seeded here at module load time from
+:data:`BUILTIN_THEMES` (loaded from ``click_extra/themes.toml``).
 
-The built-in themes are seeded here at module load time from
-:data:`BUILTIN_THEMES` (loaded from ``click_extra/themes.toml``). Use
-:func:`register_theme` to add your own at import time, *or* declare them
-in your CLI's config file under ``[tool.<cli>.themes.<name>]`` — the
+Use :func:`register_theme` to add your own at import time, *or* declare
+them in your CLI's config file under ``[tool.<cli>.themes.<name>]`` — the
 latter goes through :class:`ConfigOption <click_extra.config.ConfigOption>`,
 lands on ``ctx.meta`` (see :data:`click_extra.context.THEME_OVERRIDES`),
-and never mutates this module-level dict, so per-invocation choices
-don't leak between sibling invocations sharing the same process.
-"""
-
-THEMES_CONFIG_KEY: str = "themes"
-"""Sub-key under ``[tool.<cli>]`` where user-defined themes live in config.
-
-Used by :class:`ConfigOption <click_extra.config.ConfigOption>` to find
-``[tool.<cli>.themes.<name>]`` tables, build them via
-:meth:`HelpExtraTheme.from_dict`, and stash the result on
-``ctx.meta[click_extra.context.THEME_OVERRIDES]``.
+and never mutates this module-level dict, so per-invocation choices don't
+leak between sibling invocations sharing the same process.
 """
 
 
-def register_theme(
-    name: str,
-    theme: HelpExtraTheme | Callable[[], HelpExtraTheme],
-) -> None:
+def register_theme(name: str, theme: HelpExtraTheme) -> None:
     """Register a named theme in the module-level :data:`theme_registry`.
 
     :param name: Lowercase identifier used as the ``--theme`` choice value.
-    :param theme: A :class:`HelpExtraTheme` instance, or a zero-argument
-        callable returning one. Callables are resolved at ``--theme`` parse
-        time, which lets a theme depend on terminal capabilities or other
-        runtime state.
+    :param theme: A :class:`HelpExtraTheme` instance.
     """
     theme_registry[name] = theme
 
 
-def _resolve_theme(
-    entry: HelpExtraTheme | Callable[[], HelpExtraTheme],
-) -> HelpExtraTheme:
-    """Return *entry* itself if it's already a theme, otherwise call it."""
-    if isinstance(entry, HelpExtraTheme):
-        return entry
-    return entry()
-
-
 def get_theme_registry(
     ctx: click.Context | None = None,
-) -> dict[str, HelpExtraTheme | Callable[[], HelpExtraTheme]]:
+) -> dict[str, HelpExtraTheme]:
     """Return the theme registry visible to *ctx*.
 
     Merges the module-level :data:`theme_registry` with any per-invocation
@@ -425,9 +421,7 @@ def get_theme_registry(
     When *ctx* is ``None`` or has no overrides, returns a copy of the
     module-level registry.
     """
-    merged: dict[str, HelpExtraTheme | Callable[[], HelpExtraTheme]] = dict(
-        theme_registry
-    )
+    merged: dict[str, HelpExtraTheme] = dict(theme_registry)
     if ctx is not None:
         overrides = context.get(ctx, context.THEME_OVERRIDES)
         if overrides:
@@ -451,10 +445,106 @@ def themes_from_config(
     for name, slots in table.items():
         overlay = HelpExtraTheme.from_dict(slots)
         if name in theme_registry:
-            result[name] = overlay.cascade(_resolve_theme(theme_registry[name]))
+            result[name] = overlay.cascade(theme_registry[name])
         else:
             result[name] = overlay
     return result
+
+
+# --- Palette documentation helper --------------------------------------------
+#
+# Public entry point for rendering a theme's palette as an inline-styled HTML
+# fragment, suitable for injection into MyST/reST documents via
+# ``python:render`` / ``raw:: html``. Used by ``docs/theme.md`` to render the
+# built-in palettes; downstream projects with their own custom themes can call
+# the same helper to get matching swatch listings in their own docs.
+
+_PALETTE_SKIP_SLOTS: frozenset[str] = frozenset({
+    # Inherited cloup slots that built-in themes leave at identity.
+    "command_help",
+    "section_help",
+    "col1",
+    "col2",
+    "epilog",
+    # Log-level slot intentionally left unstyled by every built-in (INFO is
+    # the default verbosity and shouldn't stand out).
+    "info",
+    # Internal cache from cloup; never rendered.
+    "_style_kwargs",
+    # Boolean toggle, not a Style.
+    "cross_ref_highlight",
+})
+
+_PALETTE_SWATCH = (
+    '<span style="display:inline-block;width:0.85em;height:0.85em;'
+    'background:{css};border:1px solid var(--color-foreground-muted,#888);'
+    'border-radius:2px;vertical-align:-0.15em;margin-right:0.35em"></span>'
+)
+
+_PALETTE_STYLE_ATTRS: tuple[str, ...] = (
+    "bold", "dim", "italic", "underline", "overline",
+    "blink", "reverse", "strikethrough",
+)
+
+
+def palette_html(theme: HelpExtraTheme) -> str:
+    """Render a theme's palette as an inline-styled HTML ``<dl>`` fragment.
+
+    The output is a two-column definition list (slot name → styled swatch
+    plus attribute decorations) safe to inject into MyST or reST host
+    documents via the ``python:render`` Sphinx directive (or any
+    ``raw:: html`` block). Used by ``docs/theme.md`` to render every
+    built-in theme's palette at Sphinx build time without hand-maintaining
+    swatch tables. Downstream projects with their own custom themes can
+    call the same helper to get matching swatch listings in their own docs:
+
+    .. code-block:: markdown
+
+        ```{python:render}
+        from click_extra.theme import palette_html
+        from my_app.themes import MY_THEME
+        print(palette_html(MY_THEME))
+        ```
+
+    Slots that hold ``identity`` (no styling applied), the boolean
+    :attr:`cross_ref_highlight` toggle, the internal ``_style_kwargs``
+    cache, and a handful of inherited cloup slots that built-ins never
+    style are skipped: every emitted row corresponds to a real palette
+    choice in the theme.
+    """
+    rows: list[str] = []
+    for f in dataclasses.fields(theme):
+        if f.name in _PALETTE_SKIP_SLOTS:
+            continue
+        value = getattr(theme, f.name)
+        if value is identity or value is None:
+            continue
+        fg = getattr(value, "fg", None)
+        cell_parts: list[str] = []
+        if fg is not None:
+            css = _color_to_css(fg)
+            if isinstance(fg, tuple) and len(fg) == 3:
+                color_label = f"#{fg[0]:02x}{fg[1]:02x}{fg[2]:02x}"
+            else:
+                color_label = str(fg)
+            cell_parts.append(
+                _PALETTE_SWATCH.format(css=css)
+                + f"<code>{color_label}</code>"
+            )
+        attrs = [a for a in _PALETTE_STYLE_ATTRS if getattr(value, a, None)]
+        if attrs:
+            cell_parts.append(" ".join(f"<em>{a}</em>" for a in attrs))
+        rows.append(
+            f"<dt><code>{f.name}</code></dt>"
+            f"<dd>{' '.join(cell_parts) or '—'}</dd>"
+        )
+    return (
+        '<dl class="theme-palette" style="display:grid;'
+        "grid-template-columns:max-content 1fr;gap:0.2em 1em;"
+        'margin:0.5em 0">'
+        + "".join(rows)
+        + "</dl>"
+    )
 
 
 def validate_themes_config(themes_subtree: dict[str, Any]) -> None:
@@ -489,42 +579,97 @@ def validate_themes_config(themes_subtree: dict[str, Any]) -> None:
             ) from exc
 
 
-class ThemeChoice(click.Choice):
-    """A :class:`click.Choice` whose ``choices`` track the live theme registry.
+class ThemeChoice(click.ParamType):
+    """A :class:`click.ParamType` whose ``choices`` track the live theme registry.
 
-    Where a vanilla ``click.Choice`` snapshots its choices at instantiation,
-    ``ThemeChoice.choices`` is a property that queries
-    :func:`get_theme_registry` at every lookup. That means themes registered
-    late — typically by :class:`ConfigOption <click_extra.config.ConfigOption>`
-    parsing ``[tool.<cli>.themes.<name>]`` tables before ``--theme`` is
-    processed — are valid choices and appear in the ``--help`` metavar.
+    Implements the ``click.Choice``-shaped duck interface (``choices``,
+    ``case_sensitive``, ``normalize_choice``) so :mod:`click_extra.colorize`
+    can collect theme names for per-token highlighting through the same
+    code path it uses for Click's own ``Choice``. The ``choices`` attribute
+    is a property that queries :func:`get_theme_registry` at every lookup,
+    so themes registered late — typically by
+    :class:`ConfigOption <click_extra.config.ConfigOption>` parsing
+    ``[tool.<cli>.themes.<name>]`` tables before ``--theme`` is processed —
+    are valid choices and appear in the ``--help`` metavar.
 
-    Subclassing :class:`click.Choice` (rather than rolling a fresh
-    :class:`~click.ParamType`) keeps the per-choice token coloring that
-    :mod:`click_extra.colorize` applies to ``Choice`` metavars: each theme
-    name in the bracket-style metavar is styled with the active theme's
-    ``choice`` slot.
+    Implemented as a fresh :class:`click.ParamType` rather than a
+    :class:`click.Choice` subclass to avoid relying on Click's setter
+    semantics for ``self.choices``: the previous subclass design swallowed
+    Click's :py:meth:`__init__`-time assignment with a no-op setter, which
+    would silently break under any future Click version that uses
+    ``object.__setattr__`` (e.g. for slots) instead of regular attribute
+    assignment.
     """
 
+    # Match ``click.Choice.name`` so machinery that branches on parameter
+    # type (e.g. metavar generation) treats this the same way.
+    name: str = "choice"
+
     def __init__(self, case_sensitive: bool = False) -> None:
-        # ``click.Choice.__init__`` assigns ``self.choices``; pass an empty
-        # tuple so the assignment is harmless, then let the property below
-        # take over for every read.
-        super().__init__((), case_sensitive=case_sensitive)
+        self.case_sensitive = case_sensitive
 
     @property
     def choices(self) -> tuple[str, ...]:
+        """Theme names visible in the current context, alphabetically sorted."""
         try:
             ctx = click.get_current_context(silent=True)
         except RuntimeError:
             ctx = None
         return tuple(sorted(get_theme_registry(ctx)))
 
-    @choices.setter
-    def choices(self, _value: object) -> None:
-        # Swallow ``click.Choice.__init__``'s assignment; the property is the
-        # authoritative source.
-        return
+    def _normalize(self, value: str) -> str:
+        return value if self.case_sensitive else value.casefold()
+
+    def normalize_choice(self, choice: Any, ctx: click.Context | None) -> str:
+        """Mirrors :meth:`click.Choice.normalize_choice` for colorize compatibility."""
+        normed = str(choice)
+        if ctx is not None and ctx.token_normalize_func is not None:
+            normed = ctx.token_normalize_func(normed)
+        return self._normalize(normed)
+
+    def get_metavar(
+        self,
+        param: click.Parameter,
+        ctx: click.Context,
+    ) -> str | None:
+        return "[" + "|".join(self.choices) + "]"
+
+    def convert(
+        self,
+        value: Any,
+        param: click.Parameter | None,
+        ctx: click.Context | None,
+    ) -> str | None:
+        if value is None:
+            return None
+        if not isinstance(value, str):
+            self.fail(f"{value!r} is not a string.", param, ctx)
+        registry = get_theme_registry(ctx)
+        lookup = {self._normalize(name): name for name in registry}
+        canonical = lookup.get(self._normalize(value))
+        if canonical is None:
+            choices = "|".join(sorted(registry))
+            self.fail(
+                f"{value!r} is not one of [{choices}].",
+                param,
+                ctx,
+            )
+        return canonical
+
+    def shell_complete(
+        self,
+        ctx: click.Context,
+        param: click.Parameter,
+        incomplete: str,
+    ) -> list[click.shell_completion.CompletionItem]:
+        from click.shell_completion import CompletionItem
+
+        prefix = self._normalize(incomplete)
+        return [
+            CompletionItem(name)
+            for name in sorted(get_theme_registry(ctx))
+            if self._normalize(name).startswith(prefix)
+        ]
 
 
 class ThemeOption(ExtraOption):
@@ -543,8 +688,8 @@ class ThemeOption(ExtraOption):
     current invocation only.
     """
 
-    @staticmethod
     def set_theme(
+        self,
         ctx: click.Context,
         param: click.Parameter,
         value: str | None,
@@ -556,8 +701,7 @@ class ThemeOption(ExtraOption):
         """
         if value is None or ctx.resilient_parsing:
             return
-        entry = get_theme_registry(ctx)[value]
-        context.set(ctx, context.THEME, _resolve_theme(entry))
+        context.set(ctx, context.THEME, get_theme_registry(ctx)[value])
 
     def __init__(
         self,
@@ -584,17 +728,21 @@ class ThemeOption(ExtraOption):
         )
 
 
-_BUILTIN_THEMES_TOML = Path(__file__).parent / "themes.toml"
-
-
 def _load_builtin_themes() -> dict[str, HelpExtraTheme]:
     """Parse ``themes.toml`` into a ``{name: HelpExtraTheme}`` mapping.
 
     Each top-level table maps to a :class:`HelpExtraTheme` via
     :meth:`HelpExtraTheme.from_dict`. Failures surface immediately at import
     time so a malformed shipped TOML cannot silently degrade ``--theme``.
+
+    Reads the file via :mod:`importlib.resources` so the load works under
+    zipped imports (PyOxidizer, PEX, certain Nuitka modes) where
+    ``Path(__file__).parent`` doesn't resolve to a real filesystem location.
     """
-    raw = tomllib.loads(_BUILTIN_THEMES_TOML.read_text(encoding="utf-8"))
+    payload = resources.files(__package__).joinpath("themes.toml").read_text(
+        encoding="utf-8",
+    )
+    raw = tomllib.loads(payload)
     return {name: HelpExtraTheme.from_dict(data) for name, data in raw.items()}
 
 
@@ -605,56 +753,29 @@ Loaded from the package data file ``click_extra/themes.toml`` at module
 import time and seeded into :data:`theme_registry`. Adding a new built-in
 theme is a one-file edit in that TOML file: declare a new ``[<name>]``
 table with one inline-table per styled slot.
+
+Index by name to access any palette, e.g. ``BUILTIN_THEMES["dark"]`` or
+``BUILTIN_THEMES["solarized_dark"]``.
 """
 
-DARK: HelpExtraTheme = BUILTIN_THEMES["dark"]
-"""Theme tuned for terminals with a dark background.
 
-Used as the process-wide :data:`default_theme`.
+OK_GLYPH: str = "✓"
+"""Plain check-mark glyph for success indicators.
+
+Style at the call site with the active theme's ``success`` slot:
+``get_current_theme().success(OK_GLYPH)``. Stored as a raw string so
+downstream code can render it under whichever theme is active rather
+than the (frozen) theme that happened to be loaded at import time.
 """
 
-DRACULA: HelpExtraTheme = BUILTIN_THEMES["dracula"]
-"""Dracula by Zeno Rocha. High-contrast dark theme with vivid neon accents.
+KO_GLYPH: str = "✘"
+"""Plain heavy-ballot-X glyph for failure indicators.
 
-Palette: https://draculatheme.com/contribute
-"""
-
-LIGHT: HelpExtraTheme = BUILTIN_THEMES["light"]
-"""Theme tuned for terminals with a light/white background.
-
-Mirrors :data:`DARK` but swaps the palette for one that stays legible on a
-white background: bright variants (which most terminals render as washed-out
-tints) are replaced by their standard counterparts, ``bright_white`` becomes
-``black``, and cyan accents become ``blue`` since cyan on white is hard to
-read.
-"""
-
-MONOKAI: HelpExtraTheme = BUILTIN_THEMES["monokai"]
-"""Monokai by Wimer Hazenberg. Classic dark theme with high-saturation
-magenta and lime accents.
-
-Palette: https://monokai.pro/
-"""
-
-NORD: HelpExtraTheme = BUILTIN_THEMES["nord"]
-"""Nord by Arctic Ice Studio. Cool-toned dark theme built around
-frost-blue and aurora accents.
-
-Palette: https://www.nordtheme.com/docs/colors-and-palettes
-"""
-
-SOLARIZED_DARK: HelpExtraTheme = BUILTIN_THEMES["solarized_dark"]
-"""Solarized Dark by Ethan Schoonover. Warm-toned dark theme with selective
-accent contrast.
-
-Palette: https://ethanschoonover.com/solarized/
+Style at the call site with the active theme's ``error`` slot:
+``get_current_theme().error(KO_GLYPH)``. See :data:`OK_GLYPH` for why
+the glyph is exposed unstyled.
 """
 
 
 theme_registry.update(BUILTIN_THEMES)
-default_theme = DARK
-
-
-OK = default_theme.success("✓")
-KO = default_theme.error("✘")
-"""Pre-rendered UI-elements."""
+set_default_theme(BUILTIN_THEMES["dark"])

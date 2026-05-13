@@ -67,7 +67,9 @@ from click_extra.pytest import (
     default_debug_uncolored_logging,
     default_options_colored_help,
 )
-from click_extra.theme import default_theme as theme
+from click_extra.theme import get_default_theme
+
+theme = get_default_theme()
 from click_extra.types import ChoiceSource, EnumChoice
 
 from .conftest import skip_windows_colors
@@ -812,9 +814,11 @@ def test_cross_ref_highlight_disabled():
     styled (bracket fields, deprecated messages, subcommands, choice metavars).
     Options, choices in free-form text, metavars, arguments, and CLI names are
     left plain."""
-    from click_extra.theme import DARK
+    from click_extra.theme import BUILTIN_THEMES
 
-    no_xref_theme = DARK.with_(cross_ref_highlight=False)  # type: ignore[arg-type]
+    no_xref_theme = BUILTIN_THEMES["dark"].with_(  # type: ignore[arg-type]
+        cross_ref_highlight=False,
+    )
 
     cli = ExtraCommand(
         "test",

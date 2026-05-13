@@ -49,16 +49,24 @@ class TimerOption(ExtraOption):
         """
         echo(f"Execution time: {perf_counter() - self.start_time:0.3f} seconds.")
 
-    def register_timer_on_close(
+    def init_timer(
         self,
         ctx: click.Context,
         param: click.Parameter,
         value: bool,
     ) -> None:
-        """Callback setting up all timer's machinery.
+        """Set up the execution-timer machinery for the current invocation.
 
-        Computes and print the execution time at the end of the CLI, if option has been
-        activated.
+        Captures :func:`time.perf_counter` as the start time, stores it on
+        ``ctx.meta`` under :data:`click_extra.context.START_TIME`, and queues
+        :py:meth:`print_timer` as a context-close callback so the elapsed
+        duration is printed even when a sibling eager option (``--version``,
+        ``--show-params``…) short-circuits the command body.
+
+        Renamed from ``register_timer_on_close`` to align with the
+        ``init_<system>`` convention shared with
+        :class:`~click_extra.table.TableFormatOption.init_formatter` and
+        :class:`~click_extra.table.SortByOption.init_sort`.
         """
         if not value or ctx.resilient_parsing:
             return
@@ -82,7 +90,7 @@ class TimerOption(ExtraOption):
         if not param_decls:
             param_decls = ("--time/--no-time",)
 
-        kwargs.setdefault("callback", self.register_timer_on_close)
+        kwargs.setdefault("callback", self.init_timer)
 
         super().__init__(
             param_decls=param_decls,

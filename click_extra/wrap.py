@@ -34,11 +34,11 @@ import click
 import cloup
 from click.utils import make_str
 
-from . import context, theme as _theme
+from . import context
 from .colorize import ExtraHelpColorsMixin, HelpExtraFormatter
 from .commands import ColorizedCommand, ColorizedGroup, ExtraGroup
 from .context import ExtraContext
-from .theme import DARK, HelpExtraTheme
+from .theme import BUILTIN_THEMES, HelpExtraTheme, set_default_theme
 
 logger = logging.getLogger("click_extra")
 
@@ -179,7 +179,7 @@ def patch_click(
 
     # Override the default theme if requested.
     if theme is not None:
-        _theme.default_theme = theme
+        set_default_theme(theme)
 
     logger.info(
         "Click patched: color=%s, theme=%s.",
@@ -205,7 +205,7 @@ def unpatch_click() -> None:
     ColorizedGroup.context_class = ExtraContext
 
     # Restore the default theme.
-    _theme.default_theme = DARK
+    set_default_theme(BUILTIN_THEMES["dark"])
 
 
 def resolve_target(script: str) -> tuple[str, str]:

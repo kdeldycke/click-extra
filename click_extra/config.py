@@ -288,6 +288,19 @@ something other than a ``dict`` (for example, a nested dataclass that
 nonetheless represents user-extensible content)."""
 
 
+THEMES_CONFIG_KEY: str = "themes"
+"""Sub-key under ``[tool.<cli>]`` where user-defined themes live in config.
+
+Used by :class:`ConfigOption` to find ``[tool.<cli>.themes.<name>]`` tables,
+build them via :meth:`HelpExtraTheme.from_dict
+<click_extra.theme.HelpExtraTheme.from_dict>`, and stash the result on
+``ctx.meta[click_extra.context.THEME_OVERRIDES]``. The constant is the
+single source of truth shared by :func:`_builtin_config_validators`,
+:meth:`ConfigOption._apply_theme_overrides`, and
+:func:`click_extra.theme.themes_from_config`.
+"""
+
+
 class ValidationError(Exception):
     """Raised when a configuration file fails validation.
 
@@ -358,11 +371,11 @@ def _builtin_config_validators() -> tuple[ConfigValidator, ...]:
     """Return the validators click-extra registers on every :class:`ConfigOption`.
 
     Currently a single validator for ``[tool.<cli>.themes.<name>]`` tables.
-    Lazy-imports :mod:`click_extra.theme` to avoid a load-time cycle:
-    :mod:`click_extra.theme` is imported after :mod:`click_extra.config` from
-    the package ``__init__``.
+    Lazy-imports :func:`~click_extra.theme.validate_themes_config` to avoid
+    a load-time cycle: :mod:`click_extra.theme` is imported after
+    :mod:`click_extra.config` from the package ``__init__``.
     """
-    from .theme import THEMES_CONFIG_KEY, validate_themes_config
+    from .theme import validate_themes_config
 
     return (
         ConfigValidator(
@@ -675,18 +688,6 @@ def _collect_opaque_paths_from_schema(
     return frozenset(paths)
 
 
-def _strip_dotted_path(conf: dict[str, Any], path: str) -> dict[str, Any]:
-    """Return a shallow copy of *conf* with the sub-tree at *path* removed.
-
-    Convenience wrapper around :py:func:`_remove_dotted` that also handles the
-    no-op cases (empty path, missing key, non-dict intermediates) gracefully so
-    callers can iterate over a path set without guarding each call.
-    """
-    if not path:
-        return dict(conf)
-    return _remove_dotted(conf, path)
-
-
 def _strip_opaque_subtrees(
     conf: dict[str, Any],
     opaque_paths: Iterable[str],
@@ -696,7 +697,8 @@ def _strip_opaque_subtrees(
     Each path in ``opaque_paths`` is a dotted location relative to ``conf``'s
     root (callers prepend the app section name when needed). Paths that don't
     resolve to anything are silently skipped: a schema may declare an opaque
-    field that the user never sets, and that's not an error.
+    field that the user never sets, and that's not an error. The empty path
+    is treated as a no-op for the same reason.
 
     Use to drop user-controlled sub-trees from a normalized configuration
     document before running click-extra's CLI-parameter strict check. The
@@ -707,7 +709,8 @@ def _strip_opaque_subtrees(
     """
     result = dict(conf)
     for path in opaque_paths:
-        result = _strip_dotted_path(result, path)
+        if path:
+            result = _remove_dotted(result, path)
     return result
 
 
@@ -1852,6 +1855,21 @@ class ConfigOption(ExtraOption, ParamStructure):
         """
         return ctx.find_root().command.name or ctx.info_name or ""
 
+    def _app_section(
+        self,
+        ctx: click.Context,
+        user_conf: dict[str, Any],
+    ) -> tuple[str, dict[str, Any]]:
+        """Return ``(app_name, app_section)`` for the current context.
+
+        Convenience pair that bundles :py:meth:`_app_section_name` and
+        :py:meth:`_resolve_app_section`. Used by every callback that operates
+        on the app's slice of the parsed config (schema processing, validator
+        dispatch, theme-override extraction).
+        """
+        app_name = self._app_section_name(ctx)
+        return app_name, self._resolve_app_section(user_conf, app_name)
+
     def _strip_opaque_from_conf(
         self,
         ctx: click.Context,
@@ -1918,8 +1936,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         """
         if self._config_schema_callable is None:
             return
-        app_name = self._app_section_name(ctx)
-        app_section = self._resolve_app_section(user_conf, app_name)
+        _, app_section = self._app_section(ctx, user_conf)
         context.set(ctx, context.TOOL_CONFIG, self._config_schema_callable(app_section))
 
     def _apply_theme_overrides(
@@ -1941,10 +1958,9 @@ class ConfigOption(ExtraOption, ParamStructure):
         :func:`~click_extra.theme.validate_themes_config` validator, so failures
         below this point would be a click-extra bug rather than user error.
         """
-        from .theme import THEMES_CONFIG_KEY, themes_from_config
+        from .theme import themes_from_config
 
-        app_name = self._app_section_name(ctx)
-        app_section = self._resolve_app_section(user_conf, app_name)
+        _, app_section = self._app_section(ctx, user_conf)
         themes_subtree = app_section.get(THEMES_CONFIG_KEY)
         if not isinstance(themes_subtree, dict) or not themes_subtree:
             return
@@ -1971,8 +1987,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         """
         if not self.config_validators:
             return
-        app_name = self._app_section_name(ctx)
-        app_section = self._resolve_app_section(user_conf, app_name)
+        app_name, app_section = self._app_section(ctx, user_conf)
         for cv in self.config_validators:
             subtree, found = _extract_dotted(app_section, cv.extension_path)
             if not found or not isinstance(subtree, dict):

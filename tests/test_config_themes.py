@@ -22,12 +22,14 @@ from textwrap import dedent
 import click_extra
 from click_extra import context
 from click_extra.theme import (
-    DARK,
+    BUILTIN_THEMES,
     HelpExtraTheme,
     get_theme_registry,
     theme_registry,
     themes_from_config,
 )
+
+DARK = BUILTIN_THEMES["dark"]
 
 
 def _palette_cli(captured: dict):

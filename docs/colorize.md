@@ -47,9 +47,9 @@ Every option name in the help screen carries the same style, regardless of where
 If the free-text matching produces false positives (option names or choices that coincide with common words), disable it via the theme:
 
 ```python
-from click_extra import DARK, group
+from click_extra import BUILTIN_THEMES, group
 
-safe_theme = DARK.with_(cross_ref_highlight=False)
+safe_theme = BUILTIN_THEMES["dark"].with_(cross_ref_highlight=False)
 
 
 @group(context_settings={"formatter_settings": {"theme": safe_theme}})

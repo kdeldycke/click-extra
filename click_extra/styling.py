@@ -49,6 +49,7 @@ import cloup
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from typing import Any
 
 
@@ -92,6 +93,108 @@ _BOOL_ATTRS: tuple[str, ...] = (
 
 # Match a single ANSI SGR escape: ``\x1b[...m``.
 _ANSI_SGR_RE: re.Pattern[str] = re.compile(r"\x1b\[(\d+(?:;\d+)*)m")
+
+
+# --- Shared dict round-trip helpers ------------------------------------------
+#
+# ``Style`` (per-attribute) and ``HelpExtraTheme`` (per-slot) both serialize
+# their dataclass fields to plain dicts for TOML/JSON/YAML round-tripping.
+# These helpers codify the shared rules: walk ``dataclasses.fields``, skip
+# cloup's lazy ``_style_kwargs`` cache, skip values that match the field
+# default, and raise on unknown keys with a clear message.
+
+
+def fields_to_dict(
+    instance: Any,
+    *,
+    encode: Callable[[Any, Any], Any] = lambda field, value: value,
+    keep: Callable[[Any, Any], bool] = lambda field, value: True,
+) -> dict[str, Any]:
+    """Serialize a dataclass instance to a dict of set fields.
+
+    Walks every field via :func:`dataclasses.fields`, skips the internal
+    ``_style_kwargs`` cache, applies *keep* to decide which fields are
+    written (default: every non-default field), and passes the surviving
+    values through *encode* (default: identity).
+
+    :param instance: the dataclass to serialize.
+    :param encode: callable ``(field, value) -> encoded_value`` applied to
+        every kept value. Use to convert RGB tuples to ``#rrggbb`` strings,
+        nested dataclasses to dicts, etc.
+    :param keep: callable ``(field, value) -> bool`` deciding whether the
+        field is emitted. Default keeps everything that differs from the
+        field's declared default.
+    """
+    out: dict[str, Any] = {}
+    for f in fields(instance):
+        if f.name == "_style_kwargs":
+            continue
+        value = getattr(instance, f.name)
+        if value == f.default:
+            continue
+        if not keep(f, value):
+            continue
+        out[f.name] = encode(f, value)
+    return out
+
+
+def dict_to_fields(
+    cls: type,
+    data: dict[str, Any],
+    *,
+    decode: Callable[[Any, Any], Any] = lambda field, raw: raw,
+) -> dict[str, Any]:
+    """Validate *data*'s keys against *cls*'s dataclass fields and decode them.
+
+    Returns a kwargs dict ready to splat into ``cls(**kwargs)``. Raises
+    :class:`TypeError` listing every unknown key, so callers can build
+    a constructor call without an extra pre-validation pass.
+
+    :param cls: the dataclass type whose fields define the legal keys.
+    :param data: mapping from field name to a serialized value.
+    :param decode: callable ``(field, raw) -> decoded_value`` invoked for
+        every recognized key. Default returns the raw value unchanged.
+    """
+    fields_by_name = {f.name: f for f in fields(cls)}
+    unknown = set(data).difference(fields_by_name)
+    if unknown:
+        raise TypeError(
+            f"Unknown {cls.__name__} field(s): {', '.join(sorted(unknown))}"
+        )
+    kwargs: dict[str, Any] = {}
+    for name, raw in data.items():
+        kwargs[name] = decode(fields_by_name[name], raw)
+    return kwargs
+
+
+def cascade_fields(
+    base: Any,
+    overlay: Any,
+    *,
+    is_set: Callable[[Any, Any], bool] = lambda field, value: value != field.default,
+) -> dict[str, Any]:
+    """Layer *overlay*'s set fields on top of *base*, returning a merged kwargs dict.
+
+    Walks both instances' fields and produces a dict suitable for
+    ``type(base)(**kwargs)`` (or ``dataclasses.replace(base, **kwargs)``).
+    The slot-level analogue of ``Style.cascade``'s attribute-level merge.
+
+    :param base: the underlying instance whose fields fill any gaps.
+    :param overlay: the instance whose set fields win on conflicts.
+    :param is_set: callable ``(field, value) -> bool`` distinguishing
+        "set" from "unset" fields. Default treats a value equal to the
+        field default as unset.
+    """
+    out: dict[str, Any] = {}
+    for f in fields(base):
+        if f.name == "_style_kwargs":
+            continue
+        overlay_val = getattr(overlay, f.name)
+        if is_set(f, overlay_val):
+            out[f.name] = overlay_val
+        else:
+            out[f.name] = getattr(base, f.name)
+    return out
 
 
 def _hex_to_rgb(value: str) -> tuple[int, int, int]:
@@ -312,6 +415,19 @@ class Style(cloup.Style):
             )
         return self._merge(base, self)
 
+    @staticmethod
+    def _encode_field(_field: Any, value: Any) -> Any:
+        """Encode a field value for :meth:`to_dict`.
+
+        RGB tuples become ``#rrggbb`` strings; enum-shaped objects with a
+        ``.name`` are serialized by name; everything else passes through.
+        """
+        if isinstance(value, tuple) and len(value) == 3:
+            return f"#{value[0]:02x}{value[1]:02x}{value[2]:02x}"
+        if hasattr(value, "name") and not isinstance(value, str):
+            return value.name
+        return value
+
     def to_dict(self) -> dict[str, Any]:
         """Serialize to a plain dict with only the set fields.
 
@@ -319,25 +435,17 @@ class Style(cloup.Style):
         round-trips through TOML/JSON/YAML untouched. Pair with
         :meth:`from_dict` to rebuild a :class:`Style`.
         """
-        out: dict[str, Any] = {}
-        for f in fields(self):
-            if f.name == "_style_kwargs":
-                continue
-            val = getattr(self, f.name)
-            if val is None:
-                continue
-            if isinstance(val, tuple) and len(val) == 3:
-                out[f.name] = f"#{val[0]:02x}{val[1]:02x}{val[2]:02x}"
-            elif hasattr(val, "name") and not isinstance(val, str):
-                out[f.name] = val.name
-            else:
-                out[f.name] = val
-        return out
+        return fields_to_dict(self, encode=self._encode_field)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Style:
-        """Build a :class:`Style` from the plain dict produced by :meth:`to_dict`."""
-        return cls(**data)
+        """Build a :class:`Style` from the plain dict produced by :meth:`to_dict`.
+
+        Validates that every key in *data* names a known :class:`Style` field
+        and raises :class:`TypeError` otherwise. Pair with :meth:`to_dict`
+        to round-trip through TOML/JSON/YAML.
+        """
+        return cls(**dict_to_fields(cls, data))
 
     def to_css(self) -> str:
         """Render the style as a semicolon-separated CSS declaration list.

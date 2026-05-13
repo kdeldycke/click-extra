@@ -36,14 +36,16 @@ Now invocations of the `weather` CLI pick up the light theme without passing `--
 
 ## Built-in themes
 
-| Name                                                  | Color model          | Notes                                                                |
-| :---------------------------------------------------- | :------------------- | :------------------------------------------------------------------- |
-| [`dark`](#click_extra.theme.DARK)                     | 16 named ANSI colors | Process-wide default. Follows the user's terminal palette.           |
-| [`light`](#click_extra.theme.LIGHT)                   | 16 named ANSI colors | Tuned for white backgrounds: no bright variants, blue replaces cyan. |
-| [`solarized_dark`](#click_extra.theme.SOLARIZED_DARK) | 24-bit RGB           | Warm-toned dark theme with selective accent contrast.                |
-| [`dracula`](#click_extra.theme.DRACULA)               | 24-bit RGB           | High-contrast dark theme with vivid neon accents.                    |
-| [`nord`](#click_extra.theme.NORD)                     | 24-bit RGB           | Cool-toned dark theme built around frost-blue and aurora accents.    |
-| [`monokai`](#click_extra.theme.MONOKAI)               | 24-bit RGB           | Classic dark theme with high-saturation magenta and lime accents.    |
+| Name                                  | Color model          | Notes                                                                |
+| :------------------------------------ | :------------------- | :------------------------------------------------------------------- |
+| [`dark`](#dark)                       | 16 named ANSI colors | Process-wide default. Follows the user's terminal palette.           |
+| [`light`](#light)                     | 16 named ANSI colors | Tuned for white backgrounds: no bright variants, blue replaces cyan. |
+| [`solarized_dark`](#solarized-dark)   | 24-bit RGB           | Warm-toned dark theme with selective accent contrast.                |
+| [`dracula`](#dracula)                 | 24-bit RGB           | High-contrast dark theme with vivid neon accents.                    |
+| [`nord`](#nord)                       | 24-bit RGB           | Cool-toned dark theme built around frost-blue and aurora accents.    |
+| [`monokai`](#monokai)                 | 24-bit RGB           | Classic dark theme with high-saturation magenta and lime accents.    |
+
+Each row is keyed by the `--theme` choice value; access the instance via `BUILTIN_THEMES["<name>"]` (e.g. `BUILTIN_THEMES["dark"]`). Click any name to jump to that theme's [palette listing](#palettes) below.
 
 Click each tab below for a live render of the theme applied to the same `weather` CLI's `--help` output. Colors are produced at Sphinx build time, not screenshots.
 
@@ -95,19 +97,33 @@ assert result.exit_code == 0
 
 Two flavors ship in `click_extra/themes.toml`:
 
-- **ANSI themes** (`DARK`, `LIGHT`) use the 16 named ANSI colors via `cloup.styling.Color`, so the rendered colors track whatever palette the user's terminal is configured with. Pick these when you want to blend in with the user's terminal theme.
-- **Branded themes** (`SOLARIZED_DARK`, `DRACULA`, `NORD`, `MONOKAI`) emit 24-bit RGB triplets from each theme's canonical palette. Pick these when the theme name implies specific colors (`solarized_dark` should look like Solarized, not "whatever the terminal calls cyan"). Terminals without 24-bit support fall back to the nearest 256-color cell automatically. Each theme's slot mapping is hand-curated: there's no automated translation from generic colour-scheme formats, because none of them expose the same semantic roles we care about (option, metavar, choice, deprecated, envvar, ...).
+- **ANSI themes** (`dark`, `light`) use the 16 named ANSI colors via `cloup.styling.Color`, so the rendered colors track whatever palette the user's terminal is configured with. Pick these when you want to blend in with the user's terminal theme.
+- **Branded themes** (`solarized_dark`, `dracula`, `nord`, `monokai`) emit 24-bit RGB triplets from each theme's canonical palette. Pick these when the theme name implies specific colors (`solarized_dark` should look like Solarized, not "whatever the terminal calls cyan"). Terminals without 24-bit support fall back to the nearest 256-color cell automatically. Each theme's slot mapping is hand-curated: there's no automated translation from generic colour-scheme formats, because none of them expose the same semantic roles we care about (option, metavar, choice, deprecated, envvar, ...).
 
 `click_extra.theme.BUILTIN_THEMES` is a `dict[str, HelpExtraTheme]` mapping the names above to their instances; it is built by parsing `click_extra/themes.toml` at import time and is seeded into `theme_registry` immediately afterwards. Read the TOML file directly for the exact palette mapping, or call `theme.to_dict()` at runtime to get a TOML/JSON-friendly dict.
 
+### Palettes
+
+Every styled slot of each built-in theme, with the swatch and attribute decorations rendered live from the shipped `themes.toml` at Sphinx build time. The block below iterates `BUILTIN_THEMES` and calls `palette_html()` for each: downstream projects with their own custom themes can drop the same loop into their own docs to get matching swatch listings.
+
+```{python:render}
+from click_extra.theme import BUILTIN_THEMES, palette_html
+
+for name, theme in BUILTIN_THEMES.items():
+    print(f"#### `{name}`")
+    print()
+    print(palette_html(theme))
+    print()
+```
+
 ### Module exports
 
-The two module-level instances exported by `click_extra.theme` are:
+`click_extra.theme` exposes two themes and a pair of accessor helpers:
 
-- `default_theme`: the process-wide fallback. `ThemeOption` does *not* reassign it: per-invocation choices live on `ctx.meta` instead. `click_extra.wrap.patch_click()` does reassign it to override the fallback for the entire patched session.
 - `nocolor_theme`: an all-`identity` theme used when ANSI rendering is suppressed.
+- `get_default_theme()` / `set_default_theme(theme)`: read or override the process-wide fallback. The default is the built-in `dark` palette. `ThemeOption` does *not* call `set_default_theme`: per-invocation choices live on `ctx.meta` instead. `click_extra.wrap.patch_click()` calls `set_default_theme()` to override the fallback for the entire patched session.
 
-Use `click_extra.theme.get_current_theme()` to read the theme that applies to the current invocation: it consults the active Click context first and falls back to `default_theme`.
+Use `click_extra.theme.get_current_theme()` to read the theme that applies to the current invocation: it consults the active Click context first and falls back to `get_default_theme()`.
 
 ### Adding a new built-in theme
 
@@ -129,11 +145,11 @@ Tables are kept in alphabetical order; `tests/test_themes.py` enforces this. The
 
 ## Registering a custom theme
 
-The list of valid `--theme` choices is pulled from `click_extra.theme.theme_registry` at option-instantiation time. To add your own theme from a downstream package, call `register_theme()` *before* declaring your commands. The simplest case is registering a static `HelpExtraTheme` instance:
+The list of valid `--theme` choices is pulled from `click_extra.theme.theme_registry` (plus per-invocation overrides from `--config`) at parse time. To add your own theme from a downstream package, call `register_theme()` *before* declaring your commands:
 
 ```python
 from click_extra import (
-    DARK,
+    BUILTIN_THEMES,
     Color,
     Style,
     command,
@@ -141,7 +157,7 @@ from click_extra import (
     register_theme,
 )
 
-NEON = DARK.with_(
+NEON = BUILTIN_THEMES["dark"].with_(
     heading=Style(fg=Color.bright_magenta, bold=True, underline=True),
     option=Style(fg=Color.bright_cyan),
     choice=Style(fg=Color.bright_yellow),
@@ -155,21 +171,10 @@ def cocktail():
     echo("Cheers!")
 ```
 
-After this runs, `cocktail --theme neon` becomes a valid invocation, and `cocktail --help` lists `[dark|light|neon]` as the choices.
+After this runs, `cocktail --theme neon` becomes a valid invocation, and `cocktail --help` lists `neon` alongside the built-in choices.
 
-For themes whose styling depends on runtime state (terminal capabilities, environment variables, user settings), `register_theme()` also accepts a zero-argument callable that returns a `HelpExtraTheme`. The callable is resolved when `--theme` is parsed, not at registration time:
-
-```python
-def detect_theme():
-    """Pick a palette based on terminal background detection."""
-    return DARK if terminal_is_dark() else LIGHT
-
-
-register_theme("auto", detect_theme)
-```
-
-```{caution}
-`register_theme()` mutates a module-level dict. Call it once at import time, before your `@command` / `@group` decorators run. `ThemeOption` builds its `click.Choice` from `theme_registry` at instantiation, so themes registered after the option is constructed will not appear in the choices.
+```{tip}
+For themes that depend on runtime state (terminal-background detection, environment variables, user settings), compute the `HelpExtraTheme` once at startup and pass it to `register_theme`. The registry holds plain instances only — if you need lazy or per-invocation resolution, load the theme from `[tool.<cli>.themes.<name>]` (see [Themes from your `--config` file](#themes-from-your-config-file) below) so it lands on `ctx.meta` rather than the process-wide dict.
 ```
 
 ## Anatomy of a theme
@@ -179,9 +184,9 @@ register_theme("auto", detect_theme)
 Use `with_()` to derive a new theme that only overrides a few styles:
 
 ```python
-from click_extra import DARK, Style, Color
+from click_extra import BUILTIN_THEMES, Style, Color
 
-minimal = DARK.with_(
+minimal = BUILTIN_THEMES["dark"].with_(
     option=Style(fg=Color.white),
     choice=Style(fg=Color.white, dim=True),
 )
@@ -194,7 +199,7 @@ minimal = DARK.with_(
 The `cross_ref_highlight` flag (default `True`) controls whether option names, choices, arguments, metavars, and CLI names are highlighted wherever they appear in free-form prose. Disable it for a calmer help screen:
 
 ```python
-calm = DARK.with_(cross_ref_highlight=False)
+calm = BUILTIN_THEMES["dark"].with_(cross_ref_highlight=False)
 ```
 
 See [Cross-reference highlighting](colorize.md#cross-reference-highlighting) for the details on what stays styled when the flag is off.

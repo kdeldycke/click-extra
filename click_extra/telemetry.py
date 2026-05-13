@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from gettext import gettext as _
 
+from . import context
 from .envvar import merge_envvar_ids
 from .parameters import ExtraOption
 
@@ -39,6 +40,11 @@ class TelemetryOption(ExtraOption):
     The ``DO_NOT_TRACK`` convention takes precedence over the user-defined environment
     variables and the auto-generated values.
 
+    The resolved value is stored in
+    :data:`ctx.meta[click_extra.context.TELEMETRY] <click_extra.context.TELEMETRY>`,
+    aligning with every other Click Extra option's per-invocation context-meta
+    storage pattern.
+
     .. seealso::
 
         - A `knowledge base of telemetry disabling configuration options
@@ -48,14 +54,20 @@ class TelemetryOption(ExtraOption):
           <https://telemetry.timseverien.com/opt-out/>`_.
     """
 
-    def save_telemetry(
+    def set_telemetry(
         self,
         ctx: click.Context,
         param: click.Parameter,
         value: bool,
     ) -> None:
-        """Save the option value in the context, in ``ctx.telemetry``."""
-        ctx.telemetry = value  # type: ignore[attr-defined]
+        """Store the resolved telemetry opt-in flag on the context's ``meta`` dict.
+
+        Reads via :func:`click_extra.context.get(ctx, click_extra.context.TELEMETRY)
+        <click_extra.context.get>`. Renamed from ``save_telemetry`` to align
+        with the ``set_<key>`` convention used by every other ctx.meta-writing
+        callback.
+        """
+        context.set(ctx, context.TELEMETRY, value)
 
     def __init__(
         self,
@@ -72,7 +84,7 @@ class TelemetryOption(ExtraOption):
 
         envvar = merge_envvar_ids("DO_NOT_TRACK", envvar)
 
-        kwargs.setdefault("callback", self.save_telemetry)
+        kwargs.setdefault("callback", self.set_telemetry)
 
         super().__init__(
             param_decls=param_decls,

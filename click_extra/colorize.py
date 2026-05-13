@@ -40,7 +40,7 @@ from click._compat import term_len
 
 from . import ParameterSource, theme as _theme
 from .parameters import ExtraOption
-from .theme import HelpExtraTheme
+from .theme import HelpExtraTheme, ThemeChoice
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -141,16 +141,22 @@ class ColorOption(ExtraOption):
         <https://news.ycombinator.com/item?id=36101712>`_?
     """
 
-    @staticmethod
-    def disable_colors(
+    def set_color(
+        self,
         ctx: click.Context,
         param: click.Parameter,
         value: bool,
     ) -> None:
-        """Callback disabling all coloring utilities.
+        """Reconcile ``--color``/``--no-color``/``--ansi``/``--no-ansi`` with environment variables.
 
-        Re-inspect the environment for existence of colorization flags to re-interpret
-        the provided value.
+        The reconciliation pass re-inspects the environment for any of the
+        recognised colorization flags (``NO_COLOR``, ``FORCE_COLOR``,
+        ``CLICOLOR``, …): when the user hasn't explicitly passed
+        ``--color`` / ``--no-color`` on the command line, the env vars take
+        precedence. The final reconciled value lands on ``ctx.color`` (the
+        Click-standard attribute that ``echo()`` reads). Renamed from
+        ``disable_colors`` because the callback handles enable as well as
+        disable: the previous name only described half the behavior.
         """
         # Collect all colorize flags in environment variables we recognize.
         colorize_from_env = set()
@@ -196,7 +202,7 @@ class ColorOption(ExtraOption):
         if not param_decls:
             param_decls = ("--color/--no-color", "--ansi/--no-ansi")
 
-        kwargs.setdefault("callback", self.disable_colors)
+        kwargs.setdefault("callback", self.set_color)
 
         super().__init__(
             param_decls=param_decls,
@@ -328,7 +334,7 @@ class ExtraHelpColorsMixin:  # (Command)??
                 if isinstance(param, click.Option) and not param.hidden:
                     options.update(param.opts)
                     options.update(param.secondary_opts)
-                    if isinstance(param.type, click.Choice):
+                    if isinstance(param.type, (click.Choice, ThemeChoice)):
                         ExtraHelpColorsMixin._collect_choice_keywords(
                             param,
                             parent_ctx,
@@ -373,7 +379,7 @@ class ExtraHelpColorsMixin:  # (Command)??
         ERROR, ...") without producing false-positive highlights for common
         English words like "error" and "info".
         """
-        assert isinstance(param.type, click.Choice)
+        assert isinstance(param.type, (click.Choice, ThemeChoice))
         if isinstance(param, click.Option) and param.metavar:
             # Custom metavar hides the normalized choice list. Collect
             # original-case values. This is the first step of Click's own
@@ -422,7 +428,7 @@ class ExtraHelpColorsMixin:  # (Command)??
             # Only Choice and DateTime types produce their own structured
             # metavar (with delimiters like brackets and pipes). All other
             # types fall back to a plain uppercased name (e.g. TEXT, INTEGER).
-            if isinstance(param.type, click.Choice):
+            if isinstance(param.type, (click.Choice, ThemeChoice)):
                 ExtraHelpColorsMixin._collect_choice_keywords(param, ctx, kw)
             elif isinstance(param.type, click.DateTime):
                 # Highlight each datetime format string as a choice.
@@ -556,6 +562,11 @@ class HelpExtraFormatter(cloup.HelpFormatter):
             :class:`click.formatting.TextWrapper` ANSI-aware by counting
             visible width instead of raw bytes. Once that lands in a Click
             release, this override can be removed.
+
+        .. todo:: Drop this override once the minimum supported Click pins
+            to the release that includes ``pallets/click#3420``. The
+            ``term_len``-based visible-width check below becomes redundant
+            once Click's own wrapper counts visible width.
         """
         if prefix is None:
             prefix = "Usage:"

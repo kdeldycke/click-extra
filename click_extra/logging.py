@@ -413,9 +413,9 @@ class ExtraVerbosity(ExtraOption):
         # and ``-v`` flow through this method, so without a guard the same
         # ``reset_loggers`` would be queued twice on Context._close_callbacks
         # when both options are passed.
-        if not ctx.meta.get(_RESET_REGISTERED):
+        if not context.get(ctx, _RESET_REGISTERED):
             ctx.call_on_close(self.reset_loggers)
-            ctx.meta[_RESET_REGISTERED] = True
+            context.set(ctx, _RESET_REGISTERED, True)
 
     def __init__(
         self,

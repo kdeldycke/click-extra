@@ -456,12 +456,16 @@ def format_param_row(
         )
 
     # Lazy import to avoid circular dependency with theme.
-    from .theme import KO, OK, get_current_theme
+    from .theme import KO_GLYPH, OK_GLYPH, get_current_theme
 
     active_theme = get_current_theme()
     hidden = None
     if hasattr(param, "hidden"):
-        hidden = OK if param.hidden is True else KO
+        hidden = (
+            active_theme.success(OK_GLYPH)
+            if param.hidden is True
+            else active_theme.error(KO_GLYPH)
+        )
     return (
         active_theme.invoked_command(path),
         active_theme.option(param_spec) if param_spec else param_spec,
@@ -551,7 +555,11 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         # Imported here to avoid circular imports.
         from .config import ConfigOption
         from .table import SERIALIZATION_FORMATS, print_table
-        from .theme import KO, OK
+        from .theme import KO_GLYPH, OK_GLYPH, get_current_theme
+
+        active_theme = get_current_theme()
+        ok_styled = active_theme.success(OK_GLYPH)
+        ko_styled = active_theme.error(KO_GLYPH)
 
         # Exit early if the callback was processed but the option wasn't set.
         if not value:
@@ -659,10 +667,12 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 else:
                     allowed_in_conf = None
                     if allowed_in_conf_bool is not None:
-                        allowed_in_conf = OK if allowed_in_conf_bool else KO
+                        allowed_in_conf = (
+                            ok_styled if allowed_in_conf_bool else ko_styled
+                        )
                     line = (
                         *common[:6],
-                        OK if instance.expose_value is True else KO,
+                        ok_styled if instance.expose_value is True else ko_styled,
                         allowed_in_conf,
                         *common[6:],
                         repr(param_value),
