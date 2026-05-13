@@ -16,6 +16,7 @@ context
 types
 config
 colorize
+styling
 theme
 logging
 table
@@ -26,6 +27,8 @@ telemetry
 pygments
 sphinx
 mkdocs
+envvar
+decorators
 testing
 pytest
 wrap
