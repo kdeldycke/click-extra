@@ -21,6 +21,8 @@ Default and sentinel handling:
 - [`#3224` - Hide `Sentinel.UNSET` values as `None` in `lookup_default()`](https://github.com/pallets/click/pull/3224)
 - [`#3299` - Fix speculative empty string check](https://github.com/pallets/click/pull/3299)
 - [`#3240` - Reduce blast-radius of `UNSET` in `default_map`](https://github.com/pallets/click/pull/3240)
+- [`#3248` - Reorder `ParameterSource`](https://github.com/pallets/click/pull/3248)
+- [`#3239` - Reconcile default value passing and default activation](https://github.com/pallets/click/pull/3239)
 
 Help system:
 
@@ -28,6 +30,8 @@ Help system:
 - [`#2840` - Move `--help` option defaults from its class to its decorator](https://github.com/pallets/click/pull/2840)
 - [`#2563` - Deduplicate `--help` option definition](https://github.com/pallets/click/pull/2563)
 - [`#2517` - Split generation of help extra items and rendering](https://github.com/pallets/click/pull/2517)
+- [`#3328` - Show default string in prompt](https://github.com/pallets/click/pull/3328)
+- [`#3250` - Mark `make_default_short_help` as private API](https://github.com/pallets/click/pull/3250)
 
 Enum and Choice support:
 
@@ -43,6 +47,7 @@ Testing:
 - [`#3012` - Add two new tests for `Parameter.__init__`](https://github.com/pallets/click/pull/3012)
 - [`#3223` - Add cross-reference to tests from `test_defaults.py`](https://github.com/pallets/click/pull/3223)
 - [`#2680` - Fix closing of callbacks on CLI exit](https://github.com/pallets/click/pull/2680)
+- [`#3244` - Expose original file descriptor in `CliRunner`](https://github.com/pallets/click/pull/3244)
 
 Documentation:
 
@@ -51,6 +56,7 @@ Documentation:
 - [`#3049` - Tone-down the case of `default=True` for flags in documentation](https://github.com/pallets/click/pull/3049)
 - [`#2815` - Add links to third-party projects enhancing Click](https://github.com/pallets/click/pull/2815)
 - [`#2534` - Remove Python 2 compatibility code from docs](https://github.com/pallets/click/pull/2534)
+- [`#3333` - Click-specific contribution guidelines](https://github.com/pallets/click/pull/3333)
 
 ### [`python-tabulate`](https://github.com/astanin/python-tabulate)
 
@@ -239,12 +245,6 @@ PRs and issues still pending upstream.
 
 ### [`click`](https://github.com/pallets/click)
 
-- [`#3333` - Click-specific contribution guidelines](https://github.com/pallets/click/pull/3333)
-- [`#3328` - Show default string in prompt](https://github.com/pallets/click/pull/3328)
-- [`#3250` - Mark `make_default_short_help` as private API](https://github.com/pallets/click/pull/3250)
-- [`#3248` - Reorder `ParameterSource`](https://github.com/pallets/click/pull/3248)
-- [`#3244` - Expose original file descriptor in `CliRunner`](https://github.com/pallets/click/pull/3244)
-- [`#3239` - Reconcile default value passing and default activation](https://github.com/pallets/click/pull/3239)
 - [`#3036` - Add support for `set` and `frozenset` as native Click types](https://github.com/pallets/click/issues/3036)
 
 ### [`pygments`](https://github.com/pygments/pygments)
