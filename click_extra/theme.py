@@ -87,23 +87,47 @@ class HelpExtraTheme(cloup.HelpTheme):
     # message picks up the matching style.
 
     critical: IStyle = identity
-    """Style applied to the ``CRITICAL`` level name in log records."""
+    """Style applied to the ``CRITICAL`` level name in log records.
+
+    Example::
+
+        CRITICAL: Database connection lost.
+    """
 
     error: IStyle = identity
-    """Style applied to the ``ERROR`` level name in log records."""
+    """Style applied to the ``ERROR`` level name in log records.
+
+    Example::
+
+        ERROR: Configuration file not found.
+    """
 
     warning: IStyle = identity
-    """Style applied to the ``WARNING`` level name in log records."""
+    """Style applied to the ``WARNING`` level name in log records.
+
+    Example::
+
+        WARNING: Requested 16 jobs exceeds available CPU cores (8).
+    """
 
     info: IStyle = identity
     """Style applied to the ``INFO`` level name in log records.
 
     Usually left at :func:`identity <cloup._util.identity>`: ``INFO`` is the
     default verbosity and shouldn't stand out from regular output.
+
+    Example::
+
+        INFO: Loaded 23 records.
     """
 
     debug: IStyle = identity
-    """Style applied to the ``DEBUG`` level name in log records."""
+    """Style applied to the ``DEBUG`` level name in log records.
+
+    Example::
+
+        DEBUG: Resolved /etc/myapp/config.toml.
+    """
 
     # --- Help-screen structural slots ----------------------------------------
     # Applied by :class:`~click_extra.colorize.HelpExtraFormatter` while
@@ -114,70 +138,133 @@ class HelpExtraTheme(cloup.HelpTheme):
     """Style applied to option names (``--config``, ``-v``, ``--ansi/--no-ansi``)
     wherever they appear: synopsis column, free-form descriptions, and
     docstrings (when :attr:`cross_ref_highlight` is enabled).
+
+    Example::
+
+        --config CONFIG_PATH    Location of the configuration file.
+        -v, --verbose           Increase verbosity.
     """
 
     subcommand: IStyle = identity
     """Style applied to subcommand names: in a group's command list and
     wherever they are referenced in prose.
+
+    Example::
+
+        Commands:
+          backup        Snapshot the data store.
+          restore       Restore from a snapshot.
+          show (ls)     Show the current state.
     """
 
     choice: IStyle = identity
     """Style applied to each individual value inside a :class:`click.Choice`
-    metavar (e.g. ``json``, ``csv``, ``xml`` within ``[json|csv|xml]``) and
-    to those values referenced in option descriptions.
+    metavar and to those values referenced in option descriptions.
+
+    Example::
+
+        --format [json|csv|xml]   Output format. Defaults to json.
     """
 
     metavar: IStyle = identity
     """Style applied to type metavars (``INTEGER``, ``TEXT``, ``PATH``,
     ``FILE``, ...) that follow an option name in the synopsis column.
+
+    Example::
+
+        --output TEXT       Destination file.
+        --workers INTEGER   Worker count.
     """
 
     bracket: IStyle = identity
     """Style applied to the literal bracket characters and label prefixes of
     trailing fields: ``[``, ``]``, ``default:``, ``env var:``, ``required``,
     and the field separators between them.
+
+    Example::
+
+        --port INTEGER    [default: 8080; env var: PORT; required]
     """
 
     envvar: IStyle = identity
     """Style applied to environment-variable values inside ``[env var: ...]``
     bracket fields, and to envvar names mentioned in option descriptions.
+
+    Example::
+
+        --threshold INTEGER   Acceptable error rate.
+                              [env var: THRESHOLD, TEST_THRESHOLD]
     """
 
     default: IStyle = identity
     """Style applied to the default-value content inside ``[default: ...]``
     bracket fields.
+
+    Example::
+
+        --output FILENAME    Destination file.  [default: out.csv]
+        --retries INTEGER    Retry budget.  [default: 5]
     """
 
     range_label: IStyle = identity
     """Style applied to range expressions (``0<=x<=9``, ``x>=1024``,
     ``0<=x<100``) that appear inside bracket fields for ``IntRange`` and
     ``FloatRange`` options.
+
+    Example::
+
+        --level INTEGER RANGE    Verbosity level.  [0<=x<=9]
+        --port INTEGER RANGE     Bind port.        [x>=1024]
     """
 
     required: IStyle = identity
     """Style applied to the ``required`` label inside bracket fields on
     mandatory options.
+
+    Example::
+
+        --token TEXT    Authentication token.  [required]
     """
 
     argument: IStyle = identity
     """Style applied to argument metavars (positional parameter names like
     ``MY_ARG``, ``SCRIPT``, ``[FILENAMES]...``) in the synopsis column and
     when referenced in prose.
+
+    Example::
+
+        Usage: cp [OPTIONS] SRC DST
+        Usage: pack [OPTIONS] [FILES]... [OUTPUT]
     """
 
     deprecated: IStyle = identity
     """Style applied to ``(DEPRECATED)`` / ``(Deprecated: reason)`` markers
     appended to options and commands.
+
+    Example::
+
+        --old-api    Legacy endpoint. (DEPRECATED: use --new-api instead)
+        --legacy     Kept for compatibility. (deprecated: will be removed in v9)
     """
 
     search: IStyle = identity
     """Style applied to substring matches in :command:`<cli> help --search`
-    output.
+    output, so users can spot where their query matched.
+
+    Example: running ``my-cli help --search retry`` highlights every
+    occurrence of *retry* in the rendered help output, including
+    ``--retries``, ``RetryError``, and prose mentions of "retry budget".
     """
 
     success: IStyle = identity
     """Style applied to success glyphs in pre-rendered UI elements (the ``✓``
-    in :data:`OK`) and any text passed through this slot by downstream code.
+    in :data:`OK_GLYPH`) and any text passed through this slot by downstream
+    code.
+
+    Example::
+
+        ✓ database migration completed
+        ✓ 1,245 records imported
     """
 
     cross_ref_highlight: bool = True
@@ -195,6 +282,11 @@ class HelpExtraTheme(cloup.HelpTheme):
     Distinct from :attr:`heading` (which styles the top-level help-screen
     section titles): :attr:`subheading` is intended for downstream code that
     wants a second styling level for its own narrative output.
+
+    Example::
+
+        ◼ 3 mails sharing hash a1b2c3d4
+        ◼ 7 mails sharing hash e5f6a7b8
 
     .. seealso::
         Used by `mail-deduplicate
@@ -496,6 +588,35 @@ _PALETTE_ATTR_CSS: dict[str, str] = {
     "strikethrough": "text-decoration: line-through",
 }
 
+# Slots inherited from cloup's HelpTheme. Each one links to cloup's
+# autoapi-generated docs (which expose per-field anchors), instead of
+# click-extra's local HelpExtraTheme autodoc anchor (which only covers the
+# slots HelpExtraTheme adds on top of cloup's base class).
+_PALETTE_CLOUP_SLOTS: frozenset[str] = frozenset({
+    "invoked_command", "command_help", "heading", "constraint",
+    "section_help", "col1", "col2", "alias", "alias_secondary", "epilog",
+})
+
+_PALETTE_CLOUP_URL = (
+    "https://cloup.readthedocs.io/en/stable/autoapi/cloup/index.html"
+)
+
+
+def _palette_slot_link(name: str) -> str:
+    """Wrap a slot name in an anchor pointing at its dataclass-field definition.
+
+    Cloup-inherited slots resolve to a per-field anchor on cloup's autoapi
+    page (e.g. ``#cloup.HelpTheme.invoked_command``); HelpExtraTheme-native
+    slots resolve to the local autodoc anchor on the same page that hosts
+    the palette (``docs/theme.md``), so the link works inside click-extra's
+    own documentation without an external roundtrip.
+    """
+    if name in _PALETTE_CLOUP_SLOTS:
+        href = f"{_PALETTE_CLOUP_URL}#cloup.HelpTheme.{name}"
+    else:
+        href = f"#click_extra.theme.HelpExtraTheme.{name}"
+    return f'<a href="{href}"><code>{name}</code></a>'
+
 
 def palette_html(theme: HelpExtraTheme) -> str:
     """Render a theme's palette as an inline-styled HTML ``<dl>`` fragment.
@@ -549,7 +670,7 @@ def palette_html(theme: HelpExtraTheme) -> str:
         if attrs:
             cell_parts.append(" ".join(attrs))
         rows.append(
-            f"<dt><code>{f.name}</code></dt>"
+            f"<dt>{_palette_slot_link(f.name)}</dt>"
             f"<dd>{' '.join(cell_parts) or '—'}</dd>"
         )
     return (
