@@ -148,29 +148,41 @@ class HelpExtraTheme(cloup.HelpTheme):
 
     bracket: IStyle = identity
     """Style applied to the literal bracket characters and label prefixes of
-    trailing fields: ``[``, ``]``, ``default:``, ``env var:``, ``required``,
-    and the field separators between them.
+    trailing fields: ``[``, ``]``, ``default:``, ``env var:``, and the field
+    separators between them. Also acts as the **fallback** for the four
+    inner bracket-field slots — :attr:`envvar`, :attr:`default`,
+    :attr:`required`, :attr:`range_label` — whenever any of them is left at
+    :func:`identity <cloup._util.identity>`. A theme that only sets
+    ``bracket`` therefore renders the whole bracket field with a single
+    uniform style; richer themes layer specific colors on top by setting
+    the inner slots.
     """
 
     envvar: IStyle = identity
     """Style applied to environment-variable values inside ``[env var: ...]``
     bracket fields, and to envvar names mentioned in option descriptions.
+    Falls back to :attr:`bracket` when left at
+    :func:`identity <cloup._util.identity>`, so a theme that only styles
+    ``bracket`` still gets a consistent rendering inside bracket fields.
     """
 
     default: IStyle = identity
     """Style applied to the default-value content inside ``[default: ...]``
-    bracket fields.
+    bracket fields. Falls back to :attr:`bracket` when left at
+    :func:`identity <cloup._util.identity>`.
     """
 
     range_label: IStyle = identity
     """Style applied to range expressions (``0<=x<=9``, ``x>=1024``,
     ``0<=x<100``) that appear inside bracket fields for ``IntRange`` and
-    ``FloatRange`` options.
+    ``FloatRange`` options. Falls back to :attr:`bracket` when left at
+    :func:`identity <cloup._util.identity>`.
     """
 
     required: IStyle = identity
     """Style applied to the ``required`` label inside bracket fields on
-    mandatory options.
+    mandatory options. Falls back to :attr:`bracket` when left at
+    :func:`identity <cloup._util.identity>`.
     """
 
     argument: IStyle = identity
@@ -559,9 +571,14 @@ _PALETTE_EXAMPLES: dict[str, str] = {
         "--output «TEXT»       Destination file.\n"
         "--workers «INTEGER»   Worker count."
     ),
-    "bracket": (
-        "--port INTEGER    «[»«default: »8080«; »«env var: »PORT«; »required«]»"
-    ),
+    # The single wide marker covers the entire bracket field because
+    # ``bracket`` is the runtime fallback for every inner slot (``envvar``,
+    # ``default``, ``required``, ``range_label``) when those slots are left
+    # at ``identity``.  A theme that only sets ``bracket`` therefore colours
+    # the whole field — structural tokens and value tokens alike — with the
+    # same style.  See ``_bracket_or`` in ``colorize.py`` and
+    # ``test_bracket_field_inner_slot_fallback_to_bracket`` in the test suite.
+    "bracket": "--port INTEGER    «[env var: PORT; default: 8080; required]»",
     "envvar": (
         "--threshold INTEGER   Acceptable error rate.\n"
         "                      [env var: «THRESHOLD, TEST_THRESHOLD»]"

@@ -37,6 +37,7 @@ import click
 import click.formatting
 import cloup
 from click._compat import term_len
+from cloup._util import identity
 
 from . import ParameterSource, theme as _theme
 from .parameters import ExtraOption
@@ -46,6 +47,8 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Sequence
     from typing import ClassVar
+
+    from cloup.styling import IStyle
 
 
 _CUBE_VALUES = (0, 95, 135, 175, 215, 255)
@@ -619,6 +622,22 @@ class HelpExtraFormatter(cloup.HelpFormatter):
         re.IGNORECASE,
     )
 
+    def _bracket_or(self, slot_name: str) -> IStyle:
+        """Return ``theme.<slot_name>`` or fall back to ``theme.bracket``.
+
+        When a theme leaves an inner bracket-field slot (``envvar``,
+        ``default``, ``required``, ``range_label``) at
+        :func:`identity <cloup._util.identity>`, value tokens inside the
+        bracket block default to the ``bracket`` styling rather than
+        rendering plain. This lets a theme set only ``bracket`` and get a
+        uniformly dim bracket field for free; richer themes layer specific
+        styles on top by setting the inner slots.
+        """
+        slot = getattr(self.theme, slot_name)
+        if slot is identity:
+            return self.theme.bracket
+        return slot
+
     def _style_bracket_fields(self, match: re.Match) -> str:
         """Style a trailing ``[env var: ...; default: ...; ...]`` block.
 
@@ -626,6 +645,13 @@ class HelpExtraFormatter(cloup.HelpFormatter):
         matching each field by its label prefix. Applied post-wrapping because
         Click's text wrapper splits lines after ``get_help_record()`` returns,
         which would break pre-styled ANSI codes.
+
+        Inner-slot fallback: when a theme leaves ``envvar`` / ``default`` /
+        ``required`` / ``range_label`` at :func:`identity <cloup._util.identity>`,
+        the value token inherits the ``bracket`` styling via
+        :py:meth:`_bracket_or`. The bracket slot acts as the structural
+        default for the whole field; the other four slots override
+        piecemeal.
         """
         prefix = match.group(1)
         content = match.group(2)
@@ -641,19 +667,21 @@ class HelpExtraFormatter(cloup.HelpFormatter):
             # Environment variable field.
             elif m := self._envvar_re.match(part):
                 styled.append(
-                    self.theme.bracket(m.group(1)) + self.theme.envvar(m.group(2))
+                    self.theme.bracket(m.group(1))
+                    + self._bracket_or("envvar")(m.group(2))
                 )
             # Default value field.
             elif m := self._default_re.match(part):
                 styled.append(
-                    self.theme.bracket(m.group(1)) + self.theme.default(m.group(2))
+                    self.theme.bracket(m.group(1))
+                    + self._bracket_or("default")(m.group(2))
                 )
             # Required label.
             elif part == "required":
-                styled.append(self.theme.required(part))
+                styled.append(self._bracket_or("required")(part))
             # Range expression.
             elif self._range_re.fullmatch(part):
-                styled.append(self.theme.range_label(part))
+                styled.append(self._bracket_or("range_label")(part))
             # Fallback: style as generic bracket content.
             else:
                 styled.append(self.theme.bracket(part))

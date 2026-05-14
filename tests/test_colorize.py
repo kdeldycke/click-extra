@@ -793,6 +793,171 @@ def test_option_highlight(opt, expected_outputs):
         assert expected in help
 
 
+def test_bracket_field_full_combination_styling():
+    """Document the runtime styling of a fully-loaded bracket field.
+
+    Covers the canonical ``[env var: NAME; default: VAL; required]`` block
+    that combines all three trailing-field labels. The bracket slot styles
+    only the structural tokens — the outer ``[`` / ``]``, the
+    ``env var: `` / ``default: `` labels, and the ``; `` separators — while
+    the value tokens (``NAME``, ``VAL``) and the ``required`` label get
+    their own slot styling layered on top. This is the contract referenced
+    in :attr:`HelpExtraTheme.bracket`'s docstring.
+    """
+    opt = ExtraOption(
+        ["--threshold"],
+        default=8080,
+        envvar="PORT",
+        required=True,
+        show_default=True,
+        show_envvar=True,
+        type=int,
+    )
+    cli = ExtraCommand("test", params=[opt])
+    ctx = ExtraContext(cli)
+    help_text = cli.get_help(ctx)
+
+    # ExtraCommand's ``populate_auto_envvars`` augments the option's
+    # ``envvar`` with the auto-generated ``TEST_THRESHOLD`` based on the
+    # command name, so the rendered bracket field carries both names.
+    # Reconstruct the expected bracket field from the slot primitives.
+    # Field order Click produces: env var → default → required.
+    expected = (
+        theme.bracket("[")
+        + theme.bracket("env var: ")
+        + theme.envvar("PORT, TEST_THRESHOLD")
+        + theme.bracket("; ")
+        + theme.bracket("default: ")
+        + theme.default("8080")
+        + theme.bracket("; ")
+        + theme.required("required")
+        + theme.bracket("]")
+    )
+    assert expected in help_text
+
+    # The alternative "wide-marker" rendering — bracket-styling the whole
+    # field content as one block — is NOT what click-extra emits. Asserting
+    # the negative directly via ``theme.bracket("required") not in ...``
+    # is unreliable because the bracket slot's dim escape ``\x1b[2m`` is a
+    # tail substring of every other slot's combined escape (red+dim,
+    # green+dim+italic, yellow+dim, …). Instead, check the alternative
+    # wide-marker composition doesn't appear: if the bracket slot covered
+    # the whole field content, this would be the output.
+    wide_marker_rendering = theme.bracket(
+        "[env var: PORT, TEST_THRESHOLD; default: 8080; required]"
+    )
+    assert wide_marker_rendering not in help_text
+
+    # Cross-check: each value-specific slot styling DOES appear, confirming
+    # they're layered on top of the bracket structure (not subsumed by it).
+    assert theme.envvar("PORT, TEST_THRESHOLD") in help_text
+    assert theme.default("8080") in help_text
+    assert theme.required("required") in help_text
+
+
+def test_bracket_field_inner_slot_fallback_to_bracket():
+    """Inner bracket-field slots fall back to ``bracket`` when at identity.
+
+    Contract: a theme that styles only ``bracket`` and leaves
+    ``envvar`` / ``default`` / ``required`` / ``range_label`` at
+    :func:`identity <cloup._util.identity>` should still render the whole
+    bracket field with the bracket styling — value tokens inherit it
+    rather than rendering plain. Specific inner slots override piecemeal.
+    """
+    from cloup._util import identity
+
+    from click_extra import Style
+    from click_extra.theme import HelpExtraTheme
+
+    # Minimal theme: only ``bracket`` is set; the four inner slots stay at
+    # identity. The whole bracket-field content should render bracket-dim.
+    bracket_only = HelpExtraTheme(bracket=Style(dim=True))
+    assert bracket_only.envvar is identity
+    assert bracket_only.default is identity
+    assert bracket_only.required is identity
+    assert bracket_only.range_label is identity
+
+    opt = ExtraOption(
+        ["--threshold"],
+        default=8080,
+        envvar="PORT",
+        required=True,
+        show_default=True,
+        show_envvar=True,
+        type=int,
+    )
+    cli = ExtraCommand("test", params=[opt])
+    ctx = ExtraContext(cli, formatter_settings={"theme": bracket_only})
+    help_text = cli.get_help(ctx)
+
+    bracket = bracket_only.bracket
+    # Every styleable token inside the bracket field gets ``bracket``'s
+    # styling — including the values (``PORT, TEST_THRESHOLD``, ``8080``)
+    # and the ``required`` label which would normally route through their
+    # own slots.
+    expected = (
+        bracket("[")
+        + bracket("env var: ")
+        + bracket("PORT, TEST_THRESHOLD")
+        + bracket("; ")
+        + bracket("default: ")
+        + bracket("8080")
+        + bracket("; ")
+        + bracket("required")
+        + bracket("]")
+    )
+    assert expected in help_text
+
+
+def test_bracket_field_inner_slot_override_takes_precedence():
+    """When a theme sets *one* inner slot, only that token uses it.
+
+    Complements :py:func:`test_bracket_field_inner_slot_fallback_to_bracket`:
+    a theme that styles ``bracket`` + only ``required`` (leaving ``envvar``
+    and ``default`` at identity) should render the ``required`` label with
+    the dedicated style and fall back to ``bracket`` for the envvar and
+    default values.
+    """
+    from cloup._util import identity
+
+    from click_extra import Style
+    from click_extra.theme import HelpExtraTheme
+
+    partial = HelpExtraTheme(
+        bracket=Style(dim=True),
+        required=Style(fg="red", bold=True),
+    )
+    assert partial.envvar is identity
+    assert partial.default is identity
+
+    opt = ExtraOption(
+        ["--token"],
+        default="anonymous",
+        envvar="TOKEN",
+        required=True,
+        show_default=True,
+        show_envvar=True,
+    )
+    cli = ExtraCommand("test", params=[opt])
+    ctx = ExtraContext(cli, formatter_settings={"theme": partial})
+    help_text = cli.get_help(ctx)
+
+    bracket = partial.bracket
+    required = partial.required
+    expected = (
+        bracket("[")
+        + bracket("env var: ")
+        + bracket("TOKEN, TEST_TOKEN")
+        + bracket("; ")
+        + bracket("default: ")
+        + bracket("anonymous")
+        + bracket("; ")
+        + required("required")
+        + bracket("]")
+    )
+    assert expected in help_text
+
+
 def test_skip_hidden_option():
     """Ensure hidden options are not highlighted."""
     opt1 = ExtraOption(["--hidden"], hidden=True, help="Invisible --hidden option.")
