@@ -1,5 +1,10 @@
 # Changelog
 
+## [`7.16.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.16.0...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`7.16.0` (2026-05-14)](https://github.com/kdeldycke/click-extra/compare/v7.15.0...v7.16.0)
 
 - Theme system overhaul. Four branded palettes join the built-in catalog: `solarized_dark` (Ethan Schoonover), `dracula` (Zeno Rocha), `nord` (Arctic Ice Studio), and `monokai` (Wimer Hazenberg), hand-curated for the semantic roles click-extra exposes (option, metavar, choice, deprecated, envvar, …). The full catalog now ships as `click_extra/themes.toml` (a TOML data file) instead of Python subclasses, loaded at import time via `importlib.resources` for proper wheel/zipapp support. `BUILTIN_THEMES` is the single public dict of `{name: HelpExtraTheme}`; access individual palettes via `BUILTIN_THEMES["dark"]`, `BUILTIN_THEMES["solarized_dark"]`, etc. Adding a built-in theme is a one-file data edit: declare a `[<name>]` table with one inline-table per styled slot, no Python needed. **Breaking:** the `click_extra.themes` module is removed (import from `click_extra` or `click_extra.theme`); the six per-theme UPPER_CASE constants (`DARK`, `DRACULA`, `LIGHT`, `MONOKAI`, `NORD`, `SOLARIZED_DARK`) are removed (use `BUILTIN_THEMES["<name>"]` instead).
