@@ -4103,9 +4103,7 @@ def test_pyproject_toml_explicit_config_skips_cwd(
     assert "value is 'from_explicit'" in result.stdout
 
 
-def test_pyproject_toml_cwd_skips_unrelated_tool_section(
-    invoke, tmp_path, monkeypatch
-):
+def test_pyproject_toml_cwd_skips_unrelated_tool_section(invoke, tmp_path, monkeypatch):
     """A pyproject.toml without [tool.<cli_name>] is skipped.
 
     Regression: a pyproject.toml carrying only unrelated [tool.X] sections
@@ -4799,9 +4797,7 @@ def test_validate_config_skips_opaque_field(invoke, create_config):
 # during both --validate-config and normal --config loading.
 
 
-def test_config_validator_runs_and_fails_under_validate_config(
-    invoke, create_config
-):
+def test_config_validator_runs_and_fails_under_validate_config(invoke, create_config):
     """A registered ``ConfigValidator`` runs during ``--validate-config`` and
     surfaces its ``ValidationError`` with a path rooted at the config file."""
     from dataclasses import dataclass, field
@@ -4854,9 +4850,7 @@ def test_config_validator_runs_and_fails_under_validate_config(
             timeout = 30
             """),
     )
-    result = invoke(
-        validator_cli, "--validate-config", str(valid_path), color=False
-    )
+    result = invoke(validator_cli, "--validate-config", str(valid_path), color=False)
     assert result.exit_code == 0
     assert "is valid" in result.stderr
 
@@ -4872,9 +4866,7 @@ def test_config_validator_runs_and_fails_under_validate_config(
             badkey = "oops"
             """),
     )
-    result = invoke(
-        validator_cli, "--validate-config", str(invalid_path), color=False
-    )
+    result = invoke(validator_cli, "--validate-config", str(invalid_path), color=False)
     assert result.exit_code == 1
     assert "validator-cli.managers.winget.badkey: unknown field 'badkey'" in (
         result.stderr
@@ -5010,9 +5002,7 @@ def test_config_validator_collects_all_errors(invoke, create_config):
             """),
     )
 
-    result = invoke(
-        both_errors_cli, "--validate-config", str(conf_path), color=False
-    )
+    result = invoke(both_errors_cli, "--validate-config", str(conf_path), color=False)
     assert result.exit_code == 1
     # Both errors appear in the same run.
     assert "unknown_flag" in result.stderr

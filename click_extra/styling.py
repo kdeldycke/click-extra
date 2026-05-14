@@ -59,27 +59,33 @@ if TYPE_CHECKING:
 # (where ``bright_*`` named colors aren't valid CSS keywords) and by
 # :meth:`contrast_ratio` (which needs RGB to compute luminance).
 _ANSI_16_RGB: tuple[tuple[int, int, int], ...] = (
-    (0, 0, 0),         # 0: black
-    (170, 0, 0),       # 1: red
-    (0, 170, 0),       # 2: green
-    (170, 85, 0),      # 3: yellow
-    (0, 0, 170),       # 4: blue
-    (170, 0, 170),     # 5: magenta
-    (0, 170, 170),     # 6: cyan
-    (170, 170, 170),   # 7: white
-    (85, 85, 85),      # 8: bright_black
-    (255, 85, 85),     # 9: bright_red
-    (85, 255, 85),     # 10: bright_green
-    (255, 255, 85),    # 11: bright_yellow
-    (85, 85, 255),     # 12: bright_blue
-    (255, 85, 255),    # 13: bright_magenta
-    (85, 255, 255),    # 14: bright_cyan
-    (255, 255, 255),   # 15: bright_white
+    (0, 0, 0),  # 0: black
+    (170, 0, 0),  # 1: red
+    (0, 170, 0),  # 2: green
+    (170, 85, 0),  # 3: yellow
+    (0, 0, 170),  # 4: blue
+    (170, 0, 170),  # 5: magenta
+    (0, 170, 170),  # 6: cyan
+    (170, 170, 170),  # 7: white
+    (85, 85, 85),  # 8: bright_black
+    (255, 85, 85),  # 9: bright_red
+    (85, 255, 85),  # 10: bright_green
+    (255, 255, 85),  # 11: bright_yellow
+    (85, 85, 255),  # 12: bright_blue
+    (255, 85, 255),  # 13: bright_magenta
+    (85, 255, 255),  # 14: bright_cyan
+    (255, 255, 255),  # 15: bright_white
 )
 
 _ANSI_NAMES: tuple[str, ...] = (
-    "black", "red", "green", "yellow",
-    "blue", "magenta", "cyan", "white",
+    "black",
+    "red",
+    "green",
+    "yellow",
+    "blue",
+    "magenta",
+    "cyan",
+    "white",
 )
 
 # Channel values for the 6×6×6 color cube (palette indices 16–231).
@@ -87,8 +93,14 @@ _CUBE_VALUES: tuple[int, ...] = (0, 95, 135, 175, 215, 255)
 
 # Boolean style attributes processed in repr/css/from_ansi.
 _BOOL_ATTRS: tuple[str, ...] = (
-    "bold", "dim", "italic", "underline", "overline",
-    "blink", "reverse", "strikethrough",
+    "bold",
+    "dim",
+    "italic",
+    "underline",
+    "overline",
+    "blink",
+    "reverse",
+    "strikethrough",
 )
 
 # Match a single ANSI SGR escape: ``\x1b[...m``.
@@ -363,9 +375,7 @@ class Style(cloup.Style):
         """Hash mirroring :meth:`__eq__`: skip the lazy ``_style_kwargs`` cache."""
         return hash(
             tuple(
-                getattr(self, f.name)
-                for f in fields(self)
-                if f.name != "_style_kwargs"
+                getattr(self, f.name) for f in fields(self) if f.name != "_style_kwargs"
             )
         )
 
@@ -410,9 +420,7 @@ class Style(cloup.Style):
         keeps ``derived``'s overrides and inherits the rest from ``parent``.
         """
         if not isinstance(base, cloup.Style):
-            raise TypeError(
-                f"Cannot cascade onto {type(base).__name__}: not a Style."
-            )
+            raise TypeError(f"Cannot cascade onto {type(base).__name__}: not a Style.")
         return self._merge(base, self)
 
     @staticmethod

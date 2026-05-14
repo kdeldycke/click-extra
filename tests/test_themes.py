@@ -50,7 +50,10 @@ _THEME_BACKGROUNDS: dict[str, str] = {
 # can hold them to a real WCAG threshold. ANSI themes inherit terminal
 # rendering and only get the legibility floor below.
 _BRANDED_THEMES: tuple[str, ...] = (
-    "dracula", "monokai", "nord", "solarized_dark",
+    "dracula",
+    "monokai",
+    "nord",
+    "solarized_dark",
 )
 
 # Slots that carry primary readable text. These should clear WCAG AA Large
@@ -58,7 +61,10 @@ _BRANDED_THEMES: tuple[str, ...] = (
 # Strict AA (4.5) is unattainable for some themes (Solarized's #268bd2 on
 # #002b36 famously sits at 4.08), so AA Large is the realistic floor.
 _READABLE_SLOTS: tuple[str, ...] = (
-    "option", "error", "warning", "success",
+    "option",
+    "error",
+    "warning",
+    "success",
 )
 
 # Absolute legibility floor: anything below this is essentially invisible
@@ -239,11 +245,7 @@ def test_themechoice_choices_pick_up_context_overrides():
 
 @pytest.mark.parametrize(
     ("theme_name", "slot"),
-    [
-        (theme, slot)
-        for theme in _BRANDED_THEMES
-        for slot in _READABLE_SLOTS
-    ],
+    [(theme, slot) for theme in _BRANDED_THEMES for slot in _READABLE_SLOTS],
 )
 def test_branded_themes_meet_wcag_aa_large(theme_name, slot):
     """Branded themes' readable-text slots clear WCAG AA Large (3.0+).
@@ -288,9 +290,7 @@ def test_themes_meet_legibility_floor(theme_name):
             continue
         ratio = slot_value.contrast_ratio(bg_style)
         if ratio < _LEGIBILITY_FLOOR:
-            failures.append(
-                f"{theme_name}.{f.name} (fg={fg!r}) ratio={ratio:.2f}"
-            )
+            failures.append(f"{theme_name}.{f.name} (fg={fg!r}) ratio={ratio:.2f}")
     assert not failures, (
         f"Slots below the legibility floor ({_LEGIBILITY_FLOOR}) on "
         f"{_THEME_BACKGROUNDS[theme_name]}: " + ", ".join(failures)

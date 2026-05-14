@@ -591,7 +591,10 @@ class HelpExtraFormatter(cloup.HelpFormatter):
         # implementation for multi-line wrapping. Bypass cloup's wrapper to
         # avoid double-styling ``prefix`` and ``prog``.
         click.formatting.HelpFormatter.write_usage(
-            self, styled_prog, args, styled_prefix,
+            self,
+            styled_prog,
+            args,
+            styled_prefix,
         )
 
     keywords: HelpKeywords = HelpKeywords()
