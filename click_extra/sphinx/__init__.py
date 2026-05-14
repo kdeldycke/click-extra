@@ -29,6 +29,8 @@ except ImportError:
         "You need to install click_extra[sphinx] dependency group to use this module."
     )
 
+import myst_parser
+from packaging.version import Version
 from sphinx.highlighting import PygmentsBridge
 from sphinx.util import logging
 
@@ -48,17 +50,31 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+MYST_NATIVE_ALERTS_VERSION = Version("5.1.0")
+"""First ``myst-parser`` release that ships the native ``"alert"`` syntax
+extension.
+
+Below this version, :mod:`click_extra.sphinx.alerts` patches GitHub alert
+syntax into MyST admonitions via a ``source-read`` / ``include-read``
+hook. At or above this version, the converter is skipped at
+:func:`setup` time and projects should add ``"alert"`` to
+``myst_enable_extensions`` instead.
+"""
+
+
 EXEC_DIRECTIVES_OPT_IN = "click_extra_enable_exec_directives"
 """Name of the ``conf.py`` config flag that gates every code-execution directive.
 
 Default is ``False``. A project that adds ``click_extra.sphinx`` to its
-``extensions`` list gets the ANSI Pygments formatter and the GitHub-alerts
-converter unconditionally, but does *not* gain access to either the
-``click:*`` or the ``python:*`` directive families until the maintainer
-opts in explicitly. Both families ``exec`` user-supplied Python at build
-time with full Sphinx-process privileges; gating them behind a single
-explicit flag keeps a transitive import or a doc-only pull request from
-silently expanding the build's attack surface.
+``extensions`` list gets the ANSI Pygments formatter unconditionally, plus
+the GitHub-alerts converter when ``myst-parser`` is below
+:data:`MYST_NATIVE_ALERTS_VERSION` (see :mod:`.alerts` for the deprecation
+rationale), but does *not* gain access to either the ``click:*`` or the
+``python:*`` directive families until the maintainer opts in explicitly.
+Both families ``exec`` user-supplied Python at build time with full
+Sphinx-process privileges; gating them behind a single explicit flag keeps
+a transitive import or a doc-only pull request from silently expanding
+the build's attack surface.
 """
 
 
@@ -106,6 +122,11 @@ def setup(app: Sphinx) -> ExtensionMetadata:
       colors in code blocks).
     - GitHub-flavored alert syntax (``> [!NOTE]``, etc.) in *included*
       and regular *source* files, converted to MyST/reST admonitions.
+      Registered only when the installed ``myst-parser`` is below
+      :data:`MYST_NATIVE_ALERTS_VERSION` (``5.1.0``). On newer versions,
+      the converter is skipped and a one-shot info message points users
+      at ``myst-parser``'s native ``"alert"`` extension. See
+      :mod:`click_extra.sphinx.alerts` for the deprecation plan.
 
     Opt-in features (gated behind ``click_extra_enable_exec_directives``):
 
@@ -137,9 +158,22 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     app.add_config_value(EXEC_DIRECTIVES_OPT_IN, False, "env", types=[bool])
     app.connect("config-inited", _register_exec_directives)
 
-    # Register GitHub alerts converter.
-    app.connect("source-read", convert_github_alerts)
-    app.connect("include-read", convert_github_alerts)
+    # Register GitHub alerts converter only when myst-parser predates
+    # the native "alert" syntax extension (added in 5.1.0). On newer
+    # versions, log a migration notice and skip the converter:
+    # projects should add "alert" to myst_enable_extensions to use
+    # myst-parser's native rendering instead.
+    if Version(myst_parser.__version__) < MYST_NATIVE_ALERTS_VERSION:
+        app.connect("source-read", convert_github_alerts)
+        app.connect("include-read", convert_github_alerts)
+    else:
+        logger.info(
+            "click_extra.sphinx: skipping the GitHub alerts converter "
+            "(myst-parser %s ships the native 'alert' syntax extension). "
+            "Add 'alert' to myst_enable_extensions to render "
+            "'> [!NOTE]' blockquotes as Sphinx admonitions.",
+            myst_parser.__version__,
+        )
 
     return {
         "version": __version__,

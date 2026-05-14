@@ -15,11 +15,27 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Utilities to convert GitHub alerts into MyST admonitions for Sphinx.
 
+.. deprecated:: 7.16.0
+    ``myst-parser`` 5.1+ ships a native ``"alert"`` syntax extension that
+    renders GitHub alerts as Sphinx admonitions, covering the same ground
+    as this regex-based converter. ``click_extra.sphinx.setup()`` only
+    wires the converter into Sphinx when the installed ``myst-parser``
+    is below ``5.1.0`` (see
+    :data:`click_extra.sphinx.MYST_NATIVE_ALERTS_VERSION`); on newer
+    releases the hook is skipped at setup time and a log message points
+    projects at ``myst-parser``'s native extension, which they enable by
+    adding ``"alert"`` to ``myst_enable_extensions``. I plan to remove
+    the module entirely once the ``myst-parser`` floor moves to
+    ``>=5.1``.
+
 .. seealso::
     - GitHub documentation for `alerts syntax
     <https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts>`_.
     - Announcement for `alert support starting 2023-12-14
     <https://github.blog/changelog/2023-12-14-new-markdown-extension-alerts-provide-distinctive-styling-for-significant-content/>`_.
+    - MyST-parser `"alert" syntax extension
+    <https://myst-parser.readthedocs.io/en/latest/syntax/optional.html>`_
+    added in version 5.1.0.
 """
 
 from __future__ import annotations
@@ -153,9 +169,20 @@ def process_fence(state: ParserState, indent: str, chars: str, after: str) -> No
 
 
 def close_alerts_to_depth(state: ParserState, target_depth: int) -> None:
-    """Close all alerts deeper than target_depth."""
+    """Close all alerts deeper than target_depth.
+
+    When the alert has no body content (just the directive line, like a
+    bare ``> [!TIP]``), inject a MyST comment placeholder before the
+    closing fence. Sphinx silently drops admonitions with an empty body,
+    but myst-parser 5.1+'s native ``"alert"`` extension renders a
+    title-only admonition for that input. The MyST comment is consumed
+    at parse time, so the rendered HTML matches the upstream output:
+    ``<div class="admonition tip"><p class="admonition-title">Tip</p></div>``.
+    """
     while state.alert_stack and state.alert_stack[-1].depth > target_depth:
         alert = state.alert_stack.pop()
+        if len(state.result) - 1 == alert.opening_line_index:
+            state.result.append(f"{alert.indent}% empty alert body")
         colons = "::::" if alert.has_nested else ":::"
         state.result.append(f"{alert.indent}{colons}")
 

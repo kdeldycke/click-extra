@@ -31,9 +31,19 @@ from pathlib import Path
 from textwrap import indent
 from typing import Any
 
+import myst_parser
 import pytest
+from packaging.version import Version
 from sphinx.application import Sphinx
 from sphinx.util.docutils import docutils_namespace
+
+from click_extra.sphinx import MYST_NATIVE_ALERTS_VERSION
+
+MYST_HAS_NATIVE_ALERTS = Version(myst_parser.__version__) >= MYST_NATIVE_ALERTS_VERSION
+"""Flip-switch reused by tests to branch between the two alert rendering
+paths: ``click_extra``'s regex converter (pre-5.1) and ``myst-parser``'s
+native ``"alert"`` extension (>=5.1). Both paths must produce the same
+admonition HTML."""
 
 
 class FormatType(Enum):
@@ -87,7 +97,14 @@ class SphinxAppWrapper:
             conf["click_extra_enable_exec_directives"] = True
         if format_type == FormatType.MYST:
             conf["extensions"].append("myst_parser")
-            conf["myst_enable_extensions"] = ["colon_fence"]
+            myst_extensions = ["colon_fence"]
+            # Opt into myst-parser's native "alert" extension when available
+            # so the integration tests validate the upstream rendering path
+            # against the same admonition HTML the click-extra converter
+            # produces on older releases.
+            if MYST_HAS_NATIVE_ALERTS:
+                myst_extensions.append("alert")
+            conf["myst_enable_extensions"] = myst_extensions
 
         # Write the conf.py file.
         config_content = "\n".join(f"{key} = {value!r}" for key, value in conf.items())

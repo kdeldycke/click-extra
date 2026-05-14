@@ -26,7 +26,22 @@ from sphinx.util.docutils import docutils_namespace
 
 from click_extra.sphinx.alerts import replace_github_alerts
 
-from .conftest import HTML, DirectiveTestCase, FormatType, admonition_block
+from .conftest import (
+    HTML,
+    MYST_HAS_NATIVE_ALERTS,
+    DirectiveTestCase,
+    FormatType,
+    admonition_block,
+)
+
+skip_when_native_alerts = pytest.mark.skipif(
+    MYST_HAS_NATIVE_ALERTS,
+    reason=(
+        "Validates a click-extra-only ConfigError raised by the GitHub "
+        "alerts converter. On myst-parser 5.1+ the converter is not "
+        "registered, so the check has no upstream equivalent."
+    ),
+)
 
 
 @pytest.mark.parametrize(
@@ -217,6 +232,7 @@ def test_all_alert_types(alert_type):
             "> [!TIP]",
             dedent("""\
                 :::{tip}
+                % empty alert body
                 :::"""),
             id="empty_alert",
         ),
@@ -783,14 +799,15 @@ def test_alert_conversion(text, expected):
 EMPTY_DIRECTIVE_TEST_CASE = DirectiveTestCase(
     name="empty_admonition_rendering",
     format_type=FormatType.MYST,
+    # Bare alert directive with no body. Both the click-extra converter
+    # (with its MyST comment placeholder) and myst-parser 5.1+'s native
+    # alert extension must emit a title-only admonition.
     document="""
         > [!TIP]
     """,
-    html_matches='          <div class="body" role="main">\n'
-    "            \n"
-    "  \n"
-    "\n"
-    "          </div>\n",
+    html_matches=(
+        '<div class="admonition tip">\n<p class="admonition-title">Tip</p>\n</div>'
+    ),
 )
 
 
@@ -1038,6 +1055,7 @@ def test_sphinx_integration(sphinx_app, test_case):
         assert fragment in html_output
 
 
+@skip_when_native_alerts
 def test_github_alert_no_colon_fence(tmp_path):
     """Test that ConfigError is raised when colon_fence is not enabled."""
 
