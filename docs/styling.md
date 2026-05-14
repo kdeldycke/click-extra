@@ -106,17 +106,17 @@ print(Style(fg="cyan", dim=True).to_css())
 
 The mapping is:
 
-| Attribute       | CSS declaration                  |
-| --------------- | -------------------------------- |
-| `fg`            | `color: <color>`                 |
-| `bg`            | `background-color: <color>`      |
-| `bold`          | `font-weight: bold`              |
-| `italic`        | `font-style: italic`             |
-| `underline`     | `text-decoration: underline`     |
-| `overline`      | `text-decoration: overline`      |
-| `strikethrough` | `text-decoration: line-through`  |
-| `dim`           | `opacity: 0.6`                   |
-| `reverse`       | `filter: invert(1)`              |
+| Attribute       | CSS declaration                 |
+| --------------- | ------------------------------- |
+| `fg`            | `color: <color>`                |
+| `bg`            | `background-color: <color>`     |
+| `bold`          | `font-weight: bold`             |
+| `italic`        | `font-style: italic`            |
+| `underline`     | `text-decoration: underline`    |
+| `overline`      | `text-decoration: overline`     |
+| `strikethrough` | `text-decoration: line-through` |
+| `dim`           | `opacity: 0.6`                  |
+| `reverse`       | `filter: invert(1)`             |
 
 `underline`, `overline` and `strikethrough` collapse into a single `text-decoration` declaration when more than one is set.
 

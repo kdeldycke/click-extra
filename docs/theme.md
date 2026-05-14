@@ -36,14 +36,14 @@ Now invocations of the `weather` CLI pick up the light theme without passing `--
 
 ## Built-in themes
 
-| Name                                  | Color model          | Notes                                                                |
-| :------------------------------------ | :------------------- | :------------------------------------------------------------------- |
-| [`dark`](#dark)                       | 16 named ANSI colors | Process-wide default. Follows the user's terminal palette.           |
-| [`light`](#light)                     | 16 named ANSI colors | Tuned for white backgrounds: no bright variants, blue replaces cyan. |
-| [`solarized_dark`](#solarized-dark)   | 24-bit RGB           | Warm-toned dark theme with selective accent contrast.                |
-| [`dracula`](#dracula)                 | 24-bit RGB           | High-contrast dark theme with vivid neon accents.                    |
-| [`nord`](#nord)                       | 24-bit RGB           | Cool-toned dark theme built around frost-blue and aurora accents.    |
-| [`monokai`](#monokai)                 | 24-bit RGB           | Classic dark theme with high-saturation magenta and lime accents.    |
+| Name                                | Color model          | Notes                                                                |
+| :---------------------------------- | :------------------- | :------------------------------------------------------------------- |
+| [`dark`](#dark)                     | 16 named ANSI colors | Process-wide default. Follows the user's terminal palette.           |
+| [`light`](#light)                   | 16 named ANSI colors | Tuned for white backgrounds: no bright variants, blue replaces cyan. |
+| [`solarized_dark`](#solarized-dark) | 24-bit RGB           | Warm-toned dark theme with selective accent contrast.                |
+| [`dracula`](#dracula)               | 24-bit RGB           | High-contrast dark theme with vivid neon accents.                    |
+| [`nord`](#nord)                     | 24-bit RGB           | Cool-toned dark theme built around frost-blue and aurora accents.    |
+| [`monokai`](#monokai)               | 24-bit RGB           | Classic dark theme with high-saturation magenta and lime accents.    |
 
 Each row is keyed by the `--theme` choice value; access the instance via `BUILTIN_THEMES["<name>"]` (e.g. `BUILTIN_THEMES["dark"]`). Click any name to jump to that theme's [palette listing](#palettes) below.
 
@@ -314,7 +314,7 @@ Malformed entries surface as `ValidationError` with a path rooted at the configu
 
 ```toml
 [weather.themes.midnight]
-optoin = { fg = "blue" }   # typo
+optoin = { fg = "blue" } # typo
 ```
 
 ```{click:run}
