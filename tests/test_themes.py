@@ -87,7 +87,8 @@ def _toml_table_order() -> list[str]:
 
 def _parsed_themes_toml() -> dict[str, dict]:
     """Load ``themes.toml`` raw (without going through ``HelpExtraTheme.from_dict``)."""
-    return tomllib.loads(_THEMES_TOML.read_text(encoding="utf-8"))
+    result: dict[str, dict] = tomllib.loads(_THEMES_TOML.read_text(encoding="utf-8"))
+    return result
 
 
 # --- Source-of-truth checks -------------------------------------------------
@@ -179,6 +180,7 @@ def test_cascade_overrides_only_set_slots():
     merged = overlay.cascade(dark)
 
     # Overlay slot wins.
+    assert isinstance(merged.option, Style)
     assert merged.option.fg == "magenta"
     # All other slots come from the base.
     assert merged.heading == dark.heading
@@ -193,6 +195,8 @@ def test_cascade_returns_new_instance_when_overlay_changes_anything():
     merged = overlay.cascade(dark)
 
     assert merged is not dark
+    assert isinstance(merged.option, Style)
+    assert isinstance(dark.option, Style)
     assert merged.option.fg != dark.option.fg
 
 

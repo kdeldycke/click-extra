@@ -231,7 +231,7 @@ class HelpExtraTheme(cloup.HelpTheme):
 
     def with_(  # type: ignore[override]
         self,
-        **kwargs: dict[str, IStyle | None],
+        **kwargs: IStyle | bool | None,
     ) -> HelpExtraTheme:
         """Derives a new theme from the current one, with some styles overridden.
 

@@ -636,7 +636,7 @@ class HelpExtraFormatter(cloup.HelpFormatter):
         uniformly dim bracket field for free; richer themes layer specific
         styles on top by setting the inner slots.
         """
-        slot = getattr(self.theme, slot_name)
+        slot: IStyle = getattr(self.theme, slot_name)
         if slot is identity:
             return self.theme.bracket
         return slot

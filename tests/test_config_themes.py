@@ -20,7 +20,7 @@ from __future__ import annotations
 from textwrap import dedent
 
 import click_extra
-from click_extra import context
+from click_extra import Style, context
 from click_extra.theme import (
     BUILTIN_THEMES,
     HelpExtraTheme,
@@ -50,6 +50,7 @@ def _palette_cli(captured: dict):
 def test_themes_from_config_overrides_existing_theme():
     """Known theme names cascade on top of the matching built-in palette."""
     built = themes_from_config({"dark": {"option": {"fg": "magenta"}}})
+    assert isinstance(built["dark"].option, Style)
     assert built["dark"].option.fg == "magenta"
     # All other slots are inherited from the built-in `dark` palette.
     assert built["dark"].heading == DARK.heading
@@ -59,6 +60,7 @@ def test_themes_from_config_overrides_existing_theme():
 def test_themes_from_config_creates_standalone_theme():
     """Unknown theme names build a stand-alone theme with unset slots at default."""
     built = themes_from_config({"midnight": {"option": {"fg": "magenta"}}})
+    assert isinstance(built["midnight"].option, Style)
     assert built["midnight"].option.fg == "magenta"
     # Slots not declared in the config stay at their identity default.
     assert built["midnight"].heading is not DARK.heading
@@ -103,9 +105,13 @@ def test_config_loads_new_theme(invoke, create_config):
     result = invoke(cli, "--config", str(config_path), "--theme", "midnight")
     assert result.exit_code == 0, result.stderr
     assert isinstance(captured["theme"], HelpExtraTheme)
-    assert captured["theme"].option.fg == "blue"
-    assert captured["theme"].option.bold is True
-    assert captured["theme"].heading.fg == "magenta"
+    option = captured["theme"].option
+    assert isinstance(option, Style)
+    assert option.fg == "blue"
+    assert option.bold is True
+    heading = captured["theme"].heading
+    assert isinstance(heading, Style)
+    assert heading.fg == "magenta"
     assert "midnight" in (captured["overrides"] or {})
 
 

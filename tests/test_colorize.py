@@ -98,17 +98,17 @@ def test_extra_theme():
 
     # Check that we can't set a non-existing attribute.
     with pytest.raises(TypeError):
-        theme.with_(random_arg=Style())  # type: ignore[arg-type]
+        theme.with_(random_arg=Style())
 
     # Create a new theme with a different color.
     assert theme.choice != Style(fg=Color.magenta)
-    new_theme = theme.with_(choice=Style(fg=Color.magenta))  # type: ignore[arg-type]
+    new_theme = theme.with_(choice=Style(fg=Color.magenta))
     assert new_theme != theme
     assert new_theme is not theme
     assert new_theme.choice == Style(fg=Color.magenta)
 
     # Derives a second theme from the first one.
-    second_theme = new_theme.with_(choice=Style(fg=Color.magenta))  # type: ignore[arg-type]
+    second_theme = new_theme.with_(choice=Style(fg=Color.magenta))
     assert second_theme == new_theme
     assert second_theme is new_theme
 
@@ -981,7 +981,7 @@ def test_cross_ref_highlight_disabled():
     left plain."""
     from click_extra.theme import BUILTIN_THEMES
 
-    no_xref_theme = BUILTIN_THEMES["dark"].with_(  # type: ignore[arg-type]
+    no_xref_theme = BUILTIN_THEMES["dark"].with_(
         cross_ref_highlight=False,
     )
 
