@@ -1885,8 +1885,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             return normalized_conf
         app_name = self._app_section_name(ctx)
         prefixed_paths = (
-            f"{app_name}.{path}" if app_name else path
-            for path in self._opaque_paths
+            f"{app_name}.{path}" if app_name else path for path in self._opaque_paths
         )
         return _strip_opaque_subtrees(normalized_conf, prefixed_paths)
 
@@ -1999,13 +1998,9 @@ class ConfigOption(ExtraOption, ParamStructure):
                 # uniform error reporting across click-extra's own checks
                 # and user-registered validators.
                 prefix = (
-                    f"{app_name}.{cv.extension_path}"
-                    if app_name
-                    else cv.extension_path
+                    f"{app_name}.{cv.extension_path}" if app_name else cv.extension_path
                 )
-                rooted_path = (
-                    f"{prefix}.{exc.path}" if exc.path else prefix
-                )
+                rooted_path = f"{prefix}.{exc.path}" if exc.path else prefix
                 yield ValidationError(rooted_path, exc.message, exc.code)
 
     def _run_validators(
@@ -2362,9 +2357,7 @@ class ValidateConfigOption(ExtraOption):
         # 1. CLI-parameter strict check, with opaque sub-trees stripped so
         # user-controlled tables (e.g. dict[str, X] fields) don't trip the
         # unknown-key detector.
-        normalized = _expand_dotted_keys(
-            _strip_reserved_keys(user_conf), strict=True
-        )
+        normalized = _expand_dotted_keys(_strip_reserved_keys(user_conf), strict=True)
         normalized = config_option._strip_opaque_from_conf(ctx, normalized)
         try:
             _recursive_update(
@@ -2384,7 +2377,10 @@ class ValidateConfigOption(ExtraOption):
                 errors.append(str(exc))
 
         # 3. App-registered validators against opaque sub-trees.
-        errors.extend(str(verror) for verror in config_option._iter_validator_errors(ctx, user_conf))
+        errors.extend(
+            str(verror)
+            for verror in config_option._iter_validator_errors(ctx, user_conf)
+        )
 
         if errors:
             for err in errors:

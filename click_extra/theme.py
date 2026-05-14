@@ -504,7 +504,7 @@ _PALETTE_SKIP_SLOTS: frozenset[str] = frozenset({
 
 _PALETTE_SWATCH = (
     '<span style="display:inline-block;width:0.85em;height:0.85em;'
-    'background:{css};border:1px solid var(--color-foreground-muted,#888);'
+    "background:{css};border:1px solid var(--color-foreground-muted,#888);"
     'border-radius:2px;vertical-align:-0.15em;margin-right:0.35em"></span>'
 )
 
@@ -528,8 +528,16 @@ _PALETTE_ATTR_CSS: dict[str, str] = {
 # click-extra's local HelpExtraTheme autodoc anchor (which only covers the
 # slots HelpExtraTheme adds on top of cloup's base class).
 _PALETTE_CLOUP_SLOTS: frozenset[str] = frozenset({
-    "invoked_command", "command_help", "heading", "constraint",
-    "section_help", "col1", "col2", "alias", "alias_secondary", "epilog",
+    "invoked_command",
+    "command_help",
+    "heading",
+    "constraint",
+    "section_help",
+    "col1",
+    "col2",
+    "alias",
+    "alias_secondary",
+    "epilog",
 })
 
 # Per-slot example templates. Substrings wrapped in ``«…»`` (U+00AB / U+00BB
@@ -564,12 +572,9 @@ _PALETTE_EXAMPLES: dict[str, str] = {
         "  «backup»        Snapshot the data store.\n"
         "  «restore»       Restore from a snapshot."
     ),
-    "choice": (
-        "--format [«json»|«csv»|«xml»]   Output format. Defaults to «json»."
-    ),
+    "choice": ("--format [«json»|«csv»|«xml»]   Output format. Defaults to «json»."),
     "metavar": (
-        "--output «TEXT»       Destination file.\n"
-        "--workers «INTEGER»   Worker count."
+        "--output «TEXT»       Destination file.\n--workers «INTEGER»   Worker count."
     ),
     # The single wide marker covers the entire bracket field because
     # ``bracket`` is the runtime fallback for every inner slot (``envvar``,
@@ -593,8 +598,7 @@ _PALETTE_EXAMPLES: dict[str, str] = {
     ),
     "required": "--token TEXT    Authentication token.  [«required»]",
     "argument": (
-        "Usage: cp [OPTIONS] «SRC» «DST»\n"
-        "Usage: pack [OPTIONS] «[FILES]...» «[OUTPUT]»"
+        "Usage: cp [OPTIONS] «SRC» «DST»\nUsage: pack [OPTIONS] «[FILES]...» «[OUTPUT]»"
     ),
     "deprecated": (
         "--old-api    Legacy endpoint. «(DEPRECATED: use --new-api instead)»\n"
@@ -603,17 +607,14 @@ _PALETTE_EXAMPLES: dict[str, str] = {
     "search": "--«retry»-budget INTEGER    The «retry» budget.",
     "success": "«✓» database migration completed\n«✓» 1,245 records imported",
     "subheading": (
-        "«◼ 3 mails sharing hash a1b2c3d4»\n"
-        "«◼ 7 mails sharing hash e5f6a7b8»"
+        "«◼ 3 mails sharing hash a1b2c3d4»\n«◼ 7 mails sharing hash e5f6a7b8»"
     ),
 }
 
 # Matches a single ``«…»`` segment for the slot-example renderer.
 _PALETTE_EXAMPLE_RE: re.Pattern[str] = re.compile("«([^»]+)»")
 
-_PALETTE_CLOUP_URL = (
-    "https://cloup.readthedocs.io/en/stable/autoapi/cloup/index.html"
-)
+_PALETTE_CLOUP_URL = "https://cloup.readthedocs.io/en/stable/autoapi/cloup/index.html"
 
 
 def _palette_slot_link(name: str) -> str:
@@ -679,6 +680,7 @@ def inject_slot_example_docstring(
 
         from click_extra.theme import inject_slot_example_docstring
 
+
         def setup(app):
             app.connect("autodoc-process-docstring", inject_slot_example_docstring)
 
@@ -690,7 +692,7 @@ def inject_slot_example_docstring(
     prefix = "click_extra.theme.HelpExtraTheme."
     if not name.startswith(prefix):
         return
-    slot = name[len(prefix):]
+    slot = name[len(prefix) :]
     rendered = _render_slot_ansi(BUILTIN_THEMES["dark"], slot)
     if not rendered:
         return
@@ -699,8 +701,7 @@ def inject_slot_example_docstring(
     lines.append("")
     lines.append(".. code-block:: ansi-color")
     lines.append("")
-    for ansi_line in rendered.split("\n"):
-        lines.append(f"   {ansi_line}")
+    lines.extend(f"   {ansi_line}" for ansi_line in rendered.split("\n"))
 
 
 def _render_slot_example(theme: HelpExtraTheme, slot: str) -> str:
@@ -727,7 +728,7 @@ def _render_slot_example(theme: HelpExtraTheme, slot: str) -> str:
     last = 0
     for match in _PALETTE_EXAMPLE_RE.finditer(template):
         # Plain text between the previous segment and this match.
-        parts.append(html.escape(template[last:match.start()]))
+        parts.append(html.escape(template[last : match.start()]))
         token = html.escape(match.group(1))
         if css:
             parts.append(f'<span style="{css}">{token}</span>')
@@ -741,9 +742,7 @@ def _render_slot_example(theme: HelpExtraTheme, slot: str) -> str:
         '<pre class="slot-example" style="margin:0.3em 0 0;'
         "padding:0.4em 0.6em;background:var(--color-code-background,#f5f5f5);"
         "border-radius:4px;font-size:0.85em;line-height:1.4;"
-        'white-space:pre-wrap">'
-        + "".join(parts)
-        + "</pre>"
+        'white-space:pre-wrap">' + "".join(parts) + "</pre>"
     )
 
 
@@ -788,8 +787,7 @@ def palette_html(theme: HelpExtraTheme) -> str:
             else:
                 color_label = str(fg)
             cell_parts.append(
-                _PALETTE_SWATCH.format(css=css)
-                + f"<code>{color_label}</code>"
+                _PALETTE_SWATCH.format(css=css) + f"<code>{color_label}</code>"
             )
         attrs = [
             f'<span style="{css}">{name}</span>'
@@ -807,16 +805,11 @@ def palette_html(theme: HelpExtraTheme) -> str:
         body = " ".join(cell_parts) or "—"
         if example_html:
             body = body + example_html
-        rows.append(
-            f"<dt>{_palette_slot_link(f.name)}</dt>"
-            f"<dd>{body}</dd>"
-        )
+        rows.append(f"<dt>{_palette_slot_link(f.name)}</dt><dd>{body}</dd>")
     return (
         '<dl class="theme-palette" style="display:grid;'
         "grid-template-columns:max-content 1fr;gap:0.2em 1em;"
-        'margin:0.5em 0">'
-        + "".join(rows)
-        + "</dl>"
+        'margin:0.5em 0">' + "".join(rows) + "</dl>"
     )
 
 
@@ -837,8 +830,7 @@ def validate_themes_config(themes_subtree: dict[str, Any]) -> None:
             raise ValidationError(
                 path=name,
                 message=(
-                    f"theme definition must be a table, got "
-                    f"{type(slots).__name__}"
+                    f"theme definition must be a table, got {type(slots).__name__}"
                 ),
                 code="invalid-theme-shape",
             )
@@ -1012,8 +1004,13 @@ def _load_builtin_themes() -> dict[str, HelpExtraTheme]:
     zipped imports (PyOxidizer, PEX, certain Nuitka modes) where
     ``Path(__file__).parent`` doesn't resolve to a real filesystem location.
     """
-    payload = resources.files(__package__).joinpath("themes.toml").read_text(
-        encoding="utf-8",
+    payload = (
+        resources
+        .files(__package__)
+        .joinpath("themes.toml")
+        .read_text(
+            encoding="utf-8",
+        )
     )
     raw = tomllib.loads(payload)
     return {name: HelpExtraTheme.from_dict(data) for name, data in raw.items()}
