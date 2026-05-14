@@ -233,7 +233,7 @@ For the much more common case where the theme should live in the same `--config`
 
 `ConfigOption` recognizes a `themes` sub-table inside the app's section. Every `[<cli>.themes.<name>]` entry is parsed via `HelpExtraTheme.from_dict` and made available to `--theme` for the duration of the invocation, with two distinct behaviors depending on whether `<name>` matches a built-in:
 
-- **Override an existing palette.** Re-declare a built-in name (`dark`, `dracula`, `light`, …) and the slots you set are overlayed on top of the built-in palette via `HelpExtraTheme.cascade`. Unset slots inherit from the built-in, so a one-line override like `option = { fg = "bright_cyan" }` is enough.
+- **Override an existing palette.** Re-declare a built-in name (`dark`, `dracula`, `light`, …) and the slots you set are overlaid on top of the built-in palette via `HelpExtraTheme.cascade`. Unset slots inherit from the built-in, so a one-line override like `option = { fg = "bright_cyan" }` is enough.
 - **Define a new palette.** Use any other name and `--theme <name>` becomes a valid choice for that invocation. Unset slots default to *no styling* (`identity`), so you typically declare a slot for every category you care about.
 
 In both cases the theme registry mutation is **per-invocation**: it lives on `ctx.meta` under `click_extra.context.THEME_OVERRIDES` and never touches the module-level `theme_registry`. Sphinx builds, test runners, and any other host process running multiple CLI invocations back-to-back never leak themes between them.
