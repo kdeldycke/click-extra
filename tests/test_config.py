@@ -963,6 +963,50 @@ def test_multiple_cli_shared_conf(invoke, create_config):
         assert result.exit_code == 0
 
 
+def test_params_template_not_mutated_across_invocations(invoke, create_config):
+    """Back-to-back invocations of the same CLI must not cross-contaminate via
+    ``ConfigOption.params_template``.
+
+    ``params_template`` is a ``@cached_property`` of the ``ConfigOption`` instance
+    bound at decoration time, so it lives for the lifetime of the CLI object.
+    ``_recursive_update`` mutates its first argument in place; without a defensive
+    copy, the cached template would accumulate values from earlier ``--config``
+    loads and leak them into ``default_map`` on subsequent invocations.
+    """
+    conf_with_city = create_config(
+        "city.toml",
+        dedent("""\
+            [pollution-cli]
+            city = "Paris"
+            """),
+    )
+    conf_with_weather = create_config(
+        "weather.toml",
+        dedent("""\
+            [pollution-cli]
+            weather = "rainy"
+            """),
+    )
+
+    @click.command
+    @option("--city", default="Atlantis")
+    @option("--weather", default="sunny")
+    @config_option
+    def pollution_cli(city, weather):
+        echo(f"city={city!r} weather={weather!r}")
+
+    # First invocation: only `city` is set by the config file.
+    result1 = invoke(pollution_cli, "--config", str(conf_with_city), color=False)
+    assert result1.exit_code == 0
+    assert result1.stdout == "city='Paris' weather='sunny'\n"
+
+    # Second invocation: only `weather` is set by the config file. `city` must
+    # fall back to its declared default, not carry over from the previous load.
+    result2 = invoke(pollution_cli, "--config", str(conf_with_weather), color=False)
+    assert result2.exit_code == 0
+    assert result2.stdout == "city='Atlantis' weather='rainy'\n"
+
+
 def test_lazy_group_config(invoke, create_config, tmp_path):
     """Test that lazy groups work with config files.
 

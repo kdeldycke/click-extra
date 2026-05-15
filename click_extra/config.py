@@ -45,6 +45,7 @@ flat dot-notation and nested structures in any supported format.
 
 from __future__ import annotations
 
+import copy
 import json
 import logging
 import os
@@ -2040,7 +2041,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         )
         normalized_conf = self._strip_opaque_from_conf(ctx, normalized_conf)
         filtered_conf = _recursive_update(
-            self.params_template, normalized_conf, self.strict
+            copy.deepcopy(self.params_template), normalized_conf, self.strict
         )
 
         # Clean-up the conf by removing all blank values left-over by the template
@@ -2361,7 +2362,7 @@ class ValidateConfigOption(ExtraOption):
         normalized = config_option._strip_opaque_from_conf(ctx, normalized)
         try:
             _recursive_update(
-                config_option.params_template,
+                copy.deepcopy(config_option.params_template),
                 normalized,
                 strict=True,
             )
