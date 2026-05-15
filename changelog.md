@@ -1,9 +1,6 @@
 # Changelog
 
-## [`7.16.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.16.0...main)
-
-> [!WARNING]
-> This version is **not released yet** and is under active development.
+## [`7.16.1` (2026-05-15)](https://github.com/kdeldycke/click-extra/compare/v7.16.0...v7.16.1)
 
 - Fix `ConfigOption` mutating its cached `params_template` when merging user configuration. `_recursive_update` updates its first argument in place, so back-to-back invocations of the same CLI (Sphinx builds, test runners, REPLs) leaked keys set by an earlier `--config` into the current invocation's `default_map`. Both the `--config` load path and `--validate-config` now pass a deep copy of the template.
 
