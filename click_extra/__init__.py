@@ -31,6 +31,7 @@ if TYPE_CHECKING:
 # "Module 'XXX' has no attribute 'YYY'". See: https://github.com/python/mypy/issues/4930
 from click import *
 from click._utils import UNSET
+from click import NoSuchCommand, get_pager_file
 from click.core import ParameterSource
 
 # Overrides click helpers with cloup's.
@@ -205,6 +206,7 @@ __all__ = [
     "LogLevel",
     "MissingParameter",
     "NoConfigOption",
+    "NoSuchCommand",
     "NoSuchOption",
     "Option",
     "OptionGroup",
@@ -256,6 +258,7 @@ __all__ = [
     "get_current_context",
     "get_current_theme",
     "get_default_theme",
+    "get_pager_file",
     "get_param_spec",
     "get_text_stream",
     "get_tool_config",
