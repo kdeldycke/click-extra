@@ -45,6 +45,7 @@ click_extra_enable_exec_directives = True
 
 # https://myst-parser.readthedocs.io/en/latest/syntax/optional.html
 myst_enable_extensions = [
+    "alert",
     "attrs_block",
     "attrs_inline",
     "colon_fence",

@@ -238,8 +238,9 @@ docs = [
   "json5>=0.12.1",
   # MkDocs is needed for automodule/autoclasstree of click_extra.mkdocs.
   "mkdocs>=1.4",
-  # myst-parser 5.0 stabilized MyST extensions and improved Sphinx directive support.
-  "myst-parser>=5",
+  # myst-parser 5.1 ships the native "alert" syntax extension for GitHub-style
+  # callouts, used by docs/conf.py's myst_enable_extensions.
+  "myst-parser>=5.1",
   # Pygments is needed for automodule/autoclasstree of click_extra.pygments.
   "pygments>=2.14",
   # pymdown-extensions is needed by the mkdocs plugin module.

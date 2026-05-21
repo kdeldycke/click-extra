@@ -10,6 +10,7 @@
 - Remove the `HelpExtraFormatter.write_usage` override. Click `8.4.0` (PR [pallets/click#3420](https://github.com/pallets/click/pull/3420)) made `TextWrapper` measure visible width instead of raw bytes, so the 24-bit-RGB-theme wrap workaround is no longer needed.
 - `HelpCommand` now raises `click.NoSuchCommand` instead of `click.UsageError` when an unknown subcommand is requested. The user sees did-you-mean suggestions: `Error: No such command 'instal'. (Did you mean one of: 'install', 'uninstall'?)`.
 - Drop the explicit `type=UNPROCESSED` from `NoConfigOption.__init__`. Click `8.4.0` (PR [pallets/click#3363](https://github.com/pallets/click/pull/3363)) auto-detects `UNPROCESSED` for `flag_value` with non-basic types, so the `flag_value=NO_CONFIG` sentinel reaches `Option` unchanged on its own.
+- Bump the `myst-parser` floor in the `docs` dependency group to `5.1`. Doc builds now use `myst-parser`'s native `"alert"` syntax extension (added in `5.1.0`) instead of the in-tree regex converter in `click_extra.sphinx.alerts`; `"alert"` is added to `myst_enable_extensions` in `docs/conf.py`. The in-tree converter remains in place for the base test dependency group, where `myst-parser>=4` still resolves to `4.x` on Python 3.10.
 
 ## [`7.16.1` (2026-05-15)](https://github.com/kdeldycke/click-extra/compare/v7.16.0...v7.16.1)
 
