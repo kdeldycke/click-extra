@@ -30,8 +30,8 @@ if TYPE_CHECKING:
 # XXX Star import is really badly supported by mypy for now and leads to lots of
 # "Module 'XXX' has no attribute 'YYY'". See: https://github.com/python/mypy/issues/4930
 from click import *
-from click._utils import UNSET
 from click import NoSuchCommand, get_pager_file
+from click._utils import UNSET
 from click.core import ParameterSource
 
 # Overrides click helpers with cloup's.
