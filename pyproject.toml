@@ -276,17 +276,15 @@ typing = [
   "types-xmltodict>=1.0.1.20250920",
 ]
 
-[tool.uv.sources]
+[tool.uv]
+# We rely on recent Python features in some of our {click:run} directives.
+dependency-groups.docs = { requires-python = ">= 3.14" }
 # Pull Click from the upstream `stable` branch to pick up
 # https://github.com/pallets/click/pull/3484 (merged into `stable`, slated for
 # 8.4.1) which fixes the eager-callback parameter-source regression Click
 # 8.4.0 introduced via https://github.com/pallets/click/pull/3404. Remove this
 # pin once Click 8.4.1 is released on PyPI.
-click = { git = "https://github.com/pallets/click.git", branch = "stable" }
-
-[tool.uv]
-# We rely on recent Python features in some of our {click:run} directives.
-dependency-groups.docs = { requires-python = ">= 3.14" }
+sources.click = { git = "https://github.com/pallets/click.git", branch = "stable" }
 # Cooldown period: 7-day buffer before using newly released packages.
 # Relative dates are fine here because the Renovate lock-maintenance job
 # (sync-uv-lock) reverts uv.lock when the only diff is timestamp noise.
