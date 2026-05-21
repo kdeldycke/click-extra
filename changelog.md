@@ -7,6 +7,7 @@
 
 - Bump the Click floor to `8.4.0`. Click `8.4.0` (PR [pallets/click#3423](https://github.com/pallets/click/pull/3423)) injects a space between an option's help text and its `(DEPRECATED)` label.
 - Restore the pre-Click-`8.4.0` contract that an eager callback can introspect its own parameter source via `ctx.get_parameter_source(self.name)`. Click `8.4.0` (PR [pallets/click#3404](https://github.com/pallets/click/pull/3404)) delays `set_parameter_source` until after `process_value`, so eager callbacks read `None` and miss whether the option was set from the command line, environment, or default. `ExtraOption.handle_parse_result` now records the source eagerly when the slot is empty, before delegating to `super`. Fixes `ColorOption`'s `NO_COLOR`/`FORCE_COLOR` precedence detection, `ConfigOption`'s explicit-vs-autodiscover branching, and `ShowParamsOption`'s `Source` column.
+- Remove the `HelpExtraFormatter.write_usage` override. Click `8.4.0` (PR [pallets/click#3420](https://github.com/pallets/click/pull/3420)) made `TextWrapper` measure visible width instead of raw bytes, so the 24-bit-RGB-theme wrap workaround is no longer needed.
 
 ## [`7.16.1` (2026-05-15)](https://github.com/kdeldycke/click-extra/compare/v7.16.0...v7.16.1)
 

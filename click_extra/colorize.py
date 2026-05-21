@@ -34,9 +34,7 @@ from functools import lru_cache
 from gettext import gettext as _
 
 import click
-import click.formatting
 import cloup
-from click._compat import term_len
 from cloup._util import identity
 
 from . import ParameterSource, theme as _theme
@@ -533,69 +531,6 @@ class HelpExtraFormatter(cloup.HelpFormatter):
             theme = active_theme.with_(**theme._asdict())
         kwargs["theme"] = theme
         super().__init__(*args, **kwargs)
-
-    def write_usage(
-        self,
-        prog: str,
-        args: str = "",
-        prefix: str | None = None,
-    ) -> None:
-        """ANSI-aware override of :meth:`cloup.HelpFormatter.write_usage`.
-
-        Click's :func:`click.formatting.wrap_text` measures line length with
-        raw :func:`len`, counting every byte of the ANSI escape sequences
-        embedded in ``initial_indent`` (the styled ``Usage:`` heading +
-        invoked-command name). With 24-bit RGB themes (e.g. Solarized Dark,
-        Dracula, Nord, Monokai), each styled token carries 17+ extra
-        bytes of escape, which inflates the measured line beyond the width
-        budget and causes premature wraps mid-token: ``[OPTIONS\\n  ]``.
-
-        Cloup styles ``prefix`` and ``prog`` then delegates to click's
-        :meth:`HelpFormatter.write_usage`, inheriting the bug. This
-        override re-applies the same styling, then bypasses ``wrap_text``
-        whenever the visible content fits on a single line: the common case
-        for short usage strings where wrapping is unnecessary. Lines that
-        genuinely overflow the visible width fall back to click's
-        implementation: the wrap point may still be sub-optimal but the
-        output stays syntactically valid.
-
-        .. seealso::
-            Upstream fix proposed at
-            https://github.com/pallets/click/pull/3420, which makes
-            :class:`click.formatting.TextWrapper` ANSI-aware by counting
-            visible width instead of raw bytes. Once that lands in a Click
-            release, this override can be removed.
-
-        .. todo:: Drop this override once the minimum supported Click pins
-            to the release that includes ``pallets/click#3420``. The
-            ``term_len``-based visible-width check below becomes redundant
-            once Click's own wrapper counts visible width.
-        """
-        if prefix is None:
-            prefix = "Usage:"
-        styled_prefix = self.theme.heading(prefix) + " "
-        styled_prog = self.theme.invoked_command(prog)
-
-        usage_prefix = f"{styled_prefix:>{self.current_indent}}{styled_prog} "
-        text_width = self.width - self.current_indent
-        visible_width = term_len(usage_prefix) + term_len(args)
-
-        if visible_width <= text_width:
-            # Fits on one visible line: skip click's wrap_text, which would
-            # count the ANSI escape bytes toward line length and split
-            # mid-token for 24-bit RGB themes.
-            self.write(f"{usage_prefix}{args}\n")
-            return
-
-        # Visibly too wide for one line. Fall back to click's parent
-        # implementation for multi-line wrapping. Bypass cloup's wrapper to
-        # avoid double-styling ``prefix`` and ``prog``.
-        click.formatting.HelpFormatter.write_usage(
-            self,
-            styled_prog,
-            args,
-            styled_prefix,
-        )
 
     keywords: HelpKeywords = HelpKeywords()
     excluded_keywords: HelpKeywords | None = None
