@@ -569,8 +569,9 @@ class HelpCommand(ColorizedCommand):
                 )
             resolved = target_cmd.get_command(target_ctx, name)
             if resolved is None:
-                raise click.UsageError(
-                    f"No such command {name!r}.",
+                raise click.NoSuchCommand(
+                    name,
+                    possibilities=target_cmd.commands,
                     ctx=parent_ctx,
                 )
             target_ctx = click.Context(
