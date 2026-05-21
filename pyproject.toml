@@ -86,7 +86,7 @@ dependencies = [
   # boltons 20.0.0 added shrinkuser(); our config.py uses it for path display.
   "boltons>=20",
   # Click 8.4.0 ships the deprecated-label spacing change: https://github.com/pallets/click/pull/3423
-  "click>=8.4.0",
+  "click>=8.4",
   # Cloup 3.0.7 fix issues with metavars: https://github.com/kdeldycke/click-extra/pull/1281
   "cloup>=3.0.7",
   # always_merger (recursive dict merge) available since deepmerge 1.0.1.
