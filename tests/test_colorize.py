@@ -713,7 +713,7 @@ class Port(IntEnum):
             ),
             (
                 " " + theme.option("-X") + " " + theme.metavar("TEXT") + " ",
-                " An old option that you should not use anymore."
+                " An old option that you should not use anymore. "
                 + theme.deprecated("(DEPRECATED)"),
             ),
         ),
@@ -725,7 +725,7 @@ class Port(IntEnum):
             ),
             (
                 " " + theme.option("-X") + " " + theme.metavar("TEXT") + " ",
-                " An old option that you should not use anymore."
+                " An old option that you should not use anymore. "
                 + theme.deprecated("(DEPRECATED)"),
             ),
         ),
@@ -737,7 +737,7 @@ class Port(IntEnum):
             ),
             (
                 " " + theme.option("-X") + " " + theme.metavar("TEXT") + " ",
-                " An old option that you should not use anymore."
+                " An old option that you should not use anymore. "
                 + theme.deprecated("(DEPRECATED)"),
             ),
         ),
@@ -749,7 +749,7 @@ class Port(IntEnum):
                 help="Legacy endpoint.",
             ),
             (
-                " Legacy endpoint."
+                " Legacy endpoint. "
                 + theme.deprecated("(DEPRECATED: use --new-api instead)"),
             ),
         ),

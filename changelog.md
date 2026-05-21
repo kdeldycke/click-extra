@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Bump the Click floor to `8.4.0`. Click `8.4.0` (PR [pallets/click#3423](https://github.com/pallets/click/pull/3423)) injects a space between an option's help text and its `(DEPRECATED)` label.
+
 ## [`7.16.1` (2026-05-15)](https://github.com/kdeldycke/click-extra/compare/v7.16.0...v7.16.1)
 
 - Fix `ConfigOption` mutating its cached `params_template` when merging user configuration. `_recursive_update` updates its first argument in place, so back-to-back invocations of the same CLI (Sphinx builds, test runners, REPLs) leaked keys set by an earlier `--config` into the current invocation's `default_map`. Both the `--config` load path and `--validate-config` now pass a deep copy of the template.
