@@ -124,9 +124,7 @@ class Option(_ParameterMixin, cloup.Option):
 class ExtraOption(Option):
     """Dedicated to option implemented by ``click-extra`` itself.
 
-    Provides a way to identify Click Extra's own options with certainty, and
-    restores the pre-Click-8.4.0 contract that eager callbacks can introspect
-    their own parameter source from within their own callback.
+    Provides a way to identify Click Extra's own options with certainty.
 
     .. note::
         Bracket fields (envvar, default, range, required) cannot be pre-styled in
@@ -136,43 +134,6 @@ class ExtraOption(Option):
         ``HelpExtraFormatter._style_bracket_fields()``, which uses the structured data
         from ``Option.get_help_extra()`` to identify each field by its label.
     """
-
-    def handle_parse_result(self, ctx, opts, args):
-        """Record the parameter source before delegating to the base implementation.
-
-        .. warning::
-            Click ``8.4.0`` (PR `pallets/click#3404
-            <https://github.com/pallets/click/pull/3404>`_) reordered
-            ``Parameter.handle_parse_result`` so ``ctx.set_parameter_source`` runs
-            *after* ``process_value``. Eager callbacks that introspect their own
-            provenance via ``ctx.get_parameter_source(self.name)`` therefore read
-            ``None`` instead of the actual source. ``ColorOption``, ``ConfigOption``,
-            and ``ShowParamsOption`` all rely on this introspection to decide whether
-            an env var should override the default (``--color``), whether the
-            ``--config`` path was user-supplied, and what to render in the ``Source``
-            column of ``--show-params``.
-
-            Pre-recording the source here for eager options keeps the pre-8.4.0
-            contract. ``super().handle_parse_result`` re-records the same value at
-            the canonical time, so the slot arbitration logic introduced by #3404 is
-            unaffected: ``slot_empty`` is computed from ``ctx.params``, not from
-            ``_parameter_source``.
-
-            ``consume_value`` runs twice as a side effect: once here and once in
-            ``super``. Both calls are pure for click-extra's existing eager
-            flag-style options (no env var side effects, no prompt). Should a future
-            eager subclass need prompt behavior, this override would need to cache
-            the result instead.
-
-            The pre-record is skipped when the slot already carries a source from
-            an earlier option sharing the same ``name`` (Click's feature-switch
-            pattern), so the arbitration logic in ``super`` still sees the original
-            ``existing_source`` rather than a stale rewrite from this option.
-        """
-        if self.is_eager and ctx.get_parameter_source(self.name) is None:
-            _value, source = self.consume_value(ctx, opts)
-            ctx.set_parameter_source(self.name, source)
-        return super().handle_parse_result(ctx, opts, args)
 
 
 class ParamStructure:

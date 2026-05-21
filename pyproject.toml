@@ -85,7 +85,10 @@ classifiers = [
 dependencies = [
   # boltons 20.0.0 added shrinkuser(); our config.py uses it for path display.
   "boltons>=20",
-  # Click 8.4.0 ships the deprecated-label spacing change: https://github.com/pallets/click/pull/3423
+  # Click 8.4.0 ships the deprecated-label spacing change: https://github.com/pallets/click/pull/3423.
+  # Pinned to the `stable` branch (via [tool.uv.sources]) until 8.4.1 is
+  # released, to pick up the fix for the eager-callback parameter-source
+  # regression: https://github.com/pallets/click/pull/3484
   "click>=8.4",
   # Cloup 3.0.7 fix issues with metavars: https://github.com/kdeldycke/click-extra/pull/1281
   "cloup>=3.0.7",
@@ -272,6 +275,14 @@ typing = [
   "types-tabulate>=0.9.0.2",
   "types-xmltodict>=1.0.1.20250920",
 ]
+
+[tool.uv.sources]
+# Pull Click from the upstream `stable` branch to pick up
+# https://github.com/pallets/click/pull/3484 (merged into `stable`, slated for
+# 8.4.1) which fixes the eager-callback parameter-source regression Click
+# 8.4.0 introduced via https://github.com/pallets/click/pull/3404. Remove this
+# pin once Click 8.4.1 is released on PyPI.
+click = { git = "https://github.com/pallets/click.git", branch = "stable" }
 
 [tool.uv]
 # We rely on recent Python features in some of our {click:run} directives.
