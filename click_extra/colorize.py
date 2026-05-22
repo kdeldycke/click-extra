@@ -552,9 +552,10 @@ class HelpExtraFormatter(cloup.HelpFormatter):
     _envvar_re: ClassVar[re.Pattern] = re.compile(r"(env\s+var:\s+)(.*)", re.DOTALL)
     _default_re: ClassVar[re.Pattern] = re.compile(r"(default:\s+)(.*)", re.DOTALL)
 
-    #: Matches ``(Deprecated)``, ``(DEPRECATED)``, ``(DEPRECATED: reason)``,
-    #: etc., regardless of casing. Catches both Click-native deprecated markers
-    #: and manually-added ones in help strings.
+    #: Matches ``(DEPRECATED)`` and ``(DEPRECATED: reason)`` markers, regardless
+    #: of casing. The canonical upstream format is produced by Click's shared
+    #: ``_format_deprecated_label`` helper; the case-insensitive flag also
+    #: catches manually-written variants in custom help strings.
     _deprecated_re: ClassVar[re.Pattern] = re.compile(
         r"\(deprecated(?::\s[^)]+)?\)",
         re.IGNORECASE,
