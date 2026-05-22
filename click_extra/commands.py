@@ -571,7 +571,7 @@ class HelpCommand(ColorizedCommand):
             if resolved is None:
                 raise click.NoSuchCommand(
                     name,
-                    possibilities=target_cmd.commands,
+                    possibilities=get_close_matches(name, target_cmd.commands),
                     ctx=parent_ctx,
                 )
             target_ctx = click.Context(
