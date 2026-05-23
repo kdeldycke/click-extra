@@ -8,8 +8,21 @@ name: 🚀 Build & release
 jobs:
 
   release:
-    uses: kdeldycke/repomatic/.github/workflows/release.yaml@7b003a95093db88752f32cbcc1c736081821720d # v6.16.0
+    uses: kdeldycke/repomatic/.github/workflows/release.yaml@c6defb901773fe1f8f2f5d04d22facfb8f795c4d # v6.19.0
     secrets:
-      PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
       REPOMATIC_PAT: ${{ secrets.REPOMATIC_PAT }}
       VIRUSTOTAL_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
+
+  publish-pypi:
+    name: 🐍 Publish to PyPI (${{ matrix.short_sha }})
+    needs: release
+    if: needs.release.outputs.release_commits_matrix
+    strategy:
+      matrix: ${{ fromJSON(needs.release.outputs.release_commits_matrix) }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: kdeldycke/repomatic/.github/actions/publish-pypi@c6defb901773fe1f8f2f5d04d22facfb8f795c4d # v6.19.0
+        with:
+          artifact-name: ${{ github.event.repository.name }}-${{ matrix.short_sha }}
