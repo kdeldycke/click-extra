@@ -41,6 +41,19 @@ jobs:
 
   metadata:
     name: 🧬 Project metadata
+    # Real version-bump skip: the trigger's `branches-ignore` matches the PR's
+    # base branch (always `main`), not its head, so version-bump PRs slip
+    # through it. Skipping `metadata` propagates to every `needs: metadata` job
+    # below. The branch and commit-prefix lists mirror repomatic's
+    # `VERSION_BUMP_BRANCHES` and `MANUAL_VERSION_BUMP_COMMIT_PREFIXES`. The
+    # `[changelog] Post-release bump ` prefix is intentionally excluded: that
+    # push also carries the release commit, our only post-merge test of the
+    # release-frozen tree.
+    if: >
+      !contains(fromJSON('["major-version-increment","minor-version-increment","prepare-release"]'),
+      github.head_ref)
+      && !startsWith(github.event.head_commit.message || '', 'Bump major version to ')
+      && !startsWith(github.event.head_commit.message || '', 'Bump minor version to ')
     runs-on: ubuntu-slim
     outputs:
       metadata: ${{ steps.metadata.outputs.metadata }}
@@ -50,7 +63,7 @@ jobs:
       - name: Run repomatic metadata
         id: metadata
         run: >
-          uvx --no-progress 'repomatic==6.14.0' metadata
+          uvx --no-progress 'repomatic==6.19.0' metadata
           --format github-json --output "$GITHUB_OUTPUT"
           test_matrix test_matrix_pr
 
