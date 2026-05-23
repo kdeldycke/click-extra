@@ -484,7 +484,7 @@ overrides = [
 ]
 
 [tool.lychee]
-# https://lychee.cli.rs/configuration/
+# https://lychee.cli.rs/guides/config/
 exclude = [
   # GitHub issue comment fragments are dynamically loaded and can't be verified.
   "^https://github.com/.+/issues/[0-9]+#issuecomment-.*$",
