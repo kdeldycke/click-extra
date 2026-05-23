@@ -6,10 +6,10 @@
 
 Click Extra is [distributed on PyPI](https://pypi.org/project/click-extra/).
 
-So you can install the latest stable release with your favorite package manager [like `pip`](https://pip.pypa.io):
+So you can install the latest stable release with your favorite package manager [like `uv`](https://docs.astral.sh/uv/):
 
 ```{code-block} shell-session
-$ pip install click-extra
+$ uv pip install click-extra
 ```
 
 ## Installation methods
@@ -175,55 +175,55 @@ By default, Click Extra supports TOML [configuration files](config.md#toml) and 
   - Unlocks
 * - `hjson`
   - ```{code-block} shell-session
-    $ pip install click-extra[hjson]
+    $ uv pip install click-extra[hjson]
     ```
   - - [HJSON](config.md#hjson) config files: `--config app.hjson`
     - [`hjson` table format](table.md#table-formats): `--table-format hjson`
 * - `json5`
   - ```{code-block} shell-session
-    $ pip install click-extra[json5]
+    $ uv pip install click-extra[json5]
     ```
   - - [JSON5](config.md#json5) config files: `--config app.json5`
 * - `jsonc`
   - ```{code-block} shell-session
-    $ pip install click-extra[jsonc]
+    $ uv pip install click-extra[jsonc]
     ```
   - - [JSONC](config.md#jsonc) config files: `--config app.jsonc`
 * - `toml`
   - ```{code-block} shell-session
-    $ pip install click-extra[toml]
+    $ uv pip install click-extra[toml]
     ```
   - - [`toml` table format](table.md#table-formats): `--table-format toml`
 * - `xml`
   - ```{code-block} shell-session
-    $ pip install click-extra[xml]
+    $ uv pip install click-extra[xml]
     ```
   - - [XML](config.md#xml) config files: `--config app.xml`
     - [`xml` table format](table.md#table-formats): `--table-format xml`
 * - `yaml`
   - ```{code-block} shell-session
-    $ pip install click-extra[yaml]
+    $ uv pip install click-extra[yaml]
     ```
   - - [YAML](config.md#yaml) config files: `--config app.yaml`
     - [`yaml` table format](table.md#table-formats): `--table-format yaml`
 * - `mkdocs`
   - ```{code-block} shell-session
-    $ pip install click-extra[mkdocs]
+    $ uv pip install click-extra[mkdocs]
     ```
   - - [ANSI color rendering](mkdocs.md) in MkDocs code blocks
 * - `pygments`
   - ```{code-block} shell-session
-    $ pip install click-extra[pygments]
+    $ uv pip install click-extra[pygments]
     ```
   - - [ANSI-capable formatter, filter and lexers](pygments.md) for Pygments
 * - `sphinx`
   - ```{code-block} shell-session
-    $ pip install click-extra[sphinx]
+    $ uv pip install click-extra[sphinx]
     ```
   - - [`click:source` and `click:run` directives](sphinx.md) for live CLI documentation
 * - `pytest`
   - ```{code-block} shell-session
-    $ pip install click-extra[pytest]
+    $ uv pip install click-extra[pytest]
     ```
   - - [Fixtures and utilities](pytest.md) for testing Click CLIs
 ````
@@ -232,6 +232,6 @@ By default, Click Extra supports TOML [configuration files](config.md#toml) and 
 Install all extras at once with:
 
 ```{code-block} shell-session
-$ pip install click-extra[hjson,json5,jsonc,mkdocs,toml,xml,yaml,pygments,sphinx,pytest]
+$ uv pip install click-extra[hjson,json5,jsonc,mkdocs,toml,xml,yaml,pygments,sphinx,pytest]
 ```
 ````
