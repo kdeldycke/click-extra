@@ -505,7 +505,9 @@ dependency-graph.all-extras = true
 dependency-graph.all-groups = false
 exclude = [ "skills", "workflows/debug.yaml" ]
 # Custom axes for upstream dependency testing (full matrix only).
-test-matrix.variations.click-version = [ "released", "stable", "main" ]
+# "colorama" tracks Click's colorama-removal branch (https://github.com/pallets/click/pull/3505)
+# across every OS and Python version, to surface regressions in click-extra's color handling.
+test-matrix.variations.click-version = [ "released", "stable", "main", "colorama" ]
 test-matrix.variations.cloup-version = [ "released", "master" ]
 # Set defaults for PR matrix (which has no custom axes).
 test-matrix.include = [
@@ -529,4 +531,7 @@ test-matrix.exclude = [
   { "python-version" = "3.15", "click-version" = "stable" },
   { "python-version" = "3.15", "click-version" = "main" },
   { "python-version" = "3.15", "cloup-version" = "master" },
+  # Pair the colorama branch with released Cloup only, so any regression is
+  # attributable to Click's colorama removal and not to an unrelated Cloup change.
+  { "click-version" = "colorama", "cloup-version" = "master" },
 ]

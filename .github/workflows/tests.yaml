@@ -125,14 +125,15 @@ jobs:
         && fromJSON(needs.metadata.outputs.metadata).test_matrix
         || fromJSON(needs.metadata.outputs.metadata).test_matrix_pr }}
     name: |
-      ${{ matrix.state == 'stable' && '✅' || '⁉️' }}
+      ${{ (matrix.state == 'stable' && matrix.click-version != 'colorama') && '✅' || '⁉️' }}
       ${{ matrix.os }} /
       py${{ matrix.python-version }} /
       Click ${{ matrix.click-version }} /
       Cloup ${{ matrix.cloup-version }}
     runs-on: ${{ matrix.os }}
-    # We keep going when a job flagged as not stable fails.
-    continue-on-error: ${{ matrix.state == 'unstable' }}
+    # We keep going when a job flagged as not stable fails, or when exercising
+    # Click's experimental colorama-removal branch (pallets/click#3505).
+    continue-on-error: ${{ matrix.state == 'unstable' || matrix.click-version == 'colorama' }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
