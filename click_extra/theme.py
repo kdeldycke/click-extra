@@ -21,9 +21,12 @@ the :data:`nocolor_theme` constant, the process-wide fallback accessed via
 :data:`theme_registry` plus :func:`register_theme` helper, and the
 :class:`ThemeOption` that exposes ``--theme`` on every Click Extra command.
 
-The built-in themes (``dark``, ``dracula``, ``light``, ``monokai``, ``nord``,
-``solarized_dark``) live in the package data file ``click_extra/themes.toml``
-and are loaded at module import time via :meth:`HelpExtraTheme.from_dict`.
+The built-in themes (``dark``, ``dracula``, ``light``, ``manpage``,
+``monokai``, ``nord``, ``solarized_dark``) live in the package data file
+``click_extra/themes.toml`` and are loaded at module import time via
+:meth:`HelpExtraTheme.from_dict`. ``manpage`` is a colorless theme that
+shadows man-pages(7) typography (bold literals, italic replaceables); the
+others apply that same bold/italic split on top of their color palettes.
 Adding a new built-in theme is a one-file edit in that TOML file — no Python
 needed. The same TOML schema is used for user-defined themes loaded from
 configuration: see :doc:`/theme` for the user guide.
@@ -336,6 +339,58 @@ class HelpExtraTheme(cloup.HelpTheme):
             )
         merged = {**base.to_dict(), **self.to_dict()}
         return type(self).from_dict(merged)
+
+
+LITERAL_STYLES: frozenset[str] = frozenset(
+    {
+        "invoked_command",
+        "subcommand",
+        "alias",
+        "alias_secondary",
+        "option",
+        "choice",
+    }
+)
+r"""Names of the :class:`HelpExtraTheme` slots that color *literal* tokens:
+text the user types verbatim on the command line.
+
+Covers the command and subcommand names, their aliases, option flags
+(``--config``, ``-v``), and the concrete values of a :class:`click.Choice`
+(``json`` in ``[json|csv|xml]``).
+
+These map to the **bold** font of the man-pages(7) typographic convention,
+which sets text "typed literally" in bold (``\fB`` in roff) "even in the
+SYNOPSIS section". Paired with :data:`REPLACEABLE_STYLES`: the two are
+disjoint, and every remaining slot is an annotation, prose, or chrome style
+that the literal/replaceable dichotomy does not classify (log levels,
+``[default: ...]`` / ``[env var: ...]`` fields, headings, ...).
+
+.. note::
+    Every built-in theme applies this classification: literal slots render
+    bold and :data:`REPLACEABLE_STYLES` italic, mirroring a man page even in
+    the color palettes. ``tests/test_themes.py`` enforces the invariant, and
+    the ``manpage`` built-in theme is its pure-monochrome embodiment
+    (bold/italic, no color). A man-page generator can reuse the same two sets
+    to map each styled token to ``\fB`` / ``\fI``. See :doc:`/benchmark` for
+    the man-page generation gap.
+"""
+
+REPLACEABLE_STYLES: frozenset[str] = frozenset(
+    {
+        "metavar",
+        "argument",
+    }
+)
+r"""Names of the :class:`HelpExtraTheme` slots that color *replaceable* tokens:
+placeholders the user substitutes with a real value.
+
+Covers type metavars on options (``INTEGER``, ``CONFIG_PATH``) and positional
+argument metavars (``SOURCE``, ``[FILENAMES]...``).
+
+These map to the *italic* font of the man-pages(7) convention, which sets
+replaceable arguments in italic (``\fI`` in roff). See :data:`LITERAL_STYLES`
+for the bold counterpart and the full rationale.
+"""
 
 
 nocolor_theme: HelpExtraTheme = HelpExtraTheme()

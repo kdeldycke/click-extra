@@ -44,6 +44,7 @@ Now invocations of the `weather` CLI pick up the light theme without passing `--
 | [`dracula`](#dracula)               | 24-bit RGB           | High-contrast dark theme with vivid neon accents.                    |
 | [`nord`](#nord)                     | 24-bit RGB           | Cool-toned dark theme built around frost-blue and aurora accents.    |
 | [`monokai`](#monokai)               | 24-bit RGB           | Classic dark theme with high-saturation magenta and lime accents.    |
+| [`manpage`](#manpage)               | None (monochrome)    | Bold literals, italic replaceables, no color. Shadows a man page.    |
 
 Each row is keyed by the `--theme` choice value; access the instance via `BUILTIN_THEMES["<name>"]` (e.g. `BUILTIN_THEMES["dark"]`). Click any name to jump to that theme's [palette listing](#palettes) below.
 
@@ -93,12 +94,20 @@ assert result.exit_code == 0
 ```
 `````
 
+`````{tab-item} manpage
+```{click:run}
+result = invoke(weather, args=["--theme", "manpage", "--help"])
+assert result.exit_code == 0
+```
+`````
+
 ``````
 
-Two flavors ship in `click_extra/themes.toml`:
+Three flavors ship in `click_extra/themes.toml`:
 
 - **ANSI themes** (`dark`, `light`) use the 16 named ANSI colors via `cloup.styling.Color`, so the rendered colors track whatever palette the user's terminal is configured with. Pick these when you want to blend in with the user's terminal theme.
 - **Branded themes** (`solarized_dark`, `dracula`, `nord`, `monokai`) emit 24-bit RGB triplets from each theme's canonical palette. Pick these when the theme name implies specific colors (`solarized_dark` should look like Solarized, not "whatever the terminal calls cyan"). Terminals without 24-bit support fall back to the nearest 256-color cell automatically. Each theme's slot mapping is hand-curated: there's no automated translation from generic colour-scheme formats, because none of them expose the same semantic roles we care about (option, metavar, choice, deprecated, envvar, ...).
+- **Monochrome theme** (`manpage`) uses no color at all: it renders literal tokens bold and replaceable tokens italic, the way `man-pages(7)` typesets a command. Pick it for low-color terminals, screenshots, or output meant to read like a man page. The bold/italic split is the one in [literal and replaceable slots](#literal-and-replaceable-slots).
 
 `click_extra.theme.BUILTIN_THEMES` is a `dict[str, HelpExtraTheme]` mapping the names above to their instances; it is built by parsing `click_extra/themes.toml` at import time and is seeded into `theme_registry` immediately afterwards. Read the TOML file directly for the exact palette mapping, or call `theme.to_dict()` at runtime to get a TOML/JSON-friendly dict.
 
@@ -193,6 +202,15 @@ minimal = BUILTIN_THEMES["dark"].with_(
 ```
 
 `with_()` returns the same instance when no styles change and validates that all keyword arguments match a known field, so typos like `optoin=...` raise immediately.
+
+### Literal and replaceable slots
+
+The styling slots carry a second, coarser classification borrowed from [man-pages(7)](https://man7.org/linux/man-pages/man7/man-pages.7.html): *literal* tokens the user types verbatim versus *replaceable* tokens the user substitutes with a real value. Man pages render the former in **bold** and the latter in *italic*, "even in the SYNOPSIS section". `click_extra.theme` records that mapping as two frozensets of slot names:
+
+- `LITERAL_STYLES`: `invoked_command`, `subcommand`, `alias`, `alias_secondary`, `option`, `choice`.
+- `REPLACEABLE_STYLES`: `metavar`, `argument`.
+
+Every remaining slot (log levels, the `[default: ...]` and `[env var: ...]` bracket fields, headings, …) sits outside the dichotomy. Every built-in theme applies this split: literal slots render bold and replaceable slots italic, even inside the color palettes, and the [`manpage`](#manpage) theme renders it with nothing else. A future [man-page generator](benchmark.md#man-page-generation) can reuse the same two sets to map each styled token to roff's `\fB` / `\fI`.
 
 ### Cross-reference highlighting
 

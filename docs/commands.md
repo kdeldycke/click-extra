@@ -103,10 +103,10 @@ from textwrap import dedent
 result = invoke(bare_cli, args=["--help"])
 assert result.output == dedent(
     """\
-    \x1b[94m\x1b[1m\x1b[4mUsage:\x1b[0m \x1b[97mbare-cli\x1b[0m \x1b[36m\x1b[2m[OPTIONS]\x1b[0m
+    \x1b[94m\x1b[4mUsage:\x1b[0m \x1b[97m\x1b[1mbare-cli\x1b[0m \x1b[36m\x1b[2m\x1b[3m[OPTIONS]\x1b[0m
 
-    \x1b[94m\x1b[1m\x1b[4mOptions:\x1b[0m
-      \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m  Show this message and exit.
+    \x1b[94m\x1b[4mOptions:\x1b[0m
+      \x1b[36m\x1b[1m-h\x1b[0m, \x1b[36m\x1b[1m--help\x1b[0m  Show this message and exit.
     """
 )
 ```
@@ -139,10 +139,10 @@ from textwrap import dedent
 result = invoke(cli, args=["--help"])
 assert result.stdout.startswith(dedent(
     """\
-    \x1b[94m\x1b[1m\x1b[4mUsage:\x1b[0m \x1b[97mcli\x1b[0m \x1b[36m\x1b[2m[OPTIONS]\x1b[0m
+    \x1b[94m\x1b[4mUsage:\x1b[0m \x1b[97m\x1b[1mcli\x1b[0m \x1b[36m\x1b[2m\x1b[3m[OPTIONS]\x1b[0m
 
-    \x1b[94m\x1b[1m\x1b[4mOptions:\x1b[0m
-      \x1b[36m--config\x1b[0m \x1b[36m\x1b[2mCONFIG_PATH\x1b[0m"""
+    \x1b[94m\x1b[4mOptions:\x1b[0m
+      \x1b[36m\x1b[1m--config\x1b[0m \x1b[36m\x1b[2m\x1b[3mCONFIG_PATH\x1b[0m"""
 ))
 ```
 
@@ -169,9 +169,9 @@ See how the `--version` option gets duplicated at the end:
 from textwrap import dedent
 result = invoke(cli, args=["--help"])
 assert (
-    "  \x1b[36m--version\x1b[0m               Show the version and exit.\n"
-    "  \x1b[36m--version\x1b[0m               Show the version and exit.\n"
-    "  \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m              Show this message and exit.\n"
+    "  \x1b[36m\x1b[1m--version\x1b[0m               Show the version and exit.\n"
+    "  \x1b[36m\x1b[1m--version\x1b[0m               Show the version and exit.\n"
+    "  \x1b[36m\x1b[1m-h\x1b[0m, \x1b[36m\x1b[1m--help\x1b[0m              Show this message and exit.\n"
 ) in result.output
 ```
 
@@ -266,13 +266,13 @@ The `name` controls the usage line, while `prog_name` controls the `--version` o
 ```{click:run}
 result = invoke(my_tool, args=["--help"])
 assert result.exit_code == 0
-assert "\x1b[97mmy-tool\x1b[0m" in result.stdout
+assert "\x1b[97m\x1b[1mmy-tool\x1b[0m" in result.stdout
 ```
 
 ```{click:run}
 result = invoke(my_tool, args=["--version"])
 assert result.exit_code == 0
-assert "\x1b[97mMy Tool\x1b[0m" in result.output
+assert "\x1b[97m\x1b[1mMy Tool\x1b[0m" in result.output
 ```
 
 ```{hint}

@@ -153,7 +153,10 @@ def test_config_theme_appears_in_help_metavar(invoke, create_config):
     result = invoke(cli, "--config", str(config_path), "--help", color=False)
     assert result.exit_code == 0, result.stderr
     # The bracket-style metavar must include "midnight" in alphabetical order.
-    assert "[dark|dracula|light|midnight|monokai|nord|solarized_dark]" in result.stdout
+    assert (
+        "[dark|dracula|light|manpage|midnight|monokai|nord|solarized_dark]"
+        in result.stdout
+    )
 
 
 def test_config_theme_validation_error(invoke, create_config):

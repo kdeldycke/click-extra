@@ -268,7 +268,7 @@ default_options_uncolored_help = (
     r"  --color, --ansi / --no-color, --no-ansi\n"
     r"                          Strip out all colors and all ANSI codes from output.\n"
     r"                          \[default: color\]\n"
-    r"  --theme \[dark\|dracula\|light\|monokai\|nord\|solarized_dark\]\n"
+    r"  --theme \[dark\|dracula\|light\|manpage\|monokai\|nord\|solarized_dark\]\n"
     r"                          Color theme used for help screens.  \[default: dark\]\n"
     r"  --show-params           Show all CLI parameters, their provenance, defaults\n"
     r"                          and value, then exit.\n"
@@ -285,34 +285,34 @@ default_options_uncolored_help = (
 
 
 default_options_colored_help = (
-    r"  \x1b\[36m--time\x1b\[0m / \x1b\[36m--no-time\x1b\[0m      Measure and print elapsed execution time.  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault:\n"
+    r"  \x1b\[36m\x1b\[1m--time\x1b\[0m / \x1b\[36m\x1b\[1m--no-time\x1b\[0m      Measure and print elapsed execution time.  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault:\n"
     r"                          \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mno-time\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
-    r"  \x1b\[36m--config\x1b\[0m \x1b\[36m\x1b\[2mCONFIG_PATH\x1b\[0m    Location of the configuration file. Supports local\n"
+    r"  \x1b\[36m\x1b\[1m--config\x1b\[0m \x1b\[36m\x1b\[2m\x1b\[3mCONFIG_PATH\x1b\[0m    Location of the configuration file. Supports local\n"
     # The default path is OS-specific: on short-path platforms (Linux) it may start on
     # the [default: line, on long-path platforms (macOS) it wraps to the next line. The
     # .* after default: handles both. Intermediate lines use (?:...)* for variable count.
     r"                          path with glob patterns or remote URL.  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault:.*\n"
     r"(?:                          .+\n)*"
     r"                          .*\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
-    r"  \x1b\[36m--no-config\x1b\[0m             Ignore all configuration files and only use command\n"
+    r"  \x1b\[36m\x1b\[1m--no-config\x1b\[0m             Ignore all configuration files and only use command\n"
     r"                          line parameters and environment variables.\n"
-    r"  \x1b\[36m--validate-config\x1b\[0m \x1b\[36m\x1b\[2mFILE\x1b\[0m  Validate the configuration file and exit.\n"
-    r"  \x1b\[36m--color\x1b\[0m, \x1b\[36m--ansi\x1b\[0m / \x1b\[36m--no-color\x1b\[0m, \x1b\[36m--no-ansi\x1b\[0m\n"
+    r"  \x1b\[36m\x1b\[1m--validate-config\x1b\[0m \x1b\[36m\x1b\[2m\x1b\[3mFILE\x1b\[0m  Validate the configuration file and exit.\n"
+    r"  \x1b\[36m\x1b\[1m--color\x1b\[0m, \x1b\[36m\x1b\[1m--ansi\x1b\[0m / \x1b\[36m\x1b\[1m--no-color\x1b\[0m, \x1b\[36m\x1b\[1m--no-ansi\x1b\[0m\n"
     r"                          Strip out all colors and all ANSI codes from output.\n"
     r"                          \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mcolor\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
-    r"  \x1b\[36m--theme\x1b\[0m \[\x1b\[35mdark\x1b\[0m\|\x1b\[35mdracula\x1b\[0m\|\x1b\[35mlight\x1b\[0m\|\x1b\[35mmonokai\x1b\[0m\|\x1b\[35mnord\x1b\[0m\|\x1b\[35msolarized_dark\x1b\[0m\]\n"
+    r"  \x1b\[36m\x1b\[1m--theme\x1b\[0m \[\x1b\[35m\x1b\[1mdark\x1b\[0m\|\x1b\[35m\x1b\[1mdracula\x1b\[0m\|\x1b\[35m\x1b\[1mlight\x1b\[0m\|\x1b\[35m\x1b\[1mmanpage\x1b\[0m\|\x1b\[35m\x1b\[1mmonokai\x1b\[0m\|\x1b\[35m\x1b\[1mnord\x1b\[0m\|\x1b\[35m\x1b\[1msolarized_dark\x1b\[0m\]\n"
     r"                          Color theme used for help screens\.  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mdark\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
-    r"  \x1b\[36m--show-params\x1b\[0m           Show all CLI parameters, their provenance, defaults\n"
+    r"  \x1b\[36m\x1b\[1m--show-params\x1b\[0m           Show all CLI parameters, their provenance, defaults\n"
     r"                          and value, then exit.\n"
-    r"  \x1b\[36m--table-format\x1b\[0m \[\x1b\[35maligned\x1b\[0m\|\x1b\[35masciidoc\x1b\[0m\|\x1b\[35mcolon-grid\x1b\[0m\|\x1b\[35mcsv\x1b\[0m\|\x1b\[35mcsv-excel\x1b\[0m\|\x1b\[35mcsv-excel-tab\x1b\[0m\|\x1b\[35mcsv-unix\x1b\[0m\|\x1b\[35mdouble-grid\x1b\[0m\|\x1b\[35mdouble-outline\x1b\[0m\|\x1b\[35mfancy-grid\x1b\[0m\|\x1b\[35mfancy-outline\x1b\[0m\|\x1b\[35mgithub\x1b\[0m\|\x1b\[35mgrid\x1b\[0m\|\x1b\[35mheavy-grid\x1b\[0m\|\x1b\[35mheavy-outline\x1b\[0m\|\x1b\[35mhjson\x1b\[0m\|\x1b\[35mhtml\x1b\[0m\|\x1b\[35mjira\x1b\[0m\|\x1b\[35mjson\x1b\[0m\|\x1b\[35mjson5\x1b\[0m\|\x1b\[35mjsonc\x1b\[0m\|\x1b\[35mlatex\x1b\[0m\|\x1b\[35mlatex-booktabs\x1b\[0m\|\x1b\[35mlatex-longtable\x1b\[0m\|\x1b\[35mlatex-raw\x1b\[0m\|\x1b\[35mmediawiki\x1b\[0m\|\x1b\[35mmixed-grid\x1b\[0m\|\x1b\[35mmixed-outline\x1b\[0m\|\x1b\[35mmoinmoin\x1b\[0m\|\x1b\[35morgtbl\x1b\[0m\|\x1b\[35moutline\x1b\[0m\|\x1b\[35mpipe\x1b\[0m\|\x1b\[35mplain\x1b\[0m\|\x1b\[35mpresto\x1b\[0m\|\x1b\[35mpretty\x1b\[0m\|\x1b\[35mpsql\x1b\[0m\|\x1b\[35mrounded-grid\x1b\[0m\|\x1b\[35mrounded-outline\x1b\[0m\|\x1b\[35mrst\x1b\[0m\|\x1b\[35msimple\x1b\[0m\|\x1b\[35msimple-grid\x1b\[0m\|\x1b\[35msimple-outline\x1b\[0m\|\x1b\[35mtextile\x1b\[0m\|\x1b\[35mtoml\x1b\[0m\|\x1b\[35mtsv\x1b\[0m\|\x1b\[35munsafehtml\x1b\[0m\|\x1b\[35mvertical\x1b\[0m\|\x1b\[35mxml\x1b\[0m\|\x1b\[35myaml\x1b\[0m\|\x1b\[35myoutrack\x1b\[0m\]\n"
+    r"  \x1b\[36m\x1b\[1m--table-format\x1b\[0m \[\x1b\[35m\x1b\[1maligned\x1b\[0m\|\x1b\[35m\x1b\[1masciidoc\x1b\[0m\|\x1b\[35m\x1b\[1mcolon-grid\x1b\[0m\|\x1b\[35m\x1b\[1mcsv\x1b\[0m\|\x1b\[35m\x1b\[1mcsv-excel\x1b\[0m\|\x1b\[35m\x1b\[1mcsv-excel-tab\x1b\[0m\|\x1b\[35m\x1b\[1mcsv-unix\x1b\[0m\|\x1b\[35m\x1b\[1mdouble-grid\x1b\[0m\|\x1b\[35m\x1b\[1mdouble-outline\x1b\[0m\|\x1b\[35m\x1b\[1mfancy-grid\x1b\[0m\|\x1b\[35m\x1b\[1mfancy-outline\x1b\[0m\|\x1b\[35m\x1b\[1mgithub\x1b\[0m\|\x1b\[35m\x1b\[1mgrid\x1b\[0m\|\x1b\[35m\x1b\[1mheavy-grid\x1b\[0m\|\x1b\[35m\x1b\[1mheavy-outline\x1b\[0m\|\x1b\[35m\x1b\[1mhjson\x1b\[0m\|\x1b\[35m\x1b\[1mhtml\x1b\[0m\|\x1b\[35m\x1b\[1mjira\x1b\[0m\|\x1b\[35m\x1b\[1mjson\x1b\[0m\|\x1b\[35m\x1b\[1mjson5\x1b\[0m\|\x1b\[35m\x1b\[1mjsonc\x1b\[0m\|\x1b\[35m\x1b\[1mlatex\x1b\[0m\|\x1b\[35m\x1b\[1mlatex-booktabs\x1b\[0m\|\x1b\[35m\x1b\[1mlatex-longtable\x1b\[0m\|\x1b\[35m\x1b\[1mlatex-raw\x1b\[0m\|\x1b\[35m\x1b\[1mmediawiki\x1b\[0m\|\x1b\[35m\x1b\[1mmixed-grid\x1b\[0m\|\x1b\[35m\x1b\[1mmixed-outline\x1b\[0m\|\x1b\[35m\x1b\[1mmoinmoin\x1b\[0m\|\x1b\[35m\x1b\[1morgtbl\x1b\[0m\|\x1b\[35m\x1b\[1moutline\x1b\[0m\|\x1b\[35m\x1b\[1mpipe\x1b\[0m\|\x1b\[35m\x1b\[1mplain\x1b\[0m\|\x1b\[35m\x1b\[1mpresto\x1b\[0m\|\x1b\[35m\x1b\[1mpretty\x1b\[0m\|\x1b\[35m\x1b\[1mpsql\x1b\[0m\|\x1b\[35m\x1b\[1mrounded-grid\x1b\[0m\|\x1b\[35m\x1b\[1mrounded-outline\x1b\[0m\|\x1b\[35m\x1b\[1mrst\x1b\[0m\|\x1b\[35m\x1b\[1msimple\x1b\[0m\|\x1b\[35m\x1b\[1msimple-grid\x1b\[0m\|\x1b\[35m\x1b\[1msimple-outline\x1b\[0m\|\x1b\[35m\x1b\[1mtextile\x1b\[0m\|\x1b\[35m\x1b\[1mtoml\x1b\[0m\|\x1b\[35m\x1b\[1mtsv\x1b\[0m\|\x1b\[35m\x1b\[1munsafehtml\x1b\[0m\|\x1b\[35m\x1b\[1mvertical\x1b\[0m\|\x1b\[35m\x1b\[1mxml\x1b\[0m\|\x1b\[35m\x1b\[1myaml\x1b\[0m\|\x1b\[35m\x1b\[1myoutrack\x1b\[0m\]\n"
     r"                          Rendering style of tables.  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mrounded-outline\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
-    r"  \x1b\[36m--verbosity\x1b\[0m \x1b\[36m\x1b\[2mLEVEL\x1b\[0m       Either \x1b\[35mCRITICAL\x1b\[0m, \x1b\[35mERROR\x1b\[0m, \x1b\[35mWARNING\x1b\[0m, \x1b\[35mINFO\x1b\[0m, \x1b\[35mDEBUG\x1b\[0m.\n"
+    r"  \x1b\[36m\x1b\[1m--verbosity\x1b\[0m \x1b\[36m\x1b\[2m\x1b\[3mLEVEL\x1b\[0m       Either \x1b\[35m\x1b\[1mCRITICAL\x1b\[0m, \x1b\[35m\x1b\[1mERROR\x1b\[0m, \x1b\[35m\x1b\[1mWARNING\x1b\[0m, \x1b\[35m\x1b\[1mINFO\x1b\[0m, \x1b\[35m\x1b\[1mDEBUG\x1b\[0m.\n"
     r"                          \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mWARNING\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
-    r"  \x1b\[36m-v\x1b\[0m, \x1b\[36m--verbose\x1b\[0m           Increase the default \x1b\[35mWARNING\x1b\[0m verbosity by one level\n"
+    r"  \x1b\[36m\x1b\[1m-v\x1b\[0m, \x1b\[36m\x1b\[1m--verbose\x1b\[0m           Increase the default \x1b\[35m\x1b\[1mWARNING\x1b\[0m verbosity by one level\n"
     r"                          for each additional repetition of the option.\n"
     r"                          \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3m0\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
-    r"  \x1b\[36m--version\x1b\[0m               Show the version and exit.\n"
-    r"  \x1b\[36m-h\x1b\[0m, \x1b\[36m--help\x1b\[0m              Show this message and exit.\n"
+    r"  \x1b\[36m\x1b\[1m--version\x1b\[0m               Show the version and exit.\n"
+    r"  \x1b\[36m\x1b\[1m-h\x1b\[0m, \x1b\[36m\x1b\[1m--help\x1b\[0m              Show this message and exit.\n"
 )
 
 

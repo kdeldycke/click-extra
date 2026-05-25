@@ -35,7 +35,7 @@ The default version message is the same as Click's default, but colored:
 
 ```{click:run}
 result = invoke(cli, args=["--version"])
-assert result.output == "\x1b[97mcli\x1b[0m, version \x1b[32m1.2.3\x1b[0m\n"
+assert result.output == "\x1b[97m\x1b[1mcli\x1b[0m, version \x1b[32m1.2.3\x1b[0m\n"
 ```
 
 ```{hint}
@@ -123,7 +123,7 @@ def my_own_cli():
 ```{click:run}
 result = invoke(my_own_cli, args=["--version"])
 assert result.output == (
-    "✨ \x1b[97mmy-own-cli\x1b[0m v\x1b[32m1.2.3\x1b[0m - \x1b[97mclick_extra.sphinx\x1b[0m\n"
+    "✨ \x1b[97m\x1b[1mmy-own-cli\x1b[0m v\x1b[32m1.2.3\x1b[0m - \x1b[97m\x1b[1mclick_extra.sphinx\x1b[0m\n"
 )
 ```
 
@@ -192,7 +192,7 @@ Here is the result of the `--version` option:
 
 ```{click:run}
 result = invoke(greet, args=["--version"])
-assert result.output == "\x1b[97mgreet\x1b[0m, version \x1b[32mNone\x1b[0m\n"
+assert result.output == "\x1b[97m\x1b[1mgreet\x1b[0m, version \x1b[32mNone\x1b[0m\n"
 ```
 
 Because the script is not packaged, the `{version}` variable is `None`.
@@ -225,7 +225,7 @@ if __name__ == "__main__":
 
 ```{click:run}
 result = invoke(greet, args=["--version"])
-assert result.output == "\x1b[97mgreet\x1b[0m, version \x1b[32m0.9.3-alpha\x1b[0m\n"
+assert result.output == "\x1b[97m\x1b[1mgreet\x1b[0m, version \x1b[32m0.9.3-alpha\x1b[0m\n"
 ```
 
 ```{caution}
@@ -257,7 +257,7 @@ def dev_cli():
 import re
 result = invoke(dev_cli, args=["--version"])
 assert re.fullmatch(
-    r"\x1b\[97mdev-cli\x1b\[0m, version \x1b\[32m1\.2\.3\.dev0(\+[a-f0-9]{4,40})?\x1b\[0m\n",
+    r"\x1b\[97m\x1b\[1mdev-cli\x1b\[0m, version \x1b\[32m1\.2\.3\.dev0(\+[a-f0-9]{4,40})?\x1b\[0m\n",
     result.output,
 )
 ```
@@ -287,7 +287,7 @@ def prebaked_cli():
 
 ```{click:run}
 result = invoke(prebaked_cli, args=["--version"])
-assert result.output == "\x1b[97mprebaked-cli\x1b[0m, version \x1b[32m1.2.3.dev0+abc1234\x1b[0m\n"
+assert result.output == "\x1b[97m\x1b[1mprebaked-cli\x1b[0m, version \x1b[32m1.2.3.dev0+abc1234\x1b[0m\n"
 ```
 
 ```{hint}
@@ -495,7 +495,7 @@ def custom_env_info():
 import re
 result = invoke(custom_env_info, args=["--version"])
 assert re.fullmatch((
-    r"\x1b\[97mcustom-env-info\x1b\[0m \x1b\[32m1.2.3\x1b\[0m, "
+    r"\x1b\[97m\x1b\[1mcustom-env-info\x1b\[0m \x1b\[32m1.2.3\x1b\[0m, "
     r"from .+ \(Python \x1b\[90m3\.\d+\.\d+ .+\x1b\[0m\)\n"
 ), result.output)
 ```
@@ -603,7 +603,7 @@ import re
 result = invoke(template_rendering)
 assert re.fullmatch((
     r"Version string ~> "
-    r"\x1b\[97mtemplate-rendering\x1b\[0m, version \x1b\[32m1.2.3\x1b\[0m\n"
+    r"\x1b\[97m\x1b\[1mtemplate-rendering\x1b\[0m, version \x1b\[32m1.2.3\x1b\[0m\n"
 ), result.output)
 ```
 

@@ -30,14 +30,14 @@ def export(format, output, dry_run):
 result = invoke(export, args=["--help"])
 assert result.exit_code == 0
 # --format, --output and --dry-run are highlighted in the synopsis column.
-assert "\x1b[36m--format\x1b[0m" in result.output
-assert "\x1b[36m--output\x1b[0m" in result.output
-assert "\x1b[36m--dry-run\x1b[0m" in result.output
+assert "\x1b[36m\x1b[1m--format\x1b[0m" in result.output
+assert "\x1b[36m\x1b[1m--output\x1b[0m" in result.output
+assert "\x1b[36m\x1b[1m--dry-run\x1b[0m" in result.output
 # They are ALSO highlighted when referenced in other options' help text
 # and in the command docstring. Each occurrence of "--output" and "--format"
 # in the rendered help carries the option style (cyan).
-assert result.output.count("\x1b[36m--format\x1b[0m") >= 3
-assert result.output.count("\x1b[36m--output\x1b[0m") >= 3
+assert result.output.count("\x1b[36m\x1b[1m--format\x1b[0m") >= 3
+assert result.output.count("\x1b[36m\x1b[1m--output\x1b[0m") >= 3
 ```
 
 Every option name in the help screen carries the same style, regardless of where it appears: synopsis column, another option's description, the command's docstring. This turns plain-text references into visual links, making it easier to scan for related options. The same applies to choices (highlighted in the metavar list and anywhere the description mentions them), arguments, and subcommand names.
@@ -79,7 +79,7 @@ result = invoke(build, args=["--help"])
 assert result.exit_code == 0
 # --profile is not a real parameter, but it is highlighted as an option
 # because it was injected via extra_keywords.
-assert "\x1b[36m--profile\x1b[0m" in result.output
+assert "\x1b[36m\x1b[1m--profile\x1b[0m" in result.output
 ```
 
 ### Suppressing keyword highlighting
@@ -103,12 +103,12 @@ from boltons.strutils import strip_ansi
 result = invoke(export, args=["--help"])
 assert result.exit_code == 0
 # "json" is highlighted as a choice everywhere.
-assert "\x1b[35mjson\x1b[0m" in result.output
+assert "\x1b[35m\x1b[1mjson\x1b[0m" in result.output
 # "text" is still styled inside its own choice metavar [json|text] (structural).
-assert "[\x1b[35mjson\x1b[0m|\x1b[35mtext\x1b[0m]" in result.output
+assert "[\x1b[35m\x1b[1mjson\x1b[0m|\x1b[35m\x1b[1mtext\x1b[0m]" in result.output
 # But "text" is NOT highlighted in the description prose.
 # Check "or text" context, which only appears in the description.
-assert "or \x1b[35mtext\x1b[0m" not in result.output
+assert "or \x1b[35m\x1b[1mtext\x1b[0m" not in result.output
 assert "or text." in strip_ansi(result.output)
 ```
 
@@ -134,7 +134,7 @@ def show():
 result = invoke(cli, args=["show", "--help"])
 assert result.exit_code == 0
 # "version" is a parent choice but excluded: not styled in the description.
-assert "\x1b[35mversion\x1b[0m" not in result.output
+assert "\x1b[35m\x1b[1mversion\x1b[0m" not in result.output
 from boltons.strutils import strip_ansi
 assert "version" in strip_ansi(result.output)
 ```

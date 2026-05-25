@@ -97,13 +97,13 @@ And now you get:
 from textwrap import dedent
 result = invoke(hello, args=["--help"])
 assert result.output.startswith(dedent("""\
-    \x1b[94m\x1b[1m\x1b[4mUsage:\x1b[0m \x1b[97mhello\x1b[0m \x1b[36m\x1b[2m[OPTIONS]\x1b[0m
+    \x1b[94m\x1b[4mUsage:\x1b[0m \x1b[97m\x1b[1mhello\x1b[0m \x1b[36m\x1b[2m\x1b[3m[OPTIONS]\x1b[0m
 
       Simple program that greets NAME for a total of COUNT times.
 
-    \x1b[94m\x1b[1m\x1b[4mOptions:\x1b[0m
-      \x1b[36m--count\x1b[0m \x1b[36m\x1b[2mINTEGER\x1b[0m         Number of greetings.  \x1b[2m[\x1b[0m\x1b[2mdefault: \x1b[0m\x1b[32m\x1b[2m\x1b[3m1\x1b[0m\x1b[2m]\x1b[0m
-      \x1b[36m--name\x1b[0m \x1b[36m\x1b[2mTEXT\x1b[0m             The person to greet.
+    \x1b[94m\x1b[4mOptions:\x1b[0m
+      \x1b[36m\x1b[1m--count\x1b[0m \x1b[36m\x1b[2m\x1b[3mINTEGER\x1b[0m         Number of greetings.  \x1b[2m[\x1b[0m\x1b[2mdefault: \x1b[0m\x1b[32m\x1b[2m\x1b[3m1\x1b[0m\x1b[2m]\x1b[0m
+      \x1b[36m\x1b[1m--name\x1b[0m \x1b[36m\x1b[2m\x1b[3mTEXT\x1b[0m             The person to greet.
     """
 ))
 ```

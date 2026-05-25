@@ -283,8 +283,8 @@ def test_run_highlights_keywords_with_custom_cls(runner, custom_cls_script):
     """Options and subcommands are individually styled, not just headings."""
     result = runner.invoke(wrap, [custom_cls_script, "--help"], color=True)
     assert result.exit_code == 0
-    assert "\x1b[36m--help\x1b[0m" in result.output
-    assert "\x1b[36mbake\x1b[0m" in result.output
+    assert "\x1b[36m\x1b[1m--help\x1b[0m" in result.output
+    assert "\x1b[36m\x1b[1mbake\x1b[0m" in result.output
 
 
 def test_run_unresolvable_target(runner):

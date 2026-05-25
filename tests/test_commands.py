@@ -324,11 +324,11 @@ def test_subcommand_help(invoke, all_command_cli, cmd_id, param, assert_output_r
 
     colored_help_header = (
         r"It works!\n"
-        r"\x1b\[94m\x1b\[1m\x1b\[4mUsage:\x1b\[0m "
-        rf"\x1b\[97mcommand-cli1 {cmd_id}\x1b\[0m"
-        r" \x1b\[36m\x1b\[2m\[OPTIONS\]\x1b\[0m\n"
+        r"\x1b\[94m\x1b\[4mUsage:\x1b\[0m "
+        rf"\x1b\[97m\x1b\[1mcommand-cli1 {cmd_id}\x1b\[0m"
+        r" \x1b\[36m\x1b\[2m\x1b\[3m\[OPTIONS\]\x1b\[0m\n"
         r"\n"
-        r"\x1b\[94m\x1b\[1m\x1b\[4mOptions:\x1b\[0m\n"
+        r"\x1b\[94m\x1b\[4mOptions:\x1b\[0m\n"
     )
     # Extra sucommands are colored and include all extra options.
     if cmd_id == "click-extra-subcommand":
@@ -344,7 +344,7 @@ def test_subcommand_help(invoke, all_command_cli, cmd_id, param, assert_output_r
             result.stdout,
             (
                 rf"{colored_help_header}"
-                r"  \x1b\[36m-h\x1b\[0m, \x1b\[36m--help\x1b\[0m"
+                r"  \x1b\[36m\x1b\[1m-h\x1b\[0m, \x1b\[36m\x1b\[1m--help\x1b\[0m"
                 r"  Show this message and exit\.\n"
             ),
         )
@@ -405,8 +405,8 @@ def test_colored_bare_help(invoke, cmd_decorator, param):
     result = invoke(bare_cli, param)
     assert (
         "\n"
-        "\x1b[94m\x1b[1m\x1b[4mOptions:\x1b[0m\n"
-        "  \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m  Show this message and exit.\n"
+        "\x1b[94m\x1b[4mOptions:\x1b[0m\n"
+        "  \x1b[36m\x1b[1m-h\x1b[0m, \x1b[36m\x1b[1m--help\x1b[0m  Show this message and exit.\n"
     ) in result.stdout
     assert not result.stderr
     assert result.exit_code == 0

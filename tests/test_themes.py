@@ -26,7 +26,12 @@ import pytest
 from cloup._util import identity
 
 from click_extra import Style
-from click_extra.theme import BUILTIN_THEMES, HelpExtraTheme
+from click_extra.theme import (
+    BUILTIN_THEMES,
+    LITERAL_STYLES,
+    REPLACEABLE_STYLES,
+    HelpExtraTheme,
+)
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -41,6 +46,9 @@ _THEME_BACKGROUNDS: dict[str, str] = {
     "dark": "#000000",
     "dracula": "#282a36",
     "light": "#ffffff",
+    # `manpage` is colorless, so its background is never used for a contrast
+    # check; any value satisfies the dict lookup in the legibility test.
+    "manpage": "#000000",
     "monokai": "#272822",
     "nord": "#2e3440",
     "solarized_dark": "#002b36",
@@ -128,6 +136,27 @@ def test_builtin_themes_are_helpextratheme_instances():
         assert isinstance(theme, HelpExtraTheme), (
             f"BUILTIN_THEMES[{name!r}] is {type(theme).__name__}, "
             f"expected HelpExtraTheme."
+        )
+
+
+@pytest.mark.parametrize("theme_name", sorted(BUILTIN_THEMES))
+def test_builtin_themes_follow_manpage_font_convention(theme_name):
+    """Every built-in theme bolds literal slots and italicizes replaceable ones.
+
+    Encodes the man-pages(7) typographic convention (``LITERAL_STYLES`` bold,
+    ``REPLACEABLE_STYLES`` italic) as an invariant across all palettes, so
+    adding a theme or tweaking a slot can't silently drop the
+    literal/replaceable distinction. The ``manpage`` theme renders it with no
+    color at all.
+    """
+    theme = BUILTIN_THEMES[theme_name]
+    for slot in sorted(LITERAL_STYLES):
+        assert getattr(getattr(theme, slot), "bold", None) is True, (
+            f"{theme_name}.{slot} must be bold (literal token)."
+        )
+    for slot in sorted(REPLACEABLE_STYLES):
+        assert getattr(getattr(theme, slot), "italic", None) is True, (
+            f"{theme_name}.{slot} must be italic (replaceable token)."
         )
 
 

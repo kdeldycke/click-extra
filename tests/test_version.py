@@ -76,7 +76,7 @@ def test_standalone_version_option(invoke, cmd_decorator, option_decorator):
 
     result = invoke(standalone_option, "--version", color=True)
     assert re.fullmatch(
-        rf"\x1b\[97mstandalone-option\x1b\[0m, version \x1b\[32m{_ver}\x1b\[0m\n",
+        rf"\x1b\[97m\x1b\[1mstandalone-option\x1b\[0m, version \x1b\[32m{_ver}\x1b\[0m\n",
         result.output,
     )
     assert result.exit_code == 0
@@ -99,7 +99,7 @@ def test_debug_output(invoke, cmd_decorator, option_decorator, assert_output_reg
         (
             default_debug_colored_logging
             + default_debug_colored_version_details
-            + r"\x1b\[97mdebug-output\x1b\[0m, "
+            + r"\x1b\[97m\x1b\[1mdebug-output\x1b\[0m, "
             rf"version \x1b\[32m{_ver}\x1b\[0m\n" + default_debug_colored_log_end
         ),
     )
@@ -115,7 +115,7 @@ def test_set_version(invoke):
     # Test default coloring.
     result = invoke(color_cli2, "--version", color=True)
     assert result.stdout == (
-        "\x1b[97mcolor-cli2\x1b[0m, version \x1b[32m1.2.3.4\x1b[0m\n"
+        "\x1b[97m\x1b[1mcolor-cli2\x1b[0m, version \x1b[32m1.2.3.4\x1b[0m\n"
     )
     assert not result.stderr
     assert result.exit_code == 0
@@ -128,13 +128,13 @@ def test_set_version(invoke):
     (
         (
             "{prog_name}, version {version}",
-            r"\x1b\[97mcolor-cli3\x1b\[0m, "
+            r"\x1b\[97m\x1b\[1mcolor-cli3\x1b\[0m, "
             rf"version \x1b\[32m{_ver}"
             r"\x1b\[0m\n",
         ),
         (
             "{prog_name}, version {version}\n{env_info}",
-            r"\x1b\[97mcolor-cli3\x1b\[0m, "
+            r"\x1b\[97m\x1b\[1mcolor-cli3\x1b\[0m, "
             rf"version \x1b\[32m{_ver}"
             r"\x1b\[0m\n"
             r"\x1b\[90m{'.+'}"
@@ -142,15 +142,15 @@ def test_set_version(invoke):
         ),
         (
             "{prog_name} v{version} - {package_name}",
-            r"\x1b\[97mcolor-cli3\x1b\[0m "
+            r"\x1b\[97m\x1b\[1mcolor-cli3\x1b\[0m "
             rf"v\x1b\[32m{_ver}"
             r"\x1b\[0m - "
-            r"\x1b\[97mclick_extra"
+            r"\x1b\[97m\x1b\[1mclick_extra"
             r"\x1b\[0m\n",
         ),
         (
             "{prog_name}, version {version} (Python {env_info[python][version]})",
-            r"\x1b\[97mcolor-cli3\x1b\[0m, "
+            r"\x1b\[97m\x1b\[1mcolor-cli3\x1b\[0m, "
             rf"version \x1b\[32m{_ver}\x1b\[0m "
             r"\(Python \x1b\[90m3\.\d+\.\d+.+\x1b\[0m\)\n",
         ),
@@ -354,7 +354,7 @@ def test_integrated_version_option_precedence(invoke, params):
 
     result = invoke(color_cli4, "--version", params, color=True)
     assert result.stdout == (
-        "\x1b[97mcolor-cli4\x1b[0m, version \x1b[32m1.2.3.4\x1b[0m\n"
+        "\x1b[97m\x1b[1mcolor-cli4\x1b[0m, version \x1b[32m1.2.3.4\x1b[0m\n"
     )
     assert not result.stderr
     assert result.exit_code == 0
@@ -370,12 +370,12 @@ def test_version_fields_forwarded_to_version_option(invoke):
 
     # prog_name controls --version output.
     result = invoke(prog_name_cli, "--version", color=True)
-    assert "\x1b[97mMy Tool\x1b[0m, version" in result.output
+    assert "\x1b[97m\x1b[1mMy Tool\x1b[0m, version" in result.output
     assert result.exit_code == 0
 
     # name controls the usage line.
     result = invoke(prog_name_cli, "--help", color=True)
-    assert "\x1b[97mmy-tool\x1b[0m" in result.output
+    assert "\x1b[97m\x1b[1mmy-tool\x1b[0m" in result.output
     assert result.exit_code == 0
 
     # All default extra options are preserved.
@@ -395,11 +395,11 @@ def test_version_fields_forwarded_on_group(invoke):
         pass
 
     result = invoke(prog_name_grp, "--version", color=True)
-    assert "\x1b[97mMy Group\x1b[0m, version" in result.output
+    assert "\x1b[97m\x1b[1mMy Group\x1b[0m, version" in result.output
     assert result.exit_code == 0
 
     result = invoke(prog_name_grp, "--help", color=True)
-    assert "\x1b[97mmy-grp\x1b[0m" in result.output
+    assert "\x1b[97m\x1b[1mmy-grp\x1b[0m" in result.output
     assert result.exit_code == 0
 
 
@@ -464,7 +464,7 @@ def test_color_option_precedence(invoke):
 
     result = invoke(color_cli6, "--version", "--no-color", "command1", color=True)
     assert result.stdout == (
-        "\x1b[97mcolor-cli6\x1b[0m, version \x1b[32m2.1.9\x1b[0m\n"
+        "\x1b[97m\x1b[1mcolor-cli6\x1b[0m, version \x1b[32m2.1.9\x1b[0m\n"
     )
     assert not result.stderr
     assert result.exit_code == 0

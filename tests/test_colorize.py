@@ -1973,34 +1973,34 @@ def test_keyword_collection(invoke, assert_output_regex):
     )
 
     help_screen = (
-        r"\x1b\[94m\x1b\[1m\x1b\[4mUsage:\x1b\[0m \x1b\[97mcolor-cli1\x1b\[0m \x1b\[36m\x1b\[2m\[OPTIONS\]\x1b\[0m \x1b\[36m\x1b\[2mCOMMAND \[ARGS\]\.\.\.\x1b\[0m\n"
+        r"\x1b\[94m\x1b\[4mUsage:\x1b\[0m \x1b\[97m\x1b\[1mcolor-cli1\x1b\[0m \x1b\[36m\x1b\[2m\x1b\[3m\[OPTIONS\]\x1b\[0m \x1b\[36m\x1b\[2m\x1b\[3mCOMMAND \[ARGS\]\.\.\.\x1b\[0m\n"
         r"\n"
-        r"\x1b\[94m\x1b\[1m\x1b\[4mGroup 1:\x1b\[0m\n"
-        r"  \x1b\[36m-a\x1b\[0m, \x1b\[36m--o1\x1b\[0m \x1b\[36m\x1b\[2mTEXT\x1b\[0m\n"
-        r"  \x1b\[36m-b\x1b\[0m, \x1b\[36m--o2\x1b\[0m \x1b\[36m\x1b\[2mTEXT\x1b\[0m\n"
+        r"\x1b\[94m\x1b\[4mGroup 1:\x1b\[0m\n"
+        r"  \x1b\[36m\x1b\[1m-a\x1b\[0m, \x1b\[36m\x1b\[1m--o1\x1b\[0m \x1b\[36m\x1b\[2m\x1b\[3mTEXT\x1b\[0m\n"
+        r"  \x1b\[36m\x1b\[1m-b\x1b\[0m, \x1b\[36m\x1b\[1m--o2\x1b\[0m \x1b\[36m\x1b\[2m\x1b\[3mTEXT\x1b\[0m\n"
         r"\n"
-        r"\x1b\[94m\x1b\[1m\x1b\[4mGroup 2:\x1b\[0m\n"
-        r"  \x1b\[36m--o3\x1b\[0m \x1b\[36m\x1b\[2mMY_VAR\x1b\[0m\n"
-        r"  \x1b\[36m--o4\x1b\[0m \x1b\[36m\x1b\[2mTEXT\x1b\[0m\n"
+        r"\x1b\[94m\x1b\[4mGroup 2:\x1b\[0m\n"
+        r"  \x1b\[36m\x1b\[1m--o3\x1b\[0m \x1b\[36m\x1b\[2m\x1b\[3mMY_VAR\x1b\[0m\n"
+        r"  \x1b\[36m\x1b\[1m--o4\x1b\[0m \x1b\[36m\x1b\[2m\x1b\[3mTEXT\x1b\[0m\n"
         r"\n"
-        r"\x1b\[94m\x1b\[1m\x1b\[4mOther options:\x1b\[0m\n"
-        r"  \x1b\[36m--test\x1b\[0m \x1b\[36m\x1b\[2mTEXT\x1b\[0m\n"
-        r"  \x1b\[36m-b\x1b\[0m, \x1b\[36m--boolean\x1b\[0m / \x1b\[36m\+B\x1b\[0m, \x1b\[36m--no-boolean\x1b\[0m\n"
+        r"\x1b\[94m\x1b\[4mOther options:\x1b\[0m\n"
+        r"  \x1b\[36m\x1b\[1m--test\x1b\[0m \x1b\[36m\x1b\[2m\x1b\[3mTEXT\x1b\[0m\n"
+        r"  \x1b\[36m\x1b\[1m-b\x1b\[0m, \x1b\[36m\x1b\[1m--boolean\x1b\[0m / \x1b\[36m\x1b\[1m\+B\x1b\[0m, \x1b\[36m\x1b\[1m--no-boolean\x1b\[0m\n"
         r"                          \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mno-boolean\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
-        r"  \x1b\[36m/debug\x1b\[0m; \x1b\[36m/no-debug\x1b\[0m       \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mno-debug\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
-        r"  \x1b\[36m--long-shout\x1b\[0m / \x1b\[36m-S\x1b\[0m, \x1b\[36m--no-long-shout\x1b\[0m\n"
+        r"  \x1b\[36m\x1b\[1m/debug\x1b\[0m; \x1b\[36m\x1b\[1m/no-debug\x1b\[0m       \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mno-debug\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
+        r"  \x1b\[36m\x1b\[1m--long-shout\x1b\[0m / \x1b\[36m\x1b\[1m-S\x1b\[0m, \x1b\[36m\x1b\[1m--no-long-shout\x1b\[0m\n"
         r"                          \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mno-long-shout\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
         rf"{default_options_colored_help}\n"
-        r"\x1b\[94m\x1b\[1m\x1b\[4mSubcommand group 1:\x1b\[0m\n"
-        r"  \x1b\[36mcommand1\x1b\[0m  CLI description with extra \x1b\[36m\x1b\[2mMY_VAR\x1b\[0m reference\.\n"
-        r"  \x1b\[36mcommand2\x1b\[0m\n"
+        r"\x1b\[94m\x1b\[4mSubcommand group 1:\x1b\[0m\n"
+        r"  \x1b\[36m\x1b\[1mcommand1\x1b\[0m  CLI description with extra \x1b\[36m\x1b\[2m\x1b\[3mMY_VAR\x1b\[0m reference\.\n"
+        r"  \x1b\[36m\x1b\[1mcommand2\x1b\[0m\n"
         r"\n"
-        r"\x1b\[94m\x1b\[1m\x1b\[4mExtra commands:\x1b\[0m\n"
-        r"  \x1b\[36mcommand3\x1b\[0m\n"
-        r"  \x1b\[36mcommand4\x1b\[0m  \x1b\[93m\x1b\[1m\(DEPRECATED\)\x1b\[0m\n"
+        r"\x1b\[94m\x1b\[4mExtra commands:\x1b\[0m\n"
+        r"  \x1b\[36m\x1b\[1mcommand3\x1b\[0m\n"
+        r"  \x1b\[36m\x1b\[1mcommand4\x1b\[0m  \x1b\[93m\(DEPRECATED\)\x1b\[0m\n"
         r"\n"
-        r"\x1b\[94m\x1b\[1m\x1b\[4mOther commands:\x1b\[0m\n"
-        r"  \x1b\[36mhelp\x1b\[0m +Show help for a command\.\n"
+        r"\x1b\[94m\x1b\[4mOther commands:\x1b\[0m\n"
+        r"  \x1b\[36m\x1b\[1mhelp\x1b\[0m +Show help for a command\.\n"
     )
 
     result = invoke(color_cli1, "--help", color=True)
@@ -2017,16 +2017,16 @@ def test_keyword_collection(invoke, assert_output_regex):
     result = invoke(color_cli1, "command1", "--help", color=True)
     assert result.stdout == (
         "It works!\n"
-        "\x1b[94m\x1b[1m\x1b[4mUsage:\x1b[0m \x1b[97mcolor-cli1 command1\x1b[0m"
-        " \x1b[36m\x1b[2m[OPTIONS]\x1b[0m \x1b[36m[MY_ARG]...\x1b[0m\n"
+        "\x1b[94m\x1b[4mUsage:\x1b[0m \x1b[97m\x1b[1mcolor-cli1 command1\x1b[0m"
+        " \x1b[36m\x1b[2m\x1b[3m[OPTIONS]\x1b[0m \x1b[36m\x1b[3m[MY_ARG]...\x1b[0m\n"
         "\n"
         "  CLI description with extra MY_VAR reference.\n"
         "\n"
-        "\x1b[94m\x1b[1m\x1b[4mPositional arguments:\x1b[0m\n"
-        "  \x1b[36m[MY_ARG]...\x1b[0m  Argument supports help.\n"
+        "\x1b[94m\x1b[4mPositional arguments:\x1b[0m\n"
+        "  \x1b[36m\x1b[3m[MY_ARG]...\x1b[0m  Argument supports help.\n"
         "\n"
-        "\x1b[94m\x1b[1m\x1b[4mOptions:\x1b[0m\n"
-        "  \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m  Show this message and exit.\n"
+        "\x1b[94m\x1b[4mOptions:\x1b[0m\n"
+        "  \x1b[36m\x1b[1m-h\x1b[0m, \x1b[36m\x1b[1m--help\x1b[0m  Show this message and exit.\n"
     )
     assert not result.stderr
     assert result.exit_code == 0
@@ -2034,16 +2034,16 @@ def test_keyword_collection(invoke, assert_output_regex):
     # Standalone call to command: CLI main group is skipped.
     result = invoke(command1, "--help", color=True)
     assert result.stdout == (
-        "\x1b[94m\x1b[1m\x1b[4mUsage:\x1b[0m \x1b[97mcommand1\x1b[0m"
-        " \x1b[36m\x1b[2m[OPTIONS]\x1b[0m \x1b[36m[MY_ARG]...\x1b[0m\n"
+        "\x1b[94m\x1b[4mUsage:\x1b[0m \x1b[97m\x1b[1mcommand1\x1b[0m"
+        " \x1b[36m\x1b[2m\x1b[3m[OPTIONS]\x1b[0m \x1b[36m\x1b[3m[MY_ARG]...\x1b[0m\n"
         "\n"
         "  CLI description with extra MY_VAR reference.\n"
         "\n"
-        "\x1b[94m\x1b[1m\x1b[4mPositional arguments:\x1b[0m\n"
-        "  \x1b[36m[MY_ARG]...\x1b[0m  Argument supports help.\n"
+        "\x1b[94m\x1b[4mPositional arguments:\x1b[0m\n"
+        "  \x1b[36m\x1b[3m[MY_ARG]...\x1b[0m  Argument supports help.\n"
         "\n"
-        "\x1b[94m\x1b[1m\x1b[4mOptions:\x1b[0m\n"
-        "  \x1b[36m-h\x1b[0m, \x1b[36m--help\x1b[0m  Show this message and exit.\n"
+        "\x1b[94m\x1b[4mOptions:\x1b[0m\n"
+        "  \x1b[36m\x1b[1m-h\x1b[0m, \x1b[36m\x1b[1m--help\x1b[0m  Show this message and exit.\n"
     )
     assert not result.stderr
     assert result.exit_code == 0

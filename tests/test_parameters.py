@@ -456,7 +456,7 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.theme",
-            "--theme [dark|dracula|light|monokai|nord|solarized_dark]",
+            "--theme [dark|dracula|light|manpage|monokai|nord|solarized_dark]",
             "click_extra.theme.ThemeOption",
             "click_extra.theme.ThemeChoice",
             "str",

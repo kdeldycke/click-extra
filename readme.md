@@ -75,7 +75,7 @@ To undestrand how we ended up with the result above, [go read the tutorial](http
 ### Help screens and theming
 
 - [Colorized help screens](https://kdeldycke.github.io/click-extra/colorize.html): options, choices, metavars, arguments, defaults, ranges, required labels, environment variables, subcommands and aliases all get distinct styles. Option names referenced in descriptions and docstrings are [highlighted automatically](https://kdeldycke.github.io/click-extra/colorize.html#cross-reference-highlighting)
-- [Theme system](https://kdeldycke.github.io/click-extra/theme.html) with six built-in palettes ([`dark`, `light`, `dracula`, `monokai`, `nord`, `solarized_dark`](https://kdeldycke.github.io/click-extra/theme.html#built-in-themes))
+- [Theme system](https://kdeldycke.github.io/click-extra/theme.html) with seven built-in themes ([`dark`, `light`, `dracula`, `monokai`, `nord`, `solarized_dark`, and a monochrome `manpage`](https://kdeldycke.github.io/click-extra/theme.html#built-in-themes))
 - [User-defined themes and partial overrides loaded from the CLI's `--config` file](https://kdeldycke.github.io/click-extra/theme.html#themes-from-your-config-file) (`[tool.<cli>.themes.<name>]`), scoped per invocation so concurrent runs don't bleed into each other
 - [`--theme` flag](https://kdeldycke.github.io/click-extra/theme.html#the-theme-option) on every command, with case-insensitive validation against the live registry
 - `-h`/`--help` option names (see [rant on other inconsistencies](https://blog.craftyguy.net/cmdline-help/))

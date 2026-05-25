@@ -145,7 +145,7 @@ choice = { fg = "yellow" }
 
 ```shell-session
 $ click-extra --help
-# --theme [dark|dracula|light|midnight|monokai|nord|solarized_dark]
+# --theme [dark|dracula|light|manpage|midnight|monokai|nord|solarized_dark]
 $ click-extra flask --help     # rendered with the "midnight" palette
 ```
 

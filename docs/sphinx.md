@@ -159,13 +159,13 @@ result = invoke(hello_world, args=["--help"])
 print(repr(result.stdout))
 assert result.stdout.startswith(dedent(
     """\
-    \x1b[94m\x1b[1m\x1b[4mUsage:\x1b[0m \x1b[97mhello-world\x1b[0m \x1b[36m\x1b[2m[OPTIONS]\x1b[0m
+    \x1b[94m\x1b[4mUsage:\x1b[0m \x1b[97m\x1b[1mhello-world\x1b[0m \x1b[36m\x1b[2m\x1b[3m[OPTIONS]\x1b[0m
 
       Simple program that greets NAME.
 
-    \x1b[94m\x1b[1m\x1b[4mOptions:\x1b[0m
-      \x1b[36m--name\x1b[0m \x1b[36m\x1b[2mTEXT\x1b[0m             The person to greet.
-      \x1b[36m--time\x1b[0m / \x1b[36m--no-time\x1b[0m      Measure and print elapsed execution time."""
+    \x1b[94m\x1b[4mOptions:\x1b[0m
+      \x1b[36m\x1b[1m--name\x1b[0m \x1b[36m\x1b[2m\x1b[3mTEXT\x1b[0m             The person to greet.
+      \x1b[36m\x1b[1m--time\x1b[0m / \x1b[36m\x1b[1m--no-time\x1b[0m      Measure and print elapsed execution time."""
 ))
 ```
 
