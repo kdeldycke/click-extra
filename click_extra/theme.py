@@ -341,16 +341,14 @@ class HelpExtraTheme(cloup.HelpTheme):
         return type(self).from_dict(merged)
 
 
-LITERAL_STYLES: frozenset[str] = frozenset(
-    {
-        "invoked_command",
-        "subcommand",
-        "alias",
-        "alias_secondary",
-        "option",
-        "choice",
-    }
-)
+LITERAL_STYLES: frozenset[str] = frozenset({
+    "invoked_command",
+    "subcommand",
+    "alias",
+    "alias_secondary",
+    "option",
+    "choice",
+})
 r"""Names of the :class:`HelpExtraTheme` slots that color *literal* tokens:
 text the user types verbatim on the command line.
 
@@ -375,12 +373,10 @@ that the literal/replaceable dichotomy does not classify (log levels,
     the man-page generation gap.
 """
 
-REPLACEABLE_STYLES: frozenset[str] = frozenset(
-    {
-        "metavar",
-        "argument",
-    }
-)
+REPLACEABLE_STYLES: frozenset[str] = frozenset({
+    "metavar",
+    "argument",
+})
 r"""Names of the :class:`HelpExtraTheme` slots that color *replaceable* tokens:
 placeholders the user substitutes with a real value.
 
