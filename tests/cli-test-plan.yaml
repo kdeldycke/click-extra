@@ -13,7 +13,7 @@
 - cli_parameters: --version
   exit_code: 0
   stdout_contains: "Click Extra\x1b[0m, version \x1b[32m"
-  stdout_regex_fullmatch: "\x1b\\[97mClick Extra\x1b\\[0m, version \
+  stdout_regex_fullmatch: "\x1b\\[97m\x1b\\[1mClick Extra\x1b\\[0m, version \
     \x1b\\[32m[0-9]+\\.[0-9]+\\.[0-9]+(\\.[a-z]+[0-9]+\
     (\\+[0-9a-f]+)?)?\x1b\\[0m\n"
 
