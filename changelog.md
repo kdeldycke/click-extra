@@ -1,5 +1,10 @@
 # Changelog
 
+## [`7.17.3.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.17.2...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`7.17.2` (2026-05-25)](https://github.com/kdeldycke/click-extra/compare/v7.17.1...v7.17.2)
 
 - Add Mermaid diagrams throughout the documentation to render resolution and layering rules previously carried by prose or nested lists: configuration-file source selection and value precedence (`config.md`), the Click / Cloup / click-extra class layering and the `@command`/`@group` default-option bundle (`commands.md`), `--color`/`--no-color` ANSI enablement (`colorize.md`), the `{version}` and `{exec_name}` fallback chains (`version.md`), the `decorator_factory` subclass guardrail (`decorators.md`), and environment-variable id resolution (`envvar.md`).
