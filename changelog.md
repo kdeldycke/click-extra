@@ -1,9 +1,6 @@
 # Changelog
 
-## [`7.17.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.17.0...main)
-
-> [!WARNING]
-> This version is **not released yet** and is under active development.
+## [`7.17.1` (2026-05-25)](https://github.com/kdeldycke/click-extra/compare/v7.17.0...v7.17.1)
 
 - Bundle `click_extra/themes.toml` into the Nuitka standalone binaries via a new `[tool.nuitka]` `include-package-data` setting. The `7.17.0` binaries aborted at startup with `FileNotFoundError: themes.toml` because the data file backing the built-in themes was not packaged, so Nuitka could not find it when `click_extra.theme` loaded it through `importlib.resources`.
 
