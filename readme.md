@@ -50,7 +50,7 @@ Into this:
 
 ![click-extra CLI help screen](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/click-extra-screen.png)
 
-To undestrand how we ended up with the result above, [go read the tutorial](https://kdeldycke.github.io/click-extra/tutorial.html).
+To understand how we ended up with the result above, [go read the tutorial](https://kdeldycke.github.io/click-extra/tutorial.html).
 
 ## Features
 
@@ -70,7 +70,7 @@ To undestrand how we ended up with the result above, [go read the tutorial](http
 - Respect the [default application path](https://kdeldycke.github.io/click-extra/config.html#default-folder) on each platform (XDG spec. on Linux)
 - [Glob search patterns](https://kdeldycke.github.io/click-extra/config.html#search-pattern) for configuration files
 - A `--no-config` option to disable configuration file loading
-- Respect of `CLI` > `Configuration` > `Environment` > `Defaults` [precedence](https://kdeldycke.github.io/click-extra/config.html#precedence)
+- Respect of `Prompt` > `CLI` > `Environment` > `Config` > `Defaults` [precedence](https://kdeldycke.github.io/click-extra/config.html#precedence)
 
 ### Help screens and theming
 
