@@ -9,7 +9,7 @@ name: 🚀 Build & release
 jobs:
 
   release:
-    uses: kdeldycke/repomatic/.github/workflows/release.yaml@c48893dce010cb24303044880ab40f571b7bebda # v6.21.0
+    uses: kdeldycke/repomatic/.github/workflows/release.yaml@dd9067f15dfe8e1f2a4698d203ffc3a404155c89 # v6.22.0
     secrets:
       REPOMATIC_PAT: ${{ secrets.REPOMATIC_PAT }}
       VIRUSTOTAL_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
@@ -27,11 +27,16 @@ jobs:
       && needs.release.outputs.package_built == 'true'
       && needs.release.outputs.release_commits_matrix
     strategy:
-      matrix: ${{ fromJSON(needs.release.outputs.release_commits_matrix) }}
+      # GitHub evaluates `strategy.matrix` during job setup even when `if:` will
+      # skip the job. On a non-release push `release_commits_matrix` is the empty
+      # string, so a bare `fromJSON('')` aborts the whole run with "Unexpected
+      # value ''". Falling back to an empty `{"include":[]}` matrix expands the
+      # job to zero runs, so it skips cleanly instead of failing the workflow.
+      matrix: ${{ fromJSON(needs.release.outputs.release_commits_matrix || '{"include":[]}') }}
     runs-on: ubuntu-latest
     permissions:
       id-token: write
     steps:
-      - uses: kdeldycke/repomatic/.github/actions/publish-pypi@c48893dce010cb24303044880ab40f571b7bebda # v6.21.0
+      - uses: kdeldycke/repomatic/.github/actions/publish-pypi@dd9067f15dfe8e1f2a4698d203ffc3a404155c89 # v6.22.0
         with:
           artifact-name: ${{ github.event.repository.name }}-${{ matrix.short_sha }}
