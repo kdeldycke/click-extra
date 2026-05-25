@@ -286,6 +286,15 @@ exclude-newer-package = { click = "0 day" }
 # Package is at root level, not in "./src/".
 build-backend.module-root = ""
 
+[tool.nuitka]
+# Bundle the package's data files (themes.toml) into the standalone binary.
+# Nuitka's import analysis only follows `import` statements, so data files
+# read at runtime through importlib.resources are invisible to it and must be
+# listed explicitly. Without this, the onefile binary aborts at startup when
+# click_extra.theme loads themes.toml. repomatic translates this key into the
+# --include-package-data CLI flag.
+include-package-data = "click_extra"
+
 [tool.ruff]
 preview = true
 fix = true
@@ -499,15 +508,6 @@ exclude = [
   # crates.io blocks automated link checkers.
   "^https://crates.io/crates/.*$",
 ]
-
-[tool.nuitka]
-# Bundle the package's data files (themes.toml) into the standalone binary.
-# Nuitka's import analysis only follows `import` statements, so data files
-# read at runtime through importlib.resources are invisible to it and must be
-# listed explicitly. Without this, the onefile binary aborts at startup when
-# click_extra.theme loads themes.toml. repomatic translates this key into the
-# --include-package-data CLI flag.
-include-package-data = "click_extra"
 
 [tool.repomatic]
 dependency-graph.all-extras = true
