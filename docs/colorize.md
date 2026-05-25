@@ -215,6 +215,21 @@ Click Extra adds a `--color`/`--no-color` flag (aliased as `--ansi`/`--no-ansi`)
 
 The option respects the [`NO_COLOR`](https://no-color.org), `CLICOLOR`, and `CLICOLOR_FORCE` environment variables. When any of these signals "no color", the environment takes precedence over the default value (but an explicit `--color` or `--no-color` on the command line always wins).
 
+```mermaid
+:align: center
+
+flowchart TD
+    start(["echo() must decide: emit ANSI codes?"]) --> cli{"--color / --no-color<br/>set on CLI or via config?"}
+    cli -->|yes| useflag["use that value"]
+    cli -->|"no (built-in default)"| env{"a recognized color env var set?<br/>NO_COLOR, CLICOLOR, CLICOLOR_FORCE,<br/>FORCE_COLOR, LLM, ..."}
+    env -->|yes| envval["ON if any signals color,<br/>OFF otherwise"]
+    env -->|no| deflt["default: color ON"]
+    useflag --> ctxcolor(["ctx.color"])
+    envval --> ctxcolor
+    deflt --> ctxcolor
+    ctxcolor --> strip["echo() strips ANSI when OFF;<br/>NO_COLOR also blanks --theme output"]
+```
+
 All Click Extra commands and groups include this option by default. Use `color_option` as a standalone decorator when building CLIs with plain `click.command`:
 
 ```{click:source}

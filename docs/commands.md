@@ -12,6 +12,43 @@ At the module level, `click_extra` imports all elements from `click.*`, then all
 
 Which means all elements not redefined by Click Extra fallback to Cloup. And if Cloup itself does not redefine them, they fallback to Click.
 
+For the types Click Extra does re-implement, each subclasses its Cloup counterpart, which in turn subclasses Click's (arrows point from a child to the parent it inherits from):
+
+```mermaid
+:align: center
+
+flowchart TB
+    subgraph CE["click_extra (extends and overrides)"]
+        direction LR
+        XCmd["ExtraCommand"]
+        XGrp["ExtraGroup"]
+        XOpt["Option"]
+        XCtx["ExtraContext"]
+        XSty["Style"]
+    end
+    subgraph CL["cloup (first fallback)"]
+        direction LR
+        CCmd["cloup.Command"]
+        CGrp["cloup.Group"]
+        COpt["cloup.Option"]
+        CCtx["cloup.Context"]
+        CSty["cloup.Style"]
+    end
+    subgraph CK["click (base)"]
+        direction LR
+        KCmd["click.Command"]
+        KGrp["click.Group"]
+        KOpt["click.Option"]
+        KCtx["click.Context"]
+        KSty["click.style()"]
+    end
+    XCmd --> CCmd --> KCmd
+    XGrp --> CGrp --> KGrp
+    XOpt --> COpt --> KOpt
+    XCtx --> CCtx --> KCtx
+    XSty --> CSty -.->|wraps| KSty
+```
+
 For example:
 
 - `click_extra.echo` is a direct alias to `click.echo` because neither Click Extra or Cloup re-implements an `echo` helper.
@@ -77,7 +114,29 @@ You can inspect the implementation details in:
 
 ## Default options
 
-The `@command` and `@group` decorators are pre-configured with a set of {py:func}`default options <click_extra.commands.default_extra_params>`.
+The `@command` and `@group` decorators are pre-configured with a set of {py:func}`default options <click_extra.commands.default_extra_params>`. The `--help`/`-h` option is added separately through `help_option_names`, which is why it survives even when `default_extra_params()` is reset:
+
+```mermaid
+:align: center
+
+flowchart LR
+    cmd(["@command / @group"]) --> params
+    cmd --> help["--help / -h"]
+    subgraph params["default_extra_params()"]
+        direction TB
+        opt1["--time / --no-time"]
+        opt2["--config"]
+        opt3["--no-config"]
+        opt4["--validate-config"]
+        opt5["--color / --no-color"]
+        opt6["--theme"]
+        opt7["--show-params"]
+        opt8["--table-format"]
+        opt9["--verbosity"]
+        opt10["--verbose / -v"]
+        opt11["--version"]
+    end
+```
 
 ```{tip}
 Each default option publishes its resolved value on `ctx.meta` so you can pick it up from anywhere in your CLI. See the [available keys](context.md#available-keys) table for the full inventory and worked examples.

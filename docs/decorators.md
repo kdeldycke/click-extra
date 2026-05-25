@@ -30,6 +30,21 @@ group = decorator_factory(
 )
 ```
 
+```mermaid
+:align: center
+
+flowchart TD
+    call(["@command / @option(...)<br/>possibly with cls=Custom"]) --> paren{"called with<br/>or without parens?"}
+    paren -->|"@command"| norm["allow_missing_parenthesis<br/>normalizes both call forms"]
+    paren -->|"@command()"| norm
+    norm --> has{"user passed cls= ?"}
+    has -->|no| build["use the factory's default cls<br/>(ExtraCommand / ExtraGroup / ...)"]
+    has -->|yes| sub{"cls subclasses<br/>the factory's cls?"}
+    sub -->|yes| build
+    sub -->|no| err["raise TypeError<br/>with the full MRO listing"]
+    build --> out["decorator with merged defaults<br/>and a fresh params() list"]
+```
+
 After that wiring, `@command` always produces an `ExtraCommand`, and `@command(cls=MyExtraCommand)` is accepted *only if* `MyExtraCommand` is a subclass of `ExtraCommand`. Anything else raises a `TypeError` with a full MRO listing of the offending class, so the caller sees *why* their override was rejected:
 
 ```{python:run}

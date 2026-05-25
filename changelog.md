@@ -5,7 +5,7 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
-- Add Mermaid diagrams to the configuration documentation. A new "Resolving a configuration file" section charts how a config source is selected (explicit `--config` versus autodiscovery, CWD `pyproject.toml` search, app-dir glob, first parseable file wins), and the "Precedence" section now renders the value-resolution chain (interactive prompt, CLI parameters, environment variables, configuration file, defaults) as a flowchart instead of a nested list.
+- Add Mermaid diagrams throughout the documentation to render resolution and layering rules previously carried by prose or nested lists: configuration-file source selection and value precedence (`config.md`), the Click / Cloup / click-extra class layering and the `@command`/`@group` default-option bundle (`commands.md`), `--color`/`--no-color` ANSI enablement (`colorize.md`), the `{version}` and `{exec_name}` fallback chains (`version.md`), the `decorator_factory` subclass guardrail (`decorators.md`), and environment-variable id resolution (`envvar.md`).
 
 ## [`7.17.1` (2026-05-25)](https://github.com/kdeldycke/click-extra/compare/v7.17.0...v7.17.1)
 

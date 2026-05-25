@@ -77,6 +77,16 @@ with click.Context(show) as ctx:
 
 Returns the deduplicated, ordered tuple of environment variables Click would consider for an option or argument: the user-declared `envvar=` value (single string or iterable) followed by the auto-generated one. Click reads them in this order and stops at the first one set, which means **user-declared envvars take precedence over the auto-generated one** — `param_envvar_ids` preserves that ordering.
 
+```mermaid
+:align: center
+
+flowchart LR
+    decl["param.envvar<br/>user-declared:<br/>string or nested iterable"] --> merge
+    auto["param_auto_envvar_id()<br/>PREFIX_NAME,<br/>if auto-envvar enabled"] --> merge
+    merge["merge_envvar_ids()<br/>flatten, drop empty,<br/>dedupe, upper-case on Windows"] --> tup["ordered tuple<br/>user-declared first,<br/>auto-generated last"]
+    tup --> reader["Click reads in order,<br/>stops at first set<br/>so user-declared wins"]
+```
+
 ```{python:run}
 import click
 

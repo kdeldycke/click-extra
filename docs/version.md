@@ -97,6 +97,25 @@ The `{version}` variable is resolved in this order:
 4. `None` if none of the above succeeds (e.g. unpackaged scripts without `__version__`).
 ```
 
+Both `{exec_name}` and `{version}` are derived through a short fallback chain (`{version}` additionally appends the Git short hash for `.dev` builds):
+
+```mermaid
+:align: center
+
+flowchart TD
+    subgraph EXEC["exec_name"]
+        direction TB
+        x1["module name"] -->|"is __main__"| x2["package name"]
+        x2 -->|"not packaged"| x3["script filename"]
+    end
+    subgraph VER["version"]
+        direction TB
+        m["module __version__"] -->|unset| p["package metadata"]
+        p -->|unset| nil["None"]
+    end
+    VER -.->|"if .dev without +local, and git available"| gh["append the Git short hash<br/>e.g. 1.2.3.dev0+abc1234"]
+```
+
 ```{error}
 Some Click's built-in variables are not recognized:
 - `%(package)s` should be replaced by `{package_name}`
