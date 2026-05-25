@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Bundle `click_extra/themes.toml` into the Nuitka standalone binaries via a new `[tool.nuitka]` `include-package-data` setting. The `7.17.0` binaries aborted at startup with `FileNotFoundError: themes.toml` because the data file backing the built-in themes was not packaged, so Nuitka could not find it when `click_extra.theme` loaded it through `importlib.resources`.
+
 ## [`7.17.0` (2026-05-25)](https://github.com/kdeldycke/click-extra/compare/v7.16.1...v7.17.0)
 
 - All built-in themes now apply the man-pages(7) font convention: literal tokens (command and subcommand names, aliases, option flags, choice values) render bold, and replaceable tokens (metavars, argument names) render italic, layered on top of each palette's colors. The split is declared by the new `LITERAL_STYLES` / `REPLACEABLE_STYLES` frozensets in `click_extra.theme`, and a test enforces that every built-in theme keeps it. To avoid piling bold onto slots that already stand out, `heading` (now color + underline), `deprecated`, and `search` drop their bold; `critical` keeps it, as it is the only cue distinguishing it from `error`. In `light` and `solarized_dark`, `heading` is recolored (to magenta and violet respectively) so it stays distinct from the now-bold options and subcommands it previously shared a color with.
