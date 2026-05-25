@@ -8,6 +8,31 @@ data structure to mirror the CLI.
 After loading, the resolved file path, the full parsed document, and (when a `config_schema` is set) the typed app section are exposed on `ctx.meta` as `CONF_SOURCE`, `CONF_FULL`, and `TOOL_CONFIG`. See the [available keys](context.md#available-keys) table to read them from your own callbacks.
 ```
 
+## Resolving a configuration file
+
+Before any value is read, Click Extra decides *which* file, if any, provides the configuration. An explicit `--config` (or its environment variable or interactive prompt) wins outright. Otherwise autodiscovery applies: `pyproject.toml` is searched from the current directory up to the VCS root, then the [app-dir search pattern](#search-pattern) takes over. The first file that parses to a non-empty mapping is used, with no merging across files.
+
+```mermaid
+:align: center
+
+flowchart TD
+    start(["@config_option resolves a pattern"]) --> nc{"autodiscovery disabled?"}
+    nc -->|yes| skip["Skip loading, use bare defaults"]
+    nc -->|no| exp{"--config, env or prompt set?"}
+    exp -->|"no, auto-discover"| pyp{"pyproject.toml format enabled?"}
+    pyp -->|yes| cwd{"tool.cli table in a pyproject.toml, CWD up to VCS root?"}
+    cwd -->|yes| usepyp["Use that tool.cli section"]
+    cwd -->|no| search["Search files matching the pattern, try formats in order"]
+    pyp -->|no| search
+    exp -->|yes| search
+    search --> parse{"a file parses to a non-empty config?"}
+    parse -->|yes| win["First match wins, no merging"]
+    parse -->|"no, explicit"| fail["Exit with code 2"]
+    parse -->|"no, auto-discover"| defaults["Use bare defaults"]
+```
+
+Once a file is selected, its values feed into the [precedence chain](#precedence) below: environment variables, CLI parameters, and interactive prompts all override what the file provides.
+
 ## Standalone option
 
 The `@config_option` decorator provided by Click Extra can be used as-is with vanilla Click:
@@ -209,11 +234,15 @@ All three keys above are ignored. Use `--verbosity WARNING` or higher to see the
 
 The configuration loader fetch values according the following precedence:
 
-- `Interactive prompt`
-  - ↖ `CLI parameters`
-    - ↖ `Environment variables`
-      - ↖ `Configuration file`
-        - ↖ `Defaults`
+```mermaid
+:align: center
+
+flowchart TD
+    P["Interactive prompt"] -->|unset| C["CLI parameters"]
+    C -->|unset| E["Environment variables"]
+    E -->|unset| F["Configuration file"]
+    F -->|unset| D["Defaults"]
+```
 
 The parameter will take the first value set in that chain.
 
