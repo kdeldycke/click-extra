@@ -1,6 +1,7 @@
 ---
 name: 🚀 Build & release
 "on":
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -8,7 +9,7 @@ name: 🚀 Build & release
 jobs:
 
   release:
-    uses: kdeldycke/repomatic/.github/workflows/release.yaml@c6defb901773fe1f8f2f5d04d22facfb8f795c4d # v6.19.0
+    uses: kdeldycke/repomatic/.github/workflows/release.yaml@c48893dce010cb24303044880ab40f571b7bebda # v6.21.0
     secrets:
       REPOMATIC_PAT: ${{ secrets.REPOMATIC_PAT }}
       VIRUSTOTAL_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
@@ -16,13 +17,21 @@ jobs:
   publish-pypi:
     name: 🐍 Publish to PyPI (${{ matrix.short_sha }})
     needs: release
-    if: needs.release.outputs.release_commits_matrix
+    # Gate decoupled from the run's overall result: always() lets this job run
+    # even when an unrelated job (like binary tests) failed the run, and
+    # package_built confirms the wheel actually built. A wheel that built cleanly
+    # should still publish to PyPI even when a binary test fails. The
+    # package_built output is defined in repomatic's reusable release.yaml.
+    if: >-
+      always()
+      && needs.release.outputs.package_built == 'true'
+      && needs.release.outputs.release_commits_matrix
     strategy:
       matrix: ${{ fromJSON(needs.release.outputs.release_commits_matrix) }}
     runs-on: ubuntu-latest
     permissions:
       id-token: write
     steps:
-      - uses: kdeldycke/repomatic/.github/actions/publish-pypi@c6defb901773fe1f8f2f5d04d22facfb8f795c4d # v6.19.0
+      - uses: kdeldycke/repomatic/.github/actions/publish-pypi@c48893dce010cb24303044880ab40f571b7bebda # v6.21.0
         with:
           artifact-name: ${{ github.event.repository.name }}-${{ matrix.short_sha }}
