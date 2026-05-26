@@ -33,6 +33,7 @@ from .commands import (
 from .config import ConfigOption, NoConfigOption, ValidateConfigOption
 from .jobs import JobsOption
 from .logging import VerboseOption, VerbosityOption
+from .man_page import ManOption
 from .parameters import Argument, Option, ShowParamsOption
 from .table import TableFormatOption
 from .telemetry import TelemetryOption
@@ -148,6 +149,7 @@ lazy_group = decorator_factory(dec=group, cls=LazyGroup)
 color_option = decorator_factory(dec=option, cls=ColorOption)
 config_option = decorator_factory(dec=option, cls=ConfigOption)
 jobs_option = decorator_factory(dec=option, cls=JobsOption)
+man_option = decorator_factory(dec=option, cls=ManOption)
 no_config_option = decorator_factory(dec=option, cls=NoConfigOption)
 validate_config_option = decorator_factory(dec=option, cls=ValidateConfigOption)
 show_params_option = decorator_factory(dec=option, cls=ShowParamsOption)

@@ -1,0 +1,155 @@
+# {octicon}`terminal` Man-page layout
+
+Unix tools are conventionally documented with the section layout of [`man-pages(7)`](https://man7.org/linux/man-pages/man7/man-pages.7.html): a one-line `NAME`, a `SYNOPSIS`, a prose `DESCRIPTION`, an itemized `OPTIONS` list, then `ENVIRONMENT`, `FILES`, and `EXIT STATUS`. A Click Extra command already carries everything those sections need. This page documents one small CLI top-to-bottom in that order, with each section backed by output rendered live from the running command.
+
+```{click:source}
+from click_extra import Choice, argument, command, echo, option
+
+
+@command(context_settings={"show_envvar": True})
+@argument("city", help="Name of the city to report on.")
+@option(
+    "--units",
+    type=Choice(["celsius", "fahrenheit"]),
+    default="celsius",
+    help="Temperature scale to display.",
+)
+def weather(city, units):
+    """Report the current temperature for a city."""
+    echo(f"{city}: 21 degrees {units}.")
+```
+
+## `NAME`
+
+A man page opens with a single `name - one-line description` line, the one `apropos` and `whatis` index. Click has no dedicated slot for it: the equivalent is the program name paired with the first line of the command's docstring, which Click also uses as the command's short help. For this CLI the pairing reads:
+
+```text
+weather - report the current temperature for a city
+```
+
+## `SYNOPSIS`
+
+The `Usage:` line is the synopsis. Click Extra styles its tokens along the same typographic split a man page draws between **bold** literal text and *italic* replaceable text, documented in [literal and replaceable slots](theme.md#literal-and-replaceable-slots): the literal command name `weather` against the replaceable `CITY` operand and the `[OPTIONS]` placeholder.
+
+Click prints the synopsis as the first line of the help screen. The rest of that screen, dissected in the two sections below, supplies the `DESCRIPTION` and the `OPTIONS` list:
+
+```{click:run}
+from boltons.strutils import strip_ansi
+
+result = invoke(weather, args=["--help"])
+assert result.exit_code == 0
+plain = strip_ansi(result.output)
+# SYNOPSIS: the usage line.
+assert "Usage: weather [OPTIONS] CITY" in plain
+# DESCRIPTION: the docstring, plus the itemized operand.
+assert "Report the current temperature for a city." in plain
+assert "Positional arguments:" in plain
+# OPTIONS: the itemized option, its choice metavar, and its env var.
+assert "--units [celsius|fahrenheit]" in plain
+assert "WEATHER_UNITS" in plain
+```
+
+## `DESCRIPTION`
+
+The `DESCRIPTION` explains what the program does and, in prose, what its operands mean. Click Extra sources it from the command's docstring, rendered just under the synopsis above: "Report the current temperature for a city." The `CITY` operand is the city to report on.
+
+When an argument carries a `help=` string, Click Extra also itemizes operands in a dedicated `Positional arguments:` block (the `CITY` entry above). That is a structured take on operands that goes beyond what `man-pages(7)` prescribes, which keeps their meaning in the prose description rather than in a list.
+
+## `OPTIONS`
+
+The `OPTIONS` section is the formal, per-item description of each option, rendered as the `Options:` block above. Every entry pairs the option's literal name (`--units`) and its replaceable metavar (`[celsius|fahrenheit]`) with the help text and a trailing bracket field carrying the option's environment variable and default. Click Extra injects its own options into the same list (`--config`, `--verbosity`, `--version`, `--help`, …), so a CLI built on it gets a complete, conventional options section without extra work.
+
+## `ENVIRONMENT`
+
+The `ENVIRONMENT` section lists the variables that change the program's behavior. Click Extra derives one per option from the command name (the `WEATHER_` prefix here) and surfaces it in the help screen's bracket field (`[env var: WEATHER_UNITS; …]` above) when `show_envvar` is enabled. The variable is live: setting it feeds the option, ranked below the command line but above the default in the [precedence chain](config.md#precedence).
+
+```{click:run}
+result = invoke(weather, args=["Paris"], env={"WEATHER_UNITS": "fahrenheit"})
+assert result.exit_code == 0
+assert "fahrenheit" in result.output
+assert "celsius" not in result.output
+```
+
+`--show-params` prints the full mapping at once: every parameter, the environment variable it reads, its default, its resolved value, and the source that value came from.
+
+```{click:run}
+from boltons.strutils import strip_ansi
+
+result = invoke(weather, args=["--show-params"])
+assert result.exit_code == 0
+assert "WEATHER_UNITS" in strip_ansi(result.stdout)
+```
+
+## `FILES`
+
+The `FILES` section documents the files a program reads. Click Extra's `--config` option resolves a per-platform search path, shown as its default in the `OPTIONS` block above: the [application directory](config.md#default-folder) for `weather` followed by a glob over every supported format (`*.toml`, `*.yaml`, `*.json`, `*.ini`, `*.xml`, and `pyproject.toml`). See [the configuration guide](config.md) for the search order and the precedence rules that govern which file wins.
+
+## `EXIT STATUS`
+
+The `EXIT STATUS` section documents the process return codes. Click Extra inherits Click's conventional scheme:
+
+| Code | Meaning                                                                                   |
+| ---- | ----------------------------------------------------------------------------------------- |
+| `0`  | Success.                                                                                  |
+| `1`  | A runtime error, or an aborted prompt (`Ctrl-C`, a declined confirmation).                |
+| `2`  | A usage error: unknown option, invalid value, missing operand, or an unparsable `--config` file. |
+
+A successful run returns `0`:
+
+```{click:run}
+result = invoke(weather, args=["Paris"])
+assert result.exit_code == 0
+assert result.output == "Paris: 21 degrees celsius.\n"
+```
+
+An invalid choice is a usage error, so the command exits `2`:
+
+```{click:run}
+result = invoke(weather, args=["--units", "kelvin", "Paris"])
+assert result.exit_code == 2
+```
+
+## Generating man pages
+
+Every section above is produced mechanically by `click_extra.man_page` from the command itself. It works on any Click command *object* (no `console_scripts` entry point required) and walks the command tree, discovering subcommands dynamically, into one roff page per command. Literal tokens (command and option names) are set bold and replaceable tokens (metavars, operands) italic, following the [literal and replaceable slots](theme.md#literal-and-replaceable-slots) split; Click's `\b` no-rewrap marker becomes a roff `.nf` / `.fi` block.
+
+The `@man_option` decorator adds a `--show-man` flag that prints a command's man page and exits:
+
+```{click:source}
+import click
+
+from click_extra import man_option
+
+@click.command
+@man_option
+@click.option("--name", help="Who to greet.")
+def greet(name):
+    """Greet someone."""
+    click.echo(f"Hello, {name}!")
+```
+
+```{click:run}
+result = invoke(greet, args=["--show-man"])
+assert result.exit_code == 0
+assert '.TH "GREET" "1"' in result.output
+assert "greet \\- Greet someone." in result.output
+```
+
+For build-time generation, call the API directly: `render_manpage(cli)` returns one page's roff, `render_manpages(cli)` returns a `{filename: roff}` mapping for the whole tree, and `write_manpages(cli, target_dir)` writes one `.1` file per command. Dates honor `SOURCE_DATE_EPOCH` for reproducible builds.
+
+A Debian package can generate and install the pages from its `override_dh_installman` rule:
+
+```{code-block} makefile
+override_dh_installman:
+	python -c "from myapp.cli import cli; from click_extra import write_manpages; write_manpages(cli, 'debian/tmp/manpages')"
+	dh_installman -O--buildsystem=pybuild
+```
+
+## `click_extra.man_page` API
+
+```{eval-rst}
+.. automodule:: click_extra.man_page
+   :members:
+   :undoc-members:
+   :show-inheritance:
+```

@@ -89,6 +89,7 @@ from .decorators import (  # type: ignore[no-redef]
     help_option,
     jobs_option,
     lazy_group,
+    man_option,
     no_config_option,
     option,
     show_params_option,
@@ -110,6 +111,13 @@ from .logging import (
     VerbosityOption,
     extraBasicConfig,
     new_extra_logger,
+)
+from .man_page import (
+    ManOption,
+    ManPage,
+    render_manpage,
+    render_manpages,
+    write_manpages,
 )
 from .parameters import (
     Argument,
@@ -204,6 +212,8 @@ __all__ = [
     "JobsOption",
     "LazyGroup",
     "LogLevel",
+    "ManOption",
+    "ManPage",
     "MissingParameter",
     "NoConfigOption",
     "NoSuchCommand",
@@ -269,6 +279,7 @@ __all__ = [
     "launch",
     "lazy_group",
     "make_pass_decorator",
+    "man_option",
     "new_extra_logger",
     "no_config_option",
     "normalize_config_keys",
@@ -286,6 +297,8 @@ __all__ = [
     "progressbar",
     "prompt",
     "register_theme",
+    "render_manpage",
+    "render_manpages",
     "render_table",
     "search_params",
     "secho",
@@ -305,6 +318,7 @@ __all__ = [
     "version_option",
     "warnings",
     "wrap_text",
+    "write_manpages",
 ]
 """Expose all of Click, Cloup and Click Extra.
 

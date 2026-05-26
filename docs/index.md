@@ -32,6 +32,7 @@ decorators
 testing
 pytest
 wrap
+man-page
 benchmark
 ```
 
