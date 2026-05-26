@@ -635,7 +635,7 @@ def my_cli(int_param):
 ```{hint}
 You need to provide the fully-qualified ID of the option you're looking to block. I.e. the dot-separated ID that is prefixed by the CLI name. That way you can specify an option to ignore at any level, including subcommands.
 
-If you have difficulties identifying your options and their IDs, run your CLI with the [`--show-params` option](#show-params-option) for introspection.
+If you have difficulties identifying your options and their IDs, run your CLI with the [`--show-params` option](parameters.md#show-params-option) for introspection.
 ```
 
 ## Including parameters
@@ -664,7 +664,7 @@ In the example above, only `flag_a` will be loaded from configuration. `flag_b` 
 ```
 
 ```{hint}
-Like `excluded_params`, you need to provide the fully-qualified ID of the option. Run your CLI with the [`--show-params` option](#show-params-option) to discover parameter IDs.
+Like `excluded_params`, you need to provide the fully-qualified ID of the option. Run your CLI with the [`--show-params` option](parameters.md#show-params-option) to discover parameter IDs.
 ```
 
 ### Schema-only configuration

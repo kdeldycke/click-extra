@@ -190,7 +190,7 @@ click-extra's [logging module](logging.md) replaces the unmaintained `click-log`
 
 ### ANSI rendering in documentation
 
-click-extra provides [ANSI-capable session lexers](pygments.md#ansi-language-lexers), an [HTML formatter](pygments.md#ansi-html-formatter), and [Sphinx integration](sphinx.md) for rendering ANSI-colored CLI output in documentation, with [24-bit true-color rendering](pygments.md#bit-true-color) enabled by default:
+click-extra provides [ANSI-capable session lexers](pygments.md#ansi-language-lexers), an [HTML formatter](pygments.md#ansi-html-formatter), and [Sphinx integration](sphinx.md) for rendering ANSI-colored CLI output in documentation, with [24-bit true-color rendering](pygments.md#true-color-24-bit) enabled by default:
 
 - [`pygments#1148` - Can't format console/shell-session output that includes ANSI colors](https://github.com/pygments/pygments/issues/1148)
 - [`pygments#477` - Support ANSI (ECMA-48) color-coded text input](https://github.com/pygments/pygments/issues/477)
@@ -203,6 +203,8 @@ click-extra provides [ANSI-capable session lexers](pygments.md#ansi-language-lex
 - [`kitty#5482` - ANSI shell sessions in Sphinx documentation](https://github.com/kovidgoyal/kitty/discussions/5482)
 - [`sphinx-contrib/ansi#9` - ANSI Codes in output](https://github.com/sphinx-contrib/ansi/issues/9)
 - [`MyST-Parser#845` - Add an extension to support GitHub alerts](https://github.com/executablebooks/MyST-Parser/issues/845)
+
+<a name="sphinx-click-source-and-click-run-directives"></a>
 
 ### Sphinx `click:source` and `click:run` directives
 
@@ -220,7 +222,7 @@ The `click:*` half of this story remains stuck upstream: the directives still li
 
 - [`sphinx-click#158` - Move custom directives into Sphinx-click](https://github.com/click-contrib/sphinx-click/issues/158) — open, acknowledged by maintainers.
 - [`sphinx-click#127` - Support myst-parser](https://github.com/click-contrib/sphinx-click/issues/127) — open, click directives still RST-only upstream.
-- [`pallets-sphinx-themes#61`](https://github.com/pallets/pallets-sphinx-themes/issues/61) — open since 2022, also flagged in the [previous section](#sphinx-clicksource-and-clickrun-directives).
+- [`pallets-sphinx-themes#61`](https://github.com/pallets/pallets-sphinx-themes/issues/61) — open since 2022, also flagged in the [previous section](#sphinx-click-source-and-click-run-directives).
 
 The `python:*` half (rendering executed Python output as live document content) is click-extra's own design rather than an answer to a single upstream ticket.
 

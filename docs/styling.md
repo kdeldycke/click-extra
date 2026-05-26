@@ -1,6 +1,6 @@
 # {octicon}`pencil` Styling
 
-Click Extra ships its own `Style` class as a drop-in replacement for [`cloup.Style`](https://cloup.readthedocs.io/en/stable/pages/help-formatting.html#cloup.Style) (which itself wraps [`click.style`](https://click.palletsprojects.com/en/stable/api/#click.style)). The runtime contract — calling the instance to apply styling, equality, hashing, `with_()` — is identical to cloup's; everything below is purely additive ergonomics.
+Click Extra ships its own `Style` class as a drop-in replacement for [`cloup.Style`](https://cloup.readthedocs.io/en/stable/pages/formatting.html#cloup.Style) (which itself wraps [`click.style`](https://click.palletsprojects.com/en/stable/api/#click.style)). The runtime contract — calling the instance to apply styling, equality, hashing, `with_()` — is identical to cloup's; everything below is purely additive ergonomics.
 
 The class lands automatically when you do `from click_extra import Style`: `__init__.py` re-exports it after `from cloup import *` so the click-extra version takes precedence.
 

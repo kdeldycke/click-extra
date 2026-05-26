@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import tomllib  # type: ignore[import-not-found]  # stdlib >=3.11; docs require >=3.14.
+from docutils.nodes import make_id
 
 project_path = Path(__file__).parent.parent.resolve()
 
@@ -56,6 +57,19 @@ myst_enable_extensions = [
     "strikethrough",
     "tasklist",
 ]
+# Register a cross-reference target for every heading down to <h6>, so Markdown
+# links of the form [text](other.md#heading-slug) resolve. Without this, MyST
+# only resolves explicit (target)= anchors and emits best-effort hrefs that
+# happen to work because docutils generates matching HTML ids — but each one
+# raises a myst.xref_missing warning at build time.
+myst_heading_anchors = 6
+# Slugify headings exactly the way docutils derives HTML ids, so the anchors
+# MyST resolves match the ids actually rendered in the page. The default
+# GitHub-style slugifier keeps leading digits, "--" prefixes, dots and
+# underscores that docutils strips or collapses (e.g. "`--show-params` option"
+# → "show-params-option", "solarized_dark" → "solarized-dark"), which otherwise
+# leaves every cross-reference to such a heading unresolved.
+myst_heading_slug_func = make_id
 # XXX Allow ```mermaid``` directive to be used without curly braces (```{mermaid}```), see:
 # https://github.com/mgaitan/sphinxcontrib-mermaid/issues/99#issuecomment-2339587001
 myst_fence_as_directive = ["mermaid"]
@@ -137,6 +151,9 @@ linkcheck_ignore = [
     r"https://star-history\.com/#.*",
     # Telemetry opt-out endpoint is slow and times out from CI.
     r"https://telemetry\.timseverien\.com/.*",
+    # Hacker News rate-limits automated checkers with HTTP 429. Already excluded
+    # from the lychee run (see [tool.lychee] in pyproject.toml).
+    r"https://news\.ycombinator\.com/.*",
 ]
 
 # Footer content.

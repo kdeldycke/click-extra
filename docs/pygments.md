@@ -2,7 +2,7 @@
 
 This package ships a set of Pygments components that make terminal-style content first-class in any Pygments pipeline:
 
-- A lexer ([`ansi-color`](#ansi-html-formatter)) that parses raw ANSI/ECMA-48 escape sequences: text attributes (bold, faint, italic, underline, blink, reverse, strikethrough, overline), the standard 16 named colors, the [256-color indexed palette](#color-palette-swatch), [24-bit RGB](#bit-true-color), and [OSC 8 hyperlinks](#osc-8-hyperlinks).
+- A lexer ([`ansi-color`](#ansi-html-formatter)) that parses raw ANSI/ECMA-48 escape sequences: text attributes (bold, faint, italic, underline, blink, reverse, strikethrough, overline), the standard 16 named colors, the [256-color indexed palette](#palette-swatch-256-color), [24-bit RGB](#true-color-24-bit), and [OSC 8 hyperlinks](#osc-8-hyperlinks).
 - An HTML formatter ([`ansi-html`](#ansi-html-formatter)) that renders those tokens as styled `<span>`{l=html} elements and OSC 8 hyperlinks as `<a>`{l=html} tags. Works in CSS-class mode or [`noclasses=True` inline-style mode](#inline-styles-self-contained-html).
 - [ANSI-aware variants](#ansi-language-lexers) of every shell-session and REPL lexer Pygments ships (`ansi-shell-session`, `ansi-pycon`, `ansi-rb`, …) so terminal output embedded in code blocks renders with its colors instead of as raw escape codes.
 - A filter ([`ansi-filter`](#ansi-filter)) that intercepts `Generic.Output` tokens from any session lexer and re-lexes them through `ansi-color`. This is the seam used by the ANSI session lexers, but you can also attach it to your own lexer.
@@ -158,7 +158,7 @@ formatter = get_formatter_by_name("ansi-html", noclasses=True)
 print(highlight("\x1b[1;31mError:\x1b[0m file not found\n", lexer, formatter))
 ```
 
-This mode is the right pick when embedding output in emails, static reports, or any context where shipping a separate stylesheet is impractical. It pairs naturally with the [24-bit true-color mode](#bit-true-color), which is itself inline-style based.
+This mode is the right pick when embedding output in emails, static reports, or any context where shipping a separate stylesheet is impractical. It pairs naturally with the [24-bit true-color mode](#true-color-24-bit), which is itself inline-style based.
 
 ## ANSI filter
 
@@ -333,7 +333,7 @@ $ cat cowsay.html
 </html>
 ```
 
-## 24-bit true color
+## True color (24-bit)
 
 The `ansi-color` lexer accepts `SGR 38;2;r;g;b` and `48;2;r;g;b` (24-bit RGB) sequences and renders them as raw RGB inline styles by default. Pass `true_color=False` to fall back to lossy quantization onto the 256-color palette. The difference is most visible on a smooth gradient:
 
@@ -433,7 +433,7 @@ The `AnsiColorLexer` parses the OSC 8 escape sequences and the `AnsiHtmlFormatte
 Only URLs with safe schemes (`http`, `https`, `mailto`, `ftp`, `ftps`) are rendered as links.
 All other OSC sequences (like window title changes) are silently stripped.
 
-## 256-color palette swatch
+## Palette swatch (256-color)
 
 A live proof that the full 256-color indexed palette renders correctly through the pipeline. Each cell sets foreground and background to the same index, producing a solid color block; the second column of each pair is bold.
 

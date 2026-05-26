@@ -210,7 +210,7 @@ The styling slots carry a second, coarser classification borrowed from [man-page
 - `LITERAL_STYLES`: `invoked_command`, `subcommand`, `alias`, `alias_secondary`, `option`, `choice`.
 - `REPLACEABLE_STYLES`: `metavar`, `argument`.
 
-Every remaining slot (log levels, the `[default: ...]` and `[env var: ...]` bracket fields, headings, …) sits outside the dichotomy. Every built-in theme applies this split: literal slots render bold and replaceable slots italic, even inside the color palettes, and the [`manpage`](#manpage) theme renders it with nothing else. A future [man-page generator](benchmark.md#man-page-generation) can reuse the same two sets to map each styled token to roff's `\fB` / `\fI`.
+Every remaining slot (log levels, the `[default: ...]` and `[env var: ...]` bracket fields, headings, …) sits outside the dichotomy. Every built-in theme applies this split: literal slots render bold and replaceable slots italic, even inside the color palettes, and the [`manpage`](#manpage) theme renders it with nothing else. A future [man-page generator](man-page.md) can reuse the same two sets to map each styled token to roff's `\fB` / `\fI`.
 
 ### Cross-reference highlighting
 
@@ -247,7 +247,7 @@ register_theme("my_theme", HelpExtraTheme.from_dict(raw["my_theme"]))
 
 For the much more common case where the theme should live in the same `--config` file the CLI already reads, see the [next section](#themes-from-your-config-file) — click-extra wires the loader for you.
 
-## Themes from your `--config` file
+## Themes from your config file
 
 `ConfigOption` recognizes a `themes` sub-table inside the app's section. Every `[<cli>.themes.<name>]` entry is parsed via `HelpExtraTheme.from_dict` and made available to `--theme` for the duration of the invocation, with two distinct behaviors depending on whether `<name>` matches a built-in:
 

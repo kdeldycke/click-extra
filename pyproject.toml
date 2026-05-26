@@ -523,6 +523,12 @@ exclude = [
   "^https://star-history.com/#.*$",
   # crates.io blocks automated link checkers.
   "^https://crates.io/crates/.*$",
+  # The theme palette anchors (#dark, #light, …) sit under the "Palettes"
+  # section of docs/theme.md, where a {python:render} loop over BUILTIN_THEMES
+  # emits one heading per theme at Sphinx build time. Lychee only scans the raw
+  # Markdown, so it never sees these build-time anchors (they resolve fine in
+  # the built HTML). Add new built-in theme names here when they ship.
+  "theme.md#(dark|dracula|light|manpage|monokai|nord|solarized-dark)$",
 ]
 
 [tool.repomatic]

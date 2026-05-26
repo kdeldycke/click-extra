@@ -610,7 +610,7 @@ def template_rendering(ctx):
 ```
 
 ```{hint}
-To fetch the `--version` parameter defined on the command, we rely on the [`click_extra.search_params`](parameters.md#click_extra.parameters.search_params).
+To fetch the `--version` parameter defined on the command, we rely on {py:func}`click_extra.search_params <click_extra.parameters.search_params>`.
 ```
 
 ```{click:run}
