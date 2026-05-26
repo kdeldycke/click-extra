@@ -116,28 +116,6 @@ You can inspect the implementation details in:
 
 The `@command` and `@group` decorators are pre-configured with a set of {py:func}`default options <click_extra.commands.default_extra_params>`. The `--help`/`-h` option is added separately through `help_option_names`, which is why it survives even when `default_extra_params()` is reset:
 
-```mermaid
-:align: center
-
-flowchart LR
-    cmd(["@command / @group"]) --> params
-    cmd --> help["--help / -h"]
-    subgraph params["default_extra_params()"]
-        direction TB
-        opt1["--time / --no-time"]
-        opt2["--config"]
-        opt3["--no-config"]
-        opt4["--validate-config"]
-        opt5["--color / --no-color"]
-        opt6["--theme"]
-        opt7["--show-params"]
-        opt8["--table-format"]
-        opt9["--verbosity"]
-        opt10["--verbose / -v"]
-        opt11["--version"]
-    end
-```
-
 ```{tip}
 Each default option publishes its resolved value on `ctx.meta` so you can pick it up from anywhere in your CLI. See the [available keys](context.md#available-keys) table for the full inventory and worked examples.
 ```
