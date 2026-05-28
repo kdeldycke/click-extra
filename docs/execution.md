@@ -2,13 +2,9 @@
 
 Click Extra bundles a few pre-configured options that control how a CLI runs: how long it takes (`--time`), how many parallel jobs it may use (`--jobs`), and what exit code it returns (`-0`/`--zero-exit`). Each publishes its resolved value on `ctx.meta` for downstream code to consume.
 
-## Execution time
+## Timer
 
 Click Extra can measure the execution time of a CLI via a dedicated `--time`/`--no-time` option.
-
-```{tip}
-When `--time` is enabled, the `time.perf_counter()` snapshot taken at startup is published on `ctx.meta` as `START_TIME`. See the [available keys](context.md#available-keys) table to read it from your own callbacks.
-```
 
 Here how to use the standalone decorator:
 
@@ -43,8 +39,6 @@ assert re.fullmatch(
 )
 ```
 
-### Get start time
-
 You can get the timestamp of the CLI start from the context:
 
 ```{click:source}
@@ -77,12 +71,6 @@ A pre-configured `--jobs` option to control parallel execution. Defaults to one 
 
 The option itself does not drive any concurrency: it only captures the user's intent.
 
-```{tip}
-The resolved (clamped, validated) job count is published on `ctx.meta` as `JOBS` for downstream code to consume. See the [available keys](context.md#available-keys) table to read it from your own callbacks.
-```
-
-### Usage
-
 ```{click:source}
 from click import command, echo, pass_context
 from click_extra import jobs_option
@@ -108,21 +96,19 @@ assert result.exit_code == 0
 assert "Building with 4 parallel jobs." in result.stdout
 ```
 
-### Warnings
-
+```{warning}
 When the requested value is below 1, it is clamped to 1 and a warning is logged. When it exceeds available CPU cores, a warning is logged but the value is honored.
+```
+
+```{tip}
+The resolved (clamped, validated) job count is published on `ctx.meta` as `JOBS` for downstream code to consume. See the [available keys](context.md#available-keys) table to read it from your own callbacks.
+```
 
 ## Zero exit code
 
 A pre-configured `-0`/`--zero-exit` option flag, following the convention popularized by linters and static analysers: they exit with a non-zero code whenever they report findings, so automation can gate on it. Setting this flag flips that behavior, so the CLI returns `0` as long as it ran to completion, reserving non-zero codes for actual execution failures.
 
 The option itself does not alter the exit code: it only captures the user's intent.
-
-```{tip}
-The resolved flag is published on `ctx.meta` as `ZERO_EXIT` for downstream code to consume. See the [available keys](context.md#available-keys) table to read it from your own callbacks.
-```
-
-### Usage
 
 ```{click:source}
 from click import command, echo, pass_context
@@ -159,6 +145,10 @@ With `--zero-exit` (or its `-0` shorthand) the command still reports its finding
 result = invoke(inspect, args=["--zero-exit"])
 assert result.exit_code == 0
 assert "Found 2 bruised fruits." in result.stdout
+```
+
+```{tip}
+The resolved flag is published on `ctx.meta` as `ZERO_EXIT` for downstream code to consume. See the [available keys](context.md#available-keys) table to read it from your own callbacks.
 ```
 
 ## `click_extra.execution` API
