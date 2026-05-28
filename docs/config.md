@@ -1079,7 +1079,7 @@ Other tools are following suit:
 [actionlint#623](https://github.com/rhysd/actionlint/issues/623),
 [biome#9239](https://github.com/biomejs/biome/discussions/9239),
 [gitleaks#2066](https://github.com/gitleaks/gitleaks/issues/2066),
-[Nuitka#2136](https://github.com/Nuitka/Nuitka/issues/2136),
+[Nuitka#3909](https://github.com/Nuitka/Nuitka/issues/3909),
 [taplo#603](https://github.com/tamasfe/taplo/issues/603),
 [zizmor#322](https://github.com/orgs/zizmorcore/discussions/322#discussioncomment-15919620).
 [sh#1268](https://github.com/mvdan/sh/issues/1268) was declined.
