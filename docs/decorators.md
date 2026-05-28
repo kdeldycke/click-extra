@@ -1,4 +1,4 @@
-# {octicon}`issue-opened` Decorators
+# {octicon}`mention` Decorators
 
 Click Extra's decorators (`@command`, `@group`, `@option`, `@argument`, `@version_option`, the full `@*_option` family) are produced by a single factory that wraps cloup's originals with three extra behaviors:
 
