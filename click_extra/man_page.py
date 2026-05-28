@@ -398,7 +398,7 @@ def _resolve_files(command: Command, ctx: Context) -> tuple[str, ...]:
 
     ``ConfigOption.default_pattern`` reads :func:`click.get_current_context`, so
     the context is entered when none is active (the build-time path); the live
-    invocation context (the ``--show-man`` path) is reused as-is.
+    invocation context (the ``--man`` path) is reused as-is.
     """
     config_option = search_params(command.params, ConfigOption)
     if not isinstance(config_option, ConfigOption):
@@ -579,13 +579,32 @@ def write_manpages(
 
 
 class ManOption(ExtraOption):
-    """A pre-configured ``--show-man`` flag that prints the command's man page
+    """A pre-configured ``--man`` flag that prints the command's man page
     (roff) to stdout and exits.
 
     Eager and value-less, like :class:`~click_extra.parameters.ShowParamsOption`.
-    Not part of the default option set: add it explicitly with
-    :func:`@man_option <click_extra.decorators.man_option>` when you want a CLI
-    to emit its own man page.
+    Part of the default option set injected by
+    :func:`~click_extra.commands.default_extra_params`, so every ``@extra_command``
+    and ``@extra_group`` exposes it. Use
+    :func:`@man_option <click_extra.decorators.man_option>` to add it to a plain
+    Click CLI.
+
+    .. note::
+        The flag is named ``--man``, not ``--show-man`` or ``--man-page``.
+
+        In the POSIX, GNU and BSD traditions a program does not emit its own man
+        page through a flag: the page is a separate file read with ``man <prog>``,
+        either hand-written (BSD ``mdoc``) or generated at build time from
+        ``--help`` output (GNU ``help2man``). Click Extra already covers that
+        build-time path with :func:`~click_extra.man_page.write_manpages`, its
+        ``help2man`` equivalent.
+
+        The one ecosystem that exposes a *runtime* flag is Perl's ``Pod::Usage``,
+        whose convention is ``--help`` for the brief usage and bare ``--man`` for
+        the full manual. ``--man`` also lines up with the neighbouring ``--help``
+        and ``--version`` informational flags, which use bare nouns with no
+        ``show-`` prefix. ``--show-man`` and ``--man-page`` have no precedent
+        outside Click Extra.
     """
 
     def __init__(
@@ -598,7 +617,7 @@ class ManOption(ExtraOption):
         **kwargs,
     ) -> None:
         if not param_decls:
-            param_decls = ("--show-man",)
+            param_decls = ("--man",)
         kwargs.setdefault("callback", self.print_man)
         super().__init__(
             param_decls,

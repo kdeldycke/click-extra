@@ -5,6 +5,7 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Add a `--man` option to the default set of `@extra_command` and `@extra_group` (via `default_extra_params()`): it prints the command's man page (roff) to stdout and exits. Also available as the `@man_option` decorator for plain Click CLIs.
 - Add a pre-configured `-0`/`--zero-exit` option flag, exposed as the `@zero_exit_option` decorator and the `ZeroExitOption` class. It stores the user's intent in `ctx.meta` under the new `ZERO_EXIT` key but does not alter the exit code itself: downstream code reads it to decide whether to suppress its non-zero "problems found" status.
 - Consolidate the `--time`, `--jobs` and `-0`/`--zero-exit` options into a single `click_extra.execution` module. The `click_extra.jobs` and `click_extra.timer` submodules are removed: their decorators and classes (`timer_option`, `jobs_option`, `TimerOption`, `JobsOption`, `CPU_COUNT`, `DEFAULT_JOBS`) remain importable from the `click_extra` root. The `--show-params` table now reports these options under `click_extra.execution`.
 

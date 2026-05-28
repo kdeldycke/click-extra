@@ -203,13 +203,13 @@ def test_write_manpages(tmp_path):
         assert path.read_text(encoding="utf-8").startswith('.\\" Generated')
 
 
-def test_show_man_option():
+def test_man_option():
     @command
     @man_option
     def greet():
         """Greet the world."""
 
-    result = ExtraCliRunner().invoke(greet, ["--show-man"], color=False)
+    result = ExtraCliRunner().invoke(greet, ["--man"], color=False)
     assert result.exit_code == 0
     assert ".TH" in result.stdout
     assert "greet \\- Greet the world." in result.stdout

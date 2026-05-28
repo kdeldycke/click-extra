@@ -335,9 +335,9 @@ class _WrapCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
            :class:`WrapperGroup` is an :class:`~click_extra.commands.ExtraGroup`,
            so ``--time``, ``--config``, ``--no-config``, ``--validate-config``,
            ``--color``, ``--theme``, ``--show-params``, ``--table-format``,
-           ``--verbosity``, ``--verbose``, ``--version`` and ``--help`` are
-           already attached at the ``click-extra`` group level. Duplicating
-           them on ``wrap`` would create two valid spellings
+           ``--verbosity``, ``--verbose``, ``--man``, ``--version`` and
+           ``--help`` are already attached at the ``click-extra`` group level.
+           Duplicating them on ``wrap`` would create two valid spellings
            (``click-extra --color wrap …`` versus
            ``click-extra wrap --color …``) for the same effect.
 

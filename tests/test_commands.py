@@ -431,6 +431,7 @@ def test_duplicate_option(invoke):
         "  -v, --verbose           Increase the default WARNING verbosity by one level\n"
         "                          for each additional repetition of the option.\n"
         "                          [default: 0]\n"
+        "  --man                   Show the command's man page (roff) and exit.\n"
         "  --version               Show the version and exit.\n"
         "  --version               Show the version and exit.\n"
         "  -h, --help              Show this message and exit.\n"

@@ -227,6 +227,7 @@ Click Extra provides these additional, pre-configured options decorators you can
 | [`@table_format_option`](table.md)                                 | `--table-format FORMAT`                   | ✅      |
 | [`@verbosity_option`](logging.md#colored-verbosity)                | `--verbosity LEVEL`                       | ✅      |
 | {py:class}`@verbose_option <click_extra.logging.VerboseOption>`    | `-v, --verbose`                           | ✅      |
+| [`@man_option`](man-page.md#generating-man-pages)                  | `--man`                                   | ✅      |
 | [`@version_option`](version.md)                                    | `--version`                               | ✅      |
 | {py:class}`@help_option <click_extra.colorize.HelpExtraFormatter>` | `-h, --help`                              | ✅      |
 | {py:mod}`@telemetry_option <click_extra.telemetry>`                | `--telemetry / --no-telemetry`            | ❌      |
