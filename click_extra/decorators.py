@@ -31,14 +31,13 @@ from .commands import (
     default_extra_params,
 )
 from .config import ConfigOption, NoConfigOption, ValidateConfigOption
-from .jobs import JobsOption
+from .execution import JobsOption, TimerOption, ZeroExitOption
 from .logging import VerboseOption, VerbosityOption
 from .man_page import ManOption
 from .parameters import Argument, Option, ShowParamsOption
 from .table import TableFormatOption
 from .telemetry import TelemetryOption
 from .theme import ThemeOption
-from .timer import TimerOption
 from .version import ExtraVersionOption
 
 
@@ -159,3 +158,4 @@ theme_option = decorator_factory(dec=option, cls=ThemeOption)
 timer_option = decorator_factory(dec=option, cls=TimerOption)
 verbose_option = decorator_factory(dec=option, cls=VerboseOption)
 verbosity_option = decorator_factory(dec=option, cls=VerbosityOption)
+zero_exit_option = decorator_factory(dec=option, cls=ZeroExitOption)

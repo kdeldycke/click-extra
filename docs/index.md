@@ -21,8 +21,7 @@ theme
 logging
 table
 version
-timer
-jobs
+execution
 telemetry
 pygments
 sphinx

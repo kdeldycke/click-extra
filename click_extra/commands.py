@@ -47,11 +47,11 @@ from .config import (
 )
 from .context import ExtraContext
 from .envvar import clean_envvar_id, param_envvar_ids
+from .execution import TimerOption
 from .logging import VerboseOption, VerbosityOption
 from .parameters import ExtraOption, ShowParamsOption
 from .table import TableFormatOption
 from .theme import ThemeOption
-from .timer import TimerOption
 from .version import ExtraVersionOption
 
 TYPE_CHECKING = False

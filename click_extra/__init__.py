@@ -101,8 +101,15 @@ from .decorators import (  # type: ignore[no-redef]
     verbose_option,
     verbosity_option,
     version_option,
+    zero_exit_option,
 )
-from .jobs import CPU_COUNT, DEFAULT_JOBS, JobsOption
+from .execution import (
+    CPU_COUNT,
+    DEFAULT_JOBS,
+    JobsOption,
+    TimerOption,
+    ZeroExitOption,
+)
 from .logging import (
     ExtraFormatter,
     ExtraStreamHandler,
@@ -151,7 +158,6 @@ from .theme import (
     set_default_theme,
     theme_registry,
 )
-from .timer import TimerOption
 from .version import ExtraVersionOption
 
 __all__ = [
@@ -243,6 +249,7 @@ __all__ = [
     "VerboseOption",
     "VerbosityOption",
     "VersionOption",
+    "ZeroExitOption",
     "annotations",
     "argument",
     "clear",
@@ -319,6 +326,7 @@ __all__ = [
     "warnings",
     "wrap_text",
     "write_manpages",
+    "zero_exit_option",
 ]
 """Expose all of Click, Cloup and Click Extra.
 

@@ -219,7 +219,7 @@ Click Extra provides these additional, pre-configured options decorators you can
 
 | Decorator                                                          | Specification                             | Default |
 | ------------------------------------------------------------------ | ----------------------------------------- | ------- |
-| [`@timer_option`](timer.md)                                        | `--time / --no-time`                      | ✅      |
+| [`@timer_option`](execution.md#execution-time)                     | `--time / --no-time`                      | ✅      |
 | [`@color_option`](colorize.md#color-no-color-flag)                 | `--color, --ansi / --no-color, --no-ansi` | ✅      |
 | [`@config_option`](config.md#standalone-option)                    | `--config CONFIG_PATH`                    | ✅      |
 | [`@no_config_option`](config.md#)                                  | `--no-config`                             | ✅      |

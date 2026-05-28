@@ -217,7 +217,7 @@ as :data:`VERBOSITY` for the ``-v`` family of flags.
 START_TIME: Final[str] = "click_extra.start_time"
 """``time.perf_counter()`` snapshot taken when ``--time`` is enabled.
 
-Written by :class:`click_extra.timer.TimerOption.init_timer`.
+Written by :class:`click_extra.execution.TimerOption.init_timer`.
 """
 
 
@@ -226,7 +226,7 @@ Written by :class:`click_extra.timer.TimerOption.init_timer`.
 JOBS: Final[str] = "click_extra.jobs"
 """Effective parallel job count after clamping (always >= 1).
 
-Written by :class:`click_extra.jobs.JobsOption.validate_jobs`. Click Extra
+Written by :class:`click_extra.execution.JobsOption.validate_jobs`. Click Extra
 itself does not act on this value: it is a contract for downstream commands
 that drive their own concurrency.
 """
@@ -281,6 +281,18 @@ Written by :class:`click_extra.telemetry.TelemetryOption.set_telemetry` after
 reconciling ``--telemetry`` / ``--no-telemetry`` with the standard
 ``DO_NOT_TRACK`` environment variable. Downstream code reads this to decide
 whether to emit usage data.
+"""
+
+
+# --- Exit code ----------------------------------------------------------------
+
+ZERO_EXIT: Final[str] = "click_extra.zero_exit"
+"""``True`` when the user asked the CLI to always return a zero exit code.
+
+Written by :class:`click_extra.execution.ZeroExitOption.set_zero_exit`. Click
+Extra itself does not act on this value: it is a contract for downstream
+commands that suppress their non-zero "problems found" exit code and return
+``0`` as long as the run itself succeeded.
 """
 
 

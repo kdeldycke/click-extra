@@ -5,6 +5,9 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Add a pre-configured `-0`/`--zero-exit` option flag, exposed as the `@zero_exit_option` decorator and the `ZeroExitOption` class. It stores the user's intent in `ctx.meta` under the new `ZERO_EXIT` key but does not alter the exit code itself: downstream code reads it to decide whether to suppress its non-zero "problems found" status.
+- Consolidate the `--time`, `--jobs` and `-0`/`--zero-exit` options into a single `click_extra.execution` module. The `click_extra.jobs` and `click_extra.timer` submodules are removed: their decorators and classes (`timer_option`, `jobs_option`, `TimerOption`, `JobsOption`, `CPU_COUNT`, `DEFAULT_JOBS`) remain importable from the `click_extra` root. The `--show-params` table now reports these options under `click_extra.execution`.
+
 ## [`7.17.2` (2026-05-25)](https://github.com/kdeldycke/click-extra/compare/v7.17.1...v7.17.2)
 
 - Add Mermaid diagrams throughout the documentation to render resolution and layering rules previously carried by prose or nested lists: configuration-file source selection and value precedence (`config.md`), the Click / Cloup / click-extra class layering and the `@command`/`@group` default-option bundle (`commands.md`), `--color`/`--no-color` ANSI enablement (`colorize.md`), the `{version}` and `{exec_name}` fallback chains (`version.md`), the `decorator_factory` subclass guardrail (`decorators.md`), and environment-variable id resolution (`envvar.md`).

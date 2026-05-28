@@ -70,6 +70,15 @@ click_extra.sphinx
    :undoc-members:
 ```
 
+## click_extra.execution module
+
+```{eval-rst}
+.. automodule:: click_extra.execution
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## click_extra.logging module
 
 ```{eval-rst}
@@ -128,15 +137,6 @@ click_extra.sphinx
 
 ```{eval-rst}
 .. automodule:: click_extra.testing
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
-
-## click_extra.timer module
-
-```{eval-rst}
-.. automodule:: click_extra.timer
    :members:
    :show-inheritance:
    :undoc-members:
