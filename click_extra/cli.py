@@ -18,7 +18,6 @@
 from __future__ import annotations
 
 import colorsys
-import importlib
 from pathlib import Path
 
 import click
@@ -37,6 +36,7 @@ from . import (
     style,
 )
 from .colorize import _nearest_256
+from .man_page import render_manpage
 from .parameters import format_param_row
 from .table import DEFAULT_FORMAT, SERIALIZATION_FORMATS, TableFormat, print_table
 from .version import (
@@ -47,7 +47,7 @@ from .version import (
     prebake_version,
     run_git,
 )
-from .wrap import WrapperGroup, resolve_target, wrap as wrap_cmd
+from .wrap import WrapperGroup, resolve_target_command, wrap as wrap_cmd
 
 
 def _resolve_paths(module: Path | None) -> list[Path]:
@@ -170,55 +170,7 @@ def show_params_cmd(
     script = script_and_args[0]
     subcommands = script_and_args[1:]
 
-    module_path, function_name = resolve_target(script)
-    mod = importlib.import_module(module_path)
-    cli_obj = getattr(mod, function_name) if function_name else None
-
-    if not isinstance(cli_obj, click.Command):
-        # The entry point might be a wrapper function. Scan the module
-        # for Click command instances, preferring groups.
-        groups = {}
-        commands = {}
-        for attr_name in dir(mod):
-            obj = getattr(mod, attr_name, None)
-            if isinstance(obj, click.Group):
-                groups[attr_name] = obj
-            elif isinstance(obj, click.Command):
-                commands[attr_name] = obj
-
-        if len(groups) == 1:
-            cli_obj = next(iter(groups.values()))
-        elif groups:
-            names = ", ".join(sorted(groups))
-            raise ClickException(
-                f"Multiple command groups in {module_path}: {names}. "
-                f"Specify the correct one with module:name notation."
-            )
-        elif len(commands) == 1:
-            cli_obj = next(iter(commands.values()))
-        elif commands:
-            names = ", ".join(sorted(commands))
-            raise ClickException(
-                f"Multiple commands in {module_path}: {names}. "
-                f"Specify the correct one with module:name notation."
-            )
-        else:
-            raise ClickException(f"No Click commands found in {module_path}.")
-
-    # Navigate to subcommand if specified.
-    assert isinstance(cli_obj, click.Command)
-    cmd: click.Command = cli_obj
-    cmd_ctx = click.Context(cmd, info_name=cmd.name or script)
-    for sub in subcommands:
-        if not isinstance(cmd, click.Group):
-            raise ClickException(
-                f"{cmd.name!r} is not a group; cannot navigate to {sub!r}."
-            )
-        child = cmd.get_command(cmd_ctx, sub)
-        if child is None:
-            raise ClickException(f"No subcommand {sub!r} in {cmd.name!r}.")
-        cmd_ctx = click.Context(child, parent=cmd_ctx, info_name=sub)
-        cmd = child
+    cmd, cmd_ctx = resolve_target_command(script, subcommands)
 
     # Build parameter path prefix.
     prefix = (cmd.name or script,)
@@ -248,6 +200,42 @@ def show_params_cmd(
         headers=header_labels,
         table_format=table_format,
     )
+
+
+@demo.command(
+    name="man",
+    context_settings={"allow_interspersed_args": False},
+)
+@click.argument(
+    "script_and_args",
+    nargs=-1,
+    type=click.UNPROCESSED,
+    metavar="SCRIPT [SUBCOMMAND]...",
+)
+@click.pass_context
+def man_cmd(
+    ctx: click.Context,
+    script_and_args: tuple[str, ...],
+) -> None:
+    """Render the man page of an external Click CLI.
+
+    Resolves SCRIPT as a console_scripts entry point, module:function
+    notation, .py file path, or Python module name. Loads the Click command
+    and prints its man page (roff) to standard output without running it.
+
+    Extra arguments after SCRIPT navigate into nested command groups.
+    """
+    if not script_and_args:
+        echo(ctx.get_help(), color=ctx.color)
+        ctx.exit(0)
+
+    script = script_and_args[0]
+    subcommands = script_and_args[1:]
+
+    cmd, _ = resolve_target_command(script, subcommands)
+    prog_name = " ".join((script, *subcommands))
+    echo(render_manpage(cmd, prog_name=prog_name))
+    ctx.exit(0)
 
 
 _ALL_STYLES = (

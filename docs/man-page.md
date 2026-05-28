@@ -26,15 +26,23 @@ assert '.TH "GREET" "1"' in result.output
 assert "greet \\- Greet someone." in result.output
 ```
 
-For build-time generation, call the API directly: `render_manpage(cli)` returns one page's roff, `render_manpages(cli)` returns a `{filename: roff}` mapping for the whole tree, and `write_manpages(cli, target_dir)` writes one `.1` file per command. Dates honor `SOURCE_DATE_EPOCH` for reproducible builds.
+The quickest way to produce a man page is the `man` subcommand: `click-extra man SCRIPT` resolves the target (console_scripts entry point, `module:function`, `.py` file, or module name) and prints its roff page to stdout. Trailing arguments drill into subcommands (`click-extra man flask run`). With uvx it needs nothing installed up front:
 
-A Debian package can generate and install the pages from its `override_dh_installman` rule:
+```{code-block} shell-session
+$ uvx --from click-extra --with flask click-extra man flask > flask.1
+```
+
+For programmatic or build-time generation, call the API directly: `render_manpage(cli)` returns one page's roff, `render_manpages(cli)` returns a `{filename: roff}` mapping for the whole tree, and `write_manpages(cli, target_dir)` writes one `.1` file per command. Dates honor `SOURCE_DATE_EPOCH` for reproducible builds. The `man` subcommand prints a single page; reach for `write_manpages` when you need the full per-subcommand tree.
+
+````{tip}
+A Debian package can generate and install the whole tree from its `override_dh_installman` rule:
 
 ```{code-block} makefile
 override_dh_installman:
 	python -c "from myapp.cli import cli; from click_extra import write_manpages; write_manpages(cli, 'debian/tmp/manpages')"
 	dh_installman -O--buildsystem=pybuild
 ```
+````
 
 ## Layout
 

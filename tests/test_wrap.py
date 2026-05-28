@@ -30,6 +30,7 @@ from click_extra.testing import ExtraCliRunner
 from click_extra.wrap import (
     _config_args_for_target,
     resolve_target,
+    resolve_target_command,
     unpatch_click,
     wrap,
 )
@@ -289,6 +290,54 @@ def test_run_highlights_keywords_with_custom_cls(runner, custom_cls_script):
 
 def test_run_unresolvable_target(runner):
     result = runner.invoke(wrap, ["nonexistent_xyz_12345"])
+    assert result.exit_code != 0
+    assert "Cannot resolve" in result.output
+
+
+# -- shared external-CLI command resolution -----------------------------------
+
+
+def test_resolve_target_command_returns_command_and_context(greet_script):
+    """The shared resolver returns the target's command object and a context."""
+    cmd, cmd_ctx = resolve_target_command(greet_script)
+    assert isinstance(cmd, click.Command)
+    assert isinstance(cmd_ctx, click.Context)
+
+
+def test_resolve_target_command_drills_subcommand(custom_cls_script):
+    """Extra subcommands navigate into nested groups."""
+    cmd, _ = resolve_target_command(custom_cls_script, ("bake",))
+    assert cmd.name == "bake"
+
+
+# -- man subcommand: man page generation for an external CLI ------------------
+
+
+def test_man_subcommand_renders_manpage(runner, greet_script):
+    """``click-extra man SCRIPT`` prints the target's roff man page and exits."""
+    result = runner.invoke(demo, ["man", greet_script], color=False)
+    assert result.exit_code == 0
+    assert '.TH "' in result.stdout
+    assert "Greet someone." in result.stdout
+    assert "Name to greet." in result.stdout
+
+
+def test_man_subcommand_custom_class_group(runner, custom_cls_script):
+    """``man`` resolves a custom-class group target via the shared scanner."""
+    result = runner.invoke(demo, ["man", custom_cls_script], color=False)
+    assert result.exit_code == 0
+    assert "Manage recipes and ingredients." in result.stdout
+
+
+def test_man_subcommand_drills_into_subcommand(runner, custom_cls_script):
+    """Extra arguments after SCRIPT render the nested subcommand's page."""
+    result = runner.invoke(demo, ["man", custom_cls_script, "bake"], color=False)
+    assert result.exit_code == 0
+    assert "Bake a cake." in result.stdout
+
+
+def test_man_subcommand_unresolvable_target(runner):
+    result = runner.invoke(demo, ["man", "nonexistent_xyz_12345"])
     assert result.exit_code != 0
     assert "Cannot resolve" in result.output
 

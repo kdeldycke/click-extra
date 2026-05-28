@@ -319,6 +319,90 @@ def invoke_target(
         sys.argv = original_argv
 
 
+def resolve_target_command(
+    script: str,
+    subcommands: tuple[str, ...] = (),
+) -> tuple[click.Command, click.Context]:
+    """Import SCRIPT and return its Click command object and a matching context.
+
+    Resolves SCRIPT through :func:`resolve_target`, imports the module, then
+    obtains the command object without running the CLI: the entry-point
+    attribute when it is itself a command, otherwise by scanning the module's
+    namespace for Click command instances (preferring groups). Optional
+    ``subcommands`` navigate into nested groups, mirroring the path a user would
+    type.
+
+    Shared by the ``show-params`` and ``man`` subcommands so both introspect the
+    exact same resolved command.
+
+    :raises click.ClickException: when no unambiguous Click command can be
+        found, or a requested subcommand does not exist.
+    """
+    module_path, function_name = resolve_target(script)
+    if module_path.endswith(".py"):
+        # Load the file as a module. exec_module runs it under a synthetic
+        # name, so the target's ``if __name__ == "__main__"`` guard does not
+        # fire: the command objects are defined, not executed.
+        spec = importlib.util.spec_from_file_location(
+            "_click_extra_target", module_path
+        )
+        if spec is None or spec.loader is None:
+            raise click.ClickException(f"Cannot load {module_path!r} as a module.")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+    else:
+        mod = importlib.import_module(module_path)
+    cli_obj = getattr(mod, function_name) if function_name else None
+
+    if not isinstance(cli_obj, click.Command):
+        # The entry point might be a wrapper function. Scan the module
+        # for Click command instances, preferring groups.
+        groups = {}
+        commands = {}
+        for attr_name in dir(mod):
+            obj = getattr(mod, attr_name, None)
+            if isinstance(obj, click.Group):
+                groups[attr_name] = obj
+            elif isinstance(obj, click.Command):
+                commands[attr_name] = obj
+
+        if len(groups) == 1:
+            cli_obj = next(iter(groups.values()))
+        elif groups:
+            names = ", ".join(sorted(groups))
+            raise click.ClickException(
+                f"Multiple command groups in {module_path}: {names}. "
+                f"Specify the correct one with module:name notation."
+            )
+        elif len(commands) == 1:
+            cli_obj = next(iter(commands.values()))
+        elif commands:
+            names = ", ".join(sorted(commands))
+            raise click.ClickException(
+                f"Multiple commands in {module_path}: {names}. "
+                f"Specify the correct one with module:name notation."
+            )
+        else:
+            raise click.ClickException(f"No Click commands found in {module_path}.")
+
+    # Navigate to the requested subcommand, if any.
+    assert isinstance(cli_obj, click.Command)
+    cmd: click.Command = cli_obj
+    cmd_ctx = click.Context(cmd, info_name=cmd.name or script)
+    for sub in subcommands:
+        if not isinstance(cmd, click.Group):
+            raise click.ClickException(
+                f"{cmd.name!r} is not a group; cannot navigate to {sub!r}."
+            )
+        child = cmd.get_command(cmd_ctx, sub)
+        if child is None:
+            raise click.ClickException(f"No subcommand {sub!r} in {cmd.name!r}.")
+        cmd_ctx = click.Context(child, parent=cmd_ctx, info_name=sub)
+        cmd = child
+
+    return cmd, cmd_ctx
+
+
 class _WrapCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
     """Cloup Command for the ``wrap`` subcommand.
 
