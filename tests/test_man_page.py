@@ -28,6 +28,7 @@ from click_extra import (
     group,
     man_option,
     option,
+    option_group,
 )
 from click_extra.commands import ExtraGroup
 from click_extra.man_page import render_manpage, render_manpages, write_manpages
@@ -56,6 +57,18 @@ def station():
 @station.command()
 def calibrate():
     """Recalibrate the sensors."""
+
+
+@command
+@option_group(
+    "Location",
+    option("--city", help="City to report on."),
+    option("--country", help="Two-letter country code."),
+    help="Where to read the weather.",
+)
+@option("--fahrenheit", is_flag=True, help="Report in Fahrenheit.")
+def forecast(city, country, fahrenheit):
+    """Report the forecast."""
 
 
 def test_render_manpage_header_and_sections():
@@ -95,6 +108,28 @@ def test_boolean_flag_renders_both_spellings():
 
 def test_hidden_option_skipped():
     assert "secret" not in render_manpage(weather)
+
+
+def test_option_groups_become_subsections():
+    """An explicit option group renders as a roff ``.SS`` subsection of OPTIONS,
+    with the ungrouped remainder gathered under ``Other options``."""
+    roff = render_manpage(forecast)
+    assert '.SS "Location"' in roff
+    # The group's own help renders under its heading.
+    assert "Where to read the weather." in roff
+    assert "\\fB\\-\\-city\\fR" in roff
+    # Ungrouped options (the --fahrenheit flag plus the injected defaults) land
+    # under the default group, after the explicit one.
+    assert '.SS "Other options"' in roff
+    assert "\\fB\\-\\-fahrenheit\\fR" in roff
+    assert roff.index('.SS "Location"') < roff.index('.SS "Other options"')
+
+
+def test_ungrouped_command_has_no_subsections():
+    """A command with no explicit option group keeps a flat OPTIONS list."""
+    roff = render_manpage(weather)
+    assert ".SH OPTIONS" in roff
+    assert ".SS" not in roff
 
 
 def test_operand_documented():
@@ -189,6 +224,12 @@ def test_copyright_omitted_by_default():
     assert ".SH COPYRIGHT" not in render_manpage(weather)
 
 
+def test_authors_omitted_without_metadata():
+    """No distribution matches the command name, so AUTHORS is dropped rather
+    than synthesized from a fallback."""
+    assert ".SH AUTHORS" not in render_manpage(weather)
+
+
 def test_source_date_epoch_is_honored(monkeypatch):
     monkeypatch.setenv("SOURCE_DATE_EPOCH", "1700000000")
     assert '"2023-11-14"' in render_manpage(weather)
@@ -216,9 +257,19 @@ def test_man_option():
 
 
 @pytest.mark.skipif(shutil.which("groff") is None, reason="groff not installed")
-def test_generated_roff_passes_groff_lint():
-    """Every generated page must parse cleanly under groff (no warnings)."""
-    for filename, roff in render_manpages(station, prog_name="station").items():
+@pytest.mark.parametrize(
+    ("cli", "prog_name"),
+    (
+        (station, "station"),
+        (forecast, "forecast"),
+    ),
+)
+def test_generated_roff_passes_groff_lint(cli, prog_name):
+    """Every generated page must parse cleanly under groff (no warnings).
+
+    ``forecast`` exercises the ``.SS`` option-group subsections.
+    """
+    for filename, roff in render_manpages(cli, prog_name=prog_name).items():
         proc = subprocess.run(
             ["groff", "-man", "-ww", "-z", "-Tutf8"],
             input=roff,

@@ -105,6 +105,30 @@ When an argument carries a `help=` string, Click Extra also itemizes operands in
 
 The `OPTIONS` section is the formal, per-item description of each option, rendered as the `Options:` block above. Every entry pairs the option's literal name (`--units`) and its replaceable metavar (`[celsius|fahrenheit]`) with the help text and a trailing bracket field carrying the option's environment variable and default. Click Extra injects its own options into the same list (`--config`, `--verbosity`, `--version`, `--help`, …), so a CLI built on it gets a complete, conventional options section without extra work.
 
+When a CLI sorts its options into groups with `@option_group`, each group becomes a `.SS` subsection of `OPTIONS`; the options left ungrouped, including the ones Click Extra injects, gather under a trailing `Other options` heading. This is the same split the `--help` screen draws:
+
+```{click:source}
+from click_extra import command, option, option_group
+
+
+@command
+@option_group(
+    "Location",
+    option("--city", help="City to report on."),
+    option("--country", help="Two-letter country code."),
+)
+@option("--fahrenheit", is_flag=True, help="Report in the Fahrenheit scale.")
+def forecast(city, country, fahrenheit):
+    """Report a multi-day forecast."""
+```
+
+```{click:run}
+result = invoke(forecast, args=["--man"])
+assert result.exit_code == 0
+assert '.SS "Location"' in result.output
+assert '.SS "Other options"' in result.output
+```
+
 ### `ENVIRONMENT`
 
 The `ENVIRONMENT` section lists the variables that change the program's behavior. Click Extra derives one per option from the command name (the `WEATHER_` prefix here) and surfaces it in the help screen's bracket field (`[env var: WEATHER_UNITS; …]` above) when `show_envvar` is enabled. The variable is live: setting it feeds the option, ranked below the command line but above the default in the [precedence chain](config.md#precedence).

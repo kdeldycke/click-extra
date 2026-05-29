@@ -30,6 +30,8 @@ This is Click Extra's answer to the unmaintained `click-man
 - honoring Click's ``\\b`` no-rewrap marker (rendered as roff ``.nf`` / ``.fi``);
 - rendering boolean flags (``--foo`` / ``--no-foo``) and skipping hidden
   commands and options;
+- mirroring Cloup option groups as ``.SS`` subsections of OPTIONS (ungrouped
+  options fall under an ``Other options`` heading), matching the help screen;
 - emitting ENVIRONMENT (from auto-generated env vars), FILES (from the
   ``--config`` search pattern) and EXIT STATUS sections that click-man never
   grew.
@@ -51,6 +53,7 @@ from importlib import metadata
 from pathlib import Path
 
 import click
+from cloup import OptionGroupMixin
 
 from .config import ConfigOption
 from .envvar import param_envvar_ids
@@ -198,6 +201,38 @@ class ManOptionItem:
 
 
 @dataclass
+class ManOptionGroup:
+    """A titled cluster of OPTIONS entries, mirroring a Cloup option group.
+
+    A plain Click command, or a Cloup command with no explicit
+    ``@option_group``, yields a single group with ``title=None``: it renders as
+    a flat OPTIONS list with no ``.SS`` subsection heading, identical to a man
+    page that never grouped its options.
+    """
+
+    options: tuple[ManOptionItem, ...]
+    """The option entries in this group."""
+
+    title: str | None = None
+    """The subsection heading, rendered as a roff ``.SS``. ``None`` for the
+    implicit single group of an ungrouped command (no heading emitted)."""
+
+    help: str | None = None
+    """Optional group description, rendered as prose under the heading."""
+
+    def to_roff(self) -> list[str]:
+        """Render an optional ``.SS`` heading, group help, then the options."""
+        lines: list[str] = []
+        if self.title:
+            lines.append(".SS " + _quote(self.title))
+        if self.help:
+            lines.extend(_emit_help(self.help))
+        for option in self.options:
+            lines.extend(option.to_roff())
+        return lines
+
+
+@dataclass
 class ManPage:
     """A whole man page in structured form, ready to render to roff.
 
@@ -224,8 +259,9 @@ class ManPage:
     operands: tuple[tuple[str, str], ...] = ()
     """Positional arguments as ``(metavar, help)`` pairs."""
 
-    options: tuple[ManOptionItem, ...] = ()
-    """The OPTIONS entries."""
+    option_groups: tuple[ManOptionGroup, ...] = ()
+    """The OPTIONS entries, partitioned into one or more groups. A command
+    without explicit option groups carries a single untitled group."""
 
     subcommands: tuple[tuple[str, str], ...] = ()
     """For groups: ``(name, short_help)`` pairs for the COMMANDS section."""
@@ -293,10 +329,10 @@ class ManPage:
                 lines.append(_italic(metavar))
                 lines.extend(_emit_help(help_text))
 
-        if self.options:
+        if self.option_groups:
             lines.append(".SH OPTIONS")
-            for option in self.options:
-                lines.extend(option.to_roff())
+            for group in self.option_groups:
+                lines.extend(group.to_roff())
 
         if self.subcommands:
             lines.append(".SH COMMANDS")
@@ -416,6 +452,71 @@ def _resolve_files(command: Command, ctx: Context) -> tuple[str, ...]:
     return (str(default),)
 
 
+def _option_item(param: Parameter, ctx: Context) -> ManOptionItem:
+    """Build a :class:`ManOptionItem` from a single Click option."""
+    is_flag = bool(getattr(param, "is_flag", False))
+    return ManOptionItem(
+        names=tuple(param.opts) + tuple(param.secondary_opts),
+        metavar=None if is_flag else param.make_metavar(ctx=ctx),
+        is_choice=isinstance(param.type, click.Choice),
+        help=getattr(param, "help", None),
+        envvars=param_envvar_ids(param, ctx),
+        required=param.required,
+    )
+
+
+def _build_option_groups(
+    command: Command,
+    ctx: Context,
+    option_items: list[tuple[Parameter, ManOptionItem]],
+) -> tuple[ManOptionGroup, ...]:
+    """Partition extracted options into man-page OPTIONS subsections.
+
+    Cloup commands expose explicit option groups: each visible one becomes a
+    titled :class:`ManOptionGroup` (a roff ``.SS``), with the ungrouped
+    remainder gathered under Cloup's default-group title (``Other options``),
+    mirroring the ``--help`` screen. A command with no explicit
+    ``@option_group`` collapses to a single untitled group, rendered as a flat
+    list exactly as before.
+
+    Group membership is matched by option identity, not name: Click Extra's
+    ``--config`` / ``--no-config`` pair shares the ``config`` destination name,
+    so a name-keyed lookup would drop one of them.
+    """
+    items_by_id = {id(param): item for param, item in option_items}
+
+    if isinstance(command, OptionGroupMixin) and command.option_groups:
+        explicit: list[ManOptionGroup] = []
+        claimed: set[int] = set()
+        for group in command.option_groups:
+            claimed.update(id(opt) for opt in group.options)
+            if group.hidden:
+                continue
+            members = tuple(
+                items_by_id[id(opt)]
+                for opt in group.options
+                if id(opt) in items_by_id
+            )
+            if members:
+                explicit.append(
+                    ManOptionGroup(
+                        options=members, title=group.title, help=group.help
+                    )
+                )
+        ungrouped = tuple(
+            item for param, item in option_items if id(param) not in claimed
+        )
+        if explicit:
+            if ungrouped:
+                title = command.get_default_option_group(ctx).title
+                explicit.append(ManOptionGroup(options=ungrouped, title=title))
+            return tuple(explicit)
+        return (ManOptionGroup(options=ungrouped),) if ungrouped else ()
+
+    items = tuple(item for _, item in option_items)
+    return (ManOptionGroup(options=items),) if items else ()
+
+
 def extract_manpage(
     command: Command,
     ctx: Context,
@@ -432,10 +533,10 @@ def extract_manpage(
     :meth:`click.Command.make_context` with ``resilient_parsing=True``), so
     that auto-generated environment-variable prefixes resolve correctly.
     """
-    options: list[ManOptionItem] = []
     operands: list[tuple[str, str]] = []
     environment: list[tuple[str, str]] = []
     seen_envvars: set[str] = set()
+    option_items: list[tuple[Parameter, ManOptionItem]] = []
 
     for param in command.get_params(ctx):
         if getattr(param, "hidden", False):
@@ -447,17 +548,7 @@ def extract_manpage(
             )
             continue
 
-        is_flag = bool(getattr(param, "is_flag", False))
-        options.append(
-            ManOptionItem(
-                names=tuple(param.opts) + tuple(param.secondary_opts),
-                metavar=None if is_flag else param.make_metavar(ctx=ctx),
-                is_choice=isinstance(param.type, click.Choice),
-                help=getattr(param, "help", None),
-                envvars=param_envvar_ids(param, ctx),
-                required=param.required,
-            )
-        )
+        option_items.append((param, _option_item(param, ctx)))
         for var in param_envvar_ids(param, ctx):
             if var in seen_envvars:
                 continue
@@ -478,7 +569,7 @@ def extract_manpage(
         synopsis_pieces=tuple(command.collect_usage_pieces(ctx)),
         description=command.help or "",
         operands=tuple(operands),
-        options=tuple(options),
+        option_groups=_build_option_groups(command, ctx, option_items),
         subcommands=tuple(subcommands),
         environment=tuple(environment),
         files=_resolve_files(command, ctx),
