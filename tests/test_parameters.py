@@ -306,6 +306,20 @@ def test_integrated_show_params_option(invoke, create_config):
 
     expected_table: list = [
         (
+            "show-params-cli.accessible",
+            "--accessible",
+            "click_extra.accessibility.AccessibleOption",
+            "click.types.BoolParamType",
+            "bool",
+            "✘",
+            "✘",
+            "✓",
+            "SHOW_PARAMS_CLI_ACCESSIBLE",
+            False,
+            False,
+            "DEFAULT",
+        ),
+        (
             "show-params-cli.color",
             "--color, --ansi / --no-color, --no-ansi",
             "click_extra.colorize.ColorOption",

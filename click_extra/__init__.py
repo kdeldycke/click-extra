@@ -52,6 +52,7 @@ Style = _styling_module.Style  # type: ignore[misc]
 del _styling_module
 
 from . import context
+from .accessibility import AccessibleOption
 from .colorize import (
     ColorOption,
     HelpExtraFormatter,
@@ -81,6 +82,7 @@ from .config import (
 )
 from .context import ExtraContext
 from .decorators import (  # type: ignore[no-redef]
+    accessible_option,
     argument,
     color_option,
     command,
@@ -177,6 +179,7 @@ __all__ = [
     "UUID",
     "VCS",
     "Abort",
+    "AccessibleOption",
     "Argument",
     "BadArgumentUsage",
     "BadOptionUsage",
@@ -250,6 +253,7 @@ __all__ = [
     "VerbosityOption",
     "VersionOption",
     "ZeroExitOption",
+    "accessible_option",
     "annotations",
     "argument",
     "clear",

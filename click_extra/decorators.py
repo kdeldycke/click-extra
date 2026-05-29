@@ -22,6 +22,7 @@ from functools import wraps
 import click
 import cloup
 
+from .accessibility import AccessibleOption
 from .colorize import ColorOption
 from .commands import (
     DEFAULT_HELP_NAMES,
@@ -145,6 +146,7 @@ lazy_group = decorator_factory(dec=group, cls=LazyGroup)
 
 
 # Introduce new parameter decorators specific to Click Extra.
+accessible_option = decorator_factory(dec=option, cls=AccessibleOption)
 color_option = decorator_factory(dec=option, cls=ColorOption)
 config_option = decorator_factory(dec=option, cls=ConfigOption)
 jobs_option = decorator_factory(dec=option, cls=JobsOption)

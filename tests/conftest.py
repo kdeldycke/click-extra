@@ -33,13 +33,16 @@ from click_extra.pytest import (  # noqa: F401
 
 @pytest.fixture(autouse=True)
 def _isolate_color_envvars():
-    """Remove color-affecting environment variables so tests are deterministic.
+    """Remove output-affecting environment variables so tests are deterministic.
 
     Variables like ``NO_COLOR`` and ``LLM`` are commonly set by shells, editors,
     and AI tooling. Their presence overrides ``ColorOption``'s default, making
-    color-dependent tests fail in developer environments.
+    color-dependent tests fail in developer environments. ``ACCESSIBLE`` is
+    isolated for the same reason: it lowers the ``--color`` and ``--table-format``
+    defaults.
     """
-    saved = {var: os.environ.pop(var) for var in color_envvars if var in os.environ}
+    isolated = (*color_envvars, "ACCESSIBLE")
+    saved = {var: os.environ.pop(var) for var in isolated if var in os.environ}
     yield
     os.environ.update(saved)
 

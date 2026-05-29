@@ -30,6 +30,7 @@ import click
 import cloup
 
 from . import context
+from .accessibility import AccessibleOption
 from .colorize import (
     ColorOption,
     ExtraHelpColorsMixin,
@@ -83,6 +84,10 @@ def default_extra_params() -> list[click.Option]:
             behavior and value of the other options.
     #. ``--no-config``
     #. ``--validate-config CONFIG_PATH``
+    #. ``--accessible``
+        .. hint::
+            ``--accessible`` is placed before ``--color`` and ``--table-format`` so it
+            can lower their defaults (via ``default_map``) before they are resolved.
     #. ``--color``, ``--ansi`` / ``--no-color``, ``--no-ansi``
     #. ``--theme``
     #. ``--show-params``
@@ -124,6 +129,7 @@ def default_extra_params() -> list[click.Option]:
         ConfigOption(),
         NoConfigOption(),
         ValidateConfigOption(),
+        AccessibleOption(),
         ColorOption(),
         ThemeOption(),
         ShowParamsOption(),

@@ -193,20 +193,6 @@ assert "\x1b[31m\x1b[2mrequired\x1b[0m" in result.output
 When choices are `Enum` members, Click Extra colorizes their `name` attribute (not their `value`), matching [Click's own behavior](types.md#limits-of-click-choice). Use [`EnumChoice`](types.md#enumchoice) if you need user-friendly choice strings based on values or custom representations.
 ```
 
-## Why not use `rich-click`?
-
-[`rich-click`](https://github.com/ewels/rich-click) is a good project that aims to integrate [Rich](https://github.com/Textualize/rich) with Click. Like Click Extra, it provides a ready-to-use help formatter for Click.
-
-But contrary to Click Extra, the [help screen is rendered within a table](https://github.com/ewels/rich-click), which takes the whole width of the terminal. This is not ideal if you try to print the output of a command somewhere else.
-
-The typical use-case is users reporting issues on GitHub, and pasting the output of a command in the issue description. If the output is too wide, it will be akwardly wrapped, or [adds a horizontal scrollbar](https://github.com/callowayproject/bump-my-version/pull/23#issuecomment-1602007874) to the page.
-
-Without a table imposing a maximal width, the help screens from Click Extra will be rendered with the minimal width of the text, and will be more readable.
-
-```{hint}
-This is just a matter of preference, as nothing prevents you to use both `rich-click` and Click Extra in the same project, and get the best from both.
-```
-
 <a name="color-no-color-flag"></a>
 
 ## `--color`/`--no-color` flag
@@ -257,6 +243,52 @@ assert "\x1b[32mHello in green!\x1b[0m" in result.output
 result = invoke(greet, args=["--no-color"])
 assert result.exit_code == 0
 assert "Hello without color." in result.output
+```
+
+<a name="accessible-flag"></a>
+
+## `--accessible` flag
+
+A screen reader consumes a terminal as a linear stream of characters. Two defaults that please sighted users work against that stream: ANSI color codes carry no meaning once flattened to text, and tables drawn with Unicode box-drawing characters (`│`, `╭`, `─`, …) turn their borders and whitespace-based column alignment into noise.
+
+The `--accessible` flag folds both concerns into a single switch. Enabling it is equivalent to passing `--no-color --table-format plain`: ANSI codes are stripped and tables render without borders. The `ACCESSIBLE` environment variable enables the same mode, so a user can opt in once for every Click Extra command they run.
+
+The flag only lowers the *defaults* of `--color` and `--table-format`. An explicit `--color` or `--table-format` on the command line, or in a configuration file, keeps precedence. The resulting order is: command line > configuration file > `--accessible` > built-in defaults. There is no `--no-accessible`: to opt back out of a single value, pass the explicit option you want.
+
+```{click:source}
+from click_extra import command, pass_context, style, Color
+
+@command
+@pass_context
+def inventory(ctx):
+    """List a fruit stock."""
+    data = (
+        ("apple", style("red", fg=Color.red)),
+        ("lime", style("green", fg=Color.green)),
+    )
+    ctx.print_table(data, headers=("fruit", "color"))
+```
+
+```{click:run}
+from textwrap import dedent
+
+result = invoke(inventory, args=["--accessible"])
+assert result.exit_code == 0
+# Colors and box-drawing characters are both gone.
+assert "\x1b[" not in result.output
+assert result.output == dedent("""\
+    fruit  color
+    apple  red
+    lime   green
+    """)
+```
+
+```{admonition} Why plain, linear output?
+:class: tip
+
+A screen reader is not the only consumer that prefers a linear, minimal-width stream over a terminal-wide 2D layout. Command output is also pasted into bug reports, piped into other tools, and read on narrow screens. A layout that imposes a maximal width (full-width tables, box-drawing borders, whitespace-padded columns) wraps awkwardly or [grows a horizontal scrollbar](https://github.com/callowayproject/bump-my-version/pull/23#issuecomment-1602007874) once it leaves the terminal it was sized for, while a stream rendered at the minimal width of its text travels everywhere intact.
+
+This is the same reasoning that keeps Click Extra from routing its help screens through [`rich-click`](https://github.com/ewels/rich-click), a good project integrating [Rich](https://github.com/Textualize/rich) with Click whose [help is laid out in a table](https://github.com/ewels/rich-click) spanning the whole terminal width. `--accessible` carries that preference from help screens to colors and tables. The two are not mutually exclusive, though: nothing stops you from using `rich-click` and Click Extra together and taking the best of both.
 ```
 
 ## `--help`, `-h` aliases

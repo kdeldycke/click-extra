@@ -220,6 +220,7 @@ Click Extra provides these additional, pre-configured options decorators you can
 | Decorator                                                          | Specification                             | Default |
 | ------------------------------------------------------------------ | ----------------------------------------- | ------- |
 | [`@timer_option`](execution.md#execution-time)                     | `--time / --no-time`                      | ✅      |
+| [`@accessible_option`](colorize.md#accessible-flag)                | `--accessible`                            | ✅      |
 | [`@color_option`](colorize.md#color-no-color-flag)                 | `--color, --ansi / --no-color, --no-ansi` | ✅      |
 | [`@theme_option`](theme.md)                                        | `--theme`                                 | ✅      |
 | [`@config_option`](config.md#standalone-option)                    | `--config CONFIG_PATH`                    | ✅      |

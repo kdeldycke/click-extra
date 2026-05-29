@@ -99,6 +99,12 @@ They're divided in 2 categories:
 - Formats that produce **plain text** output (like ASCII tables, grid tables, etc.) and are often composed of Unicode box-drawing characters, to be displayed in a terminal.
 - Formats that produce **markup language** output (like HTML, Markdown, LaTeX, etc.) and are expected to be rendered by a supporting viewer. This category also includes CSV, TSV, and structured serialization formats (HJSON, JSON, JSON5, JSONC, TOML, XML, YAML), which are plain text but meant to be processed by other tools.
 
+```{tip}
+The default `rounded-outline` format draws its borders with Unicode box-drawing characters (`│`, `╭`, `─`, …) and aligns columns with padding. A screen reader announces those separators and the padding gaps as noise, and the column alignment is lost entirely once whitespace is collapsed.
+
+For a screen-reader-friendly rendering, use `--table-format plain`: it keeps the tabular layout with no borders. For output that another program will parse, use a machine-readable format like `csv`. The [`--accessible` flag](colorize.md#accessible-flag) bundles `--table-format plain` with `--no-color` in a single switch.
+```
+
 | Format ID         | Description                                                                                                                                                                                                               | Implementation                               | Markup |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- | ------ |
 | `aligned`         | Compact table with single-space column separators and no borders                                                                                                                                                          | Click Extra                                  | ❌     |
