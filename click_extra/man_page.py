@@ -358,8 +358,10 @@ class ManPage:
             lines.append(".SH FILES")
             for index, path in enumerate(self.files):
                 if index > 0:
-                    lines.append(".br")
+                    lines.append(".sp")
+                lines.append(".nf")
                 lines.append(_italic(path))
+                lines.append(".fi")
 
         if self.exit_status:
             lines.append('.SH "EXIT STATUS"')
