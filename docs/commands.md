@@ -53,7 +53,7 @@ For example:
 
 - `click_extra.echo` is a direct alias to `click.echo` because neither Click Extra or Cloup re-implements an `echo` helper.
 - [`@cloup.option_group` is a specific feature of Cloup](https://cloup.readthedocs.io/en/stable/pages/option-groups.html) that is only implemented by it. It is not modified by Click Extra, and Click does not implement it. Still, `@click_extra.option_group` is a direct alias to Cloup's one.
-- `@click_extra.timer` is a new decorator only implemented by Click Extra. So it is not a proxy of anything.
+- `@click_extra.timer_option` is a new decorator only implemented by Click Extra. So it is not a proxy of anything.
 - As for `@click_extra.version_option`, it is a re-implementation of `@click.version_option`, and so overrides it. If you want to use its original version, import it directly from `click` namespace.
 
 Here is some of the main decorators of Click Extra and how they wraps and extends Cloup and Click ones:

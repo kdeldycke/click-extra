@@ -438,7 +438,7 @@ def _resolve_authors(ctx: Context) -> str | None:
             meta = metadata.metadata(name)
         except metadata.PackageNotFoundError:
             continue
-        author = meta.get("Author") or meta.get("Author-email")
+        author = meta["Author"] or meta["Author-email"]
         if author:
             return author
     return None
@@ -465,7 +465,9 @@ def _resolve_files(command: Command, ctx: Context) -> tuple[str, ...]:
                 default = _config_default(config_option, ctx)
         else:
             default = _config_default(config_option, ctx)
-    except Exception:
+    # FILES is an optional section: any failure resolving the search pattern
+    # (missing context, app-dir lookup errors, …) just drops it silently.
+    except Exception:  # noqa: BLE001
         return ()
     if not default or default in ("disabled", "None"):
         return ()
@@ -616,7 +618,7 @@ def iter_command_contexts(
     ``resilient_parsing=True`` to avoid triggering required-argument errors,
     prompts, or eager-option side effects.
     """
-    info_name = (prog_name or command.name) if not _path else (command.name or "")
+    info_name = (prog_name or command.name or "") if not _path else (command.name or "")
     ctx = command.make_context(
         info_name, [], parent=_parent, resilient_parsing=True
     )

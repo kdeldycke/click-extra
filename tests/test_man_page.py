@@ -276,6 +276,7 @@ def test_generated_roff_passes_groff_lint(cli, prog_name):
             input=roff,
             capture_output=True,
             text=True,
+            check=False,
         )
         assert proc.returncode == 0, f"{filename}: {proc.stderr}"
         assert not proc.stderr.strip(), f"{filename}: {proc.stderr}"
