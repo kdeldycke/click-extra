@@ -98,7 +98,7 @@ class AccessibleOption(ExtraOption):
         if not value:
             raw = os.environ.get("ACCESSIBLE")
             if raw is not None:
-                # Bare presence (or an unparseable value) counts as activation, in
+                # Bare presence (or an unparsable value) counts as activation, in
                 # the same spirit as the color environment variables.
                 value = RawConfigParser.BOOLEAN_STATES.get(raw.lower(), True)
 
