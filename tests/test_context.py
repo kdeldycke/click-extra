@@ -33,7 +33,13 @@ from click.testing import CliRunner
 
 from click_extra import context
 from click_extra.colorize import HelpExtraFormatter
-from click_extra.context import META_NAMESPACE, ExtraContext, _LazyMetaDict
+from click_extra.commands import ExtraCommand
+from click_extra.context import (
+    META_NAMESPACE,
+    POSIXLY_CORRECT_ENVVAR,
+    ExtraContext,
+    _LazyMetaDict,
+)
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -197,6 +203,77 @@ def test_extra_context_color(
 
     ctx = ExtraContext(click.Command("child"), **kwargs)
     assert ctx.color is expected
+
+
+# --- ExtraContext POSIXLY_CORRECT -------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("env_present", "expected"),
+    [
+        pytest.param(False, True, id="unset-keeps-interspersing"),
+        pytest.param(True, False, id="set-forbids-interspersing"),
+    ],
+)
+def test_extra_context_posixly_correct(
+    monkeypatch: pytest.MonkeyPatch,
+    env_present: bool,
+    expected: bool,
+) -> None:
+    """``POSIXLY_CORRECT`` flips ``allow_interspersed_args`` off when present.
+
+    A plain ``click.Command`` defaults the flag to ``True``, so the unset case
+    leaves interspersing enabled and the set case disables it.
+    """
+    if env_present:
+        monkeypatch.setenv(POSIXLY_CORRECT_ENVVAR, "1")
+    else:
+        monkeypatch.delenv(POSIXLY_CORRECT_ENVVAR, raising=False)
+
+    ctx = ExtraContext(click.Command("test"))
+    assert ctx.allow_interspersed_args is expected
+
+
+def test_posixly_correct_presence_overrides_explicit_true(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An empty ``POSIXLY_CORRECT`` still wins over an explicit ``True``.
+
+    Presence alone triggers POSIX parsing (matching GNU getopt), regardless of
+    value, and it takes precedence over a developer-supplied
+    ``allow_interspersed_args=True``.
+    """
+    monkeypatch.setenv(POSIXLY_CORRECT_ENVVAR, "")
+
+    ctx = ExtraContext(click.Command("test"), allow_interspersed_args=True)
+    assert ctx.allow_interspersed_args is False
+
+
+def test_posixly_correct_stops_option_parsing_at_first_argument() -> None:
+    """End-to-end: parsing stops at the first positional under POSIXLY_CORRECT.
+
+    Without the variable, the option interleaves with arguments (GNU style).
+    With it set, the first positional ends option parsing, so the option keeps
+    its default and the remaining tokens fall into the variadic argument.
+    """
+
+    @click.command(cls=ExtraCommand)
+    @click.option("--greeting", default="Hello")
+    @click.argument("names", nargs=-1)
+    @click.pass_context
+    def hello(ctx, greeting, names):
+        click.echo(repr((greeting, names)))
+
+    runner = CliRunner()
+    args = ["alice", "--greeting", "Hi", "bob"]
+
+    gnu = runner.invoke(hello, args, env={POSIXLY_CORRECT_ENVVAR: None})
+    assert gnu.exit_code == 0
+    assert gnu.output == "('Hi', ('alice', 'bob'))\n"
+
+    posix = runner.invoke(hello, args, env={POSIXLY_CORRECT_ENVVAR: "1"})
+    assert posix.exit_code == 0
+    assert posix.output == "('Hello', ('alice', '--greeting', 'Hi', 'bob'))\n"
 
 
 # --- _LazyMetaDict ----------------------------------------------------------

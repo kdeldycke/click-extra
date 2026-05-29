@@ -120,6 +120,48 @@ Inside a `@command`-decorated function, you can either accept `ctx` via [`@pass_
 Outside an active CLI invocation (e.g. at import time, in unit tests that build options directly without invoking a CLI, or in a REPL) there is no context, and these keys are not available. Helpers that need to work in both modes should fall through to a sane default. The [theming layer](theme.md) does this with `get_current_theme()`, which falls back to `get_default_theme()` when no context is in flight.
 ```
 
+## POSIX-compliant argument parsing
+
+Click's default parser lets options and positional arguments interleave freely (GNU style): `mytool alice --greeting Hi bob` is parsed the same as `mytool --greeting Hi alice bob`. The POSIX convention is stricter: option parsing stops at the first positional argument, and everything after it is treated as a positional, even tokens that look like options.
+
+`ExtraContext` honors the standard [`POSIXLY_CORRECT`](https://www.gnu.org/software/libc/manual/html_node/Standard-Environment.html) environment variable that GNU getopt-based tools obey. When it is present in the environment (regardless of its value), Click Extra forces `allow_interspersed_args` to `False`, so any `@command` or `@group` built with Click Extra automatically switches to POSIX parsing.
+
+```{click:source}
+from click_extra import argument, command, echo, option
+
+@command
+@option("--greeting", default="Hello")
+@argument("names", nargs=-1)
+def greet(greeting, names):
+    """Greet each name with the chosen greeting."""
+    for name in names:
+        echo(f"{greeting}, {name}!")
+```
+
+By default, the `--greeting` option is picked up wherever it appears on the line:
+
+```{click:run}
+result = invoke(greet, args=["alice", "--greeting", "Hi", "bob"])
+assert result.exit_code == 0
+assert result.stdout == "Hi, alice!\nHi, bob!\n"
+```
+
+With `POSIXLY_CORRECT` set, the first positional (`alice`) ends option parsing, so `--greeting` keeps its default and the remaining tokens collapse into the `names` argument:
+
+```{click:run}
+result = invoke(
+    greet,
+    args=["alice", "--greeting", "Hi", "bob"],
+    env={"POSIXLY_CORRECT": "1"},
+)
+assert result.exit_code == 0
+assert result.stdout == (
+    "Hello, alice!\nHello, --greeting!\nHello, Hi!\nHello, bob!\n"
+)
+```
+
+This applies per command, so a group and each of its subcommands independently switch to POSIX parsing when the variable is set. Because presence alone is enough, `POSIXLY_CORRECT` also overrides an explicit `context_settings={"allow_interspersed_args": True}`: it can only make parsing stricter, never re-enable interspersing.
+
 ## `click_extra.context` API
 
 ```{eval-rst}
