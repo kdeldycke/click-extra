@@ -44,7 +44,7 @@ Now invocations of the `weather` CLI pick up the light theme without passing `--
 | [`dracula`](#dracula)               | 24-bit RGB           | High-contrast dark theme with vivid neon accents.                    |
 | [`nord`](#nord)                     | 24-bit RGB           | Cool-toned dark theme built around frost-blue and aurora accents.    |
 | [`monokai`](#monokai)               | 24-bit RGB           | Classic dark theme with high-saturation magenta and lime accents.    |
-| [`manpage`](#manpage)               | None (monochrome)    | Bold literals, italic replaceables, no color. Shadows a man page.    |
+| [`manpage`](#manpage)               | None (monochrome)    | Bold literals, italic replaceable, no color. Shadows a man page.    |
 
 Each row is keyed by the `--theme` choice value; access the instance via `BUILTIN_THEMES["<name>"]` (e.g. `BUILTIN_THEMES["dark"]`). Click any name to jump to that theme's [palette listing](#palettes) below.
 
