@@ -25,7 +25,7 @@ The built-in themes (``dark``, ``dracula``, ``light``, ``manpage``,
 ``monokai``, ``nord``, ``solarized_dark``) live in the package data file
 ``click_extra/themes.toml`` and are loaded at module import time via
 :meth:`HelpExtraTheme.from_dict`. ``manpage`` is a colorless theme that
-shadows man-pages(7) typography (bold literals, italic replaceables); the
+shadows man-pages(7) typography (bold literals, italic replaceable); the
 others apply that same bold/italic split on top of their color palettes.
 Adding a new built-in theme is a one-file edit in that TOML file — no Python
 needed. The same TOML schema is used for user-defined themes loaded from
