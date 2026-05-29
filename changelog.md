@@ -1,9 +1,6 @@
 # Changelog
 
-## [`7.18.0.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.17.2...main)
-
-> [!WARNING]
-> This version is **not released yet** and is under active development.
+## [`7.18.0` (2026-05-29)](https://github.com/kdeldycke/click-extra/compare/v7.17.2...v7.18.0)
 
 - Add a `--man` option to the default set of `@extra_command` and `@extra_group` (via `default_extra_params()`): it prints the command's man page (roff) to stdout and exits. Also available as the `@man_option` decorator for plain Click CLIs.
 - Add an `--accessible` option to the default set of `@extra_command` and `@extra_group` (via `default_extra_params()`). Enabling it, or setting the `ACCESSIBLE` environment variable, is equivalent to `--no-color --table-format plain`: it strips ANSI codes and renders tables without Unicode box-drawing characters, for screen readers. An explicit `--color` or `--table-format` (on the command line or in a configuration file) keeps precedence. Also available as the `@accessible_option` decorator and the `AccessibleOption` class.
