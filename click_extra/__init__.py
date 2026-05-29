@@ -76,9 +76,11 @@ from .config import (
     NoConfigOption,
     ValidateConfigOption,
     ValidationError,
+    ValidationReport,
     flatten_config_keys,
     get_tool_config,
     normalize_config_keys,
+    run_config_validation,
 )
 from .context import ExtraContext
 from .decorators import (  # type: ignore[no-redef]
@@ -249,6 +251,7 @@ __all__ = [
     "UsageError",
     "ValidateConfigOption",
     "ValidationError",
+    "ValidationReport",
     "VerboseOption",
     "VerbosityOption",
     "VersionOption",
@@ -311,6 +314,7 @@ __all__ = [
     "render_manpage",
     "render_manpages",
     "render_table",
+    "run_config_validation",
     "search_params",
     "secho",
     "serialize_data",

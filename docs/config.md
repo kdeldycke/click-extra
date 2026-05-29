@@ -337,15 +337,16 @@ def cli(int_param):
     echo(f"int_parameter is {int_param!r}")
 ```
 
-Will raise an error and stop the CLI execution on unrecognized `random_param` value:
+Will stop the CLI execution on the unrecognized `random_param` value, before the command runs:
 
 ```{code-block} shell-session
-:emphasize-lines: 4
+:emphasize-lines: 3
 $ cli --config "cli.toml"
 Load configuration matching cli.toml
-(...)
-ValueError: Parameter 'random_param' is not allowed in configuration file.
+Configuration validation error: Parameter 'random_param' found in second dict but not in first.
 ```
+
+The error is reported at critical level and the process exits with code 1, the same failure mode as [`--validate-config`](#validating-configuration-files) and the [extension validators](#extending-validation). All three share the single `ValidationError` type.
 
 ```{tip}
 If you want to check a configuration file for unrecognized keys without running the CLI, see the [`--validate-config` option](#validating-configuration-files) below.
@@ -597,11 +598,42 @@ $ echo $?
 1
 ```
 
-Normal `--config` loading is fail-fast: the first `ValidationError` becomes a critical-level log message and the run exits 1, before any subcommand callback fires.
+Normal `--config` loading is fail-fast: the first `ValidationError` becomes a critical-level log message and the run exits 1, before any subcommand callback fires. Both modes go through the same pipeline, so an unknown CLI-flag key, an unknown schema field (under `schema_strict`), and an extension-validator failure all surface as the same `ValidationError`, whichever sub-tree the offending key sits in.
 
 ```{note}
 The internal name for an extension path is `opaque_path`. You'll see it in click-extra's source under `_collect_opaque_paths_from_schema`, in the `opaque_keys` parameter of `normalize_config_keys` and `flatten_config_keys`, and in the cached `ConfigOption._opaque_paths` attribute. From the pipeline's point of view those paths are stop markers — places it must not descend into. From your app's point of view they're extension points. The vocabulary divergence is intentional: developers reading their own code see *extension* (intent); developers reading click-extra's source see *opaque* (implementation).
 ```
+
+### Validating programmatically
+
+Both `--validate-config` and the runtime strict check are built on top of a single primitive, {py:func}`~click_extra.config.run_config_validation`. It runs all three stages (the CLI-parameter strict check, the typed schema build, and every registered `ConfigValidator`) in one pass and returns a {py:class}`~click_extra.config.ValidationReport`. Reach for it when I want to validate a parsed configuration document outside Click's option callbacks: a pre-flight check in a deployment script, a custom subcommand that lints config files, or a test harness.
+
+```{code-block} python
+from dataclasses import dataclass, field
+
+from click_extra import run_config_validation
+
+@dataclass
+class Forecast:
+    city: str = ""
+    stations: dict[str, dict] = field(default_factory=dict)
+
+report = run_config_validation(
+    {"weather": {"city": "Oslo", "stations": {"north": {"altitude": 12}}}},
+    app_name="weather",
+    params_template=None,
+    config_schema=Forecast,
+)
+```
+
+The report exposes the typed instance, the extracted extension sub-trees, and every error found:
+
+- `report.ok` is `True` when no error was detected.
+- `report.schema_instance` holds the built `Forecast(city="Oslo", stations={"north": {"altitude": 12}})`, or `None` when no schema is configured.
+- `report.opaque_subtrees` maps each extension path to its sub-tree, here `{"stations": {"north": {"altitude": 12}}}`.
+- `report.errors` is a tuple of {py:class}`~click_extra.config.ValidationError`, empty on success.
+
+Pass `params_template=None` to skip the CLI-parameter strict check (useful for a schema-only validation), or the command's template to enable it. `collect_all=True` (the default) gathers every error so a single run yields the full punch list; `collect_all=False` stops at the first failure.
 
 ### Built-in extension points
 
@@ -1833,7 +1865,7 @@ Nested dataclass fields without `config_path` metadata are matched by their norm
 
 ### Schema validation
 
-By default, configuration keys that don't match any dataclass field are silently ignored. The `schema_strict` parameter changes this to raise a `ValueError`, catching typos and stale configuration entries:
+By default, configuration keys that don't match any dataclass field are silently ignored. The `schema_strict` parameter changes this to report a validation error, catching typos and stale configuration entries:
 
 ```python
 @group(config_schema=AppConfig, schema_strict=True)
@@ -1846,14 +1878,14 @@ Or directly on the config option:
 @config_option(config_schema=AppConfig, schema_strict=True)
 ```
 
-When `schema_strict=True`, the error message lists both the unrecognized keys and all valid options:
+When `schema_strict=True`, an unrecognized key stops the run with a critical-level log and exit code 1. The message lists both the unrecognized keys and all valid options:
 
 ```text
-ValueError: Unknown configuration option(s): typo_field. Valid options: known_field, output_format
+Configuration validation error: Unknown configuration option(s): typo_field. Valid options: known_field, output_format
 ```
 
 ```{note}
-`schema_strict` is separate from the existing `strict` parameter. `strict` controls whether `merge_default_map` rejects config keys that don't match CLI parameters. `schema_strict` validates against dataclass fields instead. The two can be used independently.
+`schema_strict` is separate from the existing `strict` parameter. `strict` controls whether config keys that don't match CLI parameters are rejected; `schema_strict` validates against dataclass fields instead. The two can be used independently, and both report through the same `ValidationError` type (see [Error reporting](#error-reporting)).
 ```
 
 ## Fallback sections

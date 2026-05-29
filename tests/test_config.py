@@ -571,14 +571,14 @@ def test_strict_conf(invoke, create_config, conf_text, expect_error):
     result = invoke(config_cli3, "--config", str(conf_path), "subcommand", color=False)
 
     if expect_error:
-        assert result.exception
-        assert type(result.exception) is ValueError
-        assert (
-            str(result.exception)
-            == "Parameter 'random_stuff' found in second dict but not in first."
-        )
-        assert not result.stdout
+        # Unknown keys surface as a clean critical-level log and exit 1, before
+        # the subcommand runs, not as a raw ValueError traceback.
         assert result.exit_code == 1
+        assert not result.stdout
+        assert (
+            "Configuration validation error: Parameter 'random_stuff' found in "
+            "second dict but not in first." in result.stderr
+        )
     else:
         assert result.exit_code == 0
         assert "dummy_flag    is True" in result.stdout
@@ -3924,10 +3924,10 @@ def test_config_schema_strict_rejects_unknown(invoke, create_config):
     )
 
     result = invoke(strict_cli, "--config", str(conf_path), "subcommand", color=False)
-    assert result.exit_code != 0
-    assert result.exception
-    assert type(result.exception) is ValueError
-    assert "typo_field" in str(result.exception)
+    # The dataclass adapter's unknown-key error reaches the user as a clean
+    # critical-level log and exit 1, unified with the other validation paths.
+    assert result.exit_code == 1
+    assert "typo_field" in result.stderr
 
 
 def test_config_schema_strict_passes_when_valid(invoke, create_config):
@@ -4005,10 +4005,8 @@ def test_config_schema_strict_with_nested(invoke, create_config):
         "subcommand",
         color=False,
     )
-    assert result.exit_code != 0
-    assert result.exception
-    assert type(result.exception) is ValueError
-    assert "section_unknown" in str(result.exception)
+    assert result.exit_code == 1
+    assert "section_unknown" in result.stderr
 
 
 def test_pyproject_toml_cwd_discovery(invoke, tmp_path, monkeypatch):
@@ -5086,3 +5084,194 @@ def test_collect_opaque_paths_from_schema():
     # Empty result for non-dataclass schemas.
     assert _collect_opaque_paths_from_schema(None) == frozenset()
     assert _collect_opaque_paths_from_schema(int) == frozenset()
+
+
+def test_schema_strict_honors_extension_metadata_on_non_mapping_field(
+    invoke, create_config
+):
+    """schema_strict must not descend into an EXTENSION_METADATA_KEY-marked field
+    whose Python type is not a mapping.
+
+    Before the opaque-path unification, the outer strip honored the marker but
+    the dataclass adapter's own flatten boundary inspected only the type hint, so
+    the marked sub-tree was flattened into dotted keys and rejected as unknown.
+    """
+    from dataclasses import dataclass, field
+
+    from click_extra import EXTENSION_METADATA_KEY
+    from click_extra.config import get_tool_config
+
+    @dataclass
+    class AppConfig:
+        # Typed as a list, but the marker tells click-extra the backing dict in
+        # the config file is user-controlled extension content.
+        plugins: list = field(
+            default_factory=list,
+            metadata={EXTENSION_METADATA_KEY: True},
+        )
+
+    @group(config_schema=AppConfig, schema_strict=True)
+    @pass_context
+    def marked_strict_cli(ctx):
+        config = get_tool_config(ctx)
+        echo(f"plugins is {config.plugins!r}")
+
+    @marked_strict_cli.command()
+    def subcommand():
+        echo("ok")
+
+    conf_path = create_config(
+        "marked_strict.toml",
+        dedent("""\
+            [marked-strict-cli.plugins.alpha]
+            anything = "goes"
+
+            [marked-strict-cli.plugins.beta]
+            nested = { deeper = 1 }
+            """),
+    )
+
+    result = invoke(
+        marked_strict_cli, "--config", str(conf_path), "subcommand", color=False
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    # The marked sub-tree reaches the schema instance intact, not flattened.
+    assert "plugins is {'alpha': {'anything': 'goes'}" in result.stdout
+
+
+# run_config_validation: the unified pipeline primitive, exercised directly.
+
+
+def test_run_config_validation_valid_document():
+    """A clean document yields an ok report with the schema instance built and
+    every opaque sub-tree extracted."""
+    from dataclasses import dataclass, field
+
+    from click_extra import ConfigValidator, run_config_validation
+
+    @dataclass
+    class AppConfig:
+        verbose: bool = False
+        managers: dict[str, dict] = field(default_factory=dict)
+
+    def accept(section: dict) -> None:
+        pass
+
+    conf = {"my-cli": {"verbose": True, "managers": {"brew": {"timeout": 1}}}}
+    report = run_config_validation(
+        conf,
+        app_name="my-cli",
+        params_template=None,
+        config_schema=AppConfig,
+        config_validators=(
+            ConfigValidator(extension_path="managers", validator=accept),
+        ),
+    )
+    assert report.ok
+    assert report.errors == ()
+    assert report.schema_instance == AppConfig(
+        verbose=True, managers={"brew": {"timeout": 1}}
+    )
+    assert report.opaque_subtrees == {"managers": {"brew": {"timeout": 1}}}
+
+
+def test_run_config_validation_collects_all_then_short_circuits():
+    """collect_all=True gathers errors from every stage in order; collect_all=False
+    stops after the first."""
+    from dataclasses import dataclass, field
+
+    from click_extra import ConfigValidator, run_config_validation
+
+    @dataclass
+    class AppConfig:
+        managers: dict[str, dict] = field(default_factory=dict)
+
+    def reject(section: dict) -> None:
+        from click_extra import ValidationError
+
+        if section:
+            raise ValidationError("x", "no entries allowed")
+
+    conf = {
+        "my-cli": {
+            "bogus_flag": True,
+            "managers": {"x": {"badkey": "oops"}},
+        }
+    }
+    params_template = {"my-cli": {"verbose": None}}
+
+    full = run_config_validation(
+        conf,
+        app_name="my-cli",
+        params_template=params_template,
+        config_schema=AppConfig,
+        config_validators=(
+            ConfigValidator(extension_path="managers", validator=reject),
+        ),
+        strict=True,
+        collect_all=True,
+    )
+    assert not full.ok
+    # Stage order: CLI-flag strict check first, validator failure last.
+    assert [e.code for e in full.errors] == ["unknown_parameter", None]
+    assert "bogus_flag" in full.errors[0].message
+    assert full.errors[1].path == "my-cli.managers.x"
+
+    first_only = run_config_validation(
+        conf,
+        app_name="my-cli",
+        params_template=params_template,
+        config_schema=AppConfig,
+        config_validators=(
+            ConfigValidator(extension_path="managers", validator=reject),
+        ),
+        strict=True,
+        collect_all=False,
+    )
+    assert len(first_only.errors) == 1
+    assert first_only.errors[0].code == "unknown_parameter"
+
+
+def test_run_config_validation_wraps_schema_errors():
+    """A schema_strict failure is recorded as a ValidationError with the
+    schema_error code, and the message is preserved verbatim."""
+    from dataclasses import dataclass
+
+    from click_extra import run_config_validation
+
+    @dataclass
+    class AppConfig:
+        known: str = "default"
+
+    conf = {"my-cli": {"known": "ok", "typo": "oops"}}
+    report = run_config_validation(
+        conf,
+        app_name="my-cli",
+        params_template=None,
+        config_schema=AppConfig,
+        schema_strict=True,
+    )
+    assert not report.ok
+    assert len(report.errors) == 1
+    assert report.errors[0].code == "schema_error"
+    assert report.errors[0].path == ""
+    assert "typo" in report.errors[0].message
+    # Empty path keeps the rendered string identical to the raw message.
+    assert str(report.errors[0]) == report.errors[0].message
+
+
+def test_run_config_validation_no_schema_no_template():
+    """With neither a template nor a schema, the report is ok and carries no
+    schema instance."""
+    from click_extra import run_config_validation
+
+    report = run_config_validation(
+        {"my-cli": {"anything": 1}},
+        app_name="my-cli",
+        params_template=None,
+        config_schema=None,
+    )
+    assert report.ok
+    assert report.schema_instance is None
+    assert report.opaque_subtrees == {}

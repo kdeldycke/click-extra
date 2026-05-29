@@ -51,9 +51,9 @@ import logging
 import os
 import sys
 from collections import ChainMap
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Iterator, Mapping
 from configparser import ConfigParser, ExtendedInterpolation
-from dataclasses import MISSING, dataclass, fields as dc_fields, is_dataclass
+from dataclasses import MISSING, Field, dataclass, fields as dc_fields, is_dataclass
 from enum import Enum
 from functools import cached_property, partial
 from gettext import gettext as _
@@ -640,6 +640,30 @@ def _is_mapping_type(hint: object) -> bool:
     return origin is dict or origin is Mapping
 
 
+def _is_extension_field(field: Field, hint: object) -> bool:
+    """Return ``True`` when a dataclass field is an *extension point*.
+
+    A field qualifies when **either**:
+
+    - it carries ``metadata={EXTENSION_METADATA_KEY: True}`` (explicit marker,
+      useful when the Python type is not a mapping), or
+    - its resolved type hint is ``dict[str, X]`` / ``Mapping[str, X]`` (the user
+      controls the keys, not the schema).
+
+    Single source of truth for the per-field extension-point criteria. Both the
+    recursive schema walk in :py:func:`_collect_opaque_paths_from_schema` and the
+    flatten-boundary set computed inside :py:func:`_from_dataclass` route through
+    this helper so they cannot drift apart. The historical leak this closes:
+    :py:func:`_from_dataclass` used to inspect only the type hint, so a
+    non-mapping field flagged with ``EXTENSION_METADATA_KEY`` was opaque at the
+    outer strip yet transparent at the inner flatten, which then descended into a
+    sub-tree the schema author had marked off-limits.
+    """
+    return bool(field.metadata.get(EXTENSION_METADATA_KEY, False)) or _is_mapping_type(
+        hint
+    )
+
+
 def _collect_opaque_paths_from_schema(
     schema: type | Callable[[dict[str, Any]], Any] | None,
     _prefix: str = "",
@@ -681,8 +705,7 @@ def _collect_opaque_paths_from_schema(
     for f in dc_fields(schema):
         full_path = f"{_prefix}.{f.name}" if _prefix else f.name
         hint = hints.get(f.name)
-        marked = bool(f.metadata.get(EXTENSION_METADATA_KEY, False))
-        if marked or _is_mapping_type(hint):
+        if _is_extension_field(f, hint):
             paths.add(full_path)
         elif is_dataclass(hint) and isinstance(hint, type):
             paths |= _collect_opaque_paths_from_schema(hint, _prefix=full_path)
@@ -803,12 +826,20 @@ def _from_dataclass(
         result[f.name] = value
 
     # --- Phase 2: type-aware normalize + flatten. ---
-    # Detect opaque fields: dict-typed or nested-dataclass-typed.
+    # Detect opaque fields, i.e. flatten boundaries the recursion must not cross:
+    #   - extension points (mapping-typed or EXTENSION_METADATA_KEY-marked), and
+    #   - nested-dataclass-typed fields (Phase 3 hands their intact dict to the
+    #     sub-schema callable, so flattening must stop here too).
+    # The extension-point half goes through _is_extension_field so this set stays
+    # in sync with _collect_opaque_paths_from_schema and honors the metadata
+    # marker on non-mapping fields.
     opaque = frozenset(
         f.name
         for f in all_fields
         if f.name not in result
-        and (_is_mapping_type(hints.get(f.name)) or is_dataclass(hints.get(f.name)))
+        and (
+            _is_extension_field(f, hints.get(f.name)) or is_dataclass(hints.get(f.name))
+        )
     )
 
     normalized = (
@@ -900,6 +931,221 @@ def _make_schema_callable(
         )
     # Already a callable (Pydantic .model_validate, custom function, etc.).
     return schema
+
+
+def _select_app_section(
+    conf: dict[str, Any],
+    app_name: str,
+    fallback_sections: Sequence[str] = (),
+) -> dict[str, Any]:
+    """Extract the app's configuration section from a parsed config document.
+
+    Looks for ``conf[app_name]`` first. If it is missing or empty, tries each
+    name in ``fallback_sections`` in order, logging a deprecation warning on
+    match. Works identically for all configuration formats.
+
+    Free-function form of :py:meth:`ConfigOption._resolve_app_section`, shared
+    with :py:func:`run_config_validation` so both resolve the section (and warn
+    about leftover legacy sections) the exact same way.
+    """
+    logger = logging.getLogger("click_extra")
+    section = conf.get(app_name)
+    if isinstance(section, dict) and section:
+        # Warn about leftover legacy sections.
+        for old_name in fallback_sections:
+            if old_name in conf:
+                logger.warning(
+                    f"Config section [{old_name}] is deprecated and "
+                    f"should be removed. Using [{app_name}]."
+                )
+        return section
+
+    for old_name in fallback_sections:
+        section = conf.get(old_name)
+        if isinstance(section, dict) and section:
+            logger.warning(
+                f"Config section [{old_name}] is deprecated, migrate to [{app_name}]."
+            )
+            return section
+    return {}
+
+
+def _collect_validator_errors(
+    app_name: str,
+    app_section: dict[str, Any],
+    config_validators: Sequence[ConfigValidator],
+) -> Iterator[ValidationError]:
+    """Run every validator against its extension sub-tree, yielding re-anchored
+    :class:`ValidationError` instances.
+
+    Each validator receives the value of the sub-tree at its declared
+    ``extension_path`` (relative to the app section). Missing and non-dict
+    sub-trees are skipped without invoking the validator: an absent or malformed
+    extension table is a click-extra concern, not the validator's. Raised paths
+    are re-anchored to the configuration file root so reporting is uniform across
+    click-extra's own checks and user-registered validators.
+
+    Stage 5 of :py:func:`run_config_validation`. Generator interface so the
+    caller picks its error-handling strategy (collect all, or stop at the first).
+    """
+    for cv in config_validators:
+        subtree, found = _extract_dotted(app_section, cv.extension_path)
+        if not found or not isinstance(subtree, dict):
+            continue
+        try:
+            cv.validator(subtree)
+        except ValidationError as exc:
+            prefix = (
+                f"{app_name}.{cv.extension_path}" if app_name else cv.extension_path
+            )
+            rooted_path = f"{prefix}.{exc.path}" if exc.path else prefix
+            yield ValidationError(rooted_path, exc.message, exc.code)
+
+
+@dataclass(frozen=True)
+class ValidationReport:
+    """Outcome of one pass through :py:func:`run_config_validation`.
+
+    Bundles everything a caller needs after validating a parsed configuration
+    document: the typed schema instance, the extracted opaque sub-trees, and
+    every error detected across all validation stages.
+
+    .. note::
+        The report holds references to the parsed sub-trees, not copies, so
+        building it is cheap regardless of document size.
+    """
+
+    schema_instance: Any | None
+    """Typed object produced by the configured schema callable.
+
+    ``None`` when no schema is configured, or when the schema stage raised
+    (in which case the failure is recorded in :py:attr:`errors`)."""
+
+    opaque_subtrees: dict[str, dict[str, Any]]
+    """Extracted extension sub-trees, keyed by dotted path relative to the app
+    section. Only paths actually present in the document appear here, so callers
+    can re-route them to per-path validators or stash them on ``ctx.meta``."""
+
+    errors: tuple[ValidationError, ...]
+    """Every :class:`ValidationError` detected, in stage order (unknown CLI-flag
+    keys first, then schema errors, then validator failures). Empty on success.
+
+    With ``collect_all=False`` this holds at most one error: the first failure
+    short-circuits the remaining stages."""
+
+    @property
+    def ok(self) -> bool:
+        """``True`` when no error was detected."""
+        return not self.errors
+
+
+def run_config_validation(
+    user_conf: dict[str, Any],
+    *,
+    app_name: str,
+    params_template: dict[str, Any] | None,
+    config_schema: type | Callable[[dict[str, Any]], Any] | None = None,
+    config_validators: Sequence[ConfigValidator] = (),
+    fallback_sections: Sequence[str] = (),
+    schema_strict: bool = False,
+    strict: bool = False,
+    collect_all: bool = True,
+) -> ValidationReport:
+    """Validate a parsed configuration document in one schema-driven pass.
+
+    This is the module-level entry point that unifies click-extra's three
+    historical validation paths (CLI-parameter strict check, dataclass schema,
+    and app-registered :class:`ConfigValidator` hooks) behind a single function
+    yielding a single error type. It is deliberately *not* named
+    ``validate_config``: that name belongs to
+    :py:meth:`ValidateConfigOption.validate_config`, the callback powering the
+    ``--validate-config`` flag.
+
+    Stages, in order:
+
+    1. **Normalize.** Strip reserved keys and expand dotted keys.
+    2. **Partition.** Split opaque sub-trees (schema extension fields plus every
+       registered validator's ``extension_path``) from the CLI-flag-bound
+       content. Extracted sub-trees land in
+       :py:attr:`ValidationReport.opaque_subtrees`.
+    3. **Strict-check** the CLI-flag-bound part against ``params_template``
+       (skipped when ``params_template`` is ``None``).
+    4. **Schema-build** the app section through the configured callable,
+       producing :py:attr:`ValidationReport.schema_instance`.
+    5. **Validate** every opaque sub-tree through its registered validator.
+
+    :param user_conf: The full parsed configuration document.
+    :param app_name: Name of the app's section (used to resolve the section and
+        to root opaque paths and error paths at the document level).
+    :param params_template: The CLI-parameter template the strict check runs
+        against. Pass ``None`` to skip the strict check entirely (e.g. for a
+        schema-only validation).
+    :param config_schema: Dataclass type or callable describing the typed
+        configuration, or ``None``.
+    :param config_validators: Extension validators to run against opaque
+        sub-trees.
+    :param fallback_sections: Legacy section names to try when ``app_name`` is
+        absent or empty.
+    :param schema_strict: Reject keys the dataclass schema does not recognize.
+    :param strict: Reject keys the CLI-parameter template does not recognize.
+    :param collect_all: When ``True`` (default), run every stage and collect all
+        errors. When ``False``, the first error short-circuits the rest.
+    :return: A :class:`ValidationReport`. ``ValidationError`` is the single error
+        type recorded by every stage; ``ValueError`` / ``TypeError`` raised by
+        the strict check or schema callable are wrapped into it.
+    """
+    errors: list[ValidationError] = []
+
+    def record(error: ValidationError) -> bool:
+        """Append *error*; return ``True`` when the caller should stop early."""
+        errors.append(error)
+        return not collect_all
+
+    # Stage 1 — normalize.
+    normalized = _expand_dotted_keys(_strip_reserved_keys(user_conf), strict=strict)
+
+    # Stage 2 — partition opaque sub-trees from CLI-flag-bound content.
+    opaque_paths = _collect_opaque_paths_from_schema(config_schema) | frozenset(
+        cv.extension_path for cv in config_validators
+    )
+    app_section = _select_app_section(user_conf, app_name, fallback_sections)
+    opaque_subtrees: dict[str, dict[str, Any]] = {}
+    for path in opaque_paths:
+        subtree, found = _extract_dotted(app_section, path)
+        if found and isinstance(subtree, dict):
+            opaque_subtrees[path] = subtree
+
+    # Stage 3 — strict-check the CLI-flag-bound part against the template.
+    if params_template is not None:
+        prefixed_paths = (
+            f"{app_name}.{path}" if app_name else path for path in opaque_paths
+        )
+        stripped = _strip_opaque_subtrees(normalized, prefixed_paths)
+        try:
+            _recursive_update(copy.deepcopy(params_template), stripped, strict)
+        except ValueError as exc:
+            # Path-1 error. Empty path keeps str(ValidationError) == str(exc),
+            # so existing message-based assertions and CLI output are preserved.
+            if record(ValidationError("", str(exc), code="unknown_parameter")):
+                return ValidationReport(None, opaque_subtrees, tuple(errors))
+
+    # Stage 4 — build the typed schema instance from the app section.
+    schema_instance = None
+    schema_callable = _make_schema_callable(config_schema, strict=schema_strict)
+    if schema_callable is not None:
+        try:
+            schema_instance = schema_callable(app_section)
+        except (ValueError, TypeError) as exc:
+            # Path-2 error (unknown schema field or type mismatch).
+            if record(ValidationError("", str(exc), code="schema_error")):
+                return ValidationReport(None, opaque_subtrees, tuple(errors))
+
+    # Stage 5 — run every ConfigValidator against its opaque sub-tree.
+    for error in _collect_validator_errors(app_name, app_section, config_validators):
+        if record(error):
+            break
+
+    return ValidationReport(schema_instance, opaque_subtrees, tuple(errors))
 
 
 class Sentinel(Enum):
@@ -1897,31 +2143,10 @@ class ConfigOption(ExtraOption, ParamStructure):
     ) -> dict[str, Any]:
         """Extract the app's configuration section from the parsed config.
 
-        Looks for ``conf[app_name]`` first.  If empty, tries each name in
-        ``fallback_sections`` in order, logging a deprecation warning on match.
-        Works identically for all configuration formats.
+        Thin instance-bound wrapper around :py:func:`_select_app_section` that
+        supplies this option's :py:attr:`fallback_sections`.
         """
-        logger = logging.getLogger("click_extra")
-        section = conf.get(app_name)
-        if isinstance(section, dict) and section:
-            # Warn about leftover legacy sections.
-            for old_name in self.fallback_sections:
-                if old_name in conf:
-                    logger.warning(
-                        f"Config section [{old_name}] is deprecated and "
-                        f"should be removed. Using [{app_name}]."
-                    )
-            return section
-
-        for old_name in self.fallback_sections:
-            section = conf.get(old_name)
-            if isinstance(section, dict) and section:
-                logger.warning(
-                    f"Config section [{old_name}] is deprecated, "
-                    f"migrate to [{app_name}]."
-                )
-                return section
-        return {}
+        return _select_app_section(conf, app_name, self.fallback_sections)
 
     def _apply_config_schema(
         self,
@@ -1967,58 +2192,6 @@ class ConfigOption(ExtraOption, ParamStructure):
         overrides = themes_from_config(themes_subtree)
         if overrides:
             context.set(ctx, context.THEME_OVERRIDES, overrides)
-
-    def _iter_validator_errors(
-        self,
-        ctx: click.Context,
-        user_conf: dict[str, Any],
-    ) -> Iterable[ValidationError]:
-        """Run every registered :class:`ConfigValidator` against its extension
-        sub-tree and yield each :class:`ValidationError` they raise.
-
-        Validators receive the value of the sub-tree at their declared
-        ``extension_path``, relative to the app section. Missing sub-trees and
-        non-dict sub-trees are skipped without invoking the validator: an
-        absent or malformed extension table is a click-extra concern, and the
-        validator should only be asked to inspect well-formed input.
-
-        Generator interface so callers can pick their error-handling strategy
-        (raise the first, collect all, log and continue).
-        """
-        if not self.config_validators:
-            return
-        app_name, app_section = self._app_section(ctx, user_conf)
-        for cv in self.config_validators:
-            subtree, found = _extract_dotted(app_section, cv.extension_path)
-            if not found or not isinstance(subtree, dict):
-                continue
-            try:
-                cv.validator(subtree)
-            except ValidationError as exc:
-                # Re-anchor the path to the configuration file root for
-                # uniform error reporting across click-extra's own checks
-                # and user-registered validators.
-                prefix = (
-                    f"{app_name}.{cv.extension_path}" if app_name else cv.extension_path
-                )
-                rooted_path = f"{prefix}.{exc.path}" if exc.path else prefix
-                yield ValidationError(rooted_path, exc.message, exc.code)
-
-    def _run_validators(
-        self,
-        ctx: click.Context,
-        user_conf: dict[str, Any],
-    ) -> None:
-        """Run every registered :class:`ConfigValidator` and raise on the first
-        failure.
-
-        Called during normal config loading so a misconfigured opaque sub-tree
-        fails fast and with the same precision as ``--validate-config``.
-        ``--validate-config`` itself uses :py:meth:`_iter_validator_errors`
-        directly so it can collect and report every error before exiting.
-        """
-        for error in self._iter_validator_errors(ctx, user_conf):
-            raise error
 
     def merge_default_map(self, ctx: click.Context, user_conf: dict) -> None:
         """Save the user configuration into the context's ``default_map``.
@@ -2177,21 +2350,35 @@ class ConfigOption(ExtraOption, ParamStructure):
         if user_conf is not None:
             logger.debug(f"Parsed user configuration: {user_conf}")
             logger.debug(f"Initial defaults: {ctx.default_map}")
+
+            # Run every check through the unified pipeline. collect_all=False
+            # fails fast: the first error is surfaced as a clean critical-level
+            # log and the context exits 1, before any subcommand callback fires,
+            # rather than letting an exception bubble up as a traceback. Exit
+            # code 1 matches ``--validate-config`` for the same failure mode.
+            report = run_config_validation(
+                user_conf,
+                app_name=self._app_section_name(ctx),
+                params_template=self.params_template,
+                config_schema=self.config_schema,
+                config_validators=self.config_validators,
+                fallback_sections=self.fallback_sections,
+                schema_strict=self.schema_strict,
+                strict=self.strict,
+                collect_all=False,
+            )
+            if not report.ok:
+                logger.critical(f"Configuration validation error: {report.errors[0]}")
+                ctx.exit(1)
+
+            # Validation passed. Merge the recognized values into default_map,
+            # publish the typed schema instance built by the pipeline, then apply
+            # theme overrides (the [tool.<cli>.themes.<name>] table was already
+            # validated above, so building it here cannot surface user error).
             self.merge_default_map(ctx, user_conf)
             logger.debug(f"New defaults: {ctx.default_map}")
-            self._apply_config_schema(ctx, user_conf)
-            try:
-                self._run_validators(ctx, user_conf)
-            except ValidationError as exc:
-                # Surface the validator's error as a clean click message
-                # rather than letting the exception bubble up as a traceback.
-                # Exit code 1 matches ``--validate-config`` for the same
-                # failure mode.
-                logger.critical(f"Configuration validation error: {exc}")
-                ctx.exit(1)
-            # Apply theme overrides after validators succeed so a malformed
-            # [tool.<cli>.themes.<name>] table reaches the user via
-            # ValidationError instead of a deep TypeError from from_dict.
+            if self._config_schema_callable is not None:
+                context.set(ctx, context.TOOL_CONFIG, report.schema_instance)
             self._apply_theme_overrides(ctx, user_conf)
 
         # When a schema is configured but no config file was found, still
@@ -2358,39 +2545,26 @@ class ValidateConfigOption(ExtraOption):
             )
             ctx.exit(2)
 
-        errors: list[str] = []
-
-        # 1. CLI-parameter strict check, with opaque sub-trees stripped so
-        # user-controlled tables (e.g. dict[str, X] fields) don't trip the
-        # unknown-key detector.
-        normalized = _expand_dotted_keys(_strip_reserved_keys(user_conf), strict=True)
-        normalized = config_option._strip_opaque_from_conf(ctx, normalized)
-        try:
-            _recursive_update(
-                copy.deepcopy(config_option.params_template),
-                normalized,
-                strict=True,
-            )
-        except ValueError as exc:
-            errors.append(str(exc))
-
-        # 2. Schema processing: forwards type errors and (when schema_strict)
-        # unknown-key errors raised by the dataclass adapter.
-        if config_option._config_schema_callable is not None:
-            try:
-                config_option._apply_config_schema(ctx, user_conf)
-            except (ValueError, TypeError) as exc:
-                errors.append(str(exc))
-
-        # 3. App-registered validators against opaque sub-trees.
-        errors.extend(
-            str(verror)
-            for verror in config_option._iter_validator_errors(ctx, user_conf)
+        # Delegate every check to the unified pipeline in collect-all mode so a
+        # single run surfaces the full punch list. ``--validate-config`` always
+        # runs the CLI-parameter check in strict mode regardless of the sibling
+        # option's ``strict`` setting; schema strictness honors the option's
+        # configured ``schema_strict``.
+        report = run_config_validation(
+            user_conf,
+            app_name=config_option._app_section_name(ctx),
+            params_template=config_option.params_template,
+            config_schema=config_option.config_schema,
+            config_validators=config_option.config_validators,
+            fallback_sections=config_option.fallback_sections,
+            schema_strict=config_option.schema_strict,
+            strict=True,
+            collect_all=True,
         )
 
-        if errors:
-            for err in errors:
-                info_msg(f"Configuration validation error: {err}")
+        if not report.ok:
+            for error in report.errors:
+                info_msg(f"Configuration validation error: {error}")
             ctx.exit(1)
 
         info_msg(f"Configuration file {value} is valid.")
