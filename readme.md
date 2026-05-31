@@ -86,9 +86,9 @@ To understand how we ended up with the result above, [go read the tutorial](http
 - [Colored `--version`](https://kdeldycke.github.io/click-extra/version.html) with [template variables](https://kdeldycke.github.io/click-extra/version.html#variables) for git metadata (branch, hash, date, tag) and [pre-baking](https://kdeldycke.github.io/click-extra/version.html#pre-baking-git-metadata) for compiled binaries (Nuitka, PyInstaller)
 - [Colored `--verbosity` LEVEL and logs](https://kdeldycke.github.io/click-extra/logging.html), plus `-v`/`--verbose` repetition for incremental bumping
 - [`--show-params`](https://kdeldycke.github.io/click-extra/parameters.html#show-params-option) to debug parameter defaults, values, environment variables and provenance
-- [`--time`/`--no-time`](https://kdeldycke.github.io/click-extra/timer.html) to measure command execution duration
+- [`--time`/`--no-time`](https://kdeldycke.github.io/click-extra/execution.html#timer) to measure command execution duration
 - [`--table-format`](https://kdeldycke.github.io/click-extra/table.html#table-formats) to switch between 40+ table-rendering styles (uses [`print_table()`](https://kdeldycke.github.io/click-extra/table.html) and [`serialize_data()`](https://kdeldycke.github.io/click-extra/table.html#data-serialization))
-- [`--jobs`](https://kdeldycke.github.io/click-extra/jobs.html) for parallel-execution worker counts
+- [`--jobs`](https://kdeldycke.github.io/click-extra/execution.html#parallel-jobs) for parallel-execution worker counts
 - `--telemetry`/`--no-telemetry` flag to opt-in/out of tracking code
 - `--color`/`--no-color` option flag, with recognition of `NO_COLOR` ([no-color.org](https://no-color.org)), `FORCE_COLOR`, `CLICOLOR`, and `LLM` environment variables
 - Recognition of `DO_NOT_TRACK` from [consoledonottrack.com](https://consoledonottrack.com) for telemetry
@@ -118,7 +118,7 @@ To understand how we ended up with the result above, [go read the tutorial](http
 - [`python:source`, `python:run`, `python:render`, `python:render-myst`, `python:render-rst`](https://kdeldycke.github.io/click-extra/sphinx.html#python-directives) — the same machinery for arbitrary Python, with a `render*` family that parses the captured output as live document content (replaces the `docs_update.py` + marker-region pattern)
 - [Inline testing of CLI examples](https://kdeldycke.github.io/click-extra/sphinx.html#inline-tests) in documentation: every `click:run` block runs at build time and assertions fail the build
 - Render [GitHub alerts](https://kdeldycke.github.io/click-extra/sphinx.html) into MyST admonitions in both Sphinx and MkDocs
-- [ANSI-capable Pygments lexers](https://kdeldycke.github.io/click-extra/pygments.html#ansi-language-lexers) for shell session and console output, with [24-bit true-color rendering](https://kdeldycke.github.io/click-extra/pygments.html#bit-true-color) on by default
+- [ANSI-capable Pygments lexers](https://kdeldycke.github.io/click-extra/pygments.html#ansi-language-lexers) for shell session and console output, with [24-bit true-color rendering](https://kdeldycke.github.io/click-extra/pygments.html#true-color-24-bit) on by default
 - [`AnsiHtmlFormatter`](https://kdeldycke.github.io/click-extra/pygments.html#ansi-html-formatter) for HTML output of ANSI-colored text
 - [MkDocs plugin](https://kdeldycke.github.io/click-extra/mkdocs.html) for ANSI color rendering in code blocks
 
@@ -136,13 +136,13 @@ To understand how we ended up with the result above, [go read the tutorial](http
 
 Check these projects to get real-life examples of `click-extra` usage:
 
-- ![GitHub stars](https://img.shields.io/github/stars/kdeldycke/meta-package-manager?label=%E2%AD%90&style=flat-square) [Meta Package Manager](https://github.com/kdeldycke/meta-package-manager#readme)
+- ![GitHub stars](https://img.shields.io/github/stars/kdeldycke/meta-package-manager?label=%E2%AD%90&style=flat-square) [Meta Package Manager](https://github.com/kdeldycke/meta-package-manager)
   \- A unifying CLI for multiple package managers.
-- ![GitHub stars](https://img.shields.io/github/stars/kdeldycke/mail-deduplicate?label=%E2%AD%90&style=flat-square) [Mail Deduplicate](https://github.com/kdeldycke/mail-deduplicate#readme) - A
+- ![GitHub stars](https://img.shields.io/github/stars/kdeldycke/mail-deduplicate?label=%E2%AD%90&style=flat-square) [Mail Deduplicate](https://github.com/kdeldycke/mail-deduplicate) - A
   CLI to deduplicate similar emails.
-- ![GitHub stars](https://img.shields.io/github/stars/Sprocket-Security/fireproxng?label=%E2%AD%90&style=flat-square) [fireproxng](https://github.com/Sprocket-Security/fireproxng#readme) - A rewrite of the fireprox tool.
-- ![GitHub stars](https://img.shields.io/github/stars/couchbaselabs/agent-catalog?label=%E2%AD%90&style=flat-square) [agent-catalog](https://github.com/couchbaselabs/agent-catalog#readme) - Couchbase agent catalog.
-- ![GitHub stars](https://img.shields.io/github/stars/hugolundin/badger?label=%E2%AD%90&style=flat-square) [badger-proxy](https://github.com/hugolundin/badger#readme) - An mDNS-based reverse
+- ![GitHub stars](https://img.shields.io/github/stars/Sprocket-Security/fireproxng?label=%E2%AD%90&style=flat-square) [fireproxng](https://github.com/Sprocket-Security/fireproxng) - A rewrite of the fireprox tool.
+- ![GitHub stars](https://img.shields.io/github/stars/couchbaselabs/agent-catalog?label=%E2%AD%90&style=flat-square) [agent-catalog](https://github.com/couchbaselabs/agent-catalog) - Couchbase agent catalog.
+- ![GitHub stars](https://img.shields.io/github/stars/hugolundin/badger?label=%E2%AD%90&style=flat-square) [badger-proxy](https://github.com/hugolundin/badger) - An mDNS-based reverse
   proxy for naming services on a local network.
 
 Feel free to send a PR to add your project in this list if you are relying on Click Extra in any way.
