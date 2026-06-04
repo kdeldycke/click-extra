@@ -7,6 +7,9 @@
 
 ## [`7.18.0` (2026-05-29)](https://github.com/kdeldycke/click-extra/compare/v7.17.2...v7.18.0)
 
+> [!NOTE]
+> `7.18.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.18.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.18.0).
+
 - Add a `--man` option to the default set of `@extra_command` and `@extra_group` (via `default_extra_params()`): it prints the command's man page (roff) to stdout and exits. Also available as the `@man_option` decorator for plain Click CLIs.
 - Add an `--accessible` option to the default set of `@extra_command` and `@extra_group` (via `default_extra_params()`). Enabling it, or setting the `ACCESSIBLE` environment variable, is equivalent to `--no-color --table-format plain`: it strips ANSI codes and renders tables without Unicode box-drawing characters, for screen readers. An explicit `--color` or `--table-format` (on the command line or in a configuration file) keeps precedence. Also available as the `@accessible_option` decorator and the `AccessibleOption` class.
 - Add a `man` subcommand to the `click-extra` CLI: `click-extra man SCRIPT [SUBCOMMAND]...` renders the man page (roff) of any external Click CLI without running it, resolving the target like `show-params` (console_scripts entry point, `module:function` notation, `.py` file, or module name). Both subcommands now also load `.py` file targets, which previously raised an unhandled error.
