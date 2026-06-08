@@ -47,7 +47,7 @@ The table below lists every entry Click Extra writes, the option that triggers i
 | `context.TABLE_FORMAT`    | `click_extra.table_format`    | `--table-format` callback (`@table_format_option`)         | `TableFormat`                                                          |
 | `context.SORT_BY`         | `click_extra.sort_by`         | `--sort-by` callback (`@sort_by_option`)                   | `tuple[str, ...]` — column IDs in priority order                       |
 | `context.THEME`           | `click_extra.theme.active`    | `--theme` callback (always present on `@command`)          | `HelpExtraTheme` — palette picked for this invocation                  |
-| `context.ZERO_EXIT`       | `click_extra.zero_exit`       | `-0` / `--zero-exit` callback (`@zero_exit_option`)         | `bool` — `True` to always exit 0 *(write-only)*                        |
+| `context.ZERO_EXIT`       | `click_extra.zero_exit`       | `-0` / `--zero-exit` callback (`@zero_exit_option`)        | `bool` — `True` to always exit 0 *(write-only)*                        |
 
 ## Worked examples
 
