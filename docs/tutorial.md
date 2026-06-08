@@ -217,25 +217,25 @@ Notice in the example above how the `@command()` decorator from Cloup is used wi
 
 Click Extra provides these additional, pre-configured options decorators you can use standalone. Some of them are included by default in the {py:func}`@extra_command and @extra_group <click_extra.commands.default_extra_params>` decorators (see the last column):
 
-| Decorator                                                          | Specification                             | Default |
-| ------------------------------------------------------------------ | ----------------------------------------- | ------- |
-| [`@timer_option`](execution.md#timer)                              | `--time / --no-time`                      | ✅      |
-| [`@accessible_option`](colorize.md#accessible-flag)                | `--accessible`                            | ✅      |
-| [`@color_option`](colorize.md#color-no-color-flag)                 | `--color, --ansi / --no-color, --no-ansi` | ✅      |
-| [`@theme_option`](theme.md)                                        | `--theme`                                 | ✅      |
-| [`@config_option`](config.md#standalone-option)                    | `--config CONFIG_PATH`                    | ✅      |
-| [`@no_config_option`](config.md#)                                  | `--no-config`                             | ✅      |
+| Decorator                                                             | Specification                             | Default |
+| --------------------------------------------------------------------- | ----------------------------------------- | ------- |
+| [`@timer_option`](execution.md#timer)                                 | `--time / --no-time`                      | ✅      |
+| [`@accessible_option`](colorize.md#accessible-flag)                   | `--accessible`                            | ✅      |
+| [`@color_option`](colorize.md#color-no-color-flag)                    | `--color, --ansi / --no-color, --no-ansi` | ✅      |
+| [`@theme_option`](theme.md)                                           | `--theme`                                 | ✅      |
+| [`@config_option`](config.md#standalone-option)                       | `--config CONFIG_PATH`                    | ✅      |
+| [`@no_config_option`](config.md#)                                     | `--no-config`                             | ✅      |
 | [`@validate_config_option`](config.md#validating-configuration-files) | `--validate-config FILE`                  | ✅      |
-| [`@show_params_option`](parameters.md#show-params-option)          | `--show-params`                           | ✅      |
-| [`@table_format_option`](table.md)                                 | `--table-format FORMAT`                   | ✅      |
-| [`@verbosity_option`](logging.md#colored-verbosity)                | `--verbosity LEVEL`                       | ✅      |
-| {py:class}`@verbose_option <click_extra.logging.VerboseOption>`    | `-v, --verbose`                           | ✅      |
-| [`@man_option`](man-page.md#generating-man-pages)                  | `--man`                                   | ✅      |
-| [`@version_option`](version.md)                                    | `--version`                               | ✅      |
-| {py:class}`@help_option <click_extra.colorize.HelpExtraFormatter>` | `-h, --help`                              | ✅      |
-| [`@jobs_option`](execution.md#parallel-jobs)                       | `--jobs INTEGER`                          | ❌      |
-| {py:mod}`@telemetry_option <click_extra.telemetry>`                | `--telemetry / --no-telemetry`            | ❌      |
-| [`@zero_exit_option`](execution.md#zero-exit-code)                 | `-0, --zero-exit`                         | ❌      |
+| [`@show_params_option`](parameters.md#show-params-option)             | `--show-params`                           | ✅      |
+| [`@table_format_option`](table.md)                                    | `--table-format FORMAT`                   | ✅      |
+| [`@verbosity_option`](logging.md#colored-verbosity)                   | `--verbosity LEVEL`                       | ✅      |
+| {py:class}`@verbose_option <click_extra.logging.VerboseOption>`       | `-v, --verbose`                           | ✅      |
+| [`@man_option`](man-page.md#generating-man-pages)                     | `--man`                                   | ✅      |
+| [`@version_option`](version.md)                                       | `--version`                               | ✅      |
+| {py:class}`@help_option <click_extra.colorize.HelpExtraFormatter>`    | `-h, --help`                              | ✅      |
+| [`@jobs_option`](execution.md#parallel-jobs)                          | `--jobs INTEGER`                          | ❌      |
+| {py:mod}`@telemetry_option <click_extra.telemetry>`                   | `--telemetry / --no-telemetry`            | ❌      |
+| [`@zero_exit_option`](execution.md#zero-exit-code)                    | `-0, --zero-exit`                         | ❌      |
 
 ```{note}
 Because single-letter options are a scarce resource, Click Extra does not impose them on you. All the options above are specified with their long names only. You can always customize them to add a short name if you wish.

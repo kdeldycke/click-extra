@@ -158,10 +158,10 @@ The `FILES` section documents the files a program reads. Click Extra's `--config
 
 The `EXIT STATUS` section documents the process return codes. Click Extra inherits Click's conventional scheme:
 
-| Code | Meaning                                                                                   |
-| ---- | ----------------------------------------------------------------------------------------- |
-| `0`  | Success.                                                                                  |
-| `1`  | A runtime error, or an aborted prompt (`Ctrl-C`, a declined confirmation).                |
+| Code | Meaning                                                                                          |
+| ---- | ------------------------------------------------------------------------------------------------ |
+| `0`  | Success.                                                                                         |
+| `1`  | A runtime error, or an aborted prompt (`Ctrl-C`, a declined confirmation).                       |
 | `2`  | A usage error: unknown option, invalid value, missing operand, or an unparsable `--config` file. |
 
 A successful run returns `0`:

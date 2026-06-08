@@ -285,7 +285,6 @@ assert result.output == dedent("""\
 
 ```{admonition} Why plain, linear output?
 :class: tip
-
 A screen reader is not the only consumer that prefers a linear, minimal-width stream over a terminal-wide 2D layout. Command output is also pasted into bug reports, piped into other tools, and read on narrow screens. A layout that imposes a maximal width (full-width tables, box-drawing borders, whitespace-padded columns) wraps awkwardly or [grows a horizontal scrollbar](https://github.com/callowayproject/bump-my-version/pull/23#issuecomment-1602007874) once it leaves the terminal it was sized for, while a stream rendered at the minimal width of its text travels everywhere intact.
 
 This is the same reasoning that keeps Click Extra from routing its help screens through [`rich-click`](https://github.com/ewels/rich-click), a good project integrating [Rich](https://github.com/Textualize/rich) with Click whose [help is laid out in a table](https://github.com/ewels/rich-click) spanning the whole terminal width. `--accessible` carries that preference from help screens to colors and tables. The two are not mutually exclusive, though: nothing stops you from using `rich-click` and Click Extra together and taking the best of both.
