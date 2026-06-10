@@ -33,9 +33,9 @@ Configuration shape::
 
     click_extra_manpages = [
         {
-            "script": "meta_package_manager.cli:mpm",   # required
-            "prog_name": "mpm",                          # optional, see below
-            "output_dir": "man",                         # optional, defaults to "man"
+            "script": "meta_package_manager.cli:mpm",  # required
+            "prog_name": "mpm",  # optional, see below
+            "output_dir": "man",  # optional, defaults to "man"
         },
     ]
 
