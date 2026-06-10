@@ -21,7 +21,6 @@ from inspect import cleandoc
 from pathlib import Path
 from typing import Any
 
-import pytest
 from sphinx.application import Sphinx
 from sphinx.util.docutils import docutils_namespace
 

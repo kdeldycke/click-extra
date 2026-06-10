@@ -121,9 +121,11 @@ def _emit_manpages(app: Sphinx) -> None:
         output_dir = entry.get("output_dir") or DEFAULT_OUTPUT_DIR
         target = Path(app.outdir) / output_dir
 
+        # The hook fires once per HTML build, so an unimportable script must
+        # not abort the whole docs build: log and skip it instead.
         try:
             cmd, _ = resolve_target_command(script)
-        except Exception as exc:  # pragma: no cover - defensive, surface via logger
+        except Exception as exc:  # noqa: BLE001
             logger.warning(
                 "click_extra.sphinx: cannot resolve %s[%d] script %r: %s",
                 MANPAGES_CONFIG_KEY,

@@ -36,9 +36,9 @@ from sphinx.util import logging
 
 from .. import __version__
 from ..pygments import AnsiHtmlFormatter
+from . import manpages
 from .alerts import convert_github_alerts
 from .click import ClickDomain, cleanup_runner
-from . import manpages
 from .python import PythonDomain, cleanup_python_runner
 
 TYPE_CHECKING = False
