@@ -754,6 +754,29 @@ Some related projects for build-time Python execution:
 - [`sphinx-jinja`](https://github.com/tardyp/sphinx-jinja): Jinja2 templates with Python context, output parsed as reST/MyST. Closest analogue for the docs-as-code pattern without `exec`.
 ```
 
+## Man pages
+
+The Sphinx extension can render the roff man page tree of any Click CLI alongside the HTML build, so a project's docs site, release pipeline, and downstream packagers all share a single generator. Add one or more entries to ``click_extra_manpages`` in ``conf.py``:
+
+```{code-block} python
+:caption: `conf.py`
+extensions = ["click_extra.sphinx"]
+
+click_extra_manpages = [
+    {
+        "script": "my_pkg.cli:my_cli",   # required
+        "prog_name": "my-cli",            # optional, defaults to Path(script).stem
+        "output_dir": "man",              # optional, defaults to "man"
+    },
+]
+```
+
+On every HTML build, the hook resolves each `script` with the same scanner as the [`click-extra man`](man-page.md#generating-man-pages) CLI and writes one `.1` file per (sub)command into `<outdir>/<output_dir>/`, mirroring what `click-extra man SCRIPT --output-dir DIR` produces from the command line. An empty (or absent) list keeps the hook silent: no man pages, no warnings.
+
+Only HTML-family builders (`html`, `dirhtml`, `singlehtml`) trigger the hook. Other builders (`linkcheck`, `man`, `epub`, `coverage`) skip it: roff in their output trees would be redundant or confusing.
+
+The generator honors `SOURCE_DATE_EPOCH` for reproducible builds and inherits every option-group and Cloup-aware rendering rule documented in the [man-page reference](man-page.md#layout).
+
 ## GitHub alerts
 
 Click Extra's Sphinx extension automatically converts [GitHub-flavored Markdown alerts](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts) into [MyST admonitions](https://myst-parser.readthedocs.io/en/latest/syntax/admonitions.html).

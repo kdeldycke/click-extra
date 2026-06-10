@@ -36,7 +36,7 @@ from . import (
     style,
 )
 from .colorize import _nearest_256
-from .man_page import render_manpage
+from .man_page import render_manpage, write_manpages
 from .parameters import format_param_row
 from .table import DEFAULT_FORMAT, SERIALIZATION_FORMATS, TableFormat, print_table
 from .version import (
@@ -212,10 +212,23 @@ def show_params_cmd(
     type=click.UNPROCESSED,
     metavar="SCRIPT [SUBCOMMAND]...",
 )
+@click.option(
+    "--output-dir",
+    type=click.Path(file_okay=False, dir_okay=True, writable=True, path_type=Path),
+    default=None,
+    help=(
+        "Write one .1 file per (sub)command into the given directory instead "
+        "of printing a single page to stdout. The directory is created if "
+        "missing; subcommand pages are named ``<script>-<sub>.1``. Must "
+        "appear before SCRIPT, since arguments after SCRIPT navigate into "
+        "nested subcommands."
+    ),
+)
 @click.pass_context
 def man_cmd(
     ctx: click.Context,
     script_and_args: tuple[str, ...],
+    output_dir: Path | None,
 ) -> None:
     """Render the man page of an external Click CLI.
 
@@ -224,6 +237,12 @@ def man_cmd(
     and prints its man page (roff) to standard output without running it.
 
     Extra arguments after SCRIPT navigate into nested command groups.
+
+    With ``--output-dir DIR``, the whole subcommand tree rooted at
+    ``SCRIPT [SUBCOMMAND]...`` is written as one ``.1`` file per node into
+    ``DIR`` instead of being printed to stdout. Suitable for invocation
+    from a release pipeline or a distributor's build phase (Debian's
+    ``override_dh_installman``, Guix' ``install-man-page`` snippet, etc.).
     """
     if not script_and_args:
         echo(ctx.get_help(), color=ctx.color)
@@ -232,9 +251,29 @@ def man_cmd(
     script = script_and_args[0]
     subcommands = script_and_args[1:]
 
+    if output_dir is not None and subcommands:
+        raise ClickException(
+            "--output-dir always emits the full tree rooted at SCRIPT and "
+            "cannot be combined with extra SUBCOMMAND arguments. To render "
+            "a single subcommand page, drop --output-dir and redirect "
+            "stdout into a .1 file instead.",
+        )
+
     cmd, _ = resolve_target_command(script, subcommands)
-    prog_name = " ".join((script, *subcommands))
-    echo(render_manpage(cmd, prog_name=prog_name))
+    if output_dir is None:
+        prog_name = " ".join((script, *subcommands))
+        echo(render_manpage(cmd, prog_name=prog_name))
+    else:
+        # Filenames are derived from prog_name (joined by hyphens with each
+        # subcommand path segment), so spaces, slashes, or a .py suffix would
+        # produce broken or misleading filenames. Prefer the resolved Click
+        # command's own ``name``, which is the canonical identifier the CLI
+        # publishes (``mpm`` for ``meta_package_manager.cli:mpm``, ``weather``
+        # for a ``kitchen.py`` file path that defines a ``weather`` command).
+        # Fall back to the script string when the command has no name set.
+        prog_name = cmd.name or script
+        for path in write_manpages(cmd, output_dir, prog_name=prog_name):
+            echo(str(path))
     ctx.exit(0)
 
 

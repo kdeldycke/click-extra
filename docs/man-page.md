@@ -32,6 +32,20 @@ The quickest way to produce a man page is the `man` subcommand: `click-extra man
 $ uvx --from click-extra --with flask click-extra man flask > flask.1
 ```
 
+### Multiple pages
+
+For multi-command CLIs, `--output-dir DIR` writes the whole command tree as one `.1` file per (sub)command into `DIR` (created if missing). The output replaces stdout, so this is the right form for a release pipeline or a distributor's build phase:
+
+```{code-block} shell-session
+$ uvx --from click-extra --with flask click-extra man --output-dir /tmp/man flask
+/tmp/man/flask.1
+/tmp/man/flask-run.1
+/tmp/man/flask-routes.1
+/tmp/man/flask-shell.1
+```
+
+`--output-dir` must appear *before* SCRIPT, since arguments after SCRIPT navigate into nested subcommands. Mixing `--output-dir` with a SUBCOMMAND argument is rejected: the flag always emits the whole tree of SCRIPT.
+
 ### Target resolution
 
 `SCRIPT` is accepted in four forms, tried in this order. The example above uses the first; the others reach the same Click command from a different starting point:

@@ -342,6 +342,66 @@ def test_man_subcommand_unresolvable_target(runner):
     assert "Cannot resolve" in result.output
 
 
+def test_man_subcommand_output_dir_writes_tree(runner, custom_cls_script, tmp_path):
+    """``man --output-dir`` writes one .1 per (sub)command into the dir.
+
+    ``--output-dir`` must appear before SCRIPT, because the man subcommand
+    runs with ``allow_interspersed_args=False`` so that anything after
+    SCRIPT is treated as a sub-command path rather than a click-extra flag.
+    """
+    target = tmp_path / "man"
+    result = runner.invoke(
+        demo,
+        ["man", "--output-dir", str(target), custom_cls_script],
+        color=False,
+    )
+    assert result.exit_code == 0
+    names = {path.name for path in target.iterdir()}
+    assert any(name.endswith(".1") for name in names)
+    # The root page is named after the resolved script (file-path target uses
+    # the file stem, which is the temp script's basename).
+    root_pages = {name for name in names if "-" not in name}
+    assert root_pages, f"expected a root .1 page among {names!r}"
+    # Subcommand 'bake' must surface as a hyphenated child page.
+    assert any(name.endswith("-bake.1") for name in names), names
+    # Each generated file is a valid roff document.
+    for path in target.iterdir():
+        assert path.read_text(encoding="utf-8").startswith('.\\" Generated')
+
+
+def test_man_subcommand_output_dir_creates_missing_directory(
+    runner, greet_script, tmp_path
+):
+    """``--output-dir`` creates the target dir when it does not exist yet."""
+    target = tmp_path / "nested" / "man"
+    assert not target.exists()
+    result = runner.invoke(
+        demo,
+        ["man", "--output-dir", str(target), greet_script],
+        color=False,
+    )
+    assert result.exit_code == 0
+    assert target.is_dir()
+    assert list(target.iterdir())
+
+
+def test_man_subcommand_output_dir_rejects_subcommand(
+    runner, custom_cls_script, tmp_path
+):
+    """``--output-dir`` always emits the full tree; mixing in a SUBCOMMAND arg
+    is rejected so the user cannot accidentally produce a tree of pages named
+    after a partial path."""
+    target = tmp_path / "man"
+    result = runner.invoke(
+        demo,
+        ["man", "--output-dir", str(target), custom_cls_script, "bake"],
+        color=False,
+    )
+    assert result.exit_code != 0
+    assert "--output-dir" in result.output
+    assert not target.exists() or not any(target.iterdir())
+
+
 # -- WrapperGroup default-to-run -----------------------------------------------
 
 

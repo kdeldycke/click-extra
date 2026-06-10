@@ -5,6 +5,9 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Add an `--output-dir DIR` option to the `click-extra man` subcommand. With it set, the command writes one `.1` file per (sub)command in the resolved tree into `DIR` (created if missing) instead of printing a single page to stdout, matching the API surface of `click_extra.man_page.write_manpages()`. Suitable for invocation from a release pipeline or a distributor's build phase (Debian's `override_dh_installman` rule, Guix' install-man-page snippet, etc.) without the need for a project-local wrapper script.
+- Add a `click_extra_manpages` Sphinx configuration value and a matching `click_extra.sphinx.manpages` module. Projects that already enable the `click_extra.sphinx` extension can declare one or more `{"script", "prog_name", "output_dir"}` entries to emit the corresponding Click command tree(s) as roff `.1` files into `<outdir>/<output_dir>/` on every HTML build, no project-local helper script required. Each `script` is resolved with the same scanner the `click-extra man` CLI uses (console-script entry point, `module:function`, `.py` path, or module name); only HTML-family builders (`html`, `dirhtml`, `singlehtml`) trigger the hook. Empty or absent config keeps the hook silent: opt-in by definition.
+
 ## [`7.18.0` (2026-05-29)](https://github.com/kdeldycke/click-extra/compare/v7.17.2...v7.18.0)
 
 > [!NOTE]
