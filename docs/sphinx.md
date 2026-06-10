@@ -756,7 +756,7 @@ Some related projects for build-time Python execution:
 
 ## Man pages
 
-The Sphinx extension can render the roff man page tree of any Click CLI alongside the HTML build, so a project's docs site, release pipeline, and downstream packagers all share a single generator. Add one or more entries to ``click_extra_manpages`` in ``conf.py``:
+The Sphinx extension can render the roff man page tree of any Click CLI alongside the HTML build, so a project's docs site, release pipeline, and downstream packagers all share a single generator. Add one or more entries to `click_extra_manpages` in `conf.py`:
 
 ```{code-block} python
 :caption: `conf.py`
