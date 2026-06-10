@@ -153,12 +153,33 @@ Themes loaded this way live on `ctx.meta` for the current invocation only. The m
 
 ## Script resolution
 
-The `SCRIPT` argument is resolved in this order:
+`SCRIPT` is accepted in four forms, tried in this order:
 
-1. **Console scripts entry point**: any package installed with `pip install` or `uv add` that registers a `console_scripts` entry point. This covers most CLI tools.
-2. **`module:function` notation**: explicit import path like `my_app.cli:main`.
-3. **`.py` file path**: a local Python script.
-4. **Python module name**: a bare module or package name invocable via `python -m`.
+1. A `console_scripts` entry point exposed by an installed package, the most common case:
+
+   ```{code-block} shell-session
+   $ click-extra wrap flask --help
+   ```
+
+2. `module:function` notation pointing straight at a Click command object. Useful when the entry point is a wrapper rather than the command itself, or when the command isn't exposed as a console script at all:
+
+   ```{code-block} shell-session
+   $ click-extra wrap flask.cli:cli --help
+   ```
+
+3. A `.py` file path. The file is imported in place, with no install step required:
+
+   ```{code-block} shell-session
+   $ click-extra wrap path/to/my_cli.py --help
+   ```
+
+4. A bare Python module name invocable via `python -m`. The resolver imports the module and picks up the Click command from its top-level attributes:
+
+   ```{code-block} shell-session
+   $ click-extra wrap my_package.cli --help
+   ```
+
+The same resolver is shared with `show-params` and [`man`](man-page.md#target-resolution).
 
 ## Ephemeral wrapping with `uvx`
 
@@ -224,7 +245,7 @@ $ click-extra show-params -- flask routes
 
 ### Target resolution
 
-Target resolution follows the same order as `wrap`: console_scripts entry points, `module:function` notation, `.py` file paths, and Python module names.
+Target resolution follows [the same order as `wrap`](#script-resolution): a `console_scripts` entry point, `module:function` notation, a `.py` file path, or a bare Python module name.
 
 When the resolved entry point is a wrapper function (not a Click command), the module is scanned for Click command instances. If a single command group is found, it is used automatically. If multiple candidates exist, the error message lists them so you can use explicit `module:name` notation:
 
