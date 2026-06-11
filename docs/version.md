@@ -103,17 +103,23 @@ Both `{exec_name}` and `{version}` are derived through a short fallback chain (`
 :align: center
 
 flowchart TD
-    subgraph EXEC["exec_name"]
+    subgraph EXEC["{exec_name}"]
         direction TB
-        x1["module name"] -->|"is __main__"| x2["package name"]
+        x1["{module_name}"] -->|"is __main__"| x2["{package_name}"]
         x2 -->|"not packaged"| x3["script filename"]
     end
-    subgraph VER["version"]
+    subgraph VER["{version}"]
         direction TB
-        m["module __version__"] -->|unset| p["package metadata"]
+        m["{module_version}"] -->|unset| p["{package_version}"]
         p -->|unset| nil["None"]
     end
     VER -.->|"if .dev without +local, and git available"| gh["append the Git short hash<br/>e.g. 1.2.3.dev0+abc1234"]
+    click EXEC "#click_extra.version.ExtraVersionOption.exec_name" "exec_name property"
+    click x1 "#click_extra.version.ExtraVersionOption.module_name" "module_name property"
+    click x2 "#click_extra.version.ExtraVersionOption.package_name" "package_name property"
+    click VER "#click_extra.version.ExtraVersionOption.version" "version property"
+    click m "#click_extra.version.ExtraVersionOption.module_version" "module_version property"
+    click p "#click_extra.version.ExtraVersionOption.package_version" "package_version property"
 ```
 
 ```{error}
