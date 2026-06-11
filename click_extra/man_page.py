@@ -166,6 +166,15 @@ def _roff_escape(text: str) -> str:
     return text.replace("\\", "\\e").replace("-", "\\-")
 
 
+def _neutralize_leading_control(text: str) -> str:
+    """Prefix a zero-width ``\\&`` when ``text`` starts with a roff control
+    character (``.`` or ``'``) so it is not mistaken for a macro request.
+    """
+    if text[:1] in (".", "'"):
+        return "\\&" + text
+    return text
+
+
 def _roff_line(text: str) -> str:
     """Escape a whole output line, neutralizing a leading control character.
 
@@ -173,10 +182,7 @@ def _roff_line(text: str) -> str:
     lines with the zero-width ``\\&`` so literal text is not mistaken for a
     macro.
     """
-    escaped = _roff_escape(text)
-    if escaped[:1] in (".", "'"):
-        escaped = "\\&" + escaped
-    return escaped
+    return _neutralize_leading_control(_roff_escape(text))
 
 
 def _bold(text: str) -> str:
@@ -206,10 +212,7 @@ def _render_inline(text: str) -> str:
     parts: list[str] = []
     for segment, is_literal in iter_inline_literals(text):
         parts.append(_bold(segment) if is_literal else _roff_escape(segment))
-    rendered = "".join(parts)
-    if rendered[:1] in (".", "'"):
-        rendered = "\\&" + rendered
-    return rendered
+    return _neutralize_leading_control("".join(parts))
 
 
 def _emit_help(text: str) -> list[str]:

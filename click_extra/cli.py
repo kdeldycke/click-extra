@@ -256,7 +256,7 @@ def man_cmd(
             "--output-dir always emits the full tree rooted at SCRIPT and "
             "cannot be combined with extra SUBCOMMAND arguments. To render "
             "a single subcommand page, drop --output-dir and redirect "
-            "stdout into a .1 file instead.",
+            "stdout into a .1 file instead."
         )
 
     cmd, _ = resolve_target_command(script, subcommands)

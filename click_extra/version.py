@@ -715,12 +715,12 @@ class ExtraVersionOption(ExtraOption):
             logger.debug(
                 f"{self.package_name!r} maps to multiple installed "
                 f"distributions ({', '.join(distributions)}); pass "
-                "'package_name' to disambiguate.",
+                "'package_name' to disambiguate."
             )
             return None
         logger.debug(
             f"Cannot get version: {self.package_name!r} package not found or not "
-            "installed.",
+            "installed."
         )
         return None
 

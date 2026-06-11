@@ -765,7 +765,7 @@ extensions = ["click_extra.sphinx"]
 click_extra_manpages = [
     {
         "script": "my_pkg.cli:my_cli",   # required
-        "prog_name": "my-cli",            # optional, defaults to Path(script).stem
+        "prog_name": "my-cli",            # optional, defaults to the resolved command's name
         "output_dir": "man",              # optional, defaults to "man"
         "render_html": True,              # optional, defaults to True
     },
@@ -780,7 +780,7 @@ The generator honors `SOURCE_DATE_EPOCH` for reproducible builds and inherits ev
 
 ### HTML siblings
 
-Browsers download `.1` files rather than render them, so each emitted page is also passed through a roff → HTML renderer when one is available. The result lands next to the source as `<page>.<section>.html` (e.g. `my-cli.1.html`).
+Browsers download `.1` files rather than render them, so each emitted page is also passed through a roff → HTML renderer when one is available. The result lands next to the source as `<page>.<section>.html` (like `my-cli.1.html`).
 
 The hook tries [`mandoc -Thtml`](https://mandoc.bsd.lv) first, then `groff -Thtml -mandoc`, picking whichever it finds on `PATH`. mandoc is preferred for its semantic anchors: every section and option gets a stable `id`, which makes deep-linking work. If neither renderer is installed, the build still produces the `.1` files and logs a single info-level notice, which `render_html: False` suppresses.
 
