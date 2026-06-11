@@ -805,6 +805,19 @@ With that in place, `` :manpage:`my-cli(1)` `` in any docstring or `.md` file re
 
 Leaving `manpages_url` unset is fine. The role still renders as styled text; only the hyperlink target is missing.
 
+### `click-extra-manpages` directive
+
+For a discoverable landing page, drop the `click-extra-manpages` directive anywhere in the docs. It walks `click_extra_manpages` and emits a bullet list with one entry per (sub)command in each declared tree, linked to the HTML sibling produced by the hook:
+
+````{code-block} markdown
+```{click-extra-manpages}
+```
+````
+
+The directive takes no arguments. URLs are computed relative to the enclosing document, so the same call works on a top-level page and on a page nested under a subdirectory. When `click_extra_manpages` is empty, the directive renders nothing.
+
+A live instance of the directive ships at the bottom of the [man-page reference](man-page.md#index): the list there is what this project's own `click_extra_manpages` entry produces at build time.
+
 ## GitHub alerts
 
 Click Extra's Sphinx extension automatically converts [GitHub-flavored Markdown alerts](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts) into [MyST admonitions](https://myst-parser.readthedocs.io/en/latest/syntax/admonitions.html).

@@ -66,6 +66,34 @@ if TYPE_CHECKING:
     from click import Command, Context, Parameter
 
 
+INLINE_LITERAL_RE = re.compile(r"``([^`]+?)``")
+"""Match a reST inline literal (``"``...``"``) in a docstring.
+
+Click stores docstrings verbatim, so any reST markup the author used to
+render code-like tokens in HTML docs leaks into ``Command.help`` /
+``Command.short_help``. The roff and HTML man-page paths translate these
+matches into the bold/literal markers their renderers understand; the
+Sphinx index directive translates them into ``nodes.literal``.
+"""
+
+
+def iter_inline_literals(text: str) -> Iterator[tuple[str, bool]]:
+    """Walk ``text`` and yield ``(segment, is_literal)`` pairs.
+
+    Split on :data:`INLINE_LITERAL_RE` so the consumer can apply
+    different rendering to the literal segments (bold for roff, a
+    ``literal`` node for docutils) without re-parsing the regex.
+    """
+    pos = 0
+    for match in INLINE_LITERAL_RE.finditer(text):
+        if match.start() > pos:
+            yield text[pos : match.start()], False
+        yield match.group(1), True
+        pos = match.end()
+    if pos < len(text):
+        yield text[pos:], False
+
+
 CLICK_EXTRA_URL = "https://github.com/kdeldycke/click-extra"
 """Click Extra's home page, stamped into the provenance comment of every
 generated man page so a reader of the raw roff knows where it came from."""
@@ -74,6 +102,35 @@ generated man page so a reader of the raw roff knows where it came from."""
 MAN_SECTION = "1"
 """Default man page section. Section 1 is for executable programs and shell
 commands, which is what a Click CLI is."""
+
+
+def full_short_help(command: click.Command) -> str:
+    """Return the command's canonical one-line short help, untruncated.
+
+    Click's :meth:`click.Command.get_short_help_str` truncates to 45
+    characters by default with a trailing ``"..."`` so subcommand listings
+    fit a terminal column. That bound is wrong for a man page: the NAME
+    and COMMANDS sections in man-pages(7) carry the full description, and
+    the man-page renderer (mandoc, groff, less) wraps text on its own.
+
+    The lookup mirrors Click's order: an explicit ``short_help`` wins,
+    otherwise the first paragraph of ``command.help`` is joined into one
+    line. A truthy ``deprecated`` flag prepends ``(Deprecated)`` so the
+    flag stays visible in both sections.
+    """
+    if command.short_help:
+        text = command.short_help.strip()
+    elif command.help:
+        # Click already stores ``help`` after ``inspect.cleandoc``: split
+        # on the first blank line to grab the leading paragraph, then
+        # squash internal newlines so the result is one line.
+        paragraph = command.help.split("\n\n", 1)[0]
+        text = paragraph.strip().replace("\n", " ")
+    else:
+        text = ""
+    if command.deprecated:
+        text = f"(Deprecated) {text}".strip()
+    return text
 
 
 DEFAULT_EXIT_STATUS: tuple[tuple[str, str], ...] = (
@@ -137,32 +194,58 @@ def _quote(text: str) -> str:
     return '"{}"'.format(text.replace('"', ""))
 
 
+def _render_inline(text: str) -> str:
+    """Render one line of Click help prose to a roff body line.
+
+    Translates each reST inline literal (``"``...``"``) to a bold span
+    (``\\fB...\\fR``); escapes plain prose with :func:`_roff_escape`;
+    neutralizes a leading control character (``.`` or ``'``) the way
+    :func:`_roff_line` does so the result is safe to emit between any
+    other roff macros.
+    """
+    parts: list[str] = []
+    for segment, is_literal in iter_inline_literals(text):
+        parts.append(_bold(segment) if is_literal else _roff_escape(segment))
+    rendered = "".join(parts)
+    if rendered[:1] in (".", "'"):
+        rendered = "\\&" + rendered
+    return rendered
+
+
 def _emit_help(text: str) -> list[str]:
     """Render Click help/description prose to roff body lines (no section macro).
 
-    Click marks a block that must not be rewrapped by prefixing it with a
-    ``\\b`` (``\\x08``) control character. Any text carrying that marker is
-    emitted between ``.nf`` / ``.fi`` so its line breaks survive; ordinary
-    prose is collapsed and filled, with ``.PP`` between paragraphs.
+    Click marks a no-rewrap region with a ``\\b`` (``\\x08``) control
+    character: everything after the marker within the same paragraph is
+    rendered verbatim. Each paragraph is therefore split into a filled
+    prefix and a preformatted suffix, with ``.nf`` / ``.fi`` wrapping
+    only the suffix. Paragraphs without a marker collapse to a single
+    filled line, separated from the previous one by ``.PP``.
     """
     text = inspect.cleandoc(text).strip()
     if not text:
         return []
 
-    if "\x08" in text:
-        lines = [".nf"]
-        lines.extend(_roff_line(line) for line in text.replace("\x08", "").splitlines())
-        lines.append(".fi")
-        return lines
-
     out: list[str] = []
     for index, paragraph in enumerate(re.split(r"\n\s*\n", text)):
-        collapsed = " ".join(paragraph.split())
-        if not collapsed:
+        if not paragraph.strip():
             continue
         if index > 0:
             out.append(".PP")
-        out.append(_roff_line(collapsed))
+        pre, marker, post = paragraph.partition("\x08")
+        pre = pre.strip()
+        if pre:
+            out.append(_render_inline(" ".join(pre.split())))
+        if marker:
+            # ``\b`` may sit on its own line: strip the surrounding
+            # newlines so the .nf block is compact, but keep internal
+            # line breaks so the no-fill region looks as written.
+            post = post.strip("\n")
+            if post:
+                out.append(".nf")
+                for line in post.splitlines():
+                    out.append(_render_inline(line))
+                out.append(".fi")
     return out
 
 
@@ -317,8 +400,14 @@ class ManPage:
 
         lines.append(".SH NAME")
         name = _roff_escape(self.name)
+        # ``self.short_help`` is the author's docstring or explicit
+        # ``short_help``: route it through ``_render_inline`` so inline
+        # reST literals show up as bold instead of leaking through as
+        # raw backticks rendered as quotes by mandoc.
         lines.append(
-            f"{name} \\- {_roff_escape(self.short_help)}" if self.short_help else name
+            f"{name} \\- {_render_inline(self.short_help)}"
+            if self.short_help
+            else name
         )
 
         lines.append(".SH SYNOPSIS")
@@ -582,11 +671,11 @@ def extract_manpage(
             sub = command.get_command(ctx, sub_name)
             if sub is None or getattr(sub, "hidden", False):
                 continue
-            subcommands.append((sub_name, sub.get_short_help_str()))
+            subcommands.append((sub_name, full_short_help(sub)))
 
     return ManPage(
         name=ctx.command_path,
-        short_help=command.get_short_help_str(),
+        short_help=full_short_help(command),
         synopsis_pieces=tuple(command.collect_usage_pieces(ctx)),
         description=command.help or "",
         operands=tuple(operands),

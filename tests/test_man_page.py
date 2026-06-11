@@ -101,6 +101,89 @@ def test_no_rewrap_marker_becomes_no_fill():
     assert "line one\nline two" in roff
 
 
+def test_no_rewrap_marker_does_not_leak_into_surrounding_paragraphs():
+    """A ``\\b`` paragraph must not switch the whole DESCRIPTION to
+    preformatted mode: prose before and after stays filled, only the
+    marked paragraph lands between ``.nf`` / ``.fi``."""
+
+    @command
+    def harbor():
+        """Tidal harbor report.
+
+        First paragraph that should render as filled prose.
+
+        \b
+        Marked block keeps its
+        original line breaks.
+
+        Trailing paragraph that should also render as filled prose.
+        """
+
+    roff = render_manpage(harbor)
+    # Scope the assertions to the DESCRIPTION block: the FILES section
+    # uses its own ``.nf`` / ``.fi`` pair for the config-glob path so a
+    # roff-wide count would conflate the two regions.
+    description = roff.split(".SH DESCRIPTION", 1)[1].split(".SH ", 1)[0]
+    assert description.count(".nf") == 1
+    assert description.count(".fi") == 1
+    nf_pos = description.index(".nf")
+    fi_pos = description.index(".fi")
+    assert "First paragraph" in description[:nf_pos]
+    assert "Marked block" in description[nf_pos:fi_pos]
+    assert "Trailing paragraph" in description[fi_pos:]
+
+
+def test_name_line_keeps_full_short_help():
+    """The NAME ``.SH`` line carries the canonical description without
+    Click's 45-char terminal truncation."""
+
+    @command
+    def harbor():
+        """Tidal harbor report covering the whole Atlantic coastline."""
+
+    roff = render_manpage(harbor)
+    assert "Tidal harbor report covering the whole Atlantic coastline." in roff
+    # No truncation marker on the NAME line.
+    assert "...\n" not in roff.split(".SH SYNOPSIS")[0]
+
+
+def test_inline_literal_in_short_help_renders_as_bold():
+    """Inline reST literals (``..``) in the first docstring line land on
+    the NAME ``.SH`` line as ``\\fB..\\fR``, not as raw backticks (which
+    mandoc renders as quote characters)."""
+
+    @command
+    def harbor():
+        """Inject the ``tide_level`` reading into the daily report."""
+
+    roff = render_manpage(harbor)
+    # Bold rendering for the literal token.
+    assert "\\fBtide_level\\fR" in roff
+    # No raw backticks should survive in the NAME line.
+    name_block = roff.split(".SH SYNOPSIS")[0]
+    assert "``" not in name_block
+
+
+def test_inline_literal_in_description_renders_as_bold():
+    """Inline reST literals in the description body become ``\\fB..\\fR``
+    so mandoc's HTML output shows them in bold rather than wrapped in
+    Unicode quote characters."""
+
+    @command
+    def harbor():
+        """Tidal report.
+
+        The flag ``--tide`` toggles ``high_tide`` injection.
+        """
+
+    roff = render_manpage(harbor)
+    assert "\\fB\\-\\-tide\\fR" in roff
+    assert "\\fBhigh_tide\\fR" in roff
+    # Raw backticks must not survive in the description body.
+    description = roff.split(".SH DESCRIPTION")[1].split(".SH ", 1)[0]
+    assert "``" not in description
+
+
 def test_boolean_flag_renders_both_spellings():
     """``--ascii`` / ``--no-ascii`` must both appear (click-man #41)."""
     roff = render_manpage(weather)

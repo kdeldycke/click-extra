@@ -38,6 +38,7 @@ def _build_with_manpages(
     manpages_config: list[dict[str, Any]],
     *,
     builder: str = "html",
+    index_body: str = "Hi\n==\n\nstub.\n",
 ) -> Path:
     """Build a tiny Sphinx project that declares ``click_extra_manpages``.
 
@@ -45,6 +46,9 @@ def _build_with_manpages(
     pages emitted by the hook. Uses a CLI shipped with click-extra
     (``click_extra.cli:demo``) as the target, so no external project has
     to be importable for the test to run.
+
+    ``index_body`` overrides the contents of ``index.rst`` for tests that
+    exercise directives or roles inside the page.
     """
     srcdir = tmp_path / "source"
     outdir = tmp_path / "build"
@@ -60,7 +64,7 @@ def _build_with_manpages(
     (srcdir / "conf.py").write_text(
         "\n".join(f"{key} = {value!r}" for key, value in conf.items())
     )
-    (srcdir / "index.rst").write_text("Hi\n==\n\nstub.\n")
+    (srcdir / "index.rst").write_text(index_body)
 
     with docutils_namespace():
         app = Sphinx(
@@ -193,3 +197,74 @@ def test_manpages_hook_respects_render_html_opt_out(tmp_path):
     assert (man_dir / "click-extra.1").is_file()
     # No .html sibling, regardless of mandoc availability.
     assert not any(man_dir.glob("*.html"))
+
+
+_INDEX_WITH_DIRECTIVE = """\
+Hi
+==
+
+.. click-extra-manpages::
+"""
+"""``index.rst`` body that hosts a single bare ``click-extra-manpages``
+directive call. Used by the directive tests to render the auto-generated
+link list into ``index.html``."""
+
+
+def test_manpages_directive_renders_one_link_per_command(tmp_path):
+    """The directive emits a bullet list with one entry per (sub)command
+    of every script declared in ``click_extra_manpages``."""
+    outdir = _build_with_manpages(
+        tmp_path,
+        # render_html=False keeps the test independent of mandoc
+        # availability: the directive points at the .html siblings
+        # regardless of whether they were actually written.
+        [{"script": "click_extra.cli:demo", "render_html": False}],
+        index_body=_INDEX_WITH_DIRECTIVE,
+    )
+    body = (outdir / "index.html").read_text(encoding="utf-8")
+    # One link per page the emit hook would have written: the root
+    # command plus every visible subcommand.
+    assert 'href="man/click-extra.1.html"' in body
+    assert 'href="man/click-extra-man.1.html"' in body
+    assert 'href="man/click-extra-prebake.1.html"' in body
+    assert 'href="man/click-extra-prebake-all.1.html"' in body
+    # The visible label uses the ``name(section)`` convention so it
+    # reads naturally next to the short-help suffix.
+    assert "click-extra(1)" in body
+    assert "click-extra-man(1)" in body
+
+
+def test_manpages_directive_is_noop_when_config_empty(tmp_path):
+    """An empty config means no bullet list, no warning, build still
+    finishes."""
+    outdir = _build_with_manpages(
+        tmp_path,
+        [],
+        index_body=_INDEX_WITH_DIRECTIVE,
+    )
+    body = (outdir / "index.html").read_text(encoding="utf-8")
+    assert (outdir / "index.html").is_file()
+    # No anchors pointing at man/* because the directive had nothing to
+    # enumerate. The rest of index.html still renders.
+    assert 'href="man/' not in body
+
+
+def test_manpages_directive_renders_inline_literals_as_code(tmp_path):
+    """Inline reST literals in a command's short_help land as <code>
+    spans in the rendered index, not as raw backticks rendered like
+    quotes."""
+    outdir = _build_with_manpages(
+        tmp_path,
+        # The click-extra prebake-all subcommand has the short help
+        # ``Pre-bake __version__ and all git fields in one pass.``,
+        # which is what triggered the original bug report.
+        [{"script": "click_extra.cli:demo", "render_html": False}],
+        index_body=_INDEX_WITH_DIRECTIVE,
+    )
+    body = (outdir / "index.html").read_text(encoding="utf-8")
+    # The literal token rendered as a <code> span. The raw markers (the
+    # paired backticks) must not appear next to ``__version__`` in the
+    # output.
+    assert "<code" in body
+    assert "__version__" in body
+    assert "``__version__``" not in body

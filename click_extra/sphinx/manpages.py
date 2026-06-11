@@ -81,17 +81,26 @@ file regardless of how deep the subcommand tree goes.
 
 from __future__ import annotations
 
+import posixpath
 import shutil
 import subprocess
 from pathlib import Path
 
+from docutils import nodes
+from sphinx.directives import SphinxDirective
 from sphinx.util import logging
 
-from ..man_page import write_manpages
+from ..man_page import (
+    full_short_help,
+    iter_command_contexts,
+    iter_inline_literals,
+    write_manpages,
+)
 from ..wrap import resolve_target_command
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
+    from click import Command
     from sphinx.application import Sphinx
 
 
@@ -272,12 +281,119 @@ def _emit_manpages(app: Sphinx) -> None:
         )
 
 
+MANPAGE_LIST_DIRECTIVE = "click-extra-manpages"
+"""Name of the directive that renders an auto-generated index of every
+man page declared in :data:`MANPAGES_CONFIG_KEY`. The hyphenated form
+mirrors the ``click_extra_manpages`` config key it surfaces."""
+
+
+class ManpageListDirective(SphinxDirective):
+    """Render a bullet list with one link per emitted man page.
+
+    The directive walks every entry in :data:`MANPAGES_CONFIG_KEY` and,
+    for each, calls :func:`~click_extra.man_page.iter_command_contexts`
+    to discover the (sub)command tree. Each list item links to the
+    corresponding ``.1.html`` file written by the emit hook.
+
+    Link targets are computed relative to the directive's enclosing
+    document so the list works whether it appears at the docs root or
+    in a nested page. The directive takes no arguments and no content:
+    it surfaces whatever the config declares at the time the doc is
+    built.
+    """
+
+    has_content = False
+    required_arguments = 0
+    optional_arguments = 0
+
+    def run(self) -> list[nodes.Node]:
+        entries = getattr(self.config, MANPAGES_CONFIG_KEY, None) or ()
+        result: list[nodes.Node] = []
+        for index, entry in enumerate(entries):
+            script = entry.get("script")
+            if not script:
+                continue
+            # Same resilience contract as ``_emit_manpages``: a single
+            # broken entry must not break the doc page that hosts the
+            # directive. Log and move on.
+            try:
+                cmd, _ = resolve_target_command(script)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "click_extra.sphinx: %s directive cannot resolve "
+                    "%s[%d] script %r: %s",
+                    MANPAGE_LIST_DIRECTIVE,
+                    MANPAGES_CONFIG_KEY,
+                    index,
+                    script,
+                    exc,
+                )
+                continue
+            output_dir = entry.get("output_dir") or DEFAULT_OUTPUT_DIR
+            prog_name = entry.get("prog_name") or cmd.name or script
+            result.append(self._render_entry(cmd, prog_name, output_dir))
+        return result
+
+    def _render_entry(
+        self,
+        cmd: Command,
+        prog_name: str,
+        output_dir: str,
+    ) -> nodes.bullet_list:
+        """Build the bullet list of links for one ``click_extra_manpages``
+        entry's command tree.
+        """
+        list_node = nodes.bullet_list()
+        for path, sub_cmd, _ctx in iter_command_contexts(cmd, prog_name):
+            name = "-".join(path)
+            url = self._relative_url(output_dir, f"{name}.1.html")
+
+            ref = nodes.reference("", "", refuri=url)
+            ref += nodes.literal(text=f"{name}(1)")
+
+            para = nodes.paragraph()
+            para += ref
+            short_help = full_short_help(sub_cmd)
+            if short_help:
+                para += nodes.Text(" — ")
+                # Translate any reST inline literal (``X``) in the help
+                # text to a ``nodes.literal`` so it renders with the
+                # docs code font instead of leaking through as raw
+                # backticks.
+                for segment, is_literal in iter_inline_literals(short_help):
+                    if is_literal:
+                        para += nodes.literal(text=segment)
+                    else:
+                        para += nodes.Text(segment)
+
+            item = nodes.list_item()
+            item += para
+            list_node += item
+        return list_node
+
+    def _relative_url(self, output_dir: str, filename: str) -> str:
+        """Return ``filename`` under ``output_dir``, relative to the
+        directive's enclosing document.
+
+        The hook writes ``app.outdir/<output_dir>/<filename>``, and the
+        Sphinx HTML mirror of ``self.env.docname`` lives at
+        ``app.outdir/<docname>.html``. Computing the path with
+        :mod:`posixpath` keeps the URL portable across platforms and
+        correct for docs nested under subdirectories.
+        """
+        current_dir = posixpath.dirname(self.env.docname) or "."
+        target = posixpath.join(output_dir, filename)
+        return posixpath.relpath(target, current_dir)
+
+
 def setup(app: Sphinx) -> None:
-    """Register the man-page emit hook on the Sphinx ``app``.
+    """Register the man-page emit hook and the index directive on ``app``.
 
     Called from :func:`click_extra.sphinx.setup` so projects only need to
     list ``"click_extra.sphinx"`` in their ``extensions``. The hook is
-    a no-op when ``click_extra_manpages`` is unset or empty.
+    a no-op when ``click_extra_manpages`` is unset or empty, and the
+    directive renders nothing in that case.
     """
     app.add_config_value(MANPAGES_CONFIG_KEY, default=[], rebuild="env", types=[list])
     app.connect("builder-inited", _emit_manpages)
+    app.add_directive(MANPAGE_LIST_DIRECTIVE, ManpageListDirective)
