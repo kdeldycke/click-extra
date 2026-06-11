@@ -313,6 +313,65 @@ def test_module_version_parent_package_fallback(monkeypatch):
     assert opt.module_version == "1.2.3"
 
 
+def test_package_version_resolves_import_name_to_distribution(monkeypatch):
+    """When ``package_name`` is an import name that differs from its
+    installed distribution name (``PIL`` vs ``Pillow``), ``package_version``
+    resolves it via ``packages_distributions()`` instead of returning ``None``.
+    """
+    from importlib import metadata as _metadata
+
+    def fake_version(name):
+        if name == "pillow":
+            return "10.4.0"
+        raise _metadata.PackageNotFoundError(name)
+
+    monkeypatch.setattr(_metadata, "version", fake_version)
+    monkeypatch.setattr(
+        _metadata,
+        "packages_distributions",
+        lambda: {"PIL": ["pillow"]},
+    )
+
+    opt = ExtraVersionOption(["--version"], package_name="PIL")
+    assert opt.package_version == "10.4.0"
+
+
+def test_package_version_ambiguous_import_name_returns_none(monkeypatch):
+    """When an import name maps to several installed distributions,
+    ``package_version`` returns ``None`` rather than guessing.
+    """
+    from importlib import metadata as _metadata
+
+    def fake_version(name):
+        raise _metadata.PackageNotFoundError(name)
+
+    monkeypatch.setattr(_metadata, "version", fake_version)
+    monkeypatch.setattr(
+        _metadata,
+        "packages_distributions",
+        lambda: {"plug": ["foo-plug", "bar-plug"]},
+    )
+
+    opt = ExtraVersionOption(["--version"], package_name="plug")
+    assert opt.package_version is None
+
+
+def test_package_version_unknown_returns_none(monkeypatch):
+    """When the name resolves to no distribution, ``package_version`` returns
+    ``None``, the existing graceful behavior.
+    """
+    from importlib import metadata as _metadata
+
+    def fake_version(name):
+        raise _metadata.PackageNotFoundError(name)
+
+    monkeypatch.setattr(_metadata, "version", fake_version)
+    monkeypatch.setattr(_metadata, "packages_distributions", lambda: {})
+
+    opt = ExtraVersionOption(["--version"], package_name="nonexistent")
+    assert opt.package_version is None
+
+
 def test_cli_frame_fallback(monkeypatch):
     """``cli_frame()`` falls back to the outermost frame when all frames are
     from the Click ecosystem."""

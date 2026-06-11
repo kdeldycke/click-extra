@@ -685,7 +685,16 @@ class ExtraVersionOption(ExtraOption):
 
     @cached_property
     def package_version(self) -> str | None:
-        """Returns the package version if installed."""
+        """Returns the package version if installed.
+
+        If ``package_name`` does not match an installed distribution
+        directly, it is resolved as an import (top-level module) name
+        via :func:`importlib.metadata.packages_distributions`. This
+        covers packages whose top-level module name differs from their
+        distribution name (``PIL`` vs ``Pillow``, ``jwt`` vs ``PyJWT``).
+        Ambiguous mappings (one import name to several distributions)
+        return ``None``: pass ``package_name`` explicitly to disambiguate.
+        """
         logger = logging.getLogger("click_extra")
 
         if not self.package_name:
@@ -693,15 +702,29 @@ class ExtraVersionOption(ExtraOption):
             return None
 
         try:
-            version = metadata.version(self.package_name)
+            return metadata.version(self.package_name)
         except metadata.PackageNotFoundError:
+            pass
+
+        # The given name didn't match an installed distribution. Try
+        # resolving it as an import (top-level module) name.
+        distributions = metadata.packages_distributions().get(
+            self.package_name, []
+        )
+        if len(distributions) == 1:
+            return metadata.version(distributions[0])
+        if len(distributions) > 1:
             logger.debug(
-                f"Cannot get version: {self.package_name!r} package not found or not "
-                "installed."
+                f"{self.package_name!r} maps to multiple installed "
+                f"distributions ({', '.join(distributions)}); pass "
+                "'package_name' to disambiguate.",
             )
             return None
-
-        return version
+        logger.debug(
+            f"Cannot get version: {self.package_name!r} package not found or not "
+            "installed.",
+        )
+        return None
 
     @cached_property
     def exec_name(self) -> str:
