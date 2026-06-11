@@ -17,12 +17,20 @@
 
 from __future__ import annotations
 
+import shutil
 from inspect import cleandoc
 from pathlib import Path
 from typing import Any
 
+import pytest
 from sphinx.application import Sphinx
 from sphinx.util.docutils import docutils_namespace
+
+from click_extra.sphinx import manpages
+
+_HAS_RENDERER = any(shutil.which(name) for name, _ in manpages.HTML_RENDERERS)
+"""``True`` if at least one roff → HTML renderer is on ``PATH``. Drives
+the ``skipif`` on tests that need the HTML sibling to exist."""
 
 
 def _build_with_manpages(
@@ -142,8 +150,46 @@ def test_manpages_module_help_documents_config_shape():
     projects depend on the docstring as the canonical reference, since
     it is what ``help(click_extra.sphinx.manpages)`` prints.
     """
-    from click_extra.sphinx import manpages
-
     body = cleandoc(manpages.__doc__ or "")
-    for key in ("script", "prog_name", "output_dir"):
+    for key in ("script", "prog_name", "output_dir", "render_html"):
         assert key in body, f"missing documentation for {key!r}"
+
+
+@pytest.mark.skipif(
+    not _HAS_RENDERER,
+    reason="needs mandoc or groff on PATH to render the HTML siblings",
+)
+def test_manpages_hook_emits_html_siblings(tmp_path):
+    """When a renderer is available, every ``.1`` gets a ``.1.html`` next
+    to it whose body carries the section headings from the source roff."""
+    outdir = _build_with_manpages(
+        tmp_path,
+        [{"script": "click_extra.cli:demo"}],
+    )
+    man_dir = outdir / "man"
+    root_roff = man_dir / "click-extra.1"
+    root_html = man_dir / "click-extra.1.html"
+    assert root_roff.is_file()
+    assert root_html.is_file()
+    body = root_html.read_text(encoding="utf-8")
+    # mandoc emits per-section <h1> blocks; groff -Thtml emits <h2>. Either
+    # way the section title appears verbatim in the page so a simple "in"
+    # check is portable across renderers.
+    assert "NAME" in body
+    assert "SYNOPSIS" in body
+    assert "OPTIONS" in body
+    # Every subcommand page gets an HTML sibling too.
+    assert (man_dir / "click-extra-man.1.html").is_file()
+
+
+def test_manpages_hook_respects_render_html_opt_out(tmp_path):
+    """``render_html=False`` skips the HTML pass even when a renderer is
+    present, keeping the build to roff only."""
+    outdir = _build_with_manpages(
+        tmp_path,
+        [{"script": "click_extra.cli:demo", "render_html": False}],
+    )
+    man_dir = outdir / "man"
+    assert (man_dir / "click-extra.1").is_file()
+    # No .html sibling, regardless of mandoc availability.
+    assert not any(man_dir.glob("*.html"))

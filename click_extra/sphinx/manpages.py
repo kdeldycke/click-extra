@@ -23,6 +23,12 @@ every HTML build, with no project-local helper script. Pages mirror what
 so the docs site, the release pipeline, and downstream packagers all share
 one generator.
 
+When ``mandoc`` or ``groff`` is available on ``PATH``, each ``.1`` file is
+also rendered to a browser-viewable ``.html`` sibling. Browsers download
+raw ``.1`` files rather than display them, so the HTML pass is what makes
+Sphinx's ``:manpage:`` role useful when ``manpages_url`` points at this
+hook's output.
+
 The hook only fires for HTML-class builders (``html``, ``dirhtml``,
 ``singlehtml``). Non-HTML builders (``linkcheck``, ``man``, ``epub``,
 ``coverage``, etc.) skip it: they typically have different output
@@ -36,6 +42,7 @@ Configuration shape::
             "script": "meta_package_manager.cli:mpm",  # required
             "prog_name": "mpm",  # optional, see below
             "output_dir": "man",  # optional, defaults to "man"
+            "render_html": True,  # optional, see below
         },
     ]
 
@@ -50,13 +57,32 @@ Configuration shape::
   ``click-extra man --output-dir`` CLI uses.
 * ``output_dir`` is a relative path under ``app.outdir``. It is created
   on demand and reused across builds.
+* ``render_html`` toggles the HTML sibling pass. Defaults to ``True``.
+  When no renderer is on ``PATH``, the build still produces the ``.1``
+  files and logs a single info-level notice; set ``render_html`` to
+  ``False`` to suppress that notice.
 
 An empty (or absent) ``click_extra_manpages`` list disables the feature,
 which is the default for every project pulling in the extension.
+
+Cross-referencing the generated pages from prose
+================================================
+
+To make ``:manpage:`myprog(1)``` resolve to the HTML sibling this hook
+emits, set Sphinx's ``manpages_url`` to the same ``output_dir``::
+
+    manpages_url = "man/{page}.{section}.html"
+
+Sphinx's role provides ``{page}``, ``{section}`` and ``{path}``
+placeholders; the file layout produced here is ``{page}.{section}`` plus
+the optional ``.html`` extension, so the template above matches every
+file regardless of how deep the subcommand tree goes.
 """
 
 from __future__ import annotations
 
+import shutil
+import subprocess
 from pathlib import Path
 
 from sphinx.util import logging
@@ -93,12 +119,77 @@ writing roff into their build trees would either be redundant or
 confusing."""
 
 
+HTML_RENDERERS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("mandoc", ("-Thtml",)),
+    ("groff", ("-Thtml", "-mandoc")),
+)
+"""External roff → HTML renderers, tried in order.
+
+``mandoc`` is preferred: its HTML output ships semantic ``id`` anchors on
+every section and option (``#NAME``, ``#SYNOPSIS``, ``#config``…), which
+makes deep-linking from prose work. ``groff -Thtml -mandoc`` is the GNU
+fallback. If neither is on ``PATH``, the HTML pass is skipped and only
+the ``.1`` files are emitted.
+"""
+
+
+_RENDERER_TIMEOUT_S = 30
+"""Per-file ceiling on the renderer invocation. mandoc finishes a typical
+CLI page in under 100 ms; the timeout exists to bound damage from a
+pathological page or a hung external process."""
+
+
+def _find_renderer() -> tuple[str, tuple[str, ...]] | None:
+    """Locate the first available roff → HTML renderer on ``PATH``.
+
+    Returns ``(executable, extra_argv)`` so the caller can append a file
+    path and run it. Returns ``None`` when no candidate is available.
+    """
+    for name, extra in HTML_RENDERERS:
+        path = shutil.which(name)
+        if path:
+            return path, extra
+    return None
+
+
+def _render_html(renderer: tuple[str, tuple[str, ...]], roff_path: Path) -> str | None:
+    """Run ``renderer`` on ``roff_path`` and return its captured ``stdout``.
+
+    Returns ``None`` if the subprocess fails for any reason. Failure is
+    logged at warning level but does not abort the build: a broken HTML
+    pass on one page must not lose the rest of the docs.
+    """
+    executable, extra = renderer
+    try:
+        result = subprocess.run(
+            [executable, *extra, str(roff_path)],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=_RENDERER_TIMEOUT_S,
+        )
+    except (subprocess.SubprocessError, OSError) as exc:
+        logger.warning(
+            "click_extra.sphinx: %s failed on %s: %s",
+            Path(executable).name,
+            roff_path.name,
+            exc,
+        )
+        return None
+    return result.stdout
+
+
 def _emit_manpages(app: Sphinx) -> None:
     """Walk ``click_extra_manpages`` and write each tree under ``app.outdir``.
 
     No-ops for non-HTML builders and for an empty config list. Errors
     resolving a single entry are logged but do not abort the build, so
     one misconfigured entry cannot derail an otherwise-good docs deploy.
+
+    For every emitted ``.1`` file, also write a browser-viewable ``.html``
+    sibling when the entry opts in (default) and a renderer is on
+    ``PATH``. The renderer is looked up once per build, so a project with
+    several entries pays the ``shutil.which`` cost a single time.
     """
     if app.builder.name not in HTML_BUILDER_NAMES:
         return
@@ -106,6 +197,9 @@ def _emit_manpages(app: Sphinx) -> None:
     entries = getattr(app.config, MANPAGES_CONFIG_KEY, None) or ()
     if not entries:
         return
+
+    renderer = _find_renderer()
+    renderer_notice_logged = False
 
     for index, entry in enumerate(entries):
         script = entry.get("script")
@@ -142,6 +236,39 @@ def _emit_manpages(app: Sphinx) -> None:
             len(written),
             prog_name,
             target,
+        )
+
+        render_html = entry.get("render_html", True)
+        if not render_html:
+            continue
+        if renderer is None:
+            # Tell the user once per build why no HTML was produced.
+            # Suppressed when the user opts out explicitly via
+            # ``render_html: False`` because they did not ask for it.
+            if not renderer_notice_logged:
+                logger.info(
+                    "click_extra.sphinx: no roff renderer found on PATH "
+                    "(tried %s); skipping HTML man-page rendering. Set "
+                    "render_html=False to suppress this notice.",
+                    ", ".join(name for name, _ in HTML_RENDERERS),
+                )
+                renderer_notice_logged = True
+            continue
+
+        html_written = 0
+        for roff_path in written:
+            html = _render_html(renderer, roff_path)
+            if html is None:
+                continue
+            roff_path.with_suffix(roff_path.suffix + ".html").write_text(
+                html, encoding="utf-8"
+            )
+            html_written += 1
+        logger.info(
+            "click_extra.sphinx: rendered %d HTML man page(s) for %r with %s",
+            html_written,
+            prog_name,
+            Path(renderer[0]).name,
         )
 
 

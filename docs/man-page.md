@@ -102,6 +102,10 @@ Three entry points cover the Python API, from one-shot rendering up to writing t
    	dh_installman -O--buildsystem=pybuild
    ```
 
+### Sphinx integration
+
+Projects already using the `click_extra.sphinx` extension can publish the same pages alongside their HTML docs with a single `click_extra_manpages` entry in `conf.py`: see [Man pages](sphinx.md#man-pages). The Sphinx hook reuses `write_manpages` under the hood and optionally renders a browser-viewable HTML sibling next to each `.1` so the standard [`:manpage:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/roles.html#role-manpage) role can link to them.
+
 ## Layout
 
 Unix tools are conventionally documented with the section layout of [`man-pages(7)`](https://man7.org/linux/man-pages/man7/man-pages.7.html): a one-line `NAME`, a `SYNOPSIS`, a prose `DESCRIPTION`, an itemized `OPTIONS` list, then `ENVIRONMENT`, `FILES`, and `EXIT STATUS`. A Click Extra command already carries everything those sections need. This page documents one small CLI top-to-bottom in that order, with each section backed by output rendered live from the running command.

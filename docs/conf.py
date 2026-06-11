@@ -44,6 +44,21 @@ extensions = [
 # trust boundary.
 click_extra_enable_exec_directives = True
 
+# Emit roff man pages for click-extra's own CLI into <outdir>/man/ on every
+# HTML build. See click_extra/sphinx/manpages.py.
+click_extra_manpages = [
+    {
+        "script": "click_extra.cli:demo",
+        "prog_name": "click-extra",
+    },
+]
+
+# Resolve `:manpage:`click-extra(1)`` (and every subcommand page) to the
+# HTML siblings the hook above emits. The {page}.{section}.html template
+# matches whether the page is the root command or a deeply nested
+# subcommand.
+manpages_url = "man/{page}.{section}.html"
+
 # https://myst-parser.readthedocs.io/en/latest/syntax/optional.html
 myst_enable_extensions = [
     "alert",

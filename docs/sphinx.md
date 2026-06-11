@@ -767,6 +767,7 @@ click_extra_manpages = [
         "script": "my_pkg.cli:my_cli",   # required
         "prog_name": "my-cli",            # optional, defaults to Path(script).stem
         "output_dir": "man",              # optional, defaults to "man"
+        "render_html": True,              # optional, defaults to True
     },
 ]
 ```
@@ -776,6 +777,33 @@ On every HTML build, the hook resolves each `script` with the same scanner as th
 Only HTML-family builders (`html`, `dirhtml`, `singlehtml`) trigger the hook. Other builders (`linkcheck`, `man`, `epub`, `coverage`) skip it: roff in their output trees would be redundant or confusing.
 
 The generator honors `SOURCE_DATE_EPOCH` for reproducible builds and inherits every option-group and Cloup-aware rendering rule documented in the [man-page reference](man-page.md#layout).
+
+### HTML siblings
+
+Browsers download `.1` files rather than render them, so each emitted page is also passed through a roff → HTML renderer when one is available. The result lands next to the source as `<page>.<section>.html` (e.g. `my-cli.1.html`).
+
+The hook tries [`mandoc -Thtml`](https://mandoc.bsd.lv) first, then `groff -Thtml -mandoc`, picking whichever it finds on `PATH`. mandoc is preferred for its semantic anchors: every section and option gets a stable `id`, which makes deep-linking work. If neither renderer is installed, the build still produces the `.1` files and logs a single info-level notice, which `render_html: False` suppresses.
+
+A typical CI container ships one or the other: Debian and Ubuntu have `groff` in `build-essential`, BSDs and recent macOS images ship `mandoc`. To pin the renderer on GitHub Actions, install it explicitly:
+
+```{code-block} yaml
+:caption: `.github/workflows/docs.yaml`
+- name: Install mandoc
+  run: sudo apt-get install --yes mandoc
+```
+
+### Cross-linking from prose
+
+To make the standard `:manpage:` role link to the HTML siblings the hook emits, set Sphinx's [`manpages_url`](https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-manpages_url) to the matching path:
+
+```{code-block} python
+:caption: `conf.py`
+manpages_url = "man/{page}.{section}.html"
+```
+
+With that in place, `` :manpage:`my-cli(1)` `` in any docstring or `.md` file resolves to `man/my-cli.1.html` in the rendered docs. The same template covers every subcommand page, since `{page}` matches the full hyphenated name the generator produces (`my-cli`, `my-cli-build`, `my-cli-build-all`).
+
+Leaving `manpages_url` unset is fine. The role still renders as styled text; only the hyperlink target is missing.
 
 ## GitHub alerts
 
