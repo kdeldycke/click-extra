@@ -243,8 +243,7 @@ def _emit_help(text: str) -> list[str]:
             post = post.strip("\n")
             if post:
                 out.append(".nf")
-                for line in post.splitlines():
-                    out.append(_render_inline(line))
+                out.extend(_render_inline(line) for line in post.splitlines())
                 out.append(".fi")
     return out
 
@@ -405,9 +404,7 @@ class ManPage:
         # reST literals show up as bold instead of leaking through as
         # raw backticks rendered as quotes by mandoc.
         lines.append(
-            f"{name} \\- {_render_inline(self.short_help)}"
-            if self.short_help
-            else name
+            f"{name} \\- {_render_inline(self.short_help)}" if self.short_help else name
         )
 
         lines.append(".SH SYNOPSIS")

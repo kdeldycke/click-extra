@@ -708,9 +708,7 @@ class ExtraVersionOption(ExtraOption):
 
         # The given name didn't match an installed distribution. Try
         # resolving it as an import (top-level module) name.
-        distributions = metadata.packages_distributions().get(
-            self.package_name, []
-        )
+        distributions = metadata.packages_distributions().get(self.package_name, [])
         if len(distributions) == 1:
             return metadata.version(distributions[0])
         if len(distributions) > 1:

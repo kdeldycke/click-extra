@@ -366,7 +366,7 @@ def test_package_version_unknown_returns_none(monkeypatch):
         raise _metadata.PackageNotFoundError(name)
 
     monkeypatch.setattr(_metadata, "version", fake_version)
-    monkeypatch.setattr(_metadata, "packages_distributions", lambda: {})
+    monkeypatch.setattr(_metadata, "packages_distributions", dict)
 
     opt = ExtraVersionOption(["--version"], package_name="nonexistent")
     assert opt.package_version is None
