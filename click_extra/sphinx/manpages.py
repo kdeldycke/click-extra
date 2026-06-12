@@ -148,15 +148,46 @@ CLI page in under 100 ms; the timeout exists to bound damage from a
 pathological page or a hung external process."""
 
 
+_ROFF_PROBE = ".TH TEST 1\n.SH NAME\ntest \\- probe\n"
+"""Minimal roff source used to verify a renderer actually produces output.
+
+Some environments install the renderer binary but not the HTML support
+package (e.g. ``groff`` without ``groff-html`` on Debian/Ubuntu ARM
+runners). A bare ``shutil.which`` check would accept such a broken install
+and later produce zero HTML files. The probe catches this early so the
+caller can fall through to the next candidate.
+"""
+
+
 def _find_renderer() -> tuple[str, tuple[str, ...]] | None:
     """Locate the first available roff → HTML renderer on ``PATH``.
 
     Returns ``(executable, extra_argv)`` so the caller can append a file
-    path and run it. Returns ``None`` when no candidate is available.
+    path and run it. Returns ``None`` when no candidate is available or
+    when the candidate is installed but cannot produce HTML output (e.g.
+    ``groff`` present but ``groff-html`` absent).
+
+    A quick probe with a trivial roff snippet guards against the latter
+    case: if the renderer exits non-zero or produces empty output, it is
+    treated as absent.
     """
     for name, extra in HTML_RENDERERS:
         path = shutil.which(name)
-        if path:
+        if not path:
+            continue
+        # Verify the renderer actually works rather than just existing.
+        try:
+            result = subprocess.run(
+                [path, *extra],
+                input=_ROFF_PROBE,
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=_RENDERER_TIMEOUT_S,
+            )
+        except (subprocess.SubprocessError, OSError):
+            continue
+        if result.stdout.strip():
             return path, extra
     return None
 

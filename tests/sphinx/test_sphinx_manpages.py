@@ -17,7 +17,6 @@
 
 from __future__ import annotations
 
-import shutil
 from inspect import cleandoc
 from pathlib import Path
 from typing import Any
@@ -28,9 +27,10 @@ from sphinx.util.docutils import docutils_namespace
 
 from click_extra.sphinx import manpages
 
-_HAS_RENDERER = any(shutil.which(name) for name, _ in manpages.HTML_RENDERERS)
-"""``True`` if at least one roff → HTML renderer is on ``PATH``. Drives
-the ``skipif`` on tests that need the HTML sibling to exist."""
+_HAS_RENDERER = manpages._find_renderer() is not None
+"""``True`` if at least one roff → HTML renderer is on ``PATH`` and
+actually produces output. Drives the ``skipif`` on tests that need the
+HTML sibling to exist."""
 
 
 def _build_with_manpages(
