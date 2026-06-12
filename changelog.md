@@ -1,9 +1,6 @@
 # Changelog
 
-## [`7.19.0.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.18.0...main)
-
-> [!WARNING]
-> This version is **not released yet** and is under active development.
+## [`7.19.0` (2026-06-12)](https://github.com/kdeldycke/click-extra/compare/v7.18.0...v7.19.0)
 
 - Add an `--output-dir DIR` option to the `click-extra man` subcommand. With it set, the command writes one `.1` file per (sub)command in the resolved tree into `DIR` (created if missing) instead of printing a single page to stdout. Suitable for invocation from a release pipeline or a distributor's build phase (Debian's `override_dh_installman`, Guix' `install-man-page`), without a project-local wrapper script.
 - Add a `click_extra_manpages` Sphinx configuration value (and the matching `click_extra.sphinx.manpages` module) and a `click-extra-manpages` directive. Projects enabling `click_extra.sphinx` can declare one or more `{"script", "prog_name", "output_dir", "render_html"}` entries to emit the corresponding Click command tree(s) as roff `.1` files into `<outdir>/<output_dir>/` on every HTML build. Each `script` is resolved the same way `click-extra man` does (console-script entry point, `module:function`, `.py` path, or module name); only HTML-family builders trigger the hook. When `mandoc` or `groff` is on `PATH`, every `.1` also gets a browser-viewable `.html` sibling. The `click-extra-manpages` directive renders a relative-URL bullet list of all declared pages; it works at any depth in the doc tree.
