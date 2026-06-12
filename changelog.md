@@ -1,5 +1,10 @@
 # Changelog
 
+## [`7.19.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.19.0...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`7.19.0` (2026-06-12)](https://github.com/kdeldycke/click-extra/compare/v7.18.0...v7.19.0)
 
 - Add an `--output-dir DIR` option to the `click-extra man` subcommand. With it set, the command writes one `.1` file per (sub)command in the resolved tree into `DIR` (created if missing) instead of printing a single page to stdout. Suitable for invocation from a release pipeline or a distributor's build phase (Debian's `override_dh_installman`, Guix' `install-man-page`), without a project-local wrapper script.
