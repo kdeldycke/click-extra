@@ -534,6 +534,12 @@ exclude = [
 dependency-graph.all-extras = true
 dependency-graph.all-groups = false
 exclude = [ "skills", "workflows/debug.yaml" ]
+# Render the Click command tree as roff `.1` files and attach a
+# `click-extra-manpages.tar.gz` asset to every GitHub release. The script
+# target mirrors `click_extra_manpages` in `docs/conf.py`, so the release
+# tarball and the HTML docs site stay in lockstep. Requires repomatic
+# >= 6.25.0 in the release engine.
+manpages.script = "click_extra.cli:demo"
 # Custom axes for upstream dependency testing (full matrix only).
 test-matrix.variations.click-version = [ "released", "stable", "main" ]
 test-matrix.variations.cloup-version = [ "released", "master" ]
