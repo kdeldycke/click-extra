@@ -688,13 +688,13 @@ class TreeDirective(SphinxDirective):
 
         cli_expr = self.arguments[0].strip()
         try:
-            cli = eval(cli_expr, self.runner.namespace)  # noqa: S307
+            cli = eval(cli_expr, self.runner.namespace)
         except Exception as exc:
             raise RuntimeError(
                 f"click:tree: failed to evaluate {cli_expr!r}: {exc}",
             ) from exc
         if not isinstance(cli, click.Command):
-            raise RuntimeError(
+            raise TypeError(
                 f"click:tree: {cli_expr!r} did not yield a click.Command "
                 f"(got {type(cli).__name__}).",
             )
