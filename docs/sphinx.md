@@ -676,15 +676,15 @@ Which renders as:
 
 #### Tree options
 
-| Option              | Description                                                                                                | Default                  |
-| ------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------ |
-| `:max-depth:`       | Maximum recursion depth into nested groups.                                                                | `10`                     |
-| `:heading-offset:`  | Shift all generated headings down by N levels (set to `0` when the directive is the document's top entry). | `1`                      |
-| `:anchor-prefix:`   | Slug prefix for every generated anchor.                                                                    | Slug of the CLI name.    |
-| `:label-prefix:`    | Display prefix for the command labels in the table and headings.                                           | The CLI name.            |
-| `:root-label:`      | Heading text for the root `--help` block.                                                                  | `"Help screen"`          |
-| `:no-table:`        | Skip the summary table.                                                                                    | Table is rendered.       |
-| `:no-root:`         | Skip the root `--help` block.                                                                              | Root block is rendered.  |
+| Option             | Description                                                                                                | Default                 |
+| ------------------ | ---------------------------------------------------------------------------------------------------------- | ----------------------- |
+| `:max-depth:`      | Maximum recursion depth into nested groups.                                                                | `10`                    |
+| `:heading-offset:` | Shift all generated headings down by N levels (set to `0` when the directive is the document's top entry). | `1`                     |
+| `:anchor-prefix:`  | Slug prefix for every generated anchor.                                                                    | Slug of the CLI name.   |
+| `:label-prefix:`   | Display prefix for the command labels in the table and headings.                                           | The CLI name.           |
+| `:root-label:`     | Heading text for the root `--help` block.                                                                  | `"Help screen"`         |
+| `:no-table:`       | Skip the summary table.                                                                                    | Table is rendered.      |
+| `:no-root:`        | Skip the root `--help` block.                                                                              | Root block is rendered. |
 
 #### Inline import in the directive body
 
