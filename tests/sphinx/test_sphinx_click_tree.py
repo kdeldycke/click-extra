@@ -127,7 +127,7 @@ def test_click_tree_max_depth_truncates_walk(sphinx_app_myst):
     # surfaces a row for `jars` in its own subcommand listing, so we only
     # assert on the directive-generated anchor.
     assert 'href="#kitchen-pantry-jars"' not in html
-    assert "id=\"kitchen-pantry-jars\"" not in html
+    assert 'id="kitchen-pantry-jars"' not in html
 
 
 def test_click_tree_label_and_anchor_prefix_override(sphinx_app_myst):
