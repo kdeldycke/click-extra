@@ -606,13 +606,17 @@ class TreeDirective(SphinxDirective):
 
     ``max-depth`` caps the recursion into nested :class:`click.Group` commands
     (default: ``10``). ``heading-offset`` shifts all generated headings down
-    by N levels (default: ``1``, so top-level commands render at ``h2`` under
-    a document title at ``h1``). ``anchor-prefix`` and ``label-prefix``
-    override the slug and display prefix used for anchors and labels; both
-    default to the CLI's :attr:`click.Command.name`. ``root-label`` sets the
-    heading text for the root help block (default: ``"Help screen"``).
-    ``no-table`` skips the summary table; ``no-root`` skips the root
-    ``--help`` block.
+    by N levels. When unset, the directive reads
+    ``state.memo.section_level`` and uses the surrounding section depth so
+    the root nests one level below the enclosing section: inside the
+    document's ``h1`` title this yields ``1`` (root at ``h2``); inside an
+    ``h3`` section it yields ``3`` (root at ``h4``). Override only when the
+    auto-detected depth is wrong for the page layout. ``anchor-prefix`` and
+    ``label-prefix`` override the slug and display prefix used for anchors
+    and labels; both default to the CLI's :attr:`click.Command.name`.
+    ``root-label`` sets the heading text for the root help block
+    (default: ``"Help screen"``). ``no-table`` skips the summary table;
+    ``no-root`` skips the root ``--help`` block.
     """
 
     runner_attr: ClassVar[str] = "click_runner"
@@ -644,6 +648,26 @@ class TreeDirective(SphinxDirective):
     def _slug(value: str) -> str:
         """Lower-case + non-alphanumeric → ``-``, mirroring docutils' ``make_id``."""
         return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+
+    def _surrounding_section_depth(self) -> int:
+        """Return the heading level of the section wrapping this directive.
+
+        Drives the default :attr:`heading-offset` so generated headings nest
+        correctly under the surrounding section, regardless of how deep in
+        the document the directive is placed. A value of ``1`` means the
+        directive sits inside the document's top-level ``h1`` section (the
+        next legal heading is ``h2``); ``3`` means it sits inside an ``h3``
+        section (next legal heading is ``h4``).
+
+        Read from ``state.memo.section_level``, which docutils' ``RSTState``
+        and MyST's ``MockState`` both populate. Falls back to ``1`` if the
+        attribute is unavailable (preserves the historical default).
+        """
+        try:
+            level = self.state.memo.section_level
+        except Exception:
+            return 1
+        return max(level, 1)
 
     def _walk(
         self,
@@ -700,7 +724,14 @@ class TreeDirective(SphinxDirective):
             )
 
         max_depth = self.options.get("max-depth", 10)
-        heading_offset = self.options.get("heading-offset", 1)
+        # Without an explicit override, nest the generated headings one
+        # level below the surrounding section so the document outline stays
+        # consistent regardless of where the directive is placed. At the
+        # document's top level this resolves to the historical default of 1
+        # (root rendered at h2 under a document title at h1).
+        heading_offset = self.options.get(
+            "heading-offset", self._surrounding_section_depth(),
+        )
         label_prefix = self.options.get("label-prefix") or cli.name or cli_expr
         anchor_prefix = self.options.get("anchor-prefix") or self._slug(label_prefix)
         root_label = self.options.get("root-label", "Help screen")

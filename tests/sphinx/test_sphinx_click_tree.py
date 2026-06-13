@@ -179,3 +179,75 @@ def test_click_tree_errors_in_rst(sphinx_app_rst):
     """)
     with pytest.raises(Exception, match="MyST"):
         sphinx_app_rst.build_document(content)
+
+
+def test_click_tree_heading_offset_defaults_to_top_level(sphinx_app_myst):
+    """Below a single ``# Doc title`` the root renders at ``h2``.
+
+    Preserves the historical default behavior: a directive at the document
+    body (inside the title's h1 section) emits its root one level below.
+    """
+    content = "# Doc title\n\n" + KITCHEN_CLI + dedent("""
+        ```{click:tree} kitchen
+        ```
+    """)
+    html = sphinx_app_myst.build_document(content)
+    assert html is not None
+    # Root and top-level commands at h2, second-level at h3.
+    assert "<h2>Help screen" in html
+    assert "<h3>" in html and "kitchen pantry jars" in html
+
+
+def test_click_tree_heading_offset_adapts_to_surrounding_section(sphinx_app_myst):
+    """Nested inside an ``h3`` section, the root renders at ``h4``.
+
+    The default heading offset is computed from
+    ``state.memo.section_level`` so the document outline stays consistent
+    regardless of where the directive is placed.
+    """
+    content = dedent("""
+        # Top-level title
+
+        ## Mid-level section
+
+        ### Deep section
+
+    """) + KITCHEN_CLI + dedent("""
+        ```{click:tree} kitchen
+        ```
+    """)
+    html = sphinx_app_myst.build_document(content)
+    assert html is not None
+    # Root and top-level commands at h4, second-level at h5.
+    assert "<h4>Help screen" in html
+    assert "<h5>" in html and "kitchen pantry jars" in html
+    # No heading-level violation: the tree must not break out to h2 or h3.
+    assert "<h2>Help screen" not in html
+    assert "<h3>Help screen" not in html
+
+
+def test_click_tree_heading_offset_explicit_override(sphinx_app_myst):
+    """An explicit ``:heading-offset:`` wins over the auto-detected default.
+
+    Surrounding headings establish a deep level so the override's effect is
+    clearly observable in the rendered HTML (without MyST normalizing
+    skipped heading levels).
+    """
+    content = dedent("""
+        # Top-level title
+
+        ## Mid-level section
+
+        ### Deep section
+
+    """) + KITCHEN_CLI + dedent("""
+        ```{click:tree} kitchen
+        :heading-offset: 2
+        ```
+    """)
+    html = sphinx_app_myst.build_document(content)
+    assert html is not None
+    # Override of 2 pulls the root back to h3 (it would have been h4 with
+    # the auto-detected offset of 3 from the surrounding ``### Deep section``).
+    assert "<h3>Help screen" in html
+    assert "<h4>Help screen" not in html

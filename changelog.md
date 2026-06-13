@@ -5,7 +5,7 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
-- Add a `click:tree` Sphinx directive that walks a Click command tree at build time and expands into a GFM summary table plus one `{click:run}` `--help` block per command, with anchored headings nested by depth. Replaces per-project hand-rolled generators that emit the same scaffolding around `{click:run}` blocks. Supports `:max-depth:`, `:heading-offset:`, `:anchor-prefix:`, `:label-prefix:`, `:root-label:`, `:no-table:`, and `:no-root:`. The required argument is a Python expression resolved in the per-document runner namespace; an optional directive body runs as preamble for inline imports. MyST-only.
+- Add a `click:tree` Sphinx directive that walks a Click command tree at build time and expands into a GFM summary table plus one `{click:run}` `--help` block per command, with anchored headings nested by depth. Replaces per-project hand-rolled generators that emit the same scaffolding around `{click:run}` blocks. Supports `:max-depth:`, `:heading-offset:`, `:anchor-prefix:`, `:label-prefix:`, `:root-label:`, `:no-table:`, and `:no-root:`. Without an explicit `:heading-offset:`, the directive auto-detects the surrounding section depth and nests its root one level below, so the document outline stays consistent regardless of how deep the directive is placed. The required argument is a Python expression resolved in the per-document runner namespace; an optional directive body runs as preamble for inline imports. MyST-only.
 
 ## [`7.19.0` (2026-06-12)](https://github.com/kdeldycke/click-extra/compare/v7.18.0...v7.19.0)
 

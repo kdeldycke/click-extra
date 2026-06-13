@@ -672,7 +672,6 @@ Which renders as:
 
 ```{click:tree} kitchen
 :root-label: kitchen --help
-:heading-offset: 3
 ```
 
 #### Tree options
@@ -680,7 +679,7 @@ Which renders as:
 | Option             | Description                                                                                                | Default                 |
 | ------------------ | ---------------------------------------------------------------------------------------------------------- | ----------------------- |
 | `:max-depth:`      | Maximum recursion depth into nested groups.                                                                | `10`                    |
-| `:heading-offset:` | Shift all generated headings down by N levels (set to `0` when the directive is the document's top entry). | `1`                     |
+| `:heading-offset:` | Shift all generated headings down by N levels. Override when the auto-detected depth is wrong for the page layout.                                       | Surrounding section depth (root nested one level below the enclosing section).     |
 | `:anchor-prefix:`  | Slug prefix for every generated anchor.                                                                    | Slug of the CLI name.   |
 | `:label-prefix:`   | Display prefix for the command labels in the table and headings.                                           | The CLI name.           |
 | `:root-label:`     | Heading text for the root `--help` block.                                                                  | `"Help screen"`         |
@@ -697,14 +696,7 @@ from click_extra.cli import demo
 ```
 ````
 
-Which renders the top-level reference for the bundled `click-extra` demo command (with `:max-depth: 1` to keep the example short and `:no-root:` to avoid colliding with the kitchen example's headings):
-
-```{click:tree} demo
-:max-depth: 1
-:no-root:
-:heading-offset: 4
-from click_extra.cli import demo
-```
+The rendered output is identical to the kitchen example above: a summary table and one `--help` block per (sub)command. The only difference is where the CLI comes from: a package import instead of a preceding `click:source` block.
 
 ```{note}
 `click:tree` is currently MyST-only because the expanded scaffolding uses MyST's `(label)=` anchor syntax and pipe tables. An rST equivalent would emit `.. _label:` targets and `list-table::` directives instead; it has not been implemented yet.
