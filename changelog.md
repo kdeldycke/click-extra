@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Add a `click:tree` Sphinx directive that walks a Click command tree at build time and expands into a GFM summary table plus one `{click:run}` `--help` block per command, with anchored headings nested by depth. Replaces per-project hand-rolled generators that emit the same scaffolding around `{click:run}` blocks. Supports `:max-depth:`, `:heading-offset:`, `:anchor-prefix:`, `:label-prefix:`, `:root-label:`, `:no-table:`, and `:no-root:`. The required argument is a Python expression resolved in the per-document runner namespace; an optional directive body runs as preamble for inline imports. MyST-only.
+
 ## [`7.19.0` (2026-06-12)](https://github.com/kdeldycke/click-extra/compare/v7.18.0...v7.19.0)
 
 - Add an `--output-dir DIR` option to the `click-extra man` subcommand. With it set, the command writes one `.1` file per (sub)command in the resolved tree into `DIR` (created if missing) instead of printing a single page to stdout. Suitable for invocation from a release pipeline or a distributor's build phase (Debian's `override_dh_installman`, Guix' `install-man-page`), without a project-local wrapper script.

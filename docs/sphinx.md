@@ -623,6 +623,91 @@ In fact, if you look at Sphinx logs, you will see that a warning has been raised
 Alternatively, you can force syntax highlight with the `:language:` option, which takes precedence over the default language of the directive.
 ```
 
+### CLI reference tree
+
+The `click:tree` directive walks a Click command group at build time and expands into a full CLI reference page: a summary table on top, then one `--help` capture per command, nested by depth. It is meant to replace per-project hand-rolled scripts that generate the same scaffolding (a summary table, anchors, one `click:run` per command) by hand.
+
+The required argument is a Python expression evaluated in the per-document runner namespace; it must resolve to a {py:class}`click.Command`. The optional body is Python preamble that runs in the same namespace before the expression is evaluated, so you can either rely on a prior `click:source` import or inline the import in the directive's body.
+
+Here is a small recipe CLI to demonstrate:
+
+```{click:source}
+from click_extra import echo, command, group, option
+
+@group()
+def kitchen():
+    """Manage kitchen tools and recipes."""
+
+@kitchen.command()
+@option("--minutes", type=int, default=5)
+def boil(minutes):
+    """Boil water for tea."""
+    echo(f"Boiling for {minutes} minutes.")
+
+@kitchen.group()
+def pantry():
+    """Inspect pantry contents."""
+
+@pantry.command()
+def jars():
+    """List jars on the shelf."""
+    echo("Olives, honey, pickles.")
+
+@pantry.command()
+@option("--fruit", default="apple")
+def count(fruit):
+    """Count fruits in the basket."""
+    echo(f"Three {fruit}s.")
+```
+
+A single `click:tree` invocation expands into a summary table plus one `--help` capture for `kitchen`, `kitchen boil`, `kitchen pantry`, `kitchen pantry count`, and `kitchen pantry jars`:
+
+````{code-block} markdown
+```{click:tree} kitchen
+:root-label: kitchen --help
+```
+````
+
+Which renders as:
+
+```{click:tree} kitchen
+:root-label: kitchen --help
+```
+
+#### Tree options
+
+| Option              | Description                                                                                                | Default                  |
+| ------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------ |
+| `:max-depth:`       | Maximum recursion depth into nested groups.                                                                | `10`                     |
+| `:heading-offset:`  | Shift all generated headings down by N levels (set to `0` when the directive is the document's top entry). | `1`                      |
+| `:anchor-prefix:`   | Slug prefix for every generated anchor.                                                                    | Slug of the CLI name.    |
+| `:label-prefix:`    | Display prefix for the command labels in the table and headings.                                           | The CLI name.            |
+| `:root-label:`      | Heading text for the root `--help` block.                                                                  | `"Help screen"`          |
+| `:no-table:`        | Skip the summary table.                                                                                    | Table is rendered.       |
+| `:no-root:`         | Skip the root `--help` block.                                                                              | Root block is rendered.  |
+
+#### Inline import in the directive body
+
+If the CLI lives in your package, you can skip the seed `click:source` block and import directly in the body:
+
+````{code-block} markdown
+```{click:tree} demo
+from click_extra.cli import demo
+```
+````
+
+Which renders the top-level reference for the bundled `click-extra` demo command (with `:max-depth: 1` to keep the example short and `:no-root:` to avoid colliding with the kitchen example's headings):
+
+```{click:tree} demo
+:max-depth: 1
+:no-root:
+from click_extra.cli import demo
+```
+
+```{note}
+`click:tree` is currently MyST-only because the expanded scaffolding uses MyST's `(label)=` anchor syntax and pipe tables. An rST equivalent would emit `.. _label:` targets and `list-table::` directives instead; it has not been implemented yet.
+```
+
 ## `python:*` directives
 
 Click Extra also adds five general-purpose Python execution directives, registered under a separate `python` domain (distinct from Sphinx's built-in `py` domain for documenting API objects):
