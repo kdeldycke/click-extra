@@ -672,6 +672,7 @@ Which renders as:
 
 ```{click:tree} kitchen
 :root-label: kitchen --help
+:heading-offset: 3
 ```
 
 #### Tree options
@@ -701,6 +702,7 @@ Which renders the top-level reference for the bundled `click-extra` demo command
 ```{click:tree} demo
 :max-depth: 1
 :no-root:
+:heading-offset: 4
 from click_extra.cli import demo
 ```
 
