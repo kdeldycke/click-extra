@@ -36,9 +36,17 @@ from . import (
     style,
 )
 from .colorize import _nearest_256
+from .decorators import columns_option
 from .man_page import render_manpage, write_manpages
-from .parameters import format_param_row
-from .table import DEFAULT_FORMAT, SERIALIZATION_FORMATS, TableFormat, print_table
+from .parameters import ShowParamsOption, format_param_row
+from .table import (
+    DEFAULT_FORMAT,
+    SERIALIZATION_FORMATS,
+    TableFormat,
+    print_table,
+    select_columns,
+    select_row,
+)
 from .version import (
     GIT_FIELDS,
     _find_dunder_str,
@@ -100,17 +108,30 @@ def demo():
 demo.add_command(wrap_cmd)
 
 
-_INTROSPECT_HEADERS = (
-    "ID",
-    "Spec.",
-    "Class",
-    "Param type",
-    "Python type",
-    "Hidden",
-    "Env. vars.",
-    "Default",
+_INTROSPECT_RUNTIME_IDS: frozenset[str] = frozenset(
+    {"allowed_in_conf", "value", "source"}
 )
-"""Table headers for foreign CLI parameter introspection."""
+"""Columns the standalone ``show-params`` cannot fill in for a foreign CLI.
+
+``value`` / ``source`` need a live invocation context, and ``allowed_in_conf``
+needs a Click Extra ``--config`` option both of which the standalone wrapper
+cannot synthesize from an arbitrary script. Every other
+:data:`ShowParamsOption.TABLE_HEADERS` entry is structural and renders fine.
+"""
+
+
+def _introspect_columns():
+    """Default column subset displayed by the standalone ``show-params``.
+
+    Drops the runtime/config-dependent entries (see
+    :data:`_INTROSPECT_RUNTIME_IDS`) so the standalone wrapper renders
+    a coherent table even when the target CLI is third-party.
+    """
+    return tuple(
+        col
+        for col in ShowParamsOption.TABLE_HEADERS
+        if col.id not in _INTROSPECT_RUNTIME_IDS
+    )
 
 
 def _walk_cmd_params(cmd, ctx, parent_keys=()):
@@ -149,6 +170,7 @@ def _walk_cmd_params(cmd, ctx, parent_keys=()):
     default=DEFAULT_FORMAT,
     help="Rendering style of tables.",
 )
+@columns_option
 @click.pass_context
 def show_params_cmd(
     ctx: click.Context,
@@ -162,6 +184,10 @@ def show_params_cmd(
     command and prints its parameter table.
 
     Extra arguments after SCRIPT navigate into nested command groups.
+
+    Pass --columns id,spec,value (etc.) to restrict and reorder the table
+    columns, SQL SELECT-style. See ShowParamsOption.TABLE_HEADERS for the
+    available column IDs.
     """
     if not script_and_args:
         echo(ctx.get_help(), color=ctx.color)
@@ -177,10 +203,36 @@ def show_params_cmd(
     sep = "."
     is_structured = table_format in SERIALIZATION_FORMATS
 
+    # Pick the column set: user's --columns selection (already validated by
+    # ``ColumnsOption``) or the standalone default that drops runtime/config-only
+    # columns.
+    from . import context as ctx_keys
+
+    selected_ids: tuple[str, ...] = ctx_keys.get(ctx, ctx_keys.COLUMNS) or ()
+
+    # Validate user IDs against the full registry and the standalone subset.
+    available_ids = tuple(col.id for col in _introspect_columns())
+    if selected_ids:
+        available_set = set(available_ids)
+        unknown = [c for c in selected_ids if c not in available_set]
+        if unknown:
+            joined = ", ".join(repr(c) for c in unknown)
+            available = ", ".join(available_ids)
+            raise click.UsageError(
+                f"Unknown --columns ID(s): {joined}. Available: {available}.",
+                ctx=ctx,
+            )
+        canonical_ids = selected_ids
+        display_columns = select_columns(_introspect_columns(), selected_ids)
+    else:
+        canonical_ids = available_ids
+        display_columns = _introspect_columns()
+
     table: list[tuple] = []
     for keys, param, param_ctx in _walk_cmd_params(cmd, cmd_ctx, prefix):
         path = sep.join(keys)
-        table.append(format_param_row(param, param_ctx, path, is_structured))
+        row = format_param_row(param, param_ctx, path, is_structured)
+        table.append(select_row(row, selected_ids, canonical_ids))
 
     def sort_key(row):
         """Sort by depth first, then path."""
@@ -188,12 +240,13 @@ def show_params_cmd(
         parts = row_path.split(sep)
         return len(parts), row_path
 
+    labels = tuple(col.label for col in display_columns)
     header_labels: tuple
     if is_structured:
-        header_labels = _INTROSPECT_HEADERS
+        header_labels = labels
     else:
         header_style = Style(bold=True)
-        header_labels = tuple(map(header_style, _INTROSPECT_HEADERS))
+        header_labels = tuple(map(header_style, labels))
 
     print_table(
         sorted(table, key=sort_key),

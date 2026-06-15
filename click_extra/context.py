@@ -272,6 +272,15 @@ SORT_BY: Final[str] = "click_extra.sort_by"
 Written by :class:`click_extra.table.SortByOption.init_sort`.
 """
 
+COLUMNS: Final[str] = "click_extra.columns"
+"""Tuple of column IDs selected via ``--columns`` (in display order).
+
+Written by :class:`click_extra.table.ColumnsOption.init_columns`. Read by
+table-rendering consumers (like :class:`click_extra.parameters.ShowParamsOption`)
+to project and reorder columns before emitting the table. Empty / unset means
+no projection: render every column in its canonical order.
+"""
+
 
 # --- Theming ------------------------------------------------------------------
 

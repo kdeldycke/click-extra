@@ -70,8 +70,18 @@ myst_enable_extensions = [
     "replacements",
     "smartquotes",
     "strikethrough",
+    "substitution",
     "tasklist",
 ]
+
+# Substitutions exposed to MyST documents as ``{{ name }}``. Built from
+# Python data so single-source-of-truth content (like the --show-params column
+# registry) stays in sync between code and docs automatically.
+from click_extra.parameters import ShowParamsOption  # noqa: E402
+
+myst_substitutions = {
+    "show_params_columns_table": ShowParamsOption.render_doc_table(),
+}
 # Register a cross-reference target for every heading down to <h6>, so Markdown
 # links of the form [text](other.md#heading-slug) resolve. Without this, MyST
 # only resolves explicit (target)= anchors and emits best-effort hrefs that

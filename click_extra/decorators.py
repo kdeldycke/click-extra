@@ -36,7 +36,7 @@ from .execution import JobsOption, TimerOption, ZeroExitOption
 from .logging import VerboseOption, VerbosityOption
 from .man_page import ManOption
 from .parameters import Argument, Option, ShowParamsOption
-from .table import TableFormatOption
+from .table import ColumnsOption, TableFormatOption
 from .telemetry import TelemetryOption
 from .theme import ThemeOption
 from .version import ExtraVersionOption
@@ -148,6 +148,7 @@ lazy_group = decorator_factory(dec=group, cls=LazyGroup)
 # Introduce new parameter decorators specific to Click Extra.
 accessible_option = decorator_factory(dec=option, cls=AccessibleOption)
 color_option = decorator_factory(dec=option, cls=ColorOption)
+columns_option = decorator_factory(dec=option, cls=ColumnsOption)
 config_option = decorator_factory(dec=option, cls=ConfigOption)
 jobs_option = decorator_factory(dec=option, cls=JobsOption)
 man_option = decorator_factory(dec=option, cls=ManOption)

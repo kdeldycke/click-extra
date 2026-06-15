@@ -20,6 +20,7 @@ from __future__ import annotations
 import csv
 import json
 import re
+from dataclasses import dataclass
 from enum import Enum
 from functools import partial
 from gettext import gettext as _
@@ -35,7 +36,7 @@ from .parameters import ExtraOption
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
+    from collections.abc import Callable, Iterable, Sequence
     from typing import Any
 
 
@@ -927,6 +928,177 @@ def print_sorted_table(
         sort_key=sort_key,
         **kwargs,
     )
+
+
+@dataclass(frozen=True, slots=True)
+class ColumnSpec:
+    """Rich description of a single column in a rendered table.
+
+    Three fields, all required-by-convention even though ``description`` defaults to
+    empty so quick prototypes do not have to write a sentence for every column:
+
+    - ``id``: stable, snake_case identifier used by ``--columns`` to address the column,
+      to key structured-format serializations, and to thread state through
+      :data:`click_extra.context.COLUMNS`.
+    - ``label``: the human-readable header shown at the top of the rendered table.
+    - ``description``: a MyST/Markdown blurb describing what the column represents.
+      Used to auto-generate the column reference in the documentation.
+
+    .. note::
+        Frozen + slots: instances are immutable and lightweight. Tuples of
+        ``ColumnSpec`` are intended to be defined as module-level constants
+        (like :data:`click_extra.parameters.ShowParamsOption.TABLE_HEADERS`).
+    """
+
+    id: str
+    """Stable, snake_case identifier addressing this column from CLI flags and code."""
+
+    label: str
+    """Human-readable header label rendered at the top of the table."""
+
+    description: str = ""
+    """MyST/Markdown description of what the column carries.
+
+    Used to auto-generate the *Available columns* section in the docs via the
+    ``show_params_columns_table`` MyST substitution. Plain text without inline
+    markup is fine: links and emphasis are optional sugar."""
+
+
+def render_columns_markdown_table(columns: Iterable[ColumnSpec]) -> str:
+    """Render an iterable of :class:`ColumnSpec` as a 2-column Markdown table.
+
+    Output shape::
+
+        | Column | Description |
+        | :--- | :--- |
+        | `Label` | description |
+        ...
+
+    Suitable for inlining into MyST documents via ``myst_substitutions`` so the
+    *Available columns* reference can be auto-generated from a single source of
+    truth.
+    """
+    lines = ["| Column | Description |", "| :--- | :--- |"]
+    for col in columns:
+        # Pipe characters in descriptions would break the markdown row: escape them.
+        description = col.description.replace("|", "\\|")
+        lines.append(f"| `{col.label}` | {description} |")
+    return "\n".join(lines)
+
+
+def select_columns(
+    columns: Sequence[ColumnSpec],
+    selected_ids: Sequence[str] | None,
+) -> tuple[ColumnSpec, ...]:
+    """Filter and reorder ``columns`` according to ``selected_ids``.
+
+    Returns ``columns`` unchanged when ``selected_ids`` is falsy (no projection).
+    Otherwise yields the matching :class:`ColumnSpec` in the order ``selected_ids``
+    specifies, SQL-``SELECT``-style. Raises ``KeyError`` for unknown IDs so the
+    caller can convert it into a :class:`click.UsageError`.
+    """
+    if not selected_ids:
+        return tuple(columns)
+    by_id = {c.id: c for c in columns}
+    return tuple(by_id[col_id] for col_id in selected_ids)
+
+
+def select_row(
+    row: dict[str, Any],
+    selected_ids: Sequence[str] | None,
+    canonical_ids: Sequence[str],
+) -> tuple:
+    """Build a positional row by reading cells from ``row`` in the selection order.
+
+    Falls back to ``canonical_ids`` when ``selected_ids`` is empty / unset, so the
+    row preserves its canonical column order in the absence of any user selection.
+    """
+    ids = selected_ids if selected_ids else canonical_ids
+    return tuple(row[col_id] for col_id in ids)
+
+
+class ColumnsType(click.ParamType):
+    """Custom Click type that parses a comma-separated list of column IDs.
+
+    Accepts either a string (``"id,spec,value"``) or an already-parsed tuple,
+    so default values declared as tuples flow through ``convert()`` untouched.
+    Empty tokens (e.g. trailing commas) are silently dropped.
+
+    The type does not validate that the IDs exist against any column registry:
+    that is the consumer's job (see :class:`click_extra.parameters.ShowParamsOption`),
+    so the same option can drive any table-rendering command without coupling.
+    """
+
+    name = "columns"
+
+    def convert(self, value, param, ctx):
+        if value is None:
+            return ()
+        if isinstance(value, (tuple, list)):
+            return tuple(value)
+        return tuple(token.strip() for token in str(value).split(",") if token.strip())
+
+
+class ColumnsOption(ExtraOption):
+    """A ``--columns`` option that lets users restrict and reorder table columns.
+
+    Accepts a comma-separated list of column IDs, SQL-``SELECT``-style:
+
+    .. code-block:: shell-session
+
+        $ my-cli --columns id,spec,value --show-params
+
+    The selection is stored in
+    :data:`ctx.meta[click_extra.context.COLUMNS] <click_extra.context.COLUMNS>` and
+    consumed by table-rendering callbacks (like
+    :class:`click_extra.parameters.ShowParamsOption`) to project rows + headers
+    before rendering. Unknown IDs are flagged by the consumer (where the column
+    registry is known) rather than by the option itself, so the same option can
+    serve any command.
+
+    Empty / unset means *render every column in canonical order* — the default
+    behavior, indistinguishable from not passing ``--columns`` at all.
+    """
+
+    def __init__(
+        self,
+        param_decls: Sequence[str] | None = None,
+        type=ColumnsType(),
+        default: Sequence[str] | None = (),
+        expose_value: bool = False,
+        is_eager: bool = True,
+        help: str = _(
+            "Restrict and order table columns. Pass a comma-separated list of "
+            "column IDs (SQL SELECT-style). Default: all columns in canonical "
+            "order.",
+        ),
+        **kwargs,
+    ) -> None:
+        if not param_decls:
+            param_decls = ("--columns",)
+
+        kwargs.setdefault("callback", self.init_columns)
+
+        super().__init__(
+            param_decls=param_decls,
+            type=type,
+            default=default,
+            expose_value=expose_value,
+            help=help,
+            is_eager=is_eager,
+            **kwargs,
+        )
+
+    def init_columns(
+        self,
+        ctx: click.Context,
+        param: click.Parameter,
+        columns: tuple[str, ...],
+    ) -> None:
+        """Store the selected column IDs on the context for later projection."""
+        if ctx.resilient_parsing:
+            return
+        context.set(ctx, context.COLUMNS, tuple(columns) if columns else ())
 
 
 class SortByOption(ExtraOption):

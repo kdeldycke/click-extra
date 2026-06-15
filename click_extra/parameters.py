@@ -424,20 +424,27 @@ def format_param_row(
     ctx: click.Context,
     path: str,
     is_structured: bool,
-) -> tuple:
-    """Format the common parameter table cells.
+) -> dict[str, Any]:
+    """Compute the *structural* table cells for a Click parameter.
 
-    Returns a tuple of 15 cells in column order: ID, Spec., Class, Param type,
-    Python type, Hidden, Env. vars., Default, Is flag, Flag value, Is bool flag,
-    Multiple, Nargs, Prompt, Confirmation prompt.
+    Returns a ``dict[column_id, cell]`` covering every column that can be
+    derived from the parameter object alone (no runtime invocation state or
+    config-file context). Specifically: ``id``, ``spec``, ``class``,
+    ``param_type``, ``python_type``, ``hidden``, ``exposed``, ``envvars``,
+    ``default``, ``is_flag``, ``flag_value``, ``is_bool_flag``, ``multiple``,
+    ``nargs``, ``prompt``, and ``confirmation_prompt``.
 
-    Attributes only defined on ``click.Option`` (``is_flag``, ``flag_value``,
-    ``is_bool_flag``, ``prompt``, ``confirmation_prompt``) yield ``None`` for
-    ``click.Argument`` parameters, which renders as an empty cell in visual
-    formats and a null value in structured ones.
+    Attributes only defined on ``click.Option`` (``hidden``, ``is_flag``,
+    ``flag_value``, ``is_bool_flag``, ``prompt``, ``confirmation_prompt``)
+    yield ``None`` for ``click.Argument`` parameters: empty cell in visual
+    formats, ``null`` in structured ones.
 
-    For structured formats (JSON, YAML, etc.), cells are native Python values.
-    For visual formats, cells are themed strings matching help-screen styling.
+    For structured formats (JSON, YAML, etc.), values are native Python types.
+    For visual formats, values are themed strings matching help-screen styling.
+
+    The remaining table columns (``allowed_in_conf``, ``value``, ``source``)
+    require live context and are filled in by
+    :meth:`ShowParamsOption.print_params`.
     """
     param_spec = get_param_spec(param, ctx)
     param_class = param.__class__
@@ -445,6 +452,7 @@ def format_param_row(
     type_str = f"{param.type.__module__}.{param.type.__class__.__name__}"
     python_type_name = ParamStructure.get_param_type(param).__name__
 
+    hidden = getattr(param, "hidden", None)
     is_flag = getattr(param, "is_flag", None)
     flag_value = getattr(param, "flag_value", None)
     is_bool_flag = getattr(param, "is_bool_flag", None)
@@ -457,23 +465,24 @@ def format_param_row(
             default_val = repr(default_val)
         if not isinstance(flag_value, (str, int, float, bool, list, type(None))):
             flag_value = repr(flag_value)
-        return (
-            path,
-            param_spec,
-            class_str,
-            type_str,
-            python_type_name,
-            getattr(param, "hidden", None),
-            list(param_envvar_ids(param, ctx)),
-            default_val,
-            is_flag,
-            flag_value,
-            is_bool_flag,
-            param.multiple,
-            param.nargs,
-            prompt,
-            confirmation_prompt,
-        )
+        return {
+            "id": path,
+            "spec": param_spec,
+            "class": class_str,
+            "param_type": type_str,
+            "python_type": python_type_name,
+            "hidden": hidden,
+            "exposed": param.expose_value,
+            "envvars": list(param_envvar_ids(param, ctx)),
+            "default": default_val,
+            "is_flag": is_flag,
+            "flag_value": flag_value,
+            "is_bool_flag": is_bool_flag,
+            "multiple": param.multiple,
+            "nargs": param.nargs,
+            "prompt": prompt,
+            "confirmation_prompt": confirmation_prompt,
+        }
 
     # Lazy import to avoid circular dependency with theme.
     from .theme import KO_GLYPH, OK_GLYPH, get_current_theme
@@ -490,23 +499,26 @@ def format_param_row(
             else active_theme.error(KO_GLYPH)
         )
 
-    return (
-        active_theme.invoked_command(path),
-        active_theme.option(param_spec) if param_spec else param_spec,
-        class_str,
-        type_str,
-        active_theme.metavar(python_type_name),
-        styled_bool(getattr(param, "hidden", None)),
-        ", ".join(map(active_theme.envvar, param_envvar_ids(param, ctx))),
-        active_theme.default(repr(param.get_default(ctx))),
-        styled_bool(is_flag),
-        active_theme.default(repr(flag_value)) if flag_value is not None else None,
-        styled_bool(is_bool_flag),
-        styled_bool(param.multiple),
-        str(param.nargs),
-        prompt,
-        styled_bool(confirmation_prompt),
-    )
+    return {
+        "id": active_theme.invoked_command(path),
+        "spec": active_theme.option(param_spec) if param_spec else param_spec,
+        "class": class_str,
+        "param_type": type_str,
+        "python_type": active_theme.metavar(python_type_name),
+        "hidden": styled_bool(hidden),
+        "exposed": styled_bool(param.expose_value),
+        "envvars": ", ".join(map(active_theme.envvar, param_envvar_ids(param, ctx))),
+        "default": active_theme.default(repr(param.get_default(ctx))),
+        "is_flag": styled_bool(is_flag),
+        "flag_value": (
+            active_theme.default(repr(flag_value)) if flag_value is not None else None
+        ),
+        "is_bool_flag": styled_bool(is_bool_flag),
+        "multiple": styled_bool(param.multiple),
+        "nargs": str(param.nargs),
+        "prompt": prompt,
+        "confirmation_prompt": styled_bool(confirmation_prompt),
+    }
 
 
 class ShowParamsOption(ExtraOption, ParamStructure):
@@ -517,28 +529,272 @@ class ShowParamsOption(ExtraOption, ParamStructure):
     print information about the parameters that will be fed to the CLI.
     """
 
-    TABLE_HEADERS = (
-        "ID",
-        "Spec.",
-        "Class",
-        "Param type",
-        "Python type",
-        "Hidden",
-        "Exposed",
-        "Allowed in conf?",
-        "Env. vars.",
-        "Default",
-        "Is flag",
-        "Flag value",
-        "Is bool flag",
-        "Multiple",
-        "Nargs",
-        "Prompt",
-        "Confirmation prompt",
-        "Value",
-        "Source",
+    from .table import ColumnSpec as _ColumnSpec
+
+    TABLE_HEADERS: ClassVar[tuple[_ColumnSpec, ...]] = (
+        _ColumnSpec(
+            id="id",
+            label="ID",
+            description=(
+                "Fully-qualified parameter path (`cli.subcommand.param-name`) "
+                "derived from the [`click.Command`]"
+                "(https://click.palletsprojects.com/en/stable/api/#click.Command) "
+                "tree. Doubles as the key used to address the parameter from a "
+                "configuration file."
+            ),
+        ),
+        _ColumnSpec(
+            id="spec",
+            label="Spec.",
+            description=(
+                "Option/argument specification string (like `-v, --verbose`) "
+                "extracted from [`click.Parameter.get_help_record()`]"
+                "(https://click.palletsprojects.com/en/stable/api/"
+                "#click.Parameter.get_help_record)."
+            ),
+        ),
+        _ColumnSpec(
+            id="class",
+            label="Class",
+            description=(
+                "Fully-qualified class of the parameter: a subclass of "
+                "[`click.Option`]"
+                "(https://click.palletsprojects.com/en/stable/api/#click.Option), "
+                "[`click.Argument`]"
+                "(https://click.palletsprojects.com/en/stable/api/#click.Argument), "
+                "[`cloup.Option`]"
+                "(https://cloup.readthedocs.io/en/stable/autoapi/cloup/"
+                "index.html#cloup.Option), "
+                "or one of Click Extra's own wrappers "
+                "([`click_extra.parameters.Option`](#click_extra.parameters.Option), "
+                "[`click_extra.parameters.Argument`]"
+                "(#click_extra.parameters.Argument), "
+                "[`click_extra.parameters.ExtraOption`]"
+                "(#click_extra.parameters.ExtraOption))."
+            ),
+        ),
+        _ColumnSpec(
+            id="param_type",
+            label="Param type",
+            description=(
+                "Click value converter class: a subclass of [`click.ParamType`]"
+                "(https://click.palletsprojects.com/en/stable/api/"
+                "#click.ParamType) like [`click.IntRange`]"
+                "(https://click.palletsprojects.com/en/stable/api/#click.IntRange), "
+                "[`click.Choice`]"
+                "(https://click.palletsprojects.com/en/stable/api/#click.Choice), "
+                "or a Click Extra type."
+            ),
+        ),
+        _ColumnSpec(
+            id="python_type",
+            label="Python type",
+            description=(
+                "Python built-in type the parsed value resolves to: "
+                "[`str`](https://docs.python.org/3/library/stdtypes.html"
+                "#text-sequence-type-str), "
+                "[`int`](https://docs.python.org/3/library/functions.html#int), "
+                "[`float`](https://docs.python.org/3/library/functions.html#float), "
+                "[`bool`](https://docs.python.org/3/library/functions.html#bool), "
+                "or [`list`](https://docs.python.org/3/library/stdtypes.html#list). "
+                "Computed by [`ParamStructure.get_param_type()`]"
+                "(#click_extra.parameters.ParamStructure.get_param_type) from "
+                "the Click `Param type`."
+            ),
+        ),
+        _ColumnSpec(
+            id="hidden",
+            label="Hidden",
+            description=(
+                "Reflects [`click.Option`'s `hidden`]"
+                "(https://click.palletsprojects.com/en/stable/api/#click.Option) "
+                "constructor argument: the option is omitted from `--help` output. "
+                "Empty for [`click.Argument`]"
+                "(https://click.palletsprojects.com/en/stable/api/#click.Argument), "
+                "which does not support hiding."
+            ),
+        ),
+        _ColumnSpec(
+            id="exposed",
+            label="Exposed",
+            description=(
+                "Reflects [`click.Parameter`'s `expose_value`]"
+                "(https://click.palletsprojects.com/en/stable/api/#click.Parameter) "
+                "constructor argument: whether the parsed value is forwarded to "
+                "the command callback. Eager options like `--show-params` and "
+                "`--help` typically run a callback and exit, so they are not "
+                "exposed."
+            ),
+        ),
+        _ColumnSpec(
+            id="allowed_in_conf",
+            label="Allowed in conf?",
+            description=(
+                "Click Extra-specific: whether the parameter is reachable from a "
+                "configuration file. Controlled by [`ParamStructure.excluded_params`]"
+                "(#click_extra.parameters.ParamStructure.excluded_params) and "
+                "[`included_params`]"
+                "(#click_extra.parameters.ParamStructure.included_params). Empty "
+                "when the CLI has no [`--config` option](config.md)."
+            ),
+        ),
+        _ColumnSpec(
+            id="envvars",
+            label="Env. vars.",
+            description=(
+                "Environment variables read for this parameter: the explicit "
+                "[`click.Parameter`'s `envvar`]"
+                "(https://click.palletsprojects.com/en/stable/api/#click.Parameter) "
+                "plus the auto-resolved IDs documented in "
+                "[Environment variables](envvar.md)."
+            ),
+        ),
+        _ColumnSpec(
+            id="default",
+            label="Default",
+            description=(
+                "Default value returned by [`click.Parameter.get_default()`]"
+                "(https://click.palletsprojects.com/en/stable/api/"
+                "#click.Parameter.get_default), rendered as its Python `repr()`."
+            ),
+        ),
+        _ColumnSpec(
+            id="is_flag",
+            label="Is flag",
+            description=(
+                "Reflects [`click.Option`'s `is_flag`]"
+                "(https://click.palletsprojects.com/en/stable/api/#click.Option): "
+                "whether the option behaves as a flag (no value taken from the "
+                "command line). Empty for [`click.Argument`]"
+                "(https://click.palletsprojects.com/en/stable/api/#click.Argument)."
+            ),
+        ),
+        _ColumnSpec(
+            id="flag_value",
+            label="Flag value",
+            description=(
+                "Reflects [`click.Option`'s `flag_value`]"
+                "(https://click.palletsprojects.com/en/stable/api/#click.Option): "
+                "the Python value substituted for the option when its flag is "
+                "used. Defaults to `True` for boolean flags, can be any value "
+                "for flag-value style options "
+                "(like `@option('--upper', 'transform', flag_value='upper')`)."
+            ),
+        ),
+        _ColumnSpec(
+            id="is_bool_flag",
+            label="Is bool flag",
+            description=(
+                "Reflects `click.Option.is_bool_flag` (set internally by Click "
+                "when `flag_value` is `True` or `False`): the option is a *true* "
+                "boolean flag, as opposed to a flag-value style option."
+            ),
+        ),
+        _ColumnSpec(
+            id="multiple",
+            label="Multiple",
+            description=(
+                "Reflects [`click.Parameter`'s `multiple`]"
+                "(https://click.palletsprojects.com/en/stable/api/#click.Parameter): "
+                "the parameter can be repeated on the command line, collecting "
+                "values into a tuple."
+            ),
+        ),
+        _ColumnSpec(
+            id="nargs",
+            label="Nargs",
+            description=(
+                "Reflects [`click.Parameter`'s `nargs`]"
+                "(https://click.palletsprojects.com/en/stable/api/#click.Parameter): "
+                "the number of CLI tokens the parameter consumes. `1` is the "
+                "default; `-1` denotes a variadic argument."
+            ),
+        ),
+        _ColumnSpec(
+            id="prompt",
+            label="Prompt",
+            description=(
+                "Reflects [`click.Option`'s `prompt`]"
+                "(https://click.palletsprojects.com/en/stable/api/#click.Option): "
+                "the text shown to the user when the option is not provided on "
+                "the command line. Empty when no prompt is configured."
+            ),
+        ),
+        _ColumnSpec(
+            id="confirmation_prompt",
+            label="Confirmation prompt",
+            description=(
+                "Reflects [`click.Option`'s `confirmation_prompt`]"
+                "(https://click.palletsprojects.com/en/stable/api/#click.Option): "
+                "whether the user is asked to enter the value twice for "
+                "confirmation."
+            ),
+        ),
+        _ColumnSpec(
+            id="value",
+            label="Value",
+            description=(
+                "Current value of the parameter at invocation time, computed by "
+                "[`click.Parameter.consume_value()`]"
+                "(https://click.palletsprojects.com/en/stable/api/#click.Parameter) "
+                "from the merged sources (CLI, environment, config file, default)."
+            ),
+        ),
+        _ColumnSpec(
+            id="source",
+            label="Source",
+            description=(
+                "Provenance of the resolved value: a [`click.core.ParameterSource`]"
+                "(https://click.palletsprojects.com/en/stable/api/"
+                "#click.core.ParameterSource) enum member such as `COMMANDLINE`, "
+                "`ENVIRONMENT`, `DEFAULT_MAP`, or `DEFAULT`."
+            ),
+        ),
     )
-    """Hard-coded list of table headers."""
+    """Rich column registry for the ``--show-params`` table.
+
+    Each entry is a :class:`click_extra.table.ColumnSpec` carrying the column's
+    stable ``id`` (used by ``--columns`` and as structured-format key), its
+    display ``label``, and a MyST/Markdown ``description`` consumed by the
+    documentation's auto-generated *Available columns* section. Iteration
+    yields columns in canonical display order.
+    """
+
+    @classmethod
+    def column_labels(cls) -> tuple[str, ...]:
+        """Return just the display labels of :data:`TABLE_HEADERS` (in order)."""
+        return tuple(col.label for col in cls.TABLE_HEADERS)
+
+    @classmethod
+    def column_ids(cls) -> tuple[str, ...]:
+        """Return just the stable IDs of :data:`TABLE_HEADERS` (in order)."""
+        return tuple(col.id for col in cls.TABLE_HEADERS)
+
+    @classmethod
+    def find_column(cls, column_id: str):
+        """Return the :class:`ColumnSpec` matching ``column_id``.
+
+        Raises ``KeyError`` if no column has this ID; callers should convert
+        the error into a :class:`click.UsageError` when surfaced to a user.
+        """
+        for col in cls.TABLE_HEADERS:
+            if col.id == column_id:
+                return col
+        msg = f"Unknown column ID {column_id!r}"
+        raise KeyError(msg)
+
+    @classmethod
+    def render_doc_table(cls) -> str:
+        """Render :data:`TABLE_HEADERS` as a Markdown table for documentation.
+
+        Used by the ``show_params_columns_table`` MyST substitution in
+        ``docs/conf.py`` to feed the *Available columns* section of
+        ``docs/parameters.md``: editing a description here automatically
+        rebuilds the docs table on the next ``sphinx-build``.
+        """
+        from .table import render_columns_markdown_table
+
+        return render_columns_markdown_table(cls.TABLE_HEADERS)
 
     def __init__(
         self,
@@ -592,7 +848,13 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         """
         # Imported here to avoid circular imports.
         from .config import ConfigOption
-        from .table import SERIALIZATION_FORMATS, print_table
+        from .table import (
+            SERIALIZATION_FORMATS,
+            ColumnsOption,
+            print_table,
+            select_columns,
+            select_row,
+        )
         from .theme import KO_GLYPH, OK_GLYPH, get_current_theme
 
         active_theme = get_current_theme()
@@ -660,12 +922,43 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                     if table_fmt
                     else table_option.get_default(ctx),
                 )
+
+        # Resolve the columns selection from a sibling ``--columns`` option, if any.
+        # The option is opt-in: when it is not registered on the command, we render
+        # every column in canonical order.
+        if context.get(ctx, context.COLUMNS) is None:
+            cols_option = search_params(ctx.command.get_params(ctx), ColumnsOption)
+            if cols_option and isinstance(cols_option, ColumnsOption):
+                cols_value, _ = cols_option.consume_value(ctx, opts)
+                cols_option.init_columns(
+                    ctx,
+                    cols_option,
+                    cols_option.type.convert(cols_value, cols_option, ctx)
+                    if cols_value
+                    else (),
+                )
+
+        selected_ids: tuple[str, ...] = context.get(ctx, context.COLUMNS) or ()
+
+        # Validate IDs against the column registry: unknown IDs become UsageErrors
+        # so the user gets a clear, actionable message.
+        known_ids = set(self.column_ids())
+        unknown = [col_id for col_id in selected_ids if col_id not in known_ids]
+        if unknown:
+            joined = ", ".join(repr(c) for c in unknown)
+            available = ", ".join(self.column_ids())
+            raise click.UsageError(
+                f"Unknown --columns ID(s): {joined}. Available: {available}.",
+                ctx=ctx,
+            )
+
         print_func = getattr(ctx, "print_table", print_table)
 
         table_format = context.get(ctx, context.TABLE_FORMAT)
         is_structured = table_format in SERIALIZATION_FORMATS
 
         table: list[tuple[Any, ...]] = []
+        canonical_ids = self.column_ids()
 
         # Walk through the the tree of parameters and get their fully-qualified path.
         for path, instances in self.flatten_tree_dict(self.params_objects).items():
@@ -686,37 +979,33 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                     config_option.params_template  # noqa: B018
                     allowed_in_conf_bool = path not in config_option.excluded_params
 
-                # Common 8 cells: ID .. Hidden ([:6]) and Env. vars. .. Default ([6:]).
-                common = format_param_row(instance, ctx, path, is_structured)
+                # Compute the structural cells (id..confirmation_prompt) and fold in
+                # the runtime/config-dependent ones for a complete row dict.
+                row = format_param_row(instance, ctx, path, is_structured)
 
                 if is_structured:
                     if not isinstance(
                         param_value, (str, int, float, bool, list, type(None))
                     ):
                         param_value = repr(param_value)
-                    line: tuple[Any, ...] = (
-                        *common[:6],
-                        instance.expose_value,
-                        allowed_in_conf_bool,
-                        *common[6:],
-                        param_value,
-                        source.name if source else None,
-                    )
+                    row["allowed_in_conf"] = allowed_in_conf_bool
+                    row["value"] = param_value
+                    row["source"] = source.name if source else None
                 else:
+                    # Exposed already styled by ``format_param_row``: keep parity for
+                    # ``allowed_in_conf`` here.
                     allowed_in_conf = None
                     if allowed_in_conf_bool is not None:
                         allowed_in_conf = (
                             ok_styled if allowed_in_conf_bool else ko_styled
                         )
-                    line = (
-                        *common[:6],
-                        ok_styled if instance.expose_value is True else ko_styled,
-                        allowed_in_conf,
-                        *common[6:],
-                        repr(param_value),
-                        source.name if source else None,
-                    )
-                table.append(line)
+                    row["allowed_in_conf"] = allowed_in_conf
+                    row["value"] = repr(param_value)
+                    row["source"] = source.name if source else None
+
+                # Project the dict to a positional tuple following either the user's
+                # ``--columns`` ordering or the canonical order.
+                table.append(select_row(row, selected_ids, canonical_ids))
 
         def sort_by_depth(line):
             """Sort parameters by depth first, then IDs, so that top-level parameters
@@ -725,12 +1014,15 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             tree_keys = param_path.split(self.SEP)
             return len(tree_keys), param_path
 
+        # Build headers for the selected columns (or all, in canonical order).
+        selected_columns = select_columns(self.TABLE_HEADERS, selected_ids)
+        labels = tuple(col.label for col in selected_columns)
         header_labels: tuple[Any, ...]
         if is_structured:
-            header_labels = self.TABLE_HEADERS
+            header_labels = labels
         else:
             header_style = Style(bold=True)
-            header_labels = tuple(map(header_style, self.TABLE_HEADERS))
+            header_labels = tuple(map(header_style, labels))
 
         print_func(sorted(table, key=sort_by_depth), headers=header_labels)
 

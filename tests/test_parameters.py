@@ -49,6 +49,7 @@ from click_extra import (
     Tuple,
     argument,
     color_option,
+    columns_option,
     command,
     echo,
     get_app_dir,
@@ -210,7 +211,7 @@ def assert_table_content(
     # Check the rendering style of the table.
     rendered_table = render_table(
         expected_table,
-        headers=ShowParamsOption.TABLE_HEADERS,
+        headers=ShowParamsOption.column_labels(),
         table_format=table_format,
     )
     assert output == f"{rendered_table}\n"
@@ -733,7 +734,7 @@ def test_show_params_table_format_ordering(invoke, args_order):
     assert result.exit_code == 0
     # CSV format: first line is the header row, comma-separated.
     lines = result.stdout.strip().splitlines()
-    assert lines[0] == ",".join(ShowParamsOption.TABLE_HEADERS)
+    assert lines[0] == ",".join(ShowParamsOption.column_labels())
     # All data rows must have the same number of columns as the header.
     for line in lines[1:]:
         assert line.count(",") >= len(ShowParamsOption.TABLE_HEADERS) - 1
@@ -779,6 +780,102 @@ def test_show_params_native_types(invoke, table_format):
     elif table_format == "toml":
         assert "Hidden = false" in output
         assert "Exposed = false" in output
+
+
+def test_column_registry_is_consistent():
+    """TABLE_HEADERS exposes parallel ``column_labels()`` / ``column_ids()``."""
+    headers = ShowParamsOption.TABLE_HEADERS
+    labels = ShowParamsOption.column_labels()
+    ids = ShowParamsOption.column_ids()
+
+    # All three views agree in length and order.
+    assert len(headers) == len(labels) == len(ids)
+    assert tuple(c.label for c in headers) == labels
+    assert tuple(c.id for c in headers) == ids
+
+    # Column IDs are unique and snake_case-style identifiers.
+    assert len(set(ids)) == len(ids)
+    for col_id in ids:
+        assert col_id.replace("_", "").isalnum()
+        assert col_id.islower()
+
+    # Every column carries a non-empty description for doc auto-gen.
+    for col in headers:
+        assert col.description
+
+
+def test_find_column_known_and_unknown():
+    spec = ShowParamsOption.find_column("is_flag")
+    assert spec.id == "is_flag"
+    assert spec.label == "Is flag"
+
+    with pytest.raises(KeyError, match="Unknown column ID 'made_up'"):
+        ShowParamsOption.find_column("made_up")
+
+
+def test_render_doc_table_emits_markdown():
+    """``render_doc_table`` returns a 2-column Markdown table covering every column."""
+    md = ShowParamsOption.render_doc_table()
+    lines = md.splitlines()
+    # Header + separator + one row per column.
+    assert lines[0] == "| Column | Description |"
+    assert lines[1] == "| :--- | :--- |"
+    assert len(lines) == 2 + len(ShowParamsOption.TABLE_HEADERS)
+
+    # Every label appears exactly once, in canonical order.
+    for col, line in zip(ShowParamsOption.TABLE_HEADERS, lines[2:], strict=True):
+        assert line.startswith(f"| `{col.label}` | ")
+
+
+def test_columns_option_projects_and_orders(invoke):
+    """`--columns` keeps only selected columns and preserves the user order."""
+
+    @command
+    @columns_option
+    @option("--int-param", type=int, default=42)
+    def project_cli(int_param):
+        echo(f"int_param is {int_param!r}")
+
+    # Selection order id, value, is_flag is preserved (different from canonical).
+    result = invoke(
+        project_cli,
+        "--no-color",
+        "--columns",
+        "id,value,is_flag",
+        "--show-params",
+    )
+    assert result.exit_code == 0
+    lines = result.stdout.strip().splitlines()
+    # First non-border line is the header row.
+    header_line = next(ln for ln in lines if "ID" in ln and "Value" in ln)
+    id_pos = header_line.index("ID")
+    val_pos = header_line.index("Value")
+    flag_pos = header_line.index("Is flag")
+    # Headers appear in the order requested.
+    assert id_pos < val_pos < flag_pos
+    # Unselected headers do not appear.
+    assert "Spec." not in header_line
+    assert "Hidden" not in header_line
+
+
+def test_columns_option_rejects_unknown_id(invoke):
+    """An unknown column ID raises a UsageError with available IDs listed."""
+
+    @command
+    @columns_option
+    def reject_cli():
+        echo("ok")
+
+    result = invoke(
+        reject_cli,
+        "--no-color",
+        "--columns",
+        "id,nope,spec",
+        "--show-params",
+    )
+    assert result.exit_code != 0
+    assert "Unknown --columns ID(s): 'nope'" in result.stderr
+    assert "Available:" in result.stderr
 
 
 def test_recurse_subcommands(invoke):
@@ -1109,7 +1206,7 @@ def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
 
     rendered = render_table(
         expected_table,
-        headers=ShowParamsOption.TABLE_HEADERS,
+        headers=ShowParamsOption.column_labels(),
         table_format=table_format,
     )
     rendered_table = rendered if rendered.endswith("\n") else rendered + "\n"
@@ -1320,7 +1417,7 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
 
     rendered = render_table(
         expected_table,
-        headers=ShowParamsOption.TABLE_HEADERS,
+        headers=ShowParamsOption.column_labels(),
         table_format=table_format,
     )
     # Tabulate-based formats don't end with a newline; echo() adds one.
