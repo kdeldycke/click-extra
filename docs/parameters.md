@@ -47,8 +47,8 @@ The default table produced by `--show-params` can be a bit overwhelming, so you 
 :emphasize-lines: 1
 result = invoke(cli, args=["--table-format", "vertical", "--show-params"])
 assert "***************************[ 1. row ]***************************\n" in result.stdout
-assert "\x1b[1mEnv. vars.\x1b[0m       | \x1b[33m\x1b[2mCLI_INT_PARAM1\x1b[0m\n" in result.stdout
-assert "\x1b[1mDefault\x1b[0m          | \x1b[32m\x1b[2m\x1b[3m10\x1b[0m\n" in result.stdout
+assert "\x1b[1mEnv. vars.\x1b[0m          | \x1b[33m\x1b[2mCLI_INT_PARAM1\x1b[0m\n" in result.stdout
+assert "\x1b[1mDefault\x1b[0m             | \x1b[32m\x1b[2m\x1b[3m10\x1b[0m\n" in result.stdout
 ```
 
 ```{caution}

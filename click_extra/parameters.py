@@ -427,8 +427,14 @@ def format_param_row(
 ) -> tuple:
     """Format the common parameter table cells.
 
-    Returns a tuple of 8 cells in column order: ID, Spec., Class, Param type,
-    Python type, Hidden, Env. vars., Default.
+    Returns a tuple of 15 cells in column order: ID, Spec., Class, Param type,
+    Python type, Hidden, Env. vars., Default, Is flag, Flag value, Is bool flag,
+    Multiple, Nargs, Prompt, Confirmation prompt.
+
+    Attributes only defined on ``click.Option`` (``is_flag``, ``flag_value``,
+    ``is_bool_flag``, ``prompt``, ``confirmation_prompt``) yield ``None`` for
+    ``click.Argument`` parameters, which renders as an empty cell in visual
+    formats and a null value in structured ones.
 
     For structured formats (JSON, YAML, etc.), cells are native Python values.
     For visual formats, cells are themed strings matching help-screen styling.
@@ -439,10 +445,18 @@ def format_param_row(
     type_str = f"{param.type.__module__}.{param.type.__class__.__name__}"
     python_type_name = ParamStructure.get_param_type(param).__name__
 
+    is_flag = getattr(param, "is_flag", None)
+    flag_value = getattr(param, "flag_value", None)
+    is_bool_flag = getattr(param, "is_bool_flag", None)
+    prompt = getattr(param, "prompt", None)
+    confirmation_prompt = getattr(param, "confirmation_prompt", None)
+
     if is_structured:
         default_val = param.get_default(ctx)
         if not isinstance(default_val, (str, int, float, bool, list, type(None))):
             default_val = repr(default_val)
+        if not isinstance(flag_value, (str, int, float, bool, list, type(None))):
+            flag_value = repr(flag_value)
         return (
             path,
             param_spec,
@@ -452,28 +466,46 @@ def format_param_row(
             getattr(param, "hidden", None),
             list(param_envvar_ids(param, ctx)),
             default_val,
+            is_flag,
+            flag_value,
+            is_bool_flag,
+            param.multiple,
+            param.nargs,
+            prompt,
+            confirmation_prompt,
         )
 
     # Lazy import to avoid circular dependency with theme.
     from .theme import KO_GLYPH, OK_GLYPH, get_current_theme
 
     active_theme = get_current_theme()
-    hidden = None
-    if hasattr(param, "hidden"):
-        hidden = (
+
+    def styled_bool(value):
+        """Render a boolean attribute as a themed glyph, or ``None`` if absent."""
+        if value is None:
+            return None
+        return (
             active_theme.success(OK_GLYPH)
-            if param.hidden is True
+            if value is True
             else active_theme.error(KO_GLYPH)
         )
+
     return (
         active_theme.invoked_command(path),
         active_theme.option(param_spec) if param_spec else param_spec,
         class_str,
         type_str,
         active_theme.metavar(python_type_name),
-        hidden,
+        styled_bool(getattr(param, "hidden", None)),
         ", ".join(map(active_theme.envvar, param_envvar_ids(param, ctx))),
         active_theme.default(repr(param.get_default(ctx))),
+        styled_bool(is_flag),
+        active_theme.default(repr(flag_value)) if flag_value is not None else None,
+        styled_bool(is_bool_flag),
+        styled_bool(param.multiple),
+        str(param.nargs),
+        prompt,
+        styled_bool(confirmation_prompt),
     )
 
 
@@ -496,6 +528,13 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         "Allowed in conf?",
         "Env. vars.",
         "Default",
+        "Is flag",
+        "Flag value",
+        "Is bool flag",
+        "Multiple",
+        "Nargs",
+        "Prompt",
+        "Confirmation prompt",
         "Value",
         "Source",
     )

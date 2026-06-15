@@ -59,6 +59,7 @@ from click_extra import (
     show_params_option,
     table_format_option,
 )
+from click_extra.config import NO_CONFIG
 from click_extra.pytest import command_decorators
 
 from .test_colorize import HashType
@@ -240,6 +241,13 @@ def test_standalone_show_params_option(
             "",
             "",
             False,
+            "✓",
+            True,
+            "✓",
+            "✘",
+            1,
+            "",
+            "✘",
             "None",
             "",
         ),
@@ -254,6 +262,13 @@ def test_standalone_show_params_option(
             "",
             "",
             False,
+            "✓",
+            True,
+            "✓",
+            "✘",
+            1,
+            "",
+            "✘",
             "None",
             "COMMANDLINE",
         ),
@@ -316,6 +331,13 @@ def test_integrated_show_params_option(invoke, create_config):
             "✓",
             "SHOW_PARAMS_CLI_ACCESSIBLE",
             False,
+            "✓",
+            True,
+            "✓",
+            "✘",
+            1,
+            "",
+            "✘",
             False,
             "DEFAULT",
         ),
@@ -330,6 +352,13 @@ def test_integrated_show_params_option(invoke, create_config):
             "✓",
             "SHOW_PARAMS_CLI_COLOR",
             True,
+            "✓",
+            True,
+            "✓",
+            "✘",
+            1,
+            "",
+            "✘",
             True,
             "DEFAULT",
         ),
@@ -353,6 +382,13 @@ def test_integrated_show_params_option(invoke, create_config):
                 f"'{Path(get_app_dir('show-params-cli')).resolve()}{sep}"
                 f"{{{','.join(unique(flatten(f.patterns for f in ConfigFormat if f.enabled)))}}}'"
             ),
+            "✘",
+            "",
+            "✘",
+            "✘",
+            1,
+            "",
+            "✘",
             repr(str(conf_path)),
             "COMMANDLINE",
         ),
@@ -367,6 +403,13 @@ def test_integrated_show_params_option(invoke, create_config):
             "✘",
             "SHOW_PARAMS_CLI_CONFIG",
             UNSET,
+            "✓",
+            NO_CONFIG,
+            "✘",
+            "✘",
+            1,
+            "",
+            "✘",
             repr(str(conf_path)),
             "COMMANDLINE",
         ),
@@ -381,6 +424,13 @@ def test_integrated_show_params_option(invoke, create_config):
             "✓",
             "SHOW_PARAMS_CLI_CUSTOM_PARAM",
             UNSET,
+            "✘",
+            "",
+            "✘",
+            "✘",
+            1,
+            "",
+            "✘",
             UNSET,
             "DEFAULT",
         ),
@@ -395,6 +445,13 @@ def test_integrated_show_params_option(invoke, create_config):
             "✘",
             "SHOW_PARAMS_CLI_HELP",
             False,
+            "✓",
+            True,
+            "✓",
+            "✘",
+            1,
+            "",
+            "✘",
             True,
             "COMMANDLINE",
         ),
@@ -409,6 +466,13 @@ def test_integrated_show_params_option(invoke, create_config):
             "✓",
             "SHOW_PARAMS_CLI_HIDDEN_PARAM",
             UNSET,
+            "✘",
+            "",
+            "✘",
+            "✘",
+            1,
+            "",
+            "✘",
             UNSET,
             "DEFAULT",
         ),
@@ -423,6 +487,13 @@ def test_integrated_show_params_option(invoke, create_config):
             "✓",
             "SHOW_PARAMS_CLI_INT_PARAM1",
             3,
+            "✘",
+            "",
+            "✘",
+            "✘",
+            1,
+            "",
+            "✘",
             "'9999'",
             "COMMANDLINE",
         ),
@@ -437,6 +508,13 @@ def test_integrated_show_params_option(invoke, create_config):
             "✓",
             "SHOW_PARAMS_CLI_INT_PARAM2",
             555,
+            "✘",
+            "",
+            "✘",
+            "✘",
+            1,
+            "",
+            "✘",
             555,
             "DEFAULT",
         ),
@@ -451,6 +529,13 @@ def test_integrated_show_params_option(invoke, create_config):
             "✓",
             "SHOW_PARAMS_CLI_MAN",
             False,
+            "✓",
+            True,
+            "✓",
+            "✘",
+            1,
+            "",
+            "✘",
             False,
             "DEFAULT",
         ),
@@ -465,6 +550,13 @@ def test_integrated_show_params_option(invoke, create_config):
             "✘",
             "SHOW_PARAMS_CLI_SHOW_PARAMS",
             False,
+            "✓",
+            True,
+            "✓",
+            "✘",
+            1,
+            "",
+            "✘",
             True,
             "COMMANDLINE",
         ),
@@ -479,6 +571,13 @@ def test_integrated_show_params_option(invoke, create_config):
             "✓",
             "SHOW_PARAMS_CLI_TABLE_FORMAT",
             "'rounded-outline'",
+            "✘",
+            "",
+            "✘",
+            "✘",
+            1,
+            "",
+            "✘",
             "'rounded-outline'",
             "DEFAULT",
         ),
@@ -493,6 +592,13 @@ def test_integrated_show_params_option(invoke, create_config):
             "✓",
             "SHOW_PARAMS_CLI_THEME",
             "'dark'",
+            "✘",
+            "",
+            "✘",
+            "✘",
+            1,
+            "",
+            "✘",
             "'dark'",
             "DEFAULT",
         ),
@@ -507,6 +613,13 @@ def test_integrated_show_params_option(invoke, create_config):
             "✓",
             "SHOW_PARAMS_CLI_TIME",
             False,
+            "✓",
+            True,
+            "✓",
+            "✘",
+            1,
+            "",
+            "✘",
             False,
             "DEFAULT",
         ),
@@ -521,6 +634,13 @@ def test_integrated_show_params_option(invoke, create_config):
             "✓",
             "SHOW_PARAMS_CLI_VALIDATE_CONFIG",
             UNSET,
+            "✘",
+            "",
+            "✘",
+            "✘",
+            1,
+            "",
+            "✘",
             UNSET,
             "DEFAULT",
         ),
@@ -535,6 +655,13 @@ def test_integrated_show_params_option(invoke, create_config):
             "✓",
             "SHOW_PARAMS_CLI_VERBOSE",
             0,
+            "✘",
+            "",
+            "✘",
+            "✘",
+            1,
+            "",
+            "✘",
             0,
             "DEFAULT",
         ),
@@ -549,6 +676,13 @@ def test_integrated_show_params_option(invoke, create_config):
             "✓",
             "SHOW_PARAMS_CLI_VERBOSITY",
             "'WARNING'",
+            "✘",
+            "",
+            "✘",
+            "✘",
+            1,
+            "",
+            "✘",
             "'DeBuG'",
             "COMMANDLINE",
         ),
@@ -563,6 +697,13 @@ def test_integrated_show_params_option(invoke, create_config):
             "✘",
             "SHOW_PARAMS_CLI_VERSION",
             False,
+            "✓",
+            True,
+            "✓",
+            "✘",
+            1,
+            "",
+            "✘",
             False,
             "DEFAULT",
         ),
@@ -668,6 +809,13 @@ def test_recurse_subcommands(invoke):
             "",
             "SHOW_PARAMS_CLI_MAIN_HELP",
             False,
+            "✓",
+            True,
+            "✓",
+            "✘",
+            1,
+            "",
+            "✘",
             False,
             "DEFAULT",
         ],
@@ -682,6 +830,13 @@ def test_recurse_subcommands(invoke):
             "",
             "SHOW_PARAMS_CLI_MAIN_SHOW_PARAMS",
             False,
+            "✓",
+            True,
+            "✓",
+            "✘",
+            1,
+            "",
+            "✘",
             True,
             "COMMANDLINE",
         ],
@@ -696,6 +851,13 @@ def test_recurse_subcommands(invoke):
             "",
             "SHOW_PARAMS_CLI_MAIN_HELP",  # XXX Should be SHOW_PARAMS_SUB_HELP
             False,
+            "✓",
+            True,
+            "✓",
+            "✘",
+            1,
+            "",
+            "✘",
             False,
             "DEFAULT",
         ],
@@ -710,6 +872,13 @@ def test_recurse_subcommands(invoke):
             "",
             "SHOW_PARAMS_CLI_MAIN_HELP",  # XXX Should be SHOW_PARAMS_SUB_SUB_HELP
             False,
+            "✓",
+            True,
+            "✓",
+            "✘",
+            1,
+            "",
+            "✘",
             False,
             "DEFAULT",
         ],
@@ -724,6 +893,13 @@ def test_recurse_subcommands(invoke):
             "",
             "SHOW_PARAMS_SUB_SUB_INT_PARAM, SHOW_PARAMS_CLI_MAIN_INT_PARAM",
             10,
+            "✘",
+            "",
+            "✘",
+            "✘",
+            1,
+            "",
+            "✘",
             10,
             "DEFAULT",
         ],
@@ -824,6 +1000,13 @@ def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
             "",
             "",
             False,
+            "✓",
+            True,
+            "✓",
+            "✘",
+            1,
+            "",
+            "✘",
             "None",
             "",
         ],
@@ -838,6 +1021,13 @@ def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
             "",
             "",
             False,
+            "✓",
+            True,
+            "✓",
+            "✘",
+            1,
+            "",
+            "✘",
             "None",
             "COMMANDLINE",
         ],
@@ -852,6 +1042,13 @@ def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
             "",
             "",
             "'rounded-outline'",
+            "✘",
+            "",
+            "✘",
+            "✘",
+            1,
+            "",
+            "✘",
             "None",
             "",
         ],
@@ -870,7 +1067,7 @@ def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
         assert result.exit_code == 0
 
     # --table-format is explicitly set from now on, so its source is COMMANDLINE.
-    expected_table[2][11] = "COMMANDLINE"
+    expected_table[2][18] = "COMMANDLINE"
 
     # Serialization formats emit native types instead of styled glyphs.
     from click_extra.table import SERIALIZATION_FORMATS
@@ -893,10 +1090,16 @@ def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
                 and row[9].endswith("'")
             ):
                 row[9] = row[9][1:-1]
-            if row[10] == "None":
-                row[10] = None
+            # Flag value: empty cell means the attribute is absent (None).
             if row[11] == "":
                 row[11] = None
+            # Prompt: empty cell means no prompt configured (None).
+            if row[15] == "":
+                row[15] = None
+            if row[17] == "None":
+                row[17] = None
+            if row[18] == "":
+                row[18] = None
 
     # Check the explicit rendering style of the table. Ignore colors, they'll be
     # checked in the next test.
@@ -963,6 +1166,13 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
             "",
             "",
             True,
+            "✓",
+            True,
+            "✓",
+            "✘",
+            1,
+            "",
+            "✘",
             "None",
             "",
         ],
@@ -977,6 +1187,13 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
             "",
             "",
             False,
+            "✓",
+            True,
+            "✓",
+            "✘",
+            1,
+            "",
+            "✘",
             "None",
             "",
         ],
@@ -991,6 +1208,13 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
             "",
             "",
             False,
+            "✓",
+            True,
+            "✓",
+            "✘",
+            1,
+            "",
+            "✘",
             "None",
             "COMMANDLINE",
         ],
@@ -1005,6 +1229,13 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
             "",
             "",
             "'rounded-outline'",
+            "✘",
+            "",
+            "✘",
+            "✘",
+            1,
+            "",
+            "✘",
             "None",
             "",
         ],
@@ -1024,7 +1255,7 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
         assert result.exit_code == 0
 
     # --color/--no-color is explicitly set from now on, so its source is COMMANDLINE.
-    expected_table[0][11] = "COMMANDLINE"
+    expected_table[0][18] = "COMMANDLINE"
 
     # Force --color.
     result = invoke(show_params, "--color", "--show-params")
@@ -1041,7 +1272,7 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
     assert result.exit_code == 0
 
     # --table-format is explicitly set from now on, so its source is COMMANDLINE.
-    expected_table[3][11] = "COMMANDLINE"
+    expected_table[3][18] = "COMMANDLINE"
 
     # Serialization formats emit native types instead of styled glyphs.
     from click_extra.table import SERIALIZATION_FORMATS
@@ -1069,12 +1300,18 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
                 and row[9].endswith("'")
             ):
                 row[9] = row[9][1:-1]
-            # Value: "None" string becomes None (index 10).
-            if row[10] == "None":
-                row[10] = None
-            # Source: empty string means None.
+            # Flag value: empty cell means the attribute is absent (None).
             if row[11] == "":
                 row[11] = None
+            # Prompt: empty cell means no prompt configured (None).
+            if row[15] == "":
+                row[15] = None
+            # Value: "None" string becomes None (index 17).
+            if row[17] == "None":
+                row[17] = None
+            # Source: empty string means None (index 18).
+            if row[18] == "":
+                row[18] = None
 
     # Check the explicit rendering style of the table.
     result = invoke(
