@@ -1,9 +1,6 @@
 # Changelog
 
-## [`7.20.0.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.19.0...main)
-
-> [!WARNING]
-> This version is **not released yet** and is under active development.
+## [`7.20.0` (2026-06-17)](https://github.com/kdeldycke/click-extra/compare/v7.19.0...v7.20.0)
 
 - Add `MultiChoice` to `click_extra.types`: a Click `ParamType` for comma-separated multi-pick from a fixed set of values, the pick-many counterpart to `click.Choice`.
 - Extend the `--show-params` table with seven new columns (`Is flag`, `Flag value`, `Is bool flag`, `Multiple`, `Nargs`, `Prompt`, `Confirmation prompt`).
