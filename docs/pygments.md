@@ -323,9 +323,9 @@ $ cat cowsay.html
   <div class="highlight">
    <pre>
             <span></span>
-            <span class="-Ansi-C154 -Ansi -Ansi-C154"> __</span>
-            <span class="-Ansi-C148 -Ansi -Ansi-C148">_</span>
-            <span class="-Ansi-C184 -Ansi -Ansi-C184">___________</span>
+            <span class="-Ansi -Ansi-C154"> __</span>
+            <span class="-Ansi -Ansi-C148">_</span>
+            <span class="-Ansi -Ansi-C184">___________</span>
             …
          </pre>
   </div>
@@ -373,7 +373,7 @@ The first row bands visibly where adjacent gradient steps collapse onto the same
 
 ### How it renders
 
-True-color tokens reach `AnsiHtmlFormatter` as `Token.Ansi.FG_{rrggbb}` / `Token.Ansi.BG_{rrggbb}` and emit inline `<span style="color: #rrggbb">`{l=html} / `<span style="background-color: #rrggbb">`{l=html} tags. Other token components on the same span (bold, italic, named colors, palette indices) keep their CSS-class rendering, so a bold-orange-on-blue span ends up as nested `<span class="-Ansi-Bold"><span style="color: #ffa500"><span style="background-color: #004488">…</span></span></span>`{l=html}.
+True-color tokens reach `AnsiHtmlFormatter` as `Token.Ansi.FG_{rrggbb}` / `Token.Ansi.BG_{rrggbb}` and emit inline `<span style="color: #rrggbb">`{l=html} / `<span style="background-color: #rrggbb">`{l=html} tags. Other token components on the same span (bold, italic, named colors, palette indices) keep their CSS-class rendering, so a bold-orange-on-blue span ends up as nested `<span class="-Ansi -Ansi-Bold"><span style="color: #ffa500"><span style="background-color: #004488">…</span></span></span>`{l=html}.
 
 The 16 named colors and 256-palette indices still resolve through the Pygments stylesheet; only the 24-bit codes carry their colors inline (CSS classes can't enumerate 16.7M colors).
 

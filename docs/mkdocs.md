@@ -26,7 +26,7 @@ plugins:
   - click-extra
 ```
 
-The plugin patches [pymdownx.highlight](https://facelessuser.github.io/pymdown-extensions/extensions/highlight/)'s formatter classes to use `AnsiHtmlFormatter`, the same way the [Sphinx integration](sphinx.md#setup) patches `PygmentsBridge`. This gives every code block full ANSI color rendering: compound tokens like `Token.Ansi.Bold.Cyan` are decomposed into individual CSS classes, and the stylesheet includes rules for the 256-color indexed palette and all SGR text attributes.
+The plugin patches [pymdownx.highlight](https://facelessuser.github.io/pymdown-extensions/extensions/highlight/)'s formatter classes to use `AnsiHtmlFormatter`, the same way the [Sphinx integration](sphinx.md#setup) patches `PygmentsBridge`. Compound tokens like `Token.Ansi.Bold.Cyan` are decomposed into individual CSS classes. Because MkDocs (unlike Sphinx) never regenerates a Pygments stylesheet from the active formatter, the plugin also generates one covering the 256-color indexed palette and all SGR text attributes, and registers it through `extra_css` so every page picks up the colors automatically.
 
 ## ANSI shell sessions
 
@@ -47,6 +47,19 @@ $ my-cli --help
 ```
 ````
 
+With the plugin enabled, that source renders in full color:
+
+```{code-block} ansi-shell-session
+$ my-cli --help
+[1mUsage:[0m [97mmy-cli[0m [36m[2m[OPTIONS][0m [36m[2mCOMMAND[0m [36m[2m[ARGS][0m...
+
+  Manage recipes and shopping lists.
+
+[1mOptions:[0m
+  [36m--name[0m [36m[2mTEXT[0m    Your name.
+  [36m--help[0m          Show this message and exit.
+```
+
 For Python console sessions:
 
 ````{code-block} markdown
@@ -55,6 +68,13 @@ For Python console sessions:
 [1;32mHarvest ready![0m Check your garden.
 ```
 ````
+
+And the Python console example renders as:
+
+```{code-block} ansi-pycon
+>>> print("\033[1;32mHarvest ready!\033[0m Check your garden.")
+[1;32mHarvest ready![0m Check your garden.
+```
 
 See the [full list of available ANSI lexer variants](pygments.md#lexer-variants).
 

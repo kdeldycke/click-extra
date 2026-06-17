@@ -20,6 +20,13 @@ extensions/highlight/>`_'s formatter classes so that ``Token.Ansi.*`` tokens pro
 Click Extra's :doc:`Pygments lexers <pygments>` are decomposed into individual CSS classes
 and styled with the correct colors.
 
+Decomposing tokens into classes only strips the raw escape codes: the classes carry no
+color until a matching stylesheet is present. Unlike Sphinx's ``PygmentsBridge``, which
+regenerates ``pygments.css`` from the active formatter on every build, MkDocs never emits
+one for these classes. The plugin therefore writes the ANSI rules to a dedicated
+stylesheet (:func:`_ansi_stylesheet`) and registers it in ``extra_css`` so every page
+links it.
+
 When `mkdocs-click <https://pypi.org/project/mkdocs-click/>`_ is installed, the plugin
 also patches its code-block generators to use the ``ansi-output`` lexer instead of plain
 ``text``, so that CLI help text with ANSI escape codes renders with colors.
@@ -34,6 +41,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from functools import wraps
+from pathlib import Path
 
 try:
     from mkdocs.plugins import BasePlugin
@@ -51,6 +59,14 @@ ANSI_OUTPUT_FENCE = "```ansi-output"
 
 TEXT_FENCE = "```text"
 """Fenced code-block opening used by ``mkdocs-click`` for CLI help output."""
+
+ANSI_STYLESHEET = "assets/click-extra/ansi.css"
+"""Site-relative path of the generated ANSI color stylesheet.
+
+Registered in the MkDocs config's ``extra_css`` by
+:meth:`AnsiColorPlugin.on_config` so every page links it, and written into the build
+output by :meth:`AnsiColorPlugin.on_post_build`.
+"""
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -94,22 +110,53 @@ def _patch_mkdocs_click() -> None:
     _docs._click_extra_patched = True  # type: ignore[attr-defined]
 
 
+def _ansi_stylesheet() -> str:
+    """Build the CSS that colors Click Extra's ``-Ansi-*`` token classes.
+
+    Filters :meth:`~click_extra.pygments.AnsiHtmlFormatter.get_style_defs` down to the
+    ANSI-specific rules: the named and 256-color palette, the SGR text-attribute
+    declarations, the blink keyframes, and the OSC 8 hyperlink rule. The standard
+    Pygments token rules are dropped on purpose. Dumping the full style would override
+    the theme's own syntax-highlighting colors (and, on themes like Material, their
+    light and dark variants) for every code block. The ANSI rules are additive and
+    theme-agnostic, so they layer safely on top.
+
+    Scoped under the formatter's default ``cssclass`` (``.highlight``), the wrapper
+    ``pymdownx.highlight`` and the Material theme both emit.
+    """
+    formatter = AnsiHtmlFormatter()
+    container = f".{formatter.cssclass}"
+    rules = [
+        line
+        for line in formatter.get_style_defs(container).splitlines()
+        if "-Ansi" in line or "ansi-blink" in line or "a { color: inherit" in line
+    ]
+    return "\n".join(rules) + "\n"
+
+
 class AnsiColorPlugin(BasePlugin):
     """MkDocs plugin that adds ANSI color support to Pygments code blocks.
 
     Monkey-patches ``pymdownx.highlight``'s block and inline formatter classes to
     inherit from :class:`~click_extra.pygments.AnsiHtmlFormatter`. This gives every code
     block in the MkDocs site full ANSI color rendering: compound tokens like
-    ``Token.Ansi.Bold.Cyan`` are decomposed into individual CSS classes, and the
-    stylesheet includes rules for the 256-color indexed palette and all SGR text
-    attributes.
+    ``Token.Ansi.Bold.Cyan`` are decomposed into individual CSS classes, and a generated
+    stylesheet (written by :meth:`on_post_build` and registered in ``extra_css`` by
+    :meth:`on_config`) supplies the color rules for the 256-color indexed palette and all
+    SGR text attributes.
 
     When ``mkdocs-click`` is installed, its code-block generators are also patched to use
     the ``ansi-output`` lexer so that CLI help text renders with colors.
     """
 
     def on_config(self, config: MkDocsConfig) -> MkDocsConfig:
-        """Patch pymdownx.highlight formatters before page processing begins."""
+        """Patch pymdownx.highlight formatters and register the ANSI stylesheet.
+
+        Runs before page processing begins. Appending :data:`ANSI_STYLESHEET` to
+        ``extra_css`` makes MkDocs link it from every page (resolving the relative
+        path per page, including under ``use_directory_urls``). The file itself is
+        written later, in :meth:`on_post_build`.
+        """
         if not issubclass(pymdownx.highlight.BlockHtmlFormatter, AnsiHtmlFormatter):
             pymdownx.highlight.BlockHtmlFormatter = type(
                 "AnsiBlockHtmlFormatter",
@@ -122,5 +169,20 @@ class AnsiColorPlugin(BasePlugin):
                 (AnsiHtmlFormatter, pymdownx.highlight.InlineHtmlFormatter),
                 {},
             )
+        if ANSI_STYLESHEET not in config["extra_css"]:
+            config["extra_css"].append(ANSI_STYLESHEET)
         _patch_mkdocs_click()
         return config
+
+    def on_post_build(self, config: MkDocsConfig) -> None:
+        """Write the ANSI color stylesheet into the built site.
+
+        The formatters patched in :meth:`on_config` emit ``-Ansi-*`` CSS classes, but
+        MkDocs, unlike Sphinx's ``PygmentsBridge``, never regenerates a Pygments
+        stylesheet from the active formatter. Without this file the classes have no
+        color rules and terminal output renders colorless. Runs after the theme has
+        copied its own assets, so the file survives the site-directory cleanup.
+        """
+        css_path = Path(config["site_dir"]) / ANSI_STYLESHEET
+        css_path.parent.mkdir(parents=True, exist_ok=True)
+        css_path.write_text(_ansi_stylesheet(), encoding="utf-8")

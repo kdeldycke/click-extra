@@ -852,12 +852,16 @@ class AnsiHtmlFormatter(HtmlFormatter):
         return lines
 
     def _get_css_classes(self, ttype: _TokenType) -> str:
-        """Decompose compound ``Token.Ansi.*`` tokens into individual CSS classes.
+        """Map a token to its CSS classes, decomposing compound ``Token.Ansi.*`` tokens.
 
-        For a token like ``Token.Ansi.Bold.Red``, Pygments' default behavior produces a
-        single concatenated class (``-Ansi-Bold-Red``). This override adds individual
-        component classes (``-Ansi-Bold``, ``-Ansi-Red``) so that each maps to its own
-        CSS rule from the style dict.
+        For a token like ``Token.Ansi.Bold.Cyan``, Pygments' default walks the token
+        hierarchy and emits the concatenated compound class (``-Ansi-Bold-Cyan``)
+        alongside each ancestor, repeating the intermediate ``-Ansi-Bold``. No CSS rule
+        targets the compound class (the style dict only holds single components), so it
+        is dead weight. This override returns the base class plus exactly one class per
+        component instead (``-Ansi -Ansi-Bold -Ansi-Cyan``): each maps to its own rule,
+        with no dead or duplicated classes. Non-ANSI tokens keep Pygments' default
+        behavior.
 
         Results are cached per token type since the same compound tokens recur frequently
         in typical terminal output.
@@ -865,16 +869,13 @@ class AnsiHtmlFormatter(HtmlFormatter):
         cached = self._ansi_css_cache.get(ttype)
         if cached is not None:
             return cached
-        classes: str = super()._get_css_classes(ttype)  # type: ignore[misc]
-        if ttype[0] == "Ansi":
-            classes += (
-                " "
-                + " ".join(
-                    self._get_css_class(  # type: ignore[attr-defined]
-                        getattr(Ansi, part),
-                    )
-                    for part in ttype[1:]
-                )
+        if ttype and ttype[0] == "Ansi":
+            tokens = [Ansi, *(getattr(Ansi, part) for part in ttype[1:])]
+            classes = " ".join(
+                self._get_css_class(token)  # type: ignore[attr-defined]
+                for token in tokens
             )
+        else:
+            classes = super()._get_css_classes(ttype)  # type: ignore[misc]
         self._ansi_css_cache[ttype] = classes
         return classes

@@ -17,14 +17,18 @@
 
 from __future__ import annotations
 
+from textwrap import dedent
+
 import click
 import pytest
 from pygments.formatters.html import HtmlFormatter
 
 from click_extra.mkdocs import (
     ANSI_OUTPUT_FENCE,
+    ANSI_STYLESHEET,
     TEXT_FENCE,
     AnsiColorPlugin,
+    _ansi_stylesheet,
     _patch_mkdocs_click,
 )
 from click_extra.pygments import AnsiHtmlFormatter
@@ -84,7 +88,7 @@ def test_on_config_patches_formatters():
     assert not issubclass(pymdownx.highlight.InlineHtmlFormatter, AnsiHtmlFormatter)
 
     plugin = AnsiColorPlugin()
-    plugin.on_config({})  # type: ignore[arg-type]
+    plugin.on_config({"extra_css": []})  # type: ignore[arg-type]
 
     assert issubclass(pymdownx.highlight.BlockHtmlFormatter, AnsiHtmlFormatter)
     assert issubclass(pymdownx.highlight.InlineHtmlFormatter, AnsiHtmlFormatter)
@@ -96,11 +100,11 @@ def test_on_config_idempotent():
     import pymdownx.highlight
 
     plugin = AnsiColorPlugin()
-    plugin.on_config({})  # type: ignore[arg-type]
+    plugin.on_config({"extra_css": []})  # type: ignore[arg-type]
     block_cls = pymdownx.highlight.BlockHtmlFormatter
     inline_cls = pymdownx.highlight.InlineHtmlFormatter
 
-    plugin.on_config({})  # type: ignore[arg-type]
+    plugin.on_config({"extra_css": []})  # type: ignore[arg-type]
     assert pymdownx.highlight.BlockHtmlFormatter is block_cls
     assert pymdownx.highlight.InlineHtmlFormatter is inline_cls
 
@@ -114,7 +118,7 @@ def test_patched_formatter_preserves_pymdownx_mro():
     orig_inline = pymdownx.highlight.InlineHtmlFormatter
 
     plugin = AnsiColorPlugin()
-    plugin.on_config({})  # type: ignore[arg-type]
+    plugin.on_config({"extra_css": []})  # type: ignore[arg-type]
 
     assert issubclass(pymdownx.highlight.BlockHtmlFormatter, orig_block)
     assert issubclass(pymdownx.highlight.InlineHtmlFormatter, orig_inline)
@@ -129,13 +133,57 @@ def test_patched_formatter_renders_ansi():
     import pymdownx.highlight
 
     plugin = AnsiColorPlugin()
-    plugin.on_config({})  # type: ignore[arg-type]
+    plugin.on_config({"extra_css": []})  # type: ignore[arg-type]
 
     formatter = pymdownx.highlight.BlockHtmlFormatter(style="default")
     # AnsiHtmlFormatter augments the style with ANSI token definitions.
     style_defs = formatter.get_style_defs(".highlight")
     assert ".-Ansi-Red" in style_defs
     assert ".-Ansi-Bold" in style_defs
+
+
+def test_ansi_stylesheet_only_contains_ansi_rules():
+    """The generated stylesheet colors the ``-Ansi-*`` classes and nothing else.
+
+    Standard Pygments token rules must stay out: dumping the full style would
+    override the theme's own syntax-highlighting colors for every code block.
+    """
+    css = _ansi_stylesheet()
+    # The classes emitted for typical colored CLI output are covered.
+    assert ".highlight .-Ansi-Cyan { color:" in css
+    assert ".highlight .-Ansi-Bold { font-weight: bold }" in css
+    # SGR attributes, blink keyframes and the OSC 8 hyperlink rule are included.
+    assert "@keyframes ansi-blink" in css
+    assert ".highlight a { color: inherit" in css
+    # Every rule is ANSI-specific: no standard token (.k, .s, .c, ...) leaks in.
+    for line in filter(None, css.splitlines()):
+        assert (
+            "-Ansi" in line or "ansi-blink" in line or "a { color: inherit" in line
+        ), line
+
+
+@pytest.mark.usefixtures("_clean_pymdownx", "_clean_mkdocs_click")
+def test_on_config_registers_stylesheet():
+    """``on_config`` appends the ANSI stylesheet to ``extra_css`` exactly once."""
+    config: dict[str, list[str]] = {"extra_css": []}
+    plugin = AnsiColorPlugin()
+
+    plugin.on_config(config)  # type: ignore[arg-type]
+    assert config["extra_css"] == [ANSI_STYLESHEET]
+
+    # Idempotent: a second pass does not duplicate the entry.
+    plugin.on_config(config)  # type: ignore[arg-type]
+    assert config["extra_css"] == [ANSI_STYLESHEET]
+
+
+def test_on_post_build_writes_stylesheet(tmp_path):
+    """``on_post_build`` writes the ANSI stylesheet under the site directory."""
+    config = {"site_dir": str(tmp_path)}
+    AnsiColorPlugin().on_post_build(config)  # type: ignore[arg-type]
+
+    written = tmp_path / ANSI_STYLESHEET
+    assert written.is_file()
+    assert ".highlight .-Ansi-Cyan" in written.read_text(encoding="utf-8")
 
 
 @click.command()
@@ -200,9 +248,60 @@ def test_on_config_patches_mkdocs_click():
     assert not getattr(_docs, "_click_extra_patched", False)
 
     plugin = AnsiColorPlugin()
-    plugin.on_config({})  # type: ignore[arg-type]
+    plugin.on_config({"extra_css": []})  # type: ignore[arg-type]
 
     assert _docs._click_extra_patched is True  # type: ignore[attr-defined]
     ctx = click.Context(_hello_cmd, info_name="hello")
     lines = list(_docs._make_usage(ctx))
     assert ANSI_OUTPUT_FENCE in lines
+
+
+@pytest.mark.once
+@pytest.mark.usefixtures("_clean_pymdownx", "_clean_mkdocs_click")
+def test_full_build_renders_ansi_colors(tmp_path):
+    """An end-to-end MkDocs build strips escape codes and ships the color stylesheet.
+
+    This exercises the whole plugin wiring (formatter patch plus stylesheet
+    injection) the way bump-my-version's site does: an ``ansi-output`` block goes
+    in, and class-decorated spans backed by a linked stylesheet come out, with no
+    raw escape codes left behind.
+    """
+    from mkdocs.commands.build import build
+    from mkdocs.config import load_config
+
+    esc = "\x1b"
+    ansi = f"{esc}[1mgreet{esc}[0m [{esc}[1;36mOPTIONS{esc}[0m]"
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "index.md").write_text(
+        f"# CLI\n\n```ansi-output\n{ansi}\n```\n",
+        encoding="utf-8",
+    )
+    config_file = tmp_path / "mkdocs.yml"
+    config_file.write_text(
+        dedent("""\
+            site_name: ANSI build test
+            markdown_extensions:
+              - pymdownx.highlight
+              - pymdownx.superfences
+            plugins:
+              - search
+              - click-extra
+            """),
+        encoding="utf-8",
+    )
+    site = tmp_path / "site"
+
+    build(load_config(str(config_file), site_dir=str(site)))
+
+    # The color stylesheet is generated and contains the cyan rule used above.
+    stylesheet = site / ANSI_STYLESHEET
+    assert stylesheet.is_file()
+    assert ".highlight .-Ansi-Cyan { color:" in stylesheet.read_text(encoding="utf-8")
+
+    index = (site / "index.html").read_text(encoding="utf-8")
+    # The page links the stylesheet, carries the decomposed class, and no longer
+    # contains any raw escape byte.
+    assert ANSI_STYLESHEET in index
+    assert "-Ansi-Cyan" in index
+    assert esc not in index
