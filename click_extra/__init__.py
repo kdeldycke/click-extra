@@ -142,8 +142,8 @@ from .parameters import (
     search_params,
 )
 from .table import (
-    ColumnSpec,
     ColumnsOption,
+    ColumnSpec,
     SortByOption,
     TableFormat,
     TableFormatOption,

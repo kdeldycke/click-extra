@@ -391,9 +391,13 @@ def resolve_target_command(
     # Propagate ``context_settings`` (notably ``auto_envvar_prefix``) so
     # introspection sees the same envvar layout the CLI exposes at runtime.
     # Click reads these only through ``make_context``; the raw ``Context``
-    # constructor ignores them. Child contexts inherit
-    # ``auto_envvar_prefix`` from their parent automatically.
-    cmd_ctx = click.Context(
+    # constructor ignores them. Build through ``cmd.context_class`` (not
+    # ``click.Context``) exactly as ``make_context`` does: a Cloup command's
+    # ``context_settings`` carry Cloup-only keys (``align_option_groups``,
+    # ``show_constraints``, …) that a plain ``click.Context`` rejects with a
+    # ``TypeError``. Child contexts inherit ``auto_envvar_prefix`` from their
+    # parent automatically.
+    cmd_ctx = cmd.context_class(
         cmd, info_name=cmd.name or script, **dict(cmd.context_settings)
     )
     for sub in subcommands:
@@ -404,7 +408,7 @@ def resolve_target_command(
         child = cmd.get_command(cmd_ctx, sub)
         if child is None:
             raise click.ClickException(f"No subcommand {sub!r} in {cmd.name!r}.")
-        cmd_ctx = click.Context(child, parent=cmd_ctx, info_name=sub)
+        cmd_ctx = child.context_class(child, parent=cmd_ctx, info_name=sub)
         cmd = child
 
     return cmd, cmd_ctx

@@ -341,10 +341,8 @@ class ExtraHelpColorsMixin:  # (Command)??
                             parent_ctx,
                             kw,
                         )
-                    elif getattr(param.type, "choices", None) and not isinstance(
-                        param.type, (click.Choice, ThemeChoice)
-                    ):
-                        kw.choices.update(param.type.choices)
+                    elif type_choices := getattr(param.type, "choices", None):
+                        kw.choices.update(type_choices)
                         kw.choice_metavars.add(param.make_metavar(ctx=parent_ctx))
             parent_ctx = parent_ctx.parent
 
@@ -439,17 +437,14 @@ class ExtraHelpColorsMixin:  # (Command)??
             elif isinstance(param.type, click.DateTime):
                 # Highlight each datetime format string as a choice.
                 kw.choices.update(param.type.formats)
-            elif getattr(param.type, "choices", None) and not isinstance(
-                param.type, (click.Choice, ThemeChoice)
-            ):
+            elif type_choices := getattr(param.type, "choices", None):
                 # Duck-typed choice-like ``click.ParamType`` (e.g.
                 # :class:`click_extra.types.MultiChoice` and its subclasses):
                 # each accepted value is worth highlighting individually, and
                 # the rendered ``[a,b,c]`` metavar protects the brackets +
-                # separators from later passes. The ``isinstance`` guard is
-                # paranoia: ``click.Choice`` subclasses are already handled by
-                # the branch above; this filter just keeps the elif self-sufficient.
-                kw.choices.update(param.type.choices)
+                # separators from later passes. ``click.Choice`` subclasses are
+                # already handled by the branch above.
+                kw.choices.update(type_choices)
                 kw.choice_metavars.add(param.make_metavar(ctx=ctx))
             elif not isinstance(param, click.Argument):
                 # Argument metavars are collected in the arguments set.

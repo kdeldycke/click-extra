@@ -107,9 +107,11 @@ def demo():
 demo.add_command(wrap_cmd)
 
 
-_INTROSPECT_RUNTIME_IDS: frozenset[str] = frozenset(
-    {"allowed_in_conf", "value", "source"}
-)
+_INTROSPECT_RUNTIME_IDS: frozenset[str] = frozenset({
+    "allowed_in_conf",
+    "value",
+    "source",
+})
 """Columns the standalone ``show-params`` cannot fill in for a foreign CLI.
 
 ``value`` / ``source`` need a live invocation context, and ``allowed_in_conf``

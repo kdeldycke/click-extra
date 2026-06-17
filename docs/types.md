@@ -580,13 +580,15 @@ assert "Unknown value(s): 'delta'" in result.stderr
 assert "Accepted: alpha, beta, gamma" in result.stderr
 ```
 
-Skip the `choices` argument entirely to use `MultiChoice` as a pure comma-separated parser, with no validation. The consumer is then responsible for checking the values:
+With `case_sensitive=False`, tokens match the choices regardless of case, and surrounding whitespace is trimmed. The returned tuple holds the canonical, original-case values from `choices`:
 
 ```{click:run}
 result = invoke(tag_cli, args=["--tags", "AlPhA, BETA"])
-# case_sensitive=False normalizes back to the canonical-case from `choices`:
+# case_sensitive=False normalizes back to the canonical case from `choices`:
 assert result.output == "Selected tags: ('alpha', 'beta')\n"
 ```
+
+Skip the `choices` argument entirely to use `MultiChoice` as a pure comma-separated parser, with no validation. The consumer is then responsible for checking the values, and the metavar falls back to Click's default rendering.
 
 ### Upstream Click status
 

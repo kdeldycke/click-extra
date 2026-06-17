@@ -109,9 +109,7 @@ class MultiChoice(click.ParamType):
             return ()
         if isinstance(value, (tuple, list)):
             return tuple(value)
-        tokens = tuple(
-            t.strip() for t in str(value).split(self.separator) if t.strip()
-        )
+        tokens = tuple(t.strip() for t in str(value).split(self.separator) if t.strip())
 
         if not self.choices:
             return tokens
@@ -128,9 +126,7 @@ class MultiChoice(click.ParamType):
         if unknown:
             joined = ", ".join(repr(t) for t in unknown)
             accepted = ", ".join(self.choices)
-            self.fail(
-                f"Unknown value(s): {joined}. Accepted: {accepted}.", param, ctx
-            )
+            self.fail(f"Unknown value(s): {joined}. Accepted: {accepted}.", param, ctx)
 
         return normalized
 

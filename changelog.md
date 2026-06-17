@@ -5,13 +5,13 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
-- Fix `click-extra show-params` ignoring the top-level `--table-format` option and rendering its default as the enum name instead of the kebab-case ID.
-- Fix `click-extra show-params` and `click-extra man` resolving auto-generated environment variables as empty; the `envvars` column now matches what Click reads at runtime.
+- Add `MultiChoice` to `click_extra.types`: a Click `ParamType` for comma-separated multi-pick from a fixed set of values, the pick-many counterpart to `click.Choice`.
 - Extend the `--show-params` table with seven new columns (`Is flag`, `Flag value`, `Is bool flag`, `Multiple`, `Nargs`, `Prompt`, `Confirmation prompt`).
 - Add the `--columns` option (`ColumnsOption`, `@columns_option`) for SQL `SELECT`-style column selection on both `--show-params` and the standalone `click-extra show-params` subcommand.
-- Add `MultiChoice` to `click_extra.types`: a Click `ParamType` for comma-separated multi-pick from a fixed set of values, the pick-many counterpart to `click.Choice`.
 - Add a `click:tree` Sphinx directive that walks a Click command tree and expands into a summary table plus one `{click:run}` `--help` block per command. MyST-only.
-- Fix the MkDocs plugin stripping ANSI escape codes but rendering no colors: it now generates the ANSI Pygments stylesheet and registers it through `extra_css`, so the `-Ansi-*` classes it emits are styled. Previously MkDocs never produced a stylesheet for them.
+- Fix `click-extra show-params` ignoring the top-level `--table-format` option and rendering its default as the enum name instead of the kebab-case ID.
+- Fix `click-extra show-params` and `click-extra man` resolving auto-generated environment variables as empty; the `envvars` column now matches what Click reads at runtime.
+- Fix the MkDocs plugin stripping ANSI escape codes but rendering no colors: it now generates the ANSI Pygments stylesheet and registers it through `extra_css`, so the `-Ansi-*` classes it emits are styled.
 - Drop duplicate and dead CSS classes from ANSI HTML rendering: compound tokens like `Token.Ansi.Bold.Cyan` now emit `-Ansi -Ansi-Bold -Ansi-Cyan` instead of repeating `-Ansi-Bold` and adding an unstyled `-Ansi-Bold-Cyan`.
 
 ## [`7.19.0` (2026-06-12)](https://github.com/kdeldycke/click-extra/compare/v7.18.0...v7.19.0)

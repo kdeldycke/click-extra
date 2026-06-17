@@ -1023,22 +1023,15 @@ class ColumnsType(MultiChoice):
 
     Pins the comma separator and case-sensitive matching (column IDs are
     snake_case identifiers, not free-form strings), and renames the metavar
-    fallback to ``COLUMNS`` instead of the generic ``MULTI``.
-
-    The ``accepted_ids`` constructor keyword is preserved as a column-flavored
-    alias of ``MultiChoice.choices`` for backward compatibility with code that
-    constructs the type directly.
+    fallback to ``COLUMNS`` instead of the generic ``MULTI``. The
+    ``accepted_ids`` constructor keyword is a column-flavored alias of
+    ``MultiChoice.choices``.
     """
 
     name = "columns"
 
     def __init__(self, accepted_ids: Sequence[str] = ()) -> None:
         super().__init__(choices=accepted_ids, separator=",", case_sensitive=True)
-
-    @property
-    def accepted_ids(self) -> tuple[str, ...]:
-        """Backward-compat alias for :attr:`MultiChoice.choices`."""
-        return self.choices
 
 
 class ColumnsOption(ExtraOption):

@@ -77,7 +77,7 @@ myst_enable_extensions = [
 # Substitutions exposed to MyST documents as ``{{ name }}``. Built from
 # Python data so single-source-of-truth content (like the --show-params column
 # registry) stays in sync between code and docs automatically.
-from click_extra.parameters import ShowParamsOption  # noqa: E402
+from click_extra.parameters import ShowParamsOption
 
 myst_substitutions = {
     "show_params_columns_table": ShowParamsOption.render_doc_table(),

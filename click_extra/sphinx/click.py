@@ -665,9 +665,9 @@ class TreeDirective(SphinxDirective):
         """
         try:
             level = self.state.memo.section_level
-        except Exception:
+        except AttributeError:
             return 1
-        return max(level, 1)
+        return max(int(level), 1)
 
     def _walk(
         self,
@@ -730,7 +730,8 @@ class TreeDirective(SphinxDirective):
         # document's top level this resolves to the historical default of 1
         # (root rendered at h2 under a document title at h1).
         heading_offset = self.options.get(
-            "heading-offset", self._surrounding_section_depth(),
+            "heading-offset",
+            self._surrounding_section_depth(),
         )
         label_prefix = self.options.get("label-prefix") or cli.name or cli_expr
         anchor_prefix = self.options.get("anchor-prefix") or self._slug(label_prefix)
