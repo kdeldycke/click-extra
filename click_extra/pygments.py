@@ -863,6 +863,14 @@ class AnsiHtmlFormatter(HtmlFormatter):
         with no dead or duplicated classes. Non-ANSI tokens keep Pygments' default
         behavior.
 
+        .. note::
+            The decomposition is formatter-level, so it reaches every integration
+            rather than a single renderer. Sphinx installs this formatter via
+            ``PygmentsBridge.html_formatter`` in :func:`click_extra.sphinx.setup`;
+            MkDocs reparents ``pymdownx.highlight``'s formatters onto it in
+            :class:`click_extra.mkdocs.AnsiColorPlugin`. Editing this method therefore
+            re-pins both the Sphinx and the MkDocs HTML output (and their tests).
+
         Results are cached per token type since the same compound tokens recur frequently
         in typical terminal output.
         """
