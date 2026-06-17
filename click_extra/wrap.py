@@ -388,7 +388,14 @@ def resolve_target_command(
     # Navigate to the requested subcommand, if any.
     assert isinstance(cli_obj, click.Command)
     cmd: click.Command = cli_obj
-    cmd_ctx = click.Context(cmd, info_name=cmd.name or script)
+    # Propagate ``context_settings`` (notably ``auto_envvar_prefix``) so
+    # introspection sees the same envvar layout the CLI exposes at runtime.
+    # Click reads these only through ``make_context``; the raw ``Context``
+    # constructor ignores them. Child contexts inherit
+    # ``auto_envvar_prefix`` from their parent automatically.
+    cmd_ctx = click.Context(
+        cmd, info_name=cmd.name or script, **dict(cmd.context_settings)
+    )
     for sub in subcommands:
         if not isinstance(cmd, click.Group):
             raise click.ClickException(

@@ -205,20 +205,19 @@ The `show-params` subcommand inspects the parameters of any Click CLI without ru
 
 ```{click:source}
 :hide-source:
-from click_extra.cli import show_params_cmd
+from click_extra.cli import demo
 ```
 
 ```{click:run}
-result = invoke(show_params_cmd, prog_name="click-extra show-params", args=["--help"])
+result = invoke(demo, args=["show-params", "--help"])
 assert result.exit_code == 0
 assert "Show parameters of an external Click CLI" in result.stdout
-assert "--table-format" in result.stdout
 ```
 
 Here is an example introspecting Flask's `run` subcommand with the vertical table format:
 
 ```{click:run}
-result = invoke(show_params_cmd, prog_name="click-extra show-params", args=["--table-format", "vertical", "flask", "run"])
+result = invoke(demo, args=["--table-format", "vertical", "show-params", "flask", "run"])
 assert result.exit_code == 0
 assert "run.host" in result.output
 assert "run.port" in result.output
@@ -228,7 +227,7 @@ assert "-p, --port INTEGER" in result.output
 All `--table-format` renderings are supported. JSON output is useful for programmatic consumption:
 
 ```{click:run}
-result = invoke(show_params_cmd, prog_name="click-extra show-params", args=["--table-format", "json", "flask", "run"])
+result = invoke(demo, args=["--table-format", "json", "show-params", "flask", "run"])
 assert result.exit_code == 0
 assert '"run.port"' in result.output
 assert '"Default": 5000' in result.output

@@ -175,11 +175,11 @@ The `--show-params` option works on your own Click Extra CLIs. To inspect a thir
 
 ```{click:source}
 :hide-source:
-from click_extra.cli import show_params_cmd
+from click_extra.cli import demo
 ```
 
 ```{click:run}
-result = invoke(show_params_cmd, prog_name="click-extra show-params", args=["--table-format", "vertical", "flask", "run"])
+result = invoke(demo, args=["--table-format", "vertical", "show-params", "flask", "run"])
 assert result.exit_code == 0
 assert "run.host" in result.output
 assert "-p, --port INTEGER" in result.output

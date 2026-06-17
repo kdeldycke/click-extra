@@ -26,9 +26,9 @@ import cloup
 from . import (
     ClickException,
     Color,
-    EnumChoice,
     Style,
     argument,
+    context,
     echo,
     group,
     option,
@@ -42,7 +42,6 @@ from .parameters import ShowParamsOption, format_param_row
 from .table import (
     DEFAULT_FORMAT,
     SERIALIZATION_FORMATS,
-    TableFormat,
     print_table,
     select_columns,
     select_row,
@@ -163,19 +162,11 @@ def _walk_cmd_params(cmd, ctx, parent_keys=()):
     type=click.UNPROCESSED,
     metavar="SCRIPT [SUBCOMMAND]...",
 )
-@click.option(
-    "--table-format",
-    "table_format",
-    type=EnumChoice(TableFormat),
-    default=DEFAULT_FORMAT,
-    help="Rendering style of tables.",
-)
 @columns_option(columns=_introspect_columns())
 @click.pass_context
 def show_params_cmd(
     ctx: click.Context,
     script_and_args: tuple[str, ...],
-    table_format: TableFormat,
 ) -> None:
     """Show parameters of an external Click CLI.
 
@@ -201,14 +192,13 @@ def show_params_cmd(
     # Build parameter path prefix.
     prefix = (cmd.name or script,)
     sep = "."
+    table_format = context.get(ctx, context.TABLE_FORMAT) or DEFAULT_FORMAT
     is_structured = table_format in SERIALIZATION_FORMATS
 
     # ``ColumnsOption`` has already validated the selection against
     # ``_introspect_columns()`` in its callback, so we can trust ``COLUMNS``
     # here: project the column set without re-checking.
-    from . import context as ctx_keys
-
-    selected_ids: tuple[str, ...] = ctx_keys.get(ctx, ctx_keys.COLUMNS) or ()
+    selected_ids: tuple[str, ...] = context.get(ctx, context.COLUMNS) or ()
     if selected_ids:
         canonical_ids = selected_ids
         display_columns = select_columns(_introspect_columns(), selected_ids)
