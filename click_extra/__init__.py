@@ -40,7 +40,7 @@ from cloup import *  # type: ignore[no-redef, assignment]
 # XXX Import types first to avoid circular imports. The True condition is a hack to
 # prevent ruff from re-ordering imports.
 if True:
-    from .types import ChoiceSource, EnumChoice
+    from .types import ChoiceSource, EnumChoice, MultiChoice
 
 # Override cloup.Style with our own version. The override must happen after
 # ``from cloup import *`` (which would otherwise re-shadow our subclass) and
@@ -234,6 +234,7 @@ __all__ = [
     "ManOption",
     "ManPage",
     "MissingParameter",
+    "MultiChoice",
     "NoConfigOption",
     "NoSuchCommand",
     "NoSuchOption",

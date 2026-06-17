@@ -946,9 +946,9 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         unknown = [col_id for col_id in selected_ids if col_id not in known_ids]
         if unknown:
             joined = ", ".join(repr(c) for c in unknown)
-            available = ", ".join(self.column_ids())
+            accepted = ", ".join(self.column_ids())
             raise click.UsageError(
-                f"Unknown --columns ID(s): {joined}. Available: {available}.",
+                f"Unknown --columns ID(s): {joined}. Accepted: {accepted}.",
                 ctx=ctx,
             )
 

@@ -21,7 +21,9 @@ from collections.abc import Callable
 from enum import Enum, Flag, IntEnum, IntFlag, auto
 from operator import attrgetter
 
+import click
 import pytest
+from click.testing import CliRunner
 
 from click_extra import (
     UNSET,
@@ -29,6 +31,7 @@ from click_extra import (
     Choice,
     ChoiceSource,
     EnumChoice,
+    MultiChoice,
     echo,
 )
 from click_extra.pytest import command_decorators, option_decorators
@@ -795,3 +798,78 @@ def test_enum_choice_callback(
     assert len(callback_received) >= 1
     assert all(isinstance(v, MyEnum) for v in callback_received)
     assert all(v is MyEnum.FIRST_VALUE for v in callback_received)
+
+
+# --- MultiChoice ------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    (
+        ("a", ("a",)),
+        ("a,b,c", ("a", "b", "c")),
+        ("a, b ,c", ("a", "b", "c")),  # Whitespace around tokens is stripped.
+        ("a,,b,", ("a", "b")),  # Empty tokens (trailing comma, doubles) dropped.
+        ("", ()),
+        (None, ()),
+        (("a", "b"), ("a", "b")),  # Tuple defaults flow through unchanged.
+        (["a", "b"], ("a", "b")),  # Same for lists.
+    ),
+)
+def test_multi_choice_parses_input(raw, expected) -> None:
+    """``convert()`` splits on the separator, strips whitespace, drops empties."""
+    t = MultiChoice()  # No ``choices``: no validation, just parsing.
+    assert t.convert(raw, None, None) == expected
+
+
+def test_multi_choice_validates_against_choices() -> None:
+    """Unknown tokens raise ``BadParameter`` via ``self.fail()``."""
+    t = MultiChoice(choices=("a", "b", "c"))
+    assert t.convert("a,b", None, None) == ("a", "b")
+    with pytest.raises(BadParameter, match=r"Unknown value\(s\): 'd', 'e'"):
+        t.convert("a,d,e", None, None)
+
+
+def test_multi_choice_case_insensitive_normalizes() -> None:
+    """``case_sensitive=False`` matches case-insensitively and returns the canonical case."""
+    t = MultiChoice(choices=("Alpha", "Beta"), case_sensitive=False)
+    assert t.convert("ALPHA,beta", None, None) == ("Alpha", "Beta")
+    with pytest.raises(BadParameter, match=r"Unknown value\(s\): 'gamma'"):
+        t.convert("alpha,gamma", None, None)
+
+
+@pytest.mark.parametrize(
+    ("choices", "separator", "expected"),
+    (
+        ((), ",", None),  # No choices: fall back to the default ``MULTI`` metavar.
+        (("a", "b", "c"), ",", "[a,b,c]"),
+        (("x", "y"), ":", "[x:y]"),  # Configurable separator drives the metavar.
+    ),
+)
+def test_multi_choice_metavar(choices, separator, expected) -> None:
+    t = MultiChoice(choices=choices, separator=separator)
+    assert t.get_metavar(None) == expected
+
+
+def test_multi_choice_in_click_option() -> None:
+    """End-to-end: ``MultiChoice`` plugs into a Click option like ``Choice`` does."""
+    captured: list[tuple[str, ...]] = []
+
+    @click.command
+    @click.option("--tags", type=MultiChoice(("alpha", "beta", "gamma")), default=())
+    def cli(tags: tuple[str, ...]) -> None:
+        captured.append(tags)
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--tags", "alpha,gamma"])
+    assert result.exit_code == 0
+    assert captured == [("alpha", "gamma")]
+
+    # The rendered help carries the comma-separated metavar.
+    help_text = runner.invoke(cli, ["--help"]).stdout
+    assert "[alpha,beta,gamma]" in help_text
+
+    # An unknown tag fails at parse time, before the callback runs.
+    result = runner.invoke(cli, ["--tags", "alpha,delta"])
+    assert result.exit_code != 0
+    assert "'delta'" in result.stderr

@@ -341,6 +341,11 @@ class ExtraHelpColorsMixin:  # (Command)??
                             parent_ctx,
                             kw,
                         )
+                    elif getattr(param.type, "choices", None) and not isinstance(
+                        param.type, (click.Choice, ThemeChoice)
+                    ):
+                        kw.choices.update(param.type.choices)
+                        kw.choice_metavars.add(param.make_metavar(ctx=parent_ctx))
             parent_ctx = parent_ctx.parent
 
         # Split options into short and long by length heuristic. Short options
@@ -434,6 +439,18 @@ class ExtraHelpColorsMixin:  # (Command)??
             elif isinstance(param.type, click.DateTime):
                 # Highlight each datetime format string as a choice.
                 kw.choices.update(param.type.formats)
+            elif getattr(param.type, "choices", None) and not isinstance(
+                param.type, (click.Choice, ThemeChoice)
+            ):
+                # Duck-typed choice-like ``click.ParamType`` (e.g.
+                # :class:`click_extra.types.MultiChoice` and its subclasses):
+                # each accepted value is worth highlighting individually, and
+                # the rendered ``[a,b,c]`` metavar protects the brackets +
+                # separators from later passes. The ``isinstance`` guard is
+                # paranoia: ``click.Choice`` subclasses are already handled by
+                # the branch above; this filter just keeps the elif self-sufficient.
+                kw.choices.update(param.type.choices)
+                kw.choice_metavars.add(param.make_metavar(ctx=ctx))
             elif not isinstance(param, click.Argument):
                 # Argument metavars are collected in the arguments set.
                 kw.metavars.add(param.make_metavar(ctx=ctx))
@@ -632,19 +649,24 @@ class HelpExtraFormatter(cloup.HelpFormatter):
     def _style_choice_metavar(self, metavar: str, choices: set[str]) -> str | None:
         """Style individual choices inside a choice metavar string.
 
-        Takes a rendered metavar like ``[json|xml|csv]`` and returns a styled
-        version where each known choice is wrapped with ``theme.choice``.
-        Returns ``None`` if ``metavar`` does not look like a choice list.
+        Takes a rendered metavar like ``[json|xml|csv]`` (Click ``Choice``-style)
+        or ``[id,spec,value]`` (Click Extra ``MultiChoice``-style) and returns a
+        styled version where each known choice is wrapped with
+        ``theme.choice``. Returns ``None`` if ``metavar`` does not look like a
+        choice list.
         """
         # Strip the surrounding brackets.
         if not (metavar.startswith("[") and metavar.endswith("]")):
             return None
         inner = metavar[1:-1]
-        parts = inner.split("|")
+        # Detect the separator from the metavar itself: pipe for pick-one
+        # ``click.Choice``, comma for multi-pick ``MultiChoice``.
+        sep = "|" if "|" in inner else ","
+        parts = inner.split(sep)
         styled_parts = [
             self.theme.choice(part) if part in choices else part for part in parts
         ]
-        return "[" + "|".join(styled_parts) + "]"
+        return "[" + sep.join(styled_parts) + "]"
 
     @staticmethod
     def _add_placeholder(styled: str, store: dict[str, str]) -> str:

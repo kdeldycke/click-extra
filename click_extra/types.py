@@ -22,8 +22,120 @@ import click
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Sequence
     from typing import Any
+
+
+class MultiChoice(click.ParamType):
+    """Comma-separated multi-pick from a fixed set of values.
+
+    The pick-many counterpart to :class:`click.Choice`. Accepts a single token
+    containing several values joined by a configurable ``separator`` (defaults
+    to ``,``), parses it into a ``tuple[str, ...]`` and validates each value
+    against ``choices`` when that set is non-empty.
+
+    The rendered metavar is ``[a,b,c]`` (separator-joined, parallel to
+    ``Choice``'s ``[a|b|c]``): :class:`click_extra.colorize.ExtraHelpColorsMixin`
+    auto-detects the separator and highlights each individual value the same way
+    it does for ``Choice``.
+
+    .. note::
+        Click does not ship a built-in equivalent. The closest idiomatic
+        approach is ``click.Choice([...]) + multiple=True``, which requires the
+        flag to be repeated (``--tag a --tag b --tag c``) rather than
+        comma-separated. The lack of a single-token, separator-based variant
+        upstream has been raised in:
+
+        - `pallets/click#2771 <https://github.com/pallets/click/issues/2771>`_
+          (open): request for ``nargs=-1`` with a non-whitespace separator,
+          covering exactly this use case.
+        - `pallets/click#2537 <https://github.com/pallets/click/issues/2537>`_
+          (closed as not planned): earlier request for space-separated multi
+          values via ``nargs=-1`` on options.
+
+        Maintainers have leaned on the orthogonality argument: ``multiple=True``
+        already exists, separator conventions vary across communities (``,``
+        vs. ``:`` vs. ``;``), and escaping breaks down when a value contains
+        the chosen separator. ``MultiChoice`` ships the convention anyway
+        because SQL-style ``SELECT a, b, c`` syntax reads more naturally for
+        the tabular use cases ``click-extra`` supports
+        (:class:`click_extra.table.ColumnsOption` is the headline consumer).
+    """
+
+    name = "multi"
+
+    def __init__(
+        self,
+        choices: Sequence[str] = (),
+        separator: str = ",",
+        case_sensitive: bool = True,
+    ) -> None:
+        """Initialize the type.
+
+        :param choices: the accepted values. When non-empty, ``convert()``
+            rejects unknown tokens with :meth:`fail`. When empty, the type
+            behaves as a pure separator-aware parser and leaves validation to
+            the consumer.
+        :param separator: the token boundary. Use any single character; this
+            also drives the metavar rendering (``[a<sep>b<sep>c]``).
+        :param case_sensitive: when ``False``, tokens match ``choices``
+            case-insensitively and the returned tuple holds the canonical
+            (original-case) values from ``choices``.
+        """
+        self.choices: tuple[str, ...] = tuple(choices)
+        self.separator: str = separator
+        self.case_sensitive: bool = case_sensitive
+
+    def get_metavar(self, param, ctx=None):
+        """Render ``[a<sep>b<sep>c]`` when ``choices`` is set, ``None`` otherwise.
+
+        ``None`` falls back to Click's default rendering (the uppercased
+        ``name``, like ``MULTI``).
+        """
+        if self.choices:
+            return "[" + self.separator.join(self.choices) + "]"
+        return None
+
+    def convert(
+        self, value: Any, param: click.Parameter | None, ctx: click.Context | None
+    ) -> tuple[str, ...]:
+        """Split ``value`` on ``separator`` and validate each token.
+
+        Already-parsed tuples and lists are returned unchanged so defaults
+        declared as tuples flow through untouched. Empty tokens (consecutive
+        separators, trailing separator) are dropped silently.
+        """
+        if value is None:
+            return ()
+        if isinstance(value, (tuple, list)):
+            return tuple(value)
+        tokens = tuple(
+            t.strip() for t in str(value).split(self.separator) if t.strip()
+        )
+
+        if not self.choices:
+            return tokens
+
+        if self.case_sensitive:
+            valid = set(self.choices)
+            unknown = [t for t in tokens if t not in valid]
+            normalized = tokens
+        else:
+            lookup = {c.casefold(): c for c in self.choices}
+            unknown = [t for t in tokens if t.casefold() not in lookup]
+            normalized = tuple(lookup.get(t.casefold(), t) for t in tokens)
+
+        if unknown:
+            joined = ", ".join(repr(t) for t in unknown)
+            accepted = ", ".join(self.choices)
+            self.fail(
+                f"Unknown value(s): {joined}. Accepted: {accepted}.", param, ctx
+            )
+
+        return normalized
+
+    def __repr__(self) -> str:
+        return f"MultiChoice({list(self.choices)!r}, separator={self.separator!r})"
 
 
 class ChoiceSource(enum.Enum):

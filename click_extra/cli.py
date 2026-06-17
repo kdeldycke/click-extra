@@ -170,7 +170,7 @@ def _walk_cmd_params(cmd, ctx, parent_keys=()):
     default=DEFAULT_FORMAT,
     help="Rendering style of tables.",
 )
-@columns_option
+@columns_option(columns=_introspect_columns())
 @click.pass_context
 def show_params_cmd(
     ctx: click.Context,
@@ -203,29 +203,17 @@ def show_params_cmd(
     sep = "."
     is_structured = table_format in SERIALIZATION_FORMATS
 
-    # Pick the column set: user's --columns selection (already validated by
-    # ``ColumnsOption``) or the standalone default that drops runtime/config-only
-    # columns.
+    # ``ColumnsOption`` has already validated the selection against
+    # ``_introspect_columns()`` in its callback, so we can trust ``COLUMNS``
+    # here: project the column set without re-checking.
     from . import context as ctx_keys
 
     selected_ids: tuple[str, ...] = ctx_keys.get(ctx, ctx_keys.COLUMNS) or ()
-
-    # Validate user IDs against the full registry and the standalone subset.
-    available_ids = tuple(col.id for col in _introspect_columns())
     if selected_ids:
-        available_set = set(available_ids)
-        unknown = [c for c in selected_ids if c not in available_set]
-        if unknown:
-            joined = ", ".join(repr(c) for c in unknown)
-            available = ", ".join(available_ids)
-            raise click.UsageError(
-                f"Unknown --columns ID(s): {joined}. Available: {available}.",
-                ctx=ctx,
-            )
         canonical_ids = selected_ids
         display_columns = select_columns(_introspect_columns(), selected_ids)
     else:
-        canonical_ids = available_ids
+        canonical_ids = tuple(col.id for col in _introspect_columns())
         display_columns = _introspect_columns()
 
     table: list[tuple] = []

@@ -535,6 +535,68 @@ assert result.output == (
 )
 ```
 
+## `MultiChoice`
+
+`click.Choice` is the canonical Click type for "pick one of these values". For the pick-*many* case, the recommended Click idiom is `multiple=True` paired with `click.Choice`, requiring the flag to be repeated:
+
+```{code-block} shell-session
+$ my-cli --tag alpha --tag beta --tag gamma
+```
+
+`MultiChoice` ships the SQL `SELECT a, b, c`-style alternative: a single, comma-separated token validated against a fixed set of values. The rendered metavar is `[a,b,c]`, parallel to `click.Choice`'s `[a|b|c]`, and click-extra's help colorizer highlights each value individually in both shapes.
+
+```{click:source}
+from click import command, echo, option
+from click_extra import MultiChoice
+
+@command
+@option(
+    "--tags",
+    type=MultiChoice(("alpha", "beta", "gamma"), case_sensitive=False),
+    default=(),
+    help="Comma-separated tags to apply.",
+)
+def tag_cli(tags):
+    echo(f"Selected tags: {tags!r}")
+```
+
+```{click:run}
+result = invoke(tag_cli, args=["--tags", "alpha,gamma"])
+assert result.output == "Selected tags: ('alpha', 'gamma')\n"
+```
+
+The metavar enumerates the accepted values inline, parallel to `click.Choice`:
+
+```{click:run}
+result = invoke(tag_cli, args=["--help"])
+assert "[alpha,beta,gamma]" in result.stdout
+```
+
+Unknown values fail at parse time with a `BadParameter`:
+
+```{click:run}
+result = invoke(tag_cli, args=["--tags", "alpha,delta"])
+assert "Unknown value(s): 'delta'" in result.stderr
+assert "Accepted: alpha, beta, gamma" in result.stderr
+```
+
+Skip the `choices` argument entirely to use `MultiChoice` as a pure comma-separated parser, with no validation. The consumer is then responsible for checking the values:
+
+```{click:run}
+result = invoke(tag_cli, args=["--tags", "AlPhA, BETA"])
+# case_sensitive=False normalizes back to the canonical-case from `choices`:
+assert result.output == "Selected tags: ('alpha', 'beta')\n"
+```
+
+### Upstream Click status
+
+Click does not ship an equivalent type. The closest idiom is `click.Choice` plus `multiple=True`, and Pallets has historically pushed back on adding a separator-based variant. Two open/closed discussions on the topic:
+
+- [pallets/click#2771](https://github.com/pallets/click/issues/2771) (open): proposes `nargs=-1` with a non-whitespace separator, the exact feature `MultiChoice` provides.
+- [pallets/click#2537](https://github.com/pallets/click/issues/2537) (closed as not planned): earlier request for space-separated multi-values on a single flag.
+
+The maintainers' position has been roughly: `multiple=True` already does the job, separator conventions vary across communities (`,` vs `:` vs `;`), and escaping breaks when a value contains the separator. `MultiChoice` opts into the convention anyway, because SQL-style `SELECT a, b, c` is the dominant mental model for the table-rendering use cases click-extra supports. `click_extra.table.ColumnsOption` is the headline consumer (see [the `--columns` documentation](parameters.md#columns-selection)).
+
 ## `click_extra.types` API
 
 ```{eval-rst}

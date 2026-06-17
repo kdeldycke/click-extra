@@ -74,7 +74,7 @@ assert "Spec." not in result.stdout
 assert "Confirmation prompt" not in result.stdout
 ```
 
-Unknown IDs raise a `UsageError` listing the valid ones. The standalone [`click-extra show-params`](#introspecting-external-clis) subcommand exposes the same option for inspecting third-party CLIs.
+Unknown IDs raise a `BadParameter` listing the valid ones (`--columns` is built on top of the generic [`MultiChoice`](types.md#multichoice) type, which does the validation at parse time). The standalone [`click-extra show-params`](#introspecting-external-clis) subcommand exposes the same option for inspecting third-party CLIs.
 
 ### Table format
 

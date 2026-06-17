@@ -875,7 +875,7 @@ def test_columns_option_rejects_unknown_id(invoke):
     )
     assert result.exit_code != 0
     assert "Unknown --columns ID(s): 'nope'" in result.stderr
-    assert "Available:" in result.stderr
+    assert "Accepted:" in result.stderr
 
 
 def test_recurse_subcommands(invoke):

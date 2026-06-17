@@ -184,6 +184,15 @@ click-extra's [logging module](logging.md) replaces the unmaintained `click-log`
 
 - [`click#2779` - Wrong error message when wrong multicharacter short option is passed](https://github.com/pallets/click/issues/2779)
 
+### Multi-value options
+
+click-extra's [`MultiChoice` type](types.md#multichoice) parses a single comma-separated token into a tuple of validated values: the pick-many counterpart to `click.Choice`, with a rendered `[a,b,c]` metavar that mirrors `click.Choice`'s `[a|b|c]` and per-value highlighting in the [help colorizer](colorize.md). The canonical Click idiom for this is `multiple=True + Choice`, which requires the flag to be repeated (`--tag a --tag b --tag c`); SQL `SELECT a, b, c`-style syntax has been requested upstream multiple times and not shipped:
+
+- [`click#2771` - Allow `nargs=-1` in options with a non-whitespace separator](https://github.com/pallets/click/issues/2771) — open, exactly the same feature request.
+- [`click#2537` - Allow `nargs=-1` for `click.option`](https://github.com/pallets/click/issues/2537) — closed as not planned, the earlier space-separated variant.
+
+The [`--columns` option on `--show-params`](parameters.md#columns-selection) is the headline consumer; the type is also exposed at the package root for arbitrary tags / categories / modes use cases in downstream CLIs.
+
 ### Normalized arguments
 
 - [`click#1279` - Provide access to a normalized list of args that will result in the same params](https://github.com/pallets/click/issues/1279)

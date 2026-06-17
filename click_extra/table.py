@@ -33,6 +33,7 @@ from tabulate import DataRow, TableFormat as TabulateTableFormat
 
 from . import EnumChoice, context, echo, style
 from .parameters import ExtraOption
+from .types import MultiChoice
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -1017,26 +1018,27 @@ def select_row(
     return tuple(row[col_id] for col_id in ids)
 
 
-class ColumnsType(click.ParamType):
-    """Custom Click type that parses a comma-separated list of column IDs.
+class ColumnsType(MultiChoice):
+    """Column-flavored alias of :class:`click_extra.types.MultiChoice`.
 
-    Accepts either a string (``"id,spec,value"``) or an already-parsed tuple,
-    so default values declared as tuples flow through ``convert()`` untouched.
-    Empty tokens (e.g. trailing commas) are silently dropped.
+    Pins the comma separator and case-sensitive matching (column IDs are
+    snake_case identifiers, not free-form strings), and renames the metavar
+    fallback to ``COLUMNS`` instead of the generic ``MULTI``.
 
-    The type does not validate that the IDs exist against any column registry:
-    that is the consumer's job (see :class:`click_extra.parameters.ShowParamsOption`),
-    so the same option can drive any table-rendering command without coupling.
+    The ``accepted_ids`` constructor keyword is preserved as a column-flavored
+    alias of ``MultiChoice.choices`` for backward compatibility with code that
+    constructs the type directly.
     """
 
     name = "columns"
 
-    def convert(self, value, param, ctx):
-        if value is None:
-            return ()
-        if isinstance(value, (tuple, list)):
-            return tuple(value)
-        return tuple(token.strip() for token in str(value).split(",") if token.strip())
+    def __init__(self, accepted_ids: Sequence[str] = ()) -> None:
+        super().__init__(choices=accepted_ids, separator=",", case_sensitive=True)
+
+    @property
+    def accepted_ids(self) -> tuple[str, ...]:
+        """Backward-compat alias for :attr:`MultiChoice.choices`."""
+        return self.choices
 
 
 class ColumnsOption(ExtraOption):
@@ -1052,9 +1054,14 @@ class ColumnsOption(ExtraOption):
     :data:`ctx.meta[click_extra.context.COLUMNS] <click_extra.context.COLUMNS>` and
     consumed by table-rendering callbacks (like
     :class:`click_extra.parameters.ShowParamsOption`) to project rows + headers
-    before rendering. Unknown IDs are flagged by the consumer (where the column
-    registry is known) rather than by the option itself, so the same option can
-    serve any command.
+    before rendering.
+
+    Pass ``columns=`` at construction time with the column registry the option
+    should advertise: the help text then lists the accepted IDs and the default
+    selection, and the callback validates the user input against that registry
+    so unknown IDs fail fast with a :class:`click.UsageError`. Without
+    ``columns=``, the option stays generic: it parses any IDs and leaves
+    validation to the downstream consumer.
 
     Empty / unset means *render every column in canonical order* — the default
     behavior, indistinguishable from not passing ``--columns`` at all.
@@ -1063,19 +1070,29 @@ class ColumnsOption(ExtraOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        type=ColumnsType(),
+        columns: Sequence[ColumnSpec] | None = None,
+        type=None,
         default: Sequence[str] | None = (),
         expose_value: bool = False,
         is_eager: bool = True,
         help: str = _(
-            "Restrict and order table columns. Pass a comma-separated list of "
-            "column IDs (SQL SELECT-style). Default: all columns in canonical "
-            "order.",
+            "Restrict and reorder table columns, SQL SELECT-style. "
+            "Comma-separated list of column IDs. Default: all columns in "
+            "canonical order.",
         ),
         **kwargs,
     ) -> None:
         if not param_decls:
             param_decls = ("--columns",)
+
+        self.columns: tuple[ColumnSpec, ...] = tuple(columns) if columns else ()
+        """Column registry this option advertises and validates against (may be empty)."""
+
+        # When the registry is known, expose the IDs in the metavar (parallel to
+        # ``click.Choice`` showing ``[a|b|c]``) so the help screen enumerates the
+        # accepted values inline rather than burying them in the description.
+        if type is None:
+            type = ColumnsType(accepted_ids=tuple(c.id for c in self.columns))
 
         kwargs.setdefault("callback", self.init_columns)
 
@@ -1095,7 +1112,12 @@ class ColumnsOption(ExtraOption):
         param: click.Parameter,
         columns: tuple[str, ...],
     ) -> None:
-        """Store the selected column IDs on the context for later projection."""
+        """Store the selected column IDs on the context for later projection.
+
+        Validation of the IDs against the registry happens inside
+        :meth:`MultiChoice.convert`, before this callback runs, so this just
+        threads the parsed selection onto the context.
+        """
         if ctx.resilient_parsing:
             return
         context.set(ctx, context.COLUMNS, tuple(columns) if columns else ())
