@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Fix the MkDocs plugin and Sphinx directives leaving Rich-based CLIs (such as `rich-click`) colorless in rendered documentation.
+
 ## [`7.20.0` (2026-06-17)](https://github.com/kdeldycke/click-extra/compare/v7.19.0...v7.20.0)
 
 - Add `MultiChoice` to `click_extra.types`: a Click `ParamType` for comma-separated multi-pick from a fixed set of values, the pick-many counterpart to `click.Choice`.

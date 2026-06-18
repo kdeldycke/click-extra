@@ -55,6 +55,7 @@ from click_extra import (
 from click_extra.colorize import (
     HelpKeywords,
     color_envvars,
+    forced_color,
     highlight,
 )
 from click_extra.pytest import (
@@ -2553,3 +2554,24 @@ def test_standalone_help_option(invoke, cmd_decorator, cmd_type, option_decorato
         )
     assert result.exit_code == 0
     assert not result.stderr
+
+
+def test_forced_color_sets_and_restores_env(monkeypatch):
+    """``forced_color`` forces ``FORCE_COLOR`` and clears Click Extra's disabling vars.
+
+    Inside the context the capture sees ``FORCE_COLOR=1`` with every flag that would
+    disable color (``NO_COLOR``, ``LLM``, …) removed; on exit the prior environment,
+    including any pre-existing values, is restored untouched.
+    """
+    monkeypatch.setenv("NO_COLOR", "1")
+    monkeypatch.setenv("LLM", "1")
+    monkeypatch.delenv("FORCE_COLOR", raising=False)
+
+    with forced_color():
+        assert os.environ["FORCE_COLOR"] == "1"
+        assert "NO_COLOR" not in os.environ
+        assert "LLM" not in os.environ
+
+    assert "FORCE_COLOR" not in os.environ
+    assert os.environ["NO_COLOR"] == "1"
+    assert os.environ["LLM"] == "1"

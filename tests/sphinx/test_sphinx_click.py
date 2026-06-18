@@ -964,3 +964,37 @@ def test_exit_exception_percolate(sphinx_app):
         + "Something went wrong!\n"
         + "</pre></div>"
     ) in html_output
+
+
+def test_clickrunner_forces_color(monkeypatch):
+    """``ClickRunner`` forces ``FORCE_COLOR`` so Rich-based CLIs colorize under ``NO_COLOR``.
+
+    The runner already passes ``color=True`` (Click's color system). But rich-click
+    renders help through Rich's ``Console``, gated on ``FORCE_COLOR``, which ``color=True``
+    never reaches. The runner therefore also forces ``FORCE_COLOR`` (clearing the
+    disabling vars) around the executed command, then restores the environment.
+    """
+    import os
+
+    import click
+
+    from click_extra.sphinx.click import ClickRunner
+
+    monkeypatch.setenv("NO_COLOR", "1")
+    monkeypatch.delenv("FORCE_COLOR", raising=False)
+
+    seen = {}
+
+    @click.command()
+    def probe():
+        seen["FORCE_COLOR"] = os.environ.get("FORCE_COLOR")
+        seen["NO_COLOR"] = os.environ.get("NO_COLOR")
+
+    ClickRunner().invoke(probe, [])
+
+    # Color was forced through Rich's system while the command ran...
+    assert seen["FORCE_COLOR"] == "1"
+    assert seen["NO_COLOR"] is None
+    # ...and the build environment is restored afterwards.
+    assert os.environ.get("FORCE_COLOR") is None
+    assert os.environ["NO_COLOR"] == "1"

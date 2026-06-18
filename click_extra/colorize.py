@@ -27,7 +27,9 @@ from __future__ import annotations
 
 import os
 import re
+from collections.abc import Iterator
 from configparser import RawConfigParser
+from contextlib import contextmanager
 from dataclasses import dataclass, field, fields
 from enum import Enum
 from functools import lru_cache
@@ -118,6 +120,45 @@ Source:
 - https://github.com/pallets/click/issues/3022
 - https://blog.codemine.be/posts/2026/20260222-be-quiet/
 """
+
+
+@contextmanager
+def forced_color() -> Iterator[None]:
+    """Force ANSI color while Click Extra captures CLI text for documentation.
+
+    Click Extra renders CLI help and output into docs from both the MkDocs plugin
+    (:mod:`click_extra.mkdocs`) and the Sphinx directives
+    (:mod:`click_extra.sphinx.click`). During a build that output is a pipe, not a TTY,
+    so the underlying renderers strip their escape codes. Two independent color systems
+    have to be defeated:
+
+    - Click's, gated by ``should_strip_ansi`` / ``ctx.color`` (what ``click.echo`` and
+      the Click and Click Extra help formatters consult). Sphinx's runner additionally
+      flips this one with ``click.testing.CliRunner(color=True)``.
+    - Rich's, gated by ``rich.console.Console.is_terminal``, which ignores the above and
+      reads ``FORCE_COLOR`` (https://force-color.org). This is the system ``rich-click``
+      uses, and ``color=True`` never reaches it.
+
+    ``FORCE_COLOR`` is the only signal common to both systems (Rich reads it directly;
+    Click Extra recognizes it through :data:`color_envvars`), so it is the lever we set
+    here. We also clear the color-disabling variables Click Extra recognizes
+    (``NO_COLOR``, ``LLM``, …) so an opt-out in the build environment cannot suppress the
+    rendering. The previous environment is restored on exit, so the override never leaks
+    beyond a single capture.
+    """
+    disabling = [var for var, enables in color_envvars.items() if not enables]
+    saved = {var: os.environ.get(var) for var in ("FORCE_COLOR", *disabling)}
+    os.environ["FORCE_COLOR"] = "1"
+    for var in disabling:
+        os.environ.pop(var, None)
+    try:
+        yield
+    finally:
+        for var, value in saved.items():
+            if value is None:
+                os.environ.pop(var, None)
+            else:
+                os.environ[var] = value
 
 
 class ColorOption(ExtraOption):

@@ -50,6 +50,7 @@ from sphinx.directives import SphinxDirective, directives
 from sphinx.directives.code import CodeBlock
 from sphinx.util import logging
 
+from ..colorize import forced_color
 from ._base import StatelessDomain, compile_directive, make_cleanup
 
 TYPE_CHECKING = False
@@ -131,7 +132,13 @@ class ClickRunner(CliRunner):
     """A sub-class of :class:`click.testing.CliRunner` for Sphinx directive execution.
 
     Produces unfiltered ANSI codes so that the ``Directive`` sub-classes below can
-    render colors in the HTML output.
+    render colors in the HTML output. Because Click Extra executes the documented
+    command here, :meth:`invoke` forces color across both color systems a CLI might use:
+    ``color=True`` covers Click's (``should_strip_ansi``), and
+    :func:`~click_extra.colorize.forced_color` sets ``FORCE_COLOR`` for Rich's (which
+    ``rich-click`` uses and ``color=True`` never reaches). The MkDocs plugin shares the
+    latter lever but cannot pass ``color=True``, since it patches a renderer it never
+    executes.
     """
 
     def __init__(self):
@@ -197,15 +204,22 @@ class ClickRunner(CliRunner):
             if terminate_input:
                 input += "\x04"
 
-        result = super().invoke(
-            cli=cli,
-            args=args,
-            input=input,
-            env=env,
-            prog_name=prog_name,
-            color=True,
-            **extra,
-        )
+        # ``color=True`` keeps ANSI in Click's color system: it flips
+        # ``should_strip_ansi``, which CliRunner otherwise leaves stripping on its
+        # non-TTY buffer. But rich-click renders through Rich's Console, a separate
+        # system that ignores ``should_strip_ansi`` and only honors ``FORCE_COLOR``, so
+        # ``forced_color()`` sets that too. Together they cover both color systems a
+        # documented CLI might use.
+        with forced_color():
+            result = super().invoke(
+                cli=cli,
+                args=args,
+                input=input,
+                env=env,
+                prog_name=prog_name,
+                color=True,
+                **extra,
+            )
         # TODO: Maybe we can intercept the exception here either make it:
         # - part of the output in the rendered Sphinx code block, or
         # - re-raise it so Sphinx can display it properly in its logs.

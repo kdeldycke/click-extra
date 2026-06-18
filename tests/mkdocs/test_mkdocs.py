@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import os
 from textwrap import dedent
 
 import click
@@ -238,6 +239,44 @@ def test_patch_mkdocs_click_idempotent():
     _patch_mkdocs_click()
     assert _docs._make_usage is usage_fn
     assert _docs._make_plain_options is plain_fn
+
+
+@pytest.mark.usefixtures("_clean_mkdocs_click")
+def test_patch_mkdocs_click_forces_color_during_capture(monkeypatch):
+    """The patched generators capture help with color forced, even under ``NO_COLOR``.
+
+    Swapping the lexer to ``ansi-output`` is pointless if the captured help carries no
+    escape codes, which is exactly what happens when the build's stdout is a pipe. The
+    wrapper must therefore materialize the help *while* the color override is active.
+    Spying on ``make_formatter`` (where Rich and Click read the environment to decide on
+    color) proves ``FORCE_COLOR`` is set and the disabling vars are cleared at capture
+    time, and that the surrounding environment is restored once the capture completes.
+    """
+    from mkdocs_click import _docs
+
+    monkeypatch.setenv("NO_COLOR", "1")
+    monkeypatch.delenv("FORCE_COLOR", raising=False)
+
+    seen = {}
+    real_make_formatter = click.Context.make_formatter
+
+    def spy_make_formatter(self):
+        seen.setdefault("FORCE_COLOR", os.environ.get("FORCE_COLOR"))
+        seen.setdefault("NO_COLOR", os.environ.get("NO_COLOR"))
+        return real_make_formatter(self)
+
+    monkeypatch.setattr(click.Context, "make_formatter", spy_make_formatter)
+
+    _patch_mkdocs_click()
+    ctx = click.Context(_hello_cmd, info_name="hello")
+    list(_docs._make_usage(ctx))
+
+    # FORCE_COLOR was set (and NO_COLOR cleared) while the formatter was built...
+    assert seen["FORCE_COLOR"] == "1"
+    assert seen["NO_COLOR"] is None
+    # ...and the build environment is restored once the capture completes.
+    assert os.environ.get("FORCE_COLOR") is None
+    assert os.environ["NO_COLOR"] == "1"
 
 
 @pytest.mark.usefixtures("_clean_pymdownx", "_clean_mkdocs_click")
