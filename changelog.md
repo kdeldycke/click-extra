@@ -10,6 +10,9 @@
 
 ## [`7.20.1` (2026-06-18)](https://github.com/kdeldycke/click-extra/compare/v7.20.0...v7.20.1)
 
+> [!NOTE]
+> `7.20.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.20.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.20.1).
+
 - Fix the MkDocs plugin and Sphinx directives leaving Rich-based CLIs (such as `rich-click`) colorless in rendered documentation.
 
 ## [`7.20.0` (2026-06-17)](https://github.com/kdeldycke/click-extra/compare/v7.19.0...v7.20.0)
