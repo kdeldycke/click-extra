@@ -257,7 +257,7 @@ def test_patch_mkdocs_click_forces_color_during_capture(monkeypatch):
     monkeypatch.setenv("NO_COLOR", "1")
     monkeypatch.delenv("FORCE_COLOR", raising=False)
 
-    seen = {}
+    seen: dict[str, str | None] = {}
     real_make_formatter = click.Context.make_formatter
 
     def spy_make_formatter(self):

@@ -17,10 +17,14 @@
 
 from __future__ import annotations
 
+import os
 import re
 from textwrap import dedent
 
+import click
 import pytest
+
+from click_extra.sphinx.click import ClickRunner
 
 from .conftest import HTML, DirectiveTestCase, FormatType
 
@@ -974,12 +978,6 @@ def test_clickrunner_forces_color(monkeypatch):
     never reaches. The runner therefore also forces ``FORCE_COLOR`` (clearing the
     disabling vars) around the executed command, then restores the environment.
     """
-    import os
-
-    import click
-
-    from click_extra.sphinx.click import ClickRunner
-
     monkeypatch.setenv("NO_COLOR", "1")
     monkeypatch.delenv("FORCE_COLOR", raising=False)
 
