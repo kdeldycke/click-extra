@@ -1,5 +1,10 @@
 # Changelog
 
+## [`7.20.2.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v7.20.1...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`7.20.1` (2026-06-18)](https://github.com/kdeldycke/click-extra/compare/v7.20.0...v7.20.1)
 
 - Fix the MkDocs plugin and Sphinx directives leaving Rich-based CLIs (such as `rich-click`) colorless in rendered documentation.
