@@ -575,7 +575,7 @@ name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/79/66800aadf48771f6b62f7eb014e352e5d06856655206165d775e675a02c9/exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219", size = 30371, upload-time = "2025-11-21T23:01:54.787Z" }
 wheels = [
@@ -1328,14 +1328,14 @@ wheels = [
 
 [[package]]
 name = "sphinx-autodoc-typehints"
-version = "3.10.5"
+version = "3.10.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "sphinx", version = "9.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e2/88/f4698f838b8cc030f3df73cf529f96d7c9e6dd3e3ff40968b7fe4d86c748/sphinx_autodoc_typehints-3.10.5.tar.gz", hash = "sha256:a54dfab95a6b5e8601543d25474497e98ed59268ac0ab01b3daba9817cf9707e", size = 79721, upload-time = "2026-06-03T15:30:28.181Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d6/2a/791d884ccd04b70ae4e634e526e16744a8ccf6d2ba1b83ac910e57cbbe84/sphinx_autodoc_typehints-3.10.6.tar.gz", hash = "sha256:fc637a286a62dd53a3dbbd6bc3831cf6034e3b4abee0299c84a53982f2bf1e0d", size = 80926, upload-time = "2026-06-11T14:52:51.794Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/41/9a/98ba24ca28b4a4afbb5066805838c7e1149b8de1e6f5e02774e0f39f13db/sphinx_autodoc_typehints-3.10.5-py3-none-any.whl", hash = "sha256:7155748080735731c892d09b5128bc4e5303795691ca8515ccf333b1efd8d964", size = 40433, upload-time = "2026-06-03T15:30:26.892Z" },
+    { url = "https://files.pythonhosted.org/packages/a9/81/1fbaf1e78737358c2d7ccf74f6bbcb65309f946ae91e5b1ff946c75679d0/sphinx_autodoc_typehints-3.10.6-py3-none-any.whl", hash = "sha256:d960db7426438f4f3d28aa66c7f1efd6ac32708cc95814e4a9c5538691f410c8", size = 40742, upload-time = "2026-06-11T14:52:50.627Z" },
 ]
 
 [[package]]
