@@ -26,9 +26,7 @@ import cloup
 from . import (
     ClickException,
     Color,
-    Style,
     argument,
-    context,
     echo,
     group,
     option,
@@ -36,16 +34,7 @@ from . import (
     style,
 )
 from .colorize import _nearest_256
-from .decorators import columns_option
-from .man_page import render_manpage, write_manpages
-from .parameters import ShowParamsOption, format_param_row
-from .table import (
-    DEFAULT_FORMAT,
-    SERIALIZATION_FORMATS,
-    print_table,
-    select_columns,
-    select_row,
-)
+from .table import print_table
 from .version import (
     GIT_FIELDS,
     _find_dunder_str,
@@ -54,7 +43,7 @@ from .version import (
     prebake_version,
     run_git,
 )
-from .wrap import WrapperGroup, resolve_target_command, wrap as wrap_cmd
+from .wrap import WrapperGroup, wrap as wrap_cmd
 
 
 def _resolve_paths(module: Path | None) -> list[Path]:
@@ -105,209 +94,6 @@ def demo():
 
 
 demo.add_command(wrap_cmd)
-
-
-_INTROSPECT_RUNTIME_IDS: frozenset[str] = frozenset({
-    "allowed_in_conf",
-    "value",
-    "source",
-})
-"""Columns the standalone ``show-params`` cannot fill in for a foreign CLI.
-
-``value`` / ``source`` need a live invocation context, and ``allowed_in_conf``
-needs a Click Extra ``--config`` option both of which the standalone wrapper
-cannot synthesize from an arbitrary script. Every other
-:data:`ShowParamsOption.TABLE_HEADERS` entry is structural and renders fine.
-"""
-
-
-def _introspect_columns():
-    """Default column subset displayed by the standalone ``show-params``.
-
-    Drops the runtime/config-dependent entries (see
-    :data:`_INTROSPECT_RUNTIME_IDS`) so the standalone wrapper renders
-    a coherent table even when the target CLI is third-party.
-    """
-    return tuple(
-        col
-        for col in ShowParamsOption.TABLE_HEADERS
-        if col.id not in _INTROSPECT_RUNTIME_IDS
-    )
-
-
-def _walk_cmd_params(cmd, ctx, parent_keys=()):
-    """Walk parameters of a Click command tree.
-
-    Yields ``(path_tuple, param, owning_ctx)`` for every parameter found on
-    *cmd* and its subcommands.
-    """
-    for p in cmd.get_params(ctx):
-        if p.name is not None:
-            yield (*parent_keys, p.name), p, ctx
-
-    if isinstance(cmd, click.Group):
-        for subcmd_name in sorted(cmd.list_commands(ctx)):
-            subcmd = cmd.get_command(ctx, subcmd_name)
-            if subcmd is None:
-                continue
-            subcmd_ctx = click.Context(subcmd, parent=ctx, info_name=subcmd_name)
-            yield from _walk_cmd_params(subcmd, subcmd_ctx, (*parent_keys, subcmd_name))
-
-
-@demo.command(
-    name="show-params",
-    context_settings={"allow_interspersed_args": False},
-)
-@click.argument(
-    "script_and_args",
-    nargs=-1,
-    type=click.UNPROCESSED,
-    metavar="SCRIPT [SUBCOMMAND]...",
-)
-@columns_option(columns=_introspect_columns())
-@click.pass_context
-def show_params_cmd(
-    ctx: click.Context,
-    script_and_args: tuple[str, ...],
-) -> None:
-    """Show parameters of an external Click CLI.
-
-    Resolves SCRIPT as a console_scripts entry point, module:function
-    notation, .py file path, or Python module name. Loads the Click
-    command and prints its parameter table.
-
-    Extra arguments after SCRIPT navigate into nested command groups.
-
-    Pass --columns id,spec,value (etc.) to restrict and reorder the table
-    columns, SQL SELECT-style. See ShowParamsOption.TABLE_HEADERS for the
-    available column IDs.
-    """
-    if not script_and_args:
-        echo(ctx.get_help(), color=ctx.color)
-        ctx.exit(0)
-
-    script = script_and_args[0]
-    subcommands = script_and_args[1:]
-
-    cmd, cmd_ctx = resolve_target_command(script, subcommands)
-
-    # Build parameter path prefix.
-    prefix = (cmd.name or script,)
-    sep = "."
-    table_format = context.get(ctx, context.TABLE_FORMAT) or DEFAULT_FORMAT
-    is_structured = table_format in SERIALIZATION_FORMATS
-
-    # ``ColumnsOption`` has already validated the selection against
-    # ``_introspect_columns()`` in its callback, so we can trust ``COLUMNS``
-    # here: project the column set without re-checking.
-    selected_ids: tuple[str, ...] = context.get(ctx, context.COLUMNS) or ()
-    if selected_ids:
-        canonical_ids = selected_ids
-        display_columns = select_columns(_introspect_columns(), selected_ids)
-    else:
-        canonical_ids = tuple(col.id for col in _introspect_columns())
-        display_columns = _introspect_columns()
-
-    table: list[tuple] = []
-    for keys, param, param_ctx in _walk_cmd_params(cmd, cmd_ctx, prefix):
-        path = sep.join(keys)
-        row = format_param_row(param, param_ctx, path, is_structured)
-        table.append(select_row(row, selected_ids, canonical_ids))
-
-    def sort_key(row):
-        """Sort by depth first, then path."""
-        row_path = row[0]
-        parts = row_path.split(sep)
-        return len(parts), row_path
-
-    labels = tuple(col.label for col in display_columns)
-    header_labels: tuple
-    if is_structured:
-        header_labels = labels
-    else:
-        header_style = Style(bold=True)
-        header_labels = tuple(map(header_style, labels))
-
-    print_table(
-        sorted(table, key=sort_key),
-        headers=header_labels,
-        table_format=table_format,
-    )
-
-
-@demo.command(
-    name="man",
-    context_settings={"allow_interspersed_args": False},
-)
-@click.argument(
-    "script_and_args",
-    nargs=-1,
-    type=click.UNPROCESSED,
-    metavar="SCRIPT [SUBCOMMAND]...",
-)
-@click.option(
-    "--output-dir",
-    type=click.Path(file_okay=False, dir_okay=True, writable=True, path_type=Path),
-    default=None,
-    help=(
-        "Write one .1 file per (sub)command into the given directory instead "
-        "of printing a single page to stdout. The directory is created if "
-        "missing; subcommand pages are named ``<script>-<sub>.1``. Must "
-        "appear before SCRIPT, since arguments after SCRIPT navigate into "
-        "nested subcommands."
-    ),
-)
-@click.pass_context
-def man_cmd(
-    ctx: click.Context,
-    script_and_args: tuple[str, ...],
-    output_dir: Path | None,
-) -> None:
-    """Render the man page of an external Click CLI.
-
-    Resolves SCRIPT as a console_scripts entry point, module:function
-    notation, .py file path, or Python module name. Loads the Click command
-    and prints its man page (roff) to standard output without running it.
-
-    Extra arguments after SCRIPT navigate into nested command groups.
-
-    With ``--output-dir DIR``, the whole subcommand tree rooted at
-    ``SCRIPT [SUBCOMMAND]...`` is written as one ``.1`` file per node into
-    ``DIR`` instead of being printed to stdout. Suitable for invocation
-    from a release pipeline or a distributor's build phase (Debian's
-    ``override_dh_installman``, Guix' ``install-man-page`` snippet, etc.).
-    """
-    if not script_and_args:
-        echo(ctx.get_help(), color=ctx.color)
-        ctx.exit(0)
-
-    script = script_and_args[0]
-    subcommands = script_and_args[1:]
-
-    if output_dir is not None and subcommands:
-        raise ClickException(
-            "--output-dir always emits the full tree rooted at SCRIPT and "
-            "cannot be combined with extra SUBCOMMAND arguments. To render "
-            "a single subcommand page, drop --output-dir and redirect "
-            "stdout into a .1 file instead."
-        )
-
-    cmd, _ = resolve_target_command(script, subcommands)
-    if output_dir is None:
-        prog_name = " ".join((script, *subcommands))
-        echo(render_manpage(cmd, prog_name=prog_name))
-    else:
-        # Filenames are derived from prog_name (joined by hyphens with each
-        # subcommand path segment), so spaces, slashes, or a .py suffix would
-        # produce broken or misleading filenames. Prefer the resolved Click
-        # command's own ``name``, which is the canonical identifier the CLI
-        # publishes (``mpm`` for ``meta_package_manager.cli:mpm``, ``weather``
-        # for a ``kitchen.py`` file path that defines a ``weather`` command).
-        # Fall back to the script string when the command has no name set.
-        prog_name = cmd.name or script
-        for path in write_manpages(cmd, output_dir, prog_name=prog_name):
-            echo(str(path))
-    ctx.exit(0)
 
 
 _ALL_STYLES = (

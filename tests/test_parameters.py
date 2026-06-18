@@ -153,39 +153,47 @@ def test_params_auto_types(invoke, option_decorator):
 
     show_param_option = search_params(params_introspection.params, ShowParamsOption)
     assert isinstance(show_param_option, ShowParamsOption)
-    assert show_param_option.params_template == {
-        "params-introspection": {
-            "flag1": None,
-            "flag2": None,
-            "str_param1": None,
-            "str_param2": None,
-            "int_param1": None,
-            "int_param2": None,
-            "float_param1": None,
-            "float_param2": None,
-            "bool_param1": None,
-            "bool_param2": None,
-            "uuid_param": None,
-            "unprocessed_param": None,
-            "file_param": None,
-            "path_param": None,
-            "show_params": None,
-            "choice_param": None,
-            "number_choice": None,
-            "hash_type": None,
-            "int_range_param": None,
-            "count_param": None,
-            "float_range_param": None,
-            "datetime_param": None,
-            "custom_param": None,
-            "tuple1": None,
-            "list1": None,
-            "hidden_param": None,
-            "file_arg1": None,
-            "file_arg2": None,
-            "help": None,
-        },
-    }
+    # ``params_template`` walks the command tree from the active context, so
+    # build it inside a (resilient, callback-free) context rather than relying
+    # on a leftover cache from the invocation above.
+    with params_introspection.make_context(
+        "params-introspection",
+        ["random_file1", "random_file2"],
+        resilient_parsing=True,
+    ):
+        assert show_param_option.params_template == {
+            "params-introspection": {
+                "flag1": None,
+                "flag2": None,
+                "str_param1": None,
+                "str_param2": None,
+                "int_param1": None,
+                "int_param2": None,
+                "float_param1": None,
+                "float_param2": None,
+                "bool_param1": None,
+                "bool_param2": None,
+                "uuid_param": None,
+                "unprocessed_param": None,
+                "file_param": None,
+                "path_param": None,
+                "show_params": None,
+                "choice_param": None,
+                "number_choice": None,
+                "hash_type": None,
+                "int_range_param": None,
+                "count_param": None,
+                "float_range_param": None,
+                "datetime_param": None,
+                "custom_param": None,
+                "tuple1": None,
+                "list1": None,
+                "hidden_param": None,
+                "file_arg1": None,
+                "file_arg2": None,
+                "help": None,
+            },
+        }
 
 
 def assert_table_content(
@@ -946,7 +954,7 @@ def test_recurse_subcommands(invoke):
             "✘",
             "✘",
             "",
-            "SHOW_PARAMS_CLI_MAIN_HELP",  # XXX Should be SHOW_PARAMS_SUB_HELP
+            "SHOW_PARAMS_CLI_MAIN_SHOW_PARAMS_SUB_HELP",
             False,
             "✓",
             True,
@@ -967,7 +975,7 @@ def test_recurse_subcommands(invoke):
             "✘",
             "✘",
             "",
-            "SHOW_PARAMS_CLI_MAIN_HELP",  # XXX Should be SHOW_PARAMS_SUB_SUB_HELP
+            "SHOW_PARAMS_CLI_MAIN_SHOW_PARAMS_SUB_SHOW_PARAMS_SUB_SUB_HELP",
             False,
             "✓",
             True,
@@ -988,7 +996,8 @@ def test_recurse_subcommands(invoke):
             "✘",
             "✓",
             "",
-            "SHOW_PARAMS_SUB_SUB_INT_PARAM, SHOW_PARAMS_CLI_MAIN_INT_PARAM",
+            "SHOW_PARAMS_SUB_SUB_INT_PARAM, "
+            "SHOW_PARAMS_CLI_MAIN_SHOW_PARAMS_SUB_SHOW_PARAMS_SUB_SUB_INT_PARAM",
             10,
             "✘",
             "",

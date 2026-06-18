@@ -32,12 +32,17 @@ from pathlib import Path
 
 import click
 import cloup
+from click.core import ParameterSource
 from click.utils import make_str
 
-from . import context
+from . import EnumChoice, context, option
 from .colorize import ExtraHelpColorsMixin, HelpExtraFormatter
 from .commands import ColorizedCommand, ColorizedGroup, ExtraGroup
 from .context import ExtraContext
+from .decorators import columns_option
+from .man_page import render_manpage, write_manpages
+from .parameters import ShowParamsOption, render_params_table
+from .table import DEFAULT_FORMAT, TableFormat
 from .theme import BUILTIN_THEMES, HelpExtraTheme, set_default_theme
 
 logger = logging.getLogger("click_extra")
@@ -422,41 +427,125 @@ class _WrapCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
     ``cloup.Command``.
 
     .. note::
-        This deliberately extends ``cloup.Command`` instead of
+        This extends ``cloup.Command`` instead of
         :class:`~click_extra.commands.ExtraCommand`, so it does **not** inherit
-        :func:`~click_extra.commands.default_extra_params`. The reasons:
+        the full :func:`~click_extra.commands.default_extra_params` set. ``wrap``
+        carries only the options that act on the *target* CLI rather than on
+        click-extra itself:
 
-        1. **The parent group already exposes them.** The hosting
-           :class:`WrapperGroup` is an :class:`~click_extra.commands.ExtraGroup`,
-           so ``--time``, ``--config``, ``--no-config``, ``--validate-config``,
-           ``--color``, ``--theme``, ``--show-params``, ``--table-format``,
-           ``--verbosity``, ``--verbose``, ``--man``, ``--version`` and
-           ``--help`` are already attached at the ``click-extra`` group level.
-           Duplicating them on ``wrap`` would create two valid spellings
-           (``click-extra --color wrap …`` versus
-           ``click-extra wrap --color …``) for the same effect.
+        - **Action flags** (``--show-params``, ``--man``) describe and exit
+          without running the target. Their group-level twins
+          (``click-extra --show-params``) introspect the ``click-extra`` CLI
+          itself, so they cannot reach a wrapped foreign command: the subject
+          differs, which is why these are *not* redundant with the group
+          versions. They route through the same rendering cores as the
+          group-level options (:func:`~click_extra.parameters.render_params_table`,
+          :func:`~click_extra.man_page.render_manpage`), so a new introspection
+          feature only has to add one option here, never a parallel subcommand.
 
-        2. **Argument forwarding constraints.** ``wrap`` uses
-           ``allow_interspersed_args=False`` and forwards everything after
-           ``SCRIPT`` to the target CLI verbatim. Adding more options on
-           ``wrap`` widens the surface for accidental collisions with the
-           wrapped CLI's own options, and bloats ``wrap --help`` with flags
-           unrelated to wrapping.
+        - **Modifiers** (``--table-format``, ``--columns``, ``--output-dir``)
+          shape the action output and are inert in the default run mode.
 
-        3. **All defaults are semantically irrelevant here.**
-           ``--show-params``, ``--table-format``, ``--config``,
-           ``--verbosity`` and ``--theme`` all describe behavior of
-           click-extra itself (its own config file, its own logging, its own
-           parameter introspection, its own help-screen theme). Re-declaring
-           any of them on ``wrap`` would shadow the group versions but operate
-           on the same global state: pure redundancy.
-
-        ``wrap`` therefore declares no options of its own: the parent group
-        carries every relevant flag, and everything after ``SCRIPT`` is
-        forwarded verbatim to the target CLI.
+        Presentation flags that style the *wrapping* (``--color``, ``--theme``,
+        ``--verbosity``) stay on the parent :class:`WrapperGroup` and are
+        inherited through the context, so they are deliberately absent here.
     """
 
     context_class: type[cloup.Context] = ExtraContext
+
+
+#: Default columns for the standalone ``wrap --show-params``: the full registry
+#: minus ``allowed_in_conf``, which only a click-extra ``--config`` option can
+#: populate and a foreign CLI therefore always leaves empty.
+_FOREIGN_PARAM_COLUMNS: tuple[str, ...] = tuple(
+    col.id for col in ShowParamsOption.TABLE_HEADERS if col.id != "allowed_in_conf"
+)
+
+
+def _split_navigation(args: tuple[str, ...]) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Split target arguments into subcommand navigation and replay arguments.
+
+    Leading tokens that do not look like options are treated as subcommand
+    names to descend into; everything from the first option-like token onward
+    is returned separately, to be replayed against the resolved command so the
+    ``value`` and ``source`` columns reflect those arguments.
+
+    ``("run", "--port", "8080")`` splits into ``(("run",), ("--port", "8080"))``.
+    """
+    nav = []
+    rest = list(args)
+    while rest and not rest[0].startswith("-"):
+        nav.append(rest.pop(0))
+    return tuple(nav), tuple(rest)
+
+
+def _wrap_show_params(
+    ctx: click.Context,
+    script: str,
+    nav: tuple[str, ...],
+    target_args: tuple[str, ...],
+    table_format: TableFormat,
+) -> None:
+    """Resolve a foreign target and print its parameter table.
+
+    Re-roots the parameter walk at the resolved (sub)command while preserving
+    the ``auto_envvar_prefix`` computed along the navigation path, then defers
+    to the shared :func:`~click_extra.parameters.render_params_table` core.
+
+    The table format resolves in priority order: the ``wrap --table-format``
+    flag when given explicitly, then the click-extra group's ``--table-format``
+    (shared through the context), then the default.
+    """
+    cmd, drill_ctx = resolve_target_command(script, nav)
+
+    # ``render_params_table`` walks from ``subject_ctx.command`` downward, so a
+    # fresh root context scopes the table to the resolved node (matching what
+    # the user navigated to). The drilled context already carries the nested
+    # envvar prefix, so copy it over.
+    subject_ctx = click.Context(cmd, info_name=cmd.name or script)
+    subject_ctx.auto_envvar_prefix = drill_ctx.auto_envvar_prefix
+
+    # An explicit ``wrap --table-format`` wins; otherwise defer to the group's
+    # value (threaded through the shared context meta), then the default.
+    if ctx.get_parameter_source("table_format") == ParameterSource.DEFAULT:
+        resolved_format = context.get(ctx, context.TABLE_FORMAT) or table_format
+    else:
+        resolved_format = table_format
+    context.set(subject_ctx, context.TABLE_FORMAT, resolved_format)
+    selected_columns = context.get(ctx, context.COLUMNS)
+    if selected_columns:
+        context.set(subject_ctx, context.COLUMNS, selected_columns)
+    if target_args:
+        context.set(subject_ctx, context.RAW_ARGS, list(target_args))
+
+    render_params_table(subject_ctx, default_columns=_FOREIGN_PARAM_COLUMNS)
+
+
+def _wrap_man(
+    script: str,
+    nav: tuple[str, ...],
+    output_dir: Path | None,
+) -> None:
+    """Resolve a foreign target and render its man page (roff).
+
+    With ``output_dir`` set, writes one ``.1`` file per (sub)command of the
+    tree rooted at SCRIPT; otherwise prints a single page to stdout.
+    """
+    cmd, _ = resolve_target_command(script, nav)
+    if output_dir is not None:
+        if nav:
+            raise click.ClickException(
+                "--output-dir always emits the full tree rooted at SCRIPT and "
+                "cannot be combined with extra SUBCOMMAND arguments. To render "
+                "a single subcommand page, drop --output-dir and redirect "
+                "stdout into a .1 file instead."
+            )
+        prog_name = cmd.name or script
+        for path in write_manpages(cmd, output_dir, prog_name=prog_name):
+            click.echo(str(path))
+    else:
+        prog_name = " ".join((script, *nav))
+        click.echo(render_manpage(cmd, prog_name=prog_name))
 
 
 def _config_args_for_target(
@@ -527,6 +616,33 @@ def _config_args_for_target(
     cls=_WrapCommand,
     context_settings={"allow_interspersed_args": False},
 )
+@option(
+    "--show-params",
+    is_flag=True,
+    default=False,
+    help="Show the parameters of the target CLI and exit, without running it.",
+)
+@option(
+    "--man",
+    is_flag=True,
+    default=False,
+    help="Show the man page (roff) of the target CLI and exit, without running it.",
+)
+@option(
+    "--output-dir",
+    type=click.Path(file_okay=False, dir_okay=True, writable=True, path_type=Path),
+    default=None,
+    help="With --man, write one .1 file per (sub)command into this directory "
+    "instead of printing a single page to stdout. Created if missing.",
+)
+@option(
+    "--table-format",
+    type=EnumChoice(TableFormat),
+    default=DEFAULT_FORMAT,
+    help="With --show-params, the rendering style of the parameter table. "
+    "Falls back to the click-extra group's --table-format when not set here.",
+)
+@columns_option(columns=ShowParamsOption.TABLE_HEADERS)
 @click.argument(
     "script_and_args",
     nargs=-1,
@@ -537,11 +653,20 @@ def _config_args_for_target(
 def wrap(
     ctx: click.Context,
     script_and_args: tuple[str, ...],
+    show_params: bool,
+    man: bool,
+    output_dir: Path | None,
+    table_format: TableFormat,
 ) -> None:
-    """Apply Click Extra help colorization to any Click CLI.
+    """Run, or introspect, any Click CLI through Click Extra.
 
-    Wraps SCRIPT with keyword highlighting and themed styling for help
-    screens. The target CLI is not modified.
+    By default, runs SCRIPT with keyword highlighting and themed styling for
+    its help screens. The target CLI is not modified.
+
+    With --show-params or --man, SCRIPT is loaded and described without being
+    run. Extra arguments after SCRIPT navigate into nested subcommands; for
+    --show-params, any trailing options are replayed against the resolved
+    command so the parameter table reports their value and source.
 
     Resolution order for SCRIPT: installed console_scripts entry point,
     module:function notation, Python file path, or Python module name.
@@ -550,9 +675,24 @@ def wrap(
         click.echo(ctx.get_help(), color=ctx.color)
         ctx.exit(0)
 
+    if show_params and man:
+        raise click.UsageError("--show-params and --man are mutually exclusive.")
+    if output_dir is not None and not man:
+        raise click.UsageError("--output-dir requires --man.")
+
     script = script_and_args[0]
     args = script_and_args[1:]
 
+    # Introspection modes: load the target and describe it without running it.
+    if show_params or man:
+        nav, target_args = _split_navigation(args)
+        if man:
+            _wrap_man(script, nav, output_dir)
+        else:
+            _wrap_show_params(ctx, script, nav, target_args, table_format)
+        ctx.exit(0)
+
+    # Default mode: run the target with colorized help.
     # Extract config from the [wrap.<script>] section and prepend as CLI
     # arguments for the target.
     config_args = _config_args_for_target(ctx, script)

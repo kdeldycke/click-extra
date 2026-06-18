@@ -230,8 +230,8 @@ def test_resolve_not_found(script):
 @pytest.mark.parametrize(
     "args, expected",
     [
-        (["--help"], "Apply Click Extra help colorization"),
-        ([], "Apply Click Extra help colorization"),
+        (["--help"], "Run, or introspect, any Click CLI"),
+        ([], "Run, or introspect, any Click CLI"),
     ],
 )
 def test_wrap_self(runner, args, expected):
@@ -310,49 +310,51 @@ def test_resolve_target_command_drills_subcommand(custom_cls_script):
     assert cmd.name == "bake"
 
 
-# -- man subcommand: man page generation for an external CLI ------------------
+# -- wrap --man: man page generation for an external CLI ----------------------
 
 
-def test_man_subcommand_renders_manpage(runner, greet_script):
-    """``click-extra man SCRIPT`` prints the target's roff man page and exits."""
-    result = runner.invoke(demo, ["man", greet_script], color=False)
+def test_wrap_man_renders_manpage(runner, greet_script):
+    """``click-extra wrap --man SCRIPT`` prints the target's roff page and exits."""
+    result = runner.invoke(demo, ["wrap", "--man", greet_script], color=False)
     assert result.exit_code == 0
     assert '.TH "' in result.stdout
     assert "Greet someone." in result.stdout
     assert "Name to greet." in result.stdout
 
 
-def test_man_subcommand_custom_class_group(runner, custom_cls_script):
-    """``man`` resolves a custom-class group target via the shared scanner."""
-    result = runner.invoke(demo, ["man", custom_cls_script], color=False)
+def test_wrap_man_custom_class_group(runner, custom_cls_script):
+    """``--man`` resolves a custom-class group target via the shared scanner."""
+    result = runner.invoke(demo, ["wrap", "--man", custom_cls_script], color=False)
     assert result.exit_code == 0
     assert "Manage recipes and ingredients." in result.stdout
 
 
-def test_man_subcommand_drills_into_subcommand(runner, custom_cls_script):
+def test_wrap_man_drills_into_subcommand(runner, custom_cls_script):
     """Extra arguments after SCRIPT render the nested subcommand's page."""
-    result = runner.invoke(demo, ["man", custom_cls_script, "bake"], color=False)
+    result = runner.invoke(
+        demo, ["wrap", "--man", custom_cls_script, "bake"], color=False
+    )
     assert result.exit_code == 0
     assert "Bake a cake." in result.stdout
 
 
-def test_man_subcommand_unresolvable_target(runner):
-    result = runner.invoke(demo, ["man", "nonexistent_xyz_12345"])
+def test_wrap_man_unresolvable_target(runner):
+    result = runner.invoke(demo, ["wrap", "--man", "nonexistent_xyz_12345"])
     assert result.exit_code != 0
     assert "Cannot resolve" in result.output
 
 
-def test_man_subcommand_output_dir_writes_tree(runner, custom_cls_script, tmp_path):
-    """``man --output-dir`` writes one .1 per (sub)command into the dir.
+def test_wrap_man_output_dir_writes_tree(runner, custom_cls_script, tmp_path):
+    """``wrap --man --output-dir`` writes one .1 per (sub)command into the dir.
 
-    ``--output-dir`` must appear before SCRIPT, because the man subcommand
-    runs with ``allow_interspersed_args=False`` so that anything after
-    SCRIPT is treated as a sub-command path rather than a click-extra flag.
+    ``--output-dir`` must appear before SCRIPT, because wrap runs with
+    ``allow_interspersed_args=False`` so that anything after SCRIPT is
+    treated as a sub-command path rather than a click-extra flag.
     """
     target = tmp_path / "man"
     result = runner.invoke(
         demo,
-        ["man", "--output-dir", str(target), custom_cls_script],
+        ["wrap", "--man", "--output-dir", str(target), custom_cls_script],
         color=False,
     )
     assert result.exit_code == 0
@@ -369,15 +371,13 @@ def test_man_subcommand_output_dir_writes_tree(runner, custom_cls_script, tmp_pa
         assert path.read_text(encoding="utf-8").startswith('.\\" Generated')
 
 
-def test_man_subcommand_output_dir_creates_missing_directory(
-    runner, greet_script, tmp_path
-):
+def test_wrap_man_output_dir_creates_missing_directory(runner, greet_script, tmp_path):
     """``--output-dir`` creates the target dir when it does not exist yet."""
     target = tmp_path / "nested" / "man"
     assert not target.exists()
     result = runner.invoke(
         demo,
-        ["man", "--output-dir", str(target), greet_script],
+        ["wrap", "--man", "--output-dir", str(target), greet_script],
         color=False,
     )
     assert result.exit_code == 0
@@ -385,16 +385,14 @@ def test_man_subcommand_output_dir_creates_missing_directory(
     assert list(target.iterdir())
 
 
-def test_man_subcommand_output_dir_rejects_subcommand(
-    runner, custom_cls_script, tmp_path
-):
+def test_wrap_man_output_dir_rejects_subcommand(runner, custom_cls_script, tmp_path):
     """``--output-dir`` always emits the full tree; mixing in a SUBCOMMAND arg
     is rejected so the user cannot accidentally produce a tree of pages named
     after a partial path."""
     target = tmp_path / "man"
     result = runner.invoke(
         demo,
-        ["man", "--output-dir", str(target), custom_cls_script, "bake"],
+        ["wrap", "--man", "--output-dir", str(target), custom_cls_script, "bake"],
         color=False,
     )
     assert result.exit_code != 0

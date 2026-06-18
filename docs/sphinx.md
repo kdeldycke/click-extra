@@ -851,7 +851,7 @@ click_extra_manpages = [
 ]
 ```
 
-On every HTML build, the hook resolves each `script` with the same scanner as the [`click-extra man`](man-page.md#generating-man-pages) CLI and writes one `.1` file per (sub)command into `<outdir>/<output_dir>/`, mirroring what `click-extra man SCRIPT --output-dir DIR` produces from the command line. An empty (or absent) list keeps the hook silent: no man pages, no warnings.
+On every HTML build, the hook resolves each `script` with the same scanner as the [`click-extra wrap --man`](man-page.md#generating-man-pages) CLI and writes one `.1` file per (sub)command into `<outdir>/<output_dir>/`, mirroring what `click-extra wrap --man --output-dir DIR SCRIPT` produces from the command line. An empty (or absent) list keeps the hook silent: no man pages, no warnings.
 
 Only HTML-family builders (`html`, `dirhtml`, `singlehtml`) trigger the hook. Other builders (`linkcheck`, `man`, `epub`, `coverage`) skip it: roff in their output trees would be redundant or confusing.
 

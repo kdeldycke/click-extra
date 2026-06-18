@@ -5,6 +5,9 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- **Breaking:** Remove the `show-params` and `man` subcommands; use `click-extra wrap --show-params` and `click-extra wrap --man` instead.
+- `click-extra wrap --show-params` now reports the target's environment variables, and resolves parameter values and their source from any arguments passed after SCRIPT.
+
 ## [`7.20.1` (2026-06-18)](https://github.com/kdeldycke/click-extra/compare/v7.20.0...v7.20.1)
 
 - Fix the MkDocs plugin and Sphinx directives leaving Rich-based CLIs (such as `rich-click`) colorless in rendered documentation.

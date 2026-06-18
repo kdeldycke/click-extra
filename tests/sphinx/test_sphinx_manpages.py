@@ -92,9 +92,9 @@ def test_manpages_hook_writes_tree_into_outdir(tmp_path):
     # The default prog_name falls back to the resolved Click command's own
     # ``name`` attribute. The ``demo`` group declares ``name="click-extra"``,
     # so the root page is ``click-extra.1`` and each subcommand hyphenates
-    # from there (``click-extra-man.1``, ``click-extra-colors.1``...).
+    # from there (``click-extra-wrap.1``, ``click-extra-colors.1``...).
     assert "click-extra.1" in names, names
-    assert "click-extra-man.1" in names, names
+    assert "click-extra-wrap.1" in names, names
 
 
 def test_manpages_hook_honors_prog_name_and_output_dir(tmp_path):
@@ -112,8 +112,8 @@ def test_manpages_hook_honors_prog_name_and_output_dir(tmp_path):
     target = outdir / "share" / "man" / "man1"
     assert target.is_dir(), f"missing {target}"
     assert (target / "demo.1").is_file()
-    # Pick a known subcommand. ``man`` is part of the click-extra demo group.
-    assert (target / "demo-man.1").is_file()
+    # Pick a known subcommand. ``wrap`` is part of the click-extra demo group.
+    assert (target / "demo-wrap.1").is_file()
 
 
 def test_manpages_hook_skips_non_html_builder(tmp_path):
@@ -183,7 +183,7 @@ def test_manpages_hook_emits_html_siblings(tmp_path):
     assert "SYNOPSIS" in body
     assert "OPTIONS" in body
     # Every subcommand page gets an HTML sibling too.
-    assert (man_dir / "click-extra-man.1.html").is_file()
+    assert (man_dir / "click-extra-wrap.1.html").is_file()
 
 
 def test_manpages_hook_respects_render_html_opt_out(tmp_path):
@@ -225,13 +225,13 @@ def test_manpages_directive_renders_one_link_per_command(tmp_path):
     # One link per page the emit hook would have written: the root
     # command plus every visible subcommand.
     assert 'href="man/click-extra.1.html"' in body
-    assert 'href="man/click-extra-man.1.html"' in body
+    assert 'href="man/click-extra-wrap.1.html"' in body
     assert 'href="man/click-extra-prebake.1.html"' in body
     assert 'href="man/click-extra-prebake-all.1.html"' in body
     # The visible label uses the ``name(section)`` convention so it
     # reads naturally next to the short-help suffix.
     assert "click-extra(1)" in body
-    assert "click-extra-man(1)" in body
+    assert "click-extra-wrap(1)" in body
 
 
 def test_manpages_directive_is_noop_when_config_empty(tmp_path):

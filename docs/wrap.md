@@ -1,6 +1,6 @@
 # {octicon}`terminal` CLI wrapper
 
-Click Extra's `wrap` subcommand applies its help colorization to any installed Click CLI, without modifying the target's source code. This is useful for previewing how a third-party CLI would look with Click Extra's keyword highlighting and themed styling.
+Click Extra's `wrap` subcommand runs any installed Click CLI through Click Extra, without modifying the target's source code. By default it applies help colorization, useful for previewing how a third-party CLI would look with Click Extra's keyword highlighting and themed styling. With `--show-params` or `--man`, it instead loads the target and [describes it](#introspecting-external-clis) without running it.
 
 ## Usage
 
@@ -19,7 +19,7 @@ from click_extra.wrap import wrap
 ```{click:run}
 result = invoke(wrap, args=["--help"])
 assert result.exit_code == 0
-assert "Apply Click Extra help colorization" in result.stdout
+assert "Run, or introspect, any Click CLI" in result.stdout
 ```
 
 ````{tip}
@@ -179,7 +179,7 @@ Themes loaded this way live on `ctx.meta` for the current invocation only. The m
    $ click-extra wrap my_package.cli --help
    ```
 
-The same resolver is shared with `show-params` and [`man`](man-page.md#target-resolution).
+The same resolver backs every `wrap` mode, including [`--show-params`](#introspecting-external-clis) and [`--man`](man-page.md#target-resolution).
 
 ## Ephemeral wrapping with `uvx`
 
@@ -201,33 +201,64 @@ CLIs already built with Click Extra or Cloup are unaffected by the patching (the
 
 ## Introspecting external CLIs
 
-The `show-params` subcommand inspects the parameters of any Click CLI without running it. It displays a table with each parameter's ID, spec, class, type, hidden status, environment variables, and default value.
+The `--show-params` flag turns `wrap` into a read-only inspector: it loads any Click CLI without running it and prints a table of every parameter, with its ID, spec, class, type, hidden status, environment variables, and default value. This is the same table the [`--show-params` option](parameters.md#show-params-option) produces for a Click Extra CLI, pointed at a foreign target instead.
 
 ```{click:source}
 :hide-source:
-from click_extra.cli import demo
+from click_extra.wrap import wrap
 ```
 
 ```{click:run}
-result = invoke(demo, args=["show-params", "--help"])
+result = invoke(wrap, args=["--help"])
 assert result.exit_code == 0
-assert "Show parameters of an external Click CLI" in result.stdout
+assert "Show the parameters of the target CLI" in result.stdout
 ```
 
-Here is an example introspecting Flask's `run` subcommand with the vertical table format:
+Here is Flask's `run` subcommand rendered with the vertical table format:
 
 ```{click:run}
-result = invoke(demo, args=["--table-format", "vertical", "show-params", "flask", "run"])
+result = invoke(wrap, args=["--show-params", "--table-format", "vertical", "flask", "run"])
 assert result.exit_code == 0
 assert "run.host" in result.output
 assert "run.port" in result.output
 assert "-p, --port INTEGER" in result.output
 ```
 
-All `--table-format` renderings are supported. JSON output is useful for programmatic consumption:
+Because `wrap` resolves the target's own context, the auto-generated environment variables resolve too (Flask sets the `FLASK_` prefix, so `--port` reads `FLASK_RUN_PORT`):
 
 ```{click:run}
-result = invoke(demo, args=["--table-format", "json", "show-params", "flask", "run"])
+result = invoke(wrap, args=["--show-params", "--table-format", "vertical", "--columns", "id,envvars", "flask", "run"])
+assert result.exit_code == 0
+assert "FLASK_RUN_PORT" in result.output
+```
+
+### Restricting columns
+
+Pass `--columns` a comma-separated list of column IDs to restrict and reorder the table, SQL `SELECT`-style:
+
+```{click:run}
+result = invoke(wrap, args=["--show-params", "--columns", "id,spec,default", "flask", "run"])
+assert result.exit_code == 0
+assert "run.port" in result.output
+```
+
+### Reading values and their source
+
+Any options after `SCRIPT` (and its subcommand path) are replayed against the resolved command, so the `value` and `source` columns report what each parameter would resolve to under those arguments:
+
+```{click:run}
+result = invoke(wrap, args=["--show-params", "--columns", "id,value,source", "flask", "run", "--port", "8080"])
+assert result.exit_code == 0
+assert "8080" in result.output
+assert "COMMANDLINE" in result.output
+```
+
+### Machine-readable output
+
+All [`--table-format`](table.md#table-formats) renderings are supported. JSON is handy for programmatic consumption:
+
+```{click:run}
+result = invoke(wrap, args=["--show-params", "--table-format", "json", "flask", "run"])
 assert result.exit_code == 0
 assert '"run.port"' in result.output
 assert '"Default": 5000' in result.output
@@ -235,21 +266,21 @@ assert '"Default": 5000' in result.output
 
 ### Subcommand drilling
 
-Extra arguments after `SCRIPT` navigate into nested command groups:
+Extra arguments after `SCRIPT` navigate into nested command groups; the table then scopes to the resolved node:
 
 ```shell-session
-$ click-extra show-params -- flask run
-$ click-extra show-params -- flask routes
+$ click-extra wrap --show-params -- flask run
+$ click-extra wrap --show-params -- flask routes
 ```
 
 ### Target resolution
 
-Target resolution follows [the same order as `wrap`](#script-resolution): a `console_scripts` entry point, `module:function` notation, a `.py` file path, or a bare Python module name.
+Target resolution follows [the same order as the default mode](#script-resolution): a `console_scripts` entry point, `module:function` notation, a `.py` file path, or a bare Python module name.
 
 When the resolved entry point is a wrapper function (not a Click command), the module is scanned for Click command instances. If a single command group is found, it is used automatically. If multiple candidates exist, the error message lists them so you can use explicit `module:name` notation:
 
 ```shell-session
-$ click-extra show-params -- flask.cli:cli
+$ click-extra wrap --show-params -- flask.cli:cli
 ```
 
 ### `click_extra.wrap` API

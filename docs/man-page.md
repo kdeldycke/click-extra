@@ -26,10 +26,10 @@ assert '.TH "GREET" "1"' in result.output
 assert "greet \\- Greet someone." in result.output
 ```
 
-The quickest way to produce a man page is the `man` subcommand: `click-extra man SCRIPT` resolves the target, loads the Click command, and prints its roff page to stdout. Trailing arguments drill into subcommands (`click-extra man flask run`). With uvx nothing needs to be installed up front:
+The quickest way to produce a man page is `wrap --man`: `click-extra wrap --man SCRIPT` resolves the target, loads the Click command, and prints its roff page to stdout without running it. Trailing arguments drill into subcommands (`click-extra wrap --man flask run`). With uvx nothing needs to be installed up front:
 
 ```{code-block} shell-session
-$ uvx --from click-extra --with flask click-extra man flask > flask.1
+$ uvx --from click-extra --with flask click-extra wrap --man flask > flask.1
 ```
 
 ### Multiple pages
@@ -37,14 +37,14 @@ $ uvx --from click-extra --with flask click-extra man flask > flask.1
 For multi-command CLIs, `--output-dir DIR` writes the whole command tree as one `.1` file per (sub)command into `DIR` (created if missing). The output replaces stdout, so this is the right form for a release pipeline or a distributor's build phase:
 
 ```{code-block} shell-session
-$ uvx --from click-extra --with flask click-extra man --output-dir /tmp/man flask
+$ uvx --from click-extra --with flask click-extra wrap --man --output-dir /tmp/man flask
 /tmp/man/flask.1
 /tmp/man/flask-run.1
 /tmp/man/flask-routes.1
 /tmp/man/flask-shell.1
 ```
 
-`--output-dir` must appear *before* SCRIPT, since arguments after SCRIPT navigate into nested subcommands. Mixing `--output-dir` with a SUBCOMMAND argument is rejected: the flag always emits the whole tree of SCRIPT.
+`--output-dir` (and `--man`) must appear *before* SCRIPT, since arguments after SCRIPT navigate into nested subcommands. Mixing `--output-dir` with a SUBCOMMAND argument is rejected: the flag always emits the whole tree of SCRIPT.
 
 ### Target resolution
 
@@ -55,22 +55,22 @@ $ uvx --from click-extra --with flask click-extra man --output-dir /tmp/man flas
 2. `module:function` notation pointing straight at a Click command object. Useful when the entry point is a wrapper rather than the command itself, or when the command isn't exposed as a console script at all:
 
    ```{code-block} shell-session
-   $ uvx --from click-extra --with flask click-extra man flask.cli:cli > flask.1
+   $ uvx --from click-extra --with flask click-extra wrap --man flask.cli:cli > flask.1
    ```
 
 3. A `.py` file path. The file is imported in place, with no install step required, which is the right hook for source trees that don't ship a Python build system (Autotools, Meson, Bazel):
 
    ```{code-block} shell-session
-   $ click-extra man path/to/my_cli.py > my_cli.1
+   $ click-extra wrap --man path/to/my_cli.py > my_cli.1
    ```
 
 4. A bare Python module name invocable via `python -m`. The resolver imports the module and picks up the Click command from its top-level attributes:
 
    ```{code-block} shell-session
-   $ click-extra man my_package.cli > my_package.1
+   $ click-extra wrap --man my_package.cli > my_package.1
    ```
 
-The same resolver is shared with [`wrap`](wrap.md#script-resolution) and `show-params`, so any of these forms works with all three subcommands.
+`wrap` resolves SCRIPT the [same way](wrap.md#script-resolution) in every mode, so any of these forms works whether you run, introspect (`--show-params`), or document (`--man`) the target.
 
 ### Programmatic API
 

@@ -74,7 +74,7 @@ assert "Spec." not in result.stdout
 assert "Confirmation prompt" not in result.stdout
 ```
 
-Unknown IDs raise a `BadParameter` listing the valid ones (`--columns` is built on top of the generic [`MultiChoice`](types.md#multichoice) type, which does the validation at parse time). The standalone [`click-extra show-params`](#introspecting-external-clis) subcommand exposes the same option for inspecting third-party CLIs.
+Unknown IDs raise a `BadParameter` listing the valid ones (`--columns` is built on top of the generic [`MultiChoice`](types.md#multichoice) type, which does the validation at parse time). The standalone [`click-extra wrap --show-params`](#introspecting-external-clis) exposes the same option for inspecting third-party CLIs.
 
 ### Table format
 
@@ -171,15 +171,15 @@ Values passed to function: {'dummy_flag': True, 'my_list': ('pip', 'npm', 'gem')
 
 ## Introspecting external CLIs
 
-The `--show-params` option works on your own Click Extra CLIs. To inspect a third-party CLI that doesn't use Click Extra, use the [`show-params` subcommand](wrap.md#introspecting-external-clis):
+The `--show-params` option works on your own Click Extra CLIs. To inspect a third-party CLI that doesn't use Click Extra, use [`wrap --show-params`](wrap.md#introspecting-external-clis), which loads the target and prints the same table without running it:
 
 ```{click:source}
 :hide-source:
-from click_extra.cli import demo
+from click_extra.wrap import wrap
 ```
 
 ```{click:run}
-result = invoke(demo, args=["--table-format", "vertical", "show-params", "flask", "run"])
+result = invoke(wrap, args=["--show-params", "--table-format", "vertical", "flask", "run"])
 assert result.exit_code == 0
 assert "run.host" in result.output
 assert "-p, --port INTEGER" in result.output

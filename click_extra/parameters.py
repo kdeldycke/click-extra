@@ -521,6 +521,223 @@ def format_param_row(
     }
 
 
+#: Separator joining the keys of a parameter's fully-qualified path
+#: (``cli.subcommand.param``).
+PARAM_PATH_SEP = "."
+
+
+def walk_command_params(
+    cmd: click.Command,
+    ctx: click.Context,
+    parent_keys: tuple[str, ...] = (),
+) -> Iterator[tuple[tuple[str, ...], click.Parameter, click.Context]]:
+    """Walk the parameter tree of a Click command and all its subcommands.
+
+    Yields ``(path_keys, param, owning_ctx)`` for every parameter found on
+    *cmd* and, recursively, on each subcommand. Each subcommand is walked under
+    its own freshly-built child context, so context-sensitive metadata (notably
+    the auto-generated environment variable, which derives from
+    ``Context.auto_envvar_prefix``) is computed at the correct nesting level
+    rather than inherited from the root.
+
+    A subcommand whose name collides with a sibling parameter at the same level
+    is skipped: a single fully-qualified path cannot address both an option and
+    a subcommand at once.
+    """
+    level_param_names = set()
+    for param in cmd.get_params(ctx):
+        if param.name is not None:
+            level_param_names.add(param.name)
+            yield (*parent_keys, param.name), param, ctx
+
+    if isinstance(cmd, click.Group):
+        for subcmd_name in sorted(cmd.list_commands(ctx)):
+            if subcmd_name in level_param_names:
+                logging.getLogger("click_extra").debug(
+                    f"{cmd.name}{PARAM_PATH_SEP}{subcmd_name} subcommand shadows a "
+                    f"top-level parameter; excluded from parameter tree.",
+                )
+                continue
+            subcmd = cmd.get_command(ctx, subcmd_name)
+            if subcmd is None:
+                continue
+            subcmd_ctx = click.Context(subcmd, parent=ctx, info_name=subcmd_name)
+            yield from walk_command_params(
+                subcmd, subcmd_ctx, (*parent_keys, subcmd_name)
+            )
+
+
+def render_params_table(
+    subject_ctx: click.Context,
+    *,
+    default_columns: Sequence[str] | None = None,
+) -> None:
+    """Introspect ``subject_ctx.command`` and print its parameter metadata table.
+
+    Walks the command and any nested subcommands, emitting one row per
+    parameter. The table format and column selection are read from
+    ``subject_ctx.meta`` (see :data:`~click_extra.context.TABLE_FORMAT` and
+    :data:`~click_extra.context.COLUMNS`); when neither is set, a sibling
+    ``--table-format`` / ``--columns`` option on the command is consulted, then
+    the *default_columns* fallback, then the canonical order.
+
+    When ``subject_ctx.meta`` carries pre-parsed
+    :data:`~click_extra.context.RAW_ARGS`, the ``value`` and ``source`` columns
+    are resolved by replaying those arguments against the command parser;
+    otherwise they fall back to the parameter defaults.
+
+    This is the shared rendering core behind both
+    :meth:`ShowParamsOption.print_params` (introspecting the live CLI) and the
+    ``click-extra wrap --show-params`` path (introspecting a foreign target).
+    The caller is responsible for exiting the context afterwards.
+
+    .. important::
+        Click does not keep the raw, pre-parsed arguments around, so values and
+        their provenance cannot be read back directly. The workaround replays
+        :data:`~click_extra.context.RAW_ARGS` (captured on the context by
+        ``ExtraCommand``/``ExtraGroup``) through the command parser, calling
+        ``consume_value()`` rather than ``handle_parse_result()`` so eager
+        callbacks are not re-triggered.
+    """
+    # Imported here to avoid circular imports with the table module.
+    from .config import ConfigOption
+    from .table import (
+        DEFAULT_FORMAT,
+        SERIALIZATION_FORMATS,
+        ColumnsOption,
+        TableFormatOption,
+        print_table,
+        select_columns,
+        select_row,
+    )
+    from .theme import KO_GLYPH, OK_GLYPH, get_current_theme
+
+    active_theme = get_current_theme()
+    ok_styled = active_theme.success(OK_GLYPH)
+    ko_styled = active_theme.error(KO_GLYPH)
+
+    cmd = subject_ctx.command
+    logger = logging.getLogger("click_extra")
+
+    # Resolve the value getter. When the original arguments are available we
+    # replay them through the command parser to recover each value and its
+    # provenance; otherwise we only know the parameter defaults.
+    opts: dict = {}
+    raw_args = context.get(subject_ctx, context.RAW_ARGS)
+    if raw_args is not None:
+        logger.debug(f"{context.RAW_ARGS}: {raw_args}")
+        parser = cmd.make_parser(subject_ctx)
+        opts, _, _ = parser.parse_args(args=list(raw_args))
+        get_param_value: Callable[[click.Parameter], tuple[Any, Any]] = methodcaller(
+            "consume_value", subject_ctx, opts
+        )
+    else:
+
+        def get_param_value(param):
+            return None, subject_ctx.get_parameter_source(param.name)
+
+    # Locate a --config option to fill the "allowed in conf?" column.
+    config_option = search_params(cmd.get_params(subject_ctx), ConfigOption)
+    assert config_option is None or isinstance(config_option, ConfigOption)
+
+    # Resolve the table format: an explicit context entry wins, else a sibling
+    # --table-format option, else the default.
+    if context.get(subject_ctx, context.TABLE_FORMAT) is None:
+        table_option = search_params(cmd.get_params(subject_ctx), TableFormatOption)
+        if table_option and isinstance(table_option, TableFormatOption):
+            table_fmt, _ = table_option.consume_value(subject_ctx, opts)
+            table_option.init_formatter(
+                subject_ctx,
+                table_option,
+                table_option.type.convert(table_fmt, table_option, subject_ctx)
+                if table_fmt
+                else table_option.get_default(subject_ctx),
+            )
+    table_format = context.get(subject_ctx, context.TABLE_FORMAT) or DEFAULT_FORMAT
+    is_structured = table_format in SERIALIZATION_FORMATS
+
+    # Resolve the column selection: an explicit context entry wins, else a
+    # sibling --columns option, else the provided default.
+    if context.get(subject_ctx, context.COLUMNS) is None:
+        cols_option = search_params(cmd.get_params(subject_ctx), ColumnsOption)
+        if cols_option and isinstance(cols_option, ColumnsOption):
+            cols_value, _ = cols_option.consume_value(subject_ctx, opts)
+            cols_option.init_columns(
+                subject_ctx,
+                cols_option,
+                cols_option.type.convert(cols_value, cols_option, subject_ctx)
+                if cols_value
+                else (),
+            )
+    selected_ids: tuple[str, ...] = context.get(subject_ctx, context.COLUMNS) or ()
+    if not selected_ids and default_columns:
+        selected_ids = tuple(default_columns)
+
+    # Validate the requested IDs against the column registry so unknown IDs
+    # become a clear, actionable UsageError.
+    canonical_ids = ShowParamsOption.column_ids()
+    known_ids = set(canonical_ids)
+    unknown = [col_id for col_id in selected_ids if col_id not in known_ids]
+    if unknown:
+        joined = ", ".join(repr(c) for c in unknown)
+        accepted = ", ".join(canonical_ids)
+        raise click.UsageError(
+            f"Unknown --columns ID(s): {joined}. Accepted: {accepted}.",
+            ctx=subject_ctx,
+        )
+
+    table: list[tuple[Any, ...]] = []
+    for keys, param, owning_ctx in walk_command_params(
+        cmd, subject_ctx, (cmd.name or "",)
+    ):
+        path = PARAM_PATH_SEP.join(keys)
+        param_value, source = get_param_value(param)
+
+        # Whether the parameter is reachable from a configuration file.
+        allowed_in_conf_bool = None
+        if config_option:
+            config_option.params_template  # noqa: B018
+            allowed_in_conf_bool = path not in config_option.excluded_params
+
+        row = format_param_row(param, owning_ctx, path, is_structured)
+
+        if is_structured:
+            if not isinstance(param_value, (str, int, float, bool, list, type(None))):
+                param_value = repr(param_value)
+            row["allowed_in_conf"] = allowed_in_conf_bool
+            row["value"] = param_value
+            row["source"] = source.name if source else None
+        else:
+            allowed_in_conf = None
+            if allowed_in_conf_bool is not None:
+                allowed_in_conf = ok_styled if allowed_in_conf_bool else ko_styled
+            row["allowed_in_conf"] = allowed_in_conf
+            row["value"] = repr(param_value)
+            row["source"] = source.name if source else None
+
+        table.append(select_row(row, selected_ids, canonical_ids))
+
+    def sort_by_depth(line: Sequence[Any]) -> tuple[int, Any]:
+        """Sort by depth first, then path, keeping top-level params on top."""
+        param_path = line[0]
+        return len(param_path.split(PARAM_PATH_SEP)), param_path
+
+    selected_columns = select_columns(ShowParamsOption.TABLE_HEADERS, selected_ids)
+    labels = tuple(col.label for col in selected_columns)
+    header_labels: tuple[Any, ...]
+    if is_structured:
+        header_labels = labels
+    else:
+        header_style = Style(bold=True)
+        header_labels = tuple(map(header_style, labels))
+
+    print_table(
+        sorted(table, key=sort_by_depth),
+        headers=header_labels,
+        table_format=table_format,
+    )
+
+
 class ShowParamsOption(ExtraOption, ParamStructure):
     """A pre-configured option adding a ``--show-params`` option.
 
@@ -833,197 +1050,26 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         param: click.Parameter,
         value: bool,
     ) -> None:
-        """Introspects current CLI and list its parameters and metadata.
+        """Introspect the current CLI and print its parameter metadata table.
 
-        .. important::
-            Click doesn't keep a list of all parsed arguments and their origin.
-            So we need to emulate here what's happening during CLI invocation.
-
-            Unfortunately we cannot even do that because the raw, pre-parsed arguments
-            are not available anywhere within Click's internals.
-
-            Our workaround consist in leveraging our custom
-            ``ExtraCommand``/``ExtraGroup`` classes, in which we are attaching
-            a ``click_extra.raw_args`` metadata entry to the context.
+        Thin wrapper over :func:`render_params_table`, the shared rendering core
+        also driving ``click-extra wrap --show-params`` for foreign CLIs. The
+        live invocation context carries everything the core needs: the captured
+        :data:`~click_extra.context.RAW_ARGS` (attached by
+        ``ExtraCommand``/``ExtraGroup``) for value and source resolution, plus
+        any sibling ``--table-format`` / ``--columns`` options.
         """
-        # Imported here to avoid circular imports.
-        from .config import ConfigOption
-        from .table import (
-            SERIALIZATION_FORMATS,
-            ColumnsOption,
-            print_table,
-            select_columns,
-            select_row,
-        )
-        from .theme import KO_GLYPH, OK_GLYPH, get_current_theme
-
-        active_theme = get_current_theme()
-        ok_styled = active_theme.success(OK_GLYPH)
-        ko_styled = active_theme.error(KO_GLYPH)
-
         # Exit early if the callback was processed but the option wasn't set.
         if not value:
             return
 
-        logger = logging.getLogger("click_extra")
-
-        get_param_value: Callable[[Any], Any]
-        opts: dict = {}
-
-        raw_args = context.get(ctx, context.RAW_ARGS)
-        if raw_args is not None:
-            logger.debug(f"{context.RAW_ARGS}: {raw_args}")
-
-            # Mimics click.core.Command.parse_args() so we can produce the list of
-            # parsed options values.
-            parser = ctx.command.make_parser(ctx)
-            opts, _, _ = parser.parse_args(args=raw_args)
-
-            # We call directly consume_value() instead of handle_parse_result() to
-            # prevent an embedded call to process_value(), as the later triggers the
-            # callback (and might terminate CLI execution).
-            param_value, source = param.consume_value(ctx, opts)
-
-            get_param_value = methodcaller("consume_value", ctx, opts)
-
-        else:
-            logger.debug(f"{context.RAW_ARGS} not in {ctx.meta}")
-            logger.warning(
+        # Warn when the live command is not an ExtraCommand: without the captured
+        # raw arguments, the value/source columns fall back to defaults.
+        if context.get(ctx, context.RAW_ARGS) is None:
+            logging.getLogger("click_extra").warning(
                 f"Cannot extract parameters values: "
                 f"{ctx.command} does not inherits from ExtraCommand.",
             )
 
-            def vanilla_getter(p):
-                param_value = None
-                source = ctx.get_parameter_source(p.name)
-                return param_value, source
-
-            get_param_value = vanilla_getter
-
-        # Inspect the CLI to search for any --config option.
-        config_option = search_params(ctx.command.get_params(ctx), ConfigOption)
-        # This is just a check to please the type checker.
-        assert config_option is None or isinstance(config_option, ConfigOption)
-
-        # Resolve the table format early so we know whether to emit typed values.
-        # ``init_formatter`` writes ``context.TABLE_FORMAT`` and binds
-        # ``ctx.print_table``: detect both via the registry rather than
-        # ``hasattr`` introspection on ad-hoc context attributes.
-        if context.get(ctx, context.TABLE_FORMAT) is None:
-            from .table import TableFormatOption
-
-            table_option = search_params(ctx.command.get_params(ctx), TableFormatOption)
-            if table_option and isinstance(table_option, TableFormatOption):
-                table_fmt, _ = table_option.consume_value(ctx, opts)
-                table_option.init_formatter(
-                    ctx,
-                    table_option,
-                    table_option.type.convert(table_fmt, table_option, ctx)
-                    if table_fmt
-                    else table_option.get_default(ctx),
-                )
-
-        # Resolve the columns selection from a sibling ``--columns`` option, if any.
-        # The option is opt-in: when it is not registered on the command, we render
-        # every column in canonical order.
-        if context.get(ctx, context.COLUMNS) is None:
-            cols_option = search_params(ctx.command.get_params(ctx), ColumnsOption)
-            if cols_option and isinstance(cols_option, ColumnsOption):
-                cols_value, _ = cols_option.consume_value(ctx, opts)
-                cols_option.init_columns(
-                    ctx,
-                    cols_option,
-                    cols_option.type.convert(cols_value, cols_option, ctx)
-                    if cols_value
-                    else (),
-                )
-
-        selected_ids: tuple[str, ...] = context.get(ctx, context.COLUMNS) or ()
-
-        # Validate IDs against the column registry: unknown IDs become UsageErrors
-        # so the user gets a clear, actionable message.
-        known_ids = set(self.column_ids())
-        unknown = [col_id for col_id in selected_ids if col_id not in known_ids]
-        if unknown:
-            joined = ", ".join(repr(c) for c in unknown)
-            accepted = ", ".join(self.column_ids())
-            raise click.UsageError(
-                f"Unknown --columns ID(s): {joined}. Accepted: {accepted}.",
-                ctx=ctx,
-            )
-
-        print_func = getattr(ctx, "print_table", print_table)
-
-        table_format = context.get(ctx, context.TABLE_FORMAT)
-        is_structured = table_format in SERIALIZATION_FORMATS
-
-        table: list[tuple[Any, ...]] = []
-        canonical_ids = self.column_ids()
-
-        # Walk through the the tree of parameters and get their fully-qualified path.
-        for path, instances in self.flatten_tree_dict(self.params_objects).items():
-            tree_keys = path.split(self.SEP)
-
-            # Multiple parameters can share the same path, if for instance they are
-            # sharing the same variable name.
-            for instance in instances:
-                assert instance.name == tree_keys[-1]
-
-                param_value, source = get_param_value(instance)
-
-                # Check if the parameter is allowed in the configuration file.
-                # Access params_objects first to ensure included_params has been
-                # resolved into excluded_params via build_param_trees().
-                allowed_in_conf_bool = None
-                if config_option:
-                    config_option.params_template  # noqa: B018
-                    allowed_in_conf_bool = path not in config_option.excluded_params
-
-                # Compute the structural cells (id..confirmation_prompt) and fold in
-                # the runtime/config-dependent ones for a complete row dict.
-                row = format_param_row(instance, ctx, path, is_structured)
-
-                if is_structured:
-                    if not isinstance(
-                        param_value, (str, int, float, bool, list, type(None))
-                    ):
-                        param_value = repr(param_value)
-                    row["allowed_in_conf"] = allowed_in_conf_bool
-                    row["value"] = param_value
-                    row["source"] = source.name if source else None
-                else:
-                    # Exposed already styled by ``format_param_row``: keep parity for
-                    # ``allowed_in_conf`` here.
-                    allowed_in_conf = None
-                    if allowed_in_conf_bool is not None:
-                        allowed_in_conf = (
-                            ok_styled if allowed_in_conf_bool else ko_styled
-                        )
-                    row["allowed_in_conf"] = allowed_in_conf
-                    row["value"] = repr(param_value)
-                    row["source"] = source.name if source else None
-
-                # Project the dict to a positional tuple following either the user's
-                # ``--columns`` ordering or the canonical order.
-                table.append(select_row(row, selected_ids, canonical_ids))
-
-        def sort_by_depth(line):
-            """Sort parameters by depth first, then IDs, so that top-level parameters
-            are kept to the top."""
-            param_path = line[0]
-            tree_keys = param_path.split(self.SEP)
-            return len(tree_keys), param_path
-
-        # Build headers for the selected columns (or all, in canonical order).
-        selected_columns = select_columns(self.TABLE_HEADERS, selected_ids)
-        labels = tuple(col.label for col in selected_columns)
-        header_labels: tuple[Any, ...]
-        if is_structured:
-            header_labels = labels
-        else:
-            header_style = Style(bold=True)
-            header_labels = tuple(map(header_style, labels))
-
-        print_func(sorted(table, key=sort_by_depth), headers=header_labels)
-
+        render_params_table(ctx)
         ctx.exit()
