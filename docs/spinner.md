@@ -94,6 +94,45 @@ with Spinner("Picking apples") as spinner:
         spinner.echo(f"Filled basket {basket}")
 ```
 
+## Parallel work
+
+A `Spinner` drives a single line, so a pool of concurrent tasks does not need one apiece: one spinner can report on them all. The simplest way is to let the main thread update it as the tasks finish, through [`concurrent.futures.as_completed`](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.as_completed).
+
+Update the `label` for a running count:
+
+```python
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from time import sleep
+
+from click_extra import Spinner
+
+cities = ["Cairo", "Lima", "Oslo", "Paris", "Tokyo"]
+
+
+def fetch(city):
+    sleep(1)  # The blocking call: a download, a query, a subprocess.
+    return city
+
+
+with Spinner(f"Fetching forecasts (0/{len(cities)})") as spinner:
+    with ThreadPoolExecutor() as pool:
+        futures = [pool.submit(fetch, city) for city in cities]
+        for done, _ in enumerate(as_completed(futures), 1):
+            spinner.label = f"Fetching forecasts ({done}/{len(cities)})"
+```
+
+Or `echo()` a line as each task lands, leaving a trail of finished work that scrolls up while the spinner keeps turning below it:
+
+```python
+with Spinner("Fetching forecasts") as spinner:
+    with ThreadPoolExecutor() as pool:
+        futures = {pool.submit(fetch, city): city for city in cities}
+        for future in as_completed(futures):
+            spinner.echo(f"✓ {futures[future]}")
+```
+
+Both `label` and `echo()` are safe to touch while the animation runs, so a worker thread can stream its own progress mid-task rather than only reporting on completion. A genuine spinner *per* task, several rotating at once on their own lines, is a separate capability: it needs a coordinated multi-line region, which `Spinner` does not attempt.
+
 ## Styling and color
 
 The spinner's glyph, label and timer are painted with a [`Style`](styling.md) instance — the very type Click Extra's [theme system](theme.md) is built on. The simplest customization is a foreground color:
