@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import io
 import itertools
+import re
 import sys
 import time
 from collections.abc import Callable
@@ -25,14 +26,21 @@ from collections.abc import Callable
 import pytest
 
 import click_extra
-from click_extra import ProgressOption, Spinner, command, echo, pass_context
+from click_extra import ProgressOption, Spinner, Style, command, echo, pass_context
 from click_extra.context import PROGRESS
 from click_extra.spinner import ASCII_SPINNER_FRAMES, SPINNER_FRAMES
+from click_extra.theme import KO_GLYPH, OK_GLYPH
 
 # Cursor and line control codes the spinner emits, named for readable asserts.
 HIDE_CURSOR = "\x1b[?25l"
 SHOW_CURSOR = "\x1b[?25h"
 CLEAR_LINE = "\x1b[K"
+
+# ANSI styling codes click.style emits, named for readable color asserts.
+GREEN = "\x1b[32m"
+RED = "\x1b[31m"
+BOLD = "\x1b[1m"
+BG_RED = "\x1b[41m"
 
 
 class TTYStringIO(io.StringIO):
@@ -296,3 +304,175 @@ def test_explicit_enabled_overrides_dumb_terminal(monkeypatch):
     monkeypatch.setenv("TERM", "dumb")
     spinner = Spinner(stream=TTYStringIO(), enabled=True)
     assert spinner._resolve_enabled(spinner._resolve_stream()) is True
+
+
+def test_decorator_runs_function_inside_spinner():
+    """``@spinner`` animates while the wrapped function runs and returns its result."""
+    stream = TTYStringIO()
+    spinner = Spinner("Brewing tea", stream=stream, interval=0.02)
+
+    @spinner
+    def brew(cups):
+        # The spinner is animating while this body runs.
+        assert wait_until(lambda: spinner._drawn)
+        return cups * 2
+
+    assert brew(3) == 6
+    # The context exited, so the spinner cleaned up after the call.
+    assert spinner._thread is None
+    assert SHOW_CURSOR in stream.getvalue()
+
+
+def test_bare_decorator_without_parentheses():
+    """``@Spinner`` with no parentheses wraps the function with default settings."""
+
+    @Spinner
+    def double(value):
+        return value * 2
+
+    # The spinner is a no-op on the captured (non-TTY) default stream, but the
+    # wrapped function still runs and returns its value through the decorator.
+    assert double(21) == 42
+    # The instance masquerades as the function (functools.update_wrapper).
+    assert double.__name__ == "double"  # type: ignore[attr-defined]
+
+
+@pytest.mark.parametrize(
+    ("env", "stream_factory", "expected"),
+    (
+        ({}, TTYStringIO, True),
+        ({}, io.StringIO, False),
+        ({"NO_COLOR": "1"}, TTYStringIO, False),
+        ({"FORCE_COLOR": "1"}, io.StringIO, True),
+    ),
+)
+def test_resolve_color_enabled(monkeypatch, env, stream_factory, expected):
+    """Color follows NO_COLOR / FORCE_COLOR then TTY, with no command context."""
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.delenv("FORCE_COLOR", raising=False)
+    for name, value in env.items():
+        monkeypatch.setenv(name, value)
+    stream = stream_factory()
+    assert Spinner(stream=stream)._resolve_color_enabled(stream) is expected
+
+
+def test_color_applied_on_tty(monkeypatch):
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.delenv("FORCE_COLOR", raising=False)
+    stream = TTYStringIO()
+    spinner = Spinner(
+        "Brewing tea", stream=stream, style=Style(fg="green"), interval=0.02
+    )
+    spinner.start()
+    assert wait_until(lambda: spinner._drawn)
+    spinner.stop()
+    assert GREEN in stream.getvalue()
+
+
+def test_color_stripped_but_spinner_still_spins_when_disabled(monkeypatch):
+    """NO_COLOR strips the spinner's color but never stops it spinning."""
+    monkeypatch.delenv("FORCE_COLOR", raising=False)
+    monkeypatch.setenv("NO_COLOR", "1")
+    stream = TTYStringIO()
+    spinner = Spinner(
+        "Brewing tea", stream=stream, style=Style(fg="green"), interval=0.02
+    )
+    spinner.start()
+    assert wait_until(lambda: spinner._drawn)
+    spinner.stop()
+
+    output = stream.getvalue()
+    assert GREEN not in output  # Color stripped.
+    assert any(frame in output for frame in SPINNER_FRAMES)  # Still spinning.
+
+
+def test_style_applied_to_spinner(monkeypatch):
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.delenv("FORCE_COLOR", raising=False)
+    stream = TTYStringIO()
+    spinner = Spinner(
+        "Brewing tea",
+        stream=stream,
+        style=Style(bg="red", bold=True),
+        interval=0.02,
+    )
+    spinner.start()
+    assert wait_until(lambda: spinner._drawn)
+    spinner.stop()
+
+    output = stream.getvalue()
+    assert BOLD in output
+    assert BG_RED in output
+
+
+def test_invalid_style_raises():
+    with pytest.raises(ValueError, match="Invalid spinner style"):
+        Spinner(style=Style(fg="notacolor"))
+
+
+def test_ok_leaves_persistent_success_line(monkeypatch):
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.delenv("FORCE_COLOR", raising=False)
+    stream = TTYStringIO()
+    spinner = Spinner("Brewing tea", stream=stream, interval=0.02)
+    spinner.start()
+    assert wait_until(lambda: spinner._drawn)
+    spinner.ok()
+
+    output = stream.getvalue()
+    # The success line is kept (not erased) with the themed success glyph.
+    assert output.endswith(" Brewing tea\n")
+    assert OK_GLYPH in output
+    assert GREEN in output  # Default theme paints the success glyph green.
+    assert spinner._thread is None
+
+
+def test_fail_leaves_persistent_failure_line(monkeypatch):
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.delenv("FORCE_COLOR", raising=False)
+    stream = TTYStringIO()
+    spinner = Spinner("Brewing tea", stream=stream, interval=0.02)
+    spinner.start()
+    assert wait_until(lambda: spinner._drawn)
+    spinner.fail()
+
+    output = stream.getvalue()
+    assert output.endswith(" Brewing tea\n")
+    assert KO_GLYPH in output
+    assert RED in output  # Default theme paints the error glyph red.
+
+
+def test_ok_degrades_to_plain_line_when_disabled(monkeypatch):
+    """Off a TTY the outcome is still recorded, without symbol color."""
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.delenv("FORCE_COLOR", raising=False)
+    stream = io.StringIO()  # Non-TTY: nothing animates.
+    spinner = Spinner("Brewing tea", stream=stream)
+    spinner.start()  # No-op.
+    spinner.ok()
+    assert stream.getvalue() == f"{OK_GLYPH} Brewing tea\n"
+
+
+def test_timer_appended_to_frames_and_final_line():
+    stream = TTYStringIO()
+    spinner = Spinner("Brewing tea", stream=stream, timer=True, interval=0.02)
+    spinner.start()
+    assert wait_until(lambda: spinner._drawn)
+    spinner.ok()
+
+    output = stream.getvalue()
+    # Elapsed time shows on the live spinner and on the kept final line.
+    assert re.search(r"\(\d+\.\ds\)", output)
+
+
+def test_elapsed_time_freezes_after_stop():
+    stream = TTYStringIO()
+    spinner = Spinner("Brewing tea", stream=stream, interval=0.02)
+    spinner.start()
+    time.sleep(0.05)
+    spinner.stop()
+    frozen = spinner.elapsed_time
+    assert frozen > 0
+    # Once stopped, the clock no longer advances.
+    time.sleep(0.05)
+    assert spinner.elapsed_time == frozen

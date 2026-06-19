@@ -42,21 +42,25 @@ thread, so the caller can stay blocked in a single call (``communicate()``,
 
 from __future__ import annotations
 
+import functools
 import os
 import sys
 import threading
+import time
 from gettext import gettext as _
+
+import click
 
 from . import context
 from .parameters import ExtraOption
+from .styling import Style
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
     from types import TracebackType
-    from typing import IO, Final
+    from typing import IO, Any, Final
 
-    import click
     from typing_extensions import Self
 
 
@@ -97,12 +101,14 @@ class Spinner:
 
     def __init__(
         self,
-        label: str = "",
+        label: str | Callable[..., Any] = "",
         *,
         frames: Sequence[str] = SPINNER_FRAMES,
         reverse: bool = False,
         interval: float = 0.1,
         delay: float = 0.0,
+        style: Style | None = None,
+        timer: bool = False,
         stream: IO[str] | None = None,
         enabled: bool | None = None,
         hide_cursor: bool = True,
@@ -110,7 +116,9 @@ class Spinner:
     ) -> None:
         """Configure (but do not start) the spinner.
 
-        :param label: text shown after the spinner glyph.
+        :param label: text shown after the spinner glyph. As a special case, a
+            bare ``@Spinner`` decorator passes the wrapped function here instead;
+            it is detected and the label defaults to empty.
         :param frames: the animation frames, cycled in order.
         :param reverse: cycle the frames backwards, spinning the animation the
             other way. Set it when the rotation runs counter to what you expect;
@@ -119,6 +127,12 @@ class Spinner:
         :param delay: seconds to wait before drawing the first frame. A non-zero
             delay keeps the spinner silent for calls that finish quickly, so it
             only surfaces once an operation is genuinely slow.
+        :param style: a :class:`~click_extra.styling.Style` applied to the spinner
+            glyph, label and timer (``Style(fg="cyan", bold=True)``). Color is
+            decoupled from animation: ``--no-color`` / ``NO_COLOR`` strip it while
+            the spinner keeps spinning (see :class:`ProgressOption`).
+        :param timer: append the elapsed wall-clock time to the spinner, and to
+            any final :meth:`ok` / :meth:`fail` line.
         :param stream: where to draw; defaults to :data:`sys.stderr` so the
             spinner never mixes into ``stdout`` data.
         :param enabled: force the spinner on or off. ``None`` (the default)
@@ -128,22 +142,50 @@ class Spinner:
         :param beep: ring the terminal bell once when the spinner stops. It
             fires only when the spinner was active, so a disabled or redirected
             spinner stays silent.
+        :raises ValueError: if ``style`` carries a color or attribute that
+            cannot be rendered.
         """
+        # Support a bare `@Spinner` decorator (no parentheses): the first
+        # positional is then the wrapped function, not a text label. `@Spinner(…)`
+        # and `with Spinner(…)` keep passing a string label as usual. A string is
+        # never callable, so this never misfires on a real label.
+        self._decorated: Callable[..., Any] | None = None
+        if callable(label):
+            self._decorated = label
+            # Make the instance masquerade as the function it stands in for,
+            # without overwriting our own attributes (`updated=()`).
+            functools.update_wrapper(self, label, updated=())
+            label = ""
+
         self.label = label
         self.frames = frames
         self.reverse = reverse
         self.interval = interval
         self.delay = delay
+        self.style = style
+        self.timer = timer
         self.stream = stream
         self.enabled = enabled
         self.hide_cursor = hide_cursor
         self.beep = beep
+
+        # Validate the style once, so a bad color or attribute fails loudly here
+        # instead of silently killing the draw thread (cloup builds and applies
+        # the style lazily on first call, where the error would surface off-thread).
+        if style is not None:
+            try:
+                style("")
+            except (TypeError, ValueError) as error:
+                raise ValueError(f"Invalid spinner style: {error}") from error
 
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
         self._lock = threading.Lock()
         self._drawn = False
         self._cursor_hidden = False
+        self._color_enabled = False
+        self._start_time: float | None = None
+        self._stop_time: float | None = None
 
     def _resolve_stream(self) -> IO[str]:
         """Return the explicit ``stream``, or default to :data:`sys.stderr`.
@@ -169,13 +211,77 @@ class Spinner:
         isatty = getattr(stream, "isatty", None)
         return bool(isatty and isatty())
 
+    def _resolve_color_enabled(self, stream: IO[str]) -> bool:
+        """Decide whether to apply ANSI color, orthogonally to whether it animates.
+
+        Color follows Click Extra's reconciled :attr:`ctx.color
+        <click.Context.color>` when a command context is active, so ``--color`` /
+        ``--no-color`` and the ``NO_COLOR`` / ``FORCE_COLOR`` family have already
+        been honored. Outside a CLI it falls back to those two environment
+        variables, then to TTY detection. This is independent of
+        :meth:`_resolve_enabled`: a spinner can spin in plain text (a TTY under
+        ``NO_COLOR``), which is exactly the decoupling :class:`ProgressOption`
+        documents.
+        """
+        ctx = click.get_current_context(silent=True)
+        if ctx is not None and ctx.color is not None:
+            return ctx.color
+        # Match ColorOption's enabling-wins reconciliation: FORCE_COLOR before
+        # NO_COLOR, so the two agree when both are set outside a command context.
+        if "FORCE_COLOR" in os.environ:
+            return True
+        if "NO_COLOR" in os.environ:
+            return False
+        isatty = getattr(stream, "isatty", None)
+        return bool(isatty and isatty())
+
+    def _style(self, text: str) -> str:
+        """Apply the configured :class:`~click_extra.styling.Style`, or return bare.
+
+        A no-op when no style was set or color is disabled, so the same call site
+        produces colored output on a capable terminal and plain output under
+        ``NO_COLOR`` / a pipe.
+        """
+        if self._color_enabled and self.style is not None:
+            return self.style(text)
+        return text
+
+    @property
+    def elapsed_time(self) -> float:
+        """Seconds elapsed since :meth:`start`, frozen once :meth:`stop` is called.
+
+        Returns ``0.0`` before the spinner has started.
+        """
+        if self._start_time is None:
+            return 0.0
+        end = self._stop_time if self._stop_time is not None else time.monotonic()
+        return end - self._start_time
+
+    @staticmethod
+    def _format_elapsed(seconds: float) -> str:
+        """Render a duration compactly: ``2.3s``, ``1:05``, then ``1:02:03``."""
+        if seconds < 60:
+            return f"{seconds:.1f}s"
+        minutes, secs = divmod(int(seconds), 60)
+        hours, minutes = divmod(minutes, 60)
+        if hours:
+            return f"{hours}:{minutes:02d}:{secs:02d}"
+        return f"{minutes}:{secs:02d}"
+
     def start(self) -> None:
         """Begin animating on a background thread, unless the spinner is disabled.
 
         A disabled spinner (non-TTY stream, or ``enabled=False``) returns at once
-        without spawning a thread or emitting anything.
+        without spawning a thread or emitting anything (but still records the
+        start time, so a later :meth:`ok` / :meth:`fail` can report a duration).
         """
+        # Time the operation even when the spinner is silenced, and resolve color
+        # here on the calling thread: the animation thread never sees the Click
+        # context that ``_resolve_color_enabled`` reads.
+        self._start_time = time.monotonic()
+        self._stop_time = None
         stream = self._resolve_stream()
+        self._color_enabled = self._resolve_color_enabled(stream)
         if not self._resolve_enabled(stream):
             return
         self._stop.clear()
@@ -195,6 +301,9 @@ class Spinner:
         cursor and clears the line only if the animation actually drew to the
         terminal.
         """
+        # Freeze the timer first, before the early return, so even a never-drawn
+        # spinner reports the operation's duration through `elapsed_time`.
+        self._stop_time = time.monotonic()
         if self._thread is None:
             return
         self._stop.set()
@@ -246,6 +355,64 @@ class Spinner:
             stream.write(f"{message}\n")
             stream.flush()
 
+    def ok(self, symbol: str | None = None, *, style: Style | None = None) -> None:
+        """Stop the spinner and leave a persistent success line on screen.
+
+        Where :meth:`stop` erases the spinner, :meth:`ok` replaces the final
+        frame with ``symbol`` followed by the current label (and the elapsed time
+        when ``timer`` is set), then keeps that line. ``symbol`` defaults to the
+        themed success glyph :data:`~click_extra.theme.OK_GLYPH` (``✓``), painted
+        with the active theme's ``success`` slot unless ``style`` overrides it.
+        Color is stripped under ``--no-color`` / ``NO_COLOR``; the glyph stays.
+        """
+        self._finalize(symbol, style, success=True)
+
+    def fail(self, symbol: str | None = None, *, style: Style | None = None) -> None:
+        """Stop the spinner and leave a persistent failure line on screen.
+
+        The failure counterpart of :meth:`ok`, defaulting to
+        :data:`~click_extra.theme.KO_GLYPH` (``✘``) painted with the active
+        theme's ``error`` slot.
+        """
+        self._finalize(symbol, style, success=False)
+
+    def _finalize(
+        self,
+        symbol: str | None,
+        style: Style | None,
+        *,
+        success: bool,
+    ) -> None:
+        """Stop the animation and write a kept ``{symbol} {label}`` final line.
+
+        Resolves color on the calling thread, stops the spinner (which erases the
+        live frame and restores the cursor), then writes the final line in its
+        place. The glyph and its paint default to the active theme's success /
+        error slots, so a finished spinner matches the rest of a themed CLI.
+        Degrades to a plain line when color is disabled or the spinner was never
+        shown, so the outcome is still recorded off a TTY.
+        """
+        # Lazy import to avoid a circular dependency with theme (as parameters.py
+        # does); the active theme is resolved here, not frozen at construction.
+        from .theme import KO_GLYPH, OK_GLYPH, get_current_theme
+
+        glyph = symbol if symbol is not None else (OK_GLYPH if success else KO_GLYPH)
+        if style is None:
+            theme = get_current_theme()
+            paint = theme.success if success else theme.error
+        else:
+            paint = style
+
+        stream = self._resolve_stream()
+        color_enabled = self._resolve_color_enabled(stream)
+        self.stop()
+        label = f" {self.label}" if self.label else ""
+        clock = f" ({self._format_elapsed(self.elapsed_time)})" if self.timer else ""
+        marker = paint(glyph) if color_enabled else glyph
+        with self._lock:
+            stream.write(f"{marker}{label}{clock}\n")
+            stream.flush()
+
     def _animate(self, stream: IO[str]) -> None:
         """Frame loop run on the background thread.
 
@@ -269,13 +436,17 @@ class Spinner:
             index = 0
             while not self._stop.is_set():
                 frame = frames[index % len(frames)]
-                suffix = f" {self.label}" if self.label else ""
+                label = f" {self.label}" if self.label else ""
+                clock = ""
+                if self.timer:
+                    clock = f" ({self._format_elapsed(self.elapsed_time)})"
+                content = self._style(f"{frame}{label}{clock}")
                 # Hold the draw lock so a concurrent `echo()` cannot interleave
                 # with a half-written frame. Return to the line start, then
                 # clear to end-of-line so a shrinking label leaves no stale
                 # characters behind.
                 with self._lock:
-                    stream.write(f"\r{frame}{suffix}\x1b[K")
+                    stream.write(f"\r{content}\x1b[K")
                     stream.flush()
                     self._drawn = True
                 index += 1
@@ -296,6 +467,31 @@ class Spinner:
         exc_tb: TracebackType | None,
     ) -> None:
         self.stop()
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        """Use the spinner as a decorator, with or without parentheses.
+
+        ``@Spinner`` wraps a function directly; ``@Spinner("Loading", …)`` first
+        configures the spinner, then wraps. Either way the function spins for the
+        duration of every call and returns its result untouched. The one instance
+        is shared across calls, which is fine for sequential use; give concurrent
+        callers their own spinner.
+        """
+        # Bare `@Spinner`: the instance stood in for the function (captured at
+        # construction), so calling it runs that function inside the context.
+        if self._decorated is not None:
+            with self:
+                return self._decorated(*args, **kwargs)
+
+        # `@Spinner(…)`: wrap the single function argument so each call spins.
+        (func,) = args
+
+        @functools.wraps(func)
+        def wrapper(*call_args: Any, **call_kwargs: Any) -> Any:
+            with self:
+                return func(*call_args, **call_kwargs)
+
+        return wrapper
 
 
 class ProgressOption(ExtraOption):

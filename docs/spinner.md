@@ -15,6 +15,25 @@ with Spinner("Brewing tea"):
 
 The spinner draws to `stderr` and is a no-op whenever that stream is not a terminal (a pipe, a file, a CI log), so redirected output and machine-readable formats stay clean. Reassign its `label` while it runs to reflect the current step, and set a `delay` so it only appears once an operation is genuinely slow.
 
+## Use as a decorator
+
+A `Spinner` doubles as a decorator, with or without parentheses. `@Spinner` wraps a function directly; `@Spinner("…")` configures the spinner first. Either way the function spins for the duration of every call and returns its result untouched.
+
+```python
+@Spinner  # Bare form: a default spinner.
+def roast(batch):
+    sleep(5)
+    return batch
+
+
+@Spinner("Roasting coffee", timer=True)  # Configured form.
+def roast_slowly(batch):
+    sleep(5)
+    return batch
+```
+
+The one instance is shared across calls, which is right for sequential use; give concurrent callers their own spinner.
+
 ## Spin direction
 
 Pass `reverse=True` to rotate the other way. It works with the default frames or any custom sequence:
@@ -45,6 +64,43 @@ with Spinner("Picking apples") as spinner:
         sleep(2)
         spinner.echo(f"Filled basket {basket}")
 ```
+
+## Color
+
+Style the glyph, label and timer with a [`Style`](styling.md) instance, the same type the theme system uses:
+
+```python
+from click_extra import Spinner, Style
+
+with Spinner("Counting sheep", style=Style(fg="cyan", bold=True)):
+    sleep(5)
+```
+
+Color is decoupled from the animation: on a terminal under `--no-color` or `NO_COLOR` the spinner keeps spinning, just in plain text (the `--progress` section below explains why). Inside a Click Extra CLI the color follows the reconciled `--color`/`--no-color` flag; standalone it honors `FORCE_COLOR` then `NO_COLOR`, then falls back to the terminal. A `Style` carrying an unrenderable color or attribute is rejected with a `ValueError` at construction.
+
+## Success and failure
+
+Stopping the spinner (or leaving its context) erases it. To leave a result on screen instead, finish with `ok()` or `fail()`: each replaces the final frame with a kept line. The marker defaults to the theme's success/error glyph (`✓` / `✘`), painted with the active theme's `success`/`error` [`Style`](theme.md), so a finished spinner matches the rest of a themed CLI.
+
+```python
+with Spinner("Baking bread") as spinner:
+    sleep(5)
+    spinner.ok()  # ✓ Baking bread
+```
+
+Pass your own marker (`spinner.ok("done")`) or override the paint with a `Style` (`spinner.fail(style=Style(fg="bright_red"))`). Color is stripped under `--no-color`/`NO_COLOR`; off a terminal the line is still written, so the outcome is recorded in logs and pipes.
+
+## Elapsed time
+
+Set `timer=True` to append the running wall-clock time to the spinner, and to any `ok()`/`fail()` line:
+
+```python
+with Spinner("Simmering stock", timer=True) as spinner:
+    sleep(5)
+    spinner.ok()  # ✔ Simmering stock (5.0s)
+```
+
+The duration is rendered compactly: `2.3s`, then `1:05`, then `1:02:03`. Read it any time from the `elapsed_time` property, which freezes once the spinner stops.
 
 ## The `--progress` option
 
