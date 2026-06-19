@@ -67,7 +67,7 @@ assert re.fullmatch(
 
 ## Parallel jobs
 
-A pre-configured `--jobs` option to control parallel execution. Defaults to one fewer than available CPU cores, leaving one core free for the main process and system tasks.
+A pre-configured `--jobs` option to control parallel execution. It accepts an integer, or one of two keywords: `auto` (the default: one fewer than available CPU cores, leaving a core free for the main process and system tasks) and `max` (every available core). A value of `0` disables parallelism and runs sequentially.
 
 The option itself does not drive any concurrency: it only captures the user's intent.
 
@@ -87,6 +87,8 @@ def build(ctx):
 ```{click:run}
 result = invoke(build, args=["--help"])
 assert "--jobs" in result.stdout
+assert "auto" in result.stdout
+assert "max" in result.stdout
 assert result.exit_code == 0
 ```
 
@@ -96,8 +98,16 @@ assert result.exit_code == 0
 assert "Building with 4 parallel jobs." in result.stdout
 ```
 
+The `auto` and `max` keywords resolve to a core count, keeping the same command portable across machines with different CPU counts:
+
+```{click:run}
+result = invoke(build, args=["--jobs", "max"])
+assert result.exit_code == 0
+assert "parallel jobs." in result.stdout
+```
+
 ```{warning}
-When the requested value is below 1, it is clamped to 1 and a warning is logged. When it exceeds available CPU cores, a warning is logged but the value is honored.
+A value of `0` disables parallelism: it is rounded up to `1` and a warning notes that execution will run sequentially. Negative values are likewise clamped to `1`. When the count exceeds the available CPU cores, a warning is logged but the value is honored.
 ```
 
 ```{tip}

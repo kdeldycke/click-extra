@@ -78,9 +78,53 @@ def test_default_value(invoke):
     assert result.exit_code == 0
 
 
-@pytest.mark.parametrize("value", ("0", "-5"))
-def test_clamp_below_one(invoke, value):
-    """Values below 1 are clamped to 1 with a warning."""
+@pytest.mark.parametrize(
+    ("keyword", "expected"),
+    (
+        ("auto", max(1, CPU_COUNT - 1) if CPU_COUNT else 1),
+        ("max", CPU_COUNT or 1),
+    ),
+)
+def test_keyword_resolution(invoke, keyword, expected):
+    """'auto' resolves to CPUs minus one, 'max' to all CPUs, both without warning."""
+
+    @command
+    @jobs_option
+    @pass_context
+    def cli(ctx):
+        echo(f"Jobs: {ctx.meta['click_extra.jobs']}")
+
+    result = invoke(cli, "--jobs", keyword)
+    assert result.stdout == f"Jobs: {expected}\n"
+    assert not result.stderr
+    assert result.exit_code == 0
+
+
+def test_invalid_value(invoke):
+    """Values that are neither an integer nor a known keyword are rejected."""
+
+    @command
+    @jobs_option
+    @pass_context
+    def cli(ctx):
+        echo(f"Jobs: {ctx.meta['click_extra.jobs']}")
+
+    result = invoke(cli, "--jobs", "fast")
+    assert result.exit_code == 2
+    assert "fast" in result.stderr
+    assert "not a valid job count" in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("value", "warning"),
+    (
+        ("0", "running sequentially"),
+        ("-1", "clamping to minimum of 1"),
+        ("-5", "clamping to minimum of 1"),
+    ),
+)
+def test_clamp_to_one(invoke, value, warning):
+    """0 disables parallelism and negatives clamp: both run 1 job with a warning."""
 
     @command
     @jobs_option
@@ -91,7 +135,7 @@ def test_clamp_below_one(invoke, value):
     result = invoke(cli, "--jobs", value)
     assert result.stdout == "Jobs: 1\n"
     assert result.exit_code == 0
-    assert "clamping to minimum of 1" in result.stderr
+    assert warning in result.stderr
 
 
 def test_exceeds_cpu_count(invoke):
