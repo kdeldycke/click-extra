@@ -826,7 +826,7 @@ class Spinner:
         interval: float | None = None,
         delay: float = 0.0,
         style: Style | None = None,
-        timer: bool = False,
+        timer: bool | Callable[[float], str] = False,
         stream: IO[str] | None = None,
         enabled: bool | None = None,
         hide_cursor: bool = True,
@@ -855,7 +855,10 @@ class Spinner:
             decoupled from animation: ``--no-color`` / ``NO_COLOR`` strip it while
             the spinner keeps spinning (see :class:`ProgressOption`).
         :param timer: append the elapsed wall-clock time to the spinner, and to
-            any final :meth:`ok` / :meth:`fail` line.
+            any final :meth:`ok` / :meth:`fail` line. ``True`` uses the default
+            compact format (``2.3s``, ``1:05``, then ``1:02:03``). Pass a callable
+            ``(seconds: float) -> str`` to format the duration yourself, e.g.
+            ``timer=lambda s: f"{s / 60:.0f}m"`` for whole minutes.
         :param stream: where to draw; defaults to :data:`sys.stderr` so the
             spinner never mixes into ``stdout`` data.
         :param enabled: force the spinner on or off. ``None`` (the default)
@@ -1033,6 +1036,17 @@ class Spinner:
             return f"{hours}:{minutes:02d}:{secs:02d}"
         return f"{minutes}:{secs:02d}"
 
+    def _clock(self) -> str:
+        """The ``( elapsed )`` timer suffix, or empty when no timer is set.
+
+        ``timer=True`` uses :meth:`_format_elapsed`; a callable ``timer`` formats
+        :attr:`elapsed_time` itself. The result is always wrapped the same way.
+        """
+        if not self.timer:
+            return ""
+        formatter = self.timer if callable(self.timer) else self._format_elapsed
+        return f" ({formatter(self.elapsed_time)})"
+
     def start(self) -> None:
         """Begin animating on a background thread, unless the spinner is disabled.
 
@@ -1172,7 +1186,7 @@ class Spinner:
         color_enabled = self._resolve_color_enabled(stream)
         self.stop()
         label = f" {self.label}" if self.label else ""
-        clock = f" ({self._format_elapsed(self.elapsed_time)})" if self.timer else ""
+        clock = self._clock()
         marker = paint(glyph) if color_enabled else glyph
         with self._lock:
             stream.write(f"{marker}{label}{clock}\n")
@@ -1202,9 +1216,7 @@ class Spinner:
             while not self._stop.is_set():
                 frame = frames[index % len(frames)]
                 label = f" {self.label}" if self.label else ""
-                clock = ""
-                if self.timer:
-                    clock = f" ({self._format_elapsed(self.elapsed_time)})"
+                clock = self._clock()
                 content = self._style(f"{frame}{label}{clock}")
                 # Hold the draw lock so a concurrent `echo()` cannot interleave
                 # with a half-written frame. Return to the line start, then

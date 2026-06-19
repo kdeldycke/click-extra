@@ -500,6 +500,28 @@ def test_timer_appended_to_frames_and_final_line():
     assert re.search(r"\(\d+\.\ds\)", output)
 
 
+def test_timer_accepts_custom_formatter():
+    """A callable ``timer`` formats the elapsed seconds itself (yaspin #236)."""
+    stream = TTYStringIO()
+    spinner = Spinner(
+        "Brewing tea", stream=stream, timer=lambda s: f"t{s:.0f}", interval=0.02
+    )
+    spinner.start()
+    assert wait_until(lambda: spinner._drawn)
+    spinner.ok()
+
+    output = stream.getvalue()
+    assert "(t0)" in output  # Custom format, on the spinner and the ok() line.
+    assert "0.0s" not in output  # The default format is not used.
+
+
+def test_enable_windows_ansi_is_a_safe_noop():
+    """The Windows VT-enable never raises: off Windows, or on a stream with no
+    usable console handle (the path the spinner exercises on every platform)."""
+    Spinner._enable_windows_ansi(io.StringIO())  # No real fileno.
+    Spinner._enable_windows_ansi(sys.stderr)
+
+
 def test_elapsed_time_freezes_after_stop():
     stream = TTYStringIO()
     spinner = Spinner("Brewing tea", stream=stream, interval=0.02)

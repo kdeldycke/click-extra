@@ -151,7 +151,15 @@ with Spinner("Simmering stock", timer=True) as spinner:
     spinner.ok()  # ✓ Simmering stock (5.0s)
 ```
 
-The duration is rendered compactly: `2.3s`, then `1:05`, then `1:02:03`. Read it any time from the `elapsed_time` property, which freezes once the spinner stops.
+The default format is compact: `2.3s`, then `1:05`, then `1:02:03`. For anything else, pass a callable instead of `True` — it receives the elapsed seconds and returns the string to show:
+
+```python
+with Spinner("Simmering stock", timer=lambda s: f"{s / 60:.0f} min") as spinner:
+    sleep(5)
+    spinner.ok()  # ✓ Simmering stock (0 min)
+```
+
+Read the elapsed time any moment from the `elapsed_time` property, which freezes once the spinner stops.
 
 ## The `--progress` option
 
