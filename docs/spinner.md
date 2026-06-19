@@ -208,6 +208,7 @@ Read the elapsed time any moment from the `elapsed_time` property, which freezes
 from click_extra import Spinner, command, pass_context
 from click_extra.context import PROGRESS
 
+
 @command
 @pass_context
 def harvest(ctx):
