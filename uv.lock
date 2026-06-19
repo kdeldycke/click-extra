@@ -324,7 +324,7 @@ typing = [
 [package.metadata]
 requires-dist = [
     { name = "boltons", specifier = ">=20" },
-    { name = "click", specifier = ">=8.4.1" },
+    { name = "click", specifier = ">=8.3.1" },
     { name = "cloup", specifier = ">=3.0.7" },
     { name = "deepmerge", specifier = ">=1.0.1" },
     { name = "docutils", marker = "extra == 'sphinx'", specifier = ">=0.20" },

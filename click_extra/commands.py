@@ -578,9 +578,17 @@ class HelpCommand(ColorizedCommand):
                 )
             resolved = target_cmd.get_command(target_ctx, name)
             if resolved is None:
-                raise click.NoSuchCommand(
-                    name,
-                    possibilities=get_close_matches(name, target_cmd.commands),
+                # Click >= 8.4.0 ships NoSuchCommand (PR pallets/click#3228), which
+                # renders did-you-mean suggestions. Fall back to a plain UsageError
+                # on Click 8.3.x, which predates that exception.
+                if hasattr(click, "NoSuchCommand"):
+                    raise click.NoSuchCommand(
+                        name,
+                        possibilities=get_close_matches(name, target_cmd.commands),
+                        ctx=parent_ctx,
+                    )
+                raise click.UsageError(
+                    f"No such command {name!r}.",
                     ctx=parent_ctx,
                 )
             target_ctx = click.Context(

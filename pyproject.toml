@@ -85,10 +85,11 @@ classifiers = [
 dependencies = [
   # boltons 20.0.0 added shrinkuser(); our config.py uses it for path display.
   "boltons>=20",
-  # Click 8.4.0 ships the deprecated-label spacing change: https://github.com/pallets/click/pull/3423.
-  # Click 8.4.1 fixes the eager-callback parameter-source regression that 8.4.0
-  # introduced: https://github.com/pallets/click/pull/3484
-  "click>=8.4.1",
+  # click-extra targets Click >= 8.3.1, carrying small compatibility shims for the
+  # APIs that landed in Click 8.4.0 (see ExtraOption.handle_parse_result, the
+  # conditional NoSuchCommand/get_pager_file imports, NoConfigOption's explicit
+  # UNPROCESSED type, and HelpExtraFormatter.write_usage).
+  "click>=8.3.1",
   # Cloup 3.0.7 fix issues with metavars: https://github.com/kdeldycke/click-extra/pull/1281
   "cloup>=3.0.7",
   # always_merger (recursive dict merge) available since deepmerge 1.0.1.

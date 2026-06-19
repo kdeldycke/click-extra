@@ -30,9 +30,19 @@ if TYPE_CHECKING:
 # XXX Star import is really badly supported by mypy for now and leads to lots of
 # "Module 'XXX' has no attribute 'YYY'". See: https://github.com/python/mypy/issues/4930
 from click import *
-from click import NoSuchCommand, get_pager_file
 from click._utils import UNSET
 from click.core import ParameterSource
+
+# NoSuchCommand (PR pallets/click#3228) and get_pager_file (PR pallets/click#1572)
+# are Click 8.4.0 additions, absent on the Click 8.3.x releases click-extra still
+# supports. Import them only when present so click-extra mirrors Click's own public
+# surface; the matching __all__ entries are trimmed below when they are missing.
+try:
+    from click import NoSuchCommand, get_pager_file
+
+    _HAS_CLICK_8_4_EXPORTS = True
+except ImportError:  # Click < 8.4.0.
+    _HAS_CLICK_8_4_EXPORTS = False
 
 # Overrides click helpers with cloup's.
 from cloup import *  # type: ignore[no-redef, assignment]
@@ -355,6 +365,14 @@ __all__ = [
     The content of ``__all__`` is checked by a unittest and sorted by
     ``ruff`` via `RUF022 <https://docs.astral.sh/ruff/rules/unsorted-dunder-all/>`_.
 """
+
+# NoSuchCommand and get_pager_file are only re-exported on Click >= 8.4.0 (see the
+# guarded import above). Drop them from the public API on older Click so ``__all__``
+# matches the names actually bound in this module.
+if not _HAS_CLICK_8_4_EXPORTS:
+    __all__.remove("NoSuchCommand")
+    __all__.remove("get_pager_file")
+del _HAS_CLICK_8_4_EXPORTS
 
 
 __version__ = "7.21.0.dev0"
