@@ -151,6 +151,7 @@ from .parameters import (
     get_param_spec,
     search_params,
 )
+from .spinner import Spinner
 from .table import (
     ColumnsOption,
     ColumnSpec,
@@ -260,6 +261,7 @@ __all__ = [
     "SectionMixin",
     "ShowParamsOption",
     "SortByOption",
+    "Spinner",
     "Style",
     "TableFormat",
     "TableFormatOption",

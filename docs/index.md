@@ -20,6 +20,7 @@ styling
 theme
 logging
 table
+spinner
 version
 execution
 telemetry
