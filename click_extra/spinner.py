@@ -94,16 +94,21 @@ class Spinner:
         label: str = "",
         *,
         frames: Sequence[str] = SPINNER_FRAMES,
+        reverse: bool = False,
         interval: float = 0.1,
         delay: float = 0.0,
         stream: IO[str] | None = None,
         enabled: bool | None = None,
         hide_cursor: bool = True,
+        beep: bool = False,
     ) -> None:
         """Configure (but do not start) the spinner.
 
         :param label: text shown after the spinner glyph.
         :param frames: the animation frames, cycled in order.
+        :param reverse: cycle the frames backwards, spinning the animation the
+            other way. Set it when the rotation runs counter to what you expect;
+            it composes with any custom ``frames``.
         :param interval: seconds between two frames.
         :param delay: seconds to wait before drawing the first frame. A non-zero
             delay keeps the spinner silent for calls that finish quickly, so it
@@ -114,17 +119,23 @@ class Spinner:
             auto-detects, animating only when ``stream`` is a TTY.
         :param hide_cursor: hide the text cursor while spinning and restore it on
             stop.
+        :param beep: ring the terminal bell once when the spinner stops. It
+            fires only when the spinner was active, so a disabled or redirected
+            spinner stays silent.
         """
         self.label = label
         self.frames = frames
+        self.reverse = reverse
         self.interval = interval
         self.delay = delay
         self.stream = stream
         self.enabled = enabled
         self.hide_cursor = hide_cursor
+        self.beep = beep
 
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
+        self._lock = threading.Lock()
         self._drawn = False
         self._cursor_hidden = False
 
@@ -179,18 +190,50 @@ class Spinner:
         self._thread.join()
         self._thread = None
 
-        # Undo only what was actually emitted: erase the line if a frame was
-        # drawn, and restore the cursor if it was hidden.
-        cleanup = ""
-        if self._drawn:
-            cleanup += "\r\x1b[K"
-        if self._cursor_hidden:
-            cleanup += "\x1b[?25h"
-        if cleanup:
-            stream = self._resolve_stream()
-            stream.write(cleanup)
+        # The animation thread has joined, so the draw lock is now free: take it
+        # so a concurrent `echo()` from another thread cannot interleave with the
+        # final cleanup. Joining before acquiring avoids deadlocking against the
+        # lock-holding frame write.
+        with self._lock:
+            # Undo only what was actually emitted: erase the line if a frame was
+            # drawn, and restore the cursor if it was hidden. Reaching this point
+            # means the spinner was active, so an opt-in bell rings here too: a
+            # disabled or redirected spinner returns above and stays silent.
+            cleanup = ""
+            if self._drawn:
+                cleanup += "\r\x1b[K"
+            if self._cursor_hidden:
+                cleanup += "\x1b[?25h"
+            if self.beep:
+                cleanup += "\a"
+            if cleanup:
+                stream = self._resolve_stream()
+                stream.write(cleanup)
+                stream.flush()
+                self._cursor_hidden = False
+
+    def echo(self, message: str = "") -> None:
+        """Print ``message`` on its own line above the running spinner.
+
+        Click's :func:`click.progressbar` and a bare ``print`` both fight the
+        animation: a frame drawn between the cursor returns and the text mangles
+        the line. :meth:`echo` takes the same draw lock as the animation thread,
+        erases the in-progress frame, writes ``message`` followed by a newline,
+        and lets the next tick redraw the spinner underneath. It is safe to call
+        from another thread while the spinner runs.
+
+        Output goes to the spinner's own ``stream`` (``stderr`` by default), so
+        results written to ``stdout`` never need it. When the spinner is not
+        animating (disabled, or a non-TTY stream), it degrades to a plain write
+        of ``message`` with no control codes.
+        """
+        stream = self._resolve_stream()
+        with self._lock:
+            # Erase the in-progress frame so the message starts at column 0.
+            if self._drawn:
+                stream.write("\r\x1b[K")
+            stream.write(f"{message}\n")
             stream.flush()
-            self._cursor_hidden = False
 
     def _animate(self, stream: IO[str]) -> None:
         """Frame loop run on the background thread.
@@ -205,6 +248,8 @@ class Spinner:
         # A call that finishes within `delay` never draws anything.
         if self._stop.wait(self.delay):
             return
+        # Resolve the rotation direction once: `reverse` flips the frame order.
+        frames = tuple(reversed(self.frames)) if self.reverse else self.frames
         try:
             if self.hide_cursor:
                 stream.write("\x1b[?25l")
@@ -212,13 +257,16 @@ class Spinner:
                 stream.flush()
             index = 0
             while not self._stop.is_set():
-                frame = self.frames[index % len(self.frames)]
+                frame = frames[index % len(frames)]
                 suffix = f" {self.label}" if self.label else ""
-                # Return to the line start, then clear to end-of-line so a
-                # shrinking label leaves no stale characters behind.
-                stream.write(f"\r{frame}{suffix}\x1b[K")
-                stream.flush()
-                self._drawn = True
+                # Hold the draw lock so a concurrent `echo()` cannot interleave
+                # with a half-written frame. Return to the line start, then
+                # clear to end-of-line so a shrinking label leaves no stale
+                # characters behind.
+                with self._lock:
+                    stream.write(f"\r{frame}{suffix}\x1b[K")
+                    stream.flush()
+                    self._drawn = True
                 index += 1
                 if self._stop.wait(self.interval):
                     break

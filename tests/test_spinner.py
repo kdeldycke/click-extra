@@ -166,3 +166,80 @@ def test_stop_is_idempotent_and_safe_before_start():
     # A second stop after a real run stays a no-op.
     spinner.stop()
     assert spinner._thread is None
+
+
+def test_suspend_and_resume():
+    """A spinner restarts cleanly after a stop, without re-using a dead thread."""
+    stream = TTYStringIO()
+    spinner = Spinner("Brewing tea", stream=stream, interval=0.02)
+    spinner.start()
+    assert wait_until(lambda: spinner._drawn)
+    spinner.stop()
+    assert spinner._thread is None
+
+    # Resuming spins up a fresh thread and draws again, no exception raised.
+    spinner.start()
+    assert wait_until(lambda: spinner._thread is not None and spinner._drawn)
+    spinner.stop()
+    assert spinner._thread is None
+
+
+@pytest.mark.parametrize("reverse", (False, True))
+def test_rotation_direction(reverse):
+    """Frames cycle forwards by default and backwards when ``reverse=True``."""
+    stream = TTYStringIO()
+    frames = ("A", "B", "C", "D")
+    spinner = Spinner(stream=stream, frames=frames, reverse=reverse, interval=0.01)
+    spinner.start()
+    # Wait for at least two full cycles so wrap-around is observable.
+    assert wait_until(lambda: stream.getvalue().count("\r") >= 2 * len(frames))
+    spinner.stop()
+
+    # Each tick writes exactly one frame glyph; extract them in drawn order.
+    drawn = [char for char in stream.getvalue() if char in frames]
+    step = -1 if reverse else 1
+    for previous, current in zip(drawn, drawn[1:]):
+        assert frames.index(current) == (frames.index(previous) + step) % len(frames)
+
+
+def test_beep_rings_bell_on_stop_when_enabled():
+    stream = TTYStringIO()
+    spinner = Spinner("Brewing tea", stream=stream, interval=0.02, beep=True)
+    spinner.start()
+    assert wait_until(lambda: spinner._drawn)
+    spinner.stop()
+    assert "\a" in stream.getvalue()
+
+
+def test_beep_silent_when_disabled():
+    """A disabled spinner never beeps, even with ``beep=True``."""
+    stream = io.StringIO()  # Non-TTY: the spinner is a no-op.
+    with Spinner("Brewing tea", stream=stream, beep=True):
+        time.sleep(0.05)
+    assert stream.getvalue() == ""
+
+
+def test_echo_prints_above_running_spinner():
+    stream = TTYStringIO()
+    spinner = Spinner("Brewing tea", stream=stream, interval=0.02)
+    spinner.start()
+    assert wait_until(lambda: spinner._drawn)
+    spinner.echo("Kettle filled")
+    spinner.stop()
+
+    output = stream.getvalue()
+    # The message appears exactly once, on its own line.
+    assert output.count("Kettle filled") == 1
+    # The in-progress frame is erased right before the message, so no glyph
+    # shares its line.
+    assert "\r" + CLEAR_LINE + "Kettle filled\n" in output
+
+
+def test_echo_degrades_to_plain_write_when_disabled():
+    """Off a TTY the message is still emitted, just without control codes."""
+    stream = io.StringIO()  # Non-TTY: nothing is animating.
+    spinner = Spinner("Brewing tea", stream=stream)
+    spinner.start()  # No-op.
+    spinner.echo("Kettle filled")
+    spinner.stop()
+    assert stream.getvalue() == "Kettle filled\n"

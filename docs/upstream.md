@@ -180,6 +180,17 @@ click-extra's [logging module](logging.md) replaces the unmaintained `click-log`
 - [`click-log#29` - Log level is leaking between invocations: hack to force-reset it](https://github.com/click-contrib/click-log/issues/29)
 - [`click-log#30` - Add a `no-color` option, method or parameter to disable coloring globally](https://github.com/click-contrib/click-log/issues/30)
 
+### Progress spinner
+
+click-extra's [`Spinner`](spinner.md) is a thread-animated, indeterminate progress spinner for blocking work of unknown duration. It supersedes the `click-spinner` package, last released in 2020 and [openly looking for a maintainer](https://github.com/click-contrib/click-spinner/issues/38) since 2022. By design it resolves the issues and pull requests still open or rejected against that package:
+
+- [`click-spinner#27` - Support for more spinner types and custom spinners](https://github.com/click-contrib/click-spinner/pull/27) — closed unmerged over maintenance concerns; click-extra accepts any `frames` sequence and ships two built-in sets (Braille and ASCII).
+- [`click-spinner#33` - PEP 561 compatible (inline types)](https://github.com/click-contrib/click-spinner/pull/33) — closed unmerged and redirected to typeshed; click-extra is fully annotated and ships `py.typed`.
+- [`click-spinner#34` - Feature request: spin clockwise](https://github.com/click-contrib/click-spinner/issues/34) / [`click-spinner#35`](https://github.com/click-contrib/click-spinner/pull/35) — open issue, abandoned PR; click-extra exposes a `reverse` flag.
+- [`click-spinner#36` - Spinner left last symbol on cmd](https://github.com/click-contrib/click-spinner/issues/36) / [`click-spinner#37`](https://github.com/click-contrib/click-spinner/pull/37) — open; click-extra erases the line with `\r\x1b[K` rather than a non-destructive `\b` that lingers in terminals like VS Code.
+- [`click-spinner#41` - Fix output in corner cases](https://github.com/click-contrib/click-spinner/pull/41) — open; click-extra always erases on exit and never rings the bell on a disabled or redirected stream.
+- [`click-spinner#42` - Printing to stdout breaks the spinner](https://github.com/click-contrib/click-spinner/issues/42) — open; click-extra defaults to `stderr` so `stdout` data stays clean, and its `echo()` method prints above the animation without corrupting it.
+
 ### Option parsing
 
 - [`click#2779` - Wrong error message when wrong multicharacter short option is passed](https://github.com/pallets/click/issues/2779)
