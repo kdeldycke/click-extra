@@ -10,7 +10,7 @@
 - Add `{author}` and `{license}` version-string template variables, resolved from the package's core metadata.
 - Lower the Click floor from `8.4.1` to `8.3.1`, restoring support for the full range of Click releases from `8.3.1` onward. Compatibility shims cover the APIs introduced in Click `8.4.0`.
 - Add a `Spinner` widget: an indeterminate, thread-animated terminal spinner for long-running blocking work where `click.progressbar` does not fit. Auto-disabled when its output stream is not a TTY. Supports a live-updatable label, custom frames, reverse rotation, an opt-in terminal-bell `beep` on stop, and an `echo()` method to print above the animation without corrupting it.
-- Add a `--progress`/`--no-progress` option (`ProgressOption`) to the default option set. It resolves to a single boolean at `ctx.meta["click_extra.progress"]` that a CLI reads to decide whether to start a `Spinner`. Since a spinner is an ANSI animation, it is switched off whenever colors are off: `--no-color`, the `NO_COLOR` family of environment variables, and `--accessible` all silence it.
+- Add a `--progress`/`--no-progress` option (`ProgressOption`) to the default option set. It resolves to a single boolean at `ctx.meta["click_extra.progress"]` that a CLI reads to decide whether to start a `Spinner`. Spinner display is decoupled from color: following the [NO_COLOR standard](https://no-color.org) (and cargo, npm, pip, Rich, indicatif and ora), `--no-color`/`NO_COLOR` strip the spinner's color but keep it; it is silenced only by non-interactive output (pipes, `TERM=dumb` terminals, CI) and by `--no-progress` or `--accessible`.
 
 ## [`7.20.1` (2026-06-18)](https://github.com/kdeldycke/click-extra/compare/v7.20.0...v7.20.1)
 

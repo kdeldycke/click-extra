@@ -91,10 +91,6 @@ def default_extra_params() -> list[click.Option]:
             can lower their defaults (via ``default_map``) before they are resolved.
     #. ``--color``, ``--ansi`` / ``--no-color``, ``--no-ansi``
     #. ``--progress`` / ``--no-progress``
-        .. hint::
-            ``--progress`` is placed after ``--color`` so its callback can read
-            the reconciled ``ctx.color`` and silence the spinner when colors are
-            off.
     #. ``--theme``
     #. ``--show-params``
     #. ``--table-format FORMAT``

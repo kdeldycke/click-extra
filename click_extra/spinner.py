@@ -42,6 +42,7 @@ thread, so the caller can stay blocked in a single call (``communicate()``,
 
 from __future__ import annotations
 
+import os
 import sys
 import threading
 from gettext import gettext as _
@@ -155,11 +156,16 @@ class Spinner:
     def _resolve_enabled(self, stream: IO[str]) -> bool:
         """Decide whether to animate, honoring an explicit ``enabled`` override.
 
-        Falls back to TTY detection: a non-interactive stream (pipe, file,
-        captured buffer) yields a silent no-op spinner.
+        Auto-detection (``enabled=None``) animates only on an interactive terminal
+        that can move the cursor. That rules out non-interactive streams (a pipe,
+        file or captured buffer, which are not a TTY) and ``TERM=dumb`` /
+        ``TERM=unknown`` terminals, whose lack of cursor control would smear a trail
+        of frames down the screen instead of animating in place.
         """
         if self.enabled is not None:
             return self.enabled
+        if os.environ.get("TERM", "").lower() in {"dumb", "unknown"}:
+            return False
         isatty = getattr(stream, "isatty", None)
         return bool(isatty and isatty())
 
@@ -297,17 +303,33 @@ class ProgressOption(ExtraOption):
 
     Resolves to a single boolean published at
     :data:`ctx.meta[click_extra.context.PROGRESS] <click_extra.context.PROGRESS>`,
-    which a CLI reads to decide whether to start a :class:`Spinner`.
+    which a CLI reads to decide whether to start a :class:`Spinner`. The default is
+    ``True``; ``--accessible`` lowers it to ``False`` (via ``default_map``) so a
+    screen reader is never handed a spinning glyph.
 
-    A spinner is an ANSI animation, so it is switched off whenever colors are
-    disabled: ``--no-color``, the ``NO_COLOR`` family of environment variables, and
-    ``--accessible`` (which turns colors off) therefore all silence it, even when
-    ``--progress`` is left at its default. The terminal check is delegated to the
-    spinner itself, so a piped or captured run stays quiet too.
+    .. note::
+        Spinner display is intentionally **decoupled from color**, even though both
+        emit ANSI. A spinner is an *interactivity* concern, not a color one: it is
+        built from cursor-control codes (hide-cursor, carriage return, clear-line),
+        which the `NO_COLOR standard <https://no-color.org>`_ explicitly does not
+        govern -- it "only signals the user's intention regarding adding ANSI color
+        to text output". So ``--no-color`` / ``NO_COLOR`` strip the spinner's colors
+        but never hide it.
 
-    This option is eager and declared after
-    :class:`~click_extra.colorize.ColorOption` so the color state it depends on is
-    already reconciled on ``ctx.color`` by the time this callback runs.
+        This matches how the wider ecosystem treats the two axes as orthogonal:
+        cargo, npm, pip, Rich, indicatif and ora all gate progress on the terminal
+        (and a dedicated ``--progress``/``--quiet`` knob), while ``NO_COLOR`` only
+        affects color. Rich uses ``TERM=dumb`` -- not ``NO_COLOR`` -- as the signal
+        to drop cursor-moving features like progress bars.
+
+        The spinner is therefore silenced by two things only, neither of them color:
+
+        - **non-interactive output** -- a pipe, file, CI log, or ``TERM=dumb``
+          terminal that cannot move the cursor (see :meth:`Spinner._resolve_enabled`);
+        - **explicit intent** -- ``--no-progress`` or ``--accessible``.
+
+    This option is eager. It no longer reads ``ctx.color``, so its position relative
+    to :class:`~click_extra.colorize.ColorOption` is not load-bearing.
     """
 
     def set_progress(
@@ -316,13 +338,15 @@ class ProgressOption(ExtraOption):
         param: click.Parameter,
         value: bool,
     ) -> None:
-        """Publish whether progress spinners may be shown, gated on color.
+        """Publish whether progress spinners may be shown.
 
-        ``ctx.color`` is the reconciled color flag set by
-        :meth:`~click_extra.colorize.ColorOption.set_color`. A spinner relies on
-        ANSI control codes, so it is disabled whenever color is off.
+        Stores the resolved ``--progress`` flag at
+        :data:`~click_extra.context.PROGRESS`. Deliberately independent of color:
+        see the :class:`ProgressOption` note for why a spinner is gated on
+        interactivity (TTY / ``TERM=dumb``) and ``--accessible``, never on
+        ``--no-color`` / ``NO_COLOR``.
         """
-        context.set(ctx, context.PROGRESS, value and ctx.color is not False)
+        context.set(ctx, context.PROGRESS, value)
 
     def __init__(
         self,
@@ -332,8 +356,8 @@ class ProgressOption(ExtraOption):
         is_eager=True,
         expose_value=False,
         help=_(
-            "Show a progress spinner during long operations. Disabled when colors "
-            "are off (--no-color, --accessible) or output is not a terminal."
+            "Show a progress spinner during long operations. Disabled for "
+            "non-interactive output (pipes, dumb terminals, CI) and by --accessible."
         ),
         **kwargs,
     ) -> None:

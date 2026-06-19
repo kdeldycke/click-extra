@@ -260,18 +260,19 @@ def test_progress_option_is_a_default_option():
 @pytest.mark.parametrize(
     ("args", "expected"),
     (
-        # Color on (forced) and progress at its default: spinners allowed.
-        (("--color",), True),
+        # Progress is on by default.
+        ((), True),
         # Explicit opt-out wins.
-        (("--color", "--no-progress"), False),
-        # A spinner is an ANSI animation, so disabling color disables it...
-        (("--no-color",), False),
-        # ...and --accessible disables color, hence progress too.
+        (("--no-progress",), False),
+        # Color is decoupled: --no-color strips color but keeps the spinner,
+        # like cargo, npm, pip, Rich, indicatif and ora.
+        (("--no-color",), True),
+        # --accessible disables it: a screen reader wants no spinning glyph.
         (("--accessible",), False),
     ),
 )
 def test_progress_option_resolution(invoke, args, expected):
-    """``ctx.meta[PROGRESS]`` reconciles --progress with the color state."""
+    """``ctx.meta[PROGRESS]`` follows --progress and --accessible, never color."""
 
     @command
     @pass_context
@@ -280,3 +281,18 @@ def test_progress_option_resolution(invoke, args, expected):
 
     result = invoke(cli, *args)
     assert f"progress={expected}" in result.stdout
+
+
+@pytest.mark.parametrize("term", ("dumb", "unknown"))
+def test_dumb_terminal_disables_spinner(monkeypatch, term):
+    """A cursor-less terminal self-disables the spinner even on a TTY."""
+    monkeypatch.setenv("TERM", term)
+    spinner = Spinner(stream=TTYStringIO())
+    assert spinner._resolve_enabled(spinner._resolve_stream()) is False
+
+
+def test_explicit_enabled_overrides_dumb_terminal(monkeypatch):
+    """An explicit ``enabled=True`` wins over the ``TERM=dumb`` auto-detection."""
+    monkeypatch.setenv("TERM", "dumb")
+    spinner = Spinner(stream=TTYStringIO(), enabled=True)
+    assert spinner._resolve_enabled(spinner._resolve_stream()) is True

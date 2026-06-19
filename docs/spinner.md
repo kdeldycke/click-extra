@@ -62,7 +62,9 @@ def harvest(ctx):
         sleep(5)
 ```
 
-Because a spinner is an ANSI animation, the resolved value is `False` whenever colors are off: `--no-color`, the `NO_COLOR` family of environment variables, and `--accessible` (which disables colors) all silence it, even when `--progress` is left at its default. Passing `enabled=None` keeps the spinner's own terminal check, so it also stays quiet when output is piped or captured.
+Spinner display is **decoupled from color**. A spinner is an interactivity concern, not a color one: it is driven by cursor-control codes, which the [NO_COLOR standard](https://no-color.org) explicitly does not govern. So `--no-color` and `NO_COLOR` strip the spinner's color but keep it spinning, the same way [cargo](https://doc.rust-lang.org/cargo/reference/config.html), npm, pip, [Rich](https://rich.readthedocs.io/en/latest/console.html), [indicatif](https://github.com/console-rs/indicatif) and [ora](https://github.com/sindresorhus/ora) gate progress on the terminal rather than on color.
+
+The resolved value is `False` only for **non-interactive output** (a pipe, a `TERM=dumb` terminal, or CI: handled by the widget's own check when you pass `enabled=None`) and for **explicit intent** (`--no-progress` or `--accessible`, the latter so a screen reader is never handed a spinning glyph).
 
 ## `click_extra.spinner` API
 
