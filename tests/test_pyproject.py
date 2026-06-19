@@ -13,7 +13,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Consistency checks on ``pyproject.toml`` metadata."""
+"""Consistency checks tying the test matrix to the declared dependencies.
+
+The ``click`` version axis of the test matrix is the one dependency whose whole
+supported range is exercised release-by-release (a patch can change behavior
+mid-stream). These tests keep that axis in sync with the ``click`` dependency
+specifier, so a drift, like a new Click release or a raised floor, fails CI
+instead of silently rotting.
+"""
 
 from __future__ import annotations
 
@@ -23,6 +30,7 @@ from pathlib import Path
 import pytest
 import requests
 from packaging.requirements import Requirement
+from packaging.specifiers import SpecifierSet
 from packaging.version import Version
 
 if sys.version_info >= (3, 11):
@@ -32,6 +40,31 @@ else:
 
 PYPROJECT = Path(__file__).parent.parent / "pyproject.toml"
 """Path to the project's ``pyproject.toml``, relative to this test file."""
+
+SENTINELS = ("released", "stable", "main")
+"""Moving-reference values of the ``click-version`` axis: the lockfile-resolved
+release, and Click's ``stable`` and ``main`` development branches. Everything
+else in the axis is a pinned release number."""
+
+
+def load_click_matrix() -> tuple[SpecifierSet, list[str], set[str]]:
+    """Read the Click setup from ``pyproject.toml``.
+
+    :return: the ``click`` dependency specifier, the raw ``click-version`` axis,
+        and the subset of axis entries that are pinned release numbers (sentinels
+        start with a letter, pinned versions with a digit).
+    """
+    config = tomllib.loads(PYPROJECT.read_text(encoding="UTF-8"))
+    click = next(
+        Requirement(dep)
+        for dep in config["project"]["dependencies"]
+        if Requirement(dep).name == "click"
+    )
+    variations = config["tool"]["repomatic"]["test-matrix"]["variations"][
+        "click-version"
+    ]
+    pinned = {entry for entry in variations if entry[0].isdigit()}
+    return click.specifier, variations, pinned
 
 
 def stable_pypi_versions(package: str) -> set[Version]:
@@ -50,54 +83,82 @@ def stable_pypi_versions(package: str) -> set[Version]:
 
 
 @pytest.mark.once
-def test_click_matrix_covers_authorized_releases():
-    """Every Click release allowed by our dependency specifier is exercised by the
-    test matrix.
+def test_click_floor_is_pinned_and_sentinels_present():
+    """The matrix floor stays in sync with the dependency floor (hermetic).
 
-    Click is the one dependency whose whole supported range is tested
-    release-by-release (a patch can change behavior mid-stream), so each
-    authorized release must be referenced in
-    ``[tool.repomatic] test-matrix.variations.click-version``. The newest
-    release is covered by the ``released`` sentinel; every earlier one must be
-    pinned by version.
-
-    When Click publishes a new release, the previous newest becomes an
-    intermediate version that is no longer covered by ``released``, so this test
-    fails: the signal that the matrix needs a new pinned entry.
+    The lowest pinned ``click-version`` must equal the lower bound of the
+    ``click`` specifier, so raising or lowering the dependency floor without
+    updating the matrix (or vice versa) fails here. Runs offline, unlike the
+    PyPI cross-check below.
     """
-    config = tomllib.loads(PYPROJECT.read_text(encoding="UTF-8"))
+    specifier, variations, pinned = load_click_matrix()
+    assert pinned, "No Click release pinned in test-matrix.variations.click-version."
 
-    # The Click specifier declared in the runtime dependencies.
-    click = next(
-        Requirement(dep)
-        for dep in config["project"]["dependencies"]
-        if Requirement(dep).name == "click"
+    floor = min(
+        Version(spec.version)
+        for spec in specifier
+        if spec.operator in (">=", "==", "~=")
+    )
+    lowest_pin = min(Version(entry) for entry in pinned)
+    assert lowest_pin == floor, (
+        f"Lowest pinned Click version ({lowest_pin}) does not match the dependency "
+        f"floor (`click{specifier}` => {floor}). Keep test-matrix.variations."
+        "click-version in sync with the click specifier in [project] dependencies."
     )
 
-    # The Click versions referenced in the test matrix. Sentinels (released,
-    # stable, main) start with a letter; pinned releases start with a digit.
-    variations = config["tool"]["repomatic"]["test-matrix"]["variations"][
-        "click-version"
-    ]
-    pinned = {entry for entry in variations if entry[0].isdigit()}
+    missing_sentinels = set(SENTINELS) - set(variations)
+    assert not missing_sentinels, (
+        f"test-matrix.variations.click-version dropped the {sorted(missing_sentinels)} "
+        "sentinel(s); the latest release and Click's dev branches would stop being "
+        "tested."
+    )
+
+
+@pytest.mark.once
+def test_click_matrix_matches_authorized_releases():
+    """The pinned releases match exactly the Click releases the specifier allows.
+
+    Every release allowed by the ``click`` specifier must be referenced in the
+    matrix: the newest through the ``released`` sentinel, every earlier one by an
+    explicit pin. This asserts the set equality in both directions:
+
+    - a **missing** pin means Click published a release the matrix has not caught
+      up to (the previous newest is no longer covered by ``released``);
+    - a **stale** pin means a pinned version is no longer an authorized release
+      (the floor was raised past it, or the release was yanked).
+
+    Either way, the matrix needs an edit, and this is the signal.
+    """
+    specifier, variations, pinned = load_click_matrix()
 
     try:
         available = stable_pypi_versions("click")
     except requests.RequestException as error:
         pytest.skip(f"Cannot reach PyPI to list Click releases: {error}")
 
-    authorized = sorted(v for v in available if click.specifier.contains(v))
-    assert authorized, f"No Click release satisfies {click.specifier}."
+    authorized = sorted(v for v in available if specifier.contains(v))
+    assert authorized, f"No Click release satisfies {specifier}."
+    authorized_strings = {str(v) for v in authorized}
 
     # The newest authorized release is exercised through the `released` sentinel;
-    # every older release must be pinned explicitly.
-    sentinel_covered = {authorized[-1]} if "released" in variations else set()
-    required = {str(v) for v in authorized} - {str(v) for v in sentinel_covered}
+    # every earlier release must be pinned explicitly.
+    covered = {str(authorized[-1])} if "released" in variations else set()
+    required = authorized_strings - covered
 
     missing = required - pinned
-    assert not missing, (
-        f"Click releases allowed by `click{click.specifier}` but missing from "
-        f"test-matrix.variations.click-version: {sorted(missing, key=Version)}. "
-        "Add them so the whole supported range stays tested, and re-check which "
-        "release the `released` sentinel now covers."
+    stale = pinned - authorized_strings
+    assert not (missing or stale), "\n".join(
+        message
+        for message in (
+            f"Pin these new Click releases in test-matrix.variations.click-version: "
+            f"{sorted(missing, key=Version)} (and re-check which release `released` "
+            f"now covers)."
+            if missing
+            else "",
+            f"Drop these stale pins, no longer authorized by `click{specifier}`: "
+            f"{sorted(stale, key=Version)}."
+            if stale
+            else "",
+        )
+        if message
     )
