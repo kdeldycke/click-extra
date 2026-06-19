@@ -58,6 +58,20 @@ with Spinner("Brewing tea", spinner=SPINNERS["moon"]):
 
 The preset sets both the frames and the interval; an explicit `frames=` or `interval=` still overrides it. Because the spinner redraws the whole line instead of backspacing, the multi-character animations (`bouncingBar`, `pong`, `shark`, …) render correctly here, unlike in the upstream renderers that had to drop them.
 
+The whole catalog is browsable from the CLI. On an interactive terminal `click-extra spinner` animates a live tour of the selection; `--all` covers the whole catalog (or `--random N` / `--select name1,name2` for a subset), and `--table` prints the reference table below. Its Tour column is the per-spinner dwell time of the live tour: three full cycles, capped at three seconds:
+
+```{click:run}
+from click_extra.cli import demo
+
+result = invoke(demo, args=["--color", "spinner", "--all", "--table"])
+assert result.exit_code == 0
+assert "moon" in result.output
+assert "bouncingBar" in result.output
+assert "dots8Bit" in result.output
+assert "Interval" in result.output
+assert "Tour" in result.output
+```
+
 ## Bell on completion
 
 Set `beep=True` to ring the terminal bell once when the spinner stops, handy for a long task you walk away from. It rings only when the spinner was actually shown, so redirected or non-interactive runs stay quiet:

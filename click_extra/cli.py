@@ -18,14 +18,21 @@
 from __future__ import annotations
 
 import colorsys
+import random
+import sys
 from pathlib import Path
+from time import sleep
 
 import click
 import cloup
+from wcwidth import wcswidth
 
 from . import (
+    SPINNERS,
     ClickException,
     Color,
+    Spinner,
+    SpinnerPreset,
     argument,
     echo,
     group,
@@ -34,6 +41,7 @@ from . import (
     style,
 )
 from .colorize import _nearest_256
+from .context import PROGRESS
 from .table import print_table
 from .version import (
     GIT_FIELDS,
@@ -282,6 +290,181 @@ def demo_8color() -> None:
 def demo_gradient() -> None:
     """Render 24-bit RGB gradients vs. their 256-color quantized equivalents."""
     echo(_render_gradient())
+
+
+# Max display width (terminal cells) of the frame preview column.
+_SPINNER_PREVIEW_WIDTH = 56
+
+
+def _spinner_preview(preset: SpinnerPreset) -> str:
+    """Join leading frames into a preview within the display-width budget.
+
+    Frames are measured by terminal cell width (:func:`wcwidth.wcswidth`), not by
+    code points, so 1-cell glyphs and 2-cell emoji fill the column consistently
+    rather than letting an emoji-heavy preview balloon it. Emoji variation
+    selectors (``U+FE0F``) are dropped: ``wcwidth`` sizes the promoted emoji at
+    two cells while many terminals render the bare symbol in one, and that
+    disagreement misaligns the table. Wide animations (``shark``, ``pong``,
+    ``dots8Bit``, …) stop at the budget with a ``… (+N)`` tail.
+    """
+    shown: list[str] = []
+    width = 0
+    for frame in preset.frames:
+        glyph = frame.replace("\ufe0f", "")  # Drop emoji variation selectors.
+        cost = max(wcswidth(glyph), 0) + (1 if shown else 0)  # +1 joining space.
+        if width + cost > _SPINNER_PREVIEW_WIDTH:
+            break
+        shown.append(glyph)
+        width += cost
+    preview = " ".join(shown)
+    remaining = len(preset.frames) - len(shown)
+    if remaining:
+        preview += f" … (+{remaining})"
+    return preview
+
+
+# A curated, visually-distinct default selection for the live tour.
+_DEFAULT_SHOWCASE = (
+    "dots",
+    "line",
+    "moon",
+    "clock",
+    "earth",
+    "bouncingBar",
+    "arc",
+    "pong",
+    "shark",
+    "mindblown",
+)
+
+
+# The live tour aims for _TOUR_CYCLES full cycles per spinner, then bounds the
+# dwell to at least _TOUR_MIN seconds (so a snappy spinner stays watchable) and
+# at most _TOUR_CAP seconds (so a long or slow one does not monopolize the tour).
+_TOUR_CYCLES = 3
+_TOUR_MIN = 2.0
+_TOUR_CAP = 3.0
+
+
+def _tour_duration(preset: SpinnerPreset) -> float:
+    """Seconds the live tour dwells on a spinner.
+
+    Aims for :data:`_TOUR_CYCLES` full cycles (one cycle is a pass through every
+    frame), then clamps to ``[_TOUR_MIN, _TOUR_CAP]`` seconds: a snappy spinner is
+    held at least :data:`_TOUR_MIN` seconds so it is watchable, while a long or
+    slow one is capped at :data:`_TOUR_CAP`. The cap never trims below a single
+    full cycle, so even a 256-frame spinner completes one loop.
+    """
+    one_cycle = len(preset.frames) * preset.interval
+    capped = min(_TOUR_CYCLES * one_cycle, max(_TOUR_CAP, one_cycle))
+    return max(_TOUR_MIN, capped)
+
+
+def _animate_spinners(names: list[str]) -> None:
+    """Spin each named catalog animation live, with its label and elapsed timer.
+
+    Each spinner runs for its :func:`_tour_duration` (up to :data:`_TOUR_CYCLES`
+    cycles, capped at :data:`_TOUR_CAP` seconds) before moving on, then leaves a
+    ``✓`` success line behind. Interactive terminals only.
+    """
+    for name in names:
+        preset = SPINNERS[name]
+        with Spinner(name, spinner=preset, timer=True) as spinner:
+            sleep(_tour_duration(preset))
+            spinner.ok()
+
+
+@demo.command(name="spinner", section=_demo_section)
+@option(
+    "--all",
+    "every",
+    is_flag=True,
+    help="Show the whole catalog instead of a curated selection.",
+)
+@option(
+    "--random",
+    "sample_size",
+    type=int,
+    metavar="N",
+    default=None,
+    help="Show N spinners chosen at random.",
+)
+@option(
+    "--select",
+    "names",
+    metavar="NAME,…",
+    default=None,
+    help="Show a comma-separated list of spinner names.",
+)
+@option(
+    "--table",
+    "show_table",
+    is_flag=True,
+    help="Print a reference table of the selected spinners.",
+)
+@pass_context
+def demo_spinner(
+    ctx: click.Context,
+    every: bool,
+    sample_size: int | None,
+    names: str | None,
+    show_table: bool,
+) -> None:
+    """Animate the spinner widget; --table lists the catalog instead.
+
+    On an interactive terminal it animates a tour of the selected spinners. By
+    default a curated handful is shown; use --all for the whole catalog,
+    --random N for a random sample, or --select to name specific spinners (these
+    three are mutually exclusive). Pass --table to print a reference table
+    instead of animating: name, frames, per-frame interval, and the tour's
+    per-spinner dwell time.
+    """
+    if sum((every, sample_size is not None, names is not None)) > 1:
+        raise ClickException("--all, --random and --select are mutually exclusive.")
+
+    if every:
+        selection = list(SPINNERS)
+    elif sample_size is not None:
+        if sample_size < 1:
+            raise ClickException("--random needs a count of at least 1.")
+        selection = random.sample(list(SPINNERS), min(sample_size, len(SPINNERS)))
+    elif names is not None:
+        selection = [name.strip() for name in names.split(",") if name.strip()]
+        unknown = [name for name in selection if name not in SPINNERS]
+        if unknown:
+            raise ClickException(
+                f"Unknown spinner(s): {', '.join(unknown)}. "
+                "Run with --all to list every name."
+            )
+        if not selection:
+            raise ClickException("--select needs at least one spinner name.")
+    else:
+        selection = list(_DEFAULT_SHOWCASE)
+
+    # `--table` prints the reference table straight away, with no animation. The
+    # Tour column is the per-spinner dwell time the live tour would spend.
+    if show_table:
+        rows = []
+        for name in selection:
+            preset = SPINNERS[name]
+            rows.append([
+                name,
+                _spinner_preview(preset),
+                f"{preset.interval}s",
+                f"{_tour_duration(preset):.1f}s",
+            ])
+        _find_print_table(ctx)(
+            rows,
+            headers=["Name", "Frames", "Interval", "Tour"],
+            # Right-align Tour so its single-decimal values line up on the dot.
+            colalign=("left", "left", "left", "right"),
+        )
+        return
+
+    # Otherwise animate a live tour on an interactive terminal, honoring
+    # --progress / --accessible. A no-op when captured or piped.
+    if sys.stderr.isatty() and ctx.meta.get(PROGRESS, True):
+        _animate_spinners(selection)
 
 
 @demo.group()

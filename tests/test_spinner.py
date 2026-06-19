@@ -36,6 +36,7 @@ from click_extra import (
     echo,
     pass_context,
 )
+from click_extra.cli import _TOUR_CAP, _TOUR_CYCLES, _TOUR_MIN, _tour_duration, demo
 from click_extra.context import PROGRESS
 from click_extra.spinner import ASCII_SPINNER_FRAMES, SPINNER_FRAMES
 from click_extra.theme import KO_GLYPH, OK_GLYPH
@@ -534,3 +535,95 @@ def test_multichar_preset_renders():
     assert wait_until(lambda: spinner._drawn)
     spinner.stop()
     assert any(frame in stream.getvalue() for frame in preset.frames)
+
+
+def _catalog_row_count(output: str) -> int:
+    """Count data rows in a rendered spinner catalog table.
+
+    Each row carries two time cells (Interval and Tour), so the count of
+    ``X.Ys`` values is halved.
+    """
+    plain = re.sub(r"\x1b\[[0-9;]*m", "", output)
+    return len(re.findall(r"\d\.\d+s", plain)) // 2
+
+
+def test_demo_spinner_table_lists_selection(invoke):
+    """`--table` prints the catalog table; the tour stays TTY-only."""
+    result = invoke(demo, "spinner", "--table")
+    assert result.exit_code == 0
+    # The table lists its column headers and a spread of curated spinner names.
+    for token in ("Name", "Frames", "Interval", "Tour", "dots", "moon", "bouncingBar"):
+        assert token in result.stdout
+
+
+def test_demo_spinner_without_table_flag_shows_no_table(invoke):
+    """Off a TTY and without --table, the command renders no table."""
+    result = invoke(demo, "spinner")
+    assert result.exit_code == 0
+    assert _catalog_row_count(result.output) == 0
+    assert "Interval" not in result.output
+
+
+def test_demo_spinner_tour_column_shows_three_cycle_time(invoke):
+    """The Tour column reports 3 × frames × interval (dots = 2.4s)."""
+    result = invoke(demo, "spinner", "--select", "dots", "--table")
+    assert result.exit_code == 0
+    assert "Tour" in result.output
+    assert "2.4s" in result.output  # dots: 10 frames × 0.08s × 3 cycles.
+
+
+def test_demo_spinner_all_lists_full_catalog(invoke):
+    result = invoke(demo, "spinner", "--all", "--table")
+    assert result.exit_code == 0
+    assert _catalog_row_count(result.output) == len(SPINNERS)  # All 90 rows.
+    assert "dots8Bit" in result.output  # Present in --all, absent from default.
+
+
+def test_demo_spinner_select_filters_by_name(invoke):
+    result = invoke(demo, "spinner", "--select", "mindblown,pong,shark", "--table")
+    assert result.exit_code == 0
+    assert _catalog_row_count(result.output) == 3  # Exactly the three named.
+    for name in ("mindblown", "pong", "shark"):
+        assert name in result.output
+    assert "dots8Bit" not in result.output
+
+
+def test_demo_spinner_select_rejects_unknown(invoke):
+    result = invoke(demo, "spinner", "--select", "pong,nope")
+    assert result.exit_code != 0
+    assert "Unknown spinner" in result.output
+    assert "nope" in result.output
+
+
+def test_demo_spinner_random_limits_count(invoke):
+    result = invoke(demo, "spinner", "--random", "7", "--table")
+    assert result.exit_code == 0
+    assert _catalog_row_count(result.output) == 7
+
+
+def test_demo_spinner_options_are_mutually_exclusive(invoke):
+    result = invoke(demo, "spinner", "--all", "--select", "pong")
+    assert result.exit_code != 0
+    assert "mutually exclusive" in result.output
+
+
+def test_tour_duration_bounds_dwell():
+    """The tour dwell aims for three cycles, clamped to [_TOUR_MIN, _TOUR_CAP],
+    and never trims a huge spinner below one full cycle."""
+    # dots: three cycles (2.4s) fall within the bounds, used as-is.
+    dots = SPINNERS["dots"]
+    one_cycle = len(dots.frames) * dots.interval
+    assert _tour_duration(dots) == _TOUR_CYCLES * one_cycle
+    assert _TOUR_MIN <= _tour_duration(dots) <= _TOUR_CAP
+
+    # toggle11: three cycles (0.3s) fall below the floor → bumped to the minimum.
+    assert _tour_duration(SPINNERS["toggle11"]) == _TOUR_MIN
+
+    # pong: three cycles (7.2s) exceed the cap but one cycle (2.4s) fits → clamp.
+    assert _tour_duration(SPINNERS["pong"]) == _TOUR_CAP
+
+    # dots8Bit: even one cycle exceeds the cap → exactly one full cycle.
+    big = SPINNERS["dots8Bit"]
+    one_big_cycle = len(big.frames) * big.interval
+    assert one_big_cycle > _TOUR_CAP
+    assert _tour_duration(big) == one_big_cycle

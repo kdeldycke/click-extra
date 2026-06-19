@@ -231,6 +231,7 @@ dependencies = [
     { name = "tabulate", extra = ["widechars"] },
     { name = "tomli", marker = "python_full_version < '3.11'" },
     { name = "wcmatch" },
+    { name = "wcwidth" },
 ]
 
 [package.optional-dependencies]
@@ -345,6 +346,7 @@ requires-dist = [
     { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2" },
     { name = "tomlkit", marker = "extra == 'toml'", specifier = ">=0.13" },
     { name = "wcmatch", specifier = ">=10" },
+    { name = "wcwidth", specifier = ">=0.2" },
     { name = "xmltodict", marker = "extra == 'xml'", specifier = ">=1" },
 ]
 provides-extras = ["hjson", "json5", "jsonc", "mkdocs", "pygments", "pytest", "sphinx", "toml", "xml", "yaml"]

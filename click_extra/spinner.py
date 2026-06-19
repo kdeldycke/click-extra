@@ -873,6 +873,14 @@ class Spinner:
         # positional is then the wrapped function, not a text label. `@Spinner(…)`
         # and `with Spinner(…)` keep passing a string label as usual. A string is
         # never callable, so this never misfires on a real label.
+        #
+        # This is the same `callable(first_arg)` test as
+        # `click_extra.decorators.allow_missing_parenthesis`, inlined here on
+        # purpose: that helper wraps a decorator *factory function* and returns a
+        # function, so it cannot wrap `Spinner` without replacing the class — and
+        # `Spinner` must stay a class to double as a context manager and to support
+        # ``isinstance()`` / subclassing. The bare-call hook therefore has to live
+        # in ``__init__``, the one place the parenthesis-less form reaches.
         self._decorated: Callable[..., Any] | None = None
         if callable(label):
             self._decorated = label

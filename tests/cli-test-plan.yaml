@@ -44,6 +44,7 @@
     - "colors"
     - "gradient"
     - "palette"
+    - "spinner"
     - "styles"
     - "help"
     - "prebake"
@@ -165,3 +166,16 @@
   strip_ansi: true
   stdout_contains:
     - "Render 24-bit RGB gradients"
+
+
+- cli_parameters:
+    - spinner
+    - --help
+  exit_code: 0
+  strip_ansi: true
+  stdout_contains:
+    - "Animate the spinner widget"
+    - "--all"
+    - "--random"
+    - "--select"
+    - "--table"

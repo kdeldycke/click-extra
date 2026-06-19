@@ -106,6 +106,9 @@ dependencies = [
   "tomli>=2; python_version<'3.11'",
   # wcmatch 10.0 fix some inconsistencies in globbing and symlinks.
   "wcmatch>=10",
+  # wcwidth (already pulled in by tabulate[widechars]) is used directly to size
+  # the spinner-catalog preview by terminal cell width.
+  "wcwidth>=0.2",
 ]
 
 [project.entry-points]
