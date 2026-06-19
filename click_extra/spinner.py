@@ -1000,6 +1000,28 @@ class Spinner:
         end = self._stop_time if self._stop_time is not None else time.monotonic()
         return end - self._start_time
 
+    @property
+    def shown(self) -> bool:
+        """Whether the spinner has drawn at least one frame to its stream.
+
+        ``True`` only once an animation frame was actually rendered. It stays
+        ``False`` for a disabled spinner (off a TTY, on a ``TERM=dumb`` terminal,
+        or with ``enabled=False``) and for a call that finishes within ``delay``,
+        before the first frame. Reset by :meth:`start`.
+
+        Use it to gate output that should mirror the spinner's visibility.
+        :meth:`ok` and :meth:`fail` write their line unconditionally, so an
+        outcome is still recorded in a pipe or log; guard them with ``shown`` when
+        you only want the finisher on screen after a spinner the user actually
+        saw::
+
+            with Spinner("Baking bread") as spinner:
+                bake()
+                if spinner.shown:
+                    spinner.ok()
+        """
+        return self._drawn
+
     @staticmethod
     def _format_elapsed(seconds: float) -> str:
         """Render a duration compactly: ``2.3s``, ``1:05``, then ``1:02:03``."""

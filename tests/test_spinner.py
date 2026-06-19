@@ -141,6 +141,31 @@ def test_draws_and_cleans_up_when_enabled():
     assert spinner._thread is None
 
 
+def test_shown_false_when_not_drawn():
+    """``shown`` stays False whenever no frame reaches the terminal."""
+    # Never started.
+    assert Spinner("Brewing tea", stream=TTYStringIO()).shown is False
+    # Disabled (non-TTY stream): the spinner is a silent no-op.
+    disabled = Spinner("Brewing tea", stream=io.StringIO())
+    disabled.start()
+    disabled.stop()
+    assert disabled.shown is False
+    # Enabled but finishing within the delay, before the first frame.
+    delayed = Spinner("Brewing tea", stream=TTYStringIO(), delay=10)
+    delayed.start()
+    delayed.stop()
+    assert delayed.shown is False
+
+
+def test_shown_true_after_drawing():
+    """``shown`` flips to True once a frame is drawn, and stays True after stop."""
+    spinner = Spinner("Brewing tea", stream=TTYStringIO(), interval=0.02)
+    spinner.start()
+    assert wait_until(lambda: spinner.shown)
+    spinner.stop()
+    assert spinner.shown is True
+
+
 def test_label_can_change_mid_spin():
     stream = TTYStringIO()
     spinner = Spinner("Brewing tea", stream=stream, interval=0.02)

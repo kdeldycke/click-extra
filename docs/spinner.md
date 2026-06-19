@@ -132,6 +132,15 @@ with Spinner("Baking bread") as spinner:
 
 Pass your own marker (`spinner.ok("done")`) or override the paint with a `Style` (`spinner.fail(style=Style(fg="bright_red"))`). Color is stripped under `--no-color`/`NO_COLOR`; off a terminal the line is still written, so the outcome is recorded in logs and pipes.
 
+Because the finisher is written even when the spinner never appeared (a call shorter than the `delay`, a pipe, a non-terminal), gate it on the `shown` property when you only want it after a spinner the reader actually saw:
+
+```python
+with Spinner("Baking bread") as spinner:
+    bake()
+    if spinner.shown:
+        spinner.ok()
+```
+
 ## Elapsed time
 
 Set `timer=True` to append the running wall-clock time to the spinner, and to any `ok()`/`fail()` line:
