@@ -567,6 +567,9 @@ manpages.script = "click_extra.cli:demo"
 # Custom axes for upstream dependency testing (full matrix only).
 test-matrix.variations.click-version = [ "8.3.1", "8.3.2", "8.3.3", "8.4.0", "released", "stable", "main" ]
 test-matrix.variations.cloup-version = [ "released", "master" ]
+# Drop the slower architecture of each dual-arch OS (measured in CI): keep
+# Apple-silicon macOS and x86 Windows, drop Intel macOS and ARM Windows.
+test-matrix.remove.os = [ "macos-26-intel", "windows-11-arm" ]
 # Set defaults for PR matrix (which has no custom axes).
 test-matrix.include = [
   { "click-version" = "released" },
@@ -576,10 +579,6 @@ test-matrix.include = [
 # Click/Cloup on stable Python) keeps broad cross-platform coverage; every
 # forward-looking axis is pinned to ubuntu-24.04-arm, the fastest runner.
 test-matrix.exclude = [
-  # Drop the slower architecture of each dual-arch OS (measured in CI): keep
-  # Apple-silicon macOS and x86 Windows, drop Intel macOS and ARM Windows.
-  { "os" = "macos-26-intel" },
-  { "os" = "windows-11-arm" },
   # Unreleased Click (stable, main) and Cloup (master): ubuntu-24.04-arm with
   # the latest stable Pythons (3.14, 3.14t) only.
   { "os" = "ubuntu-slim", "click-version" = "stable" },
