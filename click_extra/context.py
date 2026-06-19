@@ -317,6 +317,21 @@ whether to emit usage data.
 """
 
 
+# --- Progress -----------------------------------------------------------------
+
+PROGRESS: Final[str] = "click_extra.progress"
+"""``True`` when the CLI may display progress spinners, ``False`` otherwise.
+
+Written by :class:`click_extra.spinner.ProgressOption.set_progress` after
+reconciling ``--progress`` / ``--no-progress`` with the resolved color state: a
+spinner is an ANSI animation, so it is disabled whenever colors are off
+(``--no-color``, ``NO_COLOR`` and, transitively, ``--accessible``). Downstream
+code reads this to decide whether to start a
+:class:`~click_extra.spinner.Spinner`; the terminal check is left to the spinner
+itself.
+"""
+
+
 # --- Exit code ----------------------------------------------------------------
 
 ZERO_EXIT: Final[str] = "click_extra.zero_exit"

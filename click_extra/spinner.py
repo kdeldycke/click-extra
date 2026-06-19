@@ -44,6 +44,10 @@ from __future__ import annotations
 
 import sys
 import threading
+from gettext import gettext as _
+
+from . import context
+from .parameters import ExtraOption
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -51,6 +55,7 @@ if TYPE_CHECKING:
     from types import TracebackType
     from typing import IO, Final
 
+    import click
     from typing_extensions import Self
 
 
@@ -285,3 +290,64 @@ class Spinner:
         exc_tb: TracebackType | None,
     ) -> None:
         self.stop()
+
+
+class ProgressOption(ExtraOption):
+    """A pre-configured ``--progress``/``--no-progress`` flag gating spinner display.
+
+    Resolves to a single boolean published at
+    :data:`ctx.meta[click_extra.context.PROGRESS] <click_extra.context.PROGRESS>`,
+    which a CLI reads to decide whether to start a :class:`Spinner`.
+
+    A spinner is an ANSI animation, so it is switched off whenever colors are
+    disabled: ``--no-color``, the ``NO_COLOR`` family of environment variables, and
+    ``--accessible`` (which turns colors off) therefore all silence it, even when
+    ``--progress`` is left at its default. The terminal check is delegated to the
+    spinner itself, so a piped or captured run stays quiet too.
+
+    This option is eager and declared after
+    :class:`~click_extra.colorize.ColorOption` so the color state it depends on is
+    already reconciled on ``ctx.color`` by the time this callback runs.
+    """
+
+    def set_progress(
+        self,
+        ctx: click.Context,
+        param: click.Parameter,
+        value: bool,
+    ) -> None:
+        """Publish whether progress spinners may be shown, gated on color.
+
+        ``ctx.color`` is the reconciled color flag set by
+        :meth:`~click_extra.colorize.ColorOption.set_color`. A spinner relies on
+        ANSI control codes, so it is disabled whenever color is off.
+        """
+        context.set(ctx, context.PROGRESS, value and ctx.color is not False)
+
+    def __init__(
+        self,
+        param_decls: Sequence[str] | None = None,
+        is_flag=True,
+        default=True,
+        is_eager=True,
+        expose_value=False,
+        help=_(
+            "Show a progress spinner during long operations. Disabled when colors "
+            "are off (--no-color, --accessible) or output is not a terminal."
+        ),
+        **kwargs,
+    ) -> None:
+        if not param_decls:
+            param_decls = ("--progress/--no-progress",)
+
+        kwargs.setdefault("callback", self.set_progress)
+
+        super().__init__(
+            param_decls=param_decls,
+            is_flag=is_flag,
+            default=default,
+            is_eager=is_eager,
+            expose_value=expose_value,
+            help=help,
+            **kwargs,
+        )

@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import io
+import itertools
 import sys
 import time
 from collections.abc import Callable
@@ -24,7 +25,8 @@ from collections.abc import Callable
 import pytest
 
 import click_extra
-from click_extra import Spinner
+from click_extra import ProgressOption, Spinner, command, echo, pass_context
+from click_extra.context import PROGRESS
 from click_extra.spinner import ASCII_SPINNER_FRAMES, SPINNER_FRAMES
 
 # Cursor and line control codes the spinner emits, named for readable asserts.
@@ -198,7 +200,7 @@ def test_rotation_direction(reverse):
     # Each tick writes exactly one frame glyph; extract them in drawn order.
     drawn = [char for char in stream.getvalue() if char in frames]
     step = -1 if reverse else 1
-    for previous, current in zip(drawn, drawn[1:]):
+    for previous, current in itertools.pairwise(drawn):
         assert frames.index(current) == (frames.index(previous) + step) % len(frames)
 
 
@@ -243,3 +245,38 @@ def test_echo_degrades_to_plain_write_when_disabled():
     spinner.echo("Kettle filled")
     spinner.stop()
     assert stream.getvalue() == "Kettle filled\n"
+
+
+def test_progress_option_is_a_default_option():
+    """ProgressOption ships in the default option set of every extra command."""
+
+    @command
+    def cli():
+        echo("hi")
+
+    assert any(isinstance(p, ProgressOption) for p in cli.params)
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    (
+        # Color on (forced) and progress at its default: spinners allowed.
+        (("--color",), True),
+        # Explicit opt-out wins.
+        (("--color", "--no-progress"), False),
+        # A spinner is an ANSI animation, so disabling color disables it...
+        (("--no-color",), False),
+        # ...and --accessible disables color, hence progress too.
+        (("--accessible",), False),
+    ),
+)
+def test_progress_option_resolution(invoke, args, expected):
+    """``ctx.meta[PROGRESS]`` reconciles --progress with the color state."""
+
+    @command
+    @pass_context
+    def cli(ctx):
+        echo(f"progress={ctx.meta[PROGRESS]}")
+
+    result = invoke(cli, *args)
+    assert f"progress={expected}" in result.stdout

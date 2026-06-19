@@ -151,7 +151,7 @@ from .parameters import (
     get_param_spec,
     search_params,
 )
-from .spinner import Spinner
+from .spinner import ProgressOption, Spinner
 from .table import (
     ColumnsOption,
     ColumnSpec,
@@ -257,6 +257,7 @@ __all__ = [
     "Parameter",
     "ParameterSource",
     "Path",
+    "ProgressOption",
     "Section",
     "SectionMixin",
     "ShowParamsOption",

@@ -46,6 +46,24 @@ with Spinner("Picking apples") as spinner:
         spinner.echo(f"Filled basket {basket}")
 ```
 
+## The `--progress` option
+
+`click_extra.command` and `click_extra.group` add a `--progress`/`--no-progress` flag to every CLI by default. It resolves to a single boolean at `ctx.meta["click_extra.progress"]`, which a command reads to decide whether to start a `Spinner`:
+
+```python
+from click_extra import Spinner, command, pass_context
+from click_extra.context import PROGRESS
+
+@command
+@pass_context
+def harvest(ctx):
+    """Pick apples, showing a spinner when progress is enabled."""
+    with Spinner("Picking apples", enabled=None if ctx.meta[PROGRESS] else False):
+        sleep(5)
+```
+
+Because a spinner is an ANSI animation, the resolved value is `False` whenever colors are off: `--no-color`, the `NO_COLOR` family of environment variables, and `--accessible` (which disables colors) all silence it, even when `--progress` is left at its default. Passing `enabled=None` keeps the spinner's own terminal check, so it also stays quiet when output is piped or captured.
+
 ## `click_extra.spinner` API
 
 ```{eval-rst}

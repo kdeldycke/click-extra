@@ -49,8 +49,9 @@ class AccessibleOption(ExtraOption):
     """A pre-configured ``--accessible`` switch.
 
     Turning it on (either via the flag or the ``ACCESSIBLE`` environment variable)
-    is equivalent to passing ``--no-color --table-format plain``: it strips ANSI
-    codes and renders tables without box-drawing characters.
+    is equivalent to passing ``--no-color --no-progress --table-format plain``: it
+    strips ANSI codes, silences progress spinners, and renders tables without
+    box-drawing characters.
 
     .. note::
         It is a one-way flag with no ``--no-accessible`` counterpart: to opt back
@@ -81,7 +82,7 @@ class AccessibleOption(ExtraOption):
         param: click.Parameter,
         value: bool,
     ) -> None:
-        """Lower the ``--color`` and ``--table-format`` defaults for accessibility.
+        """Lower the color, progress and table-format defaults for accessibility.
 
         Does nothing unless accessibility mode is active, so a CLI that never sees
         ``--accessible`` (nor ``ACCESSIBLE``) behaves exactly as before.
@@ -108,6 +109,7 @@ class AccessibleOption(ExtraOption):
         if ctx.default_map is None:
             ctx.default_map = {}
         ctx.default_map.setdefault("color", False)
+        ctx.default_map.setdefault("progress", False)
         ctx.default_map.setdefault("table_format", TableFormat.PLAIN)
 
     def __init__(

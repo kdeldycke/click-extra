@@ -52,6 +52,7 @@ from .execution import TimerOption
 from .logging import VerboseOption, VerbosityOption
 from .man_page import ManOption
 from .parameters import ExtraOption, ShowParamsOption
+from .spinner import ProgressOption
 from .table import TableFormatOption
 from .theme import ThemeOption
 from .version import ExtraVersionOption
@@ -89,6 +90,11 @@ def default_extra_params() -> list[click.Option]:
             ``--accessible`` is placed before ``--color`` and ``--table-format`` so it
             can lower their defaults (via ``default_map``) before they are resolved.
     #. ``--color``, ``--ansi`` / ``--no-color``, ``--no-ansi``
+    #. ``--progress`` / ``--no-progress``
+        .. hint::
+            ``--progress`` is placed after ``--color`` so its callback can read
+            the reconciled ``ctx.color`` and silence the spinner when colors are
+            off.
     #. ``--theme``
     #. ``--show-params``
     #. ``--table-format FORMAT``
@@ -131,6 +137,7 @@ def default_extra_params() -> list[click.Option]:
         ValidateConfigOption(),
         AccessibleOption(),
         ColorOption(),
+        ProgressOption(),
         ThemeOption(),
         ShowParamsOption(),
         TableFormatOption(),
