@@ -1006,8 +1006,17 @@ def test_clickrunner_forces_color(monkeypatch):
 @pytest.mark.parametrize(
     ("capture", "renders"),
     (
-        (None, True),  # No argument: defaults to "fd".
-        ("fd", True),
+        # No argument: defaults to "fd" on Unix (renders) and "sys" on Windows (no render).
+        pytest.param(None, sys.platform != "win32"),
+        # Explicit "fd": not supported on Windows (fd-backed streams require Unix fds).
+        pytest.param(
+            "fd",
+            True,
+            marks=pytest.mark.skipif(
+                sys.platform == "win32",
+                reason='capture="fd" is not supported on Windows.',
+            ),
+        ),
         ("sys", False),
     ),
 )
@@ -1017,8 +1026,9 @@ def test_clickrunner_capture_mode_controls_fileno(capture, renders):
     Click's ``"sys"`` mode backs the captured stream with an in-memory buffer whose
     ``fileno()`` raises :exc:`io.UnsupportedOperation`, so a documented command that
     re-opens its descriptor (a common UTF-8-on-Windows guard) aborts. ``"fd"`` (the
-    default, also exposed as the ``click_extra_run_capture`` conf.py value) backs it
-    with a real descriptor, so the command renders.
+    default on Unix, also exposed as the ``click_extra_run_capture`` conf.py value)
+    backs it with a real descriptor, so the command renders. On Windows, where fd-backed
+    streams are not supported, the default falls back to ``"sys"``.
     """
 
     @click.command()

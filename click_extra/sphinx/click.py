@@ -149,10 +149,11 @@ class ClickRunner(CliRunner):
     latter lever but cannot pass ``color=True``, since it patches a renderer it never
     executes.
 
-    On Click 8.4+ the runner defaults to ``capture="fd"`` (overridable through the
-    ``click_extra_run_capture`` ``conf.py`` value) so a documented command that writes
-    through ``sys.stdout.fileno()`` is captured and rendered, instead of aborting the
-    build with :exc:`io.UnsupportedOperation`.
+    On Click 8.4+ the runner defaults to ``capture="fd"`` on Unix (overridable through
+    the ``click_extra_run_capture`` ``conf.py`` value) so a documented command that
+    writes through ``sys.stdout.fileno()`` is captured and rendered, instead of aborting
+    the build with :exc:`io.UnsupportedOperation`. On Windows, where fd-backed streams
+    are not supported, the default falls back to ``capture="sys"``.
     """
 
     def __init__(self, capture: Literal["sys", "fd"] | None = None) -> None:
@@ -163,8 +164,11 @@ class ClickRunner(CliRunner):
         # duplication that got it reverted as a Click default (pallets/click#3391).
         # Click < 8.4 lacks the parameter and needs none (8.3.3+ exposed a fileno by
         # default; < 8.3.3 never did), so omitting it is correct.
+        # Windows does not support fd-backed streams (no Unix file descriptors), so
+        # fall back to "sys" when the caller has not pinned a mode explicitly.
         if _CLIRUNNER_HAS_CAPTURE:
-            super().__init__(echo_stdin=True, capture=capture or "fd")
+            default_capture = "sys" if sys.platform == "win32" else "fd"
+            super().__init__(echo_stdin=True, capture=capture or default_capture)
         else:
             super().__init__(echo_stdin=True)
         self.namespace = {"click": click, "__file__": "dummy.py"}
