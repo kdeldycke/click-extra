@@ -26,7 +26,16 @@ from collections.abc import Callable
 import pytest
 
 import click_extra
-from click_extra import ProgressOption, Spinner, Style, command, echo, pass_context
+from click_extra import (
+    SPINNERS,
+    ProgressOption,
+    Spinner,
+    SpinnerPreset,
+    Style,
+    command,
+    echo,
+    pass_context,
+)
 from click_extra.context import PROGRESS
 from click_extra.spinner import ASCII_SPINNER_FRAMES, SPINNER_FRAMES
 from click_extra.theme import KO_GLYPH, OK_GLYPH
@@ -476,3 +485,52 @@ def test_elapsed_time_freezes_after_stop():
     # Once stopped, the clock no longer advances.
     time.sleep(0.05)
     assert spinner.elapsed_time == frozen
+
+
+def test_catalog_is_complete():
+    """The cli-spinners / ora catalog is present and well-formed."""
+    assert len(SPINNERS) == 90
+    assert all(isinstance(p, SpinnerPreset) for p in SPINNERS.values())
+    # Every preset has at least one frame and a positive interval.
+    assert all(p.frames and p.interval > 0 for p in SPINNERS.values())
+    # A few well-known names are present.
+    for name in ("dots", "line", "moon", "clock", "bouncingBar", "dots8Bit"):
+        assert name in SPINNERS
+    # dots / line reuse the module's existing frame constants.
+    assert SPINNERS["dots"].frames == SPINNER_FRAMES
+    assert SPINNERS["line"].frames == ASCII_SPINNER_FRAMES
+    # The 256-frame 8-bit animation round-tripped through its packed form.
+    assert len(SPINNERS["dots8Bit"].frames) == 256
+
+
+def test_spinner_preset_supplies_frames_and_interval():
+    preset = SPINNERS["dots2"]
+    spinner = Spinner(spinner=preset)
+    assert spinner.frames == preset.frames
+    assert spinner.interval == preset.interval
+
+
+def test_explicit_frames_and_interval_override_preset():
+    spinner = Spinner(
+        spinner=SPINNERS["moon"], frames=ASCII_SPINNER_FRAMES, interval=0.5
+    )
+    assert spinner.frames == ASCII_SPINNER_FRAMES  # Explicit frames win.
+    assert spinner.interval == 0.5  # Explicit interval wins.
+
+
+def test_defaults_without_frames_or_preset():
+    spinner = Spinner()
+    assert spinner.frames == SPINNER_FRAMES
+    assert spinner.interval == 0.1
+
+
+def test_multichar_preset_renders():
+    """A multi-character animation (which upstream `\\b` renderers drop) draws."""
+    preset = SPINNERS["bouncingBar"]
+    assert any(len(frame) > 1 for frame in preset.frames)  # Multi-char frames.
+    stream = TTYStringIO()
+    spinner = Spinner(stream=stream, spinner=preset, interval=0.02)
+    spinner.start()
+    assert wait_until(lambda: spinner._drawn)
+    spinner.stop()
+    assert any(frame in stream.getvalue() for frame in preset.frames)

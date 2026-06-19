@@ -45,6 +45,19 @@ with Spinner("Chilling lemonade", reverse=True):
 
 The animation source is just a sequence of strings. `click_extra.spinner` ships the default Braille `SPINNER_FRAMES` and a plain `ASCII_SPINNER_FRAMES` for terminals without Unicode glyphs; pass your own to `frames` for anything else.
 
+## Spinner catalog
+
+`SPINNERS` is a catalog of around 90 ready-made animations ported from [cli-spinners](https://github.com/sindresorhus/cli-spinners) (the same set [ora](https://github.com/sindresorhus/ora) re-exports). Each entry is a `SpinnerPreset` bundling the frames and the interval they were tuned for. Pick one with `spinner=`:
+
+```python
+from click_extra import Spinner, SPINNERS
+
+with Spinner("Brewing tea", spinner=SPINNERS["moon"]):
+    sleep(5)
+```
+
+The preset sets both the frames and the interval; an explicit `frames=` or `interval=` still overrides it. Because the spinner redraws the whole line instead of backspacing, the multi-character animations (`bouncingBar`, `pong`, `shark`, …) render correctly here, unlike in the upstream renderers that had to drop them.
+
 ## Bell on completion
 
 Set `beep=True` to ring the terminal bell once when the spinner stops, handy for a long task you walk away from. It rings only when the spinner was actually shown, so redirected or non-interactive runs stay quiet:

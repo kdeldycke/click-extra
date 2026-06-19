@@ -151,7 +151,7 @@ from .parameters import (
     get_param_spec,
     search_params,
 )
-from .spinner import ProgressOption, Spinner
+from .spinner import SPINNERS, ProgressOption, Spinner, SpinnerPreset
 from .table import (
     ColumnsOption,
     ColumnSpec,
@@ -192,6 +192,7 @@ __all__ = [
     "INT",
     "NO_CONFIG",
     "PREPEND_SUBCOMMANDS_KEY",
+    "SPINNERS",
     "STRING",
     "UNPROCESSED",
     "UNSET",
@@ -263,6 +264,7 @@ __all__ = [
     "ShowParamsOption",
     "SortByOption",
     "Spinner",
+    "SpinnerPreset",
     "Style",
     "TableFormat",
     "TableFormatOption",
