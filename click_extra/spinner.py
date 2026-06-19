@@ -80,9 +80,8 @@ class SpinnerPreset(NamedTuple):
     """A named spinner animation: its frames and the interval they look best at.
 
     The :data:`SPINNERS` catalog is ported from `cli-spinners
-    <https://github.com/sindresorhus/cli-spinners>`_ (the same data
-    `ora <https://github.com/sindresorhus/ora>`_ re-exports), with intervals
-    converted from milliseconds to seconds. Pass one to :class:`Spinner` via its
+    <https://github.com/sindresorhus/cli-spinners>`_, with intervals converted
+    from milliseconds to seconds. Pass one to :class:`Spinner` via its
     ``spinner`` argument.
     """
 
@@ -777,7 +776,7 @@ SPINNERS: Final = {
         0.08,
     ),
 }
-"""Named spinner animations ported from cli-spinners / ora, keyed by name.
+"""Named spinner animations ported from cli-spinners, keyed by name.
 
 Each value is a :class:`SpinnerPreset` bundling frames and a tuned interval.
 Select one with :class:`Spinner`'s ``spinner`` argument::

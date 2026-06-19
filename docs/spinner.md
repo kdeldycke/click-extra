@@ -47,7 +47,7 @@ The animation source is just a sequence of strings. `click_extra.spinner` ships 
 
 ## Spinner catalog
 
-`SPINNERS` is a catalog of around 90 ready-made animations ported from [cli-spinners](https://github.com/sindresorhus/cli-spinners) (the same set [ora](https://github.com/sindresorhus/ora) re-exports). Each entry is a `SpinnerPreset` bundling the frames and the interval they were tuned for. Pick one with `spinner=`:
+`SPINNERS` is a catalog of around 90 ready-made animations, each a `SpinnerPreset` bundling the frames and the interval they were tuned for. They are ported from [cli-spinners](https://github.com/sindresorhus/cli-spinners), the de-facto reference collection. Pick one with `spinner=`:
 
 ```python
 from click_extra import Spinner, SPINNERS
@@ -58,7 +58,9 @@ with Spinner("Brewing tea", spinner=SPINNERS["moon"]):
 
 The preset sets both the frames and the interval; an explicit `frames=` or `interval=` still overrides it. Because the spinner redraws the whole line instead of backspacing, the multi-character animations (`bouncingBar`, `pong`, `shark`, …) render correctly here, unlike in the upstream renderers that had to drop them.
 
-The whole catalog is browsable from the CLI. On an interactive terminal `click-extra spinner` animates a live tour of the selection; `--all` covers the whole catalog (or `--random N` / `--select name1,name2` for a subset), and `--table` prints the reference table below. Its Tour column is the per-spinner dwell time of the live tour: three full cycles, capped at three seconds:
+### Full inventory
+
+Every style is browsable from the CLI. On an interactive terminal `click-extra spinner` animates a live tour of the selection (`--all` for the whole catalog, `--random N` for a sample, or `--select name1,name2` for specific ones); `--table` prints the reference table below instead of animating. The Frames column previews each animation, and the Tour column is the dwell time the live tour spends on each — three full cycles, clamped to two-to-three seconds:
 
 ```{click:run}
 from click_extra.cli import demo
@@ -92,18 +94,31 @@ with Spinner("Picking apples") as spinner:
         spinner.echo(f"Filled basket {basket}")
 ```
 
-## Color
+## Styling and color
 
-Style the glyph, label and timer with a [`Style`](styling.md) instance, the same type the theme system uses:
+The spinner's glyph, label and timer are painted with a [`Style`](styling.md) instance — the very type Click Extra's [theme system](theme.md) is built on. The simplest customization is a foreground color:
 
 ```python
 from click_extra import Spinner, Style
 
-with Spinner("Counting sheep", style=Style(fg="cyan", bold=True)):
+with Spinner("Counting sheep", style=Style(fg="cyan")):
     sleep(5)
 ```
 
-Color is decoupled from the animation: on a terminal under `--no-color` or `NO_COLOR` the spinner keeps spinning, just in plain text (the `--progress` section below explains why). Inside a Click Extra CLI the color follows the reconciled `--color`/`--no-color` flag; standalone it honors `FORCE_COLOR` then `NO_COLOR`, then falls back to the terminal. A `Style` carrying an unrenderable color or attribute is rejected with a `ValueError` at construction.
+A `Style` carries far more than a foreground color. Add a background with `bg`, and text attributes like `bold`, `dim`, `italic`, `underline`, `blink` or `reverse` — and combine them freely:
+
+```python
+with Spinner("Counting sheep", style=Style(fg="bright_white", bg="blue", bold=True)):
+    sleep(5)
+```
+
+Colors accept any form [`click.style`](https://click.palletsprojects.com/en/stable/api/#click.style) understands: ANSI names (`"red"`, `"bright_magenta"`), 256-color indexes, `#rrggbb` hex strings, or `(r, g, b)` tuples. A `Style` carrying an unrenderable color or attribute is rejected with a `ValueError` at construction, so a typo fails fast instead of silently dying on the animation thread.
+
+### Color follows the terminal, not the spinner
+
+Color is decoupled from the animation: under `--no-color` or `NO_COLOR` the spinner keeps spinning, just in plain text (the `--progress` section below explains the rationale). Inside a Click Extra CLI the color follows the reconciled `--color`/`--no-color` flag; standalone it honors `FORCE_COLOR`, then `NO_COLOR`, then falls back to whether the terminal is interactive.
+
+The same `Style` type colors the `ok()` / `fail()` finishers: they default to the theme's `success`/`error` style and take a `style=` override, covered in the *Success and failure* section below.
 
 ## Success and failure
 
@@ -124,7 +139,7 @@ Set `timer=True` to append the running wall-clock time to the spinner, and to an
 ```python
 with Spinner("Simmering stock", timer=True) as spinner:
     sleep(5)
-    spinner.ok()  # ✔ Simmering stock (5.0s)
+    spinner.ok()  # ✓ Simmering stock (5.0s)
 ```
 
 The duration is rendered compactly: `2.3s`, then `1:05`, then `1:02:03`. Read it any time from the `elapsed_time` property, which freezes once the spinner stops.
