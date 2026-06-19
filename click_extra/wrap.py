@@ -337,8 +337,8 @@ def resolve_target_command(
     ``subcommands`` navigate into nested groups, mirroring the path a user would
     type.
 
-    Shared by the ``show-params`` and ``man`` subcommands so both introspect the
-    exact same resolved command.
+    Shared by the ``wrap`` command's ``--show-params`` and ``--man`` modes so
+    both introspect the exact same resolved command.
 
     :raises click.ClickException: when no unambiguous Click command can be
         found, or a requested subcommand does not exist.

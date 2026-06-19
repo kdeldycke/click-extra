@@ -34,6 +34,7 @@ from . import (
     Spinner,
     SpinnerPreset,
     argument,
+    context,
     echo,
     group,
     option,
@@ -41,7 +42,6 @@ from . import (
     style,
 )
 from .colorize import _nearest_256
-from .context import PROGRESS
 from .table import print_table
 from .version import (
     GIT_FIELDS,
@@ -463,7 +463,7 @@ def demo_spinner(
 
     # Otherwise animate a live tour on an interactive terminal, honoring
     # --progress / --accessible. A no-op when captured or piped.
-    if sys.stderr.isatty() and ctx.meta.get(PROGRESS, True):
+    if sys.stderr.isatty() and context.get(ctx, context.PROGRESS, True):
         _animate_spinners(selection)
 
 

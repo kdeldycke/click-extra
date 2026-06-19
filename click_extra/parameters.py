@@ -486,8 +486,7 @@ def format_param_row(
     For visual formats, values are themed strings matching help-screen styling.
 
     The remaining table columns (``allowed_in_conf``, ``value``, ``source``)
-    require live context and are filled in by
-    :meth:`ShowParamsOption.print_params`.
+    require live context and are filled in by :func:`render_params_table`.
     """
     param_spec = get_param_spec(param, ctx)
     param_class = param.__class__

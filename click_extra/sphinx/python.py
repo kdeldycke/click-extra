@@ -66,7 +66,13 @@ class PythonRunner:
     :func:`cleanup_python_runner`.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, capture: str | None = None) -> None:
+        # ``capture`` is accepted for interface parity with the shared
+        # :attr:`~click_extra.sphinx.click.ClickDirective.runner` property,
+        # which passes the ``click_extra_run_capture`` value to every runner
+        # factory. It is ignored here: ``python:*`` blocks capture stdout via
+        # ``contextlib.redirect_stdout``, a sys-level mechanism with no
+        # file-descriptor variant, so the "sys"/"fd" distinction does not apply.
         self.namespace: dict[str, object] = {"__file__": "dummy.py"}
 
     def execute_source(self, directive: ClickDirective) -> None:

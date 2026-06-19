@@ -44,6 +44,7 @@ The table below lists every entry Click Extra writes, the option that triggers i
 | `context.VERBOSE`         | `click_extra.verbose`         | `--verbose` / `-v` callback                                | `int` — repetition count *(write-only)*                                |
 | `context.START_TIME`      | `click_extra.start_time`      | `--time` callback (`@timer_option`)                        | `float` — `time.perf_counter()` snapshot                               |
 | `context.JOBS`            | `click_extra.jobs`            | `--jobs` callback (`@jobs_option`)                         | `int` — effective parallel job count (clamped to >= 1)                 |
+| `context.PROGRESS`        | `click_extra.progress`        | `ProgressOption.set_progress` (always present on `@command`) | `bool` — `True` when progress spinners may display                   |
 | `context.TABLE_FORMAT`    | `click_extra.table_format`    | `--table-format` callback (`@table_format_option`)         | `TableFormat`                                                          |
 | `context.SORT_BY`         | `click_extra.sort_by`         | `--sort-by` callback (`@sort_by_option`)                   | `tuple[str, ...]` — column IDs in priority order                       |
 | `context.THEME`           | `click_extra.theme.active`    | `--theme` callback (always present on `@command`)          | `HelpExtraTheme` — palette picked for this invocation                  |
