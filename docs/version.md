@@ -70,6 +70,8 @@ You can customize the message template with the following variables:
 | {py:attr}`{module_version} <click_extra.version.ExtraVersionOption.module_version>`   | The string found in the local `__version__` variable of the module.                                                                                                                    |
 | {py:attr}`{package_name} <click_extra.version.ExtraVersionOption.package_name>`       | The [name of the package](https://docs.python.org/3/reference/datamodel.html#module.__package__) in which the CLI is distributed.                                                      |
 | {py:attr}`{package_version} <click_extra.version.ExtraVersionOption.package_version>` | The [version from the package metadata](https://docs.python.org/3/library/importlib.metadata.html?highlight=metadata%20version#distribution-versions) in which the CLI is distributed. |
+| {py:attr}`{author} <click_extra.version.ExtraVersionOption.author>`                   | The package author(s) from the [core metadata](https://packaging.python.org/en/latest/specifications/core-metadata/), or `None` if not declared.                                       |
+| {py:attr}`{license} <click_extra.version.ExtraVersionOption.license>`                 | The package license from the [core metadata](https://packaging.python.org/en/latest/specifications/core-metadata/): SPDX `License-Expression`, classifier, or free-form `License`.     |
 | {py:attr}`{exec_name} <click_extra.version.ExtraVersionOption.exec_name>`             | User-friendly name of the executed CLI. Returns `{module_name}`, `{package_name}` or script's filename, in this order.                                                                 |
 | {py:attr}`{version} <click_extra.version.ExtraVersionOption.version>`                 | Version of the CLI. Returns `{module_version}`, `{package_version}` or `None`, in this order. For [`.dev` versions](#development-versions), automatically appends the Git commit hash. |
 | {py:attr}`{git_repo_path} <click_extra.version.ExtraVersionOption.git_repo_path>`     | The full path to the Git repository root directory, or `None` if not in a Git repository.                                                                                              |
@@ -403,6 +405,8 @@ Each variable listed in the section above can be rendered in its own style. They
 | `module_version_style`  | Style for `{module_version}` variable.  | `Style(fg="green")`{l=python}                      |
 | `package_name_style`    | Style for `{package_name}` variable.    | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
 | `package_version_style` | Style for `{package_version}` variable. | `Style(fg="green")`{l=python}                      |
+| `author_style`          | Style for `{author}` variable.          | `None`{l=python}                                   |
+| `license_style`         | Style for `{license}` variable.         | `None`{l=python}                                   |
 | `exec_name_style`       | Style for `{exec_name}` variable.       | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
 | `version_style`         | Style for `{version}` variable.         | `Style(fg="green")`{l=python}                      |
 | `git_repo_path_style`   | Style for `{git_repo_path}` variable.   | `Style(fg="bright_black")`{l=python}               |

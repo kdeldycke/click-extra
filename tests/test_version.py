@@ -233,6 +233,8 @@ def test_context_meta(invoke, cmd_decorator, assert_output_regex):
             r"module_version = None\n"
             r"package_name = click_extra\n"
             r"package_version = \S+\n"
+            r"author = .+\n"
+            r"license = .+\n"
             r"exec_name = click_extra\.testing\n"
             r"version = \S+\n"
             r"git_repo_path = .+\n"

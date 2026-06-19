@@ -38,6 +38,7 @@ import logging
 import os
 import subprocess
 import sys
+from email.utils import getaddresses
 from functools import cached_property
 from gettext import gettext as _
 from importlib import metadata
@@ -66,6 +67,7 @@ _default_invoked_command = BUILTIN_THEMES["dark"].invoked_command
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from importlib.metadata import PackageMetadata
     from types import FrameType, ModuleType
     from typing import Any
 
@@ -336,6 +338,8 @@ class ExtraVersionOption(ExtraOption):
         "module_version",
         "package_name",
         "package_version",
+        "author",
+        "license",
         "exec_name",
         "version",
         "git_repo_path",
@@ -361,6 +365,8 @@ class ExtraVersionOption(ExtraOption):
         module_version: str | None = None,
         package_name: str | None = None,
         package_version: str | None = None,
+        author: str | None = None,
+        license: str | None = None,
         exec_name: str | None = None,
         version: str | None = None,
         git_repo_path: str | None = None,
@@ -380,6 +386,8 @@ class ExtraVersionOption(ExtraOption):
         module_version_style: IStyle | None = Style(fg="green"),
         package_name_style: IStyle | None = _default_invoked_command,
         package_version_style: IStyle | None = Style(fg="green"),
+        author_style: IStyle | None = None,
+        license_style: IStyle | None = None,
         exec_name_style: IStyle | None = _default_invoked_command,
         version_style: IStyle | None = Style(fg="green"),
         git_repo_path_style: IStyle | None = Style(fg="bright_black"),
@@ -409,6 +417,8 @@ class ExtraVersionOption(ExtraOption):
         :param module_version: forces the value of ``{module_version}``.
         :param package_name: forces the value of ``{package_name}``.
         :param package_version: forces the value of ``{package_version}``.
+        :param author: forces the value of ``{author}``.
+        :param license: forces the value of ``{license}``.
         :param exec_name: forces the value of ``{exec_name}``.
         :param version: forces the value of ``{version}``.
         :param git_repo_path: forces the value of ``{git_repo_path}``.
@@ -429,6 +439,8 @@ class ExtraVersionOption(ExtraOption):
         :param module_version_style: style of ``{module_version}``.
         :param package_name_style: style of ``{package_name}``.
         :param package_version_style: style of ``{package_version}``.
+        :param author_style: style of ``{author}``.
+        :param license_style: style of ``{license}``.
         :param exec_name_style: style of ``{exec_name}``.
         :param version_style: style of ``{version}``.
         :param git_repo_path_style: style of ``{git_repo_path}``.
@@ -684,33 +696,39 @@ class ExtraVersionOption(ExtraOption):
         return self.module.__package__
 
     @cached_property
-    def package_version(self) -> str | None:
-        """Returns the package version if installed.
+    def _distribution_name(self) -> str | None:
+        """Resolve :attr:`package_name` to an installed distribution name.
 
-        If ``package_name`` does not match an installed distribution
-        directly, it is resolved as an import (top-level module) name
-        via :func:`importlib.metadata.packages_distributions`. This
-        covers packages whose top-level module name differs from their
-        distribution name (``PIL`` vs ``Pillow``, ``jwt`` vs ``PyJWT``).
-        Ambiguous mappings (one import name to several distributions)
-        return ``None``: pass ``package_name`` explicitly to disambiguate.
+        :attr:`package_name` is an *import* (top-level module) name, which
+        may differ from the *distribution* name (``PIL`` vs ``Pillow``,
+        ``jwt`` vs ``PyJWT``). This resolves it to the distribution name
+        used for :mod:`importlib.metadata` lookups.
+
+        If :attr:`package_name` already matches an installed distribution
+        it is returned as-is. Otherwise it is resolved as an import name
+        via :func:`importlib.metadata.packages_distributions`. Ambiguous
+        mappings (one import name to several distributions) return
+        ``None``: pass ``package_name`` explicitly to disambiguate.
         """
         logger = logging.getLogger("click_extra")
 
         if not self.package_name:
-            logger.debug("Cannot guess version from package: no package name provided.")
+            logger.debug("No package name provided.")
             return None
 
+        # ``package_name`` already matches an installed distribution.
         try:
-            return metadata.version(self.package_name)
+            metadata.distribution(self.package_name)
         except metadata.PackageNotFoundError:
             pass
+        else:
+            return self.package_name
 
         # The given name didn't match an installed distribution. Try
         # resolving it as an import (top-level module) name.
         distributions = metadata.packages_distributions().get(self.package_name, [])
         if len(distributions) == 1:
-            return metadata.version(distributions[0])
+            return distributions[0]
         if len(distributions) > 1:
             logger.debug(
                 f"{self.package_name!r} maps to multiple installed "
@@ -718,11 +736,104 @@ class ExtraVersionOption(ExtraOption):
                 "'package_name' to disambiguate."
             )
             return None
-        logger.debug(
-            f"Cannot get version: {self.package_name!r} package not found or not "
-            "installed."
-        )
+        logger.debug(f"{self.package_name!r} package not found or not installed.")
         return None
+
+    @cached_property
+    def package_version(self) -> str | None:
+        """Returns the package version if installed.
+
+        Resolved from the distribution name (see
+        :attr:`_distribution_name`) via :func:`importlib.metadata.version`.
+        Returns ``None`` if the package is not installed or cannot be
+        resolved.
+        """
+        name = self._distribution_name
+        return metadata.version(name) if name else None
+
+    @cached_property
+    def _package_metadata(self) -> PackageMetadata | None:
+        """Returns the distribution's core metadata, or ``None``.
+
+        Reads the `core metadata
+        <https://packaging.python.org/en/latest/specifications/core-metadata/>`_
+        (``Author``, ``License-Expression``, classifiers, ...) of the
+        resolved distribution (see :attr:`_distribution_name`). Returns
+        ``None`` when the package is not installed or cannot be resolved.
+        """
+        name = self._distribution_name
+        return metadata.metadata(name) if name else None
+
+    @staticmethod
+    def _meta_value(meta: PackageMetadata, *keys: str) -> str | None:
+        """Return the first non-empty value among core-metadata *keys*.
+
+        Accessed through ``in`` + ``[]`` (rather than ``.get()``) to dodge
+        the deprecated implicit-``None`` return on missing keys.
+        """
+        for key in keys:
+            if key in meta:
+                value = meta[key]
+                if value:
+                    return value
+        return None
+
+    @cached_property
+    def author(self) -> str | None:
+        """Returns the package author(s) from its core metadata.
+
+        Prefers the ``Author`` field, then the ``Maintainer`` field, then
+        the display name parsed out of the ``Author-email`` /
+        ``Maintainer-email`` fields (``Name <email>``). Returns ``None``
+        if no author can be determined.
+        """
+        meta = self._package_metadata
+        if not meta:
+            return None
+
+        # Plain-name fields, in order of preference.
+        name = self._meta_value(meta, "Author", "Maintainer")
+        if name:
+            return name
+
+        # ``Name <email>`` combined fields: keep only the display names,
+        # falling back to the raw value when no name part is present.
+        contact = self._meta_value(meta, "Author-email", "Maintainer-email")
+        if contact:
+            names = [n for n, _addr in getaddresses([contact]) if n]
+            return ", ".join(names) if names else contact
+
+        return None
+
+    @cached_property
+    def license(self) -> str | None:
+        """Returns the package license from its core metadata.
+
+        Prefers the SPDX ``License-Expression`` field (`core metadata 2.4+
+        <https://packaging.python.org/en/latest/specifications/core-metadata/#license-expression>`_).
+        Falls back to the human-readable name of the first ``License ::``
+        trove classifier, then to the free-form ``License`` field (which
+        may hold the full license text). Returns ``None`` if no license
+        can be determined.
+        """
+        meta = self._package_metadata
+        if not meta:
+            return None
+
+        # SPDX expression (core metadata 2.4+), the modern canonical field.
+        expression = self._meta_value(meta, "License-Expression")
+        if expression:
+            return expression
+
+        # ``License :: OSI Approved :: GNU GPL v3 (GPLv3)`` →
+        # ``GNU GPL v3 (GPLv3)``.
+        for classifier in meta.get_all("Classifier") or []:
+            text = str(classifier)
+            if text.startswith("License ::"):
+                return text.split("::")[-1].strip()
+
+        # Free-form legacy field (may hold the full license text).
+        return self._meta_value(meta, "License")
 
     @cached_property
     def exec_name(self) -> str:
