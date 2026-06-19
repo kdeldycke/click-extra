@@ -38,6 +38,12 @@ thread, so the caller can stay blocked in a single call (``communicate()``,
     no-op whenever its output stream is not a TTY (a pipe, a file, a captured
     test buffer, a CI log), unless ``enabled`` is forced. This keeps redirected
     output and machine-readable formats clean.
+
+.. note::
+    On Windows, :meth:`Spinner.start` enables the console's virtual-terminal
+    processing so the ANSI control codes animate in place rather than print
+    literally (``⠋␛[0m … ␛[K``). Modern terminals (Windows Terminal, recent
+    conhost) already have it on; this just covers older consoles.
 """
 
 from __future__ import annotations
@@ -1047,6 +1053,38 @@ class Spinner:
         formatter = self.timer if callable(self.timer) else self._format_elapsed
         return f" ({formatter(self.elapsed_time)})"
 
+    @staticmethod
+    def _enable_windows_ansi(stream: IO[str]) -> None:
+        """Best-effort: turn on virtual-terminal processing for a Windows console.
+
+        Without it, legacy Windows consoles print the spinner's ANSI control codes
+        literally (``⠋␛[0m … ␛[K``) instead of animating in place — the recurring
+        complaint behind yaspin's Windows issues. Modern terminals (Windows
+        Terminal, recent conhost) already enable it; this just covers the
+        laggards. A no-op everywhere but Windows, and silent when the console (or
+        a non-console stream) refuses the mode.
+        """
+        # Positive `sys.platform` guard so type checkers treat the body as
+        # platform-conditional rather than dead code on a non-Windows host.
+        if sys.platform == "win32":
+            try:
+                # Windows-only standard-library modules, imported lazily so the
+                # spinner module still loads on every platform.
+                import ctypes
+                import msvcrt
+
+                handle = msvcrt.get_osfhandle(stream.fileno())
+                kernel32 = ctypes.windll.kernel32
+                mode = ctypes.c_uint32()
+                if kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
+                    enable_vt = 0x0004  # ENABLE_VIRTUAL_TERMINAL_PROCESSING
+                    kernel32.SetConsoleMode(handle, mode.value | enable_vt)
+            except (OSError, ValueError, AttributeError):
+                # Raised for a non-console stream (no/closed fileno) or a console
+                # that refuses the mode; nothing actionable. On a modern terminal
+                # the codes already render, on a truly legacy one they cannot.
+                pass
+
     def start(self) -> None:
         """Begin animating on a background thread, unless the spinner is disabled.
 
@@ -1063,6 +1101,9 @@ class Spinner:
         self._color_enabled = self._resolve_color_enabled(stream)
         if not self._resolve_enabled(stream):
             return
+        # The spinner is about to emit ANSI control codes: make sure a Windows
+        # console will interpret rather than echo them.
+        self._enable_windows_ansi(stream)
         self._stop.clear()
         self._drawn = False
         self._cursor_hidden = False
