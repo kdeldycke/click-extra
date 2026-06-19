@@ -541,22 +541,50 @@ exclude = [ "skills", "workflows/debug.yaml" ]
 # tarball and the HTML docs site stay in lockstep. Requires repomatic
 # >= 6.25.0 in the release engine.
 manpages.script = "click_extra.cli:demo"
+# Resulting full test matrix (31 jobs; runs on push-to-main and the monthly
+# schedule, never on PRs). The shipped config keeps broad cross-platform
+# coverage; everything forward-looking runs on the single fastest runner
+# (ubuntu-24.04-arm, measured in CI). The axes and excludes below compose into
+# these slices:
+#   - released click × released cloup: {3.10, 3.14, 3.14t} on the 4 retained
+#     OSes (ubuntu-24.04-arm, ubuntu-slim, macos-26, windows-2025), plus the
+#     ubuntu-24.04-arm × 3.15 early-warning probe. 13 jobs.
+#   - {8.3.1, 8.4.0} click × released cloup: ubuntu-24.04-arm × {3.10, 3.14,
+#     3.14t, 3.15}. The supported Click floor and the 8.4.0 param-source
+#     regression release, verifying the >=8.3.1 range cheaply. 8 jobs.
+#   - {stable, main} click × released cloup: ubuntu-24.04-arm × {3.14, 3.14t}.
+#     4 jobs.
+#   - {released, stable, main} click × master cloup: ubuntu-24.04-arm ×
+#     {3.14, 3.14t}. 6 jobs.
+# Runner selection favors measured speed over architecture: ubuntu-24.04-arm
+# (ARM) beats ubuntu-slim (x86) by ~2x on Linux. Per OS the fastest are
+# ubuntu-24.04-arm, macos-26 (ARM), and windows-2025 (x86, faster than
+# windows-11-arm on recent Pythons); the slower-arch twins (macos-26-intel,
+# windows-11-arm) are dropped entirely.
 # Custom axes for upstream dependency testing (full matrix only).
-test-matrix.variations.click-version = [ "released", "stable", "main" ]
+test-matrix.variations.click-version = [ "8.3.1", "8.4.0", "released", "stable", "main" ]
 test-matrix.variations.cloup-version = [ "released", "master" ]
 # Set defaults for PR matrix (which has no custom axes).
 test-matrix.include = [
   { "click-version" = "released" },
   { "cloup-version" = "released" },
 ]
-# Only test non-released Click/Cloup on ARM64 runners with latest stable Python.
+# Test-matrix exclusions, grouped by policy. The shipped config (released
+# Click/Cloup on stable Python) keeps broad cross-platform coverage; every
+# forward-looking axis is pinned to ubuntu-24.04-arm, the fastest runner.
 test-matrix.exclude = [
+  # Drop the slower architecture of each dual-arch OS (measured in CI): keep
+  # Apple-silicon macOS and x86 Windows, drop Intel macOS and ARM Windows.
+  { "os" = "macos-26-intel" },
+  { "os" = "windows-11-arm" },
+  # Unreleased Click (stable, main) and Cloup (master): ubuntu-24.04-arm with
+  # the latest stable Pythons (3.14, 3.14t) only.
   { "os" = "ubuntu-slim", "click-version" = "stable" },
   { "os" = "ubuntu-slim", "click-version" = "main" },
   { "os" = "ubuntu-slim", "cloup-version" = "master" },
-  { "os" = "macos-26-intel", "click-version" = "stable" },
-  { "os" = "macos-26-intel", "click-version" = "main" },
-  { "os" = "macos-26-intel", "cloup-version" = "master" },
+  { "os" = "macos-26", "click-version" = "stable" },
+  { "os" = "macos-26", "click-version" = "main" },
+  { "os" = "macos-26", "cloup-version" = "master" },
   { "os" = "windows-2025", "click-version" = "stable" },
   { "os" = "windows-2025", "click-version" = "main" },
   { "os" = "windows-2025", "cloup-version" = "master" },
@@ -566,4 +594,18 @@ test-matrix.exclude = [
   { "python-version" = "3.15", "click-version" = "stable" },
   { "python-version" = "3.15", "click-version" = "main" },
   { "python-version" = "3.15", "cloup-version" = "master" },
+  # Supported Click floor (8.3.1) and the 8.4.0 param-source regression release:
+  # ubuntu-24.04-arm, all Pythons, released cloup only.
+  { "os" = "ubuntu-slim", "click-version" = "8.3.1" },
+  { "os" = "ubuntu-slim", "click-version" = "8.4.0" },
+  { "os" = "macos-26", "click-version" = "8.3.1" },
+  { "os" = "macos-26", "click-version" = "8.4.0" },
+  { "os" = "windows-2025", "click-version" = "8.3.1" },
+  { "os" = "windows-2025", "click-version" = "8.4.0" },
+  { "cloup-version" = "master", "click-version" = "8.3.1" },
+  { "cloup-version" = "master", "click-version" = "8.4.0" },
+  # Prerelease Python 3.15: ubuntu-24.04-arm only, as an early-warning probe.
+  { "os" = "ubuntu-slim", "python-version" = "3.15" },
+  { "os" = "macos-26", "python-version" = "3.15" },
+  { "os" = "windows-2025", "python-version" = "3.15" },
 ]
