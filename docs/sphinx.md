@@ -450,6 +450,19 @@ from click_extra.cli import demo
 invoke(demo, args=["--version"])
 ```
 
+### Capture mode
+
+`click:run` and `click:tree` execute the documented CLI through Click's test runner. On Click `8.4` and later, the output is captured at the file-descriptor level (Click's `capture="fd"` mode), so a CLI that writes through its `stdout` descriptor, such as one re-opening `sys.stdout.fileno()` to force UTF-8 output, renders normally instead of aborting the build with `io.UnsupportedOperation`.
+
+Select the capture mode with the `click_extra_run_capture` value in `conf.py`:
+
+```{code-block} python
+:caption: `conf.py`
+click_extra_run_capture = "fd"  # "fd" (default) or "sys"
+```
+
+Set it to `"sys"` to use Click's legacy in-memory capture, which exposes no file descriptor. On Click releases older than `8.4` the value is ignored, as the `capture` parameter does not exist.
+
 ### Inline tests
 
 The `click:run` directive can also be used to embed tests in your documentation.

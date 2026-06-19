@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import ast
 import contextlib
+import inspect
 import re
 import shlex
 import subprocess
@@ -56,7 +57,7 @@ from ._base import StatelessDomain, compile_directive, make_cleanup
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Iterable
-    from typing import ClassVar
+    from typing import ClassVar, Literal
 
     from sphinx.util.typing import OptionSpec
 
@@ -66,6 +67,14 @@ logger = logging.getLogger(__name__)
 
 RST_INDENT = " " * 3
 """The indentation used for rST code blocks lines."""
+
+
+_CLIRUNNER_HAS_CAPTURE = "capture" in inspect.signature(CliRunner.__init__).parameters
+"""Whether Click's :class:`~click.testing.CliRunner` accepts the ``capture`` keyword.
+
+Added in Click 8.4 to select the stream-capture strategy (``"sys"`` or ``"fd"``).
+Absent in earlier releases, where the runner's capture behavior is fixed.
+"""
 
 
 class TerminatedEchoingStdin(EchoingStdin):
@@ -139,10 +148,25 @@ class ClickRunner(CliRunner):
     ``rich-click`` uses and ``color=True`` never reaches). The MkDocs plugin shares the
     latter lever but cannot pass ``color=True``, since it patches a renderer it never
     executes.
+
+    On Click 8.4+ the runner defaults to ``capture="fd"`` (overridable through the
+    ``click_extra_run_capture`` ``conf.py`` value) so a documented command that writes
+    through ``sys.stdout.fileno()`` is captured and rendered, instead of aborting the
+    build with :exc:`io.UnsupportedOperation`.
     """
 
-    def __init__(self):
-        super().__init__(echo_stdin=True)
+    def __init__(self, capture: Literal["sys", "fd"] | None = None) -> None:
+        # capture="fd" backs the captured streams with a real file descriptor so a
+        # documented command calling sys.stdout.fileno() renders instead of crashing
+        # the build. It is the default (the click_extra_run_capture conf.py value
+        # selects it), safe at doc-build time unlike under the pytest stream
+        # duplication that got it reverted as a Click default (pallets/click#3391).
+        # Click < 8.4 lacks the parameter and needs none (8.3.3+ exposed a fileno by
+        # default; < 8.3.3 never did), so omitting it is correct.
+        if _CLIRUNNER_HAS_CAPTURE:
+            super().__init__(echo_stdin=True, capture=capture or "fd")
+        else:
+            super().__init__(echo_stdin=True)
         self.namespace = {"click": click, "__file__": "dummy.py"}
 
     @contextlib.contextmanager
@@ -370,7 +394,9 @@ class ClickDirective(SphinxDirective):
         """
         runner = getattr(self.state.document, self.runner_attr, None)
         if runner is None:
-            runner = self.runner_factory()
+            runner = self.runner_factory(
+                capture=self.env.config.click_extra_run_capture
+            )
             setattr(self.state.document, self.runner_attr, runner)
         return runner
 
@@ -649,7 +675,7 @@ class TreeDirective(SphinxDirective):
         """
         runner = getattr(self.state.document, self.runner_attr, None)
         if runner is None:
-            runner = ClickRunner()
+            runner = ClickRunner(capture=self.env.config.click_extra_run_capture)
             setattr(self.state.document, self.runner_attr, runner)
         return runner
 

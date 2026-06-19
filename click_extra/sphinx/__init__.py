@@ -79,6 +79,18 @@ the build's attack surface.
 """
 
 
+RUN_CAPTURE_CONFIG = "click_extra_run_capture"
+"""Name of the ``conf.py`` value selecting the stream-capture mode for the CLIs that
+``click:run`` and ``click:tree`` execute.
+
+Maps to the ``capture`` parameter of Click's :class:`~click.testing.CliRunner`,
+``"sys"`` or ``"fd"`` (added in Click 8.4). Defaults to ``"fd"`` so a command writing
+through ``sys.stdout.fileno()`` is captured at the file-descriptor level and renders,
+instead of aborting the build with :exc:`io.UnsupportedOperation`. Ignored on Click
+releases older than 8.4, which lack the parameter.
+"""
+
+
 def _register_exec_directives(app: Sphinx, config: Config) -> None:
     """Register the ``click:*`` and ``python:*`` directives if opted in.
 
@@ -157,6 +169,8 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     # the project's conf.py opts in. Default is `False`: build-time
     # arbitrary Python execution is off unless explicitly turned on.
     app.add_config_value(EXEC_DIRECTIVES_OPT_IN, False, "env", types=[bool])
+    # Stream-capture mode for executed click:run/click:tree CLIs (see click.py).
+    app.add_config_value(RUN_CAPTURE_CONFIG, "fd", "env", types=[str])
     app.connect("config-inited", _register_exec_directives)
 
     # Wire the man-page emit hook (see manpages.py). No-op until a project

@@ -19,12 +19,13 @@ from __future__ import annotations
 
 import os
 import re
+import sys
 from textwrap import dedent
 
 import click
 import pytest
 
-from click_extra.sphinx.click import ClickRunner
+from click_extra.sphinx.click import _CLIRUNNER_HAS_CAPTURE, ClickRunner
 
 from .conftest import HTML, DirectiveTestCase, FormatType
 
@@ -996,3 +997,41 @@ def test_clickrunner_forces_color(monkeypatch):
     # ...and the build environment is restored afterwards.
     assert os.environ.get("FORCE_COLOR") is None
     assert os.environ["NO_COLOR"] == "1"
+
+
+@pytest.mark.skipif(
+    not _CLIRUNNER_HAS_CAPTURE,
+    reason="Click < 8.4 has no capture mode for ClickRunner to select.",
+)
+@pytest.mark.parametrize(
+    ("capture", "renders"),
+    (
+        (None, True),  # No argument: defaults to "fd".
+        ("fd", True),
+        ("sys", False),
+    ),
+)
+def test_clickrunner_capture_mode_controls_fileno(capture, renders):
+    """``ClickRunner(capture=...)`` decides whether a fileno-writing CLI renders.
+
+    Click's ``"sys"`` mode backs the captured stream with an in-memory buffer whose
+    ``fileno()`` raises :exc:`io.UnsupportedOperation`, so a documented command that
+    re-opens its descriptor (a common UTF-8-on-Windows guard) aborts. ``"fd"`` (the
+    default, also exposed as the ``click_extra_run_capture`` conf.py value) backs it
+    with a real descriptor, so the command renders.
+    """
+
+    @click.command()
+    def probe():
+        # A real CLI might re-open this descriptor to force an encoding before writing.
+        sys.stdout.fileno()
+        click.echo("papaya")
+
+    result = ClickRunner(capture=capture).invoke(probe, [])
+
+    if renders:
+        assert result.exit_code == 0
+        assert "papaya" in result.output
+    else:
+        assert result.exit_code != 0
+        assert "papaya" not in result.output
