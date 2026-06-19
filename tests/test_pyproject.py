@@ -50,8 +50,13 @@ else in the axis is a pinned release number."""
 def load_click_matrix() -> tuple[SpecifierSet, list[str], set[str]]:
     """Read the Click setup from ``pyproject.toml``.
 
-    :return: the ``click`` dependency specifier, the raw ``click-version`` axis,
-        and the subset of axis entries that are pinned release numbers (sentinels
+    The ``click-version`` axis is spread across the forward-looking
+    ``test-matrix.full-include`` rows (the pinned releases and the ``stable`` /
+    ``main`` sentinels) and the ``released`` default declared in
+    ``test-matrix.include``.
+
+    :return: the ``click`` dependency specifier, the collected ``click-version``
+        axis values, and the subset that are pinned release numbers (sentinels
         start with a letter, pinned versions with a digit).
     """
     config = tomllib.loads(PYPROJECT.read_text(encoding="UTF-8"))
@@ -60,11 +65,19 @@ def load_click_matrix() -> tuple[SpecifierSet, list[str], set[str]]:
         for dep in config["project"]["dependencies"]
         if Requirement(dep).name == "click"
     )
-    variations = config["tool"]["repomatic"]["test-matrix"]["variations"][
-        "click-version"
-    ]
-    pinned = {entry for entry in variations if entry[0].isdigit()}
-    return click.specifier, variations, pinned
+    test_matrix = config["tool"]["repomatic"]["test-matrix"]
+    versions = {
+        row["click-version"]
+        for row in test_matrix.get("full-include", ())
+        if "click-version" in row
+    }
+    versions.update(
+        directive["click-version"]
+        for directive in test_matrix.get("include", ())
+        if "click-version" in directive
+    )
+    pinned = {entry for entry in versions if entry[0].isdigit()}
+    return click.specifier, sorted(versions), pinned
 
 
 def stable_pypi_versions(package: str) -> set[Version]:
@@ -92,7 +105,7 @@ def test_click_floor_is_pinned_and_sentinels_present():
     PyPI cross-check below.
     """
     specifier, variations, pinned = load_click_matrix()
-    assert pinned, "No Click release pinned in test-matrix.variations.click-version."
+    assert pinned, "No Click release pinned in test-matrix.full-include."
 
     floor = min(
         Version(spec.version)
@@ -102,15 +115,16 @@ def test_click_floor_is_pinned_and_sentinels_present():
     lowest_pin = min(Version(entry) for entry in pinned)
     assert lowest_pin == floor, (
         f"Lowest pinned Click version ({lowest_pin}) does not match the dependency "
-        f"floor (`click{specifier}` => {floor}). Keep test-matrix.variations."
-        "click-version in sync with the click specifier in [project] dependencies."
+        f"floor (`click{specifier}` => {floor}). Keep the pinned click-version rows "
+        "in test-matrix.full-include in sync with the click specifier in [project] "
+        "dependencies."
     )
 
     missing_sentinels = set(SENTINELS) - set(variations)
     assert not missing_sentinels, (
-        f"test-matrix.variations.click-version dropped the {sorted(missing_sentinels)} "
-        "sentinel(s); the latest release and Click's dev branches would stop being "
-        "tested."
+        f"The test matrix dropped the {sorted(missing_sentinels)} click-version "
+        "sentinel(s) from test-matrix.full-include / include; the latest release and "
+        "Click's dev branches would stop being tested."
     )
 
 
@@ -150,7 +164,7 @@ def test_click_matrix_matches_authorized_releases():
     assert not (missing or stale), "\n".join(
         message
         for message in (
-            f"Pin these new Click releases in test-matrix.variations.click-version: "
+            f"Pin these new Click releases as test-matrix.full-include rows: "
             f"{sorted(missing, key=Version)} (and re-check which release `released` "
             f"now covers)."
             if missing
