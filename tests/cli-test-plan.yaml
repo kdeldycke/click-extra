@@ -49,6 +49,7 @@
     - "help"
     - "prebake"
     - "run"
+    - "test-plan"
 
 
 # -- help subcommand ----------------------------------------------------------
@@ -75,6 +76,31 @@
   stdout_contains:
     - "Usage: click-extra run [OPTIONS] SCRIPT [ARGS]..."
     - "Run, or introspect, any Click CLI through Click Extra."
+
+
+# -- test-plan subcommand -----------------------------------------------------
+
+
+- cli_parameters:
+    - test-plan
+    - --help
+  exit_code: 0
+  strip_ansi: true
+  stdout_contains:
+    - "Usage: click-extra test-plan [OPTIONS]"
+    - "Run declarative CLI test cases against a command or binary."
+
+
+# Without a target, the required --command/--binary option errors out.
+- cli_parameters:
+    - test-plan
+  exit_code: 2
+  strip_ansi: true
+  stderr_contains: |
+    Usage: click-extra test-plan [OPTIONS]
+    Try 'click-extra test-plan --help' for help.
+
+    Error: Missing option '--command' / '--binary'.
 
 
 # -- prebake subcommand -------------------------------------------------------

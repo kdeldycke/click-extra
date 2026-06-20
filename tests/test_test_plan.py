@@ -206,6 +206,13 @@ def test_cli_rejects_non_integer_jobs(invoke):
     assert "banana" in result.stderr
 
 
+def test_cli_requires_command(invoke):
+    """Without --command/--binary, the subcommand errors with a usage message."""
+    result = invoke(demo, ["test-plan"])
+    assert result.exit_code == 2
+    assert "Missing option '--command' / '--binary'" in result.stderr
+
+
 def test_cli_resolves_plan_from_config(invoke, tmp_path, monkeypatch):
     """With no --plan-file, the plan comes from [tool.click-extra.test-plan]."""
     (tmp_path / "pyproject.toml").write_text(
