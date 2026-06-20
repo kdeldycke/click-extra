@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import colorsys
+import os
 import random
 import sys
 from pathlib import Path
@@ -25,24 +26,37 @@ from time import sleep
 
 import click
 import cloup
+from extra_platforms import ALL_IDS
 from wcwidth import wcswidth
 
 from . import (
     SPINNERS,
+    Choice,
     ClickException,
     Color,
+    FloatRange,
+    IntRange,
     Spinner,
     SpinnerPreset,
     argument,
     context,
     echo,
+    file_path,
     group,
+    jobs_option,
     option,
     pass_context,
     style,
 )
 from .colorize import _nearest_256
+from .envvar import merge_envvar_ids
 from .table import print_table
+from .test_plan import (
+    DEFAULT_TEST_PLAN,
+    CLITestCase,
+    parse_test_plan,
+    run_test_plan,
+)
 from .version import (
     GIT_FIELDS,
     _find_dunder_str,
@@ -102,6 +116,130 @@ def demo():
 
 
 demo.add_command(wrap_cmd)
+
+
+@demo.command(name="test-plan")
+@option(
+    "--command",
+    "--binary",
+    required=True,
+    metavar="COMMAND",
+    help="Path to the binary file to test, or a command line to be executed.",
+)
+@option(
+    "-F",
+    "--plan-file",
+    type=file_path(exists=True, readable=True, resolve_path=True),
+    multiple=True,
+    metavar="FILE_PATH",
+    help="Path to a test plan file in YAML. Repeat to run multiple plans in "
+    "sequence. Without any plan source, a built-in default plan runs.",
+)
+@option(
+    "-E",
+    "--plan-envvar",
+    multiple=True,
+    metavar="ENVVAR_NAME",
+    help="Name of an environment variable holding a test plan in YAML. Repeat "
+    "to collect multiple plans.",
+)
+@option(
+    "-t",
+    "--select-test",
+    type=IntRange(min=1),
+    multiple=True,
+    metavar="INTEGER",
+    help="Only run the cases with these 1-based numbers. Repeat to select "
+    "several; omit to run them all.",
+)
+@option(
+    "-s",
+    "--skip-platform",
+    type=Choice(sorted(ALL_IDS), case_sensitive=False),
+    multiple=True,
+    help="Skip cases on these platforms. Repeat to skip several.",
+)
+@option(
+    "-x",
+    "--exit-on-error",
+    is_flag=True,
+    default=False,
+    help="Exit instantly on the first failed case (sequential runs only).",
+)
+@jobs_option
+@option(
+    "-T",
+    "--timeout",
+    type=FloatRange(min=0, clamp=True),
+    metavar="SECONDS",
+    help="Default timeout for each CLI call, unless the case sets its own.",
+)
+@option(
+    "--show-trace-on-error/--hide-trace-on-error",
+    default=True,
+    help="Show the execution trace of failed cases.",
+)
+@option(
+    "--stats/--no-stats",
+    is_flag=True,
+    default=True,
+    help="Print the worker summary and the result tally.",
+)
+@pass_context
+def test_plan_cmd(
+    ctx: context.Context,
+    command: str,
+    plan_file: tuple[Path, ...],
+    plan_envvar: tuple[str, ...],
+    select_test: tuple[int, ...],
+    skip_platform: tuple[str, ...],
+    exit_on_error: bool,
+    timeout: float | None,
+    show_trace_on_error: bool,
+    stats: bool,
+) -> None:
+    """Run declarative CLI test cases against a command or binary.
+
+    Loads test plans from YAML files (--plan-file) or environment variables
+    (--plan-envvar), falling back to a built-in default. Each case invokes the
+    target with its parameters and checks the exit code and output.
+
+    Cases run in parallel by default (see --jobs): each is an independent
+    process invocation, so they overlap well. Pass --jobs max to use every
+    logical core, or --jobs 1 for sequential execution, which lets
+    --exit-on-error stop on the first failure.
+
+    On an interactive terminal a spinner reports how many cases have finished.
+    It stays silent in pipes and CI logs, and --no-progress or --accessible
+    turns it off.
+    """
+    # click-extra's --jobs option stores its resolved worker count on the
+    # context; read it and hand it to the runner.
+    worker_count = context.get(ctx, context.JOBS, 1)
+
+    # Collect cases: --plan-file and --plan-envvar in order, else the default.
+    cases: list[CLITestCase] = []
+    for plan in plan_file:
+        cases.extend(parse_test_plan(plan.read_text(encoding="UTF-8")))
+    for envvar_id in merge_envvar_ids(plan_envvar):
+        cases.extend(parse_test_plan(os.getenv(envvar_id)))
+    if not cases:
+        cases = DEFAULT_TEST_PLAN
+
+    counter = run_test_plan(
+        command,
+        cases,
+        jobs=worker_count,
+        select_test=select_test,
+        skip_platform=skip_platform,
+        timeout=timeout,
+        exit_on_error=exit_on_error,
+        show_trace_on_error=show_trace_on_error,
+        stats=stats,
+        show_progress=context.get(ctx, context.PROGRESS, True),
+    )
+    if counter["failed"]:
+        ctx.exit(1)
 
 
 _ALL_STYLES = (

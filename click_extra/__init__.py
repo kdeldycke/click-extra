@@ -189,6 +189,13 @@ from .table import (
     serialize_data,
 )
 from .telemetry import TelemetryOption
+from .test_plan import (
+    DEFAULT_TEST_PLAN,
+    CLITestCase,
+    SkippedTest,
+    parse_test_plan,
+    run_test_plan,
+)
 from .testing import CliRunner, Result
 from .theme import (
     BUILTIN_THEMES,
@@ -208,6 +215,7 @@ __all__ = [
     "CPU_COUNT",
     "DEFAULT_JOBS",
     "DEFAULT_SUBCOMMANDS_KEY",
+    "DEFAULT_TEST_PLAN",
     "EXTENSION_METADATA_KEY",
     "FLOAT",
     "INT",
@@ -225,6 +233,7 @@ __all__ = [
     "BadArgumentUsage",
     "BadOptionUsage",
     "BadParameter",
+    "CLITestCase",
     "Choice",
     "ChoiceSource",
     "CliRunner",
@@ -279,6 +288,7 @@ __all__ = [
     "Section",
     "SectionMixin",
     "ShowParamsOption",
+    "SkippedTest",
     "SortByOption",
     "Spinner",
     "SpinnerPreset",
@@ -345,6 +355,7 @@ __all__ = [
     "open_file",
     "option",
     "option_group",
+    "parse_test_plan",
     "pass_context",
     "pass_obj",
     "password_option",
@@ -363,6 +374,7 @@ __all__ = [
     "render_table",
     "run_config_validation",
     "run_jobs",
+    "run_test_plan",
     "search_params",
     "secho",
     "select_columns",

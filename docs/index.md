@@ -31,6 +31,7 @@ screenshots
 envvar
 decorators
 testing
+test-plan
 pytest
 wrap
 man-page
